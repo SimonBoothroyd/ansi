@@ -26,7 +26,7 @@
 // exactly this reason — never add one to a strip set to make a match work.
 
 /** Articles and filler words carrying no identity. */
-const FILLER = new Set(["a", "an", "the", "of", "or", "and"]);
+const FILLER = new Set(["a", "an", "the", "of", "or", "and", "desired"]);
 
 /** Container / measure / vague-amount words — quantity, not identity. */
 const MEASURES = new Set([
@@ -118,6 +118,14 @@ const MEASURES = new Set([
   "glug",
   "sprinkle",
   "drizzle",
+  "pack",
+  "packs",
+  "block",
+  "blocks",
+  "batch",
+  "batches",
+  "spoonful",
+  "spoonfuls",
 ]);
 
 /** Size adjectives — they scale the amount, not the ingredient. */
@@ -137,6 +145,7 @@ const PREP_ADVERBS = new Set([
   "generous",
   "packed",
   "drizzling",
+  "very",
 ]);
 
 /**
@@ -236,7 +245,9 @@ export function normalize(ingredientText: string): string {
 /** Sorts one segment's words into identity nouns vs trailing state words. */
 function classify(segment: string, nouns: string[], states: string[]): void {
   for (const raw of segment.split(/\s+/)) {
-    const word = raw.replace(/[^a-z0-9¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞/]/g, "");
+    // Keep any unicode letter/number (so "jalapeño" survives, not "jalapeo");
+    // strip only punctuation. Fraction glyphs are kept for the QUANTITY test.
+    const word = raw.replace(/[^\p{L}\p{N}/¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞]/gu, "");
     if (!word) continue;
     if (QUANTITY.test(word)) continue;
     if (
@@ -254,7 +265,9 @@ function singularize(word: string): string {
   // Words that look plural but aren't: boneless, asparagus, molasses, …
   if (/(ss|us|is|ous)$/.test(word)) return word;
   if (/ies$/.test(word) && word.length > 4) return word.slice(0, -3) + "y";
-  if (/ves$/.test(word)) return word.slice(0, -3) + "f";
+  // No general -ves→-f rule: most food -ves are plain -s plurals (chives→chive,
+  // olives→olive). The genuine -ves→-f words (leaf, loaf, half, knife) are in
+  // IRREGULAR_PLURALS above; falling through to -s handles the rest.
   if (/(ch|sh|x|z|s)es$/.test(word)) return word.slice(0, -2);
   if (/oes$/.test(word)) return word.slice(0, -2);
   if (/s$/.test(word)) return word.slice(0, -1);

@@ -28,6 +28,15 @@ Deno.test("normalize — singularization edge cases", () => {
   assertEquals(normalize("tomatoes"), "tomato");
   assertEquals(normalize("berries"), "berry");
   assertEquals(normalize("asparagus"), "asparagus"); // not a plural
+  // -ves: plain -s plurals, not -f (the regression that made "chives"→"chif")
+  assertEquals(normalize("chives"), "chive");
+  assertEquals(normalize("olives"), "olive");
+  assertEquals(normalize("bay leaves"), "bay leaf"); // genuine -ves→-f (irregular)
+});
+
+Deno.test("normalize — preserves unicode letters", () => {
+  assertEquals(normalize("jalapeño"), "jalapeño"); // not "jalapeo"
+  assertEquals(normalize("2 jalapeños, diced"), "jalapeño");
 });
 
 Deno.test("normalize — hyphenated compounds split into words", () => {

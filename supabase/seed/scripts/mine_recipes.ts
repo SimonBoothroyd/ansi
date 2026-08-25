@@ -328,7 +328,9 @@ export function aggregate(labels: GoldLabel[]): Candidate[] {
 }
 
 function titleCase(s: string): string {
-  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+  // Capitalize the first letter of each word. Unicode-aware so "jalapeño"
+  // becomes "Jalapeño", not "JalapeñO" (a \b\w boundary falls after "ñ").
+  return s.replace(/(^|\s)(\p{L})/gu, (_m, pre, ch) => pre + ch.toUpperCase());
 }
 
 /**
