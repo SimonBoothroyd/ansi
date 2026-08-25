@@ -13,15 +13,26 @@ Density fallback: FDC food portions first, then FAO/INFOODS Density DB v2.0.
 ## Building the household vocabulary (`scripts/mine_recipes.ts`)
 
 The initial `ingredient` vocab is mined from recipes you actually cook, not typed
-by hand. Deterministically (no AI — JSON-LD is structured):
+by hand. The pipeline is deterministic where correctness demands it, with an LLM
+pass only for offline judgment (never in the runtime matcher — ADR-0004):
 
 1. Paste recipe URLs into `scripts/recipe_urls.txt` (one per line).
 2. `cd scripts && deno task mine` — fetches each, reads schema.org/Recipe
-   JSON-LD, parses ingredient lines, and normalizes them with the shared §7
-   normalizer (so seed and live cascade agree).
-3. Review `scripts/out/vocab_candidates.csv` (deduped, sorted by frequency) and
-   curate the rows you want into `seed.sql`. `out/` is git-ignored — the curated
-   `seed.sql` is what's committed, not the raw run.
+   JSON-LD, parses ingredient lines, normalizes with the shared §7 normalizer,
+   and writes the raw mining outputs to `scripts/out/` (git-ignored; regenerable).
+3. **Curate** `out/gold_labels.jsonl` into the true vocabulary — resolving the
+   judgment cases rules can't (a choice like "avocado or sunflower oil" becomes
+   *two* ingredients; "fat garlic" folds into Garlic as an alias). This produced
+   `vocab.jsonl` (committed — it's judgment, not regenerable). See the flow that
+   built it in the git history / `out/audit.md`.
+4. `deno task gen-seed` — deterministically turns `vocab.jsonl` into
+   `../seed.sql`, computing each `match_text` with the shared normalizer (so
+   stored keys stay symmetric with the runtime cascade) and failing on
+   collisions. Everything seeds `status='stub'` (density/macros come later).
+5. `supabase db reset` applies it.
+
+`vocab.jsonl` is the source of truth; edit it and re-run `gen-seed` to change the
+seed — never hand-edit `seed.sql`.
 
 It also emits `gold_labels.jsonl` (for `evals/`), `needs_fallback.txt` (URLs
 without JSON-LD, held for the step-8 photo path), `parse_failures.jsonl`, and
