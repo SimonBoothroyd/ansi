@@ -1,0 +1,154 @@
+Shared, offline-capable recipe + meal-planning app for a two-person household. Better Paprika/Umami with a clean modern UI and light AI import.
+
+---
+
+## 1. Scope
+
+**Core (v1):**
+- Shared recipes, ingredients, meal plans, shopping lists across two users, offline-tolerant
+- Controlled ingredient vocabulary (no free-text typos), expandable in-app, with macros
+- Rich unit specification + conversion (incl. volume↔weight via density)
+- Recipe books with **user-definable** sections; beautiful recipe pages with ingredient grouping ("for the sauce")
+- Recipe scaling
+- **Meal planning** — a single active **week** (plan → cook → reset), not a calendar; multiple meals per slot; per-meal eaters
+- **Batch cook plan (derived)** — aggregates the week's meals by recipe and shows what portion size to cook; splits a dish into separate cook sessions when it's planned beyond its shelf life
+- **Recipe shelf life** — how long a dish keeps; drives batch splitting + freshness
+- **Shopping list generated from the batch cook plan**, auto-aggregated, with per-ingredient provenance
+- AI/deterministic import from webpage + photo, with ingredient matching
+
+**Stretch:** web UI · barcode-add ingredient · computed recipe macros in UI · freezer-aware batching · variety/monotony warnings · package-size waste flags
+
+---
+
+## 2. Architecture — DECIDED
+
+| Layer | Choice | Notes |
+|---|---|---|
+| App framework | **Flutter** | Android now, web stretch nearly free. Impeller = smooth 60/120fps. |
+| UI components | **Forui** (shadcn-style, free/OSS) | Alt: shadcn_ui port, or Material 3. FL Chart (free) for macro charts. |
+| Backend | **Supabase** (Postgres + Auth + Storage) | Free tier: 2 projects, 500MB DB. Put recipe photos in Storage, not the DB. |
+| Sync | **PowerSync** | Bidirectional; local SQLite + offline upload queue; native Supabase integration. Free tier: 2GB synced/mo, 50 connections. Open Edition self-hostable if needed. |
+| Auth | **Google OAuth** via Supabase Auth | Anyone added needs a Google account. |
+
+**Gotchas:**
+- Idle Supabase instances can have runaway WAL growth with PowerSync — set a smaller `max_wal_size` for a hobby project.
+- Supabase free tier pauses after ~1 week idle; just resume it.
+
+---
+
+## 3. Sync model
+
+Single shared household dataset; both members full read/write; everything scoped to `household_id`.
+
+- **PowerSync handles the write queue** — app reads/writes local SQLite, syncs when online.
+- **Conflict resolution** (implemented in backend): list contributions and recipes are independent rows, so concurrent *adds* union and never collide. Field edits = last-write-wins (fine for two trusted users). Deletes = soft-delete tombstones.
+- No CRDTs / text-merge needed.
+
+---
+
+## 4. Core data model
+
+### Household & members
+- `household: id · name`
+- `household_member: id · household_id · display_name · auth_user_id` — the two named people. `eaters[]` on a meal references these.
+
+### Unit system (build FIRST — everything depends on it)
+- Families: `mass`, `volume`, `count`, `imprecise` (pinch, dash, to taste)
+- Canonical base: **grams** (mass), **ml** (volume)
+- Within-family = fixed ratio table; volume↔mass = via ingredient `density_g_per_ml`
+- Imprecise units: non-scaling, non-converting flag
+
+### Ingredient
+`id · canonical_name · aliases[] · category · density_g_per_ml (nullable) · macros_per_100g {kcal, protein, carb, fat} (nullable) · default_unit · status (complete | stub) · source (usda_fdc_id | manual | barcode)`
+- `status = stub` → drives the "needs fleshing out" queue + honest macro math.
+- Seed from USDA FoodData Central **Foundation Foods + SR Legacy** (CC0). Density from FDC food portions, fallback FAO/INFOODS Density DB v2.0.
+
+### Recipe
+`id · title · book_id · section (user-defined label) · servings_base · ingredient_groups[] · steps[]`
+- **ingredient_group:** `name · line_items[]`
+- **line_item:** `ingredient_id · quantity · unit`
+- Scaling = quantity × factor (imprecise units left as-is).
+
+### Recipe book & sections
+`book: id · name` · `section: user-defined label` (NOT a fixed preset enum).
+- v1 assumption: a recipe lives in one book. (Multi-book many-to-many = open question, low priority.)
+
+### Meal plan (week-based) — the INPUT
+- `week_plan: id · household_id · week_start_date · label`
+  - One active week; past weeks archived (cheap) → "copy last week" / reuse. Single-week grid UI, no calendar.
+- `plan_entry: id · week_plan_id · day_of_week · meal_slot (user-definable) · recipe_id · eaters[] (→ household_member ids)`
+  - You just say *what you want to eat* per meal — no batch/leftover thinking here.
+  - **Multiple entries per (day, slot) allowed** → different breakfasts, office-lunch-for-one, etc.
+  - Demand for an entry = `|eaters|` portions. (Optional refinement: per-entry `portions_override` for big/small appetites.)
+
+### Batch cook plan (DERIVED) — the second view
+Groups the week's `plan_entry` rows **by recipe**, then splits each group into **cook sessions** bounded by shelf life:
+- `cook_session (derived): recipe_id · covers[] (plan_entry ids) · cook_day (default = earliest covered day, user-adjustable) · total_portions (Σ eaters over covered) · scale_factor (total_portions / recipe.servings_base)`
+- **Clustering rule (greedy, not a solver):** sort the days a dish appears; start a session at the first; include each later day within `keeps_for_days`; open a new session when one falls outside. O(n log n).
+- **"Same dish too far apart" → two things to cook**, each labelled why ("keeps 4 days"). Replaces manual leftover linking — batching is derived from demand, not hand-assigned.
+- **Scaling helpers apply to the session batch:** whole-ingredient scaling nudges `scale_factor` so key ingredients stay whole. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
+- **Freezer (stretch):** if `recipe.freezable`, distant instances can merge into one session (cook once, freeze portions) instead of splitting.
+
+### Recipe additions for the above
+- `keeps_for_days` (fridge shelf life) — **core**; drives clustering + freshness.
+- `freezable` (bool) · `freezer_days` (nullable) — stretch; extends/merges clustering.
+
+### Shopping list (provenance-aware)
+- `shopping_list_entry: id · household_id · ingredient_id (nullable) · free_text (non-ingredients, e.g. "paper towels") · checked · unit`  ← one per ingredient; holds check-off state
+- `shopping_list_contribution: id · entry_id · source_type (cook_session | manual) · source_cook_session_id (nullable) · quantity · unit`  ← the breakdown
+
+**Behavior:**
+- Generate from the **batch cook plan** → one contribution per (cook_session, ingredient), quantity = ingredient × session `scale_factor`.
+- Display groups by ingredient, sums contributions in canonical base (density-converted), shows breakdown: *"Flour — 500g · Curry batch (cook Mon) 300g · Cookies 150g · +50g manual."*
+- **Top up** = add a `manual` contribution to an existing entry.
+- **Check-off** = on the entry (rolled-up ingredient), not per contribution.
+- Contributions are the stored truth; the total is derived → clean sync + free provenance.
+- Batching is resolved in the cook plan, so each dish is bought once at its batch size (no double-buying, no manual leftover bookkeeping).
+
+---
+
+## 5. Feature specs
+
+**Import (webpage):** parse schema.org/Recipe JSON-LD first (no AI). LLM fallback for messy pages.
+**Import (photo):** vision model → structured lines. Both feed one reconciliation screen.
+**Reconciliation screen (matching, not free text):**
+- Confident auto-match → shown with an "undo / wrong match" affordance to correct it
+- Medium confidence → "did you mean?" suggestions
+- No match → "add new" → creates a **stub** → lands in fleshing-out queue
+
+**Fleshing-out queue:** list of stub ingredients needing density/macros before they count toward conversions or macro totals.
+
+---
+
+## 6. Data sources
+
+| Need | Source | License |
+|---|---|---|
+| Macros / canonical ingredients | USDA FoodData Central (Foundation Foods + SR Legacy) | CC0 |
+| Volume↔weight density | FDC food portions (primary) + FAO/INFOODS Density DB v2.0 (fallback) | CC0 / open |
+| Barcode → product (stretch) | Open Food Facts | ODbL |
+
+---
+
+## 7. Build sequence (reordered for meal-planning core)
+
+1. **Unit + ingredient data model** (seed USDA, wire conversions incl. density)
+2. **Single-user recipes** (create → group ingredients → scale → beautiful recipe page)
+3. **Recipe books + user-defined sections**
+4. **Week planning** (single-week grid; multiple entries/slot; eaters; copy-last-week)
+5. **Batch cook plan** (aggregate by recipe; shelf-life clustering into cook sessions; adjustable cook day; whole-ingredient scaling)
+6. **Shopping list from cook plan** (contributions per cook_session → aggregation → provenance → check-off + manual top-up)
+7. **Sync layer** (PowerSync + household + offline queue) — can begin in parallel once the schema in 1–6 stabilizes
+8. **AI/deterministic import** (JSON-LD → photo → reconciliation → stub queue)
+9. **Computed macros in UI** (stretch; "incomplete" when stubs present)
+10. **Web UI** (stretch; nearly free given Flutter)
+11. **Anti-waste extras** (stretch; freezer-aware batching, variety/monotony warnings, package-size flags)
+
+---
+
+## 8. Remaining open questions (low priority)
+
+- [ ] Per-entry `portions_override` for big/small appetites, or `|eaters|` only?
+- [ ] Can a recipe belong to multiple books? (v1 assumes one)
+- [ ] Meal slots: fixed set or fully user-definable? (assumed user-definable)
+- [ ] Freezer-aware batching in v1 or stretch? (assumed stretch)

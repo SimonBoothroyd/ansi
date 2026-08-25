@@ -1,0 +1,20 @@
+name: evals
+
+# The matching eval is a calibration tool (see import-and-matching.md §11),
+# not a merge gate — it runs on demand and nightly, and reports drift.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+
+jobs:
+  matching-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Run matching eval
+        working-directory: evals
+        run: ./runner/run.sh

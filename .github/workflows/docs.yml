@@ -1,0 +1,15 @@
+name: docs
+
+on:
+  push:
+    paths: ["**/*.md", "scripts/check_docs.sh", ".github/workflows/docs.yml"]
+  pull_request:
+    paths: ["**/*.md", "scripts/check_docs.sh", ".github/workflows/docs.yml"]
+
+jobs:
+  knowledge-base:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check knowledge base integrity
+        run: ./scripts/check_docs.sh

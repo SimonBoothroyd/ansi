@@ -1,0 +1,38 @@
+name: app
+
+on:
+  push:
+    paths: ["app/**", ".github/workflows/app.yml"]
+  pull_request:
+    paths: ["app/**", ".github/workflows/app.yml"]
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.x
+          cache: true
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: dart format --set-exit-if-changed .
+      - run: flutter analyze
+      - run: dart run custom_lint
+      - run: flutter test --coverage
+      - name: Enforce domain purity (no Flutter imports in domain/units)
+        run: |
+          if grep -rEl "package:flutter/" lib/core/units lib/features/*/domain 2>/dev/null; then
+            echo "::error::domain/units layer must be pure Dart (no package:flutter imports)"
+            exit 1
+          fi
+      - uses: codecov/codecov-action@v4
+        with:
+          files: app/coverage/lcov.info
+        continue-on-error: true

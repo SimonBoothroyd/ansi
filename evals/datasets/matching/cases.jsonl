@@ -1,0 +1,5 @@
+{"raw":"2 large Onions, diced","expect_normalized":"onion","expect_match":"Yellow onion","expect_band":"auto"}
+{"raw":"Chicken thighs, boneless","expect_normalized":"chicken thigh boneless","expect_match":"Chicken thigh, boneless","expect_band":"auto"}
+{"raw":"1 can coconut milk","expect_normalized":"coconut milk","expect_match":"Coconut milk, canned","expect_band":"suggest"}
+{"raw":"fresh ginger, grated","expect_normalized":"ginger fresh","expect_match":"Ginger, fresh","expect_band":"auto"}
+{"raw":"a handful of curry leaves","expect_normalized":"curry leaf","expect_match":null,"expect_band":"none"}

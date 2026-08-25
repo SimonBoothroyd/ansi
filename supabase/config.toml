@@ -1,0 +1,20 @@
+# Minimal local config. `supabase init` will expand this; kept lean for the scaffold.
+project_id = "mise"
+
+[db]
+port = 54322
+major_version = 15
+
+[auth]
+enable_signup = true
+# Google OAuth (ADR-0002) — configure the provider + secrets locally, not here.
+# [auth.external.google]
+# enabled = true
+
+[api]
+port = 54321
+schemas = ["public"]
+
+# PowerSync needs asymmetric JWTs + (for the demo pattern) anonymous sign-in.
+# See the powersync-community/flutter-powersync-supabase starter.
+# signing_keys_path = "./signing_keys.json"

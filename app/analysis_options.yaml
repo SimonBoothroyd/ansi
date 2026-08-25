@@ -1,0 +1,26 @@
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  plugins:
+    - custom_lint
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "build/**"
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
+  errors:
+    # Generated code and codegen-adjacent noise shouldn't fail the build.
+    invalid_annotation_target: ignore
+
+linter:
+  rules:
+    # Project conventions on top of very_good_analysis:
+    public_member_api_docs: false   # relax for app code (not a published package)
+    prefer_relative_imports: true
+    always_use_package_imports: false
+    sort_pub_dependencies: false    # pubspec deps are grouped by purpose, not A–Z

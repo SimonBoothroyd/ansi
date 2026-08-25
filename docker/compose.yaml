@@ -1,0 +1,16 @@
+# Local PowerSync service for development. Mirrors the layout of the
+# powersync-community/flutter-powersync-supabase starter. Reads .env.local.
+services:
+  powersync:
+    image: journeyapps/powersync-service:latest
+    container_name: mise-powersync
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./powersync.yaml:/config/powersync.yaml:ro
+    command: ["-config", "/config/powersync.yaml"]
+    environment:
+      # Point at the local Supabase Postgres started by `supabase start`.
+      PS_SUPABASE_URL: ${SUPABASE_URL}
+      PS_PG_URL: ${POWERSYNC_PG_URL:-}

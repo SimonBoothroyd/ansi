@@ -1,0 +1,67 @@
+name: mise
+description: A shared, offline-first recipe and meal-planning app for two.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI — shadcn-style widgets (requires Flutter 3.44+) + Lucide icons
+  forui: ^0.22.0
+  forui_hooks: ^0.22.0
+  flutter_hooks: ^0.21.0
+
+  # State + DI + navigation (ADR-0003)
+  hooks_riverpod: ^3.0.0
+  riverpod_annotation: ^3.0.0
+  go_router: ^16.0.0
+
+  # Models
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.9.0
+
+  # Backend + offline sync (ADR-0002)
+  supabase_flutter: ^2.8.0
+  powersync: ^1.9.0
+
+  # Utilities
+  collection: ^1.19.0
+  meta: ^1.16.0            # @immutable etc. (used in core/result)
+  # fl_chart: ^0.69.0   # stretch: macro charts (spec §7 step 9)
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+  # Lints — strict ruleset + Riverpod-aware lints.
+  # riverpod_lint is capped below 3.1.0: 3.1.x moved its plugin entrypoint and
+  # needs a newer custom_lint than the 0.8.x that riverpod_generator 3.0 pins,
+  # so the whole custom_lint stack stays on the coherent 3.0.x / 0.8.x generation.
+  very_good_analysis: ^7.0.0
+  custom_lint: ^0.8.1
+  riverpod_lint: ">=3.0.0 <3.1.0"
+
+  # Codegen
+  build_runner: ^2.4.0
+  riverpod_generator: ^3.0.0
+  freezed: ^3.0.0
+  json_serializable: ^6.9.0
+
+  # Test helpers
+  mocktail: ^1.0.0
+
+flutter:
+  uses-material-design: true
+  # assets:
+  #   - assets/
+
+# NOTE: version constraints use caret ranges with recent floors. Run
+# `flutter pub get` then `flutter pub outdated` on first checkout and let the
+# resolver pick concrete versions; bump floors here if a resolve conflict shows.

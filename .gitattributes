@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+docs/product-specs/design-board.html linguist-documentation
