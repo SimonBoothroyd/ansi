@@ -261,9 +261,11 @@ Rules:
 
 - **Lowercase.**
 - **Singularize** — "onions" → "onion". High value.
-- **Strip the trailing comma modifier** — "chicken thighs, boneless" → "chicken thigh".
-- **Strip prep verbs that never change identity** — chopped, diced, minced, sliced, grated.
+- **Drop leading quantity, container, and size words** — "2", "a can", "large": amount, not identity.
+- **Strip prep verbs that never change identity** — chopped, diced, minced, sliced, grated — whether space- or comma-separated ("onions, diced" → "onion").
+- **KEEP a comma modifier when it's a form/state word** — "chicken thighs, boneless" → "chicken thigh boneless". Only prep modifiers are stripped; a form/state modifier stays (it changes what the thing is).
 - **KEEP form/state words that do change identity** — this is the common own-goal. "fresh ginger" ≠ "ground ginger"; "coconut milk, canned" ≠ "coconut cream". Over-aggressive stripping collapses distinct ingredients.
+- **Canonical word order: noun first, state words trailing** — so "fresh ginger" and "ginger, fresh" both land on "ginger fresh".
 
 Worked examples:
 
@@ -273,6 +275,11 @@ Worked examples:
 | "Chicken thighs, boneless" | "chicken thigh boneless" |
 | "1 can coconut milk" | "coconut milk" |
 | "fresh ginger, grated" | "ginger fresh" |
+
+Implemented in `supabase/functions/_shared/normalize.ts` — the single shared
+normalizer the cascade, the row writer, and the batch seed pipeline all call
+(one source, or symmetry breaks). Its word sets are the strip/keep lists above;
+the eval harness scores it against `evals/datasets/matching/cases.jsonl`.
 
 ---
 

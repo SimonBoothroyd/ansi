@@ -13,7 +13,7 @@ the roadmap agents and humans read first.
 | 5 | Batch cook plan — aggregate by recipe, shelf-life clustering, adjustable cook day | `app/lib/features/cook_plan` | ⚪ not started |
 | 6 | Shopping list from cook plan — contributions, aggregation, provenance, check-off | `app/lib/features/shopping` | ⚪ not started |
 | 7 | Sync layer — PowerSync + household + offline queue (parallel once 1–6 schema stabilises) | `app/lib/core/sync`, `docker/` | 🟡 scaffolded: schema/connector stubs in place |
-| 8 | AI/deterministic import — JSON-LD → photo → reconciliation → stub queue | `supabase/functions`, `app/lib/features/import` | 🟡 scaffolded: normalization + cascade contract stubbed |
+| 8 | AI/deterministic import — JSON-LD → photo → reconciliation → stub queue | `supabase/functions`, `app/lib/features/import` | 🟡 normalization (§7) implemented + eval-scored; cascade/extraction still stubbed |
 | 9 | Computed macros in UI (stretch) | `app/lib/features/recipes` | ⚪ stretch |
 | 10 | Web UI (stretch; near-free with Flutter) | `app/web` | ⚪ stretch |
 | 11 | Anti-waste extras (stretch) — freezer batching, monotony warnings, package-size flags | — | ⚪ stretch |

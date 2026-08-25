@@ -102,5 +102,6 @@ code is done: `lib/core/units/units.dart` is implemented and tested (the
 reference example of the intended style — read it before writing new `core/`
 code), and the ingredient data model landed in `supabase/migrations/0001–0002`.
 What's left in step 1 is *data*: the USDA reference seed and the household-vocab
-seed (the recipe-mining pipeline), both blocked on the shared §7 normalizer.
+seed (the recipe-mining pipeline). Both feed `match_text` through the shared §7
+normalizer (`supabase/functions/_shared/normalize.ts`), which is now implemented.
 Steps 2+ are empty feature folders awaiting work.
