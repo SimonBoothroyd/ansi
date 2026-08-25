@@ -88,6 +88,9 @@ Two lookups that look similar but are different jobs (design doc §10):
 Matching against a couple hundred ingredients the household actually uses is
 high-precision; matching against 8k SR Legacy rows is not.
 
+Both tables (+ `ingredient_alias`) live in `supabase/migrations/0002`; the rows
+that fill them (the two seeds) are the remaining step-1 work.
+
 ## Data flow: plan → cook → shop
 
 The whole product is one derivation pipeline (spec §4):

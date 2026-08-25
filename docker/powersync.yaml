@@ -2,9 +2,10 @@
 # These MUST mirror the RLS boundaries (docs/SECURITY.md): a device only ever
 # syncs its own household's data, and never server-only tables (usda_food).
 #
-# STUB — bucket definitions are added as domain tables land (roadmap step 7).
-# The pattern (household-scoped): parameter the household_id from the JWT, then
-# select each synced table where household_id = the token's household.
+# Bucket definitions grow as domain tables land; the `replication.connections`
+# wiring (the actual connector + token) is still step 7. The pattern is
+# household-scoped: parameter the household_id from the JWT, then select each
+# synced table where household_id = the token's household.
 
 replication:
   # Configured against the local Supabase Postgres; see docker/compose.yaml.
@@ -12,11 +13,13 @@ replication:
 
 sync_rules:
   bucket_definitions:
-    # household:
-    #   parameters: select request.jwt() ->> 'household_id' as household_id
-    #   data:
-    #     - select * from ingredient        where household_id = bucket.household_id
-    #     - select * from ingredient_alias  where household_id = bucket.household_id
-    #     - select * from recipe            where household_id = bucket.household_id
-    #     # NOTE: usda_food is NEVER listed here — server-side only (ADR-0005).
-    {}
+    # One bucket per household; the connector (step 7) supplies the token whose
+    # household_id parameters it. Tables here mirror the RLS boundaries in
+    # migrations 0001–0002. usda_food is NEVER listed — server-only (ADR-0005).
+    household:
+      parameters: select request.jwt() ->> 'household_id' as household_id
+      data:
+        - select * from household         where id = bucket.household_id
+        - select * from household_member  where household_id = bucket.household_id
+        - select * from ingredient        where household_id = bucket.household_id
+        - select * from ingredient_alias  where household_id = bucket.household_id

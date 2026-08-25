@@ -25,5 +25,10 @@ Hobby scale, but the basics are non-negotiable.
 
 - [ ] `household_id` column + FK
 - [ ] RLS enabled with select/insert/update policies scoped to the caller's household
+- [ ] **Explicit GRANTs** matching those policies — RLS filters rows, but a role
+      still needs the base grant to reach the table (local default privileges
+      only auto-grant `Dxt`). Grant `authenticated` what its policies allow (no
+      `delete` — deletes are soft), `grant all` to `service_role`, and grant
+      server-only tables to no client role. See `migrations/0002_ingredients.sql`.
 - [ ] Added to the PowerSync publication and sync rules (`docker/powersync.yaml`)
 - [ ] No secret or PII in a synced column that shouldn't leave the server

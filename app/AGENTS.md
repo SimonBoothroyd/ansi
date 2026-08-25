@@ -97,9 +97,10 @@ make run        # flutter run with --dart-define from .env.local
 
 ## Current focus
 
-See [`../docs/exec-plans/roadmap.md`](../docs/exec-plans/roadmap.md). Step 1 (the
-unit system) is the next thing to build: `lib/core/units/units.dart` currently
-ships the *contract only* (no logic), and its tests in `test/core/units/` are
-`skip`ped until it lands. Implement it against those golden values — it's meant
-to be the reference example of the intended style. Steps 2+ are empty feature
-folders awaiting work.
+See [`../docs/exec-plans/roadmap.md`](../docs/exec-plans/roadmap.md). Step 1's
+code is done: `lib/core/units/units.dart` is implemented and tested (the
+reference example of the intended style — read it before writing new `core/`
+code), and the ingredient data model landed in `supabase/migrations/0001–0002`.
+What's left in step 1 is *data*: the USDA reference seed and the household-vocab
+seed (the recipe-mining pipeline), both blocked on the shared §7 normalizer.
+Steps 2+ are empty feature folders awaiting work.
