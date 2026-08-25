@@ -1,28 +1,68 @@
 import 'package:flutter_test/flutter_test.dart';
-
-// When the unit system lands (roadmap step 1), import it and remove the skip.
-// import 'package:mise/core/units/units.dart';
+import 'package:mise/core/result/result.dart';
+import 'package:mise/core/units/units.dart';
 
 void main() {
-  group('unit system', () {
-    // These describe the intended behaviour up front (spec §4). They're skipped
-    // until step 1 implements `lib/core/units/units.dart`. Golden values here are
-    // pre-verified, so implementing to make them pass is safe.
-    test('converts within a family (1 kg == 1000 g)', () {
-      // expect(convert(Quantity(1, kg), to: g).valueOrNull?.amount, 1000);
-    }, skip: 'roadmap step 1 — unit system not implemented yet');
+  group('convert', () {
+    test('within a family via the ratio table (1 kg == 1000 g)', () {
+      expect(convert(Quantity(1, kg), to: g).valueOrNull?.amount, 1000);
+    });
 
-    test('converts volume↔mass via density (600 ml @1.02 == 612 g)', () {
-      // expect(convert(Quantity(600, ml), to: g, densityGPerMl: 1.02)
-      //     .valueOrNull?.amount, closeTo(612, 1e-6));
-    }, skip: 'roadmap step 1 — unit system not implemented yet');
+    test('is exact both ways within volume (2 tbsp == 1 fl oz)', () {
+      expect(
+        convert(Quantity(2, tbsp), to: flOz).valueOrNull?.amount,
+        closeTo(1, 1e-9),
+      );
+    });
 
-    test('leaves imprecise units unchanged under scaling', () {
-      // expect(scale(Quantity(1, toTaste), 2), Quantity(1, toTaste));
-    }, skip: 'roadmap step 1 — unit system not implemented yet');
+    test('volume→mass via density (600 ml @1.02 == 612 g)', () {
+      final r = convert(Quantity(600, ml), to: g, densityGPerMl: 1.02);
+      expect(r.valueOrNull?.amount, closeTo(612, 1e-6));
+    });
 
-    test('fails cross-family conversion without a density', () {
-      // expect(convert(Quantity(2, pieces), to: g).isOk, isFalse);
-    }, skip: 'roadmap step 1 — unit system not implemented yet');
+    test('mass→volume via density (100 g @1.42 == 70.42 ml)', () {
+      final r = convert(Quantity(100, g), to: ml, densityGPerMl: 1.42);
+      expect(r.valueOrNull?.amount, closeTo(70.4225, 1e-4));
+    });
+
+    test('same unit is an identity (no density needed)', () {
+      expect(convert(Quantity(5, g), to: g).valueOrNull?.amount, 5);
+    });
+
+    test('fails mass↔volume without a density', () {
+      final r = convert(Quantity(600, ml), to: g);
+      expect(r.isOk, isFalse);
+      expect((r as Err).failure.code, 'unit/no_density');
+    });
+
+    test('fails cross-family conversion (count → mass)', () {
+      final r = convert(Quantity(2, pieces), to: g);
+      expect(r.isOk, isFalse);
+      expect((r as Err).failure.code, 'unit/incompatible');
+    });
+
+    test('refuses to convert imprecise units', () {
+      final r = convert(Quantity(1, toTaste), to: g, densityGPerMl: 1);
+      expect(r.isOk, isFalse);
+      expect((r as Err).failure.code, 'unit/imprecise');
+    });
+  });
+
+  group('scale', () {
+    test('multiplies precise amounts', () {
+      expect(scale(Quantity(200, g), 2.5), Quantity(500, g));
+    });
+
+    test('leaves imprecise units unchanged', () {
+      expect(scale(Quantity(1, toTaste), 2), Quantity(1, toTaste));
+      expect(scale(Quantity(1, pinch), 10), Quantity(1, pinch));
+    });
+  });
+
+  group('catalog', () {
+    test('unitById round-trips a persisted id', () {
+      expect(unitById('tbsp'), tbsp);
+      expect(unitById('nope'), isNull);
+    });
   });
 }
