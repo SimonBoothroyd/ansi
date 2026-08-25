@@ -1,0 +1,29 @@
+# Recipe URLs for the household-vocabulary seed.
+#
+# HOW TO USE: paste one recipe URL per line, below. Blank lines and lines
+# starting with '#' are ignored, so you can leave notes and section headers.
+#
+# Paste the recipes you actually cook — this list defines *your* ingredient
+# vocabulary (the spec's ~150–300 rows). A good starting batch is ~30–60
+# recipes; you can add more and re-run any time.
+#
+# WHAT HAPPENS: mine_recipes.ts fetches each URL, reads its schema.org/Recipe
+# JSON-LD, and mines the ingredient lines — deterministically, no AI. A URL with
+# no/broken JSON-LD isn't an error: it's logged to out/needs_fallback.txt for
+# the later photo/import phase. Run it with:
+#
+#     cd supabase/seed/scripts && deno task mine
+#
+# then review out/vocab_candidates.csv and curate it into seed.sql.
+#
+# ── paste below this line ─────────────────────────────────────────────────────
+https://rainbowplantlife.com/20-minute-high-protein-vegan-meals/
+https://www.mississippivegan.com/mango-salsa-recipe/
+https://www.mississippivegan.com/blt/
+https://www.mississippivegan.com/tostada/
+https://www.mississippivegan.com/baked-tofu/
+https://www.mississippivegan.com/berry-chia-pudding/
+https://www.mississippivegan.com/peach-banana-smoothie/
+https://www.mississippivegan.com/cucumber-carrot-salad/
+https://www.mississippivegan.com/focaccia-genovese/
+https://www.mississippivegan.com/vegan-blueberry-cobbler/

@@ -1,0 +1,11 @@
+{
+  "lock": false,
+  "fmt": { "lineWidth": 80 },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1"
+  },
+  "tasks": {
+    "test": "deno test",
+    "mine": "deno run --allow-net --allow-read --allow-write mine_recipes.ts"
+  }
+}

@@ -20,6 +20,12 @@ jobs:
           deno fmt --check
           deno lint
           deno task test
+      - name: Lint + test seed scripts
+        working-directory: supabase/seed/scripts
+        run: |
+          deno fmt --check
+          deno lint
+          deno task test
 
   migrations:
     runs-on: ubuntu-latest
