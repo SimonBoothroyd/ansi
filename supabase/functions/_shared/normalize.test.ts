@@ -29,3 +29,23 @@ Deno.test("normalize — singularization edge cases", () => {
   assertEquals(normalize("berries"), "berry");
   assertEquals(normalize("asparagus"), "asparagus"); // not a plural
 });
+
+Deno.test("normalize — hyphenated compounds split into words", () => {
+  assertEquals(normalize("all-purpose flour"), "all purpose flour");
+  assertEquals(normalize("extra-virgin olive oil"), "extra virgin olive oil");
+});
+
+Deno.test("normalize — drops vague amount words", () => {
+  assertEquals(normalize("Few cracks black pepper"), "black pepper");
+  assertEquals(normalize("Drizzle olive oil"), "olive oil");
+  assertEquals(
+    normalize("Heaping tablespoon nutritional yeast"),
+    "nutritional yeast",
+  );
+  assertEquals(
+    normalize("hot chili or red pepper flakes"),
+    "hot chili red pepper flake",
+  );
+  // "and"/"of" are filler: "1 head of garlic, peeled and chopped" → "garlic".
+  assertEquals(normalize("garlic, peeled and chopped"), "garlic");
+});

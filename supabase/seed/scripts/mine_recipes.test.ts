@@ -48,6 +48,13 @@ Deno.test("parseIngredientLine — no quantity and to-taste", () => {
   assertEquals(taste.ingredient_text, "Freshly ground black pepper");
 });
 
+Deno.test("parseIngredientLine — head-of unit with prep modifiers", () => {
+  const p = parseIngredientLine("1 head of garlic, peeled and chopped");
+  assertEquals(p.qty, 1);
+  assertEquals(p.unit, "piece"); // "head"
+  assertEquals(p.ingredient_text, "garlic, peeled and chopped"); // "of" gone
+});
+
 Deno.test("parseIngredientLine — strips parentheticals", () => {
   const p = parseIngredientLine("1 (14 oz) can coconut milk");
   assertEquals(p.unit, "piece"); // "can"

@@ -204,7 +204,7 @@ export function parseIngredientLine(raw: string): {
     const id = UNIT_LEXICON[wordMatch[1].toLowerCase()];
     if (id) {
       if (unit === null) unit = id;
-      text = text.slice(wordMatch[0].length).replace(/^of\b/i, "").trim();
+      text = text.slice(wordMatch[0].length).replace(/^\s*of\b/i, "").trim();
     }
   }
 
@@ -217,9 +217,11 @@ export function parseIngredientLine(raw: string): {
 export function extractIngredientLines(
   html: string,
 ): { found: boolean; lines: string[] } {
+  // The type value may be quoted or bare (HTML5 allows unquoted attributes, and
+  // some sites/minifiers emit `type=application/ld+json`).
   const blocks = [
     ...html.matchAll(
-      /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+      /<script[^>]*type=["']?application\/ld\+json["']?[^>]*>([\s\S]*?)<\/script>/gi,
     ),
   ];
   const recipes: Record<string, unknown>[] = [];
@@ -303,11 +305,17 @@ export function aggregate(labels: GoldLabel[]): Candidate[] {
 
   const candidates: Candidate[] = [];
   for (const [match_text, ls] of groups) {
-    const surfaces = ls.map((l) => l.ingredient_text.trim()).filter(Boolean);
+    const surfaces = ls
+      .map((l) =>
+        l.ingredient_text.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "")
+      )
+      .filter(Boolean);
     const units = ls.map((l) => l.unit).filter((u): u is string => !!u);
     candidates.push({
       match_text,
-      canonical_name: titleCase(mode(surfaces) || match_text),
+      // Propose the normalized form title-cased — a clean starting point the
+      // human edits. The raw surface forms are preserved as aliases.
+      canonical_name: titleCase(match_text),
       category: guessCategory(match_text),
       default_unit: mode(units),
       aliases: [...new Set(surfaces)],
@@ -324,11 +332,15 @@ function titleCase(s: string): string {
 }
 
 /**
- * Flags candidate pairs to eyeball — never auto-merged (spec step 5). Two
- * signals: a small edit distance (typos/plurals like yogurt/yoghurt), and a
- * shared content token (coconut milk vs coconut cream — the "own-goal" case,
- * lexically distant but easily conflated). State words don't count as a shared
- * token, so this doesn't fire on every "fresh" or "ground".
+ * Flags candidate pairs to eyeball — never auto-merged (spec step 5). A pair is
+ * flagged when it looks like the same thing written two ways, OR the "own-goal"
+ * case (near-identical text, different ingredient). Signals:
+ *   - small edit distance (yogurt/yoghurt, plurals);
+ *   - a shared RARE token — "coconut" links coconut milk/cream, but "oil" and
+ *     "salt" are hubs in nearly every candidate, so a token in many candidates
+ *     is not a signal (unfiltered, that left ~800 useless pairs);
+ *   - two or more shared content tokens (black pepper vs cracked black pepper).
+ * State words never count as a shared token, so it won't fire on every "fresh".
  */
 export function ambiguousPairs(candidates: Candidate[]): [string, string][] {
   const STOP = new Set([
@@ -345,16 +357,26 @@ export function ambiguousPairs(candidates: Candidate[]): [string, string][] {
     "chopped",
     "sliced",
   ]);
-  const tokens = (s: string) =>
-    new Set(s.split(/\s+/).filter((t) => t && !STOP.has(t)));
+  const tokens = (s: string) => [
+    ...new Set(s.split(/\s+/).filter((t) => t && !STOP.has(t))),
+  ];
 
-  const pairs: [string, string][] = [];
   const keys = candidates.map((c) => c.match_text);
   const toks = keys.map(tokens);
+
+  // Document frequency: how many candidates each token appears in.
+  const df = new Map<string, number>();
+  for (const ts of toks) for (const t of ts) df.set(t, (df.get(t) ?? 0) + 1);
+  const RARE = 3; // a token in ≤3 candidates discriminates; more = a hub
+
+  const pairs: [string, string][] = [];
   for (let i = 0; i < keys.length; i++) {
     for (let j = i + 1; j < keys.length; j++) {
-      const shareToken = [...toks[i]].some((t) => toks[j].has(t));
-      if (shareToken || editDistance(keys[i], keys[j]) <= 2) {
+      const shared = toks[i].filter((t) => toks[j].includes(t));
+      const rareShare = shared.some((t) => (df.get(t) ?? 0) <= RARE);
+      if (
+        rareShare || shared.length >= 2 || editDistance(keys[i], keys[j]) <= 1
+      ) {
         pairs.push([keys[i], keys[j]]);
       }
     }

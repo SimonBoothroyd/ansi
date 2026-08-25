@@ -26,10 +26,52 @@
 // exactly this reason — never add one to a strip set to make a match work.
 
 /** Articles and filler words carrying no identity. */
-const FILLER = new Set(["a", "an", "the", "of"]);
+const FILLER = new Set(["a", "an", "the", "of", "or", "and"]);
 
-/** Container / vague-amount words — quantity, not identity. */
+/** Container / measure / vague-amount words — quantity, not identity. */
 const MEASURES = new Set([
+  // standard cooking units (also parsed by the miner, but strip them here too
+  // for when they appear mid-phrase, e.g. "heaping tablespoon nutritional yeast")
+  "teaspoon",
+  "teaspoons",
+  "tsp",
+  "tablespoon",
+  "tablespoons",
+  "tbsp",
+  "tbs",
+  "cup",
+  "cups",
+  "gram",
+  "grams",
+  "g",
+  "kg",
+  "kilogram",
+  "kilograms",
+  "ounce",
+  "ounces",
+  "oz",
+  "pound",
+  "pounds",
+  "lb",
+  "lbs",
+  "ml",
+  "milliliter",
+  "milliliters",
+  "millilitre",
+  "millilitres",
+  "liter",
+  "liters",
+  "litre",
+  "litres",
+  "l",
+  "quart",
+  "quarts",
+  "pint",
+  "pints",
+  "gallon",
+  "gallons",
+  "fl",
+  "fluid",
   "can",
   "cans",
   "tin",
@@ -67,10 +109,20 @@ const MEASURES = new Set([
   "piece",
   "pieces",
   "slices",
+  "few",
+  "crack",
+  "cracks",
+  "splash",
+  "dollop",
+  "knob",
+  "glug",
+  "sprinkle",
+  "drizzle",
 ]);
 
 /** Size adjectives — they scale the amount, not the ingredient. */
-const SIZES = new Set(["large", "small", "medium", "big", "tiny", "extra"]);
+// "extra" is intentionally absent: it changes identity in "extra virgin".
+const SIZES = new Set(["large", "small", "medium", "big", "tiny"]);
 
 /** Prep adverbs that only ever modify a prep verb. */
 const PREP_ADVERBS = new Set([
@@ -79,6 +131,12 @@ const PREP_ADVERBS = new Set([
   "thinly",
   "coarsely",
   "freshly",
+  "heaping",
+  "scant",
+  "rounded",
+  "generous",
+  "packed",
+  "drizzling",
 ]);
 
 /**
@@ -160,7 +218,10 @@ const IRREGULAR_PLURALS: Record<string, string> = {
 
 /** Normalizes a raw ingredient string to its `match_text` (see file header). */
 export function normalize(ingredientText: string): string {
-  const [head, ...modifiers] = ingredientText.toLowerCase().split(",");
+  // Hyphens join compound descriptors ("all-purpose", "extra-virgin"); treat
+  // them as word breaks so the parts tokenize rather than fusing ("allpurpose").
+  const cleaned = ingredientText.toLowerCase().replace(/[-–—]/g, " ");
+  const [head, ...modifiers] = cleaned.split(",");
 
   const nouns: string[] = [];
   const states: string[] = [];
