@@ -4,6 +4,7 @@ import {
   ambiguousPairs,
   extractIngredientLines,
   parseIngredientLine,
+  splitComponents,
 } from "./mine_recipes.ts";
 
 Deno.test("parseIngredientLine — quantity, unit, text", () => {
@@ -128,6 +129,45 @@ Deno.test("aggregate — real normalize collapses onion surface forms", () => {
   assertEquals(candidates.length, 1);
   assertEquals(candidates[0].count, 2);
   assertEquals(candidates[0].aliases.sort(), ["Onions", "onion"]);
+});
+
+Deno.test("splitComponents — splits alternatives, flags 'and' compounds", () => {
+  assertEquals(splitComponents("tamari or soy sauce"), {
+    parts: ["tamari", "soy sauce"],
+    compound: true,
+  });
+  assertEquals(splitComponents("avocado / sunflower oil"), {
+    parts: ["avocado", "sunflower oil"],
+    compound: true,
+  });
+  // "and" is risky (half and half); left whole but flagged for the human pass.
+  assertEquals(splitComponents("sea salt and black pepper"), {
+    parts: ["sea salt and black pepper"],
+    compound: true,
+  });
+  assertEquals(splitComponents("yellow onion"), {
+    parts: ["yellow onion"],
+    compound: false,
+  });
+});
+
+Deno.test("ambiguousPairs — flags reorder pairs (order-insensitive)", () => {
+  const c = (match_text: string) => ({
+    match_text,
+    canonical_name: match_text,
+    category: "",
+    default_unit: "",
+    aliases: [],
+    source_urls: [],
+    count: 1,
+  });
+  // "avocado ripe" ↔ "avocado" share the same noun set (differ only by state) —
+  // the prefix-based detector missed this; the set comparison catches it.
+  const pairs = ambiguousPairs([c("avocado ripe"), c("avocado"), c("carrot")]);
+  assertEquals(
+    pairs.some((p) => p.includes("avocado ripe") && p.includes("avocado")),
+    true,
+  );
 });
 
 Deno.test("ambiguousPairs — flags near-duplicates", () => {

@@ -39,6 +39,13 @@ Deno.test("normalize — preserves unicode letters", () => {
   assertEquals(normalize("2 jalapeños, diced"), "jalapeño");
 });
 
+Deno.test("normalize — clove is a measure only next to an allium", () => {
+  assertEquals(normalize("2 cloves garlic, minced"), "garlic"); // measure
+  assertEquals(normalize("3 garlic cloves"), "garlic"); // measure
+  assertEquals(normalize("Pinch ground cloves"), "clove ground"); // the spice
+  assertEquals(normalize("pinch of cloves"), "clove"); // the spice, no allium
+});
+
 Deno.test("normalize — hyphenated compounds split into words", () => {
   assertEquals(normalize("all-purpose flour"), "all purpose flour");
   assertEquals(normalize("extra-virgin olive oil"), "extra virgin olive oil");

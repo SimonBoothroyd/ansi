@@ -211,6 +211,24 @@ export function parseIngredientLine(raw: string): {
   return { qty, qty_high: qtyHigh, unit, ingredient_text: text.trim(), flags };
 }
 
+/**
+ * Splits a line naming substitutable alternatives so "tamari or soy sauce"
+ * yields ["tamari", "soy sauce"] instead of one garbage "tamari soy sauce" row.
+ * Only splits on " or " and "/" — a single ingredient rarely contains them.
+ * " and " is riskier ("half and half", "sweet and sour"), so those lines are
+ * flagged `compound` for the human pass but left whole.
+ */
+export function splitComponents(
+  text: string,
+): { parts: string[]; compound: boolean } {
+  const parts = text.split(/\s+or\s+|\s*\/\s*/i).map((s) => s.trim()).filter(
+    Boolean,
+  );
+  const andCompound = /\s+and\s+/i.test(text);
+  if (parts.length <= 1) return { parts: [text.trim()], compound: andCompound };
+  return { parts, compound: true };
+}
+
 // --- JSON-LD extraction ------------------------------------------------------
 
 /** Pulls ingredient lines from every schema.org/Recipe in an HTML document. */
@@ -337,14 +355,19 @@ function titleCase(s: string): string {
  * Flags candidate pairs to eyeball — never auto-merged (spec step 5). A pair is
  * flagged when it looks like the same thing written two ways, OR the "own-goal"
  * case (near-identical text, different ingredient). Signals:
- *   - small edit distance (yogurt/yoghurt, plurals);
- *   - a shared RARE token — "coconut" links coconut milk/cream, but "oil" and
- *     "salt" are hubs in nearly every candidate, so a token in many candidates
- *     is not a signal (unfiltered, that left ~800 useless pairs);
- *   - two or more shared content tokens (black pepper vs cracked black pepper).
- * State words never count as a shared token, so it won't fire on every "fresh".
+ *   - same NOUN set, differing only by state words — order-insensitive, so
+ *     "avocado ripe" ↔ "avocado" and "ginger fresh" ↔ "ginger ground" are
+ *     caught even though the noun-first reorder breaks a prefix comparison;
+ *   - two or more shared content tokens (black pepper vs cracked black pepper);
+ *   - a shared RARE token — "coconut" links coconut milk/cream, but "oil"/"salt"
+ *     are hubs in nearly every candidate, so a token in many candidates is not a
+ *     signal (unfiltered, that left ~800 useless pairs);
+ *   - small edit distance (yogurt/yoghurt, plurals).
+ * State words don't count as content tokens, so sharing never fires on "fresh".
  */
 export function ambiguousPairs(candidates: Candidate[]): [string, string][] {
+  // Drop state words and connectors before comparing content: two names with
+  // the same nouns but different state ("… fresh" vs "… ground") should surface.
   const STOP = new Set([
     "fresh",
     "ground",
@@ -352,8 +375,22 @@ export function ambiguousPairs(candidates: Candidate[]): [string, string][] {
     "dry",
     "frozen",
     "canned",
+    "smoked",
     "whole",
+    "boneless",
+    "skinless",
+    "ripe",
+    "unsalted",
+    "salted",
     "raw",
+    "toasted",
+    "roasted",
+    "powdered",
+    "cooked",
+    "uncooked",
+    "shelled",
+    "sweetened",
+    "unsweetened",
     "and",
     "of",
     "chopped",
@@ -362,6 +399,8 @@ export function ambiguousPairs(candidates: Candidate[]): [string, string][] {
   const tokens = (s: string) => [
     ...new Set(s.split(/\s+/).filter((t) => t && !STOP.has(t))),
   ];
+  const sameSet = (a: string[], b: string[]) =>
+    a.length === b.length && a.every((t) => b.includes(t));
 
   const keys = candidates.map((c) => c.match_text);
   const toks = keys.map(tokens);
@@ -376,8 +415,10 @@ export function ambiguousPairs(candidates: Candidate[]): [string, string][] {
     for (let j = i + 1; j < keys.length; j++) {
       const shared = toks[i].filter((t) => toks[j].includes(t));
       const rareShare = shared.some((t) => (df.get(t) ?? 0) <= RARE);
+      const sameNouns = sameSet(toks[i], toks[j]) && keys[i] !== keys[j];
       if (
-        rareShare || shared.length >= 2 || editDistance(keys[i], keys[j]) <= 1
+        sameNouns || rareShare || shared.length >= 2 ||
+        editDistance(keys[i], keys[j]) <= 1
       ) {
         pairs.push([keys[i], keys[j]]);
       }
@@ -465,7 +506,15 @@ async function main(): Promise<void> {
         });
         continue;
       }
-      gold.push({ url, raw, ...p, match_text: normalize(p.ingredient_text) });
+      // A line can name alternatives ("tamari or soy sauce") — split so each
+      // becomes its own candidate rather than one garbage multi-noun row.
+      const { parts, compound } = splitComponents(p.ingredient_text);
+      const flags = compound ? [...p.flags, "compound"] : p.flags;
+      for (const part of parts) {
+        const match_text = normalize(part);
+        if (!match_text) continue;
+        gold.push({ ...p, url, raw, ingredient_text: part, match_text, flags });
+      }
     }
     await new Promise((r) => setTimeout(r, 400)); // be a polite fetcher
   }

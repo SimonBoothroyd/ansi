@@ -102,8 +102,6 @@ const MEASURES = new Set([
   "sticks",
   "head",
   "heads",
-  "clove",
-  "cloves",
   "drop",
   "drops",
   "piece",
@@ -230,26 +228,40 @@ export function normalize(ingredientText: string): string {
   // Hyphens join compound descriptors ("all-purpose", "extra-virgin"); treat
   // them as word breaks so the parts tokenize rather than fusing ("allpurpose").
   const cleaned = ingredientText.toLowerCase().replace(/[-–—]/g, " ");
+  // "clove" is both a garlic measure ("2 cloves garlic") and a spice ("ground
+  // cloves"). Drop it as a measure only when an allium shares the phrase; else
+  // it is the spice and must survive as the noun.
+  const alliumPresent = /\b(garlic|shallots?|scallions?)\b/.test(cleaned);
   const [head, ...modifiers] = cleaned.split(",");
 
   const nouns: string[] = [];
   const states: string[] = [];
-  classify(head, nouns, states);
+  classify(head, nouns, states, alliumPresent);
   // Comma modifiers are identity only if they're a state word ("…, boneless");
   // a prep modifier ("…, diced") drops out entirely.
-  for (const mod of modifiers) classify(mod, nouns, states);
+  for (const mod of modifiers) classify(mod, nouns, states, alliumPresent);
 
   return [...nouns, ...states].map(singularize).filter(Boolean).join(" ");
 }
 
 /** Sorts one segment's words into identity nouns vs trailing state words. */
-function classify(segment: string, nouns: string[], states: string[]): void {
+function classify(
+  segment: string,
+  nouns: string[],
+  states: string[],
+  alliumPresent: boolean,
+): void {
   for (const raw of segment.split(/\s+/)) {
     // Keep any unicode letter/number (so "jalapeño" survives, not "jalapeo");
     // strip only punctuation. Fraction glyphs are kept for the QUANTITY test.
     const word = raw.replace(/[^\p{L}\p{N}/¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞]/gu, "");
     if (!word) continue;
     if (QUANTITY.test(word)) continue;
+    if (word === "clove" || word === "cloves") {
+      if (alliumPresent) continue; // garlic-clove measure
+      nouns.push(word); // the spice
+      continue;
+    }
     if (
       FILLER.has(word) || MEASURES.has(word) || SIZES.has(word) ||
       PREP_ADVERBS.has(word) || PREP_VERBS.has(word)
