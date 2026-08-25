@@ -19,7 +19,7 @@ jobs:
         run: |
           deno fmt --check
           deno lint
-          deno test --allow-none
+          deno task test
 
   migrations:
     runs-on: ubuntu-latest
@@ -34,3 +34,5 @@ jobs:
           supabase db lint
       - name: Verify migrations are idempotent on reset
         run: supabase db reset --no-seed
+      - name: Database tests (pgTAP — RLS, constraints)
+        run: supabase test db

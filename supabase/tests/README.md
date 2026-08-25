@@ -1,5 +1,10 @@
 # Database tests
 
-Optional pgTAP tests for RLS policies and constraints go here as the schema
-grows (e.g. "a member of household A cannot select household B's rows"). Not
-scaffolded yet — add when the first domain tables land.
+pgTAP tests for RLS policies and constraints. Run with `supabase test db`
+(also run in CI, `.github/workflows/backend.yml`). Each `*.sql` file wraps its
+assertions in `begin … rollback` so runs leave no residue.
+
+- `rls_household_isolation.sql` — a household can't read or write another's rows;
+  `usda_food` is denied to client roles but readable by `service_role`.
+
+Add a test here whenever a new table's RLS or a constraint needs defending.
