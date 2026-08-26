@@ -1,6 +1,6 @@
 // Builds the usda_food reference seed from USDA FoodData Central CSV bundles
 // (Foundation Foods + SR Legacy, CC0). Server-side reference only — never synced,
-// never matched against at import (ADR-0005). See seed_usda.md for how to fetch
+// never matched against at import (ADR-0005). See ../README.md for how to fetch
 // the data (it is NOT committed — ~40MB of CSV; only the compact seed is).
 //
 //   deno run --allow-read --allow-write gen_usda.ts <dataset_dir> [<dataset_dir>...]
