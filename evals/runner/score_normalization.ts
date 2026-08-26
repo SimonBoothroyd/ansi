@@ -1,11 +1,16 @@
-// Scores the normalization dimension of the matching eval (evals/AGENTS.md):
-// each case's `raw` through normalize() must equal its `expect_normalized`.
-// This is the exact-output half of the harness; the match/band half waits on the
-// server-side cascade (roadmap step 8). Run via runner/run.sh.
+// Scores the normalization dimension (evals/AGENTS.md): each case's `raw`
+// through normalize() must equal its `expect_normalized`. These expectations are
+// HAND-LABELLED (independent of normalize's own output) — grading normalize
+// against normalize(raw) would be circular, so this dataset is separate from the
+// generated matching set. The match/band half waits on the server-side cascade
+// (roadmap step 8). Run via runner/run.sh.
 
 import { normalize } from "../../supabase/functions/_shared/normalize.ts";
 
-const casesPath = new URL("../datasets/matching/cases.jsonl", import.meta.url);
+const casesPath = new URL(
+  "../datasets/normalization/cases.jsonl",
+  import.meta.url,
+);
 const lines = (await Deno.readTextFile(casesPath))
   .split("\n").map((l) => l.trim()).filter(Boolean);
 

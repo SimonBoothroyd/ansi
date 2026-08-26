@@ -1,0 +1,14 @@
+{"raw":"2 large Onions, diced","expect_normalized":"onion"}
+{"raw":"Chicken thighs, boneless","expect_normalized":"chicken thigh boneless"}
+{"raw":"1 can coconut milk","expect_normalized":"coconut milk"}
+{"raw":"fresh ginger, grated","expect_normalized":"ginger fresh"}
+{"raw":"a handful of curry leaves","expect_normalized":"curry leaf"}
+{"raw":"2 cloves garlic, minced","expect_normalized":"garlic"}
+{"raw":"1 head of garlic, peeled and chopped","expect_normalized":"garlic"}
+{"raw":"Pinch ground cloves","expect_normalized":"clove ground"}
+{"raw":"all-purpose flour","expect_normalized":"all purpose flour"}
+{"raw":"extra-virgin olive oil","expect_normalized":"extra virgin olive oil"}
+{"raw":"2 jalapeños, diced","expect_normalized":"jalapeño"}
+{"raw":"1/4 cup chopped chives","expect_normalized":"chive"}
+{"raw":"Heaping tablespoon nutritional yeast","expect_normalized":"nutritional yeast"}
+{"raw":"fresh or dried thyme","expect_normalized":"thyme fresh dried"}

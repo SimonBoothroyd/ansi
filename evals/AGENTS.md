@@ -17,10 +17,20 @@ it runs on demand and nightly (`.github/workflows/evals.yml`), not on every PR.
 ## Structure
 
 ```
-datasets/matching/cases.jsonl      one golden case per line
-datasets/extraction/               page/photo fixtures + expected output
-runner/run.sh                      scores cases against the (server-side) engine
+datasets/normalization/cases.jsonl  raw → expect_normalized (HAND-labelled)
+datasets/matching/cases.jsonl       raw → expect_match|candidates + band
+datasets/extraction/                page/photo fixtures + expected output
+runner/score_normalization.ts       scores the normalization dimension
+runner/gen_matching_cases.ts        (re)builds the matching set from the vocab
+runner/run.sh                       runs the scorers
 ```
 
-Add a case whenever you hit a real mis-match — the dataset is how taste gets
+The two `cases.jsonl` differ on purpose. **Normalization is hand-labelled** —
+its expected outputs must be written independently, since grading `normalize`
+against `normalize(raw)` proves nothing. **Matching is generated** from the
+curated household vocabulary (`supabase/seed/vocab.jsonl`), which is the human
+oracle for "what should this line resolve to"; regenerate it after re-mining or
+editing the vocab.
+
+Add a hand case whenever you hit a real mis-match — the dataset is how taste gets
 captured and defended over time.
