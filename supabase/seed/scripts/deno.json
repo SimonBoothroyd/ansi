@@ -2,7 +2,8 @@
   "lock": false,
   "fmt": { "lineWidth": 80 },
   "imports": {
-    "@std/assert": "jsr:@std/assert@^1"
+    "@std/assert": "jsr:@std/assert@^1",
+    "@std/csv": "jsr:@std/csv@^1"
   },
   "tasks": {
     "test": "deno test",
