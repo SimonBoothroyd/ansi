@@ -4,7 +4,6 @@
 {"match_text": "allspice ground", "fdc_id": 171315}
 {"match_text": "almond", "fdc_id": 170567}
 {"match_text": "almond butter", "fdc_id": 168588}
-{"match_text": "almond flour", "fdc_id": 170567}
 {"match_text": "almond milk", "fdc_id": 174832}
 {"match_text": "applesauce", "fdc_id": 167772}
 {"match_text": "apricot", "fdc_id": 171697}
@@ -26,7 +25,6 @@
 {"match_text": "blueberry", "fdc_id": 171711}
 {"match_text": "brazil nut", "fdc_id": 170569}
 {"match_text": "bread flour", "fdc_id": 168913}
-{"match_text": "breaded vegan chicken nugget", "fdc_id": 167719}
 {"match_text": "broccoli", "fdc_id": 170379}
 {"match_text": "brown rice", "fdc_id": 169703}
 {"match_text": "brown sugar", "fdc_id": 168833}
@@ -72,7 +70,6 @@
 {"match_text": "currant dried", "fdc_id": 171724}
 {"match_text": "dark red kidney bean canned", "fdc_id": 174285}
 {"match_text": "date", "fdc_id": 168191}
-{"match_text": "dijon mustard", "fdc_id": 172234}
 {"match_text": "dill", "fdc_id": 172233}
 {"match_text": "dill pickle", "fdc_id": 324653}
 {"match_text": "ditalini", "fdc_id": 169736}
@@ -147,7 +144,6 @@
 {"match_text": "onion powder", "fdc_id": 171327}
 {"match_text": "orange", "fdc_id": 746771}
 {"match_text": "orange bell pepper", "fdc_id": 170108}
-{"match_text": "orange juice", "fdc_id": 171354}
 {"match_text": "orange zest", "fdc_id": 169103}
 {"match_text": "oregano dried", "fdc_id": 171328}
 {"match_text": "oyster mushroom", "fdc_id": 168580}
@@ -165,8 +161,6 @@
 {"match_text": "pineapple", "fdc_id": 169124}
 {"match_text": "pinto bean canned", "fdc_id": 174286}
 {"match_text": "pistachio", "fdc_id": 170184}
-{"match_text": "plant butter", "fdc_id": 171431}
-{"match_text": "plant milk", "fdc_id": 175218}
 {"match_text": "plantain", "fdc_id": 168215}
 {"match_text": "portobello mushroom", "fdc_id": 169255}
 {"match_text": "pumpkin seed", "fdc_id": 170556}
@@ -222,7 +216,6 @@
 {"match_text": "thai basil", "fdc_id": 172232}
 {"match_text": "thyme dried", "fdc_id": 170938}
 {"match_text": "thyme fresh", "fdc_id": 173470}
-{"match_text": "tofu bacon", "fdc_id": 172439}
 {"match_text": "tomato", "fdc_id": 170457}
 {"match_text": "tomato canned", "fdc_id": 170501}
 {"match_text": "tomato canned whole", "fdc_id": 170051}
@@ -235,9 +228,6 @@
 {"match_text": "turnip", "fdc_id": 170465}
 {"match_text": "vanilla extract", "fdc_id": 173471}
 {"match_text": "vanilla paste", "fdc_id": 173471}
-{"match_text": "vegan mayonnaise", "fdc_id": 167695}
-{"match_text": "vegan sausage", "fdc_id": 174269}
-{"match_text": "vegan worcestershire sauce", "fdc_id": 171610}
 {"match_text": "vegetable oil", "fdc_id": 172370}
 {"match_text": "walnut", "fdc_id": 170187}
 {"match_text": "water", "fdc_id": 174158}

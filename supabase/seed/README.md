@@ -7,7 +7,7 @@ Two things get seeded (spec §6):
    stubs. Never synced, never matched against at import (ADR-0005).
 2. **Initial household `ingredient` vocabulary** — mined from real recipes and
    curated (currently 291 rows), so the app isn't empty on first run. Macros +
-   density are prefilled from `usda_food` where a true match exists (258
+   density are prefilled from `usda_food` where a true match exists (248
    `complete`); the rest stay honest `stub`s for the flesh-out queue.
 
 Density fallback: FDC food portions first, then FAO/INFOODS Density DB v2.0
