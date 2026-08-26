@@ -13,10 +13,11 @@
 import { parse } from "@std/csv/parse";
 import { normalize } from "../../functions/_shared/normalize.ts";
 
-// FDC nutrient ids for the macros we keep. Fiber has two encodings: 1079 (total
-// dietary) and 2033 (AOAC 2011.25, used by some Foundation foods) — prefer 1079.
+// FDC nutrient ids for the macros we keep. Fiber uses ONLY 1079 (Fiber, total
+// dietary — the standard). 2033 (AOAC 2011.25) is deliberately not used: some
+// Foundation entries carry absurd 2033 values (e.g. russet potato at 14.93 g).
 const KCAL = "1008", PROTEIN = "1003", CARB = "1005", FAT = "1004";
-const FIBER = "1079", FIBER_AOAC = "2033";
+const FIBER = "1079";
 // Only these data_types are real foods to seed (Foundation ships sample rows too).
 const FOODS = new Set(["foundation_food", "sr_legacy_food"]);
 
@@ -73,7 +74,6 @@ function loadDataset(dir: string, rows: Map<string, Row>): void {
     [CARB]: "carb",
     [FAT]: "fat",
     [FIBER]: "fiber",
-    [FIBER_AOAC]: "fiber_aoac",
   };
   const nutrientText = Deno.readTextFileSync(`${dir}/food_nutrient.csv`);
   let first = true;
@@ -126,10 +126,6 @@ function main(): void {
     const tuples = all.slice(i, i + BATCH).map((r) => {
       if (r.density !== null) withDensity++;
       const m = r.macros;
-      if (m.fiber === undefined && m.fiber_aoac !== undefined) {
-        m.fiber = m.fiber_aoac;
-      }
-      delete m.fiber_aoac;
       if (m.fiber !== undefined) withFiber++;
       return "(" + [
         r.fdc_id,
