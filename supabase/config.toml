@@ -9,7 +9,7 @@ major_version = 15
 enabled = true
 # seed.sql = household + curated vocab; seed_usda.sql = the usda_food reference
 # (server-side only). Order matters if the vocab prefill ever reads usda_food.
-sql_paths = ["./seed.sql", "./seed_usda.sql"]
+sql_paths = ["./seed.sql", "./seed_usda.sql", "./seed_prefill.sql"]
 
 [auth]
 enable_signup = true
