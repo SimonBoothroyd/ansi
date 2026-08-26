@@ -7,8 +7,8 @@ major_version = 15
 
 [db.seed]
 enabled = true
-# seed.sql = household + curated vocab; seed_usda.sql = the usda_food reference
-# (server-side only). Order matters if the vocab prefill ever reads usda_food.
+# Order matters: seed.sql (household + vocab) → seed_usda.sql (the server-only
+# usda_food reference) → seed_prefill.sql (copies macros onto matched vocab rows).
 sql_paths = ["./seed.sql", "./seed_usda.sql", "./seed_prefill.sql"]
 
 [auth]

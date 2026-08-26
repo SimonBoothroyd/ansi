@@ -6,7 +6,7 @@ the roadmap agents and humans read first.
 
 | # | Step | Where | Status |
 |---|------|-------|--------|
-| 1 | **Unit + ingredient data model** — families, conversions incl. density | `app/lib/core/units`, `supabase/migrations/0002` | 🟡 unit system + data model done (units.dart tested; migrations `0001`/`0002` + RLS). Household vocab seeded — 179 ingredients mined + curated (`supabase/seed/`), all `stub`. Pending: USDA reference (`usda_food`) to fill density/macros → `complete` |
+| 1 | **Unit + ingredient data model** — families, conversions incl. density | `app/lib/core/units`, `supabase/migrations/0002` | 🟢 done — unit system (tested); data model (`0001`/`0002` + RLS); 291-ingredient household vocab (mined + curated, variety-level, canned/dried forms); `usda_food` reference (8262 foods, macros incl. fiber); prefill → 221 `complete`, 70 honest `stub`. Density still sparse (FAO/INFOODS fallback deferred) |
 | 2 | Single-user recipes — create, group ingredients, scale, recipe page | `app/lib/features/recipes` | ⚪ not started |
 | 3 | Recipe books + user-defined sections | `app/lib/features/books` | ⚪ not started |
 | 4 | Week planning — single-week grid, multiple entries/slot, eaters, copy-last-week | `app/lib/features/planning` | ⚪ not started |

@@ -5,10 +5,13 @@ Two things get seeded (spec §6):
 1. **`usda_food`** — USDA FoodData Central (Foundation Foods + SR Legacy, CC0),
    server-side only. The reference set for *creating* ingredients and prefilling
    stubs. Never synced, never matched against at import (ADR-0005).
-2. **Initial household `ingredient` vocabulary** — a small curated starter set
-   (~a few dozen rows) so the app isn't empty on first run.
+2. **Initial household `ingredient` vocabulary** — mined from real recipes and
+   curated (currently 291 rows), so the app isn't empty on first run. Macros +
+   density are prefilled from `usda_food` where a true match exists (221
+   `complete`); the rest stay honest `stub`s for the flesh-out queue.
 
-Density fallback: FDC food portions first, then FAO/INFOODS Density DB v2.0.
+Density fallback: FDC food portions first, then FAO/INFOODS Density DB v2.0
+(the FAO/INFOODS step is not wired yet — density is currently sparse).
 
 ## Building the household vocabulary (`scripts/mine_recipes.ts`)
 
@@ -55,5 +58,33 @@ This is the same shape as the import-time learning loop (import-and-matching.md
 same move (merge a stub/ingredient into another, keeping the old name as an
 alias) so the vocabulary keeps getting cleaner after seeding, not just during it.
 
-`scripts/seed_usda.md` documents the intended USDA loader (not implemented in the
-scaffold — it's a feature). `supabase db reset` will run `seed.sql` once it exists.
+## The USDA reference (`scripts/gen_usda.ts`)
+
+`usda_food` (8262 foods, macros incl. fiber) is built from the USDA FoodData
+Central CSV bundles (Foundation Foods + SR Legacy, CC0). The bundles are **not
+committed** (~40MB); only the compact generated `../seed_usda.sql` is. To
+regenerate:
+
+1. Download + unzip the two CSV bundles from
+   <https://fdc.nal.usda.gov/download-datasets> (Foundation Foods, SR Legacy).
+2. `deno run --allow-read --allow-write gen_usda.ts <foundation_dir> <sr_legacy_dir>`
+   — pass Foundation first so it wins on overlap. Keeps the four macros + fiber
+   (per 100 g) and a density derived from a volume `food_portion`; `match_text`
+   uses the shared normalizer so the reference is indexed the same way.
+
+## Prefill: promoting stubs to `complete` (`usda_links.jsonl`)
+
+`usda_links.jsonl` (committed) maps an ingredient's `match_text` → the `fdc_id`
+of the USDA row whose food it truly is. These were resolved by trigram for the
+easy cases and an LLM arbiter for the judgment ones, under a strict
+**no-analogue** rule: a link is only made where the USDA food genuinely *is* the
+ingredient — never a stand-in (canned ≠ dry, fruit ≠ its oil, vegan ≠ dairy).
+Unmatched ingredients stay `stub`. `gen-seed` reads `usda_links.jsonl` and emits
+`../seed_prefill.sql`, which copies macros/density onto matched rows and flips
+them to `complete` (a guard skips USDA rows with no macros).
+
+## Load order
+
+`config.toml` `[db.seed].sql_paths` runs, in order: `seed.sql` (household +
+vocab) → `seed_usda.sql` (reference) → `seed_prefill.sql` (macros). `supabase db
+reset` applies all three.
