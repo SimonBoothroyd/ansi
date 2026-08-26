@@ -25,13 +25,12 @@
 {"canonical_name": "Ground Allspice", "category": "spices & seasoning", "default_unit": "pinch", "aliases": ["ground allspice"], "source_examples": ["Pinch ground allspice"]}
 {"canonical_name": "Ground Nutmeg", "category": "spices & seasoning", "default_unit": "pinch", "aliases": ["ground nutmeg"], "source_examples": ["Pinch ground nutmeg"]}
 {"canonical_name": "Ground Sage", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["ground sage"], "source_examples": ["½ teaspoon ground sage (or rubbed)"]}
-{"canonical_name": "Dried Sage", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["dried sage"], "source_examples": ["½ teaspoon dried sage"], "notes": "kept distinct from Ground Sage (consistent with Dried/Fresh herbs)"}
 {"canonical_name": "Dried Thyme", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["dried thyme"], "source_examples": ["1 teaspoon dried thyme"], "notes": "kept distinct from Fresh Thyme (dried vs fresh differ in use)"}
 {"canonical_name": "Dried Oregano", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["dried oregano"], "source_examples": ["1 teaspoon dried oregano"], "notes": "kept distinct from Fresh Oregano"}
 {"canonical_name": "Kala Namak", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["kala namak"], "source_examples": ["¼ teaspoon kala namak", "Big pinch kala namak"]}
-{"canonical_name": "Fennel Seed", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["fennel seeds"], "source_examples": ["½ teaspoon fennel seeds (roughly chopped)"]}
+{"canonical_name": "Fennel Seeds", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["fennel seeds"], "source_examples": ["½ teaspoon fennel seeds (roughly chopped)"]}
 {"canonical_name": "Star Anise", "category": "spices & seasoning", "default_unit": "piece", "aliases": ["star anise pod"], "source_examples": ["1  star anise pod"], "notes": "dropped portion word 'pod'"}
-{"canonical_name": "Bay Leaf", "category": "spices & seasoning", "default_unit": "piece", "aliases": ["bay leaves", "dried bay leaves"], "source_examples": ["4  bay leaves (fresh or dried)", "2-4  fresh or dried bay leaves"], "notes": "merged 'bay leaf dried' and recovered the lone 'fresh' fragment — the source treats fresh/dried as interchangeable here"}
+{"canonical_name": "Bay Leaves", "category": "spices & seasoning", "default_unit": "piece", "aliases": ["bay leaves", "dried bay leaves"], "source_examples": ["4  bay leaves (fresh or dried)", "2-4  fresh or dried bay leaves"], "notes": "merged 'bay leaf dried' and recovered the lone 'fresh' fragment — the source treats fresh/dried as interchangeable here"}
 {"canonical_name": "Mixed Peppercorns", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["mixed peppercorns"], "source_examples": ["1 teaspoon mixed peppercorns"], "notes": "whole peppercorns for pickling; distinct from Black Pepper"}
 {"canonical_name": "Italian Herbs", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["Italian herbs"], "source_examples": ["Italian herbs or dried spices (such as cumin or paprika)"], "notes": "choice-split from 'Italian herbs or dried spices'; the generic 'dried spices' half was dropped"}
 {"canonical_name": "Garlic", "category": "produce", "default_unit": "piece", "aliases": ["garlic cloves", "fat garlic cloves", "fat clove garlic"], "source_examples": ["3 cloves garlic (minced)", "3 fat garlic cloves (minced)"], "notes": "merged own-goal 'fat garlic' — all garlic cloves"}
@@ -52,9 +51,9 @@
 {"canonical_name": "Peach", "category": "produce", "default_unit": "piece", "aliases": ["peaches"], "source_examples": ["4 medium fragrant peaches"], "notes": "dropped descriptor 'fragrant'"}
 {"canonical_name": "Banana", "category": "produce", "default_unit": "piece", "aliases": ["bananas"], "source_examples": ["3 large speckled yet firm bananas"], "notes": "dropped descriptors 'speckled yet firm'"}
 {"canonical_name": "Avocado", "category": "produce", "default_unit": "piece", "aliases": ["avocado", "ripe avocado"], "source_examples": ["1  large avocado (cut into chunks)", "½  of a medium ripe avocado"], "notes": "merged 'avocado ripe'; the 'avocado or sunflower oil' line was reassigned to Avocado Oil (it is not the fruit)"}
-{"canonical_name": "Blueberry", "category": "produce", "default_unit": "cup", "aliases": ["blueberries"], "source_examples": ["3 cups blueberries (plus some for sprinkling (fresh or frozen))"]}
+{"canonical_name": "Blueberries", "category": "produce", "default_unit": "cup", "aliases": ["blueberries"], "source_examples": ["3 cups blueberries (plus some for sprinkling (fresh or frozen))"]}
 {"canonical_name": "Berries", "category": "produce", "default_unit": "cup", "aliases": ["desired berries"], "source_examples": ["1 ½ cups desired berries (plus some to garnish)"], "notes": "generic mixed-berry slot the recipe leaves to the cook"}
-{"canonical_name": "Date", "category": "produce", "default_unit": "piece", "aliases": ["dates"], "source_examples": ["3  dates (deseeded (or ¼ cup maple syrup))"]}
+{"canonical_name": "Dates", "category": "produce", "default_unit": "piece", "aliases": ["dates"], "source_examples": ["3  dates (deseeded (or ¼ cup maple syrup))"]}
 {"canonical_name": "Jalapeño", "category": "produce", "default_unit": "piece", "aliases": ["jalapeño"], "source_examples": ["1 tablespoon jalapeño (minced (about ½ a small jalapeño))"]}
 {"canonical_name": "Serrano Pepper", "category": "produce", "default_unit": "piece", "aliases": ["serrano pepper"], "source_examples": ["½ to 1  serrano pepper (roughly chopped (Note 3))"], "notes": "recovered from mangled 'to serrano pepper' (leaked range word 'to')"}
 {"canonical_name": "Hot Chili", "category": "produce", "default_unit": "piece", "aliases": ["hot chilies", "hot pepper", "hot chili pepper"], "source_examples": ["2 small  (or 1 large) hot chili (thinly sliced)", "1 hot chili pepper (thinly sliced (or pinch red pepper flakes))"], "notes": "merged 'hot pepper' and 'hot chili pepper' — all a small fresh hot chili"}
@@ -76,9 +75,9 @@
 {"canonical_name": "Shiitake Mushroom", "category": "produce", "default_unit": "oz", "aliases": ["shiitake mushrooms"], "source_examples": ["6-7 ounces shiitake mushrooms"]}
 {"canonical_name": "Cremini Mushroom", "category": "produce", "default_unit": "oz", "aliases": ["cremini mushrooms"], "source_examples": ["8 ounces cremini mushrooms (bottoms removed and thinly sliced)"]}
 {"canonical_name": "Okra", "category": "produce", "default_unit": "oz", "aliases": ["fresh okra"], "source_examples": ["10 ounces fresh okra"]}
-{"canonical_name": "Green Bean", "category": "produce", "default_unit": "oz", "aliases": ["green beans", "fresh green beans"], "source_examples": ["8 ounces trimmed green beans (chopped into bite sized pieces)", "12 ounces  fresh, trimmed green beans (cut bite-sized)"], "notes": "merged 'green bean fresh'"}
-{"canonical_name": "Frozen Pea", "category": "produce", "default_unit": "lb", "aliases": ["frozen peas"], "source_examples": ["1 pound  frozen peas"]}
-{"canonical_name": "Brussels Sprout", "category": "produce", "default_unit": "lb", "aliases": ["brussels sprouts"], "source_examples": ["1 pound brussels sprouts"]}
+{"canonical_name": "Green Beans", "category": "produce", "default_unit": "oz", "aliases": ["green beans", "fresh green beans"], "source_examples": ["8 ounces trimmed green beans (chopped into bite sized pieces)", "12 ounces  fresh, trimmed green beans (cut bite-sized)"], "notes": "merged 'green bean fresh'"}
+{"canonical_name": "Frozen Peas", "category": "produce", "default_unit": "lb", "aliases": ["frozen peas"], "source_examples": ["1 pound  frozen peas"]}
+{"canonical_name": "Brussels Sprouts", "category": "produce", "default_unit": "lb", "aliases": ["brussels sprouts"], "source_examples": ["1 pound brussels sprouts"]}
 {"canonical_name": "Russet Potato", "category": "produce", "default_unit": "piece", "aliases": ["russet potatoes"], "source_examples": ["1  large russet potato", "1-2  small russet potatoes (julienned)"]}
 {"canonical_name": "Kimchi", "category": "produce", "default_unit": "cup", "aliases": ["kimchi"], "source_examples": ["1 cup kimchi (see notes)"]}
 {"canonical_name": "Sauerkraut", "category": "produce", "default_unit": "cup", "aliases": ["sauerkraut"], "source_examples": ["Sauerkraut (or pickled onions (optional) )"]}
@@ -125,32 +124,32 @@
 {"canonical_name": "Bouillon Paste", "category": "pantry", "default_unit": "tsp", "aliases": ["bouillon paste"], "source_examples": ["1 teaspoon bouillon paste (no-chicken or vegetable)"]}
 {"canonical_name": "Nutritional Yeast", "category": "pantry", "default_unit": "tbsp", "aliases": ["nutritional yeast"], "source_examples": ["2 tablespoons nutritional yeast"]}
 {"canonical_name": "Tahini", "category": "pantry", "default_unit": "tbsp", "aliases": ["tahini"], "source_examples": ["¼ cup (56g) tahini"]}
-{"canonical_name": "Caper", "category": "pantry", "default_unit": "tbsp", "aliases": ["capers"], "source_examples": ["1 ½ tablespoons capers (drained and chopped)"]}
+{"canonical_name": "Capers", "category": "pantry", "default_unit": "tbsp", "aliases": ["capers"], "source_examples": ["1 ½ tablespoons capers (drained and chopped)"]}
 {"canonical_name": "Vegan Mayonnaise", "category": "pantry", "default_unit": "tbsp", "aliases": ["vegan mayonnaise", "vegan mayo", "plant mayo"], "source_examples": ["3 heaping tablespoons  vegan mayonnaise", "Desired vegan mayo (see blog text)", "Plant mayo"], "notes": "merged 'vegan mayo' and 'plant mayo'"}
 {"canonical_name": "Maple Syrup", "category": "pantry", "default_unit": "tbsp", "aliases": ["maple syrup", "pure maple syrup"], "source_examples": ["2 tablespoons maple syrup", "½ cup pure maple syrup"], "notes": "merged 'pure maple syrup'; choice partner of Agave"}
 {"canonical_name": "Agave", "category": "pantry", "default_unit": "tbsp", "aliases": ["agave"], "source_examples": ["1 tablespoon agave or maple syrup"], "notes": "choice-split from 'agave or maple syrup'"}
 {"canonical_name": "Kombu", "category": "pantry", "default_unit": "piece", "aliases": ["strip kombu"], "source_examples": ["1 small strip kombu (optional)"], "notes": "dropped portion word 'strip'"}
-{"canonical_name": "Chickpea", "category": "pantry", "default_unit": "oz", "aliases": ["chickpeas"], "source_examples": ["1  (15-ounce) can chickpeas, drained (or desired bean)"]}
-{"canonical_name": "Kidney Bean", "category": "pantry", "default_unit": "oz", "aliases": ["kidney beans"], "source_examples": ["1  (15-ounce) can kidney beans, drained (or desired bean)"]}
-{"canonical_name": "Cannellini Bean", "category": "pantry", "default_unit": "oz", "aliases": ["cannellini beans"], "source_examples": ["15 ounces cannellini beans (drained and rinsed (1 can))"]}
-{"canonical_name": "Pinto Bean", "category": "pantry", "default_unit": "oz", "aliases": ["pinto beans"], "source_examples": ["2 15-oz cans pinto beans (drained and rinsed)"]}
-{"canonical_name": "French Green Lentil", "category": "pantry", "default_unit": "cup", "aliases": ["French green lentils"], "source_examples": ["1 pound French green lentils (plus water and salt)"]}
-{"canonical_name": "Dried Mung Bean", "category": "pantry", "default_unit": "cup", "aliases": ["whole dried mung beans"], "source_examples": ["1 pound whole dried mung beans (plus water to soak and cook)"]}
-{"canonical_name": "Cashew", "category": "pantry", "default_unit": "cup", "aliases": ["raw cashews"], "source_examples": ["1 cup raw cashews"]}
-{"canonical_name": "Pecan", "category": "pantry", "default_unit": "cup", "aliases": ["pecan halves", "raw pecans"], "source_examples": ["2 cups pecan halves", "1 cup raw pecans"], "notes": "merged 'pecan half' and 'pecan raw' — halves/raw are prep forms"}
-{"canonical_name": "Pistachio", "category": "pantry", "default_unit": "tbsp", "aliases": ["raw pistachios"], "source_examples": ["2 tablespoons chopped raw pistachios (plus more to taste)"]}
-{"canonical_name": "Peanut", "category": "pantry", "default_unit": "tbsp", "aliases": ["toasted peanuts"], "source_examples": ["Toasted sesame seeds or toasted peanuts (roughly chopped)"], "notes": "choice-split from 'sesame seeds or toasted peanuts'"}
-{"canonical_name": "Hemp Seed", "category": "pantry", "default_unit": "tbsp", "aliases": ["hemp seeds"], "source_examples": ["6 tablespoons hemp seeds"]}
-{"canonical_name": "Chia Seed", "category": "pantry", "default_unit": "tbsp", "aliases": ["chia seeds"], "source_examples": ["¼ cup chia seeds"]}
+{"canonical_name": "Canned Chickpeas", "category": "pantry", "default_unit": "oz", "aliases": ["chickpeas"], "source_examples": ["1  (15-ounce) can chickpeas, drained (or desired bean)"]}
+{"canonical_name": "Canned Dark Red Kidney Beans", "category": "pantry", "default_unit": "oz", "aliases": ["kidney beans"], "source_examples": ["1  (15-ounce) can kidney beans, drained (or desired bean)"]}
+{"canonical_name": "Canned Cannellini Beans", "category": "pantry", "default_unit": "oz", "aliases": ["cannellini beans"], "source_examples": ["15 ounces cannellini beans (drained and rinsed (1 can))"]}
+{"canonical_name": "Canned Pinto Beans", "category": "pantry", "default_unit": "oz", "aliases": ["pinto beans"], "source_examples": ["2 15-oz cans pinto beans (drained and rinsed)"]}
+{"canonical_name": "French Green Lentils", "category": "pantry", "default_unit": "cup", "aliases": ["French green lentils"], "source_examples": ["1 pound French green lentils (plus water and salt)"]}
+{"canonical_name": "Dried Mung Beans", "category": "pantry", "default_unit": "cup", "aliases": ["whole dried mung beans"], "source_examples": ["1 pound whole dried mung beans (plus water to soak and cook)"]}
+{"canonical_name": "Cashews", "category": "pantry", "default_unit": "cup", "aliases": ["raw cashews"], "source_examples": ["1 cup raw cashews"]}
+{"canonical_name": "Pecans", "category": "pantry", "default_unit": "cup", "aliases": ["pecan halves", "raw pecans"], "source_examples": ["2 cups pecan halves", "1 cup raw pecans"], "notes": "merged 'pecan half' and 'pecan raw' — halves/raw are prep forms"}
+{"canonical_name": "Pistachios", "category": "pantry", "default_unit": "tbsp", "aliases": ["raw pistachios"], "source_examples": ["2 tablespoons chopped raw pistachios (plus more to taste)"]}
+{"canonical_name": "Peanuts", "category": "pantry", "default_unit": "tbsp", "aliases": ["toasted peanuts"], "source_examples": ["Toasted sesame seeds or toasted peanuts (roughly chopped)"], "notes": "choice-split from 'sesame seeds or toasted peanuts'"}
+{"canonical_name": "Hemp Seeds", "category": "pantry", "default_unit": "tbsp", "aliases": ["hemp seeds"], "source_examples": ["6 tablespoons hemp seeds"]}
+{"canonical_name": "Chia Seeds", "category": "pantry", "default_unit": "tbsp", "aliases": ["chia seeds"], "source_examples": ["¼ cup chia seeds"]}
 {"canonical_name": "Sesame Seeds", "category": "pantry", "default_unit": "tbsp", "aliases": ["sesame seeds", "toasted sesame seeds"], "source_examples": ["0.75 tsp sesame seeds", "¼ cup toasted sesame seeds"], "notes": "merged 'sesame seed toasted' — toasting is prep"}
-{"canonical_name": "Sunflower Seed", "category": "pantry", "default_unit": "tbsp", "aliases": ["toasted sunflower seeds"], "source_examples": ["½ cup toasted sunflower seeds (plus more to taste (optional))"]}
+{"canonical_name": "Sunflower Seeds", "category": "pantry", "default_unit": "tbsp", "aliases": ["toasted sunflower seeds"], "source_examples": ["½ cup toasted sunflower seeds (plus more to taste (optional))"]}
 {"canonical_name": "Flaxseed Meal", "category": "pantry", "default_unit": "tbsp", "aliases": ["ground flaxseed meal"], "source_examples": ["2 tablespoons ground flaxseed meal"]}
-{"canonical_name": "Dried Currant", "category": "pantry", "default_unit": "cup", "aliases": ["dried currants"], "source_examples": ["1 cup dried currants or raisins"], "notes": "choice-split from 'dried currants or raisins'"}
-{"canonical_name": "Raisin", "category": "pantry", "default_unit": "cup", "aliases": ["raisins"], "source_examples": ["1 cup dried currants or raisins"], "notes": "choice-split from 'dried currants or raisins'"}
-{"canonical_name": "Dried Coconut Flake", "category": "pantry", "default_unit": "oz", "aliases": ["dried coconut flakes"], "source_examples": ["2 ounces dried coconut flakes"]}
+{"canonical_name": "Dried Currants", "category": "pantry", "default_unit": "cup", "aliases": ["dried currants"], "source_examples": ["1 cup dried currants or raisins"], "notes": "choice-split from 'dried currants or raisins'"}
+{"canonical_name": "Raisins", "category": "pantry", "default_unit": "cup", "aliases": ["raisins"], "source_examples": ["1 cup dried currants or raisins"], "notes": "choice-split from 'dried currants or raisins'"}
+{"canonical_name": "Dried Coconut Flakes", "category": "pantry", "default_unit": "oz", "aliases": ["dried coconut flakes"], "source_examples": ["2 ounces dried coconut flakes"]}
 {"canonical_name": "Chex Cereal", "category": "pantry", "default_unit": "cup", "aliases": ["chex style cereal"], "source_examples": ["7 cups chex style cereal"]}
-{"canonical_name": "Mini Pretzel", "category": "pantry", "default_unit": "cup", "aliases": ["mustard flavored mini pretzels"], "source_examples": ["1 ½ cups mustard flavored mini pretzels"]}
-{"canonical_name": "Tortilla Chip", "category": "pantry", "default_unit": "piece", "aliases": ["tortilla chips"], "source_examples": ["Tortilla chips (to serve (optional))"]}
+{"canonical_name": "Mini Pretzels", "category": "pantry", "default_unit": "cup", "aliases": ["mustard flavored mini pretzels"], "source_examples": ["1 ½ cups mustard flavored mini pretzels"]}
+{"canonical_name": "Tortilla Chips", "category": "pantry", "default_unit": "piece", "aliases": ["tortilla chips"], "source_examples": ["Tortilla chips (to serve (optional))"]}
 {"canonical_name": "Crispy Onion", "category": "pantry", "default_unit": "oz", "aliases": ["crispy onions"], "source_examples": ["3 ounces crispy onions (or desired amount)"], "notes": "fried-onion topping; kept distinct from fresh Onion"}
 {"canonical_name": "Crispy Shallot", "category": "pantry", "default_unit": "piece", "aliases": ["crispy shallots"], "source_examples": ["Crispy shallots (to garnish)"], "notes": "fried-shallot topping; kept distinct from fresh Shallot (parallels Crispy Onion)"}
 {"canonical_name": "White Basmati Rice", "category": "grains", "default_unit": "cup", "aliases": ["white basmati rice"], "source_examples": ["2 cups white basmati rice"]}
@@ -160,7 +159,6 @@
 {"canonical_name": "Cavatappi", "category": "grains", "default_unit": "cup", "aliases": ["cavatappi"], "source_examples": ["2 cups cavatappi or ditalini pasta (5 oz / 140 g)"], "notes": "choice-split from 'cavatappi or ditalini pasta'"}
 {"canonical_name": "Ditalini", "category": "grains", "default_unit": "cup", "aliases": ["ditalini pasta"], "source_examples": ["2 cups cavatappi or ditalini pasta (5 oz / 140 g)"], "notes": "choice-split from 'cavatappi or ditalini pasta'"}
 {"canonical_name": "Soft Sandwich Bread", "category": "grains", "default_unit": "piece", "aliases": ["soft sandwich bread"], "source_examples": ["8 slices soft sandwich bread or 4 ciabatta buns (lightly toasted)"], "notes": "choice-split from 'soft sandwich bread or ciabatta buns'"}
-{"canonical_name": "Ciabatta Bun", "category": "grains", "default_unit": "piece", "aliases": ["ciabatta buns"], "source_examples": ["8 slices soft sandwich bread or 4 ciabatta buns (lightly toasted)"], "notes": "choice-split from 'soft sandwich bread or ciabatta buns'"}
 {"canonical_name": "Sprouted Multigrain Bread", "category": "grains", "default_unit": "piece", "aliases": ["sprouted multigrain bread"], "source_examples": ["8 slices seeded or sprouted multigrain bread ((toasted, if desired) )"]}
 {"canonical_name": "English Muffin", "category": "grains", "default_unit": "piece", "aliases": ["English muffins"], "source_examples": ["4  English muffins (sliced and toasted)"]}
 {"canonical_name": "Tostada Shell", "category": "grains", "default_unit": "piece", "aliases": ["crispy tostada shells"], "source_examples": ["1 pack  crispy tostada shells (toasted)"], "notes": "dropped container 'pack'"}
@@ -177,3 +175,117 @@
 {"canonical_name": "Active Dry Yeast", "category": "baking", "default_unit": "tsp", "aliases": ["dry active yeast"], "source_examples": ["1 teaspoon dry active yeast"]}
 {"canonical_name": "Sourdough Starter", "category": "baking", "default_unit": "g", "aliases": ["active starter"], "source_examples": ["50 g active starter (2 tablespoons)"]}
 {"canonical_name": "Water", "category": "pantry", "default_unit": "cup", "aliases": ["water", "filtered water", "warm water"], "source_examples": ["2 ½ cups water", "2 cups filtered water", "1 cup warm water"], "notes": "merged 'filtered water' and 'warm water'"}
+{"canonical_name": "00 Flour", "category": "baking", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Almond Flour", "category": "baking", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Buckwheat Flour", "category": "baking", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Semolina Flour", "category": "baking", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Spelt Flour", "category": "baking", "default_unit": "cup", "aliases": []}
+{"canonical_name": "White Rice Flour", "category": "baking", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Whole Wheat Flour", "category": "baking", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Almond Milk", "category": "dairy", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Oat Milk", "category": "dairy", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Canola Oil", "category": "fats & oils", "default_unit": "tbsp", "aliases": []}
+{"canonical_name": "Corn Oil", "category": "fats & oils", "default_unit": "tbsp", "aliases": []}
+{"canonical_name": "Peanut Oil", "category": "fats & oils", "default_unit": "tbsp", "aliases": []}
+{"canonical_name": "Safflower Oil", "category": "fats & oils", "default_unit": "tbsp", "aliases": []}
+{"canonical_name": "Vegetable Oil", "category": "fats & oils", "default_unit": "tbsp", "aliases": []}
+{"canonical_name": "Black Rice", "category": "grains", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Brown Rice", "category": "grains", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Buckwheat", "category": "grains", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Bulgur", "category": "grains", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Corn Tortilla", "category": "grains", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Cornmeal", "category": "grains", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Farro", "category": "grains", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Flour Tortilla", "category": "grains", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Multigrain Bread", "category": "grains", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Quinoa", "category": "grains", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Red Rice", "category": "grains", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Rolled Oats", "category": "grains", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Steel-Cut Oats", "category": "grains", "default_unit": "cup", "aliases": []}
+{"canonical_name": "White Bread", "category": "grains", "default_unit": "piece", "aliases": []}
+{"canonical_name": "White Rice", "category": "grains", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Whole Wheat Bread", "category": "grains", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Wild Rice", "category": "grains", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Almond Butter", "category": "pantry", "default_unit": "tbsp", "aliases": []}
+{"canonical_name": "Almonds", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Applesauce", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Baked Beans", "category": "pantry", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Brazil Nuts", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Canned Black Beans", "category": "pantry", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Canned Black-Eyed Peas", "category": "pantry", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Canned Great Northern Beans", "category": "pantry", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Canned Light Red Kidney Beans", "category": "pantry", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Canned Navy Beans", "category": "pantry", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Canned Crushed Tomatoes", "category": "pantry", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Canned Tomato Puree", "category": "pantry", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Canned Tomato Sauce", "category": "pantry", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Canned Whole Tomatoes", "category": "pantry", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Canned Green Beans", "category": "pantry", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Dill Pickles", "category": "pantry", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Dried Black Beans", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Dried Black-Eyed Peas", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Dried Cannellini Beans", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Dried Chickpeas", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Dried Cranberries", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Dried Figs", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Dried Lentils", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Golden Raisins", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Green Olives", "category": "pantry", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Hazelnuts", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Hummus", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Ketchup", "category": "pantry", "default_unit": "tbsp", "aliases": []}
+{"canonical_name": "Peanut Butter", "category": "pantry", "default_unit": "tbsp", "aliases": []}
+{"canonical_name": "Pine Nuts", "category": "pantry", "default_unit": "tbsp", "aliases": []}
+{"canonical_name": "Pumpkin Seeds", "category": "pantry", "default_unit": "tbsp", "aliases": []}
+{"canonical_name": "Walnuts", "category": "pantry", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Apricot", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Asparagus", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Broccoli", "category": "produce", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Butternut Squash", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Cabbage", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Cantaloupe", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Cauliflower", "category": "produce", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Cherries", "category": "produce", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Cherry Tomatoes", "category": "produce", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Collard Greens", "category": "produce", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Corn", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Eggplant", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Enoki Mushroom", "category": "produce", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Fennel", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Gala Apple", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Gold Potato", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Granny Smith Apple", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Grapefruit", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Green Bell Pepper", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Green Grapes", "category": "produce", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Kale", "category": "produce", "default_unit": "cup", "aliases": []}
+{"canonical_name": "King Oyster Mushroom", "category": "produce", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Kiwi", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Leek", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Lion's Mane Mushroom", "category": "produce", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Maitake Mushroom", "category": "produce", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Napa Cabbage", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Nectarine", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Orange Bell Pepper", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Oyster Mushroom", "category": "produce", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Parsnip", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Pineapple", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Plantain", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Poblano Pepper", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Portobello Mushroom", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Radish", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Raspberries", "category": "produce", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Red Bell Pepper", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Red Cabbage", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Red Delicious Apple", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Red Grapes", "category": "produce", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Red Leaf Lettuce", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Red Potato", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Rhubarb", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Strawberries", "category": "produce", "default_unit": "cup", "aliases": []}
+{"canonical_name": "Sweet Potato", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Turnip", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Watermelon", "category": "produce", "default_unit": "cup", "aliases": []}
+{"canonical_name": "White Mushroom", "category": "produce", "default_unit": "oz", "aliases": []}
+{"canonical_name": "Yellow Bell Pepper", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Yellow Squash", "category": "produce", "default_unit": "piece", "aliases": []}
