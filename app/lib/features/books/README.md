@@ -43,5 +43,5 @@ books/
 
 ## Still local-only
 
-Like step 2, nothing calls `.connect()` — `0004_books.sql` authors the
-RLS/grants/publication now so step 7 only has to connect.
+`0004_books.sql` authors the RLS/grants/publication; the book tables sync since
+step 7 (`.connect()` in `core/sync/session.dart`).

@@ -48,4 +48,4 @@ final class BookRepositoryProvider
   }
 }
 
-String _$bookRepositoryHash() => r'd32c5121db8ca1d2d925f93f6ff8bfff80e7e68f';
+String _$bookRepositoryHash() => r'102740de361a4c92b80aa74a53e175d6291673be';

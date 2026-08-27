@@ -33,9 +33,6 @@ class _FakePlanningRepo implements PlanningRepository {
   ];
 
   @override
-  Future<void> ensureMembers() async {}
-
-  @override
   Future<String> addEntry({
     required DateTime weekStart,
     required int dayOfWeek,

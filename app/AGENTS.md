@@ -135,8 +135,13 @@ deliberately *not* in CI (macOS runners are slow and expensive at hobby scale).
 
 Notes:
 
-- The app starts with **no data**. To exercise the populated screens, drive the
-  editor UI (or the sim's `tap`/`text`) to create a recipe first.
+- The app now opens on a **sign-in gate** (step 7). `make run` needs a Supabase
+  in `.env.local` (local: `make db-up` + dev email/password; cloud: see
+  [`../docs/cloud-setup.md`](../docs/cloud-setup.md)). After sign-in a
+  `/connecting` screen shows until onboarding + first-sync resolve the household,
+  then the Library. A fresh household starts with **no recipes** — drive the
+  editor UI (or `tap`/`text`) to create one; the ingredient vocab arrives via
+  sync.
 - Design targets for the recipe screens live in `docs/product-specs/`
   (`design-board.html`); the step-2 mockups were captured under `scratch/`.
 - **Fonts** must be bundled to render (Spectral / IBM Plex Mono in

@@ -64,11 +64,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    # Seeded ingredient vocabulary, bundle-loaded on first run while step 2 runs
-    # offline (nothing syncs yet). Generated from supabase/seed/vocab.jsonl by
-    # `make app-seed`; do not hand-edit. Superseded by sync in step 7.
-    - assets/seed/vocab.jsonl
 
   # Bundled (offline) fonts for the three design-board type roles. OFL 1.1;
   # see assets/fonts/OFL.txt. Wired into core/theme/mise_theme.dart.

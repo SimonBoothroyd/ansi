@@ -27,6 +27,7 @@ batches (bounded by shelf life) and buys each thing once.
 | The operating principles agents must hold | [`docs/design-docs/core-beliefs.md`](./docs/design-docs/core-beliefs.md) |
 | The quality bar per area                  | [`docs/QUALITY.md`](./docs/QUALITY.md) |
 | Secrets, auth, RLS                        | [`docs/SECURITY.md`](./docs/SECURITY.md) |
+| Standing up cloud (Supabase/PowerSync/Google) | [`docs/cloud-setup.md`](./docs/cloud-setup.md) |
 | How the knowledge base itself works       | [`docs/README.md`](./docs/README.md) |
 | Offline knowledge of key dependencies     | [`docs/references/`](./docs/references) |
 

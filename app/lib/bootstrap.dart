@@ -2,33 +2,34 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
+import 'core/config/env.dart';
 import 'core/sync/database.dart';
-import 'features/books/data/book_repository_impl.dart';
-import 'features/ingredients/data/vocab_seeder.dart';
-import 'features/planning/data/planning_repository_impl.dart';
 
 /// Boots the app inside a guarded zone with a single [ProviderScope] root.
 ///
-/// Step 2 opens the local PowerSync database and seeds the bundled ingredient
-/// vocab before the first frame, then injects the open database into the
-/// provider graph. No `.connect()` — sync is step 7.
+/// Initialises Supabase (auth + the client the connector uploads through),
+/// opens the local PowerSync database, and injects it into the provider graph.
+/// It does NOT connect or seed here — the session controller connects PowerSync
+/// once a user signs in (step 7), and the vocab / members / default book now
+/// arrive from the server rather than a local seeder.
 void bootstrap() {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      await Supabase.initialize(
+        url: Env.supabaseUrl,
+        // The local stack issues a legacy anon JWT; anonKey stays valid even as
+        // the SDK migrates callers toward publishableKey.
+        // ignore: deprecated_member_use
+        anonKey: Env.supabaseAnonKey,
+      );
       final db = await openMiseDatabase();
-      await VocabSeeder(db).ensureSeeded();
-      // Ensure a default book exists and adopt any pre-step-3 recipes into it,
-      // so the Library is never empty of books (step 3). Idempotent.
-      await SqliteBookRepository(db).ensureDefaultBook();
-      // Seed two local household members so meal eaters default to the whole
-      // household (step 4). Local-only until step 7 syncs real members.
-      await SqlitePlanningRepository(db).ensureMembers();
       runApp(
         ProviderScope(
-          overrides: [databaseProvider.overrideWithValue(db)],
+          overrides: [powerSyncDatabaseProvider.overrideWithValue(db)],
           child: const MiseApp(),
         ),
       );

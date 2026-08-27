@@ -58,7 +58,7 @@ select throws_ok(
 reset role;
 set local role service_role;
 select is(
-  (select count(*) from usda_food)::int, 1,
+  (select count(*) from usda_food where fdc_id = 1)::int, 1,
   'service_role can read usda_food'
 );
 

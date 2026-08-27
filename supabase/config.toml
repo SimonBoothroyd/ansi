@@ -13,9 +13,27 @@ sql_paths = ["./seed.sql", "./seed_usda.sql", "./seed_prefill.sql"]
 
 [auth]
 enable_signup = true
-# Google OAuth (ADR-0002) — configure the provider + secrets locally, not here.
+# Deep-link back into the app after OAuth (Google) — the Flutter scheme.
+site_url = "io.mise.app://login-callback"
+additional_redirect_urls = ["io.mise.app://login-callback"]
+
+# Dev auth (step 7): local email/password with no mail server, so skip the
+# confirmation round-trip. Real deployments keep confirmations on.
+[auth.email]
+enable_confirmations = false
+
+# Inject the caller's household_id into the JWT (public.add_household_claim,
+# migration 0007) so PowerSync sync rules can scope buckets to the household.
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/add_household_claim"
+
+# Google OAuth (ADR-0002) — code ships in step 7; verify against a real Google
+# project at cloud cutover. Set the id/secret as env, never commit them.
 # [auth.external.google]
 # enabled = true
+# client_id = "env(GOOGLE_CLIENT_ID)"
+# secret = "env(GOOGLE_SECRET)"
 
 [api]
 port = 54321

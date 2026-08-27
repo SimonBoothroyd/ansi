@@ -20,9 +20,15 @@ import '../domain/planning_repository.dart';
 const _uuid = Uuid();
 
 class SqlitePlanningRepository implements PlanningRepository {
-  const SqlitePlanningRepository(this._db);
+  const SqlitePlanningRepository(
+    this._db, {
+    String householdId = kDevHouseholdId,
+  }) : _householdId = householdId;
 
   final SqliteConnection _db;
+
+  /// The household stamped on rows this repo writes (dev default for tests).
+  final String _householdId;
 
   /// The ISO date (YYYY-MM-DD) a week is addressed by — its Monday.
   String _weekKey(DateTime weekStart) {
@@ -122,24 +128,6 @@ class SqlitePlanningRepository implements PlanningRepository {
     ];
   }
 
-  @override
-  Future<void> ensureMembers() async {
-    final existing = await _db.get(
-      'SELECT COUNT(*) AS n FROM household_member',
-    );
-    if ((existing['n'] as int) > 0) return;
-    // Two local members so eaters default to the whole household. Names match
-    // the design board's avatars; throwaway pre-auth scaffolding.
-    const names = ['Ada', 'Jun'];
-    for (var i = 0; i < names.length; i++) {
-      await _db.execute(
-        'INSERT INTO household_member (id, household_id, display_name, '
-        'sort_order) VALUES (?, ?, ?, ?)',
-        [_uuid.v4(), kDevHouseholdId, names[i], i],
-      );
-    }
-  }
-
   /// Returns the id of the week beginning [weekKey], creating it if absent.
   Future<String> _getOrCreateWeek(SqliteWriteContext tx, String weekKey) async {
     final existing = await tx.getOptional(
@@ -153,7 +141,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     await tx.execute(
       'INSERT INTO week_plan (id, household_id, week_start_date, created_at, '
       'updated_at) VALUES (?, ?, ?, ?, ?)',
-      [id, kDevHouseholdId, weekKey, now, now],
+      [id, _householdId, weekKey, now, now],
     );
     return id;
   }
@@ -184,7 +172,7 @@ class SqlitePlanningRepository implements PlanningRepository {
         'updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           id,
-          kDevHouseholdId,
+          _householdId,
           weekId,
           dayOfWeek,
           mealSlot.trim(),
@@ -234,7 +222,7 @@ class SqlitePlanningRepository implements PlanningRepository {
           'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             _uuid.v4(),
-            kDevHouseholdId,
+            _householdId,
             weekId,
             e.dayOfWeek,
             e.mealSlot,

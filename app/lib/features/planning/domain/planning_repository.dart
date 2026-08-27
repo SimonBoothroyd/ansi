@@ -19,13 +19,10 @@ abstract interface class PlanningRepository {
   /// there is no earlier planned week.
   Future<WeekPlan?> mostRecentWeekBefore(DateTime weekStart);
 
-  /// Every household member (the eater roster), ordered for display.
+  /// Every household member (the eater roster), ordered for display. Members
+  /// are server-owned — created at onboarding (`ensure_onboarded`, migration
+  /// 0007) and synced down; the app never writes them.
   Future<List<Member>> members();
-
-  /// Ensures the household has members, seeding two local ones ("Ada", "Jun")
-  /// if none exist. Idempotent — a no-op once members exist. Local-only until
-  /// step 7 syncs the real, auth-backed members.
-  Future<void> ensureMembers();
 
   /// Adds a meal to the week beginning [weekStart], creating the week if
   /// needed. A null [portions] tracks the eater count (spec §8). Returns the

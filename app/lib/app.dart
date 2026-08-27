@@ -3,6 +3,7 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'core/router/app_router.dart';
+import 'core/sync/session.dart';
 import 'core/theme/mise_theme.dart';
 
 /// Root widget. `MaterialApp.router` hosts go_router (Flutter needs a
@@ -13,12 +14,15 @@ class MiseApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Keep the session controller alive for the app's lifetime: it listens to
+    // auth changes and connects/disconnects PowerSync (step 7).
+    ref.watch(sessionControllerProvider);
     final theme = miseThemeData();
     return MaterialApp.router(
       title: 'Mise',
       debugShowCheckedModeBanner: false,
       theme: miseHostTheme(),
-      routerConfig: router,
+      routerConfig: ref.watch(routerProvider),
       builder: (context, child) => FTheme(data: theme, child: child!),
     );
   }

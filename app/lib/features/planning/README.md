@@ -47,18 +47,19 @@ cook plan's `batchHintFor`/`clusterSessions`).
   table.
 - **Meal slots are free text** (spec §8). `kDefaultMealSlots` are the three the
   UI offers; `mealSlotRank` orders known slots ahead of custom ones per day.
-- **Members** are seeded as a **local-only** `household_member` table (two
-  members, `ensureMembers()` in `bootstrap.dart`) because the real 0001 table's
-  `auth_user_id` FK can't exist before auth. Step 7 flips it to synced — the
-  same playbook as `ingredient`. See [`schema.dart`](../../core/sync/schema.dart).
+- **Members** are **synced** from the server (step 7): `ensure_onboarded`
+  (migration 0007) creates the `household_member` rows at sign-in and they stream
+  down; the app reads them but never writes them. (Pre-step-7 they were a
+  local-only, `ensureMembers()`-seeded table.) See
+  [`schema.dart`](../../core/sync/schema.dart).
 
 ## Navigation
 
-The Week is a bottom-nav tab (`shared/mise_bottom_nav.dart`), alongside Library.
-Cook is a live tab (step 5); Shop renders but is inert until step 6.
+The Week is a bottom-nav tab (`shared/mise_bottom_nav.dart`), alongside Library,
+Cook (step 5), and Shop (step 6) — all four tabs are live.
 
 ## Deferred
 
 - Recipe photos (picker/confirm thumbnails are placeholders) — needs Storage.
 - Favorites tab in the picker — no favorite flag on `recipe` yet.
-- Still local-only; nothing syncs until step 7.
+- Syncs since step 7 (`week_plan`/`plan_entry` are synced, household-scoped).

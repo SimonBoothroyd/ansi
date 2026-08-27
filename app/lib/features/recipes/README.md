@@ -18,8 +18,9 @@ recipes/
 
 Built in step 2 (see `docs/exec-plans/completed/0002-single-user-recipes.md`).
 Notes:
-- **Local-only persistence.** The app opens PowerSync but never `.connect()`s
-  (step 7). Recipes persist on-device; writes queue harmlessly while offline.
+- **Synced persistence (since step 7).** The app `.connect()`s PowerSync once
+  signed in (`core/sync/session.dart`); recipes persist on-device and sync to the
+  household, with writes queuing harmlessly while offline.
 - **Scaling is a view concern** — `scaling.dart` scales displayed quantities for
   a target serving; the stored recipe is untouched. Imprecise units never scale.
 - **Save replaces children** (groups/line-items) wholesale rather than diffing.

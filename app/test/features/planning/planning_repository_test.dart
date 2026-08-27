@@ -21,6 +21,20 @@ Future<void> _insertRecipe(
   );
 }
 
+Future<void> _insertMember(
+  PowerSyncDatabase db,
+  String id,
+  String name,
+  int sortOrder,
+) async {
+  final now = DateTime.now().toUtc().toIso8601String();
+  await db.execute(
+    'INSERT INTO household_member (id, household_id, display_name, sort_order, '
+    'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [id, 'h', name, sortOrder, now, now],
+  );
+}
+
 /// The Monday of the active test week and the one before it.
 final _thisWeek = DateTime.utc(2026, 8, 24);
 final _lastWeek = DateTime.utc(2026, 8, 17);
@@ -38,15 +52,13 @@ void main() {
   tearDown(() => closeTestDb(db, dir));
 
   group('members', () {
-    test('ensureMembers seeds two members and is idempotent', () async {
-      await repo.ensureMembers();
-      final first = await repo.members();
-      expect(first.map((m) => m.displayName), ['Ada', 'Jun']);
-
-      await repo.ensureMembers();
-      final second = await repo.members();
-      expect(second, hasLength(2));
-      expect(second.map((m) => m.id), first.map((m) => m.id));
+    test('reads the synced household members in display order', () async {
+      // Members are server-owned (onboarding); the app reads them. Seed the
+      // synced table directly, as sync would.
+      await _insertMember(db, 'm2', 'Jun', 1);
+      await _insertMember(db, 'm1', 'Ada', 0);
+      final members = await repo.members();
+      expect(members.map((m) => m.displayName), ['Ada', 'Jun']);
     });
   });
 

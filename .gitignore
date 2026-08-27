@@ -49,3 +49,6 @@ evals/node_modules/
 !.vscode/extensions.json
 !.vscode/settings.json
 *.iml
+
+# Local scratch space (screenshots, throwaway files)
+scratch/

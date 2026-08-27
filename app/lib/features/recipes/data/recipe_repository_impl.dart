@@ -17,9 +17,13 @@ import '../domain/recipe.dart';
 import '../domain/recipe_repository.dart';
 
 class SqliteRecipeRepository implements RecipeRepository {
-  const SqliteRecipeRepository(this._db);
+  const SqliteRecipeRepository(this._db, {String householdId = kDevHouseholdId})
+    : _householdId = householdId;
 
   final SqliteConnection _db;
+
+  /// The household stamped on rows this repo writes (dev default for tests).
+  final String _householdId;
 
   @override
   Stream<List<RecipeSummary>> watchRecipes() {
@@ -153,7 +157,7 @@ class SqliteRecipeRepository implements RecipeRepository {
           'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             recipe.id,
-            kDevHouseholdId,
+            _householdId,
             recipe.title,
             recipe.servingsBase,
             steps,
@@ -205,7 +209,7 @@ class SqliteRecipeRepository implements RecipeRepository {
         await tx.execute(
           'INSERT INTO ingredient_group (id, household_id, recipe_id, name, '
           'sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [group.id, kDevHouseholdId, recipe.id, group.name, gi, now, now],
+          [group.id, _householdId, recipe.id, group.name, gi, now, now],
         );
         for (var li = 0; li < group.items.length; li++) {
           final item = group.items[li];
@@ -215,7 +219,7 @@ class SqliteRecipeRepository implements RecipeRepository {
             'updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
               item.id,
-              kDevHouseholdId,
+              _householdId,
               group.id,
               item.ingredientId,
               item.quantity,

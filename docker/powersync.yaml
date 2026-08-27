@@ -1,28 +1,72 @@
-# PowerSync sync rules — decide which rows reach which client.
-# These MUST mirror the RLS boundaries (docs/SECURITY.md): a device only ever
-# syncs its own household's data, and never server-only tables (usda_food).
+# PowerSync service config — decides which rows reach which client, and how the
+# service connects to Postgres and verifies client tokens.
 #
-# Bucket definitions grow as domain tables land; the `replication.connections`
-# wiring (the actual connector + token) is still step 7. The pattern is
-# household-scoped: parameter the household_id from the JWT, then select each
-# synced table where household_id = the token's household.
+# The sync rules MUST mirror the RLS boundaries (docs/SECURITY.md): a device only
+# ever syncs its own household's data, and never server-only tables (usda_food,
+# ADR-0005). The household is resolved from the JWT `household_id` claim that the
+# `add_household_claim` access-token hook injects (migration 0007).
+#
+# Env comes from docker/compose.yaml (which reads .env.local):
+#   PS_PG_URL          — Postgres the service replicates from + stores buckets in
+#   PS_SUPABASE_JWT_SECRET — the Supabase JWT secret (HS256) used to verify tokens
 
 replication:
-  # Configured against the local Supabase Postgres; see docker/compose.yaml.
-  connections: []
+  connections:
+    - type: postgresql
+      # Discrete fields (not a URI): jpgwire only honours `sslmode` here, so the
+      # local Supabase Postgres — plain TCP, no TLS — connects without an SSL
+      # negotiation. Values come from .env.local via docker/compose.yaml.
+      hostname: !env PS_PG_HOST
+      port: !env PS_PG_PORT
+      database: !env PS_PG_DATABASE
+      username: !env PS_PG_USER
+      password: !env PS_PG_PASSWORD
+      sslmode: disable
 
+# Bucket storage. Self-hosted PowerSync needs somewhere to keep the compiled
+# bucket state; reuse the same Postgres (its own schema) so local dev stays a
+# single database — no extra MongoDB container.
+storage:
+  type: postgresql
+  hostname: !env PS_PG_HOST
+  port: !env PS_PG_PORT
+  database: !env PS_PG_DATABASE
+  username: !env PS_PG_USER
+  password: !env PS_PG_PASSWORD
+  sslmode: disable
+
+port: 8080
+
+# Verify client tokens against Supabase's JWKS. Supabase local (and cloud) now
+# issue ASYMMETRIC (ES256) access tokens, so the service fetches the public keys
+# from Supabase's JWKS endpoint rather than sharing an HS256 secret. Only tokens
+# whose audience is `authenticated` (a signed-in user) are accepted.
+client_auth:
+  jwks_uri: !env PS_JWKS_URI
+  audience:
+    - authenticated
+
+# Sync rules are supplied inline (`content`); a `path:` to a separate file works
+# too. One bucket per household: `household_id` is parametered from the JWT claim
+# the token hook injects, and every synced table is filtered to that household.
+# Mirrors the RLS boundaries in migrations 0001–0006. usda_food is NEVER listed —
+# server-only (ADR-0005).
 sync_rules:
-  bucket_definitions:
-    # One bucket per household; the connector (step 7) supplies the token whose
-    # household_id parameters it. Tables here mirror the RLS boundaries in
-    # migrations 0001–0002. usda_food is NEVER listed — server-only (ADR-0005).
-    household:
-      parameters: select request.jwt() ->> 'household_id' as household_id
-      data:
-        - select * from household         where id = bucket.household_id
-        - select * from household_member  where household_id = bucket.household_id
-        - select * from ingredient        where household_id = bucket.household_id
-        - select * from ingredient_alias  where household_id = bucket.household_id
-        - select * from recipe            where household_id = bucket.household_id
-        - select * from ingredient_group  where household_id = bucket.household_id
-        - select * from recipe_line_item  where household_id = bucket.household_id
+  content: |
+    bucket_definitions:
+      household:
+        parameters: select request.jwt() ->> 'household_id' as household_id
+        data:
+          - select * from household         where id = bucket.household_id
+          - select * from household_member  where household_id = bucket.household_id
+          - select * from ingredient        where household_id = bucket.household_id
+          - select * from ingredient_alias  where household_id = bucket.household_id
+          - select * from book              where household_id = bucket.household_id
+          - select * from book_section      where household_id = bucket.household_id
+          - select * from recipe            where household_id = bucket.household_id
+          - select * from ingredient_group  where household_id = bucket.household_id
+          - select * from recipe_line_item  where household_id = bucket.household_id
+          - select * from week_plan         where household_id = bucket.household_id
+          - select * from plan_entry        where household_id = bucket.household_id
+          - select * from shopping_list_entry        where household_id = bucket.household_id
+          - select * from shopping_list_contribution where household_id = bucket.household_id

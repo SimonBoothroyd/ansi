@@ -1,24 +1,18 @@
 /// PowerSync client-side schema — the local SQLite mirror.
 ///
-/// Step 2 opens this database but never calls `.connect()` (see the step-2 exec
-/// plan): recipes persist locally and nothing syncs yet. The tables are still
-/// declared as they'll sync so step 7 only has to connect.
+/// Every table here is **synced** (step 7): `bootstrap` calls `db.connect()`
+/// with the `MiseConnector` once a user is signed in, so local writes queue for
+/// upload and the server's rows stream down. Each table mirrors its migration
+/// and is scoped to the household (the sync rules in `docker/powersync.yaml`
+/// filter every bucket to the JWT's `household_id`).
 ///
-/// Two flavours here:
-/// - **Synced tables** (`book`, `book_section`, `recipe`, `ingredient_group`,
-///   `recipe_line_item`) mirror migrations 0003/0004. Local writes queue for
-///   upload; harmless offline.
-/// - **Local-only tables** (`ingredient`, `ingredient_alias`,
-///   `household_member`) are bootstrap-seeded on first run (nothing syncs
-///   them). `localOnly` keeps these fake reference rows OUT of the upload
-///   queue. `ingredient*` come from the bundled vocab (migration 0002);
-///   `household_member` is seeded with two local members because the real
-///   table (migration 0001) has an `auth_user_id → auth.users` FK that cannot
-///   exist before auth. Step 7 flips all three to synced tables fed by the
-///   server and drops the seeders.
+/// `ingredient`/`ingredient_alias`/`household_member`/`household` used to be
+/// `Table.localOnly` (bootstrap-seeded before auth existed); step 7 flipped
+/// them to synced, fed by the server (`ensure_onboarded` seeds the vocab),
+/// and dropped the seeders. The vocab now carries server-resolved macros.
 ///
 /// Every table gets an implicit `id` TEXT primary key — do not declare it.
-/// `usda_food` and match indexes never live on-device (ADR-0004/0005).
+/// `usda_food` and the match indexes never live on-device (ADR-0004/0005).
 library;
 
 import 'package:powersync/powersync.dart';
@@ -97,29 +91,64 @@ const schema = Schema([
     ..._audit,
   ]),
 
-  // Vocab — local-only for step 2 (bundle-loaded; becomes synced in step 7).
-  Table.localOnly('ingredient', [
+  // Shopping list (step 6). Only the parts of the list that can't be re-derived
+  // from the cook plan: check-off state + manual/free-text contributions. The
+  // `cook_session` contributions are derived live (spec §4), never stored.
+  Table('shopping_list_entry', [
+    Column.text('household_id'),
+    Column.text('ingredient_id'), // null for a free-text (non-food) item
+    Column.text('free_text'), // null for an ingredient
+    Column.text('category'), // aisle group for a free-text item
+    Column.integer('checked'), // 0/1 — check-off is on the entry
+    Column.text('unit'), // preferred display unit (nullable)
+    ..._audit,
+  ]),
+  Table('shopping_list_contribution', [
+    Column.text('household_id'),
+    Column.text('entry_id'),
+    Column.text('source_type'), // 'manual' | 'cook_session' (v1 stores manual)
+    Column.text('source_cook_session_id'), // null in v1 (cook plan is derived)
+    Column.real('quantity'), // nullable (a bare non-food item)
+    Column.text('unit'),
+    Column.text('note'),
+    ..._audit,
+  ]),
+
+  // Vocab — synced from the server (step 7). Owned by the household; the server
+  // holds USDA-resolved macros/density, which now ride down. `macros` is the
+  // server's JSONB serialized to text. `usda_food` is never here (ADR-0005).
+  Table('ingredient', [
     Column.text('household_id'),
     Column.text('canonical_name'),
     Column.text('category'),
     Column.text('default_unit'),
     Column.real('density_g_per_ml'),
+    Column.text('macros'), // JSON {kcal, protein, carb, fat}; null when stub
     Column.text('status'),
     Column.text('source'),
     Column.text('match_text'),
+    ..._audit,
   ]),
-  Table.localOnly('ingredient_alias', [
+  Table('ingredient_alias', [
+    Column.text('household_id'),
     Column.text('ingredient_id'),
     Column.text('alias_text'),
     Column.text('match_text'),
+    Column.text('source'),
+    ..._audit,
   ]),
 
-  // Household members — local-only for step 4 (bootstrap-seeded; becomes synced
-  // in step 7 once auth exists, migration 0001). `eaters` on a plan_entry
-  // references these ids. No `auth_user_id` here: local members carry none.
-  Table.localOnly('household_member', [
+  // Household members — synced (step 7). Created server-side at onboarding
+  // (`ensure_onboarded`, migration 0007); the client reads them (eaters on a
+  // plan_entry reference these ids) but never writes them. `auth_user_id` stays
+  // server-only — the client doesn't need it.
+  Table('household_member', [
     Column.text('household_id'),
     Column.text('display_name'),
     Column.integer('sort_order'),
+    ..._audit,
   ]),
+
+  // The household itself — synced so its name is available offline.
+  Table('household', [Column.text('name'), ..._audit]),
 ]);

@@ -51,6 +51,13 @@ One shared household dataset; both members full read/write; everything scoped to
 `household_id`. PowerSync owns the write queue: the app reads and writes a local
 SQLite database and syncs when online.
 
+Auth gates the whole app (step 7): sign in (Google OAuth, or dev email/password
+locally) → `ensure_onboarded` resolves or creates the household → an access-token
+hook stamps `household_id` into the JWT → PowerSync `.connect()` scopes every
+synced bucket to it. `core/sync/session.dart` drives this; the router holds the
+user on a `/connecting` screen until the household is ready. Standing up real
+cloud infra: [`docs/cloud-setup.md`](./docs/cloud-setup.md).
+
 Conflict resolution (spec §3): independent rows (list contributions, recipes)
 union on concurrent adds and never collide; field edits are last-write-wins
 (fine for two trusted users); deletes are soft-delete tombstones. No CRDTs.
@@ -99,14 +106,19 @@ The whole product is one derivation pipeline (spec §4):
 week_plan (what you want to eat)
    │  group by recipe, split by shelf life (greedy, O(n log n))
    ▼
-batch cook plan (cook_session rows: when to cook, at what scale)
-   │  one contribution per (cook_session, ingredient)
+batch cook plan (cook sessions: when to cook, at what scale)
+   │  one contribution per (cook session, ingredient), scaled by the session
    ▼
 shopping list (summed in canonical base, with per-source provenance)
 ```
 
-The cook plan and shopping list are *derived views*, not hand-authored. That is
-the core product thesis — see `docs/product-specs/product-spec.md` §4.
+The cook plan and shopping list are *derived views*, not hand-authored — the
+core product thesis (see `docs/product-specs/product-spec.md` §4). Both are
+computed at read time: there is **no** `cook_session` table, and the shopping
+list's cook contributions are re-derived per device (steps 5–6). The only
+persisted shopping state is the thin overlay — per-ingredient check-off plus
+manual/free-text contributions (`shopping_list_entry` / `shopping_list_contribution`,
+migration `0006`).
 
 ## Environments & secrets
 

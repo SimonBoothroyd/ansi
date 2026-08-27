@@ -9,8 +9,19 @@ services:
       - "8080:8080"
     volumes:
       - ./powersync.yaml:/config/powersync.yaml:ro
-    command: ["-config", "/config/powersync.yaml"]
+    command: ["start", "-r", "unified", "-c", "/config/powersync.yaml"]
     environment:
-      # Point at the local Supabase Postgres started by `supabase start`.
-      PS_SUPABASE_URL: ${SUPABASE_URL}
-      PS_PG_URL: ${POWERSYNC_PG_URL:-}
+      # Discrete Postgres connection fields for the local Supabase DB. From
+      # inside the container that host is `host.docker.internal`, not 127.0.0.1.
+      # jpgwire honours `sslmode: disable` (powersync.yaml) only via these fields,
+      # not a URI query param — hence the split. Values from .env.local.
+      PS_PG_HOST: ${POWERSYNC_PG_HOST:-host.docker.internal}
+      PS_PG_PORT: ${POWERSYNC_PG_PORT:-54322}
+      PS_PG_DATABASE: ${POWERSYNC_PG_DATABASE:-postgres}
+      PS_PG_USER: ${POWERSYNC_PG_USER:-postgres}
+      PS_PG_PASSWORD: ${POWERSYNC_PG_PASSWORD:-postgres}
+      # Supabase's JWKS endpoint — PowerSync fetches the ES256 public keys here
+      # to verify client tokens. host.docker.internal = the Mac from the container.
+      PS_JWKS_URI: ${POWERSYNC_JWKS_URI:-http://host.docker.internal:54321/auth/v1/.well-known/jwks.json}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

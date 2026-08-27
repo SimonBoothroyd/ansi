@@ -1,13 +1,14 @@
 /// The app's local PowerSync database.
 ///
-/// Step 2 is offline-only: we open the database and read/write locally, but
-/// never call `.connect()`, so nothing syncs (see the step-2 exec plan). The
-/// backend connector is step 7 — the only line it adds is `db.connect(...)`.
-///
-/// [openMiseDatabase] runs once in `bootstrap.dart`; its result is injected
-/// into the [database] provider via a `ProviderScope` override so repositories
-/// can watch reactive queries off it. Tests override [database] with an
-/// in-memory connection instead.
+/// [openMiseDatabase] runs once in `bootstrap.dart`; the open database is
+/// injected into [powerSyncDatabase] via a `ProviderScope` override. Two views
+/// onto it:
+/// - [powerSyncDatabase] is the concrete [PowerSyncDatabase] — the session
+///   controller needs it to call `.connect()` / `.disconnectAndClear()` as auth
+///   changes (step 7).
+/// - [database] is the same object as the narrower [SqliteConnection] query
+///   surface repositories depend on. Tests override [database] directly with an
+///   in-memory connection (they never touch [powerSyncDatabase]).
 library;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -38,10 +39,16 @@ Future<PowerSyncDatabase> openMiseDatabase() async {
   return db;
 }
 
+/// The open [PowerSyncDatabase]. Has no default — `bootstrap.dart` overrides it
+/// with the result of [openMiseDatabase]. Repo tests don't use it.
+@Riverpod(keepAlive: true)
+PowerSyncDatabase powerSyncDatabase(Ref ref) =>
+    throw UnimplementedError('powerSyncDatabase provider must be overridden');
+
 /// The open database, as the common [SqliteConnection] type so repositories and
 /// their tests depend on the query surface, not on PowerSync specifically.
 ///
-/// Has no default — `bootstrap.dart` (app) or a test overrides it.
+/// Derives from [powerSyncDatabase] in the app; a test overrides *this*
+/// provider directly with an in-memory connection.
 @Riverpod(keepAlive: true)
-SqliteConnection database(Ref ref) =>
-    throw UnimplementedError('database provider must be overridden');
+SqliteConnection database(Ref ref) => ref.watch(powerSyncDatabaseProvider);

@@ -1,7 +1,6 @@
 /// The app's bottom nav bar (design board: Library · Week · Cook · Shop).
 ///
-/// Library, Week and Cook are live tabs; Shop is shown for the shape of the app
-/// but is inert until its step lands (roadmap step 6). Switching tabs uses
+/// Library, Week, Cook and Shop are all live tabs. Switching tabs uses
 /// `context.go` so the tab roots replace rather than stack.
 library;
 
@@ -35,46 +34,32 @@ class MiseBottomNav extends StatelessWidget {
           case MiseTab.cook:
             context.go('/cook');
           case MiseTab.shop:
-            // Not built yet (step 6): the tab renders but doesn't navigate.
-            break;
+            context.go('/shop');
         }
       },
       children: const [
         _NavItem(icon: FLucideIcons.library, label: 'Library'),
         _NavItem(icon: FLucideIcons.calendarDays, label: 'Week'),
         _NavItem(icon: FLucideIcons.cookingPot, label: 'Cook'),
-        _NavItem(
-          icon: FLucideIcons.shoppingBasket,
-          label: 'Shop',
-          enabled: false,
-        ),
+        _NavItem(icon: FLucideIcons.shoppingBasket, label: 'Shop'),
       ],
     );
   }
 }
 
 class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    this.enabled = true,
-  });
+  const _NavItem({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
-  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     return FBottomNavigationBarItem(
-      icon: Icon(icon, color: enabled ? null : MiseColors.line),
+      icon: Icon(icon),
       label: Text(
         label.toUpperCase(),
-        style: miseMono(
-          size: 10,
-          color: enabled ? MiseColors.muted : MiseColors.line,
-          letterSpacing: 0.5,
-        ),
+        style: miseMono(size: 10, color: MiseColors.muted, letterSpacing: 0.5),
       ),
     );
   }

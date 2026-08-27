@@ -18,9 +18,14 @@ import '../domain/book_repository.dart';
 const _uuid = Uuid();
 
 class SqliteBookRepository implements BookRepository {
-  const SqliteBookRepository(this._db);
+  const SqliteBookRepository(this._db, {String householdId = kDevHouseholdId})
+    : _householdId = householdId;
 
   final SqliteConnection _db;
+
+  /// The household stamped on rows this repo writes. Defaults to the throwaway
+  /// dev household for tests; the app passes the signed-in household.
+  final String _householdId;
 
   @override
   Stream<List<Book>> watchLibrary() {
@@ -138,7 +143,7 @@ class SqliteBookRepository implements BookRepository {
     await _db.execute(
       'INSERT INTO book (id, household_id, name, sort_order, created_at, '
       'updated_at) VALUES (?, ?, ?, ?, ?, ?)',
-      [id, kDevHouseholdId, name.trim(), order, now, now],
+      [id, _householdId, name.trim(), order, now, now],
     );
     return id;
   }
@@ -155,7 +160,7 @@ class SqliteBookRepository implements BookRepository {
     await _db.execute(
       'INSERT INTO book_section (id, household_id, book_id, name, sort_order, '
       'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [id, kDevHouseholdId, bookId, name.trim(), order, now, now],
+      [id, _householdId, bookId, name.trim(), order, now, now],
     );
     return id;
   }
