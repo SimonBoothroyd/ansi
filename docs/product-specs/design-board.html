@@ -1,632 +1,758 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mise — Complete Design Board</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --paper:#F4F6F1;--ink:#18211C;--muted:#66736A;--line:#E2E7DD;--frame:#FFFFFF;
-    --herb:#2C6A3A;--herb-deep:#21502C;--herb-soft:#E6EFE6;
-    --fresh:#4E9E5B;--aging:#E1A63A;--gone:#C64B36;
-    --shadow:0 1px 2px rgba(24,33,28,.04),0 12px 30px rgba(24,33,28,.07);
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{background:var(--paper);background-image:radial-gradient(rgba(24,33,28,.05) 1px,transparent 1px);background-size:26px 26px;
-    color:var(--ink);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.45;}
-  .wrap{max-width:1300px;margin:0 auto;padding:56px 28px 96px;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mise — Complete Design Board</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root{
+          --paper:#F4F6F1;--ink:#18211C;--muted:#66736A;--line:#E2E7DD;--frame:#FFFFFF;
+          --herb:#2C6A3A;--herb-deep:#21502C;--herb-soft:#E6EFE6;
+          --fresh:#4E9E5B;--aging:#E1A63A;--gone:#C64B36;
+          --shadow:0 1px 2px rgba(24,33,28,.04),0 12px 30px rgba(24,33,28,.07);
+        }
+        *{box-sizing:border-box;}
+        html,body{margin:0;padding:0;}
+        body{background:var(--paper);background-image:radial-gradient(rgba(24,33,28,.05) 1px,transparent 1px);background-size:26px 26px;
+          color:var(--ink);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.45;}
+        .wrap{max-width:1300px;margin:0 auto;padding:56px 28px 96px;}
 
-  /* masthead */
-  .mast{margin-bottom:14px;}
-  .mast .kicker{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--herb);margin:0 0 10px;}
-  .wordmark{font-family:'Spectral',serif;font-weight:500;font-size:clamp(52px,9vw,104px);line-height:.9;letter-spacing:-.02em;margin:0;}
-  .wordmark .dot{color:var(--herb);}
-  .thesis{font-family:'Spectral',serif;font-size:clamp(17px,2.4vw,22px);color:var(--ink);max-width:50ch;margin:14px 0 0;font-weight:400;}
-  .thesis em{font-style:italic;color:var(--herb-deep);}
-  .fresh-rule{height:6px;border-radius:3px;margin:24px 0 0;max-width:520px;background:linear-gradient(90deg,var(--fresh) 0%,var(--fresh) 55%,var(--aging) 78%,var(--gone) 100%);}
+        /* masthead */
+        .mast{margin-bottom:14px;}
+        .mast .kicker{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--herb);margin:0 0 10px;}
+        .wordmark{font-family:'Spectral',serif;font-weight:500;font-size:clamp(52px,9vw,104px);line-height:.9;letter-spacing:-.02em;margin:0;}
+        .wordmark .dot{color:var(--herb);}
+        .thesis{font-family:'Spectral',serif;font-size:clamp(17px,2.4vw,22px);color:var(--ink);max-width:50ch;margin:14px 0 0;font-weight:400;}
+        .thesis em{font-style:italic;color:var(--herb-deep);}
+        .fresh-rule{height:6px;border-radius:3px;margin:24px 0 0;max-width:520px;background:linear-gradient(90deg,var(--fresh) 0%,var(--fresh) 55%,var(--aging) 78%,var(--gone) 100%);}
 
-  /* system strip */
-  .system{display:grid;grid-template-columns:1.1fr 1fr .9fr;background:var(--frame);border:1px solid var(--line);border-radius:16px;margin:40px 0 8px;overflow:hidden;box-shadow:var(--shadow);}
-  .sys-cell{padding:22px 24px;border-right:1px solid var(--line);}
-  .sys-cell:last-child{border-right:none;}
-  .sys-h{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 16px;}
-  .swatches{display:flex;flex-wrap:wrap;gap:14px;}
-  .sw{display:flex;flex-direction:column;gap:6px;}
-  .sw .chip{width:44px;height:44px;border-radius:10px;border:1px solid rgba(24,33,28,.08);}
-  .sw .nm{font-size:11px;font-weight:500;}
-  .sw .hx{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
-  .type-row{margin-bottom:14px;}
-  .type-row:last-child{margin-bottom:0;}
-  .type-lab{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
-  .spec-spec{font-family:'Spectral',serif;font-size:26px;font-weight:500;line-height:1.1;}
-  .inter-spec{font-family:'Inter',sans-serif;font-size:15px;font-weight:500;}
-  .mono-spec{font-family:'IBM Plex Mono',monospace;font-size:15px;}
-  .fresh-key{display:flex;flex-direction:column;gap:12px;}
-  .fk-bar{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--fresh),var(--aging) 72%,var(--gone));}
-  .fk-labels{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
-  .fk-note{font-size:11.5px;color:var(--muted);line-height:1.4;}
+        /* system strip */
+        .system{display:grid;grid-template-columns:1.1fr 1fr .9fr;background:var(--frame);border:1px solid var(--line);border-radius:16px;margin:40px 0 8px;overflow:hidden;box-shadow:var(--shadow);}
+        .sys-cell{padding:22px 24px;border-right:1px solid var(--line);}
+        .sys-cell:last-child{border-right:none;}
+        .sys-h{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 16px;}
+        .swatches{display:flex;flex-wrap:wrap;gap:14px;}
+        .sw{display:flex;flex-direction:column;gap:6px;}
+        .sw .chip{width:44px;height:44px;border-radius:10px;border:1px solid rgba(24,33,28,.08);}
+        .sw .nm{font-size:11px;font-weight:500;}
+        .sw .hx{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+        .type-row{margin-bottom:14px;}
+        .type-row:last-child{margin-bottom:0;}
+        .type-lab{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+        .spec-spec{font-family:'Spectral',serif;font-size:26px;font-weight:500;line-height:1.1;}
+        .inter-spec{font-family:'Inter',sans-serif;font-size:15px;font-weight:500;}
+        .mono-spec{font-family:'IBM Plex Mono',monospace;font-size:15px;}
+        .fresh-key{display:flex;flex-direction:column;gap:12px;}
+        .fk-bar{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--fresh),var(--aging) 72%,var(--gone));}
+        .fk-labels{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+        .fk-note{font-size:11.5px;color:var(--muted);line-height:1.4;}
 
-  /* sections + board */
-  .section-head{display:flex;align-items:baseline;gap:14px;margin:60px 0 26px;}
-  .section-head .ey{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--herb);white-space:nowrap;}
-  .section-head .rule{height:1px;background:var(--line);flex:1;}
-  .section-head .sub{font-size:12.5px;color:var(--muted);max-width:36ch;text-align:right;}
-  .board{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start;}
-  .flow{display:flex;align-items:center;align-self:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;gap:8px;}
-  .flow .arrow{font-size:18px;color:var(--herb);}
+        /* sections + board */
+        .section-head{display:flex;align-items:baseline;gap:14px;margin:60px 0 26px;}
+        .section-head .ey{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--herb);white-space:nowrap;}
+        .section-head .rule{height:1px;background:var(--line);flex:1;}
+        .section-head .sub{font-size:12.5px;color:var(--muted);max-width:36ch;text-align:right;}
+        .board{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start;}
+        .flow{display:flex;align-items:center;align-self:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;gap:8px;}
+        .flow .arrow{font-size:18px;color:var(--herb);}
 
-  /* phone frame */
-  .frame{width:340px;}
-  .frame-name{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin:0 0 10px 4px;}
-  .frame-name b{color:var(--ink);font-weight:500;}
-  .phone{background:var(--frame);border:1px solid var(--line);border-radius:30px;box-shadow:var(--shadow);overflow:hidden;}
-  .notch{height:26px;display:flex;align-items:center;justify-content:center;}
-  .notch::after{content:"";width:64px;height:5px;border-radius:3px;background:var(--line);}
-  .screen{padding:0 0 18px;}
-  .abar{padding:6px 20px 10px;display:flex;align-items:center;justify-content:space-between;}
-  .abar .back{color:var(--muted);font-size:20px;}
-  .abar .ttl{font-family:'Spectral',serif;font-size:17px;font-weight:500;}
-  .abar .dots{color:var(--muted);font-size:18px;}
+        /* phone frame */
+        .frame{width:340px;}
+        .frame-name{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin:0 0 10px 4px;}
+        .frame-name b{color:var(--ink);font-weight:500;}
+        .phone{background:var(--frame);border:1px solid var(--line);border-radius:30px;box-shadow:var(--shadow);overflow:hidden;}
+        .notch{height:26px;display:flex;align-items:center;justify-content:center;}
+        .notch::after{content:"";width:64px;height:5px;border-radius:3px;background:var(--line);}
+        .screen{padding:0 0 18px;}
+        .abar{padding:6px 20px 10px;display:flex;align-items:center;justify-content:space-between;}
+        .abar .back{color:var(--muted);font-size:20px;}
+        .abar .ttl{font-family:'Spectral',serif;font-size:17px;font-weight:500;}
+        .abar .dots{color:var(--muted);font-size:18px;}
 
-  /* avatars */
-  .avs{display:flex;}
-  .av{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:8px;font-weight:600;color:#fff;font-family:'IBM Plex Mono',monospace;border:1.5px solid var(--frame);margin-left:-4px;flex:none;}
-  .av:first-child{margin-left:0;}
-  .av.a{background:var(--herb);}.av.j{background:var(--ink);}
+        /* avatars */
+        .avs{display:flex;}
+        .av{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:8px;font-weight:600;color:#fff;font-family:'IBM Plex Mono',monospace;border:1.5px solid var(--frame);margin-left:-4px;flex:none;}
+        .av:first-child{margin-left:0;}
+        .av.a{background:var(--herb);}.av.j{background:var(--ink);}
 
-  /* tabbar + nav */
-  .tabbar{display:flex;gap:22px;padding:2px 20px 0;border-bottom:1px solid var(--line);margin-bottom:12px;}
-  .tabx{font-size:13px;font-weight:500;color:var(--muted);padding:8px 0 12px;position:relative;}
-  .tabx.on{color:var(--ink);}
-  .tabx.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--herb);border-radius:2px;}
-  .nav{display:flex;justify-content:space-around;padding:12px 8px 4px;border-top:1px solid var(--line);margin-top:14px;}
-  .nav .ni{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center;}
-  .nav .ni.on{color:var(--herb);}
-  .nav .ni .ic{display:block;font-size:15px;margin-bottom:3px;}
+        /* tabbar + nav */
+        .tabbar{display:flex;gap:22px;padding:2px 20px 0;border-bottom:1px solid var(--line);margin-bottom:12px;}
+        .tabx{font-size:13px;font-weight:500;color:var(--muted);padding:8px 0 12px;position:relative;}
+        .tabx.on{color:var(--ink);}
+        .tabx.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--herb);border-radius:2px;}
+        .nav{display:flex;justify-content:space-around;padding:12px 8px 4px;border-top:1px solid var(--line);margin-top:14px;}
+        .nav .ni{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center;}
+        .nav .ni.on{color:var(--herb);}
+        .nav .ni .ic{display:block;font-size:15px;margin-bottom:3px;}
 
-  /* recipe page */
-  .r-hero{padding:0 20px;}
-  .r-book{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--herb);}
-  .r-title{font-family:'Spectral',serif;font-weight:500;font-size:30px;line-height:1.05;letter-spacing:-.01em;margin:6px 0 12px;}
-  .meta-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
-  .pill{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 10px;border-radius:999px;background:var(--paper);color:var(--muted);display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);}
-  .pill.keeps{background:var(--herb-soft);color:var(--herb-deep);border-color:transparent;}
-  .pill.frz{background:#EAF1F5;color:#3B6076;border-color:transparent;}
-  .mini-fresh{width:26px;height:5px;border-radius:3px;background:linear-gradient(90deg,var(--fresh),var(--aging));display:inline-block;}
-  .scaler{display:flex;align-items:center;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:14px 20px 6px;}
-  .scaler .lab{font-size:12px;color:var(--muted);}
-  .scaler .ctrl{display:flex;align-items:center;gap:14px;}
-  .scaler .step{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);background:var(--frame);display:grid;place-items:center;color:var(--herb);font-weight:600;font-size:16px;}
-  .scaler .val{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:14px;}
-  .grp{margin:16px 20px 0;}
-  .grp-h{font-family:'Spectral',serif;font-style:italic;font-size:16px;color:var(--herb-deep);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);}
-  .ing{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;border-bottom:1px dotted var(--line);}
-  .ing:last-child{border-bottom:none;}
-  .ing .q{font-family:'IBM Plex Mono',monospace;color:var(--muted);white-space:nowrap;}
-  .macro{display:flex;margin:18px 20px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
-  .macro .m{flex:1;padding:10px 6px;text-align:center;border-right:1px solid var(--line);}
-  .macro .m:last-child{border-right:none;}
-  .macro .mv{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:14px;}
-  .macro .ml{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:2px;}
+        /* recipe page */
+        .r-hero{padding:0 20px;}
+        .r-book{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--herb);}
+        .r-title{font-family:'Spectral',serif;font-weight:500;font-size:30px;line-height:1.05;letter-spacing:-.01em;margin:6px 0 12px;}
+        .meta-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+        .pill{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 10px;border-radius:999px;background:var(--paper);color:var(--muted);display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);}
+        .pill.keeps{background:var(--herb-soft);color:var(--herb-deep);border-color:transparent;}
+        .pill.frz{background:#EAF1F5;color:#3B6076;border-color:transparent;}
+        .mini-fresh{width:26px;height:5px;border-radius:3px;background:linear-gradient(90deg,var(--fresh),var(--aging));display:inline-block;}
+        .scaler{display:flex;align-items:center;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:14px 20px 6px;}
+        .scaler .lab{font-size:12px;color:var(--muted);}
+        .scaler .ctrl{display:flex;align-items:center;gap:14px;}
+        .scaler .step{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);background:var(--frame);display:grid;place-items:center;color:var(--herb);font-weight:600;font-size:16px;}
+        .scaler .val{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:14px;}
+        .grp{margin:16px 20px 0;}
+        .grp-h{font-family:'Spectral',serif;font-style:italic;font-size:16px;color:var(--herb-deep);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+        .ing{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;border-bottom:1px dotted var(--line);}
+        .ing:last-child{border-bottom:none;}
+        .ing .q{font-family:'IBM Plex Mono',monospace;color:var(--muted);white-space:nowrap;}
+        .macro{display:flex;margin:18px 20px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+        .macro .m{flex:1;padding:10px 6px;text-align:center;border-right:1px solid var(--line);}
+        .macro .m:last-child{border-right:none;}
+        .macro .mv{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:14px;}
+        .macro .ml{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:2px;}
 
-  /* method */
-  .scale-chip{margin:0 20px 12px;display:inline-flex;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb-deep);background:var(--herb-soft);border-radius:999px;padding:5px 11px;}
-  .phase{font-family:'Spectral',serif;font-style:italic;font-size:15px;color:var(--herb-deep);margin:6px 20px 6px;}
-  .step{display:flex;gap:12px;padding:11px 20px;border-top:1px solid var(--line);}
-  .step:first-of-type{border-top:none;}
-  .snum{width:24px;height:24px;flex:none;border-radius:50%;background:var(--ink);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;display:grid;place-items:center;font-weight:500;}
-  .sbody{font-size:13.5px;line-height:1.5;}
-  .ichip{display:inline-flex;align-items:center;gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12px;font-weight:500;color:var(--herb-deep);white-space:nowrap;}
-  .ichip .qn{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-weight:400;}
-  .stimer{display:inline-flex;align-items:center;gap:5px;margin-top:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--aging);background:#FBF3E3;border-radius:7px;padding:4px 9px;}
-  .cook-cta{margin:16px 20px 4px;background:var(--herb);color:#fff;border-radius:14px;padding:14px;text-align:center;font-weight:600;font-size:14px;}
+        /* method */
+        .scale-chip{margin:0 20px 12px;display:inline-flex;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb-deep);background:var(--herb-soft);border-radius:999px;padding:5px 11px;}
+        .phase{font-family:'Spectral',serif;font-style:italic;font-size:15px;color:var(--herb-deep);margin:6px 20px 6px;}
+        .step{display:flex;gap:12px;padding:11px 20px;border-top:1px solid var(--line);}
+        .step:first-of-type{border-top:none;}
+        .snum{width:24px;height:24px;flex:none;border-radius:50%;background:var(--ink);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;display:grid;place-items:center;font-weight:500;}
+        .sbody{font-size:13.5px;line-height:1.5;}
+        .ichip{display:inline-flex;align-items:center;gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12px;font-weight:500;color:var(--herb-deep);white-space:nowrap;}
+        .ichip .qn{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-weight:400;}
+        .stimer{display:inline-flex;align-items:center;gap:5px;margin-top:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--aging);background:#FBF3E3;border-radius:7px;padding:4px 9px;}
+        .cook-cta{margin:16px 20px 4px;background:var(--herb);color:#fff;border-radius:14px;padding:14px;text-align:center;font-weight:600;font-size:14px;}
 
-  /* cook mode */
-  .cm-top{background:var(--herb-deep);color:#fff;padding:16px 22px 18px;}
-  .cm-x{display:flex;justify-content:space-between;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.85;}
-  .cm-dots{display:flex;gap:6px;margin-top:12px;}
-  .cm-dot{height:4px;flex:1;border-radius:2px;background:rgba(255,255,255,.28);}
-  .cm-dot.on{background:#fff;}.cm-dot.done{background:rgba(255,255,255,.6);}
-  .cm-body{padding:26px 24px 8px;}
-  .cm-kick{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
-  .cm-big{font-family:'Spectral',serif;font-size:25px;font-weight:500;line-height:1.25;letter-spacing:-.01em;}
-  .cm-hl{color:var(--herb-deep);border-bottom:2px solid var(--herb-soft);}
-  .cm-timer{margin:24px 24px 8px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;align-items:center;justify-content:space-between;}
-  .cm-time{font-family:'IBM Plex Mono',monospace;font-size:32px;font-weight:500;letter-spacing:-.02em;}
-  .cm-time small{font-size:12px;color:var(--muted);display:block;letter-spacing:.1em;text-transform:uppercase;font-weight:400;margin-top:2px;}
-  .cm-pause{width:46px;height:46px;border-radius:50%;background:var(--herb);color:#fff;display:grid;place-items:center;font-size:18px;}
-  .cm-nav{display:flex;gap:12px;padding:14px 24px 22px;}
-  .cm-btn{flex:1;border-radius:13px;padding:15px;text-align:center;font-weight:600;font-size:14px;}
-  .cm-btn.prev{background:transparent;border:1px solid var(--line);color:var(--muted);}
-  .cm-btn.next{background:var(--ink);color:#fff;}
+        /* cook mode */
+        .cm-top{background:var(--herb-deep);color:#fff;padding:16px 22px 18px;}
+        .cm-x{display:flex;justify-content:space-between;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.85;}
+        .cm-dots{display:flex;gap:6px;margin-top:12px;}
+        .cm-dot{height:4px;flex:1;border-radius:2px;background:rgba(255,255,255,.28);}
+        .cm-dot.on{background:#fff;}.cm-dot.done{background:rgba(255,255,255,.6);}
+        .cm-body{padding:26px 24px 8px;}
+        .cm-kick{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+        .cm-big{font-family:'Spectral',serif;font-size:25px;font-weight:500;line-height:1.25;letter-spacing:-.01em;}
+        .cm-hl{color:var(--herb-deep);border-bottom:2px solid var(--herb-soft);}
+        .cm-timer{margin:24px 24px 8px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;align-items:center;justify-content:space-between;}
+        .cm-time{font-family:'IBM Plex Mono',monospace;font-size:32px;font-weight:500;letter-spacing:-.02em;}
+        .cm-time small{font-size:12px;color:var(--muted);display:block;letter-spacing:.1em;text-transform:uppercase;font-weight:400;margin-top:2px;}
+        .cm-pause{width:46px;height:46px;border-radius:50%;background:var(--herb);color:#fff;display:grid;place-items:center;font-size:18px;}
+        .cm-nav{display:flex;gap:12px;padding:14px 24px 22px;}
+        .cm-btn{flex:1;border-radius:13px;padding:15px;text-align:center;font-weight:600;font-size:14px;}
+        .cm-btn.prev{background:transparent;border:1px solid var(--line);color:var(--muted);}
+        .cm-btn.next{background:var(--ink);color:#fff;}
 
-  /* books */
-  .book-card{margin:12px 20px 0;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
-  .book-top{padding:14px 16px;background:var(--herb);color:#fff;}
-  .book-top .bn{font-family:'Spectral',serif;font-size:19px;font-weight:500;}
-  .book-top .bc{font-family:'IBM Plex Mono',monospace;font-size:10px;opacity:.85;letter-spacing:.08em;}
-  .sec{padding:10px 16px;border-bottom:1px solid var(--line);}
-  .sec:last-child{border-bottom:none;}
-  .sec-lab{font-family:'Spectral',serif;font-style:italic;font-size:13.5px;color:var(--herb-deep);margin-bottom:4px;}
-  .sec-items{font-size:13px;color:var(--muted);}
-  .add-sec{margin:12px 20px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb);border:1px dashed var(--herb);border-radius:12px;padding:11px;letter-spacing:.05em;}
+        /* books */
+        .book-card{margin:12px 20px 0;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+        .book-top{padding:14px 16px;background:var(--herb);color:#fff;}
+        .book-top .bn{font-family:'Spectral',serif;font-size:19px;font-weight:500;}
+        .book-top .bc{font-family:'IBM Plex Mono',monospace;font-size:10px;opacity:.85;letter-spacing:.08em;}
+        .sec{padding:10px 16px;border-bottom:1px solid var(--line);}
+        .sec:last-child{border-bottom:none;}
+        .sec-lab{font-family:'Spectral',serif;font-style:italic;font-size:13.5px;color:var(--herb-deep);margin-bottom:4px;}
+        .sec-items{font-size:13px;color:var(--muted);}
+        .add-sec{margin:12px 20px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb);border:1px dashed var(--herb);border-radius:12px;padding:11px;letter-spacing:.05em;}
 
-  /* reconciliation */
-  .rc-src{display:flex;gap:8px;margin:8px 20px 4px;}
-  .rc-tab{flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:8px;border-radius:9px;border:1px solid var(--line);color:var(--muted);}
-  .rc-tab.on{background:var(--ink);color:#fff;border-color:var(--ink);}
-  .rc-note{font-size:11.5px;color:var(--muted);margin:10px 20px 2px;}
-  .match{margin:8px 20px 0;border:1px solid var(--line);border-radius:12px;padding:10px 12px;}
-  .match .raw{font-size:13px;font-weight:500;margin-bottom:6px;}
-  .match .raw .qty{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-weight:400;}
-  .status{display:flex;align-items:center;gap:8px;font-size:12px;}
-  .dot{width:7px;height:7px;border-radius:50%;flex:none;}
-  .dot.hi{background:var(--fresh);}.dot.mid{background:var(--aging);}.dot.no{background:var(--gone);}
-  .status .to b{font-weight:600;}
-  .status .undo{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb);}
-  .suggests{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
-  .sug{font-size:11.5px;padding:5px 9px;border-radius:999px;background:var(--paper);border:1px solid var(--line);}
-  .sug.pick{background:var(--herb-soft);border-color:transparent;color:var(--herb-deep);}
-  .addnew-stub{margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--gone);border:1px dashed #E7C3BA;border-radius:9px;padding:7px 9px;text-align:center;}
+        /* reconciliation */
+        .rc-src{display:flex;gap:8px;margin:8px 20px 4px;}
+        .rc-tab{flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:8px;border-radius:9px;border:1px solid var(--line);color:var(--muted);}
+        .rc-tab.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+        .rc-note{font-size:11.5px;color:var(--muted);margin:10px 20px 2px;}
+        .match{margin:8px 20px 0;border:1px solid var(--line);border-radius:12px;padding:10px 12px;}
+        .match .raw{font-size:13px;font-weight:500;margin-bottom:6px;}
+        .match .raw .qty{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-weight:400;}
+        .status{display:flex;align-items:center;gap:8px;font-size:12px;}
+        .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+        .dot.hi{background:var(--fresh);}.dot.mid{background:var(--aging);}.dot.no{background:var(--gone);}
+        .status .to b{font-weight:600;}
+        .status .undo{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb);}
+        .suggests{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+        .sug{font-size:11.5px;padding:5px 9px;border-radius:999px;background:var(--paper);border:1px solid var(--line);}
+        .sug.pick{background:var(--herb-soft);border-color:transparent;color:var(--herb-deep);}
+        .addnew-stub{margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--gone);border:1px dashed #E7C3BA;border-radius:9px;padding:7px 9px;text-align:center;}
 
-  /* add ingredient */
-  .flabel{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 20px 6px;}
-  .field{margin:0 20px 12px;}
-  .search{display:flex;align-items:center;gap:9px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:14px;}
-  .search .mag{color:var(--muted);}
-  .search .care{width:1.5px;height:16px;background:var(--herb);display:inline-block;}
-  .res-row{display:flex;align-items:center;gap:11px;padding:11px 20px;border-top:1px solid var(--line);}
-  .res-row:first-of-type{border-top:none;}
-  .res-nm{flex:1;font-size:13.5px;font-weight:500;}
-  .res-cat{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
-  .res-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#7A5A16;background:#FBF3E3;border-radius:6px;padding:2px 6px;}
-  .res-pick{width:22px;height:22px;border-radius:50%;border:1.6px solid var(--line);flex:none;display:grid;place-items:center;}
-  .res-pick.on{background:var(--herb);border-color:var(--herb);color:#fff;font-size:12px;}
-  .qtyrow{display:flex;gap:10px;margin:14px 20px 4px;}
-  .stepper{flex:1;display:flex;align-items:center;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:9px 12px;}
-  .stepper .s{width:26px;height:26px;border-radius:8px;background:var(--frame);border:1px solid var(--line);display:grid;place-items:center;color:var(--herb);font-weight:600;}
-  .stepper .qv{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:15px;}
-  .unitsel{width:96px;display:flex;align-items:center;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-family:'IBM Plex Mono',monospace;font-size:13px;}
-  .conv-note{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin:8px 20px 0;}
-  .conv-note b{color:var(--herb-deep);font-weight:500;}
-  .addnew{margin:14px 20px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb);border:1px dashed var(--herb);border-radius:11px;padding:11px;}
+        /* add ingredient */
+        .flabel{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 20px 6px;}
+        .field{margin:0 20px 12px;}
+        .search{display:flex;align-items:center;gap:9px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:14px;}
+        .search .mag{color:var(--muted);}
+        .search .care{width:1.5px;height:16px;background:var(--herb);display:inline-block;}
+        .res-row{display:flex;align-items:center;gap:11px;padding:11px 20px;border-top:1px solid var(--line);}
+        .res-row:first-of-type{border-top:none;}
+        .res-nm{flex:1;font-size:13.5px;font-weight:500;}
+        .res-cat{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+        .res-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#7A5A16;background:#FBF3E3;border-radius:6px;padding:2px 6px;}
+        .res-pick{width:22px;height:22px;border-radius:50%;border:1.6px solid var(--line);flex:none;display:grid;place-items:center;}
+        .res-pick.on{background:var(--herb);border-color:var(--herb);color:#fff;font-size:12px;}
+        .qtyrow{display:flex;gap:10px;margin:14px 20px 4px;}
+        .stepper{flex:1;display:flex;align-items:center;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:9px 12px;}
+        .stepper .s{width:26px;height:26px;border-radius:8px;background:var(--frame);border:1px solid var(--line);display:grid;place-items:center;color:var(--herb);font-weight:600;}
+        .stepper .qv{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:15px;}
+        .unitsel{width:96px;display:flex;align-items:center;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-family:'IBM Plex Mono',monospace;font-size:13px;}
+        .conv-note{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin:8px 20px 0;}
+        .conv-note b{color:var(--herb-deep);font-weight:500;}
+        .addnew{margin:14px 20px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb);border:1px dashed var(--herb);border-radius:11px;padding:11px;}
 
-  /* new ingredient form */
-  .frow{margin:0 20px 13px;}
-  .fin{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:13.5px;}
-  .fin.big{font-family:'Spectral',serif;font-size:17px;font-weight:500;}
-  .chips{display:flex;flex-wrap:wrap;gap:6px;}
-  .chip{font-size:11.5px;background:var(--herb-soft);color:var(--herb-deep);border-radius:999px;padding:4px 9px;}
-  .chip.add{background:transparent;border:1px dashed var(--line);color:var(--muted);}
-  .seg{display:flex;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:3px;}
-  .segopt{flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:7px 4px;border-radius:8px;color:var(--muted);}
-  .segopt.on{background:var(--frame);color:var(--ink);box-shadow:0 1px 2px rgba(24,33,28,.08);}
-  .macros4{display:flex;gap:8px;}
-  .macros4 .mi{flex:1;text-align:center;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:8px 4px;}
-  .macros4 .miv{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;}
-  .macros4 .mil{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:2px;}
-  .status-line{display:flex;align-items:center;gap:8px;margin:14px 20px 0;font-size:12px;color:var(--muted);}
-  .sdot{width:8px;height:8px;border-radius:50%;background:var(--aging);}
-  .savebtn{margin:16px 20px 4px;background:var(--herb);color:#fff;border-radius:13px;padding:14px;text-align:center;font-weight:600;font-size:14px;}
+        /* new ingredient form */
+        .frow{margin:0 20px 13px;}
+        .fin{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:13.5px;}
+        .fin.big{font-family:'Spectral',serif;font-size:17px;font-weight:500;}
+        .chips{display:flex;flex-wrap:wrap;gap:6px;}
+        .chip{font-size:11.5px;background:var(--herb-soft);color:var(--herb-deep);border-radius:999px;padding:4px 9px;}
+        .chip.add{background:transparent;border:1px dashed var(--line);color:var(--muted);}
+        .seg{display:flex;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:3px;}
+        .segopt{flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:7px 4px;border-radius:8px;color:var(--muted);}
+        .segopt.on{background:var(--frame);color:var(--ink);box-shadow:0 1px 2px rgba(24,33,28,.08);}
+        .macros4{display:flex;gap:8px;}
+        .macros4 .mi{flex:1;text-align:center;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:8px 4px;}
+        .macros4 .miv{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;}
+        .macros4 .mil{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:2px;}
+        .status-line{display:flex;align-items:center;gap:8px;margin:14px 20px 0;font-size:12px;color:var(--muted);}
+        .sdot{width:8px;height:8px;border-radius:50%;background:var(--aging);}
+        .savebtn{margin:16px 20px 4px;background:var(--herb);color:#fff;border-radius:13px;padding:14px;text-align:center;font-weight:600;font-size:14px;}
 
-  /* barcode */
-  .cam{margin:0 20px 14px;height:160px;border-radius:16px;background:#1c241f;position:relative;overflow:hidden;display:grid;place-items:center;}
-  .reticle{width:66%;height:60px;border:2px solid rgba(255,255,255,.85);border-radius:10px;position:relative;}
-  .scan-line{position:absolute;left:6px;right:6px;top:50%;height:2px;background:var(--fresh);box-shadow:0 0 8px var(--fresh);}
-  .cam-hint{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:rgba(255,255,255,.7);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;}
-  .matched{margin:0 20px;border:1px solid var(--line);border-radius:14px;padding:13px;}
-  .matched .mnm{font-size:15px;font-weight:600;}
-  .matched .msrc{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px;}
+        /* barcode */
+        .cam{margin:0 20px 14px;height:160px;border-radius:16px;background:#1c241f;position:relative;overflow:hidden;display:grid;place-items:center;}
+        .reticle{width:66%;height:60px;border:2px solid rgba(255,255,255,.85);border-radius:10px;position:relative;}
+        .scan-line{position:absolute;left:6px;right:6px;top:50%;height:2px;background:var(--fresh);box-shadow:0 0 8px var(--fresh);}
+        .cam-hint{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:rgba(255,255,255,.7);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;}
+        .matched{margin:0 20px;border:1px solid var(--line);border-radius:14px;padding:13px;}
+        .matched .mnm{font-size:15px;font-weight:600;}
+        .matched .msrc{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px;}
 
-  /* fleshing-out queue */
-  .fq{margin:12px 20px 0;border:1px solid var(--line);border-radius:12px;padding:12px;}
-  .fq-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-  .fq-title .n{font-family:'Spectral',serif;font-size:16px;font-weight:500;}
-  .fq-title .c{font-family:'IBM Plex Mono',monospace;font-size:10px;background:#FBF3E3;color:#7A5A16;border-radius:7px;padding:3px 7px;}
-  .stub{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dotted var(--line);}
-  .stub:last-child{border-bottom:none;}
-  .stub .sn{font-size:13.5px;flex:1;}
-  .stub .need{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
-  .stub .need span{color:var(--gone);}
+        /* fleshing-out queue */
+        .fq{margin:12px 20px 0;border:1px solid var(--line);border-radius:12px;padding:12px;}
+        .fq-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+        .fq-title .n{font-family:'Spectral',serif;font-size:16px;font-weight:500;}
+        .fq-title .c{font-family:'IBM Plex Mono',monospace;font-size:10px;background:#FBF3E3;color:#7A5A16;border-radius:7px;padding:3px 7px;}
+        .stub{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dotted var(--line);}
+        .stub:last-child{border-bottom:none;}
+        .stub .sn{font-size:13.5px;flex:1;}
+        .stub .need{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+        .stub .need span{color:var(--gone);}
 
-  /* week toggle + rows */
-  .toggle{display:flex;margin:2px 20px 12px;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:3px;}
-  .toggle .opt{flex:1;text-align:center;font-size:12px;font-weight:500;padding:7px;border-radius:8px;color:var(--muted);}
-  .toggle .opt.on{background:var(--frame);color:var(--ink);box-shadow:0 1px 2px rgba(24,33,28,.08);}
-  .psel{display:flex;gap:8px;margin:0 20px 12px;}
-  .pchip{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:6px 11px;border-radius:999px;border:1px solid var(--line);color:var(--muted);}
-  .pchip.on{background:var(--herb-soft);border-color:transparent;color:var(--herb-deep);}
-  .pchip .av{border-color:transparent;}
-  .wkbar{display:flex;justify-content:flex-end;padding:0 20px 4px;}
-  .wkchip{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb);border:1px solid var(--herb-soft);background:var(--herb-soft);border-radius:8px;padding:5px 8px;}
-  .day2{margin:0 20px 10px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:8px 12px 10px;}
-  .day2-name{font-family:'Spectral',serif;font-size:15px;font-weight:500;margin:4px 2px 6px;}
-  .srow{display:flex;align-items:center;gap:10px;padding:8px 2px;border-top:1px solid var(--line);}
-  .srow:first-of-type{border-top:none;}
-  .slab{width:52px;flex:none;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
-  .sname{flex:1;font-size:13.5px;font-weight:600;color:var(--herb-deep);}
-  .srow.empty .sname{color:var(--muted);font-weight:400;}
-  .plus{color:var(--herb);font-size:14px;}
-  .split2{flex:1;display:flex;flex-direction:column;gap:6px;}
-  .sub{display:flex;align-items:center;gap:8px;}
-  .sub .sn{flex:1;font-size:13px;font-weight:600;color:var(--herb-deep);}
-  .shared-tag{font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--herb);letter-spacing:.04em;flex:none;}
+        /* week toggle + rows */
+        .toggle{display:flex;margin:2px 20px 12px;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:3px;}
+        .toggle .opt{flex:1;text-align:center;font-size:12px;font-weight:500;padding:7px;border-radius:8px;color:var(--muted);}
+        .toggle .opt.on{background:var(--frame);color:var(--ink);box-shadow:0 1px 2px rgba(24,33,28,.08);}
+        .psel{display:flex;gap:8px;margin:0 20px 12px;}
+        .pchip{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:6px 11px;border-radius:999px;border:1px solid var(--line);color:var(--muted);}
+        .pchip.on{background:var(--herb-soft);border-color:transparent;color:var(--herb-deep);}
+        .pchip .av{border-color:transparent;}
+        .wkbar{display:flex;justify-content:flex-end;padding:0 20px 4px;}
+        .wkchip{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb);border:1px solid var(--herb-soft);background:var(--herb-soft);border-radius:8px;padding:5px 8px;}
+        .day2{margin:0 20px 10px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:8px 12px 10px;}
+        .day2-name{font-family:'Spectral',serif;font-size:15px;font-weight:500;margin:4px 2px 6px;}
+        .srow{display:flex;align-items:center;gap:10px;padding:8px 2px;border-top:1px solid var(--line);}
+        .srow:first-of-type{border-top:none;}
+        .slab{width:52px;flex:none;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+        .sname{flex:1;font-size:13.5px;font-weight:600;color:var(--herb-deep);}
+        .srow.empty .sname{color:var(--muted);font-weight:400;}
+        .plus{color:var(--herb);font-size:14px;}
+        .split2{flex:1;display:flex;flex-direction:column;gap:6px;}
+        .sub{display:flex;align-items:center;gap:8px;}
+        .sub .sn{flex:1;font-size:13px;font-weight:600;color:var(--herb-deep);}
+        .shared-tag{font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--herb);letter-spacing:.04em;flex:none;}
+        .addrow{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:8px;padding:9px;border:1px dashed var(--herb);border-radius:10px;color:var(--herb);font-size:12.5px;font-weight:500;background:rgba(44,106,58,.03);}
+        .addrow .ic{font-size:15px;line-height:1;}
+        .day2.empty-day .addrow{margin-top:2px;}
 
-  /* empty week */
-  .empty-wrap{padding:34px 26px 26px;text-align:center;}
-  .empty-ic{font-size:34px;color:var(--line);margin-bottom:12px;}
-  .empty-h{font-family:'Spectral',serif;font-size:21px;font-weight:500;margin-bottom:6px;}
-  .empty-sub{font-size:13px;color:var(--muted);max-width:26ch;margin:0 auto 20px;line-height:1.5;}
-  .btn{display:block;border-radius:12px;padding:13px;font-weight:600;font-size:14px;text-align:center;margin:8px 0;}
-  .btn.primary{background:var(--herb);color:#fff;}
-  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
-  .last-week{margin:22px 20px 0;text-align:left;}
-  .lw-h{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
-  .lw-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:6px 0;border-top:1px dotted var(--line);}
+        /* empty week (legacy — no longer shown) */
+        .empty-wrap{padding:34px 26px 26px;text-align:center;}
+        .empty-ic{font-size:34px;color:var(--line);margin-bottom:12px;}
+        .empty-h{font-family:'Spectral',serif;font-size:21px;font-weight:500;margin-bottom:6px;}
+        .empty-sub{font-size:13px;color:var(--muted);max-width:26ch;margin:0 auto 20px;line-height:1.5;}
+        .btn{display:block;border-radius:12px;padding:13px;font-weight:600;font-size:14px;text-align:center;margin:8px 0;}
+        .btn.primary{background:var(--herb);color:#fff;}
+        .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
+        .last-week{margin:22px 20px 0;text-align:left;}
+        .lw-h{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+        .lw-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:6px 0;border-top:1px dotted var(--line);}
 
-  /* batch cook plan */
-  .cook{margin:12px 20px 0;border:1px solid var(--line);border-radius:16px;padding:14px 14px 12px;}
-  .cook.split{border-color:var(--aging);}
-  .cook-title{font-family:'Spectral',serif;font-size:17px;font-weight:500;margin-bottom:2px;}
-  .cook-sub{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);margin-bottom:10px;}
-  .session{background:var(--paper);border-radius:11px;padding:10px 11px;margin-top:8px;}
-  .session:first-of-type{margin-top:0;}
-  .ses-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
-  .ses-when{font-size:13px;font-weight:500;}
-  .ses-scale{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--herb-deep);}
-  .ses-covers{font-size:11px;color:var(--muted);margin-bottom:9px;}
-  .tl{position:relative;margin:2px 0 4px;}
-  .tl-track{height:8px;border-radius:4px;overflow:hidden;display:flex;}
-  .tl-fresh{background:var(--fresh);}.tl-aging{background:var(--aging);}
-  .tl-gone{background:repeating-linear-gradient(45deg,#efe3df,#efe3df 4px,#f6ede9 4px,#f6ede9 8px);}
-  .tl-days{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-top:5px;}
-  .tl-cook{position:absolute;top:-3px;left:0;width:14px;height:14px;border-radius:50%;background:var(--herb);border:2px solid var(--frame);box-shadow:0 0 0 1px var(--herb);}
-  .split-note{display:flex;gap:8px;align-items:center;background:#FBF3E3;border:1px solid #F0DCB0;border-radius:10px;padding:8px 10px;margin-top:10px;font-size:11.5px;color:#7A5A16;}
-  .split-note .ic{font-size:14px;}
-  .frz-note{display:flex;gap:8px;align-items:center;background:#EAF1F5;border:1px solid #D2E2EC;border-radius:10px;padding:8px 10px;margin-top:8px;font-size:11.5px;color:#3B6076;}
+        /* batch cook plan */
+        .cook{margin:12px 20px 0;border:1px solid var(--line);border-radius:16px;padding:14px 14px 12px;}
+        .cook.split{border-color:var(--aging);}
+        .cook-title{font-family:'Spectral',serif;font-size:17px;font-weight:500;margin-bottom:2px;}
+        .cook-sub{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);margin-bottom:10px;}
+        .session{background:var(--paper);border-radius:11px;padding:10px 11px;margin-top:8px;}
+        .session:first-of-type{margin-top:0;}
+        .ses-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+        .ses-when{font-size:13px;font-weight:500;}
+        .ses-scale{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--herb-deep);}
+        .ses-covers{font-size:11px;color:var(--muted);margin-bottom:9px;}
+        .tl{position:relative;margin:2px 0 4px;}
+        .tl-track{height:8px;border-radius:4px;overflow:hidden;display:flex;}
+        .tl-fresh{background:var(--fresh);}.tl-aging{background:var(--aging);}
+        .tl-gone{background:repeating-linear-gradient(45deg,#efe3df,#efe3df 4px,#f6ede9 4px,#f6ede9 8px);}
+        .tl-days{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-top:5px;}
+        .tl-cook{position:absolute;top:-3px;left:0;width:14px;height:14px;border-radius:50%;background:var(--herb);border:2px solid var(--frame);box-shadow:0 0 0 1px var(--herb);}
+        .split-note{display:flex;gap:8px;align-items:center;background:#FBF3E3;border:1px solid #F0DCB0;border-radius:10px;padding:8px 10px;margin-top:10px;font-size:11.5px;color:#7A5A16;}
+        .split-note .ic{font-size:14px;}
+        .frz-note{display:flex;gap:8px;align-items:center;background:#EAF1F5;border:1px solid #D2E2EC;border-radius:10px;padding:8px 10px;margin-top:8px;font-size:11.5px;color:#3B6076;}
 
-  /* shopping */
-  .sl-group{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 20px 6px;}
-  .item{margin:0 20px;border-bottom:1px solid var(--line);padding:11px 0;}
-  .item-top{display:flex;align-items:center;gap:11px;}
-  .box{width:20px;height:20px;border-radius:6px;border:1.6px solid var(--line);flex:none;display:grid;place-items:center;}
-  .box.on{background:var(--herb);border-color:var(--herb);color:#fff;font-size:13px;}
-  .item-name{flex:1;font-size:14px;}
-  .item.done .item-name{color:var(--muted);text-decoration:line-through;}
-  .item-total{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;}
-  .prov{margin:6px 0 0 31px;display:flex;flex-direction:column;gap:3px;}
-  .prov-line{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
-  .prov-line .src{color:var(--herb-deep);}
-  .prov-line.manual .src{color:var(--muted);font-style:italic;}
-  .topup{margin:9px 20px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb);border:1px dashed var(--line);border-radius:10px;padding:9px;}
+        /* shopping */
+        .sl-group{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 20px 6px;}
+        .item{margin:0 20px;border-bottom:1px solid var(--line);padding:11px 0;}
+        .item-top{display:flex;align-items:center;gap:11px;}
+        .box{width:20px;height:20px;border-radius:6px;border:1.6px solid var(--line);flex:none;display:grid;place-items:center;}
+        .box.on{background:var(--herb);border-color:var(--herb);color:#fff;font-size:13px;}
+        .item-name{flex:1;font-size:14px;}
+        .item.done .item-name{color:var(--muted);text-decoration:line-through;}
+        .item-total{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;}
+        .prov{margin:6px 0 0 31px;display:flex;flex-direction:column;gap:3px;}
+        .prov-line{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
+        .prov-line .src{color:var(--herb-deep);}
+        .prov-line.manual .src{color:var(--muted);font-style:italic;}
+        .topup{margin:9px 20px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb);border:1px dashed var(--line);border-radius:10px;padding:9px;}
 
-  .stretch-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;background:#EAF1F5;color:#3B6076;border-radius:6px;padding:3px 8px;margin-left:8px;}
-  .footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
-  .footer b{color:var(--ink);font-weight:500;}
+        /* recipe chooser */
+        .target{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;color:var(--herb);margin:0 20px 12px;}
+        .target b{color:var(--herb-deep);}
+        .rseg{display:flex;gap:7px;margin:0 20px 14px;}
+        .rsegopt{font-size:12px;font-weight:500;padding:6px 12px;border-radius:999px;border:1px solid var(--line);color:var(--muted);}
+        .rsegopt.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+        .reuse{margin:0 20px 14px;background:var(--herb-soft);border-radius:13px;padding:11px 13px;}
+        .reuse-h{font-size:12px;font-weight:600;color:var(--herb-deep);margin-bottom:9px;}
+        .reuse-chips{display:flex;gap:7px;flex-wrap:wrap;}
+        .rchip{display:flex;align-items:center;gap:6px;background:var(--frame);border-radius:999px;padding:5px 10px;font-size:12px;font-weight:500;color:var(--ink);}
+        .rchip .day-t{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+        .list-h{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:2px 20px 4px;}
+        .rrow{display:flex;align-items:center;gap:12px;padding:11px 20px;border-top:1px solid var(--line);}
+        .rrow:first-of-type{border-top:none;}
+        .rthumb{width:40px;height:40px;border-radius:10px;background:var(--herb-soft);display:grid;place-items:center;color:var(--herb);font-size:17px;flex:none;}
+        .rmeta{flex:1;min-width:0;}
+        .rn{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .rbook{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:1px;}
+        .rkeep{display:flex;gap:6px;margin-top:5px;}
+        .kpill{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:2px 7px;border-radius:999px;background:var(--paper);border:1px solid var(--line);color:var(--muted);display:inline-flex;align-items:center;gap:4px;}
+        .kpill.keeps{background:var(--herb-soft);color:var(--herb-deep);border-color:transparent;}
+        .kpill.frz{background:#EAF1F5;color:#3B6076;border-color:transparent;}
+        .kpill .mini-fresh{width:16px;height:4px;}
+        .rplus{color:var(--herb);font-size:18px;flex:none;}
+        .newrow{margin:12px 20px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb);border:1px dashed var(--herb);border-radius:11px;padding:11px;}
+        .foot{border-top:1px solid var(--line);margin-top:12px;padding:12px 20px 4px;display:flex;align-items:center;justify-content:space-between;}
+        .foot-lab{font-size:11.5px;color:var(--muted);}
+        .foot-lab b{color:var(--ink);font-weight:600;}
+        .eaters{display:flex;gap:6px;}
+        .ep{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;font-family:'IBM Plex Mono',monospace;border:1.5px solid var(--line);color:var(--muted);}
+        .ep.on.a{background:var(--herb);border-color:var(--herb);color:#fff;}
+        .ep.on.j{background:var(--ink);border-color:var(--ink);color:#fff;}
 
-  @media (max-width:800px){
-    .system{grid-template-columns:1fr;}
-    .sys-cell{border-right:none;border-bottom:1px solid var(--line);}
-    .sys-cell:last-child{border-bottom:none;}
-    .section-head .sub{display:none;}
-    .flow{transform:rotate(90deg);margin:2px 0;}
-    .frame{width:100%;max-width:360px;margin:0 auto;}
-    .board{justify-content:center;}
-  }
-</style>
+        /* confirm sheet */
+        .sheet{border-radius:22px 22px 30px 30px;}
+        .grab{height:22px;display:flex;align-items:center;justify-content:center;}
+        .grab::after{content:"";width:40px;height:4px;border-radius:2px;background:var(--line);}
+        .c-h{font-family:'Spectral',serif;font-size:19px;font-weight:500;margin:0 20px 4px;}
+        .picked{margin:8px 20px 0;border:1px solid var(--line);border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:12px;}
+        .picked .pn{flex:1;}
+        .picked .ptitle{font-size:14px;font-weight:600;}
+        .clabel{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:16px 20px 6px;}
+        .slotchip{margin:0 20px;display:inline-flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:10px 13px;font-size:13.5px;font-weight:500;}
+        .slotchip .caret{color:var(--muted);margin-left:4px;}
+        .eater-row{display:flex;align-items:center;gap:10px;margin:0 20px;}
+        .eater-row .lab{flex:1;font-size:13px;color:var(--muted);}
+        .eater-row .lab b{color:var(--ink);font-weight:600;}
+        .portion{display:flex;align-items:center;justify-content:space-between;margin:0 20px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:9px 12px;}
+        .portion .pl{font-size:13px;}
+        .portion .pl small{display:block;color:var(--muted);font-size:10.5px;margin-top:1px;}
+        .pstepper{display:flex;align-items:center;gap:12px;}
+        .pstepper .s{width:26px;height:26px;border-radius:8px;background:var(--frame);border:1px solid var(--line);display:grid;place-items:center;color:var(--herb);font-weight:600;}
+        .pstepper .qv{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:15px;}
+        .batch-note{margin:16px 20px 0;background:var(--herb-soft);border-radius:12px;padding:11px 13px;font-size:11.5px;color:var(--herb-deep);line-height:1.45;}
+        .batch-note b{font-weight:600;}
+        .addbtn{margin:16px 20px 8px;background:var(--herb);color:#fff;border-radius:13px;padding:14px;text-align:center;font-weight:600;font-size:14px;}
+
+        .stretch-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;background:#EAF1F5;color:#3B6076;border-radius:6px;padding:3px 8px;margin-left:8px;}
+        .footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
+        .footer b{color:var(--ink);font-weight:500;}
+
+        @media (max-width:800px){
+          .system{grid-template-columns:1fr;}
+          .sys-cell{border-right:none;border-bottom:1px solid var(--line);}
+          .sys-cell:last-child{border-bottom:none;}
+          .section-head .sub{display:none;}
+          .flow{transform:rotate(90deg);margin:2px 0;}
+          .frame{width:100%;max-width:360px;margin:0 auto;}
+          .board{justify-content:center;}
+        }
+    </style>
 </head>
 <body>
 <div class="wrap">
 
-  <header class="mast">
-    <p class="kicker">Complete product board · every view</p>
-    <h1 class="wordmark">Mise<span class="dot">.</span></h1>
-    <p class="thesis">A shared recipe app for a two-person kitchen. Plan the week you <em>want to eat</em>; Mise derives what to <em>cook in batches</em> and buys each thing <em>once</em>.</p>
-    <div class="fresh-rule"></div>
-  </header>
+    <header class="mast">
+        <p class="kicker">Complete product board · every view</p>
+        <h1 class="wordmark">Mise<span class="dot">.</span></h1>
+        <p class="thesis">A shared recipe app for a two-person kitchen. Plan the week you <em>want to eat</em>; Mise derives what to <em>cook in batches</em> and buys each thing <em>once</em>.</p>
+        <div class="fresh-rule"></div>
+    </header>
 
-  <section class="system">
-    <div class="sys-cell">
-      <p class="sys-h">Palette</p>
-      <div class="swatches">
-        <div class="sw"><span class="chip" style="background:#2C6A3A"></span><span class="nm">Herb</span><span class="hx">#2C6A3A</span></div>
-        <div class="sw"><span class="chip" style="background:#18211C"></span><span class="nm">Ink</span><span class="hx">#18211C</span></div>
-        <div class="sw"><span class="chip" style="background:#F4F6F1;border-color:#E2E7DD"></span><span class="nm">Counter</span><span class="hx">#F4F6F1</span></div>
-        <div class="sw"><span class="chip" style="background:#4E9E5B"></span><span class="nm">Fresh</span><span class="hx">#4E9E5B</span></div>
-        <div class="sw"><span class="chip" style="background:#E1A63A"></span><span class="nm">Aging</span><span class="hx">#E1A63A</span></div>
-        <div class="sw"><span class="chip" style="background:#C64B36"></span><span class="nm">Gone</span><span class="hx">#C64B36</span></div>
-      </div>
-    </div>
-    <div class="sys-cell">
-      <p class="sys-h">Type</p>
-      <div class="type-row"><span class="type-lab">Spectral — titles</span><div class="spec-spec">Weeknight Curry</div></div>
-      <div class="type-row"><span class="type-lab">Inter — interface</span><div class="inter-spec">Cook Monday · 3 portions</div></div>
-      <div class="type-row"><span class="type-lab">Plex Mono — data</span><div class="mono-spec">300 g · ×0.75 · keeps 4 d</div></div>
-    </div>
-    <div class="sys-cell">
-      <p class="sys-h">Signature · shelf life</p>
-      <div class="fresh-key">
-        <div class="fk-bar"></div>
-        <div class="fk-labels"><span>cooked</span><span>day 4</span><span>gone</span></div>
-        <p class="fk-note">A freshness bar runs through the app — it shows how long a dish keeps and why a batch splits into two cook sessions.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===== THE LIBRARY ===== -->
-  <div class="section-head"><span class="ey">The library</span><span class="rule"></span><span class="sub">Books, recipe pages, method &amp; cook mode</span></div>
-  <div class="board">
-
-    <div class="frame">
-      <p class="frame-name"><b>Books</b> · your own sections, not presets</p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="abar"><span class="back">‹</span><span class="ttl">Library</span><span class="dots">＋</span></div>
-        <div class="book-card">
-          <div class="book-top"><div class="bn">Our Cookbook</div><div class="bc">42 recipes · shared</div></div>
-          <div class="sec"><div class="sec-lab">Weeknight</div><div class="sec-items">Chicken Curry · Miso Salmon · Herb Frittata</div></div>
-          <div class="sec"><div class="sec-lab">Slow Sundays</div><div class="sec-items">House Ragù · Roast Chicken</div></div>
-          <div class="sec"><div class="sec-lab">Sweet</div><div class="sec-items">Oat Cookies · Banana Bread</div></div>
+    <section class="system">
+        <div class="sys-cell">
+            <p class="sys-h">Palette</p>
+            <div class="swatches">
+                <div class="sw"><span class="chip" style="background:#2C6A3A"></span><span class="nm">Herb</span><span class="hx">#2C6A3A</span></div>
+                <div class="sw"><span class="chip" style="background:#18211C"></span><span class="nm">Ink</span><span class="hx">#18211C</span></div>
+                <div class="sw"><span class="chip" style="background:#F4F6F1;border-color:#E2E7DD"></span><span class="nm">Counter</span><span class="hx">#F4F6F1</span></div>
+                <div class="sw"><span class="chip" style="background:#4E9E5B"></span><span class="nm">Fresh</span><span class="hx">#4E9E5B</span></div>
+                <div class="sw"><span class="chip" style="background:#E1A63A"></span><span class="nm">Aging</span><span class="hx">#E1A63A</span></div>
+                <div class="sw"><span class="chip" style="background:#C64B36"></span><span class="nm">Gone</span><span class="hx">#C64B36</span></div>
+            </div>
         </div>
-        <div class="add-sec">＋ new section — name it anything</div>
-        <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
-      </div></div>
-    </div>
-
-    <div class="frame">
-      <p class="frame-name"><b>Recipe</b> · groups, scaling, shelf life</p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="abar"><span class="back">‹</span><span class="ttl">Dinners</span><span class="dots">⋯</span></div>
-        <div class="r-hero">
-          <span class="r-book">Our Cookbook · Weeknight</span>
-          <h2 class="r-title">Weeknight Chicken Curry</h2>
-          <div class="meta-row"><span class="pill keeps"><span class="mini-fresh"></span>keeps 4 d</span><span class="pill frz">freezable · 60 d</span><span class="pill">serves 4</span></div>
+        <div class="sys-cell">
+            <p class="sys-h">Type</p>
+            <div class="type-row"><span class="type-lab">Spectral — titles</span><div class="spec-spec">Weeknight Curry</div></div>
+            <div class="type-row"><span class="type-lab">Inter — interface</span><div class="inter-spec">Cook Monday · 3 portions</div></div>
+            <div class="type-row"><span class="type-lab">Plex Mono — data</span><div class="mono-spec">300 g · ×0.75 · keeps 4 d</div></div>
         </div>
-        <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span><span class="tabx">Notes</span></div>
-        <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">6 servings ·1.5×</span><span class="step">+</span></div></div>
-        <div class="grp"><p class="grp-h">for the curry</p>
-          <div class="ing"><span>Chicken thigh, boneless</span><span class="q">900 g</span></div>
-          <div class="ing"><span>Yellow onion</span><span class="q">3 med</span></div>
-          <div class="ing"><span>Coconut milk, canned</span><span class="q">600 ml</span></div>
+        <div class="sys-cell">
+            <p class="sys-h">Signature · shelf life</p>
+            <div class="fresh-key">
+                <div class="fk-bar"></div>
+                <div class="fk-labels"><span>cooked</span><span>day 4</span><span>gone</span></div>
+                <p class="fk-note">A freshness bar runs through the app — it shows how long a dish keeps and why a batch splits into two cook sessions.</p>
+            </div>
         </div>
-        <div class="grp"><p class="grp-h">for the spice base</p>
-          <div class="ing"><span>Garam masala</span><span class="q">1.5 tbsp</span></div>
-          <div class="ing"><span>Ginger, fresh</span><span class="q">30 g</span></div>
-          <div class="ing"><span>Salt</span><span class="q">to taste</span></div>
+    </section>
+
+    <!-- ===== THE LIBRARY ===== -->
+    <div class="section-head"><span class="ey">The library</span><span class="rule"></span><span class="sub">Books, recipe pages, method &amp; cook mode</span></div>
+    <div class="board">
+
+        <div class="frame">
+            <p class="frame-name"><b>Books</b> · your own sections, not presets</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Library</span><span class="dots">＋</span></div>
+                <div class="book-card">
+                    <div class="book-top"><div class="bn">Our Cookbook</div><div class="bc">42 recipes · shared</div></div>
+                    <div class="sec"><div class="sec-lab">Weeknight</div><div class="sec-items">Chicken Curry · Miso Salmon · Herb Frittata</div></div>
+                    <div class="sec"><div class="sec-lab">Slow Sundays</div><div class="sec-items">House Ragù · Roast Chicken</div></div>
+                    <div class="sec"><div class="sec-lab">Sweet</div><div class="sec-items">Oat Cookies · Banana Bread</div></div>
+                </div>
+                <div class="add-sec">＋ new section — name it anything</div>
+                <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+            </div></div>
         </div>
-        <div class="macro"><div class="m"><div class="mv">612</div><div class="ml">kcal</div></div><div class="m"><div class="mv">41 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">18 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">39 g</div><div class="ml">fat</div></div></div>
-      </div></div>
-    </div>
 
-    <div class="frame">
-      <p class="frame-name"><b>Method</b> · steps with live ingredient chips</p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="abar"><span class="back">‹</span><span class="ttl">Chicken Curry</span><span class="dots">⋯</span></div>
-        <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tabx">Notes</span></div>
-        <span class="scale-chip">scaled to 6 · ×1.5</span>
-        <p class="phase">the base</p>
-        <div class="step"><span class="snum">1</span><div class="sbody">Dice <span class="ichip">onion <span class="qn">×4</span></span> and soften in oil until translucent.<div class="stimer">⏱ 10 min</div></div></div>
-        <div class="step"><span class="snum">2</span><div class="sbody">Stir in <span class="ichip">ginger <span class="qn">45 g</span></span> and <span class="ichip">garam masala <span class="qn">2¼ tbsp</span></span>; toast until fragrant.<div class="stimer">⏱ 1 min</div></div></div>
-        <p class="phase">the simmer</p>
-        <div class="step"><span class="snum">3</span><div class="sbody">Add <span class="ichip">chicken thigh <span class="qn">1.35 kg</span></span> and brown all over.</div></div>
-        <div class="step"><span class="snum">4</span><div class="sbody">Pour in <span class="ichip">coconut milk <span class="qn">900 ml</span></span>, cover, simmer gently.<div class="stimer">⏱ 25 min</div></div></div>
-        <div class="cook-cta">▶ Start cook mode</div>
-      </div></div>
-    </div>
-
-    <div class="frame">
-      <p class="frame-name"><b>Cook mode</b> · one step, big, timer running</p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="cm-top">
-          <div class="cm-x"><span>✕ close</span><span>Chicken Curry</span></div>
-          <div class="cm-dots"><span class="cm-dot done"></span><span class="cm-dot done"></span><span class="cm-dot done"></span><span class="cm-dot on"></span><span class="cm-dot"></span></div>
+        <div class="frame">
+            <p class="frame-name"><b>Recipe</b> · groups, scaling, shelf life</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Dinners</span><span class="dots">⋯</span></div>
+                <div class="r-hero">
+                    <span class="r-book">Our Cookbook · Weeknight</span>
+                    <h2 class="r-title">Weeknight Chicken Curry</h2>
+                    <div class="meta-row"><span class="pill keeps"><span class="mini-fresh"></span>keeps 4 d</span><span class="pill frz">freezable · 60 d</span><span class="pill">serves 4</span></div>
+                </div>
+                <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span><span class="tabx">Notes</span></div>
+                <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">6 servings ·1.5×</span><span class="step">+</span></div></div>
+                <div class="grp"><p class="grp-h">for the curry</p>
+                    <div class="ing"><span>Chicken thigh, boneless</span><span class="q">900 g</span></div>
+                    <div class="ing"><span>Yellow onion</span><span class="q">3 med</span></div>
+                    <div class="ing"><span>Coconut milk, canned</span><span class="q">600 ml</span></div>
+                </div>
+                <div class="grp"><p class="grp-h">for the spice base</p>
+                    <div class="ing"><span>Garam masala</span><span class="q">1.5 tbsp</span></div>
+                    <div class="ing"><span>Ginger, fresh</span><span class="q">30 g</span></div>
+                    <div class="ing"><span>Salt</span><span class="q">to taste</span></div>
+                </div>
+                <div class="macro"><div class="m"><div class="mv">612</div><div class="ml">kcal</div></div><div class="m"><div class="mv">41 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">18 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">39 g</div><div class="ml">fat</div></div></div>
+            </div></div>
         </div>
-        <div class="cm-body"><div class="cm-kick">Step 4 of 5 · the simmer</div><div class="cm-big">Pour in <span class="cm-hl">coconut milk 900 ml</span>, cover, and simmer gently.</div></div>
-        <div class="cm-timer"><div class="cm-time">24:12<small>simmer</small></div><div class="cm-pause">❚❚</div></div>
-        <div class="cm-nav"><div class="cm-btn prev">Back</div><div class="cm-btn next">Next step</div></div>
-      </div></div>
-    </div>
-  </div>
 
-  <!-- ===== BRINGING THINGS IN ===== -->
-  <div class="section-head"><span class="ey">Bringing recipes &amp; ingredients in</span><span class="rule"></span><span class="sub">Matched to your vocabulary — never free-text typos</span></div>
-  <div class="board">
+        <div class="frame">
+            <p class="frame-name"><b>Method</b> · steps with live ingredient chips</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Chicken Curry</span><span class="dots">⋯</span></div>
+                <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tabx">Notes</span></div>
+                <span class="scale-chip">scaled to 6 · ×1.5</span>
+                <p class="phase">the base</p>
+                <div class="step"><span class="snum">1</span><div class="sbody">Dice <span class="ichip">onion <span class="qn">×4</span></span> and soften in oil until translucent.<div class="stimer">⏱ 10 min</div></div></div>
+                <div class="step"><span class="snum">2</span><div class="sbody">Stir in <span class="ichip">ginger <span class="qn">45 g</span></span> and <span class="ichip">garam masala <span class="qn">2¼ tbsp</span></span>; toast until fragrant.<div class="stimer">⏱ 1 min</div></div></div>
+                <p class="phase">the simmer</p>
+                <div class="step"><span class="snum">3</span><div class="sbody">Add <span class="ichip">chicken thigh <span class="qn">1.35 kg</span></span> and brown all over.</div></div>
+                <div class="step"><span class="snum">4</span><div class="sbody">Pour in <span class="ichip">coconut milk <span class="qn">900 ml</span></span>, cover, simmer gently.<div class="stimer">⏱ 25 min</div></div></div>
+                <div class="cook-cta">▶ Start cook mode</div>
+            </div></div>
+        </div>
 
-    <div class="frame">
-      <p class="frame-name"><b>Import &amp; match</b> · link or photo → reconcile</p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="abar"><span class="back">‹</span><span class="ttl">Review import</span><span class="dots">2 to review</span></div>
-        <div class="rc-src"><span class="rc-tab on">◱ webpage</span><span class="rc-tab">◲ photo</span></div>
-        <p class="rc-note">Importing “Weeknight Chicken Curry” — check each line matches an ingredient you have.</p>
-        <div class="match"><div class="raw"><span class="qty">900 g</span> chicken thighs, boneless</div><div class="status"><span class="dot hi"></span><span class="to">matched <b>Chicken thigh, boneless</b></span><span class="undo">undo</span></div></div>
-        <div class="match"><div class="raw"><span class="qty">1 can</span> coconut milk</div><div class="status"><span class="dot mid"></span><span class="to">did you mean?</span></div><div class="suggests"><span class="sug pick">Coconut milk, canned</span><span class="sug">Coconut cream</span></div></div>
-        <div class="match"><div class="raw"><span class="qty">a handful</span> curry leaves, fresh</div><div class="status"><span class="dot no"></span><span class="to">no match found</span></div><div class="addnew-stub">＋ add as new — creates a stub for the queue</div></div>
-      </div></div>
+        <div class="frame">
+            <p class="frame-name"><b>Cook mode</b> · one step, big, timer running</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="cm-top">
+                    <div class="cm-x"><span>✕ close</span><span>Chicken Curry</span></div>
+                    <div class="cm-dots"><span class="cm-dot done"></span><span class="cm-dot done"></span><span class="cm-dot done"></span><span class="cm-dot on"></span><span class="cm-dot"></span></div>
+                </div>
+                <div class="cm-body"><div class="cm-kick">Step 4 of 5 · the simmer</div><div class="cm-big">Pour in <span class="cm-hl">coconut milk 900 ml</span>, cover, and simmer gently.</div></div>
+                <div class="cm-timer"><div class="cm-time">24:12<small>simmer</small></div><div class="cm-pause">❚❚</div></div>
+                <div class="cm-nav"><div class="cm-btn prev">Back</div><div class="cm-btn next">Next step</div></div>
+            </div></div>
+        </div>
     </div>
 
-    <div class="frame">
-      <p class="frame-name"><b>Add ingredient</b> · controlled-vocab search</p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="abar"><span class="back">✕</span><span class="ttl">Add to “for the curry”</span><span class="dots"></span></div>
-        <p class="flabel">Find an ingredient</p>
-        <div class="field"><div class="search"><span class="mag">⌕</span><span>coco</span><span class="care"></span></div></div>
-        <div class="res-row"><div><div class="res-nm">Coconut milk, canned</div><span class="res-cat">Dairy alt · has density</span></div><span class="res-pick on" style="margin-left:auto">✓</span></div>
-        <div class="res-row"><div><div class="res-nm">Coconut cream</div><span class="res-cat">Dairy alt</span></div><span class="res-pick" style="margin-left:auto"></span></div>
-        <div class="res-row"><div><div class="res-nm">Coconut, desiccated <span class="res-badge">stub</span></div><span class="res-cat">Baking</span></div><span class="res-pick" style="margin-left:auto"></span></div>
-        <div class="qtyrow"><div class="stepper"><span class="s">–</span><span class="qv">600</span><span class="s">+</span></div><div class="unitsel"><span>ml</span><span style="color:var(--muted)">▾</span></div></div>
-        <p class="conv-note">≈ <b>610 g</b> · via density 1.02 g/ml</p>
-        <div class="addnew">＋ can’t find it? add a new ingredient</div>
-      </div></div>
+    <!-- ===== BRINGING THINGS IN ===== -->
+    <div class="section-head"><span class="ey">Bringing recipes &amp; ingredients in</span><span class="rule"></span><span class="sub">Matched to your vocabulary — never free-text typos</span></div>
+    <div class="board">
+
+        <div class="frame">
+            <p class="frame-name"><b>Import &amp; match</b> · link or photo → reconcile</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Review import</span><span class="dots">2 to review</span></div>
+                <div class="rc-src"><span class="rc-tab on">◱ webpage</span><span class="rc-tab">◲ photo</span></div>
+                <p class="rc-note">Importing “Weeknight Chicken Curry” — check each line matches an ingredient you have.</p>
+                <div class="match"><div class="raw"><span class="qty">900 g</span> chicken thighs, boneless</div><div class="status"><span class="dot hi"></span><span class="to">matched <b>Chicken thigh, boneless</b></span><span class="undo">undo</span></div></div>
+                <div class="match"><div class="raw"><span class="qty">1 can</span> coconut milk</div><div class="status"><span class="dot mid"></span><span class="to">did you mean?</span></div><div class="suggests"><span class="sug pick">Coconut milk, canned</span><span class="sug">Coconut cream</span></div></div>
+                <div class="match"><div class="raw"><span class="qty">a handful</span> curry leaves, fresh</div><div class="status"><span class="dot no"></span><span class="to">no match found</span></div><div class="addnew-stub">＋ add as new — creates a stub for the queue</div></div>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Add ingredient</b> · controlled-vocab search</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Add to “for the curry”</span><span class="dots"></span></div>
+                <p class="flabel">Find an ingredient</p>
+                <div class="field"><div class="search"><span class="mag">⌕</span><span>coco</span><span class="care"></span></div></div>
+                <div class="res-row"><div><div class="res-nm">Coconut milk, canned</div><span class="res-cat">Dairy alt · has density</span></div><span class="res-pick on" style="margin-left:auto">✓</span></div>
+                <div class="res-row"><div><div class="res-nm">Coconut cream</div><span class="res-cat">Dairy alt</span></div><span class="res-pick" style="margin-left:auto"></span></div>
+                <div class="res-row"><div><div class="res-nm">Coconut, desiccated <span class="res-badge">stub</span></div><span class="res-cat">Baking</span></div><span class="res-pick" style="margin-left:auto"></span></div>
+                <div class="qtyrow"><div class="stepper"><span class="s">–</span><span class="qv">600</span><span class="s">+</span></div><div class="unitsel"><span>ml</span><span style="color:var(--muted)">▾</span></div></div>
+                <p class="conv-note">≈ <b>610 g</b> · via density 1.02 g/ml</p>
+                <div class="addnew">＋ can’t find it? add a new ingredient</div>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>New ingredient</b> · create → flesh out</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">New ingredient</span><span class="dots"></span></div>
+                <p class="flabel">Canonical name</p>
+                <div class="frow"><div class="fin big">Curry leaves, fresh</div></div>
+                <p class="flabel">Also known as</p>
+                <div class="frow"><div class="chips"><span class="chip">kadi patta</span><span class="chip">sweet neem</span><span class="chip add">＋ alias</span></div></div>
+                <p class="flabel">Category · default unit</p>
+                <div class="frow" style="display:flex;gap:10px"><div class="fin" style="flex:1">Produce ▾</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace">g ▾</div></div>
+                <p class="flabel">Density (volume ↔ weight)</p>
+                <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">— g / ml · needed</div></div>
+                <p class="flabel">Macros per 100 g</p>
+                <div class="frow"><div class="macros4"><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">kcal</div></div><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">protein</div></div><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">carb</div></div><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">fat</div></div></div></div>
+                <p class="flabel">Source</p>
+                <div class="frow"><div class="seg"><span class="segopt on">USDA FDC</span><span class="segopt">Manual</span><span class="segopt">Barcode</span></div></div>
+                <div class="status-line"><span class="sdot"></span>Saves as a <b style="color:var(--ink)">&nbsp;stub</b>&nbsp;— completes once density + macros are set.</div>
+                <div class="savebtn">Save to queue</div>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Barcode add</b><span class="stretch-tag">stretch</span></p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Scan a product</span><span class="dots">⚑</span></div>
+                <div class="cam"><div class="reticle"><div class="scan-line"></div></div><div class="cam-hint">line up the barcode</div></div>
+                <p class="flabel">Matched · Open Food Facts</p>
+                <div class="matched"><div class="mnm">Coconut Milk, 400 ml</div><div class="msrc">store brand · barcode 50xxxx · ODbL</div>
+                    <div class="macros4" style="margin-top:12px"><div class="mi"><div class="miv">197</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">2 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">3 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">20 g</div><div class="mil">fat</div></div></div>
+                </div>
+                <div class="savebtn">Add as ingredient</div>
+                <p class="conv-note" style="text-align:center">imports as <b>complete</b> — macros come with it</p>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Fleshing-out queue</b> · stubs before they count</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Ingredients</span><span class="dots">⋯</span></div>
+                <div class="fq"><div class="fq-title"><span class="n">Needs fleshing out</span><span class="c">3 stubs</span></div>
+                    <div class="stub"><span class="sn">Curry leaves, fresh</span><span class="need">needs <span>density</span> · <span>macros</span></span></div>
+                    <div class="stub"><span class="sn">Tamarind paste</span><span class="need">needs <span>density</span></span></div>
+                    <div class="stub"><span class="sn">Fenugreek</span><span class="need">needs <span>macros</span></span></div>
+                </div>
+                <p class="rc-note">Until a stub has density and macros, it’s left out of conversions and macro totals — so the numbers stay honest.</p>
+                <div class="add-sec" style="border-style:solid;border-color:var(--line);color:var(--muted);">Seeded from USDA FoodData Central (CC0)</div>
+            </div></div>
+        </div>
     </div>
 
-    <div class="frame">
-      <p class="frame-name"><b>New ingredient</b> · create → flesh out</p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="abar"><span class="back">✕</span><span class="ttl">New ingredient</span><span class="dots"></span></div>
-        <p class="flabel">Canonical name</p>
-        <div class="frow"><div class="fin big">Curry leaves, fresh</div></div>
-        <p class="flabel">Also known as</p>
-        <div class="frow"><div class="chips"><span class="chip">kadi patta</span><span class="chip">sweet neem</span><span class="chip add">＋ alias</span></div></div>
-        <p class="flabel">Category · default unit</p>
-        <div class="frow" style="display:flex;gap:10px"><div class="fin" style="flex:1">Produce ▾</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace">g ▾</div></div>
-        <p class="flabel">Density (volume ↔ weight)</p>
-        <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">— g / ml · needed</div></div>
-        <p class="flabel">Macros per 100 g</p>
-        <div class="frow"><div class="macros4"><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">kcal</div></div><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">protein</div></div><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">carb</div></div><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">fat</div></div></div></div>
-        <p class="flabel">Source</p>
-        <div class="frow"><div class="seg"><span class="segopt on">USDA FDC</span><span class="segopt">Manual</span><span class="segopt">Barcode</span></div></div>
-        <div class="status-line"><span class="sdot"></span>Saves as a <b style="color:var(--ink)">&nbsp;stub</b>&nbsp;— completes once density + macros are set.</div>
-        <div class="savebtn">Save to queue</div>
-      </div></div>
+    <!-- ===== PLAN → COOK → SHOP ===== -->
+    <div class="section-head"><span class="ey">Plan → cook → shop</span><span class="rule"></span><span class="sub">The pipeline: two screens derive from the week</span></div>
+    <div class="board">
+
+        <div class="frame">
+            <p class="frame-name"><b>Full week</b> · the input · all seven days</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Week of Aug 24</span><span class="dots">⋯</span></div>
+                <div class="toggle"><span class="opt on">Shared</span><span class="opt">Per-person</span></div>
+                <div class="wkbar"><span class="wkchip">copy last week</span></div>
+                <div class="day2"><div class="day2-name">Monday</div>
+                    <div class="srow"><span class="slab">Bkfst</span><span class="sname">Buttermilk Pancakes</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div>
+                    <div class="srow"><span class="slab">Dinner</span><span class="sname">Weeknight Chicken Curry</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div>
+                    <div class="addrow"><span class="ic">＋</span>Add a meal</div>
+                </div>
+                <div class="day2"><div class="day2-name">Tuesday</div>
+                    <div class="srow"><span class="slab">Lunch</span><div class="split2"><div class="sub"><span class="sn">Miso Salmon Rice Bowl</span><span class="avs"><span class="av j">J</span></span></div><div class="sub"><span class="sn">Herb &amp; Feta Frittata</span><span class="avs"><span class="av a">A</span></span></div></div></div>
+                    <div class="srow"><span class="slab">Dinner</span><span class="sname">Slow-Cooker Beef Ragù</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div>
+                    <div class="addrow"><span class="ic">＋</span>Add a meal</div>
+                </div>
+                <div class="day2"><div class="day2-name">Wednesday</div>
+                    <div class="srow"><span class="slab">Lunch</span><span class="sname">Charred Broccoli &amp; Halloumi Salad</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div>
+                    <div class="addrow"><span class="ic">＋</span>Add a meal</div>
+                </div>
+                <div class="day2"><div class="day2-name">Thursday</div>
+                    <div class="srow"><span class="slab">Dinner</span><span class="sname">Weeknight Chicken Curry</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div>
+                    <div class="addrow"><span class="ic">＋</span>Add a meal</div>
+                </div>
+                <div class="day2"><div class="day2-name">Friday</div>
+                    <div class="srow"><span class="slab">Dinner</span><span class="sname">Sheet-Pan Miso Salmon</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div>
+                    <div class="addrow"><span class="ic">＋</span>Add a meal</div>
+                </div>
+                <div class="day2"><div class="day2-name">Saturday</div>
+                    <div class="srow"><span class="slab">Dinner</span><span class="sname">Slow-Cooker Beef Ragù</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div>
+                    <div class="addrow"><span class="ic">＋</span>Add a meal</div>
+                </div>
+                <div class="day2 empty-day"><div class="day2-name">Sunday</div>
+                    <div class="addrow"><span class="ic">＋</span>Add a meal</div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>derives</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Batch cook plan</b> · grouped by recipe, split by shelf life</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Batch cook plan</span><span class="dots">⋯</span></div>
+                <div class="cook split">
+                    <div class="cook-title">Chicken Curry</div>
+                    <div class="cook-sub">4 portions across the week · keeps 4 d</div>
+                    <div class="session"><div class="ses-top"><span class="ses-when">Cook Mon</span><span class="ses-scale">×0.75 → ×1</span></div><div class="ses-covers">covers Mon dinner + Thu dinner · 4 portions</div>
+                        <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:4"></span><span class="tl-gone" style="flex:3"></span></div><div class="tl-days"><span>Mon</span><span>Thu</span><span>Fri</span></div></div></div>
+                    <div class="split-note"><span class="ic">⚑</span><span>A later instance falls past the 4-day window — cook it again, fresh.</span></div>
+                </div>
+                <div class="cook">
+                    <div class="cook-title">House Ragù</div>
+                    <div class="cook-sub">4 portions · Tue &amp; Sat · freezable</div>
+                    <div class="session"><div class="ses-top"><span class="ses-when">Cook Tue</span><span class="ses-scale">×1</span></div><div class="ses-covers">covers Tue + Sat dinner · 4 portions</div>
+                        <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:2"></span><span class="tl-aging" style="flex:5"></span></div><div class="tl-days"><span>Tue</span><span>Fri</span><span>Sat</span></div></div></div>
+                    <div class="frz-note"><span class="ic">❄</span><span>Saturday is far off, but Ragù freezes — cook once Tuesday, freeze Saturday’s share.</span></div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>derives</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Shopping list</b> · summed, with provenance</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Shopping list</span><span class="dots">⋯</span></div>
+                <div class="sl-group">Baking</div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flour</span><span class="item-total">500 g</span></div>
+                    <div class="prov"><div class="prov-line"><span class="src">Curry batch · cook Mon</span><span>300 g</span></div><div class="prov-line"><span class="src">Oat Cookies</span><span>150 g</span></div><div class="prov-line manual"><span class="src">＋ manual top-up</span><span>50 g</span></div></div>
+                </div>
+                <div class="sl-group">Produce</div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow onion</span><span class="item-total">5 med</span></div>
+                    <div class="prov"><div class="prov-line"><span class="src">Curry batch · cook Mon</span><span>3 med</span></div><div class="prov-line"><span class="src">Ragù · cook Tue</span><span>2 med</span></div></div>
+                </div>
+                <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Ginger, fresh</span><span class="item-total">30 g</span></div></div>
+                <div class="sl-group">Non-food</div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Paper towels</span><span class="item-total">—</span></div></div>
+                <div class="topup">＋ add item or top up an ingredient</div>
+            </div></div>
+        </div>
     </div>
 
-    <div class="frame">
-      <p class="frame-name"><b>Barcode add</b><span class="stretch-tag">stretch</span></p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="abar"><span class="back">✕</span><span class="ttl">Scan a product</span><span class="dots">⚑</span></div>
-        <div class="cam"><div class="reticle"><div class="scan-line"></div></div><div class="cam-hint">line up the barcode</div></div>
-        <p class="flabel">Matched · Open Food Facts</p>
-        <div class="matched"><div class="mnm">Coconut Milk, 400 ml</div><div class="msrc">store brand · barcode 50xxxx · ODbL</div>
-          <div class="macros4" style="margin-top:12px"><div class="mi"><div class="miv">197</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">2 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">3 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">20 g</div><div class="mil">fat</div></div></div>
+    <!-- ===== ADDING A MEAL ===== -->
+    <div class="section-head"><span class="ey">Adding a meal</span><span class="rule"></span><span class="sub">Tap a day’s “add” → pick a recipe → confirm</span></div>
+    <div class="board">
+
+        <div class="frame">
+            <p class="frame-name"><b>Choose a recipe</b> · your library, batch-aware</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Add a meal</span><span class="dots"></span></div>
+                <p class="target">to · <b>Wednesday, Dinner</b></p>
+                <div class="field"><div class="search"><span style="color:var(--muted)">⌕</span><span>Search recipes</span></div></div>
+                <div class="rseg"><span class="rsegopt on">Recent</span><span class="rsegopt">Books</span><span class="rsegopt">Favorites</span></div>
+                <div class="reuse">
+                    <div class="reuse-h">Already this week — cook it in the same batch</div>
+                    <div class="reuse-chips">
+                        <span class="rchip">Chicken Curry <span class="day-t">Mon</span></span>
+                        <span class="rchip">Beef Ragù <span class="day-t">Tue</span></span>
+                    </div>
+                </div>
+                <p class="list-h">Recent</p>
+                <div class="rrow"><div class="rthumb">◍</div>
+                    <div class="rmeta"><div class="rn">Weeknight Chicken Curry</div><div class="rbook">Our Cookbook · Weeknight</div>
+                        <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 4 d</span><span class="kpill frz">freezable</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="rrow"><div class="rthumb">◍</div>
+                    <div class="rmeta"><div class="rn">Sheet-Pan Miso Salmon</div><div class="rbook">Our Cookbook · Weeknight</div>
+                        <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 2 d</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="rrow"><div class="rthumb">◍</div>
+                    <div class="rmeta"><div class="rn">Charred Broccoli &amp; Halloumi Salad</div><div class="rbook">Our Cookbook · Weeknight</div>
+                        <div class="rkeep"><span class="kpill">best fresh</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="rrow"><div class="rthumb">◍</div>
+                    <div class="rmeta"><div class="rn">Roast Chicken &amp; Veg</div><div class="rbook">Our Cookbook · Slow Sundays</div>
+                        <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 3 d</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="newrow">＋ new recipe — build it from scratch</div>
+                <div class="foot"><span class="foot-lab">Eating: <b>Ada &amp; Jun</b> · shared</span>
+                    <span class="eaters"><span class="ep on a">A</span><span class="ep on j">J</span></span></div>
+            </div></div>
         </div>
-        <div class="savebtn">Add as ingredient</div>
-        <p class="conv-note" style="text-align:center">imports as <b>complete</b> — macros come with it</p>
-      </div></div>
+
+        <div class="flow"><span>pick</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Confirm &amp; place</b> · eaters, portions, batch hint</p>
+            <div class="phone"><div class="notch"></div><div class="screen sheet">
+                <div class="grab"></div>
+                <div class="c-h">Add to plan</div>
+                <div class="picked"><div class="rthumb">◍</div>
+                    <div class="pn"><div class="ptitle">Weeknight Chicken Curry</div>
+                        <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 4 d</span><span class="kpill frz">freezable</span></div></div></div>
+                <p class="clabel">Slot</p>
+                <div class="slotchip">Wednesday · Dinner<span class="caret">▾</span></div>
+                <p class="clabel">Who’s eating</p>
+                <div class="eater-row"><span class="lab"><b>Both</b> — shared, 2 portions</span>
+                    <span class="eaters"><span class="ep on a">A</span><span class="ep on j">J</span></span></div>
+                <p class="clabel">Portions</p>
+                <div class="portion"><div class="pl">2 portions<small>defaults to eaters — bump up for big appetites</small></div>
+                    <div class="pstepper"><span class="s">–</span><span class="qv">2</span><span class="s">+</span></div></div>
+                <div class="batch-note">Chicken Curry already cooks <b>Monday</b> and keeps 4 days — Wednesday is inside that window, so this joins Monday’s batch instead of a second cook.</div>
+                <div class="addbtn">Add to Wednesday</div>
+            </div></div>
+        </div>
     </div>
 
-    <div class="frame">
-      <p class="frame-name"><b>Fleshing-out queue</b> · stubs before they count</p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="abar"><span class="back">‹</span><span class="ttl">Ingredients</span><span class="dots">⋯</span></div>
-        <div class="fq"><div class="fq-title"><span class="n">Needs fleshing out</span><span class="c">3 stubs</span></div>
-          <div class="stub"><span class="sn">Curry leaves, fresh</span><span class="need">needs <span>density</span> · <span>macros</span></span></div>
-          <div class="stub"><span class="sn">Tamarind paste</span><span class="need">needs <span>density</span></span></div>
-          <div class="stub"><span class="sn">Fenugreek</span><span class="need">needs <span>macros</span></span></div>
+    <!-- week states -->
+    <div class="section-head"><span class="ey">Week states</span><span class="rule"></span><span class="sub">The per-person lens over the same week</span></div>
+    <div class="board">
+        <div class="frame">
+            <p class="frame-name"><b>Per-person</b> · a lens, filtered to one</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Week of Aug 24</span><span class="dots">⋯</span></div>
+                <div class="toggle"><span class="opt">Shared</span><span class="opt on">Per-person</span></div>
+                <div class="psel"><span class="pchip on"><span class="av a">A</span>Ada</span><span class="pchip"><span class="av j">J</span>Jun</span></div>
+                <div class="day2"><div class="day2-name">Monday</div>
+                    <div class="srow"><span class="slab">Bkfst</span><span class="sname">Buttermilk Pancakes</span><span class="shared-tag">⇄ shared</span></div>
+                    <div class="srow"><span class="slab">Dinner</span><span class="sname">Weeknight Chicken Curry</span><span class="shared-tag">⇄ shared</span></div>
+                </div>
+                <div class="day2"><div class="day2-name">Tuesday</div>
+                    <div class="srow"><span class="slab">Lunch</span><span class="sname">Herb &amp; Feta Frittata</span></div>
+                    <div class="srow"><span class="slab">Dinner</span><span class="sname">Slow-Cooker Beef Ragù</span><span class="shared-tag">⇄ shared</span></div>
+                </div>
+                <div class="day2"><div class="day2-name">Wednesday</div>
+                    <div class="srow"><span class="slab">Lunch</span><span class="sname">Charred Broccoli &amp; Halloumi Salad</span><span class="shared-tag">⇄ shared</span></div>
+                </div>
+            </div></div>
         </div>
-        <p class="rc-note">Until a stub has density and macros, it’s left out of conversions and macro totals — so the numbers stay honest.</p>
-        <div class="add-sec" style="border-style:solid;border-color:var(--line);color:var(--muted);">Seeded from USDA FoodData Central (CC0)</div>
-      </div></div>
-    </div>
-  </div>
-
-  <!-- ===== PLAN → COOK → SHOP ===== -->
-  <div class="section-head"><span class="ey">Plan → cook → shop</span><span class="rule"></span><span class="sub">The pipeline: two screens derive from the week</span></div>
-  <div class="board">
-
-    <div class="frame">
-      <p class="frame-name"><b>Full week</b> · the input · all seven days</p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="abar"><span class="back">‹</span><span class="ttl">Week of Aug 24</span><span class="dots">⋯</span></div>
-        <div class="toggle"><span class="opt on">Shared</span><span class="opt">Per-person</span></div>
-        <div class="wkbar"><span class="wkchip">copy last week</span></div>
-        <div class="day2"><div class="day2-name">Monday</div>
-          <div class="srow"><span class="slab">Bkfst</span><span class="sname">Buttermilk Pancakes</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div>
-          <div class="srow"><span class="slab">Dinner</span><span class="sname">Weeknight Chicken Curry</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div>
-        </div>
-        <div class="day2"><div class="day2-name">Tuesday</div>
-          <div class="srow"><span class="slab">Lunch</span><div class="split2"><div class="sub"><span class="sn">Miso Salmon Rice Bowl</span><span class="avs"><span class="av j">J</span></span></div><div class="sub"><span class="sn">Herb &amp; Feta Frittata</span><span class="avs"><span class="av a">A</span></span></div></div></div>
-          <div class="srow"><span class="slab">Dinner</span><span class="sname">Slow-Cooker Beef Ragù</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div>
-        </div>
-        <div class="day2"><div class="day2-name">Wednesday</div>
-          <div class="srow"><span class="slab">Lunch</span><span class="sname">Charred Broccoli &amp; Halloumi Salad</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div>
-          <div class="srow empty"><span class="slab">Dinner</span><span class="sname">Add a meal</span><span class="plus">＋</span></div>
-        </div>
-        <div class="day2"><div class="day2-name">Thursday</div><div class="srow"><span class="slab">Dinner</span><span class="sname">Weeknight Chicken Curry</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div></div>
-        <div class="day2"><div class="day2-name">Friday</div><div class="srow"><span class="slab">Dinner</span><span class="sname">Sheet-Pan Miso Salmon</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div></div>
-        <div class="day2"><div class="day2-name">Saturday</div>
-          <div class="srow empty"><span class="slab">Lunch</span><span class="sname">Add a meal</span><span class="plus">＋</span></div>
-          <div class="srow"><span class="slab">Dinner</span><span class="sname">Slow-Cooker Beef Ragù</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div>
-        </div>
-        <div class="day2"><div class="day2-name">Sunday</div><div class="srow"><span class="slab">Dinner</span><span class="sname">Roast Chicken &amp; Veg</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div></div>
-      </div></div>
     </div>
 
-    <div class="flow"><span>derives</span><span class="arrow">→</span></div>
-
-    <div class="frame">
-      <p class="frame-name"><b>Batch cook plan</b> · grouped by recipe, split by shelf life</p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="abar"><span class="back">‹</span><span class="ttl">Batch cook plan</span><span class="dots">⋯</span></div>
-        <div class="cook split">
-          <div class="cook-title">Chicken Curry</div>
-          <div class="cook-sub">4 portions across the week · keeps 4 d</div>
-          <div class="session"><div class="ses-top"><span class="ses-when">Cook Mon</span><span class="ses-scale">×0.75 → ×1</span></div><div class="ses-covers">covers Mon dinner + Thu dinner · 4 portions</div>
-            <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:4"></span><span class="tl-gone" style="flex:3"></span></div><div class="tl-days"><span>Mon</span><span>Thu</span><span>Fri</span></div></div></div>
-          <div class="split-note"><span class="ic">⚑</span><span>A later instance falls past the 4-day window — cook it again, fresh.</span></div>
-        </div>
-        <div class="cook">
-          <div class="cook-title">House Ragù</div>
-          <div class="cook-sub">4 portions · Tue &amp; Sat · freezable</div>
-          <div class="session"><div class="ses-top"><span class="ses-when">Cook Tue</span><span class="ses-scale">×1</span></div><div class="ses-covers">covers Tue + Sat dinner · 4 portions</div>
-            <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:2"></span><span class="tl-aging" style="flex:5"></span></div><div class="tl-days"><span>Tue</span><span>Fri</span><span>Sat</span></div></div></div>
-          <div class="frz-note"><span class="ic">❄</span><span>Saturday is far off, but Ragù freezes — cook once Tuesday, freeze Saturday’s share.</span></div>
-        </div>
-      </div></div>
-    </div>
-
-    <div class="flow"><span>derives</span><span class="arrow">→</span></div>
-
-    <div class="frame">
-      <p class="frame-name"><b>Shopping list</b> · summed, with provenance</p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="abar"><span class="back">‹</span><span class="ttl">Shopping list</span><span class="dots">⋯</span></div>
-        <div class="sl-group">Baking</div>
-        <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flour</span><span class="item-total">500 g</span></div>
-          <div class="prov"><div class="prov-line"><span class="src">Curry batch · cook Mon</span><span>300 g</span></div><div class="prov-line"><span class="src">Oat Cookies</span><span>150 g</span></div><div class="prov-line manual"><span class="src">＋ manual top-up</span><span>50 g</span></div></div>
-        </div>
-        <div class="sl-group">Produce</div>
-        <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow onion</span><span class="item-total">5 med</span></div>
-          <div class="prov"><div class="prov-line"><span class="src">Curry batch · cook Mon</span><span>3 med</span></div><div class="prov-line"><span class="src">Ragù · cook Tue</span><span>2 med</span></div></div>
-        </div>
-        <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Ginger, fresh</span><span class="item-total">30 g</span></div></div>
-        <div class="sl-group">Non-food</div>
-        <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Paper towels</span><span class="item-total">—</span></div></div>
-        <div class="topup">＋ add item or top up an ingredient</div>
-      </div></div>
-    </div>
-  </div>
-
-  <!-- week states -->
-  <div class="section-head"><span class="ey">Week states</span><span class="rule"></span><span class="sub">The per-person lens &amp; a fresh week</span></div>
-  <div class="board">
-    <div class="frame">
-      <p class="frame-name"><b>Per-person</b> · a lens, filtered to one</p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="abar"><span class="back">‹</span><span class="ttl">Week of Aug 24</span><span class="dots">⋯</span></div>
-        <div class="toggle"><span class="opt">Shared</span><span class="opt on">Per-person</span></div>
-        <div class="psel"><span class="pchip on"><span class="av a">A</span>Ada</span><span class="pchip"><span class="av j">J</span>Jun</span></div>
-        <div class="day2"><div class="day2-name">Monday</div>
-          <div class="srow"><span class="slab">Bkfst</span><span class="sname">Buttermilk Pancakes</span><span class="shared-tag">⇄ shared</span></div>
-          <div class="srow"><span class="slab">Dinner</span><span class="sname">Weeknight Chicken Curry</span><span class="shared-tag">⇄ shared</span></div>
-        </div>
-        <div class="day2"><div class="day2-name">Tuesday</div>
-          <div class="srow"><span class="slab">Lunch</span><span class="sname">Herb &amp; Feta Frittata</span></div>
-          <div class="srow"><span class="slab">Dinner</span><span class="sname">Slow-Cooker Beef Ragù</span><span class="shared-tag">⇄ shared</span></div>
-        </div>
-        <div class="day2"><div class="day2-name">Wednesday</div>
-          <div class="srow"><span class="slab">Lunch</span><span class="sname">Charred Broccoli &amp; Halloumi Salad</span><span class="shared-tag">⇄ shared</span></div>
-        </div>
-      </div></div>
-    </div>
-
-    <div class="frame">
-      <p class="frame-name"><b>New week</b> · empty state</p>
-      <div class="phone"><div class="notch"></div><div class="screen">
-        <div class="abar"><span class="back">‹</span><span class="ttl">Week of Aug 31</span><span class="dots">⋯</span></div>
-        <div class="empty-wrap"><div class="empty-ic">◍</div><div class="empty-h">A blank week</div><div class="empty-sub">Add what you feel like eating — Mise works out the cooking and shopping.</div><div class="btn primary">Plan a meal</div><div class="btn ghost">Copy last week</div></div>
-        <div class="last-week"><div class="lw-h">Last week, for reference</div><div class="lw-row"><span>Mon · Chicken Curry</span><span>2</span></div><div class="lw-row"><span>Tue · Beef Ragù</span><span>2</span></div><div class="lw-row"><span>Sun · Roast Chicken</span><span>2</span></div></div>
-      </div></div>
-    </div>
-  </div>
-
-  <footer class="footer">
-    <span><b>Mise</b> — complete board</span>
-    <span>Flutter · Forui · Supabase · PowerSync</span>
-    <span>14 views · library · intake · plan→cook→shop</span>
-  </footer>
+    <footer class="footer">
+        <span><b>Mise</b> — complete board</span>
+        <span>Flutter · Forui · Supabase · PowerSync</span>
+        <span>15 views · library · intake · plan→cook→shop</span>
+    </footer>
 
 </div>
 </body>
