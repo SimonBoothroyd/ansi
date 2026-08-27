@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mise/core/units/units.dart';
 import 'package:mise/features/recipes/data/recipe_repository_impl.dart';
 import 'package:mise/features/recipes/domain/recipe.dart';
-import 'package:sqlite_async/sqlite_async.dart';
+import 'package:powersync/powersync.dart';
 
 import '../../helpers/test_db.dart';
 
@@ -51,7 +52,7 @@ Recipe _sampleRecipe() => const Recipe(
 );
 
 void main() {
-  late SqliteDatabase db;
+  late PowerSyncDatabase db;
   late Directory dir;
   late SqliteRecipeRepository repo;
 
@@ -155,6 +156,45 @@ void main() {
       'SELECT count(*) AS c FROM ingredient_group',
     );
     expect(groupCount['c'], 1);
+  });
+
+  test('watchRecipe re-fires when its section is renamed', () async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    await db.execute(
+      'INSERT INTO book (id, household_id, name, sort_order, created_at, '
+      'updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+      ['b1', 'h', 'Our Cookbook', 0, now, now],
+    );
+    await db.execute(
+      'INSERT INTO book_section (id, household_id, book_id, name, sort_order, '
+      'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      ['s1', 'h', 'b1', 'Weeknight', 0, now, now],
+    );
+    await repo.saveRecipe(
+      _sampleRecipe().copyWith(bookId: 'b1', sectionId: 's1'),
+    );
+
+    // The breadcrumb is a join, so the watched query has to name the filing
+    // tables too — otherwise a rename leaves the recipe page stale.
+    final recipes = StreamIterator(repo.watchRecipe('r1'));
+    addTearDown(recipes.cancel);
+
+    expect(await recipes.moveNext(), isTrue);
+    expect(recipes.current?.sectionName, 'Weeknight');
+
+    await db.execute('UPDATE book_section SET name = ? WHERE id = ?', [
+      'Sunday Batch',
+      's1',
+    ]);
+    expect(await recipes.moveNext(), isTrue);
+    expect(recipes.current?.sectionName, 'Sunday Batch');
+
+    await db.execute('UPDATE book SET name = ? WHERE id = ?', [
+      'The Big Book',
+      'b1',
+    ]);
+    expect(await recipes.moveNext(), isTrue);
+    expect(recipes.current?.bookName, 'The Big Book');
   });
 
   test('deleteRecipe soft-deletes: gone from list and lookup', () async {

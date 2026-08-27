@@ -22,6 +22,14 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
+      # Repo tests open a real PowerSyncDatabase on the runner: that needs the
+      # core extension binary, and a SQLite built to load extensions (the
+      # runner's libsqlite3.so is, macOS's system SQLite is not — see
+      # app/test/helpers/test_db.dart).
+      - name: PowerSync core extension
+        run: |
+          sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+          ../scripts/fetch_powersync_core.sh
       - run: dart format --set-exit-if-changed .
       - run: flutter analyze
       - run: dart run custom_lint

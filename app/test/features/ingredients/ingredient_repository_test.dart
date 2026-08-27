@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mise/features/ingredients/data/ingredient_repository_impl.dart';
 import 'package:mise/features/ingredients/domain/ingredient.dart';
-import 'package:sqlite_async/sqlite_async.dart';
+import 'package:powersync/powersync.dart';
 
 import '../../helpers/test_db.dart';
 
 Future<void> _seed(
-  SqliteDatabase db, {
+  PowerSyncDatabase db, {
   required String id,
   required String name,
   String? category,
@@ -32,7 +32,7 @@ Future<void> _seed(
 }
 
 void main() {
-  late SqliteDatabase db;
+  late PowerSyncDatabase db;
   late Directory dir;
   late SqliteIngredientRepository repo;
 

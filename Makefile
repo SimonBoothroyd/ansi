@@ -62,11 +62,17 @@ analyze: ## Static analysis (fails on any issue)
 format: ## Format Dart + check
 	cd $(APP) && dart format --set-exit-if-changed .
 
-.PHONY: test test-app test-fns
+.PHONY: test test-app test-fns test-sim powersync-core
 test: test-app test-fns ## Run all tests
 
-test-app: ## Flutter unit + widget tests
+test-app: powersync-core ## Flutter unit + widget tests
 	cd $(APP) && flutter test
+
+powersync-core: ## Fetch the PowerSync SQLite core extension for host tests
+	@./scripts/fetch_powersync_core.sh
+
+test-sim: ## Integration smoke on a booted iOS simulator (local gate, not CI)
+	cd $(APP) && flutter test integration_test $(DART_DEFINES)
 
 test-fns: ## Edge-function (Deno) tests
 	cd $(FNS) && deno test

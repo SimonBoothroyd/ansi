@@ -31,6 +31,16 @@ lib/
   `ConsumerWidget`/`HookConsumerWidget` that only read state and dispatch intents.
 - **Repositories are interfaces in `domain/`**, implemented in `data/`. Tests
   override the provider with a fake — never hit Supabase in a unit test.
+- **Repository tests open a real `PowerSyncDatabase`** (`test/helpers/test_db.dart`,
+  built from `core/sync/schema.dart`), because local tables are SQLite *views*
+  and reject SQL that plain tables accept — `INSERT … ON CONFLICT` above all.
+  Setup: `make powersync-core` (fetches the core extension; `make test-app` runs
+  it) and, on macOS, `brew install sqlite` — the system SQLite omits extension
+  loading.
+- **Phone-first layout.** Fixed logical-px spacing is the idiom here; don't
+  derive sizes from screen dimensions ad hoc. One shared max-width wrapper
+  arrives with the web step (roadmap step 10) and is the only place that reads
+  the viewport.
 - **Reads come from PowerSync's local SQLite** as watched queries, surfaced as
   providers. The app does not call Supabase REST directly for synced data.
 - **Run codegen after touching any `@riverpod`, `@freezed`, or JSON type:**
@@ -89,10 +99,12 @@ reads them.
 ## Commands
 
 ```
-make gen        # build_runner
-make analyze    # flutter analyze + custom_lint (must be clean)
-make test-app   # flutter test
-make run        # flutter run with --dart-define from .env.local
+make gen             # build_runner
+make analyze         # flutter analyze + custom_lint (must be clean)
+make test-app        # flutter test (fetches the PowerSync core extension first)
+make test-sim        # integration smoke on a booted iOS sim (local gate)
+make powersync-core  # fetch the PowerSync SQLite core extension for host tests
+make run             # flutter run with --dart-define from .env.local
 ```
 
 ## Running & visually iterating (iOS Simulator)
@@ -115,6 +127,12 @@ The loop (agents drive it with the iOS Simulator tools; humans use `flutter run`
 4. **Observe** (`control{action:"screenshot"}`) → compare to the design →
    **edit** the Forui/theme code → rebuild → screenshot again. Repeat.
 
+**The smoke test.** `make test-sim` runs `integration_test/app_test.dart`
+against whichever simulator is booted (boot one first — step 1 above). It drives
+the real UI over a real PowerSync database: create a section, create a recipe,
+file it, assert the breadcrumb. Run it before calling a feature step done; it is
+deliberately *not* in CI (macOS runners are slow and expensive at hobby scale).
+
 Notes:
 
 - The app starts with **no data**. To exercise the populated screens, drive the
@@ -131,11 +149,7 @@ Notes:
 
 ## Current focus
 
-See [`../docs/exec-plans/roadmap.md`](../docs/exec-plans/roadmap.md). Steps 1–2
-are done: `lib/core/units/units.dart` (the reference example of the intended
-style — read it before writing new `core/` code), the ingredient data model +
-seed (`supabase/migrations/0001–0003`, `_shared/normalize.ts`), and the
-single-user recipes feature (`features/recipes` + the read-only ingredient
-picker in `features/ingredients`), persisting to a **local-only** PowerSync DB
-(no `.connect()` until step 7). Step 3 (recipe books + user-defined sections) is
-next; steps 3+ are empty feature folders awaiting work.
+What is built and what is next lives in one place:
+[`../docs/exec-plans/roadmap.md`](../docs/exec-plans/roadmap.md). Read it before
+starting, and `lib/core/units/units.dart` before writing new `core/` code — it
+is the reference example of the intended style.

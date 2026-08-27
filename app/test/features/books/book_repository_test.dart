@@ -1,14 +1,15 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mise/features/books/data/book_repository_impl.dart';
-import 'package:sqlite_async/sqlite_async.dart';
+import 'package:powersync/powersync.dart';
 
 import '../../helpers/test_db.dart';
 
 /// Inserts a bare recipe row (the books repo only reads id/title/book/section).
 Future<void> _insertRecipe(
-  SqliteDatabase db,
+  PowerSyncDatabase db,
   String id,
   String title, {
   String? bookId,
@@ -23,7 +24,7 @@ Future<void> _insertRecipe(
 }
 
 void main() {
-  late SqliteDatabase db;
+  late PowerSyncDatabase db;
   late Directory dir;
   late SqliteBookRepository repo;
 
@@ -53,6 +54,42 @@ void main() {
     expect(second.id, first.id);
     final books = await db.getAll('SELECT id FROM book');
     expect(books, hasLength(1));
+  });
+
+  test('ensureDefaultBook run twice adopts each recipe once', () async {
+    await _insertRecipe(db, 'r1', 'Curry');
+    final book = await repo.ensureDefaultBook();
+    final section = await repo.createSection(book.id, 'Weeknight');
+    await repo.assignRecipe('r1', bookId: book.id, sectionId: section);
+    await _insertRecipe(db, 'r2', 'Toast');
+
+    await repo.ensureDefaultBook();
+
+    // The second run must not re-file the already-adopted recipe (which would
+    // drop it out of its section) nor duplicate it in the Library.
+    final b = (await repo.watchLibrary().first).single;
+    expect(b.id, book.id);
+    expect(b.sections.single.recipes.map((r) => r.title), ['Curry']);
+    expect(b.unsectioned.map((r) => r.title), ['Toast']);
+  });
+
+  test('watchLibrary re-fires when a section is renamed', () async {
+    final book = await repo.ensureDefaultBook();
+    final section = await repo.createSection(book.id, 'Weeknight');
+
+    final library = StreamIterator(repo.watchLibrary());
+    addTearDown(library.cancel);
+
+    expect(await library.moveNext(), isTrue);
+    expect(library.current.single.sections.single.name, 'Weeknight');
+
+    await repo.renameSection(section, 'Sunday Batch');
+    expect(await library.moveNext(), isTrue);
+    expect(library.current.single.sections.single.name, 'Sunday Batch');
+
+    await _insertRecipe(db, 'r1', 'Toast', bookId: book.id);
+    expect(await library.moveNext(), isTrue);
+    expect(library.current.single.unsectioned.map((r) => r.title), ['Toast']);
   });
 
   test('watchLibrary groups recipes into sections + unsectioned', () async {

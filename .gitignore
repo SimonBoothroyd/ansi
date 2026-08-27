@@ -11,7 +11,11 @@ app/.flutter-plugins-dependencies
 app/build/
 app/coverage/
 app/.packages
-app/pubspec.lock            # app is not a published package; lock left to devs (flip to tracked if you prefer)
+# PowerSync SQLite core extension for host tests — fetched per-machine by
+# scripts/fetch_powersync_core.sh (a binary, and OS/arch specific).
+app/libpowersync.dylib
+app/libpowersync.so
+app/.powersync-core-version
 **/*.g.dart.bak
 **/doc/api/
 

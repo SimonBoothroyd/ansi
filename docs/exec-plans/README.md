@@ -8,6 +8,10 @@ task — pick up exactly where things stood, with the reasoning intact.
 - **Non-trivial change?** Copy [`_template.md`](./_template.md) into `active/`,
   named `NNNN-short-slug.md`. Keep its decision log updated as you go. When done,
   move it to `completed/`.
+- **Finishing a step?** Work the template's **step-done checklist** — roadmap
+  row, QUALITY.md grade, `app/AGENTS.md` focus, `make test-sim` for feature
+  steps, tech-debt rows added *and* retired. The satellite docs drift precisely
+  because "done" gets declared on the code alone.
 - [`roadmap.md`](./roadmap.md) is the standing, ordered build sequence with live
   status — the first thing to read before starting work.
 - [`tech-debt-tracker.md`](./tech-debt-tracker.md) lists known debt to pay down

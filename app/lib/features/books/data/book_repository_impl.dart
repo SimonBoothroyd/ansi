@@ -1,10 +1,10 @@
 /// [BookRepository] over the local PowerSync SQLite (offline in step 3).
 ///
 /// Reads assemble book / section / recipe rows into the Library aggregate and
-/// react to local writes via `watch`. Writes are small, targeted UPDATE/INSERT.
-/// All statements are plain (no `INSERT ... ON CONFLICT`, no subquery DELETE) —
-/// PowerSync's local tables are SQLite VIEWS that reject those (see
-/// [[mise-powersync-views-no-upsert]]). Deletes are soft (tombstone), spec §3.
+/// react to local writes via `watch`. Writes are small, targeted UPDATE/INSERT:
+/// never `INSERT ... ON CONFLICT`, which PowerSync's view-backed local tables
+/// reject — a regression test under `test/core/sync/` pins that. Deletes are
+/// soft (tombstone), spec §3.
 library;
 
 import 'package:sqlite_async/sqlite_async.dart';

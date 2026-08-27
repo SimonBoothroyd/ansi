@@ -43,15 +43,19 @@ class SqliteRecipeRepository implements RecipeRepository {
 
   @override
   Stream<Recipe?> watchRecipe(String id) {
-    // The watched query references all three tables so PowerSync's automatic
-    // source-table detection re-fires the stream on any change to the tree
-    // (the interface's `watch` has no explicit trigger list). The rows are
-    // ignored; each fire triggers a full re-assemble via [_loadRecipe].
+    // The triggers for this stream are the watched query's source tables, so
+    // every table [_loadRecipe] reads must be one — including book/section,
+    // which feed the breadcrumb. Each joined table must also contribute a
+    // *selected* column: SQLite omits a LEFT JOIN whose columns go unused, and
+    // an omitted join is an undetected table (the stale-breadcrumb class). The
+    // rows themselves are ignored; each fire re-assembles the recipe.
     return _db
         .watch(
-          'SELECT r.id FROM recipe r '
+          'SELECT r.id, g.id, li.id, b.name, s.name FROM recipe r '
           'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
           'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
+          'LEFT JOIN book b ON b.id = r.book_id '
+          'LEFT JOIN book_section s ON s.id = r.section_id '
           'WHERE r.id = ? AND r.deleted_at IS NULL LIMIT 1',
           parameters: [id],
         )
@@ -179,7 +183,6 @@ class SqliteRecipeRepository implements RecipeRepository {
       }
 
       // Replace children: clear the old tree, then insert the current one.
-      // Subquery-free DELETEs (a plain WHERE) are what the views accept.
       final oldGroups = await tx.getAll(
         'SELECT id FROM ingredient_group WHERE recipe_id = ?',
         [recipe.id],
