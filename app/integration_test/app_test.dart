@@ -2,8 +2,10 @@
 /// PowerSync database, driven through the UI.
 ///
 /// Repository tests cover the SQL; this covers the wiring the host VM can't —
-/// the on-device extension, the router, and the provider lifecycle across the
-/// async mutation gaps that crashed the Library in step 3. Local gate only
+/// the on-device extension, the router (incl. bottom-nav tab switching), and
+/// the provider lifecycle across the async mutation gaps that crashed the
+/// Library in step 3. Two flows: filing a recipe under a section, and planning
+/// a meal through the two-step picker → confirm add flow. Local gate only
 /// (`make test-sim`), never CI.
 library;
 
@@ -15,9 +17,11 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:mise/app.dart';
+import 'package:mise/core/router/app_router.dart';
 import 'package:mise/core/sync/database.dart';
 import 'package:mise/core/sync/schema.dart';
 import 'package:mise/features/books/data/book_repository_impl.dart';
+import 'package:mise/features/planning/data/planning_repository_impl.dart';
 import 'package:powersync/powersync.dart';
 
 void main() {
@@ -47,6 +51,13 @@ void main() {
     db = PowerSyncDatabase(schema: schema, path: '${dir.path}/smoke.db');
     await db.initialize();
     await SqliteBookRepository(db).ensureDefaultBook();
+    // Seed the two household members so meal eaters/portions default sensibly
+    // (mirrors bootstrap.dart).
+    await SqlitePlanningRepository(db).ensureMembers();
+    // `router` is a top-level singleton, so it keeps the previous test's
+    // location (e.g. a recipe page whose id is absent from this fresh db, which
+    // renders "recipe not found"). Reset each test to the Library root.
+    router.go('/');
   });
 
   tearDown(() async {
@@ -92,5 +103,62 @@ void main() {
 
     expect(find.text('OUR COOKBOOK · WEEKNIGHT'), findsOneWidget);
     expect(find.text('Chicken Curry'), findsOneWidget);
+  });
+
+  testWidgets('plans a meal through the two-step add flow', (tester) async {
+    ignoreForuiSemanticsAssertion();
+    // A recipe to plan (the picker's "Recent" tab lists every recipe).
+    final now = DateTime.now().toUtc().toIso8601String();
+    await db.execute(
+      'INSERT INTO recipe (id, household_id, title, servings_base, created_at, '
+      'updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+      ['r1', 'h', 'Weeknight Chicken Curry', 2, now, now],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [databaseProvider.overrideWithValue(db)],
+        child: const MiseApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Library → Week tab (tap the nav icon; unselected tab labels don't show).
+    await tester.tap(find.byIcon(FLucideIcons.calendarDays));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Week of'), findsOneWidget);
+
+    // Empty week → open the recipe picker (step 1 of the flow).
+    await tester.tap(find.text('Plan a meal'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add a meal'), findsOneWidget); // picker header
+    expect(find.textContaining('Monday, Dinner'), findsOneWidget); // context
+
+    // Pick the recipe → the confirm sheet (step 2).
+    await tester.tap(find.text('Weeknight Chicken Curry').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Add to plan'), findsOneWidget);
+    // Eaters/portions defaulted to the two seeded members.
+    expect(find.text('2 portions'), findsOneWidget);
+
+    // Bump portions, then place the meal on the week.
+    await tester.tap(find.byIcon(FLucideIcons.plus).last);
+    await tester.pumpAndSettle();
+    expect(find.text('3 portions'), findsOneWidget);
+    await tester.tap(find.text('Add to Monday'));
+    await tester.pumpAndSettle();
+
+    // The meal now shows on Monday's card in the grid.
+    expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
+    expect(find.text('DINNER'), findsOneWidget);
+
+    // The write reached the database with the portions override.
+    final row = await db.get(
+      'SELECT day_of_week, meal_slot, portions FROM plan_entry '
+      'WHERE deleted_at IS NULL',
+    );
+    expect(row['day_of_week'], 0);
+    expect(row['meal_slot'], 'Dinner');
+    expect(row['portions'], 3);
   });
 }

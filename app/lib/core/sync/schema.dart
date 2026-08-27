@@ -8,10 +8,14 @@
 /// - **Synced tables** (`book`, `book_section`, `recipe`, `ingredient_group`,
 ///   `recipe_line_item`) mirror migrations 0003/0004. Local writes queue for
 ///   upload; harmless offline.
-/// - **Local-only tables** (`ingredient`, `ingredient_alias`) are the seeded
-///   vocab, bundle-loaded on first run (nothing syncs it). `localOnly` keeps
-///   these fake reference rows OUT of the upload queue. Step 7 flips them to
-///   synced tables fed by the server (migration 0002) and drops the loader.
+/// - **Local-only tables** (`ingredient`, `ingredient_alias`,
+///   `household_member`) are bootstrap-seeded on first run (nothing syncs
+///   them). `localOnly` keeps these fake reference rows OUT of the upload
+///   queue. `ingredient*` come from the bundled vocab (migration 0002);
+///   `household_member` is seeded with two local members because the real
+///   table (migration 0001) has an `auth_user_id → auth.users` FK that cannot
+///   exist before auth. Step 7 flips all three to synced tables fed by the
+///   server and drops the seeders.
 ///
 /// Every table gets an implicit `id` TEXT primary key — do not declare it.
 /// `usda_food` and match indexes never live on-device (ADR-0004/0005).
@@ -74,6 +78,25 @@ const schema = Schema([
     ..._audit,
   ]),
 
+  // Week planning (step 4). The active week and its planned meals.
+  Table('week_plan', [
+    Column.text('household_id'),
+    Column.text('week_start_date'), // ISO date of the Monday this week begins
+    Column.text('label'),
+    ..._audit,
+  ]),
+  Table('plan_entry', [
+    Column.text('household_id'),
+    Column.text('week_plan_id'),
+    Column.integer('day_of_week'), // 0=Monday .. 6=Sunday
+    Column.text('meal_slot'), // free text, not a preset enum
+    Column.text('recipe_id'),
+    Column.text('eaters'), // JSON array of household_member ids
+    Column.integer('portions'), // null → defaults to |eaters|
+    Column.integer('sort_order'),
+    ..._audit,
+  ]),
+
   // Vocab — local-only for step 2 (bundle-loaded; becomes synced in step 7).
   Table.localOnly('ingredient', [
     Column.text('household_id'),
@@ -89,5 +112,14 @@ const schema = Schema([
     Column.text('ingredient_id'),
     Column.text('alias_text'),
     Column.text('match_text'),
+  ]),
+
+  // Household members — local-only for step 4 (bootstrap-seeded; becomes synced
+  // in step 7 once auth exists, migration 0001). `eaters` on a plan_entry
+  // references these ids. No `auth_user_id` here: local members carry none.
+  Table.localOnly('household_member', [
+    Column.text('household_id'),
+    Column.text('display_name'),
+    Column.integer('sort_order'),
   ]),
 ]);

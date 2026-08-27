@@ -148,7 +148,9 @@ Groups the week's `plan_entry` rows **by recipe**, then splits each group into *
 
 ## 8. Remaining open questions (low priority)
 
-- [ ] Per-entry `portions_override` for big/small appetites, or `|eaters|` only?
+- [x] Per-entry `portions_override` for big/small appetites, or `|eaters|` only?
+      → **both:** `plan_entry.portions` defaults to `|eaters|`, overridable (step 4).
 - [ ] Can a recipe belong to multiple books? (v1 assumes one)
-- [ ] Meal slots: fixed set or fully user-definable? (assumed user-definable)
+- [x] Meal slots: fixed set or fully user-definable? → **user-definable** free
+      text, with Breakfast/Lunch/Dinner offered as defaults (step 4).
 - [ ] Freezer-aware batching in v1 or stretch? (assumed stretch)

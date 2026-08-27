@@ -4,6 +4,7 @@ library;
 import 'package:go_router/go_router.dart';
 
 import '../../features/books/presentation/library_view.dart';
+import '../../features/planning/presentation/week_view.dart';
 import '../../features/recipes/presentation/recipe_editor_view.dart';
 import '../../features/recipes/presentation/recipe_view.dart';
 
@@ -16,6 +17,11 @@ final router = GoRouter(
       path: '/',
       name: 'library',
       builder: (context, state) => const LibraryView(),
+    ),
+    GoRoute(
+      path: '/week',
+      name: 'week',
+      builder: (context, state) => const WeekView(),
     ),
     GoRoute(
       path: '/recipes/new',

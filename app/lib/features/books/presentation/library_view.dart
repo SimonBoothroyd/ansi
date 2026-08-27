@@ -10,6 +10,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
+import '../../../shared/dashed_border_box.dart';
+import '../../../shared/mise_bottom_nav.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/book_providers.dart';
@@ -26,6 +28,7 @@ class LibraryView extends ConsumerWidget {
     final repo = ref.read(bookRepositoryProvider);
 
     return FScaffold(
+      footer: const MiseBottomNav(current: MiseTab.library),
       header: FHeader(
         title: Text('Library', style: miseSerif(size: 26)),
         suffixes: [
@@ -342,7 +345,7 @@ class _AddSectionButton extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: DottedBorderBox(
+      child: DashedBorderBox(
         child: Text(
           '＋ new section — name it anything',
           textAlign: TextAlign.center,
@@ -351,52 +354,6 @@ class _AddSectionButton extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The dashed herb outline of the "add section" affordance (design board
-/// `.add-sec`). A small painter since Flutter has no dashed-border primitive.
-class DottedBorderBox extends StatelessWidget {
-  const DottedBorderBox({required this.child, super.key});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DashedRectPainter(),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
-        child: child,
-      ),
-    );
-  }
-}
-
-class _DashedRectPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = MiseColors.herb
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      const Radius.circular(12),
-    );
-    final path = Path()..addRRect(rrect);
-    const dash = 4.0;
-    const gap = 4.0;
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        canvas.drawPath(metric.extractPath(distance, distance + dash), paint);
-        distance += dash + gap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _EmptyState extends StatelessWidget {
