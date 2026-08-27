@@ -333,7 +333,9 @@ as String?,
 /// @nodoc
 mixin _$RecipeSummary {
 
- String get id; String get title; double get servingsBase;
+ String get id; String get title; double get servingsBase;/// Shelf-life carried on the summary so the planner can show batch-aware
+/// chips and the "same batch" hint without loading the full recipe (step 5).
+ int? get keepsForDays; bool get freezable; int? get freezerDays;
 /// Create a copy of RecipeSummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -344,16 +346,16 @@ $RecipeSummaryCopyWith<RecipeSummary> get copyWith => _$RecipeSummaryCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RecipeSummary&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RecipeSummary&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,title,servingsBase);
+int get hashCode => Object.hash(runtimeType,id,title,servingsBase,keepsForDays,freezable,freezerDays);
 
 @override
 String toString() {
-  return 'RecipeSummary(id: $id, title: $title, servingsBase: $servingsBase)';
+  return 'RecipeSummary(id: $id, title: $title, servingsBase: $servingsBase, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays)';
 }
 
 
@@ -364,7 +366,7 @@ abstract mixin class $RecipeSummaryCopyWith<$Res>  {
   factory $RecipeSummaryCopyWith(RecipeSummary value, $Res Function(RecipeSummary) _then) = _$RecipeSummaryCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, double servingsBase
+ String id, String title, double servingsBase, int? keepsForDays, bool freezable, int? freezerDays
 });
 
 
@@ -381,12 +383,15 @@ class _$RecipeSummaryCopyWithImpl<$Res>
 
 /// Create a copy of RecipeSummary
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? servingsBase = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? servingsBase = null,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,servingsBase: null == servingsBase ? _self.servingsBase : servingsBase // ignore: cast_nullable_to_non_nullable
-as double,
+as double,keepsForDays: freezed == keepsForDays ? _self.keepsForDays : keepsForDays // ignore: cast_nullable_to_non_nullable
+as int?,freezable: null == freezable ? _self.freezable : freezable // ignore: cast_nullable_to_non_nullable
+as bool,freezerDays: freezed == freezerDays ? _self.freezerDays : freezerDays // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -471,10 +476,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  double servingsBase)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  double servingsBase,  int? keepsForDays,  bool freezable,  int? freezerDays)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _RecipeSummary() when $default != null:
-return $default(_that.id,_that.title,_that.servingsBase);case _:
+return $default(_that.id,_that.title,_that.servingsBase,_that.keepsForDays,_that.freezable,_that.freezerDays);case _:
   return orElse();
 
 }
@@ -492,10 +497,10 @@ return $default(_that.id,_that.title,_that.servingsBase);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  double servingsBase)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  double servingsBase,  int? keepsForDays,  bool freezable,  int? freezerDays)  $default,) {final _that = this;
 switch (_that) {
 case _RecipeSummary():
-return $default(_that.id,_that.title,_that.servingsBase);case _:
+return $default(_that.id,_that.title,_that.servingsBase,_that.keepsForDays,_that.freezable,_that.freezerDays);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -512,10 +517,10 @@ return $default(_that.id,_that.title,_that.servingsBase);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  double servingsBase)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  double servingsBase,  int? keepsForDays,  bool freezable,  int? freezerDays)?  $default,) {final _that = this;
 switch (_that) {
 case _RecipeSummary() when $default != null:
-return $default(_that.id,_that.title,_that.servingsBase);case _:
+return $default(_that.id,_that.title,_that.servingsBase,_that.keepsForDays,_that.freezable,_that.freezerDays);case _:
   return null;
 
 }
@@ -527,12 +532,17 @@ return $default(_that.id,_that.title,_that.servingsBase);case _:
 
 
 class _RecipeSummary implements RecipeSummary {
-  const _RecipeSummary({required this.id, required this.title, required this.servingsBase});
+  const _RecipeSummary({required this.id, required this.title, required this.servingsBase, this.keepsForDays, this.freezable = false, this.freezerDays});
   
 
 @override final  String id;
 @override final  String title;
 @override final  double servingsBase;
+/// Shelf-life carried on the summary so the planner can show batch-aware
+/// chips and the "same batch" hint without loading the full recipe (step 5).
+@override final  int? keepsForDays;
+@override@JsonKey() final  bool freezable;
+@override final  int? freezerDays;
 
 /// Create a copy of RecipeSummary
 /// with the given fields replaced by the non-null parameter values.
@@ -544,16 +554,16 @@ _$RecipeSummaryCopyWith<_RecipeSummary> get copyWith => __$RecipeSummaryCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RecipeSummary&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RecipeSummary&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,title,servingsBase);
+int get hashCode => Object.hash(runtimeType,id,title,servingsBase,keepsForDays,freezable,freezerDays);
 
 @override
 String toString() {
-  return 'RecipeSummary(id: $id, title: $title, servingsBase: $servingsBase)';
+  return 'RecipeSummary(id: $id, title: $title, servingsBase: $servingsBase, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays)';
 }
 
 
@@ -564,7 +574,7 @@ abstract mixin class _$RecipeSummaryCopyWith<$Res> implements $RecipeSummaryCopy
   factory _$RecipeSummaryCopyWith(_RecipeSummary value, $Res Function(_RecipeSummary) _then) = __$RecipeSummaryCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, double servingsBase
+ String id, String title, double servingsBase, int? keepsForDays, bool freezable, int? freezerDays
 });
 
 
@@ -581,12 +591,15 @@ class __$RecipeSummaryCopyWithImpl<$Res>
 
 /// Create a copy of RecipeSummary
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? servingsBase = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? servingsBase = null,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,}) {
   return _then(_RecipeSummary(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,servingsBase: null == servingsBase ? _self.servingsBase : servingsBase // ignore: cast_nullable_to_non_nullable
-as double,
+as double,keepsForDays: freezed == keepsForDays ? _self.keepsForDays : keepsForDays // ignore: cast_nullable_to_non_nullable
+as int?,freezable: null == freezable ? _self.freezable : freezable // ignore: cast_nullable_to_non_nullable
+as bool,freezerDays: freezed == freezerDays ? _self.freezerDays : freezerDays // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

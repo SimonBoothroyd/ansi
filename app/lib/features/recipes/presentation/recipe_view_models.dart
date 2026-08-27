@@ -61,6 +61,29 @@ class RecipeEditor extends _$RecipeEditor {
   void setServings(double servings) =>
       _set(_current.copyWith(servingsBase: servings <= 0 ? 1 : servings));
 
+  /// Sets the fridge shelf life in days; null (or a non-positive value) leaves
+  /// it unset — the cook plan then never splits this recipe.
+  void setKeepsForDays(int? days) => _set(
+    _current.copyWith(keepsForDays: (days == null || days <= 0) ? null : days),
+  );
+
+  /// Toggles whether the dish freezes. Clearing it also drops any freezer
+  /// window (a non-freezable recipe has no freezer days). Positional bool to
+  /// tear off directly as a `ValueChanged<bool>` for the switch.
+  // ignore: avoid_positional_boolean_parameters
+  void setFreezable(bool freezable) => _set(
+    _current.copyWith(
+      freezable: freezable,
+      freezerDays: freezable ? _current.freezerDays : null,
+    ),
+  );
+
+  /// Sets the freezer shelf life in days; null (or non-positive) means "no
+  /// limit" — a freezable recipe merges however far the meal is.
+  void setFreezerDays(int? days) => _set(
+    _current.copyWith(freezerDays: (days == null || days <= 0) ? null : days),
+  );
+
   /// Files the recipe into [bookId], clearing the section (a new book has none
   /// in common with the old one).
   void setBook(String bookId) =>

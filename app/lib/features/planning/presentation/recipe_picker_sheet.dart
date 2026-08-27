@@ -392,9 +392,13 @@ class _RecipeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final f = filing;
-    final sub = f == null
-        ? null
-        : [f.book, if (f.section != null) f.section!].join(' · ');
+    final keeps = recipe.keepsForDays;
+    final sub = [
+      if (f != null) f.book,
+      if (f?.section != null) f!.section!,
+      if (keeps != null) 'keeps $keeps d',
+      if (recipe.freezable) 'freezable',
+    ].join(' · ');
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => onPick(recipe),
@@ -418,7 +422,7 @@ class _RecipeRow extends StatelessWidget {
                     recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
                     style: miseSerif(size: 16),
                   ),
-                  if (sub != null) ...[
+                  if (sub.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
                       sub,

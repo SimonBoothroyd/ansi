@@ -2,9 +2,9 @@
 /// portions, then place the meal on the week.
 ///
 /// Portions default to the eater count and can be bumped for big appetites
-/// (spec §8); a null override means "track |eaters|". The shelf-life batch hint
-/// from the mockup is deferred to step 5 (it needs recipe shelf-life data +
-/// cook-plan clustering). The sheet does the write itself and pops.
+/// (spec §8); a null override means "track |eaters|". A shelf-life "same batch"
+/// hint (step 5) surfaces when the meal would cook alongside one already on the
+/// week. The sheet does the write itself and pops.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -15,6 +15,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
 import '../../books/presentation/text_prompt.dart';
+import '../../cook_plan/domain/cook_plan.dart';
 import '../../recipes/domain/recipe.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
@@ -66,6 +67,23 @@ class _ConfirmMealSheet extends HookConsumerWidget {
 
     final members = ref.watch(membersProvider);
 
+    // Days this recipe is already planned this week → the "same batch" hint.
+    final plannedDays = ref
+        .watch(currentWeekProvider)
+        .asData
+        ?.value
+        ?.entries
+        .where((e) => e.recipeId == recipe.id)
+        .map((e) => e.dayOfWeek)
+        .toList();
+    final hint = batchHintFor(
+      plannedDays: plannedDays ?? const [],
+      newDay: dayOfWeek,
+      keepsForDays: recipe.keepsForDays,
+      freezable: recipe.freezable,
+      freezerDays: recipe.freezerDays,
+    );
+
     useEffect(() {
       members.whenData((list) {
         if (eaters.value.isEmpty) {
@@ -110,7 +128,11 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           children: [
             Text('Add to plan', style: miseSerif(size: 22)),
             const SizedBox(height: 14),
-            _RecipeCard(title: recipe.title),
+            _RecipeCard(recipe: recipe),
+            if (hint != null) ...[
+              const SizedBox(height: 10),
+              _BatchHintBanner(hint: hint),
+            ],
             const SizedBox(height: 18),
             const _Label('Slot'),
             const SizedBox(height: 6),
@@ -167,12 +189,17 @@ class _Label extends StatelessWidget {
 }
 
 class _RecipeCard extends StatelessWidget {
-  const _RecipeCard({required this.title});
+  const _RecipeCard({required this.recipe});
 
-  final String title;
+  final RecipeSummary recipe;
 
   @override
   Widget build(BuildContext context) {
+    final keeps = recipe.keepsForDays;
+    final shelf = <String>[
+      if (keeps != null) 'keeps $keeps d',
+      if (recipe.freezable) 'freezable',
+    ].join(' · ');
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -197,9 +224,66 @@ class _RecipeCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
+                  style: miseSerif(size: 17),
+                ),
+                if (shelf.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      shelf,
+                      style: miseMono(size: 10, color: MiseColors.muted),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The batch-awareness cue: this meal will cook alongside one already on the
+/// week (or be frozen to reach it), so it won't be a separate cook.
+class _BatchHintBanner extends StatelessWidget {
+  const _BatchHintBanner({required this.hint});
+
+  final BatchHint hint;
+
+  @override
+  Widget build(BuildContext context) {
+    final day = kWeekdayFull[hint.withDay];
+    final text = hint.frozen
+        ? 'Cooks in $day’s batch — a share is frozen to reach this meal.'
+        : 'Cooks in the same batch as $day — one cook covers both.';
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: MiseColors.herbSoft,
+        border: Border.all(color: MiseColors.line),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(
+              hint.frozen ? FLucideIcons.snowflake : FLucideIcons.repeat,
+              size: 14,
+              color: MiseColors.herbDeep,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
             child: Text(
-              title.isEmpty ? 'Untitled recipe' : title,
-              style: miseSerif(size: 17),
+              text,
+              style: miseSans(size: 12, color: MiseColors.herbDeep),
             ),
           ),
         ],

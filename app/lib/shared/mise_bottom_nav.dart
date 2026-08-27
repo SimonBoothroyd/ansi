@@ -1,8 +1,8 @@
 /// The app's bottom nav bar (design board: Library · Week · Cook · Shop).
 ///
-/// Library and Week are live tabs; Cook and Shop are shown for the shape of the
-/// app but are inert until their steps land (roadmap steps 5–6). Switching tabs
-/// uses `context.go` so the tab roots replace rather than stack.
+/// Library, Week and Cook are live tabs; Shop is shown for the shape of the app
+/// but is inert until its step lands (roadmap step 6). Switching tabs uses
+/// `context.go` so the tab roots replace rather than stack.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -33,15 +33,16 @@ class MiseBottomNav extends StatelessWidget {
           case MiseTab.week:
             context.go('/week');
           case MiseTab.cook:
+            context.go('/cook');
           case MiseTab.shop:
-            // Not built yet (steps 5–6): the tabs render but don't navigate.
+            // Not built yet (step 6): the tab renders but doesn't navigate.
             break;
         }
       },
       children: const [
         _NavItem(icon: FLucideIcons.library, label: 'Library'),
         _NavItem(icon: FLucideIcons.calendarDays, label: 'Week'),
-        _NavItem(icon: FLucideIcons.cookingPot, label: 'Cook', enabled: false),
+        _NavItem(icon: FLucideIcons.cookingPot, label: 'Cook'),
         _NavItem(
           icon: FLucideIcons.shoppingBasket,
           label: 'Shop',

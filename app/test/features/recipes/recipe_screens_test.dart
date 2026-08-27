@@ -149,6 +149,15 @@ void main() {
 
     expect(find.text('New recipe'), findsOneWidget);
     expect(find.text('TITLE'), findsOneWidget);
+    expect(find.text('SHELF LIFE'), findsOneWidget);
+    expect(find.text('Keeps in the fridge'), findsOneWidget);
+    // METHOD and the group controls sit below the fold now the shelf-life
+    // section is in the form — scroll the outer list to reach them.
+    await tester.scrollUntilVisible(
+      find.text('METHOD'),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('METHOD'), findsOneWidget);
     expect(find.text('Add group'), findsOneWidget);
     expect(find.text('Add ingredient'), findsOneWidget);

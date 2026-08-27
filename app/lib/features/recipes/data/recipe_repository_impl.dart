@@ -25,7 +25,8 @@ class SqliteRecipeRepository implements RecipeRepository {
   Stream<List<RecipeSummary>> watchRecipes() {
     return _db
         .watch(
-          'SELECT id, title, servings_base FROM recipe '
+          'SELECT id, title, servings_base, keeps_for_days, freezable, '
+          'freezer_days FROM recipe '
           'WHERE deleted_at IS NULL ORDER BY created_at DESC',
         )
         .map(
@@ -35,6 +36,9 @@ class SqliteRecipeRepository implements RecipeRepository {
                   id: r['id'] as String,
                   title: r['title'] as String,
                   servingsBase: (r['servings_base'] as num).toDouble(),
+                  keepsForDays: r['keeps_for_days'] as int?,
+                  freezable: (r['freezable'] as int? ?? 0) == 1,
+                  freezerDays: r['freezer_days'] as int?,
                 ),
               )
               .toList(),

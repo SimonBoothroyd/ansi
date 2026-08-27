@@ -18,4 +18,9 @@ abstract final class MiseColors {
   static const fresh = Color(0xFF4E9E5B);
   static const aging = Color(0xFFE1A63A);
   static const gone = Color(0xFFC64B36);
+
+  // A frozen hold — a light, icy blue in the freezer note's hue, saturated
+  // just enough to read on the neutral bar. Not part of the freshness scale:
+  // freezing pauses aging rather than advancing it.
+  static const frozen = Color(0xFF83B4D2);
 }

@@ -53,6 +53,12 @@ abstract class RecipeSummary with _$RecipeSummary {
     required String id,
     required String title,
     required double servingsBase,
+
+    /// Shelf-life carried on the summary so the planner can show batch-aware
+    /// chips and the "same batch" hint without the full recipe (step 5).
+    int? keepsForDays,
+    @Default(false) bool freezable,
+    int? freezerDays,
   }) = _RecipeSummary;
 }
 

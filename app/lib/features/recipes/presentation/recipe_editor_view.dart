@@ -86,6 +86,9 @@ class _EditorForm extends StatelessWidget {
           onChanged: notifier.setServings,
         ),
         const SizedBox(height: 20),
+        const _Label('SHELF LIFE'),
+        _ShelfLifeSection(recipe: recipe, notifier: notifier),
+        const SizedBox(height: 20),
         const _Label('FILE UNDER'),
         _FilingPicker(recipe: recipe, notifier: notifier),
         const SizedBox(height: 24),
@@ -283,6 +286,100 @@ class _ServesStepper extends StatelessWidget {
         ),
         FButton.icon(
           onPress: () => onChanged(servings + 1),
+          child: const Icon(FLucideIcons.plus),
+        ),
+      ],
+    );
+  }
+}
+
+/// The shelf-life inputs that make a recipe batchable (step 5): how long it
+/// keeps in the fridge (drives cook-plan clustering), whether it freezes, and
+/// the freezer window. Fridge days unset ⇒ the cook plan never splits it.
+class _ShelfLifeSection extends StatelessWidget {
+  const _ShelfLifeSection({required this.recipe, required this.notifier});
+
+  final Recipe recipe;
+  final RecipeEditor notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _StepperRow(
+          label: 'Keeps in the fridge',
+          days: recipe.keepsForDays,
+          unsetText: 'not set',
+          onChanged: notifier.setKeepsForDays,
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(
+            'Drives the batch cook plan — how far apart the same dish can be '
+            'planned before it becomes two things to cook.',
+            style: miseMono(size: 11, color: MiseColors.muted),
+          ),
+        ),
+        const SizedBox(height: 14),
+        FSwitch(
+          label: Text('Freezes', style: miseSans(size: 15)),
+          value: recipe.freezable,
+          onChange: notifier.setFreezable,
+        ),
+        if (recipe.freezable) ...[
+          const SizedBox(height: 12),
+          _StepperRow(
+            label: 'Keeps in the freezer',
+            days: recipe.freezerDays,
+            unsetText: 'no limit',
+            onChanged: notifier.setFreezerDays,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// A label with a nullable "N days" stepper. Stepping below 1 clears the value
+/// (rendered as [unsetText]); stepping up from unset starts at 1.
+class _StepperRow extends StatelessWidget {
+  const _StepperRow({
+    required this.label,
+    required this.days,
+    required this.unsetText,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int? days;
+  final String unsetText;
+  final ValueChanged<int?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = days;
+    return Row(
+      children: [
+        Expanded(child: Text(label, style: miseSans(size: 15))),
+        FButton.icon(
+          onPress: value == null
+              ? null
+              : () => onChanged(value <= 1 ? null : value - 1),
+          child: const Icon(FLucideIcons.minus),
+        ),
+        SizedBox(
+          width: 84,
+          child: Text(
+            value == null ? unsetText : '$value ${value == 1 ? 'day' : 'days'}',
+            textAlign: TextAlign.center,
+            style: value == null
+                ? miseMono(size: 13, color: MiseColors.muted)
+                : miseMono(size: 15, weight: FontWeight.w600),
+          ),
+        ),
+        FButton.icon(
+          onPress: () => onChanged((value ?? 0) + 1),
           child: const Icon(FLucideIcons.plus),
         ),
       ],
