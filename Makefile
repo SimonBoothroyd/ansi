@@ -39,6 +39,10 @@ gen: ## Run code generation (Riverpod/Freezed/json)
 watch: ## Code generation in watch mode
 	cd $(APP) && dart run build_runner watch --delete-conflicting-outputs
 
+.PHONY: app-seed
+app-seed: ## Sync the bundled ingredient vocab asset from the seed source
+	cp supabase/seed/vocab.jsonl $(APP)/assets/seed/vocab.jsonl
+
 # --- run ---
 .PHONY: run
 run: ## Run the app (uses .env.local)

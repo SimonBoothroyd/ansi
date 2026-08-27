@@ -4,6 +4,7 @@ import 'dart:ui';
 /// Pure colour constants — no Flutter widget imports — so they can be mapped
 /// into a Forui theme in `mise_theme.dart` without coupling.
 abstract final class MiseColors {
+  static const surface = Color(0xFFFFFFFF);
   static const paper = Color(0xFFF4F6F1);
   static const ink = Color(0xFF18211C);
   static const muted = Color(0xFF66736A);

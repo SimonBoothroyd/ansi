@@ -10,9 +10,16 @@ ingredient" create flow, and the fleshing-out queue for stubs.
 
 ```
 ingredients/
-  domain/         Ingredient entity + repository interface — PURE DART
-  data/           repo impl over PowerSync's local SQLite
-  presentation/   search, create, and stub-queue views + view models
+  domain/         Ingredient entity + IngredientRepository — PURE DART
+  data/           SqliteIngredientRepository (read-only search), VocabSeeder,
+                  Riverpod providers
+  presentation/   ingredient_picker.dart — the inline vocab search sheet
 ```
 
-Empty until its roadmap step.
+**Status (step 2, partial):** only the read-only slice recipes need is built —
+offline exact/prefix search over the seeded vocab (`ingredient_picker`) plus a
+one-shot `VocabSeeder` that loads the bundled `assets/seed/vocab.jsonl` into the
+local table on first run (nothing syncs yet; superseded by sync in step 7).
+
+Still deferred: the "create new ingredient" flow and the fleshing-out (stub)
+queue.

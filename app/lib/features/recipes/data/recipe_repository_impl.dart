@@ -1,0 +1,235 @@
+/// [RecipeRepository] over the local PowerSync SQLite (offline in step 2).
+///
+/// Reads assemble the recipe/group/line-item rows into the domain aggregate and
+/// react to local writes via `watch`. Writes go through `saveRecipe`, which
+/// replaces a recipe's children wholesale (see the interface doc) inside a
+/// transaction. Deletes are soft (tombstone), per spec §3.
+library;
+
+import 'dart:convert';
+
+import 'package:sqlite3/common.dart' show Row;
+import 'package:sqlite_async/sqlite_async.dart';
+
+import '../../../core/config/dev_household.dart';
+import '../../../core/units/units.dart';
+import '../domain/recipe.dart';
+import '../domain/recipe_repository.dart';
+
+class SqliteRecipeRepository implements RecipeRepository {
+  const SqliteRecipeRepository(this._db);
+
+  final SqliteConnection _db;
+
+  @override
+  Stream<List<RecipeSummary>> watchRecipes() {
+    return _db
+        .watch(
+          'SELECT id, title, servings_base FROM recipe '
+          'WHERE deleted_at IS NULL ORDER BY created_at DESC',
+        )
+        .map(
+          (rows) => rows
+              .map(
+                (r) => RecipeSummary(
+                  id: r['id'] as String,
+                  title: r['title'] as String,
+                  servingsBase: (r['servings_base'] as num).toDouble(),
+                ),
+              )
+              .toList(),
+        );
+  }
+
+  @override
+  Stream<Recipe?> watchRecipe(String id) {
+    // The watched query references all three tables so PowerSync's automatic
+    // source-table detection re-fires the stream on any change to the tree
+    // (the interface's `watch` has no explicit trigger list). The rows are
+    // ignored; each fire triggers a full re-assemble via [_loadRecipe].
+    return _db
+        .watch(
+          'SELECT r.id FROM recipe r '
+          'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
+          'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
+          'WHERE r.id = ? AND r.deleted_at IS NULL LIMIT 1',
+          parameters: [id],
+        )
+        .asyncMap((_) => _loadRecipe(id));
+  }
+
+  Future<Recipe?> _loadRecipe(String id) async {
+    final r = await _db.getOptional(
+      // Join the filing book/section for the recipe page's hero line. LEFT
+      // joins + deleted_at guards so a deleted section (or none) reads as null.
+      'SELECT r.*, b.name AS book_name, s.name AS section_name '
+      'FROM recipe r '
+      'LEFT JOIN book b ON b.id = r.book_id AND b.deleted_at IS NULL '
+      'LEFT JOIN book_section s '
+      'ON s.id = r.section_id AND s.deleted_at IS NULL '
+      'WHERE r.id = ? AND r.deleted_at IS NULL',
+      [id],
+    );
+    if (r == null) return null;
+
+    final groupRows = await _db.getAll(
+      'SELECT * FROM ingredient_group '
+      'WHERE recipe_id = ? AND deleted_at IS NULL '
+      'ORDER BY sort_order, created_at',
+      [id],
+    );
+    final itemRows = await _db.getAll(
+      'SELECT li.*, ing.canonical_name AS ingredient_name '
+      'FROM recipe_line_item li '
+      'JOIN ingredient_group g ON g.id = li.group_id '
+      'LEFT JOIN ingredient ing ON ing.id = li.ingredient_id '
+      'WHERE g.recipe_id = ? AND li.deleted_at IS NULL '
+      'ORDER BY li.sort_order, li.created_at',
+      [id],
+    );
+
+    final itemsByGroup = <String, List<LineItem>>{};
+    for (final row in itemRows) {
+      (itemsByGroup[row['group_id'] as String] ??= []).add(_toLineItem(row));
+    }
+
+    return Recipe(
+      id: r['id'] as String,
+      title: r['title'] as String,
+      servingsBase: (r['servings_base'] as num).toDouble(),
+      steps: (jsonDecode(r['steps'] as String? ?? '[]') as List).cast<String>(),
+      keepsForDays: r['keeps_for_days'] as int?,
+      freezable: (r['freezable'] as int? ?? 0) == 1,
+      freezerDays: r['freezer_days'] as int?,
+      bookId: r['book_id'] as String?,
+      sectionId: r['section_id'] as String?,
+      bookName: r['book_name'] as String?,
+      sectionName: r['section_name'] as String?,
+      groups: [
+        for (final g in groupRows)
+          IngredientGroup(
+            id: g['id'] as String,
+            name: g['name'] as String?,
+            items: itemsByGroup[g['id']] ?? const [],
+          ),
+      ],
+    );
+  }
+
+  LineItem _toLineItem(Row r) => LineItem(
+    id: r['id'] as String,
+    ingredientId: r['ingredient_id'] as String,
+    ingredientName: r['ingredient_name'] as String? ?? '(unknown ingredient)',
+    unit: unitById(r['unit'] as String) ?? pieces,
+    quantity: (r['quantity'] as num?)?.toDouble(),
+    note: r['note'] as String?,
+  );
+
+  @override
+  Future<void> saveRecipe(Recipe recipe) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    final steps = jsonEncode(recipe.steps);
+    final freezable = recipe.freezable ? 1 : 0;
+    await _db.writeTransaction((tx) async {
+      // PowerSync's local tables are SQLite VIEWS with INSTEAD OF triggers,
+      // which do NOT support `INSERT ... ON CONFLICT` (UPSERT). Branch on
+      // existence and issue a plain INSERT or UPDATE instead.
+      final exists = await tx.getOptional('SELECT 1 FROM recipe WHERE id = ?', [
+        recipe.id,
+      ]);
+      if (exists == null) {
+        await tx.execute(
+          'INSERT INTO recipe (id, household_id, title, servings_base, steps, '
+          'keeps_for_days, freezable, freezer_days, book_id, section_id, '
+          'created_at, updated_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            recipe.id,
+            kDevHouseholdId,
+            recipe.title,
+            recipe.servingsBase,
+            steps,
+            recipe.keepsForDays,
+            freezable,
+            recipe.freezerDays,
+            recipe.bookId,
+            recipe.sectionId,
+            now,
+            now,
+          ],
+        );
+      } else {
+        await tx.execute(
+          'UPDATE recipe SET title = ?, servings_base = ?, steps = ?, '
+          'keeps_for_days = ?, freezable = ?, freezer_days = ?, book_id = ?, '
+          'section_id = ?, updated_at = ? WHERE id = ?',
+          [
+            recipe.title,
+            recipe.servingsBase,
+            steps,
+            recipe.keepsForDays,
+            freezable,
+            recipe.freezerDays,
+            recipe.bookId,
+            recipe.sectionId,
+            now,
+            recipe.id,
+          ],
+        );
+      }
+
+      // Replace children: clear the old tree, then insert the current one.
+      // Subquery-free DELETEs (a plain WHERE) are what the views accept.
+      final oldGroups = await tx.getAll(
+        'SELECT id FROM ingredient_group WHERE recipe_id = ?',
+        [recipe.id],
+      );
+      for (final g in oldGroups) {
+        await tx.execute('DELETE FROM recipe_line_item WHERE group_id = ?', [
+          g['id'],
+        ]);
+      }
+      await tx.execute('DELETE FROM ingredient_group WHERE recipe_id = ?', [
+        recipe.id,
+      ]);
+
+      for (var gi = 0; gi < recipe.groups.length; gi++) {
+        final group = recipe.groups[gi];
+        await tx.execute(
+          'INSERT INTO ingredient_group (id, household_id, recipe_id, name, '
+          'sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [group.id, kDevHouseholdId, recipe.id, group.name, gi, now, now],
+        );
+        for (var li = 0; li < group.items.length; li++) {
+          final item = group.items[li];
+          await tx.execute(
+            'INSERT INTO recipe_line_item (id, household_id, group_id, '
+            'ingredient_id, quantity, unit, note, sort_order, created_at, '
+            'updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+              item.id,
+              kDevHouseholdId,
+              group.id,
+              item.ingredientId,
+              item.quantity,
+              item.unit.id,
+              item.note,
+              li,
+              now,
+              now,
+            ],
+          );
+        }
+      }
+    });
+  }
+
+  @override
+  Future<void> deleteRecipe(String id) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _db.execute(
+      'UPDATE recipe SET deleted_at = ?, updated_at = ? WHERE id = ?',
+      [now, now, id],
+    );
+  }
+}

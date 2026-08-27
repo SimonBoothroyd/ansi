@@ -95,13 +95,47 @@ make test-app   # flutter test
 make run        # flutter run with --dart-define from .env.local
 ```
 
+## Running & visually iterating (iOS Simulator)
+
+When a change needs to be *seen* (matching a design, checking a screen), iterate
+on the iOS Simulator in a tight observe→edit→rebuild→screenshot loop. This
+worked well for the step-2 design-fidelity pass. Requires a full **Xcode**
+install (not just command-line tools): `xcode-select -p` must point at
+`/Applications/Xcode.app/...`.
+
+The loop (agents drive it with the iOS Simulator tools; humans use `flutter run`):
+
+1. **Boot** a sim: `xcrun simctl boot "iPhone 17"` (any installed iPhone).
+2. **Attach** the live panel (agent tool `control{action:"attach"}`) so the
+   change is watchable.
+3. **Build + launch.** iOS builds via **Swift Package Manager** (no CocoaPods /
+   Podfile) — first build ~2 min, incremental ~15 s. Either `flutter run -d
+   <sim-udid>` (hot reload with `r`) or `flutter build ios` then the sim
+   launch tool.
+4. **Observe** (`control{action:"screenshot"}`) → compare to the design →
+   **edit** the Forui/theme code → rebuild → screenshot again. Repeat.
+
+Notes:
+
+- The app starts with **no data**. To exercise the populated screens, drive the
+  editor UI (or the sim's `tap`/`text`) to create a recipe first.
+- Design targets for the recipe screens live in `docs/product-specs/`
+  (`design-board.html`); the step-2 mockups were captured under `scratch/`.
+- **Fonts** must be bundled to render (Spectral / IBM Plex Mono in
+  `assets/fonts/`, declared in `pubspec.yaml`); Inter comes from Forui. After
+  adding a font, `flutter clean` + rebuild so the iOS bundle picks it up.
+- **Web fallback** (no Xcode needed): `dart run powersync:setup_web` once (fetches
+  the sqlite3 wasm + workers into `web/`), then `flutter run -d web-server` and
+  open it in a browser. `core/sync/database.dart` already branches on `kIsWeb`
+  (web has no filesystem — PowerSync persists via OPFS/IndexedDB).
+
 ## Current focus
 
-See [`../docs/exec-plans/roadmap.md`](../docs/exec-plans/roadmap.md). Step 1's
-code is done: `lib/core/units/units.dart` is implemented and tested (the
-reference example of the intended style — read it before writing new `core/`
-code), and the ingredient data model landed in `supabase/migrations/0001–0002`.
-What's left in step 1 is *data*: the USDA reference seed and the household-vocab
-seed (the recipe-mining pipeline). Both feed `match_text` through the shared §7
-normalizer (`supabase/functions/_shared/normalize.ts`), which is now implemented.
-Steps 2+ are empty feature folders awaiting work.
+See [`../docs/exec-plans/roadmap.md`](../docs/exec-plans/roadmap.md). Steps 1–2
+are done: `lib/core/units/units.dart` (the reference example of the intended
+style — read it before writing new `core/` code), the ingredient data model +
+seed (`supabase/migrations/0001–0003`, `_shared/normalize.ts`), and the
+single-user recipes feature (`features/recipes` + the read-only ingredient
+picker in `features/ingredients`), persisting to a **local-only** PowerSync DB
+(no `.connect()` until step 7). Step 3 (recipe books + user-defined sections) is
+next; steps 3+ are empty feature folders awaiting work.

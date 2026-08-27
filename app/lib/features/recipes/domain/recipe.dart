@@ -1,0 +1,89 @@
+/// Recipe domain entities — the read aggregate the UI renders.
+///
+/// PURE DART (invariant 2): no `package:flutter`. A [Recipe] holds ordered
+/// [IngredientGroup]s ("for the sauce"), each holding ordered [LineItem]s. The
+/// database stores these as separate rows; the repository assembles them into
+/// this aggregate (order = list order). Scaling lives in `scaling.dart`.
+library;
+
+// Freezed needs each class's private `._` constructor first (to expose custom
+// getters like LineItem.asQuantity), which trips the unnamed-first sort lint.
+// ignore_for_file: sort_unnamed_constructors_first
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+import '../../../core/units/units.dart';
+
+part 'recipe.freezed.dart';
+
+@freezed
+abstract class Recipe with _$Recipe {
+  const factory Recipe({
+    required String id,
+    required String title,
+
+    /// The serving count the written quantities are for. Scaling multiplies
+    /// against this (see `scaling.dart`); it is never zero (DB check enforces).
+    required double servingsBase,
+    @Default(<IngredientGroup>[]) List<IngredientGroup> groups,
+
+    /// Ordered method steps, one line each.
+    @Default(<String>[]) List<String> steps,
+
+    /// Fridge shelf life; drives step-5 cook-plan clustering. No step-2 UI.
+    int? keepsForDays,
+    @Default(false) bool freezable,
+    int? freezerDays,
+
+    /// The book/section this recipe is filed under (step 3). [bookId] is set for
+    /// any recipe surfaced through the Library; [sectionId] is null when
+    /// Unsectioned. [bookName]/[sectionName] are denormalised for the recipe
+    /// page's "Book · Section" hero line (display-only; assembled on read).
+    String? bookId,
+    String? sectionId,
+    String? bookName,
+    String? sectionName,
+  }) = _Recipe;
+}
+
+/// A lightweight row for the recipe list, avoiding the group/item joins the
+/// full [Recipe] aggregate needs.
+@freezed
+abstract class RecipeSummary with _$RecipeSummary {
+  const factory RecipeSummary({
+    required String id,
+    required String title,
+    required double servingsBase,
+  }) = _RecipeSummary;
+}
+
+/// A named group of line-items within a recipe. [name] is null for a recipe
+/// with no explicit grouping (a single unnamed group).
+@freezed
+abstract class IngredientGroup with _$IngredientGroup {
+  const factory IngredientGroup({
+    required String id,
+    String? name,
+    @Default(<LineItem>[]) List<LineItem> items,
+  }) = _IngredientGroup;
+}
+
+/// One ingredient line: an ingredient (referenced by id, name denormalized for
+/// display) at a [quantity] in a [unit], with an optional [note] ("finely
+/// chopped"). [quantity] is null for imprecise units carrying no number.
+@freezed
+abstract class LineItem with _$LineItem {
+  const LineItem._();
+
+  const factory LineItem({
+    required String id,
+    required String ingredientId,
+    required String ingredientName,
+    required Unit unit,
+    double? quantity,
+    String? note,
+  }) = _LineItem;
+
+  /// This line as a [Quantity], or null when it carries no number.
+  Quantity? get asQuantity =>
+      quantity == null ? null : Quantity(quantity!, unit);
+}

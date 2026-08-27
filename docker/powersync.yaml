@@ -23,3 +23,6 @@ sync_rules:
         - select * from household_member  where household_id = bucket.household_id
         - select * from ingredient        where household_id = bucket.household_id
         - select * from ingredient_alias  where household_id = bucket.household_id
+        - select * from recipe            where household_id = bucket.household_id
+        - select * from ingredient_group  where household_id = bucket.household_id
+        - select * from recipe_line_item  where household_id = bucket.household_id

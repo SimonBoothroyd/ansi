@@ -2,18 +2,32 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import 'app.dart';
+import 'core/sync/database.dart';
+import 'features/books/data/book_repository_impl.dart';
+import 'features/ingredients/data/vocab_seeder.dart';
 
 /// Boots the app inside a guarded zone with a single [ProviderScope] root.
 ///
-// TODO(step-7): initialise the PowerSync database + Supabase client here and
-/// pass overrides into [ProviderScope]. See `lib/core/sync/`.
+/// Step 2 opens the local PowerSync database and seeds the bundled ingredient
+/// vocab before the first frame, then injects the open database into the
+/// provider graph. No `.connect()` — sync is step 7.
 void bootstrap() {
   runZonedGuarded(
-    () {
+    () async {
       WidgetsFlutterBinding.ensureInitialized();
-      // TODO(step-7): await sync/database init before runApp.
-      runApp(const ProviderScope(child: MiseApp()));
+      final db = await openMiseDatabase();
+      await VocabSeeder(db).ensureSeeded();
+      // Ensure a default book exists and adopt any pre-step-3 recipes into it,
+      // so the Library is never empty of books (step 3). Idempotent.
+      await SqliteBookRepository(db).ensureDefaultBook();
+      runApp(
+        ProviderScope(
+          overrides: [databaseProvider.overrideWithValue(db)],
+          child: const MiseApp(),
+        ),
+      );
     },
     (error, stack) {
       // TODO(observability): route to real error reporting.

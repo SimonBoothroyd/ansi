@@ -24,12 +24,17 @@ dependencies:
   # Models
   freezed_annotation: ^3.0.0
   json_annotation: ^4.9.0
+  uuid: ^4.5.0            # client-side ids for locally-created rows
 
   # Backend + offline sync (ADR-0002)
   supabase_flutter: ^2.8.0
   powersync: ^1.9.0
+  sqlite_async: ^0.13.0   # the SqliteConnection query surface repos depend on
+  sqlite3: ^2.9.0         # Row/ResultSet types from query results
 
   # Utilities
+  path_provider: ^2.1.0   # on-device location for the local PowerSync SQLite
+  path: ^1.9.0
   collection: ^1.19.0
   meta: ^1.16.0            # @immutable etc. (used in core/result)
   # fl_chart: ^0.69.0   # stretch: macro charts (spec §7 step 9)
@@ -59,8 +64,38 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # assets:
-  #   - assets/
+  assets:
+    # Seeded ingredient vocabulary, bundle-loaded on first run while step 2 runs
+    # offline (nothing syncs yet). Generated from supabase/seed/vocab.jsonl by
+    # `make app-seed`; do not hand-edit. Superseded by sync in step 7.
+    - assets/seed/vocab.jsonl
+
+  # Bundled (offline) fonts for the three design-board type roles. OFL 1.1;
+  # see assets/fonts/OFL.txt. Wired into core/theme/mise_theme.dart.
+  fonts:
+    - family: Spectral        # serif — titles, group headers
+      fonts:
+        - asset: assets/fonts/Spectral-Regular.ttf
+        - asset: assets/fonts/Spectral-Italic.ttf
+          style: italic
+        - asset: assets/fonts/Spectral-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Spectral-MediumItalic.ttf
+          weight: 500
+          style: italic
+        - asset: assets/fonts/Spectral-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Spectral-Bold.ttf
+          weight: 700
+    - family: IBM Plex Mono   # data — quantities, units, mono-caps labels
+      fonts:
+        - asset: assets/fonts/IBMPlexMono-Regular.ttf
+        - asset: assets/fonts/IBMPlexMono-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/IBMPlexMono-SemiBold.ttf
+          weight: 600
+    # Inter (interface text) is NOT bundled here — Forui already ships it as
+    # `packages/forui/Inter`, which mise_theme's sans stack points at.
 
 # NOTE: version constraints use caret ranges with recent floors. Run
 # `flutter pub get` then `flutter pub outdated` on first checkout and let the

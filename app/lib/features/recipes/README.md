@@ -4,14 +4,29 @@
 
 Create a recipe, group ingredients ("for the sauce"), scale it, and render the beautiful recipe page + method + cook mode.
 
-## Layout (fill in as this slice is built)
+## Layout
 
 ```
 recipes/
-  domain/         entities + repository interfaces — PURE DART (no package:flutter)
-  data/           repository impls, DTOs, PowerSync queries
-  presentation/   Views (widgets) + ViewModels (Riverpod notifiers)
+  domain/         Recipe/IngredientGroup/LineItem (Freezed), RecipeRepository,
+                  scaling.dart — PURE DART (no package:flutter)
+  data/           SqliteRecipeRepository over the local PowerSync SQLite,
+                  Riverpod providers
+  presentation/   Forui Views (list · recipe page · editor) + Riverpod
+                  ViewModels (recipe_view_models.dart)
 ```
 
-Empty until its roadmap step. Start by copying `docs/exec-plans/_template.md`
-into `docs/exec-plans/active/`.
+Built in step 2 (see `docs/exec-plans/completed/0002-single-user-recipes.md`).
+Notes:
+- **Local-only persistence.** The app opens PowerSync but never `.connect()`s
+  (step 7). Recipes persist on-device; writes queue harmlessly while offline.
+- **Scaling is a view concern** — `scaling.dart` scales displayed quantities for
+  a target serving; the stored recipe is untouched. Imprecise units never scale.
+- **Save replaces children** (groups/line-items) wholesale rather than diffing.
+- The ingredient picker lives in `features/ingredients` (read-only vocab search).
+
+**Deferred (implemented in later steps, not missing by accident):** shelf-life
+editor inputs → step 5; the macro row → step 9 (needs completed, non-`stub`
+ingredients); cook mode, method ingredient-chips/timers, Notes tab, photos. The
+recipe page already *renders* `keeps`/`freezable` chips when those values are
+set — there's just no input for them yet. See the roadmap + `tech-debt-tracker.md`.
