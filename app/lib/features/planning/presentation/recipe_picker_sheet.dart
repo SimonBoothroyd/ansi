@@ -2,9 +2,9 @@
 ///
 /// A bottom sheet over the Week. Recipes come from the recipes + books features
 /// (this screen composes them): a "Recent" list (newest-first) and a "Books"
-/// list (grouped by book · section), each row carrying its filing as subtitle.
-/// Dishes already on the week are surfaced at the top as quick picks (the
-/// batch-aware framing — the shelf-life reasoning itself lands in step 5). It
+/// list (grouped by book · section), each row carrying its filing as subtitle
+/// plus its shelf-life chips ("keeps N d · freezable"). Dishes already on the
+/// week are surfaced at the top as quick picks (the batch-aware framing). It
 /// resolves to the chosen recipe, or null if dismissed; the caller then opens
 /// the confirm sheet.
 library;

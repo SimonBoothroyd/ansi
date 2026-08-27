@@ -37,4 +37,6 @@ on a stable ingredient vocabulary to match against.
 - ~~Meal slots: fixed set or user-definable?~~ **Resolved (step 4):** free-text
   slots with Breakfast/Lunch/Dinner offered as defaults (`mealSlotRank` orders
   known slots ahead of custom ones).
-- Freezer-aware batching in v1 or stretch? (Assumed stretch.)
+- ~~Freezer-aware batching in v1 or stretch?~~ **Resolved (step 5):** built in
+  v1 — a freezable recipe's distant instance merges into one cook session
+  (cook once, freeze the far share) rather than splitting.

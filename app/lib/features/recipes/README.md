@@ -25,8 +25,10 @@ Notes:
 - **Save replaces children** (groups/line-items) wholesale rather than diffing.
 - The ingredient picker lives in `features/ingredients` (read-only vocab search).
 
-**Deferred (implemented in later steps, not missing by accident):** shelf-life
-editor inputs → step 5; the macro row → step 9 (needs completed, non-`stub`
-ingredients); cook mode, method ingredient-chips/timers, Notes tab, photos. The
-recipe page already *renders* `keeps`/`freezable` chips when those values are
-set — there's just no input for them yet. See the roadmap + `tech-debt-tracker.md`.
+The editor's **shelf-life inputs** (keeps / freezable / freezer days) landed in
+step 5 — they feed the cook plan's clustering; the recipe page renders the
+`keeps`/`freezable` chips from those values.
+
+**Deferred (implemented in later steps, not missing by accident):** the macro
+row → step 9 (needs completed, non-`stub` ingredients); cook mode, method
+ingredient-chips/timers, Notes tab, photos. See the roadmap + `tech-debt-tracker.md`.

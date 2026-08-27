@@ -29,7 +29,8 @@ abstract class Recipe with _$Recipe {
     /// Ordered method steps, one line each.
     @Default(<String>[]) List<String> steps,
 
-    /// Fridge shelf life; drives step-5 cook-plan clustering. No step-2 UI.
+    /// Fridge shelf life; drives the cook-plan clustering (step 5), set from
+    /// the recipe editor's shelf-life inputs.
     int? keepsForDays,
     @Default(false) bool freezable,
     int? freezerDays,

@@ -32,8 +32,10 @@ Tapping a day's dashed "+ Add a meal" runs `_addMealFlow` in `week_view.dart`:
    stepper (`plan_entry.portions`, null = track |eaters|, spec §8). Writes the
    entry.
 
-The mockup's shelf-life chips + "same batch" hint are **step 5** (they need
-recipe shelf-life data + cook-plan clustering).
+The picker/confirm rows show the shelf-life chips ("keeps N d · freezable"),
+and the confirm sheet surfaces a **"same batch" hint** when the new meal would
+cook alongside one already on the week — both landed in step 5 (they reuse the
+cook plan's `batchHintFor`/`clusterSessions`).
 
 ## Model notes
 
@@ -53,12 +55,10 @@ recipe shelf-life data + cook-plan clustering).
 ## Navigation
 
 The Week is a bottom-nav tab (`shared/mise_bottom_nav.dart`), alongside Library.
-Cook and Shop render but are inert until steps 5–6.
+Cook is a live tab (step 5); Shop renders but is inert until step 6.
 
 ## Deferred
 
-- Batch-awareness: the shelf-life "keeps N d" chips and the "same batch" hint
-  from the mockup — **step 5** (needs shelf-life inputs + clustering).
 - Recipe photos (picker/confirm thumbnails are placeholders) — needs Storage.
 - Favorites tab in the picker — no favorite flag on `recipe` yet.
 - Still local-only; nothing syncs until step 7.

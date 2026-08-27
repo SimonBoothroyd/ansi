@@ -17,7 +17,8 @@ mixin _$Recipe {
  String get id; String get title;/// The serving count the written quantities are for. Scaling multiplies
 /// against this (see `scaling.dart`); it is never zero (DB check enforces).
  double get servingsBase; List<IngredientGroup> get groups;/// Ordered method steps, one line each.
- List<String> get steps;/// Fridge shelf life; drives step-5 cook-plan clustering. No step-2 UI.
+ List<String> get steps;/// Fridge shelf life; drives the cook-plan clustering (step 5), set from
+/// the recipe editor's shelf-life inputs.
  int? get keepsForDays; bool get freezable; int? get freezerDays;/// The book/section this recipe is filed under (step 3). [bookId] is set for
 /// any recipe surfaced through the Library; [sectionId] is null when
 /// Unsectioned. [bookName]/[sectionName] are denormalised for the recipe
@@ -249,7 +250,8 @@ class _Recipe implements Recipe {
   return EqualUnmodifiableListView(_steps);
 }
 
-/// Fridge shelf life; drives step-5 cook-plan clustering. No step-2 UI.
+/// Fridge shelf life; drives the cook-plan clustering (step 5), set from
+/// the recipe editor's shelf-life inputs.
 @override final  int? keepsForDays;
 @override@JsonKey() final  bool freezable;
 @override final  int? freezerDays;
@@ -334,7 +336,7 @@ as String?,
 mixin _$RecipeSummary {
 
  String get id; String get title; double get servingsBase;/// Shelf-life carried on the summary so the planner can show batch-aware
-/// chips and the "same batch" hint without loading the full recipe (step 5).
+/// chips and the "same batch" hint without the full recipe (step 5).
  int? get keepsForDays; bool get freezable; int? get freezerDays;
 /// Create a copy of RecipeSummary
 /// with the given fields replaced by the non-null parameter values.
@@ -539,7 +541,7 @@ class _RecipeSummary implements RecipeSummary {
 @override final  String title;
 @override final  double servingsBase;
 /// Shelf-life carried on the summary so the planner can show batch-aware
-/// chips and the "same batch" hint without loading the full recipe (step 5).
+/// chips and the "same batch" hint without the full recipe (step 5).
 @override final  int? keepsForDays;
 @override@JsonKey() final  bool freezable;
 @override final  int? freezerDays;
