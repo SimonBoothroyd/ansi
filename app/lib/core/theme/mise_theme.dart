@@ -65,6 +65,12 @@ TextStyle miseSerif({
   fontWeight: weight,
 );
 
+/// The app-bar page title — one consistent serif across every screen's header
+/// (design board `.ttl`), so the top bars read as one family. Use it for the
+/// `FHeader`/`FHeader.nested` title on every screen. The recipe page is the
+/// deliberate exception: a large in-body hero title instead of a bar title.
+TextStyle miseHeaderTitle() => miseSerif(size: 20);
+
 /// A sans style for interface text and ingredient/step body copy.
 TextStyle miseSans({
   required double size,

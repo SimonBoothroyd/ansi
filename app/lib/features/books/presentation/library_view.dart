@@ -29,8 +29,8 @@ class LibraryView extends ConsumerWidget {
 
     return FScaffold(
       footer: const MiseBottomNav(current: MiseTab.library),
-      header: FHeader(
-        title: Text('Library', style: miseSerif(size: 26)),
+      header: FHeader.nested(
+        title: Text('Library', style: miseHeaderTitle()),
         suffixes: [
           FPopoverMenu(
             menu: [

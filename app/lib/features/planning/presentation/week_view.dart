@@ -65,8 +65,8 @@ class WeekView extends HookConsumerWidget {
 
     return FScaffold(
       footer: const MiseBottomNav(current: MiseTab.week),
-      header: FHeader(
-        title: Text(formatWeekOf(weekStart), style: miseSerif(size: 20)),
+      header: FHeader.nested(
+        title: Text(formatWeekOf(weekStart), style: miseHeaderTitle()),
         suffixes: [
           if (lastWeek != null)
             FPopoverMenu(

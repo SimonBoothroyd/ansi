@@ -33,8 +33,8 @@ class CookView extends ConsumerWidget {
 
     return FScaffold(
       footer: const MiseBottomNav(current: MiseTab.cook),
-      header: FHeader(
-        title: Text('Batch cook plan', style: miseSerif(size: 20)),
+      header: FHeader.nested(
+        title: Text('Batch cook plan', style: miseHeaderTitle()),
       ),
       child: plan.when(
         loading: () => const Center(child: FCircularProgress()),

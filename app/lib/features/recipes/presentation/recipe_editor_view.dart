@@ -36,7 +36,7 @@ class RecipeEditorView extends ConsumerWidget {
       header: FHeader.nested(
         title: Text(
           recipeId == null ? 'New recipe' : 'Edit recipe',
-          style: miseSerif(size: 18),
+          style: miseHeaderTitle(),
         ),
         prefixes: [FHeaderAction.back(onPress: () => context.pop())],
         suffixes: [
