@@ -98,7 +98,7 @@ const _recipe = Recipe(
   groups: [
     IngredientGroup(
       id: 'g1',
-      name: 'curry',
+      name: 'for the curry',
       items: [
         LineItem(
           id: 'i1',

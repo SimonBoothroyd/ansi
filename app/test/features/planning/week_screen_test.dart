@@ -147,7 +147,7 @@ void main() {
     expect(find.text('Thursday'), findsOneWidget);
     expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
     // Every day still offers a dashed add-a-meal button.
-    expect(find.text('＋ Add a meal'), findsWidgets);
+    expect(find.text('Add a meal'), findsWidgets);
     // The Shared/Per-person lens is present on a populated week.
     expect(find.text('Per-person'), findsOneWidget);
   });

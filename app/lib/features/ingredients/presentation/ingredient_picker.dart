@@ -33,10 +33,16 @@ class _IngredientPickerSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final query = useState('');
     final results = useState<List<Ingredient>>(const []);
+    // Monotonic ticket so a slow older search can never overwrite a newer
+    // one's results (or touch state after the sheet is dismissed).
+    final searchSeq = useRef(0);
 
     Future<void> runSearch(String q) async {
       query.value = q;
-      results.value = await ref.read(ingredientRepositoryProvider).search(q);
+      final ticket = ++searchSeq.value;
+      final found = await ref.read(ingredientRepositoryProvider).search(q);
+      if (!context.mounted || ticket != searchSeq.value) return;
+      results.value = found;
     }
 
     useEffect(() {

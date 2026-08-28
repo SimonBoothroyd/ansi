@@ -10,16 +10,19 @@ import '../../../core/theme/mise_tokens.dart';
 import '../domain/planning.dart';
 
 /// A rounded, tappable label that fills herb-green when [selected] (design
-/// board `.pchip` / `.wkchip`).
+/// board `.pchip` / `.wkchip`). An [icon] renders instead of the label (the
+/// bundled fonts lack glyphs like ＋, so affordance pills use icons).
 class Pill extends StatelessWidget {
   const Pill({
-    required this.label,
     required this.selected,
     required this.onTap,
+    this.label = '',
+    this.icon,
     super.key,
   });
 
   final String label;
+  final IconData? icon;
   final bool selected;
   final VoidCallback onTap;
 
@@ -37,13 +40,25 @@ class Pill extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(999),
         ),
-        child: Text(
-          label,
-          style: miseMono(
-            size: 12,
-            color: selected ? MiseColors.surface : MiseColors.muted,
-          ),
-        ),
+        child: icon != null
+            // Sized to the text pills' line height so both pill kinds match.
+            ? SizedBox(
+                height: 16,
+                child: Center(
+                  child: Icon(
+                    icon,
+                    size: 14,
+                    color: selected ? MiseColors.surface : MiseColors.muted,
+                  ),
+                ),
+              )
+            : Text(
+                label,
+                style: miseMono(
+                  size: 12,
+                  color: selected ? MiseColors.surface : MiseColors.muted,
+                ),
+              ),
       ),
     );
   }

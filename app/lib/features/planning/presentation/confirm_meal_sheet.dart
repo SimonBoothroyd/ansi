@@ -309,7 +309,7 @@ class _SlotPicker extends StatelessWidget {
           Pill(label: s, selected: s == value, onTap: () => onChanged(s)),
         if (!known) Pill(label: value, selected: true, onTap: () {}),
         Pill(
-          label: '＋',
+          icon: FLucideIcons.plus,
           selected: false,
           onTap: () async {
             final custom = await promptForText(

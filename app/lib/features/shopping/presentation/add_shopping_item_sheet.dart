@@ -21,6 +21,7 @@ import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/data/ingredient_providers.dart';
+import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../data/shopping_providers.dart';
 
@@ -205,10 +206,16 @@ class _TopUpBody extends HookConsumerWidget {
     final selected = useState<Ingredient?>(null);
     final quantity = useState<double?>(null);
     final unit = useState<Unit?>(null);
+    // Monotonic ticket so a slow older search can never overwrite a newer
+    // one's results (or touch state after the sheet is dismissed).
+    final searchSeq = useRef(0);
 
     Future<void> runSearch(String q) async {
       query.value = q;
-      results.value = await ref.read(ingredientRepositoryProvider).search(q);
+      final ticket = ++searchSeq.value;
+      final found = await ref.read(ingredientRepositoryProvider).search(q);
+      if (!context.mounted || ticket != searchSeq.value) return;
+      results.value = found;
     }
 
     useEffect(() {
@@ -365,7 +372,9 @@ class _TopUpQuantity extends StatelessWidget {
                   },
                 ),
                 children: [
-                  for (final u in kAllUnits)
+                  // Only units this ingredient can honestly convert between
+                  // (tech-debt row shopping/units).
+                  for (final u in allowedUnitsFor(ingredient))
                     FSelectItem(title: Text(u.label), value: u),
                 ],
               ),

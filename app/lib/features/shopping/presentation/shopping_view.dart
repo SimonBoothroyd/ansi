@@ -38,13 +38,16 @@ class ShoppingView extends ConsumerWidget {
       ),
       child: list.when(
         loading: () => const Center(child: FCircularProgress()),
-        error: (e, _) => Center(
-          child: Text(
-            'Could not build the shopping list.\n$e',
-            textAlign: TextAlign.center,
-            style: miseMono(size: 13, color: MiseColors.muted),
-          ),
-        ),
+        error: (e, _) {
+          debugPrint('shopping list failed: $e');
+          return Center(
+            child: Text(
+              'Could not build the shopping list.',
+              textAlign: TextAlign.center,
+              style: miseMono(size: 13, color: MiseColors.muted),
+            ),
+          );
+        },
         data: (data) => data.isEmpty
             ? const _EmptyShoppingList()
             : ListView(
@@ -267,9 +270,13 @@ class _ProvenanceLine extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
+          if (isManual) ...[
+            const Icon(FLucideIcons.plus, size: 10, color: MiseColors.muted),
+            const SizedBox(width: 4),
+          ],
           Expanded(
             child: Text(
-              isManual ? '＋ ${c.label}' : c.label,
+              c.label,
               style: miseMono(
                 size: 10.5,
                 color: isManual ? MiseColors.muted : MiseColors.herbDeep,
@@ -336,14 +343,21 @@ class _AddItemButton extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: () => showAddShoppingItemSheet(context),
         child: DashedBorderBox(
-          child: Text(
-            '＋ add item or top up an ingredient',
-            textAlign: TextAlign.center,
-            style: miseMono(
-              size: 11,
-              color: MiseColors.herb,
-              letterSpacing: 0.5,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(FLucideIcons.plus, size: 12, color: MiseColors.herb),
+              const SizedBox(width: 5),
+              Text(
+                'add item or top up an ingredient',
+                textAlign: TextAlign.center,
+                style: miseMono(
+                  size: 11,
+                  color: MiseColors.herb,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -415,6 +429,12 @@ Future<void> _confirmRemove(
   WidgetRef ref,
   ShoppingItem item,
 ) async {
+  // Read the keep-alive repo and the entry id BEFORE the dialog await: while
+  // it sits open the watched stream can drop this row (say, the other device
+  // removed it), unmounting the row widget — a `ref.read` after the await
+  // would then throw on a disposed ref.
+  final repo = ref.read(shoppingRepositoryProvider);
+  final entryId = item.entryId;
   final remove = await showFDialog<bool>(
     context: context,
     builder: (context, style, animation) => FDialog(
@@ -438,9 +458,7 @@ Future<void> _confirmRemove(
       ],
     ),
   );
-  if ((remove ?? false) && item.entryId != null) {
-    await ref
-        .read(shoppingRepositoryProvider)
-        .removeEntry(entryId: item.entryId!);
+  if ((remove ?? false) && entryId != null) {
+    await repo.removeEntry(entryId: entryId);
   }
 }

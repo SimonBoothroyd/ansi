@@ -16,6 +16,8 @@ import '../../../core/units/units.dart';
 import '../../books/data/book_providers.dart';
 import '../../books/presentation/book_view_models.dart';
 import '../../books/presentation/text_prompt.dart';
+import '../../ingredients/domain/allowed_units.dart';
+import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_picker.dart';
 import '../domain/recipe.dart';
 import 'format.dart';
@@ -42,18 +44,29 @@ class RecipeEditorView extends ConsumerWidget {
         suffixes: [
           FButton(
             size: FButtonSizeVariant.sm,
-            onPress: () async {
-              final id = await notifier.save();
-              if (context.mounted) context.go('/recipes/$id');
-            },
+            // Disabled until the draft has loaded — saving mid-load would hit
+            // `state.requireValue` with nothing there.
+            onPress: !async.hasValue
+                ? null
+                : () async {
+                    final id = await notifier.save();
+                    if (context.mounted) context.go('/recipes/$id');
+                  },
             child: const Text('Save'),
           ),
         ],
       ),
       child: async.when(
         loading: () => const Center(child: FCircularProgress()),
-        error: (e, _) =>
-            Center(child: Text('Error: $e', style: miseMono(size: 13))),
+        error: (e, _) {
+          debugPrint('recipe editor load failed: $e');
+          return Center(
+            child: Text(
+              'Could not open the editor.',
+              style: miseMono(size: 13, color: MiseColors.muted),
+            ),
+          );
+        },
         data: (recipe) => _EditorForm(recipe: recipe, notifier: notifier),
       ),
     );
@@ -193,7 +206,7 @@ class _GroupEditor extends StatelessWidget {
   }
 }
 
-class _LineItemEditor extends StatelessWidget {
+class _LineItemEditor extends ConsumerWidget {
   const _LineItemEditor({
     required this.item,
     required this.notifier,
@@ -203,8 +216,27 @@ class _LineItemEditor extends StatelessWidget {
   final LineItem item;
   final RecipeEditor notifier;
 
+  /// The dropdown's unit choices: filtered by the resolved vocab entry
+  /// (tech-debt row `shopping/units`), falling back to the full catalog while
+  /// unresolved. A stored unit outside the filter stays selectable so an
+  /// existing line never renders an orphaned value.
+  List<Unit> _unitChoices(Ingredient? ingredient) {
+    if (ingredient == null) return kAllUnits;
+    final allowed = allowedUnitsFor(ingredient);
+    return allowed.contains(item.unit) ? allowed : [...allowed, item.unit];
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ingredient = ref
+        .watch(
+          lineItemIngredientProvider(
+            ingredientId: item.ingredientId,
+            name: item.ingredientName,
+          ),
+        )
+        .asData
+        ?.value;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
@@ -244,7 +276,7 @@ class _LineItemEditor extends StatelessWidget {
                     },
                   ),
                   children: [
-                    for (final u in kAllUnits)
+                    for (final u in _unitChoices(ingredient))
                       FSelectItem(title: Text(u.label), value: u),
                   ],
                 ),
