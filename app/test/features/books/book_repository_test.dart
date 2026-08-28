@@ -30,7 +30,7 @@ void main() {
 
   setUp(() async {
     (db, dir) = await openTestDb();
-    repo = SqliteBookRepository(db);
+    repo = SqliteBookRepository(db, householdId: 'h');
   });
 
   tearDown(() => closeTestDb(db, dir));

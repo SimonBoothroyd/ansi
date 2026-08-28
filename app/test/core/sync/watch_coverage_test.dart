@@ -1,0 +1,174 @@
+/// Structural test: every table a repository's load path reads must be a
+/// trigger of its watch query ([[mise-powersync-watch-left-join]]).
+///
+/// PowerSync derives a watch's trigger tables from `EXPLAIN` on the watched
+/// SQL — and SQLite drops a LEFT JOIN whose columns are never selected, so a
+/// joined-but-unselected table silently falls out of the trigger set. The
+/// repos guard this by selecting one column from every joined table; this test
+/// enforces the invariant mechanically instead of by prose rule (core belief:
+/// enforce invariants, not style).
+///
+/// It is a deliberately simple *string-level* check over the repo sources:
+/// - every `FROM`/`JOIN <table>` in any SELECT in the file must also appear in
+///   that file's watch SQL (unless listed as exempt — a query that feeds a
+///   one-shot Future API, not the watch stream), and
+/// - every table joined in the watch SQL must contribute a selected column
+///   (checked via its alias appearing in the SELECT list).
+///
+/// Known limits, accepted for simplicity: SQL built with `$interpolation` is
+/// skipped (it can't name a literal table), and files with several watch
+/// queries are checked against the union of their watch tables. If this test
+/// ever turns brittle, replace it with a pinned watched-tables list per repo.
+library;
+
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+/// The repositories under the rule. Paths are relative to `app/` (the cwd of
+/// `flutter test`). `exempt` names tables read only by one-shot Future APIs
+/// that are not part of the watch stream's load path.
+///
+/// `recipes/data/recipe_repository_impl.dart` is not yet listed: its
+/// `watchRecipe` misses the `ingredient` table its load joins — add it here
+/// once that watch is fixed.
+const _repos = <String, Set<String>>{
+  'lib/features/shopping/data/shopping_repository_impl.dart': {},
+  'lib/features/books/data/book_repository_impl.dart': {},
+  'lib/features/cook_plan/data/cook_plan_repository_impl.dart': {},
+  // `members()` is a one-shot Future (eater picker), not part of watchWeek.
+  'lib/features/planning/data/planning_repository_impl.dart': {
+    'household_member',
+  },
+};
+
+/// A single- or double-quoted Dart string literal.
+final _literal = RegExp('"(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\'');
+
+/// A `//` comment (incl. `///` docs) to end-of-line. Blanked before literal
+/// extraction so an apostrophe in prose ("PowerSync's") can't open a fake
+/// string; replaced with spaces to keep every offset stable. (No string in
+/// these files contains `//`, so the blunt line-level strip is safe.)
+final _lineComment = RegExp(r'//[^\n]*');
+
+String _blankComments(String source) =>
+    source.replaceAllMapped(_lineComment, (m) => ' ' * (m.end - m.start));
+
+/// `FROM x` / `JOIN x`, optionally `x alias`. Interpolated names (`\$table`)
+/// don't match the identifier class and are skipped by design.
+final _tableRef = RegExp(
+  r'\b(?:FROM|JOIN)\s+([a-z_][a-z0-9_]*)(?:\s+([a-z_][a-z0-9_]*))?',
+  caseSensitive: false,
+);
+
+const _sqlKeywords = {
+  'on', 'where', 'left', 'right', 'inner', 'outer', 'cross', 'join', //
+  'order', 'group', 'limit', 'set', 'values', 'as', 'and', 'or',
+};
+
+/// Merges adjacent string literals (Dart concatenates them) into the full
+/// strings the source builds, keeping each string's start offset.
+List<({int offset, String text})> _mergedStrings(String source) {
+  final out = <({int offset, String text})>[];
+  int? runStart;
+  var runText = StringBuffer();
+  var lastEnd = -1;
+  for (final m in _literal.allMatches(source)) {
+    final body = source.substring(m.start + 1, m.end - 1);
+    final adjacent =
+        runStart != null && source.substring(lastEnd, m.start).trim().isEmpty;
+    if (adjacent) {
+      runText.write(body);
+    } else {
+      if (runStart != null) {
+        out.add((offset: runStart, text: runText.toString()));
+      }
+      runStart = m.start;
+      runText = StringBuffer(body);
+    }
+    lastEnd = m.end;
+  }
+  if (runStart != null) out.add((offset: runStart, text: runText.toString()));
+  return out;
+}
+
+/// (table → alias-or-table) for every literal table reference in [sql].
+Map<String, String> _tables(String sql) {
+  final tables = <String, String>{};
+  for (final m in _tableRef.allMatches(sql)) {
+    final table = m.group(1)!.toLowerCase();
+    final alias = m.group(2)?.toLowerCase();
+    tables[table] = (alias == null || _sqlKeywords.contains(alias))
+        ? table
+        : alias;
+  }
+  return tables;
+}
+
+void main() {
+  for (final entry in _repos.entries) {
+    final path = entry.key;
+    final exempt = entry.value;
+
+    test('$path — watch SQL covers every load-path table', () {
+      final source = _blankComments(File(path).readAsStringSync());
+      final strings = _mergedStrings(source);
+
+      // The watch queries: the first merged string after each `.watch(`.
+      final watchSqls = <String>[];
+      for (final m in '.watch('.allMatches(source)) {
+        final s = strings
+            .where((s) => s.offset > m.end)
+            .reduce((a, b) => a.offset < b.offset ? a : b);
+        watchSqls.add(s.text);
+      }
+      expect(watchSqls, isNotEmpty, reason: 'no .watch( query found in $path');
+
+      // Union of tables (and their aliases) across the file's watch queries.
+      final watchTables = <String, String>{};
+      for (final sql in watchSqls) {
+        watchTables.addAll(_tables(sql));
+
+        // Every watched table must contribute a SELECTed column, or SQLite
+        // drops its join and PowerSync never sees the table. Aliased columns
+        // (`alias.col`) are checked; a bare-`SELECT *`-style single-table
+        // query trivially selects from its only table.
+        final selectClause = sql.substring(
+          0,
+          sql.toUpperCase().indexOf(' FROM '),
+        );
+        final tables = _tables(sql);
+        if (tables.length > 1) {
+          for (final t in tables.entries) {
+            expect(
+              selectClause.contains('${t.value}.'),
+              isTrue,
+              reason:
+                  'watch SQL joins `${t.key}` (alias `${t.value}`) without '
+                  'selecting a column from it — SQLite will drop the join and '
+                  'the watch will miss `${t.key}` changes:\n$sql',
+            );
+          }
+        }
+      }
+
+      // Every table any SELECT in the file reads must be watched.
+      final loadTables = <String>{};
+      for (final s in strings) {
+        if (!s.text.trimLeft().toUpperCase().startsWith('SELECT')) continue;
+        loadTables.addAll(_tables(s.text).keys);
+      }
+      final missing = loadTables
+          .difference(watchTables.keys.toSet())
+          .difference(exempt);
+      expect(
+        missing,
+        isEmpty,
+        reason:
+            'tables read by $path but absent from its watch SQL '
+            '(stale-data bug: changes to them will not re-fire the stream): '
+            '$missing',
+      );
+    });
+  }
+}
