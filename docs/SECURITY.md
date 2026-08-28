@@ -17,9 +17,17 @@ Hobby scale, but the basics are non-negotiable.
 - **Sign-in** (step 7): Google OAuth via Supabase Auth (ADR-0002) is the real
   path; a dev email/password sign-in also ships for local development. The
   router gates the whole app behind a session (`/sign-in`).
-- **Onboarding** (`ensure_onboarded`, migration 0007): a `SECURITY DEFINER` RPC
-  the app calls right after sign-in. It joins the user to a household with room
-  (v1 = two people) or creates one and clones the starter vocab. Household /
+- **Onboarding** (`ensure_onboarded`, migration 0007, hardened in 0008): a
+  `SECURITY DEFINER` RPC the app calls right after sign-in. It joins the user
+  to a household with room (v1 = two people) or creates one, cloning the
+  starter vocab from the **template household** (`household.is_template`, the
+  seeded "Home") — never from another user's household, and excluding
+  `source='manual'` ingredients and `'import_correction'` aliases (private
+  typed-in data never leaves its household); no template → empty vocab, not an
+  error. Template households are never joinable and stay member-less, so RLS
+  and the sync rules (both membership-resolved) never expose them. Concurrent
+  onboards serialise on an advisory lock (no seat-race double-joins), and
+  clients can't flip `is_template` (column-level UPDATE grant). Household /
   member inserts have **no client policy** — they happen only here, privileged.
 - **The `household_id` JWT claim**: an access-token hook (`add_household_claim`,
   migration 0007, registered in `config.toml`) injects the caller's
