@@ -49,7 +49,10 @@ void main() {
     dir = Directory.systemTemp.createTempSync('mise_smoke');
     db = PowerSyncDatabase(schema: schema, path: '${dir.path}/smoke.db');
     await db.initialize();
-    await SqliteBookRepository(db).ensureDefaultBook();
+    await SqliteBookRepository(
+      db,
+      householdId: kDevHouseholdId,
+    ).ensureDefaultBook();
     // Seed two household members directly (they're server-owned now; sync would
     // supply them on the device).
     final now = DateTime.now().toUtc().toIso8601String();
