@@ -7,8 +7,10 @@
 # `add_household_claim` access-token hook injects (migration 0007).
 #
 # Env comes from docker/compose.yaml (which reads .env.local):
-#   PS_PG_URL          — Postgres the service replicates from + stores buckets in
-#   PS_SUPABASE_JWT_SECRET — the Supabase JWT secret (HS256) used to verify tokens
+#   PS_PG_HOST/PORT/DATABASE/USER/PASSWORD — the Postgres the service
+#     replicates from + stores buckets in (discrete fields, see below)
+#   PS_JWKS_URI — Supabase's JWKS endpoint; client tokens are asymmetric
+#     (ES256) and verified against those public keys (see client_auth)
 
 replication:
   connections:
@@ -49,8 +51,13 @@ client_auth:
 # Sync rules are supplied inline (`content`); a `path:` to a separate file works
 # too. One bucket per household: `household_id` is parametered from the JWT claim
 # the token hook injects, and every synced table is filtered to that household.
-# Mirrors the RLS boundaries in migrations 0001–0006. usda_food is NEVER listed —
-# server-only (ADR-0005).
+# Mirrors the RLS boundaries in migrations 0001–0008. usda_food is NEVER listed —
+# server-only (ADR-0005). household_member uses an explicit column list: what a
+# rule SELECTs is exactly what ships to the device as row JSON (the client
+# schema is a view over it, not a filter), so auth_user_id — server-only, the
+# client never needs it — must be excluded here, not just omitted client-side.
+# Template households (0008: is_template, member-less) never appear in any
+# bucket: the claim below is only ever a household the user is a member of.
 sync_rules:
   content: |
     bucket_definitions:
@@ -58,7 +65,7 @@ sync_rules:
         parameters: select request.jwt() ->> 'household_id' as household_id
         data:
           - select * from household         where id = bucket.household_id
-          - select * from household_member  where household_id = bucket.household_id
+          - select id, household_id, display_name, sort_order, created_at, updated_at, deleted_at from household_member where household_id = bucket.household_id
           - select * from ingredient        where household_id = bucket.household_id
           - select * from ingredient_alias  where household_id = bucket.household_id
           - select * from book              where household_id = bucket.household_id
