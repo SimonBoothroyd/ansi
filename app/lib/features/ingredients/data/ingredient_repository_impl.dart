@@ -1,7 +1,11 @@
 /// [IngredientRepository] over the local (bundle-seeded) SQLite vocab.
 ///
-/// Exact/prefix search only — the phone never fuzzy-matches (ADR-0004). Matches
-/// the ingredient's own name and any alias.
+/// Deterministic word-boundary search only — the phone never fuzzy-matches
+/// (ADR-0004). The query is normalized with the same character rules the
+/// server's normalizer builds `match_text` with ([normalizeSearchQuery], so
+/// "all-purpose" hits "all purpose flour"), then matched as a word prefix
+/// against the ingredient's own `match_text` and any alias — so "tofu" finds
+/// "extra firm tofu" without any fuzziness.
 library;
 
 import 'package:sqlite3/common.dart' show Row;
@@ -10,6 +14,7 @@ import 'package:sqlite_async/sqlite_async.dart';
 import '../../../core/units/units.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
+import '../domain/search_query.dart';
 
 class SqliteIngredientRepository implements IngredientRepository {
   const SqliteIngredientRepository(this._db);
@@ -18,26 +23,33 @@ class SqliteIngredientRepository implements IngredientRepository {
 
   @override
   Future<List<Ingredient>> search(String query, {int limit = 30}) async {
-    final q = query.trim().toLowerCase();
+    // Normalization also strips `%`/`_`, so nothing user-typed can act as a
+    // LIKE wildcard below.
+    final q = normalizeSearchQuery(query);
 
     if (q.isEmpty) {
       final rows = await _db.getAll(
-        'SELECT * FROM ingredient ORDER BY canonical_name LIMIT ?',
+        'SELECT * FROM ingredient WHERE deleted_at IS NULL '
+        'ORDER BY canonical_name LIMIT ?',
         [limit],
       );
       return rows.map(_toIngredient).toList();
     }
 
-    // Prefix match on the ingredient or any alias; rank exact hits first, then
+    // Word-boundary match (`q%` = leading word, `% q%` = any later word) on
+    // the ingredient or any alias, live rows only; rank exact hits first, then
     // shorter names (a closer match), then alphabetically.
     final rows = await _db.getAll(
       'SELECT DISTINCT i.* FROM ingredient i '
-      'LEFT JOIN ingredient_alias a ON a.ingredient_id = i.id '
-      'WHERE i.match_text LIKE ? OR a.match_text LIKE ? '
+      'LEFT JOIN ingredient_alias a '
+      'ON a.ingredient_id = i.id AND a.deleted_at IS NULL '
+      'WHERE i.deleted_at IS NULL AND '
+      '(i.match_text LIKE ? OR i.match_text LIKE ? '
+      'OR a.match_text LIKE ? OR a.match_text LIKE ?) '
       'ORDER BY (i.match_text = ?) DESC, length(i.canonical_name), '
       'i.canonical_name '
       'LIMIT ?',
-      ['$q%', '$q%', q, limit],
+      ['$q%', '% $q%', '$q%', '% $q%', q, limit],
     );
     return rows.map(_toIngredient).toList();
   }
