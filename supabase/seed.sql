@@ -5,8 +5,11 @@
 
 begin;
 
-insert into household (id, name) values ('00000000-0000-0000-0000-0000000000aa', 'Home')
-on conflict (id) do nothing;
+-- is_template (0008): "Home" is the member-less vocab template new households
+-- clone from at onboarding; template households are never joinable.
+insert into household (id, name, is_template)
+values ('00000000-0000-0000-0000-0000000000aa', 'Home', true)
+on conflict (id) do update set is_template = true;
 
 insert into ingredient
   (household_id, canonical_name, category, default_unit, status, source, match_text)

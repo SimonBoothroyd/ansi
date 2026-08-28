@@ -1,13 +1,19 @@
 -- pgTAP: household isolation + usda_food server-only (docs/SECURITY.md).
 --
--- The durable version of the manual check run when 0001–0002 landed: RLS keeps
--- one household out of another's rows, and usda_food never reaches a client
--- role. Run by `supabase test db`.
+-- RLS keeps one household out of another's rows, and usda_food never reaches a
+-- client role. Data-driven: `iso_case` lists EVERY household-scoped table with
+-- a cross-household insert to reject, and the assertions fan out over it — a
+-- new table costs one setup row + one case row (do add it: the sync rules in
+-- docker/powersync.yaml mirror exactly these boundaries). Run by
+-- `supabase test db`.
 
 begin;
-select plan(6);
+-- 13 tables x (select isolation + cross-household insert rejection)
+-- + current_household_id + 2 usda_food checks.
+select plan(29);
 
--- Two households, one member each, one ingredient each, one usda row.
+-- Two households, one member each, and one row per household in every
+-- household-scoped table (A-side ids aaaaaaaa-…, B-side bbbbbbbb-…).
 insert into auth.users (instance_id, id, aud, role, email) values
  ('00000000-0000-0000-0000-000000000000','11111111-1111-1111-1111-111111111111','authenticated','authenticated','a@x.com'),
  ('00000000-0000-0000-0000-000000000000','22222222-2222-2222-2222-222222222222','authenticated','authenticated','b@x.com');
@@ -17,11 +23,112 @@ insert into household (id, name) values
 insert into household_member (household_id, display_name, auth_user_id) values
  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','A1','11111111-1111-1111-1111-111111111111'),
  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','B1','22222222-2222-2222-2222-222222222222');
-insert into ingredient (household_id, canonical_name, default_unit, match_text) values
- ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Flour','g','flour'),
- ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Sugar','g','sugar');
+insert into ingredient (id, household_id, canonical_name, default_unit, match_text) values
+ ('aaaaaaaa-0000-0000-0000-000000000001','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Flour','g','flour'),
+ ('bbbbbbbb-0000-0000-0000-000000000001','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Sugar','g','sugar');
+insert into ingredient_alias (household_id, ingredient_id, alias_text, match_text, source) values
+ ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000001','plain flour','plain flour','manual'),
+ ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000001','caster sugar','caster sugar','manual');
+insert into book (id, household_id, name) values
+ ('aaaaaaaa-0000-0000-0000-000000000002','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Book A'),
+ ('bbbbbbbb-0000-0000-0000-000000000002','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Book B');
+insert into book_section (id, household_id, book_id, name) values
+ ('aaaaaaaa-0000-0000-0000-000000000003','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000002','Weeknight'),
+ ('bbbbbbbb-0000-0000-0000-000000000003','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000002','Weeknight');
+insert into recipe (id, household_id, title) values
+ ('aaaaaaaa-0000-0000-0000-000000000004','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Bread A'),
+ ('bbbbbbbb-0000-0000-0000-000000000004','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Bread B');
+insert into ingredient_group (id, household_id, recipe_id) values
+ ('aaaaaaaa-0000-0000-0000-000000000005','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000004'),
+ ('bbbbbbbb-0000-0000-0000-000000000005','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000004');
+insert into recipe_line_item (id, household_id, group_id, ingredient_id, unit) values
+ ('aaaaaaaa-0000-0000-0000-000000000006','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000005','aaaaaaaa-0000-0000-0000-000000000001','g'),
+ ('bbbbbbbb-0000-0000-0000-000000000006','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000005','bbbbbbbb-0000-0000-0000-000000000001','g');
+insert into week_plan (id, household_id, week_start_date) values
+ ('aaaaaaaa-0000-0000-0000-000000000007','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','2026-01-05'),
+ ('bbbbbbbb-0000-0000-0000-000000000007','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','2026-01-05');
+insert into plan_entry (id, household_id, week_plan_id, day_of_week, meal_slot, recipe_id) values
+ ('aaaaaaaa-0000-0000-0000-000000000008','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000007',0,'Dinner','aaaaaaaa-0000-0000-0000-000000000004'),
+ ('bbbbbbbb-0000-0000-0000-000000000008','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000007',0,'Dinner','bbbbbbbb-0000-0000-0000-000000000004');
+insert into shopping_list_entry (id, household_id, ingredient_id) values
+ ('aaaaaaaa-0000-0000-0000-000000000009','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000001'),
+ ('bbbbbbbb-0000-0000-0000-000000000009','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000001');
+insert into shopping_list_contribution (id, household_id, entry_id, quantity, unit) values
+ ('aaaaaaaa-0000-0000-0000-000000000010','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000009',1,'g'),
+ ('bbbbbbbb-0000-0000-0000-000000000010','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000009',1,'g');
 insert into usda_food (fdc_id, description, match_text) values
  (1,'Flour, all purpose','flour all purpose');
+
+-- The cases: every household-scoped table, with the cross-household insert A
+-- will attempt (targeting House B, using B's own FK rows so ONLY the household
+-- boundary can reject it). household / household_member have no client insert
+-- path at all — no grant, no policy — so they fail on the grant, not RLS.
+create table iso_case (ord int primary key, tbl text, cross_insert text, errmsg text);
+insert into iso_case values
+ (1,  'household',
+      $$ insert into household (name) values ('Intruder House') $$,
+      'permission denied for table household'),
+ (2,  'household_member',
+      $$ insert into household_member (household_id, display_name, auth_user_id)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Intruder','11111111-1111-1111-1111-111111111111') $$,
+      'permission denied for table household_member'),
+ (3,  'ingredient',
+      $$ insert into ingredient (household_id, canonical_name, default_unit, match_text)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Contraband','g','contraband') $$,
+      'new row violates row-level security policy for table "ingredient"'),
+ (4,  'ingredient_alias',
+      $$ insert into ingredient_alias (household_id, ingredient_id, alias_text, match_text, source)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000001','x','x','manual') $$,
+      'new row violates row-level security policy for table "ingredient_alias"'),
+ (5,  'book',
+      $$ insert into book (household_id, name)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Contraband Book') $$,
+      'new row violates row-level security policy for table "book"'),
+ (6,  'book_section',
+      $$ insert into book_section (household_id, book_id, name)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000002','x') $$,
+      'new row violates row-level security policy for table "book_section"'),
+ (7,  'recipe',
+      $$ insert into recipe (household_id, title)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Contraband Bread') $$,
+      'new row violates row-level security policy for table "recipe"'),
+ (8,  'ingredient_group',
+      $$ insert into ingredient_group (household_id, recipe_id)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000004') $$,
+      'new row violates row-level security policy for table "ingredient_group"'),
+ (9,  'recipe_line_item',
+      $$ insert into recipe_line_item (household_id, group_id, ingredient_id, unit)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000005','bbbbbbbb-0000-0000-0000-000000000001','g') $$,
+      'new row violates row-level security policy for table "recipe_line_item"'),
+ (10, 'week_plan',
+      $$ insert into week_plan (household_id, week_start_date)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','2026-01-12') $$,
+      'new row violates row-level security policy for table "week_plan"'),
+ (11, 'plan_entry',
+      $$ insert into plan_entry (household_id, week_plan_id, day_of_week, meal_slot, recipe_id)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000007',1,'Lunch','bbbbbbbb-0000-0000-0000-000000000004') $$,
+      'new row violates row-level security policy for table "plan_entry"'),
+ (12, 'shopping_list_entry',
+      $$ insert into shopping_list_entry (household_id, free_text)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','paper towels') $$,
+      'new row violates row-level security policy for table "shopping_list_entry"'),
+ (13, 'shopping_list_contribution',
+      $$ insert into shopping_list_contribution (household_id, entry_id, quantity, unit)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000009',1,'g') $$,
+      'new row violates row-level security policy for table "shopping_list_contribution"');
+grant select on iso_case to authenticated;
+
+-- Row-count helper. Invoker rights, so when called as `authenticated` the
+-- count is what RLS lets that role see. Rolled back with everything else.
+create function iso_visible_rows(tbl text) returns int
+language plpgsql as $fn$
+declare n int;
+begin
+  execute format('select count(*) from %I', tbl) into n;
+  return n;
+end
+$fn$;
+grant execute on function iso_visible_rows(text) to authenticated;
 
 -- Act as authenticated user A.
 set local role authenticated;
@@ -32,21 +139,21 @@ select is(
   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid,
   'current_household_id() resolves A from membership'
 );
+
+-- Select isolation: exactly one visible row per table — A's own. (Seeded
+-- template rows don't count either: the template household has no members.)
 select is(
-  (select count(*) from ingredient)::int, 1,
-  'A sees exactly one ingredient (RLS filters B out)'
-);
-select is(
-  (select canonical_name from ingredient), 'Flour',
-  'the row A sees is its own (Flour, not Sugar)'
-);
-select throws_ok(
-  $$ insert into ingredient (household_id, canonical_name, default_unit, match_text)
-     values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Contraband','g','contraband') $$,
-  '42501',
-  'new row violates row-level security policy for table "ingredient"',
-  'A cannot insert into House B'
-);
+  iso_visible_rows(tbl), 1,
+  tbl || ': A sees exactly one row — its own (RLS filters everything else)'
+) from iso_case order by ord;
+
+-- Write isolation: A cannot insert into House B (nor create households or
+-- memberships at all — those are onboarding-only, SECURITY DEFINER paths).
+select throws_ok(cross_insert, '42501', errmsg,
+  tbl || ': cross-household insert is rejected'
+) from iso_case order by ord;
+
+-- usda_food is server-side only (ADR-0005): denied to clients…
 select throws_ok(
   $$ select count(*) from usda_food $$,
   '42501',
@@ -54,7 +161,7 @@ select throws_ok(
   'usda_food is denied to the authenticated (client) role'
 );
 
--- usda_food is reachable server-side.
+-- …but reachable server-side.
 reset role;
 set local role service_role;
 select is(
