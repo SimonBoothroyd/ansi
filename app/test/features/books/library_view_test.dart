@@ -95,4 +95,26 @@ void main() {
 
     expect(find.text('No books yet'), findsOneWidget);
   });
+
+  testWidgets('the + menu offers Sign out', (tester) async {
+    await tester.pumpWidget(_host(_repo(_library)));
+    await tester.pump();
+
+    await tester.tap(find.byIcon(FLucideIcons.plus).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('New recipe'), findsOneWidget);
+    expect(find.text('Sign out'), findsOneWidget);
+  });
+
+  testWidgets('the add-section affordance uses an icon, not a raw ＋ glyph', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_host(_repo(_library)));
+    await tester.pump();
+
+    // U+FF0B is missing from the bundled fonts and renders as tofu.
+    expect(find.textContaining('＋'), findsNothing);
+    expect(find.textContaining('new section'), findsOneWidget);
+  });
 }

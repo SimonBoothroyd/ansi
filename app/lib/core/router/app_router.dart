@@ -2,11 +2,14 @@
 ///
 /// A two-stage auth gate wraps everything (step 7):
 /// - No Supabase session → `/sign-in`.
-/// - Signed in but the [SessionController] hasn't finished onboarding +
-///   connecting PowerSync (so `currentHouseholdId` isn't resolved yet) →
-///   `/connecting`. This is what keeps a repo-reading screen from building
+/// - Signed in but the [SessionController] isn't [SessionReady] yet (still
+///   onboarding/connecting, or failed — the connecting screen shows the error)
+///   → `/connecting`. This is what keeps a repo-reading screen from building
 ///   before the household exists.
 /// - Fully ready → the app.
+///
+/// A deep link that hits a gate is preserved in a `?from=` query parameter and
+/// restored once the session is ready.
 ///
 /// The redirect re-runs on Supabase auth changes AND on [SessionController]
 /// state changes (the `refresh` notifier).
@@ -48,11 +51,19 @@ GoRouter router(Ref ref) {
     refreshListenable: refresh,
     redirect: (context, state) {
       final signedIn = Supabase.instance.client.auth.currentSession != null;
-      final ready = ref.read(sessionControllerProvider) != null;
+      final ready = ref.read(sessionControllerProvider) is SessionReady;
       final loc = state.matchedLocation;
-      if (!signedIn) return loc == '/sign-in' ? null : '/sign-in';
-      if (!ready) return loc == '/connecting' ? null : '/connecting';
-      if (loc == '/sign-in' || loc == '/connecting') return '/';
+      final atGate = loc == '/sign-in' || loc == '/connecting';
+      // The location to return to after the gates: carried through them via
+      // `?from=`, captured when a non-gate location first gets redirected.
+      final from = state.uri.queryParameters['from'];
+      final dest = atGate ? from : (loc == '/' ? null : state.uri.toString());
+      String gate(String path) => dest == null
+          ? path
+          : Uri(path: path, queryParameters: {'from': dest}).toString();
+      if (!signedIn) return loc == '/sign-in' ? null : gate('/sign-in');
+      if (!ready) return loc == '/connecting' ? null : gate('/connecting');
+      if (atGate) return from ?? '/';
       return null;
     },
     routes: [

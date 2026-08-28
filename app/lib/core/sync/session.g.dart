@@ -50,11 +50,110 @@ final class SupabaseClientProvider
 
 String _$supabaseClientHash() => r'3db2a4c212c7f24cea9810e376225aa1a6cab012';
 
+/// Calls the idempotent `ensure_onboarded` RPC (migration 0007) and returns
+/// the household id. A provider so [SessionController] tests can fake the
+/// network boundary.
+
+@ProviderFor(ensureOnboarded)
+const ensureOnboardedProvider = EnsureOnboardedProvider._();
+
+/// Calls the idempotent `ensure_onboarded` RPC (migration 0007) and returns
+/// the household id. A provider so [SessionController] tests can fake the
+/// network boundary.
+
+final class EnsureOnboardedProvider
+    extends
+        $FunctionalProvider<
+          Future<String> Function(),
+          Future<String> Function(),
+          Future<String> Function()
+        >
+    with $Provider<Future<String> Function()> {
+  /// Calls the idempotent `ensure_onboarded` RPC (migration 0007) and returns
+  /// the household id. A provider so [SessionController] tests can fake the
+  /// network boundary.
+  const EnsureOnboardedProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'ensureOnboardedProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$ensureOnboardedHash();
+
+  @$internal
+  @override
+  $ProviderElement<Future<String> Function()> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  Future<String> Function() create(Ref ref) {
+    return ensureOnboarded(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Future<String> Function() value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Future<String> Function()>(value),
+    );
+  }
+}
+
+String _$ensureOnboardedHash() => r'80e8a8971134fd0ce35e1caa057e12c23aee438e';
+
+@ProviderFor(householdCache)
+const householdCacheProvider = HouseholdCacheProvider._();
+
+final class HouseholdCacheProvider
+    extends $FunctionalProvider<HouseholdCache, HouseholdCache, HouseholdCache>
+    with $Provider<HouseholdCache> {
+  const HouseholdCacheProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'householdCacheProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$householdCacheHash();
+
+  @$internal
+  @override
+  $ProviderElement<HouseholdCache> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  HouseholdCache create(Ref ref) {
+    return householdCache(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(HouseholdCache value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<HouseholdCache>(value),
+    );
+  }
+}
+
+String _$householdCacheHash() => r'2e24f43025c30067c2c90a8104d8e5ce353e755b';
+
 @ProviderFor(SessionController)
 const sessionControllerProvider = SessionControllerProvider._();
 
 final class SessionControllerProvider
-    extends $NotifierProvider<SessionController, AppSession?> {
+    extends $NotifierProvider<SessionController, SessionState> {
   const SessionControllerProvider._()
     : super(
         from: null,
@@ -74,28 +173,28 @@ final class SessionControllerProvider
   SessionController create() => SessionController();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(AppSession? value) {
+  Override overrideWithValue(SessionState value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<AppSession?>(value),
+      providerOverride: $SyncValueProvider<SessionState>(value),
     );
   }
 }
 
-String _$sessionControllerHash() => r'6f7cb1643aa211f4bc7c257da00e25eb6f1af99d';
+String _$sessionControllerHash() => r'0479948d6c5c9819b116b2022de666b099d209f3';
 
-abstract class _$SessionController extends $Notifier<AppSession?> {
-  AppSession? build();
+abstract class _$SessionController extends $Notifier<SessionState> {
+  SessionState build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
-    final ref = this.ref as $Ref<AppSession?, AppSession?>;
+    final ref = this.ref as $Ref<SessionState, SessionState>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AppSession?, AppSession?>,
-              AppSession?,
+              AnyNotifier<SessionState, SessionState>,
+              SessionState,
               Object?,
               Object?
             >;
@@ -104,19 +203,19 @@ abstract class _$SessionController extends $Notifier<AppSession?> {
 }
 
 /// The household every repository write is scoped to. Read only behind the auth
-/// gate — throws before a session exists.
+/// gate — throws before a session is ready.
 
 @ProviderFor(currentHouseholdId)
 const currentHouseholdIdProvider = CurrentHouseholdIdProvider._();
 
 /// The household every repository write is scoped to. Read only behind the auth
-/// gate — throws before a session exists.
+/// gate — throws before a session is ready.
 
 final class CurrentHouseholdIdProvider
     extends $FunctionalProvider<String, String, String>
     with $Provider<String> {
   /// The household every repository write is scoped to. Read only behind the auth
-  /// gate — throws before a session exists.
+  /// gate — throws before a session is ready.
   const CurrentHouseholdIdProvider._()
     : super(
         from: null,
@@ -151,4 +250,4 @@ final class CurrentHouseholdIdProvider
 }
 
 String _$currentHouseholdIdHash() =>
-    r'923bfdf41313b3a2b8132e3ff4f01245c8120f46';
+    r'7087d03830015ee18da598f5f169a8d41ebb0f56';

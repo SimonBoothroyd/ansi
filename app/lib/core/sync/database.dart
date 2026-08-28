@@ -22,8 +22,9 @@ import 'schema.dart';
 
 part 'database.g.dart';
 
-/// Opens (and initialises) the local PowerSync database. No `.connect()` — data
-/// stays on-device until the step-7 connector lands.
+/// Opens (and initialises) the local PowerSync database. No `.connect()` here —
+/// the session controller connects (with the step-7 connector) once the
+/// signed-in household is resolved, and disconnects on sign-out.
 Future<PowerSyncDatabase> openMiseDatabase() async {
   // On web there is no filesystem: PowerSync takes a bare name and persists via
   // OPFS/IndexedDB. On native we place the file under the app support dir.

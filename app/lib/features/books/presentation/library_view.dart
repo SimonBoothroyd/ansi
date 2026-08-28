@@ -8,6 +8,7 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/sync/session.dart';
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
 import '../../../shared/dashed_border_box.dart';
@@ -58,6 +59,21 @@ class LibraryView extends ConsumerWidget {
                   ),
                 ],
               ),
+              FItemGroup(
+                children: [
+                  FItem(
+                    prefix: const Icon(FLucideIcons.logOut),
+                    title: const Text('Sign out'),
+                    onPress: () async {
+                      if (await _confirmSignOut(context)) {
+                        await ref
+                            .read(sessionControllerProvider.notifier)
+                            .signOut();
+                      }
+                    },
+                  ),
+                ],
+              ),
             ],
             builder: (context, controller, _) => FHeaderAction(
               icon: const Icon(FLucideIcons.plus),
@@ -84,6 +100,38 @@ class LibraryView extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Asks before signing out: sign-out disconnects sync and clears this device's
+/// local copy of the household data (it stays on the server).
+Future<bool> _confirmSignOut(BuildContext context) async {
+  final confirmed = await showFDialog<bool>(
+    context: context,
+    builder: (context, style, animation) => FDialog(
+      animation: animation,
+      title: Text('Sign out?', style: miseSerif(size: 20)),
+      body: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(
+          'This removes the synced data from this device. It stays in your '
+          'household and comes back when you sign in again.',
+          style: miseSans(size: 13, color: MiseColors.muted),
+        ),
+      ),
+      actions: [
+        FButton(
+          onPress: () => Navigator.of(context).pop(true),
+          child: const Text('Sign out'),
+        ),
+        FButton(
+          variant: FButtonVariant.outline,
+          onPress: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+      ],
+    ),
+  );
+  return confirmed ?? false;
 }
 
 class _BookCard extends ConsumerWidget {
@@ -346,10 +394,22 @@ class _AddSectionButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: DashedBorderBox(
-        child: Text(
-          '＋ new section — name it anything',
-          textAlign: TextAlign.center,
-          style: miseMono(size: 11, color: MiseColors.herb, letterSpacing: 0.5),
+        // A real icon, not a "＋" glyph — the bundled fonts lack U+FF0B, so
+        // the string form renders as tofu.
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(FLucideIcons.plus, size: 12, color: MiseColors.herb),
+            const SizedBox(width: 5),
+            Text(
+              'new section — name it anything',
+              style: miseMono(
+                size: 11,
+                color: MiseColors.herb,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -87,7 +87,7 @@ class SignInView extends HookConsumerWidget {
                 Text('PASSWORD', style: miseLabel()),
                 const SizedBox(height: 8),
                 FTextField(
-                  hint: '••••••••',
+                  hint: 'password',
                   obscureText: true,
                   control: FTextFieldControl.managed(
                     onChange: (v) => password.value = v.text,
