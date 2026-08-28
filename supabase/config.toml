@@ -8,8 +8,9 @@ major_version = 15
 [db.seed]
 enabled = true
 # Order matters: seed.sql (household + vocab) → seed_usda.sql (the server-only
-# usda_food reference) → seed_prefill.sql (copies macros onto matched vocab rows).
-sql_paths = ["./seed.sql", "./seed_usda.sql", "./seed_prefill.sql"]
+# usda_food reference) → seed_prefill.sql (copies macros onto matched vocab
+# rows) → seed_measures.sql (hand-curated starter measures on the vocab).
+sql_paths = ["./seed.sql", "./seed_usda.sql", "./seed_prefill.sql", "./seed_measures.sql"]
 
 [auth]
 enable_signup = true

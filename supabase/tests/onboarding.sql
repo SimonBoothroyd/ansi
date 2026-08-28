@@ -12,7 +12,7 @@
 -- holds the starter vocab and its aliases). Run by `supabase test db`.
 
 begin;
-select plan(16);
+select plan(18);
 
 -- Isolate from any pre-existing memberships (a live dev session may have
 -- onboarded users). All rolled back at the end.
@@ -27,6 +27,18 @@ insert into ingredient_alias (household_id, ingredient_id, alias_text, match_tex
 select '00000000-0000-0000-0000-0000000000aa', id, 'private correction', 'private correction', 'import_correction'
 from ingredient
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'olive oil';
+
+-- Measures (0009): one on a curated template row (guarantees a non-zero clone
+-- even if the seeded starter measures change) and one on the manual ingredient
+-- (which must stay behind with its ingredient).
+insert into ingredient_measure (household_id, ingredient_id, label, grams)
+select '00000000-0000-0000-0000-0000000000aa', id, 'glug (test)', 12
+from ingredient
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'olive oil';
+insert into ingredient_measure (household_id, ingredient_id, label, grams)
+select '00000000-0000-0000-0000-0000000000aa', id, 'secret scoop', 30
+from ingredient
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'secret sauce';
 
 -- Five authenticated users; no user_metadata, so display_name falls back to
 -- the email local-part (the dev email/password path). e5… is a filler used to
@@ -133,6 +145,16 @@ select is(
        and i.source is distinct from 'manual'),
   'and every alias except import corrections (and manual-ingredient aliases)'
 );
+select is(
+  (select count(*)::int from ingredient_measure im
+     join household_member m on m.household_id = im.household_id
+     where m.auth_user_id = 'c3333333-3333-3333-3333-333333333333' and im.deleted_at is null),
+  (select count(*)::int from ingredient_measure im
+     join ingredient i on i.id = im.ingredient_id
+     where im.household_id = '00000000-0000-0000-0000-0000000000aa'
+       and im.deleted_at is null and i.source is distinct from 'manual'),
+  'and every measure of a cloned ingredient (0009)'
+);
 -- …but never the private rows themselves.
 select is(
   (select count(*)::int from ingredient i
@@ -141,6 +163,14 @@ select is(
        and i.match_text = 'secret sauce'),
   0,
   'a manual (typed-in) ingredient never leaves the source household'
+);
+select is(
+  (select count(*)::int from ingredient_measure im
+     join household_member m on m.household_id = im.household_id
+     where m.auth_user_id = 'c3333333-3333-3333-3333-333333333333'
+       and im.label = 'secret scoop'),
+  0,
+  'a measure on a manual ingredient never leaves the source household'
 );
 select is(
   (select count(*)::int from ingredient_alias a

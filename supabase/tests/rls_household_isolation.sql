@@ -8,9 +8,9 @@
 -- `supabase test db`.
 
 begin;
--- 13 tables x (select isolation + cross-household insert rejection)
+-- 14 tables x (select isolation + cross-household insert rejection)
 -- + current_household_id + 2 usda_food checks.
-select plan(29);
+select plan(31);
 
 -- Two households, one member each, and one row per household in every
 -- household-scoped table (A-side ids aaaaaaaa-…, B-side bbbbbbbb-…).
@@ -29,6 +29,9 @@ insert into ingredient (id, household_id, canonical_name, default_unit, match_te
 insert into ingredient_alias (household_id, ingredient_id, alias_text, match_text, source) values
  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000001','plain flour','plain flour','manual'),
  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000001','caster sugar','caster sugar','manual');
+insert into ingredient_measure (id, household_id, ingredient_id, label, grams) values
+ ('aaaaaaaa-0000-0000-0000-000000000011','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000001','bag',1000),
+ ('bbbbbbbb-0000-0000-0000-000000000011','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000001','bag',500);
 insert into book (id, household_id, name) values
  ('aaaaaaaa-0000-0000-0000-000000000002','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Book A'),
  ('bbbbbbbb-0000-0000-0000-000000000002','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Book B');
@@ -115,7 +118,11 @@ insert into iso_case values
  (13, 'shopping_list_contribution',
       $$ insert into shopping_list_contribution (household_id, entry_id, quantity, unit)
          values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000009',1,'g') $$,
-      'new row violates row-level security policy for table "shopping_list_contribution"');
+      'new row violates row-level security policy for table "shopping_list_contribution"'),
+ (14, 'ingredient_measure',
+      $$ insert into ingredient_measure (household_id, ingredient_id, label, grams)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000001','sack',2000) $$,
+      'new row violates row-level security policy for table "ingredient_measure"');
 grant select on iso_case to authenticated;
 
 -- Row-count helper. Invoker rights, so when called as `authenticated` the

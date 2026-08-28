@@ -68,6 +68,7 @@ sync_rules:
           - select id, household_id, display_name, sort_order, created_at, updated_at, deleted_at from household_member where household_id = bucket.household_id
           - select * from ingredient        where household_id = bucket.household_id
           - select * from ingredient_alias  where household_id = bucket.household_id
+          - select * from ingredient_measure where household_id = bucket.household_id
           - select * from book              where household_id = bucket.household_id
           - select * from book_section      where household_id = bucket.household_id
           - select * from recipe            where household_id = bucket.household_id

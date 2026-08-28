@@ -30,6 +30,7 @@ streams:
       - SELECT id, household_id, display_name, sort_order, created_at, updated_at, deleted_at FROM household_member WHERE household_id = auth.parameter('household_id')
       - SELECT * FROM ingredient        WHERE household_id = auth.parameter('household_id')
       - SELECT * FROM ingredient_alias  WHERE household_id = auth.parameter('household_id')
+      - SELECT * FROM ingredient_measure WHERE household_id = auth.parameter('household_id')
       - SELECT * FROM book              WHERE household_id = auth.parameter('household_id')
       - SELECT * FROM book_section      WHERE household_id = auth.parameter('household_id')
       - SELECT * FROM recipe            WHERE household_id = auth.parameter('household_id')
