@@ -71,7 +71,7 @@ test-app: powersync-core ## Flutter unit + widget tests
 powersync-core: ## Fetch the PowerSync SQLite core extension for host tests
 	@./scripts/fetch_powersync_core.sh
 
-test-sim: ## Integration smoke on a booted iOS simulator (local gate, not CI)
+test-sim: ## Integration smoke on a booted iOS sim (needs the local backend up: make db-up; self-provisions its own throwaway user)
 	cd $(APP) && flutter test integration_test $(DART_DEFINES)
 
 test-fns: ## Edge-function (Deno) tests
