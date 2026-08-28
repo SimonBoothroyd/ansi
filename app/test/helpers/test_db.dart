@@ -12,6 +12,7 @@
 /// binary — `make powersync-core` (run by `make test-app`) puts it in `app/`.
 library;
 
+import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 
@@ -101,4 +102,24 @@ Future<(PowerSyncDatabase, Directory)> openTestDb() async {
 Future<void> closeTestDb(PowerSyncDatabase db, Directory dir) async {
   await db.close();
   dir.deleteSync(recursive: true);
+}
+
+/// Marks every pending local write as uploaded (via the sanctioned crud API),
+/// so a test can then assert on exactly the ops a later action queues.
+Future<void> drainCrudQueue(PowerSyncDatabase db) async {
+  while (true) {
+    final tx = await db.getNextCrudTransaction();
+    if (tx == null) return;
+    await tx.complete();
+  }
+}
+
+/// The pending upload queue (`ps_crud`), oldest first, each op decoded to its
+/// JSON form: `{op: PUT|PATCH|DELETE, type: <table>, id: <row>, data: {...}}`.
+Future<List<Map<String, dynamic>>> queuedCrudOps(PowerSyncDatabase db) async {
+  final rows = await db.getAll('SELECT data FROM ps_crud ORDER BY id');
+  return [
+    for (final r in rows)
+      jsonDecode(r['data'] as String) as Map<String, dynamic>,
+  ];
 }
