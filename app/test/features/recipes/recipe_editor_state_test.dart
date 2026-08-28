@@ -82,9 +82,7 @@ void main() {
     container.read(recipeEditorProvider(null).notifier)
       ..setTitle('Weeknight Chicken Curry')
       ..addGroup();
-    final id = await container
-        .read(recipeEditorProvider(null).notifier)
-        .save();
+    final id = await container.read(recipeEditorProvider(null).notifier).save();
 
     expect(repo.saved, hasLength(1));
     expect(id, first.id);
