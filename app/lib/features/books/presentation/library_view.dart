@@ -84,13 +84,16 @@ class LibraryView extends ConsumerWidget {
       ),
       child: library.when(
         loading: () => const Center(child: FCircularProgress()),
-        error: (e, _) => Center(
-          child: Text(
-            'Could not load the library.\n$e',
-            textAlign: TextAlign.center,
-            style: miseMono(size: 13, color: MiseColors.muted),
-          ),
-        ),
+        error: (e, _) {
+          debugPrint('library load failed: $e');
+          return Center(
+            child: Text(
+              'Could not load the library.',
+              textAlign: TextAlign.center,
+              style: miseMono(size: 13, color: MiseColors.muted),
+            ),
+          );
+        },
         data: (books) => books.isEmpty
             ? const _EmptyState()
             : ListView(
