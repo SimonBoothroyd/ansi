@@ -28,11 +28,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// The repositories under the rule. Paths are relative to `app/` (the cwd of
 /// `flutter test`). `exempt` names tables read only by one-shot Future APIs
 /// that are not part of the watch stream's load path.
-///
-/// `recipes/data/recipe_repository_impl.dart` is not yet listed: its
-/// `watchRecipe` misses the `ingredient` table its load joins — add it here
-/// once that watch is fixed.
 const _repos = <String, Set<String>>{
+  'lib/features/recipes/data/recipe_repository_impl.dart': {},
   'lib/features/shopping/data/shopping_repository_impl.dart': {},
   'lib/features/books/data/book_repository_impl.dart': {},
   'lib/features/cook_plan/data/cook_plan_repository_impl.dart': {},
