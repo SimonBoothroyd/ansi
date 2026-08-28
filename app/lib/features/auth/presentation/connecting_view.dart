@@ -1,41 +1,78 @@
 /// Shown after sign-in while the session is being established — onboarding
 /// (`ensure_onboarded`), PowerSync `connect`, and the first sync. The router
-/// holds the user here until the household is resolved, so no screen reads
-/// `currentHouseholdId` before it exists (see `app_router.dart`).
+/// holds the user here until the household resolves ([SessionReady]); a
+/// [SessionError] surfaces here with retry and sign-out affordances, so a
+/// failure never pins the user on an infinite spinner (see `app_router.dart`).
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/sync/session.dart';
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
 
-class ConnectingView extends StatelessWidget {
+class ConnectingView extends ConsumerWidget {
   const ConnectingView({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(sessionControllerProvider);
+    final controller = ref.read(sessionControllerProvider.notifier);
+    final error = session is SessionError ? session.message : null;
+
     return FScaffold(
       child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Mise', style: miseSerif(size: 34)),
-            const SizedBox(height: 20),
-            const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.4,
-                color: MiseColors.herb,
-              ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Mise',
+                  style: miseSerif(size: 34),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                if (error == null) ...[
+                  const Center(child: FCircularProgress()),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Setting up your kitchen…',
+                    textAlign: TextAlign.center,
+                    style: miseSans(size: 14, color: MiseColors.muted),
+                  ),
+                ] else ...[
+                  Text(
+                    'Could not set up your kitchen.',
+                    textAlign: TextAlign.center,
+                    style: miseSans(size: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    error,
+                    textAlign: TextAlign.center,
+                    style: miseSans(size: 12.5, color: MiseColors.gone),
+                  ),
+                  const SizedBox(height: 20),
+                  FButton(
+                    onPress: controller.retry,
+                    child: const Text('Retry'),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                FButton(
+                  variant: FButtonVariant.ghost,
+                  onPress: controller.signOut,
+                  child: const Text('Sign out'),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            Text(
-              'Setting up your kitchen…',
-              style: miseSans(size: 14, color: MiseColors.muted),
-            ),
-          ],
+          ),
         ),
       ),
     );

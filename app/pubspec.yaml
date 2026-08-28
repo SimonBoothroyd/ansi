@@ -34,6 +34,7 @@ dependencies:
 
   # Utilities
   path_provider: ^2.1.0   # on-device location for the local PowerSync SQLite
+  shared_preferences: ^2.5.0  # cached household id for offline relaunch (session.dart)
   path: ^1.9.0
   collection: ^1.19.0
   meta: ^1.16.0            # @immutable etc. (used in core/result)
