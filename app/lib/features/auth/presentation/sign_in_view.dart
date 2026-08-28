@@ -151,6 +151,15 @@ class SignInView extends HookConsumerWidget {
                             redirectTo: Env.isConfigured
                                 ? _oauthRedirect
                                 : null,
+                            // The default in-app browser sheet does NOT
+                            // dismiss itself when the io.mise.app deep link
+                            // fires — the app signs in underneath while the
+                            // sheet sits on "loading" forever (seen live,
+                            // 2026-08-28 cloud verification). The external
+                            // browser backgrounds itself when the redirect
+                            // foregrounds the app.
+                            authScreenLaunchMode:
+                                LaunchMode.externalApplication,
                           ),
                         ),
                   child: const Text('Continue with Google'),

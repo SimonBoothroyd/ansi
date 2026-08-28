@@ -198,8 +198,14 @@ janitor SQL run. Then verified read-only:
   needed a second pass) and holds **0 live recipes** (the two E2E test
   recipes soft-deleted).
 
-Outstanding: the one real **Google browser sign-in** (checklist row 5's
-end-to-end proof); everything else in exec plan 0009 is green.
+**Google sign-in: verified end-to-end** (later the same day): consent screen →
+`io.mise.app://login-callback` → session → `ensure_onboarded` → fresh
+household with the full template clone (291 rows, 248 with macros) and the
+default book uploaded. One live bug found: the default in-app browser sheet
+never dismisses after the redirect (the app signs in underneath while the
+sheet shows "loading") — fixed with `authScreenLaunchMode:
+LaunchMode.externalApplication` in `sign_in_view.dart`; confirm the dismissal
+on the next cloud sign-in (tracker row). Exec plan 0009 complete.
 
 ### 2026-08-28 — step 7.5 verification pass (exec plan 0009)
 

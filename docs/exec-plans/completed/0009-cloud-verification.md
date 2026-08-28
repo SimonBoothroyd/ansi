@@ -56,7 +56,7 @@ path is exactly where the step-7 empty-first-sync bug lived).
       (auth hook enabled, JWT audience `authenticated`, JWKS URI, redirect
       URLs, email-confirm state) + a dated **"last verified" ledger** (first
       entry 2026-08-28).
-- [ ] One real Google browser sign-in performed (human task — the only
+- [x] One real Google browser sign-in performed (human task — the only
       non-scriptable check), recorded in the ledger; tracker row retired.
 - [x] Tests cover the new logic (stream-YAML drift check runs in
       `make docs-check`, i.e. every CI run).
@@ -80,6 +80,18 @@ path is exactly where the step-7 empty-first-sync bug lived).
 
 ## Decision log
 
+- 2026-08-28 — Google flow surfaced one live UX bug: supabase_flutter's
+  default in-app browser sheet stays open ("loading") after the
+  `io.mise.app://login-callback` redirect — the app completes sign-in +
+  onboarding underneath it. Fixed in `sign_in_view.dart` with
+  `authScreenLaunchMode: LaunchMode.externalApplication`; dismissal behavior
+  to be confirmed on the next cloud sign-in (tracker row).
+
+- 2026-08-28 — **Done.** Google browser sign-in performed on the sim against
+  cloud: consent screen → `io.mise.app://login-callback` redirect → session →
+  `ensure_onboarded` → fresh household with the full template clone
+  (291 rows, 248 with macros) — verified read-only in the cloud DB. ADR-0002's
+  primary auth path is live end-to-end.
 - 2026-08-28 — All criteria green except the Google sign-in. Simon ran the
   seeds (248/291 template rows carry macros — local parity), filled
   `cloud.env`, deployed the streams YAML, and ran the janitor; `cloud_verify`
