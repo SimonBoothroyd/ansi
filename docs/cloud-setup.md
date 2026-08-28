@@ -63,10 +63,17 @@ password):
 supabase db query --linked -f supabase/seed.sql
 ```
 
-This creates the "Home" household (`00000000-…-aa`) + 291 ingredients + 88
-aliases. `onboard`ing users then join Home and sync that vocab. (`seed_usda.sql`
-is server-only reference for import — not needed for app sync;
-`seed_prefill.sql` adds macros if wanted.)
+This creates the "Home" **template** household (`00000000-…-aa`, `is_template
+= true` since migration 0008) + 291 ingredients + 88 aliases. Onboarding users
+never join a template: `ensure_onboarded` **clones** its vocab (minus
+`manual`/`import_correction` rows) into each fresh household. Run the other
+two seeds as well so the cloud vocab carries macros — without them every cloud
+ingredient is an honest-but-empty stub (this bit us: cloud showed no macros):
+
+```bash
+supabase db query --linked -f supabase/seed_usda.sql     # 8262-food reference
+supabase db query --linked -f supabase/seed_prefill.sql  # macros/density onto vocab
+```
 
 `supabase db query --linked "<sql>"` also runs read/verify queries. Destructive
 statements (`truncate`, `delete`) against cloud are intentionally blocked by the
