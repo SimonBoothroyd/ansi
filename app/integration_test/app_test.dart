@@ -7,26 +7,28 @@
 /// The suite is self-provisioning: `setUpAll` creates a throwaway two-person
 /// household over plain HTTP (sign-up + `ensure_onboarded`, the same calls as
 /// `scripts/smoke_auth.sh`) so the app can SIGN IN to an already-onboarded
-/// account. In-app sign-UP is deliberately not exercised: a fresh signup's
-/// token lacks the `household_id` claim, so its first sync is empty (known
-/// step-7 gap; the password grant after onboarding carries the claim).
+/// account. In-app sign-UP is not exercised here — the session controller's
+/// post-onboarding `refreshSession()` makes it work now (verified manually on
+/// device, 7.4 sweep), but provisioning over HTTP keeps each run's users
+/// deterministic and the scenarios focused on the signed-in app.
 ///
 /// Scenarios (each `testWidgets` builds on the previous one's data, in order):
 ///   1 auth        sign-in gate → /connecting → Library with the synced
 ///                 household
 ///   2 library     new section → new recipe (vocab ingredients, shelf life,
-///                 filed under book + section) → breadcrumb + local-db rows
+///                 method steps, filed under book + section) → breadcrumb +
+///                 rendered title + local-db rows; then re-open and edit the
+///                 saved recipe and assert its children survive the server
+///                 round-trip (the connector jsonb + diffing-save fixes)
 ///   3 week→cook→shop  copy-last-week, remove, the two-step add flow (picker
 ///                 → confirm → portions), batch hint, edit-eaters, per-person
 ///                 lens; one cook session covering two close meals and a
 ///                 split for a far one; the rolled-up shopping list with
-///                 provenance, a manual top-up, and check-off. Runs with sync
-///                 DISCONNECTED — the connector's live jsonb bug corrupts
-///                 `plan_entry.eaters` on the round-trip (see the scope-around
-///                 comment in the test).
+///                 provenance, a manual top-up, and check-off. Runs with LIVE
+///                 sync — `plan_entry.eaters` must survive the jsonb
+///                 round-trip as a real array.
 library;
 
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -39,7 +41,6 @@ import 'package:mise/app.dart';
 import 'package:mise/core/config/env.dart';
 import 'package:mise/core/sync/database.dart';
 import 'package:mise/core/sync/schema.dart';
-import 'package:mise/core/sync/session.dart';
 import 'package:mise/features/planning/domain/planning.dart' show mondayOf;
 import 'package:powersync/powersync.dart' hide Column;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -89,69 +90,29 @@ void main() {
     dir.deleteSync(recursive: true);
   });
 
-  /// Filters two known, benign error reports; everything else still fails the
+  /// Filters one known, benign error report; everything else still fails the
   /// test. Installed at the top of every scenario.
   ///
-  /// 1. Opening a Forui dialog while the accessibility tree is live trips a
-  ///    semantics assertion inside the framework — it reproduces in a plain
-  ///    widget test with `ensureSemantics()`, and forui is already pinned at
-  ///    the newest 0.22.x (tech-debt tracker, 2026-08-27).
-  /// 2. `SessionController.build` fires `_handle` before `build` returns, and
-  ///    `_handle` reads the controller's own `state` synchronously — an
-  ///    uninitialized-provider StateError on every app start. In the app the
-  ///    guarded zone just logs it (a later auth event re-runs `_handle` and
-  ///    everything proceeds); here it would be recorded as a failure.
-  void ignoreKnownStartupNoise() {
-    // TODO(step7-fixes): drop the uninitialized-provider arm below once
-    // SessionController defers its initial `_handle` past its own build.
+  /// Opening a Forui dialog while the accessibility tree is live trips a
+  /// semantics assertion inside the framework — it reproduces in a plain
+  /// widget test with `ensureSemantics()`, and forui is already pinned at
+  /// the newest 0.22.x (tech-debt tracker, 2026-08-27).
+  void ignoreForuiSemanticsAssertion() {
     final reportError = FlutterError.onError!;
     FlutterError.onError = (details) {
       if ('${details.exception}'.contains('semantics.dart')) return;
-      if (details.exception is StateError &&
-          '${details.exception}'.contains('uninitialized provider') &&
-          '${details.stack}'.contains('session.dart')) {
-        return;
-      }
       reportError(details);
     };
     addTearDown(() => FlutterError.onError = reportError);
   }
 
-  /// Builds the app on a provider container whose [SessionController] is
-  /// pre-mounted inside a guarded zone.
-  ///
-  /// `SessionController.build` fires `_handle` before `build` returns, and
-  /// `_handle` synchronously reads the controller's own `state` — an
-  /// uninitialized-provider StateError in an unawaited Future on every app
-  /// start. In the app, bootstrap's guarded zone just logs it (a later auth
-  /// event re-runs `_handle` and everything proceeds), but flutter_test aborts
-  /// the whole test on any unhandled zone error, detaching the still-running
-  /// test body. Mounting the controller here keeps that error (and any later
-  /// `_handle` failure — they inherit this zone through the auth listener) in
-  /// a zone of ours: logged, never fatal. Real breakage still surfaces as the
-  /// UI waits below time out.
-  // TODO(step7-fixes): collapse back to a plain ProviderScope pump once
-  // SessionController defers its initial `_handle` past its own build.
+  /// Builds the app over the suite's throwaway PowerSync database.
   Future<void> pumpApp(WidgetTester tester) async {
-    late final ProviderContainer container;
-    runZonedGuarded(
-      () {
-        container = ProviderContainer(
-          overrides: [powerSyncDatabaseProvider.overrideWithValue(db)],
-        )..listen(sessionControllerProvider, (_, _) {});
-      },
-      // ignore: avoid_print — visible in the `flutter test` log for diagnosis.
-      (error, stack) => print('session zone error (non-fatal): $error'),
-    );
-    addTearDown(() async {
-      // Unmount the tree before disposing, so no consumer touches a dead
-      // container when the next test's pump replaces the root.
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump();
-      container.dispose();
-    });
     await tester.pumpWidget(
-      UncontrolledProviderScope(container: container, child: const MiseApp()),
+      ProviderScope(
+        overrides: [powerSyncDatabaseProvider.overrideWithValue(db)],
+        child: const MiseApp(),
+      ),
     );
     await tester.pump();
   }
@@ -203,6 +164,22 @@ void main() {
         fail('Timed out after $timeout waiting for $what');
       }
       await tester.pump(const Duration(milliseconds: 200));
+    }
+  }
+
+  /// Waits until every queued local write has uploaded, then pumps a little
+  /// real time so the server's round-trip streams back down over the local
+  /// rows. Asserts made after this run against round-tripped data — exactly
+  /// where the old connector jsonb/tombstone bugs corrupted rows (within ~a
+  /// second of the save).
+  Future<void> waitForSyncRoundTrip(WidgetTester tester) async {
+    await waitForDb(
+      tester,
+      () async => (await db.getUploadQueueStats()).count == 0,
+      'the upload queue to drain',
+    );
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
     }
   }
 
@@ -295,7 +272,7 @@ void main() {
   testWidgets('1 auth: signs in and reaches the synced Library', (
     tester,
   ) async {
-    ignoreKnownStartupNoise();
+    ignoreForuiSemanticsAssertion();
     await pumpApp(tester);
 
     // Signed out → the router holds everything behind /sign-in.
@@ -330,7 +307,7 @@ void main() {
   testWidgets('2 library: files a new recipe under a new section', (
     tester,
   ) async {
-    ignoreKnownStartupNoise();
+    ignoreForuiSemanticsAssertion();
     await openLibrary(tester);
 
     await tester.tap(find.textContaining('new section'));
@@ -374,23 +351,20 @@ void main() {
     await addIngredient(tester, 'Garlic', '3');
     await addIngredient(tester, 'Onion', '1');
 
-    // METHOD stays empty on purpose.
-    // TODO(step7-fixes): type method steps here (and assert them on the recipe
-    // view) once the connector's jsonb upload fix lands — saving steps
-    // currently corrupts after the sync round-trip.
-    // TODO(step7-fixes): re-open the saved recipe and edit it (rename, tweak a
-    // quantity) once the edit-recipe fix lands — an edit currently tombstones
-    // the recipe's ingredients server-side.
+    // Two method steps — `recipe.steps` is a jsonb column, so these must
+    // survive the upload round-trip as a real array (the sweep's connector
+    // fix; the old double-encoding crashed the recipe view within a second).
+    await scrollTo(tester, find.text('METHOD'));
+    await tester.enterText(
+      find.byType(EditableText).last,
+      'Brown the aromatics.\nSimmer until thick.',
+    );
+    await tester.pump();
 
     await scrollTo(tester, find.text('Save'), delta: -150);
     await tester.tap(find.text('Save'));
     await pumpUntilFound(tester, find.text('OUR COOKBOOK · WEEKNIGHT'));
-    // No further UI asserts on the recipe view: within ~a second of saving,
-    // the sync round-trip rewrites `recipe.steps` double-encoded (the live
-    // connector jsonb bug) and the recipe view's watch stream errors out.
-    // The local-db asserts below are the real check.
-    // TODO(step7-fixes): assert the rendered title here (and re-open the
-    // recipe) once the connector's jsonb fix lands.
+    expect(find.text('Chicken Curry'), findsOneWidget); // the rendered title
 
     // The write reached the local database, fully filed.
     final recipe = await db.get(
@@ -410,43 +384,83 @@ void main() {
     expect(items, hasLength(2));
     expect(items.first['quantity'], 3);
     expect(items.last['quantity'], 1);
+
+    // After the server round-trip the view still stands and the steps are
+    // still a real JSON array (not a double-encoded string).
+    await waitForSyncRoundTrip(tester);
+    expect(find.text('Chicken Curry'), findsOneWidget);
+    final steps =
+        jsonDecode(
+              (await db.get('SELECT steps FROM recipe WHERE id = ?', [
+                    recipe['id'],
+                  ]))['steps']!
+                  as String,
+            )
+            as List<dynamic>;
+    expect(steps, ['Brown the aromatics.', 'Simmer until thick.']);
+    await tester.tap(find.text('Method'));
+    await tester.pumpAndSettle();
+    expect(find.text('Brown the aromatics.'), findsOneWidget);
+    expect(find.text('Simmer until thick.'), findsOneWidget);
+
+    // Re-open and edit the saved recipe (tweak Garlic 3 → 4). The diffing
+    // `saveRecipe` must leave every kept child live — the old delete-reinsert
+    // tombstoned the children server-side on any edit.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FHeaderAction),
+        matching: find.byIcon(FLucideIcons.ellipsis),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await pumpUntilFound(tester, find.text('Edit recipe'));
+    await scrollTo(tester, find.text('Garlic'));
+    final garlicLine = find
+        .ancestor(of: find.text('Garlic'), matching: find.byType(Column))
+        .first;
+    await tester.enterText(
+      find
+          .descendant(of: garlicLine, matching: find.byType(EditableText))
+          .first,
+      '4',
+    );
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await pumpUntilFound(tester, find.text('OUR COOKBOOK · WEEKNIGHT'));
+
+    // Ingredients survive the edit's server round-trip: rendered and live in
+    // the local db, with the one tweaked quantity. (Back to the Ingredients
+    // tab first — `context.go` after save keeps the same route element, so
+    // the Method tab chosen above is still selected.)
+    await waitForSyncRoundTrip(tester);
+    await tester.tap(find.text('Ingredients'));
+    await tester.pumpAndSettle();
+    expect(find.text('Garlic'), findsOneWidget);
+    expect(find.text('Onion'), findsOneWidget);
+    final editedItems = await db.getAll(
+      'SELECT li.quantity FROM recipe_line_item li '
+      'JOIN ingredient_group g ON g.id = li.group_id '
+      'WHERE g.recipe_id = ? AND li.deleted_at IS NULL '
+      'ORDER BY li.sort_order',
+      [recipe['id']],
+    );
+    expect(editedItems.map((r) => r['quantity']).toList(), [4, 1]);
   });
 
   // ---------------------------------------------------------------------------
   // 3 · WEEK — copy-last-week, the two-step add flow, eaters, per-person lens.
   // ---------------------------------------------------------------------------
   testWidgets('3 week → cook → shop over the real local db', (tester) async {
-    ignoreKnownStartupNoise();
+    ignoreForuiSemanticsAssertion();
     await openLibrary(tester);
 
-    // KNOWN LIVE BUG scope-around: the connector uploads JSON-array columns as
-    // plain strings, so Postgres stores a jsonb *string* and the row syncs
-    // back down double-encoded — `plan_entry.eaters` then crashes every
-    // parser (`type 'String' is not a subtype of type 'List<dynamic>'`,
-    // observed live; same jsonb bug as recipe method steps). Until the
-    // connector fix lands, run the planning scenarios with sync disconnected:
-    // they verify the Week → Cook → Shop UI wiring over the real local
-    // PowerSync db, which is exactly what steps 4–6 owed. The auth + library
-    // scenarios above still cover live sync.
-    // TODO(step7-fixes): delete this disconnect (and re-split the scenarios
-    // into their own testWidgets) once the connector's jsonb fix lands, so
-    // planned weeks round-trip through the server here too.
-    //
-    // The session controller's own `connect` may still be spawning its sync
-    // stream when the Library first renders, and a disconnect issued mid-spawn
-    // loses the race (observed: the fresh iteration started right after the
-    // disconnect). Wait for the connection to be fully up, then take it down
-    // and hold until the status agrees.
-    await waitForDb(
-      tester,
-      () async => db.currentStatus.connected,
-      'sync to finish connecting',
-    );
-    await db.disconnect();
-    await waitForDb(tester, () async {
-      final status = db.currentStatus;
-      return !status.connected && !status.connecting;
-    }, 'sync to stay disconnected');
+    // Runs with LIVE sync: every planned entry below round-trips through the
+    // server, so `plan_entry.eaters` (a jsonb column) must come back down as
+    // a real array — the explicit round-trip check after the edit-eaters step
+    // pins that. (Kept as one testWidgets: 3a–3c build on each other's data,
+    // and one launch keeps the suite fast; live-sync coverage is what
+    // mattered, not the split.)
 
     // ------------------------------------------------------------------------
     // 3a · WEEK — copy-last-week, two-step add, batch hint, eaters, lens.
@@ -596,6 +610,15 @@ void main() {
           jsonDecode(rows.last['eaters']! as String) as List<dynamic>;
       return eaters.length == 1 && eaters.single == adaId;
     }, "Wednesday's eaters to be just Ada");
+
+    // The jsonb round-trip check: after the server echoes the edit back down,
+    // `eaters` must still parse as an array of member ids (the old connector
+    // double-encoded it into a string, crashing every parser).
+    await waitForSyncRoundTrip(tester);
+    final roundTripped = await currentEntries();
+    expect(jsonDecode(roundTripped.last['eaters']! as String), [
+      adaId,
+    ], reason: 'plan_entry.eaters must survive live sync as a real JSON array');
 
     // Per-person lens: under Jun only the shared Monday meal remains.
     await scrollTo(tester, find.text('Shared'), delta: -150);
