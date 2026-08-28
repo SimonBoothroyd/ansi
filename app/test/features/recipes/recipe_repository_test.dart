@@ -58,7 +58,7 @@ void main() {
 
   setUp(() async {
     (db, dir) = await openTestDb();
-    repo = SqliteRecipeRepository(db);
+    repo = SqliteRecipeRepository(db, householdId: 'h');
     // Line-item names resolve via a join to `ingredient`, so the referenced
     // vocab rows must exist (they always do in the app — the picker only picks
     // existing ingredients).
@@ -147,15 +147,102 @@ void main() {
     expect(loaded.groups.single.name, 'Simplified');
     expect(loaded.groups.single.items.single.quantity, 3);
 
-    // No stale rows left behind.
+    // No stale *live* rows left behind — dropped children are tombstoned
+    // (deleted_at set), never hard-deleted, so the delete syncs upstream.
     final itemCount = await db.get(
-      'SELECT count(*) AS c FROM recipe_line_item',
+      'SELECT count(*) AS c FROM recipe_line_item WHERE deleted_at IS NULL',
     );
     expect(itemCount['c'], 1);
     final groupCount = await db.get(
-      'SELECT count(*) AS c FROM ingredient_group',
+      'SELECT count(*) AS c FROM ingredient_group WHERE deleted_at IS NULL',
     );
     expect(groupCount['c'], 1);
+    final tombstones = await db.get(
+      'SELECT count(*) AS c FROM recipe_line_item WHERE deleted_at IS NOT NULL',
+    );
+    expect(tombstones['c'], 3, reason: 'i1, i2 and i3 were all dropped');
+  });
+
+  test('an edited re-save queues no DELETE for kept children', () async {
+    await repo.saveRecipe(_sampleRecipe());
+    await drainCrudQueue(db);
+
+    // A title-only edit keeps every child id. The old delete + re-insert
+    // implementation queued DELETE-then-PUT per child; the connector maps
+    // DELETE to a server tombstone the later PUT never cleared, so every
+    // ingredient vanished on other devices after any edit.
+    await repo.saveRecipe(_sampleRecipe().copyWith(title: 'Renamed'));
+
+    final ops = await queuedCrudOps(db);
+    expect(
+      ops.where((o) => o['op'] == 'DELETE'),
+      isEmpty,
+      reason: 'kept child ids must never round-trip through DELETE',
+    );
+
+    // The children still exist, live, exactly once.
+    final itemCount = await db.get(
+      'SELECT count(*) AS c FROM recipe_line_item WHERE deleted_at IS NULL',
+    );
+    expect(itemCount['c'], 3);
+  });
+
+  test(
+    'dropping a child on re-save queues a tombstone PATCH, not a DELETE',
+    () async {
+      await repo.saveRecipe(_sampleRecipe());
+      await drainCrudQueue(db);
+
+      final edited = _sampleRecipe();
+      await repo.saveRecipe(
+        edited.copyWith(
+          groups: [
+            edited.groups.first, // keep g1 (i1, i2); drop g2 (i3)
+          ],
+        ),
+      );
+
+      final ops = await queuedCrudOps(db);
+      expect(ops.where((o) => o['op'] == 'DELETE'), isEmpty);
+
+      final itemTombstone = ops.singleWhere(
+        (o) =>
+            o['type'] == 'recipe_line_item' &&
+            o['id'] == 'i3' &&
+            o['op'] == 'PATCH',
+      );
+      expect((itemTombstone['data'] as Map)['deleted_at'], isNotNull);
+      final groupTombstone = ops.singleWhere(
+        (o) =>
+            o['type'] == 'ingredient_group' &&
+            o['id'] == 'g2' &&
+            o['op'] == 'PATCH',
+      );
+      expect((groupTombstone['data'] as Map)['deleted_at'], isNotNull);
+    },
+  );
+
+  test('watchRecipe re-fires when an ingredient is renamed', () async {
+    await repo.saveRecipe(_sampleRecipe());
+
+    final recipes = StreamIterator(repo.watchRecipe('r1'));
+    addTearDown(recipes.cancel);
+
+    expect(await recipes.moveNext(), isTrue);
+    expect(recipes.current?.groups.first.items.first.ingredientName, 'Onion');
+
+    // A server-side vocab rename arrives as a plain UPDATE on `ingredient`;
+    // the open recipe page must re-assemble (the watch has to name the
+    // ingredient table with a selected column, or SQLite drops the join).
+    await db.execute('UPDATE ingredient SET canonical_name = ? WHERE id = ?', [
+      'Brown Onion',
+      'ing-onion',
+    ]);
+    expect(await recipes.moveNext(), isTrue);
+    expect(
+      recipes.current?.groups.first.items.first.ingredientName,
+      'Brown Onion',
+    );
   });
 
   test('watchRecipe re-fires when its section is renamed', () async {

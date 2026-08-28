@@ -2,8 +2,8 @@
 ///
 /// Reads assemble the recipe/group/line-item rows into the domain aggregate and
 /// react to local writes via `watch`. Writes go through `saveRecipe`, which
-/// replaces a recipe's children wholesale (see the interface doc) inside a
-/// transaction. Deletes are soft (tombstone), per spec §3.
+/// diffs a recipe's children against the stored tree (see the interface doc)
+/// inside a transaction. Deletes are soft (tombstone), per spec §3.
 library;
 
 import 'dart:convert';
@@ -11,18 +11,17 @@ import 'dart:convert';
 import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 
-import '../../../core/config/dev_household.dart';
 import '../../../core/units/units.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_repository.dart';
 
 class SqliteRecipeRepository implements RecipeRepository {
-  const SqliteRecipeRepository(this._db, {String householdId = kDevHouseholdId})
+  const SqliteRecipeRepository(this._db, {required String householdId})
     : _householdId = householdId;
 
   final SqliteConnection _db;
 
-  /// The household stamped on rows this repo writes (dev default for tests).
+  /// The household stamped on rows this repo writes.
   final String _householdId;
 
   @override
@@ -52,16 +51,19 @@ class SqliteRecipeRepository implements RecipeRepository {
   @override
   Stream<Recipe?> watchRecipe(String id) {
     // The triggers for this stream are the watched query's source tables, so
-    // every table [_loadRecipe] reads must be one — including book/section,
-    // which feed the breadcrumb. Each joined table must also contribute a
-    // *selected* column: SQLite omits a LEFT JOIN whose columns go unused, and
-    // an omitted join is an undetected table (the stale-breadcrumb class). The
-    // rows themselves are ignored; each fire re-assembles the recipe.
+    // every table [_loadRecipe] reads must be one — including ingredient
+    // (line-item names) and book/section (the breadcrumb). Each joined table
+    // must also contribute a *selected* column: SQLite omits a LEFT JOIN whose
+    // columns go unused, and an omitted join is an undetected table (the
+    // stale-breadcrumb class). The rows themselves are ignored; each fire
+    // re-assembles the recipe.
     return _db
         .watch(
-          'SELECT r.id, g.id, li.id, b.name, s.name FROM recipe r '
+          'SELECT r.id, g.id, li.id, ing.canonical_name, b.name, s.name '
+          'FROM recipe r '
           'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
           'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
+          'LEFT JOIN ingredient ing ON ing.id = li.ingredient_id '
           'LEFT JOIN book b ON b.id = r.book_id '
           'LEFT JOIN book_section s ON s.id = r.section_id '
           'WHERE r.id = ? AND r.deleted_at IS NULL LIMIT 1',
@@ -190,46 +192,106 @@ class SqliteRecipeRepository implements RecipeRepository {
         );
       }
 
-      // Replace children: clear the old tree, then insert the current one.
-      final oldGroups = await tx.getAll(
-        'SELECT id FROM ingredient_group WHERE recipe_id = ?',
+      // Diff the children against the stored tree instead of delete +
+      // re-insert: PowerSync queues ops literally (a DELETE then a PUT of the
+      // same id, no consolidation), and the connector maps DELETE to a
+      // server-side tombstone — so replacing kept ids would soft-delete them
+      // on the server and every other device. Kept ids become UPDATEs, new
+      // ids INSERTs, and dropped ids soft-deletes.
+      final oldGroupRows = await tx.getAll(
+        'SELECT id, deleted_at FROM ingredient_group WHERE recipe_id = ?',
         [recipe.id],
       );
-      for (final g in oldGroups) {
-        await tx.execute('DELETE FROM recipe_line_item WHERE group_id = ?', [
-          g['id'],
-        ]);
+      final oldItemRows = await tx.getAll(
+        'SELECT li.id, li.deleted_at FROM recipe_line_item li '
+        'JOIN ingredient_group g ON g.id = li.group_id WHERE g.recipe_id = ?',
+        [recipe.id],
+      );
+      final oldGroupIds = {for (final r in oldGroupRows) r['id'] as String};
+      final oldItemIds = {for (final r in oldItemRows) r['id'] as String};
+      final keptGroupIds = {for (final g in recipe.groups) g.id};
+      final keptItemIds = {
+        for (final g in recipe.groups)
+          for (final i in g.items) i.id,
+      };
+
+      // Soft-delete dropped children (items first — they hang off the groups).
+      // Rows that are already tombstoned are left alone rather than re-stamped.
+      for (final r in oldItemRows) {
+        final id = r['id'] as String;
+        if (!keptItemIds.contains(id) && r['deleted_at'] == null) {
+          await tx.execute(
+            'UPDATE recipe_line_item SET deleted_at = ?, updated_at = ? '
+            'WHERE id = ?',
+            [now, now, id],
+          );
+        }
       }
-      await tx.execute('DELETE FROM ingredient_group WHERE recipe_id = ?', [
-        recipe.id,
-      ]);
+      for (final r in oldGroupRows) {
+        final id = r['id'] as String;
+        if (!keptGroupIds.contains(id) && r['deleted_at'] == null) {
+          await tx.execute(
+            'UPDATE ingredient_group SET deleted_at = ?, updated_at = ? '
+            'WHERE id = ?',
+            [now, now, id],
+          );
+        }
+      }
 
       for (var gi = 0; gi < recipe.groups.length; gi++) {
         final group = recipe.groups[gi];
-        await tx.execute(
-          'INSERT INTO ingredient_group (id, household_id, recipe_id, name, '
-          'sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [group.id, _householdId, recipe.id, group.name, gi, now, now],
-        );
+        if (oldGroupIds.contains(group.id)) {
+          // Clearing deleted_at revives a group whose id is being reused.
+          await tx.execute(
+            'UPDATE ingredient_group SET name = ?, sort_order = ?, '
+            'updated_at = ?, deleted_at = NULL WHERE id = ?',
+            [group.name, gi, now, group.id],
+          );
+        } else {
+          await tx.execute(
+            'INSERT INTO ingredient_group (id, household_id, recipe_id, name, '
+            'sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [group.id, _householdId, recipe.id, group.name, gi, now, now],
+          );
+        }
         for (var li = 0; li < group.items.length; li++) {
           final item = group.items[li];
-          await tx.execute(
-            'INSERT INTO recipe_line_item (id, household_id, group_id, '
-            'ingredient_id, quantity, unit, note, sort_order, created_at, '
-            'updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [
-              item.id,
-              _householdId,
-              group.id,
-              item.ingredientId,
-              item.quantity,
-              item.unit.id,
-              item.note,
-              li,
-              now,
-              now,
-            ],
-          );
+          if (oldItemIds.contains(item.id)) {
+            // group_id is included: an item can move between groups.
+            await tx.execute(
+              'UPDATE recipe_line_item SET group_id = ?, ingredient_id = ?, '
+              'quantity = ?, unit = ?, note = ?, sort_order = ?, '
+              'updated_at = ?, deleted_at = NULL WHERE id = ?',
+              [
+                group.id,
+                item.ingredientId,
+                item.quantity,
+                item.unit.id,
+                item.note,
+                li,
+                now,
+                item.id,
+              ],
+            );
+          } else {
+            await tx.execute(
+              'INSERT INTO recipe_line_item (id, household_id, group_id, '
+              'ingredient_id, quantity, unit, note, sort_order, created_at, '
+              'updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [
+                item.id,
+                _householdId,
+                group.id,
+                item.ingredientId,
+                item.quantity,
+                item.unit.id,
+                item.note,
+                li,
+                now,
+                now,
+              ],
+            );
+          }
         }
       }
     });
