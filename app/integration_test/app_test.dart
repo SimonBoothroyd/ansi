@@ -247,7 +247,7 @@ void main() {
     await scrollTo(tester, find.text(day));
     final add = find.descendant(
       of: dayCard(day),
-      matching: find.text('＋ Add a meal'),
+      matching: find.text('Add a meal'),
     );
     await tester.ensureVisible(add);
     await tester.pumpAndSettle();
@@ -340,7 +340,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Weeknight'), findsOneWidget);
 
-    await tester.tap(find.byIcon(FLucideIcons.plus));
+    // The app-bar + (an FHeaderAction); the "+ new section" affordance now
+    // carries the same icon, so scope to the header action.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FHeaderAction),
+        matching: find.byIcon(FLucideIcons.plus),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('New recipe'));
     await tester.pumpAndSettle();
@@ -549,7 +556,7 @@ void main() {
     await scrollTo(tester, find.text('Wednesday'));
     final add = find.descendant(
       of: dayCard('Wednesday'),
-      matching: find.text('＋ Add a meal'),
+      matching: find.text('Add a meal'),
     );
     await tester.ensureVisible(add);
     await tester.pumpAndSettle();
@@ -598,7 +605,7 @@ void main() {
     await tester.tap(find.text('Jun'));
     await tester.pumpAndSettle();
     expect(find.text('Chicken Curry'), findsOneWidget); // Wed filtered out
-    expect(find.text('⇄ shared'), findsOneWidget); // Monday is a shared meal
+    expect(find.text('shared'), findsOneWidget); // Monday is a shared meal
     await tester.tap(find.text('Shared'));
     await tester.pumpAndSettle();
     expect(find.text('Chicken Curry'), findsNWidgets(2));
