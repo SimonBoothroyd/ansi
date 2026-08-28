@@ -97,20 +97,15 @@ Dashboard at powersync.com → create an instance (free tier). Then:
 3. **Sync Streams.** This instance uses the edition-3 **streams** format (not
    legacy `bucket_definitions`). Custom JWT claims are read with
    `auth.parameter('household_id')`; a stream bundles multiple tables via a
-   `queries:` list and `auto_subscribe: true`:
-   ```yaml
-   config:
-     edition: 3
-   streams:
-     household:
-       auto_subscribe: true
-       queries:
-         - SELECT * FROM household WHERE id = auth.parameter('household_id')
-         - SELECT * FROM household_member WHERE household_id = auth.parameter('household_id')
-         - SELECT * FROM ingredient WHERE household_id = auth.parameter('household_id')
-         # …every synced table; usda_food is NEVER listed (ADR-0005)
-   ```
-   Validate + Deploy. Copy the instance URL (`https://<id>.powersync.journeyapps.com`).
+   `queries:` list and `auto_subscribe: true`. **The committed
+   [`docker/powersync-cloud.streams.yaml`](../docker/powersync-cloud.streams.yaml)
+   is the source of truth**: paste that file into the Sync Streams editor →
+   Validate → Deploy whenever it changes (the dashboard has no config API, so
+   the repo copy is the record and the dashboard is a deploy target).
+   `scripts/check_stream_drift.sh` (in `make docs-check`) keeps it
+   table-for-table in lockstep with the local `docker/powersync.yaml`.
+   Copy the instance URL (`https://<id>.powersync.journeyapps.com`) into
+   `cloud.env` at the repo root.
 
 ## 4. Point the app at cloud
 
@@ -129,7 +124,31 @@ Keys) is the modern anon key and is public by design. Sign in → the session
 controller onboards + connects → the `/connecting` screen shows until the first
 sync completes → the Library appears, populated from cloud.
 
-## Verify it — `scripts/smoke_auth.sh`
+## Dashboard-only config checklist
+
+These toggles live only in the two dashboards — no public endpoint or CLI can
+read them back, so `scripts/cloud_verify.sh` cannot check them. Walk this table
+whenever cloud misbehaves or after touching either dashboard, and record the
+walk in the ledger below. Endpoints come from `cloud.env` at the repo root.
+
+| # | Setting (where) | Expected value |
+|---|-----------------|----------------|
+| 1 | Auth hook (Supabase → Authentication → Auth Hooks → Custom Access Token) | **Enabled**, function `public.add_household_claim`. Load-bearing: no hook ⇒ no `household_id` claim ⇒ nothing syncs. |
+| 2 | Redirect URLs (Supabase → Authentication → URL Configuration) | Site URL + Redirect URLs include `io.mise.app://login-callback` |
+| 3 | Email confirmations (Supabase → Authentication → Sign In / Providers → Email) | OFF while testing email/password (free-tier rate limits); **turn back ON before anything real**. `cloud_verify.sh` warns while it's off. |
+| 4 | Google provider (same screen → Google) | Enabled, with the Web OAuth client id/secret (§1.5). `cloud_verify.sh` checks this one via `/auth/v1/settings`. |
+| 5 | PowerSync JWKS URI (PowerSync dashboard → instance → Client Auth) | "Use Supabase Auth" checked; JWKS URI = `<CLOUD_SUPABASE_URL>/auth/v1/.well-known/jwks.json` |
+| 6 | PowerSync JWT audience (same screen) | Includes `authenticated` — without it every token 401s with `PSYNC_S2105` (§3.2). |
+| 7 | Sync Streams (PowerSync dashboard → instance → Sync Streams) | Exact paste of [`docker/powersync-cloud.streams.yaml`](../docker/powersync-cloud.streams.yaml) → Validate → **Deploy**. Any manual dashboard edit is drift. |
+
+## Verify it — `scripts/cloud_verify.sh` + `scripts/smoke_auth.sh`
+
+`scripts/cloud_verify.sh` (reads `cloud.env`) is the strictly read-only health
+check: JWKS/ES256, auth health + provider settings, PostgREST reachability,
+PowerSync liveness, stream-drift, and a printed read-only SQL block for
+`supabase db query --linked` (migration count, hook function, RLS coverage,
+WAL bounds, macros count, junk-household census). Run it from a clean checkout;
+record the result in the ledger below.
 
 `scripts/smoke_auth.sh` exercises the auth → onboarding → `household_id`-claim
 path against any Supabase (local or cloud) over HTTP, complementing the pgTAP
@@ -157,3 +176,46 @@ A ✓ means the dashboard hook is correctly wired (the JWT carries `household_id
 - **Mixing local + cloud on one device**: signing a device that has local dev
   data into cloud drains that local write-queue *up* to cloud (real behavior).
   For a clean slate, sign out first (clears local) or clear app data.
+
+## Last verified (ledger)
+
+Newest first. One entry per verification pass: what was checked, what passed,
+what was left. Append an entry after every `cloud_verify.sh` run against cloud
+or any dashboard-config walk.
+
+### 2026-08-28 — step 7.5 verification pass (exec plan 0009)
+
+Verified (read-only unless noted):
+
+- Migrations **9/9** — `supabase db push` applied `0008_onboarding_hardening`
+  (sanctioned mutation); the seeded "Home" household is now `is_template =
+  true` and the only template.
+- JWKS serves a single **ES256** (EC) key; GoTrue healthy (v2.195.0).
+- `/auth/v1/settings`: **Google enabled**, email/password enabled,
+  **autoconfirm ON** (email confirmations still off — dev mode, see checklist
+  row 3).
+- PostgREST up (anon `401` — denied by RLS/grants, as designed).
+- `add_household_claim` exists; RLS enabled on all **14** tables; WAL bounded
+  (`max_wal_size` = `max_slot_wal_keep_size` = 1 GB).
+- Stream-drift check green (13 tables, column lists equal, no `usda_food`).
+- Publishable key fetched via `supabase projects api-keys` → `cloud.env`.
+
+Not yet verified / open (in order of bite):
+
+- **Vocab seeds not applied**: `seed_usda.sql` + `seed_prefill.sql` against
+  cloud were permission-blocked in the agent session. Cloud vocab is still
+  291 macro-less stubs (`usda_food` = 0). Human runs §2's two commands, then
+  re-checks the macros count (expect ≈ 248 complete).
+- **PowerSync checks skipped**: `CLOUD_POWERSYNC_URL` is `FILL_ME` — paste the
+  instance URL into `cloud.env`, paste + deploy the streams YAML (checklist
+  row 7), then run `./scripts/cloud_verify.sh` end to end.
+- **Template hygiene**: the 2026-08-27 E2E user (`diag…@mise.app`) still holds
+  a live seat in the now-template "Home", which also carries that session's 2
+  recipes. Templates must be member-less — run the janitor SQL from
+  `scripts/smoke_auth.sh`'s teardown block (service-role; soft-delete the
+  membership; the recipes are inert but can be soft-deleted for tidiness),
+  and delete the auth user in the dashboard.
+- **Google browser sign-in**: still never performed (the one non-scriptable
+  check). Dashboard checklist rows 1–2 and 5–7 unwalked this pass (no public
+  surface; the applied hook *function* exists, but the dashboard toggle was
+  last confirmed working during the 2026-08-27 E2E).

@@ -32,8 +32,10 @@ Hobby scale, but the basics are non-negotiable.
 - **The `household_id` JWT claim**: an access-token hook (`add_household_claim`,
   migration 0007, registered in `config.toml`) injects the caller's
   `household_id` into every issued token. PowerSync sync rules
-  (`docker/powersync.yaml`) scope every bucket by that claim, so a device only
-  ever syncs its own household's data. **The hook is load-bearing** — with no
+  (`docker/powersync.yaml` locally; its cloud twin
+  `docker/powersync-cloud.streams.yaml`, kept in lockstep by
+  `scripts/check_stream_drift.sh`) scope every bucket by that claim, so a
+  device only ever syncs its own household's data. **The hook is load-bearing** — with no
   claim, nothing syncs. Note: Supabase local issues **ES256** tokens, verified
   by PowerSync via the Supabase **JWKS** endpoint (not a shared secret); and a
   `config.toml` hook change needs a full `supabase stop && supabase start`.
@@ -54,9 +56,11 @@ Hobby scale, but the basics are non-negotiable.
       only auto-grant `Dxt`). Grant `authenticated` what its policies allow (no
       `delete` — deletes are soft), `grant all` to `service_role`, and grant
       server-only tables to no client role. See `migrations/0002_ingredients.sql`.
-- [ ] Added to the PowerSync publication and sync rules (`docker/powersync.yaml`).
-      A server-only *column* must be excluded from the rule's SELECT (an
-      explicit column list, as `household_member` does for `auth_user_id`) —
-      what a rule selects is exactly what ships to devices; omitting the column
-      from the client schema alone does not keep it off the wire
+- [ ] Added to the PowerSync publication and **both** sync-rule files
+      (`docker/powersync.yaml` + `docker/powersync-cloud.streams.yaml` — the
+      drift check fails CI if only one is updated). A server-only *column* must
+      be excluded from the rule's SELECT (an explicit column list, as
+      `household_member` does for `auth_user_id`) — what a rule selects is
+      exactly what ships to devices; omitting the column from the client schema
+      alone does not keep it off the wire
 - [ ] No secret or PII in a synced column that shouldn't leave the server
