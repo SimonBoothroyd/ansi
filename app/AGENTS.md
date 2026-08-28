@@ -128,9 +128,12 @@ The loop (agents drive it with the iOS Simulator tools; humans use `flutter run`
    **edit** the Forui/theme code → rebuild → screenshot again. Repeat.
 
 **The smoke test.** `make test-sim` runs `integration_test/app_test.dart`
-against whichever simulator is booted (boot one first — step 1 above). It drives
-the real UI over a real PowerSync database: create a section, create a recipe,
-file it, assert the breadcrumb. Run it before calling a feature step done; it is
+against whichever simulator is booted (boot one first — step 1 above), driving
+the real UI over a real PowerSync database. Since step 7's auth gate it needs
+the **local stack running** (`make db-up`) and a **signed-in dev user** — check
+the `make test-sim` row in
+[`../docs/exec-plans/tech-debt-tracker.md`](../docs/exec-plans/tech-debt-tracker.md)
+for the smoke's current status before relying on it as a step-done gate. It is
 deliberately *not* in CI (macOS runners are slow and expensive at hobby scale).
 
 Notes:

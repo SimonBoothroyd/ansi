@@ -11,12 +11,12 @@ Shared, offline-capable recipe + meal-planning app for a two-person household. B
 - Recipe books with **user-definable** sections; beautiful recipe pages with ingredient grouping ("for the sauce")
 - Recipe scaling
 - **Meal planning** — a single active **week** (plan → cook → reset), not a calendar; multiple meals per slot; per-meal eaters
-- **Batch cook plan (derived)** — aggregates the week's meals by recipe and shows what portion size to cook; splits a dish into separate cook sessions when it's planned beyond its shelf life
+- **Batch cook plan (derived)** — aggregates the week's meals by recipe and shows what portion size to cook; splits a dish into separate cook sessions when it's planned beyond its shelf life (or merges into one freezer batch when the recipe is freezable)
 - **Recipe shelf life** — how long a dish keeps; drives batch splitting + freshness
 - **Shopping list generated from the batch cook plan**, auto-aggregated, with per-ingredient provenance
 - AI/deterministic import from webpage + photo, with ingredient matching
 
-**Stretch:** web UI · barcode-add ingredient · computed recipe macros in UI · freezer-aware batching · variety/monotony warnings · package-size waste flags
+**Stretch:** web UI · barcode-add ingredient · computed recipe macros in UI · variety/monotony warnings · package-size waste flags
 
 ---
 
@@ -87,22 +87,26 @@ Groups the week's `plan_entry` rows **by recipe**, then splits each group into *
 - **Clustering rule (greedy, not a solver):** sort the days a dish appears; start a session at the first; include each later day within `keeps_for_days`; open a new session when one falls outside. O(n log n).
 - **"Same dish too far apart" → two things to cook**, each labelled why ("keeps 4 days"). Replaces manual leftover linking — batching is derived from demand, not hand-assigned.
 - **Scaling helpers apply to the session batch:** whole-ingredient scaling nudges `scale_factor` so key ingredients stay whole. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
-- **Freezer (stretch):** if `recipe.freezable`, distant instances can merge into one session (cook once, freeze portions) instead of splitting.
+- **Freezer (core, built in step 5):** if `recipe.freezable`, distant instances merge into one session (cook once, freeze the far share) instead of splitting.
 
 ### Recipe additions for the above
 - `keeps_for_days` (fridge shelf life) — **core**; drives clustering + freshness.
-- `freezable` (bool) · `freezer_days` (nullable) — stretch; extends/merges clustering.
+- `freezable` (bool) · `freezer_days` (nullable) — core (step 5); merges a freezable dish's distant instances into one session.
 
 ### Shopping list (provenance-aware)
-- `shopping_list_entry: id · household_id · ingredient_id (nullable) · free_text (non-ingredients, e.g. "paper towels") · checked · unit`  ← one per ingredient; holds check-off state
-- `shopping_list_contribution: id · entry_id · source_type (cook_session | manual) · source_cook_session_id (nullable) · quantity · unit`  ← the breakdown
+
+Persisted state is a **thin overlay**; the cook side of the list is derived, not
+stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
+
+- `shopping_list_entry: id · household_id · ingredient_id (nullable) · free_text (non-ingredients, e.g. "paper towels") · checked · unit`  ← one per ingredient the user has *touched* (checked off or topped up), plus free-text items; holds the check-off state
+- `shopping_list_contribution: id · entry_id · quantity · unit · note`  ← **manual top-ups only.** Cook contributions are never persisted — each device re-derives them live from the synced week + recipes (there is no `cook_session` table, so nothing stable to reference). The migration carries `source_type`/`source_cook_session_id` columns for forward-compat, but `source_type` is always `manual` and the session id stays null in v1.
 
 **Behavior:**
-- Generate from the **batch cook plan** → one contribution per (cook_session, ingredient), quantity = ingredient × session `scale_factor`.
-- Display groups by ingredient, sums contributions in canonical base (density-converted), shows breakdown: *"Flour — 500g · Curry batch (cook Mon) 300g · Cookies 150g · +50g manual."*
-- **Top up** = add a `manual` contribution to an existing entry.
+- Generate from the **batch cook plan** → one *derived* contribution per (cook_session, ingredient), quantity = ingredient × session `scale_factor`, computed at read time.
+- Display groups by ingredient, sums derived + manual contributions in canonical base (density-converted), shows breakdown: *"Flour — 500g · Curry batch (cook Mon) 300g · Cookies 150g · +50g manual."*
+- **Top up** = persist a `manual` contribution against the entry (find-or-create).
 - **Check-off** = on the entry (rolled-up ingredient), not per contribution.
-- Contributions are the stored truth; the total is derived → clean sync + free provenance.
+- **Storage rule:** only what cannot be re-derived is stored (check-off, manual top-ups, free-text items) → nothing to reconcile between devices when the week or a recipe changes. An ingredient entry is displayed only while it has at least one live contribution (derived or manual); when its last one vanishes it drops off the list, its checked row staying inert. (`supabase/migrations/0006_shopping.sql`.)
 - Batching is resolved in the cook plan, so each dish is bought once at its batch size (no double-buying, no manual leftover bookkeeping).
 
 ---
@@ -153,4 +157,6 @@ Groups the week's `plan_entry` rows **by recipe**, then splits each group into *
 - [ ] Can a recipe belong to multiple books? (v1 assumes one)
 - [x] Meal slots: fixed set or fully user-definable? → **user-definable** free
       text, with Breakfast/Lunch/Dinner offered as defaults (step 4).
-- [ ] Freezer-aware batching in v1 or stretch? (assumed stretch)
+- [x] Freezer-aware batching in v1 or stretch? → **v1** (step 5): a freezable
+      recipe's distant instance merges into one cook session (cook once, freeze
+      the far share) rather than splitting.

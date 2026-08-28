@@ -96,7 +96,10 @@ Matching against a couple hundred ingredients the household actually uses is
 high-precision; matching against 8k SR Legacy rows is not.
 
 Both tables (+ `ingredient_alias`) live in `supabase/migrations/0002`; the rows
-that fill them (the two seeds) are the remaining step-1 work.
+that fill them come from the checked-in seeds (`supabase/seed.sql` — the
+291-ingredient household vocab; `seed_usda.sql` + `seed_prefill.sql` — the USDA
+reference and the macro prefill onto matched vocab rows), run in that order by
+`supabase db reset`.
 
 ## Data flow: plan → cook → shop
 
@@ -118,7 +121,7 @@ computed at read time: there is **no** `cook_session` table, and the shopping
 list's cook contributions are re-derived per device (steps 5–6). The only
 persisted shopping state is the thin overlay — per-ingredient check-off plus
 manual/free-text contributions (`shopping_list_entry` / `shopping_list_contribution`,
-migration `0006`).
+migration `0006`; ADR-0007).
 
 ## Environments & secrets
 
