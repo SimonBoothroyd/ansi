@@ -44,7 +44,7 @@ path is exactly where the step-7 empty-first-sync bug lived).
       open-seat canary), and a documented human-run teardown (service-role
       janitor SQL) so smoke users stop accumulating. *Verified end-to-end
       against the local stack: run 1 CREATED, run 2 JOINED the open seat.*
-- [ ] Cloud vocab seeded with reference data: `seed_usda.sql` +
+- [x] Cloud vocab seeded with reference data: `seed_usda.sql` +
       `seed_prefill.sql` run against cloud (macros for the ~248 complete
       ingredients; local parity), under the post-0008 template-household
       model. *2026-08-28: the seeding commands were permission-denied in the
@@ -80,6 +80,12 @@ path is exactly where the step-7 empty-first-sync bug lived).
 
 ## Decision log
 
+- 2026-08-28 — All criteria green except the Google sign-in. Simon ran the
+  seeds (248/291 template rows carry macros — local parity), filled
+  `cloud.env`, deployed the streams YAML, and ran the janitor; `cloud_verify`
+  passes 7 ok / 0 fail. Second janitor pass needed for the `diag%` E2E user
+  (the teardown example uses `smoke%`) — template household is now member-less
+  with 0 live recipes. Ledger updated.
 - 2026-08-27 — Staged. Read-only-by-default is the design center: the
   verification tool must never be the thing that pollutes the target (the
   local seat-pollution incident during the step-7 review came from a leftover

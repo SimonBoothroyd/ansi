@@ -183,6 +183,24 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-08-28 — step 7.5 completion pass (exec plan 0009)
+
+Human steps done (Simon): seeds run (`seed_usda.sql` + `seed_prefill.sql`),
+PowerSync instance URL into `cloud.env`, streams YAML pasted + deployed,
+janitor SQL run. Then verified read-only:
+
+- `./scripts/cloud_verify.sh`: **7 ok · 1 warn · 0 fail** — the warn is the
+  known dev-mode autoconfirm; PowerSync liveness probe OK against the real
+  instance URL.
+- Template vocab carries macros: **248/291** (matches local parity).
+- Template household is **member-less** (the leftover `diag…` E2E membership
+  was soft-deleted — the janitor's example pattern is `smoke%`, so `diag%`
+  needed a second pass) and holds **0 live recipes** (the two E2E test
+  recipes soft-deleted).
+
+Outstanding: the one real **Google browser sign-in** (checklist row 5's
+end-to-end proof); everything else in exec plan 0009 is green.
+
 ### 2026-08-28 — step 7.5 verification pass (exec plan 0009)
 
 Verified (read-only unless noted):
