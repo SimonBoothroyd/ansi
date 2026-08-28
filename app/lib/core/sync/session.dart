@@ -200,8 +200,9 @@ class SessionController extends _$SessionController {
     }
 
     final userId = session.user.id;
-    if (state case SessionReady(session: final active)
-        when active.userId == userId) {
+    if (state case SessionReady(
+      session: final active,
+    ) when active.userId == userId) {
       return; // already connected (e.g. a routine token refresh)
     }
 
@@ -250,8 +251,9 @@ class SessionController extends _$SessionController {
     try {
       final householdId = await ref.read(ensureOnboardedProvider)();
       await ref.read(householdCacheProvider).write(userId, householdId);
-      if (state case SessionReady(session: final active)
-          when active.userId == userId && active.householdId != householdId) {
+      if (state case SessionReady(
+        session: final active,
+      ) when active.userId == userId && active.householdId != householdId) {
         state = SessionReady((userId: userId, householdId: householdId));
       }
     } on Exception {

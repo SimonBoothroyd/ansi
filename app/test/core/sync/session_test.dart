@@ -59,9 +59,13 @@ class _FakeDb extends Fake implements PowerSyncDatabase {
     List<Object?> parameters = const [],
   ]) async {
     log.add('ensureDefaultBook');
-    return ResultSet(['id', 'name'], null, [
-      ['b1', 'Our Cookbook'],
-    ]).first;
+    return ResultSet(
+      ['id', 'name'],
+      null,
+      [
+        ['b1', 'Our Cookbook'],
+      ],
+    ).first;
   }
 
   @override
@@ -178,16 +182,16 @@ void main() {
       expect(
         log,
         ['rpc', 'refresh', 'connect', 'waitForFirstSync', 'ensureDefaultBook'],
-        reason: 'the token must be re-issued (with the household_id claim) '
+        reason:
+            'the token must be re-issued (with the household_id claim) '
             'before PowerSync connects, or the first sync comes back empty',
       );
       expect(
         c.read(sessionControllerProvider),
-        isA<SessionReady>().having(
-          (s) => s.session,
-          'session',
-          (userId: 'u1', householdId: 'hh-1'),
-        ),
+        isA<SessionReady>().having((s) => s.session, 'session', (
+          userId: 'u1',
+          householdId: 'hh-1',
+        )),
       );
       expect(cache.values, {'u1': 'hh-1'});
       expect(c.read(currentHouseholdIdProvider), 'hh-1');
@@ -232,11 +236,10 @@ void main() {
 
       expect(
         c.read(sessionControllerProvider),
-        isA<SessionReady>().having(
-          (s) => s.session,
-          'session',
-          (userId: 'u1', householdId: 'hh-9'),
-        ),
+        isA<SessionReady>().having((s) => s.session, 'session', (
+          userId: 'u1',
+          householdId: 'hh-9',
+        )),
       );
       expect(log, contains('connect'));
       // The fast path must not gate on first sync (nothing to wait for
