@@ -1,0 +1,41 @@
+# PowerSync Cloud — Sync Streams (edition 3). SOURCE OF TRUTH for the cloud
+# instance's sync rules: paste this file into the PowerSync dashboard (Sync
+# Streams editor) → Validate → Deploy whenever it changes. The dashboard has no
+# API to read config back, so the repo copy is the record and the dashboard is
+# a deploy target — treat any manual dashboard edit as drift.
+#
+# MUST mirror docker/powersync.yaml's sync_rules table-for-table (the local
+# Open Edition uses legacy bucket_definitions; cloud uses edition-3 streams —
+# same security boundary, different dialect). `scripts/check_stream_drift.sh`
+# (run by `make docs-check`) fails CI when the two table lists diverge.
+#
+# Boundary rules (docs/SECURITY.md):
+#   - One stream per household, scoped by the JWT `household_id` claim that the
+#     add_household_claim access-token hook injects (migration 0007/0008).
+#   - usda_food is NEVER listed — server-only (ADR-0005).
+#   - household_member ships an explicit column list: what a query SELECTs is
+#     exactly what reaches the device as row JSON, so auth_user_id
+#     (server-only) must be excluded here, not just omitted client-side.
+#   - Template households (0008) are member-less and never in any claim, so
+#     they never reach a bucket.
+
+config:
+  edition: 3
+
+streams:
+  household:
+    auto_subscribe: true
+    queries:
+      - SELECT * FROM household         WHERE id = auth.parameter('household_id')
+      - SELECT id, household_id, display_name, sort_order, created_at, updated_at, deleted_at FROM household_member WHERE household_id = auth.parameter('household_id')
+      - SELECT * FROM ingredient        WHERE household_id = auth.parameter('household_id')
+      - SELECT * FROM ingredient_alias  WHERE household_id = auth.parameter('household_id')
+      - SELECT * FROM book              WHERE household_id = auth.parameter('household_id')
+      - SELECT * FROM book_section      WHERE household_id = auth.parameter('household_id')
+      - SELECT * FROM recipe            WHERE household_id = auth.parameter('household_id')
+      - SELECT * FROM ingredient_group  WHERE household_id = auth.parameter('household_id')
+      - SELECT * FROM recipe_line_item  WHERE household_id = auth.parameter('household_id')
+      - SELECT * FROM week_plan         WHERE household_id = auth.parameter('household_id')
+      - SELECT * FROM plan_entry        WHERE household_id = auth.parameter('household_id')
+      - SELECT * FROM shopping_list_entry        WHERE household_id = auth.parameter('household_id')
+      - SELECT * FROM shopping_list_contribution WHERE household_id = auth.parameter('household_id')

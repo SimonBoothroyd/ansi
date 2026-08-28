@@ -34,5 +34,8 @@ done < <(find . -name '*.md' -not -path './app/build/*' -not -path '*/node_modul
 
 if [ "$broken" -gt 0 ]; then echo "  $broken broken link(s)"; fail=1; else echo "  ✓ all links resolve"; fi
 
+echo "• sync-rule boundary (local vs cloud streams)"
+if ./scripts/check_stream_drift.sh; then :; else fail=1; fi
+
 echo
 [ "$fail" -eq 0 ] && echo "docs-check: OK" || { echo "docs-check: FAILED"; exit 1; }
