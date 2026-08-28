@@ -2,10 +2,12 @@
 /// implements it over PowerSync's local SQLite; ViewModels depend only on this.
 ///
 /// Writes take a whole [Recipe] aggregate: `saveRecipe` upserts the recipe and
-/// *replaces* its groups/line-items with the ones on the passed aggregate. That
-/// replace-on-save shape (not a per-row diff) is deliberate for step 2 — data
-/// is ephemeral (no migration cost) and the editor already holds the full tree.
-/// Callers generate ids for new recipes/groups/items before saving.
+/// *diffs* its groups/line-items against what is stored — kept ids update, new
+/// ids insert, dropped ids soft-delete. The diff (not delete + re-insert)
+/// matters under sync: PowerSync queues ops literally, and a DELETE of a kept
+/// id would tombstone it server-side for every other device. The editor holds
+/// the full tree, so callers still pass the whole aggregate and generate ids
+/// for new recipes/groups/items before saving.
 library;
 
 import 'recipe.dart';

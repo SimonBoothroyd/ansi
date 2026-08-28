@@ -1,4 +1,5 @@
-/// [IngredientRepository] over the local (bundle-seeded) SQLite vocab.
+/// [IngredientRepository] over the local SQLite vocab (server-synced since
+/// step 7 — `ensure_onboarded` clones the household's starter vocab).
 ///
 /// Deterministic word-boundary search only — the phone never fuzzy-matches
 /// (ADR-0004). The query is normalized with the same character rules the

@@ -5,7 +5,7 @@
 ///
 /// This is the INPUT to the derived cook-plan / shopping pipeline (steps 5–6) —
 /// no batch or leftover thinking here (design board: "plan the week you want to
-/// eat"). Still local-only; nothing syncs until step 7.
+/// eat"). Planned weeks sync to the household like everything else (step 7).
 library;
 
 import 'package:flutter/widgets.dart';

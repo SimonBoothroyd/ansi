@@ -4,7 +4,8 @@
 /// any manual top-ups, and groups them by aisle. Check-off is on the rolled-up
 /// item (spec §4). A "+ add item or top up" affordance opens the add sheet for
 /// non-food staples and manual top-ups. Read-derived; edit the Week/Cook and
-/// this re-sums. Still local-only until sync (step 7).
+/// this re-sums. Only the thin overlay (check-off + manual contributions)
+/// persists — and syncs, since step 7.
 library;
 
 import 'package:flutter/widgets.dart';

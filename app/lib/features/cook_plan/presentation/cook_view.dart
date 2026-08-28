@@ -7,7 +7,7 @@
 /// the honest scale factor, the meals it covers, and a fresh→gone timeline. A
 /// split recipe (a later meal outran the fridge window) is flagged; a freezer
 /// rescue (a freezable dish reaching a far meal from the freezer) gets its own
-/// note. Still local-only until sync (step 7).
+/// note. Nothing to sync: the plan re-derives per device from synced inputs.
 library;
 
 import 'package:flutter/foundation.dart' show listEquals;
