@@ -40,16 +40,24 @@ enum ContributionSource { cookSession, manual }
 
 /// One derived cook contribution: a recipe line already scaled by its cook
 /// session. `cookDay` and `batched` drive the provenance label.
+///
+/// `unit` is null when the persisted unit id wasn't recognised (`rawUnit`
+/// carries the raw string) — such a line is surfaced in the breakdown as an
+/// unconverted note and NEVER summed into a total (invariant 3: falling back
+/// to "pieces" would invent semantics for an unknown unit).
 typedef CookContributionInput = ({
   String ingredientId,
   double? quantity,
-  Unit unit,
+  Unit? unit,
+  String? rawUnit,
   String recipeTitle,
   int cookDay,
   bool batched,
 });
 
 /// A persisted shopping entry row (the check-off + free-text anchor).
+/// `createdAt` (ISO-8601) makes duplicate-entry merging deterministic: the
+/// oldest live row per ingredient is the canonical one on every device.
 typedef ShoppingEntryInput = ({
   String id,
   String? ingredientId,
@@ -57,6 +65,7 @@ typedef ShoppingEntryInput = ({
   String? category,
   bool checked,
   Unit? unit,
+  String? createdAt,
 });
 
 /// A persisted manual contribution attached to an entry.
@@ -173,10 +182,13 @@ abstract class ShoppingList with _$ShoppingList {
 /// Sums [qs] into as few totals as it can *honestly* (invariant 3).
 ///
 /// - Sums within a unit family by the ratio table (g·kg → one mass total).
-/// - Bridges mass↔volume only when [densityGPerMl] is supplied; without it a
+/// - Bridges mass↔volume only when a *positive* [densityGPerMl] is supplied
+///   (a zero/negative density is bad data, treated like none); without one a
 ///   mixed set yields two subtotals rather than an invented single number.
 /// - [UnitFamily.count] totals sum per count unit; [UnitFamily.imprecise] never
-///   sums (a "pinch" doubled is still a pinch) — each is kept as-is.
+///   sums (a "pinch" doubled is still a pinch) — identical imprecise units
+///   collapse into ONE entry (two recipes each wanting a pinch → "pinch", not
+///   "pinch + pinch"), but distinct ones are never merged.
 /// - [preferred] biases the display unit when it shares the summed family.
 List<Quantity> aggregateQuantities(
   List<Quantity> qs, {
@@ -196,14 +208,16 @@ List<Quantity> aggregateQuantities(
       case UnitFamily.count:
         counts.update(q.unit.id, (v) => v + q.amount, ifAbsent: () => q.amount);
       case UnitFamily.imprecise:
-        imprecise.add(q);
+        // Collapse identical imprecise units: amounts on them carry no meaning
+        // (they never scale or sum), so one line per unit is the honest render.
+        if (!imprecise.any((e) => e.unit == q.unit)) imprecise.add(q);
     }
   }
 
   final totals = <Quantity>[];
 
   if (mass.isNotEmpty || volume.isNotEmpty) {
-    final canBridge = densityGPerMl != null;
+    final canBridge = densityGPerMl != null && densityGPerMl > 0;
     if (mass.isNotEmpty && volume.isNotEmpty && canBridge) {
       // Unify volume into mass via density, then one mass total.
       final unified = [...mass];
@@ -302,6 +316,13 @@ String cookLabel(CookContributionInput c, List<String> weekdayShort) =>
 /// An entry is only surfaced while it has at least one live contribution (a
 /// cook one or a manual one) or is a free-text item — so an ingredient whose
 /// recipe was deleted (leaving only a stale checked row) drops off the list.
+///
+/// Two live entries for the same ingredient can exist (two offline devices
+/// each touching Flour, merged later — no unique index guards this, by design:
+/// one would make the offline dupe fail upload and lose data). They are merged
+/// deterministically here: manual contributions are unioned, checked is
+/// any-checked, and the oldest row (created_at, id) is the canonical entry —
+/// so no device silently drops the other's top-ups or check-off.
 ShoppingList buildShoppingList({
   required List<CookContributionInput> cook,
   required List<ShoppingEntryInput> entries,
@@ -309,16 +330,25 @@ ShoppingList buildShoppingList({
   required Map<String, IngredientMetaInput> meta,
   required List<String> weekdayShort,
 }) {
-  // Index persisted entries by their ingredient (free-text ones stay by id).
-  final entryByIngredient = <String, ShoppingEntryInput>{};
+  // Index persisted entries by their ingredient (free-text ones stay by id),
+  // keeping every duplicate so it can be merged rather than dropped.
+  final entriesByIngredient = <String, List<ShoppingEntryInput>>{};
   final freeTextEntries = <ShoppingEntryInput>[];
   for (final e in entries) {
     final ing = e.ingredientId;
     if (ing != null) {
-      entryByIngredient[ing] = e;
+      (entriesByIngredient[ing] ??= []).add(e);
     } else {
       freeTextEntries.add(e);
     }
+  }
+  // Oldest-first (created_at, then id) — the same canonical row on every
+  // device regardless of the order the rows synced in.
+  for (final list in entriesByIngredient.values) {
+    list.sort((a, b) {
+      final c = (a.createdAt ?? '').compareTo(b.createdAt ?? '');
+      return c != 0 ? c : a.id.compareTo(b.id);
+    });
   }
 
   // Group derived cook contributions by ingredient, preserving order.
@@ -330,16 +360,22 @@ ShoppingList buildShoppingList({
   // Every ingredient that has a cook contribution or a touched entry.
   final ingredientIds = <String>{
     ...cookByIngredient.keys,
-    ...entryByIngredient.keys,
+    ...entriesByIngredient.keys,
   };
 
   final items = <ShoppingItem>[];
   for (final id in ingredientIds) {
-    final entry = entryByIngredient[id];
+    final ingredientEntries =
+        entriesByIngredient[id] ?? const <ShoppingEntryInput>[];
+    // Merge duplicates: oldest is canonical, checked is any-checked, and the
+    // manual contributions of every duplicate are unioned (oldest entry's
+    // first) so nothing a second device added goes missing.
+    final entry = ingredientEntries.isEmpty ? null : ingredientEntries.first;
+    final checked = ingredientEntries.any((e) => e.checked);
     final cooks = cookByIngredient[id] ?? const <CookContributionInput>[];
-    final manuals = entry == null
-        ? const <ManualContributionInput>[]
-        : (manual[entry.id] ?? const []);
+    final manuals = <ManualContributionInput>[
+      for (final e in ingredientEntries) ...manual[e.id] ?? const [],
+    ];
 
     // An entry with neither a cook nor a manual contribution is a stale
     // check-off (its recipe was removed) — skip it (lifecycle note, 0006 SQL).
@@ -350,13 +386,27 @@ ShoppingList buildShoppingList({
       for (final c in [
         ...cooks,
       ]..sort((a, b) => a.cookDay.compareTo(b.cookDay)))
-        ShoppingContribution(
-          source: ContributionSource.cookSession,
-          label: cookLabel(c, weekdayShort),
-          quantity: c.quantity,
-          unit: c.unit,
-          cookDay: c.cookDay,
-        ),
+        // A quantity whose unit wasn't recognised is surfaced as an
+        // unconverted note (no quantity/unit → renders as a dash + note) and
+        // stays out of the totals: summing it under an assumed unit would
+        // invent semantics (invariant 3).
+        if (c.unit == null && c.quantity != null)
+          ShoppingContribution(
+            source: ContributionSource.cookSession,
+            label:
+                '${cookLabel(c, weekdayShort)} · '
+                'not counted (unrecognised unit'
+                '${c.rawUnit == null ? '' : ' "${c.rawUnit}"'})',
+            cookDay: c.cookDay,
+          )
+        else
+          ShoppingContribution(
+            source: ContributionSource.cookSession,
+            label: cookLabel(c, weekdayShort),
+            quantity: c.quantity,
+            unit: c.unit,
+            cookDay: c.cookDay,
+          ),
       for (final man in manuals)
         ShoppingContribution(
           source: ContributionSource.manual,
@@ -378,7 +428,7 @@ ShoppingList buildShoppingList({
         entryId: entry?.id,
         ingredientId: id,
         name: m?.name ?? '(unknown ingredient)',
-        checked: entry?.checked ?? false,
+        checked: checked,
         totals: aggregateQuantities(
           quantities,
           densityGPerMl: m?.densityGPerMl,
