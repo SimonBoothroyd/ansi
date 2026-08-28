@@ -10,6 +10,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/units/units.dart';
 import '../../books/data/book_providers.dart';
+import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../data/recipe_providers.dart';
 import '../domain/recipe.dart';
@@ -27,6 +28,26 @@ Stream<List<RecipeSummary>> recipeList(Ref ref) =>
 @riverpod
 Stream<Recipe?> recipeById(Ref ref, String id) =>
     ref.watch(recipeRepositoryProvider).watchRecipe(id);
+
+/// Resolves the vocab [Ingredient] behind an editor line item, so its unit
+/// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
+/// search (ADR-0004), so this searches by the denormalised name and matches on
+/// id; null when the vocab row can't be resolved (the dropdown then falls back
+/// to the full catalog).
+@riverpod
+Future<Ingredient?> lineItemIngredient(
+  Ref ref, {
+  required String ingredientId,
+  required String name,
+}) async {
+  final matches = await ref
+      .watch(ingredientRepositoryProvider)
+      .search(name, limit: 10);
+  for (final m in matches) {
+    if (m.id == ingredientId) return m;
+  }
+  return null;
+}
 
 /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
 /// blank one with a fresh id and a single empty group (create).
@@ -150,6 +171,12 @@ class RecipeEditor extends _$RecipeEditor {
       _set(_current.copyWith(steps: text.split('\n')));
 
   /// Persists the recipe (dropping blank steps) and returns its id.
+  ///
+  /// Also resets the provider: the editor is left after a save, and without an
+  /// explicit reset a lingering instance (auto-dispose only fires once the
+  /// last listener is gone, which navigation timing can defer) hands the old
+  /// draft to the next "New recipe" open. Invalidate-on-save guarantees a
+  /// fresh open always rebuilds from scratch.
   Future<String> save() async {
     final recipe = _current.copyWith(
       title: _current.title.trim(),
@@ -159,6 +186,7 @@ class RecipeEditor extends _$RecipeEditor {
           .toList(),
     );
     await ref.read(recipeRepositoryProvider).saveRecipe(recipe);
+    ref.invalidateSelf();
     return recipe.id;
   }
 

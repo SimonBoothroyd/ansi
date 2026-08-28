@@ -132,6 +132,124 @@ final class RecipeByIdFamily extends $Family
   String toString() => r'recipeByIdProvider';
 }
 
+/// Resolves the vocab [Ingredient] behind an editor line item, so its unit
+/// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
+/// search (ADR-0004), so this searches by the denormalised name and matches on
+/// id; null when the vocab row can't be resolved (the dropdown then falls back
+/// to the full catalog).
+
+@ProviderFor(lineItemIngredient)
+const lineItemIngredientProvider = LineItemIngredientFamily._();
+
+/// Resolves the vocab [Ingredient] behind an editor line item, so its unit
+/// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
+/// search (ADR-0004), so this searches by the denormalised name and matches on
+/// id; null when the vocab row can't be resolved (the dropdown then falls back
+/// to the full catalog).
+
+final class LineItemIngredientProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Ingredient?>,
+          Ingredient?,
+          FutureOr<Ingredient?>
+        >
+    with $FutureModifier<Ingredient?>, $FutureProvider<Ingredient?> {
+  /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
+  /// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
+  /// search (ADR-0004), so this searches by the denormalised name and matches on
+  /// id; null when the vocab row can't be resolved (the dropdown then falls back
+  /// to the full catalog).
+  const LineItemIngredientProvider._({
+    required LineItemIngredientFamily super.from,
+    required ({String ingredientId, String name}) super.argument,
+  }) : super(
+         retry: null,
+         name: r'lineItemIngredientProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$lineItemIngredientHash();
+
+  @override
+  String toString() {
+    return r'lineItemIngredientProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<Ingredient?> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<Ingredient?> create(Ref ref) {
+    final argument = this.argument as ({String ingredientId, String name});
+    return lineItemIngredient(
+      ref,
+      ingredientId: argument.ingredientId,
+      name: argument.name,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is LineItemIngredientProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$lineItemIngredientHash() =>
+    r'0ae0badeabfeb2035ea5f7781c8d9d1c6e8976fa';
+
+/// Resolves the vocab [Ingredient] behind an editor line item, so its unit
+/// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
+/// search (ADR-0004), so this searches by the denormalised name and matches on
+/// id; null when the vocab row can't be resolved (the dropdown then falls back
+/// to the full catalog).
+
+final class LineItemIngredientFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<Ingredient?>,
+          ({String ingredientId, String name})
+        > {
+  const LineItemIngredientFamily._()
+    : super(
+        retry: null,
+        name: r'lineItemIngredientProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
+  /// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
+  /// search (ADR-0004), so this searches by the denormalised name and matches on
+  /// id; null when the vocab row can't be resolved (the dropdown then falls back
+  /// to the full catalog).
+
+  LineItemIngredientProvider call({
+    required String ingredientId,
+    required String name,
+  }) => LineItemIngredientProvider._(
+    argument: (ingredientId: ingredientId, name: name),
+    from: this,
+  );
+
+  @override
+  String toString() => r'lineItemIngredientProvider';
+}
+
 /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
 /// blank one with a fresh id and a single empty group (create).
 
@@ -180,7 +298,7 @@ final class RecipeEditorProvider
   }
 }
 
-String _$recipeEditorHash() => r'13423c3b0d189748db5b26cd630546688a70056c';
+String _$recipeEditorHash() => r'4c5ef51b0fa8334013636000fab2d244a4a48b9c';
 
 /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
 /// blank one with a fresh id and a single empty group (create).

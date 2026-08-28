@@ -33,7 +33,23 @@ void main() {
     });
   });
 
+  group('formatPortions', () {
+    test('pluralizes properly', () {
+      expect(formatPortions(1), '1 portion');
+      expect(formatPortions(2), '2 portions');
+    });
+  });
+
   group('coversLine', () {
+    test('a single portion reads singular', () {
+      final s = _session(
+        cookDay: 0,
+        keeps: 3,
+        covers: [_meal(0, 'Dinner', 1)],
+      );
+      expect(coversLine(s), 'covers Mon dinner · 1 portion');
+    });
+
     test('collapses a shared slot to one label', () {
       final s = _session(
         cookDay: 1,

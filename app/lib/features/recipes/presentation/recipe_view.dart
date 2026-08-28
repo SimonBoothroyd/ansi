@@ -28,9 +28,17 @@ class RecipeView extends ConsumerWidget {
 
     return async.when(
       loading: () => const FScaffold(child: Center(child: FCircularProgress())),
-      error: (e, _) => FScaffold(
-        child: Center(child: Text('Error: $e', style: miseMono(size: 13))),
-      ),
+      error: (e, _) {
+        debugPrint('recipe load failed: $e');
+        return FScaffold(
+          child: Center(
+            child: Text(
+              'Could not load this recipe.',
+              style: miseMono(size: 13, color: MiseColors.muted),
+            ),
+          ),
+        );
+      },
       data: (recipe) => recipe == null
           ? FScaffold(
               child: Center(
@@ -321,7 +329,9 @@ class _IngredientsTab extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 18, bottom: 8),
               child: Text(
-                'for the ${group.name!.toLowerCase()}',
+                // The stored name verbatim — authors write the full heading
+                // ("for the curry", design board), so no prefix is added here.
+                group.name!,
                 style: miseSerif(
                   size: 18,
                   color: MiseColors.herbDeep,

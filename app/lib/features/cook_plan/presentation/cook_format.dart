@@ -16,10 +16,15 @@ String formatScale(double factor) {
   return '×$s';
 }
 
+/// "1 portion" / "4 portions" — a count with the right plural.
+String formatPortions(int count) => '$count portion${count == 1 ? '' : 's'}';
+
 /// The recipe card's summary line: total portions across the week plus its
 /// shelf-life descriptors (e.g. "4 portions across the week · keeps 4 d").
 String recipeSummaryLine(RecipeCookPlan recipe) {
-  final parts = <String>['${recipe.totalPortions} portions across the week'];
+  final parts = <String>[
+    '${formatPortions(recipe.totalPortions)} across the week',
+  ];
   final keeps = recipe.keepsForDays;
   if (keeps != null) parts.add('keeps $keeps d');
   if (recipe.freezable) parts.add('freezable');
@@ -32,7 +37,7 @@ String recipeSummaryLine(RecipeCookPlan recipe) {
 String coversLine(CookSession session) {
   final covers = session.covers;
   final slots = {for (final m in covers) m.mealSlot.toLowerCase()};
-  final portions = '${session.totalPortions} portions';
+  final portions = formatPortions(session.totalPortions);
 
   if (slots.length == 1) {
     // Distinct days, one shared slot.

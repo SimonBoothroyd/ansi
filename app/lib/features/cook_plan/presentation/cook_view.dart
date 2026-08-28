@@ -38,13 +38,16 @@ class CookView extends ConsumerWidget {
       ),
       child: plan.when(
         loading: () => const Center(child: FCircularProgress()),
-        error: (e, _) => Center(
-          child: Text(
-            'Could not work out the cook plan.\n$e',
-            textAlign: TextAlign.center,
-            style: miseMono(size: 13, color: MiseColors.muted),
-          ),
-        ),
+        error: (e, _) {
+          debugPrint('cook plan failed: $e');
+          return Center(
+            child: Text(
+              'Could not work out the cook plan.',
+              textAlign: TextAlign.center,
+              style: miseMono(size: 13, color: MiseColors.muted),
+            ),
+          );
+        },
         data: (data) => data.isEmpty
             ? const _EmptyCookPlan()
             : ListView(

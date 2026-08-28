@@ -90,13 +90,16 @@ class WeekView extends HookConsumerWidget {
       ),
       child: week.when(
         loading: () => const Center(child: FCircularProgress()),
-        error: (e, _) => Center(
-          child: Text(
-            'Could not load the week.\n$e',
-            textAlign: TextAlign.center,
-            style: miseMono(size: 13, color: MiseColors.muted),
-          ),
-        ),
+        error: (e, _) {
+          debugPrint('week load failed: $e');
+          return Center(
+            child: Text(
+              'Could not load the week.',
+              textAlign: TextAlign.center,
+              style: miseMono(size: 13, color: MiseColors.muted),
+            ),
+          );
+        },
         data: (plan) => (plan == null || plan.entries.isEmpty)
             ? _EmptyWeek(weekStart: weekStart)
             : ListView(
@@ -335,14 +338,25 @@ class _DayCard extends StatelessWidget {
                 dayOfWeek: dayOfWeek,
               ),
               child: DashedBorderBox(
-                child: Text(
-                  '＋ Add a meal',
-                  textAlign: TextAlign.center,
-                  style: miseMono(
-                    size: 11,
-                    color: MiseColors.herb,
-                    letterSpacing: 0.5,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      FLucideIcons.plus,
+                      size: 12,
+                      color: MiseColors.herb,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Add a meal',
+                      textAlign: TextAlign.center,
+                      style: miseMono(
+                        size: 11,
+                        color: MiseColors.herb,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -450,7 +464,18 @@ class _DishRow extends ConsumerWidget {
 class _SharedTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Text('⇄ shared', style: miseMono(size: 10, color: MiseColors.muted));
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(
+          FLucideIcons.arrowLeftRight,
+          size: 10,
+          color: MiseColors.muted,
+        ),
+        const SizedBox(width: 4),
+        Text('shared', style: miseMono(size: 10, color: MiseColors.muted)),
+      ],
+    );
   }
 }
 

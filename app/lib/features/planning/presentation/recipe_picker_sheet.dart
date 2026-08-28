@@ -159,8 +159,17 @@ class _RecipePickerSheet extends HookConsumerWidget {
             if (alreadyThisWeek.isNotEmpty && query.value.isEmpty)
               _AlreadyThisWeek(
                 items: alreadyThisWeek,
-                onPick: (id, title) =>
-                    pick(RecipeSummary(id: id, title: title, servingsBase: 1)),
+                onPick: (id, title) {
+                  // Hand the confirm sheet the real summary (shelf life drives
+                  // its "same batch" hint); a fabricated one only if the
+                  // recipe vanished from the list mid-build.
+                  final real = recipes.where((r) => r.id == id);
+                  pick(
+                    real.isNotEmpty
+                        ? real.first
+                        : RecipeSummary(id: id, title: title, servingsBase: 1),
+                  );
+                },
               ),
             Expanded(
               child: tab.value == 0
@@ -183,14 +192,25 @@ class _RecipePickerSheet extends HookConsumerWidget {
                 context.push('/recipes/new');
               },
               child: DashedBorderBox(
-                child: Text(
-                  '＋ new recipe — build it from scratch',
-                  textAlign: TextAlign.center,
-                  style: miseMono(
-                    size: 11,
-                    color: MiseColors.herb,
-                    letterSpacing: 0.5,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      FLucideIcons.plus,
+                      size: 12,
+                      color: MiseColors.herb,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'new recipe — build it from scratch',
+                      textAlign: TextAlign.center,
+                      style: miseMono(
+                        size: 11,
+                        color: MiseColors.herb,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
