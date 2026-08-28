@@ -42,9 +42,9 @@ path is exactly where the step-7 empty-first-sync bug lived).
       ingredients; local parity), under the post-0008 template-household model.
 - [ ] `cloud-setup.md`: dashboard-only config checklist with expected values
       (auth hook enabled, JWT audience `authenticated`, JWKS URI, redirect
-      URLs, email-confirm state) + a dated **"last verified" ledger**; the
-      stale "onboarding users then join Home" line updated for the template
-      clone model.
+      URLs, email-confirm state) + a dated **"last verified" ledger**. (The
+      stale "onboarding users then join Home" line was already rewritten for
+      the template-clone model by the 7.4 hardening sweep.)
 - [ ] One real Google browser sign-in performed (human task — the only
       non-scriptable check), recorded in the ledger; tracker row retired.
 - [ ] Tests cover the new logic (stream-YAML drift check at minimum).
@@ -60,7 +60,8 @@ path is exactly where the step-7 empty-first-sync bug lived).
 4. Seed cloud (`supabase db query --linked -f …`), verify counts via the
    read-only block.
 5. Runbook checklist + ledger; first ledger entry from this plan's run.
-6. Human: Google sign-in (after the step-7 session fixes are merged).
+6. Human: Google sign-in (unblocked — the step-7 session fixes merged with
+   the 7.4 hardening sweep).
 
 ## Decision log
 

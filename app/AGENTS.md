@@ -129,12 +129,13 @@ The loop (agents drive it with the iOS Simulator tools; humans use `flutter run`
 
 **The smoke test.** `make test-sim` runs `integration_test/app_test.dart`
 against whichever simulator is booted (boot one first — step 1 above), driving
-the real UI over a real PowerSync database. Since step 7's auth gate it needs
-the **local stack running** (`make db-up`) and a **signed-in dev user** — check
-the `make test-sim` row in
-[`../docs/exec-plans/tech-debt-tracker.md`](../docs/exec-plans/tech-debt-tracker.md)
-for the smoke's current status before relying on it as a step-done gate. It is
-deliberately *not* in CI (macOS runners are slow and expensive at hobby scale).
+the real UI over the real step-7 stack with **live sync**. It needs the **local
+stack running** (`make db-up`) and nothing else: the suite is **auth-aware and
+self-provisioning** (it creates a throwaway two-person household over HTTP,
+then signs in through the real gate). Three scenarios: auth → library
+(create/edit a recipe incl. method steps, jsonb + child-diff round-trips) →
+week/cook/shop. It is deliberately *not* in CI (macOS runners are slow and
+expensive at hobby scale).
 
 Notes:
 

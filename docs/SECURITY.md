@@ -54,5 +54,9 @@ Hobby scale, but the basics are non-negotiable.
       only auto-grant `Dxt`). Grant `authenticated` what its policies allow (no
       `delete` — deletes are soft), `grant all` to `service_role`, and grant
       server-only tables to no client role. See `migrations/0002_ingredients.sql`.
-- [ ] Added to the PowerSync publication and sync rules (`docker/powersync.yaml`)
+- [ ] Added to the PowerSync publication and sync rules (`docker/powersync.yaml`).
+      A server-only *column* must be excluded from the rule's SELECT (an
+      explicit column list, as `household_member` does for `auth_user_id`) —
+      what a rule selects is exactly what ships to devices; omitting the column
+      from the client schema alone does not keep it off the wire
 - [ ] No secret or PII in a synced column that shouldn't leave the server
