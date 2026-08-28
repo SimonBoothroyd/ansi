@@ -18,7 +18,7 @@ library;
 // Freezed needs each class's private `._` constructor before the factory (for
 // the custom getters), which trips the unnamed-first sort lint.
 // ignore_for_file: sort_unnamed_constructors_first
-import 'dart:math' show min;
+import 'dart:math' show max, min;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -167,7 +167,9 @@ abstract class CookPlan with _$CookPlan {
 /// otherwise it opens a new session. O(n log n).
 ///
 /// A recipe with no shelf life (unknown) is never split — it yields a single
-/// session covering every meal.
+/// session covering every meal. A *negative* shelf life (bad data) is clamped
+/// to 0 ("eat the day you cook") rather than trusted — a negative window would
+/// split even same-day meals into separate cooks.
 List<CookSession> clusterSessions(PlannedRecipe recipe) {
   if (recipe.meals.isEmpty) return const [];
 
@@ -175,18 +177,24 @@ List<CookSession> clusterSessions(PlannedRecipe recipe) {
   final meals = [...recipe.meals]
     ..sort((a, b) => a.dayOfWeek.compareTo(b.dayOfWeek));
 
+  // Clamp negative windows to 0 once, and carry the clamped values onto the
+  // sessions so [CookSession.frozenDays] agrees with the clustering below.
+  final rawKeeps = recipe.keepsForDays;
+  final keeps = rawKeeps == null ? null : max(0, rawKeeps);
+  final rawFreezer = recipe.freezerDays;
+  final freezerDays = rawFreezer == null ? null : max(0, rawFreezer);
+
   CookSession sessionFrom(int cookDay, List<CoveredMeal> covers) => CookSession(
     recipeId: recipe.recipeId,
     recipeTitle: recipe.title,
     servingsBase: recipe.servingsBase,
     cookDay: cookDay,
-    keepsForDays: recipe.keepsForDays,
+    keepsForDays: keeps,
     freezable: recipe.freezable,
-    freezerDays: recipe.freezerDays,
+    freezerDays: freezerDays,
     covers: List.unmodifiable(covers),
   );
 
-  final keeps = recipe.keepsForDays;
   // Unknown shelf life: one session, no splitting (never invent a window).
   if (keeps == null) {
     return [sessionFrom(meals.first.dayOfWeek, meals)];
@@ -198,7 +206,6 @@ List<CookSession> clusterSessions(PlannedRecipe recipe) {
 
   for (final meal in meals.skip(1)) {
     final gap = meal.dayOfWeek - start;
-    final freezerDays = recipe.freezerDays;
     final freezerReaches =
         recipe.freezable && (freezerDays == null || gap <= freezerDays);
     if (gap <= keeps || freezerReaches) {
@@ -248,7 +255,15 @@ BatchHint? batchHintFor({
     final days = session.coveredDays;
     if (!days.contains(newDay)) continue;
     final others = days.where((d) => d != newDay).toList();
-    if (others.isEmpty) return null;
+    if (others.isEmpty) {
+      // `coveredDays` is distinct, so a second meal on an already-planned day
+      // leaves no *other* day — but it still shares the batch (clusterSessions
+      // merges same-day meals into one session). More than one covered meal in
+      // the session means the day was already planned: same-batch, same day.
+      return session.covers.length > 1
+          ? (withDay: session.cookDay, frozen: false)
+          : null;
+    }
     final withDay = others.contains(session.cookDay)
         ? session.cookDay
         : others.first;

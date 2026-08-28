@@ -102,6 +102,67 @@ void main() {
     });
   });
 
+  group('clusterSessions — window boundaries', () {
+    test('a gap exactly equal to keeps stays one session', () {
+      // Mon + Thu, keeps 3 → gap 3 ≤ 3: the boundary day is still fresh.
+      final s = clusterSessions(_recipe({0: 2, 3: 2}, keeps: 3));
+      expect(s, hasLength(1));
+      expect(s.single.coveredDays, [0, 3]);
+    });
+
+    test('a gap of keeps + 1 splits', () {
+      // Mon + Fri, keeps 3 → gap 4 > 3 → two batches.
+      final s = clusterSessions(_recipe({0: 2, 4: 2}, keeps: 3));
+      expect(s, hasLength(2));
+      expect(s[0].coveredDays, [0]);
+      expect(s[1].coveredDays, [4]);
+    });
+
+    test('a gap exactly equal to freezerDays merges frozen', () {
+      // Mon + Fri, keeps 2, freezerDays 4 → gap 4 ≤ 4: freezer just reaches.
+      final s = clusterSessions(
+        _recipe({0: 2, 4: 2}, keeps: 2, freezable: true, freezerDays: 4),
+      );
+      expect(s, hasLength(1));
+      expect(s.single.coveredDays, [0, 4]);
+      expect(s.single.frozenDays, [4]);
+    });
+
+    test('a gap of freezerDays + 1 splits', () {
+      // Mon + Sat, keeps 2, freezerDays 4 → gap 5 > 4 → the freezer cannot
+      // rescue it.
+      final s = clusterSessions(
+        _recipe({0: 2, 5: 2}, keeps: 2, freezable: true, freezerDays: 4),
+      );
+      expect(s, hasLength(2));
+      expect(s[0].coveredDays, [0]);
+      expect(s[1].coveredDays, [5]);
+    });
+
+    test('a negative keeps_for_days is clamped to 0 (same-day still one '
+        'cook)', () {
+      // Bad data must not split two Monday meals into two cooks of the same
+      // dish on the same day.
+      final s = clusterSessions(
+        _recipe(const {}, keeps: -2).copyWith(
+          meals: const [
+            CoveredMeal(dayOfWeek: 0, mealSlot: 'Lunch', portions: 1),
+            CoveredMeal(dayOfWeek: 0, mealSlot: 'Dinner', portions: 2),
+          ],
+        ),
+      );
+      expect(s, hasLength(1));
+      expect(s.single.totalPortions, 3);
+      // The clamped value rides on the session, so frozenDays stays sane too.
+      expect(s.single.keepsForDays, 0);
+      expect(s.single.frozenDays, isEmpty);
+
+      // Clamped to 0, not further: a next-day meal is past the window.
+      final split = clusterSessions(_recipe({0: 2, 1: 2}, keeps: -2));
+      expect(split, hasLength(2));
+    });
+  });
+
   group('clusterSessions — edge cases', () {
     test('unknown shelf life never splits', () {
       // No keeps → one session even for far-apart meals (never a made-up
@@ -191,6 +252,19 @@ void main() {
       final hint = batchHintFor(
         plannedDays: const [0],
         newDay: 3,
+        keepsForDays: 4,
+      );
+      expect(hint, isNotNull);
+      expect(hint!.withDay, 0);
+      expect(hint.frozen, isFalse);
+    });
+
+    test('a second meal on an already-planned day shares that batch', () {
+      // Curry already Monday; adding another Monday meal → same batch, same
+      // day (clusterSessions merges same-day meals — the hint must agree).
+      final hint = batchHintFor(
+        plannedDays: const [0],
+        newDay: 0,
         keepsForDays: 4,
       );
       expect(hint, isNotNull);
