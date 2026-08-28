@@ -46,7 +46,7 @@ void main() {
 
   setUp(() async {
     (db, dir) = await openTestDb();
-    repo = SqlitePlanningRepository(db);
+    repo = SqlitePlanningRepository(db, householdId: 'h');
   });
 
   tearDown(() => closeTestDb(db, dir));
@@ -59,6 +59,17 @@ void main() {
       await _insertMember(db, 'm1', 'Ada', 0);
       final members = await repo.members();
       expect(members.map((m) => m.displayName), ['Ada', 'Jun']);
+    });
+
+    test('a tombstoned member is not pickable', () async {
+      await _insertMember(db, 'm1', 'Ada', 0);
+      await _insertMember(db, 'm2', 'Gone', 1);
+      await db.execute(
+        "UPDATE household_member SET deleted_at = '2026-01-01T00:00:00Z' "
+        "WHERE id = 'm2'",
+      );
+      final members = await repo.members();
+      expect(members.map((m) => m.displayName), ['Ada']);
     });
   });
 

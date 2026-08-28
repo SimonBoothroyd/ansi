@@ -49,7 +49,7 @@ void main() {
   setUp(() async {
     (db, dir) = await openTestDb();
     repo = SqliteCookPlanRepository(db);
-    planning = SqlitePlanningRepository(db);
+    planning = SqlitePlanningRepository(db, householdId: 'h');
   });
 
   tearDown(() => closeTestDb(db, dir));

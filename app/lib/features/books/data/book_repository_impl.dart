@@ -10,7 +10,6 @@ library;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/config/dev_household.dart';
 import '../../recipes/domain/recipe.dart' show RecipeSummary;
 import '../domain/book.dart';
 import '../domain/book_repository.dart';
@@ -18,23 +17,25 @@ import '../domain/book_repository.dart';
 const _uuid = Uuid();
 
 class SqliteBookRepository implements BookRepository {
-  const SqliteBookRepository(this._db, {String householdId = kDevHouseholdId})
+  const SqliteBookRepository(this._db, {required String householdId})
     : _householdId = householdId;
 
   final SqliteConnection _db;
 
-  /// The household stamped on rows this repo writes. Defaults to the throwaway
-  /// dev household for tests; the app passes the signed-in household.
+  /// The household stamped on rows this repo writes (injected — the app passes
+  /// the signed-in household, tests pass their own).
   final String _householdId;
 
   @override
   Stream<List<Book>> watchLibrary() {
-    // The watched query references all three source tables so PowerSync
-    // re-fires the stream on any change to the library tree; the rows are
-    // ignored and a full re-assemble runs via [_loadLibrary].
+    // The watched query references all three source tables AND selects a
+    // column from each: SQLite drops a LEFT JOIN with no selected column, and
+    // a dropped join is a table PowerSync never registers as a trigger
+    // ([[mise-powersync-watch-left-join]]). The rows are ignored; each fire
+    // runs a full re-assemble via [_loadLibrary].
     return _db
         .watch(
-          'SELECT b.id FROM book b '
+          'SELECT b.id, s.id, r.id FROM book b '
           'LEFT JOIN book_section s ON s.book_id = b.id '
           'LEFT JOIN recipe r ON r.book_id = b.id '
           'WHERE b.deleted_at IS NULL LIMIT 1',

@@ -68,8 +68,8 @@ void main() {
 
   setUp(() async {
     (db, dir) = await openTestDb();
-    repo = SqliteShoppingRepository(db);
-    planning = SqlitePlanningRepository(db);
+    repo = SqliteShoppingRepository(db, householdId: 'h');
+    planning = SqlitePlanningRepository(db, householdId: 'h');
     await _insertIngredient(db, 'onion', 'Yellow onion', 'produce', 'piece');
     await _insertIngredient(db, 'flour', 'Flour', 'baking', 'g');
   });
@@ -231,6 +231,132 @@ void main() {
 
     await repo.removeEntry(entryId: item.entryId!);
     expect((await repo.watchShoppingList(_week).first).isEmpty, isTrue);
+  });
+
+  test('two live entries for one ingredient merge losslessly', () async {
+    // Two offline devices each touched Flour; after sync both rows are live
+    // (no unique index — one would make the offline dupe fail upload). The
+    // list must union both top-ups, keep the checked state, and anchor on the
+    // oldest row — not keep whichever row happened to iterate last.
+    await _insertRecipe(db, 'cake', 'Cake', lines: [('flour', 100, g)]);
+    await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'cake',
+      eaterIds: ['a', 'b'],
+    );
+    // Simulate the merged two-device state directly (each device did a
+    // find-or-create while offline).
+    Future<void> insertEntry(String id, String createdAt, int checked) =>
+        db.execute(
+          'INSERT INTO shopping_list_entry (id, household_id, ingredient_id, '
+          'checked, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, 'h', 'flour', checked, createdAt, createdAt],
+        );
+    Future<void> insertTopUp(String id, String entryId, double qty) =>
+        db.execute(
+          'INSERT INTO shopping_list_contribution (id, household_id, '
+          'entry_id, source_type, quantity, unit, created_at, updated_at) '
+          "VALUES (?, ?, ?, 'manual', ?, 'g', ?, ?)",
+          [
+            id,
+            'h',
+            entryId,
+            qty,
+            '2026-08-24T12:00:00Z',
+            '2026-08-24T12:00:00Z',
+          ],
+        );
+    await insertEntry('dev-a', '2026-08-24T09:00:00Z', 0);
+    await insertEntry('dev-b', '2026-08-24T10:00:00Z', 1); // checked on B
+    await insertTopUp('top-a', 'dev-a', 50);
+    await insertTopUp('top-b', 'dev-b', 25);
+
+    final flour =
+        (await repo.watchShoppingList(_week).first).groups.single.items.single;
+    expect(flour.entryId, 'dev-a'); // oldest row is canonical
+    expect(flour.checked, isTrue); // any-checked survives the merge
+    expect(flour.totals.single.amount, 175); // 100 + 50 + 25 — nothing lost
+    expect(
+      flour.contributions.where((c) => c.source == ContributionSource.manual),
+      hasLength(2),
+    );
+
+    // A write folds the duplicates into the canonical row (lossless: the
+    // dupe's contributions are re-pointed, checked propagated, dupe
+    // tombstoned) so every device converges on one entry.
+    await repo.addTopUp(ingredientId: 'flour', quantity: 10, unit: g);
+    final live = await db.getAll(
+      'SELECT id, checked FROM shopping_list_entry '
+      "WHERE ingredient_id = 'flour' AND deleted_at IS NULL",
+    );
+    expect(live.map((r) => r['id']), ['dev-a']);
+    expect(live.single['checked'], 1);
+    final contribs = await db.getAll(
+      'SELECT entry_id FROM shopping_list_contribution '
+      'WHERE deleted_at IS NULL',
+    );
+    expect(contribs.map((r) => r['entry_id']).toSet(), {'dev-a'});
+    final merged =
+        (await repo.watchShoppingList(_week).first).groups.single.items.single;
+    expect(merged.totals.single.amount, 185); // 100 + 50 + 25 + 10
+  });
+
+  test('an unknown persisted unit is a note, never summed as pieces', () async {
+    await _insertIngredient(db, 'spice', 'Mystery Spice', 'pantry', 'g');
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _insertRecipe(db, 'stew', 'Stew', lines: [('spice', 100, g)]);
+    // A line persisted with a unit id this build doesn't know (schema drift /
+    // newer app wrote it).
+    await db.execute(
+      'INSERT INTO recipe_line_item (id, household_id, group_id, '
+      'ingredient_id, quantity, unit, sort_order, created_at, updated_at) '
+      "VALUES ('stew-li9', 'h', 'stew-g', 'spice', 2, 'scoop', 9, ?, ?)",
+      [now, now],
+    );
+    await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'stew',
+      eaterIds: ['a', 'b'],
+    );
+
+    final item =
+        (await repo.watchShoppingList(_week).first).groups.single.items.single;
+    // Only the honest 100 g total — no invented "2 pieces" line.
+    expect(item.totals.single.amount, 100);
+    expect(item.totals.single.unit, g);
+    expect(
+      item.contributions.map((c) => c.label),
+      anyElement(contains('unrecognised unit "scoop"')),
+    );
+  });
+
+  test('the watch re-fires on an ingredient vocab change', () async {
+    await _insertRecipe(db, 'cake', 'Cake', lines: [('flour', 100, g)]);
+    await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'cake',
+      eaterIds: ['a', 'b'],
+    );
+
+    final lists = repo.watchShoppingList(_week);
+    final updated = lists.firstWhere(
+      (l) =>
+          l.groups.any((g) => g.items.any((i) => i.name == 'Bread Flour')) &&
+          l.groups.first.label == 'Grains',
+    );
+    // The vocab row changes (name + aisle) with no shopping-table write; the
+    // list must still re-derive — `ingredient` is part of the watch set.
+    await db.execute(
+      "UPDATE ingredient SET canonical_name = 'Bread Flour', "
+      "category = 'grains' WHERE id = 'flour'",
+    );
+    await updated.timeout(const Duration(seconds: 5));
   });
 
   test('a deleted recipe drops a checked ingredient', () async {

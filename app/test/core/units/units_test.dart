@@ -35,6 +35,21 @@ void main() {
       expect((r as Err).failure.code, 'unit/no_density');
     });
 
+    test('treats a non-positive density exactly like no density', () {
+      // A zero density would fabricate numbers: g→ml divides (Infinity), ml→g
+      // multiplies (0 g). Both must be the honest `unit/no_density` failure,
+      // never an invented quantity (invariant 3).
+      for (final density in [0.0, -1.0, double.nan]) {
+        final gToMl = convert(Quantity(100, g), to: ml, densityGPerMl: density);
+        expect(gToMl.isOk, isFalse, reason: 'g→ml @ $density');
+        expect((gToMl as Err).failure.code, 'unit/no_density');
+
+        final mlToG = convert(Quantity(100, ml), to: g, densityGPerMl: density);
+        expect(mlToG.isOk, isFalse, reason: 'ml→g @ $density');
+        expect((mlToG as Err).failure.code, 'unit/no_density');
+      }
+    });
+
     test('fails cross-family conversion (count → mass)', () {
       final r = convert(Quantity(2, pieces), to: g);
       expect(r.isOk, isFalse);

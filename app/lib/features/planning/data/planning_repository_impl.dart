@@ -13,21 +13,19 @@ import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/config/dev_household.dart';
 import '../domain/planning.dart';
 import '../domain/planning_repository.dart';
 
 const _uuid = Uuid();
 
 class SqlitePlanningRepository implements PlanningRepository {
-  const SqlitePlanningRepository(
-    this._db, {
-    String householdId = kDevHouseholdId,
-  }) : _householdId = householdId;
+  const SqlitePlanningRepository(this._db, {required String householdId})
+    : _householdId = householdId;
 
   final SqliteConnection _db;
 
-  /// The household stamped on rows this repo writes (dev default for tests).
+  /// The household stamped on rows this repo writes (injected — the app passes
+  /// the signed-in household, tests pass their own).
   final String _householdId;
 
   /// The ISO date (YYYY-MM-DD) a week is addressed by — its Monday.
@@ -120,6 +118,7 @@ class SqlitePlanningRepository implements PlanningRepository {
   Future<List<Member>> members() async {
     final rows = await _db.getAll(
       'SELECT id, display_name FROM household_member '
+      'WHERE deleted_at IS NULL '
       'ORDER BY sort_order, display_name',
     );
     return [

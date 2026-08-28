@@ -6,11 +6,13 @@
 /// session scale factor. It overlays the persisted check-off + manual/free-text
 /// rows and hands everything to the pure [buildShoppingList].
 ///
-/// The watch query references every source table AND selects a column from
-/// each — including the two shopping tables via a `LEFT JOIN … ON 1=1` — so
-/// PowerSync's `EXPLAIN`-based detection registers all of them as triggers.
-/// An unselected LEFT JOIN would be dropped and its table silently missed
+/// The watch query references every table the load path reads AND selects a
+/// column from each — the two shopping tables and the `ingredient` vocab
+/// (aisle/density/name) via a `LEFT JOIN … ON 1=1` — so PowerSync's
+/// `EXPLAIN`-based detection registers all of them as triggers. An unselected
+/// LEFT JOIN would be dropped and its table silently missed
 /// ([[mise-powersync-watch-left-join]]); selecting a column from each keeps it.
+/// `test/core/sync/watch_coverage_test.dart` pins this structurally.
 ///
 /// Writes go through the local VIEWS, so no UPSERT (a view rejects
 /// `ON CONFLICT`): entry creation is a find-or-create with a plain INSERT.
@@ -21,7 +23,6 @@ import 'dart:convert';
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/config/dev_household.dart';
 import '../../../core/units/units.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../planning/domain/planning.dart' show mondayOf;
@@ -35,15 +36,24 @@ const _weekdayShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const _uuid = Uuid();
 
+/// A recipe line as the shopping list needs it. `unit` is null when the
+/// persisted id isn't a known unit — `rawUnit` keeps the string for the
+/// breakdown's unconverted note.
+typedef _LineItem = ({
+  String ingredientId,
+  double? quantity,
+  Unit? unit,
+  String? rawUnit,
+});
+
 class SqliteShoppingRepository implements ShoppingRepository {
-  const SqliteShoppingRepository(
-    this._db, {
-    String householdId = kDevHouseholdId,
-  }) : _householdId = householdId;
+  const SqliteShoppingRepository(this._db, {required String householdId})
+    : _householdId = householdId;
 
   final SqliteConnection _db;
 
-  /// The household stamped on rows this repo writes (dev default for tests).
+  /// The household stamped on rows this repo writes (injected — the app passes
+  /// the signed-in household, tests pass their own).
   final String _householdId;
 
   String _weekKey(DateTime weekStart) {
@@ -56,12 +66,14 @@ class SqliteShoppingRepository implements ShoppingRepository {
   @override
   Stream<ShoppingList> watchShoppingList(DateTime weekStart) {
     final key = _weekKey(weekStart);
-    // Reference every source table and select a column from each so all seven
-    // become watch triggers (see the library doc). The shopping tables aren't
-    // tied to the week, so they're cross-joined (`ON 1=1`) purely to be seen.
+    // Reference every table the load reads and select a column from each so
+    // all eight become watch triggers (see the library doc). The shopping and
+    // ingredient tables aren't tied to the week, so they're cross-joined
+    // (`ON 1=1`) purely to be seen.
     return _db
         .watch(
-          'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, se.id, sc.id '
+          'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, se.id, sc.id, '
+          'i.id '
           'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
@@ -70,6 +82,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
           'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
           'LEFT JOIN shopping_list_entry se ON 1 = 1 '
           'LEFT JOIN shopping_list_contribution sc ON 1 = 1 '
+          'LEFT JOIN ingredient i ON 1 = 1 '
           'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
           parameters: [key],
         )
@@ -146,13 +159,18 @@ class SqliteShoppingRepository implements ShoppingRepository {
       final items = lineItems[recipe.recipeId] ?? const [];
       for (final session in recipe.sessions) {
         for (final item in items) {
-          final scaled = item.quantity == null
+          // An unrecognised unit can't be scaled (it might even be imprecise);
+          // pass the raw quantity through — the domain surfaces it as an
+          // unconverted note and keeps it out of the totals.
+          final unit = item.unit;
+          final scaled = item.quantity == null || unit == null
               ? null
-              : scale(Quantity(item.quantity!, item.unit), session.scaleFactor);
+              : scale(Quantity(item.quantity!, unit), session.scaleFactor);
           contributions.add((
             ingredientId: item.ingredientId,
-            quantity: scaled?.amount,
-            unit: item.unit,
+            quantity: unit == null ? item.quantity : scaled?.amount,
+            unit: unit,
+            rawUnit: item.rawUnit,
             recipeTitle: recipe.title,
             cookDay: session.cookDay,
             batched: batched,
@@ -163,10 +181,9 @@ class SqliteShoppingRepository implements ShoppingRepository {
     return contributions;
   }
 
-  Future<
-    Map<String, List<({String ingredientId, double? quantity, Unit unit})>>
-  >
-  _loadLineItems(Set<String> recipeIds) async {
+  Future<Map<String, List<_LineItem>>> _loadLineItems(
+    Set<String> recipeIds,
+  ) async {
     if (recipeIds.isEmpty) return const {};
     final placeholders = List.filled(recipeIds.length, '?').join(', ');
     final rows = await _db.getAll(
@@ -177,15 +194,19 @@ class SqliteShoppingRepository implements ShoppingRepository {
       'ORDER BY li.sort_order, li.created_at',
       recipeIds.toList(),
     );
-    final byRecipe =
-        <String, List<({String ingredientId, double? quantity, Unit unit})>>{};
+    final byRecipe = <String, List<_LineItem>>{};
     for (final row in rows) {
       final ingredientId = row['ingredient_id'] as String?;
       if (ingredientId == null) continue;
+      // An unknown persisted unit id stays null (rawUnit keeps the string) —
+      // NOT a `pieces` fallback, which would let the total sum an invented
+      // unit (invariant 3: honest numbers).
+      final rawUnit = row['unit'] as String?;
       (byRecipe[row['recipe_id'] as String] ??= []).add((
         ingredientId: ingredientId,
         quantity: (row['quantity'] as num?)?.toDouble(),
-        unit: unitById(row['unit'] as String? ?? '') ?? pieces,
+        unit: rawUnit == null ? null : unitById(rawUnit),
+        rawUnit: rawUnit,
       ));
     }
     return byRecipe;
@@ -194,7 +215,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
   Future<(List<ShoppingEntryInput>, Map<String, List<ManualContributionInput>>)>
   _loadOverlay() async {
     final entryRows = await _db.getAll(
-      'SELECT id, ingredient_id, free_text, category, checked, unit '
+      'SELECT id, ingredient_id, free_text, category, checked, unit, '
+      'created_at '
       'FROM shopping_list_entry WHERE deleted_at IS NULL',
     );
     final entries = [
@@ -206,6 +228,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
           category: r['category'] as String?,
           checked: (r['checked'] as int? ?? 0) == 1,
           unit: unitById(r['unit'] as String? ?? ''),
+          createdAt: r['created_at'] as String?,
         ),
     ];
 
@@ -253,16 +276,54 @@ class SqliteShoppingRepository implements ShoppingRepository {
   // --- Writes ----------------------------------------------------------------
 
   /// Finds the live entry for [ingredientId] or creates one, returning its id.
+  ///
+  /// Two offline devices can each create an entry for the same ingredient and
+  /// merge later — no unique index guards this (one would make the offline
+  /// duplicate fail upload and lose its data). Instead every device converges
+  /// on the same canonical row: the *oldest* live entry (created_at, then id —
+  /// the same order [buildShoppingList] merges by). When duplicates are seen
+  /// here, they're folded into the canonical row losslessly — contributions
+  /// re-pointed, checked propagated (any-checked) — then soft-deleted.
   Future<String> _findOrCreateIngredientEntry(
     SqliteWriteContext tx,
     String ingredientId,
   ) async {
-    final existing = await tx.getOptional(
-      'SELECT id FROM shopping_list_entry '
-      'WHERE ingredient_id = ? AND deleted_at IS NULL LIMIT 1',
+    final rows = await tx.getAll(
+      'SELECT id, checked FROM shopping_list_entry '
+      'WHERE ingredient_id = ? AND deleted_at IS NULL '
+      'ORDER BY created_at, id',
       [ingredientId],
     );
-    if (existing != null) return existing['id'] as String;
+    if (rows.isNotEmpty) {
+      final canonicalId = rows.first['id'] as String;
+      if (rows.length > 1) {
+        final dupIds = [for (final r in rows.skip(1)) r['id'] as String];
+        final anyDupChecked = rows
+            .skip(1)
+            .any((r) => (r['checked'] as int? ?? 0) == 1);
+        final now = _now();
+        final placeholders = List.filled(dupIds.length, '?').join(', ');
+        // Keep the duplicates' manual top-ups by re-pointing them first.
+        await tx.execute(
+          'UPDATE shopping_list_contribution SET entry_id = ?, updated_at = ? '
+          'WHERE entry_id IN ($placeholders) AND deleted_at IS NULL',
+          [canonicalId, now, ...dupIds],
+        );
+        if (anyDupChecked) {
+          await tx.execute(
+            'UPDATE shopping_list_entry SET checked = 1, updated_at = ? '
+            'WHERE id = ? AND checked = 0',
+            [now, canonicalId],
+          );
+        }
+        await tx.execute(
+          'UPDATE shopping_list_entry SET deleted_at = ?, updated_at = ? '
+          'WHERE id IN ($placeholders)',
+          [now, now, ...dupIds],
+        );
+      }
+      return canonicalId;
+    }
 
     final id = _uuid.v4();
     final now = _now();
