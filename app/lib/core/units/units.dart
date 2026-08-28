@@ -123,7 +123,9 @@ Unit? unitById(String id) => _byId[id];
 ///
 /// - Within a family, converts by the fixed ratio table.
 /// - Across the mass↔volume boundary, converts using [densityGPerMl] (grams per
-///   ml); without it, returns an `unit/no_density` [Failure].
+///   ml); without it, returns an `unit/no_density` [Failure]. A non-positive
+///   (or NaN) density is treated exactly like a missing one — dividing by zero
+///   would fabricate `Infinity`/`0` totals (invariant 3, honest numbers).
 /// - [UnitFamily.count] converts only to the same unit; [UnitFamily.imprecise]
 ///   never converts (`unit/imprecise`). Any other cross-family pair (e.g. count
 ///   to mass) is an `unit/incompatible` [Failure].
@@ -168,7 +170,8 @@ Result<Quantity> convert(
       ),
     );
   }
-  if (densityGPerMl == null) {
+  // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
+  if (densityGPerMl == null || !(densityGPerMl > 0)) {
     return const Err(
       Failure('unit/no_density', 'mass↔volume conversion needs a density'),
     );
