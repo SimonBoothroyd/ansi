@@ -442,6 +442,12 @@ class _LineRow extends StatelessWidget {
 
   String _measure(LineItem item) {
     final qty = formatQuantity(item.quantity);
+    // A named measure reads as "2 potato, large" (falls back to the stored
+    // count unit below while the measure row hasn't synced).
+    final measure = item.measure;
+    if (measure != null) {
+      return qty.isEmpty ? measure.label : '$qty ${measure.label}';
+    }
     if (item.unit.family == UnitFamily.count) {
       return qty.isEmpty ? item.unit.label : qty;
     }

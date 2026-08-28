@@ -6,10 +6,14 @@ library;
 
 import 'ingredient.dart';
 
-// ignore: one_member_abstracts — an interface for DI/testing, not a callback.
 abstract interface class IngredientRepository {
   /// Ingredients whose name/aliases match [query] (exact then prefix),
   /// canonical-name ordered, capped at [limit]. Empty [query] → the first
   /// [limit] ingredients (so the picker has something to show unfiltered).
   Future<List<Ingredient>> search(String query, {int limit = 30});
+
+  /// The live vocab row with [id], or null when it doesn't exist (or is
+  /// tombstoned). Resolves an ingredient a caller only knows by reference —
+  /// e.g. the edit-top-up sheet filtering its unit picker.
+  Future<Ingredient?> byId(String id);
 }

@@ -67,6 +67,7 @@ const schema = Schema([
     Column.text('ingredient_id'),
     Column.real('quantity'),
     Column.text('unit'),
+    Column.text('measure_id'), // → ingredient_measure.id (nullable, step 7.6)
     Column.text('note'),
     Column.integer('sort_order'),
     ..._audit,
@@ -110,6 +111,7 @@ const schema = Schema([
     Column.text('source_cook_session_id'), // null in v1 (cook plan is derived)
     Column.real('quantity'), // nullable (a bare non-food item)
     Column.text('unit'),
+    Column.text('measure_id'), // → ingredient_measure.id (nullable, step 7.6)
     Column.text('note'),
     ..._audit,
   ]),
@@ -135,6 +137,16 @@ const schema = Schema([
     Column.text('alias_text'),
     Column.text('match_text'),
     Column.text('source'),
+    ..._audit,
+  ]),
+  // Named per-ingredient measures with gram weights ("potato, large = 299 g")
+  // — the honest count↔mass bridge (step 7.6). Synced with the vocab.
+  Table('ingredient_measure', [
+    Column.text('household_id'),
+    Column.text('ingredient_id'),
+    Column.text('label'),
+    Column.real('grams'),
+    Column.integer('sort_order'),
     ..._audit,
   ]),
 

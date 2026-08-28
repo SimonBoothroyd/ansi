@@ -32,17 +32,24 @@ abstract interface class ShoppingRepository {
   });
 
   /// Adds a manual top-up to an ingredient (find-or-create its entry).
+  ///
+  /// With [measureId], the top-up is counted in that named measure ("2 ×
+  /// potato, large"); [unit] must then be the count unit the row stores as
+  /// its honest fallback (`pieces`).
   Future<void> addTopUp({
     required String ingredientId,
     required double quantity,
     required Unit unit,
+    String? measureId,
   });
 
-  /// Edits an existing manual contribution (a top-up) in place.
+  /// Edits an existing manual contribution (a top-up) in place. [measureId]
+  /// follows the same contract as [addTopUp] (null clears a stored measure).
   Future<void> editContribution({
     required String contributionId,
     required double quantity,
     required Unit unit,
+    String? measureId,
   });
 
   /// Soft-deletes a single manual contribution (removes one top-up, leaving the

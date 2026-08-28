@@ -11,6 +11,7 @@ library;
 // ignore_for_file: sort_unnamed_constructors_first
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 
 part 'recipe.freezed.dart';
@@ -77,6 +78,13 @@ abstract class IngredientGroup with _$IngredientGroup {
 /// One ingredient line: an ingredient (referenced by id, name denormalized for
 /// display) at a [quantity] in a [unit], with an optional [note] ("finely
 /// chopped"). [quantity] is null for imprecise units carrying no number.
+///
+/// A line quantified in a named measure ("2 × potato, large", step 7.6)
+/// carries [measureId] (persisted verbatim — kept even while the measure row
+/// hasn't synced, so an unrelated edit never strips it) and, when the row
+/// resolved, the [measure] itself. Such a line stores `unit = 'piece'`: if
+/// the measure is missing it degrades to an honest count, never invented
+/// grams (invariant 3).
 @freezed
 abstract class LineItem with _$LineItem {
   const LineItem._();
@@ -87,10 +95,14 @@ abstract class LineItem with _$LineItem {
     required String ingredientName,
     required Unit unit,
     double? quantity,
+    String? measureId,
+    Measure? measure,
     String? note,
   }) = _LineItem;
 
-  /// This line as a [Quantity], or null when it carries no number.
+  /// This line as a [Quantity], or null when it carries no number. A measure
+  /// line reads as its stored count ('piece') — the measure's gram weight is
+  /// applied where totals are summed, not here.
   Quantity? get asQuantity =>
       quantity == null ? null : Quantity(quantity!, unit);
 }

@@ -1,14 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mise/core/units/measure.dart';
 import 'package:mise/core/units/units.dart';
 import 'package:mise/features/shopping/domain/shopping.dart';
 
 const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const _potatoLarge = Measure(id: 'm1', label: 'potato, large', grams: 299);
+const _can400 = Measure(id: 'm2', label: 'can (400 ml)', grams: 400);
 
 CookContributionInput _cook(
   String ingredientId,
   double qty,
   Unit? unit, {
   String? rawUnit,
+  Measure? measure,
   String recipe = 'Recipe',
   int cookDay = 0,
   bool batched = false,
@@ -17,9 +22,26 @@ CookContributionInput _cook(
   quantity: qty,
   unit: unit,
   rawUnit: rawUnit ?? unit?.id,
+  measure: measure,
   recipeTitle: recipe,
   cookDay: cookDay,
   batched: batched,
+);
+
+ManualContributionInput _manual(
+  String id,
+  String entryId,
+  double qty,
+  Unit? unit, {
+  Measure? measure,
+  String? note,
+}) => (
+  id: id,
+  entryId: entryId,
+  quantity: qty,
+  unit: unit,
+  measure: measure,
+  note: note,
 );
 
 ShoppingEntryInput _entry(
@@ -127,6 +149,131 @@ void main() {
         expect(totals.map((q) => q.unit.family), contains(UnitFamily.volume));
       }
     });
+
+    test('folds measured amounts into the mass subtotal via gram weights', () {
+      // 2 large potatoes (2 × 299 g) + 100 g = 698 g, one honest mass total.
+      final totals = aggregateQuantities(
+        [Quantity(100, g)],
+        measured: [(amount: 2, measure: _potatoLarge)],
+      );
+      expect(totals, hasLength(1));
+      expect(totals.single.unit.family, UnitFamily.mass);
+      expect(totals.single.amount, closeTo(698, 1e-9));
+    });
+
+    test('measured amounts alone make one mass total (no density needed)', () {
+      final totals = aggregateQuantities(
+        const [],
+        measured: [
+          (amount: 1.5, measure: _can400),
+          (amount: 0.5, measure: _can400),
+        ],
+      );
+      expect(totals.single.amount, closeTo(800, 1e-9));
+      expect(totals.single.unit, g);
+    });
+
+    test('a measure with a non-positive gram weight is never summed', () {
+      // Mirrors the density guard: a bad stored weight must not fabricate
+      // grams — the measured amount simply stays out of the totals.
+      const bad = Measure(id: 'mb', label: 'bad', grams: 0);
+      final totals = aggregateQuantities(
+        [Quantity(100, g)],
+        measured: [(amount: 2, measure: bad)],
+      );
+      expect(totals.single.amount, 100);
+    });
+
+    test('a measured amount still bridges volume via density (one total)', () {
+      // 1 can (400 g) + 100 ml @ 1 g/ml = 500 g.
+      final totals = aggregateQuantities(
+        [Quantity(100, ml)],
+        measured: [(amount: 1, measure: _can400)],
+        densityGPerMl: 1,
+      );
+      expect(totals, hasLength(1));
+      expect(totals.single.amount, closeTo(500, 1e-9));
+    });
+  });
+
+  group('wholeUnitHintFor', () {
+    test('rounds up a fractional count total on a measure-bearing food', () {
+      final hint = wholeUnitHintFor(
+        totals: [Quantity(2.25, pieces)],
+        defaultUnit: pieces,
+        measures: const [_potatoLarge],
+      );
+      expect(hint, isNotNull);
+      expect(hint!.count, 2.25);
+      expect(hint.buy, 3);
+      expect(hint.unitLabel, 'piece');
+      expect(hint.approx, isFalse);
+    });
+
+    test('derives a count from a mass total via the primary measure', () {
+      final hint = wholeUnitHintFor(
+        totals: [Quantity(674, g)],
+        defaultUnit: pieces,
+        measures: const [_potatoLarge],
+      );
+      expect(hint, isNotNull);
+      expect(hint!.count, closeTo(674 / 299, 1e-9));
+      expect(hint.buy, 3);
+      expect(hint.unitLabel, 'potato, large');
+      expect(hint.approx, isTrue);
+    });
+
+    test('never hints without a measure — a bare count stays honest', () {
+      expect(
+        wholeUnitHintFor(
+          totals: [Quantity(2.25, pieces)],
+          defaultUnit: pieces,
+          measures: const [],
+        ),
+        isNull,
+      );
+    });
+
+    test('never hints on a non-count-default ingredient', () {
+      expect(
+        wholeUnitHintFor(
+          totals: [Quantity(674, g)],
+          defaultUnit: g,
+          measures: const [_potatoLarge],
+        ),
+        isNull,
+      );
+    });
+
+    test('a whole total needs no hint', () {
+      expect(
+        wholeUnitHintFor(
+          totals: [Quantity(3, pieces)],
+          defaultUnit: pieces,
+          measures: const [_potatoLarge],
+        ),
+        isNull,
+      );
+      expect(
+        wholeUnitHintFor(
+          totals: [Quantity(598, g)], // exactly 2 × 299 g
+          defaultUnit: pieces,
+          measures: const [_potatoLarge],
+        ),
+        isNull,
+      );
+    });
+
+    test('mixed subtotals get no hint (it could not cover both)', () {
+      expect(
+        wholeUnitHintFor(
+          totals: [Quantity(1.5, pieces), Quantity(100, g)],
+          defaultUnit: pieces,
+          measures: const [_potatoLarge],
+        ),
+        isNull,
+      );
+    });
   });
 
   group('cookLabel', () {
@@ -164,11 +311,13 @@ void main() {
       String category, {
       Unit unit = g,
       double? density,
+      List<Measure> measures = const [],
     }) => (
       name: name,
       category: category,
       densityGPerMl: density,
       defaultUnit: unit,
+      measures: measures,
     );
 
     test('rolls two cook contributions of an ingredient into one item', () {
@@ -192,7 +341,7 @@ void main() {
         cook: [_cook('flour', 300, g)],
         entries: [_entry('e1', ingredientId: 'flour', unit: g)],
         manual: {
-          'e1': [(id: 'c1', entryId: 'e1', quantity: 50, unit: g, note: null)],
+          'e1': [_manual('c1', 'e1', 50, g)],
         },
         meta: {'flour': metaFor('Flour', 'baking')},
       );
@@ -288,12 +437,8 @@ void main() {
           ),
         ],
         manual: {
-          'e-older': [
-            (id: 'c1', entryId: 'e-older', quantity: 50, unit: g, note: null),
-          ],
-          'e-newer': [
-            (id: 'c2', entryId: 'e-newer', quantity: 25, unit: g, note: null),
-          ],
+          'e-older': [_manual('c1', 'e-older', 50, g)],
+          'e-newer': [_manual('c2', 'e-newer', 25, g)],
         },
         meta: {'flour': metaFor('Flour', 'baking')},
       );
@@ -334,8 +479,8 @@ void main() {
           _entry('e3', freeText: 'Paper towels'),
         ],
         manual: {
-          'e1': [(id: 'c1', entryId: 'e1', quantity: 50, unit: g, note: null)],
-          'e2': [(id: 'c2', entryId: 'e2', quantity: 10, unit: g, note: null)],
+          'e1': [_manual('c1', 'e1', 50, g)],
+          'e2': [_manual('c2', 'e2', 10, g)],
         },
         meta: {
           'flour': metaFor('Flour', 'baking'),
@@ -361,6 +506,80 @@ void main() {
           .items
           .single;
       expect(paper.isUserAdded, isTrue);
+    });
+
+    test('measure contributions sum in grams with provenance intact', () {
+      // "2 × potato, large" from a cook line + a 1-potato manual top-up:
+      // one mass total (3 × 299 g), each breakdown line in its measure.
+      final list = build(
+        cook: [
+          _cook('potato', 2, pieces, measure: _potatoLarge, recipe: 'Curry'),
+        ],
+        entries: [_entry('e1', ingredientId: 'potato')],
+        manual: {
+          'e1': [_manual('c1', 'e1', 1, pieces, measure: _potatoLarge)],
+        },
+        meta: {
+          'potato': metaFor(
+            'Potato',
+            'produce',
+            unit: pieces,
+            measures: [_potatoLarge],
+          ),
+        },
+      );
+      final item = list.groups.single.items.single;
+      expect(item.totals.single.unit.family, UnitFamily.mass);
+      expect(item.totals.single.amount, closeTo(3 * 299, 1e-9));
+      final cookLine = item.contributions.first;
+      expect(cookLine.measure, _potatoLarge);
+      expect(cookLine.quantity, 2);
+      expect(cookLine.unit, isNull); // the measure IS the unit shown
+      final manualLine = item.contributions.last;
+      expect(manualLine.measure, _potatoLarge);
+      expect(manualLine.quantity, 1);
+    });
+
+    test('a whole-unit hint rides a fractional measure-derived total', () {
+      // ×0.75 scaling left 2.25 potatoes' worth of grams on the list.
+      final list = build(
+        cook: [
+          _cook('potato', 2.25, pieces, measure: _potatoLarge, recipe: 'Stew'),
+        ],
+        meta: {
+          'potato': metaFor(
+            'Potato',
+            'produce',
+            unit: pieces,
+            measures: [_potatoLarge],
+          ),
+        },
+      );
+      final item = list.groups.single.items.single;
+      expect(item.wholeUnitHint, isNotNull);
+      expect(item.wholeUnitHint!.buy, 3);
+      expect(item.wholeUnitHint!.approx, isTrue);
+      // The honest total is untouched — the hint never replaces it.
+      expect(item.totals.single.amount, closeTo(2.25 * 299, 1e-9));
+    });
+
+    test('a fractional plain count on a measure-bearing food hints too', () {
+      final list = build(
+        cook: [_cook('potato', 2.25, pieces, recipe: 'Stew')],
+        meta: {
+          'potato': metaFor(
+            'Potato',
+            'produce',
+            unit: pieces,
+            measures: [_potatoLarge],
+          ),
+        },
+      );
+      final item = list.groups.single.items.single;
+      expect(item.totals.single.amount, 2.25); // count stays a count
+      expect(item.wholeUnitHint, isNotNull);
+      expect(item.wholeUnitHint!.buy, 3);
+      expect(item.wholeUnitHint!.approx, isFalse);
     });
   });
 }

@@ -201,12 +201,28 @@ class _ItemRow extends ConsumerWidget {
                 ),
               ],
             ),
+            // The whole-unit round-up hint ("≈ 2.25 potato, large → buy 3")
+            // sits under the honest total, never replacing it (invariant 3).
+            if (!item.checked && item.wholeUnitHint != null) ...[
+              const SizedBox(height: 3),
+              Padding(
+                padding: const EdgeInsets.only(left: 31),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    wholeUnitHintText(item.wholeUnitHint!),
+                    style: miseMono(size: 10.5, color: MiseColors.herbDeep),
+                  ),
+                ),
+              ),
+            ],
             if (!item.checked && item.hasBreakdown) ...[
               const SizedBox(height: 6),
               Padding(
                 padding: const EdgeInsets.only(left: 31),
                 child: _Provenance(
                   itemName: item.name,
+                  ingredientId: item.ingredientId,
                   contributions: item.contributions,
                 ),
               ),
@@ -238,9 +254,14 @@ class _DeleteBackground extends StatelessWidget {
 /// quantity on the right. Manual top-ups read muted + italic and are tappable
 /// (a pencil affordance) to edit or remove that single top-up.
 class _Provenance extends StatelessWidget {
-  const _Provenance({required this.itemName, required this.contributions});
+  const _Provenance({
+    required this.itemName,
+    required this.ingredientId,
+    required this.contributions,
+  });
 
   final String itemName;
+  final String? ingredientId;
   final List<ShoppingContribution> contributions;
 
   @override
@@ -249,16 +270,25 @@ class _Provenance extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final c in contributions)
-          _ProvenanceLine(itemName: itemName, contribution: c),
+          _ProvenanceLine(
+            itemName: itemName,
+            ingredientId: ingredientId,
+            contribution: c,
+          ),
       ],
     );
   }
 }
 
 class _ProvenanceLine extends StatelessWidget {
-  const _ProvenanceLine({required this.itemName, required this.contribution});
+  const _ProvenanceLine({
+    required this.itemName,
+    required this.ingredientId,
+    required this.contribution,
+  });
 
   final String itemName;
+  final String? ingredientId;
   final ShoppingContribution contribution;
 
   @override
@@ -299,8 +329,12 @@ class _ProvenanceLine extends StatelessWidget {
     if (!editable) return row;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () =>
-          showEditTopUpSheet(context, itemName: itemName, contribution: c),
+      onTap: () => showEditTopUpSheet(
+        context,
+        itemName: itemName,
+        ingredientId: ingredientId,
+        contribution: c,
+      ),
       child: row,
     );
   }

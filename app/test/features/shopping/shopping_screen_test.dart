@@ -50,6 +50,7 @@ class _FakeShoppingRepo implements ShoppingRepository {
     required String ingredientId,
     required double quantity,
     required Unit unit,
+    String? measureId,
   }) async {}
 
   @override
@@ -57,6 +58,7 @@ class _FakeShoppingRepo implements ShoppingRepository {
     required String contributionId,
     required double quantity,
     required Unit unit,
+    String? measureId,
   }) async {}
 
   @override

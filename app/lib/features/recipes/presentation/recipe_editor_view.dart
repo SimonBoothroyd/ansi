@@ -12,10 +12,12 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../books/data/book_providers.dart';
 import '../../books/presentation/book_view_models.dart';
 import '../../books/presentation/text_prompt.dart';
+import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_picker.dart';
@@ -216,14 +218,25 @@ class _LineItemEditor extends ConsumerWidget {
   final LineItem item;
   final RecipeEditor notifier;
 
-  /// The dropdown's unit choices: filtered by the resolved vocab entry
-  /// (tech-debt row `shopping/units`), falling back to the full catalog while
-  /// unresolved. A stored unit outside the filter stays selectable so an
-  /// existing line never renders an orphaned value.
-  List<Unit> _unitChoices(Ingredient? ingredient) {
-    if (ingredient == null) return kAllUnits;
-    final allowed = allowedUnitsFor(ingredient);
-    return allowed.contains(item.unit) ? allowed : [...allowed, item.unit];
+  /// The dropdown's choices: the honest unit set for the resolved vocab entry
+  /// (tech-debt row `shopping/units`) plus the ingredient's live measures
+  /// ("potato, large (299 g)"), falling back to the full catalog while
+  /// unresolved. The stored selection stays selectable even outside the
+  /// filter, so an existing line never renders an orphaned value.
+  List<UnitChoice> _choices(Ingredient? ingredient, List<Measure> measures) {
+    final allowed = ingredient == null
+        ? [for (final u in kAllUnits) UnitOption(u)]
+        : allowedUnitChoicesFor(ingredient, measures);
+    final current = _selected;
+    return allowed.contains(current) ? allowed : [...allowed, current];
+  }
+
+  /// The line's current selection: its measure when it has one (resolved or
+  /// not — an unresolved id still renders as the stored count unit), else its
+  /// plain unit.
+  UnitChoice get _selected {
+    final measure = item.measure;
+    return measure == null ? UnitOption(item.unit) : MeasureOption(measure);
   }
 
   @override
@@ -237,6 +250,12 @@ class _LineItemEditor extends ConsumerWidget {
         )
         .asData
         ?.value;
+    final measures =
+        ref
+            .watch(ingredientMeasuresProvider(item.ingredientId))
+            .asData
+            ?.value ??
+        const <Measure>[];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
@@ -266,18 +285,24 @@ class _LineItemEditor extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: FSelect<Unit>.rich(
+                child: FSelect<UnitChoice>.rich(
                   hint: 'unit',
-                  format: (u) => u.label,
-                  control: FSelectControl<Unit>.lifted(
-                    value: item.unit,
-                    onChange: (u) {
-                      if (u != null) notifier.setLineItemUnit(item.id, u);
+                  format: (c) => c.label,
+                  control: FSelectControl<UnitChoice>.lifted(
+                    value: _selected,
+                    onChange: (c) => switch (c) {
+                      UnitOption(:final unit) => notifier.setLineItemUnit(
+                        item.id,
+                        unit,
+                      ),
+                      MeasureOption(:final measure) =>
+                        notifier.setLineItemMeasure(item.id, measure),
+                      null => null,
                     },
                   ),
                   children: [
-                    for (final u in _unitChoices(ingredient))
-                      FSelectItem(title: Text(u.label), value: u),
+                    for (final c in _choices(ingredient, measures))
+                      FSelectItem(title: Text(c.label), value: c),
                   ],
                 ),
               ),

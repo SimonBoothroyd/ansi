@@ -220,6 +220,37 @@ List<CookSession> clusterSessions(PlannedRecipe recipe) {
   return sessions;
 }
 
+/// The whole-batch nudge for a session cooking a fractional batch (step 7.6):
+/// round the raw factor UP to `factor` whole batches, which yields
+/// `batchPortions` portions — covering the session's demanded portions with
+/// `leftoverPortions` to spare. Portions can be fractional when
+/// `servings_base` is (formatting trims honestly).
+typedef WholeBatchNudge = ({
+  int factor,
+  double batchPortions,
+  double leftoverPortions,
+});
+
+/// The nudge for [session], or null when there is nothing to nudge:
+/// the raw factor is already a whole number (within float noise), or the
+/// session's inputs are degenerate (`servings_base` ≤ 0, nothing covered).
+///
+/// The nudge is display-level advice ("cook ×1 — covers 4 portions · 1 left
+/// over"); the honest raw factor stays the number everything else — the
+/// shopping list included — scales by (invariant 3).
+WholeBatchNudge? wholeBatchNudgeFor(CookSession session) {
+  final raw = session.scaleFactor;
+  if (session.servingsBase <= 0 || raw <= 0) return null;
+  if ((raw - raw.round()).abs() < 1e-9) return null; // already whole
+  final factor = raw.ceil();
+  final batchPortions = factor * session.servingsBase;
+  return (
+    factor: factor,
+    batchPortions: batchPortions,
+    leftoverPortions: batchPortions - session.totalPortions,
+  );
+}
+
 /// The batch a meal being added would join, for the planner's "same batch"
 /// hint. `withDay` is the day of the shared batch (its cook day, or the meal it
 /// now cooks alongside); `frozen` is true when the new meal is reached from the

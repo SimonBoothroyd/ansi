@@ -380,4 +380,88 @@ void main() {
     );
     expect((await repo.watchShoppingList(_week).first).isEmpty, isTrue);
   });
+
+  test('a measure line sums in grams, with a whole-unit hint', () async {
+    // "3 × onion, medium (110 g)" scaled ×0.75 → 2.25 onions = 247.5 g, and
+    // the count food's line offers the honest "buy 3" hint (step 7.6).
+    await db.execute(
+      'INSERT INTO ingredient_measure '
+      '(id, household_id, ingredient_id, label, grams, sort_order) '
+      'VALUES (?, ?, ?, ?, ?, 0)',
+      ['m-onion', 'h', 'onion', 'onion, medium', 110],
+    );
+    await _insertRecipe(
+      db,
+      'curry',
+      'Curry',
+      servings: 4,
+      lines: [('onion', 3, pieces)],
+    );
+    await db.execute(
+      "UPDATE recipe_line_item SET measure_id = 'm-onion' "
+      "WHERE id = 'curry-li0'",
+    );
+    // 3 portions of a serves-4 recipe → ×0.75.
+    await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'curry',
+      eaterIds: ['a'],
+      portions: 3,
+    );
+
+    final list = await repo.watchShoppingList(_week).first;
+    final onion = list.groups.single.items.single;
+    expect(onion.totals.single.unit.family, UnitFamily.mass);
+    expect(onion.totals.single.amount, closeTo(2.25 * 110, 1e-9));
+    final line = onion.contributions.single;
+    expect(line.measure?.label, 'onion, medium');
+    expect(line.quantity, closeTo(2.25, 1e-9));
+    expect(onion.wholeUnitHint, isNotNull);
+    expect(onion.wholeUnitHint!.buy, 3);
+    expect(onion.wholeUnitHint!.unitLabel, 'onion, medium');
+  });
+
+  test('a measure top-up persists measure_id and resolves in the '
+      'list', () async {
+    await db.execute(
+      'INSERT INTO ingredient_measure '
+      '(id, household_id, ingredient_id, label, grams, sort_order) '
+      'VALUES (?, ?, ?, ?, ?, 0)',
+      ['m-onion', 'h', 'onion', 'onion, medium', 110],
+    );
+    await repo.addTopUp(
+      ingredientId: 'onion',
+      quantity: 2,
+      unit: pieces,
+      measureId: 'm-onion',
+    );
+
+    final row = await db.get(
+      'SELECT unit, measure_id FROM shopping_list_contribution',
+    );
+    expect(row['measure_id'], 'm-onion');
+    expect(row['unit'], 'piece'); // the honest count fallback
+
+    final list = await repo.watchShoppingList(_week).first;
+    final onion = list.groups.single.items.single;
+    expect(onion.totals.single.amount, closeTo(220, 1e-9));
+    expect(onion.contributions.single.measure?.label, 'onion, medium');
+  });
+
+  test('a missing measure row degrades a top-up to an honest count', () async {
+    // measure_id points at a row that never synced: the stored count unit
+    // stands in — never invented grams (invariant 3).
+    await repo.addTopUp(
+      ingredientId: 'onion',
+      quantity: 2,
+      unit: pieces,
+      measureId: 'm-ghost',
+    );
+    final list = await repo.watchShoppingList(_week).first;
+    final onion = list.groups.single.items.single;
+    expect(onion.totals.single.unit, pieces);
+    expect(onion.totals.single.amount, 2);
+  });
 }

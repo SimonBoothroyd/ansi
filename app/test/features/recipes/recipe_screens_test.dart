@@ -46,6 +46,9 @@ class _FakeIngredientRepo implements IngredientRepository {
   @override
   Future<List<Ingredient>> search(String query, {int limit = 30}) async =>
       const [];
+
+  @override
+  Future<Ingredient?> byId(String id) async => null;
 }
 
 /// The editor defaults new recipes into a book and renders a section picker.

@@ -1,9 +1,15 @@
 /// Edit or remove a single manual top-up (a `manual` contribution).
 ///
 /// Opened from a manual line in an item's provenance breakdown. Pre-fills the
-/// current quantity + unit; **Save** edits the contribution in place, and
-/// **Remove** soft-deletes just that top-up (the item's cook contributions and
-/// check-off stay). Writes through the keep-alive `shoppingRepositoryProvider`.
+/// current quantity + unit (or named measure); **Save** edits the contribution
+/// in place, and **Remove** soft-deletes just that top-up (the item's cook
+/// contributions and check-off stay). Writes through the keep-alive
+/// `shoppingRepositoryProvider`.
+///
+/// The unit dropdown is filtered by the resolved vocab row
+/// (`allowedUnitChoicesFor` — honest units plus the ingredient's measures),
+/// falling back to the full catalog while unresolved; the stored selection
+/// stays selectable so an existing top-up never renders an orphaned value.
 library;
 
 import 'dart:math' as math;
@@ -15,15 +21,20 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../ingredients/data/ingredient_providers.dart';
+import '../../ingredients/domain/allowed_units.dart';
 import '../data/shopping_providers.dart';
 import '../domain/shopping.dart';
 
 /// Opens the edit/remove sheet for [contribution] (a manual top-up on
-/// [itemName]). No-op if the contribution has no persisted id.
+/// [itemName], whose vocab row is [ingredientId] — null for a free-text
+/// item). No-op if the contribution has no persisted id.
 Future<void> showEditTopUpSheet(
   BuildContext context, {
   required String itemName,
+  required String? ingredientId,
   required ShoppingContribution contribution,
 }) {
   if (contribution.contributionId == null) return Future.value();
@@ -32,34 +43,69 @@ Future<void> showEditTopUpSheet(
     side: FLayout.btt,
     mainAxisMaxRatio: null,
     useSafeArea: true,
-    builder: (_) =>
-        _EditTopUpSheet(itemName: itemName, contribution: contribution),
+    builder: (_) => _EditTopUpSheet(
+      itemName: itemName,
+      ingredientId: ingredientId,
+      contribution: contribution,
+    ),
   );
 }
 
 class _EditTopUpSheet extends HookConsumerWidget {
-  const _EditTopUpSheet({required this.itemName, required this.contribution});
+  const _EditTopUpSheet({
+    required this.itemName,
+    required this.ingredientId,
+    required this.contribution,
+  });
 
   final String itemName;
+  final String? ingredientId;
   final ShoppingContribution contribution;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final quantity = useState<double?>(contribution.quantity);
-    final unit = useState<Unit?>(contribution.unit ?? pieces);
+    final storedMeasure = contribution.measure;
+    final choice = useState<UnitChoice>(
+      storedMeasure == null
+          ? UnitOption(contribution.unit ?? pieces)
+          : MeasureOption(storedMeasure),
+    );
     final contributionId = contribution.contributionId!;
+
+    final ingredient = ingredientId == null
+        ? null
+        : ref.watch(ingredientByIdProvider(ingredientId!)).asData?.value;
+    final measures = ingredientId == null
+        ? const <Measure>[]
+        : ref.watch(ingredientMeasuresProvider(ingredientId!)).asData?.value ??
+              const <Measure>[];
+    final allowed = ingredient == null
+        ? [for (final u in kAllUnits) UnitOption(u)]
+        : allowedUnitChoicesFor(ingredient, measures);
+    final choices = allowed.contains(choice.value)
+        ? allowed
+        : [...allowed, choice.value];
 
     Future<void> save() async {
       final qty = quantity.value;
-      final u = unit.value;
-      if (qty == null || qty <= 0 || u == null) return;
-      await ref
-          .read(shoppingRepositoryProvider)
-          .editContribution(
-            contributionId: contributionId,
-            quantity: qty,
-            unit: u,
-          );
+      if (qty == null || qty <= 0) return;
+      final repo = ref.read(shoppingRepositoryProvider);
+      // A measure top-up stores the honest count fallback unit (`pieces`)
+      // beside the measure id — see [ShoppingRepository.addTopUp].
+      await switch (choice.value) {
+        UnitOption(:final unit) => repo.editContribution(
+          contributionId: contributionId,
+          quantity: qty,
+          unit: unit,
+        ),
+        MeasureOption(:final measure) => repo.editContribution(
+          contributionId: contributionId,
+          quantity: qty,
+          unit: pieces,
+          measureId: measure.id,
+        ),
+      };
       if (context.mounted) Navigator.of(context).pop();
     }
 
@@ -141,18 +187,18 @@ class _EditTopUpSheet extends HookConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 3,
-                  child: FSelect<Unit>.rich(
+                  child: FSelect<UnitChoice>.rich(
                     hint: 'unit',
-                    format: (u) => u.label,
-                    control: FSelectControl<Unit>.lifted(
-                      value: unit.value,
-                      onChange: (u) {
-                        if (u != null) unit.value = u;
+                    format: (c) => c.label,
+                    control: FSelectControl<UnitChoice>.lifted(
+                      value: choice.value,
+                      onChange: (c) {
+                        if (c != null) choice.value = c;
                       },
                     ),
                     children: [
-                      for (final u in kAllUnits)
-                        FSelectItem(title: Text(u.label), value: u),
+                      for (final c in choices)
+                        FSelectItem(title: Text(c.label), value: c),
                     ],
                   ),
                 ),

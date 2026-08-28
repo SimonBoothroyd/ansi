@@ -8,6 +8,7 @@ library;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../books/data/book_providers.dart';
 import '../../ingredients/data/ingredient_providers.dart';
@@ -152,8 +153,18 @@ class RecipeEditor extends _$RecipeEditor {
   void setLineItemQuantity(String itemId, double? quantity) =>
       _mapItem(itemId, (i) => i.copyWith(quantity: quantity));
 
-  void setLineItemUnit(String itemId, Unit unit) =>
-      _mapItem(itemId, (i) => i.copyWith(unit: unit));
+  /// Quantifies the line in a plain unit, clearing any measure.
+  void setLineItemUnit(String itemId, Unit unit) => _mapItem(
+    itemId,
+    (i) => i.copyWith(unit: unit, measureId: null, measure: null),
+  );
+
+  /// Quantifies the line in a named [measure] ("2 × potato, large"). The
+  /// stored unit becomes the count fallback (`pieces`) — see [LineItem].
+  void setLineItemMeasure(String itemId, Measure measure) => _mapItem(
+    itemId,
+    (i) => i.copyWith(unit: pieces, measureId: measure.id, measure: measure),
+  );
 
   void removeLineItem(String itemId) => _set(
     _current.copyWith(

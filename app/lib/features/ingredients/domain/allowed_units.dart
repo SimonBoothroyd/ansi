@@ -7,6 +7,9 @@
 /// (tech-debt-tracker row `shopping/units`).
 library;
 
+import 'package:meta/meta.dart';
+
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import 'ingredient.dart';
 
@@ -43,3 +46,66 @@ List<Unit> allowedUnitsFor(Ingredient ingredient) {
       if (allowed(u)) u,
   ];
 }
+
+// --- v2: units + the ingredient's live measures (step 7.6) -------------------
+
+/// One entry of a unit picker: either a catalog [Unit] or one of the
+/// ingredient's named [Measure]s ("potato, large (299 g)"). Sealed so a picker
+/// can switch exhaustively.
+@immutable
+sealed class UnitChoice {
+  const UnitChoice();
+
+  /// The dropdown label.
+  String get label;
+}
+
+final class UnitOption extends UnitChoice {
+  const UnitOption(this.unit);
+
+  final Unit unit;
+
+  @override
+  String get label => unit.label;
+
+  @override
+  bool operator ==(Object other) => other is UnitOption && other.unit == unit;
+
+  @override
+  int get hashCode => unit.hashCode;
+}
+
+final class MeasureOption extends UnitChoice {
+  const MeasureOption(this.measure);
+
+  final Measure measure;
+
+  @override
+  String get label {
+    final g = measure.grams;
+    final grams = g == g.roundToDouble() ? g.toStringAsFixed(0) : '$g';
+    return '${measure.label} ($grams g)';
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is MeasureOption && other.measure.id == measure.id;
+
+  @override
+  int get hashCode => measure.id.hashCode;
+}
+
+/// [allowedUnitsFor] plus the ingredient's live [measures], as picker choices:
+/// the same honest unit set first (stable positions), then one [MeasureOption]
+/// per measure in the given order (callers pass them `sort_order`-sorted).
+///
+/// A measure needs no density gate — its gram weight IS the bridge — and it
+/// applies to any ingredient that has one, count-default included (that's the
+/// whole point: count foods finally reach mass honestly).
+List<UnitChoice> allowedUnitChoicesFor(
+  Ingredient ingredient,
+  List<Measure> measures,
+) => [
+  for (final u in allowedUnitsFor(ingredient)) UnitOption(u),
+  for (final m in measures) MeasureOption(m),
+];

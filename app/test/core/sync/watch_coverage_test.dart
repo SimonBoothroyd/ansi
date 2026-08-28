@@ -33,6 +33,7 @@ const _repos = <String, Set<String>>{
   'lib/features/shopping/data/shopping_repository_impl.dart': {},
   'lib/features/books/data/book_repository_impl.dart': {},
   'lib/features/cook_plan/data/cook_plan_repository_impl.dart': {},
+  'lib/features/ingredients/data/measure_repository_impl.dart': {},
   // `members()` is a one-shot Future (eater picker), not part of watchWeek.
   'lib/features/planning/data/planning_repository_impl.dart': {
     'household_member',

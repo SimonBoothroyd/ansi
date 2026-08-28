@@ -880,7 +880,7 @@ as List<LineItem>,
 /// @nodoc
 mixin _$LineItem {
 
- String get id; String get ingredientId; String get ingredientName; Unit get unit; double? get quantity; String? get note;
+ String get id; String get ingredientId; String get ingredientName; Unit get unit; double? get quantity; String? get measureId; Measure? get measure; String? get note;
 /// Create a copy of LineItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -891,16 +891,16 @@ $LineItemCopyWith<LineItem> get copyWith => _$LineItemCopyWithImpl<LineItem>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LineItem&&(identical(other.id, id) || other.id == id)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.note, note) || other.note == note));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LineItem&&(identical(other.id, id) || other.id == id)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.note, note) || other.note == note));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,ingredientId,ingredientName,unit,quantity,note);
+int get hashCode => Object.hash(runtimeType,id,ingredientId,ingredientName,unit,quantity,measureId,measure,note);
 
 @override
 String toString() {
-  return 'LineItem(id: $id, ingredientId: $ingredientId, ingredientName: $ingredientName, unit: $unit, quantity: $quantity, note: $note)';
+  return 'LineItem(id: $id, ingredientId: $ingredientId, ingredientName: $ingredientName, unit: $unit, quantity: $quantity, measureId: $measureId, measure: $measure, note: $note)';
 }
 
 
@@ -911,7 +911,7 @@ abstract mixin class $LineItemCopyWith<$Res>  {
   factory $LineItemCopyWith(LineItem value, $Res Function(LineItem) _then) = _$LineItemCopyWithImpl;
 @useResult
 $Res call({
- String id, String ingredientId, String ingredientName, Unit unit, double? quantity, String? note
+ String id, String ingredientId, String ingredientName, Unit unit, double? quantity, String? measureId, Measure? measure, String? note
 });
 
 
@@ -928,14 +928,16 @@ class _$LineItemCopyWithImpl<$Res>
 
 /// Create a copy of LineItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ingredientId = null,Object? ingredientName = null,Object? unit = null,Object? quantity = freezed,Object? note = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ingredientId = null,Object? ingredientName = null,Object? unit = null,Object? quantity = freezed,Object? measureId = freezed,Object? measure = freezed,Object? note = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ingredientId: null == ingredientId ? _self.ingredientId : ingredientId // ignore: cast_nullable_to_non_nullable
 as String,ingredientName: null == ingredientName ? _self.ingredientName : ingredientName // ignore: cast_nullable_to_non_nullable
 as String,unit: null == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
 as Unit,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
-as double?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
+as double?,measureId: freezed == measureId ? _self.measureId : measureId // ignore: cast_nullable_to_non_nullable
+as String?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
+as Measure?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -1021,10 +1023,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ingredientId,  String ingredientName,  Unit unit,  double? quantity,  String? note)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ingredientId,  String ingredientName,  Unit unit,  double? quantity,  String? measureId,  Measure? measure,  String? note)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LineItem() when $default != null:
-return $default(_that.id,_that.ingredientId,_that.ingredientName,_that.unit,_that.quantity,_that.note);case _:
+return $default(_that.id,_that.ingredientId,_that.ingredientName,_that.unit,_that.quantity,_that.measureId,_that.measure,_that.note);case _:
   return orElse();
 
 }
@@ -1042,10 +1044,10 @@ return $default(_that.id,_that.ingredientId,_that.ingredientName,_that.unit,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ingredientId,  String ingredientName,  Unit unit,  double? quantity,  String? note)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ingredientId,  String ingredientName,  Unit unit,  double? quantity,  String? measureId,  Measure? measure,  String? note)  $default,) {final _that = this;
 switch (_that) {
 case _LineItem():
-return $default(_that.id,_that.ingredientId,_that.ingredientName,_that.unit,_that.quantity,_that.note);case _:
+return $default(_that.id,_that.ingredientId,_that.ingredientName,_that.unit,_that.quantity,_that.measureId,_that.measure,_that.note);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1062,10 +1064,10 @@ return $default(_that.id,_that.ingredientId,_that.ingredientName,_that.unit,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ingredientId,  String ingredientName,  Unit unit,  double? quantity,  String? note)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ingredientId,  String ingredientName,  Unit unit,  double? quantity,  String? measureId,  Measure? measure,  String? note)?  $default,) {final _that = this;
 switch (_that) {
 case _LineItem() when $default != null:
-return $default(_that.id,_that.ingredientId,_that.ingredientName,_that.unit,_that.quantity,_that.note);case _:
+return $default(_that.id,_that.ingredientId,_that.ingredientName,_that.unit,_that.quantity,_that.measureId,_that.measure,_that.note);case _:
   return null;
 
 }
@@ -1077,7 +1079,7 @@ return $default(_that.id,_that.ingredientId,_that.ingredientName,_that.unit,_tha
 
 
 class _LineItem extends LineItem {
-  const _LineItem({required this.id, required this.ingredientId, required this.ingredientName, required this.unit, this.quantity, this.note}): super._();
+  const _LineItem({required this.id, required this.ingredientId, required this.ingredientName, required this.unit, this.quantity, this.measureId, this.measure, this.note}): super._();
   
 
 @override final  String id;
@@ -1085,6 +1087,8 @@ class _LineItem extends LineItem {
 @override final  String ingredientName;
 @override final  Unit unit;
 @override final  double? quantity;
+@override final  String? measureId;
+@override final  Measure? measure;
 @override final  String? note;
 
 /// Create a copy of LineItem
@@ -1097,16 +1101,16 @@ _$LineItemCopyWith<_LineItem> get copyWith => __$LineItemCopyWithImpl<_LineItem>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LineItem&&(identical(other.id, id) || other.id == id)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.note, note) || other.note == note));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LineItem&&(identical(other.id, id) || other.id == id)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.note, note) || other.note == note));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,ingredientId,ingredientName,unit,quantity,note);
+int get hashCode => Object.hash(runtimeType,id,ingredientId,ingredientName,unit,quantity,measureId,measure,note);
 
 @override
 String toString() {
-  return 'LineItem(id: $id, ingredientId: $ingredientId, ingredientName: $ingredientName, unit: $unit, quantity: $quantity, note: $note)';
+  return 'LineItem(id: $id, ingredientId: $ingredientId, ingredientName: $ingredientName, unit: $unit, quantity: $quantity, measureId: $measureId, measure: $measure, note: $note)';
 }
 
 
@@ -1117,7 +1121,7 @@ abstract mixin class _$LineItemCopyWith<$Res> implements $LineItemCopyWith<$Res>
   factory _$LineItemCopyWith(_LineItem value, $Res Function(_LineItem) _then) = __$LineItemCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String ingredientId, String ingredientName, Unit unit, double? quantity, String? note
+ String id, String ingredientId, String ingredientName, Unit unit, double? quantity, String? measureId, Measure? measure, String? note
 });
 
 
@@ -1134,14 +1138,16 @@ class __$LineItemCopyWithImpl<$Res>
 
 /// Create a copy of LineItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ingredientId = null,Object? ingredientName = null,Object? unit = null,Object? quantity = freezed,Object? note = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ingredientId = null,Object? ingredientName = null,Object? unit = null,Object? quantity = freezed,Object? measureId = freezed,Object? measure = freezed,Object? note = freezed,}) {
   return _then(_LineItem(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ingredientId: null == ingredientId ? _self.ingredientId : ingredientId // ignore: cast_nullable_to_non_nullable
 as String,ingredientName: null == ingredientName ? _self.ingredientName : ingredientName // ignore: cast_nullable_to_non_nullable
 as String,unit: null == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
 as Unit,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
-as double?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
+as double?,measureId: freezed == measureId ? _self.measureId : measureId // ignore: cast_nullable_to_non_nullable
+as String?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
+as Measure?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

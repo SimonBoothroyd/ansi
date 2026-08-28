@@ -19,6 +19,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
@@ -205,7 +206,7 @@ class _TopUpBody extends HookConsumerWidget {
     final results = useState<List<Ingredient>>(const []);
     final selected = useState<Ingredient?>(null);
     final quantity = useState<double?>(null);
-    final unit = useState<Unit?>(null);
+    final unit = useState<UnitChoice?>(null);
     // Monotonic ticket so a slow older search can never overwrite a newer
     // one's results (or touch state after the sheet is dismissed).
     final searchSeq = useRef(0);
@@ -225,17 +226,30 @@ class _TopUpBody extends HookConsumerWidget {
 
     void choose(Ingredient ing) {
       selected.value = ing;
-      unit.value = ing.defaultUnit;
+      unit.value = UnitOption(ing.defaultUnit);
     }
 
     Future<void> add() async {
       final ing = selected.value;
       final qty = quantity.value;
-      final u = unit.value;
-      if (ing == null || qty == null || u == null) return;
-      await ref
-          .read(shoppingRepositoryProvider)
-          .addTopUp(ingredientId: ing.id, quantity: qty, unit: u);
+      final choice = unit.value;
+      if (ing == null || qty == null || choice == null) return;
+      final repo = ref.read(shoppingRepositoryProvider);
+      // A measure top-up stores the honest count fallback unit (`pieces`)
+      // beside the measure id — see [ShoppingRepository.addTopUp].
+      await switch (choice) {
+        UnitOption(:final unit) => repo.addTopUp(
+          ingredientId: ing.id,
+          quantity: qty,
+          unit: unit,
+        ),
+        MeasureOption(:final measure) => repo.addTopUp(
+          ingredientId: ing.id,
+          quantity: qty,
+          unit: pieces,
+          measureId: measure.id,
+        ),
+      };
       if (context.mounted) Navigator.of(context).pop();
     }
 
@@ -300,8 +314,9 @@ class _TopUpBody extends HookConsumerWidget {
   }
 }
 
-/// Second step of the top-up: a quantity + unit for the chosen ingredient.
-class _TopUpQuantity extends StatelessWidget {
+/// Second step of the top-up: a quantity + unit (or named measure) for the
+/// chosen ingredient.
+class _TopUpQuantity extends ConsumerWidget {
   const _TopUpQuantity({
     required this.ingredient,
     required this.quantity,
@@ -312,12 +327,15 @@ class _TopUpQuantity extends StatelessWidget {
 
   final Ingredient ingredient;
   final ValueNotifier<double?> quantity;
-  final ValueNotifier<Unit?> unit;
+  final ValueNotifier<UnitChoice?> unit;
   final VoidCallback onBack;
   final Future<void> Function()? onAdd;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final measures =
+        ref.watch(ingredientMeasuresProvider(ingredient.id)).asData?.value ??
+        const <Measure>[];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -362,20 +380,21 @@ class _TopUpQuantity extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               flex: 3,
-              child: FSelect<Unit>.rich(
+              child: FSelect<UnitChoice>.rich(
                 hint: 'unit',
-                format: (u) => u.label,
-                control: FSelectControl<Unit>.lifted(
+                format: (c) => c.label,
+                control: FSelectControl<UnitChoice>.lifted(
                   value: unit.value,
-                  onChange: (u) {
-                    if (u != null) unit.value = u;
+                  onChange: (c) {
+                    if (c != null) unit.value = c;
                   },
                 ),
                 children: [
                   // Only units this ingredient can honestly convert between
-                  // (tech-debt row shopping/units).
-                  for (final u in allowedUnitsFor(ingredient))
-                    FSelectItem(title: Text(u.label), value: u),
+                  // (tech-debt row shopping/units), plus its named measures
+                  // ("potato, large (299 g)" — step 7.6).
+                  for (final c in allowedUnitChoicesFor(ingredient, measures))
+                    FSelectItem(title: Text(c.label), value: c),
                 ],
               ),
             ),

@@ -160,4 +160,30 @@ void main() {
       expect(spec.hasGone, isFalse);
     });
   });
+
+  group('formatPortionsAmount', () {
+    test('trims whole and fractional counts, with the right plural', () {
+      expect(formatPortionsAmount(4), '4 portions');
+      expect(formatPortionsAmount(1), '1 portion');
+      expect(formatPortionsAmount(2.5), '2.5 portions');
+      expect(formatPortionsAmount(0.5), '0.5 portions');
+    });
+  });
+
+  group('wholeBatchNudgeLine', () {
+    test('spells out the whole-batch advice with honest leftovers', () {
+      expect(
+        wholeBatchNudgeLine((factor: 1, batchPortions: 4, leftoverPortions: 1)),
+        'cook ×1 instead — covers 4 portions · 1 portion left over',
+      );
+      expect(
+        wholeBatchNudgeLine((
+          factor: 2,
+          batchPortions: 5.0,
+          leftoverPortions: 0.5,
+        )),
+        'cook ×2 instead — covers 5 portions · 0.5 portions left over',
+      );
+    });
+  });
 }

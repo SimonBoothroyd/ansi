@@ -19,6 +19,26 @@ String formatScale(double factor) {
 /// "1 portion" / "4 portions" — a count with the right plural.
 String formatPortions(int count) => '$count portion${count == 1 ? '' : 's'}';
 
+/// [formatPortions] for a possibly-fractional count ("2.5 portions") — whole
+/// batches of a fractional `servings_base` yield these. Trims like
+/// [formatScale].
+String formatPortionsAmount(double count) {
+  final s = count
+      .toStringAsFixed(2)
+      .replaceAll(RegExp(r'0+$'), '')
+      .replaceAll(RegExp(r'\.$'), '');
+  return '$s portion${s == '1' ? '' : 's'}';
+}
+
+/// The whole-batch nudge line for a fractional session (step 7.6):
+/// "cook ×1 instead — covers 4 portions · 1 portion left over". The honest
+/// raw factor stays on the tile; this is advice beside it, never a
+/// replacement (invariant 3).
+String wholeBatchNudgeLine(WholeBatchNudge nudge) =>
+    'cook ×${nudge.factor} instead — covers '
+    '${formatPortionsAmount(nudge.batchPortions)} · '
+    '${formatPortionsAmount(nudge.leftoverPortions)} left over';
+
 /// The recipe card's summary line: total portions across the week plus its
 /// shelf-life descriptors (e.g. "4 portions across the week · keeps 4 d").
 String recipeSummaryLine(RecipeCookPlan recipe) {

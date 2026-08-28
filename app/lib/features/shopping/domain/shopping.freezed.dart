@@ -17,7 +17,9 @@ mixin _$ShoppingContribution {
  ContributionSource get source;/// The provenance label, e.g. "Curry · cook Mon", "Oat Cookies", or
 /// "manual top-up".
  String get label;/// Null for a bare non-food item (renders as a dash).
- double? get quantity; Unit? get unit;/// Cook day (0=Mon..6=Sun) for a cook contribution — orders the breakdown.
+ double? get quantity; Unit? get unit;/// The measure the quantity is counted in ("2 × potato, large"), when the
+/// contribution was quantified in one; [unit] is null then.
+ Measure? get measure;/// Cook day (0=Mon..6=Sun) for a cook contribution — orders the breakdown.
  int? get cookDay;/// The persisted `shopping_list_contribution` id — set only for a `manual`
 /// contribution (a cook one is derived, so it has none). Lets the UI edit
 /// or remove this specific top-up.
@@ -32,16 +34,16 @@ $ShoppingContributionCopyWith<ShoppingContribution> get copyWith => _$ShoppingCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShoppingContribution&&(identical(other.source, source) || other.source == source)&&(identical(other.label, label) || other.label == label)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.contributionId, contributionId) || other.contributionId == contributionId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShoppingContribution&&(identical(other.source, source) || other.source == source)&&(identical(other.label, label) || other.label == label)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.contributionId, contributionId) || other.contributionId == contributionId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,source,label,quantity,unit,cookDay,contributionId);
+int get hashCode => Object.hash(runtimeType,source,label,quantity,unit,measure,cookDay,contributionId);
 
 @override
 String toString() {
-  return 'ShoppingContribution(source: $source, label: $label, quantity: $quantity, unit: $unit, cookDay: $cookDay, contributionId: $contributionId)';
+  return 'ShoppingContribution(source: $source, label: $label, quantity: $quantity, unit: $unit, measure: $measure, cookDay: $cookDay, contributionId: $contributionId)';
 }
 
 
@@ -52,7 +54,7 @@ abstract mixin class $ShoppingContributionCopyWith<$Res>  {
   factory $ShoppingContributionCopyWith(ShoppingContribution value, $Res Function(ShoppingContribution) _then) = _$ShoppingContributionCopyWithImpl;
 @useResult
 $Res call({
- ContributionSource source, String label, double? quantity, Unit? unit, int? cookDay, String? contributionId
+ ContributionSource source, String label, double? quantity, Unit? unit, Measure? measure, int? cookDay, String? contributionId
 });
 
 
@@ -69,13 +71,14 @@ class _$ShoppingContributionCopyWithImpl<$Res>
 
 /// Create a copy of ShoppingContribution
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? source = null,Object? label = null,Object? quantity = freezed,Object? unit = freezed,Object? cookDay = freezed,Object? contributionId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? source = null,Object? label = null,Object? quantity = freezed,Object? unit = freezed,Object? measure = freezed,Object? cookDay = freezed,Object? contributionId = freezed,}) {
   return _then(_self.copyWith(
 source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as ContributionSource,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as String,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as double?,unit: freezed == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
-as Unit?,cookDay: freezed == cookDay ? _self.cookDay : cookDay // ignore: cast_nullable_to_non_nullable
+as Unit?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
+as Measure?,cookDay: freezed == cookDay ? _self.cookDay : cookDay // ignore: cast_nullable_to_non_nullable
 as int?,contributionId: freezed == contributionId ? _self.contributionId : contributionId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -162,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ContributionSource source,  String label,  double? quantity,  Unit? unit,  int? cookDay,  String? contributionId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ContributionSource source,  String label,  double? quantity,  Unit? unit,  Measure? measure,  int? cookDay,  String? contributionId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ShoppingContribution() when $default != null:
-return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.cookDay,_that.contributionId);case _:
+return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.measure,_that.cookDay,_that.contributionId);case _:
   return orElse();
 
 }
@@ -183,10 +186,10 @@ return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.cookDay
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ContributionSource source,  String label,  double? quantity,  Unit? unit,  int? cookDay,  String? contributionId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ContributionSource source,  String label,  double? quantity,  Unit? unit,  Measure? measure,  int? cookDay,  String? contributionId)  $default,) {final _that = this;
 switch (_that) {
 case _ShoppingContribution():
-return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.cookDay,_that.contributionId);case _:
+return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.measure,_that.cookDay,_that.contributionId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +206,10 @@ return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.cookDay
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ContributionSource source,  String label,  double? quantity,  Unit? unit,  int? cookDay,  String? contributionId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ContributionSource source,  String label,  double? quantity,  Unit? unit,  Measure? measure,  int? cookDay,  String? contributionId)?  $default,) {final _that = this;
 switch (_that) {
 case _ShoppingContribution() when $default != null:
-return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.cookDay,_that.contributionId);case _:
+return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.measure,_that.cookDay,_that.contributionId);case _:
   return null;
 
 }
@@ -218,7 +221,7 @@ return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.cookDay
 
 
 class _ShoppingContribution implements ShoppingContribution {
-  const _ShoppingContribution({required this.source, required this.label, this.quantity, this.unit, this.cookDay, this.contributionId});
+  const _ShoppingContribution({required this.source, required this.label, this.quantity, this.unit, this.measure, this.cookDay, this.contributionId});
   
 
 @override final  ContributionSource source;
@@ -228,6 +231,9 @@ class _ShoppingContribution implements ShoppingContribution {
 /// Null for a bare non-food item (renders as a dash).
 @override final  double? quantity;
 @override final  Unit? unit;
+/// The measure the quantity is counted in ("2 × potato, large"), when the
+/// contribution was quantified in one; [unit] is null then.
+@override final  Measure? measure;
 /// Cook day (0=Mon..6=Sun) for a cook contribution — orders the breakdown.
 @override final  int? cookDay;
 /// The persisted `shopping_list_contribution` id — set only for a `manual`
@@ -245,16 +251,16 @@ _$ShoppingContributionCopyWith<_ShoppingContribution> get copyWith => __$Shoppin
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShoppingContribution&&(identical(other.source, source) || other.source == source)&&(identical(other.label, label) || other.label == label)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.contributionId, contributionId) || other.contributionId == contributionId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShoppingContribution&&(identical(other.source, source) || other.source == source)&&(identical(other.label, label) || other.label == label)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.contributionId, contributionId) || other.contributionId == contributionId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,source,label,quantity,unit,cookDay,contributionId);
+int get hashCode => Object.hash(runtimeType,source,label,quantity,unit,measure,cookDay,contributionId);
 
 @override
 String toString() {
-  return 'ShoppingContribution(source: $source, label: $label, quantity: $quantity, unit: $unit, cookDay: $cookDay, contributionId: $contributionId)';
+  return 'ShoppingContribution(source: $source, label: $label, quantity: $quantity, unit: $unit, measure: $measure, cookDay: $cookDay, contributionId: $contributionId)';
 }
 
 
@@ -265,7 +271,7 @@ abstract mixin class _$ShoppingContributionCopyWith<$Res> implements $ShoppingCo
   factory _$ShoppingContributionCopyWith(_ShoppingContribution value, $Res Function(_ShoppingContribution) _then) = __$ShoppingContributionCopyWithImpl;
 @override @useResult
 $Res call({
- ContributionSource source, String label, double? quantity, Unit? unit, int? cookDay, String? contributionId
+ ContributionSource source, String label, double? quantity, Unit? unit, Measure? measure, int? cookDay, String? contributionId
 });
 
 
@@ -282,13 +288,14 @@ class __$ShoppingContributionCopyWithImpl<$Res>
 
 /// Create a copy of ShoppingContribution
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? source = null,Object? label = null,Object? quantity = freezed,Object? unit = freezed,Object? cookDay = freezed,Object? contributionId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? source = null,Object? label = null,Object? quantity = freezed,Object? unit = freezed,Object? measure = freezed,Object? cookDay = freezed,Object? contributionId = freezed,}) {
   return _then(_ShoppingContribution(
 source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as ContributionSource,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as String,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as double?,unit: freezed == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
-as Unit?,cookDay: freezed == cookDay ? _self.cookDay : cookDay // ignore: cast_nullable_to_non_nullable
+as Unit?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
+as Measure?,cookDay: freezed == cookDay ? _self.cookDay : cookDay // ignore: cast_nullable_to_non_nullable
 as int?,contributionId: freezed == contributionId ? _self.contributionId : contributionId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -304,7 +311,11 @@ mixin _$ShoppingItem {
 /// ingredient, or a free-text item). Null for a purely-derived ingredient
 /// the user hasn't touched yet — check-off lazily creates the entry.
  String? get entryId;/// Null for a free-text (non-food) item.
- String? get ingredientId; bool get checked; List<Quantity> get totals; List<ShoppingContribution> get contributions;
+ String? get ingredientId; bool get checked; List<Quantity> get totals; List<ShoppingContribution> get contributions;/// An honest round-up hint ("2.25 → buy 3") for a measure-bearing count
+/// ingredient — a HINT beside the total, never a replaced total
+/// (invariant 3). Null when the item doesn't qualify (see
+/// [wholeUnitHintFor]).
+ WholeUnitHint? get wholeUnitHint;
 /// Create a copy of ShoppingItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -315,16 +326,16 @@ $ShoppingItemCopyWith<ShoppingItem> get copyWith => _$ShoppingItemCopyWithImpl<S
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShoppingItem&&(identical(other.name, name) || other.name == name)&&(identical(other.entryId, entryId) || other.entryId == entryId)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.checked, checked) || other.checked == checked)&&const DeepCollectionEquality().equals(other.totals, totals)&&const DeepCollectionEquality().equals(other.contributions, contributions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShoppingItem&&(identical(other.name, name) || other.name == name)&&(identical(other.entryId, entryId) || other.entryId == entryId)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.checked, checked) || other.checked == checked)&&const DeepCollectionEquality().equals(other.totals, totals)&&const DeepCollectionEquality().equals(other.contributions, contributions)&&(identical(other.wholeUnitHint, wholeUnitHint) || other.wholeUnitHint == wholeUnitHint));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,name,entryId,ingredientId,checked,const DeepCollectionEquality().hash(totals),const DeepCollectionEquality().hash(contributions));
+int get hashCode => Object.hash(runtimeType,name,entryId,ingredientId,checked,const DeepCollectionEquality().hash(totals),const DeepCollectionEquality().hash(contributions),wholeUnitHint);
 
 @override
 String toString() {
-  return 'ShoppingItem(name: $name, entryId: $entryId, ingredientId: $ingredientId, checked: $checked, totals: $totals, contributions: $contributions)';
+  return 'ShoppingItem(name: $name, entryId: $entryId, ingredientId: $ingredientId, checked: $checked, totals: $totals, contributions: $contributions, wholeUnitHint: $wholeUnitHint)';
 }
 
 
@@ -335,7 +346,7 @@ abstract mixin class $ShoppingItemCopyWith<$Res>  {
   factory $ShoppingItemCopyWith(ShoppingItem value, $Res Function(ShoppingItem) _then) = _$ShoppingItemCopyWithImpl;
 @useResult
 $Res call({
- String name, String? entryId, String? ingredientId, bool checked, List<Quantity> totals, List<ShoppingContribution> contributions
+ String name, String? entryId, String? ingredientId, bool checked, List<Quantity> totals, List<ShoppingContribution> contributions, WholeUnitHint? wholeUnitHint
 });
 
 
@@ -352,7 +363,7 @@ class _$ShoppingItemCopyWithImpl<$Res>
 
 /// Create a copy of ShoppingItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? entryId = freezed,Object? ingredientId = freezed,Object? checked = null,Object? totals = null,Object? contributions = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? entryId = freezed,Object? ingredientId = freezed,Object? checked = null,Object? totals = null,Object? contributions = null,Object? wholeUnitHint = freezed,}) {
   return _then(_self.copyWith(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,entryId: freezed == entryId ? _self.entryId : entryId // ignore: cast_nullable_to_non_nullable
@@ -360,7 +371,8 @@ as String?,ingredientId: freezed == ingredientId ? _self.ingredientId : ingredie
 as String?,checked: null == checked ? _self.checked : checked // ignore: cast_nullable_to_non_nullable
 as bool,totals: null == totals ? _self.totals : totals // ignore: cast_nullable_to_non_nullable
 as List<Quantity>,contributions: null == contributions ? _self.contributions : contributions // ignore: cast_nullable_to_non_nullable
-as List<ShoppingContribution>,
+as List<ShoppingContribution>,wholeUnitHint: freezed == wholeUnitHint ? _self.wholeUnitHint : wholeUnitHint // ignore: cast_nullable_to_non_nullable
+as WholeUnitHint?,
   ));
 }
 
@@ -445,10 +457,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  String? entryId,  String? ingredientId,  bool checked,  List<Quantity> totals,  List<ShoppingContribution> contributions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  String? entryId,  String? ingredientId,  bool checked,  List<Quantity> totals,  List<ShoppingContribution> contributions,  WholeUnitHint? wholeUnitHint)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ShoppingItem() when $default != null:
-return $default(_that.name,_that.entryId,_that.ingredientId,_that.checked,_that.totals,_that.contributions);case _:
+return $default(_that.name,_that.entryId,_that.ingredientId,_that.checked,_that.totals,_that.contributions,_that.wholeUnitHint);case _:
   return orElse();
 
 }
@@ -466,10 +478,10 @@ return $default(_that.name,_that.entryId,_that.ingredientId,_that.checked,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  String? entryId,  String? ingredientId,  bool checked,  List<Quantity> totals,  List<ShoppingContribution> contributions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  String? entryId,  String? ingredientId,  bool checked,  List<Quantity> totals,  List<ShoppingContribution> contributions,  WholeUnitHint? wholeUnitHint)  $default,) {final _that = this;
 switch (_that) {
 case _ShoppingItem():
-return $default(_that.name,_that.entryId,_that.ingredientId,_that.checked,_that.totals,_that.contributions);case _:
+return $default(_that.name,_that.entryId,_that.ingredientId,_that.checked,_that.totals,_that.contributions,_that.wholeUnitHint);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -486,10 +498,10 @@ return $default(_that.name,_that.entryId,_that.ingredientId,_that.checked,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  String? entryId,  String? ingredientId,  bool checked,  List<Quantity> totals,  List<ShoppingContribution> contributions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  String? entryId,  String? ingredientId,  bool checked,  List<Quantity> totals,  List<ShoppingContribution> contributions,  WholeUnitHint? wholeUnitHint)?  $default,) {final _that = this;
 switch (_that) {
 case _ShoppingItem() when $default != null:
-return $default(_that.name,_that.entryId,_that.ingredientId,_that.checked,_that.totals,_that.contributions);case _:
+return $default(_that.name,_that.entryId,_that.ingredientId,_that.checked,_that.totals,_that.contributions,_that.wholeUnitHint);case _:
   return null;
 
 }
@@ -501,7 +513,7 @@ return $default(_that.name,_that.entryId,_that.ingredientId,_that.checked,_that.
 
 
 class _ShoppingItem extends ShoppingItem {
-  const _ShoppingItem({required this.name, this.entryId, this.ingredientId, this.checked = false, final  List<Quantity> totals = const <Quantity>[], final  List<ShoppingContribution> contributions = const <ShoppingContribution>[]}): _totals = totals,_contributions = contributions,super._();
+  const _ShoppingItem({required this.name, this.entryId, this.ingredientId, this.checked = false, final  List<Quantity> totals = const <Quantity>[], final  List<ShoppingContribution> contributions = const <ShoppingContribution>[], this.wholeUnitHint}): _totals = totals,_contributions = contributions,super._();
   
 
 @override final  String name;
@@ -526,6 +538,11 @@ class _ShoppingItem extends ShoppingItem {
   return EqualUnmodifiableListView(_contributions);
 }
 
+/// An honest round-up hint ("2.25 → buy 3") for a measure-bearing count
+/// ingredient — a HINT beside the total, never a replaced total
+/// (invariant 3). Null when the item doesn't qualify (see
+/// [wholeUnitHintFor]).
+@override final  WholeUnitHint? wholeUnitHint;
 
 /// Create a copy of ShoppingItem
 /// with the given fields replaced by the non-null parameter values.
@@ -537,16 +554,16 @@ _$ShoppingItemCopyWith<_ShoppingItem> get copyWith => __$ShoppingItemCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShoppingItem&&(identical(other.name, name) || other.name == name)&&(identical(other.entryId, entryId) || other.entryId == entryId)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.checked, checked) || other.checked == checked)&&const DeepCollectionEquality().equals(other._totals, _totals)&&const DeepCollectionEquality().equals(other._contributions, _contributions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShoppingItem&&(identical(other.name, name) || other.name == name)&&(identical(other.entryId, entryId) || other.entryId == entryId)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.checked, checked) || other.checked == checked)&&const DeepCollectionEquality().equals(other._totals, _totals)&&const DeepCollectionEquality().equals(other._contributions, _contributions)&&(identical(other.wholeUnitHint, wholeUnitHint) || other.wholeUnitHint == wholeUnitHint));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,name,entryId,ingredientId,checked,const DeepCollectionEquality().hash(_totals),const DeepCollectionEquality().hash(_contributions));
+int get hashCode => Object.hash(runtimeType,name,entryId,ingredientId,checked,const DeepCollectionEquality().hash(_totals),const DeepCollectionEquality().hash(_contributions),wholeUnitHint);
 
 @override
 String toString() {
-  return 'ShoppingItem(name: $name, entryId: $entryId, ingredientId: $ingredientId, checked: $checked, totals: $totals, contributions: $contributions)';
+  return 'ShoppingItem(name: $name, entryId: $entryId, ingredientId: $ingredientId, checked: $checked, totals: $totals, contributions: $contributions, wholeUnitHint: $wholeUnitHint)';
 }
 
 
@@ -557,7 +574,7 @@ abstract mixin class _$ShoppingItemCopyWith<$Res> implements $ShoppingItemCopyWi
   factory _$ShoppingItemCopyWith(_ShoppingItem value, $Res Function(_ShoppingItem) _then) = __$ShoppingItemCopyWithImpl;
 @override @useResult
 $Res call({
- String name, String? entryId, String? ingredientId, bool checked, List<Quantity> totals, List<ShoppingContribution> contributions
+ String name, String? entryId, String? ingredientId, bool checked, List<Quantity> totals, List<ShoppingContribution> contributions, WholeUnitHint? wholeUnitHint
 });
 
 
@@ -574,7 +591,7 @@ class __$ShoppingItemCopyWithImpl<$Res>
 
 /// Create a copy of ShoppingItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? entryId = freezed,Object? ingredientId = freezed,Object? checked = null,Object? totals = null,Object? contributions = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? entryId = freezed,Object? ingredientId = freezed,Object? checked = null,Object? totals = null,Object? contributions = null,Object? wholeUnitHint = freezed,}) {
   return _then(_ShoppingItem(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,entryId: freezed == entryId ? _self.entryId : entryId // ignore: cast_nullable_to_non_nullable
@@ -582,7 +599,8 @@ as String?,ingredientId: freezed == ingredientId ? _self.ingredientId : ingredie
 as String?,checked: null == checked ? _self.checked : checked // ignore: cast_nullable_to_non_nullable
 as bool,totals: null == totals ? _self._totals : totals // ignore: cast_nullable_to_non_nullable
 as List<Quantity>,contributions: null == contributions ? _self._contributions : contributions // ignore: cast_nullable_to_non_nullable
-as List<ShoppingContribution>,
+as List<ShoppingContribution>,wholeUnitHint: freezed == wholeUnitHint ? _self.wholeUnitHint : wholeUnitHint // ignore: cast_nullable_to_non_nullable
+as WholeUnitHint?,
   ));
 }
 

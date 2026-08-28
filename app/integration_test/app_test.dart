@@ -299,6 +299,12 @@ void main() {
     expect(members.map((r) => r['display_name']).toList(), ['Ada', 'Jun']);
     final vocab = await db.get('SELECT COUNT(*) AS c FROM ingredient');
     expect(vocab['c'] as int, greaterThan(100));
+    // …and the starter measures cloned with it (step 7.6): "clove (3 g)" on
+    // Garlic is what scenario 2 picks in the editor's unit dropdown.
+    final measures = await db.get(
+      'SELECT COUNT(*) AS c FROM ingredient_measure',
+    );
+    expect(measures['c'] as int, greaterThan(10));
   });
 
   // ---------------------------------------------------------------------------
@@ -349,6 +355,19 @@ void main() {
 
     // Two ingredients through the synced-vocab picker.
     await addIngredient(tester, 'Garlic', '3');
+
+    // Quantify Garlic in its synced measure (step 7.6): the unit dropdown
+    // offers the vocab measures cloned at onboarding — pick "clove (3 g)".
+    final garlicEditorLine = find
+        .ancestor(of: find.text('Garlic'), matching: find.byType(Column))
+        .first;
+    await tester.tap(
+      find.descendant(of: garlicEditorLine, matching: find.text('piece')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('clove (3 g)').last);
+    await tester.pumpAndSettle();
+
     await addIngredient(tester, 'Onion', '1');
 
     // Two method steps — `recipe.steps` is a jsonb column, so these must
@@ -375,7 +394,7 @@ void main() {
     expect(recipe['book_id'], isNotNull);
     expect(recipe['section_id'], isNotNull);
     final items = await db.getAll(
-      'SELECT li.quantity, li.unit FROM recipe_line_item li '
+      'SELECT li.quantity, li.unit, li.measure_id FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id '
       'WHERE g.recipe_id = ? AND li.deleted_at IS NULL '
       'ORDER BY li.sort_order',
@@ -383,7 +402,13 @@ void main() {
     );
     expect(items, hasLength(2));
     expect(items.first['quantity'], 3);
+    // The Garlic line persisted its measure FK, with the honest count unit as
+    // the stored fallback ("3 clove" degrades to "3 piece", never invented
+    // grams — step 7.6).
+    expect(items.first['measure_id'], isNotNull);
+    expect(items.first['unit'], 'piece');
     expect(items.last['quantity'], 1);
+    expect(items.last['measure_id'], isNull);
 
     // After the server round-trip the view still stands and the steps are
     // still a real JSON array (not a double-encoded string).

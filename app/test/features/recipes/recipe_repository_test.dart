@@ -102,6 +102,106 @@ void main() {
     expect(rice.note, 'rinsed');
   });
 
+  test('a measure line round-trips: id persisted, measure resolved', () async {
+    await db.execute(
+      'INSERT INTO ingredient_measure '
+      '(id, household_id, ingredient_id, label, grams, sort_order) '
+      'VALUES (?, ?, ?, ?, ?, ?)',
+      ['m-onion', 'h', 'ing-onion', 'onion, medium', 110, 0],
+    );
+    final recipe = _sampleRecipe();
+    final withMeasure = recipe.copyWith(
+      groups: [
+        recipe.groups.first.copyWith(
+          items: [
+            recipe.groups.first.items.first.copyWith(
+              quantity: 2,
+              measureId: 'm-onion',
+            ),
+            ...recipe.groups.first.items.skip(1),
+          ],
+        ),
+        ...recipe.groups.skip(1),
+      ],
+    );
+    await repo.saveRecipe(withMeasure);
+
+    final loaded = await repo.watchRecipe('r1').first;
+    final onion = loaded!.groups.first.items.first;
+    expect(onion.measureId, 'm-onion');
+    expect(onion.measure, isNotNull);
+    expect(onion.measure!.label, 'onion, medium');
+    expect(onion.measure!.grams, 110);
+    expect(onion.unit, pieces); // the honest count fallback stays stored
+  });
+
+  test('an unresolved measure_id survives a re-save (never '
+      'stripped)', () async {
+    // The measure row hasn't synced (or was deleted): the line loads with
+    // measure null but keeps its id, and an unrelated edit re-saves it.
+    final recipe = _sampleRecipe();
+    final withMeasure = recipe.copyWith(
+      groups: [
+        recipe.groups.first.copyWith(
+          items: [
+            recipe.groups.first.items.first.copyWith(measureId: 'm-ghost'),
+            ...recipe.groups.first.items.skip(1),
+          ],
+        ),
+        ...recipe.groups.skip(1),
+      ],
+    );
+    await repo.saveRecipe(withMeasure);
+
+    final loaded = await repo.watchRecipe('r1').first;
+    final onion = loaded!.groups.first.items.first;
+    expect(onion.measure, isNull);
+    expect(onion.measureId, 'm-ghost');
+
+    await repo.saveRecipe(loaded.copyWith(title: 'Renamed'));
+    final reloaded = await repo.watchRecipe('r1').first;
+    expect(reloaded!.groups.first.items.first.measureId, 'm-ghost');
+  });
+
+  test('watchRecipe re-fires when a measure is renamed', () async {
+    await db.execute(
+      'INSERT INTO ingredient_measure '
+      '(id, household_id, ingredient_id, label, grams, sort_order) '
+      'VALUES (?, ?, ?, ?, ?, ?)',
+      ['m-onion', 'h', 'ing-onion', 'onion, medium', 110, 0],
+    );
+    final recipe = _sampleRecipe();
+    await repo.saveRecipe(
+      recipe.copyWith(
+        groups: [
+          recipe.groups.first.copyWith(
+            items: [
+              recipe.groups.first.items.first.copyWith(
+                quantity: 2,
+                measureId: 'm-onion',
+              ),
+              ...recipe.groups.first.items.skip(1),
+            ],
+          ),
+          ...recipe.groups.skip(1),
+        ],
+      ),
+    );
+
+    final labels = repo
+        .watchRecipe('r1')
+        .map((r) => r?.groups.first.items.first.measure?.label)
+        .distinct()
+        .take(2)
+        .toList();
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await db.execute('UPDATE ingredient_measure SET label = ? WHERE id = ?', [
+      'onion, large',
+      'm-onion',
+    ]);
+    expect(await labels, ['onion, medium', 'onion, large']);
+  });
+
   test('watchRecipes lists saved recipes (summaries)', () async {
     await repo.saveRecipe(_sampleRecipe());
     await repo.saveRecipe(

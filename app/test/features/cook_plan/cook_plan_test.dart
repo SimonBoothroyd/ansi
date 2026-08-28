@@ -292,4 +292,66 @@ void main() {
       expect(hint.frozen, isTrue);
     });
   });
+
+  group('wholeBatchNudgeFor', () {
+    CookSession session({double servings = 4, int portions = 3}) =>
+        clusterSessions(_recipe({0: portions}, servings: servings)).single;
+
+    test('a fractional factor nudges up to the next whole batch', () {
+      // 3 portions of a serves-4 recipe: ×0.75 → cook ×1, 1 left over.
+      final nudge = wholeBatchNudgeFor(session());
+      expect(nudge, isNotNull);
+      expect(nudge!.factor, 1);
+      expect(nudge.batchPortions, 4);
+      expect(nudge.leftoverPortions, 1);
+    });
+
+    test('rounds up past one whole batch too (×1.5 → ×2)', () {
+      // 3 portions (the default) of a serves-2 recipe.
+      final nudge = wholeBatchNudgeFor(session(servings: 2));
+      expect(nudge!.factor, 2);
+      expect(nudge.batchPortions, 4);
+      expect(nudge.leftoverPortions, 1);
+    });
+
+    test('a whole factor needs no nudge', () {
+      expect(wholeBatchNudgeFor(session(servings: 2, portions: 4)), isNull);
+      // 3 portions (the default) of a serves-3 recipe: exactly ×1.
+      expect(wholeBatchNudgeFor(session(servings: 3)), isNull);
+    });
+
+    test('float noise on a whole factor is not a nudge', () {
+      // 0.1 + 0.2 style noise: 4.5 servings × (9/4.5 = 2.0000…) stays whole.
+      final s = clusterSessions(_recipe({0: 9}, servings: 4.5)).single;
+      expect(wholeBatchNudgeFor(s), isNull);
+    });
+
+    test('fractional servings_base yields honest fractional leftovers', () {
+      // serves 2.5, 2 portions wanted: ×0.8 → cook ×1 = 2.5, 0.5 left over.
+      final nudge = wholeBatchNudgeFor(session(servings: 2.5, portions: 2));
+      expect(nudge!.factor, 1);
+      expect(nudge.batchPortions, 2.5);
+      expect(nudge.leftoverPortions, closeTo(0.5, 1e-9));
+    });
+
+    test('degenerate inputs never nudge (invariant 3: no invented factor)', () {
+      // servings_base 0 → scaleFactor 0; nothing honest to suggest.
+      const zeroServings = CookSession(
+        recipeId: 'r',
+        recipeTitle: 'Dish',
+        servingsBase: 0,
+        cookDay: 0,
+        covers: [CoveredMeal(dayOfWeek: 0, mealSlot: 'Dinner', portions: 2)],
+      );
+      expect(wholeBatchNudgeFor(zeroServings), isNull);
+      // No covered portions → factor 0.
+      const noPortions = CookSession(
+        recipeId: 'r',
+        recipeTitle: 'Dish',
+        servingsBase: 2,
+        cookDay: 0,
+      );
+      expect(wholeBatchNudgeFor(noPortions), isNull);
+    });
+  });
 }

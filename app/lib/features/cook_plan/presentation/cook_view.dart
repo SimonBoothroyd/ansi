@@ -124,14 +124,23 @@ class _RecipeCard extends StatelessWidget {
   }
 }
 
-/// One cook session as a paper tile: cook day · scale · covers · timeline.
-class _SessionTile extends StatelessWidget {
+/// One cook session as a paper tile: cook day · scale · covers · timeline,
+/// plus the whole-batch nudge when the raw factor is fractional (step 7.6).
+/// Tapping the nudge toggles the tile's DISPLAY between the honest raw factor
+/// and the nudged whole batch — nothing is persisted, and the shopping list
+/// keeps scaling by the raw factor either way (invariant 3).
+class _SessionTile extends ConsumerWidget {
   const _SessionTile({required this.session});
 
   final CookSession session;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nudge = wholeBatchNudgeFor(session);
+    final key = cookSessionKey(session);
+    final showWhole =
+        nudge != null && ref.watch(wholeBatchDisplayProvider(key));
+
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
       decoration: BoxDecoration(
@@ -152,7 +161,9 @@ class _SessionTile extends StatelessWidget {
                 ),
               ),
               Text(
-                formatScale(session.scaleFactor),
+                showWhole
+                    ? '×${nudge.factor}'
+                    : formatScale(session.scaleFactor),
                 style: miseMono(size: 12, color: MiseColors.herbDeep),
               ),
             ],
@@ -162,6 +173,39 @@ class _SessionTile extends StatelessWidget {
             coversLine(session),
             style: miseSans(size: 11, color: MiseColors.muted),
           ),
+          if (nudge != null) ...[
+            const SizedBox(height: 6),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () =>
+                  ref.read(wholeBatchDisplayProvider(key).notifier).toggle(),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1),
+                    child: Icon(
+                      showWhole
+                          ? FLucideIcons.rotateCcw
+                          : FLucideIcons.circleArrowUp,
+                      size: 13,
+                      color: MiseColors.herbDeep,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      showWhole
+                          ? 'showing the whole batch — tap for the honest '
+                                '${formatScale(session.scaleFactor)}'
+                          : wholeBatchNudgeLine(nudge),
+                      style: miseMono(size: 10.5, color: MiseColors.herbDeep),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           CookTimeline(session: session),
         ],

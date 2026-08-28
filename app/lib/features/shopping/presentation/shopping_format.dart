@@ -17,10 +17,22 @@ String itemTotal(ShoppingItem item) {
   return item.totals.map(formatTotal).join(' + ');
 }
 
-/// A provenance line's quantity ("300 g"), or empty when it carries none.
+/// A provenance line's quantity ("300 g", or "2 potato, large" when counted
+/// in a measure), or empty when it carries none.
 String contributionQuantity(ShoppingContribution c) {
   final q = c.quantity;
+  if (q == null) return '';
+  final measure = c.measure;
+  if (measure != null) return '${formatQuantity(q)} ${measure.label}';
   final unit = c.unit;
-  if (q == null || unit == null) return '';
+  if (unit == null) return '';
   return '${formatQuantity(q)} ${unit.label}';
 }
+
+/// The whole-unit round-up hint under a count-food's total: "2.25 piece →
+/// buy 3", or "≈ 2.25 potato, large → buy 3" when the count was derived from
+/// a mass total via the measure's gram weight. Always beside the honest
+/// total, never instead of it (invariant 3).
+String wholeUnitHintText(WholeUnitHint h) =>
+    '${h.approx ? '≈ ' : ''}${formatQuantity(h.count)} ${h.unitLabel} '
+    '→ buy ${h.buy}';

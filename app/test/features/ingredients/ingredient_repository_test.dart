@@ -131,6 +131,20 @@ void main() {
     expect(all.map((i) => i.canonicalName), isNot(contains('Onion Powder')));
   });
 
+  test('byId resolves a live row and refuses a tombstoned one', () async {
+    final onion = await repo.byId('1');
+    expect(onion?.canonicalName, 'Onion');
+    expect(await repo.byId('nope'), isNull);
+
+    await _seed(
+      db,
+      id: '9',
+      name: 'Onion Powder',
+      deletedAt: '2026-01-01T00:00:00Z',
+    );
+    expect(await repo.byId('9'), isNull);
+  });
+
   test('maps status and category', () async {
     final oil = (await repo.search('olive')).single;
     expect(oil.status, IngredientStatus.stub);

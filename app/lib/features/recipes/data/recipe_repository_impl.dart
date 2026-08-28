@@ -11,6 +11,7 @@ import 'dart:convert';
 import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_repository.dart';
@@ -59,11 +60,13 @@ class SqliteRecipeRepository implements RecipeRepository {
     // re-assembles the recipe.
     return _db
         .watch(
-          'SELECT r.id, g.id, li.id, ing.canonical_name, b.name, s.name '
+          'SELECT r.id, g.id, li.id, ing.canonical_name, im.label, b.name, '
+          's.name '
           'FROM recipe r '
           'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
           'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
           'LEFT JOIN ingredient ing ON ing.id = li.ingredient_id '
+          'LEFT JOIN ingredient_measure im ON im.id = li.measure_id '
           'LEFT JOIN book b ON b.id = r.book_id '
           'LEFT JOIN book_section s ON s.id = r.section_id '
           'WHERE r.id = ? AND r.deleted_at IS NULL LIMIT 1',
@@ -93,10 +96,14 @@ class SqliteRecipeRepository implements RecipeRepository {
       [id],
     );
     final itemRows = await _db.getAll(
-      'SELECT li.*, ing.canonical_name AS ingredient_name '
+      'SELECT li.*, ing.canonical_name AS ingredient_name, '
+      'im.label AS measure_label, im.grams AS measure_grams, '
+      'im.sort_order AS measure_sort '
       'FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id '
       'LEFT JOIN ingredient ing ON ing.id = li.ingredient_id '
+      'LEFT JOIN ingredient_measure im '
+      'ON im.id = li.measure_id AND im.deleted_at IS NULL '
       'WHERE g.recipe_id = ? AND li.deleted_at IS NULL '
       'ORDER BY li.sort_order, li.created_at',
       [id],
@@ -130,14 +137,30 @@ class SqliteRecipeRepository implements RecipeRepository {
     );
   }
 
-  LineItem _toLineItem(Row r) => LineItem(
-    id: r['id'] as String,
-    ingredientId: r['ingredient_id'] as String,
-    ingredientName: r['ingredient_name'] as String? ?? '(unknown ingredient)',
-    unit: unitById(r['unit'] as String) ?? pieces,
-    quantity: (r['quantity'] as num?)?.toDouble(),
-    note: r['note'] as String?,
-  );
+  LineItem _toLineItem(Row r) {
+    // The measure resolves only when its row is live locally; the raw
+    // measure_id is kept regardless so a save never strips it (see [LineItem]).
+    final measureId = r['measure_id'] as String?;
+    final measureLabel = r['measure_label'] as String?;
+    final measureGrams = (r['measure_grams'] as num?)?.toDouble();
+    return LineItem(
+      id: r['id'] as String,
+      ingredientId: r['ingredient_id'] as String,
+      ingredientName: r['ingredient_name'] as String? ?? '(unknown ingredient)',
+      unit: unitById(r['unit'] as String) ?? pieces,
+      quantity: (r['quantity'] as num?)?.toDouble(),
+      measureId: measureId,
+      measure: measureId == null || measureLabel == null || measureGrams == null
+          ? null
+          : Measure(
+              id: measureId,
+              label: measureLabel,
+              grams: measureGrams,
+              sortOrder: (r['measure_sort'] as int?) ?? 0,
+            ),
+      note: r['note'] as String?,
+    );
+  }
 
   @override
   Future<void> saveRecipe(Recipe recipe) async {
@@ -260,13 +283,14 @@ class SqliteRecipeRepository implements RecipeRepository {
             // group_id is included: an item can move between groups.
             await tx.execute(
               'UPDATE recipe_line_item SET group_id = ?, ingredient_id = ?, '
-              'quantity = ?, unit = ?, note = ?, sort_order = ?, '
-              'updated_at = ?, deleted_at = NULL WHERE id = ?',
+              'quantity = ?, unit = ?, measure_id = ?, note = ?, '
+              'sort_order = ?, updated_at = ?, deleted_at = NULL WHERE id = ?',
               [
                 group.id,
                 item.ingredientId,
                 item.quantity,
                 item.unit.id,
+                item.measureId,
                 item.note,
                 li,
                 now,
@@ -276,8 +300,9 @@ class SqliteRecipeRepository implements RecipeRepository {
           } else {
             await tx.execute(
               'INSERT INTO recipe_line_item (id, household_id, group_id, '
-              'ingredient_id, quantity, unit, note, sort_order, created_at, '
-              'updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              'ingredient_id, quantity, unit, measure_id, note, sort_order, '
+              'created_at, updated_at) '
+              'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
               [
                 item.id,
                 _householdId,
@@ -285,6 +310,7 @@ class SqliteRecipeRepository implements RecipeRepository {
                 item.ingredientId,
                 item.quantity,
                 item.unit.id,
+                item.measureId,
                 item.note,
                 li,
                 now,

@@ -25,6 +25,7 @@ library;
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../core/result/result.dart';
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 
 part 'shopping.freezed.dart';
@@ -45,11 +46,18 @@ enum ContributionSource { cookSession, manual }
 /// carries the raw string) — such a line is surfaced in the breakdown as an
 /// unconverted note and NEVER summed into a total (invariant 3: falling back
 /// to "pieces" would invent semantics for an unknown unit).
+///
+/// `measure` is the resolved [Measure] when the line was quantified in one
+/// ("2 × potato, large") — its gram weight folds the quantity into the mass
+/// subtotal. A line whose stored `measure_id` no longer resolves arrives with
+/// `measure` null and its stored count unit intact, so it degrades to an
+/// honest count rather than invented grams.
 typedef CookContributionInput = ({
   String ingredientId,
   double? quantity,
   Unit? unit,
   String? rawUnit,
+  Measure? measure,
   String recipeTitle,
   int cookDay,
   bool batched,
@@ -68,21 +76,26 @@ typedef ShoppingEntryInput = ({
   String? createdAt,
 });
 
-/// A persisted manual contribution attached to an entry.
+/// A persisted manual contribution attached to an entry. `measure`, when set,
+/// is the resolved [Measure] the top-up was quantified in.
 typedef ManualContributionInput = ({
   String id,
   String entryId,
   double? quantity,
   Unit? unit,
+  Measure? measure,
   String? note,
 });
 
-/// Ingredient vocab metadata needed to group + sum (name, aisle, density).
+/// Ingredient vocab metadata needed to group + sum (name, aisle, density),
+/// plus the ingredient's live measures (sorted by their `sort_order`) — they
+/// gate and price the whole-unit hint on count foods.
 typedef IngredientMetaInput = ({
   String name,
   String? category,
   double? densityGPerMl,
   Unit defaultUnit,
+  List<Measure> measures,
 });
 
 // --- Display entities --------------------------------------------------------
@@ -100,6 +113,10 @@ abstract class ShoppingContribution with _$ShoppingContribution {
     /// Null for a bare non-food item (renders as a dash).
     double? quantity,
     Unit? unit,
+
+    /// The measure the quantity is counted in ("2 × potato, large"), when the
+    /// contribution was quantified in one; [unit] is null then.
+    Measure? measure,
 
     /// Cook day (0=Mon..6=Sun) for a cook contribution — orders the breakdown.
     int? cookDay,
@@ -131,6 +148,12 @@ abstract class ShoppingItem with _$ShoppingItem {
     @Default(false) bool checked,
     @Default(<Quantity>[]) List<Quantity> totals,
     @Default(<ShoppingContribution>[]) List<ShoppingContribution> contributions,
+
+    /// An honest round-up hint ("2.25 → buy 3") for a measure-bearing count
+    /// ingredient — a HINT beside the total, never a replaced total
+    /// (invariant 3). Null when the item doesn't qualify (see
+    /// [wholeUnitHintFor]).
+    WholeUnitHint? wholeUnitHint,
   }) = _ShoppingItem;
 
   /// A free-text non-food item ("paper towels") rather than a vocab ingredient.
@@ -179,12 +202,20 @@ abstract class ShoppingList with _$ShoppingList {
 
 // --- Aggregation (honest summation core) -------------------------------------
 
+/// An amount counted in a [Measure] ("2 × potato, large"), awaiting honest
+/// summation via the measure's gram weight.
+typedef MeasureAmount = ({double amount, Measure measure});
+
 /// Sums [qs] into as few totals as it can *honestly* (invariant 3).
 ///
 /// - Sums within a unit family by the ratio table (g·kg → one mass total).
 /// - Bridges mass↔volume only when a *positive* [densityGPerMl] is supplied
 ///   (a zero/negative density is bad data, treated like none); without one a
 ///   mixed set yields two subtotals rather than an invented single number.
+/// - [measured] amounts fold into the **mass** subtotal via each measure's
+///   gram weight (a measure is a stored, sourced mass — spec §4, step 7.6).
+///   One with a non-positive gram weight (bad data) is skipped, never summed
+///   under a guessed weight.
 /// - [UnitFamily.count] totals sum per count unit; [UnitFamily.imprecise] never
 ///   sums (a "pinch" doubled is still a pinch) — identical imprecise units
 ///   collapse into ONE entry (two recipes each wanting a pinch → "pinch", not
@@ -192,6 +223,7 @@ abstract class ShoppingList with _$ShoppingList {
 /// - [preferred] biases the display unit when it shares the summed family.
 List<Quantity> aggregateQuantities(
   List<Quantity> qs, {
+  List<MeasureAmount> measured = const [],
   double? densityGPerMl,
   Unit? preferred,
 }) {
@@ -212,6 +244,11 @@ List<Quantity> aggregateQuantities(
         // (they never scale or sum), so one line per unit is the honest render.
         if (!imprecise.any((e) => e.unit == q.unit)) imprecise.add(q);
     }
+  }
+  for (final m in measured) {
+    // Grams-per-measure is a stored mass, so the fold is exact — but only a
+    // positive weight is trusted (mirrors the density guard above).
+    if (m.measure.grams > 0) mass.add(Quantity(m.amount * m.measure.grams, g));
   }
 
   final totals = <Quantity>[];
@@ -272,6 +309,66 @@ Quantity? _sumFamily(List<Quantity> qs, Unit? preferred) {
         .unit;
   }
   return Quantity(base / (target.ratioToBase ?? 1), target);
+}
+
+/// A whole-unit round-up hint on a shop line: the honest fractional `count`
+/// ("2.25"), the whole units to `buy` ("3"), and what one unit is
+/// (`unitLabel`). `approx` is true when the count was derived from a mass
+/// total via a measure's gram weight (weight→count is approximate; a direct
+/// fractional count is not).
+typedef WholeUnitHint = ({
+  double count,
+  int buy,
+  String unitLabel,
+  bool approx,
+});
+
+/// The round-up hint for an item's [totals], or null (spec §4, step 7.6).
+///
+/// Only a **count-family ingredient that has a measure** qualifies — the
+/// measure is what makes "a whole one" a real, weighable thing to buy. The
+/// hint is offered only when the item rolled up to a SINGLE total (a mixed
+/// count+mass item would need a hint that covers both — a guess) and that
+/// total is fractional:
+///
+/// - a fractional count total ("2.25 piece") rounds up directly;
+/// - a mass total converts through the ingredient's primary measure (lowest
+///   `sort_order`) — "674 g ≈ 2.25 × potato, large → buy 3" — marked
+///   `approx`.
+///
+/// Always a hint BESIDE the honest total, never a replacement (invariant 3).
+WholeUnitHint? wholeUnitHintFor({
+  required List<Quantity> totals,
+  required Unit defaultUnit,
+  required List<Measure> measures,
+}) {
+  if (defaultUnit.family != UnitFamily.count) return null;
+  if (measures.isEmpty || totals.length != 1) return null;
+  final total = totals.single;
+
+  bool fractional(double v) => v > 0 && (v - v.round()).abs() > 1e-9;
+
+  if (total.unit.family == UnitFamily.count && fractional(total.amount)) {
+    return (
+      count: total.amount,
+      buy: total.amount.ceil(),
+      unitLabel: total.unit.label,
+      approx: false,
+    );
+  }
+  if (total.unit.family == UnitFamily.mass) {
+    final primary = measures.first;
+    final inMeasure = amountInMeasure(total, primary);
+    if (inMeasure case Ok(:final value) when fractional(value)) {
+      return (
+        count: value,
+        buy: value.ceil(),
+        unitLabel: primary.label,
+        approx: true,
+      );
+    }
+  }
+  return null;
 }
 
 // --- Builder -----------------------------------------------------------------
@@ -389,8 +486,9 @@ ShoppingList buildShoppingList({
         // A quantity whose unit wasn't recognised is surfaced as an
         // unconverted note (no quantity/unit → renders as a dash + note) and
         // stays out of the totals: summing it under an assumed unit would
-        // invent semantics (invariant 3).
-        if (c.unit == null && c.quantity != null)
+        // invent semantics (invariant 3). A measure-quantified line keeps its
+        // measure so the fold below can price it in grams.
+        if (c.unit == null && c.measure == null && c.quantity != null)
           ShoppingContribution(
             source: ContributionSource.cookSession,
             label:
@@ -404,7 +502,8 @@ ShoppingList buildShoppingList({
             source: ContributionSource.cookSession,
             label: cookLabel(c, weekdayShort),
             quantity: c.quantity,
-            unit: c.unit,
+            unit: c.measure == null ? c.unit : null,
+            measure: c.measure,
             cookDay: c.cookDay,
           ),
       for (final man in manuals)
@@ -412,29 +511,44 @@ ShoppingList buildShoppingList({
           source: ContributionSource.manual,
           label: man.note ?? 'manual top-up',
           quantity: man.quantity,
-          unit: man.unit,
+          unit: man.measure == null ? man.unit : null,
+          measure: man.measure,
           contributionId: man.id,
         ),
     ];
 
     final quantities = <Quantity>[
       for (final c in contributions)
-        if (c.quantity != null && c.unit != null)
+        if (c.measure == null && c.quantity != null && c.unit != null)
           Quantity(c.quantity!, c.unit!),
     ];
+    final measured = <MeasureAmount>[
+      for (final c in contributions)
+        if (c.measure != null && c.quantity != null)
+          (amount: c.quantity!, measure: c.measure!),
+    ];
 
+    final totals = aggregateQuantities(
+      quantities,
+      measured: measured,
+      densityGPerMl: m?.densityGPerMl,
+      preferred: m?.defaultUnit,
+    );
     items.add(
       ShoppingItem(
         entryId: entry?.id,
         ingredientId: id,
         name: m?.name ?? '(unknown ingredient)',
         checked: checked,
-        totals: aggregateQuantities(
-          quantities,
-          densityGPerMl: m?.densityGPerMl,
-          preferred: m?.defaultUnit,
-        ),
+        totals: totals,
         contributions: contributions,
+        wholeUnitHint: m == null
+            ? null
+            : wholeUnitHintFor(
+                totals: totals,
+                defaultUnit: m.defaultUnit,
+                measures: m.measures,
+              ),
       ),
     );
   }

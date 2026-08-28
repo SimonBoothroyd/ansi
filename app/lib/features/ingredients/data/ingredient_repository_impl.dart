@@ -55,6 +55,15 @@ class SqliteIngredientRepository implements IngredientRepository {
     return rows.map(_toIngredient).toList();
   }
 
+  @override
+  Future<Ingredient?> byId(String id) async {
+    final row = await _db.getOptional(
+      'SELECT * FROM ingredient WHERE id = ? AND deleted_at IS NULL',
+      [id],
+    );
+    return row == null ? null : _toIngredient(row);
+  }
+
   Ingredient _toIngredient(Row r) => Ingredient(
     id: r['id'] as String,
     canonicalName: r['canonical_name'] as String,

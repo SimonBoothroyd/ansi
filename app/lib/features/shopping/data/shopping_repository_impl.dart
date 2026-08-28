@@ -20,9 +20,11 @@ library;
 
 import 'dart:convert';
 
+import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../planning/domain/planning.dart' show mondayOf;
@@ -38,12 +40,15 @@ const _uuid = Uuid();
 
 /// A recipe line as the shopping list needs it. `unit` is null when the
 /// persisted id isn't a known unit — `rawUnit` keeps the string for the
-/// breakdown's unconverted note.
+/// breakdown's unconverted note. `measure` is resolved when the line is
+/// quantified in one (null if its row is missing — the stored count unit then
+/// stands, an honest degradation).
 typedef _LineItem = ({
   String ingredientId,
   double? quantity,
   Unit? unit,
   String? rawUnit,
+  Measure? measure,
 });
 
 class SqliteShoppingRepository implements ShoppingRepository {
@@ -67,13 +72,13 @@ class SqliteShoppingRepository implements ShoppingRepository {
   Stream<ShoppingList> watchShoppingList(DateTime weekStart) {
     final key = _weekKey(weekStart);
     // Reference every table the load reads and select a column from each so
-    // all eight become watch triggers (see the library doc). The shopping and
-    // ingredient tables aren't tied to the week, so they're cross-joined
-    // (`ON 1=1`) purely to be seen.
+    // all nine become watch triggers (see the library doc). The shopping,
+    // ingredient, and measure tables aren't tied to the week, so they're
+    // cross-joined (`ON 1=1`) purely to be seen.
     return _db
         .watch(
           'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, se.id, sc.id, '
-          'i.id '
+          'i.id, im.id '
           'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
@@ -83,6 +88,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
           'LEFT JOIN shopping_list_entry se ON 1 = 1 '
           'LEFT JOIN shopping_list_contribution sc ON 1 = 1 '
           'LEFT JOIN ingredient i ON 1 = 1 '
+          'LEFT JOIN ingredient_measure im ON 1 = 1 '
           'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
           parameters: [key],
         )
@@ -171,6 +177,9 @@ class SqliteShoppingRepository implements ShoppingRepository {
             quantity: unit == null ? item.quantity : scaled?.amount,
             unit: unit,
             rawUnit: item.rawUnit,
+            // A measure count scales linearly (its stored unit is a count),
+            // so the already-scaled amount is the measure amount too.
+            measure: item.measure,
             recipeTitle: recipe.title,
             cookDay: session.cookDay,
             batched: batched,
@@ -187,9 +196,13 @@ class SqliteShoppingRepository implements ShoppingRepository {
     if (recipeIds.isEmpty) return const {};
     final placeholders = List.filled(recipeIds.length, '?').join(', ');
     final rows = await _db.getAll(
-      'SELECT g.recipe_id, li.ingredient_id, li.quantity, li.unit '
+      'SELECT g.recipe_id, li.ingredient_id, li.quantity, li.unit, '
+      'li.measure_id, im.label AS measure_label, im.grams AS measure_grams, '
+      'im.sort_order AS measure_sort '
       'FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
+      'LEFT JOIN ingredient_measure im '
+      'ON im.id = li.measure_id AND im.deleted_at IS NULL '
       'WHERE g.recipe_id IN ($placeholders) AND li.deleted_at IS NULL '
       'ORDER BY li.sort_order, li.created_at',
       recipeIds.toList(),
@@ -207,9 +220,26 @@ class SqliteShoppingRepository implements ShoppingRepository {
         quantity: (row['quantity'] as num?)?.toDouble(),
         unit: rawUnit == null ? null : unitById(rawUnit),
         rawUnit: rawUnit,
+        measure: _toMeasure(row),
       ));
     }
     return byRecipe;
+  }
+
+  /// The resolved [Measure] of a row selected with the
+  /// `measure_id`/`measure_label`/`measure_grams`/`measure_sort` aliases, or
+  /// null when the row has no measure (or its measure row is missing).
+  Measure? _toMeasure(Row row) {
+    final id = row['measure_id'] as String?;
+    final label = row['measure_label'] as String?;
+    final grams = (row['measure_grams'] as num?)?.toDouble();
+    if (id == null || label == null || grams == null) return null;
+    return Measure(
+      id: id,
+      label: label,
+      grams: grams,
+      sortOrder: (row['measure_sort'] as int?) ?? 0,
+    );
   }
 
   Future<(List<ShoppingEntryInput>, Map<String, List<ManualContributionInput>>)>
@@ -233,10 +263,14 @@ class SqliteShoppingRepository implements ShoppingRepository {
     ];
 
     final contribRows = await _db.getAll(
-      'SELECT id, entry_id, quantity, unit, note '
-      'FROM shopping_list_contribution '
-      "WHERE deleted_at IS NULL AND source_type = 'manual' "
-      'ORDER BY created_at',
+      'SELECT sc.id, sc.entry_id, sc.quantity, sc.unit, sc.note, '
+      'sc.measure_id, im.label AS measure_label, im.grams AS measure_grams, '
+      'im.sort_order AS measure_sort '
+      'FROM shopping_list_contribution sc '
+      'LEFT JOIN ingredient_measure im '
+      'ON im.id = sc.measure_id AND im.deleted_at IS NULL '
+      "WHERE sc.deleted_at IS NULL AND sc.source_type = 'manual' "
+      'ORDER BY sc.created_at',
     );
     final manual = <String, List<ManualContributionInput>>{};
     for (final r in contribRows) {
@@ -246,6 +280,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
         entryId: entryId,
         quantity: (r['quantity'] as num?)?.toDouble(),
         unit: unitById(r['unit'] as String? ?? ''),
+        measure: _toMeasure(r),
         note: r['note'] as String?,
       ));
     }
@@ -262,6 +297,24 @@ class SqliteShoppingRepository implements ShoppingRepository {
       'FROM ingredient WHERE id IN ($placeholders)',
       ids.toList(),
     );
+
+    // The ingredients' live measures, primary (lowest sort_order) first —
+    // they gate the whole-unit hint and price its mass→count conversion.
+    final measureRows = await _db.getAll(
+      'SELECT ingredient_id, id AS measure_id, label AS measure_label, '
+      'grams AS measure_grams, sort_order AS measure_sort '
+      'FROM ingredient_measure '
+      'WHERE ingredient_id IN ($placeholders) AND deleted_at IS NULL '
+      'ORDER BY sort_order, created_at',
+      ids.toList(),
+    );
+    final measuresByIngredient = <String, List<Measure>>{};
+    for (final r in measureRows) {
+      final measure = _toMeasure(r);
+      if (measure == null) continue;
+      (measuresByIngredient[r['ingredient_id'] as String] ??= []).add(measure);
+    }
+
     return {
       for (final r in rows)
         r['id'] as String: (
@@ -269,6 +322,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
           category: r['category'] as String?,
           densityGPerMl: (r['density_g_per_ml'] as num?)?.toDouble(),
           defaultUnit: unitById(r['default_unit'] as String? ?? '') ?? pieces,
+          measures: measuresByIngredient[r['id']] ?? const <Measure>[],
         ),
     };
   }
@@ -369,6 +423,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
     required String ingredientId,
     required double quantity,
     required Unit unit,
+    String? measureId,
   }) async {
     await _db.writeTransaction((tx) async {
       final entryId = await _findOrCreateIngredientEntry(tx, ingredientId);
@@ -376,9 +431,18 @@ class SqliteShoppingRepository implements ShoppingRepository {
       await tx.execute(
         'INSERT INTO shopping_list_contribution '
         '(id, household_id, entry_id, source_type, quantity, unit, '
-        'created_at, updated_at) '
-        "VALUES (?, ?, ?, 'manual', ?, ?, ?, ?)",
-        [_uuid.v4(), _householdId, entryId, quantity, unit.id, now, now],
+        'measure_id, created_at, updated_at) '
+        "VALUES (?, ?, ?, 'manual', ?, ?, ?, ?, ?)",
+        [
+          _uuid.v4(),
+          _householdId,
+          entryId,
+          quantity,
+          unit.id,
+          measureId,
+          now,
+          now,
+        ],
       );
     });
   }
@@ -388,11 +452,12 @@ class SqliteShoppingRepository implements ShoppingRepository {
     required String contributionId,
     required double quantity,
     required Unit unit,
+    String? measureId,
   }) async {
     await _db.execute(
       'UPDATE shopping_list_contribution SET quantity = ?, unit = ?, '
-      'updated_at = ? WHERE id = ?',
-      [quantity, unit.id, _now(), contributionId],
+      'measure_id = ?, updated_at = ? WHERE id = ?',
+      [quantity, unit.id, measureId, _now(), contributionId],
     );
   }
 
