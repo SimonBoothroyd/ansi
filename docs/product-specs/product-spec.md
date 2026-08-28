@@ -57,11 +57,29 @@ Single shared household dataset; both members full read/write; everything scoped
 - Canonical base: **grams** (mass), **ml** (volume)
 - Within-family = fixed ratio table; volume↔mass = via ingredient `density_g_per_ml`
 - Imprecise units: non-scaling, non-converting flag
+- **Named measures** (step 7.6): a per-ingredient `Measure` ("1 potato, large
+  = 299 g", "1 can (400 ml) = 400 g") bridges count↔**mass** via its stored
+  gram weight — the honest bridge for count foods, which a liquid density
+  can't describe. Measures never reach volume without the ingredient's
+  density, and a missing/invalid measure never invents grams (a
+  measure-quantified line stores `unit = 'piece'` as its honest count
+  fallback).
 
 ### Ingredient
 `id · canonical_name · aliases[] · category · density_g_per_ml (nullable) · macros_per_100g {kcal, protein, carb, fat} (nullable) · default_unit · status (complete | stub) · source (usda_fdc_id | manual | barcode)`
 - `status = stub` → drives the "needs fleshing out" queue + honest macro math.
 - Seed from USDA FoodData Central **Foundation Foods + SR Legacy** (CC0). Density from FDC food portions, fallback FAO/INFOODS Density DB v2.0.
+
+### Ingredient measure (step 7.6)
+`ingredient_measure: id · household_id · ingredient_id · label · grams (> 0) · sort_order`
+- Per-household, synced, user-editable rows — households disagree about what
+  "1 portion" is, and import (step 8) will create them from labels. The
+  curated starter set is hand-seeded (`supabase/seed_measures.sql`, sources
+  noted) and clones with the vocab at onboarding.
+- `recipe_line_item.measure_id` / `shopping_list_contribution.measure_id`
+  (nullable FKs) quantify a line in a measure ("2 × potato, large"); unit
+  pickers offer an ingredient's live measures beside its honest unit set
+  (`allowedUnitChoicesFor`).
 
 ### Recipe
 `id · title · book_id · section (user-defined label) · servings_base · ingredient_groups[] · steps[]`
@@ -86,7 +104,7 @@ Groups the week's `plan_entry` rows **by recipe**, then splits each group into *
 - `cook_session (derived): recipe_id · covers[] (plan_entry ids) · cook_day (default = earliest covered day, user-adjustable) · total_portions (Σ eaters over covered) · scale_factor (total_portions / recipe.servings_base)`
 - **Clustering rule (greedy, not a solver):** sort the days a dish appears; start a session at the first; include each later day within `keeps_for_days`; open a new session when one falls outside. O(n log n).
 - **"Same dish too far apart" → two things to cook**, each labelled why ("keeps 4 days"). Replaces manual leftover linking — batching is derived from demand, not hand-assigned.
-- **Scaling helpers apply to the session batch:** whole-ingredient scaling nudges `scale_factor` so key ingredients stay whole. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
+- **Scaling helpers apply to the session batch (step 7.6):** a fractional `scale_factor` gets a **whole-batch nudge** on the session card ("cook ×1 instead — covers 4 portions · 1 left over") — display-level advice the cook can toggle per session; the honest raw factor stays what everything (the shopping list included) scales by. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
 - **Freezer (core, built in step 5):** if `recipe.freezable`, distant instances merge into one session (cook once, freeze the far share) instead of splitting.
 
 ### Recipe additions for the above
@@ -103,7 +121,8 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
 
 **Behavior:**
 - Generate from the **batch cook plan** → one *derived* contribution per (cook_session, ingredient), quantity = ingredient × session `scale_factor`, computed at read time.
-- Display groups by ingredient, sums derived + manual contributions in canonical base (density-converted), shows breakdown: *"Flour — 500g · Curry batch (cook Mon) 300g · Cookies 150g · +50g manual."*
+- Display groups by ingredient, sums derived + manual contributions in canonical base (density-converted; measure-quantified lines fold into the mass subtotal via their gram weights), shows breakdown: *"Flour — 500g · Curry batch (cook Mon) 300g · Cookies 150g · +50g manual."*
+- **Whole-unit hint (step 7.6):** a count-family ingredient *with a measure* whose single total is fractional gets an honest round-up hint beside the total ("2.25 → buy 3", or "≈ 2.25 potato, large → buy 3" derived from a mass total via the primary measure) — a hint, never a replaced total.
 - **Top up** = persist a `manual` contribution against the entry (find-or-create).
 - **Check-off** = on the entry (rolled-up ingredient), not per contribution.
 - **Storage rule:** only what cannot be re-derived is stored (check-off, manual top-ups, free-text items) → nothing to reconcile between devices when the week or a recipe changes. An ingredient entry is displayed only while it has at least one live contribution (derived or manual); when its last one vanishes it drops off the list, its checked row staying inert. (`supabase/migrations/0006_shopping.sql`.)

@@ -73,7 +73,15 @@ ingredient is an honest-but-empty stub (this bit us: cloud showed no macros):
 ```bash
 supabase db query --linked -f supabase/seed_usda.sql     # 8262-food reference
 supabase db query --linked -f supabase/seed_prefill.sql  # macros/density onto vocab
+supabase db query --linked -f supabase/seed_measures.sql # starter measures (0009, step 7.6)
 ```
+
+`seed_measures.sql` adds the hand-curated starter measures ("1 potato, large
+= 299 g") onto the template vocab; `ensure_onboarded` clones them with the
+ingredients, so without it cloud households get no measure choices in the unit
+pickers. Note migration 0009 also touched the **sync streams** — redeploy
+`docker/powersync-cloud.streams.yaml` (step 3 below) so `ingredient_measure`
+actually reaches devices.
 
 `supabase db query --linked "<sql>"` also runs read/verify queries. Destructive
 statements (`truncate`, `delete`) against cloud are intentionally blocked by the

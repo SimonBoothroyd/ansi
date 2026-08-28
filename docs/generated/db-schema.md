@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (8 migrations, 14 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (10 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -19,6 +19,7 @@ introduced in `0001_household.sql` · RLS enabled · in the `powersync` publicat
 | `created_at` | `timestamptz` | no | not null default now() |
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |
+| `is_template` | `boolean` | no | not null default false *(added in `0008_onboarding_hardening.sql`)* |
 
 ## `household_member`
 
@@ -138,6 +139,7 @@ introduced in `0003_recipes.sql` · RLS enabled · in the `powersync` publicatio
 | `created_at` | `timestamptz` | no | not null default now() |
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |
+| `measure_id` | `uuid` | yes | references ingredient_measure(id) *(added in `0009_ingredient_measures.sql`)* |
 
 ## `book`
 
@@ -236,6 +238,23 @@ introduced in `0006_shopping.sql` · RLS enabled · in the `powersync` publicati
 | `quantity` | `numeric` | yes |  |
 | `unit` | `text` | yes |  |
 | `note` | `text` | yes |  |
+| `created_at` | `timestamptz` | no | not null default now() |
+| `updated_at` | `timestamptz` | no | not null default now() |
+| `deleted_at` | `timestamptz` | yes |  |
+| `measure_id` | `uuid` | yes | references ingredient_measure(id) *(added in `0009_ingredient_measures.sql`)* |
+
+## `ingredient_measure`
+
+introduced in `0009_ingredient_measures.sql` · RLS enabled · in the `powersync` publication
+
+| Column | Type | Nullable | Details |
+|---|---|---|---|
+| `id` | `uuid` | no | primary key default gen_random_uuid() |
+| `household_id` | `uuid` | no | not null references household(id) |
+| `ingredient_id` | `uuid` | no | not null references ingredient(id) on delete cascade |
+| `label` | `text` | no | not null |
+| `grams` | `numeric` | no | not null check (grams > 0) |
+| `sort_order` | `int` | no | not null default 0 |
 | `created_at` | `timestamptz` | no | not null default now() |
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |
