@@ -13,6 +13,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import 'recipe_macros.dart';
 
 part 'recipe.freezed.dart';
 
@@ -47,8 +48,10 @@ abstract class Recipe with _$Recipe {
   }) = _Recipe;
 }
 
-/// A lightweight row for the recipe list, avoiding the group/item joins the
-/// full [Recipe] aggregate needs.
+/// A lightweight row for the recipe list. Since 7.7 it also carries what the
+/// recipe picker's information-honest rows need: the [favorite] flag and the
+/// per-serving [macros] summary (computed on read from the line items — null
+/// only where a caller constructs a summary without them).
 @freezed
 abstract class RecipeSummary with _$RecipeSummary {
   const factory RecipeSummary({
@@ -61,6 +64,12 @@ abstract class RecipeSummary with _$RecipeSummary {
     int? keepsForDays,
     @Default(false) bool freezable,
     int? freezerDays,
+
+    /// The household's curated shortlist flag (the picker's Favorites tab).
+    @Default(false) bool favorite,
+
+    /// Honest per-serving macros, or an incomplete marker (step 7.7).
+    RecipeMacroSummary? macros,
   }) = _RecipeSummary;
 }
 

@@ -24,6 +24,11 @@ abstract interface class PlanningRepository {
   /// 0007) and synced down; the app never writes them.
   Future<List<Member>> members();
 
+  /// The most recent planned date (week Monday + day offset) per recipe,
+  /// across every week — the recipe picker rows' "last planned" recency
+  /// (step 7.7). Recipes never planned are absent from the map.
+  Stream<Map<String, DateTime>> watchLastPlanned();
+
   /// Adds a meal to the week beginning [weekStart], creating the week if
   /// needed. A null [portions] tracks the eater count (spec §8). Returns the
   /// new entry id.

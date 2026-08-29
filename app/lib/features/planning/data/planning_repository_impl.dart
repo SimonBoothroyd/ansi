@@ -127,6 +127,26 @@ class SqlitePlanningRepository implements PlanningRepository {
     ];
   }
 
+  @override
+  Stream<Map<String, DateTime>> watchLastPlanned() => _db
+      .watch(
+        'SELECT pe.recipe_id, '
+        "MAX(date(wp.week_start_date, '+' || pe.day_of_week || ' days')) AS d "
+        'FROM plan_entry pe '
+        'JOIN week_plan wp ON wp.id = pe.week_plan_id '
+        'AND wp.deleted_at IS NULL '
+        'WHERE pe.deleted_at IS NULL '
+        'GROUP BY pe.recipe_id',
+      )
+      .map(
+        (rows) => {
+          for (final r in rows)
+            if (r['d'] != null)
+              // Bare 'YYYY-MM-DD' → a UTC date-only value, like _weekKey.
+              r['recipe_id'] as String: DateTime.parse('${r['d']}T00:00:00Z'),
+        },
+      );
+
   /// Returns the id of the week beginning [weekKey], creating it if absent.
   Future<String> _getOrCreateWeek(SqliteWriteContext tx, String weekKey) async {
     final existing = await tx.getOptional(

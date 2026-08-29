@@ -40,6 +40,9 @@ class _FakeRecipeRepo implements RecipeRepository {
 
   @override
   Future<void> deleteRecipe(String id) async {}
+
+  @override
+  Future<void> setFavorite(String id, bool favorite) async {}
 }
 
 class _FakeIngredientRepo implements IngredientRepository {

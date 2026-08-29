@@ -102,7 +102,7 @@ final class MeasureRepositoryProvider
   }
 }
 
-String _$measureRepositoryHash() => r'48aa7b25e8100e470b1ffafce1b1b06ff2a58e2a';
+String _$measureRepositoryHash() => r'808d26e7592bdca5737829dc22181cadd9e2b349';
 
 /// The live measures of one ingredient, `sort_order`-first — what the unit
 /// pickers append as [Measure] choices (`allowedUnitChoicesFor`).

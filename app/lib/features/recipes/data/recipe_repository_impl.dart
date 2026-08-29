@@ -11,9 +11,11 @@ import 'dart:convert';
 import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 
+import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../domain/recipe.dart';
+import '../domain/recipe_macros.dart';
 import '../domain/recipe_repository.dart';
 
 class SqliteRecipeRepository implements RecipeRepository {
@@ -27,26 +29,102 @@ class SqliteRecipeRepository implements RecipeRepository {
 
   @override
   Stream<List<RecipeSummary>> watchRecipes() {
+    // The summaries carry computed per-serving macros (step 7.7), so the
+    // watch must fire on any change to the tables the load below reads —
+    // groups, line items, the vocab (macros/basis/density/status) and the
+    // measures. Each LEFT JOIN contributes a *selected* column: SQLite omits
+    // a join whose columns go unused, and an omitted join is an undetected
+    // table (the stale-breadcrumb class). Rows are ignored; each fire
+    // re-loads.
     return _db
         .watch(
-          'SELECT id, title, servings_base, keeps_for_days, freezable, '
-          'freezer_days FROM recipe '
-          'WHERE deleted_at IS NULL ORDER BY created_at DESC',
+          'SELECT r.id, g.id, li.id, ing.id, im.id FROM recipe r '
+          'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
+          'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
+          'LEFT JOIN ingredient ing ON ing.id = li.ingredient_id '
+          'LEFT JOIN ingredient_measure im ON im.id = li.measure_id '
+          'WHERE r.deleted_at IS NULL',
         )
-        .map(
-          (rows) => rows
-              .map(
-                (r) => RecipeSummary(
-                  id: r['id'] as String,
-                  title: r['title'] as String,
-                  servingsBase: (r['servings_base'] as num).toDouble(),
-                  keepsForDays: r['keeps_for_days'] as int?,
-                  freezable: (r['freezable'] as int? ?? 0) == 1,
-                  freezerDays: r['freezer_days'] as int?,
+        .asyncMap((_) => _loadSummaries());
+  }
+
+  Future<List<RecipeSummary>> _loadSummaries() async {
+    final recipeRows = await _db.getAll(
+      'SELECT id, title, servings_base, keeps_for_days, freezable, '
+      'freezer_days, favorite FROM recipe '
+      'WHERE deleted_at IS NULL ORDER BY created_at DESC',
+    );
+    // Every live line item with its ingredient's nutrition and (when
+    // resolved) its measure, in one pass across all recipes.
+    final lineRows = await _db.getAll(
+      'SELECT g.recipe_id, li.id, li.ingredient_id, li.quantity, li.unit, '
+      'li.measure_id, im.label AS m_label, im.grams AS m_grams, '
+      'ing.macros, ing.macros_basis, ing.density_g_per_ml, ing.status '
+      'FROM recipe_line_item li '
+      'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
+      'LEFT JOIN ingredient ing '
+      'ON ing.id = li.ingredient_id AND ing.deleted_at IS NULL '
+      'LEFT JOIN ingredient_measure im '
+      'ON im.id = li.measure_id AND im.deleted_at IS NULL '
+      'WHERE li.deleted_at IS NULL',
+    );
+
+    final linesByRecipe = <String, List<LineItem>>{};
+    final nutritionByIngredient = <String, IngredientNutrition>{};
+    for (final r in lineRows) {
+      final measureId = r['measure_id'] as String?;
+      final measureLabel = r['m_label'] as String?;
+      final measureGrams = (r['m_grams'] as num?)?.toDouble();
+      (linesByRecipe[r['recipe_id'] as String] ??= []).add(
+        LineItem(
+          id: r['id'] as String,
+          ingredientId: r['ingredient_id'] as String,
+          ingredientName: '',
+          unit: unitById(r['unit'] as String) ?? pieces,
+          quantity: (r['quantity'] as num?)?.toDouble(),
+          measureId: measureId,
+          measure:
+              measureId == null || measureLabel == null || measureGrams == null
+              ? null
+              : Measure(
+                  id: measureId,
+                  label: measureLabel,
+                  grams: measureGrams,
                 ),
-              )
-              .toList(),
+        ),
+      );
+      // A tombstoned/unknown ingredient never lands here (LEFT JOIN nulls its
+      // status), so the lookup below treats its lines as stubs.
+      if (r['status'] != null) {
+        nutritionByIngredient[r['ingredient_id'] as String] = (
+          // A stub's macros are excluded even if a value lingers on the row —
+          // status is the source of truth for completeness (invariant 3).
+          macros: r['status'] == 'complete'
+              ? Macros.tryParse(r['macros'] as String?)
+              : null,
+          basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
+          densityGPerMl: (r['density_g_per_ml'] as num?)?.toDouble(),
         );
+      }
+    }
+
+    return [
+      for (final r in recipeRows)
+        RecipeSummary(
+          id: r['id'] as String,
+          title: r['title'] as String,
+          servingsBase: (r['servings_base'] as num).toDouble(),
+          keepsForDays: r['keeps_for_days'] as int?,
+          freezable: (r['freezable'] as int? ?? 0) == 1,
+          freezerDays: r['freezer_days'] as int?,
+          favorite: (r['favorite'] as int? ?? 0) == 1,
+          macros: summarizeRecipeMacros(
+            servingsBase: (r['servings_base'] as num).toDouble(),
+            lines: linesByRecipe[r['id']] ?? const [],
+            nutritionOf: (id) => nutritionByIngredient[id],
+          ),
+        ),
+    ];
   }
 
   @override
@@ -322,6 +400,15 @@ class SqliteRecipeRepository implements RecipeRepository {
         }
       }
     });
+  }
+
+  @override
+  Future<void> setFavorite(String id, bool favorite) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _db.execute(
+      'UPDATE recipe SET favorite = ?, updated_at = ? WHERE id = ?',
+      [if (favorite) 1 else 0, now, id],
+    );
   }
 
   @override

@@ -100,25 +100,28 @@ void main() {
       expect(measures.single.grams, 200);
     });
 
-    test('equal created_at falls back to id order — still deterministic', () async {
-      await _seedMeasure(
-        db,
-        id: 'm-b',
-        ingredientId: 'coconut',
-        label: 'half can',
-        grams: 210,
-      );
-      await _seedMeasure(
-        db,
-        id: 'm-a',
-        ingredientId: 'coconut',
-        label: 'half can',
-        grams: 200,
-      );
+    test(
+      'equal created_at falls back to id order — still deterministic',
+      () async {
+        await _seedMeasure(
+          db,
+          id: 'm-b',
+          ingredientId: 'coconut',
+          label: 'half can',
+          grams: 210,
+        );
+        await _seedMeasure(
+          db,
+          id: 'm-a',
+          ingredientId: 'coconut',
+          label: 'half can',
+          grams: 200,
+        );
 
-      final measures = await repo.watchMeasures('coconut').first;
-      expect(measures.single.id, 'm-a');
-    });
+        final measures = await repo.watchMeasures('coconut').first;
+        expect(measures.single.id, 'm-a');
+      },
+    );
 
     test('a soft-deleted canonical un-hides the surviving duplicate', () async {
       await _seedMeasure(
@@ -145,34 +148,37 @@ void main() {
   });
 
   group('the editor write path (0011)', () {
-    test('addMeasure writes a manual-sourced row after the existing ones', () async {
-      await _seedMeasure(
-        db,
-        id: 'm-can',
-        ingredientId: 'coconut',
-        label: 'can (400 ml)',
-        grams: 400,
-        sortOrder: 3,
-      );
+    test(
+      'addMeasure writes a manual-sourced row after the existing ones',
+      () async {
+        await _seedMeasure(
+          db,
+          id: 'm-can',
+          ingredientId: 'coconut',
+          label: 'can (400 ml)',
+          grams: 400,
+          sortOrder: 3,
+        );
 
-      final added = await repo.addMeasure(
-        ingredientId: 'coconut',
-        label: 'half can',
-        grams: 200,
-      );
-      expect(added.source, 'manual');
-      expect(added.sortOrder, 4);
+        final added = await repo.addMeasure(
+          ingredientId: 'coconut',
+          label: 'half can',
+          grams: 200,
+        );
+        expect(added.source, 'manual');
+        expect(added.sortOrder, 4);
 
-      final measures = await repo.watchMeasures('coconut').first;
-      expect(measures.map((m) => m.label), ['can (400 ml)', 'half can']);
-      expect(measures.last.grams, 200);
-      final row = await db.get(
-        'SELECT household_id, source FROM ingredient_measure WHERE id = ?',
-        [added.id],
-      );
-      expect(row['household_id'], 'h');
-      expect(row['source'], 'manual');
-    });
+        final measures = await repo.watchMeasures('coconut').first;
+        expect(measures.map((m) => m.label), ['can (400 ml)', 'half can']);
+        expect(measures.last.grams, 200);
+        final row = await db.get(
+          'SELECT household_id, source FROM ingredient_measure WHERE id = ?',
+          [added.id],
+        );
+        expect(row['household_id'], 'h');
+        expect(row['source'], 'manual');
+      },
+    );
 
     test('softDeleteMeasure tombstones, never hard-deletes', () async {
       final added = await repo.addMeasure(
@@ -190,23 +196,26 @@ void main() {
       expect(row['deleted_at'], isNotNull);
     });
 
-    test('re-adding a deleted label starts fresh (tombstone never blocks)', () async {
-      final first = await repo.addMeasure(
-        ingredientId: 'coconut',
-        label: 'half can',
-        grams: 200,
-      );
-      await repo.softDeleteMeasure(first.id);
-      final second = await repo.addMeasure(
-        ingredientId: 'coconut',
-        label: 'half can',
-        grams: 190,
-      );
+    test(
+      're-adding a deleted label starts fresh (tombstone never blocks)',
+      () async {
+        final first = await repo.addMeasure(
+          ingredientId: 'coconut',
+          label: 'half can',
+          grams: 200,
+        );
+        await repo.softDeleteMeasure(first.id);
+        final second = await repo.addMeasure(
+          ingredientId: 'coconut',
+          label: 'half can',
+          grams: 190,
+        );
 
-      final measures = await repo.watchMeasures('coconut').first;
-      expect(measures.single.id, second.id);
-      expect(measures.single.grams, 190);
-    });
+        final measures = await repo.watchMeasures('coconut').first;
+        expect(measures.single.id, second.id);
+        expect(measures.single.grams, 190);
+      },
+    );
   });
 
   test('the watch re-fires when a measure is added', () async {

@@ -50,6 +50,9 @@ class _FakePlanningRepo implements PlanningRepository {
 
   @override
   Future<int> copyLastWeek(DateTime weekStart) async => 0;
+
+  @override
+  Stream<Map<String, DateTime>> watchLastPlanned() => Stream.value(const {});
 }
 
 class _NoRecipesRepo implements RecipeRepository {
@@ -61,6 +64,9 @@ class _NoRecipesRepo implements RecipeRepository {
   Future<void> saveRecipe(Recipe recipe) async {}
   @override
   Future<void> deleteRecipe(String id) async {}
+
+  @override
+  Future<void> setFavorite(String id, bool favorite) async {}
 }
 
 Widget _host(List<Override> overrides) => ProviderScope(

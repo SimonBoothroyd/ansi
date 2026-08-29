@@ -12,6 +12,7 @@ library;
 import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 
+import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
@@ -74,5 +75,7 @@ class SqliteIngredientRepository implements IngredientRepository {
         : IngredientStatus.stub,
     category: r['category'] as String?,
     densityGPerMl: (r['density_g_per_ml'] as num?)?.toDouble(),
+    macros: Macros.tryParse(r['macros'] as String?),
+    macrosBasis: MacrosBasis.fromDb(r['macros_basis'] as String?),
   );
 }

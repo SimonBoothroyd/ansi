@@ -81,7 +81,17 @@ class SqliteMeasureRepository implements MeasureRepository {
         'INSERT INTO ingredient_measure '
         '(id, household_id, ingredient_id, label, grams, sort_order, source, '
         'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, _householdId, ingredientId, label, grams, sortOrder, 'manual', now, now],
+        [
+          id,
+          _householdId,
+          ingredientId,
+          label,
+          grams,
+          sortOrder,
+          'manual',
+          now,
+          now,
+        ],
       );
     });
     return Measure(

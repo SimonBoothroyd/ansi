@@ -25,4 +25,8 @@ abstract interface class RecipeRepository {
 
   /// Soft-delete the recipe (and cascade its groups/items).
   Future<void> deleteRecipe(String id);
+
+  /// Sets the household-shared favorite flag (the picker's Favorites tab).
+  // ignore: avoid_positional_boolean_parameters — a set-flag pair reads fine.
+  Future<void> setFavorite(String id, bool favorite);
 }

@@ -238,4 +238,54 @@ void main() {
       expect(await repo.watchWeek(_thisWeek).first, isNull);
     });
   });
+
+  group('watchLastPlanned (7.7 picker recency)', () {
+    test('maps each recipe to its most recent planned date', () async {
+      await _insertRecipe(db, 'r1', 'Curry');
+      await _insertRecipe(db, 'r2', 'Salad');
+      await _insertRecipe(db, 'r3', 'Never planned');
+      // Curry: last week Thursday AND this week Monday → the later wins.
+      await repo.addEntry(
+        weekStart: _lastWeek,
+        dayOfWeek: 3,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        eaterIds: const [],
+      );
+      await repo.addEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        eaterIds: const [],
+      );
+      await repo.addEntry(
+        weekStart: _lastWeek,
+        dayOfWeek: 5,
+        mealSlot: 'Lunch',
+        recipeId: 'r2',
+        eaterIds: const [],
+      );
+
+      final last = await repo.watchLastPlanned().first;
+      expect(last['r1'], DateTime.utc(2026, 8, 24)); // this week Monday
+      expect(last['r2'], DateTime.utc(2026, 8, 22)); // last week Saturday
+      expect(last.containsKey('r3'), isFalse);
+    });
+
+    test('a removed meal drops out of the recency map', () async {
+      await _insertRecipe(db, 'r1', 'Curry');
+      final entryId = await repo.addEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        eaterIds: const [],
+      );
+      expect(await repo.watchLastPlanned().first, contains('r1'));
+
+      await repo.removeEntry(entryId);
+      expect(await repo.watchLastPlanned().first, isEmpty);
+    });
+  });
 }

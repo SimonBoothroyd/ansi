@@ -218,6 +218,77 @@ void main() {
     expect(list.firstWhere((r) => r.id == 'r2').servingsBase, 4);
   });
 
+  test('summaries carry a computed per-serving macro summary (7.7)', () async {
+    // Rice and Onion carry per-100 g macros, but the sample's Onion line is
+    // a bare count (unbridgeable without a measure) and Salt has no macros
+    // (a stub line) — so the summary must be honestly incomplete, never a
+    // partial total.
+    for (final id in ['ing-rice', 'ing-onion']) {
+      await db.execute('UPDATE ingredient SET macros = ? WHERE id = ?', [
+        '{"kcal":130,"protein":2.7,"carb":28,"fat":0.3}',
+        id,
+      ]);
+    }
+    await repo.saveRecipe(_sampleRecipe());
+
+    var summary = (await repo.watchRecipes().first).single.macros!;
+    expect(summary.incomplete, isTrue);
+    expect(summary.stubLines, 1); // Salt: complete status, no macros
+    expect(summary.unconvertibleLines, 1); // Onion: count without a measure
+
+    // A recipe whose every line joins computes per-serving numbers: 150 g of
+    // rice across 2 servings.
+    await repo.saveRecipe(
+      const Recipe(
+        id: 'r-rice',
+        title: 'Plain rice',
+        servingsBase: 2,
+        groups: [
+          IngredientGroup(
+            id: 'gr1',
+            items: [
+              LineItem(
+                id: 'ri1',
+                ingredientId: 'ing-rice',
+                ingredientName: 'Rice',
+                unit: g,
+                quantity: 150,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    final list = await repo.watchRecipes().first;
+    summary = list.firstWhere((r) => r.id == 'r-rice').macros!;
+    expect(summary.incomplete, isFalse);
+    expect(summary.perServing!.kcal, closeTo(97.5, 1e-9)); // 130 × 1.5 / 2
+    expect(summary.perServing!.protein, closeTo(2.025, 1e-9));
+  });
+
+  test('the list re-fires when vocab macros change under it', () async {
+    await repo.saveRecipe(_sampleRecipe());
+    final emissions = repo.watchRecipes().take(2).toList();
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await db.execute('UPDATE ingredient SET macros = ? WHERE id = ?', [
+      '{"kcal":130,"protein":2.7,"carb":28,"fat":0.3}',
+      'ing-rice',
+    ]);
+    final results = await emissions;
+    expect(results, hasLength(2)); // the vocab edit re-fired the summaries
+  });
+
+  test('setFavorite round-trips through the summary row', () async {
+    await repo.saveRecipe(_sampleRecipe());
+    expect((await repo.watchRecipes().first).single.favorite, isFalse);
+
+    await repo.setFavorite('r1', true);
+    expect((await repo.watchRecipes().first).single.favorite, isTrue);
+
+    await repo.setFavorite('r1', false);
+    expect((await repo.watchRecipes().first).single.favorite, isFalse);
+  });
+
   test('saveRecipe replaces children rather than duplicating them', () async {
     await repo.saveRecipe(_sampleRecipe());
 
