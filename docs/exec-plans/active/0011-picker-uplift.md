@@ -84,6 +84,14 @@ Studied 2026-08-27 from real usage screenshots:
 
 ## Notes / open questions
 
+- **Scope added 2026-08-28 (Simon):** the in-app **measure editor** moves into
+  this step — an "+ add measure" affordance in the unit-chip row (and the
+  ingredient sheet) writing `manual`-sourced `ingredient_measure` rows. The
+  seeded "retail pack"/"typical" guesses are being dropped in favor of
+  FDC-provenanced pipeline rows + the user's own values (see the measures
+  provenance follow-up); the board frames should show the add-measure moment
+  and how a measure's source (USDA vs yours) reads at a glance.
+
 - See "Mise mapping" — two open questions to settle at the board review.
 - Keyboard-accessory chips on Flutter/iOS: verify the pattern under the sim's
   keyboard handling early (spike in step 1, not a late surprise).
