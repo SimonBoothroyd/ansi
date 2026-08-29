@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:hooks_riverpod/misc.dart' show Override;
 import 'package:mise/core/theme/mise_theme.dart';
 import 'package:mise/core/units/macros.dart';
 import 'package:mise/features/books/data/book_providers.dart';
@@ -66,9 +65,8 @@ class _FakePlanningRepo implements PlanningRepository {
     Member(id: 'm2', displayName: 'Jun'),
   ];
   @override
-  Stream<Map<String, DateTime>> watchLastPlanned() => Stream.value({
-    'r1': DateTime.now().subtract(const Duration(days: 3)),
-  });
+  Stream<Map<String, DateTime>> watchLastPlanned() =>
+      Stream.value({'r1': DateTime.now().subtract(const Duration(days: 3))});
   @override
   Future<String> addEntry({
     required DateTime weekStart,
@@ -116,28 +114,31 @@ class _FakeBookRepo implements BookRepository {
 /// A host whose button opens the picker sheet for Wednesday dinner.
 Widget _host({List<RecipeSummary> recipes = const [_curry, _salad]}) =>
     ProviderScope(
-  overrides: [
-    recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(recipes)),
-    planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
-    bookRepositoryProvider.overrideWithValue(_FakeBookRepo()),
-  ],
-  child: MaterialApp(
-    home: FTheme(
-      data: miseThemeData(),
-      child: FScaffold(
-        child: Builder(
-          builder: (context) => Center(
-            child: GestureDetector(
-              onTap: () =>
-                  showRecipePickerSheet(context, dayOfWeek: 2, slot: 'Dinner'),
-              child: const Text('open'),
+      overrides: [
+        recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(recipes)),
+        planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
+        bookRepositoryProvider.overrideWithValue(_FakeBookRepo()),
+      ],
+      child: MaterialApp(
+        home: FTheme(
+          data: miseThemeData(),
+          child: FScaffold(
+            child: Builder(
+              builder: (context) => Center(
+                child: GestureDetector(
+                  onTap: () => showRecipePickerSheet(
+                    context,
+                    dayOfWeek: 2,
+                    slot: 'Dinner',
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
             ),
           ),
         ),
       ),
-    ),
-  ),
-);
+    );
 
 Future<void> _open(
   WidgetTester tester, {
@@ -178,9 +179,7 @@ void main() {
     expect(find.text('Halloumi Salad'), findsNothing);
   });
 
-  testWidgets('an empty Favorites tab explains the affordance', (
-    tester,
-  ) async {
+  testWidgets('an empty Favorites tab explains the affordance', (tester) async {
     await _open(tester, recipes: const [_salad]); // nothing starred
     await tester.tap(find.text('Favorites'));
     await tester.pumpAndSettle();

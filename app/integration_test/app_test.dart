@@ -15,18 +15,23 @@
 /// Scenarios (each `testWidgets` builds on the previous one's data, in order):
 ///   1 auth        sign-in gate → /connecting → Library with the synced
 ///                 household
-///   2 library     new section → new recipe (vocab ingredients, shelf life,
-///                 method steps, filed under book + section) → breadcrumb +
-///                 rendered title + local-db rows; then re-open and edit the
+///   2 library     new section → new recipe through the 7.7 pickers (picker
+///                 v2 search → quantity + unit-chip sheet; a manual measure
+///                 authored in the manage state, the seeded clove chip on
+///                 the line; shelf life, method steps, filed under book +
+///                 section) → breadcrumb + rendered title + local-db rows;
+///                 favorite via the header menu; then re-open and edit the
 ///                 saved recipe and assert its children survive the server
 ///                 round-trip (the connector jsonb + diffing-save fixes)
-///   3 week→cook→shop  copy-last-week, remove, the two-step add flow (picker
-///                 → confirm → portions), batch hint, edit-eaters, per-person
-///                 lens; one cook session covering two close meals and a
-///                 split for a far one; the rolled-up shopping list with
-///                 provenance, a manual top-up, and check-off. Runs with LIVE
-///                 sync — `plan_entry.eaters` must survive the jsonb
-///                 round-trip as a real array.
+///   3 week→cook→shop  copy-last-week, remove, the two-step add flow
+///                 (recipe picker v2 — Favorites tab included → confirm v2
+///                 with the full batch prose → portions), edit-eaters,
+///                 per-person lens; one cook session covering two close
+///                 meals and a split for a far one; the rolled-up shopping
+///                 list with provenance, a manual top-up through the shared
+///                 quantity sheet, and check-off. Runs with LIVE sync —
+///                 `plan_entry.eaters` must survive the jsonb round-trip as
+///                 a real array.
 library;
 
 import 'dart:convert';
@@ -238,32 +243,33 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Adds one vocab ingredient to the recipe editor's (single) group and types
-  /// its quantity. Asserts the picker actually searched the synced vocab.
+  /// Adds one vocab ingredient through the 7.7 two-step chain: picker v2
+  /// (search the synced vocab) → the quantity + unit-chip sheet (type the
+  /// quantity, optionally tap a measure/unit [chip], Done). Asserts the
+  /// picker actually searched the synced vocab.
   Future<void> addIngredient(
     WidgetTester tester,
     String name,
-    String qty,
-  ) async {
+    String qty, {
+    String? chip,
+  }) async {
     await scrollTo(tester, find.text('Add ingredient'));
     await tester.tap(find.text('Add ingredient'));
     await tester.pumpAndSettle();
     // The picker sheet's search field is the last EditableText (overlay).
     await tester.enterText(find.byType(EditableText).last, name.toLowerCase());
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(of: find.byType(FItem), matching: find.text(name)).first,
-    );
+    await tester.tap(find.text(name).last);
     await tester.pumpAndSettle();
-    // The new line's qty field lives in the same Column as its name.
-    final line = find
-        .ancestor(of: find.text(name), matching: find.byType(Column))
-        .first;
-    await tester.enterText(
-      find.descendant(of: line, matching: find.byType(EditableText)).first,
-      qty,
-    );
+    // The quantity sheet: its qty field is the overlay's last EditableText.
+    await tester.enterText(find.byType(EditableText).last, qty);
     await tester.pump();
+    if (chip != null) {
+      await tester.tap(find.text(chip).last);
+      await tester.pump();
+    }
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
   }
 
   // ---------------------------------------------------------------------------
@@ -353,19 +359,43 @@ void main() {
     await tester.tap(find.text('Weeknight').last);
     await tester.pumpAndSettle();
 
-    // Two ingredients through the synced-vocab picker.
-    await addIngredient(tester, 'Garlic', '3');
-
-    // Quantify Garlic in its synced measure (step 7.6): the unit dropdown
-    // offers the vocab measures cloned at onboarding — pick "clove (3 g)".
-    final garlicEditorLine = find
-        .ancestor(of: find.text('Garlic'), matching: find.byType(Column))
-        .first;
-    await tester.tap(
-      find.descendant(of: garlicEditorLine, matching: find.text('piece')),
-    );
+    // Garlic through the 7.7 chain, quantified in its synced measure: the
+    // chip row offers the vocab measures cloned at onboarding — but first,
+    // author a manual measure through the sheet's manage state (the 7.7
+    // measure editor) and prove it lands with source 'manual'.
+    await scrollTo(tester, find.text('Add ingredient'));
+    await tester.tap(find.text('Add ingredient'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('clove (3 g)').last);
+    await tester.enterText(find.byType(EditableText).last, 'garlic');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Garlic').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(EditableText).last, '3');
+    await tester.pump();
+    // Manage measures: add "big clove = 5 g" (saved as yours), which lands
+    // selected as the line's chip.
+    await tester.tap(find.text('＋ measure'));
+    await tester.pumpAndSettle();
+    final fields = find.byType(EditableText);
+    await tester.enterText(
+      fields.at(fields.evaluate().length - 2),
+      'big clove',
+    );
+    await tester.enterText(fields.last, '5');
+    await tester.pump();
+    await tester.tap(find.text('Save').last);
+    await tester.pumpAndSettle();
+    final manualMeasure = await db.getOptional(
+      "SELECT source, grams FROM ingredient_measure WHERE label = 'big clove' "
+      'AND deleted_at IS NULL',
+    );
+    expect(manualMeasure, isNotNull, reason: 'the manual measure synced row');
+    expect(manualMeasure!['source'], 'manual');
+    expect(manualMeasure['grams'], 5);
+    // …then pick the seeded "clove" chip for the recipe's own line.
+    await tester.tap(find.text('clove').last);
+    await tester.pump();
+    await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
     await addIngredient(tester, 'Onion', '1');
@@ -428,6 +458,27 @@ void main() {
     expect(find.text('Brown the aromatics.'), findsOneWidget);
     expect(find.text('Simmer until thick.'), findsOneWidget);
 
+    // Favorite the recipe from its header menu (the 7.7 Favorites
+    // affordance) — the picker's Favorites tab reads this flag in scenario 3.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FHeaderAction),
+        matching: find.byIcon(FLucideIcons.ellipsis),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Favorite'));
+    await tester.pumpAndSettle();
+    await waitForDb(tester, () async {
+      final row = await db.get('SELECT favorite FROM recipe WHERE id = ?', [
+        recipe['id'],
+      ]);
+      return row['favorite'] == 1;
+    }, 'the favorite flag to persist');
+    // Dismiss the still-open popover with an outside tap.
+    await tester.tapAt(const Offset(40, 300));
+    await tester.pumpAndSettle();
+
     // Re-open and edit the saved recipe (tweak Garlic 3 → 4). The diffing
     // `saveRecipe` must leave every kept child live — the old delete-reinsert
     // tombstoned the children server-side on any edit.
@@ -441,16 +492,13 @@ void main() {
     await tester.tap(find.text('Edit'));
     await pumpUntilFound(tester, find.text('Edit recipe'));
     await scrollTo(tester, find.text('Garlic'));
-    final garlicLine = find
-        .ancestor(of: find.text('Garlic'), matching: find.byType(Column))
-        .first;
-    await tester.enterText(
-      find
-          .descendant(of: garlicLine, matching: find.byType(EditableText))
-          .first,
-      '4',
-    );
+    // The line's quantity control ("3 clove") re-opens the quantity sheet.
+    await tester.tap(find.text('3 clove'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(EditableText).last, '4');
     await tester.pump();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Save'));
     await pumpUntilFound(tester, find.text('OUR COOKBOOK · WEEKNIGHT'));
 
@@ -580,6 +628,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Add a meal'), findsOneWidget); // picker header
     expect(find.textContaining('Monday, Dinner'), findsOneWidget); // context
+    // The Favorites tab (7.7) holds the recipe starred in scenario 2.
+    await tester.tap(find.text('Favorites'));
+    await tester.pumpAndSettle();
+    expect(find.text('Chicken Curry'), findsWidgets);
+    // The row is information-honest: per-serving line present (incomplete —
+    // Garlic/Onion are count lines, honesty over zeros).
+    expect(find.textContaining('serves '), findsWidgets);
+    await tester.tap(find.text('Recent'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Chicken Curry').last);
     await tester.pumpAndSettle();
     expect(find.text('Add to plan'), findsOneWidget); // confirm sheet
@@ -603,7 +660,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Chicken Curry').last);
     await tester.pumpAndSettle();
-    expect(find.textContaining('same batch as Monday'), findsOneWidget);
+    // The FULL batch prose (confirm v2): dish, day, window, conclusion.
+    expect(
+      find.textContaining(
+        'Chicken Curry already cooks Monday and keeps 2 days',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('joins Monday’s batch'), findsOneWidget);
     await tester.tap(find.text('Add to Wednesday'));
     await tester.pumpAndSettle();
     await waitForDb(tester, () async {
@@ -710,15 +774,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).last, 'garlic');
     await tester.pumpAndSettle();
-    await tester.tap(
-      find
-          .descendant(of: find.byType(FItem), matching: find.text('Garlic'))
-          .first,
-    );
+    await tester.tap(find.text('Garlic').last);
     await tester.pumpAndSettle();
-    // `.first`: the qty field leads the row — the unit FSelect after it embeds
-    // its own EditableText, so `.last` would type into the closed select.
-    await tester.enterText(find.byType(EditableText).first, '2');
+    // The shared quantity sheet (7.7): type into its qty field (the
+    // overlay's last EditableText) and confirm — the default unit (piece)
+    // stands, so no chip tap is needed.
+    await tester.enterText(find.byType(EditableText).last, '2');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Add top-up'));
     await pumpUntilFound(tester, find.textContaining('manual top-up'));

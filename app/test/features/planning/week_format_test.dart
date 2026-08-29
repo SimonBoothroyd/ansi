@@ -25,10 +25,7 @@ void main() {
     });
 
     test('a meal planned ahead reads as this week', () {
-      expect(
-        formatLastPlanned(DateTime.utc(2026, 8, 29), today),
-        'this week',
-      );
+      expect(formatLastPlanned(DateTime.utc(2026, 8, 29), today), 'this week');
     });
   });
 }

@@ -331,10 +331,7 @@ class _QuantitySurface extends StatelessWidget {
           onManage: onManage,
         ),
         const SizedBox(height: 14),
-        FButton(
-          onPress: canConfirm ? onDone : null,
-          child: Text(confirmLabel),
-        ),
+        FButton(onPress: canConfirm ? onDone : null, child: Text(confirmLabel)),
         if (onRemove != null) ...[
           const SizedBox(height: 8),
           FButton(
@@ -686,8 +683,7 @@ class _AddMeasureForm extends StatelessWidget {
                   decimal: true,
                 ),
                 control: FTextFieldControl.managed(
-                  onChange: (v) =>
-                      grams.value = double.tryParse(v.text.trim()),
+                  onChange: (v) => grams.value = double.tryParse(v.text.trim()),
                 ),
               ),
             ),

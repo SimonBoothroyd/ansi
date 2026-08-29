@@ -273,10 +273,7 @@ class _RecipeCard extends StatelessWidget {
                         children: [
                           TextSpan(
                             text: ' /serving',
-                            style: miseMono(
-                              size: 10,
-                              color: MiseColors.muted,
-                            ),
+                            style: miseMono(size: 10, color: MiseColors.muted),
                           ),
                         ],
                       ),

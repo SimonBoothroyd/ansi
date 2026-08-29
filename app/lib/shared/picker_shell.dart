@@ -111,16 +111,10 @@ class PickerShell extends StatelessWidget {
               prefixBuilder: (context, style, _) =>
                   const Icon(FLucideIcons.search),
             ),
-            if (aboveList != null) ...[
-              const SizedBox(height: 12),
-              aboveList!,
-            ],
+            if (aboveList != null) ...[const SizedBox(height: 12), aboveList!],
             const SizedBox(height: 12),
             Expanded(child: body),
-            if (footer != null) ...[
-              const SizedBox(height: 8),
-              footer!,
-            ],
+            if (footer != null) ...[const SizedBox(height: 8), footer!],
           ],
         ),
       ),

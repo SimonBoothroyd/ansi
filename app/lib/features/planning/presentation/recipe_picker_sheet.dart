@@ -494,10 +494,7 @@ class _ShelfChips extends StatelessWidget {
         runSpacing: 4,
         children: [
           if (keeps != null)
-            _Pill(
-              text: 'keeps $keeps d',
-              freshness: true,
-            )
+            _Pill(text: 'keeps $keeps d', freshness: true)
           else if (!recipe.freezable)
             const _Pill(text: 'best fresh'),
           if (recipe.freezable) const _Pill(text: 'freezable'),
