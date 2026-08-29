@@ -13,6 +13,15 @@ void main() {
       expect(formatDensity(1), '1');
       expect(formatDensity(1.10), '1.1');
     });
+
+    test('a ≥1000 value never renders scientific notation', () {
+      // toStringAsPrecision(3) would say "1.23e+3" — bad stored data still
+      // has to read like a number.
+      expect(formatDensity(1234.5), '1235');
+      expect(formatDensity(1000), '1000');
+      expect(formatDensity(999.6), '1000');
+      expect(formatDensity(999.4), '999');
+    });
   });
 
   group('formatQuantity', () {

@@ -22,13 +22,22 @@ class SqliteMeasureRepository implements MeasureRepository {
   /// A comparable creation key: the parsed instant re-serialized canonically
   /// (UTC ISO-8601), falling back to the raw text for unparseable values.
   /// created_at is TEXT and its format differs by writer — this client
-  /// writes `…T…Z`, Postgres-sourced rows sync as `… …+00` — and a bare
-  /// lexicographic compare across formats picks the wrong "oldest" (space
-  /// sorts before 'T'), so the canonical-row choice would disagree between
-  /// devices. Parsing first keeps the merge deterministic across formats.
+  /// writes `…T…Z`, Postgres-sourced rows sync as `… …Z` (the space
+  /// separator is the operative difference) — and a bare lexicographic
+  /// compare across formats picks the wrong "oldest" (space sorts before
+  /// 'T'), so the canonical-row choice would disagree between devices.
+  /// Parsing first keeps the merge deterministic across formats. A value
+  /// with no zone marker at all is read as UTC — `DateTime.tryParse` would
+  /// otherwise read it in the device's local zone, and two devices in
+  /// different zones would then disagree about which row is oldest.
   static String _createdKey(Object? raw) {
     final s = raw as String? ?? '';
-    return DateTime.tryParse(s)?.toUtc().toIso8601String() ?? s;
+    final parsed = DateTime.tryParse(s);
+    if (parsed == null) return s;
+    final utc = parsed.isUtc
+        ? parsed
+        : DateTime.tryParse('${s.trim()}Z') ?? parsed.toUtc();
+    return utc.toIso8601String();
   }
 
   @override

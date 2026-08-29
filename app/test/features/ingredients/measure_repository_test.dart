@@ -125,8 +125,9 @@ void main() {
 
     test('the tie-break survives mixed timestamp text formats', () async {
       // created_at is TEXT: this client writes `…T…Z`, Postgres-synced rows
-      // arrive as `… …+00`. Lexicographically the space sorts before 'T',
-      // which would crown the WRONG row; the merge compares parsed instants.
+      // arrive as `… …Z` (the space separator is the operative difference).
+      // Lexicographically the space sorts before 'T', which would crown the
+      // WRONG row; the merge compares parsed instants.
       await _seedMeasure(
         db,
         id: 'm-app',
@@ -141,11 +142,37 @@ void main() {
         ingredientId: 'coconut',
         label: 'half can',
         grams: 210,
-        createdAt: '2026-01-01 12:00:00+00', // newer instant, PG format
+        createdAt: '2026-01-01 12:00:00Z', // newer instant, synced PG format
       );
 
       final measures = await repo.watchMeasures('coconut').first;
       expect(measures.single.id, 'm-app');
+      expect(measures.single.grams, 200);
+    });
+
+    test('a zone-less timestamp is read as UTC, not device-local', () async {
+      // A bare `2026-01-01 12:00:00` would parse in the device's LOCAL zone,
+      // so two devices in different zones would disagree about which row is
+      // oldest. The merge assumes UTC for zone-less values instead.
+      await _seedMeasure(
+        db,
+        id: 'm-zoneless',
+        ingredientId: 'coconut',
+        label: 'half can',
+        grams: 200,
+        createdAt: '2026-01-01 05:00:00', // older instant, no zone marker
+      );
+      await _seedMeasure(
+        db,
+        id: 'm-utc',
+        ingredientId: 'coconut',
+        label: 'half can',
+        grams: 210,
+        createdAt: '2026-01-01T12:00:00.000Z', // newer instant, explicit UTC
+      );
+
+      final measures = await repo.watchMeasures('coconut').first;
+      expect(measures.single.id, 'm-zoneless');
       expect(measures.single.grams, 200);
     });
 
