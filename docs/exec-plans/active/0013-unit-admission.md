@@ -24,23 +24,60 @@ category-gated — plus the two independent 7.7 polish items Simon flagged.
       zone-less-means-UTC, the `…+00`→`… …Z` comment truth-up, inline
       ArgumentError surfacing in the add-measure form, selected-chip
       scroll-into-view, `formatDensity` ≥1000 clamp.)*
-- [ ] Migration: `ingredient_measure` amounts become basis-aware (amount in
+- [x] Migration: `ingredient_measure` amounts become basis-aware (amount in
       the ingredient's basis unit; existing gram rows are /g so values carry
       unchanged); explicit `allowed_units` on `ingredient`, materialized at
       creation from the ADR defaults (backfill for the existing vocab);
       RLS/grants/publication + both sync-rule files + schema.dart + pgTAP.
-- [ ] Domain: `allowedUnitsFor` v3 reads the explicit list; conversions honor
-      basis-aware measures; category-gated imprecise.
-- [ ] Density entry both ways in the manage sheet: g/ml field ⇄ "1 tbsp
+      *(0012: `basis_amount` rename-by-new-column + drop; `allowed_units`
+      jsonb + `default_allowed_units()` + BEFORE INSERT trigger + whole-vocab
+      backfill; `ensure_onboarded` rev 5 carries both through every clone
+      leg. Sync-rule files needed NO text change — their `select *` ships the
+      new columns; the drift check confirms both lists still match. pgTAP:
+      +14-assert `unit_admission.sql` with rule vectors mirrored in the Dart
+      tests, and the 0010 'glug (test)' shape now pins `basis_amount` + a
+      verbatim `allowed_units` clone.)*
+- [x] Domain: `allowedUnitsFor` v3 reads the explicit list; conversions honor
+      basis-aware measures; category-gated imprecise. *(Explicit set →
+      `_orderUnits` chip ordering; null/legacy → `defaultAllowedUnitSet`,
+      the Dart mirror of the SQL rule. `Measure.amount` + `basis`
+      (`MacrosBasis`, joined from the ingredient — never stored twice);
+      `convertMeasure`/`amountInMeasure` bridge the basis family and cross
+      only via density; `aggregateQuantities` folds per-ml measures into the
+      VOLUME subtotal; the whole-unit hint prices volume totals too. The
+      display audit found five surfaces assuming grams — chip labels,
+      measure rows, conversion note, add-form hint, shopping breakdown — all
+      now denominate in the basis unit. Stored-selection admission
+      preserved + re-pinned.)*
+- [x] Density entry both ways in the manage sheet: g/ml field ⇄ "1 tbsp
       weighs __ g" (either writes the same density); volume-named labels in
       the add-measure form are redirected to density entry with a one-line
-      explanation.
-- [ ] Seed pipeline: FDC spoon portions → derived density for density-less
+      explanation. *(`_DensityEntry` with tsp/tbsp/cup spoons + live g/ml
+      equivalence; `densityFromVolumeWeight` unit-tested;
+      `IngredientRepository.setDensity` writes density AND extends the
+      explicit `allowed_units` in the same write, and the open sheet swaps
+      its live ingredient copy so the unlocked chips appear immediately.
+      The redirect pre-picks the named spoon.)*
+- [x] Seed pipeline: FDC spoon portions → derived density for density-less
       /g ingredients (report the new density coverage, expect ≫ 7/291);
-      yeast gains `sachet (7 g)` as a proper measure.
-- [ ] Flesh-out/allowed-units form design added to board frame (d) before
+      yeast gains `sachet (7 g)` as a proper measure. *(Famine root cause:
+      SR Legacy keys volume portions by `modifier` text, not
+      `measure_unit_id` — gen_usda.ts now parses the whole portion text,
+      ranked cup > tbsp > tsp, unqualified first, sanity 0.1–2.0. Coverage
+      **7/291 → 211/291**. Both yeasts carry the 7 g sachet
+      (`seed:typical` — the near-universal printed standard). Measures went
+      GENEROUS per Simon's scope note (238 raw rows incl. rescued
+      physically-disguised servings), then the curation pass trimmed to
+      **230 rows / 117 ingredients**; `curation_overrides.jsonl` records
+      all 44 overrides with reasons.)*
+- [x] Flesh-out/allowed-units form design added to board frame (d) before
       that form is built (form implementation itself may fold into step 8's
-      stub-queue work — decide at kickoff).
+      stub-queue work — decide at kickoff). *(Frame pv2-d2 "Allowed units"
+      grown beside the macros-basis frame: basis line, pre-ticked family
+      chips + dashed density-locked ones, either-way density entry, measures,
+      category-gated imprecise toggle; frame b2 updated to show the shipped
+      density entry + redirect. The form BUILD stays step-8 scope —
+      decided.)*
 - [ ] Tests cover the new logic at every layer; `make ci` + `supabase test
       db` (dirty) + `make test-sim` green.
 - [ ] Docs updated: product-spec units section, QUALITY, tracker, `make docs`.
