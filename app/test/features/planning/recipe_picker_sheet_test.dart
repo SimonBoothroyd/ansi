@@ -208,6 +208,45 @@ void main() {
     );
   });
 
+  testWidgets('Recent orders by last-planned, created order as fallback', (
+    tester,
+  ) async {
+    // Incoming list order is created_at DESC (salad newer), but the rows
+    // display last-planned recency — so the planned curry must lead, and
+    // the never-planned salad follows in its created position (M11).
+    await _open(tester, recipes: const [_salad, _curry]);
+
+    final curryY = tester.getTopLeft(find.text('Weeknight Chicken Curry')).dy;
+    final saladY = tester.getTopLeft(find.text('Halloumi Salad')).dy;
+    expect(curryY, lessThan(saladY));
+  });
+
+  testWidgets('search matches word boundaries via the 7.4 normalizer', (
+    tester,
+  ) async {
+    // Focusing a field in a live Forui sheet trips a framework semantics
+    // assertion (tracker row `app/ui`); filter exactly that, as the
+    // integration smoke does.
+    final reportError = FlutterError.onError!;
+    FlutterError.onError = (details) {
+      if ('${details.exception}'.contains('semantics.dart')) return;
+      reportError(details);
+    };
+    addTearDown(() => FlutterError.onError = reportError);
+
+    await _open(tester);
+
+    await tester.enterText(find.byType(EditableText).first, 'chicken');
+    await tester.pumpAndSettle();
+    expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
+    expect(find.text('Halloumi Salad'), findsNothing);
+
+    // Mid-word fragments never match (deterministic search, ADR-0004).
+    await tester.enterText(find.byType(EditableText).first, 'hick');
+    await tester.pumpAndSettle();
+    expect(find.text('Weeknight Chicken Curry'), findsNothing);
+  });
+
   testWidgets('the Favorites tab shows only starred recipes', (tester) async {
     await _open(tester);
 

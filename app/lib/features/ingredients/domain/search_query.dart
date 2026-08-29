@@ -36,3 +36,16 @@ String normalizeSearchQuery(String raw) => raw
     .map((w) => w.replaceAll(_nonWord, ''))
     .where((w) => w.isNotEmpty)
     .join(' ');
+
+/// Whether [rawQuery] hits [text] under the same rules the vocab search
+/// applies in SQL: both sides normalized, then matched at a word boundary
+/// (leading word or any later word start — "chicken" finds "Weeknight
+/// Chicken Curry", "hick" finds nothing). An empty query matches everything,
+/// mirroring the browse-the-head behaviour. For in-memory lists (the recipe
+/// picker) that have no `match_text` column to LIKE against.
+bool matchesSearchQuery(String text, String rawQuery) {
+  final q = normalizeSearchQuery(rawQuery);
+  if (q.isEmpty) return true;
+  final t = normalizeSearchQuery(text);
+  return t.startsWith(q) || t.contains(' $q');
+}

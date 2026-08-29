@@ -22,6 +22,7 @@ import '../../../shared/dashed_border_box.dart';
 import '../../../shared/picker_shell.dart';
 import '../../books/domain/book.dart';
 import '../../books/presentation/book_view_models.dart';
+import '../../ingredients/domain/search_query.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_macros.dart';
 import '../../recipes/presentation/format.dart';
@@ -85,9 +86,9 @@ class _RecipePickerSheet extends HookConsumerWidget {
         const <String, DateTime>{};
     final filing = _filingByRecipe(library);
 
-    bool matches(String title) =>
-        query.value.isEmpty ||
-        title.toLowerCase().contains(query.value.toLowerCase());
+    // The 7.4 normalizer + word-boundary matching, same as the ingredient
+    // picker ("all-purpose" conventions and no mid-word hits).
+    bool matches(String title) => matchesSearchQuery(title, query.value);
 
     // Distinct recipes already planned this week, with the earliest day.
     final alreadyThisWeek = <String, ({String title, int day})>{};
@@ -123,7 +124,10 @@ class _RecipePickerSheet extends HookConsumerWidget {
         row: row,
       ),
       _ => _RecentList(
-        recipes: recipes.where((r) => matches(r.title)).toList(),
+        recipes: _recentOrder(
+          recipes.where((r) => matches(r.title)).toList(),
+          lastPlanned,
+        ),
         row: row,
       ),
     };
@@ -315,6 +319,25 @@ class _AlreadyThisWeek extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "Recent" means what the rows display (post-7.7 review): recently PLANNED
+/// first (newest last-planned date leading), then never-planned recipes in
+/// the list's own order (newest created first). The old created-at-only
+/// order contradicted the recency label each row carries.
+List<RecipeSummary> _recentOrder(
+  List<RecipeSummary> recipes,
+  Map<String, DateTime> lastPlanned,
+) {
+  final planned = [
+    for (final r in recipes)
+      if (lastPlanned.containsKey(r.id)) r,
+  ]..sort((a, b) => lastPlanned[b.id]!.compareTo(lastPlanned[a.id]!));
+  return [
+    ...planned,
+    for (final r in recipes)
+      if (!lastPlanned.containsKey(r.id)) r,
+  ];
 }
 
 class _RecentList extends StatelessWidget {

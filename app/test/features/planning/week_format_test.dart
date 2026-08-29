@@ -24,8 +24,13 @@ void main() {
       expect(formatLastPlanned(DateTime.utc(2026, 5, 27), today), '3mo ago');
     });
 
-    test('a meal planned ahead reads as this week', () {
-      expect(formatLastPlanned(DateTime.utc(2026, 8, 29), today), 'this week');
+    test('a meal planned ahead reads as upcoming, honestly scaled', () {
+      // The old label called ANY future date "this week" — wrong for next
+      // month's plan.
+      expect(formatLastPlanned(DateTime.utc(2026, 8, 29), today), 'in 2d');
+      expect(formatLastPlanned(DateTime.utc(2026, 9, 2), today), 'in 6d');
+      expect(formatLastPlanned(DateTime.utc(2026, 9, 17), today), 'in 3w');
+      expect(formatLastPlanned(DateTime.utc(2026, 10, 27), today), 'in 2mo');
     });
   });
 }
