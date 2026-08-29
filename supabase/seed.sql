@@ -5,8 +5,9 @@
 
 begin;
 
--- is_template (0008): "Home" is the member-less vocab template new households
--- clone from at onboarding; template households are never joinable.
+-- is_template (0008): "Home" is the member-less vocab template new
+-- households clone from at onboarding; template households are never
+-- joinable.
 insert into household (id, name, is_template)
 values ('00000000-0000-0000-0000-0000000000aa', 'Home', true)
 on conflict (id) do update set is_template = true;

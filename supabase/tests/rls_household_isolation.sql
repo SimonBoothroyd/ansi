@@ -29,7 +29,7 @@ insert into ingredient (id, household_id, canonical_name, default_unit, match_te
 insert into ingredient_alias (household_id, ingredient_id, alias_text, match_text, source) values
  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000001','plain flour','plain flour','manual'),
  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000001','caster sugar','caster sugar','manual');
-insert into ingredient_measure (id, household_id, ingredient_id, label, grams) values
+insert into ingredient_measure (id, household_id, ingredient_id, label, basis_amount) values
  ('aaaaaaaa-0000-0000-0000-000000000011','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000001','bag',1000),
  ('bbbbbbbb-0000-0000-0000-000000000011','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000001','bag',500);
 insert into book (id, household_id, name) values
@@ -120,7 +120,7 @@ insert into iso_case values
          values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000009',1,'g') $$,
       'new row violates row-level security policy for table "shopping_list_contribution"'),
  (14, 'ingredient_measure',
-      $$ insert into ingredient_measure (household_id, ingredient_id, label, grams)
+      $$ insert into ingredient_measure (household_id, ingredient_id, label, basis_amount)
          values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000001','sack',2000) $$,
       'new row violates row-level security policy for table "ingredient_measure"');
 grant select on iso_case to authenticated;

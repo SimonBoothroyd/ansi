@@ -9,15 +9,29 @@
 // (pass the same Foundation + SR Legacy dirs as gen_usda.ts — see ../README.md
 // for fetching the ~40 MB CSV bundles; they are NOT committed).
 //
+// **Extraction is GENEROUS; curation is the decider** (plan 0013, Simon's
+// call: rules were being used as the taste filter, which is the curation
+// pass's job). Every portion that names a physical human unit is emitted —
+// all size classes, fragments (slice, wedge, strip, stick, cube…), container
+// and dimension-described portions — ordered most-kitchen-useful first
+// (container > medium > large > small > extra sizes > whole > fragment).
+// The committed `curation_overrides.jsonl` then drops (or adds) rows a
+// human judged senseless, with reasons; this script applies it last.
+//
+// Still excluded AT EXTRACTION (unchanged, ADR-0008):
+//   * pure volume portions (cup/tbsp/tsp/fl oz…) — those are densities in
+//     disguise and become `usda_food.density_g_per_ml` via gen_usda.ts;
+//   * prepared-state volume qualifiers (chopped/diced/mashed/…) — they only
+//     ride volume rows;
+//   * mass aliases ("1 oz") and nutrition-label servings ("NLEA serving") —
+//     label servings aren't physical units;
+//   * the imprecise "dash".
+//
 // Two tiers, both with explicit `source` provenance (migration 0010):
 //
 //   * Tier 1 — each vocab ingredient's OWN linked FDC food's piece-type
-//     portions (russet vs red potato get their own weights). Volume portions
-//     ("1 cup") are skipped — bridging volume is the density's job, never a
-//     measure's; mass aliases ("1 oz"), serving sizes ("NLEA serving") and
-//     preparation fragments are skipped or ranked last. Capped at 3 per
-//     ingredient by usefulness (container > medium > large > small > whole >
-//     fragment), deterministic order. `source = usda_fdc:<fdc_id> (<portion>)`.
+//     portions (russet vs red potato get their own weights).
+//     `source = usda_fdc:<fdc_id> (<portion>)`.
 //
 //   * Tier 2 — BORROWS for varieties whose own FDC food lacks usable piece
 //     portions (gold potato ← russet; canned bean varieties ← pinto's
@@ -33,11 +47,18 @@
 // A short survivor list of `seed:typical` hand rows remains for important
 // items where FDC genuinely has no usable portion (see TYPICAL below).
 //
+// Amounts are emitted as `basis_amount` (0012): the amount in the
+// ingredient's basis unit. Every vocab row is per-100 g today
+// (macros_basis = 'g'), so FDC gram weights ARE basis amounts verbatim; a
+// per-ml vocab row would need its portions divided through a density first —
+// the script asserts the assumption instead of guessing.
+//
 // Measures stay PER-INGREDIENT rows (no shared portion-class entity): user
 // overrides must remain variety-specific — see exec plan 0010's decision log.
 
 import { parse } from "@std/csv/parse";
 import { normalize } from "../../functions/_shared/normalize.ts";
+import { readOverrides } from "./overrides.ts";
 
 const HOUSEHOLD_ID = "00000000-0000-0000-0000-0000000000aa";
 
@@ -77,6 +98,11 @@ const TYPICAL: { matchText: string; label: string; grams: number }[] = [
   // FDC's only lemon food is "Lemons, raw, without peel" (58 g — the macro
   // basis, not what you buy). A typical whole lemon with peel is ~100 g.
   { matchText: "lemon", label: "lemon, whole", grams: 100 },
+  // The 7 g yeast sachet is the near-universal printed standard — every
+  // supermarket sachet says 7 g / ¼ oz on the packet (equivalently "2¼ tsp"
+  // in US recipes). FDC's yeast foods carry only tsp/tbsp volume rows.
+  { matchText: "instant yeast", label: "sachet", grams: 7 },
+  { matchText: "active yeast dry", label: "sachet", grams: 7 },
   // FDC's king-oyster food (2003599) has NO portions, and its vocab link
   // resolves to plain oyster mushrooms (5–10× lighter). A typical king
   // oyster (trumpet) mushroom is ~90 g.
@@ -93,13 +119,17 @@ const SUPPRESS_TIER1 = new Set([
 
 // --- Portion filtering / ranking ---------------------------------------------
 
-// Portions that are not piece-type: volume (density's job), mass aliases,
-// serving sizes, preparations, and snack-serving noise.
+// Portions that are not piece-type: volume (density's job — gen_usda.ts
+// derives it from exactly these rows), mass aliases, nutrition-label
+// servings, prepared-state volume qualifiers, and the imprecise dash.
+// Deliberately NOTHING else (generous extraction, plan 0013): cubes, balls,
+// twists, chips, slices and friends are physical human units — the curation
+// pass trims the senseless ones with reasons.
 const SKIP = new RegExp(
   "\\b(cup|cups|tablespoon|tbsp|teaspoon|tsp|fl oz|fluid|liter|litre|" +
-    "milliliter|ml|pint|quart|gallon|oz|lb|pound|serving|servings|nlea|" +
-    "chopped|diced|mashed|pureed|shredded|grated|dash|cube|cubes|ball|" +
-    "balls|twist|twists|chip|chips|enchilada|as purchased)\\b",
+    "milliliter|ml|pint|quart|gallon|oz|lb|pound|gram|grams|kg|" +
+    "serving|servings|nlea|" +
+    "chopped|diced|mashed|pureed|shredded|grated|dash)\\b",
 );
 
 // Words that carry no identity in a label (size details live in `source`;
@@ -122,15 +152,19 @@ const REWRITE: Record<string, string> = {
   fruit: "whole",
 };
 
-// Fragments of a whole thing — kept only when an ingredient has nothing
-// better (a slice IS the unit of bread; it is not the unit of a tomato).
-const FRAGMENT = /\b(slice|wedge|ring|strip|stick|tip|chunk)\b/;
+// Fragments of a whole thing (a slice of bread, a wedge of lemon, a cube of
+// cheese) — all EMITTED now (generous extraction), ranked last so chips lead
+// with the most kitchen-useful unit; the curation pass trims where a
+// fragment is senseless for the food.
+const FRAGMENT = /\b(slice|wedge|ring|strip|stick|tip|chunk|cube|ball|twist|chip)\b/;
 const CONTAINER = /\b(can|block|package|packet|bunch|bag)\b/;
 
+/// Kitchen usefulness → `sort_order` rank: chips render in this order
+/// ("medium before jumbo").
 function rank(label: string): number {
   if (FRAGMENT.test(label)) return 6;
   if (CONTAINER.test(label)) return 0;
-  if (/\bextra (large|small)\b/.test(label)) return 4;
+  if (/\b(extra large|extra small|jumbo)\b/.test(label)) return 4;
   if (/\bmedium\b/.test(label)) return 1;
   if (/\blarge\b/.test(label)) return 2;
   if (/\bsmall\b/.test(label)) return 3;
@@ -172,12 +206,18 @@ function cleanLabel(raw: string, amount: number): string | null {
   }
   s = REWRITE[s] ?? s;
   // "medium whole" → "medium" (the row IS the whole thing; "whole" is noise).
-  s = s.replace(/^(extra large|extra small|medium|large|small) whole$/, "$1");
+  s = s.replace(
+    /^(extra large|extra small|jumbo|medium|large|small) whole$/,
+    "$1",
+  );
   // "potato medium" → "potato, medium" (matches the curated label style) —
   // but never split a bare size ("extra large" must not become "extra, large",
   // which would both misread and dodge the extra-size ranking).
-  if (!/^(extra )?(large|medium|small)$/.test(s)) {
-    s = s.replace(/^(.+?),? (extra large|extra small|medium|large|small)$/, "$1, $2");
+  if (!/^((extra )?(large|medium|small)|jumbo)$/.test(s)) {
+    s = s.replace(
+      /^(.+?),? (extra large|extra small|jumbo|medium|large|small)$/,
+      "$1, $2",
+    );
   }
   return s || null;
 }
@@ -351,20 +391,19 @@ function finalizeLabel(matchText: string, label: string): string {
   return label;
 }
 
-/// Usefulness-ordered, deduped, fragment-suppressed, capped at 3.
+/// Usefulness-ordered and label-deduped — no cap, no fragment suppression
+/// (generous extraction, plan 0013): every distinct physical unit ships,
+/// most kitchen-useful first, and the curation pass does the trimming.
 function pick(portions: Portion[]): Portion[] {
   const sorted = [...portions].sort(
     (a, b) => a.rank - b.rank || a.seq - b.seq || a.id - b.id,
   );
-  const hasWhole = sorted.some((p) => p.rank < 6);
   const seen = new Set<string>();
   const out: Portion[] = [];
   for (const p of sorted) {
-    if (p.rank === 6 && hasWhole) continue; // fragments only as a last resort
     if (seen.has(p.label)) continue;
     seen.add(p.label);
     out.push(p);
-    if (out.length === 3) break;
   }
   return out;
 }
@@ -496,6 +535,55 @@ function main(): void {
     });
   }
 
+  // Generous extraction means two raw labels can finalize to the same
+  // display label ("fruit" and "whole" both → "whole"): keep the first
+  // (best-ranked) occurrence rather than failing.
+  {
+    const seen = new Set<string>();
+    const deduped = rows.filter((r) => {
+      const key = `${r.matchText} ${r.label}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    rows.length = 0;
+    rows.push(...deduped);
+  }
+
+  // --- Curation overrides (plan 0013) ----------------------------------------
+  // ../curation_overrides.jsonl is the committed, audited record of the
+  // LLM/human curation pass over the generated output — every override
+  // carries a reason. This script honours `drop_measure` and `add_measure`;
+  // gen_seed.ts honours `density` and `allowed_units`. A drop that matches
+  // nothing is stale and fails the run rather than rotting silently.
+  let dropped = 0, added = 0;
+  for (const o of readOverrides(here)) {
+    if (o.kind === "drop_measure") {
+      const before = rows.length;
+      const keep = rows.filter(
+        (r) => !(r.matchText === o.match_text && r.label === o.label),
+      );
+      if (keep.length === before) {
+        console.error(
+          `stale drop_measure override: ${o.match_text} / ${o.label}`,
+        );
+        Deno.exit(1);
+      }
+      dropped += before - keep.length;
+      rows.length = 0;
+      rows.push(...keep);
+    } else if (o.kind === "add_measure") {
+      rows.push({
+        matchText: o.match_text,
+        label: o.label!,
+        grams: o.basis_amount!,
+        sortOrder: o.sort_order ?? 0,
+        source: o.source ?? "seed:typical",
+      });
+      added++;
+    }
+  }
+
   // Validate: every match_text resolves in the vocab; labels unique per
   // ingredient (no unique index guards this since 0011 — the seed's own
   // not-exists guard would silently keep only the first duplicate).
@@ -510,7 +598,9 @@ function main(): void {
       problems.push(`duplicate label for ${r.matchText}: "${r.label}"`);
     }
     labelSeen.add(key);
-    if (!(r.grams > 0)) problems.push(`non-positive grams: ${r.matchText}`);
+    if (!(r.grams > 0)) {
+      problems.push(`non-positive basis_amount: ${r.matchText}`);
+    }
   }
   if (problems.length > 0) {
     console.error(problems.join("\n"));
@@ -530,7 +620,11 @@ function main(): void {
     "--",
     "-- Starter measures for the template vocab (step 7.6): piece-type USDA",
     "-- FDC food_portion weights joined by match_text, per-row provenance in",
-    "-- `source` (0010). Idempotent: re-runs no-op on existing live labels",
+    "-- `source` (0010), amounts in the ingredient's basis unit (0012 —",
+    "-- every seeded vocab row is per-100 g, so FDC gram weights carry",
+    "-- verbatim). Generously extracted, then trimmed by the committed",
+    "-- curation_overrides.jsonl (plan 0013). Idempotent: re-runs no-op on",
+    "-- existing live labels",
     "-- (a `where not exists` guard — 0011 dropped the unique index the old",
     "-- `on conflict` targeted; offline dupes must never fail upload), and",
     "-- the trailing check names any match_text the vocab no longer carries",
@@ -539,8 +633,8 @@ function main(): void {
     "begin;",
     "",
     "insert into ingredient_measure",
-    "  (household_id, ingredient_id, label, grams, sort_order, source)",
-    `select '${HOUSEHOLD_ID}', i.id, m.label, m.grams, m.sort_order, m.source`,
+    "  (household_id, ingredient_id, label, basis_amount, sort_order, source)",
+    `select '${HOUSEHOLD_ID}', i.id, m.label, m.basis_amount, m.sort_order, m.source`,
     "from ingredient i",
     "join (values",
     rows
@@ -550,7 +644,7 @@ function main(): void {
           `${r.sortOrder}, ${q(r.source)})`,
       )
       .join(",\n"),
-    ") as m(ing_match, label, grams, sort_order, source)",
+    ") as m(ing_match, label, basis_amount, sort_order, source)",
     "  on i.match_text = m.ing_match",
     `where i.household_id = '${HOUSEHOLD_ID}' and i.deleted_at is null`,
     "  and not exists (",
@@ -595,7 +689,8 @@ function main(): void {
   console.log(
     `wrote ${target}\n  ${rows.length} rows over ${matchTexts.length} ` +
       `ingredients (tier1 ${tier1} incl. ${autoBorrowed} auto-borrowed, ` +
-      `tier2/borrowed ${tier2}, typical ${TYPICAL.length})`,
+      `tier2/borrowed ${tier2}, typical ${TYPICAL.length}; curation ` +
+      `dropped ${dropped}, added ${added})`,
   );
   for (const r of rows) {
     console.log(

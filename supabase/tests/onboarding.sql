@@ -12,7 +12,7 @@
 -- holds the starter vocab and its aliases). Run by `supabase test db`.
 
 begin;
-select plan(30);
+select plan(33);
 
 -- Isolate from any pre-existing memberships AND households (a live dev
 -- session or a `make test-sim` run leaves onboarded households behind;
@@ -32,18 +32,27 @@ select '00000000-0000-0000-0000-0000000000aa', id, 'private correction', 'privat
 from ingredient
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'olive oil';
 
--- Measures (0009): one on a curated template row (guarantees a non-zero clone
--- even if the seeded starter measures change) and one on the manual ingredient
--- (which must stay behind with its ingredient). The curated one carries a
--- provenance `source` (0010) that must ride the clone.
-insert into ingredient_measure (household_id, ingredient_id, label, grams, source)
+-- Measures (0009, basis-aware since 0012): one on a curated template row
+-- (guarantees a non-zero clone even if the seeded starter measures change)
+-- and one on the manual ingredient (which must stay behind with its
+-- ingredient). The curated one carries a provenance `source` (0010) and a
+-- `basis_amount` (0012) that must both ride the clone.
+insert into ingredient_measure (household_id, ingredient_id, label, basis_amount, source)
 select '00000000-0000-0000-0000-0000000000aa', id, 'glug (test)', 12, 'seed:typical'
 from ingredient
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'olive oil';
-insert into ingredient_measure (household_id, ingredient_id, label, grams)
+insert into ingredient_measure (household_id, ingredient_id, label, basis_amount)
 select '00000000-0000-0000-0000-0000000000aa', id, 'secret scoop', 30
 from ingredient
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'secret sauce';
+
+-- allowed_units (0012, the 'glug (test)' shape): a template row with a
+-- deliberately distinctive explicit list must arrive verbatim in every clone
+-- — a clone that re-materialized the rule defaults would silently discard
+-- the flesh-out form's future edits.
+update ingredient set allowed_units = '["tbsp", "g", "to_taste"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa'
+  and match_text = 'olive oil';
 
 -- macros_basis (0011, the 'glug (test)' shape): a template row whose macros
 -- were entered per-100 ml must arrive per-100 ml in every clone — silently
@@ -211,6 +220,33 @@ select is(
        and im.label = 'glug (test)'),
   'seed:typical',
   'a cloned measure keeps its provenance source (0010)'
+);
+-- …and its basis amount (0012).
+select is(
+  (select im.basis_amount from ingredient_measure im
+     join household_member m on m.household_id = im.household_id
+     where m.auth_user_id = 'c3333333-3333-3333-3333-333333333333'
+       and im.label = 'glug (test)'),
+  12::numeric,
+  'a cloned measure keeps its basis_amount (0012)'
+);
+-- The explicit allowed-unit list rides the clone verbatim (0012) — in BOTH
+-- cloned households of this run, never re-materialized from the rule.
+select is(
+  (select i.allowed_units from ingredient i
+     join household_member m on m.household_id = i.household_id
+     where m.auth_user_id = 'a1111111-1111-1111-1111-111111111111'
+       and i.match_text = 'olive oil'),
+  '["tbsp", "g", "to_taste"]'::jsonb,
+  'an explicit allowed_units list clones verbatim (A''s household, 0012)'
+);
+select is(
+  (select i.allowed_units from ingredient i
+     join household_member m on m.household_id = i.household_id
+     where m.auth_user_id = 'c3333333-3333-3333-3333-333333333333'
+       and i.match_text = 'olive oil'),
+  '["tbsp", "g", "to_taste"]'::jsonb,
+  'an explicit allowed_units list clones verbatim (C''s household, 0012)'
 );
 -- The stored macros basis rides the clone too (0011) — checked in BOTH
 -- cloned households of this run (A's and C's went through the create leg).

@@ -21,19 +21,31 @@ const FIBER = "1079";
 // Only these data_types are real foods to seed (Foundation ships sample rows too).
 const FOODS = new Set(["foundation_food", "sr_legacy_food"]);
 
-// Volume measure units → millilitres, for deriving density (g / ml).
-const ML_PER: Record<string, number> = {
-  cup: 236.588,
-  tablespoon: 14.7868,
-  teaspoon: 4.92892,
-  "fl oz": 29.5735,
-  "fluid ounce": 29.5735,
-  liter: 1000,
-  milliliter: 1,
-  pint: 473.176,
-  quart: 946.353,
-  gallon: 3785.41,
-};
+// Volume portion words → millilitres, for deriving density (g / ml). Matched
+// against the WHOLE portion text (unit name + portion_description + modifier):
+// SR Legacy mostly stores `measure_unit_id = undetermined` with the real unit
+// in the modifier ("cup, diced", "tbsp"), so keying on the unit table alone
+// found almost nothing — the 7/291 density famine (plan 0013). Order matters:
+// spoons before cups so "1 tablespoon" never half-matches, ml last so the
+// bare word can't shadow "milliliter".
+const VOLUME_WORDS: [RegExp, number, number][] = [
+  // [matcher, ml, preference rank] — cup preferred (largest common measure,
+  // least rounding error), then tbsp, tsp (plan 0013: prefer tbsp/tsp/cup).
+  [/\btablespoons?\b|\btbsp\b/, 14.7868, 1],
+  [/\bteaspoons?\b|\btsp\b/, 4.92892, 2],
+  [/\bcups?\b/, 236.588, 0],
+  [/\bfl(?:uid)?\s?oz\b|\bfluid ounces?\b/, 29.5735, 3],
+  [/\bliters?\b|\blitres?\b/, 1000, 3],
+  [/\bpints?\b/, 473.176, 3],
+  [/\bquarts?\b/, 946.353, 3],
+  [/\bgallons?\b/, 3785.41, 3],
+  [/\bmilliliters?\b|\bml\b/, 1, 3],
+];
+
+// A derived density outside this range is a parse artifact or a food form no
+// kitchen density describes (puffed cereals ~0.05, syrups are fine at ~1.4;
+// nothing edible is 5 g/ml) — skip rather than store nonsense (invariant 3).
+const DENSITY_MIN = 0.1, DENSITY_MAX = 2.0;
 
 interface Row {
   fdc_id: string;
@@ -90,13 +102,53 @@ function loadDataset(dir: string, rows: Map<string, Row>): void {
     if (row) row.macros[key] = Number(c[3]);
   }
 
-  // Density from the first usable volume portion.
+  // Density from the best-ranked usable volume portion. Candidates are
+  // ranked by unit preference (cup > tbsp > tsp > other volumes), with an
+  // unqualified portion ("1 cup") beating a prepared-state one ("1 cup,
+  // chopped") of the same unit, then deterministically by seq/id.
+  const best = new Map<
+    string,
+    { density: number; rank: number; seq: number; id: number }
+  >();
   for (const p of readCsv(`${dir}/food_portion.csv`)) {
     const row = rows.get(p.fdc_id);
-    if (!row || row.density !== null) continue;
-    const ml = ML_PER[units.get(p.measure_unit_id) ?? ""];
+    if (!row) continue;
     const amount = Number(p.amount), grams = Number(p.gram_weight);
-    if (ml && amount > 0 && grams > 0) row.density = grams / (amount * ml);
+    if (!(amount > 0) || !(grams > 0)) continue;
+
+    const unitName = units.get(p.measure_unit_id) ?? "";
+    const text = [
+      unitName === "undetermined" ? "" : unitName,
+      p.portion_description === "undetermined" ? "" : p.portion_description,
+      p.modifier,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    const hit = VOLUME_WORDS.find(([re]) => re.test(text));
+    if (!hit) continue;
+    const [re, ml, unitRank] = hit;
+    const density = grams / (amount * ml);
+    if (density < DENSITY_MIN || density > DENSITY_MAX) continue;
+    // Anything left once the unit word goes is a qualifier (chopped, sliced,
+    // packed…): still a real density of that form, but ranked behind the
+    // food's plain measure.
+    const qualified = text.replace(re, "").replace(/[\s,]+/g, "") !== "";
+    const rank = unitRank + (qualified ? 10 : 0);
+    const seq = Number(p.seq_num) || 0, id = Number(p.id) || 0;
+    const cur = best.get(p.fdc_id);
+    if (
+      !cur ||
+      rank < cur.rank ||
+      (rank === cur.rank &&
+        (seq < cur.seq || (seq === cur.seq && id < cur.id)))
+    ) {
+      best.set(p.fdc_id, { density, rank, seq, id });
+    }
+  }
+  for (const [fdcId, b] of best) {
+    const row = rows.get(fdcId);
+    if (row && row.density === null) row.density = b.density;
   }
 }
 

@@ -4,7 +4,11 @@
 --
 -- Starter measures for the template vocab (step 7.6): piece-type USDA
 -- FDC food_portion weights joined by match_text, per-row provenance in
--- `source` (0010). Idempotent: re-runs no-op on existing live labels
+-- `source` (0010), amounts in the ingredient's basis unit (0012 —
+-- every seeded vocab row is per-100 g, so FDC gram weights carry
+-- verbatim). Generously extracted, then trimmed by the committed
+-- curation_overrides.jsonl (plan 0013). Idempotent: re-runs no-op on
+-- existing live labels
 -- (a `where not exists` guard — 0011 dropped the unique index the old
 -- `on conflict` targeted; offline dupes must never fail upload), and
 -- the trailing check names any match_text the vocab no longer carries
@@ -13,21 +17,26 @@
 begin;
 
 insert into ingredient_measure
-  (household_id, ingredient_id, label, grams, sort_order, source)
-select '00000000-0000-0000-0000-0000000000aa', i.id, m.label, m.grams, m.sort_order, m.source
+  (household_id, ingredient_id, label, basis_amount, sort_order, source)
+select '00000000-0000-0000-0000-0000000000aa', i.id, m.label, m.basis_amount, m.sort_order, m.source
 from ingredient i
 join (values
   ('active yeast dry', 'packet', 7.2, 0, 'usda_fdc:175043 (1 packet)'),
+  ('active yeast dry', 'sachet', 7, 0, 'seed:typical'),
   ('almond', 'almond', 1.2, 0, 'usda_fdc:170567 (1 almond)'),
   ('apricot', 'apricot', 35, 0, 'usda_fdc:171697 (1 apricot)'),
   ('arugula', 'leaf', 2, 0, 'usda_fdc:169387 (1 leaf)'),
   ('asparagus', 'spear, medium', 16, 0, 'usda_fdc:168389 (1 spear, medium (5-1/4" to 7" long))'),
   ('asparagus', 'spear, large', 20, 1, 'usda_fdc:168389 (1 spear, large (7-1/4" to 8-1/2"))'),
   ('asparagus', 'spear, small', 12, 2, 'usda_fdc:168389 (1 spear, small (5" long or less))'),
+  ('asparagus', 'spear, extra large', 24, 3, 'usda_fdc:168389 (1 spear, extra large (8-3/4" to 10" long))'),
+  ('asparagus', 'spear tip', 3.5, 4, 'usda_fdc:168389 (1 spear tip (2" long or less))'),
   ('avocado', 'avocado', 201, 0, 'usda_fdc:171705 (1 avocado, NS as to Florida or California)'),
   ('banana', 'banana, medium', 118, 0, 'usda_fdc:173944 (1 medium (7" to 7-7/8" long))'),
   ('banana', 'banana, large', 136, 1, 'usda_fdc:173944 (1 large (8" to 8-7/8" long))'),
   ('banana', 'banana, small', 101, 2, 'usda_fdc:173944 (1 small (6" to 6-7/8" long))'),
+  ('banana', 'banana, extra small', 81, 3, 'usda_fdc:173944 (1 extra small (less than 6" long))'),
+  ('banana', 'banana, extra large', 152, 4, 'usda_fdc:173944 (1 extra large (9" or longer))'),
   ('basil', 'leaf', 0.5, 0, 'usda_fdc:172232 (5 leaves)'),
   ('berry', 'berry', 1.36, 0, 'usda_fdc:171711 (50 berries) — borrowed'),
   ('black bean canned', 'can, drained', 277, 0, 'usda_fdc:174286 (1 can drained solids) — borrowed'),
@@ -41,19 +50,31 @@ join (values
   ('cabbage', 'head, medium', 908, 0, 'usda_fdc:169975 (1 head, medium (about 5-3/4" dia))'),
   ('cabbage', 'leaf, medium', 23, 1, 'usda_fdc:169975 (1 leaf, medium)'),
   ('cabbage', 'head, large', 1248, 2, 'usda_fdc:169975 (1 head, large (about 7" dia))'),
+  ('cabbage', 'leaf, large', 33, 3, 'usda_fdc:169975 (1 leaf, large)'),
+  ('cabbage', 'head, small', 714, 4, 'usda_fdc:169975 (1 head, small (about 4-1/2" dia))'),
+  ('cabbage', 'leaf', 15, 5, 'usda_fdc:169975 (1 leaf)'),
   ('cannellini bean canned', 'can, drained', 277, 0, 'usda_fdc:174286 (1 can drained solids) — borrowed'),
   ('cantaloupe', 'melon, medium', 552, 0, 'usda_fdc:169092 (1 melon, medium (about 5" dia))'),
   ('cantaloupe', 'melon, large', 814, 1, 'usda_fdc:169092 (1 melon, large (about 6-1/2" dia))'),
   ('cantaloupe', 'melon, small', 441, 2, 'usda_fdc:169092 (1 melon, small (about 4-1/4" dia))'),
+  ('cantaloupe', 'wedge, large', 102, 3, 'usda_fdc:169092 (1 wedge, large (1/8 of large melon))'),
+  ('cantaloupe', 'wedge, medium', 69, 4, 'usda_fdc:169092 (1 wedge, medium (1/8 of medium melon))'),
+  ('cantaloupe', 'wedge, small', 55, 5, 'usda_fdc:169092 (1 wedge, small (1/8 of small melon))'),
+  ('cantaloupe', 'cantaloupe ball', 13.8, 6, 'usda_fdc:169092 (10 cantaloupe balls)'),
   ('carrot', 'carrot, medium', 61, 0, 'usda_fdc:170393 (1 medium)'),
   ('carrot', 'carrot, large', 72, 1, 'usda_fdc:170393 (1 large (7-1/4" to 8-/1/2" long))'),
   ('carrot', 'carrot, small', 50, 2, 'usda_fdc:170393 (1 small (5-1/2" long))'),
+  ('carrot', 'slice', 3, 3, 'usda_fdc:170393 (1 slice)'),
+  ('carrot', 'strip, large', 7, 4, 'usda_fdc:170393 (1 strip large (3" long))'),
+  ('carrot', 'strip, medium', 4, 5, 'usda_fdc:170393 (1 strip medium)'),
   ('cauliflower', 'head, medium', 588, 0, 'usda_fdc:169986 (1 head medium (5-6" dia.))'),
   ('cauliflower', 'head, large', 840, 1, 'usda_fdc:169986 (1 head large (6-7" dia.))'),
   ('cauliflower', 'head, small', 265, 2, 'usda_fdc:169986 (1 head small (4" dia.))'),
+  ('cauliflower', 'floweret', 13, 3, 'usda_fdc:169986 (1 floweret)'),
   ('celery', 'stalk, medium', 40, 0, 'usda_fdc:169988 (1 stalk, medium (7-1/2" - 8" long))'),
   ('celery', 'stalk, large', 64, 1, 'usda_fdc:169988 (1 stalk, large (11"-12" long))'),
   ('celery', 'stalk, small', 17, 2, 'usda_fdc:169988 (1 stalk, small (5" long))'),
+  ('celery', 'strip', 4, 3, 'usda_fdc:169988 (1 strip (4" long))'),
   ('cherry', 'cherry', 8.2, 0, 'usda_fdc:171719 (1 cherry)'),
   ('cherry tomato', 'cherry', 17, 0, 'usda_fdc:170457 (1 cherry) — borrowed'),
   ('chickpea canned', 'can, drained', 253, 0, 'usda_fdc:173800 (1 can drained)'),
@@ -62,7 +83,8 @@ join (values
   ('corn', 'ear, medium', 102, 0, 'usda_fdc:169998 (1 ear, medium (6-3/4" to 7-1/2" long) yields)'),
   ('corn', 'ear, large', 143, 1, 'usda_fdc:169998 (1 ear, large (7-3/4" to 9" long) yields)'),
   ('corn', 'ear, small', 73, 2, 'usda_fdc:169998 (1 ear, small (5-1/2" to 6-1/2" long))'),
-  ('corn tortilla', 'tortilla', 24, 0, 'usda_fdc:175036 (1 tortilla)'),
+  ('corn tortilla', 'enchilada', 19, 0, 'usda_fdc:175036 (1 enchilada)'),
+  ('corn tortilla', 'tortilla', 24, 1, 'usda_fdc:175036 (1 tortilla)'),
   ('cremini mushroom', 'mushroom, whole', 20, 0, 'usda_fdc:168434 (1 piece whole)'),
   ('cucumber', 'cucumber', 301, 0, 'usda_fdc:168409 (1 cucumber (8-1/4"))'),
   ('dark red kidney bean canned', 'can, drained', 266, 0, 'usda_fdc:174285 (1 can drained solids)'),
@@ -91,6 +113,8 @@ join (values
   ('green bell pepper', 'pepper, medium', 119, 0, 'usda_fdc:170427 (1 medium (approx 2-3/4" long, 2-1/2" dia))'),
   ('green bell pepper', 'pepper, large', 164, 1, 'usda_fdc:170427 (1 large (2-1/4 per lb, approx 3-3/4" long, 3" dia))'),
   ('green bell pepper', 'pepper, small', 74, 2, 'usda_fdc:170427 (1 small)'),
+  ('green bell pepper', 'ring', 10, 3, 'usda_fdc:170427 (1 ring (3" dia, 1/4" thick))'),
+  ('green bell pepper', 'strip', 2.7, 4, 'usda_fdc:170427 (10 strips)'),
   ('green grape', 'grape', 4.9, 0, 'usda_fdc:174683 (10 grapes)'),
   ('green olive', 'olive', 2.7, 0, 'usda_fdc:169096 (1 olive)'),
   ('hazelnut', 'nut', 1.4, 0, 'usda_fdc:170581 (10 nuts)'),
@@ -98,11 +122,16 @@ join (values
   ('iceberg lettuce', 'head, medium', 539, 0, 'usda_fdc:169248 (1 head, medium (6" dia))'),
   ('iceberg lettuce', 'leaf, medium', 8, 1, 'usda_fdc:169248 (1 leaf, medium)'),
   ('iceberg lettuce', 'head, large', 755, 2, 'usda_fdc:169248 (1 head, large)'),
+  ('iceberg lettuce', 'leaf, large', 15, 3, 'usda_fdc:169248 (1 leaf, large)'),
+  ('iceberg lettuce', 'head, small', 324, 4, 'usda_fdc:169248 (1 head, small)'),
+  ('iceberg lettuce', 'leaf, small', 5, 5, 'usda_fdc:169248 (1 leaf, small)'),
   ('instant yeast', 'packet', 7.2, 0, 'usda_fdc:175043 (1 packet) — borrowed'),
+  ('instant yeast', 'sachet', 7, 0, 'seed:typical'),
   ('jalapeño', 'jalapeño', 14, 0, 'usda_fdc:168576 (1 pepper)'),
   ('king oyster mushroom', 'mushroom, medium', 90, 0, 'seed:typical'),
   ('kiwi', 'kiwi, whole', 69, 0, 'usda_fdc:168153 (1 fruit (2" dia))'),
   ('leek', 'leek', 89, 0, 'usda_fdc:169246 (1 leek)'),
+  ('leek', 'slice', 6, 1, 'usda_fdc:169246 (1 slice)'),
   ('lemon', 'lemon, whole', 100, 0, 'seed:typical'),
   ('lemon juice', 'lemon', 48, 0, 'usda_fdc:167747 (1 lemon yields)'),
   ('light red kidney bean canned', 'can, drained', 266, 0, 'usda_fdc:174285 (1 can drained solids)'),
@@ -110,6 +139,7 @@ join (values
   ('lime juice', 'lime', 44, 0, 'usda_fdc:168156 (1 lime yields)'),
   ('maitake mushroom', 'mushroom, whole', 1.1, 0, 'usda_fdc:169403 (1 piece whole)'),
   ('mango', 'mango, whole', 336, 0, 'usda_fdc:169910 (1 fruit without refuse)'),
+  ('mini pretzel', 'twist', 6, 0, 'usda_fdc:167555 (10 twists)'),
   ('multigrain bread', 'slice regular', 26, 0, 'usda_fdc:168013 (1 slice regular)'),
   ('multigrain bread', 'slice, large', 41, 1, 'usda_fdc:168013 (1 slice large)'),
   ('navy bean canned', 'can, drained', 277, 0, 'usda_fdc:174286 (1 can drained solids) — borrowed'),
@@ -118,10 +148,15 @@ join (values
   ('onion', 'onion, medium', 110, 0, 'usda_fdc:170000 (1 medium (2-1/2" dia))'),
   ('onion', 'onion, large', 150, 1, 'usda_fdc:170000 (1 large)'),
   ('onion', 'onion, small', 70, 2, 'usda_fdc:170000 (1 small)'),
+  ('onion', 'slice, large', 38, 3, 'usda_fdc:170000 (1 slice, large (1/4" thick))'),
+  ('onion', 'slice, medium', 14, 4, 'usda_fdc:170000 (1 slice, medium (1/8" thick))'),
+  ('onion', 'slice, thin', 9, 5, 'usda_fdc:170000 (1 slice, thin)'),
+  ('onion', 'ring', 6, 6, 'usda_fdc:170000 (10 rings)'),
   ('orange', 'orange, whole', 140, 0, 'usda_fdc:746771 (1.0 each  2-7/8" dia)'),
   ('orange bell pepper', 'pepper, medium', 119, 0, 'usda_fdc:170108 (1 medium (approx 2-3/4" long, 2-1/2 dia.)) — borrowed'),
   ('orange bell pepper', 'pepper, large', 164, 1, 'usda_fdc:170108 (1 large (2-1/4 per pound, approx 3-3/4" long, 3" dia.)) — borrowed'),
   ('orange bell pepper', 'pepper, small', 74, 2, 'usda_fdc:170108 (1 small) — borrowed'),
+  ('orange bell pepper', 'ring', 10, 3, 'usda_fdc:170108 (1 ring (3" dia., 1/4" thick)) — borrowed'),
   ('oyster mushroom', 'mushroom, large', 148, 0, 'usda_fdc:168580 (1 large)'),
   ('oyster mushroom', 'mushroom, small', 15, 1, 'usda_fdc:168580 (1 small)'),
   ('parsley', 'sprig', 1, 0, 'usda_fdc:170416 (10 sprigs)'),
@@ -129,8 +164,11 @@ join (values
   ('peach', 'peach, medium', 150, 0, 'usda_fdc:169928 (1 medium (2-2/3" dia))'),
   ('peach', 'peach, large', 175, 1, 'usda_fdc:169928 (1 large (2-3/4" dia))'),
   ('peach', 'peach, small', 130, 2, 'usda_fdc:169928 (1 small (2-1/2" dia))'),
+  ('peach', 'peach, extra large', 224, 3, 'usda_fdc:169928 (1 extra large (3" dia))'),
   ('pine nut', 'nut', 0.17, 0, 'usda_fdc:170591 (10 nuts)'),
   ('pineapple', 'pineapple, whole', 905, 0, 'usda_fdc:169124 (1 fruit)'),
+  ('pineapple', 'slice', 166, 1, 'usda_fdc:169124 (1 slice (4-2/3" dia x 3/4" thick))'),
+  ('pineapple', 'slice, thin', 56, 2, 'usda_fdc:169124 (1 slice, thin (3-1/2" dia x 1/2" thick))'),
   ('pinto bean canned', 'can, drained', 277, 0, 'usda_fdc:174286 (1 can drained solids)'),
   ('pistachio', 'kernel', 0.7, 0, 'usda_fdc:170184 (1 kernel)'),
   ('plantain', 'plantain', 267, 0, 'usda_fdc:168215 (1 plantain)'),
@@ -138,13 +176,16 @@ join (values
   ('radish', 'radish, medium', 4.5, 0, 'usda_fdc:169276 (1 medium (3/4" to 1" dia))'),
   ('radish', 'radish, large', 9, 1, 'usda_fdc:169276 (1 large (1" to 1-1/4" dia))'),
   ('radish', 'radish, small', 2, 2, 'usda_fdc:169276 (1 small)'),
+  ('radish', 'slice', 1, 3, 'usda_fdc:169276 (1 slice)'),
   ('raspberry', 'raspberry', 1.9, 0, 'usda_fdc:167755 (10 raspberries)'),
   ('red bell pepper', 'pepper, medium', 119, 0, 'usda_fdc:170108 (1 medium (approx 2-3/4" long, 2-1/2 dia.))'),
   ('red bell pepper', 'pepper, large', 164, 1, 'usda_fdc:170108 (1 large (2-1/4 per pound, approx 3-3/4" long, 3" dia.))'),
   ('red bell pepper', 'pepper, small', 74, 2, 'usda_fdc:170108 (1 small)'),
+  ('red bell pepper', 'ring', 10, 3, 'usda_fdc:170108 (1 ring (3" dia., 1/4" thick))'),
   ('red cabbage', 'head, medium', 839, 0, 'usda_fdc:169977 (1 head, medium (about 5" dia))'),
   ('red cabbage', 'head, large', 1134, 1, 'usda_fdc:169977 (1 head, large (about 5-1/2" dia))'),
   ('red cabbage', 'head, small', 567, 2, 'usda_fdc:169977 (1 head, small (4" dia))'),
+  ('red cabbage', 'leaf', 23, 3, 'usda_fdc:169977 (1 leaf)'),
   ('red grape', 'grape', 4.9, 0, 'usda_fdc:174683 (10 grapes)'),
   ('red leaf lettuce', 'leaf inner', 2.6, 0, 'usda_fdc:168431 (1 leaf inner)'),
   ('red leaf lettuce', 'leaf outer', 17, 1, 'usda_fdc:168431 (1 leaf outer)'),
@@ -175,32 +216,47 @@ join (values
   ('strawberry', 'strawberry, medium', 12, 0, 'usda_fdc:167762 (1 medium (1-1/4" dia))'),
   ('strawberry', 'strawberry, large', 18, 1, 'usda_fdc:167762 (1 large (1-3/8" dia))'),
   ('strawberry', 'strawberry, small', 7, 2, 'usda_fdc:167762 (1 small (1" dia))'),
+  ('strawberry', 'strawberry, extra large', 27, 3, 'usda_fdc:167762 (1 extra large (1-5/8" dia))'),
   ('sweet potato', 'sweet potato', 130, 0, 'usda_fdc:168482 (1 sweetpotato, 5" long)'),
   ('tempeh', 'package (8 oz)', 227, 0, 'seed:typical'),
   ('thai basil', 'leaf', 0.5, 0, 'usda_fdc:172232 (5 leaves) — borrowed'),
   ('tomato', 'tomato, medium', 123, 0, 'usda_fdc:170457 (1 medium whole (2-3/5" dia))'),
   ('tomato', 'tomato, large', 182, 1, 'usda_fdc:170457 (1 large whole (3" dia))'),
   ('tomato', 'tomato, small', 91, 2, 'usda_fdc:170457 (1 small whole (2-2/5" dia))'),
+  ('tomato', 'italian tomato', 62, 3, 'usda_fdc:170457 (1 Italian tomato)'),
+  ('tomato', 'cherry', 17, 4, 'usda_fdc:170457 (1 cherry)'),
+  ('tomato', 'plum tomato', 62, 5, 'usda_fdc:170457 (1 plum tomato)'),
+  ('tomato', 'slice, medium', 20, 6, 'usda_fdc:170457 (1 slice, medium (1/4" thick))'),
+  ('tomato', 'slice, large', 27, 7, 'usda_fdc:170457 (1 slice, thick/large (1/2" thick))'),
+  ('tomato', 'wedge', 31, 8, 'usda_fdc:170457 (1 wedge (1/4 of medium tomato))'),
+  ('tomato', 'slice, thin, small', 15, 9, 'usda_fdc:170457 (1 slice, thin/small)'),
   ('tomato canned whole', 'can', 190, 0, 'usda_fdc:170051 (1 can)'),
   ('tomato canned whole', 'tomato, medium', 111, 1, 'usda_fdc:170051 (1 medium)'),
   ('tomato canned whole', 'tomato, large', 164, 2, 'usda_fdc:170051 (1 large)'),
+  ('tomato canned whole', 'tomato, small', 82, 3, 'usda_fdc:170051 (1 small)'),
   ('tomato paste', 'can', 170, 0, 'usda_fdc:170459 (1 can (6 oz))'),
   ('tomato puree canned', 'can', 822, 0, 'usda_fdc:170460 (1 can (29 oz) (401 x 411))'),
   ('tostada shell', 'shell', 12.3, 0, 'usda_fdc:167525 (1 piece)'),
   ('turnip', 'turnip, medium', 122, 0, 'usda_fdc:170465 (1 medium)'),
   ('turnip', 'turnip, large', 183, 1, 'usda_fdc:170465 (1 large)'),
   ('turnip', 'turnip, small', 61, 2, 'usda_fdc:170465 (1 small)'),
+  ('turnip', 'slice', 15, 3, 'usda_fdc:170465 (1 slice)'),
   ('watermelon', 'melon', 4518, 0, 'usda_fdc:167765 (1 melon (15" long x 7-1/2" dia))'),
+  ('watermelon', 'wedge', 286, 1, 'usda_fdc:167765 (1 wedge (approx 1/16 of melon))'),
+  ('watermelon', 'watermelon ball', 12.2, 2, 'usda_fdc:167765 (10 watermelon balls)'),
   ('wheat bread whole', 'slice', 32.1, 0, 'usda_fdc:335240 (1.0 slice)'),
   ('white bread', 'slice', 27.3, 0, 'usda_fdc:325871 (1.0 slice)'),
   ('white mushroom', 'mushroom, medium', 18, 0, 'usda_fdc:169251 (1 medium)'),
   ('white mushroom', 'mushroom, large', 23, 1, 'usda_fdc:169251 (1 large)'),
   ('white mushroom', 'mushroom, small', 10, 2, 'usda_fdc:169251 (1 small)'),
+  ('white mushroom', 'slice', 6, 3, 'usda_fdc:169251 (1 slice)'),
   ('yellow bell pepper', 'pepper, large', 186, 0, 'usda_fdc:169383 (1 pepper, large (3-3/4" long, 3" dia))'),
+  ('yellow bell pepper', 'strip', 5.2, 1, 'usda_fdc:169383 (10 strips)'),
   ('zucchini', 'zucchini, medium', 196, 0, 'usda_fdc:169291 (1 medium)'),
   ('zucchini', 'zucchini, large', 323, 1, 'usda_fdc:169291 (1 large)'),
-  ('zucchini', 'zucchini, small', 118, 2, 'usda_fdc:169291 (1 small)')
-) as m(ing_match, label, grams, sort_order, source)
+  ('zucchini', 'zucchini, small', 118, 2, 'usda_fdc:169291 (1 small)'),
+  ('zucchini', 'slice', 9.9, 3, 'usda_fdc:169291 (1 slice)')
+) as m(ing_match, label, basis_amount, sort_order, source)
   on i.match_text = m.ing_match
 where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at is null
   and not exists (
@@ -284,6 +340,7 @@ begin
     ('lime juice'),
     ('maitake mushroom'),
     ('mango'),
+    ('mini pretzel'),
     ('multigrain bread'),
     ('navy bean canned'),
     ('nectarine'),
@@ -350,7 +407,7 @@ begin
   end if;
   select count(*) into n from ingredient_measure
   where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null;
-  raise notice 'seed_measures: % live template measures (% seeded)', n, 183;
+  raise notice 'seed_measures: % live template measures (% seeded)', n, 235;
 end $$;
 
 commit;
