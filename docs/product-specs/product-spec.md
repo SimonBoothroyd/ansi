@@ -57,16 +57,32 @@ Single shared household dataset; both members full read/write; everything scoped
 - Canonical base: **grams** (mass), **ml** (volume)
 - Within-family = fixed ratio table; volume↔mass = via ingredient `density_g_per_ml`
 - Imprecise units: non-scaling, non-converting flag
-- **Named measures** (step 7.6): a per-ingredient `Measure` ("1 potato, large
-  = 299 g", "1 can (400 ml) = 400 g") bridges count↔**mass** via its stored
-  gram weight — the honest bridge for count foods, which a liquid density
-  can't describe. Measures never reach volume without the ingredient's
-  density, and a missing/invalid measure never invents grams (a
-  measure-quantified line stores `unit = 'piece'` as its honest count
-  fallback).
+- **Named measures** (step 7.6; basis-aware since 7.8/ADR-0008): a
+  per-ingredient `Measure` ("1 potato, large = 299 g", "1 can (400 ml) =
+  400 ml") bridges count↔**the ingredient's basis** via its stored
+  `basis_amount` (denominated in `macros_basis`: g or ml). Crossing
+  mass↔volume still needs the density, and a missing/invalid measure never
+  invents an amount (a measure-quantified line stores `unit = 'piece'` as
+  its honest count fallback).
+- **Unit admission is per-ingredient and explicit** (ADR-0008, step 7.8):
+  `ingredient.allowed_units` lists exactly what a line may *say* — the
+  default unit's family trimmed to kitchen magnitudes ("no litres of
+  yeast"), the basis family (yeast finally admits `g`), the other family
+  once a density exists (demoted below the measures in chip order), and
+  imprecise units only for seasoning/oil categories. Materialized at
+  creation from `default_allowed_units()` (Dart mirror
+  `defaultAllowedUnitSet` — shared test vectors), curated for the seed
+  vocab (`curation_overrides.jsonl`), editable by step 8's flesh-out form.
+  What we may *compute* is unchanged — totals still degrade honestly.
+- **Density is the single volume⇄mass fact**, enterable two equivalent ways
+  (7.8): as g/ml, or as "1 tbsp of this weighs N g"
+  (`densityFromVolumeWeight`). A volume-named measure label is therefore
+  REDIRECTED into density entry — volume-named measures never exist, so the
+  two facts can never disagree. Saving a density also extends the explicit
+  `allowed_units` with the family it unlocks, in the same write.
 
 ### Ingredient
-`id · canonical_name · aliases[] · category · density_g_per_ml (nullable) · macros {kcal, protein, carb, fat} (nullable) · macros_basis ('g' | 'ml', step 7.7) · default_unit · status (complete | stub) · source (usda_fdc_id | manual | barcode)`
+`id · canonical_name · aliases[] · category · density_g_per_ml (nullable) · macros {kcal, protein, carb, fat} (nullable) · macros_basis ('g' | 'ml', step 7.7) · allowed_units (jsonb unit-id array, step 7.8) · default_unit · status (complete | stub) · source (usda_fdc_id | manual | barcode)`
 - `status = stub` → drives the "needs fleshing out" queue + honest macro math.
 - **Macros are stored WITH the basis the label read them in** (per-100 g or
   per-100 ml — liquid labels read per 100 ml, and densities are sparse, so
@@ -74,10 +90,12 @@ Single shared household dataset; both members full read/write; everything scoped
   doctrine: a line whose unit family matches the basis computes directly;
   cross-basis bridges only via density; otherwise the total is honestly
   `incomplete`. USDA prefill rows are per-100 g.
-- Seed from USDA FoodData Central **Foundation Foods + SR Legacy** (CC0). Density from FDC food portions, fallback FAO/INFOODS Density DB v2.0.
+- Seed from USDA FoodData Central **Foundation Foods + SR Legacy** (CC0).
+  Density from FDC volume food portions parsed out of the full portion text
+  (7.8 — coverage 211/291), fallback FAO/INFOODS Density DB v2.0 (tracker).
 
-### Ingredient measure (steps 7.6–7.7)
-`ingredient_measure: id · household_id · ingredient_id · label · grams (> 0) · sort_order · source`
+### Ingredient measure (steps 7.6–7.8)
+`ingredient_measure: id · household_id · ingredient_id · label · basis_amount (> 0, in the ingredient's macros_basis unit — 0012) · sort_order · source`
 - Per-household, synced, user-editable rows — households disagree about what
   "1 portion" is, and import (step 8) will create them from labels. The
   starter set is GENERATED from FDC food portions
@@ -85,11 +103,13 @@ Single shared household dataset; both members full read/write; everything scoped
   the vocab at onboarding (backfill gated run-once by
   `household.backfilled_at`, 0011 — deleting your measures never resurrects
   them).
-- **In-app measure editor (7.7):** the quantity sheet's manage state authors
-  `source = 'manual'` rows ("half can = 200 g") and soft-deletes unwanted
-  ones. Labels that merely name a volume unit are rejected — density owns
-  volume conversion. Provenance is shown humanized (USDA portion / borrowed
-  / typical / yours), never as raw machine strings.
+- **In-app measure editor (7.7; density entry 7.8):** the quantity sheet's
+  manage state authors `source = 'manual'` rows ("half can = 200 g"),
+  soft-deletes unwanted ones, and holds the DENSITY entry (g/ml ⇄ "a spoon
+  weighs…"). Labels that merely name a volume unit are redirected into that
+  density entry — density owns volume conversion. Provenance is shown
+  humanized (USDA portion / borrowed / typical / yours), never as raw
+  machine strings.
 - **No unique label index** (0011, the shopping-entry doctrine): two offline
   devices adding the same label must never fail upload — duplicate live
   `(ingredient_id, label)` rows merge deterministically on read (oldest row

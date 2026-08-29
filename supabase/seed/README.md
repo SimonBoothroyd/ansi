@@ -10,8 +10,12 @@ Two things get seeded (spec §6):
    density are prefilled from `usda_food` where a true match exists (248
    `complete`); the rest stay honest `stub`s for the flesh-out queue.
 
-Density fallback: FDC food portions first, then FAO/INFOODS Density DB v2.0
-(the FAO/INFOODS step is not wired yet — density is currently sparse).
+Density: derived from FDC **volume food portions parsed out of the full
+portion text** (7.8 — SR Legacy keys most volume portions by `modifier`, not
+`measure_unit`, which is why the old parser found almost none). Ranked
+cup > tbsp > tsp, unqualified before prepared-state, sanity 0.1–2.0 g/ml.
+Current vocab coverage: **211/291**. FAO/INFOODS Density DB v2.0 remains the
+planned fallback for the tail (tracker).
 
 ## Building the household vocabulary (`scripts/mine_recipes.ts`)
 
@@ -69,41 +73,64 @@ regenerate:
    <https://fdc.nal.usda.gov/download-datasets> (Foundation Foods, SR Legacy).
 2. `deno run --allow-read --allow-write gen_usda.ts <foundation_dir> <sr_legacy_dir>`
    — pass Foundation first so it wins on overlap. Keeps the four macros + fiber
-   (per 100 g) and a density derived from a volume `food_portion`; `match_text`
-   uses the shared normalizer so the reference is indexed the same way.
+   (per 100 g) and a density derived from the best-ranked volume
+   `food_portion` (unit words matched in the whole portion text — see the
+   density note above); `match_text` uses the shared normalizer so the
+   reference is indexed the same way.
 
 ## Ingredient measures (`scripts/gen_measures.ts`)
 
 `../seed_measures.sql` — the template vocab's starter **measures** ("1 potato,
-medium = 213 g", step 7.6) — is GENERATED from the same FDC bundles' piece-type
-`food_portion` rows, joined through `usda_links.jsonl`, with per-row provenance
-in `ingredient_measure.source` (migration 0010). Never hand-edit the SQL.
+medium = 213 g", step 7.6; amounts in the ingredient's basis unit since
+0012's `basis_amount`) — is GENERATED from the same FDC bundles' piece-type
+`food_portion` rows, joined through `usda_links.jsonl`, with per-row
+provenance in `ingredient_measure.source` (migration 0010). Never hand-edit
+the SQL.
 
 ```
 deno task gen-measures <foundation_dir> <sr_legacy_dir>
 ```
 
-Two tiers plus a survivor list (all encoded in the script):
+**Extraction is generous; curation decides** (plan 0013): every portion that
+names a physical human unit is emitted — all size classes, fragments (slice,
+wedge, strip, cube…), containers, dimension-described portions — ordered
+most-kitchen-useful first (container > medium > large > small > extra sizes >
+whole > fragment). Still excluded at extraction: pure volume rows (they
+become density — see above), prepared-state volume qualifiers, mass aliases,
+and nutrition-label servings — except *physically disguised* servings
+("serving packet", "slice 1 serving"), which are rescued under their real
+names. Then two tiers plus survivors, as before:
 
-- **Tier 1** — each ingredient's OWN linked food's piece portions, so russet
-  and red potato carry their own weights. Volume rows ("1 cup") are skipped
-  (bridging volume is the density's job), as are mass aliases ("1 oz"),
-  serving sizes, and preparation noise; ranked container > medium > large >
-  small > whole > fragment and capped at 3 per ingredient, deterministic. A
-  variety linked to a broader food keeps only portions naming the variety
-  ("cherry tomato" gets the 17 g `cherry` portion, never the 123 g generic
-  medium). `source = usda_fdc:<fdc_id> (<portion>)`.
-- **Tier 2** — an explicit borrow map for varieties whose own food has no
-  usable piece portion (gold potato ← russet's size classes; canned bean
-  varieties ← pinto's drained 15 oz can). `source` ends in `— borrowed`.
-- **`seed:typical` survivors** — a deliberately short list where FDC has
-  nothing usable and the item matters (shallot bulb, tempeh 8 oz package,
-  coconut-milk 400 ml can, silken-tofu 12.3 oz block).
+- **Tier 1** — each ingredient's OWN linked food's portions; a variety linked
+  to a broader food keeps only portions naming the variety, and a food whose
+  description carries a basis qualifier (without peel / drained / …) emits no
+  whole-item measure unless the row or label owns that basis.
+  `source = usda_fdc:<fdc_id> (<portion>)`.
+- **Tier 2** — the explicit borrow map (`— borrowed`), plus the automatic
+  borrow marker when several vocab rows share one FDC food.
+- **`seed:typical` survivors** — the short curated list (incl. the 7 g yeast
+  sachet — the near-universal printed standard).
 
-The generated SQL is idempotent (`on conflict do nothing` against 0010's live
-`(ingredient_id, label)` unique index) and ends with a check that every seeded
-match_text still resolves to a live vocab ingredient — a vocab regeneration
-that drops one fails the seed loudly instead of silently dropping measures.
+Finally the committed **`../curation_overrides.jsonl`** is applied
+(`drop_measure`/`add_measure` here; `density`/`allowed_units` in
+`seed_curation.sql`): the audited LLM-curation pass over the generated
+output, every override with a reason — rules are scaffolding, the pass is
+the decider. A stale drop fails the run.
+
+The generated SQL is idempotent (a `where not exists` guard per live label)
+and ends with a check that every seeded match_text still resolves to a live
+vocab ingredient.
+
+## Curation overrides (`curation_overrides.jsonl`) & `seed_curation.sql`
+
+`curation_overrides.jsonl` (committed, one JSON object per line, every entry
+with a `reason`) records the human/LLM judgment pass over ALL generated
+per-ingredient defaults — measures, densities, allowed units. Consumers:
+`gen_measures.ts` (measure drops/adds) and `gen_seed.ts`, which emits
+`../seed_curation.sql` — the LAST seed step: it re-materializes the template
+vocab's `allowed_units` via `default_allowed_units()` once every density
+source has run (the insert-time trigger fired before prefill), then applies
+the density and allowed-unit overrides with their reasons as SQL comments.
 
 ## Prefill: promoting stubs to `complete` (`usda_links.jsonl`)
 
@@ -119,5 +146,6 @@ them to `complete` (a guard skips USDA rows with no macros).
 ## Load order
 
 `config.toml` `[db.seed].sql_paths` runs, in order: `seed.sql` (household +
-vocab) → `seed_usda.sql` (reference) → `seed_prefill.sql` (macros) →
-`seed_measures.sql` (measures). `supabase db reset` applies all four.
+vocab) → `seed_usda.sql` (reference) → `seed_prefill.sql` (macros + density)
+→ `seed_measures.sql` (measures) → `seed_curation.sql` (allowed-units
+refresh + curation overrides). `supabase db reset` applies all five.

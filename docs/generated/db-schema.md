@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (12 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (13 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -59,6 +59,7 @@ introduced in `0002_ingredients.sql` · RLS enabled · in the `powersync` public
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |
 | `macros_basis` | `text` | no | not null default 'g' check (macros_basis in ('g', 'ml')) *(added in `0011_picker_uplift.sql`)* |
+| `allowed_units` | `jsonb` | yes | *(added in `0012_unit_admission.sql`)* |
 
 ## `ingredient_alias`
 
@@ -262,3 +263,4 @@ introduced in `0009_ingredient_measures.sql` · RLS enabled · in the `powersync
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |
 | `source` | `text` | yes | *(added in `0010_measure_provenance.sql`)* |
+| `basis_amount` | `numeric` | yes | *(added in `0012_unit_admission.sql`)* |

@@ -875,7 +875,15 @@
                         <div class="addm-note"><span class="srcdot you"></span>saved as yours — synced &amp; editable</div>
                     </div>
                 </div>
-                <p class="rc-note">Measures bridge count ↔ weight only — volume is density’s job, so no tbsp/cup rows ever appear here.</p>
+                <div class="field" style="margin-top:12px">
+                    <div class="addm-card" style="margin-bottom:0">
+                        <div class="addm-h">density <span style="color:var(--muted);font-weight:400">· 0.96 g/ml</span></div>
+                        <div class="addm-fields"><span class="addm-in" style="width:auto;color:var(--muted)">g/ml</span><span class="addm-in" style="width:auto;background:var(--herb-soft);color:var(--herb-deep)">a spoon weighs…</span></div>
+                        <div class="addm-fields">1 <span class="addm-in" style="width:auto">tsp</span><span class="addm-in" style="width:auto;background:var(--herb-soft);color:var(--herb-deep)">tbsp</span><span class="addm-in" style="width:auto">cup</span> weighs <span class="addm-in g">14.2 g</span><span class="addm-save">Save</span></div>
+                        <div class="addm-note">= 0.96 g/ml — both phrasings write the same fact (ADR-0008)</div>
+                    </div>
+                </div>
+                <p class="rc-note">Measures bridge count ↔ the basis only — volume is density’s job, so a “cup” label redirects here (7.8): the spoon mapping <b>is</b> the density, and saving it unlocks the other family’s chips.</p>
             </div></div>
         </div>
         </div>
@@ -962,12 +970,35 @@
                 <p class="conv-note" style="text-align:center">USDA prefill rows stay per-100 g</p>
             </div></div>
         </div>
+
+        <div class="frame" id="pv2-d2">
+            <p class="frame-name"><b>Allowed units</b> · frame (d) grown for 7.8 (ADR-0008) — the flesh-out form’s admission section; the data shipped in 7.8, the form itself builds in step 8</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Flesh out · Instant yeast</span><span class="dots"></span></div>
+                <p class="flabel">Basis — the dimension its macros speak</p>
+                <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace">per 100 g <span style="color:var(--muted)">· every admitted unit maps into grams</span></div></div>
+                <p class="flabel">Allowed units — what a line may say</p>
+                <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
+                    <span class="uchip on">tsp</span><span class="uchip on">tbsp</span><span class="uchip on">g</span>
+                    <span class="uchip" style="color:var(--muted);border-style:dashed">ml</span><span class="uchip" style="color:var(--muted);border-style:dashed">cup</span>
+                </div></div>
+                <p class="conv-note" style="margin-top:2px">family pre-ticked from the basis + default unit · dashed chips unlock with a density</p>
+                <p class="flabel">Density — either way, one stored fact</p>
+                <div class="frow"><div class="seg"><span class="segopt">g / ml</span><span class="segopt on">a spoon weighs…</span></div></div>
+                <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace">1 tbsp weighs <b>12 g</b> <span style="color:var(--muted)">→ 0.81 g/ml · unlocks ml · cup</span></div></div>
+                <p class="flabel">Measures — count-like, in the basis</p>
+                <div class="frow"><div class="fin"><span class="srcdot typ"></span> sachet <span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">7 g · typical</span></div></div>
+                <p class="flabel">Imprecise units</p>
+                <div class="frow"><div class="fin" style="display:flex;justify-content:space-between"><span>pinch · dash · to taste</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">off — category-gated</span></div></div>
+                <div class="status-line"><span class="sdot"></span>Stored <b style="color:var(--ink)">&nbsp;explicitly</b>&nbsp;per ingredient (allowed_units, 0012) — this form owns the list; entry offers exactly it.</div>
+            </div></div>
+        </div>
     </div>
 
     <footer class="footer">
         <span><b>Mise</b> — complete board</span>
         <span>Flutter · Forui · Supabase · PowerSync</span>
-        <span>20 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7)</span>
+        <span>21 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8, form builds in step 8)</span>
     </footer>
 
 </div>
