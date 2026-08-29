@@ -202,7 +202,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
     final rows = await _db.getAll(
       'SELECT g.recipe_id, li.ingredient_id, li.quantity, li.unit, '
       'li.measure_id, im.label AS measure_label, im.grams AS measure_grams, '
-      'im.sort_order AS measure_sort '
+      'im.sort_order AS measure_sort, im.source AS measure_source '
       'FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
       'LEFT JOIN ingredient_measure im '
@@ -243,6 +243,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
       label: label,
       grams: grams,
       sortOrder: (row['measure_sort'] as int?) ?? 0,
+      source: row['measure_source'] as String?,
     );
   }
 
@@ -269,7 +270,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
     final contribRows = await _db.getAll(
       'SELECT sc.id, sc.entry_id, sc.quantity, sc.unit, sc.note, '
       'sc.measure_id, im.label AS measure_label, im.grams AS measure_grams, '
-      'im.sort_order AS measure_sort '
+      'im.sort_order AS measure_sort, im.source AS measure_source '
       'FROM shopping_list_contribution sc '
       'LEFT JOIN ingredient_measure im '
       'ON im.id = sc.measure_id AND im.deleted_at IS NULL '
@@ -309,7 +310,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
     // they gate the whole-unit hint and price its mass→count conversion.
     final measureRows = await _db.getAll(
       'SELECT ingredient_id, id AS measure_id, label AS measure_label, '
-      'grams AS measure_grams, sort_order AS measure_sort '
+      'grams AS measure_grams, sort_order AS measure_sort, '
+      'source AS measure_source '
       'FROM ingredient_measure '
       'WHERE ingredient_id IN ($placeholders) AND deleted_at IS NULL '
       'ORDER BY sort_order, created_at',

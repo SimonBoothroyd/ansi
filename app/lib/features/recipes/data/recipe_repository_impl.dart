@@ -98,7 +98,7 @@ class SqliteRecipeRepository implements RecipeRepository {
     final itemRows = await _db.getAll(
       'SELECT li.*, ing.canonical_name AS ingredient_name, '
       'im.label AS measure_label, im.grams AS measure_grams, '
-      'im.sort_order AS measure_sort '
+      'im.sort_order AS measure_sort, im.source AS measure_source '
       'FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id '
       'LEFT JOIN ingredient ing ON ing.id = li.ingredient_id '
@@ -157,6 +157,7 @@ class SqliteRecipeRepository implements RecipeRepository {
               label: measureLabel,
               grams: measureGrams,
               sortOrder: (r['measure_sort'] as int?) ?? 0,
+              source: r['measure_source'] as String?,
             ),
       note: r['note'] as String?,
     );
