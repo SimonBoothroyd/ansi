@@ -113,12 +113,16 @@ affordance). So:
 
 - **Per-100 ml macro entry (2026-08-28, Simon):** the New-ingredient /
   flesh-out form asks for macros per 100 g, but liquid labels read per
-  100 ml. The board's form frame should offer a 100 g / 100 ml basis toggle
-  that unlocks only once a density is entered (per-100 ml converts to the
-  stored per-100 g basis through it — never an assumed 1.0). Design here;
-  implementation ships with wherever new-ingredient entry lands (the
-  picker's "add new" today is minimal; the full flesh-out form is step 8's
-  stub-queue territory).
+  100 ml — and densities are sparse, so conversion-at-entry can't be the
+  design. Instead: a free 100 g / 100 ml basis toggle, and the macros are
+  **stored with their basis** (data model: a basis tag beside `macros`;
+  USDA prefill rows are per-100 g). Consumers apply the shopping-aggregation
+  doctrine: a line whose unit family matches the basis computes directly
+  (liquids in ml × per-100 ml — the common case, no density needed);
+  cross-basis uses a density when present; otherwise that line renders the
+  recipe's macros honestly `incomplete`. Design the toggle here; the basis
+  tag + computation land with the macro summation (pulled into this step)
+  and the full form with step 8.
 - See "Mise mapping" — two open questions to settle at the board review.
 - Keyboard-accessory chips on Flutter/iOS: verify the pattern under the sim's
   keyboard handling early (spike in step 1, not a late surprise).
