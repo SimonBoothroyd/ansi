@@ -130,6 +130,11 @@ affordance). So:
   4. *N4, backfill zero-live gate vs user deletions* — propose a
      per-household **`backfilled_at` marker** so the template-measure
      backfill runs once and never resurrects deliberately deleted measures.
+- 2026-08-28 — **Search position resolved (Simon): TOP-anchored.** Frames
+  (a) and (c) keep the search field at the top of the sheet, as the shipped
+  frames had it; the bottom-anchored field + stylized keyboard idea is
+  dropped from the board. The quantity keypad accessory in (b1) is
+  unaffected — that's quantity entry, not search.
 
 ## Notes / open questions
 
