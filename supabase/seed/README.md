@@ -72,6 +72,39 @@ regenerate:
    (per 100 g) and a density derived from a volume `food_portion`; `match_text`
    uses the shared normalizer so the reference is indexed the same way.
 
+## Ingredient measures (`scripts/gen_measures.ts`)
+
+`../seed_measures.sql` — the template vocab's starter **measures** ("1 potato,
+medium = 213 g", step 7.6) — is GENERATED from the same FDC bundles' piece-type
+`food_portion` rows, joined through `usda_links.jsonl`, with per-row provenance
+in `ingredient_measure.source` (migration 0010). Never hand-edit the SQL.
+
+```
+deno task gen-measures <foundation_dir> <sr_legacy_dir>
+```
+
+Two tiers plus a survivor list (all encoded in the script):
+
+- **Tier 1** — each ingredient's OWN linked food's piece portions, so russet
+  and red potato carry their own weights. Volume rows ("1 cup") are skipped
+  (bridging volume is the density's job), as are mass aliases ("1 oz"),
+  serving sizes, and preparation noise; ranked container > medium > large >
+  small > whole > fragment and capped at 3 per ingredient, deterministic. A
+  variety linked to a broader food keeps only portions naming the variety
+  ("cherry tomato" gets the 17 g `cherry` portion, never the 123 g generic
+  medium). `source = usda_fdc:<fdc_id> (<portion>)`.
+- **Tier 2** — an explicit borrow map for varieties whose own food has no
+  usable piece portion (gold potato ← russet's size classes; canned bean
+  varieties ← pinto's drained 15 oz can). `source` ends in `— borrowed`.
+- **`seed:typical` survivors** — a deliberately short list where FDC has
+  nothing usable and the item matters (shallot bulb, tempeh 8 oz package,
+  coconut-milk 400 ml can, silken-tofu 12.3 oz block).
+
+The generated SQL is idempotent (`on conflict do nothing` against 0010's live
+`(ingredient_id, label)` unique index) and ends with a check that every seeded
+match_text still resolves to a live vocab ingredient — a vocab regeneration
+that drops one fails the seed loudly instead of silently dropping measures.
+
 ## Prefill: promoting stubs to `complete` (`usda_links.jsonl`)
 
 `usda_links.jsonl` (committed) maps an ingredient's `match_text` → the `fdc_id`

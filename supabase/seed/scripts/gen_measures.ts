@@ -1,0 +1,464 @@
+// Generates supabase/seed_measures.sql — the template vocab's ingredient
+// MEASURES ("1 potato, medium = 213 g") — from USDA FoodData Central
+// `food_portion` rows (CC0), joined to the vocab through the committed
+// `usda_links.jsonl` (match_text → fdc_id). Step 7.6 follow-up: the old file
+// was hand-curated; this makes it GENERATED output with per-row provenance.
+//
+//   deno run --allow-read --allow-write gen_measures.ts <dataset_dir> [...]
+//
+// (pass the same Foundation + SR Legacy dirs as gen_usda.ts — see ../README.md
+// for fetching the ~40 MB CSV bundles; they are NOT committed).
+//
+// Two tiers, both with explicit `source` provenance (migration 0010):
+//
+//   * Tier 1 — each vocab ingredient's OWN linked FDC food's piece-type
+//     portions (russet vs red potato get their own weights). Volume portions
+//     ("1 cup") are skipped — bridging volume is the density's job, never a
+//     measure's; mass aliases ("1 oz"), serving sizes ("NLEA serving") and
+//     preparation fragments are skipped or ranked last. Capped at 3 per
+//     ingredient by usefulness (container > medium > large > small > whole >
+//     fragment), deterministic order. `source = usda_fdc:<fdc_id> (<portion>)`.
+//
+//   * Tier 2 — BORROWS for varieties whose own FDC food lacks usable piece
+//     portions (gold potato ← russet; canned bean varieties ← pinto's
+//     drained-can weight). The borrow map below is explicit and committed;
+//     `source` gains a "— borrowed" marker so the approximation is visible.
+//
+// A short survivor list of `seed:typical` hand rows remains for important
+// items where FDC genuinely has no usable portion (see TYPICAL below).
+//
+// Measures stay PER-INGREDIENT rows (no shared portion-class entity): user
+// overrides must remain variety-specific — see exec plan 0010's decision log.
+
+import { parse } from "@std/csv/parse";
+import { normalize } from "../../functions/_shared/normalize.ts";
+
+const HOUSEHOLD_ID = "00000000-0000-0000-0000-0000000000aa";
+
+// --- Tier 2: explicit borrow map (variety → representative food) -------------
+// Only for varieties whose OWN linked food has no usable piece portion. Keep
+// this list short and justified; every row's source is marked "— borrowed".
+const BORROWS: { matchText: string; fdcId: string; why: string }[] = [
+  // USDA sizes potatoes by diameter class, so russet's small/medium/large
+  // weights describe gold potatoes equally well (no FDC gold-potato food).
+  { matchText: "gold potato", fdcId: "170027", why: "russet size classes" },
+  // These canned beans have no can-sized FDC portion of their own; pinto's
+  // "can drained solids" (a standard 15 oz can) is the representative can.
+  { matchText: "black bean canned", fdcId: "174286", why: "15 oz bean can" },
+  { matchText: "cannellini bean canned", fdcId: "174286", why: "15 oz bean can" },
+  { matchText: "great northern bean canned", fdcId: "174286", why: "15 oz bean can" },
+  { matchText: "navy bean canned", fdcId: "174286", why: "15 oz bean can" },
+  { matchText: "black eyed pea canned", fdcId: "174286", why: "15 oz bean can" },
+];
+
+// --- Curated survivors: FDC has nothing usable, the item matters -------------
+// Deliberately rare, deliberately round, marked `seed:typical`.
+const TYPICAL: { matchText: string; label: string; grams: number }[] = [
+  // FDC shallots carry only "1 tbsp chopped" — no whole-bulb portion.
+  { matchText: "shallot", label: "shallot, medium", grams: 30 },
+  // FDC tempeh carries only "1 cup"; the 8 oz retail package is the unit.
+  { matchText: "tempeh", label: "package (8 oz)", grams: 227 },
+  // FDC canned coconut milk carries only cup/tbsp; the 400 ml can is the
+  // unit recipes speak in (~1.0 g/ml).
+  { matchText: "coconut milk", label: "can (400 ml)", grams: 400 },
+  // FDC silken tofu (MORI-NU) has only a sub-package "slice"; the 12.3 oz
+  // shelf-stable block is the purchasable unit.
+  { matchText: "silken tofu", label: "block (12.3 oz)", grams: 349 },
+];
+
+// Tier-1 output is suppressed for these (their only surviving FDC portions
+// are misleading); the TYPICAL row above covers them instead.
+const SUPPRESS_TIER1 = new Set(["silken tofu"]);
+
+// --- Portion filtering / ranking ---------------------------------------------
+
+// Portions that are not piece-type: volume (density's job), mass aliases,
+// serving sizes, preparations, and snack-serving noise.
+const SKIP = new RegExp(
+  "\\b(cup|cups|tablespoon|tbsp|teaspoon|tsp|fl oz|fluid|liter|litre|" +
+    "milliliter|ml|pint|quart|gallon|oz|lb|pound|serving|servings|nlea|" +
+    "chopped|diced|mashed|pureed|shredded|grated|dash|cube|cubes|ball|" +
+    "balls|twist|twists|chip|chips|enchilada|as purchased)\\b",
+);
+
+// Words that carry no identity in a label (size details live in `source`;
+// the trailing units of stripped size phrases — "5\" long" → "long" — go too).
+const DROP_WORDS = new Set([
+  "edible",
+  "yields",
+  "individual",
+  "long",
+  "dia",
+  "thick",
+  "approx",
+]);
+
+// Post-clean label rewrites (prettify without losing meaning).
+const REWRITE: Record<string, string> = {
+  "can drained solids": "can, drained",
+  "can drained": "can, drained",
+  "piece whole": "whole",
+  fruit: "whole",
+};
+
+// Fragments of a whole thing — kept only when an ingredient has nothing
+// better (a slice IS the unit of bread; it is not the unit of a tomato).
+const FRAGMENT = /\b(slice|wedge|ring|strip|stick|tip|chunk)\b/;
+const CONTAINER = /\b(can|block|package|packet|bunch|bag)\b/;
+
+function rank(label: string): number {
+  if (FRAGMENT.test(label)) return 6;
+  if (CONTAINER.test(label)) return 0;
+  if (/\bextra (large|small)\b/.test(label)) return 4;
+  if (/\bmedium\b/.test(label)) return 1;
+  if (/\blarge\b/.test(label)) return 2;
+  if (/\bsmall\b/.test(label)) return 3;
+  return 5; // a whole-ish named thing (clove, stalk, head, whole, …)
+}
+
+function singular(word: string): string {
+  const irregular: Record<string, string> = { leaves: "leaf", halves: "half" };
+  if (irregular[word]) return irregular[word];
+  if (word.endsWith("ies")) return `${word.slice(0, -3)}y`;
+  if (word.endsWith("s") && !word.endsWith("ss")) return word.slice(0, -1);
+  return word;
+}
+
+/// The display label for a portion: paren details and digits stripped (they
+/// stay in `source`), noise words dropped, plural singularised when the
+/// portion counted several, trailing size normalised to ", size".
+function cleanLabel(raw: string, amount: number): string | null {
+  let s = raw
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, " ") // parenthetical size notes
+    .replace(/,?\s*ns as to .*$/, "") // "NS as to Florida or California"
+    .replace(/\bwithout refuse\b/, "")
+    .replace(/[^a-z\s,]/g, " ") // digits, quotes, dashes (size fragments)
+    .replace(/\s+/g, " ")
+    .replace(/\s*,\s*/g, ", ")
+    .replace(/^[,\s]+|[,\s]+$/g, "")
+    .trim();
+  if (!s) return null;
+  s = s
+    .split(" ")
+    .filter((w) => !DROP_WORDS.has(w.replace(/,$/, "")))
+    .join(" ")
+    .replace(/^[,\s]+|[,\s]+$/g, "");
+  if (amount !== 1) {
+    const words = s.split(" ");
+    words[words.length - 1] = singular(words[words.length - 1]);
+    s = words.join(" ");
+  }
+  s = REWRITE[s] ?? s;
+  // "medium whole" → "medium" (the row IS the whole thing; "whole" is noise).
+  s = s.replace(/^(extra large|extra small|medium|large|small) whole$/, "$1");
+  // "potato medium" → "potato, medium" (matches the curated label style) —
+  // but never split a bare size ("extra large" must not become "extra, large",
+  // which would both misread and dodge the extra-size ranking).
+  if (!/^(extra )?(large|medium|small)$/.test(s)) {
+    s = s.replace(/^(.+?),? (extra large|extra small|medium|large|small)$/, "$1, $2");
+  }
+  return s || null;
+}
+
+// --- FDC loading -------------------------------------------------------------
+
+interface Portion {
+  fdcId: string;
+  label: string;
+  grams: number; // per ONE of the label (gram_weight / amount)
+  rank: number;
+  seq: number;
+  id: number;
+  source: string; // the verbatim FDC portion, for provenance
+}
+
+function readCsv(path: string): Record<string, string>[] {
+  return parse(Deno.readTextFileSync(path), { skipFirstRow: true });
+}
+
+/// All usable piece-type portions per fdc_id, filtered + ranked.
+function loadPortions(dirs: string[], keep: Set<string>): Map<string, Portion[]> {
+  const byFood = new Map<string, Portion[]>();
+  for (const dir of dirs) {
+    const units = new Map<string, string>();
+    for (const u of readCsv(`${dir}/measure_unit.csv`)) units.set(u.id, u.name);
+    for (const p of readCsv(`${dir}/food_portion.csv`)) {
+      if (!keep.has(p.fdc_id)) continue;
+      const amount = Number(p.amount);
+      const gramWeight = Number(p.gram_weight);
+      if (!(amount > 0) || !(gramWeight > 0)) continue;
+
+      const unitName = units.get(p.measure_unit_id) ?? "";
+      const raw = [
+        unitName === "undetermined" ? "" : unitName,
+        p.portion_description,
+        p.modifier,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      if (!raw) continue;
+      // Skip-check runs on the paren-stripped text so a size note like
+      // "(approx 1-1/4 lb)" doesn't disqualify a whole-item portion.
+      const skippable = raw.toLowerCase().replace(/\([^)]*\)/g, " ");
+      if (SKIP.test(skippable)) continue;
+
+      const label = cleanLabel(raw, amount);
+      if (!label) continue;
+      (byFood.get(p.fdc_id) ?? byFood.set(p.fdc_id, []).get(p.fdc_id)!).push({
+        fdcId: p.fdc_id,
+        label,
+        grams: gramWeight / amount,
+        rank: rank(label),
+        seq: Number(p.seq_num) || 0,
+        id: Number(p.id) || 0,
+        source: `${p.amount} ${raw}`,
+      });
+    }
+  }
+  return byFood;
+}
+
+// Colours / preparation / generic words that must never count as a variety
+// marker for the keep-only rule below.
+const VARIETY_STOP = new Set([
+  "red", "green", "yellow", "orange", "white", "black", "purple", "sweet",
+  "hot", "baby", "dried", "canned", "frozen", "fresh", "whole", "ground",
+  "leaf", "bean", "pea", "pod", "mixed", "extra", "firm", "silken", "dark",
+  "light", "king",
+]);
+
+/// Variety honesty: when an ingredient is linked to a broader food ("cherry
+/// tomato" → the generic tomato food), portions naming the variety ("1
+/// cherry = 17 g") are the ONLY honest ones — a generic "medium (123 g)"
+/// would misdescribe a cherry tomato by an order of magnitude. If any portion
+/// label carries a non-head, non-generic word of the match_text, keep only
+/// those portions; otherwise everything stands.
+function varietyFilter(matchText: string, portions: Portion[]): Portion[] {
+  const words = matchText.split(" ");
+  if (words.length < 2) return portions;
+  const variety = new Set(
+    words.slice(0, -1).filter((w) => !VARIETY_STOP.has(w)),
+  );
+  if (variety.size === 0) return portions;
+  const hits = portions.filter((p) =>
+    p.label.split(/[,\s]+/).some((w) => variety.has(w)),
+  );
+  return hits.length > 0 ? hits : portions;
+}
+
+/// Usefulness-ordered, deduped, fragment-suppressed, capped at 3.
+function pick(portions: Portion[]): Portion[] {
+  const sorted = [...portions].sort(
+    (a, b) => a.rank - b.rank || a.seq - b.seq || a.id - b.id,
+  );
+  const hasWhole = sorted.some((p) => p.rank < 6);
+  const seen = new Set<string>();
+  const out: Portion[] = [];
+  for (const p of sorted) {
+    if (p.rank === 6 && hasWhole) continue; // fragments only as a last resort
+    if (seen.has(p.label)) continue;
+    seen.add(p.label);
+    out.push(p);
+    if (out.length === 3) break;
+  }
+  return out;
+}
+
+// --- Emission ----------------------------------------------------------------
+
+interface Row {
+  matchText: string;
+  label: string;
+  grams: number;
+  sortOrder: number;
+  source: string;
+}
+
+const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
+const num = (n: number) => {
+  const r = Math.round(n * 100) / 100;
+  return Number.isInteger(r) ? String(r) : String(r);
+};
+
+function main(): void {
+  const dirs = Deno.args;
+  if (dirs.length === 0) {
+    console.error("usage: gen_measures.ts <dataset_dir> [<dataset_dir>...]");
+    Deno.exit(1);
+  }
+  const here = new URL(".", import.meta.url).pathname;
+
+  // The committed links: vocab match_text → its own FDC food.
+  const links: { match_text: string; fdc_id: number }[] = Deno
+    .readTextFileSync(`${here}../usda_links.jsonl`)
+    .split("\n")
+    .filter((l) => l.trim())
+    .map((l) => JSON.parse(l));
+
+  // Every match_text we emit must exist in the vocab — fail loudly, never
+  // emit rows that would silently miss the join (honest numbers).
+  const vocab = new Set(
+    Deno.readTextFileSync(`${here}../vocab.jsonl`)
+      .split("\n")
+      .filter((l) => l.trim())
+      .map((l) => normalize(JSON.parse(l).canonical_name as string)),
+  );
+
+  const wanted = new Set<string>([
+    ...links.map((l) => String(l.fdc_id)),
+    ...BORROWS.map((b) => b.fdcId),
+  ]);
+  const byFood = loadPortions(dirs, wanted);
+
+  const rows: Row[] = [];
+  let tier1 = 0, tier2 = 0;
+
+  // Tier 1: the ingredient's own linked food.
+  for (const link of links) {
+    if (SUPPRESS_TIER1.has(link.match_text)) continue;
+    const picked = pick(
+      varietyFilter(link.match_text, byFood.get(String(link.fdc_id)) ?? []),
+    );
+    picked.forEach((p, i) => {
+      rows.push({
+        matchText: link.match_text,
+        label: p.label,
+        grams: p.grams,
+        sortOrder: i,
+        source: `usda_fdc:${p.fdcId} (${p.source})`,
+      });
+      tier1++;
+    });
+  }
+
+  // Tier 2: explicit borrows, marked as such.
+  for (const b of BORROWS) {
+    const picked = pick(byFood.get(b.fdcId) ?? []);
+    if (picked.length === 0) {
+      throw new Error(`borrow source ${b.fdcId} (${b.matchText}) has no portions`);
+    }
+    picked.forEach((p, i) => {
+      rows.push({
+        matchText: b.matchText,
+        label: p.label,
+        grams: p.grams,
+        sortOrder: i,
+        source: `usda_fdc:${p.fdcId} (${p.source}) — borrowed`,
+      });
+      tier2++;
+    });
+  }
+
+  // Curated survivors.
+  for (const [i, t] of TYPICAL.entries()) {
+    void i;
+    rows.push({
+      matchText: t.matchText,
+      label: t.label,
+      grams: t.grams,
+      sortOrder: 0,
+      source: "seed:typical",
+    });
+  }
+
+  // Validate: every match_text resolves in the vocab; labels unique per
+  // ingredient (the 0010 unique index would reject dupes at seed time).
+  const problems: string[] = [];
+  const labelSeen = new Set<string>();
+  for (const r of rows) {
+    if (!vocab.has(r.matchText)) {
+      problems.push(`match_text not in vocab: "${r.matchText}"`);
+    }
+    const key = `${r.matchText} ${r.label}`;
+    if (labelSeen.has(key)) {
+      problems.push(`duplicate label for ${r.matchText}: "${r.label}"`);
+    }
+    labelSeen.add(key);
+    if (!(r.grams > 0)) problems.push(`non-positive grams: ${r.matchText}`);
+  }
+  if (problems.length > 0) {
+    console.error(problems.join("\n"));
+    Deno.exit(1);
+  }
+
+  rows.sort(
+    (a, b) =>
+      a.matchText.localeCompare(b.matchText) || a.sortOrder - b.sortOrder,
+  );
+  const matchTexts = [...new Set(rows.map((r) => r.matchText))].sort();
+
+  const out: string[] = [
+    "-- seed_measures.sql — GENERATED by seed/scripts/gen_measures.ts. Do NOT",
+    "-- hand-edit; edit the script (borrow map / typical survivors / filter",
+    "-- rules) and re-run it against the FDC CSV bundles (seed/README.md).",
+    "--",
+    "-- Starter measures for the template vocab (step 7.6): piece-type USDA",
+    "-- FDC food_portion weights joined by match_text, per-row provenance in",
+    "-- `source` (0010). Idempotent: re-runs no-op on existing live labels",
+    "-- (unique index measure_live_label_uq), and the trailing check names",
+    "-- any match_text the vocab no longer carries instead of silently",
+    "-- seeding nothing for it.",
+    "",
+    "begin;",
+    "",
+    "insert into ingredient_measure",
+    "  (household_id, ingredient_id, label, grams, sort_order, source)",
+    `select '${HOUSEHOLD_ID}', i.id, m.label, m.grams, m.sort_order, m.source`,
+    "from ingredient i",
+    "join (values",
+    rows
+      .map(
+        (r) =>
+          `  (${q(r.matchText)}, ${q(r.label)}, ${num(r.grams)}, ` +
+          `${r.sortOrder}, ${q(r.source)})`,
+      )
+      .join(",\n"),
+    ") as m(ing_match, label, grams, sort_order, source)",
+    "  on i.match_text = m.ing_match",
+    `where i.household_id = '${HOUSEHOLD_ID}' and i.deleted_at is null`,
+    "on conflict (ingredient_id, label) where deleted_at is null do nothing;",
+    "",
+    "-- Every seeded match_text must still exist in the vocab: a regeneration",
+    "-- that drops or renames one would otherwise silently drop its measures.",
+    "do $$",
+    "declare",
+    "  missing text;",
+    "  n int;",
+    "begin",
+    "  select string_agg(m.mt, ', ') into missing",
+    "  from (values",
+    matchTexts.map((m) => `    (${q(m)})`).join(",\n"),
+    "  ) as m(mt)",
+    "  where not exists (",
+    "    select 1 from ingredient i",
+    `    where i.household_id = '${HOUSEHOLD_ID}'`,
+    "      and i.deleted_at is null and i.match_text = m.mt",
+    "  );",
+    "  assert missing is null,",
+    "    'seed_measures: no live vocab ingredient for: ' || missing;",
+    "  select count(*) into n from ingredient_measure",
+    `  where household_id = '${HOUSEHOLD_ID}' and deleted_at is null;`,
+    `  raise notice 'seed_measures: % live template measures (% seeded)', n, ${rows.length};`,
+    "end $$;",
+    "",
+    "commit;",
+    "",
+  ];
+
+  const target = `${here}../../seed_measures.sql`;
+  Deno.writeTextFileSync(target, out.join("\n"));
+  console.log(
+    `wrote ${target}\n  ${rows.length} rows over ${matchTexts.length} ` +
+      `ingredients (tier1 ${tier1}, tier2/borrowed ${tier2}, ` +
+      `typical ${TYPICAL.length})`,
+  );
+  for (const r of rows) {
+    console.log(
+      `  ${r.matchText} | ${r.label} | ${num(r.grams)} g | ${r.source}`,
+    );
+  }
+}
+
+if (import.meta.main) main();

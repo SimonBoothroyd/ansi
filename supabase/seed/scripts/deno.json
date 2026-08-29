@@ -8,6 +8,7 @@
   "tasks": {
     "test": "deno test",
     "mine": "deno run --allow-net --allow-read --allow-write mine_recipes.ts",
-    "gen-seed": "deno run --allow-read --allow-write gen_seed.ts"
+    "gen-seed": "deno run --allow-read --allow-write gen_seed.ts",
+    "gen-measures": "deno run --allow-read --allow-write gen_measures.ts"
   }
 }
