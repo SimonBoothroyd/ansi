@@ -12,7 +12,7 @@
 -- holds the starter vocab and its aliases). Run by `supabase test db`.
 
 begin;
-select plan(23);
+select plan(27);
 
 -- Isolate from any pre-existing memberships (a live dev session may have
 -- onboarded users). All rolled back at the end.
@@ -192,16 +192,25 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- Backfill (0010): a household onboarded BEFORE 0009 has memberships but no
--- measures — the next ensure_onboarded() call must clone the template's
--- measures in; a household that HAS measures must be left untouched.
+-- Backfill (0010, run-once gate 0011): `household.backfilled_at` — not the
+-- live measure count — decides whether the template's measures clone in. A
+-- fresh household is stamped at creation; deleting every measure never
+-- re-triggers; only a null marker (a pre-0009 household, or an operator's
+-- template-reseed clear) backfills, exactly once.
 -- ---------------------------------------------------------------------------
--- Simulate the pre-0009 state: strip A's household of every LIVE measure.
+reset role;
+select ok(
+  (select backfilled_at is not null from household
+     where id = current_setting('test.hh_a')::uuid),
+  'a fresh household is stamped backfilled at creation (0011)'
+);
+
+-- Deliberate deletion: strip A's household of every LIVE measure.
 -- Soft-delete, not DELETE: on a dev machine with `make test-sim` residue,
 -- "A's household" is the real dev household (line 19 freed its seats) and a
 -- hard delete trips recipe_line_item's measure_id FK. Soft-delete matches
--- the app's no-DELETE contract, satisfies the backfill's zero-LIVE gate,
--- and stays clear of the partial (live-only) unique index.
+-- the app's no-DELETE contract. The marker is set, so the next call must
+-- NOT resurrect the deleted measures.
 update ingredient_measure
 set deleted_at = now(), updated_at = now()
 where household_id = current_setting('test.hh_a')::uuid
@@ -212,28 +221,22 @@ set local request.jwt.claims = '{"sub":"a1111111-1111-1111-1111-111111111111","r
 select is(
   ensure_onboarded(),
   current_setting('test.hh_a')::uuid,
-  'the backfill path still returns the existing household'
+  'the already-onboarded path still returns the existing household'
 );
 reset role;
 select is(
   (select count(*)::int from ingredient_measure
      where household_id = current_setting('test.hh_a')::uuid
        and deleted_at is null),
-  (select count(*)::int from ingredient_measure im
-     join ingredient i on i.id = im.ingredient_id
-     where im.household_id = '00000000-0000-0000-0000-0000000000aa'
-       and im.deleted_at is null and i.source is distinct from 'manual'),
-  'a measure-less household gains the template measures on its next call'
-);
-select is(
-  (select im.source from ingredient_measure im
-     where im.household_id = current_setting('test.hh_a')::uuid
-       and im.label = 'glug (test)'),
-  'seed:typical',
-  'backfilled measures keep their provenance source'
+  0,
+  'deleting every measure never re-triggers the backfill (run-once gate)'
 );
 
--- A household WITH live measures is untouched by a further call (no dupes).
+-- The pre-0009 heal: clear the marker (the household still has zero live
+-- measures) — the next call clones the template's measures in and stamps.
+update household set backfilled_at = null
+where id = current_setting('test.hh_a')::uuid;
+
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"a1111111-1111-1111-1111-111111111111","role":"authenticated","email":"ada@x.com"}';
 do $$ begin perform ensure_onboarded(); end $$;
@@ -246,7 +249,44 @@ select is(
      join ingredient i on i.id = im.ingredient_id
      where im.household_id = '00000000-0000-0000-0000-0000000000aa'
        and im.deleted_at is null and i.source is distinct from 'manual'),
-  'a household that already has measures is untouched (no dupes)'
+  'a marker-less, measure-less household gains the template measures once'
+);
+select is(
+  (select im.source from ingredient_measure im
+     where im.household_id = current_setting('test.hh_a')::uuid
+       and im.label = 'glug (test)' and im.deleted_at is null),
+  'seed:typical',
+  'backfilled measures keep their provenance source'
+);
+select ok(
+  (select backfilled_at is not null from household
+     where id = current_setting('test.hh_a')::uuid),
+  'the healed household is stamped after the backfill'
+);
+
+-- Marker cleared while measures EXIST (the shape 0011's migration stamps):
+-- the call stamps without cloning — never a dupe over user edits.
+update household set backfilled_at = null
+where id = current_setting('test.hh_a')::uuid;
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"a1111111-1111-1111-1111-111111111111","role":"authenticated","email":"ada@x.com"}';
+do $$ begin perform ensure_onboarded(); end $$;
+reset role;
+select is(
+  (select count(*)::int from ingredient_measure
+     where household_id = current_setting('test.hh_a')::uuid
+       and deleted_at is null),
+  (select count(*)::int from ingredient_measure im
+     join ingredient i on i.id = im.ingredient_id
+     where im.household_id = '00000000-0000-0000-0000-0000000000aa'
+       and im.deleted_at is null and i.source is distinct from 'manual'),
+  'a marker-less household WITH measures is stamped, not re-cloned (no dupes)'
+);
+select ok(
+  (select backfilled_at is not null from household
+     where id = current_setting('test.hh_a')::uuid),
+  'and its marker is set afterwards'
 );
 
 -- No template at all (the empty-cloud case): the clone cleanly no-ops.

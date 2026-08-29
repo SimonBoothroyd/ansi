@@ -9,8 +9,8 @@
 
 begin;
 -- 14 tables x (select isolation + cross-household insert rejection)
--- + current_household_id + 2 usda_food checks.
-select plan(31);
+-- + current_household_id + 4 recipe.favorite checks + 2 usda_food checks.
+select plan(35);
 
 -- Two households, one member each, and one row per household in every
 -- household-scoped table (A-side ids aaaaaaaa-…, B-side bbbbbbbb-…).
@@ -160,6 +160,27 @@ select throws_ok(cross_insert, '42501', errmsg,
   tbl || ': cross-household insert is rejected'
 ) from iso_case order by ord;
 
+-- recipe.favorite (0011) is client-writable through the existing recipe
+-- update policy — the app's Favorites star writes it directly…
+select lives_ok(
+  $$ update recipe set favorite = true
+     where id = 'aaaaaaaa-0000-0000-0000-000000000004' $$,
+  'A can favorite their own recipe (0011)'
+);
+select is(
+  (select favorite from recipe
+     where id = 'aaaaaaaa-0000-0000-0000-000000000004'),
+  true,
+  'the favorite flag round-trips'
+);
+-- …and RLS keeps A's stars off B's recipes: the update runs without error
+-- but matches no rows (verified from outside RLS further down).
+select lives_ok(
+  $$ update recipe set favorite = true
+     where id = 'bbbbbbbb-0000-0000-0000-000000000004' $$,
+  'favoriting another household''s recipe does not error (RLS filters it)'
+);
+
 -- usda_food is server-side only (ADR-0005): denied to clients…
 select throws_ok(
   $$ select count(*) from usda_food $$,
@@ -170,6 +191,13 @@ select throws_ok(
 
 -- …but reachable server-side.
 reset role;
+-- Seen from outside RLS: A's cross-household favorite update matched no rows.
+select is(
+  (select favorite from recipe
+     where id = 'bbbbbbbb-0000-0000-0000-000000000004'),
+  false,
+  'the cross-household favorite never landed (RLS matched no rows)'
+);
 set local role service_role;
 select is(
   (select count(*) from usda_food where fdc_id = 1)::int, 1,

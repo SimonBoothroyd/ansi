@@ -5,9 +5,10 @@
 -- Starter measures for the template vocab (step 7.6): piece-type USDA
 -- FDC food_portion weights joined by match_text, per-row provenance in
 -- `source` (0010). Idempotent: re-runs no-op on existing live labels
--- (unique index measure_live_label_uq), and the trailing check names
--- any match_text the vocab no longer carries instead of silently
--- seeding nothing for it.
+-- (a `where not exists` guard — 0011 dropped the unique index the old
+-- `on conflict` targeted; offline dupes must never fail upload), and
+-- the trailing check names any match_text the vocab no longer carries
+-- instead of silently seeding nothing for it.
 
 begin;
 
@@ -202,7 +203,11 @@ join (values
 ) as m(ing_match, label, grams, sort_order, source)
   on i.match_text = m.ing_match
 where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at is null
-on conflict (ingredient_id, label) where deleted_at is null do nothing;
+  and not exists (
+    select 1 from ingredient_measure im
+    where im.ingredient_id = i.id and im.label = m.label
+      and im.deleted_at is null
+  );
 
 -- Every seeded match_text must still exist in the vocab: a regeneration
 -- that drops or renames one would otherwise silently drop its measures.

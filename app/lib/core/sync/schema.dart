@@ -52,6 +52,7 @@ const schema = Schema([
     Column.text(
       'section_id',
     ), // → book_section.id (nullable; null = Unsectioned)
+    Column.integer('favorite'), // 0/1 — the picker's Favorites tab (step 7.7)
     ..._audit,
   ]),
   Table('ingredient_group', [
@@ -126,6 +127,7 @@ const schema = Schema([
     Column.text('default_unit'),
     Column.real('density_g_per_ml'),
     Column.text('macros'), // JSON {kcal, protein, carb, fat}; null when stub
+    Column.text('macros_basis'), // 'g' | 'ml' — the per-100 basis (step 7.7)
     Column.text('status'),
     Column.text('source'),
     Column.text('match_text'),
@@ -165,6 +167,9 @@ const schema = Schema([
     ..._audit,
   ]),
 
-  // The household itself — synced so its name is available offline.
+  // The household itself — synced so its name is available offline. The
+  // server-only columns its `select *` sync rule ships (`is_template`,
+  // `backfilled_at`) are simply not declared here: the client view exposes
+  // exactly the declared columns and ignores the rest of the row JSON.
   Table('household', [Column.text('name'), ..._audit]),
 ]);

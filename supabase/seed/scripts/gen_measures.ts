@@ -497,7 +497,8 @@ function main(): void {
   }
 
   // Validate: every match_text resolves in the vocab; labels unique per
-  // ingredient (the 0010 unique index would reject dupes at seed time).
+  // ingredient (no unique index guards this since 0011 — the seed's own
+  // not-exists guard would silently keep only the first duplicate).
   const problems: string[] = [];
   const labelSeen = new Set<string>();
   for (const r of rows) {
@@ -530,9 +531,10 @@ function main(): void {
     "-- Starter measures for the template vocab (step 7.6): piece-type USDA",
     "-- FDC food_portion weights joined by match_text, per-row provenance in",
     "-- `source` (0010). Idempotent: re-runs no-op on existing live labels",
-    "-- (unique index measure_live_label_uq), and the trailing check names",
-    "-- any match_text the vocab no longer carries instead of silently",
-    "-- seeding nothing for it.",
+    "-- (a `where not exists` guard — 0011 dropped the unique index the old",
+    "-- `on conflict` targeted; offline dupes must never fail upload), and",
+    "-- the trailing check names any match_text the vocab no longer carries",
+    "-- instead of silently seeding nothing for it.",
     "",
     "begin;",
     "",
@@ -551,7 +553,11 @@ function main(): void {
     ") as m(ing_match, label, grams, sort_order, source)",
     "  on i.match_text = m.ing_match",
     `where i.household_id = '${HOUSEHOLD_ID}' and i.deleted_at is null`,
-    "on conflict (ingredient_id, label) where deleted_at is null do nothing;",
+    "  and not exists (",
+    "    select 1 from ingredient_measure im",
+    "    where im.ingredient_id = i.id and im.label = m.label",
+    "      and im.deleted_at is null",
+    "  );",
     "",
     "-- Every seeded match_text must still exist in the vocab: a regeneration",
     "-- that drops or renames one would otherwise silently drop its measures.",
