@@ -196,6 +196,48 @@ void main() {
       expect(row['deleted_at'], isNotNull);
     });
 
+    test('addMeasure validates at the repository, not just the form', () async {
+      // Volume-named labels (case/space/plural disguises included) would
+      // shadow density-owned conversion; bad grams could never convert.
+      for (final label in ['cup', ' Cups ', 'tbsp', 'ml']) {
+        await expectLater(
+          repo.addMeasure(ingredientId: 'coconut', label: label, grams: 200),
+          throwsArgumentError,
+          reason: label,
+        );
+      }
+      for (final grams in [0.0, -5.0, double.nan]) {
+        await expectLater(
+          repo.addMeasure(
+            ingredientId: 'coconut',
+            label: 'half can',
+            grams: grams,
+          ),
+          throwsArgumentError,
+          reason: '$grams',
+        );
+      }
+      await expectLater(
+        repo.addMeasure(ingredientId: 'coconut', label: '   ', grams: 200),
+        throwsArgumentError,
+      );
+      expect(await repo.watchMeasures('coconut').first, isEmpty);
+    });
+
+    test('addMeasure stores the trimmed label', () async {
+      final added = await repo.addMeasure(
+        ingredientId: 'coconut',
+        label: '  half can ',
+        grams: 200,
+      );
+      expect(added.label, 'half can');
+      final row = await db.get(
+        'SELECT label FROM ingredient_measure WHERE id = ?',
+        [added.id],
+      );
+      expect(row['label'], 'half can');
+    });
+
     test(
       're-adding a deleted label starts fresh (tombstone never blocks)',
       () async {

@@ -26,6 +26,10 @@ abstract interface class MeasureRepository {
   /// Authors a user measure of [ingredientId]: [label] weighs [grams] grams.
   /// Written with `source = 'manual'` after the ingredient's existing
   /// measures (`sort_order`), and returned for immediate selection.
+  ///
+  /// Throws [ArgumentError] for an empty or volume-unit-named [label]
+  /// (density owns volume conversion) or non-positive/NaN [grams] — the
+  /// rules hold at the repository, not just the sheet's form.
   Future<Measure> addMeasure({
     required String ingredientId,
     required String label,

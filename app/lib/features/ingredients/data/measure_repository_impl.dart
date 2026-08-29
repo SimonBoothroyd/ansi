@@ -5,6 +5,7 @@ import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/units/measure.dart';
+import '../domain/allowed_units.dart';
 import '../domain/measure_repository.dart';
 
 const _uuid = Uuid();
@@ -64,6 +65,25 @@ class SqliteMeasureRepository implements MeasureRepository {
     required String label,
     required double grams,
   }) async {
+    // Validated at the repository, not just the sheet's form (post-7.7
+    // review): every write path — future import included — must hold the
+    // same lines. Volume-named labels would shadow density-owned conversion;
+    // non-positive/NaN grams could never convert honestly (invariant 3).
+    final trimmed = label.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError.value(label, 'label', 'must not be empty');
+    }
+    if (isVolumeUnitLabel(trimmed)) {
+      throw ArgumentError.value(
+        label,
+        'label',
+        'names a volume unit — density owns volume conversion',
+      );
+    }
+    if (!(grams > 0)) {
+      // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
+      throw ArgumentError.value(grams, 'grams', 'must be a positive number');
+    }
     final id = _uuid.v4();
     final now = DateTime.now().toUtc().toIso8601String();
     late final int sortOrder;
@@ -85,7 +105,7 @@ class SqliteMeasureRepository implements MeasureRepository {
           id,
           _householdId,
           ingredientId,
-          label,
+          trimmed,
           grams,
           sortOrder,
           'manual',
@@ -96,7 +116,7 @@ class SqliteMeasureRepository implements MeasureRepository {
     });
     return Measure(
       id: id,
-      label: label,
+      label: trimmed,
       grams: grams,
       sortOrder: sortOrder,
       source: 'manual',
