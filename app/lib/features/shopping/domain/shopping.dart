@@ -535,6 +535,23 @@ ShoppingList buildShoppingList({
                 'not counted (invalid measure "${c.measure!.label}")',
             cookDay: c.cookDay,
           )
+        // A measure counts THINGS, so its row always stores a count unit
+        // ('piece'). A NON-count unit beside a measure_id is a contradictory
+        // row — is the number grams or a measure count? Folding it through
+        // the gram weight would invent mass (the review's ×299 leaks), so it
+        // degrades to a visible note like the paths above.
+        else if (c.measure != null &&
+            c.unit != null &&
+            c.unit!.family != UnitFamily.count &&
+            c.quantity != null)
+          ShoppingContribution(
+            source: ContributionSource.cookSession,
+            label:
+                '${cookLabel(c, weekdayShort)} · '
+                'not counted (measure beside non-count unit '
+                '"${c.unit!.label}")',
+            cookDay: c.cookDay,
+          )
         else
           ShoppingContribution(
             source: ContributionSource.cookSession,
@@ -553,6 +570,21 @@ ShoppingList buildShoppingList({
             label:
                 '${man.note ?? 'manual top-up'} · '
                 'not counted (invalid measure "${man.measure!.label}")',
+            measureId: man.measureId,
+            contributionId: man.id,
+          )
+        // Same contradictory-row guard as the cook path (the sheet always
+        // stores 'piece' beside a measure — anything else is foreign data).
+        else if (man.measure != null &&
+            man.unit != null &&
+            man.unit!.family != UnitFamily.count &&
+            man.quantity != null)
+          ShoppingContribution(
+            source: ContributionSource.manual,
+            label:
+                '${man.note ?? 'manual top-up'} · '
+                'not counted (measure beside non-count unit '
+                '"${man.unit!.label}")',
             measureId: man.measureId,
             contributionId: man.id,
           )

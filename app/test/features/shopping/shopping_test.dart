@@ -706,6 +706,43 @@ void main() {
       expect(manualNote.measureId, 'mb'); // the FK is never stripped
     });
 
+    test('a non-count unit beside a measure never folds invented mass', () {
+      // Contradictory rows (a measure row always stores a count unit): the
+      // number cannot honestly be both grams and a measure count, so it must
+      // surface as a note — never 500 × 299 g, and never a hard 1 × 299 g
+      // from an imprecise line that ignored the session scale.
+      final list = build(
+        cook: [
+          _cook('potato', 100, g, recipe: 'Curry'),
+          _cook('potato', 500, g, measure: _potatoLarge, recipe: 'Stew'),
+          _cook('potato', 1, toTaste, measure: _potatoLarge, recipe: 'Soup'),
+        ],
+        entries: [_entry('e1', ingredientId: 'potato')],
+        manual: {
+          'e1': [_manual('c1', 'e1', 2, g, measure: _potatoLarge)],
+        },
+        meta: {'potato': metaFor('Potato', 'produce', unit: pieces)},
+      );
+      final item = list.groups.single.items.single;
+      expect(item.totals.single.amount, 100); // only the honest plain line
+      final notes = item.contributions
+          .where((c) => c.label.contains('measure beside non-count unit'))
+          .toList();
+      expect(notes, hasLength(3));
+      expect(notes.map((c) => c.label).join(), contains('"g"'));
+      expect(notes.map((c) => c.label).join(), contains('"to taste"'));
+      for (final n in notes) {
+        expect(n.quantity, isNull); // a dash, not an invented number
+        expect(n.measure, isNull); // and never fed to the mass fold
+      }
+      // The manual note stays editable and keeps its FK.
+      final manualNote = notes.singleWhere(
+        (c) => c.source == ContributionSource.manual,
+      );
+      expect(manualNote.contributionId, 'c1');
+      expect(manualNote.measureId, 'm1');
+    });
+
     test('a manual contribution keeps its unresolved measure_id', () {
       // The measure row hasn't synced: the breakdown line degrades to the
       // honest count, but the raw id rides along so an edit re-save can

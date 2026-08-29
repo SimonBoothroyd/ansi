@@ -545,4 +545,57 @@ void main() {
       anyElement(contains('unrecognised unit "scoop"')),
     );
   });
+
+  test('a recognised non-count unit beside a measure is a note, never '
+      'invented mass', () async {
+    // The other two-thirds of the invented-mass leak (review N2): a measure
+    // row stores a count unit by design, so 'g' or 'to_taste' beside a
+    // resolving measure_id is contradictory data. It must surface as a
+    // visible note — never 500 g folding to 500 × 213 g, and never an
+    // imprecise line folding to a hard 213 g that ignored the session scale.
+    await _insertIngredient(db, 'spud', 'Potato', 'produce', 'piece');
+    await db.execute(
+      'INSERT INTO ingredient_measure '
+      '(id, household_id, ingredient_id, label, grams, sort_order) '
+      'VALUES (?, ?, ?, ?, ?, 0)',
+      ['m-spud', 'h', 'spud', 'potato, medium', 213],
+    );
+    await _insertRecipe(
+      db,
+      'stew',
+      'Stew',
+      servings: 4,
+      lines: [('spud', 100, g)],
+    );
+    final now = DateTime.now().toUtc().toIso8601String();
+    const contradictory = [('li-g', 500.0, 'g'), ('li-t', 1.0, 'to_taste')];
+    for (final (id, qty, unit) in contradictory) {
+      await db.execute(
+        'INSERT INTO recipe_line_item (id, household_id, group_id, '
+        'ingredient_id, quantity, unit, measure_id, sort_order, created_at, '
+        "updated_at) VALUES (?, 'h', 'stew-g', 'spud', ?, ?, 'm-spud', 9, "
+        '?, ?)',
+        [id, qty, unit, now, now],
+      );
+    }
+    // 3 portions of a serves-4 recipe → ×0.75.
+    await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'stew',
+      eaterIds: ['a'],
+      portions: 3,
+    );
+
+    final item =
+        (await repo.watchShoppingList(_week).first).groups.single.items.single;
+    // Only the clean line's scaled 75 g stands: the contradictory rows are
+    // not counted at all (not as grams, not as measure counts) — the note
+    // says why, and the user fixes the line rather than trusting a guess.
+    expect(item.totals.single.amount, closeTo(75, 1e-9));
+    final labels = item.contributions.map((c) => c.label).join('\n');
+    expect(labels, contains('measure beside non-count unit "g"'));
+    expect(labels, contains('measure beside non-count unit "to taste"'));
+  });
 }
