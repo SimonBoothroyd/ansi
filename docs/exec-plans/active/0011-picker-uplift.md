@@ -32,6 +32,25 @@ Studied 2026-08-27 from real usage screenshots:
    Library) share the same shell, and *foods and recipes come back through
    the same search*.
 
+## Reframe (2026-08-28, Simon): the recipe picker is the redesign
+
+The board's existing "Add ingredient · controlled-vocab search" frame already
+carries most of the ingredient-picker anatomy (category + has-density hints,
+the honest `stub` badge, live "≈ 610 g · via density" conversion, add-new
+affordance). So:
+
+- **Ingredient picker = refresh of the existing frame**: unit dropdown →
+  the measure-fed chip row (+ "+ add measure", source-at-a-glance),
+  bottom-anchored search, and a macro line on rows (vocab macros sync now).
+- **Recipe picker = the real redesign** — its rows are information-starved
+  (title · book·section · keeps chip and nothing else). New frame: servings,
+  honest per-serving macro summary, keeps/freezable, last-planned recency,
+  the "already this week" strip.
+- **Step-9 pull-forward (decision)**: recipe rows need computed recipe
+  macros. The *domain summation* (line items × units/measures × vocab
+  macros; `incomplete` when any line is a stub — never zeros) moves into
+  this step to feed the row; step 9 shrinks to the recipe-page macro panel.
+
 ## Mise mapping (decide on the board, not in code)
 
 - Ingredient rows: macro line only for `status = complete` (honest numbers —
