@@ -5,6 +5,7 @@ library;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/sync/database.dart';
+import '../../../core/sync/session.dart';
 import '../../../core/units/measure.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
@@ -19,8 +20,10 @@ IngredientRepository ingredientRepository(Ref ref) =>
     SqliteIngredientRepository(ref.watch(databaseProvider));
 
 @Riverpod(keepAlive: true)
-MeasureRepository measureRepository(Ref ref) =>
-    SqliteMeasureRepository(ref.watch(databaseProvider));
+MeasureRepository measureRepository(Ref ref) => SqliteMeasureRepository(
+  ref.watch(databaseProvider),
+  householdId: ref.watch(currentHouseholdIdProvider),
+);
 
 /// The live measures of one ingredient, `sort_order`-first — what the unit
 /// pickers append as [Measure] choices (`allowedUnitChoicesFor`).

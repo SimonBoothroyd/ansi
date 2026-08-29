@@ -1,15 +1,38 @@
-/// Read access to an ingredient's named measures — PURE DART (invariant 2).
+/// Read/write access to an ingredient's named measures — PURE DART
+/// (invariant 2).
 ///
 /// Measures ("potato, large = 299 g", step 7.6) are per-household vocab rows,
 /// synced like the ingredients they belong to. Pickers watch them so a
-/// measure added on one device appears in the other's dropdown live.
+/// measure added on one device appears in the other's chip row live. Step 7.7
+/// adds the write path: the in-app measure editor authors `manual`-sourced
+/// rows and soft-deletes unwanted ones.
+///
+/// **Duplicate labels merge on read** (plan 0011 decision): no unique index
+/// guards `(ingredient_id, label)` — one would make an offline duplicate fail
+/// upload and drop the whole crud transaction (the shopping-entry doctrine).
+/// Instead every device converges on the same canonical row per label: the
+/// *oldest* live one (`created_at`, then `id`). Newer duplicates are hidden,
+/// never deleted — a referencing line item still resolves them by id.
 library;
 
 import '../../../core/units/measure.dart';
 
-// ignore: one_member_abstracts — an interface for DI/testing, not a callback.
 abstract interface class MeasureRepository {
   /// The live measures of [ingredientId], ordered by `sort_order` (then
-  /// creation) so the first is the ingredient's primary measure.
+  /// creation) so the first is the ingredient's primary measure. Duplicate
+  /// labels are merged deterministically (see the library doc).
   Stream<List<Measure>> watchMeasures(String ingredientId);
+
+  /// Authors a user measure of [ingredientId]: [label] weighs [grams] grams.
+  /// Written with `source = 'manual'` after the ingredient's existing
+  /// measures (`sort_order`), and returned for immediate selection.
+  Future<Measure> addMeasure({
+    required String ingredientId,
+    required String label,
+    required double grams,
+  });
+
+  /// Soft-deletes one measure (tombstone, spec §3). A line item referencing
+  /// it degrades to its honest stored count — never invented grams.
+  Future<void> softDeleteMeasure(String measureId);
 }
