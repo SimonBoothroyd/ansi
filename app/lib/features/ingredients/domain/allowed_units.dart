@@ -100,17 +100,28 @@ final class MeasureOption extends UnitChoice {
 /// volume conversion (frame-b review, plan 0011): the seed pipeline skips
 /// FDC volume portions for the same reason, this keeps the chip row / manage
 /// UI from offering (or authoring) one that slipped in anyway.
+///
+/// Robust to casing, surrounding whitespace, and the simple `s` plural
+/// ("Cups ", "tbsps") — the trivial disguises a typed label wears.
 bool isVolumeUnitLabel(String label) {
   final normalized = label.trim().toLowerCase();
+  final singular = normalized.endsWith('s')
+      ? normalized.substring(0, normalized.length - 1)
+      : null;
   for (final u in kAllUnits) {
     if (u.family != UnitFamily.volume) continue;
-    if (normalized == u.id.toLowerCase() ||
-        normalized == u.label.toLowerCase()) {
-      return true;
+    for (final name in [u.id.toLowerCase(), u.label.toLowerCase()]) {
+      if (normalized == name || singular == name) return true;
     }
   }
   return false;
 }
+
+/// A unit picker's full offer: the filtered `choices`, plus `offFilter` when
+/// the stored selection had to be admitted from outside the filter (it is
+/// also the last element of `choices`) so the UI can style it subtly
+/// ("not in filter") rather than hide it.
+typedef UnitChoiceOffer = ({List<UnitChoice> choices, UnitChoice? offFilter});
 
 /// [allowedUnitsFor] plus the ingredient's live [measures], as picker choices:
 /// the same honest unit set first (stable positions), then one [MeasureOption]
@@ -121,11 +132,26 @@ bool isVolumeUnitLabel(String label) {
 /// A measure needs no density gate — its gram weight IS the bridge — and it
 /// applies to any ingredient that has one, count-default included (that's the
 /// whole point: count foods finally reach mass honestly).
-List<UnitChoice> allowedUnitChoicesFor(
+///
+/// **The stored selection is always offered** (the retired dropdowns' rule —
+/// an existing line must never render an orphaned value): when [current] is
+/// set and falls outside the computed set — a merge-hidden duplicate measure,
+/// a cross-family unit whose density was removed — it is appended last and
+/// returned as `offFilter`, so every entry surface inherits the guarantee
+/// and can still mark the chip as outside the honest filter.
+UnitChoiceOffer allowedUnitChoicesFor(
   Ingredient ingredient,
-  List<Measure> measures,
-) => [
-  for (final u in allowedUnitsFor(ingredient)) UnitOption(u),
-  for (final m in measures)
-    if (!isVolumeUnitLabel(m.label)) MeasureOption(m),
-];
+  List<Measure> measures, {
+  UnitChoice? current,
+}) {
+  final choices = <UnitChoice>[
+    for (final u in allowedUnitsFor(ingredient)) UnitOption(u),
+    for (final m in measures)
+      if (!isVolumeUnitLabel(m.label)) MeasureOption(m),
+  ];
+  final offFilter = current != null && !choices.contains(current)
+      ? current
+      : null;
+  if (offFilter != null) choices.add(offFilter);
+  return (choices: choices, offFilter: offFilter);
+}

@@ -5,13 +5,21 @@
 /// `+` chip), the live honest conversion line, and Done. Tapping `+` opens
 /// the second state — **manage measures** — with the measure list (label ·
 /// grams · humanized source) and the add-measure form (label + grams →
-/// saved as `manual`). Chips sit directly above the keyboard: a true iOS
-/// keyboard-accessory view fights Flutter's insets model, so the row is
-/// docked in-sheet above the viewInsets padding — same spatial relationship,
-/// no accessory plumbing (the call the plan asked to document).
+/// saved as `manual`). Chips ride the keyboard at the sheet's bottom: a true
+/// iOS keyboard-accessory view fights Flutter's insets model, so the sheet
+/// bottom-pads itself by the viewInsets instead — the stack above the
+/// keyboard reads chips → Done → keyboard (Done sits between the chips and
+/// the keyboard, not the frame's literal chips-touch-keypad adjacency; the
+/// call the plan asked to document, wording trued up post-review).
 ///
 /// Replaces the unit dropdown wherever a quantity + unit is edited: recipe
 /// editor line items, the shopping add sheet, and the edit-top-up sheet.
+///
+/// **Deleting the selected measure** (manage state) reconciles the choice to
+/// the ingredient's default unit with a visible note — Done must never write
+/// a tombstoned `measure_id` (post-7.7 review call; the alternative,
+/// keep-with-flag, is reserved for measures merely hidden by merge-on-read,
+/// which stay reachable via the chip row's off-filter admission).
 library;
 
 import 'dart:math' as math;
@@ -127,10 +135,35 @@ class QuantityUnitEditor extends HookConsumerWidget {
     );
     final unitPicked = useState(false);
     final managing = useState(false);
+    final deletedNote = useState<String?>(null);
+    // The line's stored choice, admitted into the chip row even when the
+    // filter wouldn't offer it (the retired dropdowns' rule) — so it stays
+    // re-selectable after tapping another chip, for as long as it exists.
+    final stored = useState<UnitChoice?>(initialChoice);
 
     final measures =
         ref.watch(ingredientMeasuresProvider(ingredient.id)).asData?.value ??
         const <Measure>[];
+
+    // Deleting the SELECTED measure reconciles the choice (deliberate call,
+    // post-7.7 review): keeping it would let Done write a tombstoned
+    // measure_id, silently degrading "2 half cans" to "2 pieces" everywhere.
+    // The selection resets to the ingredient's default unit with a visible
+    // note (the pending-note pattern); a measure merely hidden by
+    // merge-on-read is NOT deleted and stays admitted via the chip row's
+    // off-filter rule instead.
+    Future<void> deleteMeasure(Measure m) async {
+      await ref.read(measureRepositoryProvider).softDeleteMeasure(m.id);
+      // A deleted measure also stops being the admitted stored choice.
+      if (stored.value == MeasureOption(m)) stored.value = null;
+      if (choice.value == MeasureOption(m)) {
+        choice.value = UnitOption(ingredient.defaultUnit);
+        unitPicked.value = true;
+        deletedNote.value =
+            '“${m.label}” deleted — back to '
+            '${ingredient.defaultUnit.label}';
+      }
+    }
 
     return Container(
       decoration: const BoxDecoration(
@@ -155,6 +188,7 @@ class QuantityUnitEditor extends HookConsumerWidget {
                 ingredient: ingredient,
                 measures: measures,
                 onBack: () => managing.value = false,
+                onDelete: deleteMeasure,
                 onAdded: (m) {
                   choice.value = MeasureOption(m);
                   unitPicked.value = true;
@@ -167,6 +201,8 @@ class QuantityUnitEditor extends HookConsumerWidget {
                 quantity: quantity,
                 choice: choice,
                 unitPicked: unitPicked,
+                stored: stored.value,
+                deletedNote: deletedNote.value,
                 pendingMeasure: pendingMeasure,
                 requireQuantity: requireQuantity,
                 confirmLabel: confirmLabel,
@@ -194,6 +230,8 @@ class _QuantitySurface extends StatelessWidget {
     required this.quantity,
     required this.choice,
     required this.unitPicked,
+    required this.stored,
+    required this.deletedNote,
     required this.pendingMeasure,
     required this.requireQuantity,
     required this.confirmLabel,
@@ -207,6 +245,13 @@ class _QuantitySurface extends StatelessWidget {
   final ValueNotifier<double?> quantity;
   final ValueNotifier<UnitChoice> choice;
   final ValueNotifier<bool> unitPicked;
+
+  /// The line's stored choice, admitted into the chip row even off-filter.
+  final UnitChoice? stored;
+
+  /// Set when the manage state deleted the selected measure and the choice
+  /// was reconciled to the default unit — shown like the pending note.
+  final String? deletedNote;
   final bool pendingMeasure;
   final bool requireQuantity;
   final String confirmLabel;
@@ -308,6 +353,14 @@ class _QuantitySurface extends StatelessWidget {
               style: miseMono(size: 10, color: MiseColors.muted),
             ),
           ),
+        if (deletedNote != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              deletedNote!,
+              style: miseMono(size: 10, color: MiseColors.muted),
+            ),
+          ),
         const SizedBox(height: 18),
         SizedBox(
           height: 16,
@@ -324,6 +377,7 @@ class _QuantitySurface extends StatelessWidget {
           ingredient: ingredient,
           measures: measures,
           selected: choice.value,
+          stored: stored,
           onSelect: (c) {
             choice.value = c;
             unitPicked.value = true;
@@ -387,41 +441,64 @@ class UnitChipRow extends StatelessWidget {
     required this.selected,
     required this.onSelect,
     required this.onManage,
+    this.stored,
     super.key,
   });
 
   final Ingredient ingredient;
   final List<Measure> measures;
   final UnitChoice selected;
+
+  /// The stored (initial) choice — always admitted into the row, so an
+  /// off-filter value (a merge-hidden duplicate measure, a no-longer-allowed
+  /// unit) stays re-selectable even after tapping another chip. A user can
+  /// only ever select an offered chip, so the live [selected] is always
+  /// either in the filter or equal to this.
+  final UnitChoice? stored;
   final ValueChanged<UnitChoice> onSelect;
   final VoidCallback onManage;
 
   @override
   Widget build(BuildContext context) {
-    final units = allowedUnitsFor(ingredient);
-    final precise = units.where((u) => u.family != UnitFamily.imprecise);
-    final imprecise = units.where((u) => u.family == UnitFamily.imprecise);
-    // Measures never duplicate volume units — density owns volume
-    // conversion (frame-b review).
-    final offered = measures.where((m) => !isVolumeUnitLabel(m.label));
+    // The full offer comes from the domain filter, which excludes
+    // volume-named measures (density owns volume conversion, frame-b review)
+    // and ALWAYS admits the stored selection — a merge-hidden duplicate
+    // measure or a no-longer-allowed unit stays reachable, flagged so it can
+    // read as outside the honest filter (the retired dropdowns' rule).
+    final offer = allowedUnitChoicesFor(
+      ingredient,
+      measures,
+      current: stored ?? selected,
+    );
+    final offFilter = offer.offFilter;
+    final inFilter = offFilter == null
+        ? offer.choices
+        : offer.choices.sublist(0, offer.choices.length - 1);
+    final precise = inFilter.whereType<UnitOption>().where(
+      (c) => c.unit.family != UnitFamily.imprecise,
+    );
+    final measureChips = inFilter.whereType<MeasureOption>();
+    final imprecise = inFilter.whereType<UnitOption>().where(
+      (c) => c.unit.family == UnitFamily.imprecise,
+    );
 
     return SizedBox(
       height: 34,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          for (final u in precise)
+          for (final c in precise)
             _Chip(
-              label: u.label,
-              selected: selected == UnitOption(u),
-              onTap: () => onSelect(UnitOption(u)),
+              label: c.unit.label,
+              selected: selected == c,
+              onTap: () => onSelect(c),
             ),
-          for (final m in offered)
+          for (final c in measureChips)
             _Chip(
-              label: m.label,
-              dot: SourceDot(kind: m.sourceKind),
-              selected: selected == MeasureOption(m),
-              onTap: () => onSelect(MeasureOption(m)),
+              label: c.measure.label,
+              dot: SourceDot(kind: c.measure.sourceKind),
+              selected: selected == c,
+              onTap: () => onSelect(c),
             ),
           if (imprecise.isNotEmpty)
             Container(
@@ -430,14 +507,40 @@ class UnitChipRow extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
               color: MiseColors.line,
             ),
-          for (final u in imprecise)
+          for (final c in imprecise)
             _Chip(
-              label: u.label,
+              label: c.unit.label,
               imprecise: true,
-              selected: selected == UnitOption(u),
-              onTap: () => onSelect(UnitOption(u)),
+              selected: selected == c,
+              onTap: () => onSelect(c),
             ),
-          _Chip(label: '＋', accent: true, onTap: onManage),
+          if (offFilter != null)
+            _Chip(
+              label: switch (offFilter) {
+                MeasureOption(:final measure) => measure.label,
+                UnitOption(:final unit) => unit.label,
+              },
+              suffix: 'not in filter',
+              dot: switch (offFilter) {
+                MeasureOption(:final measure) => SourceDot(
+                  kind: measure.sourceKind,
+                ),
+                UnitOption() => null,
+              },
+              selected: selected == offFilter,
+              onTap: () => onSelect(offFilter),
+            ),
+          // A real icon, not a "＋" glyph — the bundled fonts lack U+FF0B,
+          // so the string form renders as tofu (the library_view rule).
+          _Chip(
+            icon: const Icon(
+              FLucideIcons.plus,
+              size: 13,
+              color: MiseColors.herb,
+            ),
+            accent: true,
+            onTap: onManage,
+          ),
         ],
       ),
     );
@@ -446,19 +549,26 @@ class UnitChipRow extends StatelessWidget {
 
 class _Chip extends StatelessWidget {
   const _Chip({
-    required this.label,
     required this.onTap,
+    this.label,
+    this.icon,
     this.selected = false,
     this.imprecise = false,
     this.accent = false,
     this.dot,
-  });
+    this.suffix,
+  }) : assert(label != null || icon != null, 'a chip needs a label or icon');
 
-  final String label;
+  final String? label;
+  final Widget? icon;
   final bool selected;
   final bool imprecise;
   final bool accent;
   final Widget? dot;
+
+  /// A subtle annotation after the label ("not in filter") — the admitted
+  /// off-filter selection reads as such without being hidden.
+  final String? suffix;
   final VoidCallback onTap;
 
   @override
@@ -488,7 +598,19 @@ class _Chip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (dot != null) ...[dot!, const SizedBox(width: 5)],
-            Text(label, style: miseMono(size: 11.5, color: fg)),
+            if (icon != null) icon!,
+            if (label != null)
+              Text(label!, style: miseMono(size: 11.5, color: fg)),
+            if (suffix != null) ...[
+              const SizedBox(width: 5),
+              Text(
+                suffix!,
+                style: miseMono(
+                  size: 9,
+                  color: selected ? MiseColors.surface : MiseColors.muted,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -503,12 +625,17 @@ class _MeasureManager extends HookConsumerWidget {
     required this.ingredient,
     required this.measures,
     required this.onBack,
+    required this.onDelete,
     required this.onAdded,
   });
 
   final Ingredient ingredient;
   final List<Measure> measures;
   final VoidCallback onBack;
+
+  /// Deletion runs through the editor so it can reconcile the selection —
+  /// see [QuantityUnitEditor].
+  final Future<void> Function(Measure) onDelete;
   final ValueChanged<Measure> onAdded;
 
   @override
@@ -539,6 +666,9 @@ class _MeasureManager extends HookConsumerWidget {
       final added = await ref
           .read(measureRepositoryProvider)
           .addMeasure(ingredientId: ingredient.id, label: name, grams: weight);
+      // The sheet can be dismissed while the write is in flight — touching
+      // the parent's state then would throw (every sibling path guards).
+      if (!context.mounted) return;
       onAdded(added);
     }
 
@@ -579,7 +709,7 @@ class _MeasureManager extends HookConsumerWidget {
             ),
           )
         else
-          for (final m in listed) _MeasureRow(measure: m),
+          for (final m in listed) _MeasureRow(measure: m, onDelete: onDelete),
         const SizedBox(height: 12),
         _AddMeasureForm(
           label: label,
@@ -592,13 +722,14 @@ class _MeasureManager extends HookConsumerWidget {
   }
 }
 
-class _MeasureRow extends ConsumerWidget {
-  const _MeasureRow({required this.measure});
+class _MeasureRow extends StatelessWidget {
+  const _MeasureRow({required this.measure, required this.onDelete});
 
   final Measure measure;
+  final Future<void> Function(Measure) onDelete;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 7),
       decoration: const BoxDecoration(
@@ -628,9 +759,7 @@ class _MeasureRow extends ConsumerWidget {
           const SizedBox(width: 8),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => ref
-                .read(measureRepositoryProvider)
-                .softDeleteMeasure(measure.id),
+            onTap: () => onDelete(measure),
             child: const Icon(
               FLucideIcons.trash2,
               size: 15,
@@ -661,7 +790,15 @@ class _AddMeasureForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('＋ ADD MEASURE', style: miseLabel(color: MiseColors.herb)),
+        // Icon + text, never the raw "＋" glyph (missing from the bundled
+        // fonts — renders as tofu).
+        Row(
+          children: [
+            const Icon(FLucideIcons.plus, size: 12, color: MiseColors.herb),
+            const SizedBox(width: 5),
+            Text('ADD MEASURE', style: miseLabel(color: MiseColors.herb)),
+          ],
+        ),
         const SizedBox(height: 8),
         Row(
           children: [

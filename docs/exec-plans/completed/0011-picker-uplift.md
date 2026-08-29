@@ -91,7 +91,12 @@ affordance). So:
       full batch prose).
 - [x] `make test-sim` scenarios updated for the new flows (incl. a
       favorites assertion and a manage-measures add-measure assertion).
-- [x] Tests cover the new logic; Forui-only, glyph rule respected.
+- [x] Tests cover the new logic; Forui-only, glyph rule respected. *(Honesty
+      note: this box shipped ticked while the quantity sheet still rendered
+      two raw `＋` (U+FF0B) glyphs — the exact tofu the rule bans, missed
+      because the library-view glyph test doesn't cover this surface. Fixed
+      in the 2026-08-29 post-ship review pass: both are `FLucideIcons.plus`
+      now, and a quantity-sheet widget test pins `findsNothing` for `＋`.)*
 - [x] Docs updated: design board committed, spec picker sections, QUALITY.
 
 ## Approach

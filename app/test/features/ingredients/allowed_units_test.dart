@@ -66,7 +66,7 @@ void main() {
       final choices = allowedUnitChoicesFor(_ing(pieces), const [
         medium,
         large,
-      ]);
+      ]).choices;
       // The unit set is unchanged and keeps its positions…
       expect(
         choices.whereType<UnitOption>().map((c) => c.unit),
@@ -82,12 +82,14 @@ void main() {
 
     test('offers a count food its measures despite having no density', () {
       // The whole point of measures: count foods reach mass without one.
-      final choices = allowedUnitChoicesFor(_ing(pieces), const [large]);
+      final choices = allowedUnitChoicesFor(_ing(pieces), const [
+        large,
+      ]).choices;
       expect(choices.whereType<MeasureOption>(), hasLength(1));
     });
 
     test('no measures → exactly the unit set as choices', () {
-      final choices = allowedUnitChoicesFor(_ing(g), const []);
+      final choices = allowedUnitChoicesFor(_ing(g), const []).choices;
       expect(choices.whereType<MeasureOption>(), isEmpty);
       expect(choices, isNotEmpty);
     });
@@ -107,8 +109,70 @@ void main() {
         cupish,
         tbspish,
         large,
-      ]);
+      ]).choices;
       expect(choices.whereType<MeasureOption>().map((c) => c.measure), [large]);
+    });
+
+    group("the stored selection is always offered (the dropdowns' rule)", () {
+      test('a current choice inside the set is neither duplicated nor '
+          'flagged', () {
+        final offer = allowedUnitChoicesFor(_ing(g), const [
+          large,
+        ], current: const UnitOption(kg));
+        expect(offer.offFilter, isNull);
+        expect(offer.choices.where((c) => c == const UnitOption(kg)), [
+          const UnitOption(kg),
+        ]);
+      });
+
+      test('a merge-hidden duplicate measure is admitted and flagged', () {
+        // The line references a duplicate-label measure the merge-on-read
+        // hid: it must stay reachable (and returnable after tapping another
+        // chip), styled as outside the filter — never an orphaned value.
+        const hidden = Measure(
+          id: 'm-dupe',
+          label: 'potato, large',
+          grams: 300,
+        );
+        final offer = allowedUnitChoicesFor(_ing(pieces), const [
+          large,
+        ], current: const MeasureOption(hidden));
+        expect(offer.offFilter, const MeasureOption(hidden));
+        expect(offer.choices.last, const MeasureOption(hidden));
+        // The honest set is untouched ahead of it.
+        expect(
+          offer.choices.whereType<MeasureOption>().map((c) => c.measure.id),
+          ['m1', 'm-dupe'],
+        );
+      });
+
+      test('a stored unit outside the honest set is admitted and flagged', () {
+        // e.g. a cup line whose ingredient lost (or never had) a density:
+        // the filter would drop volume, but the stored value must survive.
+        final offer = allowedUnitChoicesFor(
+          _ing(g),
+          const [],
+          current: const UnitOption(cup),
+        );
+        expect(offer.offFilter, const UnitOption(cup));
+        expect(offer.choices.last, const UnitOption(cup));
+      });
+
+      test('a volume-named measure that IS the stored selection stays '
+          'offered', () {
+        // Excluded from the filter, admitted as current — reachable but
+        // flagged, so the line can still be moved off it deliberately.
+        const cupish = Measure(id: 'mc', label: 'cup', grams: 226);
+        final offer = allowedUnitChoicesFor(_ing(g), const [
+          cupish,
+        ], current: const MeasureOption(cupish));
+        expect(offer.offFilter, const MeasureOption(cupish));
+      });
+
+      test('no current → no off-filter admission', () {
+        final offer = allowedUnitChoicesFor(_ing(g), const [large]);
+        expect(offer.offFilter, isNull);
+      });
     });
   });
 
@@ -116,6 +180,14 @@ void main() {
     test('matches catalog volume unit ids and labels, case-insensitively', () {
       for (final label in ['cup', 'tbsp', 'TSP', 'ml', 'l', 'fl oz', 'fl_oz']) {
         expect(isVolumeUnitLabel(label), isTrue, reason: label);
+      }
+    });
+
+    test('sees through whitespace and the simple s plural', () {
+      for (final label in [' Cups ', 'tbsps', 'TSPS', 'mls', ' litre'.trim()]) {
+        // 'litre' is NOT a catalog name — only real ids/labels match.
+        final expected = label.trim().toLowerCase() != 'litre';
+        expect(isVolumeUnitLabel(label), expected, reason: label);
       }
     });
 

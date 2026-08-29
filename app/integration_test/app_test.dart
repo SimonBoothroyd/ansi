@@ -385,10 +385,15 @@ void main() {
     await tester.enterText(find.byType(EditableText).last, '3');
     await tester.pump();
     // Manage measures: add "big clove = 5 g" (saved as yours), which lands
-    // selected as the line's chip. The "＋" chip trails the row, so scroll
-    // the (horizontal, lazy) chip row until it builds.
+    // selected as the line's chip. The manage chip (a plus ICON — the glyph
+    // rule bans raw ＋ text) trails the row, so scroll the (horizontal,
+    // lazy) chip row until it builds.
+    final manageChip = find.descendant(
+      of: find.byType(UnitChipRow),
+      matching: find.byIcon(FLucideIcons.plus),
+    );
     await tester.dragUntilVisible(
-      find.text('＋'),
+      manageChip,
       find.descendant(
         of: find.byType(UnitChipRow),
         matching: find.byType(Scrollable),
@@ -396,7 +401,7 @@ void main() {
       const Offset(-80, 0),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('＋'));
+    await tester.tap(manageChip);
     await tester.pumpAndSettle();
     final fields = find.byType(EditableText);
     await tester.enterText(
