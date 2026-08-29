@@ -17,7 +17,7 @@ mixin _$Ingredient {
  String get id; String get canonicalName; Unit get defaultUnit; IngredientStatus get status; String? get category; double? get densityGPerMl; Macros? get macros; MacrosBasis get macrosBasis;/// The explicit per-ingredient allowed-unit list (ADR-0008, migration
 /// 0012) — parsed from the row's `allowed_units` jsonb, unknown ids
 /// dropped. Null for a legacy/unsynced row: the pickers then fall back
-/// to deriving the same ADR defaults ([defaultAllowedUnitSet]).
+/// to deriving the same ADR defaults (`defaultAllowedUnitSet`).
  List<Unit>? get allowedUnits;/// Distinct live measure labels this ingredient carries — the picker
 /// row's "N measures" capability hint (7.7). Populated by list reads;
 /// 0 where a caller didn't ask for it.
@@ -236,12 +236,12 @@ class _Ingredient implements Ingredient {
 /// The explicit per-ingredient allowed-unit list (ADR-0008, migration
 /// 0012) — parsed from the row's `allowed_units` jsonb, unknown ids
 /// dropped. Null for a legacy/unsynced row: the pickers then fall back
-/// to deriving the same ADR defaults ([defaultAllowedUnitSet]).
+/// to deriving the same ADR defaults (`defaultAllowedUnitSet`).
  final  List<Unit>? _allowedUnits;
 /// The explicit per-ingredient allowed-unit list (ADR-0008, migration
 /// 0012) — parsed from the row's `allowed_units` jsonb, unknown ids
 /// dropped. Null for a legacy/unsynced row: the pickers then fall back
-/// to deriving the same ADR defaults ([defaultAllowedUnitSet]).
+/// to deriving the same ADR defaults (`defaultAllowedUnitSet`).
 @override List<Unit>? get allowedUnits {
   final value = _allowedUnits;
   if (value == null) return null;

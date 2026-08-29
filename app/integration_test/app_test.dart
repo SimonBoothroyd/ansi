@@ -47,7 +47,7 @@ import 'package:mise/core/config/env.dart';
 import 'package:mise/core/sync/database.dart';
 import 'package:mise/core/sync/schema.dart';
 import 'package:mise/features/ingredients/presentation/quantity_unit_sheet.dart'
-    show UnitChipRow;
+    show QuantityUnitEditor, UnitChipRow;
 import 'package:mise/features/planning/domain/planning.dart' show mondayOf;
 import 'package:powersync/powersync.dart' hide Column;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -404,12 +404,24 @@ void main() {
     await tester.tap(manageChip);
     await tester.pumpAndSettle();
     // The manage state holds the add form (label + amount) and the density
-    // entry's field (7.8) — the add form's fields lead, its Save is first.
-    final fields = find.byType(EditableText);
-    await tester.enterText(fields.at(0), 'big clove');
-    await tester.enterText(fields.at(1), '5');
+    // entry's field (7.8). Scope everything to the sheet: the editor behind
+    // it still holds its own fields and Save button — within the sheet the
+    // add form's fields lead and its Save comes before the density one.
+    final sheetFields = find.descendant(
+      of: find.byType(QuantityUnitEditor),
+      matching: find.byType(EditableText),
+    );
+    await tester.enterText(sheetFields.at(0), 'big clove');
+    await tester.enterText(sheetFields.at(1), '5');
     await tester.pump();
-    await tester.tap(find.text('Save').first);
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byType(QuantityUnitEditor),
+            matching: find.text('Save'),
+          )
+          .first,
+    );
     await tester.pumpAndSettle();
     final manualMeasure = await db.getOptional(
       'SELECT source, basis_amount FROM ingredient_measure '
