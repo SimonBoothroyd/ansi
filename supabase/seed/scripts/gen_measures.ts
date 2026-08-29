@@ -132,6 +132,16 @@ const SKIP = new RegExp(
     "chopped|diced|mashed|pureed|shredded|grated|dash)\\b",
 );
 
+// A label-serving row is rescued when the "serving" is a physically
+// disguised unit ("serving packet" of sugar, "slice 1 serving", a granola
+// "bar NLEA serving"): the serving words are deleted and the portion ships
+// under its real name. A serving that names nothing physical stays skipped.
+const SERVING_WORDS = /\b(nlea|servings?)\b/gi;
+const PHYSICAL = new RegExp(
+  "\\b(packet|bar|container|pouch|bottle|slice|stick|piece|pieces|patty|" +
+    "link|wedge|cube)\\b",
+);
+
 // Words that carry no identity in a label (size details live in `source`;
 // the trailing units of stripped size phrases — "5\" long" → "long" — go too).
 const DROP_WORDS = new Set([
@@ -277,9 +287,18 @@ function loadPortions(dirs: string[], keep: Set<string>): Map<string, Portion[]>
       // Skip-check runs on the paren-stripped text so a size note like
       // "(approx 1-1/4 lb)" doesn't disqualify a whole-item portion.
       const skippable = raw.toLowerCase().replace(/\([^)]*\)/g, " ");
-      if (SKIP.test(skippable)) continue;
+      let effective = raw;
+      if (SKIP.test(skippable)) {
+        // Physically-disguised serving rescue (see SERVING_WORDS above).
+        const deServed = skippable.replace(SERVING_WORDS, " ");
+        if (PHYSICAL.test(deServed) && !SKIP.test(deServed)) {
+          effective = raw.replace(SERVING_WORDS, " ");
+        } else {
+          continue;
+        }
+      }
 
-      const label = cleanLabel(raw, amount);
+      const label = cleanLabel(effective, amount);
       if (!label) continue;
       (byFood.get(p.fdc_id) ?? byFood.set(p.fdc_id, []).get(p.fdc_id)!).push({
         fdcId: p.fdc_id,

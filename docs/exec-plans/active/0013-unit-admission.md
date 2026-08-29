@@ -1,6 +1,6 @@
 # Exec plan: Unit admission & entry polish
 
-- **Status:** draft
+- **Status:** in progress
 - **Owner:** agent (staged 2026-08-29 from the post-7.7 design session)
 - **Roadmap step:** Step 7.8 — unit admission & entry polish
 - **Created:** 2026-08-29
@@ -15,11 +15,15 @@ category-gated — plus the two independent 7.7 polish items Simon flagged.
 
 ## Acceptance criteria
 
-- [ ] **Quick polish (independent, land first):** chip ordering per ADR-0008
+- [x] **Quick polish (independent, land first):** chip ordering per ADR-0008
       §Consequences (default → basis-family kitchen sizes → density-unlocked
       family demoted → measures → imprecise) — no more `ml · l` before `tsp`
       on a tsp-default ingredient; Week grid slot label inline with the
-      recipe name per the board's week frame.
+      recipe name per the board's week frame. *(Landed with the 7.7
+      re-verification one-liners: `deleteMeasure` mounted guard, `_createdKey`
+      zone-less-means-UTC, the `…+00`→`… …Z` comment truth-up, inline
+      ArgumentError surfacing in the add-measure form, selected-chip
+      scroll-into-view, `formatDensity` ≥1000 clamp.)*
 - [ ] Migration: `ingredient_measure` amounts become basis-aware (amount in
       the ingredient's basis unit; existing gram rows are /g so values carry
       unchanged); explicit `allowed_units` on `ingredient`, materialized at
@@ -53,6 +57,21 @@ category-gated — plus the two independent 7.7 polish items Simon flagged.
 - 2026-08-29 — Staged. Full rationale in ADR-0008; key calls made in the
   design chat: explicit allowed-units storage (cheap, predictable); spoon
   mappings ARE density (Simon); FDC spoons → density not measures.
+- 2026-08-29 — **FDC portion extraction goes generous (Simon):** the old
+  rank-and-cap-at-3 / fragment-suppressing pipeline used rules as the taste
+  filter, which is the curation pass's job. New policy: extract ALL
+  size-class portions, fragments/piece-types (slice, wedge, clove, sprig,
+  floret, …), and dimension-described portions with kitchen-readable labels;
+  still excluded at extraction are pure volume rows (they become derived
+  DENSITY per ADR-0008) and NLEA/label "serving" rows. The curation pass
+  trims what a human finds senseless, with reasons in the overrides file.
+- 2026-08-29 — Kitchen trim + order encoded as explicit tables
+  (`_kitchenMates`/`_kitchenOrder`/`_crossKitchen` in
+  `allowed_units.dart`): the trim is judgment, not arithmetic — a ratio
+  window kept failing metric↔customary cases — so it is a curated table the
+  SQL default mirror re-states. `mg`/`fl oz` are label-reading units,
+  offered only as the default (or admitted stored) unit. Demoted units
+  render AFTER the measures (the plan's reading of ADR-0008's "demoted").
 
 ## Notes / open questions
 

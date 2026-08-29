@@ -8,6 +8,10 @@
 
 begin;
 
+-- banana: the ranked pick landed on FDC's mashed cup (225 g -> 0.951); sliced (150 g/cup -> 0.634) is what a volume of banana means in a recipe
+update ingredient set density_g_per_ml = 0.634
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'banana';
+
 -- Re-materialize allowed_units with post-prefill (and post-override)
 -- densities: the insert trigger ran before seed_prefill landed them,
 -- so density-unlocked families are missing until this refresh.
@@ -15,8 +19,302 @@ update ingredient set allowed_units = default_allowed_units(
   default_unit, macros_basis, density_g_per_ml, category)
 where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null;
 
+-- coconut milk: count-default (sold by the can) but recipes also speak cups/tbsp of it, and its density makes volume honest
+update ingredient set allowed_units = allowed_units || '["cup"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut milk' and not allowed_units ? 'cup';
+
+update ingredient set allowed_units = allowed_units || '["tbsp"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut milk' and not allowed_units ? 'tbsp';
+
+update ingredient set allowed_units = allowed_units || '["ml"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut milk' and not allowed_units ? 'ml';
+
+-- liquid smoke: dash-default, but the recipes that measure it say 1/2 tsp — g alone is no way to say that
+update ingredient set allowed_units = allowed_units || '["tsp"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'liquid smoke' and not allowed_units ? 'tsp';
+
+-- allspice ground: pinch-default spice that recipes still spoon (1/2 tsp allspice)
+update ingredient set allowed_units = allowed_units || '["tsp"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'allspice ground' and not allowed_units ? 'tsp';
+
+-- clove ground: pinch-default spice that recipes still spoon
+update ingredient set allowed_units = allowed_units || '["tsp"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'clove ground' and not allowed_units ? 'tsp';
+
+-- nutmeg ground: pinch-default spice that recipes still spoon
+update ingredient set allowed_units = allowed_units || '["tsp"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'nutmeg ground' and not allowed_units ? 'tsp';
+
+-- hot sauce: condiment-class pantry row (the vocab has no condiment category); hot sauce is added to taste
+update ingredient set allowed_units = allowed_units || '["to_taste"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'hot sauce' and not allowed_units ? 'to_taste';
+
+-- sriracha: condiment-class pantry row; added to taste
+update ingredient set allowed_units = allowed_units || '["to_taste"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sriracha' and not allowed_units ? 'to_taste';
+
+-- soy sauce: condiment-class pantry row; seasoned to taste
+update ingredient set allowed_units = allowed_units || '["to_taste"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'soy sauce' and not allowed_units ? 'to_taste';
+
+-- tamari: condiment-class pantry row; seasoned to taste
+update ingredient set allowed_units = allowed_units || '["to_taste"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tamari' and not allowed_units ? 'to_taste';
+
+-- liquid amino: condiment-class pantry row; seasoned to taste
+update ingredient set allowed_units = allowed_units || '["to_taste"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'liquid amino' and not allowed_units ? 'to_taste';
+
+-- vegan worcestershire sauce: condiment-class pantry row; seasoned to taste
+update ingredient set allowed_units = allowed_units || '["to_taste"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegan worcestershire sauce' and not allowed_units ? 'to_taste';
+
+-- bay leaf: bay leaves are counted, never pinched — the category gate overreaches here
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'bay leaf';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'bay leaf';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'to_taste')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'bay leaf';
+
+-- star anise: star anise pods are counted, never pinched
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'star anise';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'star anise';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'to_taste')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'star anise';
+
+-- pasta: a spoon of dry pasta is senseless; the density leg keeps cup/ml
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pasta';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pasta';
+
+-- spaghetti: a spoon of spaghetti is senseless
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'spaghetti';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'spaghetti';
+
+-- pea frozen: frozen peas are poured by the cup, not spooned by the tsp
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pea frozen';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pea frozen';
+
+-- brussel sprout: whole sprouts do not fit in spoons
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'brussel sprout';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'brussel sprout';
+
+-- edamame frozen: pods/beans are cupped, not spooned
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'edamame frozen';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'edamame frozen';
+
+-- green bean: whole beans do not fit in spoons
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'green bean';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'green bean';
+
+-- green bean canned: whole beans do not fit in spoons
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'green bean canned';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'green bean canned';
+
+-- okra: whole pods do not fit in spoons
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'okra';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'okra';
+
+-- cremini mushroom: whole mushrooms do not fit in spoons
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cremini mushroom';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cremini mushroom';
+
+-- enoki mushroom: whole mushrooms do not fit in spoons
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'enoki mushroom';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'enoki mushroom';
+
+-- king oyster mushroom: whole mushrooms do not fit in spoons
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'king oyster mushroom';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'king oyster mushroom';
+
+-- maitake mushroom: whole mushrooms do not fit in spoons
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'maitake mushroom';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'maitake mushroom';
+
+-- oyster mushroom: whole mushrooms do not fit in spoons
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'oyster mushroom';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'oyster mushroom';
+
+-- white mushroom: whole mushrooms do not fit in spoons
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'white mushroom';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'white mushroom';
+
+-- tempeh: a slab food — cut or weighed, never spooned
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tempeh';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tempeh';
+
+-- tomato canned whole: whole canned tomatoes are not spooned; cup/ml stay for the juice-packed pour
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tomato canned whole';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tomato canned whole';
+
+-- baked bean: beans by the tbsp exist in salads; by the tsp they do not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'baked bean';
+
+-- black bean canned: beans by the tbsp exist; by the tsp they do not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'black bean canned';
+
+-- black eyed pea canned: beans by the tbsp exist; by the tsp they do not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'black eyed pea canned';
+
+-- cannellini bean canned: beans by the tbsp exist; by the tsp they do not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cannellini bean canned';
+
+-- great northern bean canned: beans by the tbsp exist; by the tsp they do not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'great northern bean canned';
+
+-- navy bean canned: beans by the tbsp exist; by the tsp they do not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'navy bean canned';
+
 do $$ begin
-  raise notice 'seed_curation: allowed_units refreshed; 0 density + 0 allowed-unit overrides';
+  raise notice 'seed_curation: allowed_units refreshed; 1 density + 35 allowed-unit overrides';
 end $$;
 
 commit;

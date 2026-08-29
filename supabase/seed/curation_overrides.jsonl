@@ -1,0 +1,58 @@
+// curation_overrides.jsonl — the audited LLM-curation pass over the seed
+// pipeline's rule output (plan 0013, Simon's seed-default methodology:
+// rules are scaffolding, not the decider). One JSON object per line, every
+// override with a reason; consumed by gen_measures.ts (drop/add_measure)
+// and gen_seed.ts → seed_curation.sql (density / allowed_units).
+// Reviewed 2026-08-29 against the full 291-ingredient listing.
+//
+// --- measures: rule output a human finds senseless -------------------------
+{"kind": "drop_measure", "match_text": "corn tortilla", "label": "enchilada", "reason": "an enchilada is a dish made from a tortilla, not a unit of tortilla"}
+{"kind": "drop_measure", "match_text": "active yeast dry", "label": "packet", "reason": "duplicate of the curated 7 g sachet (FDC 7.2 g packet is the same physical thing; two chips for one unit)"}
+{"kind": "drop_measure", "match_text": "instant yeast", "label": "packet", "reason": "borrowed duplicate of the curated 7 g sachet — same physical unit twice"}
+{"kind": "drop_measure", "match_text": "pine nut", "label": "nut", "reason": "nobody counts single pine nuts (0.17 g each) — they are spooned or weighed"}
+{"kind": "drop_measure", "match_text": "soy sauce", "label": "packet", "reason": "the 8.9 g takeout packet is not how a kitchen measures soy sauce"}
+{"kind": "drop_measure", "match_text": "arugula", "label": "leaf", "reason": "salad arugula is never counted by leaves (and 2 g/leaf describes a giant one)"}
+{"kind": "drop_measure", "match_text": "spinach", "label": "leaf", "reason": "bagged spinach is never counted by leaves; FDC's 10 g leaf is a mature bunch leaf"}
+{"kind": "drop_measure", "match_text": "mini pretzel", "label": "twist", "reason": "FDC 167555's 6 g twist is a full-size pretzel — ~5x a mini; wrong weight for this vocab row"}
+//
+// --- densities: FDC-derived value misleads ---------------------------------
+{"kind": "density", "match_text": "banana", "value": 0.634, "reason": "the ranked pick landed on FDC's mashed cup (225 g -> 0.951); sliced (150 g/cup -> 0.634) is what a volume of banana means in a recipe"}
+//
+// --- allowed units: entry the rule missed ----------------------------------
+{"kind": "allowed_units", "match_text": "coconut milk", "add": ["cup", "tbsp", "ml"], "reason": "count-default (sold by the can) but recipes also speak cups/tbsp of it, and its density makes volume honest"}
+{"kind": "allowed_units", "match_text": "liquid smoke", "add": ["tsp"], "reason": "dash-default, but the recipes that measure it say 1/2 tsp — g alone is no way to say that"}
+{"kind": "allowed_units", "match_text": "allspice ground", "add": ["tsp"], "reason": "pinch-default spice that recipes still spoon (1/2 tsp allspice)"}
+{"kind": "allowed_units", "match_text": "clove ground", "add": ["tsp"], "reason": "pinch-default spice that recipes still spoon"}
+{"kind": "allowed_units", "match_text": "nutmeg ground", "add": ["tsp"], "reason": "pinch-default spice that recipes still spoon"}
+{"kind": "allowed_units", "match_text": "hot sauce", "add": ["to_taste"], "reason": "condiment-class pantry row (the vocab has no condiment category); hot sauce is added to taste"}
+{"kind": "allowed_units", "match_text": "sriracha", "add": ["to_taste"], "reason": "condiment-class pantry row; added to taste"}
+{"kind": "allowed_units", "match_text": "soy sauce", "add": ["to_taste"], "reason": "condiment-class pantry row; seasoned to taste"}
+{"kind": "allowed_units", "match_text": "tamari", "add": ["to_taste"], "reason": "condiment-class pantry row; seasoned to taste"}
+{"kind": "allowed_units", "match_text": "liquid amino", "add": ["to_taste"], "reason": "condiment-class pantry row; seasoned to taste"}
+{"kind": "allowed_units", "match_text": "vegan worcestershire sauce", "add": ["to_taste"], "reason": "condiment-class pantry row; seasoned to taste"}
+//
+// --- allowed units: admission a human finds senseless ----------------------
+{"kind": "allowed_units", "match_text": "bay leaf", "remove": ["pinch", "dash", "to_taste"], "reason": "bay leaves are counted, never pinched — the category gate overreaches here"}
+{"kind": "allowed_units", "match_text": "star anise", "remove": ["pinch", "dash", "to_taste"], "reason": "star anise pods are counted, never pinched"}
+{"kind": "allowed_units", "match_text": "pasta", "remove": ["tsp", "tbsp"], "reason": "a spoon of dry pasta is senseless; the density leg keeps cup/ml"}
+{"kind": "allowed_units", "match_text": "spaghetti", "remove": ["tsp", "tbsp"], "reason": "a spoon of spaghetti is senseless"}
+{"kind": "allowed_units", "match_text": "pea frozen", "remove": ["tsp", "tbsp"], "reason": "frozen peas are poured by the cup, not spooned by the tsp"}
+{"kind": "allowed_units", "match_text": "brussel sprout", "remove": ["tsp", "tbsp"], "reason": "whole sprouts do not fit in spoons"}
+{"kind": "allowed_units", "match_text": "edamame frozen", "remove": ["tsp", "tbsp"], "reason": "pods/beans are cupped, not spooned"}
+{"kind": "allowed_units", "match_text": "green bean", "remove": ["tsp", "tbsp"], "reason": "whole beans do not fit in spoons"}
+{"kind": "allowed_units", "match_text": "green bean canned", "remove": ["tsp", "tbsp"], "reason": "whole beans do not fit in spoons"}
+{"kind": "allowed_units", "match_text": "okra", "remove": ["tsp", "tbsp"], "reason": "whole pods do not fit in spoons"}
+{"kind": "allowed_units", "match_text": "cremini mushroom", "remove": ["tsp", "tbsp"], "reason": "whole mushrooms do not fit in spoons"}
+{"kind": "allowed_units", "match_text": "enoki mushroom", "remove": ["tsp", "tbsp"], "reason": "whole mushrooms do not fit in spoons"}
+{"kind": "allowed_units", "match_text": "king oyster mushroom", "remove": ["tsp", "tbsp"], "reason": "whole mushrooms do not fit in spoons"}
+{"kind": "allowed_units", "match_text": "maitake mushroom", "remove": ["tsp", "tbsp"], "reason": "whole mushrooms do not fit in spoons"}
+{"kind": "allowed_units", "match_text": "oyster mushroom", "remove": ["tsp", "tbsp"], "reason": "whole mushrooms do not fit in spoons"}
+{"kind": "allowed_units", "match_text": "white mushroom", "remove": ["tsp", "tbsp"], "reason": "whole mushrooms do not fit in spoons"}
+{"kind": "allowed_units", "match_text": "tempeh", "remove": ["tsp", "tbsp"], "reason": "a slab food — cut or weighed, never spooned"}
+{"kind": "allowed_units", "match_text": "tomato canned whole", "remove": ["tsp", "tbsp"], "reason": "whole canned tomatoes are not spooned; cup/ml stay for the juice-packed pour"}
+{"kind": "allowed_units", "match_text": "baked bean", "remove": ["tsp"], "reason": "beans by the tbsp exist in salads; by the tsp they do not"}
+{"kind": "allowed_units", "match_text": "black bean canned", "remove": ["tsp"], "reason": "beans by the tbsp exist; by the tsp they do not"}
+{"kind": "allowed_units", "match_text": "black eyed pea canned", "remove": ["tsp"], "reason": "beans by the tbsp exist; by the tsp they do not"}
+{"kind": "allowed_units", "match_text": "cannellini bean canned", "remove": ["tsp"], "reason": "beans by the tbsp exist; by the tsp they do not"}
+{"kind": "allowed_units", "match_text": "great northern bean canned", "remove": ["tsp"], "reason": "beans by the tbsp exist; by the tsp they do not"}
+{"kind": "allowed_units", "match_text": "navy bean canned", "remove": ["tsp"], "reason": "beans by the tbsp exist; by the tsp they do not"}

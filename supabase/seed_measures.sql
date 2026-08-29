@@ -21,11 +21,9 @@ insert into ingredient_measure
 select '00000000-0000-0000-0000-0000000000aa', i.id, m.label, m.basis_amount, m.sort_order, m.source
 from ingredient i
 join (values
-  ('active yeast dry', 'packet', 7.2, 0, 'usda_fdc:175043 (1 packet)'),
   ('active yeast dry', 'sachet', 7, 0, 'seed:typical'),
   ('almond', 'almond', 1.2, 0, 'usda_fdc:170567 (1 almond)'),
   ('apricot', 'apricot', 35, 0, 'usda_fdc:171697 (1 apricot)'),
-  ('arugula', 'leaf', 2, 0, 'usda_fdc:169387 (1 leaf)'),
   ('asparagus', 'spear, medium', 16, 0, 'usda_fdc:168389 (1 spear, medium (5-1/4" to 7" long))'),
   ('asparagus', 'spear, large', 20, 1, 'usda_fdc:168389 (1 spear, large (7-1/4" to 8-1/2"))'),
   ('asparagus', 'spear, small', 12, 2, 'usda_fdc:168389 (1 spear, small (5" long or less))'),
@@ -83,7 +81,6 @@ join (values
   ('corn', 'ear, medium', 102, 0, 'usda_fdc:169998 (1 ear, medium (6-3/4" to 7-1/2" long) yields)'),
   ('corn', 'ear, large', 143, 1, 'usda_fdc:169998 (1 ear, large (7-3/4" to 9" long) yields)'),
   ('corn', 'ear, small', 73, 2, 'usda_fdc:169998 (1 ear, small (5-1/2" to 6-1/2" long))'),
-  ('corn tortilla', 'enchilada', 19, 0, 'usda_fdc:175036 (1 enchilada)'),
   ('corn tortilla', 'tortilla', 24, 1, 'usda_fdc:175036 (1 tortilla)'),
   ('cremini mushroom', 'mushroom, whole', 20, 0, 'usda_fdc:168434 (1 piece whole)'),
   ('cucumber', 'cucumber', 301, 0, 'usda_fdc:168409 (1 cucumber (8-1/4"))'),
@@ -107,6 +104,8 @@ join (values
   ('gold potato', 'potato, medium', 213, 0, 'usda_fdc:170027 (1 Potato medium (2-1/4" to 3-1/4" dia)) — borrowed'),
   ('gold potato', 'potato, large', 369, 1, 'usda_fdc:170027 (1 potato large (3" to 4-1/4" dia)) — borrowed'),
   ('gold potato', 'potato, small', 170, 2, 'usda_fdc:170027 (1 Potato small (1-3/4" to 2-1/4" dia)) — borrowed'),
+  ('granulated sugar', 'packet', 2.8, 0, 'usda_fdc:169655 (1 serving packet)'),
+  ('granulated sugar', 'cube', 2.3, 1, 'usda_fdc:169655 (1 serving 1 cube)'),
   ('grapefruit', 'grapefruit, whole', 246, 0, 'usda_fdc:174673 (0.5 fruit (3-3/4" dia))'),
   ('great northern bean canned', 'can, drained', 277, 0, 'usda_fdc:174286 (1 can drained solids) — borrowed'),
   ('green bean', 'bean', 5.5, 0, 'usda_fdc:169961 (10 beans (4" long))'),
@@ -125,7 +124,6 @@ join (values
   ('iceberg lettuce', 'leaf, large', 15, 3, 'usda_fdc:169248 (1 leaf, large)'),
   ('iceberg lettuce', 'head, small', 324, 4, 'usda_fdc:169248 (1 head, small)'),
   ('iceberg lettuce', 'leaf, small', 5, 5, 'usda_fdc:169248 (1 leaf, small)'),
-  ('instant yeast', 'packet', 7.2, 0, 'usda_fdc:175043 (1 packet) — borrowed'),
   ('instant yeast', 'sachet', 7, 0, 'seed:typical'),
   ('jalapeño', 'jalapeño', 14, 0, 'usda_fdc:168576 (1 pepper)'),
   ('king oyster mushroom', 'mushroom, medium', 90, 0, 'seed:typical'),
@@ -139,7 +137,6 @@ join (values
   ('lime juice', 'lime', 44, 0, 'usda_fdc:168156 (1 lime yields)'),
   ('maitake mushroom', 'mushroom, whole', 1.1, 0, 'usda_fdc:169403 (1 piece whole)'),
   ('mango', 'mango, whole', 336, 0, 'usda_fdc:169910 (1 fruit without refuse)'),
-  ('mini pretzel', 'twist', 6, 0, 'usda_fdc:167555 (10 twists)'),
   ('multigrain bread', 'slice regular', 26, 0, 'usda_fdc:168013 (1 slice regular)'),
   ('multigrain bread', 'slice, large', 41, 1, 'usda_fdc:168013 (1 slice large)'),
   ('navy bean canned', 'can, drained', 277, 0, 'usda_fdc:174286 (1 can drained solids) — borrowed'),
@@ -165,7 +162,6 @@ join (values
   ('peach', 'peach, large', 175, 1, 'usda_fdc:169928 (1 large (2-3/4" dia))'),
   ('peach', 'peach, small', 130, 2, 'usda_fdc:169928 (1 small (2-1/2" dia))'),
   ('peach', 'peach, extra large', 224, 3, 'usda_fdc:169928 (1 extra large (3" dia))'),
-  ('pine nut', 'nut', 0.17, 0, 'usda_fdc:170591 (10 nuts)'),
   ('pineapple', 'pineapple, whole', 905, 0, 'usda_fdc:169124 (1 fruit)'),
   ('pineapple', 'slice', 166, 1, 'usda_fdc:169124 (1 slice (4-2/3" dia x 3/4" thick))'),
   ('pineapple', 'slice, thin', 56, 2, 'usda_fdc:169124 (1 slice, thin (3-1/2" dia x 1/2" thick))'),
@@ -209,10 +205,9 @@ join (values
   ('shiitake mushroom', 'mushroom, whole', 19, 0, 'usda_fdc:169242 (1 piece whole)'),
   ('silken tofu', 'block (12.3 oz)', 349, 0, 'seed:typical'),
   ('soft sandwich bread', 'slice', 27.3, 0, 'usda_fdc:325871 (1.0 slice) — borrowed'),
-  ('soy sauce', 'packet', 8.9, 0, 'usda_fdc:174277 (1 individual packet)'),
   ('spinach', 'bunch', 340, 0, 'usda_fdc:168462 (1 bunch)'),
   ('spinach', 'package', 284, 1, 'usda_fdc:168462 (1 package (10 oz))'),
-  ('spinach', 'leaf', 10, 2, 'usda_fdc:168462 (1 leaf)'),
+  ('sprouted multigrain bread', 'slice', 38, 0, 'usda_fdc:171850 (1 slice 1 serving)'),
   ('strawberry', 'strawberry, medium', 12, 0, 'usda_fdc:167762 (1 medium (1-1/4" dia))'),
   ('strawberry', 'strawberry, large', 18, 1, 'usda_fdc:167762 (1 large (1-3/8" dia))'),
   ('strawberry', 'strawberry, small', 7, 2, 'usda_fdc:167762 (1 small (1" dia))'),
@@ -277,7 +272,6 @@ begin
     ('active yeast dry'),
     ('almond'),
     ('apricot'),
-    ('arugula'),
     ('asparagus'),
     ('avocado'),
     ('banana'),
@@ -319,6 +313,7 @@ begin
     ('garlic'),
     ('ginger'),
     ('gold potato'),
+    ('granulated sugar'),
     ('grapefruit'),
     ('great northern bean canned'),
     ('green bean'),
@@ -340,7 +335,6 @@ begin
     ('lime juice'),
     ('maitake mushroom'),
     ('mango'),
-    ('mini pretzel'),
     ('multigrain bread'),
     ('navy bean canned'),
     ('nectarine'),
@@ -352,7 +346,6 @@ begin
     ('parsley'),
     ('pea frozen'),
     ('peach'),
-    ('pine nut'),
     ('pineapple'),
     ('pinto bean canned'),
     ('pistachio'),
@@ -375,8 +368,8 @@ begin
     ('shiitake mushroom'),
     ('silken tofu'),
     ('soft sandwich bread'),
-    ('soy sauce'),
     ('spinach'),
+    ('sprouted multigrain bread'),
     ('strawberry'),
     ('sweet potato'),
     ('tempeh'),
@@ -407,7 +400,7 @@ begin
   end if;
   select count(*) into n from ingredient_measure
   where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null;
-  raise notice 'seed_measures: % live template measures (% seeded)', n, 235;
+  raise notice 'seed_measures: % live template measures (% seeded)', n, 230;
 end $$;
 
 commit;
