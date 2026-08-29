@@ -19,11 +19,24 @@ class SqliteMeasureRepository implements MeasureRepository {
   /// The household stamped on rows this repo writes.
   final String _householdId;
 
+  /// A comparable creation key: the parsed instant re-serialized canonically
+  /// (UTC ISO-8601), falling back to the raw text for unparseable values.
+  /// created_at is TEXT and its format differs by writer — this client
+  /// writes `…T…Z`, Postgres-sourced rows sync as `… …+00` — and a bare
+  /// lexicographic compare across formats picks the wrong "oldest" (space
+  /// sorts before 'T'), so the canonical-row choice would disagree between
+  /// devices. Parsing first keeps the merge deterministic across formats.
+  static String _createdKey(Object? raw) {
+    final s = raw as String? ?? '';
+    return DateTime.tryParse(s)?.toUtc().toIso8601String() ?? s;
+  }
+
   @override
   Stream<List<Measure>> watchMeasures(String ingredientId) {
-    // Ordered oldest-first so the merge below keeps the canonical (oldest)
-    // row per duplicate label on every device — the offline-dupe doctrine
-    // (see the interface doc). Display order is re-established afterwards.
+    // Ordered oldest-first (by parsed instant, see [_createdKey]) so the
+    // merge below keeps the canonical (oldest) row per duplicate label on
+    // every device — the offline-dupe doctrine (see the interface doc).
+    // Display order is re-established afterwards.
     return _db
         .watch(
           'SELECT id, label, grams, sort_order, source, created_at '
@@ -33,29 +46,40 @@ class SqliteMeasureRepository implements MeasureRepository {
           parameters: [ingredientId],
         )
         .map((rows) {
-          final byLabel = <String, (Measure, String)>{};
-          for (final r in rows) {
-            final label = r['label'] as String;
-            if (byLabel.containsKey(label)) continue; // newer dupe — hidden
-            byLabel[label] = (
-              Measure(
-                id: r['id'] as String,
-                label: label,
-                grams: (r['grams'] as num).toDouble(),
-                sortOrder: (r['sort_order'] as int?) ?? 0,
-                source: r['source'] as String?,
-              ),
-              r['created_at'] as String? ?? '',
-            );
+          final ordered =
+              [
+                for (final r in rows)
+                  (
+                    measure: Measure(
+                      id: r['id'] as String,
+                      label: r['label'] as String,
+                      grams: (r['grams'] as num).toDouble(),
+                      sortOrder: (r['sort_order'] as int?) ?? 0,
+                      source: r['source'] as String?,
+                    ),
+                    created: _createdKey(r['created_at']),
+                  ),
+              ]..sort((a, b) {
+                final byCreated = a.created.compareTo(b.created);
+                return byCreated != 0
+                    ? byCreated
+                    : a.measure.id.compareTo(b.measure.id);
+              });
+
+          final byLabel = <String, ({Measure measure, String created})>{};
+          for (final e in ordered) {
+            byLabel.putIfAbsent(e.measure.label, () => e); // newer dupe hidden
           }
           final kept = byLabel.values.toList()
             ..sort((a, b) {
-              final bySort = a.$1.sortOrder.compareTo(b.$1.sortOrder);
+              final bySort = a.measure.sortOrder.compareTo(b.measure.sortOrder);
               if (bySort != 0) return bySort;
-              final byCreated = a.$2.compareTo(b.$2);
-              return byCreated != 0 ? byCreated : a.$1.id.compareTo(b.$1.id);
+              final byCreated = a.created.compareTo(b.created);
+              return byCreated != 0
+                  ? byCreated
+                  : a.measure.id.compareTo(b.measure.id);
             });
-          return [for (final (m, _) in kept) m];
+          return [for (final e in kept) e.measure];
         });
   }
 

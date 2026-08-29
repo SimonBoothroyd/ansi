@@ -59,6 +59,7 @@ class SqliteRecipeRepository implements RecipeRepository {
     final lineRows = await _db.getAll(
       'SELECT g.recipe_id, li.id, li.ingredient_id, li.quantity, li.unit, '
       'li.measure_id, im.label AS m_label, im.grams AS m_grams, '
+      'im.sort_order AS m_sort, im.source AS m_source, '
       'ing.macros, ing.macros_basis, ing.density_g_per_ml, ing.status '
       'FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
@@ -83,6 +84,8 @@ class SqliteRecipeRepository implements RecipeRepository {
           unit: unitById(r['unit'] as String) ?? pieces,
           quantity: (r['quantity'] as num?)?.toDouble(),
           measureId: measureId,
+          // Full construction incl. sort_order/source (the 51c80b9 rule:
+          // every loader selects what Measure's == compares).
           measure:
               measureId == null || measureLabel == null || measureGrams == null
               ? null
@@ -90,6 +93,8 @@ class SqliteRecipeRepository implements RecipeRepository {
                   id: measureId,
                   label: measureLabel,
                   grams: measureGrams,
+                  sortOrder: (r['m_sort'] as int?) ?? 0,
+                  source: r['m_source'] as String?,
                 ),
         ),
       );

@@ -424,7 +424,7 @@ String? _conversionNote(double? qty, UnitChoice choice, Ingredient ing) {
       return switch (grams) {
         Ok(:final value) when unit.family == UnitFamily.volume =>
           '≈ ${formatQuantity(value.amount)} g · via density '
-              '${ing.densityGPerMl} g/ml',
+              '${formatDensity(ing.densityGPerMl!)} g/ml',
         Ok(:final value) => '≈ ${formatQuantity(value.amount)} g',
         Err() => null,
       };

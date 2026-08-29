@@ -123,6 +123,32 @@ void main() {
       },
     );
 
+    test('the tie-break survives mixed timestamp text formats', () async {
+      // created_at is TEXT: this client writes `…T…Z`, Postgres-synced rows
+      // arrive as `… …+00`. Lexicographically the space sorts before 'T',
+      // which would crown the WRONG row; the merge compares parsed instants.
+      await _seedMeasure(
+        db,
+        id: 'm-app',
+        ingredientId: 'coconut',
+        label: 'half can',
+        grams: 200,
+        createdAt: '2026-01-01T05:00:00.000Z', // older instant, Dart format
+      );
+      await _seedMeasure(
+        db,
+        id: 'm-pg',
+        ingredientId: 'coconut',
+        label: 'half can',
+        grams: 210,
+        createdAt: '2026-01-01 12:00:00+00', // newer instant, PG format
+      );
+
+      final measures = await repo.watchMeasures('coconut').first;
+      expect(measures.single.id, 'm-app');
+      expect(measures.single.grams, 200);
+    });
+
     test('a soft-deleted canonical un-hides the surviving duplicate', () async {
       await _seedMeasure(
         db,
