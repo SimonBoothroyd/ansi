@@ -12,7 +12,7 @@
 -- holds the starter vocab and its aliases). Run by `supabase test db`.
 
 begin;
-select plan(27);
+select plan(30);
 
 -- Isolate from any pre-existing memberships AND households (a live dev
 -- session or a `make test-sim` run leaves onboarded households behind;
@@ -44,6 +44,24 @@ insert into ingredient_measure (household_id, ingredient_id, label, grams)
 select '00000000-0000-0000-0000-0000000000aa', id, 'secret scoop', 30
 from ingredient
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'secret sauce';
+
+-- macros_basis (0011, the 'glug (test)' shape): a template row whose macros
+-- were entered per-100 ml must arrive per-100 ml in every clone — silently
+-- degrading to the 'g' default would misread liquid macros by density.
+update ingredient set macros_basis = 'ml'
+where household_id = '00000000-0000-0000-0000-0000000000aa'
+  and match_text = 'olive oil';
+
+-- …and the column refuses anything outside its two honest values.
+select throws_ok(
+  $$ insert into ingredient (household_id, canonical_name, default_unit,
+       macros_basis, source, match_text)
+     values ('00000000-0000-0000-0000-0000000000aa', 'Bad Basis', 'g',
+       'glug', 'manual', 'bad basis') $$,
+  '23514',
+  null,
+  'macros_basis rejects values outside g/ml (0011 check)'
+);
 
 -- Five authenticated users; no user_metadata, so display_name falls back to
 -- the email local-part (the dev email/password path). e5… is a filler used to
@@ -193,6 +211,24 @@ select is(
        and im.label = 'glug (test)'),
   'seed:typical',
   'a cloned measure keeps its provenance source (0010)'
+);
+-- The stored macros basis rides the clone too (0011) — checked in BOTH
+-- cloned households of this run (A's and C's went through the create leg).
+select is(
+  (select i.macros_basis from ingredient i
+     join household_member m on m.household_id = i.household_id
+     where m.auth_user_id = 'a1111111-1111-1111-1111-111111111111'
+       and i.match_text = 'olive oil'),
+  'ml',
+  'a per-100 ml template row clones as per-100 ml (A''s household, 0011)'
+);
+select is(
+  (select i.macros_basis from ingredient i
+     join household_member m on m.household_id = i.household_id
+     where m.auth_user_id = 'c3333333-3333-3333-3333-333333333333'
+       and i.match_text = 'olive oil'),
+  'ml',
+  'a per-100 ml template row clones as per-100 ml (C''s household, 0011)'
 );
 
 -- ---------------------------------------------------------------------------
