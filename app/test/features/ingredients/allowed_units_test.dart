@@ -13,26 +13,39 @@ Ingredient _ing(Unit defaultUnit, {double? density}) => Ingredient(
 );
 
 void main() {
-  group('allowedUnitsFor', () {
-    test('mass default without density: mass + imprecise only', () {
+  group('allowedUnitsFor (ADR-0008 chip order + kitchen trim)', () {
+    test('mass default without density: kitchen mass + imprecise only', () {
       final units = allowedUnitsFor(_ing(g));
-      expect(units, [g, kg, mg, oz, lb, pinch, dash, toTaste]);
+      expect(units, [g, kg, pinch, dash, toTaste]);
     });
 
-    test('volume default without density: volume + imprecise only', () {
+    test('volume default without density: kitchen volume + imprecise', () {
+      // The default fronted, then its kitchen mates in kitchen order — a
+      // cup-default ingredient never offers tsp or fl oz.
       final units = allowedUnitsFor(_ing(cup));
-      expect(units, [ml, l, tsp, tbsp, flOz, cup, pinch, dash, toTaste]);
+      expect(units, [cup, tbsp, ml, l, pinch, dash, toTaste]);
     });
 
-    test('a density opens the mass↔volume boundary', () {
-      // Oats with a density: grams AND cups are both honest.
+    test('the yeast shape: tsp default is trimmed to spoons — no litres, '
+        'no ml·l fronted', () {
+      final units = allowedUnitsFor(_ing(tsp));
+      expect(units, [tsp, tbsp, pinch, dash, toTaste]);
+    });
+
+    test('a density opens the mass↔volume boundary, kitchen units only, '
+        'after the default family', () {
+      // Oats with a density: grams AND cups are both honest — and the
+      // unlocked family trails the default's own (demotion; the choice
+      // builder pushes it below the measures too).
       final units = allowedUnitsFor(_ing(g, density: 0.4));
-      expect(units, [
-        g, kg, mg, oz, lb, //
-        ml, l, tsp, tbsp, flOz, cup, //
-        pinch, dash, toTaste,
-      ]);
+      expect(units, [g, kg, tsp, tbsp, cup, ml, pinch, dash, toTaste]);
       expect(units, isNot(contains(pieces)));
+    });
+
+    test('a volume default with density unlocks kitchen mass, demoted', () {
+      // "g of milk is doable but strange" — offered after the volume set.
+      final units = allowedUnitsFor(_ing(cup, density: 1.03));
+      expect(units, [cup, tbsp, ml, l, g, kg, pinch, dash, toTaste]);
     });
 
     test('count default offers only count + imprecise', () {
@@ -45,16 +58,32 @@ void main() {
       expect(units, [pieces, pinch, dash, toTaste]);
     });
 
+    test('mg and fl oz stay label-reading units: offered only as the '
+        "default itself, never as anyone else's mate", () {
+      expect(allowedUnitsFor(_ing(mg)), contains(mg));
+      expect(allowedUnitsFor(_ing(flOz)), contains(flOz));
+      for (final d in kAllUnits.where((u) => u != mg && u != flOz)) {
+        final units = allowedUnitsFor(_ing(d, density: 1));
+        expect(units, isNot(contains(mg)), reason: 'mg via ${d.id}');
+        expect(units, isNot(contains(flOz)), reason: 'fl_oz via ${d.id}');
+      }
+    });
+
     test('always includes the default unit itself', () {
       for (final u in kAllUnits) {
         expect(allowedUnitsFor(_ing(u)), contains(u), reason: u.id);
       }
     });
 
-    test('preserves kAllUnits order', () {
-      final units = allowedUnitsFor(_ing(ml, density: 1.03));
-      final indices = units.map(kAllUnits.indexOf).toList();
-      expect(indices, [...indices]..sort());
+    test('imprecise always trails, in catalog order', () {
+      for (final d in [g, cup, pieces, pinch]) {
+        final units = allowedUnitsFor(_ing(d, density: 1));
+        expect(
+          units.sublist(units.length - 3),
+          [pinch, dash, toTaste],
+          reason: d.id,
+        );
+      }
     });
   });
 
@@ -62,22 +91,49 @@ void main() {
     const large = Measure(id: 'm1', label: 'potato, large', grams: 299);
     const medium = Measure(id: 'm2', label: 'potato, medium', grams: 213.5);
 
-    test('appends measure options after the honest unit set, in order', () {
+    test('slots measure options after the default set, before imprecise, '
+        'in order', () {
       final choices = allowedUnitChoicesFor(_ing(pieces), const [
         medium,
         large,
       ]).choices;
-      // The unit set is unchanged and keeps its positions…
+      // The unit set keeps its members and relative order…
       expect(
         choices.whereType<UnitOption>().map((c) => c.unit),
         allowedUnitsFor(_ing(pieces)),
       );
-      // …and the measures follow, in the given (sort_order) order.
-      expect(choices.whereType<MeasureOption>().map((c) => c.measure), [
-        medium,
-        large,
+      // …and the measures sit between count and imprecise, in the given
+      // (sort_order) order.
+      expect(choices.map((c) => c.label), [
+        'piece',
+        'potato, medium (213.5 g)',
+        'potato, large (299 g)',
+        'pinch',
+        'dash',
+        'to taste',
       ]);
-      expect(choices.last, const MeasureOption(large));
+    });
+
+    test('demoted other-family units trail the measures (ADR-0008)', () {
+      // A density-unlocked family reads "after measures": default set →
+      // measures → demoted units → imprecise.
+      final choices = allowedUnitChoicesFor(_ing(g, density: 0.6), const [
+        large,
+      ]).choices;
+      expect(
+        choices.map(
+          (c) => switch (c) {
+            UnitOption(:final unit) => unit.id,
+            MeasureOption(:final measure) => measure.label,
+          },
+        ),
+        [
+          'g', 'kg', // the default's own family leads
+          'potato, large', // measures
+          'tsp', 'tbsp', 'cup', 'ml', // density-unlocked, demoted
+          'pinch', 'dash', 'to_taste', // imprecise last
+        ],
+      );
     });
 
     test('offers a count food its measures despite having no density', () {

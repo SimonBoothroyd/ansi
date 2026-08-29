@@ -154,6 +154,9 @@ class QuantityUnitEditor extends HookConsumerWidget {
     // off-filter rule instead.
     Future<void> deleteMeasure(Measure m) async {
       await ref.read(measureRepositoryProvider).softDeleteMeasure(m.id);
+      // The sheet can be dismissed while the write is in flight — touching
+      // hook state then would throw (same guard as _MeasureManager.save).
+      if (!context.mounted) return;
       // A deleted measure also stops being the admitted stored choice.
       if (stored.value == MeasureOption(m)) stored.value = null;
       if (choice.value == MeasureOption(m)) {
@@ -431,10 +434,13 @@ String? _conversionNote(double? qty, UnitChoice choice, Ingredient ing) {
   }
 }
 
-/// The chip row: precise units · measure chips (source dot + label) ·
-/// imprecise after a divider · the `+` manage chip. Horizontally scrollable;
-/// docked directly above the keyboard by the host sheet.
-class UnitChipRow extends StatelessWidget {
+/// The chip row in ADR-0008 order: the default unit's own set · measure
+/// chips (source dot + label) · demoted other-family units · imprecise after
+/// a divider · the `+` manage chip. Horizontally scrollable; docked directly
+/// above the keyboard by the host sheet. On open it scrolls the selected
+/// chip into view — a stored selection can sit deep in a long row and must
+/// not open off-screen.
+class UnitChipRow extends StatefulWidget {
   const UnitChipRow({
     required this.ingredient,
     required this.measures,
@@ -459,89 +465,114 @@ class UnitChipRow extends StatelessWidget {
   final VoidCallback onManage;
 
   @override
+  State<UnitChipRow> createState() => _UnitChipRowState();
+}
+
+class _UnitChipRowState extends State<UnitChipRow> {
+  /// Rides whichever chip is currently selected, so the open-scroll (and any
+  /// later caller) can find it in the row.
+  final _selectedKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final chipContext = _selectedKey.currentContext;
+      if (!mounted || chipContext == null) return;
+      Scrollable.ensureVisible(chipContext, alignment: 0.5);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // The full offer comes from the domain filter, which excludes
+    // The full offer comes from the domain filter — already in ADR-0008 chip
+    // order (default set → measures → demoted → imprecise), excluding
     // volume-named measures (density owns volume conversion, frame-b review)
-    // and ALWAYS admits the stored selection — a merge-hidden duplicate
+    // and ALWAYS admitting the stored selection — a merge-hidden duplicate
     // measure or a no-longer-allowed unit stays reachable, flagged so it can
     // read as outside the honest filter (the retired dropdowns' rule).
     final offer = allowedUnitChoicesFor(
-      ingredient,
-      measures,
-      current: stored ?? selected,
+      widget.ingredient,
+      widget.measures,
+      current: widget.stored ?? widget.selected,
     );
     final offFilter = offer.offFilter;
     final inFilter = offFilter == null
         ? offer.choices
         : offer.choices.sublist(0, offer.choices.length - 1);
-    final precise = inFilter.whereType<UnitOption>().where(
-      (c) => c.unit.family != UnitFamily.imprecise,
-    );
-    final measureChips = inFilter.whereType<MeasureOption>();
-    final imprecise = inFilter.whereType<UnitOption>().where(
-      (c) => c.unit.family == UnitFamily.imprecise,
+
+    final children = <Widget>[];
+    var dividerPlaced = false;
+    for (final c in inFilter) {
+      final imprecise =
+          c is UnitOption && c.unit.family == UnitFamily.imprecise;
+      if (imprecise && !dividerPlaced) {
+        dividerPlaced = true;
+        children.add(
+          Container(
+            width: 1,
+            height: 18,
+            margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+            color: MiseColors.line,
+          ),
+        );
+      }
+      children.add(
+        _Chip(
+          key: widget.selected == c ? _selectedKey : null,
+          // A measure chip carries the bare label; its weight shows in the
+          // selected-choice line, not on every chip.
+          label: switch (c) {
+            MeasureOption(:final measure) => measure.label,
+            UnitOption(:final unit) => unit.label,
+          },
+          dot: c is MeasureOption
+              ? SourceDot(kind: c.measure.sourceKind)
+              : null,
+          imprecise: imprecise,
+          selected: widget.selected == c,
+          onTap: () => widget.onSelect(c),
+        ),
+      );
+    }
+    if (offFilter != null) {
+      children.add(
+        _Chip(
+          key: widget.selected == offFilter ? _selectedKey : null,
+          label: switch (offFilter) {
+            MeasureOption(:final measure) => measure.label,
+            UnitOption(:final unit) => unit.label,
+          },
+          suffix: 'not in filter',
+          dot: switch (offFilter) {
+            MeasureOption(:final measure) => SourceDot(
+              kind: measure.sourceKind,
+            ),
+            UnitOption() => null,
+          },
+          selected: widget.selected == offFilter,
+          onTap: () => widget.onSelect(offFilter),
+        ),
+      );
+    }
+    // A real icon, not a "＋" glyph — the bundled fonts lack U+FF0B,
+    // so the string form renders as tofu (the library_view rule).
+    children.add(
+      _Chip(
+        icon: const Icon(FLucideIcons.plus, size: 13, color: MiseColors.herb),
+        accent: true,
+        onTap: widget.onManage,
+      ),
     );
 
     return SizedBox(
       height: 34,
-      child: ListView(
+      // A single scrollable Row (not a lazy ListView): every chip keeps a
+      // live context, so the open-scroll can ensureVisible the selected one
+      // even when it sits past the fold.
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        children: [
-          for (final c in precise)
-            _Chip(
-              label: c.unit.label,
-              selected: selected == c,
-              onTap: () => onSelect(c),
-            ),
-          for (final c in measureChips)
-            _Chip(
-              label: c.measure.label,
-              dot: SourceDot(kind: c.measure.sourceKind),
-              selected: selected == c,
-              onTap: () => onSelect(c),
-            ),
-          if (imprecise.isNotEmpty)
-            Container(
-              width: 1,
-              height: 18,
-              margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-              color: MiseColors.line,
-            ),
-          for (final c in imprecise)
-            _Chip(
-              label: c.unit.label,
-              imprecise: true,
-              selected: selected == c,
-              onTap: () => onSelect(c),
-            ),
-          if (offFilter != null)
-            _Chip(
-              label: switch (offFilter) {
-                MeasureOption(:final measure) => measure.label,
-                UnitOption(:final unit) => unit.label,
-              },
-              suffix: 'not in filter',
-              dot: switch (offFilter) {
-                MeasureOption(:final measure) => SourceDot(
-                  kind: measure.sourceKind,
-                ),
-                UnitOption() => null,
-              },
-              selected: selected == offFilter,
-              onTap: () => onSelect(offFilter),
-            ),
-          // A real icon, not a "＋" glyph — the bundled fonts lack U+FF0B,
-          // so the string form renders as tofu (the library_view rule).
-          _Chip(
-            icon: const Icon(
-              FLucideIcons.plus,
-              size: 13,
-              color: MiseColors.herb,
-            ),
-            accent: true,
-            onTap: onManage,
-          ),
-        ],
+        child: Row(children: children),
       ),
     );
   }
@@ -557,6 +588,7 @@ class _Chip extends StatelessWidget {
     this.accent = false,
     this.dot,
     this.suffix,
+    super.key,
   }) : assert(label != null || icon != null, 'a chip needs a label or icon');
 
   final String? label;
@@ -663,9 +695,27 @@ class _MeasureManager extends HookConsumerWidget {
         return;
       }
       error.value = null;
-      final added = await ref
-          .read(measureRepositoryProvider)
-          .addMeasure(ingredientId: ingredient.id, label: name, grams: weight);
+      final Measure added;
+      try {
+        added = await ref
+            .read(measureRepositoryProvider)
+            .addMeasure(
+              ingredientId: ingredient.id,
+              label: name,
+              grams: weight,
+            );
+        // The repo's validation contract IS ArgumentError (documented on
+        // addMeasure) — catching it here is the point: surface the refusal
+        // inline instead of crashing the sheet.
+        // ignore: avoid_catching_errors
+      } on ArgumentError catch (e) {
+        // The repository validates every write path (post-7.7 review); when
+        // its rules and the form's ever diverge, the refusal surfaces inline
+        // instead of silently diverging (or crashing the sheet).
+        if (!context.mounted) return;
+        error.value = '${e.message}';
+        return;
+      }
       // The sheet can be dismissed while the write is in flight — touching
       // the parent's state then would throw (every sibling path guards).
       if (!context.mounted) return;
