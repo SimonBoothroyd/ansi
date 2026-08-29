@@ -95,9 +95,27 @@ final class MeasureOption extends UnitChoice {
   int get hashCode => measure.id.hashCode;
 }
 
+/// Whether [label] is just the name of a catalog volume unit ("tbsp",
+/// "cup", "ml"…). Measures must never duplicate volume units — density owns
+/// volume conversion (frame-b review, plan 0011): the seed pipeline skips
+/// FDC volume portions for the same reason, this keeps the chip row / manage
+/// UI from offering (or authoring) one that slipped in anyway.
+bool isVolumeUnitLabel(String label) {
+  final normalized = label.trim().toLowerCase();
+  for (final u in kAllUnits) {
+    if (u.family != UnitFamily.volume) continue;
+    if (normalized == u.id.toLowerCase() || normalized == u.label.toLowerCase()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /// [allowedUnitsFor] plus the ingredient's live [measures], as picker choices:
 /// the same honest unit set first (stable positions), then one [MeasureOption]
 /// per measure in the given order (callers pass them `sort_order`-sorted).
+/// Measures whose label merely names a volume unit are excluded — see
+/// [isVolumeUnitLabel].
 ///
 /// A measure needs no density gate — its gram weight IS the bridge — and it
 /// applies to any ingredient that has one, count-default included (that's the
@@ -107,5 +125,6 @@ List<UnitChoice> allowedUnitChoicesFor(
   List<Measure> measures,
 ) => [
   for (final u in allowedUnitsFor(ingredient)) UnitOption(u),
-  for (final m in measures) MeasureOption(m),
+  for (final m in measures)
+    if (!isVolumeUnitLabel(m.label)) MeasureOption(m),
 ];

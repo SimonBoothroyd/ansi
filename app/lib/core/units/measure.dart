@@ -24,6 +24,10 @@ import 'package:meta/meta.dart';
 import '../result/result.dart';
 import 'units.dart';
 
+/// The provenance families a [Measure.source] can carry, for at-a-glance
+/// display (7.7). [unknown] covers pre-0010 rows and unrecognized strings.
+enum MeasureSourceKind { usdaPortion, borrowed, typical, manual, unknown }
+
 /// One named measure of one ingredient: `amount` of it weigh
 /// `amount × grams` grams.
 ///
@@ -58,6 +62,22 @@ class Measure {
   /// `manual` for user-authored rows, `seed:typical` for the few curated
   /// hand rows, null for rows predating the column.
   final String? source;
+
+  /// [source] classified for display. The raw machine string stays in the
+  /// data; anything user-facing shows the humanized kind (plan 0011, frame-b
+  /// review): "USDA portion" / "borrowed" / "typical" / "yours".
+  MeasureSourceKind get sourceKind {
+    final s = source;
+    if (s == null) return MeasureSourceKind.unknown;
+    if (s.startsWith('usda_fdc:')) {
+      return s.contains('borrowed')
+          ? MeasureSourceKind.borrowed
+          : MeasureSourceKind.usdaPortion;
+    }
+    if (s == 'seed:typical') return MeasureSourceKind.typical;
+    if (s == 'manual') return MeasureSourceKind.manual;
+    return MeasureSourceKind.unknown;
+  }
 
   @override
   bool operator ==(Object other) =>

@@ -51,7 +51,18 @@ class _FakeIngredientRepo implements IngredientRepository {
       const [];
 
   @override
+  Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
+
+  @override
   Future<Ingredient?> byId(String id) async => null;
+
+  @override
+  Future<Ingredient> createStub(String name) async => Ingredient(
+    id: 'stub-1',
+    canonicalName: name,
+    defaultUnit: g,
+    status: IngredientStatus.stub,
+  );
 }
 
 /// The editor defaults new recipes into a book and renders a section picker.

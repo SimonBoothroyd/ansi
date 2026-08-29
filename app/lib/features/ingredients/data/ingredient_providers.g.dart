@@ -55,7 +55,7 @@ final class IngredientRepositoryProvider
 }
 
 String _$ingredientRepositoryHash() =>
-    r'5de723ef1d9164faa6ec43c13712dd6a5558dae7';
+    r'6ec104f1657ed7cd7d01a390e09c88326da7825c';
 
 @ProviderFor(measureRepository)
 const measureRepositoryProvider = MeasureRepositoryProvider._();

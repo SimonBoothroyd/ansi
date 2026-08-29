@@ -97,5 +97,32 @@ void main() {
       expect(const MeasureOption(medium).label, 'potato, medium (213.5 g)');
       expect(const UnitOption(kg).label, 'kg');
     });
+
+    test('a measure that merely names a volume unit is never offered', () {
+      // Density owns volume conversion (frame-b review, 0011): a "cup"/"tbsp"
+      // measure would shadow the honest unit set.
+      const cupish = Measure(id: 'mc', label: 'cup', grams: 226);
+      const tbspish = Measure(id: 'mt', label: ' Tbsp ', grams: 15);
+      final choices = allowedUnitChoicesFor(_ing(g), const [
+        cupish,
+        tbspish,
+        large,
+      ]);
+      expect(choices.whereType<MeasureOption>().map((c) => c.measure), [large]);
+    });
+  });
+
+  group('isVolumeUnitLabel', () {
+    test('matches catalog volume unit ids and labels, case-insensitively', () {
+      for (final label in ['cup', 'tbsp', 'TSP', 'ml', 'l', 'fl oz', 'fl_oz']) {
+        expect(isVolumeUnitLabel(label), isTrue, reason: label);
+      }
+    });
+
+    test('leaves real-world measure labels alone', () {
+      for (final label in ['can (400 ml)', 'half cup scoop', 'clove', 'oz']) {
+        expect(isVolumeUnitLabel(label), isFalse, reason: label);
+      }
+    });
   });
 }

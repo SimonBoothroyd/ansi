@@ -27,5 +27,10 @@ abstract class Ingredient with _$Ingredient {
     double? densityGPerMl,
     Macros? macros,
     @Default(MacrosBasis.perG) MacrosBasis macrosBasis,
+
+    /// Distinct live measure labels this ingredient carries — the picker
+    /// row's "N measures" capability hint (7.7). Populated by list reads;
+    /// 0 where a caller didn't ask for it.
+    @Default(0) int measureCount,
   }) = _Ingredient;
 }

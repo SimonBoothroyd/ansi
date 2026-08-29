@@ -16,8 +16,10 @@ import 'measure_repository_impl.dart';
 part 'ingredient_providers.g.dart';
 
 @Riverpod(keepAlive: true)
-IngredientRepository ingredientRepository(Ref ref) =>
-    SqliteIngredientRepository(ref.watch(databaseProvider));
+IngredientRepository ingredientRepository(Ref ref) => SqliteIngredientRepository(
+  ref.watch(databaseProvider),
+  householdId: ref.watch(currentHouseholdIdProvider),
+);
 
 @Riverpod(keepAlive: true)
 MeasureRepository measureRepository(Ref ref) => SqliteMeasureRepository(

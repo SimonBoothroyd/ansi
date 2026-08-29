@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mise/core/units/macros.dart';
 import 'package:mise/features/ingredients/data/ingredient_repository_impl.dart';
 import 'package:mise/features/ingredients/domain/ingredient.dart';
 import 'package:mise/features/ingredients/domain/search_query.dart';
@@ -53,7 +54,7 @@ void main() {
 
   setUp(() async {
     (db, dir) = await openTestDb();
-    repo = SqliteIngredientRepository(db);
+    repo = SqliteIngredientRepository(db, householdId: 'h');
     await _seed(db, id: '1', name: 'Onion', category: 'vegetables');
     await _seed(
       db,
@@ -150,5 +151,79 @@ void main() {
     expect(oil.status, IngredientStatus.stub);
     final onion = (await repo.search('onion')).first;
     expect(onion.category, 'vegetables');
+  });
+
+  test('maps macros with their stored basis (0011)', () async {
+    await db.execute(
+      "UPDATE ingredient SET macros = ?, macros_basis = 'ml' WHERE id = '1'",
+      ['{"kcal":40,"protein":1,"carb":9,"fat":0}'],
+    );
+    final onion = (await repo.search('onion')).first;
+    expect(onion.macros, isNotNull);
+    expect(onion.macros!.kcal, 40);
+    expect(onion.macrosBasis, MacrosBasis.perMl);
+  });
+
+  test('counts distinct live measure labels for the row hint (7.7)', () async {
+    for (final (mid, label, deleted) in [
+      ('m1', 'onion, medium', null),
+      ('m2', 'onion, large', null),
+      ('m3', 'onion, medium', null), // offline dupe — merges to one chip
+      ('m4', 'retired', '2026-01-02'),
+    ]) {
+      await db.execute(
+        'INSERT INTO ingredient_measure '
+        '(id, household_id, ingredient_id, label, grams, deleted_at) '
+        'VALUES (?, ?, ?, ?, 100, ?)',
+        [mid, 'h', '1', label, deleted],
+      );
+    }
+    final onion = (await repo.search('onion')).first;
+    expect(onion.measureCount, 2);
+  });
+
+  test('recentlyUsed surfaces line-item and top-up ingredients, newest '
+      'first', () async {
+    // Onion used in a recipe line (older), Tofu topped up manually (newer).
+    await db.execute(
+      'INSERT INTO recipe_line_item (id, household_id, group_id, '
+      "ingredient_id, unit, created_at) VALUES ('li1', 'h', 'g1', '1', 'g', "
+      "'2026-01-01')",
+    );
+    await db.execute(
+      'INSERT INTO shopping_list_entry (id, household_id, ingredient_id) '
+      "VALUES ('e1', 'h', '2')",
+    );
+    await db.execute(
+      'INSERT INTO shopping_list_contribution (id, household_id, entry_id, '
+      "source_type, quantity, unit, created_at) VALUES ('c1', 'h', 'e1', "
+      "'manual', 1, 'g', '2026-01-02')",
+    );
+
+    final recent = await repo.recentlyUsed();
+    expect(recent.map((i) => i.id).toList(), ['2', '1']);
+  });
+
+  test('recentlyUsed is empty when nothing was ever used', () async {
+    expect(await repo.recentlyUsed(), isEmpty);
+  });
+
+  test('createStub writes a findable manual stub (7.7 add-new)', () async {
+    final created = await repo.createStub('  Curry Leaves ');
+    expect(created.canonicalName, 'Curry Leaves');
+    expect(created.status, IngredientStatus.stub);
+
+    final found = (await repo.search('curry')).single;
+    expect(found.id, created.id);
+    expect(found.status, IngredientStatus.stub);
+    final row = await db.get(
+      'SELECT household_id, source, match_text, status FROM ingredient '
+      'WHERE id = ?',
+      [created.id],
+    );
+    expect(row['household_id'], 'h');
+    expect(row['source'], 'manual');
+    expect(row['match_text'], 'curry leaves');
+    expect(row['status'], 'stub');
   });
 }

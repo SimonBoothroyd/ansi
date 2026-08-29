@@ -90,6 +90,29 @@ void main() {
     });
   });
 
+  group('sourceKind (7.7 humanized provenance)', () {
+    Measure withSource(String? source) =>
+        Measure(id: 'm', label: 'x', grams: 1, source: source);
+
+    test('classifies each provenance family', () {
+      expect(
+        withSource('usda_fdc:170172 (1 packet)').sourceKind,
+        MeasureSourceKind.usdaPortion,
+      );
+      expect(
+        withSource('usda_fdc:170171 (1 cup) — borrowed').sourceKind,
+        MeasureSourceKind.borrowed,
+      );
+      expect(withSource('seed:typical').sourceKind, MeasureSourceKind.typical);
+      expect(withSource('manual').sourceKind, MeasureSourceKind.manual);
+    });
+
+    test('null and unrecognized strings are unknown', () {
+      expect(withSource(null).sourceKind, MeasureSourceKind.unknown);
+      expect(withSource('mystery').sourceKind, MeasureSourceKind.unknown);
+    });
+  });
+
   test('Measure is value-equal on all fields', () {
     expect(
       potatoLarge,
