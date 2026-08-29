@@ -336,6 +336,14 @@ class _TopUpQuantity extends ConsumerWidget {
     final measures =
         ref.watch(ingredientMeasuresProvider(ingredient.id)).asData?.value ??
         const <Measure>[];
+    // Keep the current selection selectable even if the live measure list
+    // changed under the open sheet (rename/delete syncing in) — an FSelect
+    // whose value isn't among its children renders orphaned.
+    final allowed = allowedUnitChoicesFor(ingredient, measures);
+    final current = unit.value;
+    final choices = current == null || allowed.contains(current)
+        ? allowed
+        : [...allowed, current];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -393,7 +401,7 @@ class _TopUpQuantity extends ConsumerWidget {
                   // Only units this ingredient can honestly convert between
                   // (tech-debt row shopping/units), plus its named measures
                   // ("potato, large (299 g)" — step 7.6).
-                  for (final c in allowedUnitChoicesFor(ingredient, measures))
+                  for (final c in choices)
                     FSelectItem(title: Text(c.label), value: c),
                 ],
               ),

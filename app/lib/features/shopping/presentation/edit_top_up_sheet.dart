@@ -10,6 +10,13 @@
 /// (`allowedUnitChoicesFor` — honest units plus the ingredient's measures),
 /// falling back to the full catalog while unresolved; the stored selection
 /// stays selectable so an existing top-up never renders an orphaned value.
+///
+/// A top-up whose stored `measure_id` doesn't resolve (row unsynced or
+/// soft-deleted) renders as its honest count fallback with a "(measure
+/// pending sync)" note, and **Save keeps the id verbatim** unless the user
+/// explicitly picks a different unit — mirroring the recipe editor, so an
+/// unrelated edit never wipes the FK for every device (invariant 3's
+/// degrade-don't-destroy).
 library;
 
 import 'dart:math' as math;
@@ -71,6 +78,14 @@ class _EditTopUpSheet extends HookConsumerWidget {
           ? UnitOption(contribution.unit ?? pieces)
           : MeasureOption(storedMeasure),
     );
+    // True once the user explicitly picked from the dropdown — only then may
+    // a plain-unit save clear a stored (possibly unresolved) measure id.
+    final pickedUnit = useState(false);
+    // A stored measure_id whose row didn't resolve: shown as the count
+    // fallback + a pending note, and preserved verbatim on save.
+    final unresolvedMeasureId = storedMeasure == null
+        ? contribution.measureId
+        : null;
     final contributionId = contribution.contributionId!;
 
     final ingredient = ingredientId == null
@@ -98,6 +113,9 @@ class _EditTopUpSheet extends HookConsumerWidget {
           contributionId: contributionId,
           quantity: qty,
           unit: unit,
+          // An unresolved measure id survives a re-save untouched; only an
+          // explicit unit pick clears it (mirrors the recipe editor).
+          measureId: pickedUnit.value ? null : unresolvedMeasureId,
         ),
         MeasureOption(:final measure) => repo.editContribution(
           contributionId: contributionId,
@@ -189,11 +207,19 @@ class _EditTopUpSheet extends HookConsumerWidget {
                   flex: 3,
                   child: FSelect<UnitChoice>.rich(
                     hint: 'unit',
-                    format: (c) => c.label,
+                    // The count fallback of an unresolved measure carries a
+                    // subtle note until the user picks something explicit.
+                    format: (c) =>
+                        unresolvedMeasureId != null && !pickedUnit.value
+                        ? '${c.label} (measure pending sync)'
+                        : c.label,
                     control: FSelectControl<UnitChoice>.lifted(
                       value: choice.value,
                       onChange: (c) {
-                        if (c != null) choice.value = c;
+                        if (c != null) {
+                          choice.value = c;
+                          pickedUnit.value = true;
+                        }
                       },
                     ),
                     children: [

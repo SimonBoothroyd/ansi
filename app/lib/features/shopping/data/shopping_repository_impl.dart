@@ -178,8 +178,12 @@ class SqliteShoppingRepository implements ShoppingRepository {
             unit: unit,
             rawUnit: item.rawUnit,
             // A measure count scales linearly (its stored unit is a count),
-            // so the already-scaled amount is the measure amount too.
-            measure: item.measure,
+            // so the already-scaled amount is the measure amount too. But a
+            // measure beside an UNRECOGNISED unit is dropped: the quantity's
+            // semantics are unknown AND unscaled, so folding it through the
+            // measure's gram weight would sum an invented number — the line
+            // surfaces as the unrecognised-unit note instead (invariant 3).
+            measure: unit == null ? null : item.measure,
             recipeTitle: recipe.title,
             cookDay: session.cookDay,
             batched: batched,
@@ -280,6 +284,9 @@ class SqliteShoppingRepository implements ShoppingRepository {
         entryId: entryId,
         quantity: (r['quantity'] as num?)?.toDouble(),
         unit: unitById(r['unit'] as String? ?? ''),
+        // The stored id verbatim, kept even while the measure row is missing
+        // (unsynced/deleted) so an edit re-save never wipes the FK.
+        measureId: r['measure_id'] as String?,
         measure: _toMeasure(r),
         note: r['note'] as String?,
       ));

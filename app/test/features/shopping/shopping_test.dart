@@ -33,6 +33,7 @@ ManualContributionInput _manual(
   String entryId,
   double qty,
   Unit? unit, {
+  String? measureId,
   Measure? measure,
   String? note,
 }) => (
@@ -40,6 +41,7 @@ ManualContributionInput _manual(
   entryId: entryId,
   quantity: qty,
   unit: unit,
+  measureId: measureId ?? measure?.id,
   measure: measure,
   note: note,
 );
@@ -200,7 +202,6 @@ void main() {
     test('rounds up a fractional count total on a measure-bearing food', () {
       final hint = wholeUnitHintFor(
         totals: [Quantity(2.25, pieces)],
-        defaultUnit: pieces,
         measures: const [_potatoLarge],
       );
       expect(hint, isNotNull);
@@ -210,10 +211,21 @@ void main() {
       expect(hint.approx, isFalse);
     });
 
+    test('a fractional count needs no measure — "2.25 piece → buy 3"', () {
+      // A count is already a whole-thing tally: rounding it up invents
+      // nothing, so the hint is un-gated for the count branch.
+      final hint = wholeUnitHintFor(
+        totals: [Quantity(2.25, pieces)],
+        measures: const [],
+      );
+      expect(hint, isNotNull);
+      expect(hint!.buy, 3);
+      expect(hint.approx, isFalse);
+    });
+
     test('derives a count from a mass total via the primary measure', () {
       final hint = wholeUnitHintFor(
         totals: [Quantity(674, g)],
-        defaultUnit: pieces,
         measures: const [_potatoLarge],
       );
       expect(hint, isNotNull);
@@ -223,33 +235,70 @@ void main() {
       expect(hint.approx, isTrue);
     });
 
-    test('never hints without a measure — a bare count stays honest', () {
+    test('prefers the measure the contributions actually used', () {
+      // Primary is "medium" (sort 0) but the total came from LARGE potatoes:
+      // 598 g must hint in large (whole → no hint at 2.0; 674 g → 2.25),
+      // never "≈ 2.81 medium → buy 3" off the wrong denominator.
+      const medium = Measure(id: 'mm', label: 'potato, medium', grams: 213);
       expect(
         wholeUnitHintFor(
-          totals: [Quantity(2.25, pieces)],
-          defaultUnit: pieces,
-          measures: const [],
+          totals: [Quantity(2 * 299, g)],
+          measures: const [medium, _potatoLarge],
+          usedMeasures: const [_potatoLarge],
+        ),
+        isNull, // exactly 2 large — nothing fractional to round
+      );
+      final hint = wholeUnitHintFor(
+        totals: [Quantity(674, g)],
+        measures: const [medium, _potatoLarge],
+        usedMeasures: const [_potatoLarge],
+      );
+      expect(hint, isNotNull);
+      expect(hint!.unitLabel, 'potato, large');
+      expect(hint.count, closeTo(674 / 299, 1e-9));
+      expect(hint.buy, 3);
+    });
+
+    test('disagreeing measure provenance gets no hint', () {
+      // Contributions counted in two different measures: no single honest
+      // unit to round the mass total to.
+      const medium = Measure(id: 'mm', label: 'potato, medium', grams: 213);
+      expect(
+        wholeUnitHintFor(
+          totals: [Quantity(674, g)],
+          measures: const [medium, _potatoLarge],
+          usedMeasures: const [medium, _potatoLarge],
         ),
         isNull,
       );
     });
 
-    test('never hints on a non-count-default ingredient', () {
+    test('a mass total without any measure never hints', () {
       expect(
-        wholeUnitHintFor(
-          totals: [Quantity(674, g)],
-          defaultUnit: g,
-          measures: const [_potatoLarge],
-        ),
+        wholeUnitHintFor(totals: [Quantity(674, g)], measures: const []),
         isNull,
       );
+    });
+
+    test('a mass-default item with a measure hints too (canned/blocks)', () {
+      // Tofu defaults to oz (mass) but has a block measure: the hint applies
+      // regardless of default-unit family — the measure is the purchasable
+      // thing.
+      const block = Measure(id: 'mt', label: 'block (14 oz)', grams: 397);
+      final hint = wholeUnitHintFor(
+        totals: [Quantity(600, g)],
+        measures: const [block],
+      );
+      expect(hint, isNotNull);
+      expect(hint!.buy, 2);
+      expect(hint.unitLabel, 'block (14 oz)');
+      expect(hint.approx, isTrue);
     });
 
     test('a whole total needs no hint', () {
       expect(
         wholeUnitHintFor(
           totals: [Quantity(3, pieces)],
-          defaultUnit: pieces,
           measures: const [_potatoLarge],
         ),
         isNull,
@@ -257,7 +306,6 @@ void main() {
       expect(
         wholeUnitHintFor(
           totals: [Quantity(598, g)], // exactly 2 × 299 g
-          defaultUnit: pieces,
           measures: const [_potatoLarge],
         ),
         isNull,
@@ -268,7 +316,6 @@ void main() {
       expect(
         wholeUnitHintFor(
           totals: [Quantity(1.5, pieces), Quantity(100, g)],
-          defaultUnit: pieces,
           measures: const [_potatoLarge],
         ),
         isNull,
@@ -580,6 +627,106 @@ void main() {
       expect(item.wholeUnitHint, isNotNull);
       expect(item.wholeUnitHint!.buy, 3);
       expect(item.wholeUnitHint!.approx, isFalse);
+    });
+
+    test('the hint denominates in the measure the contributions used', () {
+      // Live repro from review: "2 × potato, large" (598 g) with "medium"
+      // sorted first must NOT hint "≈ 2.81 medium → buy 3" — the total is
+      // exactly 2 large, so there is no hint at all.
+      const medium = Measure(id: 'mm', label: 'potato, medium', grams: 213);
+      final list = build(
+        cook: [
+          _cook('potato', 2, pieces, measure: _potatoLarge, recipe: 'Stew'),
+        ],
+        meta: {
+          'potato': metaFor(
+            'Potato',
+            'produce',
+            unit: pieces,
+            measures: [medium, _potatoLarge],
+          ),
+        },
+      );
+      final item = list.groups.single.items.single;
+      expect(item.totals.single.amount, closeTo(598, 1e-9));
+      expect(item.wholeUnitHint, isNull);
+
+      // And a genuinely fractional large-derived total hints in LARGE.
+      final fractional = build(
+        cook: [
+          _cook('potato', 2.25, pieces, measure: _potatoLarge, recipe: 'Stew'),
+        ],
+        meta: {
+          'potato': metaFor(
+            'Potato',
+            'produce',
+            unit: pieces,
+            measures: [medium, _potatoLarge],
+          ),
+        },
+      );
+      final hint = fractional.groups.single.items.single.wholeUnitHint;
+      expect(hint, isNotNull);
+      expect(hint!.unitLabel, 'potato, large');
+      expect(hint.buy, 3);
+    });
+
+    test('an invalid measure is a visible note, never a silent drop', () {
+      // grams = 0 (bad data past the DB check, e.g. a rogue local write):
+      // the line must surface as "not counted", like an unrecognised unit —
+      // not vanish from the breakdown while the total quietly shrinks.
+      const bad = Measure(id: 'mb', label: 'mystery bag', grams: 0);
+      final list = build(
+        cook: [
+          _cook('potato', 100, g, recipe: 'Curry'),
+          _cook('potato', 2, pieces, measure: bad, recipe: 'Stew'),
+        ],
+        entries: [_entry('e1', ingredientId: 'potato')],
+        manual: {
+          'e1': [_manual('c1', 'e1', 1, pieces, measure: bad)],
+        },
+        meta: {'potato': metaFor('Potato', 'produce', unit: pieces)},
+      );
+      final item = list.groups.single.items.single;
+      expect(item.totals.single.amount, 100); // only the honest 100 g
+      final cookNote = item.contributions.firstWhere(
+        (c) =>
+            c.source == ContributionSource.cookSession &&
+            c.label.contains('invalid measure'),
+      );
+      expect(cookNote.label, contains('Stew'));
+      expect(cookNote.label, contains('"mystery bag"'));
+      expect(cookNote.quantity, isNull);
+      final manualNote = item.contributions.firstWhere(
+        (c) => c.source == ContributionSource.manual,
+      );
+      expect(manualNote.label, contains('invalid measure'));
+      expect(manualNote.quantity, isNull);
+      expect(manualNote.contributionId, 'c1'); // still editable/removable
+      expect(manualNote.measureId, 'mb'); // the FK is never stripped
+    });
+
+    test('a manual contribution keeps its unresolved measure_id', () {
+      // The measure row hasn't synced: the breakdown line degrades to the
+      // honest count, but the raw id rides along so an edit re-save can
+      // preserve it (the review's A1 wipe).
+      final list = build(
+        cook: [_cook('potato', 1, pieces, recipe: 'Stew')],
+        entries: [_entry('e1', ingredientId: 'potato')],
+        manual: {
+          'e1': [_manual('c1', 'e1', 2, pieces, measureId: 'm-ghost')],
+        },
+        meta: {'potato': metaFor('Potato', 'produce', unit: pieces)},
+      );
+      final item = list.groups.single.items.single;
+      final manualLine = item.contributions.firstWhere(
+        (c) => c.source == ContributionSource.manual,
+      );
+      expect(manualLine.measure, isNull);
+      expect(manualLine.measureId, 'm-ghost');
+      expect(manualLine.quantity, 2);
+      expect(manualLine.unit, pieces); // honest count fallback
+      expect(item.totals.single.amount, 3); // counts sum honestly
     });
   });
 }

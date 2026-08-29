@@ -76,13 +76,18 @@ typedef ShoppingEntryInput = ({
   String? createdAt,
 });
 
-/// A persisted manual contribution attached to an entry. `measure`, when set,
-/// is the resolved [Measure] the top-up was quantified in.
+/// A persisted manual contribution attached to an entry. `measureId` is the
+/// stored `measure_id` verbatim (kept even while the measure row hasn't
+/// synced, so an edit re-save never strips the FK — mirrors the recipe
+/// line's `measureId`);
+/// `measure`, when set, is the resolved [Measure] the top-up was quantified
+/// in.
 typedef ManualContributionInput = ({
   String id,
   String entryId,
   double? quantity,
   Unit? unit,
+  String? measureId,
   Measure? measure,
   String? note,
 });
@@ -117,6 +122,13 @@ abstract class ShoppingContribution with _$ShoppingContribution {
     /// The measure the quantity is counted in ("2 × potato, large"), when the
     /// contribution was quantified in one; [unit] is null then.
     Measure? measure,
+
+    /// The persisted `measure_id` of a manual contribution, verbatim — kept
+    /// even while [measure] is unresolved (row not yet synced / soft-deleted)
+    /// so the edit sheet's re-save never wipes the FK for every device
+    /// (mirrors the recipe line's `measureId`). Null for cook lines (derived,
+    /// never re-saved here).
+    String? measureId,
 
     /// Cook day (0=Mon..6=Sun) for a cook contribution — orders the breakdown.
     int? cookDay,
@@ -325,25 +337,29 @@ typedef WholeUnitHint = ({
 
 /// The round-up hint for an item's [totals], or null (spec §4, step 7.6).
 ///
-/// Only a **count-family ingredient that has a measure** qualifies — the
-/// measure is what makes "a whole one" a real, weighable thing to buy. The
-/// hint is offered only when the item rolled up to a SINGLE total (a mixed
-/// count+mass item would need a hint that covers both — a guess) and that
-/// total is fractional:
+/// The hint is offered only when the item rolled up to a SINGLE total (a
+/// mixed count+mass item would need a hint that covers both — a guess) and
+/// that total is fractional:
 ///
-/// - a fractional count total ("2.25 piece") rounds up directly;
-/// - a mass total converts through the ingredient's primary measure (lowest
-///   `sort_order`) — "674 g ≈ 2.25 × potato, large → buy 3" — marked
-///   `approx`.
+/// - a fractional count total ("2.25 piece") rounds up directly — a count is
+///   already a whole-thing tally, so it needs no measure and no default-unit
+///   gate;
+/// - a mass total converts through a measure — "674 g ≈ 2.25 × potato, large
+///   → buy 3" — marked `approx`. The measure used is the one the total's
+///   contributions were actually counted in ([usedMeasures], when they all
+///   agree — hinting "buy 3 medium" against a total built from large
+///   potatoes would misprice it); an item with NO measure provenance falls
+///   back to the ingredient's primary measure (lowest `sort_order`), and one
+///   with *disagreeing* provenance gets no hint (no single honest unit to
+///   round to).
 ///
 /// Always a hint BESIDE the honest total, never a replacement (invariant 3).
 WholeUnitHint? wholeUnitHintFor({
   required List<Quantity> totals,
-  required Unit defaultUnit,
   required List<Measure> measures,
+  List<Measure> usedMeasures = const [],
 }) {
-  if (defaultUnit.family != UnitFamily.count) return null;
-  if (measures.isEmpty || totals.length != 1) return null;
+  if (totals.length != 1) return null;
   final total = totals.single;
 
   bool fractional(double v) => v > 0 && (v - v.round()).abs() > 1e-9;
@@ -357,13 +373,22 @@ WholeUnitHint? wholeUnitHintFor({
     );
   }
   if (total.unit.family == UnitFamily.mass) {
-    final primary = measures.first;
-    final inMeasure = amountInMeasure(total, primary);
+    final usedIds = {for (final m in usedMeasures) m.id};
+    final Measure? measure;
+    if (usedIds.length > 1) {
+      return null; // disagreeing provenance — no single honest unit
+    } else if (usedMeasures.isNotEmpty) {
+      measure = usedMeasures.first;
+    } else {
+      measure = measures.isEmpty ? null : measures.first;
+    }
+    if (measure == null) return null;
+    final inMeasure = amountInMeasure(total, measure);
     if (inMeasure case Ok(:final value) when fractional(value)) {
       return (
         count: value,
         buy: value.ceil(),
-        unitLabel: primary.label,
+        unitLabel: measure.label,
         approx: true,
       );
     }
@@ -486,8 +511,11 @@ ShoppingList buildShoppingList({
         // A quantity whose unit wasn't recognised is surfaced as an
         // unconverted note (no quantity/unit → renders as a dash + note) and
         // stays out of the totals: summing it under an assumed unit would
-        // invent semantics (invariant 3). A measure-quantified line keeps its
-        // measure so the fold below can price it in grams.
+        // invent semantics (invariant 3). A measure with a non-positive/NaN
+        // gram weight is bad data and gets the same treatment — a visible
+        // "not counted" note, never a silent drop from the total. A valid
+        // measure-quantified line keeps its measure so the fold below can
+        // price it in grams.
         if (c.unit == null && c.measure == null && c.quantity != null)
           ShoppingContribution(
             source: ContributionSource.cookSession,
@@ -495,6 +523,16 @@ ShoppingList buildShoppingList({
                 '${cookLabel(c, weekdayShort)} · '
                 'not counted (unrecognised unit'
                 '${c.rawUnit == null ? '' : ' "${c.rawUnit}"'})',
+            cookDay: c.cookDay,
+          )
+        else if (c.measure != null &&
+            !(c.measure!.grams > 0) &&
+            c.quantity != null)
+          ShoppingContribution(
+            source: ContributionSource.cookSession,
+            label:
+                '${cookLabel(c, weekdayShort)} · '
+                'not counted (invalid measure "${c.measure!.label}")',
             cookDay: c.cookDay,
           )
         else
@@ -507,14 +545,27 @@ ShoppingList buildShoppingList({
             cookDay: c.cookDay,
           ),
       for (final man in manuals)
-        ShoppingContribution(
-          source: ContributionSource.manual,
-          label: man.note ?? 'manual top-up',
-          quantity: man.quantity,
-          unit: man.measure == null ? man.unit : null,
-          measure: man.measure,
-          contributionId: man.id,
-        ),
+        if (man.measure != null &&
+            !(man.measure!.grams > 0) &&
+            man.quantity != null)
+          ShoppingContribution(
+            source: ContributionSource.manual,
+            label:
+                '${man.note ?? 'manual top-up'} · '
+                'not counted (invalid measure "${man.measure!.label}")',
+            measureId: man.measureId,
+            contributionId: man.id,
+          )
+        else
+          ShoppingContribution(
+            source: ContributionSource.manual,
+            label: man.note ?? 'manual top-up',
+            quantity: man.quantity,
+            unit: man.measure == null ? man.unit : null,
+            measureId: man.measureId,
+            measure: man.measure,
+            contributionId: man.id,
+          ),
     ];
 
     final quantities = <Quantity>[
@@ -546,8 +597,16 @@ ShoppingList buildShoppingList({
             ? null
             : wholeUnitHintFor(
                 totals: totals,
-                defaultUnit: m.defaultUnit,
                 measures: m.measures,
+                // The measures this total was actually counted in (deduped by
+                // id): the hint prices in these when they agree, rather than
+                // whichever measure happens to sort first.
+                usedMeasures: [
+                  for (final id in {for (final e in measured) e.measure.id})
+                    measured
+                        .firstWhere((e) => e.measure.id == id)
+                        .measure,
+                ],
               ),
       ),
     );

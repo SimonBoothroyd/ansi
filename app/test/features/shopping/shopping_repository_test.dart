@@ -464,4 +464,85 @@ void main() {
     expect(onion.totals.single.unit, pieces);
     expect(onion.totals.single.amount, 2);
   });
+
+  test('an unresolved measure_id survives an edit round-trip (never '
+      'wiped)', () async {
+    // Mirror of the recipe repo's unresolved-measure test: the measure row
+    // hasn't synced, the user edits the top-up's quantity, and the FK must
+    // come through the load → edit → save cycle intact — a re-save that
+    // wrote NULL would destroy the reference for every device (review A1).
+    await repo.addTopUp(
+      ingredientId: 'onion',
+      quantity: 2,
+      unit: pieces,
+      measureId: 'm-ghost',
+    );
+    final list = await repo.watchShoppingList(_week).first;
+    final line = list.groups.single.items.single.contributions.single;
+    expect(line.measure, isNull); // unresolved…
+    expect(line.measureId, 'm-ghost'); // …but the raw id rides along
+
+    // The edit sheet re-saves with the loaded contribution's id preserved.
+    await repo.editContribution(
+      contributionId: line.contributionId!,
+      quantity: 3,
+      unit: pieces,
+      measureId: line.measureId,
+    );
+    final row = await db.get(
+      'SELECT quantity, measure_id FROM shopping_list_contribution '
+      'WHERE deleted_at IS NULL',
+    );
+    expect(row['quantity'], 3);
+    expect(row['measure_id'], 'm-ghost');
+  });
+
+  test('an unrecognised unit beside a resolvable measure is a note, not an '
+      'unscaled mass', () async {
+    // Weird-but-possible row: unit is an unknown string AND measure_id
+    // resolves. The quantity's semantics are unknown and it can't be scaled,
+    // so folding it through the measure's gram weight would sum an invented
+    // (and unscaled) number — it must surface like any unrecognised unit.
+    await _insertIngredient(db, 'spud', 'Potato', 'produce', 'piece');
+    await db.execute(
+      'INSERT INTO ingredient_measure '
+      '(id, household_id, ingredient_id, label, grams, sort_order) '
+      'VALUES (?, ?, ?, ?, ?, 0)',
+      ['m-spud', 'h', 'spud', 'potato, medium', 213],
+    );
+    await _insertRecipe(
+      db,
+      'stew',
+      'Stew',
+      servings: 4,
+      lines: [('spud', 100, g)],
+    );
+    final now = DateTime.now().toUtc().toIso8601String();
+    await db.execute(
+      'INSERT INTO recipe_line_item (id, household_id, group_id, '
+      'ingredient_id, quantity, unit, measure_id, sort_order, created_at, '
+      "updated_at) VALUES ('stew-li9', 'h', 'stew-g', 'spud', 2, 'scoop', "
+      "'m-spud', 9, ?, ?)",
+      [now, now],
+    );
+    // 3 portions of a serves-4 recipe → ×0.75 (so an unscaled leak differs
+    // from the honest number).
+    await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'stew',
+      eaterIds: ['a'],
+      portions: 3,
+    );
+
+    final item =
+        (await repo.watchShoppingList(_week).first).groups.single.items.single;
+    // Only the honest scaled 75 g — never 75 + 2 × 213 unscaled grams.
+    expect(item.totals.single.amount, closeTo(75, 1e-9));
+    expect(
+      item.contributions.map((c) => c.label),
+      anyElement(contains('unrecognised unit "scoop"')),
+    );
+  });
 }

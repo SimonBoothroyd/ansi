@@ -19,7 +19,12 @@ mixin _$ShoppingContribution {
  String get label;/// Null for a bare non-food item (renders as a dash).
  double? get quantity; Unit? get unit;/// The measure the quantity is counted in ("2 × potato, large"), when the
 /// contribution was quantified in one; [unit] is null then.
- Measure? get measure;/// Cook day (0=Mon..6=Sun) for a cook contribution — orders the breakdown.
+ Measure? get measure;/// The persisted `measure_id` of a manual contribution, verbatim — kept
+/// even while [measure] is unresolved (row not yet synced / soft-deleted)
+/// so the edit sheet's re-save never wipes the FK for every device
+/// (mirrors the recipe line's `measureId`). Null for cook lines (derived,
+/// never re-saved here).
+ String? get measureId;/// Cook day (0=Mon..6=Sun) for a cook contribution — orders the breakdown.
  int? get cookDay;/// The persisted `shopping_list_contribution` id — set only for a `manual`
 /// contribution (a cook one is derived, so it has none). Lets the UI edit
 /// or remove this specific top-up.
@@ -34,16 +39,16 @@ $ShoppingContributionCopyWith<ShoppingContribution> get copyWith => _$ShoppingCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShoppingContribution&&(identical(other.source, source) || other.source == source)&&(identical(other.label, label) || other.label == label)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.contributionId, contributionId) || other.contributionId == contributionId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShoppingContribution&&(identical(other.source, source) || other.source == source)&&(identical(other.label, label) || other.label == label)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.contributionId, contributionId) || other.contributionId == contributionId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,source,label,quantity,unit,measure,cookDay,contributionId);
+int get hashCode => Object.hash(runtimeType,source,label,quantity,unit,measure,measureId,cookDay,contributionId);
 
 @override
 String toString() {
-  return 'ShoppingContribution(source: $source, label: $label, quantity: $quantity, unit: $unit, measure: $measure, cookDay: $cookDay, contributionId: $contributionId)';
+  return 'ShoppingContribution(source: $source, label: $label, quantity: $quantity, unit: $unit, measure: $measure, measureId: $measureId, cookDay: $cookDay, contributionId: $contributionId)';
 }
 
 
@@ -54,7 +59,7 @@ abstract mixin class $ShoppingContributionCopyWith<$Res>  {
   factory $ShoppingContributionCopyWith(ShoppingContribution value, $Res Function(ShoppingContribution) _then) = _$ShoppingContributionCopyWithImpl;
 @useResult
 $Res call({
- ContributionSource source, String label, double? quantity, Unit? unit, Measure? measure, int? cookDay, String? contributionId
+ ContributionSource source, String label, double? quantity, Unit? unit, Measure? measure, String? measureId, int? cookDay, String? contributionId
 });
 
 
@@ -71,14 +76,15 @@ class _$ShoppingContributionCopyWithImpl<$Res>
 
 /// Create a copy of ShoppingContribution
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? source = null,Object? label = null,Object? quantity = freezed,Object? unit = freezed,Object? measure = freezed,Object? cookDay = freezed,Object? contributionId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? source = null,Object? label = null,Object? quantity = freezed,Object? unit = freezed,Object? measure = freezed,Object? measureId = freezed,Object? cookDay = freezed,Object? contributionId = freezed,}) {
   return _then(_self.copyWith(
 source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as ContributionSource,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as String,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as double?,unit: freezed == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
 as Unit?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
-as Measure?,cookDay: freezed == cookDay ? _self.cookDay : cookDay // ignore: cast_nullable_to_non_nullable
+as Measure?,measureId: freezed == measureId ? _self.measureId : measureId // ignore: cast_nullable_to_non_nullable
+as String?,cookDay: freezed == cookDay ? _self.cookDay : cookDay // ignore: cast_nullable_to_non_nullable
 as int?,contributionId: freezed == contributionId ? _self.contributionId : contributionId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -165,10 +171,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ContributionSource source,  String label,  double? quantity,  Unit? unit,  Measure? measure,  int? cookDay,  String? contributionId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ContributionSource source,  String label,  double? quantity,  Unit? unit,  Measure? measure,  String? measureId,  int? cookDay,  String? contributionId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ShoppingContribution() when $default != null:
-return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.measure,_that.cookDay,_that.contributionId);case _:
+return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.measure,_that.measureId,_that.cookDay,_that.contributionId);case _:
   return orElse();
 
 }
@@ -186,10 +192,10 @@ return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.measure
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ContributionSource source,  String label,  double? quantity,  Unit? unit,  Measure? measure,  int? cookDay,  String? contributionId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ContributionSource source,  String label,  double? quantity,  Unit? unit,  Measure? measure,  String? measureId,  int? cookDay,  String? contributionId)  $default,) {final _that = this;
 switch (_that) {
 case _ShoppingContribution():
-return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.measure,_that.cookDay,_that.contributionId);case _:
+return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.measure,_that.measureId,_that.cookDay,_that.contributionId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -206,10 +212,10 @@ return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.measure
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ContributionSource source,  String label,  double? quantity,  Unit? unit,  Measure? measure,  int? cookDay,  String? contributionId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ContributionSource source,  String label,  double? quantity,  Unit? unit,  Measure? measure,  String? measureId,  int? cookDay,  String? contributionId)?  $default,) {final _that = this;
 switch (_that) {
 case _ShoppingContribution() when $default != null:
-return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.measure,_that.cookDay,_that.contributionId);case _:
+return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.measure,_that.measureId,_that.cookDay,_that.contributionId);case _:
   return null;
 
 }
@@ -221,7 +227,7 @@ return $default(_that.source,_that.label,_that.quantity,_that.unit,_that.measure
 
 
 class _ShoppingContribution implements ShoppingContribution {
-  const _ShoppingContribution({required this.source, required this.label, this.quantity, this.unit, this.measure, this.cookDay, this.contributionId});
+  const _ShoppingContribution({required this.source, required this.label, this.quantity, this.unit, this.measure, this.measureId, this.cookDay, this.contributionId});
   
 
 @override final  ContributionSource source;
@@ -234,6 +240,12 @@ class _ShoppingContribution implements ShoppingContribution {
 /// The measure the quantity is counted in ("2 × potato, large"), when the
 /// contribution was quantified in one; [unit] is null then.
 @override final  Measure? measure;
+/// The persisted `measure_id` of a manual contribution, verbatim — kept
+/// even while [measure] is unresolved (row not yet synced / soft-deleted)
+/// so the edit sheet's re-save never wipes the FK for every device
+/// (mirrors the recipe line's `measureId`). Null for cook lines (derived,
+/// never re-saved here).
+@override final  String? measureId;
 /// Cook day (0=Mon..6=Sun) for a cook contribution — orders the breakdown.
 @override final  int? cookDay;
 /// The persisted `shopping_list_contribution` id — set only for a `manual`
@@ -251,16 +263,16 @@ _$ShoppingContributionCopyWith<_ShoppingContribution> get copyWith => __$Shoppin
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShoppingContribution&&(identical(other.source, source) || other.source == source)&&(identical(other.label, label) || other.label == label)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.contributionId, contributionId) || other.contributionId == contributionId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShoppingContribution&&(identical(other.source, source) || other.source == source)&&(identical(other.label, label) || other.label == label)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.contributionId, contributionId) || other.contributionId == contributionId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,source,label,quantity,unit,measure,cookDay,contributionId);
+int get hashCode => Object.hash(runtimeType,source,label,quantity,unit,measure,measureId,cookDay,contributionId);
 
 @override
 String toString() {
-  return 'ShoppingContribution(source: $source, label: $label, quantity: $quantity, unit: $unit, measure: $measure, cookDay: $cookDay, contributionId: $contributionId)';
+  return 'ShoppingContribution(source: $source, label: $label, quantity: $quantity, unit: $unit, measure: $measure, measureId: $measureId, cookDay: $cookDay, contributionId: $contributionId)';
 }
 
 
@@ -271,7 +283,7 @@ abstract mixin class _$ShoppingContributionCopyWith<$Res> implements $ShoppingCo
   factory _$ShoppingContributionCopyWith(_ShoppingContribution value, $Res Function(_ShoppingContribution) _then) = __$ShoppingContributionCopyWithImpl;
 @override @useResult
 $Res call({
- ContributionSource source, String label, double? quantity, Unit? unit, Measure? measure, int? cookDay, String? contributionId
+ ContributionSource source, String label, double? quantity, Unit? unit, Measure? measure, String? measureId, int? cookDay, String? contributionId
 });
 
 
@@ -288,14 +300,15 @@ class __$ShoppingContributionCopyWithImpl<$Res>
 
 /// Create a copy of ShoppingContribution
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? source = null,Object? label = null,Object? quantity = freezed,Object? unit = freezed,Object? measure = freezed,Object? cookDay = freezed,Object? contributionId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? source = null,Object? label = null,Object? quantity = freezed,Object? unit = freezed,Object? measure = freezed,Object? measureId = freezed,Object? cookDay = freezed,Object? contributionId = freezed,}) {
   return _then(_ShoppingContribution(
 source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as ContributionSource,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as String,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as double?,unit: freezed == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
 as Unit?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
-as Measure?,cookDay: freezed == cookDay ? _self.cookDay : cookDay // ignore: cast_nullable_to_non_nullable
+as Measure?,measureId: freezed == measureId ? _self.measureId : measureId // ignore: cast_nullable_to_non_nullable
+as String?,cookDay: freezed == cookDay ? _self.cookDay : cookDay // ignore: cast_nullable_to_non_nullable
 as int?,contributionId: freezed == contributionId ? _self.contributionId : contributionId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));

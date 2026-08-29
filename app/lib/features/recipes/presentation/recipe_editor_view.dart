@@ -287,7 +287,12 @@ class _LineItemEditor extends ConsumerWidget {
               Expanded(
                 child: FSelect<UnitChoice>.rich(
                   hint: 'unit',
-                  format: (c) => c.label,
+                  // An unresolved measure_id renders as its honest count
+                  // fallback — the note says why it's a plain "piece" until
+                  // the measure row syncs in.
+                  format: (c) => item.measureId != null && item.measure == null
+                      ? '${c.label} (measure pending sync)'
+                      : c.label,
                   control: FSelectControl<UnitChoice>.lifted(
                     value: _selected,
                     onChange: (c) => switch (c) {
