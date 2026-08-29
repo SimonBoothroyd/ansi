@@ -113,6 +113,35 @@ data model behind the MacroFactor-style unit chips (see plan 0011 for the UI).
   and the ~40 MB CSV bundles aren't committed), so the seed pass is
   hand-curated with sources noted per row.
 
+### Addendum — review follow-up (0010 migration + provenance pipeline)
+
+- 2026-08-28 — **USDA mining re-answered: yes, from the raw bundles.** The
+  earlier "no" was true of the compact `usda_food` table but wrong as a
+  conclusion: FDC's `food_portion.csv` (in the uncommitted bundles) carries
+  exactly the piece-type gram weights measures need. `seed_measures.sql` is
+  now GENERATED (`seed/scripts/gen_measures.ts`): 184 rows over 118
+  ingredients — tier 1 from each ingredient's own linked food (russet vs red
+  potato get their own weights; a variety linked to a broader food keeps only
+  variety-named portions, so cherry tomato = the 17 g `cherry` portion), tier
+  2 an explicit committed borrow map (gold potato ← russet's size classes;
+  five canned-bean varieties ← pinto's drained 15 oz can), and four
+  `seed:typical` survivors where FDC has nothing usable (shallot, tempeh,
+  coconut-milk can, silken-tofu block).
+- 2026-08-28 — **Per-ingredient rows stay; no shared portion-class entity.**
+  Sharing "medium potato" across varieties was considered and rejected: user
+  overrides (and 7.7's editor) must stay variety-specific, and the borrow map
+  makes cross-variety reuse explicit at *seed* time instead of implicit at
+  read time. `ingredient_measure.source` (0010) records provenance per row —
+  `usda_fdc:<fdc_id> (<portion>)`, `… — borrowed`, `seed:typical`, `manual`.
+- 2026-08-28 — **Backfill for pre-0009 households** (0010): the
+  already-onboarded early-exit leg of `ensure_onboarded()` clones the
+  template's measures into a household with zero LIVE measures (same
+  match_text join + manual exclusions, same advisory lock), so existing
+  households heal on their next sign-in — and an operator can roll out a
+  reseeded template by soft-deleting a household's measures
+  (`docs/cloud-setup.md` §2). "Zero live rows" is deliberate: it doubles as
+  the refresh path, and a live-label unique index keeps the seed idempotent.
+
 ## Notes / open questions
 
 - ~~`measure_id` FK vs a namespaced unit string~~ — resolved: FK (see log).

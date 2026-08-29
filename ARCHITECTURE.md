@@ -96,15 +96,17 @@ Matching against a couple hundred ingredients the household actually uses is
 high-precision; matching against 8k SR Legacy rows is not.
 
 Both tables (+ `ingredient_alias`) live in `supabase/migrations/0002`;
-`ingredient_measure` (migration `0009`, step 7.6) rides with the vocab: named
-per-ingredient measures with gram weights ("1 potato, large = 299 g") — the
-honest count↔mass bridge for count foods (`app/lib/core/units/measure.dart`),
-referenced by nullable `measure_id` FKs on `recipe_line_item` and
-`shopping_list_contribution`. The rows that fill them come from the checked-in
-seeds (`supabase/seed.sql` — the 291-ingredient household vocab;
+`ingredient_measure` (migrations `0009`/`0010`, step 7.6) rides with the
+vocab: named per-ingredient measures with gram weights ("1 potato, medium =
+213 g") — the honest count↔mass bridge for count foods
+(`app/lib/core/units/measure.dart`), referenced by nullable `measure_id` FKs
+on `recipe_line_item` and `shopping_list_contribution`, each row carrying its
+weight's provenance (`source`, 0010). The rows that fill them come from the
+checked-in seeds (`supabase/seed.sql` — the 291-ingredient household vocab;
 `seed_usda.sql` + `seed_prefill.sql` — the USDA reference and the macro
-prefill onto matched vocab rows; `seed_measures.sql` — the hand-curated
-starter measures), run in that order by `supabase db reset`.
+prefill onto matched vocab rows; `seed_measures.sql` — GENERATED starter
+measures mined from FDC food portions, `supabase/seed/README.md`), run in
+that order by `supabase db reset`.
 
 ## Data flow: plan → cook → shop
 
