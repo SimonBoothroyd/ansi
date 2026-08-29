@@ -111,6 +111,26 @@ affordance). So:
   provenance follow-up); the board frames should show the add-measure moment
   and how a measure's source (USDA vs yours) reads at a glance.
 
+- **Measure-editor prerequisites — settle BOTH at kickoff (2026-08-28,
+  review follow-up):**
+  1. *The `measure_live_label_uq` unique index vs offline writes.* Migration
+     0010's live `(ingredient_id, label)` index is exactly the
+     offline-dupe-fails-upload pattern this repo deliberately rejected for
+     shopping entries: two offline devices adding the same label produce a
+     23505 on upload, and the connector drops the whole crud transaction.
+     Inert today (only seed/clone/backfill write measures — all server-side),
+     but it must be resolved before the editor ships: either drop the index
+     in a migration and merge duplicate labels on read (the shopping-entry
+     doctrine), or make the editor collision-safe client-side. Tracker row
+     `measures/sync` holds it.
+  2. *The backfill's zero-live gate vs user deletions.* `ensure_onboarded`
+     re-clones template measures into a household with zero LIVE measures —
+     correct for healing and template rollouts today, but once the editor
+     lets users delete measures, a household that deliberately deleted its
+     last one gets it resurrected at next sign-in. Candidate: a per-household
+     `backfilled_at` marker (or checking tombstones too once deletion
+     exists). Tracker row `measures/backfill` holds it.
+
 - **Per-100 ml macro entry (2026-08-28, Simon):** the New-ingredient /
   flesh-out form asks for macros per 100 g, but liquid labels read per
   100 ml — and densities are sparse, so conversion-at-entry can't be the

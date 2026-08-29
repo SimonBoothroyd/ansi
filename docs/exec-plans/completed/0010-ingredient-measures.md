@@ -119,14 +119,21 @@ data model behind the MacroFactor-style unit chips (see plan 0011 for the UI).
   earlier "no" was true of the compact `usda_food` table but wrong as a
   conclusion: FDC's `food_portion.csv` (in the uncommitted bundles) carries
   exactly the piece-type gram weights measures need. `seed_measures.sql` is
-  now GENERATED (`seed/scripts/gen_measures.ts`): 184 rows over 118
+  now GENERATED (`seed/scripts/gen_measures.ts`): 183 rows over 118
   ingredients — tier 1 from each ingredient's own linked food (russet vs red
   potato get their own weights; a variety linked to a broader food keeps only
   variety-named portions, so cherry tomato = the 17 g `cherry` portion), tier
   2 an explicit committed borrow map (gold potato ← russet's size classes;
-  five canned-bean varieties ← pinto's drained 15 oz can), and four
-  `seed:typical` survivors where FDC has nothing usable (shallot, tempeh,
-  coconut-milk can, silken-tofu block).
+  five canned-bean varieties ← pinto's drained 15 oz can), and seven
+  `seed:typical` survivors where FDC has nothing usable or honest (shallot,
+  tempeh, coconut-milk can, both tofu blocks in retail framing, a whole
+  with-peel lemon — FDC's only lemon food is without-peel — and a king
+  oyster mushroom, whose link resolves to plain oyster). Two generator
+  guards keep the emissions honest: a *basis-qualifier* filter (a food
+  described "without peel"/"drained"/… emits no whole-item measure unless
+  the vocab row or label owns that basis) and *shared-link ownership* (when
+  several vocab rows link one food, only the best-matching row's measures
+  stay plain — every other sharer's are auto-marked "— borrowed").
 - 2026-08-28 — **Per-ingredient rows stay; no shared portion-class entity.**
   Sharing "medium potato" across varieties was considered and rejected: user
   overrides (and 7.7's editor) must stay variety-specific, and the borrow map
