@@ -66,26 +66,52 @@ Single shared household dataset; both members full read/write; everything scoped
   fallback).
 
 ### Ingredient
-`id · canonical_name · aliases[] · category · density_g_per_ml (nullable) · macros_per_100g {kcal, protein, carb, fat} (nullable) · default_unit · status (complete | stub) · source (usda_fdc_id | manual | barcode)`
+`id · canonical_name · aliases[] · category · density_g_per_ml (nullable) · macros {kcal, protein, carb, fat} (nullable) · macros_basis ('g' | 'ml', step 7.7) · default_unit · status (complete | stub) · source (usda_fdc_id | manual | barcode)`
 - `status = stub` → drives the "needs fleshing out" queue + honest macro math.
+- **Macros are stored WITH the basis the label read them in** (per-100 g or
+  per-100 ml — liquid labels read per 100 ml, and densities are sparse, so
+  converting at entry can't be the design). Consumers apply the aggregation
+  doctrine: a line whose unit family matches the basis computes directly;
+  cross-basis bridges only via density; otherwise the total is honestly
+  `incomplete`. USDA prefill rows are per-100 g.
 - Seed from USDA FoodData Central **Foundation Foods + SR Legacy** (CC0). Density from FDC food portions, fallback FAO/INFOODS Density DB v2.0.
 
-### Ingredient measure (step 7.6)
-`ingredient_measure: id · household_id · ingredient_id · label · grams (> 0) · sort_order`
+### Ingredient measure (steps 7.6–7.7)
+`ingredient_measure: id · household_id · ingredient_id · label · grams (> 0) · sort_order · source`
 - Per-household, synced, user-editable rows — households disagree about what
   "1 portion" is, and import (step 8) will create them from labels. The
-  curated starter set is hand-seeded (`supabase/seed_measures.sql`, sources
-  noted) and clones with the vocab at onboarding.
+  starter set is GENERATED from FDC food portions
+  (`supabase/seed_measures.sql`, per-row `source` provenance) and clones with
+  the vocab at onboarding (backfill gated run-once by
+  `household.backfilled_at`, 0011 — deleting your measures never resurrects
+  them).
+- **In-app measure editor (7.7):** the quantity sheet's manage state authors
+  `source = 'manual'` rows ("half can = 200 g") and soft-deletes unwanted
+  ones. Labels that merely name a volume unit are rejected — density owns
+  volume conversion. Provenance is shown humanized (USDA portion / borrowed
+  / typical / yours), never as raw machine strings.
+- **No unique label index** (0011, the shopping-entry doctrine): two offline
+  devices adding the same label must never fail upload — duplicate live
+  `(ingredient_id, label)` rows merge deterministically on read (oldest row
+  canonical), and hidden duplicates still resolve by id from lines.
 - `recipe_line_item.measure_id` / `shopping_list_contribution.measure_id`
-  (nullable FKs) quantify a line in a measure ("2 × potato, large"); unit
-  pickers offer an ingredient's live measures beside its honest unit set
-  (`allowedUnitChoicesFor`).
+  (nullable FKs) quantify a line in a measure ("2 × potato, large"); the
+  quantity surface offers an ingredient's live measures as chips beside its
+  honest unit set (`allowedUnitChoicesFor`).
 
 ### Recipe
-`id · title · book_id · section (user-defined label) · servings_base · ingredient_groups[] · steps[]`
+`id · title · book_id · section (user-defined label) · servings_base · favorite (step 7.7) · ingredient_groups[] · steps[]`
 - **ingredient_group:** `name · line_items[]`
 - **line_item:** `ingredient_id · quantity · unit`
 - Scaling = quantity × factor (imprecise units left as-is).
+- `favorite` is the household-shared curated shortlist behind the recipe
+  picker's Favorites tab; marked from the recipe page's header menu.
+- **Per-serving macro summation (step 7.7, pulled from step 9):** pure-Dart
+  `summarizeRecipeMacros` sums line items × vocab macros honouring
+  `macros_basis` (measure lines via grams); ANY stub / unbridgeable /
+  imprecise-only line renders the whole summary honestly `incomplete` — no
+  partial total ever shows as the recipe's macros. Feeds the picker rows;
+  the recipe-page macro panel remains step 9.
 
 ### Recipe book & sections
 `book: id · name` · `section: user-defined label` (NOT a fixed preset enum).
@@ -140,6 +166,34 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
 - No match → "add new" → creates a **stub** → lands in fleshing-out queue
 
 **Fleshing-out queue:** list of stub ingredients needing density/macros before they count toward conversions or macro totals.
+
+**Pickers (step 7.7 — design board "Pickers v2", shipped):** one selection
+anatomy, two contents. Both pickers share a sheet shell (top-anchored search,
+source-tab slot, footer slot):
+
+- **Ingredient picker** (recipe editor + shopping top-up): a Recent section
+  (recently used in lines/top-ups) before any query; dense information-honest
+  rows — category, capability hints ("has density", "3 measures"), a per-100
+  macro line for complete rows, a `stub` badge (never zeros); an add-new
+  affordance creating a `manual` stub from the typed query. Deterministic
+  search only (ADR-0004; the step-7.4 normalizer + word-boundary matching).
+- **Quantity + unit chips** (replaces every unit dropdown): tapping a
+  quantity opens a sheet — ingredient card (name + macro line), quantity
+  input, a chip row docked directly above the keyboard (precise units ·
+  measure chips with provenance dots · imprecise after a divider · a `+`
+  chip), and a live honest conversion line ("≈ 610 g · via density
+  1.02 g/ml" — shown only when the unit system can actually bridge). The `+`
+  chip opens the manage-measures state (list + add form, see above).
+- **Recipe picker** (planning): Recent · Books · Favorites tabs; day-tagged
+  "already this week" quick picks; rows carry filing, last-planned recency,
+  shelf-life chips, and per-serving macros or the `incomplete` badge with
+  its reason; an "Eating: Ada & Jun · shared" footer. Planning search is
+  recipes-only in v1 (foods-as-ad-hoc-meals revisited with step 8).
+- **Confirm & place:** picked card with the honest macro line, one combined
+  "Day · Slot" dropdown (day changeable at confirm), and the full batch
+  prose ("Chicken Curry already cooks Monday and keeps 4 days — Wednesday is
+  inside that window, so this joins Monday's batch instead of a second
+  cook").
 
 ---
 

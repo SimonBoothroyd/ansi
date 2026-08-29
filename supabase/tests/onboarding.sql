@@ -14,9 +14,13 @@
 begin;
 select plan(27);
 
--- Isolate from any pre-existing memberships (a live dev session may have
--- onboarded users). All rolled back at the end.
+-- Isolate from any pre-existing memberships AND households (a live dev
+-- session or a `make test-sim` run leaves onboarded households behind;
+-- freeing their seats alone would make "fresh clone" users JOIN a stray —
+-- with 0011's per-household backfilled_at stamp already set — instead of
+-- cloning). Soft-delete the strays; everything rolls back at the end.
 delete from household_member;
+update household set deleted_at = now() where not is_template;
 
 -- Private, typed-in rows inside the template household: the clone must leave
 -- both behind. (In real life a template never accumulates these — this pins
@@ -206,11 +210,9 @@ select ok(
 );
 
 -- Deliberate deletion: strip A's household of every LIVE measure.
--- Soft-delete, not DELETE: on a dev machine with `make test-sim` residue,
--- "A's household" is the real dev household (line 19 freed its seats) and a
--- hard delete trips recipe_line_item's measure_id FK. Soft-delete matches
--- the app's no-DELETE contract. The marker is set, so the next call must
--- NOT resurrect the deleted measures.
+-- Soft-delete, not DELETE — matches the app's no-DELETE contract, and a
+-- hard delete could trip a measure_id FK. The marker is set, so the next
+-- call must NOT resurrect the deleted measures.
 update ingredient_measure
 set deleted_at = now(), updated_at = now()
 where household_id = current_setting('test.hh_a')::uuid

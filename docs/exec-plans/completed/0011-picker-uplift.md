@@ -1,6 +1,6 @@
 # Exec plan: Picker uplift — ingredient & recipe selection
 
-- **Status:** draft
+- **Status:** done
 - **Owner:** agent (staged 2026-08-27; design-first)
 - **Roadmap step:** Step 7.7 — picker uplift
 - **Created:** 2026-08-27
@@ -71,21 +71,28 @@ affordance). So:
 
 ## Acceptance criteria
 
-- [ ] **Design board frames first**: a "Pickers v2" section on
+- [x] **Design board frames first**: a "Pickers v2" section on
       `docs/product-specs/design-board.html` — (a) ingredient picker,
       (b) quantity + unit-chip entry, (c) planning recipe picker — in the
       board's visual language, reviewed/signed off before implementation
-      starts. (Hard gate.)
-- [ ] Ingredient picker v2 implemented per frames (bottom search, recents,
-      honest data rows), replacing the current sheet in the recipe editor and
-      shopping top-up; search uses the step-7.4 normalizer + word-boundary
-      matching.
-- [ ] Unit chip row implemented (keyboard accessory pattern) wherever a
-      quantity + unit is edited; dropdowns retired.
-- [ ] Recipe picker refreshed with the same shell/components.
-- [ ] `make test-sim` scenarios updated for the new flows.
-- [ ] Tests cover the new logic; Forui-only, glyph rule respected.
-- [ ] Docs updated: design board committed, spec picker sections, QUALITY.
+      starts. (Hard gate — passed 2026-08-28; frames revised through review,
+      see the decision log.)
+- [x] Ingredient picker v2 implemented per frames (top search per the
+      review decision, recents, honest data rows, add-new manual stub),
+      replacing the current sheet in the recipe editor and shopping top-up;
+      search uses the step-7.4 normalizer + word-boundary matching.
+- [x] Unit chip row implemented wherever a quantity + unit is edited;
+      dropdowns retired (editor line items, shopping add sheet,
+      edit-top-up). Chips dock in-sheet directly above the keyboard — the
+      documented accessory call, see the decision log.
+- [x] Recipe picker refreshed with the same shell/components (Recent ·
+      Books · Favorites, day-tagged chips, recency + honest macro rows,
+      eating footer) + confirm & place v2 (Day · Slot dropdown, macro line,
+      full batch prose).
+- [x] `make test-sim` scenarios updated for the new flows (incl. a
+      favorites assertion and a manage-measures add-measure assertion).
+- [x] Tests cover the new logic; Forui-only, glyph rule respected.
+- [x] Docs updated: design board committed, spec picker sections, QUALITY.
 
 ## Approach
 
@@ -135,6 +142,49 @@ affordance). So:
   frames had it; the bottom-anchored field + stylized keyboard idea is
   dropped from the board. The quantity keypad accessory in (b1) is
   unaffected — that's quantity entry, not search.
+- 2026-08-28 — **Sign-off (Simon): the frames are the spec; the four
+  proposals are DECIDED as recommended.** (1) planning search stays
+  **recipes-only** in v1 (foods-as-ad-hoc-meals revisited with step 8);
+  (2) **Favorites KEPT** per the board — a new household-shared
+  `recipe.favorite` flag, marked via a star toggle in the recipe page's
+  header menu; (3) **`measure_live_label_uq` DROPPED** (0011) — duplicate
+  labels merge deterministically on read, oldest row canonical (the
+  shopping-entry doctrine: an offline dupe must never fail upload);
+  (4) **`household.backfilled_at` run-once gate** — the measure backfill
+  runs exactly once per household and never resurrects user-deleted
+  measures (fresh households stamp at creation; the migration stamps
+  measure-having households; operators clear the marker for a template
+  reseed rollout).
+- 2026-08-28 — **Frame-(b) review outcome (Simon — the draft failed review:
+  "I don't understand").** The single stacked drawing overloaded three
+  layers; built (and redrawn on the board as b1/b2) as TWO states: the
+  everyday **quantity surface** shows only the ingredient card (name +
+  macro line — **no density on the card**; density appears only in the live
+  conversion line where it's doing work), the quantity input, the chip row
+  (precise units · measure chips · imprecise after a divider · a `＋`
+  chip), the conversion line, and Done; the `＋` chip opens **manage
+  measures** — the list (label · grams · humanized source: "USDA portion" /
+  "borrowed" / "typical" / "yours", never raw `usda_fdc:…` strings; the
+  four-dot colour code stays as a subtle secondary channel) plus the
+  add-measure form (label + grams → `manual`). Measures never duplicate
+  volume units: chip row / manage list exclude, and the add form rejects,
+  labels that merely name a volume unit — density owns volume conversion.
+- 2026-08-28 — **Keyboard-accessory call (the flagged spike):** a true iOS
+  `inputAccessoryView` fights Flutter's insets model, so the chip row is
+  docked **in-sheet directly above the viewInsets padding** — the same
+  spatial relationship as the frame (chips ride the keypad) with no
+  accessory plumbing. Verified on the sim via `make test-sim`; documented
+  in `quantity_unit_sheet.dart`'s library doc.
+- 2026-08-28 — **Built and verified.** Backend: migration 0011 (favorite,
+  backfilled_at, index drop, macros_basis + clone legs), seed switched to a
+  `WHERE NOT EXISTS` guard (idempotency re-proven, 183 rows stable), 67
+  pgTAP green. App: measure merge-on-read + `addMeasure`/`softDeleteMeasure`;
+  pure-Dart `summarizeRecipeMacros` (step-9 pull-forward — **step 9 shrinks
+  to the recipe-page macro panel**); shared `PickerShell`; ingredient picker
+  v2 (recents from usage, honest rows, add-new manual stub); the quantity +
+  unit-chip sheet replacing every unit dropdown; recipe picker v2 + confirm
+  & place v2. 311 host tests, analyze/custom_lint clean, `make test-sim`
+  green on the booted sim, `supabase test db` green on the dirty result.
 
 ## Notes / open questions
 
@@ -184,12 +234,23 @@ affordance). So:
 
 ## Step-done checklist
 
-- [ ] Roadmap row updated: status flipped, one line on what shipped and what was
-      deliberately deferred.
-- [ ] `docs/QUALITY.md` grade for every area touched matches reality.
-- [ ] `app/AGENTS.md` "Current focus" and command list still true.
-- [ ] Feature steps: `make test-sim` run on a booted simulator, result recorded
-      here.
-- [ ] Tech-debt rows added for corners knowingly cut, and retired for debt this
-      step paid off.
-- [ ] `make ci` green.
+- [x] Roadmap row updated: status flipped, one line on what shipped and what was
+      deliberately deferred (step 9 shrinkage noted on its own row too).
+- [x] `docs/QUALITY.md` grade for every area touched matches reality
+      (vocab/measures, recipes, planning rows refreshed).
+- [x] `app/AGENTS.md` "Current focus" and command list still true (points at
+      the roadmap; commands unchanged).
+- [x] Feature steps: `make test-sim` run on the booted iPhone 17 sim —
+      **all 3 scenarios green** through the new picker/chip flows (incl. the
+      favorites and add-measure assertions), 2026-08-28. The dirty result
+      then ran `supabase test db`: 67 pgTAP green (the onboarding suite now
+      soft-deletes stray households at start — freed seats made "fresh
+      clone" users join test-sim residue instead). The frame-b flow was also
+      driven live (`flutter run` + sim): picker rows, chip row over the
+      keypad, manage measures, add "half can = 200 g" → chip returns
+      selected with the honest conversion line.
+- [x] Tech-debt rows added for corners knowingly cut (stub match_text
+      character-normalizer, usage-derived recents, favorite-not-on-aggregate),
+      and retired for debt this step paid off (measure editor, measures/sync
+      index, measures/backfill gate, favorites tab).
+- [x] `make ci` green.

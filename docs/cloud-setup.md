@@ -82,17 +82,22 @@ provenance since 0010) onto the **template** vocab only. It is idempotent:
 re-running it no-ops on labels the template already has. How they reach
 households:
 
-- **New households** get them cloned at onboarding (`ensure_onboarded`).
+- **New households** get them cloned at onboarding (`ensure_onboarded`),
+  which stamps `household.backfilled_at` at creation.
 - **Already-onboarded households do NOT retrofit from a template reseed
-  alone** — the 0010 backfill does that: a household with zero live
-  `ingredient_measure` rows gains the template's measures the next time its
-  user signs in (the session controller re-runs `ensure_onboarded`
-  opportunistically). A household that already HAS measures is never touched.
+  alone** — the backfill does that, **exactly once per household** (0011):
+  a household whose `backfilled_at` is null gains the template's measures
+  the next time its user signs in (the session controller re-runs
+  `ensure_onboarded` opportunistically), then is stamped. The old
+  zero-live-measures gate is gone: a household that deliberately deleted its
+  measures stays deleted (the 7.7 editor ships deletion).
 - To **roll a reseeded template out to existing households** (dev data is
   throwaway): a human soft-deletes their measure rows —
   `update ingredient_measure set deleted_at = now(), updated_at = now()` (add
   a `where` to keep the template's fresh rows if it was reseeded first) —
-  and the backfill re-clones on each household's next sign-in.
+  **and clears the run-once marker**
+  (`update household set backfilled_at = null where not is_template`); the
+  backfill then re-clones on each household's next sign-in.
 
 Note migration 0009 also touched the **sync streams** — redeploy
 `docker/powersync-cloud.streams.yaml` (step 3 below) so `ingredient_measure`

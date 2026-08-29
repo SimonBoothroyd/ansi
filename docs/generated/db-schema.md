@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (11 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (12 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -20,6 +20,7 @@ introduced in `0001_household.sql` · RLS enabled · in the `powersync` publicat
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |
 | `is_template` | `boolean` | no | not null default false *(added in `0008_onboarding_hardening.sql`)* |
+| `backfilled_at` | `timestamptz` | yes | *(added in `0011_picker_uplift.sql`)* |
 
 ## `household_member`
 
@@ -57,6 +58,7 @@ introduced in `0002_ingredients.sql` · RLS enabled · in the `powersync` public
 | `created_at` | `timestamptz` | no | not null default now() |
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |
+| `macros_basis` | `text` | no | not null default 'g' check (macros_basis in ('g', 'ml')) *(added in `0011_picker_uplift.sql`)* |
 
 ## `ingredient_alias`
 
@@ -106,6 +108,7 @@ introduced in `0003_recipes.sql` · RLS enabled · in the `powersync` publicatio
 | `deleted_at` | `timestamptz` | yes |  |
 | `book_id` | `uuid` | yes | references book(id) *(added in `0004_books.sql`)* |
 | `section_id` | `uuid` | yes | references book_section(id) *(added in `0004_books.sql`)* |
+| `favorite` | `boolean` | no | not null default false *(added in `0011_picker_uplift.sql`)* |
 
 ## `ingredient_group`
 

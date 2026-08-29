@@ -46,6 +46,8 @@ import 'package:mise/app.dart';
 import 'package:mise/core/config/env.dart';
 import 'package:mise/core/sync/database.dart';
 import 'package:mise/core/sync/schema.dart';
+import 'package:mise/features/ingredients/presentation/quantity_unit_sheet.dart'
+    show UnitChipRow;
 import 'package:mise/features/planning/domain/planning.dart' show mondayOf;
 import 'package:powersync/powersync.dart' hide Column;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -102,10 +104,20 @@ void main() {
   /// semantics assertion inside the framework — it reproduces in a plain
   /// widget test with `ensureSemantics()`, and forui is already pinned at
   /// the newest 0.22.x (tech-debt tracker, 2026-08-27).
+  /// (7.7) A dismissed sheet whose text field held focus can fire one last
+  /// `EditableText` periodic post-frame callback after deactivation —
+  /// "Looking up a deactivated widget's ancestor is unsafe" out of
+  /// `_updateSelectionRects`. Debug-only framework noise on teardown of the
+  /// autofocused picker/quantity sheets; filtered narrowly by its stack.
   void ignoreForuiSemanticsAssertion() {
     final reportError = FlutterError.onError!;
     FlutterError.onError = (details) {
-      if ('${details.exception}'.contains('semantics.dart')) return;
+      final text = '${details.exception}';
+      if (text.contains('semantics.dart')) return;
+      if (text.contains("Looking up a deactivated widget's ancestor") &&
+          '${details.stack}'.contains('_updateSelectionRects')) {
+        return;
+      }
       reportError(details);
     };
     addTearDown(() => FlutterError.onError = reportError);
@@ -373,8 +385,18 @@ void main() {
     await tester.enterText(find.byType(EditableText).last, '3');
     await tester.pump();
     // Manage measures: add "big clove = 5 g" (saved as yours), which lands
-    // selected as the line's chip.
-    await tester.tap(find.text('＋ measure'));
+    // selected as the line's chip. The "＋" chip trails the row, so scroll
+    // the (horizontal, lazy) chip row until it builds.
+    await tester.dragUntilVisible(
+      find.text('＋'),
+      find.descendant(
+        of: find.byType(UnitChipRow),
+        matching: find.byType(Scrollable),
+      ),
+      const Offset(-80, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('＋'));
     await tester.pumpAndSettle();
     final fields = find.byType(EditableText);
     await tester.enterText(

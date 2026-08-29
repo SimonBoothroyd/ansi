@@ -1,3 +1,7 @@
+// The pumped ProviderScope IS the root scope of each test's tree (the same
+// pattern connecting_view_test documents).
+// ignore_for_file: scoped_providers_should_specify_dependencies
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';

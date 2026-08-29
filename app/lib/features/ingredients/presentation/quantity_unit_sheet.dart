@@ -437,7 +437,7 @@ class UnitChipRow extends StatelessWidget {
               selected: selected == UnitOption(u),
               onTap: () => onSelect(UnitOption(u)),
             ),
-          _Chip(label: '＋ measure', accent: true, onTap: onManage),
+          _Chip(label: '＋', accent: true, onTap: onManage),
         ],
       ),
     );
