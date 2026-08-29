@@ -23,6 +23,12 @@
 //     portions (gold potato ← russet; canned bean varieties ← pinto's
 //     drained-can weight). The borrow map below is explicit and committed;
 //     `source` gains a "— borrowed" marker so the approximation is visible.
+//     The same marker is applied AUTOMATICALLY when several vocab rows link
+//     one FDC food: the row(s) whose words best match the food description
+//     own it, every other sharer is an implicit borrow ("berry" borrowing
+//     the blueberry food). And a food whose description carries a basis
+//     qualifier (without peel / drained / cooked / dried) emits no
+//     whole-item measure unless the vocab row or the label owns that basis.
 //
 // A short survivor list of `seed:typical` hand rows remains for important
 // items where FDC genuinely has no usable portion (see TYPICAL below).
@@ -64,11 +70,26 @@ const TYPICAL: { matchText: string; label: string; grams: number }[] = [
   // FDC silken tofu (MORI-NU) has only a sub-package "slice"; the 12.3 oz
   // shelf-stable block is the purchasable unit.
   { matchText: "silken tofu", label: "block (12.3 oz)", grams: 349 },
+  // FDC extra-firm tofu carries only "0.2 block" (a 455 g / 16 oz block —
+  // a 5× extrapolation, and not the common pack); the 14 oz retail block is
+  // the purchasable unit, framed like silken's.
+  { matchText: "extra firm tofu", label: "block (14 oz)", grams: 397 },
+  // FDC's only lemon food is "Lemons, raw, without peel" (58 g — the macro
+  // basis, not what you buy). A typical whole lemon with peel is ~100 g.
+  { matchText: "lemon", label: "lemon, whole", grams: 100 },
+  // FDC's king-oyster food (2003599) has NO portions, and its vocab link
+  // resolves to plain oyster mushrooms (5–10× lighter). A typical king
+  // oyster (trumpet) mushroom is ~90 g.
+  { matchText: "king oyster mushroom", label: "mushroom, medium", grams: 90 },
 ];
 
 // Tier-1 output is suppressed for these (their only surviving FDC portions
 // are misleading); the TYPICAL row above covers them instead.
-const SUPPRESS_TIER1 = new Set(["silken tofu"]);
+const SUPPRESS_TIER1 = new Set([
+  "silken tofu", // MORI-NU sub-package slice
+  "extra firm tofu", // 0.2-block extrapolation (see TYPICAL)
+  "king oyster mushroom", // linked food is plain oyster — wrong species/size
+]);
 
 // --- Portion filtering / ranking ---------------------------------------------
 
@@ -177,6 +198,20 @@ function readCsv(path: string): Record<string, string>[] {
   return parse(Deno.readTextFileSync(path), { skipFirstRow: true });
 }
 
+/// Raw FDC descriptions for the foods we consume — they drive the basis
+/// guard ("without peel") and shared-link ownership detection.
+function loadDescriptions(dirs: string[], keep: Set<string>): Map<string, string> {
+  const descs = new Map<string, string>();
+  for (const dir of dirs) {
+    for (const f of readCsv(`${dir}/food.csv`)) {
+      if (keep.has(f.fdc_id) && !descs.has(f.fdc_id)) {
+        descs.set(f.fdc_id, f.description);
+      }
+    }
+  }
+  return descs;
+}
+
 /// All usable piece-type portions per fdc_id, filtered + ranked.
 function loadPortions(dirs: string[], keep: Set<string>): Map<string, Portion[]> {
   const byFood = new Map<string, Portion[]>();
@@ -220,6 +255,33 @@ function loadPortions(dirs: string[], keep: Set<string>): Map<string, Portion[]>
   return byFood;
 }
 
+// --- Basis honesty guard ------------------------------------------------------
+// A food description can carry a BASIS qualifier ("Lemons, raw, without
+// peel"; "…canned, drained solids") — the macro link's basis leaking into a
+// count measure would misweigh the thing you buy. A portion from such a food
+// is only emitted when the qualifier is owned by the vocab row or stated in
+// the label itself ("can, drained" is honest; a "whole lemon" at the
+// without-peel weight is not).
+const BASIS_QUALIFIERS = ["without peel", "drained", "cooked", "dried"];
+
+function basisFilter(
+  matchText: string,
+  description: string,
+  portions: Portion[],
+): Portion[] {
+  const desc = description.toLowerCase();
+  let quals = BASIS_QUALIFIERS.filter((q) =>
+    new RegExp(`\\b${q}\\b`).test(desc)
+  );
+  // Nuts and seeds are SOLD dried — "Nuts, brazilnuts, dried" describes the
+  // retail kernel, so "dried" is not a basis mismatch there.
+  if (/^(nuts|seeds),/.test(desc)) quals = quals.filter((q) => q !== "dried");
+  if (quals.length === 0) return portions;
+  return portions.filter((p) =>
+    quals.every((q) => matchText.includes(q) || p.label.includes(q))
+  );
+}
+
 // Colours / preparation / generic words that must never count as a variety
 // marker for the keep-only rule below.
 const VARIETY_STOP = new Set([
@@ -246,6 +308,47 @@ function varietyFilter(matchText: string, portions: Portion[]): Portion[] {
     p.label.split(/[,\s]+/).some((w) => variety.has(w)),
   );
   return hits.length > 0 ? hits : portions;
+}
+
+// --- Label legibility (review N7) --------------------------------------------
+// The hand seed read "<noun>, <size>" ("onion, medium"); a generated bare
+// "medium (110 g)" loses the thing being counted. Prefix bare sizes and bare
+// whole/each with the ingredient's head noun.
+
+// A match_text's head noun: the last word, skipping trailing form/state
+// qualifiers ("fig dried" → fig; "tomato canned whole" → tomato).
+const FORM_WORDS = new Set([
+  "canned",
+  "dried",
+  "frozen",
+  "fresh",
+  "cooked",
+  "whole",
+]);
+function nounOf(matchText: string): string {
+  const words = matchText.split(" ").filter((w) => !FORM_WORDS.has(w));
+  return words[words.length - 1] ?? matchText;
+}
+
+function finalizeLabel(matchText: string, label: string): string {
+  // "sweetpotato" is FDC's spelling of the vocab's "sweet potato".
+  if (label.replace(/[\s,]/g, "") === matchText.replace(/\s/g, "")) {
+    return matchText;
+  }
+  const noun = nounOf(matchText);
+  if (/^(medium|large|small|extra large|extra small)$/.test(label)) {
+    return `${noun}, ${label}`;
+  }
+  if (label === "whole" || label === "each") return `${noun}, whole`;
+  // A generic stand-in noun ("pepper" on jalapeño, "piece" on tostada
+  // shell) reads better as the ingredient's own noun.
+  if (
+    (label === "pepper" || label === "piece") &&
+    !matchText.split(" ").includes(label)
+  ) {
+    return noun;
+  }
+  return label;
 }
 
 /// Usefulness-ordered, deduped, fragment-suppressed, capped at 3.
@@ -277,10 +380,7 @@ interface Row {
 }
 
 const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
-const num = (n: number) => {
-  const r = Math.round(n * 100) / 100;
-  return Number.isInteger(r) ? String(r) : String(r);
-};
+const num = (n: number) => String(Math.round(n * 100) / 100);
 
 function main(): void {
   const dirs = Deno.args;
@@ -311,38 +411,71 @@ function main(): void {
     ...BORROWS.map((b) => b.fdcId),
   ]);
   const byFood = loadPortions(dirs, wanted);
+  const descs = loadDescriptions(dirs, wanted);
+
+  // Shared-link ownership (review N6): several vocab rows can link the same
+  // FDC food ("berry" and "blueberry" → Blueberries, raw). The row(s) whose
+  // words best match the food's description own it; every other sharer's
+  // measures are an implicit borrow and must say so in `source`.
+  const sharers = new Map<string, string[]>();
+  for (const l of links) {
+    const id = String(l.fdc_id);
+    (sharers.get(id) ?? sharers.set(id, []).get(id)!).push(l.match_text);
+  }
+  function isBorrowedLink(matchText: string, fdcId: string): boolean {
+    const all = sharers.get(fdcId) ?? [];
+    if (all.length < 2) return false;
+    const descWords = new Set(normalize(descs.get(fdcId) ?? "").split(" "));
+    const frac = (mt: string) => {
+      const ws = mt.split(" ");
+      return ws.filter((w) => descWords.has(w)).length / ws.length;
+    };
+    const max = Math.max(...all.map(frac));
+    return frac(matchText) < max;
+  }
 
   const rows: Row[] = [];
-  let tier1 = 0, tier2 = 0;
+  let tier1 = 0, tier2 = 0, autoBorrowed = 0;
 
   // Tier 1: the ingredient's own linked food.
   for (const link of links) {
     if (SUPPRESS_TIER1.has(link.match_text)) continue;
+    const id = String(link.fdc_id);
+    const desc = descs.get(id) ?? "";
     const picked = pick(
-      varietyFilter(link.match_text, byFood.get(String(link.fdc_id)) ?? []),
+      varietyFilter(
+        link.match_text,
+        basisFilter(link.match_text, desc, byFood.get(id) ?? []),
+      ),
     );
+    const borrowed = isBorrowedLink(link.match_text, id);
     picked.forEach((p, i) => {
       rows.push({
         matchText: link.match_text,
-        label: p.label,
+        label: finalizeLabel(link.match_text, p.label),
         grams: p.grams,
         sortOrder: i,
-        source: `usda_fdc:${p.fdcId} (${p.source})`,
+        source: `usda_fdc:${p.fdcId} (${p.source})${
+          borrowed ? " — borrowed" : ""
+        }`,
       });
       tier1++;
+      if (borrowed) autoBorrowed++;
     });
   }
 
   // Tier 2: explicit borrows, marked as such.
   for (const b of BORROWS) {
-    const picked = pick(byFood.get(b.fdcId) ?? []);
+    const picked = pick(
+      basisFilter(b.matchText, descs.get(b.fdcId) ?? "", byFood.get(b.fdcId) ?? []),
+    );
     if (picked.length === 0) {
       throw new Error(`borrow source ${b.fdcId} (${b.matchText}) has no portions`);
     }
     picked.forEach((p, i) => {
       rows.push({
         matchText: b.matchText,
-        label: p.label,
+        label: finalizeLabel(b.matchText, p.label),
         grams: p.grams,
         sortOrder: i,
         source: `usda_fdc:${p.fdcId} (${p.source}) — borrowed`,
@@ -436,8 +569,12 @@ function main(): void {
     `    where i.household_id = '${HOUSEHOLD_ID}'`,
     "      and i.deleted_at is null and i.match_text = m.mt",
     "  );",
-    "  assert missing is null,",
-    "    'seed_measures: no live vocab ingredient for: ' || missing;",
+    "  -- raise, not ASSERT: plpgsql.check_asserts can be disabled, and this",
+    "  -- check must never be.",
+    "  if missing is not null then",
+    "    raise exception",
+    "      'seed_measures: no live vocab ingredient for: %', missing;",
+    "  end if;",
     "  select count(*) into n from ingredient_measure",
     `  where household_id = '${HOUSEHOLD_ID}' and deleted_at is null;`,
     `  raise notice 'seed_measures: % live template measures (% seeded)', n, ${rows.length};`,
@@ -451,8 +588,8 @@ function main(): void {
   Deno.writeTextFileSync(target, out.join("\n"));
   console.log(
     `wrote ${target}\n  ${rows.length} rows over ${matchTexts.length} ` +
-      `ingredients (tier1 ${tier1}, tier2/borrowed ${tier2}, ` +
-      `typical ${TYPICAL.length})`,
+      `ingredients (tier1 ${tier1} incl. ${autoBorrowed} auto-borrowed, ` +
+      `tier2/borrowed ${tier2}, typical ${TYPICAL.length})`,
   );
   for (const r of rows) {
     console.log(

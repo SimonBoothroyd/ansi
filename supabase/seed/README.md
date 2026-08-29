@@ -119,5 +119,5 @@ them to `complete` (a guard skips USDA rows with no macros).
 ## Load order
 
 `config.toml` `[db.seed].sql_paths` runs, in order: `seed.sql` (household +
-vocab) → `seed_usda.sql` (reference) → `seed_prefill.sql` (macros). `supabase db
-reset` applies all three.
+vocab) → `seed_usda.sql` (reference) → `seed_prefill.sql` (macros) →
+`seed_measures.sql` (measures). `supabase db reset` applies all four.
