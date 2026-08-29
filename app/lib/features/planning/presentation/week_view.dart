@@ -382,25 +382,25 @@ class _SlotGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The board's week frame: the slot label sits in a left gutter ON THE
+    // SAME LINE as the dish name (vertically centred with the row), never
+    // floating above it — a multi-dish slot centres the label beside the
+    // stack, exactly like the frame's split rows.
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 11, 8, 11),
+      padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
       decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: MiseColors.line)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 62,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 3),
-              child: Text(
-                group.first.mealSlot.toUpperCase(),
-                style: miseMono(
-                  size: 10,
-                  color: MiseColors.muted,
-                  letterSpacing: 0.5,
-                ),
+            child: Text(
+              group.first.mealSlot.toUpperCase(),
+              style: miseMono(
+                size: 10,
+                color: MiseColors.muted,
+                letterSpacing: 0.5,
               ),
             ),
           ),
