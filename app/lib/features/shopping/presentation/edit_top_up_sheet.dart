@@ -1,37 +1,29 @@
 /// Edit or remove a single manual top-up (a `manual` contribution).
 ///
-/// Opened from a manual line in an item's provenance breakdown. Pre-fills the
-/// current quantity + unit (or named measure); **Save** edits the contribution
-/// in place, and **Remove** soft-deletes just that top-up (the item's cook
-/// contributions and check-off stay). Writes through the keep-alive
+/// Opened from a manual line in an item's provenance breakdown. Since 7.7 it
+/// IS the shared quantity + unit-chip surface (frame b): pre-filled quantity
+/// and selection, the chip row instead of a dropdown, plus a Remove
+/// affordance. **Save** edits the contribution in place; **Remove**
+/// soft-deletes just that top-up (the item's cook contributions and
+/// check-off stay). Writes through the keep-alive
 /// `shoppingRepositoryProvider`.
 ///
-/// The unit dropdown is filtered by the resolved vocab row
-/// (`allowedUnitChoicesFor` — honest units plus the ingredient's measures),
-/// falling back to the full catalog while unresolved; the stored selection
-/// stays selectable so an existing top-up never renders an orphaned value.
-///
 /// A top-up whose stored `measure_id` doesn't resolve (row unsynced or
-/// soft-deleted) renders as its honest count fallback with a "(measure
-/// pending sync)" note, and **Save keeps the id verbatim** unless the user
-/// explicitly picks a different unit — mirroring the recipe editor, so an
-/// unrelated edit never wipes the FK for every device (invariant 3's
-/// degrade-don't-destroy).
+/// soft-deleted) renders as its honest count fallback with a pending note,
+/// and **Save keeps the id verbatim** unless the user explicitly picks a
+/// chip — mirroring the recipe editor, so an unrelated edit never wipes the
+/// FK for every device (invariant 3's degrade-don't-destroy).
 library;
 
-import 'dart:math' as math;
-
 import 'package:flutter/widgets.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
-import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
+import '../../ingredients/domain/ingredient.dart';
+import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../data/shopping_providers.dart';
 import '../domain/shopping.dart';
 
@@ -58,7 +50,7 @@ Future<void> showEditTopUpSheet(
   );
 }
 
-class _EditTopUpSheet extends HookConsumerWidget {
+class _EditTopUpSheet extends ConsumerWidget {
   const _EditTopUpSheet({
     required this.itemName,
     required this.ingredientId,
@@ -71,16 +63,23 @@ class _EditTopUpSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final quantity = useState<double?>(contribution.quantity);
+    final resolved = ingredientId == null
+        ? null
+        : ref.watch(ingredientByIdProvider(ingredientId!)).asData?.value;
+    // An unresolved vocab row still gets a working surface: a stub-shaped
+    // stand-in scoped to the stored unit's family (nothing invented for it).
+    final ingredient =
+        resolved ??
+        Ingredient(
+          id: ingredientId ?? 'unknown',
+          canonicalName: itemName,
+          defaultUnit: contribution.measure != null
+              ? pieces
+              : contribution.unit ?? pieces,
+          status: IngredientStatus.stub,
+        );
+
     final storedMeasure = contribution.measure;
-    final choice = useState<UnitChoice>(
-      storedMeasure == null
-          ? UnitOption(contribution.unit ?? pieces)
-          : MeasureOption(storedMeasure),
-    );
-    // True once the user explicitly picked from the dropdown — only then may
-    // a plain-unit save clear a stored (possibly unresolved) measure id.
-    final pickedUnit = useState(false);
     // A stored measure_id whose row didn't resolve: shown as the count
     // fallback + a pending note, and preserved verbatim on save.
     final unresolvedMeasureId = storedMeasure == null
@@ -88,34 +87,20 @@ class _EditTopUpSheet extends HookConsumerWidget {
         : null;
     final contributionId = contribution.contributionId!;
 
-    final ingredient = ingredientId == null
-        ? null
-        : ref.watch(ingredientByIdProvider(ingredientId!)).asData?.value;
-    final measures = ingredientId == null
-        ? const <Measure>[]
-        : ref.watch(ingredientMeasuresProvider(ingredientId!)).asData?.value ??
-              const <Measure>[];
-    final allowed = ingredient == null
-        ? [for (final u in kAllUnits) UnitOption(u)]
-        : allowedUnitChoicesFor(ingredient, measures);
-    final choices = allowed.contains(choice.value)
-        ? allowed
-        : [...allowed, choice.value];
-
-    Future<void> save() async {
-      final qty = quantity.value;
+    Future<void> save(QuantitySaved result) async {
+      final qty = result.quantity;
       if (qty == null || qty <= 0) return;
       final repo = ref.read(shoppingRepositoryProvider);
       // A measure top-up stores the honest count fallback unit (`pieces`)
       // beside the measure id — see [ShoppingRepository.addTopUp].
-      await switch (choice.value) {
+      await switch (result.choice) {
         UnitOption(:final unit) => repo.editContribution(
           contributionId: contributionId,
           quantity: qty,
           unit: unit,
           // An unresolved measure id survives a re-save untouched; only an
-          // explicit unit pick clears it (mirrors the recipe editor).
-          measureId: pickedUnit.value ? null : unresolvedMeasureId,
+          // explicit chip pick clears it (mirrors the recipe editor).
+          measureId: result.unitPicked ? null : unresolvedMeasureId,
         ),
         MeasureOption(:final measure) => repo.editContribution(
           contributionId: contributionId,
@@ -134,127 +119,17 @@ class _EditTopUpSheet extends HookConsumerWidget {
       if (context.mounted) Navigator.of(context).pop();
     }
 
-    final canSave = quantity.value != null && quantity.value! > 0;
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: MiseColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: MiseColors.line)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 12,
-          bottom:
-              math.max(
-                MediaQuery.viewInsetsOf(context).bottom,
-                MediaQuery.paddingOf(context).bottom,
-              ) +
-              12,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => Navigator.of(context).pop(),
-                  child: const Icon(FLucideIcons.x, size: 22),
-                ),
-                Expanded(
-                  child: Text(
-                    'Edit top-up',
-                    textAlign: TextAlign.center,
-                    style: miseSerif(size: 20),
-                  ),
-                ),
-                const SizedBox(width: 22),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Text(itemName, style: miseSerif(size: 22)),
-            const SizedBox(height: 4),
-            Text(
-              'Your manual addition to the list.',
-              style: miseMono(size: 11, color: MiseColors.muted),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: FTextField(
-                    autofocus: true,
-                    hint: 'Qty',
-                    keyboardType: TextInputType.number,
-                    control: FTextFieldControl.managed(
-                      initial: TextEditingValue(
-                        text: formatQuantityInput(contribution.quantity),
-                      ),
-                      onChange: (v) => quantity.value = v.text.trim().isEmpty
-                          ? null
-                          : double.tryParse(v.text.trim()),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 3,
-                  child: FSelect<UnitChoice>.rich(
-                    hint: 'unit',
-                    // The count fallback of an unresolved measure carries a
-                    // subtle note until the user picks something explicit.
-                    format: (c) =>
-                        unresolvedMeasureId != null && !pickedUnit.value
-                        ? '${c.label} (measure pending sync)'
-                        : c.label,
-                    control: FSelectControl<UnitChoice>.lifted(
-                      value: choice.value,
-                      onChange: (c) {
-                        if (c != null) {
-                          choice.value = c;
-                          pickedUnit.value = true;
-                        }
-                      },
-                    ),
-                    children: [
-                      for (final c in choices)
-                        FSelectItem(title: Text(c.label), value: c),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            FButton(
-              onPress: canSave ? save : null,
-              child: const Text('Save changes'),
-            ),
-            const SizedBox(height: 8),
-            FButton(
-              variant: FButtonVariant.ghost,
-              onPress: remove,
-              child: Text(
-                'Remove top-up',
-                style: miseSans(size: 15, color: MiseColors.gone),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return QuantityUnitEditor(
+      ingredient: ingredient,
+      initialQuantity: contribution.quantity,
+      initialChoice: storedMeasure != null
+          ? MeasureOption(storedMeasure)
+          : UnitOption(contribution.unit ?? pieces),
+      pendingMeasure: unresolvedMeasureId != null,
+      requireQuantity: true,
+      confirmLabel: 'Save changes',
+      onDone: save,
+      onRemove: remove,
     );
   }
-}
-
-/// Formats a stored quantity for the edit field's initial value (integers show
-/// without a trailing `.0`).
-String formatQuantityInput(double? amount) {
-  if (amount == null) return '';
-  if (amount == amount.roundToDouble()) return amount.toStringAsFixed(0);
-  return amount.toString();
 }

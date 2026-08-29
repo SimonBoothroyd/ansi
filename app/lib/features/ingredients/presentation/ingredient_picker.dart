@@ -1,7 +1,11 @@
-/// The inline ingredient picker: a search sheet over the local seeded vocab.
+/// The ingredient picker v2 (step 7.7, design board "Pickers v2" frame a):
+/// top-anchored search over the synced vocab, a Recent section before any
+/// query, information-honest result rows (category · capability hints · a
+/// per-100 macro line for complete rows, a `stub` badge — never zeros), and
+/// the add-new affordance (creates a `manual` stub, invariant 3).
 ///
-/// Step 2 only picks existing ingredients (ADR-0004 exact/prefix search). The
-/// "create new / stub" flow is deferred, so there is no add-new affordance here.
+/// Deterministic search only (ADR-0004): the step-7.4 normalizer + word-
+/// boundary matching, in the repository.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -11,121 +15,286 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
+import '../../../shared/dashed_border_box.dart';
+import '../../../shared/picker_shell.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/ingredient.dart';
+import 'macros_format.dart';
 
-/// Opens the picker as a bottom sheet; resolves to the chosen ingredient, or
-/// null if dismissed.
-Future<Ingredient?> showIngredientPicker(BuildContext context) {
+/// Opens the picker as a bottom sheet; resolves to the chosen ingredient
+/// (possibly a just-created stub), or null if dismissed. [title] carries the
+/// destination context ('Add to "for the curry"').
+Future<Ingredient?> showIngredientPicker(
+  BuildContext context, {
+  String title = 'Add an ingredient',
+}) {
   return showFSheet<Ingredient>(
     context: context,
     side: FLayout.btt,
     mainAxisMaxRatio: null,
     useSafeArea: true,
-    builder: (_) => const _IngredientPickerSheet(),
+    builder: (_) => _IngredientPickerSheet(title: title),
+  );
+}
+
+/// The search state both hosts share (the picker sheet and the shopping
+/// top-up embed): query text, results, and whether the results are the
+/// recents feed (empty query) or a search.
+({
+  String query,
+  List<Ingredient> results,
+  bool showingRecents,
+  Future<void> Function(String) run,
+})
+useIngredientSearch(WidgetRef ref, BuildContext context) {
+  final query = useState('');
+  final results = useState<List<Ingredient>>(const []);
+  final showingRecents = useState(false);
+  // Monotonic ticket so a slow older search can never overwrite a newer
+  // one's results (or touch state after the host is dismissed).
+  final searchSeq = useRef(0);
+
+  Future<void> run(String q) async {
+    query.value = q;
+    final ticket = ++searchSeq.value;
+    final repo = ref.read(ingredientRepositoryProvider);
+    // Empty query → the recents feed; an unused vocab falls back to the
+    // plain alphabetical list so the picker is never blank.
+    var recents = false;
+    var found = <Ingredient>[];
+    if (q.trim().isEmpty) {
+      found = await repo.recentlyUsed();
+      recents = found.isNotEmpty;
+    }
+    if (found.isEmpty) found = await repo.search(q);
+    if (!context.mounted || ticket != searchSeq.value) return;
+    showingRecents.value = recents;
+    results.value = found;
+  }
+
+  useEffect(() {
+    run('');
+    return null;
+  }, const []);
+
+  return (
+    query: query.value,
+    results: results.value,
+    showingRecents: showingRecents.value,
+    run: run,
   );
 }
 
 class _IngredientPickerSheet extends HookConsumerWidget {
-  const _IngredientPickerSheet();
+  const _IngredientPickerSheet({required this.title});
+
+  final String title;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final query = useState('');
-    final results = useState<List<Ingredient>>(const []);
-    // Monotonic ticket so a slow older search can never overwrite a newer
-    // one's results (or touch state after the sheet is dismissed).
-    final searchSeq = useRef(0);
+    final search = useIngredientSearch(ref, context);
 
-    Future<void> runSearch(String q) async {
-      query.value = q;
-      final ticket = ++searchSeq.value;
-      final found = await ref.read(ingredientRepositoryProvider).search(q);
-      if (!context.mounted || ticket != searchSeq.value) return;
-      results.value = found;
-    }
-
-    useEffect(() {
-      runSearch('');
-      return null;
-    }, const []);
-
-    return Container(
-      height: MediaQuery.sizeOf(context).height * 0.72,
-      decoration: const BoxDecoration(
-        color: MiseColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: MiseColors.line)),
+    return PickerShell(
+      title: title,
+      searchHint: 'Search ingredients',
+      searchAutofocus: true,
+      onQueryChanged: search.run,
+      body: IngredientResultList(
+        results: search.results,
+        query: search.query,
+        showingRecents: search.showingRecents,
+        onPick: (ing) => Navigator.of(context).pop(ing),
       ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 10,
-          bottom: MediaQuery.viewInsetsOf(context).bottom + 12,
+      footer: AddNewIngredientRow(
+        query: search.query,
+        onCreated: (ing) => Navigator.of(context).pop(ing),
+      ),
+    );
+  }
+}
+
+/// The scrolling results — frame-a rows, with the Recent header before any
+/// query.
+class IngredientResultList extends StatelessWidget {
+  const IngredientResultList({
+    required this.results,
+    required this.query,
+    required this.showingRecents,
+    required this.onPick,
+    super.key,
+  });
+
+  final List<Ingredient> results;
+  final String query;
+  final bool showingRecents;
+  final ValueChanged<Ingredient> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    if (results.isEmpty) {
+      return Center(
+        child: Text(
+          query.isEmpty
+              ? 'No ingredients yet.'
+              : 'No match for "$query" — add it below.',
+          style: miseMono(size: 12, color: MiseColors.muted),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      );
+    }
+    return ListView(
+      children: [
+        if (showingRecents)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text('RECENT', style: miseLabel()),
+          ),
+        for (final (i, ing) in results.indexed) ...[
+          if (i > 0) Container(height: 1, color: MiseColors.line),
+          IngredientRow(ingredient: ing, onPick: onPick),
+        ],
+      ],
+    );
+  }
+}
+
+/// One dense, information-honest result row: name (+`stub` badge), category
+/// and capability hints, and a per-100 macro line for complete rows.
+class IngredientRow extends StatelessWidget {
+  const IngredientRow({
+    required this.ingredient,
+    required this.onPick,
+    super.key,
+  });
+
+  final Ingredient ingredient;
+  final ValueChanged<Ingredient> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final ing = ingredient;
+    final stub = ing.status == IngredientStatus.stub;
+    final macros = ing.macros;
+    final hints = [
+      if (ing.category != null) ing.category!,
+      if (ing.densityGPerMl != null) 'has density',
+      if (ing.measureCount > 0)
+        '${ing.measureCount} ${ing.measureCount == 1 ? 'measure' : 'measures'}',
+      if (stub) 'needs macros — no zeros shown',
+    ].join(' · ');
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onPick(ing),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
           children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 14),
-                decoration: BoxDecoration(
-                  color: MiseColors.line,
-                  borderRadius: BorderRadius.circular(2),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          ing.canonicalName,
+                          style: miseSans(size: 15, weight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (stub) ...[
+                        const SizedBox(width: 6),
+                        const StubBadge(),
+                      ],
+                    ],
+                  ),
+                  if (hints.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      hints,
+                      style: miseMono(size: 10, color: MiseColors.muted),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  // Honest numbers: only a complete row shows a macro line.
+                  if (!stub && macros != null) ...[
+                    const SizedBox(height: 3),
+                    Text.rich(
+                      TextSpan(
+                        text: formatMacroLine(macros),
+                        style: miseMono(size: 10, color: MiseColors.herbDeep),
+                        children: [
+                          TextSpan(
+                            text: ' ${macroBasisSuffix(ing.macrosBasis)}',
+                            style: miseMono(size: 10, color: MiseColors.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(FLucideIcons.plus, size: 18, color: MiseColors.herb),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "＋ can't find it? add a new ingredient" — creates a manual stub named
+/// after the query (or prompts nothing when the query is blank: the row is
+/// disabled until something is typed).
+class AddNewIngredientRow extends ConsumerWidget {
+  const AddNewIngredientRow({
+    required this.query,
+    required this.onCreated,
+    super.key,
+  });
+
+  final String query;
+  final ValueChanged<Ingredient> onCreated;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final name = query.trim();
+    final enabled = name.isNotEmpty;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: !enabled
+          ? null
+          : () async {
+              final created = await ref
+                  .read(ingredientRepositoryProvider)
+                  .createStub(name);
+              if (context.mounted) onCreated(created);
+            },
+      child: DashedBorderBox(
+        color: enabled ? MiseColors.herb : MiseColors.line,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              FLucideIcons.plus,
+              size: 12,
+              color: enabled ? MiseColors.herb : MiseColors.muted,
+            ),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                enabled
+                    ? 'can’t find it? add "$name" as a new ingredient'
+                    : 'can’t find it? type a name to add it',
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: miseMono(
+                  size: 11,
+                  color: enabled ? MiseColors.herb : MiseColors.muted,
+                  letterSpacing: 0.5,
                 ),
               ),
-            ),
-            Text('FIND AN INGREDIENT', style: miseLabel()),
-            const SizedBox(height: 12),
-            FTextField(
-              autofocus: true,
-              hint: 'Search the vocabulary',
-              control: FTextFieldControl.managed(
-                onChange: (v) => runSearch(v.text),
-              ),
-              prefixBuilder: (context, style, _) =>
-                  const Icon(FLucideIcons.search),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: results.value.isEmpty
-                  ? Center(
-                      child: Text(
-                        query.value.isEmpty
-                            ? 'No ingredients yet.'
-                            : 'No match for "${query.value}".',
-                        style: miseMono(size: 12, color: MiseColors.muted),
-                      ),
-                    )
-                  : ListView.separated(
-                      itemCount: results.value.length,
-                      separatorBuilder: (_, _) => const FDivider(),
-                      itemBuilder: (context, i) {
-                        final ing = results.value[i];
-                        return FItem(
-                          title: Text(
-                            ing.canonicalName,
-                            style: miseSans(size: 16),
-                          ),
-                          subtitle: ing.category == null
-                              ? null
-                              : Text(
-                                  ing.category!,
-                                  style: miseMono(
-                                    size: 11,
-                                    color: MiseColors.muted,
-                                  ),
-                                ),
-                          suffix: ing.status == IngredientStatus.stub
-                              ? const _StubBadge()
-                              : null,
-                          onPress: () => Navigator.of(context).pop(ing),
-                        );
-                      },
-                    ),
             ),
           ],
         ),
@@ -134,8 +303,8 @@ class _IngredientPickerSheet extends HookConsumerWidget {
   }
 }
 
-class _StubBadge extends StatelessWidget {
-  const _StubBadge();
+class StubBadge extends StatelessWidget {
+  const StubBadge({super.key});
 
   @override
   Widget build(BuildContext context) {

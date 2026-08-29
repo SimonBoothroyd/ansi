@@ -104,7 +104,8 @@ bool isVolumeUnitLabel(String label) {
   final normalized = label.trim().toLowerCase();
   for (final u in kAllUnits) {
     if (u.family != UnitFamily.volume) continue;
-    if (normalized == u.id.toLowerCase() || normalized == u.label.toLowerCase()) {
+    if (normalized == u.id.toLowerCase() ||
+        normalized == u.label.toLowerCase()) {
       return true;
     }
   }

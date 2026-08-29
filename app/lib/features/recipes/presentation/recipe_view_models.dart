@@ -12,6 +12,7 @@ import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../books/data/book_providers.dart';
 import '../../ingredients/data/ingredient_providers.dart';
+import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../data/recipe_providers.dart';
 import '../domain/recipe.dart';
@@ -135,7 +136,15 @@ class RecipeEditor extends _$RecipeEditor {
     ),
   );
 
-  void addLineItem(String groupId, Ingredient ingredient) => _mapGroup(
+  /// Appends a line for [ingredient]. The 7.7 add flow hands the quantity +
+  /// unit choice straight from the quantity sheet; without a [choice] the
+  /// line starts in the ingredient's default unit.
+  void addLineItem(
+    String groupId,
+    Ingredient ingredient, {
+    double? quantity,
+    UnitChoice? choice,
+  }) => _mapGroup(
     groupId,
     (g) => g.copyWith(
       items: [
@@ -144,7 +153,21 @@ class RecipeEditor extends _$RecipeEditor {
           id: _uuid.v4(),
           ingredientId: ingredient.id,
           ingredientName: ingredient.canonicalName,
-          unit: ingredient.defaultUnit,
+          quantity: quantity,
+          // A measure line stores the honest count fallback — see [LineItem].
+          unit: switch (choice) {
+            MeasureOption() => pieces,
+            UnitOption(:final unit) => unit,
+            null => ingredient.defaultUnit,
+          },
+          measureId: switch (choice) {
+            MeasureOption(:final measure) => measure.id,
+            _ => null,
+          },
+          measure: switch (choice) {
+            MeasureOption(:final measure) => measure,
+            _ => null,
+          },
         ),
       ],
     ),

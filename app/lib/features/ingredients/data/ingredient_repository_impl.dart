@@ -77,14 +77,14 @@ class SqliteIngredientRepository implements IngredientRepository {
     final rows = await _db.getAll(
       'SELECT i.*, $_measureCount, MAX(u.used_at) AS last_used '
       'FROM ingredient i '
-      'JOIN ('
+      'JOIN ( '
       'SELECT li.ingredient_id AS ingredient_id, li.created_at AS used_at '
       'FROM recipe_line_item li WHERE li.deleted_at IS NULL '
       'UNION ALL '
       'SELECT e.ingredient_id, c.created_at '
       'FROM shopping_list_contribution c '
       'JOIN shopping_list_entry e ON e.id = c.entry_id '
-      'WHERE c.deleted_at IS NULL AND e.ingredient_id IS NOT NULL'
+      'WHERE c.deleted_at IS NULL AND e.ingredient_id IS NOT NULL '
       ') u ON u.ingredient_id = i.id '
       'WHERE i.deleted_at IS NULL '
       'GROUP BY i.id ORDER BY last_used DESC LIMIT ?',

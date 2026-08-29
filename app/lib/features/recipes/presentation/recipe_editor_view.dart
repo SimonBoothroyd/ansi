@@ -12,15 +12,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
-import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../books/data/book_providers.dart';
 import '../../books/presentation/book_view_models.dart';
 import '../../books/presentation/text_prompt.dart';
-import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_picker.dart';
+import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../domain/recipe.dart';
 import 'format.dart';
 import 'recipe_view_models.dart';
@@ -195,10 +194,28 @@ class _GroupEditor extends StatelessWidget {
             size: FButtonSizeVariant.sm,
             prefix: const Icon(FLucideIcons.plus),
             onPress: () async {
-              final ingredient = await showIngredientPicker(context);
-              if (ingredient != null) {
-                notifier.addLineItem(group.id, ingredient);
-              }
+              // The 7.7 two-step chain: picker (frame a) → quantity + unit
+              // chips (frame b) → the line lands fully quantified. Backing
+              // out of the quantity sheet still adds the ingredient in its
+              // default unit — the quantity control re-opens the sheet.
+              final name = group.name;
+              final ingredient = await showIngredientPicker(
+                context,
+                title: name == null || name.isEmpty
+                    ? 'Add an ingredient'
+                    : 'Add to “$name”',
+              );
+              if (ingredient == null || !context.mounted) return;
+              final result = await showQuantityUnitSheet(
+                context,
+                ingredient: ingredient,
+              );
+              notifier.addLineItem(
+                group.id,
+                ingredient,
+                quantity: result is QuantitySaved ? result.quantity : null,
+                choice: result is QuantitySaved ? result.choice : null,
+              );
             },
             child: const Text('Add ingredient'),
           ),
@@ -218,25 +235,17 @@ class _LineItemEditor extends ConsumerWidget {
   final LineItem item;
   final RecipeEditor notifier;
 
-  /// The dropdown's choices: the honest unit set for the resolved vocab entry
-  /// (tech-debt row `shopping/units`) plus the ingredient's live measures
-  /// ("potato, large (299 g)"), falling back to the full catalog while
-  /// unresolved. The stored selection stays selectable even outside the
-  /// filter, so an existing line never renders an orphaned value.
-  List<UnitChoice> _choices(Ingredient? ingredient, List<Measure> measures) {
-    final allowed = ingredient == null
-        ? [for (final u in kAllUnits) UnitOption(u)]
-        : allowedUnitChoicesFor(ingredient, measures);
-    final current = _selected;
-    return allowed.contains(current) ? allowed : [...allowed, current];
-  }
-
-  /// The line's current selection: its measure when it has one (resolved or
-  /// not — an unresolved id still renders as the stored count unit), else its
-  /// plain unit.
-  UnitChoice get _selected {
+  /// The quantity control's label: quantity + measure/unit — an unresolved
+  /// measure id renders its honest count fallback with a pending note.
+  String get _label {
+    final qty = formatQuantity(item.quantity);
     final measure = item.measure;
-    return measure == null ? UnitOption(item.unit) : MeasureOption(measure);
+    final unit = measure != null
+        ? measure.label
+        : item.measureId != null
+        ? '${item.unit.label} · measure pending sync'
+        : item.unit.label;
+    return qty.isEmpty ? unit : '$qty $unit';
   }
 
   @override
@@ -250,74 +259,95 @@ class _LineItemEditor extends ConsumerWidget {
         )
         .asData
         ?.value;
-    final measures =
-        ref
-            .watch(ingredientMeasuresProvider(item.ingredientId))
-            .asData
-            ?.value ??
-        const <Measure>[];
+
+    Future<void> editQuantity() async {
+      // An unresolved vocab row still gets a working sheet: a stub-shaped
+      // stand-in scoped to the stored unit's family (no macros, no density —
+      // nothing is invented for it).
+      final sheetIngredient =
+          ingredient ??
+          Ingredient(
+            id: item.ingredientId,
+            canonicalName: item.ingredientName,
+            defaultUnit: item.measure != null ? pieces : item.unit,
+            status: IngredientStatus.stub,
+          );
+      final pending = item.measureId != null && item.measure == null;
+      final measure = item.measure;
+      final result = await showQuantityUnitSheet(
+        context,
+        ingredient: sheetIngredient,
+        initialQuantity: item.quantity,
+        initialChoice: measure != null
+            ? MeasureOption(measure)
+            : UnitOption(item.unit),
+        pendingMeasure: pending,
+      );
+      if (result is! QuantitySaved) return;
+      notifier.setLineItemQuantity(item.id, result.quantity);
+      switch (result.choice) {
+        case MeasureOption(:final measure):
+          notifier.setLineItemMeasure(item.id, measure);
+        case UnitOption(:final unit):
+          // An unresolved measure id survives an unrelated re-save; only an
+          // explicit chip pick clears it (degrade-don't-destroy).
+          if (!pending || result.unitPicked) {
+            notifier.setLineItemUnit(item.id, unit);
+          }
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
         children: [
-          Text(item.ingredientName, style: miseSans(size: 15)),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              SizedBox(
-                width: 92,
-                child: FTextField(
-                  hint: 'qty',
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  control: FTextFieldControl.managed(
-                    initial: TextEditingValue(
-                      text: formatQuantity(item.quantity),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.ingredientName, style: miseSans(size: 15)),
+                const SizedBox(height: 6),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: editQuantity,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
-                    onChange: (v) => notifier.setLineItemQuantity(
-                      item.id,
-                      v.text.trim().isEmpty ? null : double.tryParse(v.text),
+                    decoration: BoxDecoration(
+                      color: MiseColors.surface,
+                      border: Border.all(color: MiseColors.line),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _label,
+                            style: miseMono(size: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(
+                          FLucideIcons.pencil,
+                          size: 12,
+                          color: MiseColors.muted,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FSelect<UnitChoice>.rich(
-                  hint: 'unit',
-                  // An unresolved measure_id renders as its honest count
-                  // fallback — the note says why it's a plain "piece" until
-                  // the measure row syncs in.
-                  format: (c) => item.measureId != null && item.measure == null
-                      ? '${c.label} (measure pending sync)'
-                      : c.label,
-                  control: FSelectControl<UnitChoice>.lifted(
-                    value: _selected,
-                    onChange: (c) => switch (c) {
-                      UnitOption(:final unit) => notifier.setLineItemUnit(
-                        item.id,
-                        unit,
-                      ),
-                      MeasureOption(:final measure) =>
-                        notifier.setLineItemMeasure(item.id, measure),
-                      null => null,
-                    },
-                  ),
-                  children: [
-                    for (final c in _choices(ingredient, measures))
-                      FSelectItem(title: Text(c.label), value: c),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 4),
-              FButton.icon(
-                variant: FButtonVariant.ghost,
-                onPress: () => notifier.removeLineItem(item.id),
-                child: const Icon(FLucideIcons.x),
-              ),
-            ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+          FButton.icon(
+            variant: FButtonVariant.ghost,
+            onPress: () => notifier.removeLineItem(item.id),
+            child: const Icon(FLucideIcons.x),
           ),
         ],
       ),

@@ -19,11 +19,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
-import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
-import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
+import '../../ingredients/presentation/ingredient_picker.dart';
+import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../data/shopping_providers.dart';
 
 /// Opens the add/top-up sheet over the Shop screen.
@@ -196,48 +196,29 @@ class _FreeTextBody extends HookConsumerWidget {
   }
 }
 
-/// Search the vocab, pick an ingredient, and add a manual top-up quantity.
+/// Search the vocab (picker v2 rows — frame a), pick an ingredient, then
+/// quantify it on the shared quantity + unit-chip sheet (frame b).
 class _TopUpBody extends HookConsumerWidget {
   const _TopUpBody();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final query = useState('');
-    final results = useState<List<Ingredient>>(const []);
-    final selected = useState<Ingredient?>(null);
-    final quantity = useState<double?>(null);
-    final unit = useState<UnitChoice?>(null);
-    // Monotonic ticket so a slow older search can never overwrite a newer
-    // one's results (or touch state after the sheet is dismissed).
-    final searchSeq = useRef(0);
+    final search = useIngredientSearch(ref, context);
 
-    Future<void> runSearch(String q) async {
-      query.value = q;
-      final ticket = ++searchSeq.value;
-      final found = await ref.read(ingredientRepositoryProvider).search(q);
-      if (!context.mounted || ticket != searchSeq.value) return;
-      results.value = found;
-    }
-
-    useEffect(() {
-      runSearch('');
-      return null;
-    }, const []);
-
-    void choose(Ingredient ing) {
-      selected.value = ing;
-      unit.value = UnitOption(ing.defaultUnit);
-    }
-
-    Future<void> add() async {
-      final ing = selected.value;
-      final qty = quantity.value;
-      final choice = unit.value;
-      if (ing == null || qty == null || choice == null) return;
+    Future<void> pick(Ingredient ing) async {
+      final result = await showQuantityUnitSheet(
+        context,
+        ingredient: ing,
+        requireQuantity: true,
+        confirmLabel: 'Add top-up',
+      );
+      if (result is! QuantitySaved || !context.mounted) return;
+      final qty = result.quantity;
+      if (qty == null) return;
       final repo = ref.read(shoppingRepositoryProvider);
       // A measure top-up stores the honest count fallback unit (`pieces`)
       // beside the measure id — see [ShoppingRepository.addTopUp].
-      await switch (choice) {
+      await switch (result.choice) {
         UnitOption(:final unit) => repo.addTopUp(
           ingredientId: ing.id,
           quantity: qty,
@@ -253,17 +234,6 @@ class _TopUpBody extends HookConsumerWidget {
       if (context.mounted) Navigator.of(context).pop();
     }
 
-    final chosen = selected.value;
-    if (chosen != null) {
-      return _TopUpQuantity(
-        ingredient: chosen,
-        quantity: quantity,
-        unit: unit,
-        onBack: () => selected.value = null,
-        onAdd: quantity.value != null && quantity.value! > 0 ? add : null,
-      );
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -271,145 +241,23 @@ class _TopUpBody extends HookConsumerWidget {
         const SizedBox(height: 10),
         FTextField(
           autofocus: true,
-          hint: 'Search the vocabulary',
+          hint: 'Search ingredients',
           control: FTextFieldControl.managed(
-            onChange: (v) => runSearch(v.text),
+            onChange: (v) => search.run(v.text),
           ),
           prefixBuilder: (context, style, _) => const Icon(FLucideIcons.search),
         ),
         const SizedBox(height: 12),
         Expanded(
-          child: results.value.isEmpty
-              ? Center(
-                  child: Text(
-                    query.value.isEmpty
-                        ? 'No ingredients yet.'
-                        : 'No match for "${query.value}".',
-                    style: miseMono(size: 12, color: MiseColors.muted),
-                  ),
-                )
-              : ListView.separated(
-                  itemCount: results.value.length,
-                  separatorBuilder: (_, _) => const FDivider(),
-                  itemBuilder: (context, i) {
-                    final ing = results.value[i];
-                    return FItem(
-                      title: Text(ing.canonicalName, style: miseSans(size: 16)),
-                      subtitle: ing.category == null
-                          ? null
-                          : Text(
-                              ing.category!,
-                              style: miseMono(
-                                size: 11,
-                                color: MiseColors.muted,
-                              ),
-                            ),
-                      onPress: () => choose(ing),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Second step of the top-up: a quantity + unit (or named measure) for the
-/// chosen ingredient.
-class _TopUpQuantity extends ConsumerWidget {
-  const _TopUpQuantity({
-    required this.ingredient,
-    required this.quantity,
-    required this.unit,
-    required this.onBack,
-    required this.onAdd,
-  });
-
-  final Ingredient ingredient;
-  final ValueNotifier<double?> quantity;
-  final ValueNotifier<UnitChoice?> unit;
-  final VoidCallback onBack;
-  final Future<void> Function()? onAdd;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final measures =
-        ref.watch(ingredientMeasuresProvider(ingredient.id)).asData?.value ??
-        const <Measure>[];
-    // Keep the current selection selectable even if the live measure list
-    // changed under the open sheet (rename/delete syncing in) — an FSelect
-    // whose value isn't among its children renders orphaned.
-    final allowed = allowedUnitChoicesFor(ingredient, measures);
-    final current = unit.value;
-    final choices = current == null || allowed.contains(current)
-        ? allowed
-        : [...allowed, current];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onBack,
-          child: Row(
-            children: [
-              const Icon(FLucideIcons.chevronLeft, size: 18),
-              const SizedBox(width: 4),
-              Text(
-                'Pick a different ingredient',
-                style: miseMono(size: 11, color: MiseColors.muted),
-              ),
-            ],
+          child: IngredientResultList(
+            results: search.results,
+            query: search.query,
+            showingRecents: search.showingRecents,
+            onPick: pick,
           ),
         ),
-        const SizedBox(height: 14),
-        Text(ingredient.canonicalName, style: miseSerif(size: 22)),
-        const SizedBox(height: 4),
-        Text(
-          'How much to add to the list?',
-          style: miseMono(size: 11, color: MiseColors.muted),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 2,
-              child: FTextField(
-                autofocus: true,
-                hint: 'Qty',
-                keyboardType: TextInputType.number,
-                control: FTextFieldControl.managed(
-                  onChange: (v) => quantity.value = v.text.trim().isEmpty
-                      ? null
-                      : double.tryParse(v.text.trim()),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 3,
-              child: FSelect<UnitChoice>.rich(
-                hint: 'unit',
-                format: (c) => c.label,
-                control: FSelectControl<UnitChoice>.lifted(
-                  value: unit.value,
-                  onChange: (c) {
-                    if (c != null) unit.value = c;
-                  },
-                ),
-                children: [
-                  // Only units this ingredient can honestly convert between
-                  // (tech-debt row shopping/units), plus its named measures
-                  // ("potato, large (299 g)" — step 7.6).
-                  for (final c in choices)
-                    FSelectItem(title: Text(c.label), value: c),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const Spacer(),
-        FButton(onPress: onAdd, child: const Text('Add top-up')),
+        const SizedBox(height: 8),
+        AddNewIngredientRow(query: search.query, onCreated: pick),
       ],
     );
   }
