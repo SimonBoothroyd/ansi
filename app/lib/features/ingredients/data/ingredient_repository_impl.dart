@@ -21,11 +21,26 @@ import '../domain/search_query.dart';
 
 const _uuid = Uuid();
 
+/// The volume-unit names the chip row refuses as measure labels
+/// (`isVolumeUnitLabel` — ids, display labels, and their simple s plurals),
+/// lowercased for the SQL filter below. Static catalog values, no user input.
+final _volumeLabelList = [
+  for (final u in kAllUnits)
+    if (u.family == UnitFamily.volume)
+      for (final name in {u.id.toLowerCase(), u.label.toLowerCase()}) ...[
+        name,
+        '${name}s',
+      ],
+].map((l) => "'$l'").join(', ');
+
 /// Distinct live labels, matching the merge-on-read view of the measures
-/// (duplicate labels collapse to one chip, so they count once here too).
-const _measureCount =
+/// (duplicate labels collapse to one chip, so they count once here too) and
+/// the chip row's volume-label exclusion — the hint counts what is actually
+/// offered, not rows the picker hides.
+final _measureCount =
     '(SELECT COUNT(DISTINCT m.label) FROM ingredient_measure m '
-    'WHERE m.ingredient_id = i.id AND m.deleted_at IS NULL) AS measure_count';
+    'WHERE m.ingredient_id = i.id AND m.deleted_at IS NULL '
+    'AND LOWER(TRIM(m.label)) NOT IN ($_volumeLabelList)) AS measure_count';
 
 class SqliteIngredientRepository implements IngredientRepository {
   const SqliteIngredientRepository(this._db, {required String householdId})
@@ -84,7 +99,8 @@ class SqliteIngredientRepository implements IngredientRepository {
       'SELECT e.ingredient_id, c.created_at '
       'FROM shopping_list_contribution c '
       'JOIN shopping_list_entry e ON e.id = c.entry_id '
-      'WHERE c.deleted_at IS NULL AND e.ingredient_id IS NOT NULL '
+      'WHERE c.deleted_at IS NULL AND e.deleted_at IS NULL '
+      'AND e.ingredient_id IS NOT NULL '
       ') u ON u.ingredient_id = i.id '
       'WHERE i.deleted_at IS NULL '
       'GROUP BY i.id ORDER BY last_used DESC LIMIT ?',

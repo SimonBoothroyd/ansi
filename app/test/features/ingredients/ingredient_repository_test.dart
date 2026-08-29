@@ -182,6 +182,27 @@ void main() {
     expect(onion.measureCount, 2);
   });
 
+  test('the measure-count hint excludes volume-named labels', () async {
+    // The chip row refuses labels that merely name a volume unit (density
+    // owns volume conversion), so the "N measures" hint must not count what
+    // the picker will never offer — plural/case disguises included.
+    for (final (mid, label) in [
+      ('m1', 'onion, medium'),
+      ('m2', 'cup'),
+      ('m3', ' Cups '),
+      ('m4', 'tbsp'),
+    ]) {
+      await db.execute(
+        'INSERT INTO ingredient_measure '
+        '(id, household_id, ingredient_id, label, grams) '
+        'VALUES (?, ?, ?, ?, 100)',
+        [mid, 'h', '1', label],
+      );
+    }
+    final onion = (await repo.search('onion')).first;
+    expect(onion.measureCount, 1);
+  });
+
   test('recentlyUsed surfaces line-item and top-up ingredients, newest '
       'first', () async {
     // Onion used in a recipe line (older), Tofu topped up manually (newer).
@@ -205,6 +226,22 @@ void main() {
   });
 
   test('recentlyUsed is empty when nothing was ever used', () async {
+    expect(await repo.recentlyUsed(), isEmpty);
+  });
+
+  test('recentlyUsed ignores tombstoned shopping entries', () async {
+    // The contribution is live but its ENTRY was soft-deleted (e.g. a
+    // cleared item): the reference must not keep the ingredient recent.
+    await db.execute(
+      'INSERT INTO shopping_list_entry (id, household_id, ingredient_id, '
+      "deleted_at) VALUES ('e-dead', 'h', '2', '2026-01-03')",
+    );
+    await db.execute(
+      'INSERT INTO shopping_list_contribution (id, household_id, entry_id, '
+      "source_type, quantity, unit, created_at) VALUES ('c1', 'h', 'e-dead', "
+      "'manual', 1, 'g', '2026-01-02')",
+    );
+
     expect(await repo.recentlyUsed(), isEmpty);
   });
 
