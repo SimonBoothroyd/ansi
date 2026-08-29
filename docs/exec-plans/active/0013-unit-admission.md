@@ -56,6 +56,15 @@ category-gated — plus the two independent 7.7 polish items Simon flagged.
 
 ## Notes / open questions
 
+- **Seed-default methodology (Simon, 2026-08-29):** rules are scaffolding,
+  not the decider. Wherever this step assigns per-ingredient defaults
+  (allowed units, derived densities, measures, imprecise gating), the
+  pipeline's rule output gets a final **LLM curation pass**: the agent
+  reviews each ingredient's assignments and overrides where a human would
+  ("is this sensible?" — fuzzy judgment catches what rules overlook; the
+  peeled-lemon class of error). Overrides are recorded with reasons so the
+  pass is auditable, like the borrow map.
+
 - Category set for imprecise gating: start with `spice/seasoning/oil/
   condiment`; verify against the vocab's actual category values first.
 - Does any existing UI assume `Measure` amounts are grams for display?
