@@ -105,7 +105,7 @@ void main() {
   test('a measure line round-trips: id persisted, measure resolved', () async {
     await db.execute(
       'INSERT INTO ingredient_measure '
-      '(id, household_id, ingredient_id, label, grams, sort_order) '
+      '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
       'VALUES (?, ?, ?, ?, ?, ?)',
       ['m-onion', 'h', 'ing-onion', 'onion, medium', 110, 0],
     );
@@ -131,7 +131,7 @@ void main() {
     expect(onion.measureId, 'm-onion');
     expect(onion.measure, isNotNull);
     expect(onion.measure!.label, 'onion, medium');
-    expect(onion.measure!.grams, 110);
+    expect(onion.measure!.amount, 110);
     expect(onion.unit, pieces); // the honest count fallback stays stored
   });
 
@@ -166,7 +166,7 @@ void main() {
   test('watchRecipe re-fires when a measure is renamed', () async {
     await db.execute(
       'INSERT INTO ingredient_measure '
-      '(id, household_id, ingredient_id, label, grams, sort_order) '
+      '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
       'VALUES (?, ?, ?, ?, ?, ?)',
       ['m-onion', 'h', 'ing-onion', 'onion, medium', 110, 0],
     );

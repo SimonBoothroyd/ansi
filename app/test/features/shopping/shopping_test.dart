@@ -5,8 +5,8 @@ import 'package:mise/features/shopping/domain/shopping.dart';
 
 const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-const _potatoLarge = Measure(id: 'm1', label: 'potato, large', grams: 299);
-const _can400 = Measure(id: 'm2', label: 'can (400 ml)', grams: 400);
+const _potatoLarge = Measure(id: 'm1', label: 'potato, large', amount: 299);
+const _can400 = Measure(id: 'm2', label: 'can (400 ml)', amount: 400);
 
 CookContributionInput _cook(
   String ingredientId,
@@ -178,7 +178,7 @@ void main() {
     test('a measure with a non-positive gram weight is never summed', () {
       // Mirrors the density guard: a bad stored weight must not fabricate
       // grams — the measured amount simply stays out of the totals.
-      const bad = Measure(id: 'mb', label: 'bad', grams: 0);
+      const bad = Measure(id: 'mb', label: 'bad', amount: 0);
       final totals = aggregateQuantities(
         [Quantity(100, g)],
         measured: [(amount: 2, measure: bad)],
@@ -239,7 +239,7 @@ void main() {
       // Primary is "medium" (sort 0) but the total came from LARGE potatoes:
       // 598 g must hint in large (whole → no hint at 2.0; 674 g → 2.25),
       // never "≈ 2.81 medium → buy 3" off the wrong denominator.
-      const medium = Measure(id: 'mm', label: 'potato, medium', grams: 213);
+      const medium = Measure(id: 'mm', label: 'potato, medium', amount: 213);
       expect(
         wholeUnitHintFor(
           totals: [Quantity(2 * 299, g)],
@@ -262,7 +262,7 @@ void main() {
     test('disagreeing measure provenance gets no hint', () {
       // Contributions counted in two different measures: no single honest
       // unit to round the mass total to.
-      const medium = Measure(id: 'mm', label: 'potato, medium', grams: 213);
+      const medium = Measure(id: 'mm', label: 'potato, medium', amount: 213);
       expect(
         wholeUnitHintFor(
           totals: [Quantity(674, g)],
@@ -284,7 +284,7 @@ void main() {
       // Tofu defaults to oz (mass) but has a block measure: the hint applies
       // regardless of default-unit family — the measure is the purchasable
       // thing.
-      const block = Measure(id: 'mt', label: 'block (14 oz)', grams: 397);
+      const block = Measure(id: 'mt', label: 'block (14 oz)', amount: 397);
       final hint = wholeUnitHintFor(
         totals: [Quantity(600, g)],
         measures: const [block],
@@ -633,7 +633,7 @@ void main() {
       // Live repro from review: "2 × potato, large" (598 g) with "medium"
       // sorted first must NOT hint "≈ 2.81 medium → buy 3" — the total is
       // exactly 2 large, so there is no hint at all.
-      const medium = Measure(id: 'mm', label: 'potato, medium', grams: 213);
+      const medium = Measure(id: 'mm', label: 'potato, medium', amount: 213);
       final list = build(
         cook: [
           _cook('potato', 2, pieces, measure: _potatoLarge, recipe: 'Stew'),
@@ -675,7 +675,7 @@ void main() {
       // grams = 0 (bad data past the DB check, e.g. a rogue local write):
       // the line must surface as "not counted", like an unrecognised unit —
       // not vanish from the breakdown while the total quietly shrinks.
-      const bad = Measure(id: 'mb', label: 'mystery bag', grams: 0);
+      const bad = Measure(id: 'mb', label: 'mystery bag', amount: 0);
       final list = build(
         cook: [
           _cook('potato', 100, g, recipe: 'Curry'),

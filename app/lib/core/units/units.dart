@@ -187,6 +187,19 @@ Result<Quantity> convert(
   return Ok(Quantity(millilitres / to.ratioToBase!, to));
 }
 
+/// The density (g/ml) implied by "one [volumeUnit] of this weighs [grams] g"
+/// — the spoon-mapping entry style (ADR-0008: a volume-named weight mapping
+/// IS a density, so `1 tbsp = 15 g` ⇒ `15 / 14.787` g/ml and volume-named
+/// measures never exist).
+///
+/// Returns null (never a fabricated number — invariant 3) when [volumeUnit]
+/// is not a volume unit or [grams] is non-positive/NaN.
+double? densityFromVolumeWeight(Unit volumeUnit, double grams) {
+  if (volumeUnit.family != UnitFamily.volume) return null;
+  if (!(grams > 0)) return null;
+  return grams / volumeUnit.ratioToBase!;
+}
+
 /// Multiplies [q] by [factor], keeping the unit.
 ///
 /// [UnitFamily.imprecise] quantities are returned unchanged: a recipe scaled ×2

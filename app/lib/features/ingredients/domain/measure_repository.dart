@@ -23,20 +23,21 @@ abstract interface class MeasureRepository {
   /// labels are merged deterministically (see the library doc).
   Stream<List<Measure>> watchMeasures(String ingredientId);
 
-  /// Authors a user measure of [ingredientId]: [label] weighs [grams] grams.
+  /// Authors a user measure of [ingredientId]: one [label] is [amount] of
+  /// the ingredient's basis unit (g or ml — `macros_basis`, ADR-0008).
   /// Written with `source = 'manual'` after the ingredient's existing
   /// measures (`sort_order`), and returned for immediate selection.
   ///
   /// Throws [ArgumentError] for an empty or volume-unit-named [label]
-  /// (density owns volume conversion) or non-positive/NaN [grams] — the
+  /// (density owns volume conversion) or non-positive/NaN [amount] — the
   /// rules hold at the repository, not just the sheet's form.
   Future<Measure> addMeasure({
     required String ingredientId,
     required String label,
-    required double grams,
+    required double amount,
   });
 
   /// Soft-deletes one measure (tombstone, spec §3). A line item referencing
-  /// it degrades to its honest stored count — never invented grams.
+  /// it degrades to its honest stored count — never an invented amount.
   Future<void> softDeleteMeasure(String measureId);
 }

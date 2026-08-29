@@ -1,11 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mise/core/result/result.dart';
+import 'package:mise/core/units/macros.dart';
 import 'package:mise/core/units/measure.dart';
 import 'package:mise/core/units/units.dart';
 
 void main() {
-  const potatoLarge = Measure(id: 'm1', label: 'potato, large', grams: 299);
-  const can400 = Measure(id: 'm2', label: 'can (400 ml)', grams: 400);
+  const potatoLarge = Measure(id: 'm1', label: 'potato, large', amount: 299);
+  const can400 = Measure(id: 'm2', label: 'can (400 ml)', amount: 400);
 
   group('convertMeasure', () {
     test('to mass via the gram weight (2 × 299 g == 598 g)', () {
@@ -43,10 +44,10 @@ void main() {
       // Multiplying by 0/-1/NaN grams would fabricate a total, exactly like a
       // bad density would — the same honest refusal applies.
       for (final grams in [0.0, -299.0, double.nan]) {
-        final bad = Measure(id: 'm', label: 'bad', grams: grams);
+        final bad = Measure(id: 'm', label: 'bad', amount: grams);
         final r = convertMeasure(2, bad, to: g);
         expect(r.isOk, isFalse, reason: 'grams = $grams');
-        expect((r as Err).failure.code, 'measure/invalid_grams');
+        expect((r as Err).failure.code, 'measure/invalid_amount');
       }
     });
   });
@@ -83,16 +84,16 @@ void main() {
     });
 
     test('rejects a non-positive gram weight before converting', () {
-      const bad = Measure(id: 'm', label: 'bad', grams: 0);
+      const bad = Measure(id: 'm', label: 'bad', amount: 0);
       final r = amountInMeasure(Quantity(100, g), bad);
       expect(r.isOk, isFalse);
-      expect((r as Err).failure.code, 'measure/invalid_grams');
+      expect((r as Err).failure.code, 'measure/invalid_amount');
     });
   });
 
   group('sourceKind (7.7 humanized provenance)', () {
     Measure withSource(String? source) =>
-        Measure(id: 'm', label: 'x', grams: 1, source: source);
+        Measure(id: 'm', label: 'x', amount: 1, source: source);
 
     test('classifies each provenance family', () {
       expect(
@@ -116,11 +117,57 @@ void main() {
   test('Measure is value-equal on all fields', () {
     expect(
       potatoLarge,
-      const Measure(id: 'm1', label: 'potato, large', grams: 299),
+      const Measure(id: 'm1', label: 'potato, large', amount: 299),
     );
     expect(
       potatoLarge,
-      isNot(const Measure(id: 'm1', label: 'potato, large', grams: 300)),
+      isNot(const Measure(id: 'm1', label: 'potato, large', amount: 300)),
     );
+  });
+
+  group('basis-aware measures (ADR-0008, 0012)', () {
+    // A per-ml ingredient's measure maps to VOLUME: "can (400 ml) = 400 ml".
+    const can = Measure(
+      id: 'm-can',
+      label: 'can (400 ml)',
+      amount: 400,
+      basis: MacrosBasis.perMl,
+    );
+
+    test('a per-ml measure converts to volume without a density', () {
+      final r = convertMeasure(0.5, can, to: ml);
+      expect(r, Ok(Quantity(200, ml)));
+      final cups = convertMeasure(1, can, to: cup);
+      expect((cups as Ok<Quantity>).value.amount, closeTo(1.69, 0.01));
+    });
+
+    test('a per-ml measure reaches mass only via the density', () {
+      expect(
+        (convertMeasure(1, can, to: g) as Err).failure.code,
+        'unit/no_density',
+      );
+      final r = convertMeasure(1, can, to: g, densityGPerMl: 1.03);
+      expect((r as Ok<Quantity>).value.amount, closeTo(412, 0.001));
+    });
+
+    test('amountInMeasure inverts within the basis family', () {
+      final r = amountInMeasure(Quantity(600, ml), can);
+      expect(r, const Ok(1.5));
+      // …and needs a density to cross from mass.
+      expect(
+        (amountInMeasure(Quantity(412, g), can) as Err).failure.code,
+        'unit/no_density',
+      );
+      expect(
+        amountInMeasure(Quantity(412, g), can, densityGPerMl: 1.03),
+        const Ok<double>(1),
+      );
+    });
+
+    test('the default basis stays per-g (every pre-0012 caller)', () {
+      const clove = Measure(id: 'm', label: 'clove', amount: 3);
+      expect(clove.basis, MacrosBasis.perG);
+      expect(convertMeasure(2, clove, to: g), Ok(Quantity(6, g)));
+    });
   });
 }

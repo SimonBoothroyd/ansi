@@ -25,6 +25,7 @@ library;
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../core/result/result.dart';
+import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 
@@ -258,9 +259,18 @@ List<Quantity> aggregateQuantities(
     }
   }
   for (final m in measured) {
-    // Grams-per-measure is a stored mass, so the fold is exact — but only a
-    // positive weight is trusted (mirrors the density guard above).
-    if (m.measure.grams > 0) mass.add(Quantity(m.amount * m.measure.grams, g));
+    // The measure's basis amount is a stored basis-family quantity, so the
+    // fold is exact — into MASS for a per-g measure, into VOLUME for a
+    // per-ml one (ADR-0008: measures map into the ingredient's basis, never
+    // across it). Only a positive amount is trusted (mirrors the density
+    // guard above).
+    if (!(m.measure.amount > 0)) continue;
+    final total = m.amount * m.measure.amount;
+    if (m.measure.basis == MacrosBasis.perMl) {
+      volume.add(Quantity(total, ml));
+    } else {
+      mass.add(Quantity(total, g));
+    }
   }
 
   final totals = <Quantity>[];
@@ -344,14 +354,16 @@ typedef WholeUnitHint = ({
 /// - a fractional count total ("2.25 piece") rounds up directly — a count is
 ///   already a whole-thing tally, so it needs no measure and no default-unit
 ///   gate;
-/// - a mass total converts through a measure — "674 g ≈ 2.25 × potato, large
-///   → buy 3" — marked `approx`. The measure used is the one the total's
-///   contributions were actually counted in ([usedMeasures], when they all
-///   agree — hinting "buy 3 medium" against a total built from large
-///   potatoes would misprice it); an item with NO measure provenance falls
-///   back to the ingredient's primary measure (lowest `sort_order`), and one
-///   with *disagreeing* provenance gets no hint (no single honest unit to
-///   round to).
+/// - a mass or volume total converts through a measure of the SAME family
+///   as its basis — "674 g ≈ 2.25 × potato, large → buy 3" — marked
+///   `approx` (a cross-family pair would need a density this hint doesn't
+///   carry, and [amountInMeasure] refuses it honestly). The measure used is
+///   the one the total's contributions were actually counted in
+///   ([usedMeasures], when they all agree — hinting "buy 3 medium" against
+///   a total built from large potatoes would misprice it); an item with NO
+///   measure provenance falls back to the ingredient's primary measure
+///   (lowest `sort_order`), and one with *disagreeing* provenance gets no
+///   hint (no single honest unit to round to).
 ///
 /// Always a hint BESIDE the honest total, never a replacement (invariant 3).
 WholeUnitHint? wholeUnitHintFor({
@@ -372,7 +384,8 @@ WholeUnitHint? wholeUnitHintFor({
       approx: false,
     );
   }
-  if (total.unit.family == UnitFamily.mass) {
+  if (total.unit.family == UnitFamily.mass ||
+      total.unit.family == UnitFamily.volume) {
     final usedIds = {for (final m in usedMeasures) m.id};
     final Measure? measure;
     if (usedIds.length > 1) {
@@ -526,7 +539,7 @@ ShoppingList buildShoppingList({
             cookDay: c.cookDay,
           )
         else if (c.measure != null &&
-            !(c.measure!.grams > 0) &&
+            !(c.measure!.amount > 0) &&
             c.quantity != null)
           ShoppingContribution(
             source: ContributionSource.cookSession,
@@ -563,7 +576,7 @@ ShoppingList buildShoppingList({
           ),
       for (final man in manuals)
         if (man.measure != null &&
-            !(man.measure!.grams > 0) &&
+            !(man.measure!.amount > 0) &&
             man.quantity != null)
           ShoppingContribution(
             source: ContributionSource.manual,

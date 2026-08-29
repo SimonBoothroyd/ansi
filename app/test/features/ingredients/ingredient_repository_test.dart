@@ -173,7 +173,7 @@ void main() {
     ]) {
       await db.execute(
         'INSERT INTO ingredient_measure '
-        '(id, household_id, ingredient_id, label, grams, deleted_at) '
+        '(id, household_id, ingredient_id, label, basis_amount, deleted_at) '
         'VALUES (?, ?, ?, ?, 100, ?)',
         [mid, 'h', '1', label, deleted],
       );
@@ -194,7 +194,7 @@ void main() {
     ]) {
       await db.execute(
         'INSERT INTO ingredient_measure '
-        '(id, household_id, ingredient_id, label, grams) '
+        '(id, household_id, ingredient_id, label, basis_amount) '
         'VALUES (?, ?, ?, ?, 100)',
         [mid, 'h', '1', label],
       );
@@ -262,5 +262,80 @@ void main() {
     expect(row['source'], 'manual');
     expect(row['match_text'], 'curry leaves');
     expect(row['status'], 'stub');
+  });
+
+  group('setDensity (ADR-0008: the single volume⇄mass fact)', () {
+    test(
+      'writes the density and extends allowed_units in the same write',
+      () async {
+        // A tsp-default per-g row on the derived fallback (no explicit list):
+        // the write materializes the defaults AND appends the density leg.
+        await db.execute(
+          "UPDATE ingredient SET default_unit = 'tsp' WHERE id = '1'",
+        );
+        final updated = await repo.setDensity('1', 0.7);
+        expect(updated, isNotNull);
+        expect(updated!.densityGPerMl, 0.7);
+        expect(updated.allowedUnits, isNotNull);
+        // The yeast shape (tsp/tbsp/g) plus nothing else — the ml the density
+        // could unlock for a MASS-default row doesn't apply to a volume
+        // default beyond g (already the basis base).
+        expect(updated.allowedUnits!.map((u) => u.id).toSet(), {
+          'tsp',
+          'tbsp',
+          'g',
+        });
+
+        final row = await db.get(
+          'SELECT density_g_per_ml, allowed_units FROM ingredient '
+          "WHERE id = '1'",
+        );
+        expect((row['density_g_per_ml'] as num).toDouble(), 0.7);
+        expect(row['allowed_units'], isNotNull);
+      },
+    );
+
+    test('a mass-default row gains the kitchen volume workhorses', () async {
+      final updated = await repo.setDensity('1', 0.7); // default_unit 'g'
+      expect(updated!.allowedUnits!.map((u) => u.id).toSet(), {
+        'g',
+        'kg',
+        'tsp',
+        'tbsp',
+        'cup',
+        'ml',
+      });
+    });
+
+    test('an existing explicit list is extended, never replaced', () async {
+      await db.execute(
+        "UPDATE ingredient SET allowed_units = '[\"g\", \"to_taste\"]' "
+        "WHERE id = '1'",
+      );
+      final updated = await repo.setDensity('1', 1.1);
+      // The user's curated entries survive; only the unlock is unioned in.
+      expect(updated!.allowedUnits!.map((u) => u.id).toSet(), {
+        'g',
+        'to_taste',
+        'tsp',
+        'tbsp',
+        'cup',
+        'ml',
+      });
+    });
+
+    test('refuses a dishonest density', () async {
+      for (final bad in [0.0, -1.0, double.nan]) {
+        await expectLater(
+          repo.setDensity('1', bad),
+          throwsArgumentError,
+          reason: '$bad',
+        );
+      }
+    });
+
+    test('null for an unknown id', () async {
+      expect(await repo.setDensity('nope', 1), isNull);
+    });
   });
 }

@@ -128,6 +128,9 @@ const schema = Schema([
     Column.real('density_g_per_ml'),
     Column.text('macros'), // JSON {kcal, protein, carb, fat}; null when stub
     Column.text('macros_basis'), // 'g' | 'ml' — the per-100 basis (step 7.7)
+    // Explicit allowed-unit list (JSON array of unit ids, ADR-0008 / 0012);
+    // null → the client derives the same defaults.
+    Column.text('allowed_units'),
     Column.text('status'),
     Column.text('source'),
     Column.text('match_text'),
@@ -141,15 +144,16 @@ const schema = Schema([
     Column.text('source'),
     ..._audit,
   ]),
-  // Named per-ingredient measures with gram weights ("potato, large = 299 g")
-  // — the honest count↔mass bridge (step 7.6). Synced with the vocab.
+  // Named per-ingredient measures ("potato, large = 299 g") — the honest
+  // count↔basis bridge (step 7.6; basis-aware amounts since 7.8/0012: the
+  // amount is in the ingredient's macros_basis unit). Synced with the vocab.
   Table('ingredient_measure', [
     Column.text('household_id'),
     Column.text('ingredient_id'),
     Column.text('label'),
-    Column.real('grams'),
+    Column.real('basis_amount'),
     Column.integer('sort_order'),
-    Column.text('source'), // weight provenance ("usda_fdc:…", "manual", …)
+    Column.text('source'), // amount provenance ("usda_fdc:…", "manual", …)
     ..._audit,
   ]),
 

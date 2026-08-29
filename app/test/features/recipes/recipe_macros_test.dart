@@ -159,7 +159,7 @@ void main() {
   });
 
   group('measure lines', () {
-    const clove = Measure(id: 'm1', label: 'clove', grams: 3);
+    const clove = Measure(id: 'm1', label: 'clove', amount: 3);
 
     test('convert via grams into a per-100 g basis', () {
       final summary = summarizeRecipeMacros(
@@ -172,7 +172,7 @@ void main() {
     });
 
     test('need a density to reach a per-100 ml basis', () {
-      const halfCan = Measure(id: 'm2', label: 'half can', grams: 204);
+      const halfCan = Measure(id: 'm2', label: 'half can', amount: 204);
       final with_ = summarizeRecipeMacros(
         servingsBase: 1,
         lines: [_line('x', quantity: 1, measure: halfCan)],
@@ -199,7 +199,7 @@ void main() {
     });
 
     test('invalid measure grams degrade honestly, never Infinity', () {
-      const bad = Measure(id: 'm3', label: 'phantom', grams: 0);
+      const bad = Measure(id: 'm3', label: 'phantom', amount: 0);
       final summary = summarizeRecipeMacros(
         servingsBase: 1,
         lines: [_line('x', quantity: 2, measure: bad)],

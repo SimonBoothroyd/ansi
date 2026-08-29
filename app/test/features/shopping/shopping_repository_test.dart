@@ -381,12 +381,12 @@ void main() {
     expect((await repo.watchShoppingList(_week).first).isEmpty, isTrue);
   });
 
-  test('a measure line sums in grams, with a whole-unit hint', () async {
+  test('a measure line sums in basis_amount, with a whole-unit hint', () async {
     // "3 × onion, medium (110 g)" scaled ×0.75 → 2.25 onions = 247.5 g, and
     // the count food's line offers the honest "buy 3" hint (step 7.6).
     await db.execute(
       'INSERT INTO ingredient_measure '
-      '(id, household_id, ingredient_id, label, grams, sort_order) '
+      '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
       'VALUES (?, ?, ?, ?, ?, 0)',
       ['m-onion', 'h', 'onion', 'onion, medium', 110],
     );
@@ -427,7 +427,7 @@ void main() {
       'list', () async {
     await db.execute(
       'INSERT INTO ingredient_measure '
-      '(id, household_id, ingredient_id, label, grams, sort_order) '
+      '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
       'VALUES (?, ?, ?, ?, ?, 0)',
       ['m-onion', 'h', 'onion', 'onion, medium', 110],
     );
@@ -506,7 +506,7 @@ void main() {
     await _insertIngredient(db, 'spud', 'Potato', 'produce', 'piece');
     await db.execute(
       'INSERT INTO ingredient_measure '
-      '(id, household_id, ingredient_id, label, grams, sort_order) '
+      '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
       'VALUES (?, ?, ?, ?, ?, 0)',
       ['m-spud', 'h', 'spud', 'potato, medium', 213],
     );
@@ -556,7 +556,7 @@ void main() {
     await _insertIngredient(db, 'spud', 'Potato', 'produce', 'piece');
     await db.execute(
       'INSERT INTO ingredient_measure '
-      '(id, household_id, ingredient_id, label, grams, sort_order) '
+      '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
       'VALUES (?, ?, ?, ?, ?, 0)',
       ['m-spud', 'h', 'spud', 'potato, medium', 213],
     );
@@ -591,7 +591,7 @@ void main() {
     final item =
         (await repo.watchShoppingList(_week).first).groups.single.items.single;
     // Only the clean line's scaled 75 g stands: the contradictory rows are
-    // not counted at all (not as grams, not as measure counts) — the note
+    // not counted at all (not in the basis fold, not as measure counts) —
     // says why, and the user fixes the line rather than trusting a guess.
     expect(item.totals.single.amount, closeTo(75, 1e-9));
     final labels = item.contributions.map((c) => c.label).join('\n');

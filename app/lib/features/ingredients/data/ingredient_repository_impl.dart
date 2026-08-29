@@ -9,12 +9,15 @@
 /// "extra firm tofu" without any fuzziness.
 library;
 
+import 'dart:convert';
+
 import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
+import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/search_query.dart';
@@ -142,6 +145,31 @@ class SqliteIngredientRepository implements IngredientRepository {
     );
   }
 
+  @override
+  Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async {
+    // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
+    if (!(gPerMl > 0)) {
+      throw ArgumentError.value(gPerMl, 'gPerMl', 'must be a positive number');
+    }
+    final current = await byId(ingredientId);
+    if (current == null) return null;
+    // Extend the explicit list with what this density unlocks, in the same
+    // write (see the interface doc). A row still on the derived fallback is
+    // materialized first, so the extension has something explicit to join.
+    final unlocked = {
+      ...current.allowedUnits ?? defaultAllowedUnitSet(current),
+      ...densityUnlockedUnits(current),
+    };
+    final allowedJson = jsonEncode([for (final u in unlocked) u.id]);
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _db.execute(
+      'UPDATE ingredient SET density_g_per_ml = ?, allowed_units = ?, '
+      'updated_at = ? WHERE id = ?',
+      [gPerMl, allowedJson, now, ingredientId],
+    );
+    return byId(ingredientId);
+  }
+
   Ingredient _toIngredient(Row r) => Ingredient(
     id: r['id'] as String,
     canonicalName: r['canonical_name'] as String,
@@ -154,6 +182,26 @@ class SqliteIngredientRepository implements IngredientRepository {
     densityGPerMl: (r['density_g_per_ml'] as num?)?.toDouble(),
     macros: Macros.tryParse(r['macros'] as String?),
     macrosBasis: MacrosBasis.fromDb(r['macros_basis'] as String?),
+    allowedUnits: _parseAllowedUnits(r['allowed_units'] as String?),
     measureCount: (r['measure_count'] as int?) ?? 0,
   );
+
+  /// Parses the row's `allowed_units` jsonb (a JSON array of unit ids) into
+  /// catalog units. Unknown ids are dropped (a newer server vocabulary must
+  /// not orphan this client); a malformed/absent value is null, which sends
+  /// the pickers to the derived-defaults fallback.
+  static List<Unit>? _parseAllowedUnits(String? json) {
+    if (json == null || json.isEmpty) return null;
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(json);
+    } on FormatException {
+      return null;
+    }
+    if (decoded is! List) return null;
+    return [
+      for (final id in decoded)
+        if (id is String && unitById(id) != null) unitById(id)!,
+    ];
+  }
 }

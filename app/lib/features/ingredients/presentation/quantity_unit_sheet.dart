@@ -140,6 +140,10 @@ class QuantityUnitEditor extends HookConsumerWidget {
     // filter wouldn't offer it (the retired dropdowns' rule) — so it stays
     // re-selectable after tapping another chip, for as long as it exists.
     final stored = useState<UnitChoice?>(initialChoice);
+    // The vocab row can change while the sheet is open — the manage state's
+    // density entry unlocks the other unit family live — so the surfaces
+    // read this copy, updated by the density write path.
+    final live = useState(ingredient);
 
     final measures =
         ref.watch(ingredientMeasuresProvider(ingredient.id)).asData?.value ??
@@ -160,11 +164,11 @@ class QuantityUnitEditor extends HookConsumerWidget {
       // A deleted measure also stops being the admitted stored choice.
       if (stored.value == MeasureOption(m)) stored.value = null;
       if (choice.value == MeasureOption(m)) {
-        choice.value = UnitOption(ingredient.defaultUnit);
+        choice.value = UnitOption(live.value.defaultUnit);
         unitPicked.value = true;
         deletedNote.value =
             '“${m.label}” deleted — back to '
-            '${ingredient.defaultUnit.label}';
+            '${live.value.defaultUnit.label}';
       }
     }
 
@@ -188,7 +192,7 @@ class QuantityUnitEditor extends HookConsumerWidget {
         ),
         child: managing.value
             ? _MeasureManager(
-                ingredient: ingredient,
+                ingredient: live.value,
                 measures: measures,
                 onBack: () => managing.value = false,
                 onDelete: deleteMeasure,
@@ -197,9 +201,10 @@ class QuantityUnitEditor extends HookConsumerWidget {
                   unitPicked.value = true;
                   managing.value = false;
                 },
+                onIngredientChanged: (i) => live.value = i,
               )
             : _QuantitySurface(
-                ingredient: ingredient,
+                ingredient: live.value,
                 measures: measures,
                 quantity: quantity,
                 choice: choice,
@@ -406,29 +411,36 @@ class _QuantitySurface extends StatelessWidget {
 }
 
 /// The honest conversion line: shown only when the unit system can actually
-/// bridge the current entry to grams — a volume entry names the density it
-/// used; nothing is ever fabricated (invariant 3).
+/// bridge the current entry to the ingredient's basis unit (g or ml — the
+/// dimension its macros speak, ADR-0008) — a cross-family entry names the
+/// density it used; nothing is ever fabricated (invariant 3).
 String? _conversionNote(double? qty, UnitChoice choice, Ingredient ing) {
   if (qty == null || !(qty > 0)) return null;
+  final base = ing.macrosBasis.baseUnit;
   switch (choice) {
     case MeasureOption(:final measure):
-      final grams = convertMeasure(qty, measure, to: g);
-      return switch (grams) {
-        Ok(:final value) => '≈ ${formatQuantity(value.amount)} g',
+      final inBase = convertMeasure(
+        qty,
+        measure,
+        to: base,
+        densityGPerMl: ing.densityGPerMl,
+      );
+      return switch (inBase) {
+        Ok(:final value) => '≈ ${formatQuantity(value.amount)} ${base.label}',
         Err() => null,
       };
     case UnitOption(:final unit):
-      if (unit == g) return null;
-      final grams = convert(
+      if (unit == base) return null;
+      final inBase = convert(
         Quantity(qty, unit),
-        to: g,
+        to: base,
         densityGPerMl: ing.densityGPerMl,
       );
-      return switch (grams) {
-        Ok(:final value) when unit.family == UnitFamily.volume =>
-          '≈ ${formatQuantity(value.amount)} g · via density '
+      return switch (inBase) {
+        Ok(:final value) when unit.family != base.family =>
+          '≈ ${formatQuantity(value.amount)} ${base.label} · via density '
               '${formatDensity(ing.densityGPerMl!)} g/ml',
-        Ok(:final value) => '≈ ${formatQuantity(value.amount)} g',
+        Ok(:final value) => '≈ ${formatQuantity(value.amount)} ${base.label}',
         Err() => null,
       };
   }
@@ -659,6 +671,7 @@ class _MeasureManager extends HookConsumerWidget {
     required this.onBack,
     required this.onDelete,
     required this.onAdded,
+    required this.onIngredientChanged,
   });
 
   final Ingredient ingredient;
@@ -670,28 +683,42 @@ class _MeasureManager extends HookConsumerWidget {
   final Future<void> Function(Measure) onDelete;
   final ValueChanged<Measure> onAdded;
 
+  /// A density write updates the vocab row — the editor swaps its live copy
+  /// so the chip row unlocks the other family without reopening.
+  final ValueChanged<Ingredient> onIngredientChanged;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final label = useState('');
-    final grams = useState<double?>(null);
+    final amount = useState<double?>(null);
     final error = useState<String?>(null);
+    // Set when the add form redirected a volume-named label ("cup") into
+    // the density entry — the one-line explanation + the pre-picked spoon.
+    final redirected = useState<Unit?>(null);
 
+    final baseLabel = ingredient.macrosBasis.baseUnit.label;
     final listed = measures.where((m) => !isVolumeUnitLabel(m.label)).toList();
 
     Future<void> save() async {
       final name = label.value.trim();
-      final weight = grams.value;
+      final weight = amount.value;
       if (name.isEmpty) {
         error.value = 'give the measure a name';
         return;
       }
-      if (isVolumeUnitLabel(name)) {
-        // Density owns volume conversion — a "cup" measure would shadow it.
-        error.value = '“$name” is a unit — name the real-world thing instead';
+      final volumeUnit = volumeUnitFromLabel(name);
+      if (volumeUnit != null) {
+        // Density owns volume conversion (ADR-0008 §2: a volume-named
+        // weight mapping IS a density) — offer the right door instead of
+        // just refusing: the density entry below, pre-set to that spoon.
+        redirected.value = volumeUnit;
+        error.value =
+            '“$name” is a unit — that mapping is the density; '
+            'enter it below and the ${volumeUnit.label} chip unlocks';
         return;
       }
       if (weight == null || !(weight > 0)) {
-        error.value = 'weigh it: grams must be a positive number';
+        error.value = 'measure it: $baseLabel must be a positive number';
         return;
       }
       error.value = null;
@@ -702,7 +729,7 @@ class _MeasureManager extends HookConsumerWidget {
             .addMeasure(
               ingredientId: ingredient.id,
               label: name,
-              grams: weight,
+              amount: weight,
             );
         // The repo's validation contract IS ArgumentError (documented on
         // addMeasure) — catching it here is the point: surface the refusal
@@ -763,11 +790,234 @@ class _MeasureManager extends HookConsumerWidget {
         const SizedBox(height: 12),
         _AddMeasureForm(
           label: label,
-          grams: grams,
+          amount: amount,
+          amountHint: baseLabel,
           error: error.value,
           onSave: save,
         ),
+        const SizedBox(height: 14),
+        _DensityEntry(
+          ingredient: ingredient,
+          redirectedSpoon: redirected.value,
+          onSaved: (updated) {
+            redirected.value = null;
+            onIngredientChanged(updated);
+          },
+        ),
       ],
+    );
+  }
+}
+
+/// The density entry — the sheet's second fact, beside the measures
+/// (ADR-0008: density is the SINGLE stored volume⇄mass fact, enterable two
+/// equivalent ways): a direct g/ml field, or "1 tbsp of this weighs __ g"
+/// (spoon selectable tsp/tbsp/cup; converts through ml-per-spoon and writes
+/// the same `density_g_per_ml`).
+class _DensityEntry extends HookConsumerWidget {
+  const _DensityEntry({
+    required this.ingredient,
+    required this.redirectedSpoon,
+    required this.onSaved,
+  });
+
+  final Ingredient ingredient;
+
+  /// Set when the add-measure form redirected a volume-named label here —
+  /// pre-picks that spoon and switches to the spoon phrasing.
+  final Unit? redirectedSpoon;
+  final ValueChanged<Ingredient> onSaved;
+
+  static const _spoons = [tsp, tbsp, cup];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final spoonMode = useState(false);
+    final spoon = useState<Unit>(tbsp);
+    final input = useState<double?>(null);
+    final error = useState<String?>(null);
+    // A redirect ("cup" typed as a measure label) lands in spoon phrasing
+    // with that spoon picked — cup is in the selectable set; any other
+    // volume unit keeps the current spoon (the phrasing still applies).
+    useEffect(() {
+      final r = redirectedSpoon;
+      if (r != null) {
+        spoonMode.value = true;
+        if (_spoons.contains(r)) spoon.value = r;
+      }
+      return null;
+    }, [redirectedSpoon]);
+
+    final density = ingredient.densityGPerMl;
+
+    Future<void> save() async {
+      final v = input.value;
+      final gPerMl = spoonMode.value
+          ? (v == null ? null : densityFromVolumeWeight(spoon.value, v))
+          : v;
+      if (gPerMl == null || !(gPerMl > 0)) {
+        error.value = spoonMode.value
+            ? 'weigh it: grams per ${spoon.value.label} must be positive'
+            : 'g/ml must be a positive number';
+        return;
+      }
+      error.value = null;
+      final updated = await ref
+          .read(ingredientRepositoryProvider)
+          .setDensity(ingredient.id, gPerMl);
+      if (!context.mounted || updated == null) return;
+      onSaved(updated);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Text('DENSITY', style: miseLabel()),
+            const SizedBox(width: 8),
+            Text(
+              density == null
+                  ? 'none yet — unlocks volume⇄weight'
+                  : '${formatDensity(density)} g/ml',
+              style: miseMono(
+                size: 10,
+                color: density == null ? MiseColors.muted : MiseColors.herbDeep,
+              ),
+            ),
+            const Spacer(),
+            _ModeChip(
+              label: 'g/ml',
+              selected: !spoonMode.value,
+              onTap: () => spoonMode.value = false,
+            ),
+            const SizedBox(width: 6),
+            _ModeChip(
+              label: 'a spoon weighs…',
+              selected: spoonMode.value,
+              onTap: () => spoonMode.value = true,
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (spoonMode.value)
+          Row(
+            children: [
+              Text('1', style: miseMono(size: 13)),
+              const SizedBox(width: 6),
+              for (final u in _spoons) ...[
+                _ModeChip(
+                  label: u.label,
+                  selected: spoon.value == u,
+                  onTap: () => spoon.value = u,
+                ),
+                const SizedBox(width: 6),
+              ],
+              Text('weighs', style: miseMono(size: 13)),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 72,
+                child: FTextField(
+                  hint: 'g',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  control: FTextFieldControl.managed(
+                    onChange: (v) =>
+                        input.value = double.tryParse(v.text.trim()),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FButton(
+                size: FButtonSizeVariant.sm,
+                onPress: save,
+                child: const Text('Save'),
+              ),
+            ],
+          )
+        else
+          Row(
+            children: [
+              SizedBox(
+                width: 110,
+                child: FTextField(
+                  hint: 'g/ml',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  control: FTextFieldControl.managed(
+                    onChange: (v) =>
+                        input.value = double.tryParse(v.text.trim()),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FButton(
+                size: FButtonSizeVariant.sm,
+                onPress: save,
+                child: const Text('Save'),
+              ),
+              const Spacer(),
+            ],
+          ),
+        if (error.value != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              error.value!,
+              style: miseMono(size: 10, color: MiseColors.gone),
+            ),
+          )
+        else if (spoonMode.value && input.value != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              // The live equivalence: both phrasings are the same fact.
+              densityFromVolumeWeight(spoon.value, input.value!) == null
+                  ? ''
+                  : '= ${formatDensity(densityFromVolumeWeight(spoon.value, input.value!)!)} g/ml',
+              style: miseMono(size: 10, color: MiseColors.muted),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ModeChip extends StatelessWidget {
+  const _ModeChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected ? MiseColors.herbSoft : MiseColors.surface,
+          border: Border.all(
+            color: selected ? MiseColors.herb : MiseColors.line,
+          ),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          style: miseMono(
+            size: 10,
+            color: selected ? MiseColors.herbDeep : MiseColors.muted,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -798,7 +1048,8 @@ class _MeasureRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            '${formatQuantity(measure.grams)} g',
+            '${formatQuantity(measure.amount)} '
+            '${measure.basis.baseUnit.label}',
             style: miseMono(size: 11, color: MiseColors.muted),
           ),
           const Spacer(),
@@ -825,13 +1076,18 @@ class _MeasureRow extends StatelessWidget {
 class _AddMeasureForm extends StatelessWidget {
   const _AddMeasureForm({
     required this.label,
-    required this.grams,
+    required this.amount,
+    required this.amountHint,
     required this.error,
     required this.onSave,
   });
 
   final ValueNotifier<String> label;
-  final ValueNotifier<double?> grams;
+  final ValueNotifier<double?> amount;
+
+  /// The basis unit the amount is entered in ('g' — or 'ml' for a per-ml
+  /// ingredient, ADR-0008 basis-aware measures).
+  final String amountHint;
   final String? error;
   final VoidCallback onSave;
 
@@ -865,12 +1121,13 @@ class _AddMeasureForm extends StatelessWidget {
             SizedBox(
               width: 92,
               child: FTextField(
-                hint: 'grams',
+                hint: amountHint,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
                 control: FTextFieldControl.managed(
-                  onChange: (v) => grams.value = double.tryParse(v.text.trim()),
+                  onChange: (v) =>
+                      amount.value = double.tryParse(v.text.trim()),
                 ),
               ),
             ),

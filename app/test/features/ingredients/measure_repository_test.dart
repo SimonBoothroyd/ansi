@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mise/core/units/macros.dart';
 import 'package:mise/features/ingredients/data/measure_repository_impl.dart';
 import 'package:powersync/powersync.dart';
 
@@ -11,16 +12,16 @@ Future<void> _seedMeasure(
   required String id,
   required String ingredientId,
   required String label,
-  required double grams,
+  required double amount,
   int sortOrder = 0,
   String createdAt = '2026-01-01',
   String? deletedAt,
 }) => db.execute(
   'INSERT INTO ingredient_measure '
-  '(id, household_id, ingredient_id, label, grams, sort_order, created_at, '
-  'deleted_at) '
+  '(id, household_id, ingredient_id, label, basis_amount, sort_order, '
+  'created_at, deleted_at) '
   'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-  [id, 'h', ingredientId, label, grams, sortOrder, createdAt, deletedAt],
+  [id, 'h', ingredientId, label, amount, sortOrder, createdAt, deletedAt],
 );
 
 void main() {
@@ -41,7 +42,7 @@ void main() {
       id: 'm-large',
       ingredientId: 'potato',
       label: 'potato, large',
-      grams: 299,
+      amount: 299,
       sortOrder: 1,
     );
     await _seedMeasure(
@@ -49,28 +50,28 @@ void main() {
       id: 'm-medium',
       ingredientId: 'potato',
       label: 'potato, medium',
-      grams: 213,
+      amount: 213,
     );
     await _seedMeasure(
       db,
       id: 'm-other',
       ingredientId: 'onion',
       label: 'onion, medium',
-      grams: 110,
+      amount: 110,
     );
     await _seedMeasure(
       db,
       id: 'm-dead',
       ingredientId: 'potato',
       label: 'retired',
-      grams: 1,
+      amount: 1,
       deletedAt: '2026-01-02',
     );
 
     final measures = await repo.watchMeasures('potato').first;
     expect(measures.map((m) => m.id), ['m-medium', 'm-large']);
     expect(measures.first.label, 'potato, medium');
-    expect(measures.first.grams, 213);
+    expect(measures.first.amount, 213);
     expect(measures.last.sortOrder, 1);
   });
 
@@ -83,7 +84,7 @@ void main() {
         id: 'm-newer',
         ingredientId: 'coconut',
         label: 'half can',
-        grams: 210,
+        amount: 210,
         createdAt: '2026-01-02',
       );
       await _seedMeasure(
@@ -91,13 +92,13 @@ void main() {
         id: 'm-older',
         ingredientId: 'coconut',
         label: 'half can',
-        grams: 200,
+        amount: 200,
       );
 
       final measures = await repo.watchMeasures('coconut').first;
       expect(measures, hasLength(1));
       expect(measures.single.id, 'm-older');
-      expect(measures.single.grams, 200);
+      expect(measures.single.amount, 200);
     });
 
     test(
@@ -108,14 +109,14 @@ void main() {
           id: 'm-b',
           ingredientId: 'coconut',
           label: 'half can',
-          grams: 210,
+          amount: 210,
         );
         await _seedMeasure(
           db,
           id: 'm-a',
           ingredientId: 'coconut',
           label: 'half can',
-          grams: 200,
+          amount: 200,
         );
 
         final measures = await repo.watchMeasures('coconut').first;
@@ -133,7 +134,7 @@ void main() {
         id: 'm-app',
         ingredientId: 'coconut',
         label: 'half can',
-        grams: 200,
+        amount: 200,
         createdAt: '2026-01-01T05:00:00.000Z', // older instant, Dart format
       );
       await _seedMeasure(
@@ -141,13 +142,13 @@ void main() {
         id: 'm-pg',
         ingredientId: 'coconut',
         label: 'half can',
-        grams: 210,
+        amount: 210,
         createdAt: '2026-01-01 12:00:00Z', // newer instant, synced PG format
       );
 
       final measures = await repo.watchMeasures('coconut').first;
       expect(measures.single.id, 'm-app');
-      expect(measures.single.grams, 200);
+      expect(measures.single.amount, 200);
     });
 
     test('a zone-less timestamp is read as UTC, not device-local', () async {
@@ -159,7 +160,7 @@ void main() {
         id: 'm-zoneless',
         ingredientId: 'coconut',
         label: 'half can',
-        grams: 200,
+        amount: 200,
         createdAt: '2026-01-01 05:00:00', // older instant, no zone marker
       );
       await _seedMeasure(
@@ -167,13 +168,13 @@ void main() {
         id: 'm-utc',
         ingredientId: 'coconut',
         label: 'half can',
-        grams: 210,
+        amount: 210,
         createdAt: '2026-01-01T12:00:00.000Z', // newer instant, explicit UTC
       );
 
       final measures = await repo.watchMeasures('coconut').first;
       expect(measures.single.id, 'm-zoneless');
-      expect(measures.single.grams, 200);
+      expect(measures.single.amount, 200);
     });
 
     test('a soft-deleted canonical un-hides the surviving duplicate', () async {
@@ -182,21 +183,21 @@ void main() {
         id: 'm-older',
         ingredientId: 'coconut',
         label: 'half can',
-        grams: 200,
+        amount: 200,
       );
       await _seedMeasure(
         db,
         id: 'm-newer',
         ingredientId: 'coconut',
         label: 'half can',
-        grams: 210,
+        amount: 210,
         createdAt: '2026-01-02',
       );
 
       await repo.softDeleteMeasure('m-older');
       final measures = await repo.watchMeasures('coconut').first;
       expect(measures.single.id, 'm-newer');
-      expect(measures.single.grams, 210);
+      expect(measures.single.amount, 210);
     });
   });
 
@@ -209,21 +210,21 @@ void main() {
           id: 'm-can',
           ingredientId: 'coconut',
           label: 'can (400 ml)',
-          grams: 400,
+          amount: 400,
           sortOrder: 3,
         );
 
         final added = await repo.addMeasure(
           ingredientId: 'coconut',
           label: 'half can',
-          grams: 200,
+          amount: 200,
         );
         expect(added.source, 'manual');
         expect(added.sortOrder, 4);
 
         final measures = await repo.watchMeasures('coconut').first;
         expect(measures.map((m) => m.label), ['can (400 ml)', 'half can']);
-        expect(measures.last.grams, 200);
+        expect(measures.last.amount, 200);
         final row = await db.get(
           'SELECT household_id, source FROM ingredient_measure WHERE id = ?',
           [added.id],
@@ -237,7 +238,7 @@ void main() {
       final added = await repo.addMeasure(
         ingredientId: 'coconut',
         label: 'half can',
-        grams: 200,
+        amount: 200,
       );
       await repo.softDeleteMeasure(added.id);
 
@@ -254,24 +255,24 @@ void main() {
       // shadow density-owned conversion; bad grams could never convert.
       for (final label in ['cup', ' Cups ', 'tbsp', 'ml']) {
         await expectLater(
-          repo.addMeasure(ingredientId: 'coconut', label: label, grams: 200),
+          repo.addMeasure(ingredientId: 'coconut', label: label, amount: 200),
           throwsArgumentError,
           reason: label,
         );
       }
-      for (final grams in [0.0, -5.0, double.nan]) {
+      for (final amount in [0.0, -5.0, double.nan]) {
         await expectLater(
           repo.addMeasure(
             ingredientId: 'coconut',
             label: 'half can',
-            grams: grams,
+            amount: amount,
           ),
           throwsArgumentError,
-          reason: '$grams',
+          reason: '$amount',
         );
       }
       await expectLater(
-        repo.addMeasure(ingredientId: 'coconut', label: '   ', grams: 200),
+        repo.addMeasure(ingredientId: 'coconut', label: '   ', amount: 200),
         throwsArgumentError,
       );
       expect(await repo.watchMeasures('coconut').first, isEmpty);
@@ -281,7 +282,7 @@ void main() {
       final added = await repo.addMeasure(
         ingredientId: 'coconut',
         label: '  half can ',
-        grams: 200,
+        amount: 200,
       );
       expect(added.label, 'half can');
       final row = await db.get(
@@ -297,18 +298,18 @@ void main() {
         final first = await repo.addMeasure(
           ingredientId: 'coconut',
           label: 'half can',
-          grams: 200,
+          amount: 200,
         );
         await repo.softDeleteMeasure(first.id);
         final second = await repo.addMeasure(
           ingredientId: 'coconut',
           label: 'half can',
-          grams: 190,
+          amount: 190,
         );
 
         final measures = await repo.watchMeasures('coconut').first;
         expect(measures.single.id, second.id);
-        expect(measures.single.grams, 190);
+        expect(measures.single.amount, 190);
       },
     );
   });
@@ -322,10 +323,45 @@ void main() {
       id: 'm1',
       ingredientId: 'potato',
       label: 'potato, large',
-      grams: 299,
+      amount: 299,
     );
     final results = await emissions;
     expect(results.first, isEmpty);
     expect(results.last.single.label, 'potato, large');
+  });
+
+  group('basis-aware reads (0012)', () {
+    test('a per-ml ingredient denominates its measures in ml', () async {
+      await db.execute(
+        'INSERT INTO ingredient (id, household_id, canonical_name, '
+        'default_unit, macros_basis, status, source, match_text) VALUES '
+        "('coconut', 'h', 'Coconut Milk', 'cup', 'ml', 'complete', 'seed', "
+        "'coconut milk')",
+      );
+      await _seedMeasure(
+        db,
+        id: 'm-can',
+        ingredientId: 'coconut',
+        label: 'can (400 ml)',
+        amount: 400,
+      );
+      final measures = await repo.watchMeasures('coconut').first;
+      expect(measures.single.basis, MacrosBasis.perMl);
+      expect(measures.single.amount, 400);
+    });
+
+    test('a measure without a local vocab row still lists, per-g', () async {
+      // Sync order can deliver the measure before its ingredient — the LEFT
+      // join keeps it visible with the per-g fallback.
+      await _seedMeasure(
+        db,
+        id: 'm-orphan',
+        ingredientId: 'not-synced-yet',
+        label: 'scoop',
+        amount: 30,
+      );
+      final measures = await repo.watchMeasures('not-synced-yet').first;
+      expect(measures.single.basis, MacrosBasis.perG);
+    });
   });
 }

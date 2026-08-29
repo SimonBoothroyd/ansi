@@ -80,4 +80,25 @@ void main() {
       expect(unitById('nope'), isNull);
     });
   });
+
+  group('densityFromVolumeWeight (the spoon-mapping entry, ADR-0008)', () {
+    test('1 tbsp = 15 g is the canonical example', () {
+      expect(densityFromVolumeWeight(tbsp, 15), closeTo(15 / 14.787, 0.001));
+    });
+
+    test('every spoon phrasing resolves to the same stored fact', () {
+      // 1 cup of water weighs 236.59 g → 1.0 g/ml, same as 1 tsp = 4.93 g.
+      expect(densityFromVolumeWeight(cup, 236.5882365), closeTo(1, 1e-9));
+      expect(densityFromVolumeWeight(tsp, 4.92892159375), closeTo(1, 1e-9));
+    });
+
+    test('non-volume units and non-positive weights yield null, never a '
+        'number', () {
+      expect(densityFromVolumeWeight(g, 15), isNull);
+      expect(densityFromVolumeWeight(pieces, 15), isNull);
+      expect(densityFromVolumeWeight(tbsp, 0), isNull);
+      expect(densityFromVolumeWeight(tbsp, -1), isNull);
+      expect(densityFromVolumeWeight(tbsp, double.nan), isNull);
+    });
+  });
 }

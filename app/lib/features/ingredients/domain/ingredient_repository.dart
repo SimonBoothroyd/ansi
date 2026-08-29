@@ -27,4 +27,15 @@ abstract interface class IngredientRepository {
   /// macros — invariant 3 keeps it out of conversions until fleshed out) and
   /// returns it. The picker's "can't find it? add new" affordance.
   Future<Ingredient> createStub(String name);
+
+  /// Stores [gPerMl] as the ingredient's density — the single volume⇄mass
+  /// fact (ADR-0008; both entry styles resolve to this one number) — and
+  /// extends its explicit `allowed_units` with the units the density
+  /// unlocks, in the same write (the stored list is never silently
+  /// recomputed; a density's arrival is the one explicit extension).
+  /// Returns the updated row, or null when [ingredientId] doesn't resolve.
+  ///
+  /// Throws [ArgumentError] for a non-positive/NaN [gPerMl] — a zero density
+  /// would fabricate Infinity conversions (invariant 3).
+  Future<Ingredient?> setDensity(String ingredientId, double gPerMl);
 }

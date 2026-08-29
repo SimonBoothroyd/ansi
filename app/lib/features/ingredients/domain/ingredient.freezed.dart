@@ -14,7 +14,11 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Ingredient {
 
- String get id; String get canonicalName; Unit get defaultUnit; IngredientStatus get status; String? get category; double? get densityGPerMl; Macros? get macros; MacrosBasis get macrosBasis;/// Distinct live measure labels this ingredient carries — the picker
+ String get id; String get canonicalName; Unit get defaultUnit; IngredientStatus get status; String? get category; double? get densityGPerMl; Macros? get macros; MacrosBasis get macrosBasis;/// The explicit per-ingredient allowed-unit list (ADR-0008, migration
+/// 0012) — parsed from the row's `allowed_units` jsonb, unknown ids
+/// dropped. Null for a legacy/unsynced row: the pickers then fall back
+/// to deriving the same ADR defaults ([defaultAllowedUnitSet]).
+ List<Unit>? get allowedUnits;/// Distinct live measure labels this ingredient carries — the picker
 /// row's "N measures" capability hint (7.7). Populated by list reads;
 /// 0 where a caller didn't ask for it.
  int get measureCount;
@@ -28,16 +32,16 @@ $IngredientCopyWith<Ingredient> get copyWith => _$IngredientCopyWithImpl<Ingredi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Ingredient&&(identical(other.id, id) || other.id == id)&&(identical(other.canonicalName, canonicalName) || other.canonicalName == canonicalName)&&(identical(other.defaultUnit, defaultUnit) || other.defaultUnit == defaultUnit)&&(identical(other.status, status) || other.status == status)&&(identical(other.category, category) || other.category == category)&&(identical(other.densityGPerMl, densityGPerMl) || other.densityGPerMl == densityGPerMl)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.macrosBasis, macrosBasis) || other.macrosBasis == macrosBasis)&&(identical(other.measureCount, measureCount) || other.measureCount == measureCount));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Ingredient&&(identical(other.id, id) || other.id == id)&&(identical(other.canonicalName, canonicalName) || other.canonicalName == canonicalName)&&(identical(other.defaultUnit, defaultUnit) || other.defaultUnit == defaultUnit)&&(identical(other.status, status) || other.status == status)&&(identical(other.category, category) || other.category == category)&&(identical(other.densityGPerMl, densityGPerMl) || other.densityGPerMl == densityGPerMl)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.macrosBasis, macrosBasis) || other.macrosBasis == macrosBasis)&&const DeepCollectionEquality().equals(other.allowedUnits, allowedUnits)&&(identical(other.measureCount, measureCount) || other.measureCount == measureCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,canonicalName,defaultUnit,status,category,densityGPerMl,macros,macrosBasis,measureCount);
+int get hashCode => Object.hash(runtimeType,id,canonicalName,defaultUnit,status,category,densityGPerMl,macros,macrosBasis,const DeepCollectionEquality().hash(allowedUnits),measureCount);
 
 @override
 String toString() {
-  return 'Ingredient(id: $id, canonicalName: $canonicalName, defaultUnit: $defaultUnit, status: $status, category: $category, densityGPerMl: $densityGPerMl, macros: $macros, macrosBasis: $macrosBasis, measureCount: $measureCount)';
+  return 'Ingredient(id: $id, canonicalName: $canonicalName, defaultUnit: $defaultUnit, status: $status, category: $category, densityGPerMl: $densityGPerMl, macros: $macros, macrosBasis: $macrosBasis, allowedUnits: $allowedUnits, measureCount: $measureCount)';
 }
 
 
@@ -48,7 +52,7 @@ abstract mixin class $IngredientCopyWith<$Res>  {
   factory $IngredientCopyWith(Ingredient value, $Res Function(Ingredient) _then) = _$IngredientCopyWithImpl;
 @useResult
 $Res call({
- String id, String canonicalName, Unit defaultUnit, IngredientStatus status, String? category, double? densityGPerMl, Macros? macros, MacrosBasis macrosBasis, int measureCount
+ String id, String canonicalName, Unit defaultUnit, IngredientStatus status, String? category, double? densityGPerMl, Macros? macros, MacrosBasis macrosBasis, List<Unit>? allowedUnits, int measureCount
 });
 
 
@@ -65,7 +69,7 @@ class _$IngredientCopyWithImpl<$Res>
 
 /// Create a copy of Ingredient
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? canonicalName = null,Object? defaultUnit = null,Object? status = null,Object? category = freezed,Object? densityGPerMl = freezed,Object? macros = freezed,Object? macrosBasis = null,Object? measureCount = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? canonicalName = null,Object? defaultUnit = null,Object? status = null,Object? category = freezed,Object? densityGPerMl = freezed,Object? macros = freezed,Object? macrosBasis = null,Object? allowedUnits = freezed,Object? measureCount = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,canonicalName: null == canonicalName ? _self.canonicalName : canonicalName // ignore: cast_nullable_to_non_nullable
@@ -75,7 +79,8 @@ as IngredientStatus,category: freezed == category ? _self.category : category //
 as String?,densityGPerMl: freezed == densityGPerMl ? _self.densityGPerMl : densityGPerMl // ignore: cast_nullable_to_non_nullable
 as double?,macros: freezed == macros ? _self.macros : macros // ignore: cast_nullable_to_non_nullable
 as Macros?,macrosBasis: null == macrosBasis ? _self.macrosBasis : macrosBasis // ignore: cast_nullable_to_non_nullable
-as MacrosBasis,measureCount: null == measureCount ? _self.measureCount : measureCount // ignore: cast_nullable_to_non_nullable
+as MacrosBasis,allowedUnits: freezed == allowedUnits ? _self.allowedUnits : allowedUnits // ignore: cast_nullable_to_non_nullable
+as List<Unit>?,measureCount: null == measureCount ? _self.measureCount : measureCount // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }
@@ -161,10 +166,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String canonicalName,  Unit defaultUnit,  IngredientStatus status,  String? category,  double? densityGPerMl,  Macros? macros,  MacrosBasis macrosBasis,  int measureCount)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String canonicalName,  Unit defaultUnit,  IngredientStatus status,  String? category,  double? densityGPerMl,  Macros? macros,  MacrosBasis macrosBasis,  List<Unit>? allowedUnits,  int measureCount)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Ingredient() when $default != null:
-return $default(_that.id,_that.canonicalName,_that.defaultUnit,_that.status,_that.category,_that.densityGPerMl,_that.macros,_that.macrosBasis,_that.measureCount);case _:
+return $default(_that.id,_that.canonicalName,_that.defaultUnit,_that.status,_that.category,_that.densityGPerMl,_that.macros,_that.macrosBasis,_that.allowedUnits,_that.measureCount);case _:
   return orElse();
 
 }
@@ -182,10 +187,10 @@ return $default(_that.id,_that.canonicalName,_that.defaultUnit,_that.status,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String canonicalName,  Unit defaultUnit,  IngredientStatus status,  String? category,  double? densityGPerMl,  Macros? macros,  MacrosBasis macrosBasis,  int measureCount)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String canonicalName,  Unit defaultUnit,  IngredientStatus status,  String? category,  double? densityGPerMl,  Macros? macros,  MacrosBasis macrosBasis,  List<Unit>? allowedUnits,  int measureCount)  $default,) {final _that = this;
 switch (_that) {
 case _Ingredient():
-return $default(_that.id,_that.canonicalName,_that.defaultUnit,_that.status,_that.category,_that.densityGPerMl,_that.macros,_that.macrosBasis,_that.measureCount);case _:
+return $default(_that.id,_that.canonicalName,_that.defaultUnit,_that.status,_that.category,_that.densityGPerMl,_that.macros,_that.macrosBasis,_that.allowedUnits,_that.measureCount);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -202,10 +207,10 @@ return $default(_that.id,_that.canonicalName,_that.defaultUnit,_that.status,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String canonicalName,  Unit defaultUnit,  IngredientStatus status,  String? category,  double? densityGPerMl,  Macros? macros,  MacrosBasis macrosBasis,  int measureCount)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String canonicalName,  Unit defaultUnit,  IngredientStatus status,  String? category,  double? densityGPerMl,  Macros? macros,  MacrosBasis macrosBasis,  List<Unit>? allowedUnits,  int measureCount)?  $default,) {final _that = this;
 switch (_that) {
 case _Ingredient() when $default != null:
-return $default(_that.id,_that.canonicalName,_that.defaultUnit,_that.status,_that.category,_that.densityGPerMl,_that.macros,_that.macrosBasis,_that.measureCount);case _:
+return $default(_that.id,_that.canonicalName,_that.defaultUnit,_that.status,_that.category,_that.densityGPerMl,_that.macros,_that.macrosBasis,_that.allowedUnits,_that.measureCount);case _:
   return null;
 
 }
@@ -217,7 +222,7 @@ return $default(_that.id,_that.canonicalName,_that.defaultUnit,_that.status,_tha
 
 
 class _Ingredient implements Ingredient {
-  const _Ingredient({required this.id, required this.canonicalName, required this.defaultUnit, required this.status, this.category, this.densityGPerMl, this.macros, this.macrosBasis = MacrosBasis.perG, this.measureCount = 0});
+  const _Ingredient({required this.id, required this.canonicalName, required this.defaultUnit, required this.status, this.category, this.densityGPerMl, this.macros, this.macrosBasis = MacrosBasis.perG, final  List<Unit>? allowedUnits, this.measureCount = 0}): _allowedUnits = allowedUnits;
   
 
 @override final  String id;
@@ -228,6 +233,23 @@ class _Ingredient implements Ingredient {
 @override final  double? densityGPerMl;
 @override final  Macros? macros;
 @override@JsonKey() final  MacrosBasis macrosBasis;
+/// The explicit per-ingredient allowed-unit list (ADR-0008, migration
+/// 0012) — parsed from the row's `allowed_units` jsonb, unknown ids
+/// dropped. Null for a legacy/unsynced row: the pickers then fall back
+/// to deriving the same ADR defaults ([defaultAllowedUnitSet]).
+ final  List<Unit>? _allowedUnits;
+/// The explicit per-ingredient allowed-unit list (ADR-0008, migration
+/// 0012) — parsed from the row's `allowed_units` jsonb, unknown ids
+/// dropped. Null for a legacy/unsynced row: the pickers then fall back
+/// to deriving the same ADR defaults ([defaultAllowedUnitSet]).
+@override List<Unit>? get allowedUnits {
+  final value = _allowedUnits;
+  if (value == null) return null;
+  if (_allowedUnits is EqualUnmodifiableListView) return _allowedUnits;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
 /// Distinct live measure labels this ingredient carries — the picker
 /// row's "N measures" capability hint (7.7). Populated by list reads;
 /// 0 where a caller didn't ask for it.
@@ -243,16 +265,16 @@ _$IngredientCopyWith<_Ingredient> get copyWith => __$IngredientCopyWithImpl<_Ing
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Ingredient&&(identical(other.id, id) || other.id == id)&&(identical(other.canonicalName, canonicalName) || other.canonicalName == canonicalName)&&(identical(other.defaultUnit, defaultUnit) || other.defaultUnit == defaultUnit)&&(identical(other.status, status) || other.status == status)&&(identical(other.category, category) || other.category == category)&&(identical(other.densityGPerMl, densityGPerMl) || other.densityGPerMl == densityGPerMl)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.macrosBasis, macrosBasis) || other.macrosBasis == macrosBasis)&&(identical(other.measureCount, measureCount) || other.measureCount == measureCount));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Ingredient&&(identical(other.id, id) || other.id == id)&&(identical(other.canonicalName, canonicalName) || other.canonicalName == canonicalName)&&(identical(other.defaultUnit, defaultUnit) || other.defaultUnit == defaultUnit)&&(identical(other.status, status) || other.status == status)&&(identical(other.category, category) || other.category == category)&&(identical(other.densityGPerMl, densityGPerMl) || other.densityGPerMl == densityGPerMl)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.macrosBasis, macrosBasis) || other.macrosBasis == macrosBasis)&&const DeepCollectionEquality().equals(other._allowedUnits, _allowedUnits)&&(identical(other.measureCount, measureCount) || other.measureCount == measureCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,canonicalName,defaultUnit,status,category,densityGPerMl,macros,macrosBasis,measureCount);
+int get hashCode => Object.hash(runtimeType,id,canonicalName,defaultUnit,status,category,densityGPerMl,macros,macrosBasis,const DeepCollectionEquality().hash(_allowedUnits),measureCount);
 
 @override
 String toString() {
-  return 'Ingredient(id: $id, canonicalName: $canonicalName, defaultUnit: $defaultUnit, status: $status, category: $category, densityGPerMl: $densityGPerMl, macros: $macros, macrosBasis: $macrosBasis, measureCount: $measureCount)';
+  return 'Ingredient(id: $id, canonicalName: $canonicalName, defaultUnit: $defaultUnit, status: $status, category: $category, densityGPerMl: $densityGPerMl, macros: $macros, macrosBasis: $macrosBasis, allowedUnits: $allowedUnits, measureCount: $measureCount)';
 }
 
 
@@ -263,7 +285,7 @@ abstract mixin class _$IngredientCopyWith<$Res> implements $IngredientCopyWith<$
   factory _$IngredientCopyWith(_Ingredient value, $Res Function(_Ingredient) _then) = __$IngredientCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String canonicalName, Unit defaultUnit, IngredientStatus status, String? category, double? densityGPerMl, Macros? macros, MacrosBasis macrosBasis, int measureCount
+ String id, String canonicalName, Unit defaultUnit, IngredientStatus status, String? category, double? densityGPerMl, Macros? macros, MacrosBasis macrosBasis, List<Unit>? allowedUnits, int measureCount
 });
 
 
@@ -280,7 +302,7 @@ class __$IngredientCopyWithImpl<$Res>
 
 /// Create a copy of Ingredient
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? canonicalName = null,Object? defaultUnit = null,Object? status = null,Object? category = freezed,Object? densityGPerMl = freezed,Object? macros = freezed,Object? macrosBasis = null,Object? measureCount = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? canonicalName = null,Object? defaultUnit = null,Object? status = null,Object? category = freezed,Object? densityGPerMl = freezed,Object? macros = freezed,Object? macrosBasis = null,Object? allowedUnits = freezed,Object? measureCount = null,}) {
   return _then(_Ingredient(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,canonicalName: null == canonicalName ? _self.canonicalName : canonicalName // ignore: cast_nullable_to_non_nullable
@@ -290,7 +312,8 @@ as IngredientStatus,category: freezed == category ? _self.category : category //
 as String?,densityGPerMl: freezed == densityGPerMl ? _self.densityGPerMl : densityGPerMl // ignore: cast_nullable_to_non_nullable
 as double?,macros: freezed == macros ? _self.macros : macros // ignore: cast_nullable_to_non_nullable
 as Macros?,macrosBasis: null == macrosBasis ? _self.macrosBasis : macrosBasis // ignore: cast_nullable_to_non_nullable
-as MacrosBasis,measureCount: null == measureCount ? _self.measureCount : measureCount // ignore: cast_nullable_to_non_nullable
+as MacrosBasis,allowedUnits: freezed == allowedUnits ? _self._allowedUnits : allowedUnits // ignore: cast_nullable_to_non_nullable
+as List<Unit>?,measureCount: null == measureCount ? _self.measureCount : measureCount // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }

@@ -403,22 +403,21 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(manageChip);
     await tester.pumpAndSettle();
+    // The manage state holds the add form (label + amount) and the density
+    // entry's field (7.8) — the add form's fields lead, its Save is first.
     final fields = find.byType(EditableText);
-    await tester.enterText(
-      fields.at(fields.evaluate().length - 2),
-      'big clove',
-    );
-    await tester.enterText(fields.last, '5');
+    await tester.enterText(fields.at(0), 'big clove');
+    await tester.enterText(fields.at(1), '5');
     await tester.pump();
-    await tester.tap(find.text('Save').last);
+    await tester.tap(find.text('Save').first);
     await tester.pumpAndSettle();
     final manualMeasure = await db.getOptional(
-      "SELECT source, grams FROM ingredient_measure WHERE label = 'big clove' "
-      'AND deleted_at IS NULL',
+      'SELECT source, basis_amount FROM ingredient_measure '
+      "WHERE label = 'big clove' AND deleted_at IS NULL",
     );
     expect(manualMeasure, isNotNull, reason: 'the manual measure synced row');
     expect(manualMeasure!['source'], 'manual');
-    expect(manualMeasure['grams'], 5);
+    expect(manualMeasure['basis_amount'], 5);
     // …then pick the seeded "clove" chip for the recipe's own line.
     await tester.tap(find.text('clove').last);
     await tester.pump();

@@ -20,13 +20,13 @@ import 'package:mise/features/ingredients/presentation/quantity_unit_sheet.dart'
 const _large = Measure(
   id: 'm-large',
   label: 'potato, large',
-  grams: 299,
+  amount: 299,
   source: 'manual',
 );
 
 /// A measure a line can reference while merge-on-read hides it from the
 /// watched list (duplicate label, newer row).
-const _hidden = Measure(id: 'm-hidden', label: 'potato, large', grams: 300);
+const _hidden = Measure(id: 'm-hidden', label: 'potato, large', amount: 300);
 
 const _potato = Ingredient(
   id: 'i-potato',
@@ -53,9 +53,9 @@ class _FakeMeasureRepo implements MeasureRepository {
   Future<Measure> addMeasure({
     required String ingredientId,
     required String label,
-    required double grams,
+    required double amount,
   }) async {
-    final m = Measure(id: 'm-added', label: label, grams: grams);
+    final m = Measure(id: 'm-added', label: label, amount: amount);
     _measures.add(m);
     _changes.add(null);
     return m;
@@ -219,9 +219,8 @@ void main() {
     expect(find.textContaining('deleted — back to'), findsNothing);
   });
 
-  testWidgets('the add form rejects a volume-unit label, plural included', (
-    tester,
-  ) async {
+  testWidgets('the add form redirects a volume-unit label into density '
+      'entry, plural included', (tester) async {
     _filterSemanticsAssertions();
     await tester.pumpWidget(
       _host(repo: _FakeMeasureRepo(const []), onDone: (_) {}),
@@ -230,16 +229,26 @@ void main() {
     await tester.tap(find.byIcon(FLucideIcons.plus));
     await tester.pumpAndSettle();
 
+    // The manage state now holds the add form (label + amount) AND the
+    // density entry's field — target the add form's two leading fields and
+    // its own Save (the first).
     final fields = find.byType(EditableText);
-    await tester.enterText(fields.at(fields.evaluate().length - 2), 'Cups');
-    await tester.enterText(fields.last, '226');
+    await tester.enterText(fields.at(0), 'Cups');
+    await tester.enterText(fields.at(1), '226');
     await tester.pump();
-    await tester.tap(find.text('Save'));
+    await tester.tap(find.text('Save').first);
     await tester.pumpAndSettle();
 
+    // Refused as a measure — and REDIRECTED: the one-line explanation
+    // points at the density entry (ADR-0008: a volume-named weight mapping
+    // IS a density)…
     expect(
-      find.textContaining('is a unit — name the real-world thing instead'),
+      find.textContaining('is a unit — that mapping is the density'),
       findsOneWidget,
     );
+    // …which switches to the spoon phrasing with that spoon pre-picked
+    // ("cup" chip selected in the spoon row alongside tsp/tbsp).
+    expect(find.text('weighs'), findsOneWidget);
+    expect(find.text('cup'), findsOneWidget);
   });
 }

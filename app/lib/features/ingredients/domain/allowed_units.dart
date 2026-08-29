@@ -9,6 +9,7 @@ library;
 
 import 'package:meta/meta.dart';
 
+import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import 'ingredient.dart';
@@ -52,52 +53,152 @@ const _crossKitchen = {
   UnitFamily.mass: [g, kg],
 };
 
-/// [units] filtered to [family], ordered kitchen-first with [first] fronted.
-List<Unit> _kitchenSorted(Set<Unit> units, UnitFamily family, {Unit? first}) {
-  return [
-    if (first != null && units.contains(first)) first,
-    for (final u in _kitchenOrder[family]!)
-      if (u != first && units.contains(u)) u,
-  ];
-}
+/// The categories whose ingredients admit the imprecise units by default
+/// (ADR-0008 §5: category-gated, not universal). These are the vocab's
+/// ACTUAL category values — it has no separate 'condiment' category (plan
+/// 0013 note); condiment-ish pantry rows get theirs via curation overrides.
+const kImpreciseGatedCategories = {'spices & seasoning', 'fats & oils'};
 
-/// The units a unit picker should offer for [ingredient], in ADR-0008 chip
-/// order: default unit first → its family's kitchen mates in kitchen order →
-/// the density-unlocked other family (demoted — [allowedUnitChoicesFor]
-/// places it after the measures) → imprecise last.
-///
-/// Derived from the ingredient's `default_unit` and density:
+/// The ADR-0008 **derived** allowed-unit defaults for [ingredient] — the
+/// Dart mirror of the database's `default_allowed_units()` (migration 0012;
+/// change one, change both — `unit_admission.sql` and the tests here pin
+/// the same vectors). Used as the fallback when a row carries no explicit
+/// list (legacy/unsynced rows, freshly typed local stubs), and as the rule
+/// the seed pipeline materializes:
 ///
 /// - the default unit's family, trimmed to kitchen magnitudes near the
 ///   default ([_kitchenMates] — no `l` for a tsp-default ingredient);
+/// - the **basis family** ([Ingredient.macrosBasis]: /g → weights, /ml →
+///   volumes) — the canonical dimension is always sayable, so yeast (tsp
+///   default, per-g macros) finally admits `g`;
 /// - the opposite mass/volume family **only** when the ingredient carries a
-///   density — without one, [convert] would fail with `unit/no_density` —
-///   and only its kitchen workhorses ([_crossKitchen]);
-/// - the [UnitFamily.imprecise] units always ("a pinch" is valid of anything,
-///   and never converts or scales anyway — invariant 3).
+///   density ([_crossKitchen] workhorses — without one, [convert] would
+///   fail with `unit/no_density`);
+/// - the imprecise units only for [kImpreciseGatedCategories] (and for
+///   imprecise-default rows).
 ///
-/// A count-default ingredient (eggs, tins) offers only count + imprecise:
-/// count converts to nothing else, density or not, so mass/volume would only
-/// invite an unresolvable line.
-List<Unit> allowedUnitsFor(Ingredient ingredient) {
+/// A count-default ingredient (eggs, tins) offers count + the basis base:
+/// a gram line of a per-g count food computes macros directly, while
+/// count↔count needs no conversion at all.
+Set<Unit> defaultAllowedUnitSet(Ingredient ingredient) {
   final d = ingredient.defaultUnit;
-  final units = <Unit>[];
+  final basisFamily = ingredient.macrosBasis == MacrosBasis.perMl
+      ? UnitFamily.volume
+      : UnitFamily.mass;
+  // Cup/lb-scale defaults justify the big metric sibling (kg / l); spoons
+  // and grams don't ("no litres of yeast" applies to kilograms too).
+  final big = d == cup || d == lb || d == l || d == kg;
+
+  final units = <Unit>{};
   switch (d.family) {
     case UnitFamily.mass || UnitFamily.volume:
-      units.addAll(_kitchenSorted(_kitchenMates[d]!, d.family, first: d));
-      if (ingredient.densityGPerMl != null) {
-        final other = d.family == UnitFamily.mass
-            ? UnitFamily.volume
-            : UnitFamily.mass;
-        units.addAll(_crossKitchen[other]!);
-      }
+      units.addAll(_kitchenMates[d]!);
     case UnitFamily.count:
       units.add(pieces);
     case UnitFamily.imprecise:
-      break; // the imprecise tail below carries the default too
+      break; // joins the imprecise tail below
   }
-  units.addAll([pinch, dash, toTaste]);
+
+  // Basis leg: entry in the canonical dimension is always honest.
+  if (basisFamily != d.family) {
+    units.add(basisFamily == UnitFamily.mass ? g : ml);
+    if (big) units.add(basisFamily == UnitFamily.mass ? kg : l);
+  }
+
+  // Density leg: a stored density unlocks the other mass/volume family.
+  if (ingredient.densityGPerMl != null &&
+      (d.family == UnitFamily.mass || d.family == UnitFamily.volume)) {
+    if (d.family == UnitFamily.mass) {
+      units.addAll(_crossKitchen[UnitFamily.volume]!);
+    } else {
+      units
+        ..add(g)
+        ..addAll(big ? const [kg] : const []);
+    }
+  }
+
+  // Imprecise leg: category-gated (imprecise-default rows keep the tail).
+  if (d.family == UnitFamily.imprecise ||
+      kImpreciseGatedCategories.contains(ingredient.category)) {
+    units.addAll([pinch, dash, toTaste]);
+  }
   return units;
+}
+
+/// The units a stored density unlocks for [ingredient] — the ADR-0008
+/// density leg on its own (the other mass/volume family's kitchen
+/// workhorses). The density write path unions these into the EXPLICIT
+/// `allowed_units` list in the same write: the stored list is never
+/// silently recomputed, so the one event that changes what is sayable — a
+/// density arriving — extends it explicitly. Empty for count/imprecise
+/// defaults (a density can't describe a piece).
+Set<Unit> densityUnlockedUnits(Ingredient ingredient) {
+  final d = ingredient.defaultUnit;
+  final big = d == cup || d == lb || d == l || d == kg;
+  return switch (d.family) {
+    UnitFamily.mass => _crossKitchen[UnitFamily.volume]!.toSet(),
+    UnitFamily.volume => {g, if (big) kg},
+    _ => const {},
+  };
+}
+
+/// Orders an allowed-unit set into ADR-0008 chip order: the default unit
+/// fronted, the rest of its family in kitchen order, count next, then the
+/// demoted other mass/volume family (basis family first when both are
+/// demoted), imprecise last. Stored `allowed_units` is a SET — this is the
+/// single place display order comes from.
+List<Unit> _orderUnits(Iterable<Unit> unitsIn, Ingredient ingredient) {
+  final remaining = unitsIn.toSet();
+  final d = ingredient.defaultUnit;
+  final basisFamily = ingredient.macrosBasis == MacrosBasis.perMl
+      ? UnitFamily.volume
+      : UnitFamily.mass;
+  final out = <Unit>[];
+  void take(Unit u) {
+    if (remaining.remove(u)) out.add(u);
+  }
+
+  if (d.family == UnitFamily.mass || d.family == UnitFamily.volume) {
+    take(d);
+    _kitchenOrder[d.family]!.forEach(take);
+  }
+  take(pieces);
+  final demotedFamilies = switch (d.family) {
+    UnitFamily.mass => const [UnitFamily.volume],
+    UnitFamily.volume => const [UnitFamily.mass],
+    _ =>
+      basisFamily == UnitFamily.mass
+          ? const [UnitFamily.mass, UnitFamily.volume]
+          : const [UnitFamily.volume, UnitFamily.mass],
+  };
+  for (final family in demotedFamilies) {
+    _kitchenOrder[family]!.forEach(take);
+  }
+  for (final u in [pinch, dash, toTaste]) {
+    take(u);
+  }
+  // Totality: anything the groups above don't know still renders (a future
+  // catalog unit must degrade to "offered late", never "silently hidden").
+  out.addAll(remaining);
+  return out;
+}
+
+/// The units a unit picker should offer for [ingredient], in ADR-0008 chip
+/// order (default first → its family in kitchen order → the demoted other
+/// family, which [allowedUnitChoicesFor] places after the measures →
+/// imprecise last).
+///
+/// Reads the **explicit per-ingredient list** ([Ingredient.allowedUnits],
+/// migration 0012) when the row carries one — explicit beats derived, and
+/// the flesh-out form owns it from creation on. A row without one (legacy,
+/// unsynced, a freshly typed local stub) falls back to the same ADR
+/// defaults the server materializes ([defaultAllowedUnitSet]).
+List<Unit> allowedUnitsFor(Ingredient ingredient) {
+  final explicit = ingredient.allowedUnits;
+  final set = explicit == null || explicit.isEmpty
+      ? defaultAllowedUnitSet(ingredient)
+      : explicit;
+  return _orderUnits(set, ingredient);
 }
 
 // --- v2: units + the ingredient's live measures (step 7.6) -------------------
@@ -135,9 +236,9 @@ final class MeasureOption extends UnitChoice {
 
   @override
   String get label {
-    final g = measure.grams;
-    final grams = g == g.roundToDouble() ? g.toStringAsFixed(0) : '$g';
-    return '${measure.label} ($grams g)';
+    final a = measure.amount;
+    final amount = a == a.roundToDouble() ? a.toStringAsFixed(0) : '$a';
+    return '${measure.label} ($amount ${measure.basis.baseUnit.label})';
   }
 
   @override
@@ -148,15 +249,16 @@ final class MeasureOption extends UnitChoice {
   int get hashCode => measure.id.hashCode;
 }
 
-/// Whether [label] is just the name of a catalog volume unit ("tbsp",
-/// "cup", "ml"…). Measures must never duplicate volume units — density owns
-/// volume conversion (frame-b review, plan 0011): the seed pipeline skips
-/// FDC volume portions for the same reason, this keeps the chip row / manage
-/// UI from offering (or authoring) one that slipped in anyway.
+/// The catalog volume unit a bare [label] names ("tbsp", "Cups ", "ml"…),
+/// or null when it names none. Measures must never duplicate volume units —
+/// density owns volume conversion (frame-b review, plan 0011; ADR-0008 §2:
+/// a volume-named weight mapping IS a density) — so the add-measure form
+/// uses the resolved unit to REDIRECT the entry into density instead of
+/// merely refusing it.
 ///
 /// Robust to casing, surrounding whitespace, and the simple `s` plural
 /// ("Cups ", "tbsps") — the trivial disguises a typed label wears.
-bool isVolumeUnitLabel(String label) {
+Unit? volumeUnitFromLabel(String label) {
   final normalized = label.trim().toLowerCase();
   final singular = normalized.endsWith('s')
       ? normalized.substring(0, normalized.length - 1)
@@ -164,11 +266,17 @@ bool isVolumeUnitLabel(String label) {
   for (final u in kAllUnits) {
     if (u.family != UnitFamily.volume) continue;
     for (final name in [u.id.toLowerCase(), u.label.toLowerCase()]) {
-      if (normalized == name || singular == name) return true;
+      if (normalized == name || singular == name) return u;
     }
   }
-  return false;
+  return null;
 }
+
+/// Whether [label] is just the name of a catalog volume unit — see
+/// [volumeUnitFromLabel]. Keeps the chip row / manage UI from offering (or
+/// authoring) a volume-named measure that slipped in anyway; the seed
+/// pipeline skips FDC volume portions for the same reason.
+bool isVolumeUnitLabel(String label) => volumeUnitFromLabel(label) != null;
 
 /// A unit picker's full offer: the filtered `choices`, plus `offFilter` when
 /// the stored selection had to be admitted from outside the filter (it is

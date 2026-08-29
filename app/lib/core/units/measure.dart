@@ -1,35 +1,40 @@
-/// Named ingredient measures — the honest count↔mass bridge (spec §4,
-/// step 7.6).
+/// Named ingredient measures — the honest count↔basis bridge (spec §4,
+/// steps 7.6–7.8).
 ///
 /// Pure Dart, no `package:flutter` (enforced in CI), same as `units.dart`.
 ///
-/// A [Measure] names a real-world unit of ONE ingredient and pins its mass:
-/// "potato, large = 299 g", "can (400 ml) = 400 g", "clove = 3 g". Where a
-/// density describes a substance (g per ml, any amount), a measure describes a
-/// *thing* — so it is the right bridge for count foods, which a liquid density
-/// can never describe.
+/// A [Measure] names a real-world unit of ONE ingredient and pins its amount
+/// **in the ingredient's basis unit** (ADR-0008): "potato, large = 299 g",
+/// "can (400 ml) = 400 ml", "clove = 3 g". Where a density describes a
+/// substance (g per ml, any amount), a measure describes a *thing* — so it
+/// is the right bridge for count foods, which a liquid density can never
+/// describe. The basis ([MacrosBasis], the ingredient's canonical
+/// dimension) decides which family the stored amount lives in: per-g
+/// ingredients' measures map to mass, per-ml ones to volume.
 ///
 /// Honesty rules (invariant 3):
 ///
-/// - No measure ⇒ no invented grams: a plain count stays a count.
-/// - Measures bridge to **mass only**. Reaching volume still requires the
-///   ingredient's density (grams → ml), exactly like any other mass — a
-///   measure never smuggles in a volume conversion of its own.
-/// - A non-positive (or NaN) `grams` is bad data and converts like a missing
-///   density does: a typed [Failure], never `Infinity` or `0`.
+/// - No measure ⇒ no invented amount: a plain count stays a count.
+/// - Measures bridge to the **basis family only**. Reaching the other
+///   mass/volume family still requires the ingredient's density, exactly
+///   like any quantity of that family — a measure never smuggles in a
+///   cross-family conversion of its own.
+/// - A non-positive (or NaN) `amount` is bad data and converts like a
+///   missing density does: a typed [Failure], never `Infinity` or `0`.
 library;
 
 import 'package:meta/meta.dart';
 
 import '../result/result.dart';
+import 'macros.dart';
 import 'units.dart';
 
 /// The provenance families a [Measure.source] can carry, for at-a-glance
 /// display (7.7). [unknown] covers pre-0010 rows and unrecognized strings.
 enum MeasureSourceKind { usdaPortion, borrowed, typical, manual, unknown }
 
-/// One named measure of one ingredient: `amount` of it weigh
-/// `amount × grams` grams.
+/// One named measure of one ingredient: `n` of it are `n × amount` of the
+/// ingredient's basis unit ([basis] — g or ml, ADR-0008).
 ///
 /// Value-equal on all fields; [id] is the persisted `ingredient_measure.id`
 /// (referenced by `recipe_line_item.measure_id` /
@@ -39,7 +44,8 @@ class Measure {
   const Measure({
     required this.id,
     required this.label,
-    required this.grams,
+    required this.amount,
+    this.basis = MacrosBasis.perG,
     this.sortOrder = 0,
     this.source,
   });
@@ -49,18 +55,24 @@ class Measure {
   /// Human label, e.g. `potato, large`, `can (400 ml)`, `clove`.
   final String label;
 
-  /// Mass of one of this measure, in grams. Must be positive to convert; a
+  /// Amount of one of this measure, in the ingredient's basis unit
+  /// (`basis_amount`, migration 0012). Must be positive to convert; a
   /// non-positive value is rejected at conversion time (mirroring how a
   /// non-positive density is), never silently used.
-  final double grams;
+  final double amount;
+
+  /// Which basis unit [amount] is denominated in — the ingredient's
+  /// `macros_basis` (the row itself stores no basis: the ingredient's is
+  /// the single fact, joined in by every reader so the two can't disagree).
+  final MacrosBasis basis;
 
   final int sortOrder;
 
-  /// Where the gram weight comes from (step 7.6 provenance, displayed from
+  /// Where the amount comes from (step 7.6 provenance, displayed from
   /// 7.7): `usda_fdc:<fdc_id> (<portion>)` for pipeline-derived weights
-  /// (`… — borrowed` when a variety borrows a representative food's portion),
-  /// `manual` for user-authored rows, `seed:typical` for the few curated
-  /// hand rows, null for rows predating the column.
+  /// (`… — borrowed` when a variety borrows a representative food's
+  /// portion), `manual` for user-authored rows, `seed:typical` for the few
+  /// curated hand rows, null for rows predating the column.
   final String? source;
 
   /// [source] classified for display. The raw machine string stays in the
@@ -84,27 +96,30 @@ class Measure {
       other is Measure &&
       other.id == id &&
       other.label == label &&
-      other.grams == grams &&
+      other.amount == amount &&
+      other.basis == basis &&
       other.sortOrder == sortOrder &&
       other.source == source;
 
   @override
-  int get hashCode => Object.hash(id, label, grams, sortOrder, source);
+  int get hashCode => Object.hash(id, label, amount, basis, sortOrder, source);
 
   @override
-  String toString() => 'Measure($label = $grams g)';
+  String toString() => 'Measure($label = $amount ${basis.baseUnit.id})';
 }
 
-/// Converts [amount] of [measure] into [to], via the measure's gram weight.
+/// Converts [amount] of [measure] into [to], via the measure's stored basis
+/// amount.
 ///
-/// - To a [UnitFamily.mass] unit: `amount × grams`, then the ratio table.
-/// - To a [UnitFamily.volume] unit: only with [densityGPerMl] (the measure
-///   gives grams; grams→ml still needs the ingredient's density) — without
-///   one, `unit/no_density`, same as any mass→volume conversion.
+/// - To a unit of the basis family: `amount × measure.amount`, then the
+///   ratio table (no density needed — the measure IS the bridge).
+/// - Across the mass↔volume boundary: only with [densityGPerMl] (the
+///   measure yields a basis-family quantity; crossing still needs the
+///   ingredient's density) — without one, `unit/no_density`.
 /// - To [UnitFamily.count] or [UnitFamily.imprecise]: `unit/incompatible` —
 ///   a measure is not interchangeable with a bare count.
-/// - A non-positive/NaN [Measure.grams] is `measure/invalid_grams`: dividing
-///   or multiplying by it would fabricate a number (invariant 3).
+/// - A non-positive/NaN [Measure.amount] is `measure/invalid_amount`:
+///   dividing or multiplying by it would fabricate a number (invariant 3).
 Result<Quantity> convertMeasure(
   double amount,
   Measure measure, {
@@ -112,43 +127,48 @@ Result<Quantity> convertMeasure(
   double? densityGPerMl,
 }) {
   // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
-  if (!(measure.grams > 0)) {
+  if (!(measure.amount > 0)) {
     return const Err(
       Failure(
-        'measure/invalid_grams',
-        'a measure needs a positive gram weight',
+        'measure/invalid_amount',
+        'a measure needs a positive basis amount',
       ),
     );
   }
   return convert(
-    Quantity(amount * measure.grams, g),
+    Quantity(amount * measure.amount, measure.basis.baseUnit),
     to: to,
     densityGPerMl: densityGPerMl,
   );
 }
 
-/// Converts a mass (or, with [densityGPerMl], volume) quantity [q] into a
-/// count of [measure] — "674 g ≈ 2.25 × potato, large".
+/// Converts a basis-family (or, with [densityGPerMl], cross-family)
+/// quantity [q] into a count of [measure] — "674 g ≈ 2.25 × potato, large".
 ///
 /// The inverse of [convertMeasure], with the same honesty rules: an invalid
-/// gram weight is `measure/invalid_grams`; volume needs a density; count and
-/// imprecise quantities never resolve into a measure (`unit/incompatible`).
+/// basis amount is `measure/invalid_amount`; crossing mass↔volume needs a
+/// density; count and imprecise quantities never resolve into a measure
+/// (`unit/incompatible`).
 Result<double> amountInMeasure(
   Quantity q,
   Measure measure, {
   double? densityGPerMl,
 }) {
-  if (!(measure.grams > 0)) {
+  if (!(measure.amount > 0)) {
     return const Err(
       Failure(
-        'measure/invalid_grams',
-        'a measure needs a positive gram weight',
+        'measure/invalid_amount',
+        'a measure needs a positive basis amount',
       ),
     );
   }
-  final grams = convert(q, to: g, densityGPerMl: densityGPerMl);
-  return switch (grams) {
-    Ok(:final value) => Ok(value.amount / measure.grams),
+  final inBasis = convert(
+    q,
+    to: measure.basis.baseUnit,
+    densityGPerMl: densityGPerMl,
+  );
+  return switch (inBasis) {
+    Ok(:final value) => Ok(value.amount / measure.amount),
     Err(:final failure) => Err(failure),
   };
 }

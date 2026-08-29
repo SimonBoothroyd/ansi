@@ -51,6 +51,10 @@ class _FakeIngredientRepo implements IngredientRepository {
       const [];
 
   @override
+  Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>
+      null;
+
+  @override
   Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
 
   @override

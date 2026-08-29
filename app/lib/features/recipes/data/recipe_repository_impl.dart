@@ -58,7 +58,7 @@ class SqliteRecipeRepository implements RecipeRepository {
     // resolved) its measure, in one pass across all recipes.
     final lineRows = await _db.getAll(
       'SELECT g.recipe_id, li.id, li.ingredient_id, li.quantity, li.unit, '
-      'li.measure_id, im.label AS m_label, im.grams AS m_grams, '
+      'li.measure_id, im.label AS m_label, im.basis_amount AS m_amount, '
       'im.sort_order AS m_sort, im.source AS m_source, '
       'ing.macros, ing.macros_basis, ing.density_g_per_ml, ing.status '
       'FROM recipe_line_item li '
@@ -75,7 +75,7 @@ class SqliteRecipeRepository implements RecipeRepository {
     for (final r in lineRows) {
       final measureId = r['measure_id'] as String?;
       final measureLabel = r['m_label'] as String?;
-      final measureGrams = (r['m_grams'] as num?)?.toDouble();
+      final measureAmount = (r['m_amount'] as num?)?.toDouble();
       (linesByRecipe[r['recipe_id'] as String] ??= []).add(
         LineItem(
           id: r['id'] as String,
@@ -87,12 +87,15 @@ class SqliteRecipeRepository implements RecipeRepository {
           // Full construction incl. sort_order/source (the 51c80b9 rule:
           // every loader selects what Measure's == compares).
           measure:
-              measureId == null || measureLabel == null || measureGrams == null
+              measureId == null || measureLabel == null || measureAmount == null
               ? null
               : Measure(
                   id: measureId,
                   label: measureLabel,
-                  grams: measureGrams,
+                  amount: measureAmount,
+                  // The line ingredient's basis denominates its measures
+                  // (ADR-0008); a tombstoned ingredient falls back per-g.
+                  basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
                   sortOrder: (r['m_sort'] as int?) ?? 0,
                   source: r['m_source'] as String?,
                 ),
@@ -180,7 +183,8 @@ class SqliteRecipeRepository implements RecipeRepository {
     );
     final itemRows = await _db.getAll(
       'SELECT li.*, ing.canonical_name AS ingredient_name, '
-      'im.label AS measure_label, im.grams AS measure_grams, '
+      'ing.macros_basis AS ingredient_basis, '
+      'im.label AS measure_label, im.basis_amount AS measure_amount, '
       'im.sort_order AS measure_sort, im.source AS measure_source '
       'FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id '
@@ -225,7 +229,7 @@ class SqliteRecipeRepository implements RecipeRepository {
     // measure_id is kept regardless so a save never strips it (see [LineItem]).
     final measureId = r['measure_id'] as String?;
     final measureLabel = r['measure_label'] as String?;
-    final measureGrams = (r['measure_grams'] as num?)?.toDouble();
+    final measureAmount = (r['measure_amount'] as num?)?.toDouble();
     return LineItem(
       id: r['id'] as String,
       ingredientId: r['ingredient_id'] as String,
@@ -233,12 +237,16 @@ class SqliteRecipeRepository implements RecipeRepository {
       unit: unitById(r['unit'] as String) ?? pieces,
       quantity: (r['quantity'] as num?)?.toDouble(),
       measureId: measureId,
-      measure: measureId == null || measureLabel == null || measureGrams == null
+      measure:
+          measureId == null || measureLabel == null || measureAmount == null
           ? null
           : Measure(
               id: measureId,
               label: measureLabel,
-              grams: measureGrams,
+              amount: measureAmount,
+              // The line ingredient's basis denominates its measures
+              // (ADR-0008); a tombstoned ingredient falls back per-g.
+              basis: MacrosBasis.fromDb(r['ingredient_basis'] as String?),
               sortOrder: (r['measure_sort'] as int?) ?? 0,
               source: r['measure_source'] as String?,
             ),

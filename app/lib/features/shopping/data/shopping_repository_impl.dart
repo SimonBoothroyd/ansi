@@ -24,6 +24,7 @@ import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../cook_plan/domain/cook_plan.dart';
@@ -201,12 +202,14 @@ class SqliteShoppingRepository implements ShoppingRepository {
     final placeholders = List.filled(recipeIds.length, '?').join(', ');
     final rows = await _db.getAll(
       'SELECT g.recipe_id, li.ingredient_id, li.quantity, li.unit, '
-      'li.measure_id, im.label AS measure_label, im.grams AS measure_grams, '
+      'li.measure_id, im.label AS measure_label, '
+      'im.basis_amount AS measure_amount, i2.macros_basis AS measure_basis, '
       'im.sort_order AS measure_sort, im.source AS measure_source '
       'FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
       'LEFT JOIN ingredient_measure im '
       'ON im.id = li.measure_id AND im.deleted_at IS NULL '
+      'LEFT JOIN ingredient i2 ON i2.id = im.ingredient_id '
       'WHERE g.recipe_id IN ($placeholders) AND li.deleted_at IS NULL '
       'ORDER BY li.sort_order, li.created_at',
       recipeIds.toList(),
@@ -231,17 +234,20 @@ class SqliteShoppingRepository implements ShoppingRepository {
   }
 
   /// The resolved [Measure] of a row selected with the
-  /// `measure_id`/`measure_label`/`measure_grams`/`measure_sort` aliases, or
-  /// null when the row has no measure (or its measure row is missing).
+  /// `measure_id`/`measure_label`/`measure_amount`/`measure_basis`/
+  /// `measure_sort` aliases, or null when the row has no measure (or its
+  /// measure row is missing). The basis comes from the measure's own
+  /// ingredient (`macros_basis` — the single stored fact, ADR-0008).
   Measure? _toMeasure(Row row) {
     final id = row['measure_id'] as String?;
     final label = row['measure_label'] as String?;
-    final grams = (row['measure_grams'] as num?)?.toDouble();
-    if (id == null || label == null || grams == null) return null;
+    final amount = (row['measure_amount'] as num?)?.toDouble();
+    if (id == null || label == null || amount == null) return null;
     return Measure(
       id: id,
       label: label,
-      grams: grams,
+      amount: amount,
+      basis: MacrosBasis.fromDb(row['measure_basis'] as String?),
       sortOrder: (row['measure_sort'] as int?) ?? 0,
       source: row['measure_source'] as String?,
     );
@@ -269,11 +275,13 @@ class SqliteShoppingRepository implements ShoppingRepository {
 
     final contribRows = await _db.getAll(
       'SELECT sc.id, sc.entry_id, sc.quantity, sc.unit, sc.note, '
-      'sc.measure_id, im.label AS measure_label, im.grams AS measure_grams, '
+      'sc.measure_id, im.label AS measure_label, '
+      'im.basis_amount AS measure_amount, i2.macros_basis AS measure_basis, '
       'im.sort_order AS measure_sort, im.source AS measure_source '
       'FROM shopping_list_contribution sc '
       'LEFT JOIN ingredient_measure im '
       'ON im.id = sc.measure_id AND im.deleted_at IS NULL '
+      'LEFT JOIN ingredient i2 ON i2.id = im.ingredient_id '
       "WHERE sc.deleted_at IS NULL AND sc.source_type = 'manual' "
       'ORDER BY sc.created_at',
     );
@@ -309,12 +317,14 @@ class SqliteShoppingRepository implements ShoppingRepository {
     // The ingredients' live measures, primary (lowest sort_order) first —
     // they gate the whole-unit hint and price its mass→count conversion.
     final measureRows = await _db.getAll(
-      'SELECT ingredient_id, id AS measure_id, label AS measure_label, '
-      'grams AS measure_grams, sort_order AS measure_sort, '
-      'source AS measure_source '
-      'FROM ingredient_measure '
-      'WHERE ingredient_id IN ($placeholders) AND deleted_at IS NULL '
-      'ORDER BY sort_order, created_at',
+      'SELECT im.ingredient_id, im.id AS measure_id, '
+      'im.label AS measure_label, im.basis_amount AS measure_amount, '
+      'i2.macros_basis AS measure_basis, im.sort_order AS measure_sort, '
+      'im.source AS measure_source '
+      'FROM ingredient_measure im '
+      'JOIN ingredient i2 ON i2.id = im.ingredient_id '
+      'WHERE im.ingredient_id IN ($placeholders) AND im.deleted_at IS NULL '
+      'ORDER BY im.sort_order, im.created_at',
       ids.toList(),
     );
     final measuresByIngredient = <String, List<Measure>>{};
