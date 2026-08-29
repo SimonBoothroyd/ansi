@@ -147,6 +147,7 @@ const schema = Schema([
     Column.text('label'),
     Column.real('grams'),
     Column.integer('sort_order'),
+    Column.text('source'), // weight provenance ("usda_fdc:…", "manual", …)
     ..._audit,
   ]),
 

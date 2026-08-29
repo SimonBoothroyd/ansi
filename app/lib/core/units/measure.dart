@@ -37,6 +37,7 @@ class Measure {
     required this.label,
     required this.grams,
     this.sortOrder = 0,
+    this.source,
   });
 
   final String id;
@@ -51,16 +52,24 @@ class Measure {
 
   final int sortOrder;
 
+  /// Where the gram weight comes from (step 7.6 provenance, displayed from
+  /// 7.7): `usda_fdc:<fdc_id> (<portion>)` for pipeline-derived weights
+  /// (`… — borrowed` when a variety borrows a representative food's portion),
+  /// `manual` for user-authored rows, `seed:typical` for the few curated
+  /// hand rows, null for rows predating the column.
+  final String? source;
+
   @override
   bool operator ==(Object other) =>
       other is Measure &&
       other.id == id &&
       other.label == label &&
       other.grams == grams &&
-      other.sortOrder == sortOrder;
+      other.sortOrder == sortOrder &&
+      other.source == source;
 
   @override
-  int get hashCode => Object.hash(id, label, grams, sortOrder);
+  int get hashCode => Object.hash(id, label, grams, sortOrder, source);
 
   @override
   String toString() => 'Measure($label = $grams g)';

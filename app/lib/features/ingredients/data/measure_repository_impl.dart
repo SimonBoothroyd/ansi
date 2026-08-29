@@ -15,7 +15,8 @@ class SqliteMeasureRepository implements MeasureRepository {
   Stream<List<Measure>> watchMeasures(String ingredientId) {
     return _db
         .watch(
-          'SELECT id, label, grams, sort_order FROM ingredient_measure '
+          'SELECT id, label, grams, sort_order, source '
+          'FROM ingredient_measure '
           'WHERE ingredient_id = ? AND deleted_at IS NULL '
           'ORDER BY sort_order, created_at',
           parameters: [ingredientId],
@@ -28,6 +29,7 @@ class SqliteMeasureRepository implements MeasureRepository {
                   label: r['label'] as String,
                   grams: (r['grams'] as num).toDouble(),
                   sortOrder: (r['sort_order'] as int?) ?? 0,
+                  source: r['source'] as String?,
                 ),
               )
               .toList(),

@@ -73,15 +73,31 @@ ingredient is an honest-but-empty stub (this bit us: cloud showed no macros):
 ```bash
 supabase db query --linked -f supabase/seed_usda.sql     # 8262-food reference
 supabase db query --linked -f supabase/seed_prefill.sql  # macros/density onto vocab
-supabase db query --linked -f supabase/seed_measures.sql # starter measures (0009, step 7.6)
+supabase db query --linked -f supabase/seed_measures.sql # starter measures (0009/0010, step 7.6)
 ```
 
-`seed_measures.sql` adds the hand-curated starter measures ("1 potato, large
-= 299 g") onto the template vocab; `ensure_onboarded` clones them with the
-ingredients, so without it cloud households get no measure choices in the unit
-pickers. Note migration 0009 also touched the **sync streams** — redeploy
+`seed_measures.sql` (GENERATED — see `supabase/seed/README.md`) adds the
+starter measures ("1 potato, medium = 213 g", USDA-FDC-sourced with per-row
+provenance since 0010) onto the **template** vocab only. It is idempotent:
+re-running it no-ops on labels the template already has. How they reach
+households:
+
+- **New households** get them cloned at onboarding (`ensure_onboarded`).
+- **Already-onboarded households do NOT retrofit from a template reseed
+  alone** — the 0010 backfill does that: a household with zero live
+  `ingredient_measure` rows gains the template's measures the next time its
+  user signs in (the session controller re-runs `ensure_onboarded`
+  opportunistically). A household that already HAS measures is never touched.
+- To **roll a reseeded template out to existing households** (dev data is
+  throwaway): a human soft-deletes their measure rows —
+  `update ingredient_measure set deleted_at = now(), updated_at = now()` (add
+  a `where` to keep the template's fresh rows if it was reseeded first) —
+  and the backfill re-clones on each household's next sign-in.
+
+Note migration 0009 also touched the **sync streams** — redeploy
 `docker/powersync-cloud.streams.yaml` (step 3 below) so `ingredient_measure`
-actually reaches devices.
+actually reaches devices (its rules are `SELECT *`, so 0010's `source` column
+rides along without a further stream change).
 
 `supabase db query --linked "<sql>"` also runs read/verify queries. Destructive
 statements (`truncate`, `delete`) against cloud are intentionally blocked by the

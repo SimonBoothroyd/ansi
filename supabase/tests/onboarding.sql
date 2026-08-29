@@ -12,7 +12,7 @@
 -- holds the starter vocab and its aliases). Run by `supabase test db`.
 
 begin;
-select plan(18);
+select plan(23);
 
 -- Isolate from any pre-existing memberships (a live dev session may have
 -- onboarded users). All rolled back at the end.
@@ -30,9 +30,10 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'ol
 
 -- Measures (0009): one on a curated template row (guarantees a non-zero clone
 -- even if the seeded starter measures change) and one on the manual ingredient
--- (which must stay behind with its ingredient).
-insert into ingredient_measure (household_id, ingredient_id, label, grams)
-select '00000000-0000-0000-0000-0000000000aa', id, 'glug (test)', 12
+-- (which must stay behind with its ingredient). The curated one carries a
+-- provenance `source` (0010) that must ride the clone.
+insert into ingredient_measure (household_id, ingredient_id, label, grams, source)
+select '00000000-0000-0000-0000-0000000000aa', id, 'glug (test)', 12, 'seed:typical'
 from ingredient
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'olive oil';
 insert into ingredient_measure (household_id, ingredient_id, label, grams)
@@ -179,6 +180,66 @@ select is(
        and a.source = 'import_correction'),
   0,
   'an import_correction alias never leaves the source household'
+);
+-- Provenance rides the clone (0010).
+select is(
+  (select im.source from ingredient_measure im
+     join household_member m on m.household_id = im.household_id
+     where m.auth_user_id = 'c3333333-3333-3333-3333-333333333333'
+       and im.label = 'glug (test)'),
+  'seed:typical',
+  'a cloned measure keeps its provenance source (0010)'
+);
+
+-- ---------------------------------------------------------------------------
+-- Backfill (0010): a household onboarded BEFORE 0009 has memberships but no
+-- measures — the next ensure_onboarded() call must clone the template's
+-- measures in; a household that HAS measures must be left untouched.
+-- ---------------------------------------------------------------------------
+-- Simulate the pre-0009 state: strip A's household of every measure row.
+delete from ingredient_measure
+where household_id = current_setting('test.hh_a')::uuid;
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"a1111111-1111-1111-1111-111111111111","role":"authenticated","email":"ada@x.com"}';
+select is(
+  ensure_onboarded(),
+  current_setting('test.hh_a')::uuid,
+  'the backfill path still returns the existing household'
+);
+reset role;
+select is(
+  (select count(*)::int from ingredient_measure
+     where household_id = current_setting('test.hh_a')::uuid
+       and deleted_at is null),
+  (select count(*)::int from ingredient_measure im
+     join ingredient i on i.id = im.ingredient_id
+     where im.household_id = '00000000-0000-0000-0000-0000000000aa'
+       and im.deleted_at is null and i.source is distinct from 'manual'),
+  'a measure-less household gains the template measures on its next call'
+);
+select is(
+  (select im.source from ingredient_measure im
+     where im.household_id = current_setting('test.hh_a')::uuid
+       and im.label = 'glug (test)'),
+  'seed:typical',
+  'backfilled measures keep their provenance source'
+);
+
+-- A household WITH live measures is untouched by a further call (no dupes).
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"a1111111-1111-1111-1111-111111111111","role":"authenticated","email":"ada@x.com"}';
+do $$ begin perform ensure_onboarded(); end $$;
+reset role;
+select is(
+  (select count(*)::int from ingredient_measure
+     where household_id = current_setting('test.hh_a')::uuid
+       and deleted_at is null),
+  (select count(*)::int from ingredient_measure im
+     join ingredient i on i.id = im.ingredient_id
+     where im.household_id = '00000000-0000-0000-0000-0000000000aa'
+       and im.deleted_at is null and i.source is distinct from 'manual'),
+  'a household that already has measures is untouched (no dupes)'
 );
 
 -- No template at all (the empty-cloud case): the clone cleanly no-ops.
