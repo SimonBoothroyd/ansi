@@ -1,6 +1,6 @@
 # Exec plan: Unit admission & entry polish
 
-- **Status:** in progress
+- **Status:** done (2026-08-29)
 - **Owner:** agent (staged 2026-08-29 from the post-7.7 design session)
 - **Roadmap step:** Step 7.8 — unit admission & entry polish
 - **Created:** 2026-08-29
@@ -78,9 +78,18 @@ category-gated — plus the two independent 7.7 polish items Simon flagged.
       category-gated imprecise toggle; frame b2 updated to show the shipped
       density entry + redirect. The form BUILD stays step-8 scope —
       decided.)*
-- [ ] Tests cover the new logic at every layer; `make ci` + `supabase test
-      db` (dirty) + `make test-sim` green.
-- [ ] Docs updated: product-spec units section, QUALITY, tracker, `make docs`.
+- [x] Tests cover the new logic at every layer; `make ci` + `supabase test
+      db` (dirty) + `make test-sim` green. *(364 app tests — was 311 at 7.7;
+      87 pgTAP — was 67; the full gate chain ran in order: `make test-app` →
+      `make test-sim` (3/3 scenarios over live sync on the booted iPhone 17
+      sim, retargeted for the manage-state's density entry) → `supabase
+      test db` on that DIRTY db (87 green) → `make ci` — plus a final fresh
+      reset + pgTAP validating the lint-driven STABLE re-declare.)*
+- [x] Docs updated: product-spec units section, QUALITY, tracker, `make docs`.
+      *(Plus seed README — density derivation, generous extraction +
+      curation overrides, five-file load order — and cloud-setup's seed list
+      + rollout notes. `make docs`/`docs-check` green; the stream drift
+      check confirms both sync-rule files needed no change.)*
 
 ## Approach
 
@@ -102,6 +111,12 @@ category-gated — plus the two independent 7.7 polish items Simon flagged.
   still excluded at extraction are pure volume rows (they become derived
   DENSITY per ADR-0008) and NLEA/label "serving" rows. The curation pass
   trims what a human finds senseless, with reasons in the overrides file.
+- 2026-08-29 — Gate-chain findings worth keeping: the smoke's manage-sheet
+  `Save` taps had to be SCOPED to `QuantityUnitEditor` — the recipe
+  editor's own covered Save sits earlier in the tree, and the sheet now
+  carries a second (density) Save; `supabase db lint` caught
+  `default_allowed_units` declared IMMUTABLE over the stable `to_jsonb`
+  (re-declared STABLE before the migration shipped anywhere).
 - 2026-08-29 — Kitchen trim + order encoded as explicit tables
   (`_kitchenMates`/`_kitchenOrder`/`_crossKitchen` in
   `allowed_units.dart`): the trim is judgment, not arithmetic — a ratio
@@ -135,12 +150,18 @@ category-gated — plus the two independent 7.7 polish items Simon flagged.
 
 ## Step-done checklist
 
-- [ ] Roadmap row updated: status flipped, one line on what shipped and what
+- [x] Roadmap row updated: status flipped, one line on what shipped and what
       was deliberately deferred.
-- [ ] `docs/QUALITY.md` grade for every area touched matches reality.
-- [ ] `app/AGENTS.md` "Current focus" and command list still true.
-- [ ] Feature steps: `make test-sim` run on a booted simulator, result
-      recorded here.
-- [ ] Tech-debt rows added for corners knowingly cut, and retired for debt
-      this step paid off.
-- [ ] `make ci` green.
+- [x] `docs/QUALITY.md` grade for every area touched matches reality.
+- [x] `app/AGENTS.md` "Current focus" and command list still true (it points
+      at the roadmap; commands unchanged).
+- [x] Feature steps: `make test-sim` run on a booted simulator, result
+      recorded here — **green, 3/3 scenarios** (auth → library incl. the
+      manage-sheet measure add now scoped past the new density Save → week →
+      cook → shop over live sync), 2026-08-29.
+- [x] Tech-debt rows added for corners knowingly cut (Foundation bundle
+      refresh; no sim scenario for the density entry; server-side density
+      vs materialized lists), and retired/narrowed for debt this step paid
+      off (the density famine: 7/291 → 211/291; the `recipes/macros`
+      blocker row removed).
+- [x] `make ci` green.
