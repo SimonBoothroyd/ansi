@@ -100,6 +100,36 @@ affordance). So:
 
 - 2026-08-27 — Staged, explicitly design-first at Simon's request; both
   pickers in scope, one anatomy.
+- 2026-08-28 — **Frames drafted, awaiting Simon's review.** A "Pickers v2 ·
+  step 7.7" section (marked *proposed — pending review*) is on the design
+  board: (a) ingredient picker v2 (a refresh of the existing "Add
+  ingredient" frame), (b) quantity + unit chips with the add-measure moment
+  and source-at-a-glance, (c) recipe picker v2 + confirm & place v2
+  (refreshes of the existing "Choose a recipe" / "Confirm & place" pair —
+  they supersede those on sign-off; until then the originals stay as the
+  shipped-state record; the refreshes keep the pair's implementation-owed
+  ideas the app never picked up: the Favorites tab, day-tagged
+  already-this-week chips, the eating footer, the combined slot dropdown,
+  and the full batch prose the app truncates to a one-liner), (d)
+  macros-basis toggle note for step 8's form. Nothing in acceptance is
+  ticked — the review gate holds. **Proposals to settle at the review (for
+  sign-off, not decided):**
+  1. *Planning search scope* — propose planning search stays **recipes-only
+     in v1**; foods-as-ad-hoc-meals is revisited with step 8.
+  2. *Favorites tab* — the board's original frame already commits to it, so
+     this is a real either/or: **keep Favorites per the board** (needs a
+     `favorite` flag on recipe — small but real implementation cost), or
+     **drop it in the refresh** if recency makes it redundant.
+     Recommendation: keep — recency only resurfaces what was recently
+     planned, while favorites are a curated shortlist; different jobs. The
+     refreshed frame shows the tab.
+  3. *N3, `measure_live_label_uq` vs offline writes* — propose **dropping
+     the index** in the editor's migration and merging duplicate labels on
+     read (the shopping-entry doctrine), rather than client-side collision
+     handling.
+  4. *N4, backfill zero-live gate vs user deletions* — propose a
+     per-household **`backfilled_at` marker** so the template-measure
+     backfill runs once and never resurrects deliberately deleted measures.
 
 ## Notes / open questions
 

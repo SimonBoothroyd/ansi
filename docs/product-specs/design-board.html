@@ -365,6 +365,57 @@
         .addbtn{margin:16px 20px 8px;background:var(--herb);color:#fff;border-radius:13px;padding:14px;text-align:center;font-weight:600;font-size:14px;}
 
         .stretch-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;background:#EAF1F5;color:#3B6076;border-radius:6px;padding:3px 8px;margin-left:8px;}
+
+        /* pickers v2 (proposed, step 7.7) */
+        .proposed-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;background:#FBF3E3;color:#7A5A16;border-radius:6px;padding:3px 8px;white-space:nowrap;}
+        .mline{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb-deep);margin-top:3px;}
+        .mline .per{color:var(--muted);}
+        .dock{border-top:1px solid var(--line);margin-top:12px;padding:10px 12px 12px;background:var(--paper);}
+        .dock .search{background:var(--frame);margin-bottom:10px;}
+        .kbd{display:flex;flex-direction:column;gap:5px;}
+        .kbd-row{display:flex;gap:4px;justify-content:center;}
+        .key{flex:1;max-width:29px;height:30px;border-radius:6px;background:var(--frame);border:1px solid var(--line);display:grid;place-items:center;font-size:10px;color:var(--muted);}
+        .key.wide{max-width:none;flex:3.2;}
+        .key.done{max-width:none;flex:1.6;background:var(--herb);border-color:var(--herb);color:#fff;font-weight:600;font-size:11px;font-family:'Inter',sans-serif;}
+        .numpad .key{max-width:none;height:34px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);}
+        .uchips{display:flex;gap:6px;overflow:hidden;margin-bottom:10px;align-items:center;}
+        .uchip{font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:6px 10px;border-radius:999px;background:var(--frame);border:1px solid var(--line);color:var(--ink);white-space:nowrap;display:inline-flex;align-items:center;gap:5px;flex:none;}
+        .uchip.on{background:var(--herb);border-color:var(--herb);color:#fff;}
+        .uchip.impr{color:var(--muted);border-style:dotted;}
+        .uchip.addm{border-style:dashed;color:var(--herb);border-color:var(--herb);}
+        .uchip-sep{width:1px;height:18px;background:var(--line);flex:none;}
+        .srcdot{width:6px;height:6px;border-radius:50%;flex:none;display:inline-block;}
+        .srcdot.usda{background:var(--herb);}
+        .srcdot.brw{background:transparent;border:1.5px solid var(--herb);width:4px;height:4px;}
+        .srcdot.typ{background:var(--aging);}
+        .srcdot.you{background:var(--ink);}
+        .msr-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dotted var(--line);font-size:12.5px;}
+        .msr-row:last-child{border-bottom:none;}
+        .msr-row .mlab{font-weight:500;white-space:nowrap;}
+        .msr-row .mg{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;}
+        .msr-row .msrc{font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--muted);margin-left:auto;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:45%;}
+        .legend{display:flex;gap:11px;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin:8px 20px 0;flex-wrap:wrap;}
+        .legend .li{display:inline-flex;align-items:center;gap:5px;}
+        .addm-card{background:var(--frame);border:1px dashed var(--herb);border-radius:11px;padding:9px 10px;margin-bottom:10px;}
+        .addm-h{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--herb);margin-bottom:7px;}
+        .addm-fields{display:flex;gap:7px;align-items:center;}
+        .addm-in{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12px;}
+        .addm-in.g{flex:0 0 70px;font-family:'IBM Plex Mono',monospace;}
+        .addm-save{background:var(--ink);color:#fff;border-radius:8px;padding:7px 12px;font-size:11.5px;font-weight:600;}
+        .addm-note{font-size:10px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:5px;}
+        .qty-big{display:flex;align-items:baseline;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-family:'IBM Plex Mono',monospace;}
+        .qty-big .qn{font-size:24px;font-weight:500;}
+        .qty-big .qu{font-size:13px;color:var(--herb-deep);}
+        .qty-big .care{width:1.5px;height:22px;background:var(--herb);display:inline-block;align-self:center;}
+        .rtop{display:flex;align-items:baseline;gap:8px;}
+        .rtop .rbook{flex:1;margin-top:1px;}
+        .rrec{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);flex:none;}
+        .rkeep{flex-wrap:wrap;}
+        .rkeep .kpill{white-space:nowrap;}
+        #pv2-c .rn{white-space:normal;line-height:1.25;}
+        .rml{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb-deep);margin-top:4px;display:flex;align-items:center;gap:6px;}
+        .rml.inc{color:var(--muted);}
+        .badge-inc{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#7A5A16;background:#FBF3E3;border-radius:6px;padding:2px 6px;}
         .footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
         .footer b{color:var(--ink);font-weight:500;}
 
@@ -748,10 +799,180 @@
         </div>
     </div>
 
+    <!-- ===== PICKERS V2 (PROPOSED, STEP 7.7) ===== -->
+    <div class="section-head"><span class="ey">Pickers v2 · step 7.7</span><span class="proposed-tag">proposed — pending review</span><span class="rule"></span><span class="sub">One selection anatomy, two contents — thumb → type → pick</span></div>
+    <div class="board">
+
+        <div class="frame" id="pv2-a">
+            <p class="frame-name"><b>Ingredient picker v2</b> · refresh of “Add ingredient” — supersedes it on sign-off; search lives at the thumb</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Add to “for the curry”</span><span class="dots"></span></div>
+                <p class="list-h">Recent</p>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Coconut milk, canned</div>
+                        <span class="res-cat">Dairy alt · has density · 2 measures</span>
+                        <div class="mline">197 kcal · 2P 20F 3C <span class="per">/100 g</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Yellow onion</div>
+                        <span class="res-cat">Produce · 3 measures</span>
+                        <div class="mline">40 kcal · 1P 0F 9C <span class="per">/100 g</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Curry leaves, fresh <span class="res-badge">stub</span></div>
+                        <span class="res-cat">Produce · needs macros — no zeros shown</span></div>
+                    <span class="rplus">＋</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Chicken thigh, boneless</div>
+                        <span class="res-cat">Meat · 3 measures</span>
+                        <div class="mline">179 kcal · 24P 9F 0C <span class="per">/100 g</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="addnew">＋ can’t find it? add a new ingredient</div>
+                <div class="dock">
+                    <div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Search ingredients</span><span class="care"></span></div>
+                    <div class="kbd">
+                        <div class="kbd-row"><span class="key">q</span><span class="key">w</span><span class="key">e</span><span class="key">r</span><span class="key">t</span><span class="key">y</span><span class="key">u</span><span class="key">i</span><span class="key">o</span><span class="key">p</span></div>
+                        <div class="kbd-row"><span class="key">a</span><span class="key">s</span><span class="key">d</span><span class="key">f</span><span class="key">g</span><span class="key">h</span><span class="key">j</span><span class="key">k</span><span class="key">l</span></div>
+                        <div class="kbd-row"><span class="key">⇧</span><span class="key">z</span><span class="key">x</span><span class="key">c</span><span class="key">v</span><span class="key">b</span><span class="key">n</span><span class="key">m</span><span class="key">⌫</span></div>
+                        <div class="kbd-row"><span class="key wide">space</span><span class="key done">Done</span></div>
+                    </div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>tap the quantity</span><span class="arrow">→</span></div>
+
+        <div class="frame" id="pv2-b">
+            <p class="frame-name"><b>Quantity + unit chips</b> · measures ride the keypad; the unit dropdown retires</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Add to “for the curry”</span><span class="dots"></span></div>
+                <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Coconut milk, canned</div>
+                    <div class="mline">197 kcal · 2P 20F 3C <span class="per">/100 g</span> · density 1.02 g/ml</div></div></div>
+                <p class="flabel" style="margin-top:14px">Quantity</p>
+                <div class="field"><div class="qty-big"><span class="qn">600</span><span class="care"></span><span class="qu">ml</span></div></div>
+                <p class="flabel">Its measures · source at a glance</p>
+                <div class="field" style="margin-bottom:4px">
+                    <div class="msr-row"><span class="srcdot typ"></span><span class="mlab">can (400 ml)</span><span class="mg">400 g</span><span class="msrc">seed:typical</span></div>
+                    <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">tbsp</span><span class="mg">15 g</span><span class="msrc">usda_fdc:170172 (portion)</span></div>
+                    <div class="msr-row"><span class="srcdot brw"></span><span class="mlab">cup</span><span class="mg">226 g</span><span class="msrc">usda_fdc:170171 — borrowed</span></div>
+                    <div class="msr-row"><span class="srcdot you"></span><span class="mlab">half can</span><span class="mg">200 g</span><span class="msrc">yours</span></div>
+                </div>
+                <div class="legend"><span class="li"><span class="srcdot usda"></span>usda portion</span><span class="li"><span class="srcdot brw"></span>borrowed</span><span class="li"><span class="srcdot typ"></span>typical</span><span class="li"><span class="srcdot you"></span>yours</span></div>
+                <div class="dock">
+                    <div class="addm-card">
+                        <div class="addm-h">＋ add measure</div>
+                        <div class="addm-fields"><span class="addm-in" style="color:var(--muted)">label — “half can”</span><span class="addm-in g">200 g</span><span class="addm-save">Save</span></div>
+                        <div class="addm-note"><span class="srcdot you"></span>saved as yours — synced &amp; editable</div>
+                    </div>
+                    <p class="conv-note" style="margin:0 0 9px">≈ <b>610 g</b> · via density 1.02 g/ml</p>
+                    <div class="uchips"><span class="uchip">g</span><span class="uchip on">ml</span><span class="uchip"><span class="srcdot typ"></span>can (400 ml)</span><span class="uchip-sep"></span><span class="uchip impr">splash</span><span class="uchip addm">＋</span></div>
+                    <div class="kbd numpad">
+                        <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
+                        <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
+                        <div class="kbd-row"><span class="key">7</span><span class="key">8</span><span class="key">9</span></div>
+                        <div class="kbd-row"><span class="key">.</span><span class="key">0</span><span class="key">⌫</span></div>
+                        <div class="kbd-row"><span class="key done">Done</span></div>
+                    </div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="frame" id="pv2-c">
+            <p class="frame-name"><b>Recipe picker v2</b> · refresh of “Choose a recipe” — supersedes it on sign-off. Its implementation-owed ideas stay (Favorites · day-tagged chips · eating footer); rows gain servings, recency &amp; honest macros</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Add a meal</span><span class="dots"></span></div>
+                <p class="target">to · <b>Wednesday, Dinner</b></p>
+                <div class="rseg"><span class="rsegopt on">Recent</span><span class="rsegopt">Books</span><span class="rsegopt">Favorites</span></div>
+                <div class="reuse">
+                    <div class="reuse-h">Already this week — cook it in the same batch</div>
+                    <div class="reuse-chips">
+                        <span class="rchip">Chicken Curry <span class="day-t">Mon</span></span>
+                        <span class="rchip">Beef Ragù <span class="day-t">Tue</span></span>
+                    </div>
+                </div>
+                <p class="list-h">Recent</p>
+                <div class="rrow"><div class="rthumb">◍</div>
+                    <div class="rmeta"><div class="rn">Weeknight Chicken Curry</div>
+                        <div class="rtop"><div class="rbook">Our Cookbook · Weeknight</div><span class="rrec">2w ago</span></div>
+                        <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 4 d</span><span class="kpill frz">freezable</span></div>
+                        <div class="rml">serves 4 · ~520 kcal · 31P <span class="per" style="color:var(--muted)">/serving</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="rrow"><div class="rthumb">◍</div>
+                    <div class="rmeta"><div class="rn">Sheet-Pan Miso Salmon</div>
+                        <div class="rtop"><div class="rbook">Our Cookbook · Weeknight</div><span class="rrec">5d ago</span></div>
+                        <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 2 d</span></div>
+                        <div class="rml">serves 2 · ~460 kcal · 38P <span class="per" style="color:var(--muted)">/serving</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="rrow"><div class="rthumb">◍</div>
+                    <div class="rmeta"><div class="rn">Charred Broccoli &amp; Halloumi Salad</div>
+                        <div class="rtop"><div class="rbook">Our Cookbook · Weeknight</div><span class="rrec">3w ago</span></div>
+                        <div class="rkeep"><span class="kpill">best fresh</span></div>
+                        <div class="rml inc">serves 2 · <span class="badge-inc">incomplete</span>1 stub line</div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="rrow"><div class="rthumb">◍</div>
+                    <div class="rmeta"><div class="rn">Roast Chicken &amp; Veg</div>
+                        <div class="rtop"><div class="rbook">Our Cookbook · Slow Sundays</div><span class="rrec">6w ago</span></div>
+                        <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 3 d</span></div>
+                        <div class="rml">serves 4 · ~610 kcal · 45P <span class="per" style="color:var(--muted)">/serving</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="newrow">＋ new recipe — build it from scratch</div>
+                <div class="foot" style="padding-bottom:12px"><span class="foot-lab">Eating: <b>Ada &amp; Jun</b> · shared</span>
+                    <span class="eaters"><span class="ep on a">A</span><span class="ep on j">J</span></span></div>
+                <div class="dock" style="margin-top:0;border-top:none">
+                    <div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span><span class="care"></span></div>
+                    <div class="kbd">
+                        <div class="kbd-row"><span class="key">q</span><span class="key">w</span><span class="key">e</span><span class="key">r</span><span class="key">t</span><span class="key">y</span><span class="key">u</span><span class="key">i</span><span class="key">o</span><span class="key">p</span></div>
+                        <div class="kbd-row"><span class="key">a</span><span class="key">s</span><span class="key">d</span><span class="key">f</span><span class="key">g</span><span class="key">h</span><span class="key">j</span><span class="key">k</span><span class="key">l</span></div>
+                        <div class="kbd-row"><span class="key">⇧</span><span class="key">z</span><span class="key">x</span><span class="key">c</span><span class="key">v</span><span class="key">b</span><span class="key">n</span><span class="key">m</span><span class="key">⌫</span></div>
+                        <div class="kbd-row"><span class="key wide">space</span><span class="key done">Done</span></div>
+                    </div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>pick</span><span class="arrow">→</span></div>
+
+        <div class="frame" id="pv2-c2">
+            <p class="frame-name"><b>Confirm &amp; place v2</b> · refresh — supersedes on sign-off. Slot dropdown + the full batch prose stay (the app truncates it today); the picked card gains the honest macro line</p>
+            <div class="phone"><div class="notch"></div><div class="screen sheet">
+                <div class="grab"></div>
+                <div class="c-h">Add to plan</div>
+                <div class="picked"><div class="rthumb">◍</div>
+                    <div class="pn"><div class="ptitle">Weeknight Chicken Curry</div>
+                        <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 4 d</span><span class="kpill frz">freezable</span></div>
+                        <div class="rml">serves 4 · ~520 kcal · 31P <span class="per" style="color:var(--muted)">/serving</span></div></div></div>
+                <p class="clabel">Slot</p>
+                <div class="slotchip">Wednesday · Dinner<span class="caret">▾</span></div>
+                <p class="clabel">Who’s eating</p>
+                <div class="eater-row"><span class="lab"><b>Both</b> — shared, 2 portions</span>
+                    <span class="eaters"><span class="ep on a">A</span><span class="ep on j">J</span></span></div>
+                <p class="clabel">Portions</p>
+                <div class="portion"><div class="pl">2 portions<small>defaults to eaters — bump up for big appetites</small></div>
+                    <div class="pstepper"><span class="s">–</span><span class="qv">2</span><span class="s">+</span></div></div>
+                <div class="batch-note">Chicken Curry already cooks <b>Monday</b> and keeps 4 days — Wednesday is inside that window, so this joins Monday’s batch instead of a second cook.</div>
+                <div class="addbtn">Add to Wednesday</div>
+            </div></div>
+        </div>
+
+        <div class="frame" id="pv2-d">
+            <p class="frame-name"><b>Macros basis</b> · step 8’s form, decided now — the label’s basis is stored, not converted</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">New ingredient</span><span class="dots"></span></div>
+                <p class="flabel">Canonical name</p>
+                <div class="frow"><div class="fin big">Coconut milk, canned</div></div>
+                <p class="flabel">Macros — enter them as the label reads</p>
+                <div class="frow"><div class="seg"><span class="segopt">per 100 g</span><span class="segopt on">per 100 ml</span></div></div>
+                <div class="frow"><div class="macros4"><div class="mi"><div class="miv">197</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">2 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">3 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">20 g</div><div class="mil">fat</div></div></div></div>
+                <p class="rc-note">The basis is <b>saved with the macros</b> — no conversion at entry. Lines matching the basis compute directly (ml lines × per-100 ml, no density needed). Cross-basis lines bridge via density when present; otherwise that line renders the recipe honestly <span class="badge-inc">incomplete</span>.</p>
+                <p class="conv-note" style="text-align:center">USDA prefill rows stay per-100 g</p>
+            </div></div>
+        </div>
+    </div>
+
     <footer class="footer">
         <span><b>Mise</b> — complete board</span>
         <span>Flutter · Forui · Supabase · PowerSync</span>
-        <span>15 views · library · intake · plan→cook→shop</span>
+        <span>20 views · library · intake · plan→cook→shop · pickers v2 (proposed)</span>
     </footer>
 
 </div>
