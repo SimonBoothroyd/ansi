@@ -65,6 +65,13 @@ category-gated — plus the two independent 7.7 polish items Simon flagged.
   peeled-lemon class of error). Overrides are recorded with reasons so the
   pass is auditable, like the borrow map.
 
+- **Preserve the stored-selection rule when admission narrows the sets
+  (7.7 review fix, 2026-08-29):** `allowedUnitChoicesFor` admits the
+  current (stored) choice when it falls outside the computed set and flags
+  it so the chip row styles it "not in filter". Explicit `allowed_units`
+  will narrow sets far more aggressively than today's density gate — an
+  existing line's stored unit/measure must keep riding this admission path
+  (and its widget tests must keep passing), never render orphaned.
 - Category set for imprecise gating: start with `spice/seasoning/oil/
   condiment`; verify against the vocab's actual category values first.
 - Does any existing UI assume `Measure` amounts are grams for display?

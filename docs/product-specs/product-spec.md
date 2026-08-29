@@ -109,9 +109,13 @@ Single shared household dataset; both members full read/write; everything scoped
 - **Per-serving macro summation (step 7.7, pulled from step 9):** pure-Dart
   `summarizeRecipeMacros` sums line items × vocab macros honouring
   `macros_basis` (measure lines via grams); ANY stub / unbridgeable /
-  imprecise-only line renders the whole summary honestly `incomplete` — no
-  partial total ever shows as the recipe's macros. Feeds the picker rows;
-  the recipe-page macro panel remains step 9.
+  imprecise-only line — and a recipe with no lines at all — renders the
+  whole summary honestly `incomplete` — no partial total ever shows as the
+  recipe's macros, and an empty sum never shows as ~0 kcal. Feeds the
+  picker rows; the recipe-page macro panel remains step 9. *Reality check:*
+  with today's density coverage (7/291 vocab rows) most real recipes read
+  `incomplete`; the summation is done, the density data (7.8's
+  FDC-spoons→density work) is what turns it into visible numbers.
 
 ### Recipe book & sections
 `book: id · name` · `section: user-defined label` (NOT a fixed preset enum).
@@ -179,11 +183,18 @@ source-tab slot, footer slot):
   search only (ADR-0004; the step-7.4 normalizer + word-boundary matching).
 - **Quantity + unit chips** (replaces every unit dropdown): tapping a
   quantity opens a sheet — ingredient card (name + macro line), quantity
-  input, a chip row docked directly above the keyboard (precise units ·
-  measure chips with provenance dots · imprecise after a divider · a `+`
-  chip), and a live honest conversion line ("≈ 610 g · via density
-  1.02 g/ml" — shown only when the unit system can actually bridge). The `+`
-  chip opens the manage-measures state (list + add form, see above).
+  input, a live honest conversion line ("≈ 610 g · via density
+  1.02 g/ml" — shown only when the unit system can actually bridge), then
+  the chip row (precise units · measure chips with provenance dots ·
+  imprecise after a divider · a `+` chip) riding the keyboard at the
+  sheet's bottom — the stack above the keyboard reads chips → Done →
+  keyboard (Done sits between the chips and the keyboard; no native
+  accessory view). The `+` chip opens the manage-measures state (list +
+  add form, see above). The stored selection is always offered: an
+  off-filter value (a merge-hidden duplicate measure, a no-longer-allowed
+  unit) stays reachable, subtly marked "not in filter"; deleting the
+  selected measure in the manage state resets the choice to the default
+  unit with a visible note (never a silently tombstoned reference).
 - **Recipe picker** (planning): Recent · Books · Favorites tabs; day-tagged
   "already this week" quick picks; rows carry filing, last-planned recency,
   shelf-life chips, and per-serving macros or the `incomplete` badge with

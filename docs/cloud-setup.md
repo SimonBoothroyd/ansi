@@ -97,7 +97,12 @@ households:
   a `where` to keep the template's fresh rows if it was reseeded first) —
   **and clears the run-once marker**
   (`update household set backfilled_at = null where not is_template`); the
-  backfill then re-clones on each household's next sign-in.
+  backfill then re-clones on each household's next sign-in. One honest
+  nuance: the clone leg still requires **zero live measures**, so a
+  household that keeps any live row (its own `manual` measures included) is
+  merely re-stamped without cloning — this rollout only works by wiping a
+  household's user-authored measures along with the seeded ones, which is
+  acceptable solely because dev data is throwaway.
 
 Note migration 0009 also touched the **sync streams** — redeploy
 `docker/powersync-cloud.streams.yaml` (step 3 below) so `ingredient_measure`

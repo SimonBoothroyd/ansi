@@ -175,11 +175,15 @@ affordance). So:
   volume units: chip row / manage list exclude, and the add form rejects,
   labels that merely name a volume unit — density owns volume conversion.
 - 2026-08-28 — **Keyboard-accessory call (the flagged spike):** a true iOS
-  `inputAccessoryView` fights Flutter's insets model, so the chip row is
-  docked **in-sheet directly above the viewInsets padding** — the same
-  spatial relationship as the frame (chips ride the keypad) with no
-  accessory plumbing. Verified on the sim via `make test-sim`; documented
-  in `quantity_unit_sheet.dart`'s library doc.
+  `inputAccessoryView` fights Flutter's insets model, so the sheet
+  bottom-pads itself by the viewInsets and the chip row rides the keyboard
+  **in-sheet** with no accessory plumbing. *(Wording trued up 2026-08-29:
+  the stack above the keyboard is chips → Done → keyboard — Done sits
+  between the chips and the keypad, so this is the frame's spirit, not its
+  literal chips-touch-keypad adjacency. Keeping Done at the bottom was the
+  deliberate call — a confirm above the selection row would read worse.)*
+  Verified on the sim via `make test-sim`; documented in
+  `quantity_unit_sheet.dart`'s library doc.
 - 2026-08-28 — **Built and verified.** Backend: migration 0011 (favorite,
   backfilled_at, index drop, macros_basis + clone legs), seed switched to a
   `WHERE NOT EXISTS` guard (idempotency re-proven, 183 rows stable), 67
@@ -190,6 +194,25 @@ affordance). So:
   unit-chip sheet replacing every unit dropdown; recipe picker v2 + confirm
   & place v2. 311 host tests, analyze/custom_lint clean, `make test-sim`
   green on the booted sim, `supabase test db` green on the dirty result.
+
+- 2026-08-29 — **Post-ship review fixes (Opus review of 7.7).** Blockers:
+  an EMPTY line set summed to a "complete" zero total, so line-less recipes
+  fabricated "~0 kcal /serving" picker rows — now honestly `incomplete`
+  with a distinct `noLines` reason ("no ingredients yet"), the defending
+  test flipped and a repo-level twin added. The chip row had dropped the
+  retired dropdowns' "stored selection is always offered" rule — restored
+  centrally in `allowedUnitChoicesFor` (off-filter admission, flagged
+  "not in filter"). Deleting the selected measure left it selected and Done
+  wrote a tombstoned `measure_id` — deletion now reconciles the choice to
+  the default unit with a visible note (call: reset-with-note over
+  keep-with-flag; the admission path covers merely-hidden duplicates). Two
+  raw `＋` (U+FF0B) glyphs violated the glyph rule (see the acceptance-box
+  honesty note). Minors: repo-level `addMeasure` validation, plural-robust
+  volume-label guard, `incompleteNote` fallback reasons, mounted guard in
+  the manage save, tombstone-aware recents, offered-only measure counts,
+  Recent-tab order aligned with the recency rows display, future
+  last-planned dates ("in 3w"), normalized picker search, density citation
+  formatting, parsed-instant merge tie-break, `macros_basis` pgTAP.
 
 ## Notes / open questions
 
