@@ -603,9 +603,7 @@ ShoppingList buildShoppingList({
                 // whichever measure happens to sort first.
                 usedMeasures: [
                   for (final id in {for (final e in measured) e.measure.id})
-                    measured
-                        .firstWhere((e) => e.measure.id == id)
-                        .measure,
+                    measured.firstWhere((e) => e.measure.id == id).measure,
                 ],
               ),
       ),
