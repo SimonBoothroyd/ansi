@@ -60,6 +60,17 @@ class _RecipeBody extends HookConsumerWidget {
     final servings = useState(recipe.servingsBase);
     final tab = useState(0);
     final title = recipe.title.isEmpty ? 'Untitled recipe' : recipe.title;
+    // The favorite flag lives on the list summary (the planner's Favorites
+    // tab reads the same row), not the aggregate — resolve it from there.
+    final favorite =
+        ref
+            .watch(recipeListProvider)
+            .asData
+            ?.value
+            .where((r) => r.id == recipe.id)
+            .firstOrNull
+            ?.favorite ??
+        false;
 
     return FScaffold(
       childPad: false,
@@ -76,6 +87,17 @@ class _RecipeBody extends HookConsumerWidget {
             menu: [
               FItemGroup(
                 children: [
+                  // The Favorites-tab marking affordance (7.7): a star
+                  // toggle, household-shared like the recipe itself.
+                  FItem(
+                    prefix: Icon(
+                      favorite ? FLucideIcons.starOff : FLucideIcons.star,
+                    ),
+                    title: Text(favorite ? 'Unfavorite' : 'Favorite'),
+                    onPress: () => ref
+                        .read(recipeRepositoryProvider)
+                        .setFavorite(recipe.id, !favorite),
+                  ),
                   FItem(
                     prefix: const Icon(FLucideIcons.pencil),
                     title: const Text('Edit'),

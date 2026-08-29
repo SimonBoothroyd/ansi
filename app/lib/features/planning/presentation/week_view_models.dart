@@ -35,3 +35,9 @@ Future<List<Member>> members(Ref ref) =>
 Future<WeekPlan?> lastWeek(Ref ref) => ref
     .watch(planningRepositoryProvider)
     .mostRecentWeekBefore(ref.watch(currentWeekStartProvider));
+
+/// Most recent planned date per recipe, across every week — the picker
+/// rows' "last planned" recency (7.7).
+@riverpod
+Stream<Map<String, DateTime>> lastPlannedByRecipe(Ref ref) =>
+    ref.watch(planningRepositoryProvider).watchLastPlanned();

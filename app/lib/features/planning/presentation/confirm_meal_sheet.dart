@@ -1,10 +1,15 @@
 /// Step 3 of the add-a-meal flow: confirm the slot, who's eating, and how many
 /// portions, then place the meal on the week.
 ///
+/// v2 (step 7.7, design board "Confirm & place v2"): one combined
+/// "Day · Slot" dropdown (the day can still change here), the picked card
+/// carries the honest per-serving macro line, and the batch cue is the full
+/// prose ("Chicken Curry already cooks Monday and keeps 4 days — …") instead
+/// of a truncated one-liner.
+///
 /// Portions default to the eater count and can be bumped for big appetites
-/// (spec §8); a null override means "track |eaters|". A shelf-life "same batch"
-/// hint (step 5) surfaces when the meal would cook alongside one already on the
-/// week. The sheet does the write itself and pops.
+/// (spec §8); a null override means "track |eaters|". The sheet does the
+/// write itself and pops.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -17,8 +22,10 @@ import '../../../core/theme/mise_tokens.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../recipes/domain/recipe.dart';
+import '../../recipes/presentation/format.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
+import 'recipe_picker_sheet.dart' show IncompleteBadge, incompleteNote;
 import 'week_format.dart';
 import 'week_view_models.dart';
 import 'week_widgets.dart';
@@ -60,6 +67,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final dayState = useState(dayOfWeek);
     final slotState = useState(slot);
     final eaters = useState<Set<String>>({});
     // Null = track the eater count; a number is an explicit override (spec §8).
@@ -67,7 +75,8 @@ class _ConfirmMealSheet extends HookConsumerWidget {
 
     final members = ref.watch(membersProvider);
 
-    // Days this recipe is already planned this week → the "same batch" hint.
+    // Days this recipe is already planned this week → the batch cue, live
+    // against the currently selected day.
     final plannedDays = ref
         .watch(currentWeekProvider)
         .asData
@@ -78,7 +87,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
         .toList();
     final hint = batchHintFor(
       plannedDays: plannedDays ?? const [],
-      newDay: dayOfWeek,
+      newDay: dayState.value,
       keepsForDays: recipe.keepsForDays,
       freezable: recipe.freezable,
       freezerDays: recipe.freezerDays,
@@ -100,7 +109,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           .read(planningRepositoryProvider)
           .addEntry(
             weekStart: weekStart,
-            dayOfWeek: dayOfWeek,
+            dayOfWeek: dayState.value,
             mealSlot: slotState.value,
             recipeId: recipe.id,
             eaterIds: eaters.value.toList(),
@@ -131,14 +140,22 @@ class _ConfirmMealSheet extends HookConsumerWidget {
             _RecipeCard(recipe: recipe),
             if (hint != null) ...[
               const SizedBox(height: 10),
-              _BatchHintBanner(hint: hint),
+              _BatchProseBanner(
+                hint: hint,
+                recipe: recipe,
+                newDay: dayState.value,
+              ),
             ],
             const SizedBox(height: 18),
             const _Label('Slot'),
             const SizedBox(height: 6),
-            _SlotPicker(
-              value: slotState.value,
-              onChanged: (s) => slotState.value = s,
+            _DaySlotPicker(
+              day: dayState.value,
+              slot: slotState.value,
+              onChanged: (day, s) {
+                dayState.value = day;
+                slotState.value = s;
+              },
             ),
             const SizedBox(height: 18),
             const _Label("Who's eating"),
@@ -167,7 +184,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
             const SizedBox(height: 20),
             FButton(
               onPress: add,
-              child: Text('Add to ${kWeekdayFull[dayOfWeek]}'),
+              child: Text('Add to ${kWeekdayFull[dayState.value]}'),
             ),
           ],
         ),
@@ -200,6 +217,8 @@ class _RecipeCard extends StatelessWidget {
       if (keeps != null) 'keeps $keeps d',
       if (recipe.freezable) 'freezable',
     ].join(' · ');
+    final summary = recipe.macros;
+    final perServing = summary?.perServing;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -239,6 +258,43 @@ class _RecipeCard extends StatelessWidget {
                       style: miseMono(size: 10, color: MiseColors.muted),
                     ),
                   ),
+                // The honest per-serving line (v2): real numbers or the
+                // incomplete badge — never zeros (invariant 3).
+                if (perServing != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text.rich(
+                      TextSpan(
+                        text:
+                            'serves ${formatQuantity(recipe.servingsBase)} · '
+                            '~${perServing.kcal.round()} kcal · '
+                            '${perServing.protein.round()}P',
+                        style: miseMono(size: 10, color: MiseColors.herbDeep),
+                        children: [
+                          TextSpan(
+                            text: ' /serving',
+                            style: miseMono(
+                              size: 10,
+                              color: MiseColors.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else if (summary != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Row(
+                      children: [
+                        const IncompleteBadge(),
+                        Text(
+                          ' ${incompleteNote(summary)}',
+                          style: miseMono(size: 10, color: MiseColors.muted),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -248,19 +304,39 @@ class _RecipeCard extends StatelessWidget {
   }
 }
 
-/// The batch-awareness cue: this meal will cook alongside one already on the
-/// week (or be frozen to reach it), so it won't be a separate cook.
-class _BatchHintBanner extends StatelessWidget {
-  const _BatchHintBanner({required this.hint});
+/// The batch-awareness cue, in full prose (v2 — the app used to truncate
+/// this to a one-liner): names the dish, the day it already cooks, the
+/// shelf-life window that makes it one batch, and the freezer hop when
+/// that's how the meal is reached.
+class _BatchProseBanner extends StatelessWidget {
+  const _BatchProseBanner({
+    required this.hint,
+    required this.recipe,
+    required this.newDay,
+  });
 
   final BatchHint hint;
+  final RecipeSummary recipe;
+  final int newDay;
 
   @override
   Widget build(BuildContext context) {
+    final title = recipe.title.isEmpty ? 'This dish' : recipe.title;
     final day = kWeekdayFull[hint.withDay];
+    final target = kWeekdayFull[newDay];
+    final keeps = recipe.keepsForDays;
     final text = hint.frozen
-        ? 'Cooks in $day’s batch — a share is frozen to reach this meal.'
-        : 'Cooks in the same batch as $day — one cook covers both.';
+        ? '$title already cooks $day; $target is past the fridge window'
+              '${keeps != null ? ' ($keeps days)' : ''}, but it freezes — '
+              'a share goes to the freezer, so it still joins $day’s batch '
+              'instead of a second cook.'
+        : hint.withDay == newDay
+        ? '$title already cooks $target — this meal joins that batch '
+              'instead of a second cook.'
+        : '$title already cooks $day'
+              '${keeps != null ? ' and keeps $keeps days' : ''} — $target is '
+              'inside that window, so this joins $day’s batch instead of a '
+              'second cook.';
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       decoration: BoxDecoration(
@@ -292,26 +368,52 @@ class _BatchHintBanner extends StatelessWidget {
   }
 }
 
-class _SlotPicker extends StatelessWidget {
-  const _SlotPicker({required this.value, required this.onChanged});
+/// The combined "Day · Slot" dropdown (v2): one control carrying the pair,
+/// so a meal can still land on a different day from the confirm sheet. A
+/// non-default slot (a custom "Brunch") joins the menu for every day; the
+/// trailing + prompts a new custom slot, keeping the selected day.
+class _DaySlotPicker extends StatelessWidget {
+  const _DaySlotPicker({
+    required this.day,
+    required this.slot,
+    required this.onChanged,
+  });
 
-  final String value;
-  final ValueChanged<String> onChanged;
+  final int day;
+  final String slot;
+  final void Function(int day, String slot) onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final known = kDefaultMealSlots.contains(value);
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    final slots = [
+      ...kDefaultMealSlots,
+      if (!kDefaultMealSlots.contains(slot)) slot,
+    ];
+    return Row(
       children: [
-        for (final s in kDefaultMealSlots)
-          Pill(label: s, selected: s == value, onTap: () => onChanged(s)),
-        if (!known) Pill(label: value, selected: true, onTap: () {}),
-        Pill(
-          icon: FLucideIcons.plus,
-          selected: false,
-          onTap: () async {
+        Expanded(
+          child: FSelect<(int, String)>.rich(
+            format: (v) => '${kWeekdayFull[v.$1]} · ${v.$2}',
+            control: FSelectControl<(int, String)>.lifted(
+              value: (day, slot),
+              onChange: (v) {
+                if (v != null) onChanged(v.$1, v.$2);
+              },
+            ),
+            children: [
+              for (var d = 0; d < 7; d++)
+                for (final s in slots)
+                  FSelectItem(
+                    title: Text('${kWeekdayFull[d]} · $s'),
+                    value: (d, s),
+                  ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        FButton.icon(
+          variant: FButtonVariant.secondary,
+          onPress: () async {
             final custom = await promptForText(
               context,
               title: 'Custom meal',
@@ -319,9 +421,10 @@ class _SlotPicker extends StatelessWidget {
               confirm: 'Use',
             );
             if (custom != null && custom.trim().isNotEmpty) {
-              onChanged(custom.trim());
+              onChanged(day, custom.trim());
             }
           },
+          child: const Icon(FLucideIcons.plus),
         ),
       ],
     );

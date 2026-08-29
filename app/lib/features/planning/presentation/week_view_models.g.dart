@@ -182,3 +182,53 @@ final class LastWeekProvider
 }
 
 String _$lastWeekHash() => r'0200b9013085db4bb45918d92a6d02b909e0b6d3';
+
+/// Most recent planned date per recipe, across every week — the picker
+/// rows' "last planned" recency (7.7).
+
+@ProviderFor(lastPlannedByRecipe)
+const lastPlannedByRecipeProvider = LastPlannedByRecipeProvider._();
+
+/// Most recent planned date per recipe, across every week — the picker
+/// rows' "last planned" recency (7.7).
+
+final class LastPlannedByRecipeProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, DateTime>>,
+          Map<String, DateTime>,
+          Stream<Map<String, DateTime>>
+        >
+    with
+        $FutureModifier<Map<String, DateTime>>,
+        $StreamProvider<Map<String, DateTime>> {
+  /// Most recent planned date per recipe, across every week — the picker
+  /// rows' "last planned" recency (7.7).
+  const LastPlannedByRecipeProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'lastPlannedByRecipeProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$lastPlannedByRecipeHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<String, DateTime>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<String, DateTime>> create(Ref ref) {
+    return lastPlannedByRecipe(ref);
+  }
+}
+
+String _$lastPlannedByRecipeHash() =>
+    r'4e7109b55cb289637548d7dd0a8b5a6682669edc';
