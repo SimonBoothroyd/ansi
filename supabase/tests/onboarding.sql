@@ -196,9 +196,16 @@ select is(
 -- measures — the next ensure_onboarded() call must clone the template's
 -- measures in; a household that HAS measures must be left untouched.
 -- ---------------------------------------------------------------------------
--- Simulate the pre-0009 state: strip A's household of every measure row.
-delete from ingredient_measure
-where household_id = current_setting('test.hh_a')::uuid;
+-- Simulate the pre-0009 state: strip A's household of every LIVE measure.
+-- Soft-delete, not DELETE: on a dev machine with `make test-sim` residue,
+-- "A's household" is the real dev household (line 19 freed its seats) and a
+-- hard delete trips recipe_line_item's measure_id FK. Soft-delete matches
+-- the app's no-DELETE contract, satisfies the backfill's zero-LIVE gate,
+-- and stays clear of the partial (live-only) unique index.
+update ingredient_measure
+set deleted_at = now(), updated_at = now()
+where household_id = current_setting('test.hh_a')::uuid
+  and deleted_at is null;
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"a1111111-1111-1111-1111-111111111111","role":"authenticated","email":"ada@x.com"}';
