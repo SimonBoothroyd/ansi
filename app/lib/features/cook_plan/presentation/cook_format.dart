@@ -31,13 +31,20 @@ String formatPortionsAmount(double count) {
 }
 
 /// The whole-batch nudge line for a fractional session (step 7.6):
-/// "cook ×1 instead — covers 4 portions · 1 portion left over". The honest
-/// raw factor stays on the tile; this is advice beside it, never a
-/// replacement (invariant 3).
-String wholeBatchNudgeLine(WholeBatchNudge nudge) =>
+/// "cook ×1 instead — covers 4 portions · 1 portion left over · shopping
+/// still buys ×0.75". The honest raw factor stays on the tile; this is
+/// advice beside it, never a replacement (invariant 3) — and the closing
+/// clause is honest about the accepted gap (tech-debt tracker): the shopping
+/// list keeps scaling by [rawFactor], so a cook following the advice tops up
+/// by eye until the nudge is persisted and the list can read it.
+String wholeBatchNudgeLine(
+  WholeBatchNudge nudge, {
+  required double rawFactor,
+}) =>
     'cook ×${nudge.factor} instead — covers '
     '${formatPortionsAmount(nudge.batchPortions)} · '
-    '${formatPortionsAmount(nudge.leftoverPortions)} left over';
+    '${formatPortionsAmount(nudge.leftoverPortions)} left over · '
+    'shopping still buys ${formatScale(rawFactor)}';
 
 /// The recipe card's summary line: total portions across the week plus its
 /// shelf-life descriptors (e.g. "4 portions across the week · keeps 4 d").

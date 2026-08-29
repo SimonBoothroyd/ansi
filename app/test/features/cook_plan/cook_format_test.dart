@@ -172,17 +172,23 @@ void main() {
 
   group('wholeBatchNudgeLine', () {
     test('spells out the whole-batch advice with honest leftovers', () {
+      // The closing clause is honest about the accepted gap (tracker row):
+      // the shopping list keeps scaling by the raw factor, nudge or not.
       expect(
-        wholeBatchNudgeLine((factor: 1, batchPortions: 4, leftoverPortions: 1)),
-        'cook ×1 instead — covers 4 portions · 1 portion left over',
+        wholeBatchNudgeLine(
+          (factor: 1, batchPortions: 4, leftoverPortions: 1),
+          rawFactor: 0.75,
+        ),
+        'cook ×1 instead — covers 4 portions · 1 portion left over · '
+        'shopping still buys ×0.75',
       );
       expect(
-        wholeBatchNudgeLine((
-          factor: 2,
-          batchPortions: 5.0,
-          leftoverPortions: 0.5,
-        )),
-        'cook ×2 instead — covers 5 portions · 0.5 portions left over',
+        wholeBatchNudgeLine(
+          (factor: 2, batchPortions: 5.0, leftoverPortions: 0.5),
+          rawFactor: 1.25,
+        ),
+        'cook ×2 instead — covers 5 portions · 0.5 portions left over · '
+        'shopping still buys ×1.25',
       );
     });
   });

@@ -198,7 +198,10 @@ class _SessionTile extends ConsumerWidget {
                       showWhole
                           ? 'showing the whole batch — tap for the honest '
                                 '${formatScale(session.scaleFactor)}'
-                          : wholeBatchNudgeLine(nudge),
+                          : wholeBatchNudgeLine(
+                              nudge,
+                              rawFactor: session.scaleFactor,
+                            ),
                       style: miseMono(size: 10.5, color: MiseColors.herbDeep),
                     ),
                   ),
