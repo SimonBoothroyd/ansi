@@ -71,10 +71,15 @@ two seeds as well so the cloud vocab carries macros — without them every cloud
 ingredient is an honest-but-empty stub (this bit us: cloud showed no macros):
 
 ```bash
-supabase db query --linked -f supabase/seed_usda.sql     # 8262-food reference
+supabase db query --linked -f supabase/seed_usda.sql     # 8204-food reference (Foundation 2025-04-24 + SR Legacy)
 supabase db query --linked -f supabase/seed_prefill.sql  # macros/density onto vocab
-supabase db query --linked -f supabase/seed_measures.sql # starter measures (0009/0010, step 7.6)
+supabase db query --linked -f supabase/seed_measures.sql # starter measures (basis_amount since 0012)
+supabase db query --linked -f supabase/seed_curation.sql # allowed_units refresh + curation overrides (0012/7.8)
 ```
+
+`seed_curation.sql` must run LAST: it re-materializes the template's
+`allowed_units` with the densities prefill just landed, then applies the
+audited curation overrides (`supabase/seed/curation_overrides.jsonl`).
 
 `seed_measures.sql` (GENERATED — see `supabase/seed/README.md`) adds the
 starter measures ("1 potato, medium = 213 g", USDA-FDC-sourced with per-row
@@ -106,8 +111,9 @@ households:
 
 Note migration 0009 also touched the **sync streams** — redeploy
 `docker/powersync-cloud.streams.yaml` (step 3 below) so `ingredient_measure`
-actually reaches devices (its rules are `SELECT *`, so 0010's `source` column
-rides along without a further stream change).
+actually reaches devices (its rules are `SELECT *`, so 0010's `source`,
+and 0012's `basis_amount`/`allowed_units`, ride along without a further
+stream change).
 
 `supabase db query --linked "<sql>"` also runs read/verify queries. Destructive
 statements (`truncate`, `delete`) against cloud are intentionally blocked by the

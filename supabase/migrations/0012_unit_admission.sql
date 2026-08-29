@@ -84,8 +84,9 @@ comment on column ingredient.allowed_units is
   'other family demoted, imprecise last). Null only transiently (legacy '
   'rows pre-backfill); the client falls back to deriving the same defaults.';
 
--- The SQL mirror of the app's ADR-0008 derived defaults. IMMUTABLE: pure
--- function of its arguments.
+-- The SQL mirror of the app's ADR-0008 derived defaults. A pure function of
+-- its arguments; declared STABLE (not IMMUTABLE) because `to_jsonb` is
+-- itself stable, and `supabase db lint` rightly flags the mismatch.
 create or replace function default_allowed_units(
   p_default_unit text,
   p_macros_basis text,
@@ -93,7 +94,7 @@ create or replace function default_allowed_units(
   p_category text
 ) returns jsonb
 language plpgsql
-immutable
+stable
 as $$
 declare
   -- Kitchen-magnitude mates per default unit (the ADR trim). Mirrors
