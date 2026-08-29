@@ -40,6 +40,12 @@ const _salad = RecipeSummary(
   servingsBase: 2,
   macros: RecipeMacroSummary(stubLines: 1),
 );
+const _bare = RecipeSummary(
+  id: 'r3',
+  title: 'Bare Idea',
+  servingsBase: 4,
+  macros: RecipeMacroSummary(noLines: true),
+);
 
 class _FakeRecipeRepo implements RecipeRepository {
   _FakeRecipeRepo([this.recipes = const [_curry, _salad]]);
@@ -171,6 +177,35 @@ void main() {
     // The eating footer names the household.
     expect(find.textContaining('Eating: '), findsOneWidget);
     expect(find.textContaining('Ada & Jun'), findsOneWidget);
+  });
+
+  testWidgets('a line-less recipe reads "no ingredients yet", never ~0 kcal', (
+    tester,
+  ) async {
+    await _open(tester, recipes: const [_bare]);
+
+    expect(find.text('incomplete'), findsOneWidget);
+    expect(find.textContaining('no ingredients yet'), findsOneWidget);
+    expect(find.textContaining('kcal'), findsNothing);
+  });
+
+  test('incompleteNote never returns an empty string', () {
+    // Every incomplete cause carries a reason — a reasonless badge would
+    // leave a dangling separator on the row.
+    expect(
+      incompleteNote(const RecipeMacroSummary(noLines: true)),
+      'no ingredients yet',
+    );
+    expect(
+      // Servings ≤ 0 with zero stub/unconvertible lines (the DB check makes
+      // this near-unreachable, but the note must stay total).
+      incompleteNote(const RecipeMacroSummary()),
+      'servings not set',
+    );
+    expect(
+      incompleteNote(const RecipeMacroSummary(stubLines: 2)),
+      '2 stub lines',
+    );
   });
 
   testWidgets('the Favorites tab shows only starred recipes', (tester) async {

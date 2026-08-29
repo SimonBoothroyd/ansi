@@ -266,6 +266,31 @@ void main() {
     expect(summary.perServing!.protein, closeTo(2.025, 1e-9));
   });
 
+  test('a recipe saved with no lines can never render ~0 kcal', () async {
+    // The picker-row bug this pins: an EMPTY line set once summed to a
+    // "complete" zero total, so a just-created recipe fabricated
+    // "~0 kcal · 0P /serving" end-to-end. Empty means incomplete (noLines).
+    await repo.saveRecipe(
+      const Recipe(id: 'r-bare', title: 'Bare', servingsBase: 4),
+    );
+    await repo.saveRecipe(
+      const Recipe(
+        id: 'r-empty-group',
+        title: 'Empty group',
+        servingsBase: 4,
+        groups: [IngredientGroup(id: 'ge1')],
+      ),
+    );
+
+    final list = await repo.watchRecipes().first;
+    for (final id in ['r-bare', 'r-empty-group']) {
+      final summary = list.firstWhere((r) => r.id == id).macros!;
+      expect(summary.incomplete, isTrue, reason: id);
+      expect(summary.perServing, isNull, reason: id);
+      expect(summary.noLines, isTrue, reason: id);
+    }
+  });
+
   test('the list re-fires when vocab macros change under it', () async {
     await repo.saveRecipe(_sampleRecipe());
     final emissions = repo.watchRecipes().take(2).toList();

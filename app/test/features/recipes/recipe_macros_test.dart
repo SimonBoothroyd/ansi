@@ -232,14 +232,30 @@ void main() {
       }
     });
 
-    test('an empty recipe is complete at zero macros', () {
+    test('an empty recipe is honestly incomplete — never ~0 kcal', () {
+      // Nothing was summed, so a per-serving figure would be fabricated from
+      // absence (invariant 3). The reason is distinct from any per-line
+      // failure so the UI can say "no ingredients yet".
       final summary = summarizeRecipeMacros(
         servingsBase: 2,
         lines: const [],
         nutritionOf: _vocab(),
       );
+      expect(summary.incomplete, isTrue);
+      expect(summary.perServing, isNull);
+      expect(summary.noLines, isTrue);
+      expect(summary.stubLines, 0);
+      expect(summary.unconvertibleLines, 0);
+    });
+
+    test('a recipe with lines never reads as line-less', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 2,
+        lines: [_line('x', quantity: 100)],
+        nutritionOf: _vocab(),
+      );
+      expect(summary.noLines, isFalse);
       expect(summary.incomplete, isFalse);
-      expect(summary.perServing!.kcal, 0);
     });
   });
 }

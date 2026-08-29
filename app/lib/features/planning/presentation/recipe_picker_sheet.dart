@@ -600,9 +600,11 @@ class _MacroLine extends StatelessWidget {
   }
 }
 
-/// Why a summary is incomplete, for the row note: `1 stub line`,
-/// `2 stub lines · 1 unconvertible`.
+/// Why a summary is incomplete, for the row note: `no ingredients yet`,
+/// `1 stub line`, `2 stub lines · 1 unconvertible` — never an empty string
+/// (a reasonless badge would leave a dangling separator).
 String incompleteNote(RecipeMacroSummary summary) {
+  if (summary.noLines) return 'no ingredients yet';
   final stubs = summary.stubLines;
   final parts = [
     if (stubs == 1) '1 stub line',
@@ -610,7 +612,9 @@ String incompleteNote(RecipeMacroSummary summary) {
     if (summary.unconvertibleLines > 0)
       '${summary.unconvertibleLines} unconvertible',
   ];
-  return parts.join(' · ');
+  // Every line joined and there are lines — the only remaining cause is a
+  // non-positive serving count (the DB check makes this near-unreachable).
+  return parts.isEmpty ? 'servings not set' : parts.join(' · ');
 }
 
 /// The amber `incomplete` badge (design board `.badge-inc`).

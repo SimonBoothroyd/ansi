@@ -13,7 +13,10 @@
 /// - anything else — a stub ingredient, a count line without a measure, an
 ///   imprecise-only line, a numberless line, a missing density — makes the
 ///   whole summary honestly **incomplete**: no partial total is ever shown
-///   as if it were the recipe's macros (invariant 3, never zeros).
+///   as if it were the recipe's macros (invariant 3, never zeros);
+/// - a recipe with **no lines at all** is likewise incomplete
+///   ([RecipeMacroSummary.noLines]): an empty sum is an absence, not a
+///   ~0 kcal recipe.
 library;
 
 import 'package:meta/meta.dart';
@@ -34,22 +37,30 @@ typedef IngredientNutrition = ({
 
 /// The honest per-serving summary of a recipe's macros.
 ///
-/// [perServing] is set only when EVERY line joined the total (and the
-/// serving count is positive); otherwise the summary is [incomplete] and
-/// carries why — [stubLines] lines of stub/unknown ingredients, and
-/// [unconvertibleLines] lines the unit system cannot bridge (count without a
-/// measure, imprecise-only, cross-basis without density, no quantity).
+/// [perServing] is set only when EVERY line joined the total (and there is at
+/// least one line, and the serving count is positive); otherwise the summary
+/// is [incomplete] and carries why — [noLines] for a recipe with no line
+/// items at all (nothing was summed, so "~0 kcal" would be fabricated, not
+/// computed — invariant 3), [stubLines] lines of stub/unknown ingredients,
+/// and [unconvertibleLines] lines the unit system cannot bridge (count
+/// without a measure, imprecise-only, cross-basis without density, no
+/// quantity).
 @immutable
 class RecipeMacroSummary {
   const RecipeMacroSummary({
     this.perServing,
     this.stubLines = 0,
     this.unconvertibleLines = 0,
+    this.noLines = false,
   });
 
   final Macros? perServing;
   final int stubLines;
   final int unconvertibleLines;
+
+  /// The recipe has no line items yet — incomplete by absence, not by any
+  /// per-line failure.
+  final bool noLines;
 
   bool get incomplete => perServing == null;
 
@@ -58,15 +69,18 @@ class RecipeMacroSummary {
       other is RecipeMacroSummary &&
       other.perServing == perServing &&
       other.stubLines == stubLines &&
-      other.unconvertibleLines == unconvertibleLines;
+      other.unconvertibleLines == unconvertibleLines &&
+      other.noLines == noLines;
 
   @override
-  int get hashCode => Object.hash(perServing, stubLines, unconvertibleLines);
+  int get hashCode =>
+      Object.hash(perServing, stubLines, unconvertibleLines, noLines);
 
   @override
   String toString() => incomplete
-      ? 'RecipeMacroSummary(incomplete: $stubLines stub, '
-            '$unconvertibleLines unconvertible)'
+      ? 'RecipeMacroSummary(incomplete: '
+            '${noLines ? 'no lines' : '$stubLines stub, '
+                      '$unconvertibleLines unconvertible'})'
       : 'RecipeMacroSummary($perServing /serving)';
 }
 
@@ -86,8 +100,10 @@ RecipeMacroSummary summarizeRecipeMacros({
   var total = const Macros(kcal: 0, protein: 0, carb: 0, fat: 0);
   var stubs = 0;
   var unconvertible = 0;
+  var lineCount = 0;
 
   for (final line in lines) {
+    lineCount++;
     final nutrition = nutritionOf(line.ingredientId);
     final macros = nutrition?.macros;
     if (nutrition == null || macros == null) {
@@ -102,11 +118,16 @@ RecipeMacroSummary summarizeRecipeMacros({
     total += macros.scaledBy(per100 / 100);
   }
 
-  final incomplete = stubs > 0 || unconvertible > 0 || !(servingsBase > 0);
+  // No lines summed nothing: rendering that as "~0 kcal /serving" would
+  // present an absence as a computed number (invariant 3, never zeros).
+  final noLines = lineCount == 0;
+  final incomplete =
+      noLines || stubs > 0 || unconvertible > 0 || !(servingsBase > 0);
   return RecipeMacroSummary(
     perServing: incomplete ? null : total.scaledBy(1 / servingsBase),
     stubLines: stubs,
     unconvertibleLines: unconvertible,
+    noLines: noLines,
   );
 }
 
