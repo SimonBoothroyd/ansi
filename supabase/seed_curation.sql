@@ -313,6 +313,14 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'gr
 update ingredient set density_g_per_ml = 0.72
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'navy bean canned';
 
+-- vegetable broth: round-2 audit: FDC 171583's 221 g cup (0.934) is the same low-cup quirk fixed for almond milk — a clear broth is water-like
+update ingredient set density_g_per_ml = 1
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegetable broth';
+
+-- crispy shallot: round-2 audit: tbsp default needs the bridge (R1) — a spoonful of fried shallot bits is ~5 g (label typical)
+update ingredient set density_g_per_ml = 0.34
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'crispy shallot';
+
 -- Re-materialize allowed_units with post-prefill (and post-override)
 -- densities: the insert trigger ran before seed_prefill landed them,
 -- so density-unlocked families are missing until this refresh.
@@ -897,7 +905,7 @@ begin
       'seed_curation R1: volume-default rows with no density: %',
       violators;
   end if;
-  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 57 density + 54 allowed-unit overrides; R1 (volume default => density) holds';
+  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 59 density + 54 allowed-unit overrides; R1 (volume default => density) holds';
 end $$;
 
 commit;
