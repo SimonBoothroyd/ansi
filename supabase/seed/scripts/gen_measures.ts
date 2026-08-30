@@ -76,6 +76,20 @@ const BORROWS: { matchText: string; fdcId: string; why: string }[] = [
   { matchText: "great northern bean canned", fdcId: "174286", why: "15 oz bean can" },
   { matchText: "navy bean canned", fdcId: "174286", why: "15 oz bean can" },
   { matchText: "black eyed pea canned", fdcId: "174286", why: "15 oz bean can" },
+  // The vocab's apple varieties link Foundation foods (fresher macros) that
+  // carry NO piece portions; SR Legacy has the SAME varieties with USDA's
+  // measured size classes — borrow each variety's own SR sibling.
+  { matchText: "gala apple", fdcId: "168204", why: "SR gala size classes" },
+  {
+    matchText: "granny smith apple",
+    fdcId: "168203",
+    why: "SR granny smith size classes",
+  },
+  {
+    matchText: "red delicious apple",
+    fdcId: "168201",
+    why: "SR red delicious size classes",
+  },
 ];
 
 // --- Curated survivors: FDC has nothing usable, the item matters -------------

@@ -123,3 +123,75 @@
 {"kind": "macros", "match_text": "farro", "macros": {"kcal": 319, "protein": 10.6, "fat": 2.1, "carb": 68.1, "fiber": 8.5}, "source": "label:Bob's Red Mill organic farro", "reason": "no FDC farro (emmer); label per 47 g serving, scaled to 100 g"}
 {"kind": "macros", "match_text": "vegan mayonnaise", "macros": {"kcal": 643, "protein": 0, "fat": 71.4, "carb": 7.1}, "source": "label:Hellmann's vegan mayo", "reason": "no FDC vegan mayo (imitation soybean mayo is a low-fat product, not this); label per 14 g serving, scaled to 100 g"}
 {"kind": "macros", "match_text": "sprouted multigrain bread", "macros": {"kcal": 235, "protein": 11.8, "fat": 1.5, "carb": 44.1, "fiber": 8.8}, "source": "label:Food for Life Ezekiel 4:9", "reason": "FDC 171850 prints fat 0 for a whole-grain seeded bread — impossible; the category-defining sprouted loaf's label (per 34 g slice) scaled to 100 g"}
+//
+// --- measures: audit round 1 (2026-08-29) — every bare container gets its ---
+// --- size, fragments/dupes a human finds senseless go, count-natural rows --
+// --- gain their unit (R2: measures are first-class chips) ------------------
+{"kind": "drop_measure", "match_text": "tomato canned whole", "label": "can", "reason": "FDC 170051's 190 g 'can' matches no retail can (a 14.5 oz can is 411 g); replaced by sized cans below"}
+{"kind": "add_measure", "match_text": "tomato canned whole", "label": "can (14.5 oz)", "basis_amount": 411, "sort_order": 0, "source": "seed:typical", "reason": "the standard US retail can, labeled with its size"}
+{"kind": "add_measure", "match_text": "tomato canned whole", "label": "can (28 oz)", "basis_amount": 794, "sort_order": 1, "source": "seed:typical", "reason": "the large retail can whole tomatoes commonly ship in"}
+{"kind": "drop_measure", "match_text": "tomato puree canned", "label": "can", "reason": "a bare 'can' at 822 g hides that it is the big 29 oz can; relabeled with its size"}
+{"kind": "add_measure", "match_text": "tomato puree canned", "label": "can (29 oz)", "basis_amount": 822, "sort_order": 0, "source": "usda_fdc:170460 (1 can (29 oz) (401 x 411)) — relabeled", "reason": "same FDC portion, size surfaced in the label"}
+{"kind": "add_measure", "match_text": "tomato puree canned", "label": "can (15 oz)", "basis_amount": 425, "sort_order": 1, "source": "seed:typical", "reason": "the small retail puree can"}
+{"kind": "drop_measure", "match_text": "tomato paste", "label": "can", "reason": "bare 'can' hides the size; relabeled"}
+{"kind": "add_measure", "match_text": "tomato paste", "label": "can (6 oz)", "basis_amount": 170, "sort_order": 0, "source": "usda_fdc:170459 (1 can (6 oz)) — relabeled", "reason": "same FDC portion, size surfaced in the label"}
+{"kind": "add_measure", "match_text": "tomato canned", "label": "can (14.5 oz)", "basis_amount": 411, "sort_order": 0, "source": "seed:typical", "reason": "crushed tomatoes had no can measure; the standard retail can"}
+{"kind": "add_measure", "match_text": "tomato canned", "label": "can (28 oz)", "basis_amount": 794, "sort_order": 1, "source": "seed:typical", "reason": "the large crushed-tomato can"}
+{"kind": "add_measure", "match_text": "tomato sauce canned", "label": "can (15 oz)", "basis_amount": 425, "sort_order": 0, "source": "seed:typical", "reason": "tomato sauce's standard can is 15 oz, not the audit's 14.5 (recorded disagreement)"}
+{"kind": "add_measure", "match_text": "tomato sauce canned", "label": "can (8 oz)", "basis_amount": 227, "sort_order": 1, "source": "seed:typical", "reason": "the small sauce can"}
+{"kind": "add_measure", "match_text": "fire tomato canned roasted", "label": "can (14.5 oz)", "basis_amount": 411, "sort_order": 0, "source": "seed:typical", "reason": "the standard fire-roasted diced can"}
+{"kind": "add_measure", "match_text": "fire tomato canned roasted", "label": "can (28 oz)", "basis_amount": 794, "sort_order": 1, "source": "seed:typical", "reason": "the large can the source recipe itself uses"}
+{"kind": "drop_measure", "match_text": "chickpea canned", "label": "can, drained", "reason": "bare 'can' hides the size; relabeled"}
+{"kind": "add_measure", "match_text": "chickpea canned", "label": "can (15 oz), drained", "basis_amount": 253, "sort_order": 0, "source": "usda_fdc:173800 (1 can drained) — relabeled", "reason": "same FDC drained-solids weight, retail can size surfaced"}
+{"kind": "drop_measure", "match_text": "dark red kidney bean canned", "label": "can, drained", "reason": "bare 'can' hides the size; relabeled"}
+{"kind": "add_measure", "match_text": "dark red kidney bean canned", "label": "can (15 oz), drained", "basis_amount": 266, "sort_order": 0, "source": "usda_fdc:174285 (1 can drained solids) — relabeled", "reason": "same FDC drained-solids weight, retail can size surfaced"}
+{"kind": "drop_measure", "match_text": "light red kidney bean canned", "label": "can, drained", "reason": "bare 'can' hides the size; relabeled"}
+{"kind": "add_measure", "match_text": "light red kidney bean canned", "label": "can (15 oz), drained", "basis_amount": 266, "sort_order": 0, "source": "usda_fdc:174285 (1 can drained solids) — relabeled", "reason": "same FDC drained-solids weight, retail can size surfaced"}
+{"kind": "drop_measure", "match_text": "pinto bean canned", "label": "can, drained", "reason": "bare 'can' hides the size; relabeled"}
+{"kind": "add_measure", "match_text": "pinto bean canned", "label": "can (15 oz), drained", "basis_amount": 277, "sort_order": 0, "source": "usda_fdc:174286 (1 can drained solids) — relabeled", "reason": "same FDC drained-solids weight, retail can size surfaced"}
+{"kind": "drop_measure", "match_text": "black bean canned", "label": "can, drained", "reason": "bare 'can' hides the size; relabeled"}
+{"kind": "add_measure", "match_text": "black bean canned", "label": "can (15 oz), drained", "basis_amount": 277, "sort_order": 0, "source": "usda_fdc:174286 (1 can drained solids) — borrowed, relabeled", "reason": "pinto's representative drained can, size surfaced"}
+{"kind": "drop_measure", "match_text": "black eyed pea canned", "label": "can, drained", "reason": "bare 'can' hides the size; relabeled"}
+{"kind": "add_measure", "match_text": "black eyed pea canned", "label": "can (15 oz), drained", "basis_amount": 277, "sort_order": 0, "source": "usda_fdc:174286 (1 can drained solids) — borrowed, relabeled", "reason": "pinto's representative drained can, size surfaced"}
+{"kind": "drop_measure", "match_text": "cannellini bean canned", "label": "can, drained", "reason": "bare 'can' hides the size; relabeled"}
+{"kind": "add_measure", "match_text": "cannellini bean canned", "label": "can (15 oz), drained", "basis_amount": 277, "sort_order": 0, "source": "usda_fdc:174286 (1 can drained solids) — borrowed, relabeled", "reason": "pinto's representative drained can, size surfaced"}
+{"kind": "drop_measure", "match_text": "great northern bean canned", "label": "can, drained", "reason": "bare 'can' hides the size; relabeled"}
+{"kind": "add_measure", "match_text": "great northern bean canned", "label": "can (15 oz), drained", "basis_amount": 277, "sort_order": 0, "source": "usda_fdc:174286 (1 can drained solids) — borrowed, relabeled", "reason": "pinto's representative drained can, size surfaced"}
+{"kind": "drop_measure", "match_text": "navy bean canned", "label": "can, drained", "reason": "bare 'can' hides the size; relabeled"}
+{"kind": "add_measure", "match_text": "navy bean canned", "label": "can (15 oz), drained", "basis_amount": 277, "sort_order": 0, "source": "usda_fdc:174286 (1 can drained solids) — borrowed, relabeled", "reason": "pinto's representative drained can, size surfaced"}
+{"kind": "add_measure", "match_text": "green bean canned", "label": "can (14.5 oz), drained", "basis_amount": 240, "sort_order": 0, "source": "seed:typical", "reason": "the standard green-bean can's drained weight — the row had no can measure"}
+{"kind": "add_measure", "match_text": "baked bean", "label": "can (16 oz)", "basis_amount": 454, "sort_order": 0, "source": "seed:typical", "reason": "baked beans are eaten undrained; the standard 16 oz can"}
+{"kind": "drop_measure", "match_text": "vegetable broth", "label": "can", "reason": "bare 'can' hides the size; relabeled"}
+{"kind": "add_measure", "match_text": "vegetable broth", "label": "can (14.5 oz)", "basis_amount": 390, "sort_order": 0, "source": "usda_fdc:171583 (1 can) — relabeled", "reason": "same FDC portion, size surfaced in the label"}
+{"kind": "drop_measure", "match_text": "vegetable broth", "label": "carton", "reason": "bare 'carton' hides the size; relabeled"}
+{"kind": "add_measure", "match_text": "vegetable broth", "label": "carton (32 oz)", "basis_amount": 926, "sort_order": 1, "source": "usda_fdc:171583 (1 carton (32 oz)) — relabeled", "reason": "same FDC portion, size surfaced in the label"}
+{"kind": "drop_measure", "match_text": "maitake mushroom", "label": "mushroom, whole", "reason": "FDC's 1.1 g 'piece whole' is a torn fragment, not a whole maitake — senseless as a count unit"}
+{"kind": "drop_measure", "match_text": "oyster mushroom", "label": "mushroom, large", "reason": "FDC's 148 g 'large' describes a giant cluster, not a mushroom anyone counts"}
+{"kind": "drop_measure", "match_text": "oyster mushroom", "label": "mushroom, small", "reason": "renamed to the plain unit below — with 'large' gone a size split is noise"}
+{"kind": "add_measure", "match_text": "oyster mushroom", "label": "mushroom", "basis_amount": 15, "sort_order": 0, "source": "usda_fdc:168580 (1 small) — relabeled", "reason": "a typical oyster mushroom is ~15 g; the FDC small row is the honest per-mushroom weight"}
+{"kind": "drop_measure", "match_text": "granulated sugar", "label": "packet", "reason": "coffee-service packets are not how a kitchen measures sugar"}
+{"kind": "drop_measure", "match_text": "granulated sugar", "label": "cube", "reason": "sugar cubes are not how a kitchen measures sugar"}
+{"kind": "drop_measure", "match_text": "tomato", "label": "italian tomato", "reason": "duplicate of 'plum tomato' (same 62 g FDC concept twice — italian and plum are the same thing)"}
+{"kind": "drop_measure", "match_text": "broccoli", "label": "stalk", "reason": "'stalk' reads as the stem but FDC's 151 g row is a whole small plant — ambiguous both ways; 'crown' below covers the retail unit"}
+{"kind": "add_measure", "match_text": "broccoli", "label": "crown", "basis_amount": 150, "sort_order": 2, "source": "seed:typical", "reason": "the retail crown (~150 g) is the unit recipes count"}
+{"kind": "drop_measure", "match_text": "orange juice", "label": "juice, whole", "reason": "generated label is unreadable ('1 juice, whole'); relabeled below as the juice of one orange"}
+{"kind": "add_measure", "match_text": "orange juice", "label": "orange, juiced", "basis_amount": 86, "sort_order": 0, "source": "usda_fdc:169098 (1 fruit yields) — relabeled", "reason": "the juice one orange yields — the way recipes phrase it"}
+{"kind": "add_measure", "match_text": "red onion", "label": "onion, medium", "basis_amount": 110, "sort_order": 1, "source": "usda_fdc:170000 (1 medium (2-1/2\" dia)) — borrowed", "reason": "red onions had only a single 197 g whole; generic onion's size classes describe them equally well"}
+{"kind": "add_measure", "match_text": "red onion", "label": "onion, large", "basis_amount": 150, "sort_order": 2, "source": "usda_fdc:170000 (1 large) — borrowed", "reason": "generic onion size class"}
+{"kind": "add_measure", "match_text": "red onion", "label": "onion, small", "basis_amount": 70, "sort_order": 3, "source": "usda_fdc:170000 (1 small) — borrowed", "reason": "generic onion size class"}
+{"kind": "add_measure", "match_text": "butternut squash", "label": "squash, whole", "basis_amount": 1130, "sort_order": 0, "source": "seed:typical", "reason": "recipes say '1 butternut squash'; a typical retail squash is ~2.5 lb"}
+{"kind": "add_measure", "match_text": "napa cabbage", "label": "head", "basis_amount": 950, "sort_order": 0, "source": "seed:typical", "reason": "recipes say '1/2 head napa'; a typical head is ~2 lb"}
+{"kind": "add_measure", "match_text": "parsnip", "label": "parsnip, medium", "basis_amount": 120, "sort_order": 0, "source": "seed:typical", "reason": "recipes count parsnips; a typical medium root is ~120 g"}
+{"kind": "add_measure", "match_text": "yellow squash", "label": "squash, medium", "basis_amount": 196, "sort_order": 0, "source": "usda_fdc:169291 (1 medium) — borrowed (zucchini)", "reason": "same summer-squash size as zucchini's FDC medium"}
+{"kind": "add_measure", "match_text": "bay leaf", "label": "leaf", "basis_amount": 0.2, "sort_order": 0, "source": "seed:typical", "reason": "bay leaves are counted; a dried leaf is ~0.2 g"}
+{"kind": "add_measure", "match_text": "poblano pepper", "label": "pepper", "basis_amount": 100, "sort_order": 0, "source": "seed:typical", "reason": "audit suggested borrowing hot chili's 45 g, but poblanos are far larger — a typical poblano is ~100 g (recorded disagreement)"}
+{"kind": "add_measure", "match_text": "star anise", "label": "pod", "basis_amount": 2, "sort_order": 0, "source": "seed:typical", "reason": "star anise is counted in pods; a whole pod is ~2 g"}
+{"kind": "add_measure", "match_text": "kombu", "label": "strip", "basis_amount": 10, "sort_order": 0, "source": "seed:typical", "reason": "the source recipe says '1 small strip kombu'; a dashi strip is ~10 g"}
+{"kind": "add_measure", "match_text": "mint", "label": "sprig", "basis_amount": 2, "sort_order": 0, "source": "seed:typical", "reason": "mint is picked in sprigs (~2 g)"}
+{"kind": "add_measure", "match_text": "mint", "label": "bunch", "basis_amount": 25, "sort_order": 1, "source": "seed:typical", "reason": "a retail bunch is ~25 g"}
+{"kind": "add_measure", "match_text": "vegan sausage", "label": "link", "basis_amount": 100, "sort_order": 0, "source": "seed:typical", "reason": "Beyond/Field Roast links are ~100 g each — the unit recipes count"}
+{"kind": "add_measure", "match_text": "tofu bacon", "label": "slice", "basis_amount": 15, "sort_order": 0, "source": "seed:typical", "reason": "a strip of tofu bacon is ~15 g (typical sub-recipe yield)"}
+{"kind": "add_measure", "match_text": "shiitake bacon", "label": "slice", "basis_amount": 5, "sort_order": 0, "source": "seed:typical", "reason": "a shiitake-cap slice crisps to ~5 g (typical sub-recipe yield)"}
+{"kind": "add_measure", "match_text": "burger bun", "label": "bun", "basis_amount": 44, "sort_order": 0, "source": "usda_fdc:172796 (1 roll 1 serving) — relabeled", "reason": "the FDC 'roll' serving row under the noun this vocab row counts (the extractor's rescue list doesn't know 'roll')"}
+{"kind": "add_measure", "match_text": "cinnamon", "label": "stick", "basis_amount": 2.6, "sort_order": 0, "source": "seed:typical", "reason": "cinnamon sticks are counted; a 3-inch quill is ~2.6 g"}
+{"kind": "add_measure", "match_text": "nori", "label": "sheet", "basis_amount": 2.5, "sort_order": 0, "source": "seed:typical", "reason": "nori is counted in sheets; a standard full sushi sheet is ~2.5 g"}
