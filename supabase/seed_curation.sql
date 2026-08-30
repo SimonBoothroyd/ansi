@@ -50,6 +50,41 @@ update ingredient set
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sprouted multigrain bread';
 
+-- black bean canned: round-2 ruling (a): own FDC food is with-liquid can contents while the can measure is pinto's drained solids; borrow pinto's drained basis for coherence
+update ingredient set
+  macros = '{"kcal":114,"protein":6.99,"fat":0.9,"carb":20.22,"fiber":5.5}'::jsonb,
+  source = 'usda_fdc:174286 — borrowed (pinto, drained solids)',
+  status = 'complete'
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'black bean canned';
+
+-- black eyed pea canned: round-2 ruling (a): own FDC food is with-liquid can contents while the can measure is pinto's drained solids; borrow pinto's drained basis for coherence
+update ingredient set
+  macros = '{"kcal":114,"protein":6.99,"fat":0.9,"carb":20.22,"fiber":5.5}'::jsonb,
+  source = 'usda_fdc:174286 — borrowed (pinto, drained solids)',
+  status = 'complete'
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'black eyed pea canned';
+
+-- cannellini bean canned: round-2 ruling (a): own FDC food is with-liquid can contents while the can measure is pinto's drained solids; borrow pinto's drained basis for coherence
+update ingredient set
+  macros = '{"kcal":114,"protein":6.99,"fat":0.9,"carb":20.22,"fiber":5.5}'::jsonb,
+  source = 'usda_fdc:174286 — borrowed (pinto, drained solids)',
+  status = 'complete'
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cannellini bean canned';
+
+-- great northern bean canned: round-2 ruling (a): own FDC food is with-liquid can contents while the can measure is pinto's drained solids; borrow pinto's drained basis for coherence
+update ingredient set
+  macros = '{"kcal":114,"protein":6.99,"fat":0.9,"carb":20.22,"fiber":5.5}'::jsonb,
+  source = 'usda_fdc:174286 — borrowed (pinto, drained solids)',
+  status = 'complete'
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'great northern bean canned';
+
+-- navy bean canned: round-2 ruling (a): own FDC food is with-liquid can contents while the can measure is pinto's drained solids; borrow pinto's drained basis for coherence
+update ingredient set
+  macros = '{"kcal":114,"protein":6.99,"fat":0.9,"carb":20.22,"fiber":5.5}'::jsonb,
+  source = 'usda_fdc:174286 — borrowed (pinto, drained solids)',
+  status = 'complete'
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'navy bean canned';
+
 -- banana: the ranked pick landed on FDC's mashed cup (225 g -> 0.951); sliced (150 g/cup -> 0.634) is what a volume of banana means in a recipe
 update ingredient set density_g_per_ml = 0.634
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'banana';
@@ -257,6 +292,26 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'li
 -- shiitake mushroom: FDC 169242 has no volume portion; borrowed from the mushroom family (maitake's diced cup 70 g -> 0.30) for sliced-cup entry
 update ingredient set density_g_per_ml = 0.3
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'shiitake mushroom';
+
+-- black bean canned: round-2 ruling (a): drained-solids cup (~171 g), matching the borrowed drained macros/can
+update ingredient set density_g_per_ml = 0.72
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'black bean canned';
+
+-- black eyed pea canned: round-2 ruling (a): drained-solids cup (~171 g), matching the borrowed drained macros/can
+update ingredient set density_g_per_ml = 0.72
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'black eyed pea canned';
+
+-- cannellini bean canned: round-2 ruling (a): drained-solids cup (~171 g), matching the borrowed drained macros/can
+update ingredient set density_g_per_ml = 0.72
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cannellini bean canned';
+
+-- great northern bean canned: round-2 ruling (a): drained-solids cup (~171 g), matching the borrowed drained macros/can
+update ingredient set density_g_per_ml = 0.72
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'great northern bean canned';
+
+-- navy bean canned: round-2 ruling (a): drained-solids cup (~171 g), matching the borrowed drained macros/can
+update ingredient set density_g_per_ml = 0.72
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'navy bean canned';
 
 -- Re-materialize allowed_units with post-prefill (and post-override)
 -- densities: the insert trigger ran before seed_prefill landed them,
@@ -842,7 +897,7 @@ begin
       'seed_curation R1: volume-default rows with no density: %',
       violators;
   end if;
-  raise notice 'seed_curation: allowed_units refreshed; 6 macro + 52 density + 54 allowed-unit overrides; R1 (volume default => density) holds';
+  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 57 density + 54 allowed-unit overrides; R1 (volume default => density) holds';
 end $$;
 
 commit;

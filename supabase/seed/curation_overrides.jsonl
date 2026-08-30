@@ -222,3 +222,18 @@
 //
 // --- audit round 2 (2026-08-29) --------------------------------------------
 {"kind": "allowed_units", "match_text": "cinnamon stick", "remove": ["pinch", "dash", "to_taste"], "reason": "quills are counted, never pinched — the category gate overreaches here (bay-leaf precedent)"}
+// Round-2 ruling (a), state coherence: the five borrowed bean rows carried
+// with-liquid FDC macros + can-contents densities beside pinto's DRAINED
+// 277 g can — a ~25-30% per-can kcal undercount. They now borrow pinto's
+// drained-solids basis wholesale (macros + density), matching the can
+// measure they already borrow.
+{"kind": "macros", "match_text": "black bean canned", "macros": {"kcal": 114, "protein": 6.99, "fat": 0.9, "carb": 20.22, "fiber": 5.5}, "source": "usda_fdc:174286 — borrowed (pinto, drained solids)", "reason": "round-2 ruling (a): own FDC food is with-liquid can contents while the can measure is pinto's drained solids; borrow pinto's drained basis for coherence"}
+{"kind": "density", "match_text": "black bean canned", "value": 0.72, "reason": "round-2 ruling (a): drained-solids cup (~171 g), matching the borrowed drained macros/can"}
+{"kind": "macros", "match_text": "black eyed pea canned", "macros": {"kcal": 114, "protein": 6.99, "fat": 0.9, "carb": 20.22, "fiber": 5.5}, "source": "usda_fdc:174286 — borrowed (pinto, drained solids)", "reason": "round-2 ruling (a): own FDC food is with-liquid can contents while the can measure is pinto's drained solids; borrow pinto's drained basis for coherence"}
+{"kind": "density", "match_text": "black eyed pea canned", "value": 0.72, "reason": "round-2 ruling (a): drained-solids cup (~171 g), matching the borrowed drained macros/can"}
+{"kind": "macros", "match_text": "cannellini bean canned", "macros": {"kcal": 114, "protein": 6.99, "fat": 0.9, "carb": 20.22, "fiber": 5.5}, "source": "usda_fdc:174286 — borrowed (pinto, drained solids)", "reason": "round-2 ruling (a): own FDC food is with-liquid can contents while the can measure is pinto's drained solids; borrow pinto's drained basis for coherence"}
+{"kind": "density", "match_text": "cannellini bean canned", "value": 0.72, "reason": "round-2 ruling (a): drained-solids cup (~171 g), matching the borrowed drained macros/can"}
+{"kind": "macros", "match_text": "great northern bean canned", "macros": {"kcal": 114, "protein": 6.99, "fat": 0.9, "carb": 20.22, "fiber": 5.5}, "source": "usda_fdc:174286 — borrowed (pinto, drained solids)", "reason": "round-2 ruling (a): own FDC food is with-liquid can contents while the can measure is pinto's drained solids; borrow pinto's drained basis for coherence"}
+{"kind": "density", "match_text": "great northern bean canned", "value": 0.72, "reason": "round-2 ruling (a): drained-solids cup (~171 g), matching the borrowed drained macros/can"}
+{"kind": "macros", "match_text": "navy bean canned", "macros": {"kcal": 114, "protein": 6.99, "fat": 0.9, "carb": 20.22, "fiber": 5.5}, "source": "usda_fdc:174286 — borrowed (pinto, drained solids)", "reason": "round-2 ruling (a): own FDC food is with-liquid can contents while the can measure is pinto's drained solids; borrow pinto's drained basis for coherence"}
+{"kind": "density", "match_text": "navy bean canned", "value": 0.72, "reason": "round-2 ruling (a): drained-solids cup (~171 g), matching the borrowed drained macros/can"}
