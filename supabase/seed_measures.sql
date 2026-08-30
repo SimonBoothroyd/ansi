@@ -23,6 +23,10 @@ from ingredient i
 join (values
   ('active yeast dry', 'sachet', 7, 0, 'seed:typical'),
   ('almond', 'almond', 1.2, 0, 'usda_fdc:170567 (1 almond)'),
+  ('apple', 'apple, medium', 182, 0, 'usda_fdc:171688 (1 medium (3" dia))'),
+  ('apple', 'apple, large', 223, 1, 'usda_fdc:171688 (1 large (3-1/4" dia))'),
+  ('apple', 'apple, small', 149, 2, 'usda_fdc:171688 (1 small (2-3/4" dia))'),
+  ('apple', 'apple, extra small', 101, 3, 'usda_fdc:171688 (1 extra small (2-1/2" dia))'),
   ('apricot', 'apricot', 35, 0, 'usda_fdc:171697 (1 apricot)'),
   ('asparagus', 'spear, medium', 16, 0, 'usda_fdc:168389 (1 spear, medium (5-1/4" to 7" long))'),
   ('asparagus', 'spear, large', 20, 1, 'usda_fdc:168389 (1 spear, large (7-1/4" to 8-1/2"))'),
@@ -36,7 +40,7 @@ join (values
   ('banana', 'banana, extra small', 81, 3, 'usda_fdc:173944 (1 extra small (less than 6" long))'),
   ('banana', 'banana, extra large', 152, 4, 'usda_fdc:173944 (1 extra large (9" or longer))'),
   ('basil', 'leaf', 0.5, 0, 'usda_fdc:172232 (5 leaves)'),
-  ('berry', 'berry', 1.36, 0, 'usda_fdc:171711 (50 berries) — borrowed'),
+  ('beet', 'beet', 82, 0, 'usda_fdc:169145 (1 beet (2" dia))'),
   ('black bean canned', 'can, drained', 277, 0, 'usda_fdc:174286 (1 can drained solids) — borrowed'),
   ('black eyed pea canned', 'can, drained', 277, 0, 'usda_fdc:174286 (1 can drained solids) — borrowed'),
   ('blueberry', 'berry', 1.36, 0, 'usda_fdc:171711 (50 berries)'),
@@ -154,6 +158,7 @@ join (values
   ('orange bell pepper', 'pepper, large', 164, 1, 'usda_fdc:170108 (1 large (2-1/4 per pound, approx 3-3/4" long, 3" dia.)) — borrowed'),
   ('orange bell pepper', 'pepper, small', 74, 2, 'usda_fdc:170108 (1 small) — borrowed'),
   ('orange bell pepper', 'ring', 10, 3, 'usda_fdc:170108 (1 ring (3" dia., 1/4" thick)) — borrowed'),
+  ('orange juice', 'juice, whole', 86, 0, 'usda_fdc:169098 (1 fruit yields)'),
   ('oyster mushroom', 'mushroom, large', 148, 0, 'usda_fdc:168580 (1 large)'),
   ('oyster mushroom', 'mushroom, small', 15, 1, 'usda_fdc:168580 (1 small)'),
   ('parsley', 'sprig', 1, 0, 'usda_fdc:170416 (10 sprigs)'),
@@ -191,9 +196,9 @@ join (values
   ('red potato', 'potato, large', 369, 1, 'usda_fdc:170029 (1 potato large (3" to 4-1/4" dia))'),
   ('red potato', 'potato, small', 170, 2, 'usda_fdc:170029 (1 potato small (1-3/4" to 2-1/4" dia))'),
   ('rhubarb', 'stalk', 51, 0, 'usda_fdc:167758 (1 stalk)'),
-  ('romaine', 'leaf inner', 6, 0, 'usda_fdc:169247 (1 leaf inner)'),
-  ('romaine', 'leaf outer', 28, 1, 'usda_fdc:169247 (1 leaf outer)'),
-  ('romaine', 'head', 626, 2, 'usda_fdc:169247 (1 head)'),
+  ('romaine lettuce', 'leaf inner', 6, 0, 'usda_fdc:169247 (1 leaf inner)'),
+  ('romaine lettuce', 'leaf outer', 28, 1, 'usda_fdc:169247 (1 leaf outer)'),
+  ('romaine lettuce', 'head', 626, 2, 'usda_fdc:169247 (1 head)'),
   ('russet potato', 'potato, medium', 213, 0, 'usda_fdc:170027 (1 Potato medium (2-1/4" to 3-1/4" dia))'),
   ('russet potato', 'potato, large', 369, 1, 'usda_fdc:170027 (1 potato large (3" to 4-1/4" dia))'),
   ('russet potato', 'potato, small', 170, 2, 'usda_fdc:170027 (1 Potato small (1-3/4" to 2-1/4" dia))'),
@@ -236,6 +241,8 @@ join (values
   ('turnip', 'turnip, large', 183, 1, 'usda_fdc:170465 (1 large)'),
   ('turnip', 'turnip, small', 61, 2, 'usda_fdc:170465 (1 small)'),
   ('turnip', 'slice', 15, 3, 'usda_fdc:170465 (1 slice)'),
+  ('vegetable broth', 'can', 390, 0, 'usda_fdc:171583 (1 can)'),
+  ('vegetable broth', 'carton', 926, 1, 'usda_fdc:171583 (1 carton (32 oz))'),
   ('watermelon', 'melon', 4518, 0, 'usda_fdc:167765 (1 melon (15" long x 7-1/2" dia))'),
   ('watermelon', 'wedge', 286, 1, 'usda_fdc:167765 (1 wedge (approx 1/16 of melon))'),
   ('watermelon', 'watermelon ball', 12.2, 2, 'usda_fdc:167765 (10 watermelon balls)'),
@@ -271,12 +278,13 @@ begin
   from (values
     ('active yeast dry'),
     ('almond'),
+    ('apple'),
     ('apricot'),
     ('asparagus'),
     ('avocado'),
     ('banana'),
     ('basil'),
-    ('berry'),
+    ('beet'),
     ('black bean canned'),
     ('black eyed pea canned'),
     ('blueberry'),
@@ -342,6 +350,7 @@ begin
     ('onion'),
     ('orange'),
     ('orange bell pepper'),
+    ('orange juice'),
     ('oyster mushroom'),
     ('parsley'),
     ('pea frozen'),
@@ -360,7 +369,7 @@ begin
     ('red onion'),
     ('red potato'),
     ('rhubarb'),
-    ('romaine'),
+    ('romaine lettuce'),
     ('russet potato'),
     ('scallion'),
     ('serrano pepper'),
@@ -380,6 +389,7 @@ begin
     ('tomato puree canned'),
     ('tostada shell'),
     ('turnip'),
+    ('vegetable broth'),
     ('watermelon'),
     ('wheat bread whole'),
     ('white bread'),
@@ -400,7 +410,7 @@ begin
   end if;
   select count(*) into n from ingredient_measure
   where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null;
-  raise notice 'seed_measures: % live template measures (% seeded)', n, 230;
+  raise notice 'seed_measures: % live template measures (% seeded)', n, 237;
 end $$;
 
 commit;

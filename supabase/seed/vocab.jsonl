@@ -7,7 +7,7 @@
 {"canonical_name": "Plant Butter", "category": "fats & oils", "default_unit": "tbsp", "aliases": ["plant butter", "vegan butter", "salted cultured plant butter"], "source_examples": ["½ cup plant butter", "1 stick vegan butter (melted)", "8 ounces (1 cup) salted, cultured plant butter"], "notes": "merged 'vegan butter' and 'cultured plant butter salted' — same butter substitute"}
 {"canonical_name": "Sea Salt", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["sea salt"], "source_examples": ["½ teaspoon sea salt", "Big pinch sea salt"]}
 {"canonical_name": "Kosher Salt", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["kosher salt"], "source_examples": ["2 tsp kosher salt (to draw out moisture)", "Kosher salt to taste"]}
-{"canonical_name": "Fine Sea Salt", "category": "spices & seasoning", "default_unit": "g", "aliases": ["fine sea salt"], "source_examples": ["6 g fine sea salt (1 teaspoon)", "1 teaspoon fine sea salt"], "notes": "kept distinct from Sea Salt — fine grind used for baking by weight"}
+{"canonical_name": "Fine Sea Salt", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["fine sea salt"], "source_examples": ["6 g fine sea salt (1 teaspoon)", "1 teaspoon fine sea salt"], "notes": "kept distinct from Sea Salt — fine grind used for baking by weight; default tsp like the other salts (audit 2026-08-29); density keeps gram baking entry"}
 {"canonical_name": "Flaky Salt", "category": "spices & seasoning", "default_unit": "pinch", "aliases": ["flaky salt", "flaky sea salt", "Maldon salt"], "source_examples": ["Flaky salt", "1 teaspoon flaky sea salt (plus more to taste)", "Maldon salt or sea salt + black pepper (to finish)"], "notes": "merged 'flaky sea salt', 'flaky salt to garnish' and 'Maldon salt' — all the same flaky finishing salt"}
 {"canonical_name": "Table Salt", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["salt"], "source_examples": ["½ teaspoon salt", "1 teaspoon salt"], "notes": "unqualified 'salt' → table salt; kept distinct from Sea/Kosher/Fine/Flaky"}
 {"canonical_name": "Black Pepper", "category": "spices & seasoning", "default_unit": "tsp", "aliases": ["black pepper", "cracked black pepper", "freshly cracked black pepper", "ground black pepper"], "source_examples": ["½ teaspoon black pepper", "½ teaspoon freshly cracked black pepper", "1 heaping teaspoon coarsely ground black pepper"], "notes": "merged own-goals 'cracked black pepper' and 'black pepper ground' — prep descriptors, same spice"}
@@ -38,7 +38,7 @@
 {"canonical_name": "Red Onion", "category": "produce", "default_unit": "piece", "aliases": ["red onion"], "source_examples": ["¼ cup red onion (minced)", "2  small red onions"]}
 {"canonical_name": "Shallot", "category": "produce", "default_unit": "piece", "aliases": ["shallot"], "source_examples": ["1 small shallot (minced)"]}
 {"canonical_name": "Scallion", "category": "produce", "default_unit": "piece", "aliases": ["scallions"], "source_examples": ["1  bunch scallions (thinly sliced)"]}
-{"canonical_name": "Chive", "category": "produce", "default_unit": "tbsp", "aliases": ["chives", "fresh chives"], "source_examples": ["1 small handful chives (thinly sliced or chopped (optional))", "Fresh chives (thinly sliced, to garnish)"], "notes": "merged 'chive fresh'"}
+{"canonical_name": "Chives", "category": "produce", "default_unit": "tbsp", "aliases": ["chives", "fresh chives"], "source_examples": ["1 small handful chives (thinly sliced or chopped (optional))", "Fresh chives (thinly sliced, to garnish)"], "notes": "merged 'chive fresh'; pluralized to the natural English name (audit 2026-08-29); match_text unchanged"}
 {"canonical_name": "Ginger", "category": "produce", "default_unit": "tbsp", "aliases": ["ginger"], "source_examples": ["2 tablespoons minced or finely grated ginger (1 thumb-sized piece)"]}
 {"canonical_name": "Carrot", "category": "produce", "default_unit": "piece", "aliases": ["carrots"], "source_examples": ["4  medium carrots (peeled and chopped)", "10 ounces shredded carrots (3 medium carrots)"]}
 {"canonical_name": "Celery", "category": "produce", "default_unit": "piece", "aliases": ["celery stalks", "diced celery"], "source_examples": ["2  large celery stalks (chopped)", "1½  cups diced celery"], "notes": "merged 'celery stalk' — stalk is a portion word"}
@@ -51,8 +51,7 @@
 {"canonical_name": "Peach", "category": "produce", "default_unit": "piece", "aliases": ["peaches"], "source_examples": ["4 medium fragrant peaches"], "notes": "dropped descriptor 'fragrant'"}
 {"canonical_name": "Banana", "category": "produce", "default_unit": "piece", "aliases": ["bananas"], "source_examples": ["3 large speckled yet firm bananas"], "notes": "dropped descriptors 'speckled yet firm'"}
 {"canonical_name": "Avocado", "category": "produce", "default_unit": "piece", "aliases": ["avocado", "ripe avocado"], "source_examples": ["1  large avocado (cut into chunks)", "½  of a medium ripe avocado"], "notes": "merged 'avocado ripe'; the 'avocado or sunflower oil' line was reassigned to Avocado Oil (it is not the fruit)"}
-{"canonical_name": "Blueberries", "category": "produce", "default_unit": "cup", "aliases": ["blueberries"], "source_examples": ["3 cups blueberries (plus some for sprinkling (fresh or frozen))"]}
-{"canonical_name": "Berries", "category": "produce", "default_unit": "cup", "aliases": ["desired berries"], "source_examples": ["1 ½ cups desired berries (plus some to garnish)"], "notes": "generic mixed-berry slot the recipe leaves to the cook"}
+{"canonical_name": "Blueberries", "category": "produce", "default_unit": "cup", "aliases": ["blueberries", "desired berries"], "source_examples": ["3 cups blueberries (plus some for sprinkling (fresh or frozen))"], "notes": "absorbed the 'Berries' umbrella row (audit 2026-08-29): it was a duplicate slot (same FDC food) — the mined 'desired berries' surface form lands here"}
 {"canonical_name": "Dates", "category": "produce", "default_unit": "piece", "aliases": ["dates"], "source_examples": ["3  dates (deseeded (or ¼ cup maple syrup))"]}
 {"canonical_name": "Jalapeño", "category": "produce", "default_unit": "piece", "aliases": ["jalapeño"], "source_examples": ["1 tablespoon jalapeño (minced (about ½ a small jalapeño))"]}
 {"canonical_name": "Serrano Pepper", "category": "produce", "default_unit": "piece", "aliases": ["serrano pepper"], "source_examples": ["½ to 1  serrano pepper (roughly chopped (Note 3))"], "notes": "recovered from mangled 'to serrano pepper' (leaked range word 'to')"}
@@ -70,8 +69,8 @@
 {"canonical_name": "Arugula", "category": "produce", "default_unit": "cup", "aliases": ["arugula"], "source_examples": ["Fresh spinach or arugula"], "notes": "choice-split from 'spinach or arugula'"}
 {"canonical_name": "Tatsoi", "category": "produce", "default_unit": "piece", "aliases": ["fresh tatsoi"], "source_examples": ["1  bunch fresh tatsoi (or any leafy green such as spinach or kale)"]}
 {"canonical_name": "Tender Greens", "category": "produce", "default_unit": "cup", "aliases": ["tender greens"], "source_examples": ["Big handful tender greens (like spinach or arugula)"], "notes": "kept as a salad-greens slot; borderline-generic"}
-{"canonical_name": "Romaine", "category": "produce", "default_unit": "piece", "aliases": ["romaine", "romaine hearts"], "source_examples": ["1 head romaine or iceberg lettuce (shredded)", "3  romaine hearts (chopped, rinsed, dried)"], "notes": "choice-split from 'romaine or iceberg lettuce'; merged 'romaine heart'"}
-{"canonical_name": "Iceberg Lettuce", "category": "produce", "default_unit": "piece", "aliases": ["iceberg lettuce"], "source_examples": ["1 head iceberg lettuce (separated)", "1 head romaine or iceberg lettuce (shredded)"], "notes": "choice-split from 'romaine or iceberg lettuce'"}
+{"canonical_name": "Romaine Lettuce", "category": "produce", "default_unit": "oz", "aliases": ["romaine", "romaine hearts"], "source_examples": ["1 head romaine or iceberg lettuce (shredded)", "3  romaine hearts (chopped, rinsed, dried)"], "notes": "choice-split from 'romaine or iceberg lettuce'; merged 'romaine heart'; renamed with the head noun (audit 2026-08-29) — bare 'Romaine' was the only noun-less lettuce; R2 piece curation (audit 2026-08-29): head/leaf measures carry the count; bare piece was ambiguous"}
+{"canonical_name": "Iceberg Lettuce", "category": "produce", "default_unit": "oz", "aliases": ["iceberg lettuce"], "source_examples": ["1 head iceberg lettuce (separated)", "1 head romaine or iceberg lettuce (shredded)"], "notes": "choice-split from 'romaine or iceberg lettuce'; R2 piece curation (audit 2026-08-29): head/leaf measures carry the count; bare piece was ambiguous"}
 {"canonical_name": "Shiitake Mushroom", "category": "produce", "default_unit": "oz", "aliases": ["shiitake mushrooms"], "source_examples": ["6-7 ounces shiitake mushrooms"]}
 {"canonical_name": "Cremini Mushroom", "category": "produce", "default_unit": "oz", "aliases": ["cremini mushrooms"], "source_examples": ["8 ounces cremini mushrooms (bottoms removed and thinly sliced)"]}
 {"canonical_name": "Okra", "category": "produce", "default_unit": "oz", "aliases": ["fresh okra"], "source_examples": ["10 ounces fresh okra"]}
@@ -79,30 +78,30 @@
 {"canonical_name": "Frozen Peas", "category": "produce", "default_unit": "lb", "aliases": ["frozen peas"], "source_examples": ["1 pound  frozen peas"]}
 {"canonical_name": "Brussels Sprouts", "category": "produce", "default_unit": "lb", "aliases": ["brussels sprouts"], "source_examples": ["1 pound brussels sprouts"]}
 {"canonical_name": "Russet Potato", "category": "produce", "default_unit": "piece", "aliases": ["russet potatoes"], "source_examples": ["1  large russet potato", "1-2  small russet potatoes (julienned)"]}
-{"canonical_name": "Kimchi", "category": "produce", "default_unit": "cup", "aliases": ["kimchi"], "source_examples": ["1 cup kimchi (see notes)"]}
-{"canonical_name": "Sauerkraut", "category": "produce", "default_unit": "cup", "aliases": ["sauerkraut"], "source_examples": ["Sauerkraut (or pickled onions (optional) )"]}
+{"canonical_name": "Kimchi", "category": "pantry", "default_unit": "cup", "aliases": ["kimchi"], "source_examples": ["1 cup kimchi (see notes)"], "notes": "category pantry (audit 2026-08-29): a jarred ferment, not produce"}
+{"canonical_name": "Sauerkraut", "category": "pantry", "default_unit": "cup", "aliases": ["sauerkraut"], "source_examples": ["Sauerkraut (or pickled onions (optional) )"], "notes": "category pantry (audit 2026-08-29): a jarred ferment, not produce"}
 {"canonical_name": "Orange", "category": "produce", "default_unit": "piece", "aliases": ["navel oranges"], "source_examples": ["3  medium navel oranges (zested)"], "notes": "named from 'navel oranges'; source of the Orange Zest / Orange Juice rows"}
 {"canonical_name": "Lemon Zest", "category": "produce", "default_unit": "tsp", "aliases": ["lemon zest"], "source_examples": ["1 teaspoon lemon zest"]}
 {"canonical_name": "Orange Zest", "category": "produce", "default_unit": "tsp", "aliases": ["orange zest"], "source_examples": ["Orange zest (from divided zest)"]}
 {"canonical_name": "Lemon Juice", "category": "produce", "default_unit": "tbsp", "aliases": ["lemon juice", "fresh lemon juice"], "source_examples": ["2 tablespoons lemon juice", "1 tablespoon fresh lemon juice"], "notes": "merged 'lemon juice fresh'"}
 {"canonical_name": "Lime Juice", "category": "produce", "default_unit": "tbsp", "aliases": ["lime juice"], "source_examples": ["2 tablespoons lime juice"], "notes": "kept distinct from the fruit Lime"}
 {"canonical_name": "Orange Juice", "category": "produce", "default_unit": "tbsp", "aliases": ["orange juice"], "source_examples": ["2 tablespoons orange juice (from zested orange)"]}
-{"canonical_name": "Extra Firm Tofu", "category": "produce", "default_unit": "oz", "aliases": ["extra-firm tofu", "extra firm high protein tofu", "tofu"], "source_examples": ["14 ounces extra-firm tofu", "16 ounces tofu (extra firm or high protein (1 block))", "1 16-oz block  extra firm high protein tofu (or regular firm)"], "notes": "merged plain 'tofu' and 'extra firm high protein tofu' — all extra-firm; distinct from Silken Tofu"}
-{"canonical_name": "Silken Tofu", "category": "produce", "default_unit": "piece", "aliases": ["shelf-stable silken tofu"], "source_examples": ["1 (10.8 oz) pack  shelf-stable silken tofu"], "notes": "dropped container 'pack'; kept distinct from Extra Firm Tofu"}
-{"canonical_name": "Tempeh", "category": "produce", "default_unit": "oz", "aliases": ["tempeh", "plain tempeh"], "source_examples": ["8 ounces tempeh", "2  packs plain tempeh (16 oz each = 32 oz total)"], "notes": "merged 'plain tempeh' (dropped container 'pack')"}
+{"canonical_name": "Extra Firm Tofu", "category": "proteins", "default_unit": "oz", "aliases": ["extra-firm tofu", "extra firm high protein tofu", "tofu"], "source_examples": ["14 ounces extra-firm tofu", "16 ounces tofu (extra firm or high protein (1 block))", "1 16-oz block  extra firm high protein tofu (or regular firm)"], "notes": "merged plain 'tofu' and 'extra firm high protein tofu' — all extra-firm; distinct from Silken Tofu"}
+{"canonical_name": "Silken Tofu", "category": "proteins", "default_unit": "piece", "aliases": ["shelf-stable silken tofu"], "source_examples": ["1 (10.8 oz) pack  shelf-stable silken tofu"], "notes": "dropped container 'pack'; kept distinct from Extra Firm Tofu"}
+{"canonical_name": "Tempeh", "category": "proteins", "default_unit": "oz", "aliases": ["tempeh", "plain tempeh"], "source_examples": ["8 ounces tempeh", "2  packs plain tempeh (16 oz each = 32 oz total)"], "notes": "merged 'plain tempeh' (dropped container 'pack')"}
 {"canonical_name": "Frozen Edamame", "category": "produce", "default_unit": "oz", "aliases": ["frozen edamame", "shelled frozen edamame", "frozen shelled edamame"], "source_examples": ["16 ounces frozen edamame", "12 ounces (340g) shelled frozen edamame, defrosted", "6 ounces frozen shelled edamame (defrosted)"], "notes": "merged 'edamame frozen shelled' and 'edamame defrosted shelled frozen' — shelled/defrosted are prep"}
-{"canonical_name": "Tofu Bacon", "category": "meat", "default_unit": "piece", "aliases": ["tofu bacon"], "source_examples": ["1 batch  Tofu Bacon or Shiitake Bacon"], "notes": "choice-split from 'Tofu Bacon or Shiitake Bacon' (a sub-recipe)"}
-{"canonical_name": "Shiitake Bacon", "category": "meat", "default_unit": "piece", "aliases": ["shiitake bacon"], "source_examples": ["Shiitake bacon", "1 batch  Tofu Bacon or Shiitake Bacon"], "notes": "choice-split from 'Tofu Bacon or Shiitake Bacon'"}
-{"canonical_name": "Breaded Vegan Chicken Nugget", "category": "meat", "default_unit": "oz", "aliases": ["breaded vegan chicken nuggets", "breaded vegan chicken strips"], "source_examples": ["16 oz breaded vegan chicken nuggets or strips (baked & sliced)"], "notes": "folded the lone 'strip' casualty back in — 'nuggets or strips' is one product in two shapes"}
-{"canonical_name": "Vegan Sausage", "category": "meat", "default_unit": "piece", "aliases": ["Beyond Meat Sausage"], "source_examples": ["1 pack Beyond Meat Sausage (preferably Hot Italian, roughly chopped)"], "notes": "dropped container 'pack'; generalized brand name"}
-{"canonical_name": "Coconut Milk", "category": "dairy", "default_unit": "piece", "aliases": ["full-fat coconut milk"], "source_examples": ["1 can full-fat coconut milk (room temp and shaken well)"], "notes": "dropped specifier 'full fat' (no plain base existed); distinct from Plant Milk / Soy Milk"}
+{"canonical_name": "Tofu Bacon", "category": "proteins", "default_unit": "piece", "aliases": ["tofu bacon"], "source_examples": ["1 batch  Tofu Bacon or Shiitake Bacon"], "notes": "choice-split from 'Tofu Bacon or Shiitake Bacon' (a sub-recipe)"}
+{"canonical_name": "Shiitake Bacon", "category": "proteins", "default_unit": "piece", "aliases": ["shiitake bacon"], "source_examples": ["Shiitake bacon", "1 batch  Tofu Bacon or Shiitake Bacon"], "notes": "choice-split from 'Tofu Bacon or Shiitake Bacon'"}
+{"canonical_name": "Breaded Vegan Chicken Nugget", "category": "proteins", "default_unit": "oz", "aliases": ["breaded vegan chicken nuggets", "breaded vegan chicken strips"], "source_examples": ["16 oz breaded vegan chicken nuggets or strips (baked & sliced)"], "notes": "folded the lone 'strip' casualty back in — 'nuggets or strips' is one product in two shapes"}
+{"canonical_name": "Vegan Sausage", "category": "proteins", "default_unit": "piece", "aliases": ["Beyond Meat Sausage"], "source_examples": ["1 pack Beyond Meat Sausage (preferably Hot Italian, roughly chopped)"], "notes": "dropped container 'pack'; generalized brand name"}
+{"canonical_name": "Coconut Milk", "category": "pantry", "default_unit": "piece", "aliases": ["full-fat coconut milk"], "source_examples": ["1 can full-fat coconut milk (room temp and shaken well)"], "notes": "dropped specifier 'full fat' (no plain base existed); distinct from Plant Milk / Soy Milk; category pantry (audit 2026-08-29): a canned shelf good, not dairy"}
 {"canonical_name": "Plant Milk", "category": "dairy", "default_unit": "cup", "aliases": ["plant milk"], "source_examples": ["1 cup (236 mL) plant milk (preferably full-fat oat)"]}
 {"canonical_name": "Soy Milk", "category": "dairy", "default_unit": "cup", "aliases": ["unsweetened soy milk"], "source_examples": ["1 ¼ cups unsweetened soy milk"], "notes": "dropped 'unsweetened'"}
 {"canonical_name": "Coconut Whip", "category": "dairy", "default_unit": "cup", "aliases": ["coconut whip"], "source_examples": ["Coconut whip, to garnish (optional)"]}
 {"canonical_name": "Coconut Yogurt", "category": "dairy", "default_unit": "cup", "aliases": ["plain coconut yogurt"], "source_examples": ["2 cups thick (plain coconut yogurt)"], "notes": "recovered from the mangled 'thick' row — the real noun was inside the parenthetical"}
 {"canonical_name": "Vegan Cheese", "category": "dairy", "default_unit": "oz", "aliases": ["vegan cheese"], "source_examples": ["3 oz vegan cheese (about 4 slices)"]}
 {"canonical_name": "Vegan Cheddar", "category": "dairy", "default_unit": "oz", "aliases": ["vegan cheddar"], "source_examples": ["7 ounces vegan cheddar or American cheese (shreds or if using a block, diced)"], "notes": "choice-split from 'vegan cheddar or American cheese'"}
-{"canonical_name": "American Cheese", "category": "dairy", "default_unit": "oz", "aliases": ["American cheese"], "source_examples": ["7 ounces vegan cheddar or American cheese (shreds or if using a block, diced)"], "notes": "choice-split from 'vegan cheddar or American cheese' (vegan in context)"}
+{"canonical_name": "Vegan American Cheese", "category": "dairy", "default_unit": "oz", "aliases": ["American cheese"], "source_examples": ["7 ounces vegan cheddar or American cheese (shreds or if using a block, diced)"], "notes": "renamed vegan-consistent (audit 2026-08-29): the source recipe is vegan-in-context and every other cheese row says vegan; the plain surface form stays as an alias"}
 {"canonical_name": "Vegan Parmesan", "category": "dairy", "default_unit": "cup", "aliases": ["shredded vegan parmesan cheese"], "source_examples": ["¼ cup shredded vegan parmesan cheese"]}
 {"canonical_name": "Tamari", "category": "pantry", "default_unit": "tbsp", "aliases": ["tamari"], "source_examples": ["1 tablespoon tamari", "Splash  tamari or soy sauce"], "notes": "kept distinct from Soy Sauce"}
 {"canonical_name": "Soy Sauce", "category": "pantry", "default_unit": "tbsp", "aliases": ["soy sauce"], "source_examples": ["1 tablespoon soy sauce or liquid aminos", "2 tablespoons tamari or soy sauce"], "notes": "choice-split from 'tamari or soy sauce' / 'soy sauce or liquid aminos'"}
@@ -120,7 +119,7 @@
 {"canonical_name": "Liquid Smoke", "category": "pantry", "default_unit": "dash", "aliases": ["Colgin liquid smoke"], "source_examples": ["Few dashes Colgin liquid smoke"], "notes": "dropped brand 'Colgin'"}
 {"canonical_name": "Chili Crisp", "category": "pantry", "default_unit": "tbsp", "aliases": ["chili crisp"], "source_examples": ["Big spoonful chili crisp (your favorite brand)"], "notes": "dropped measure 'spoonful'"}
 {"canonical_name": "Tomato Paste", "category": "pantry", "default_unit": "tbsp", "aliases": ["tomato paste"], "source_examples": ["3 tablespoons tomato paste"]}
-{"canonical_name": "Fire-Roasted Tomato", "category": "pantry", "default_unit": "oz", "aliases": ["fire-roasted tomatoes"], "source_examples": ["1  (28-ounce) can fire-roasted, chopped tomatoes", "28 ounces fire roasted tomatoes (diced) (one large can)"], "notes": "fixed mangled reorder 'fire tomato roasted'; a canned product distinct from fresh Tomato"}
+{"canonical_name": "Canned Fire-Roasted Tomatoes", "category": "pantry", "default_unit": "oz", "aliases": ["fire-roasted tomatoes"], "source_examples": ["1  (28-ounce) can fire-roasted, chopped tomatoes", "28 ounces fire roasted tomatoes (diced) (one large can)"], "notes": "renamed into the Canned * family (audit 2026-08-29): it is a canned product and the singular hid it from the family; the old surface form survives via the alias"}
 {"canonical_name": "Bouillon Paste", "category": "pantry", "default_unit": "tsp", "aliases": ["bouillon paste"], "source_examples": ["1 teaspoon bouillon paste (no-chicken or vegetable)"]}
 {"canonical_name": "Nutritional Yeast", "category": "pantry", "default_unit": "tbsp", "aliases": ["nutritional yeast"], "source_examples": ["2 tablespoons nutritional yeast"]}
 {"canonical_name": "Tahini", "category": "pantry", "default_unit": "tbsp", "aliases": ["tahini"], "source_examples": ["¼ cup (56g) tahini"]}
@@ -149,7 +148,7 @@
 {"canonical_name": "Dried Coconut Flakes", "category": "pantry", "default_unit": "oz", "aliases": ["dried coconut flakes"], "source_examples": ["2 ounces dried coconut flakes"]}
 {"canonical_name": "Chex Cereal", "category": "pantry", "default_unit": "cup", "aliases": ["chex style cereal"], "source_examples": ["7 cups chex style cereal"]}
 {"canonical_name": "Mini Pretzels", "category": "pantry", "default_unit": "cup", "aliases": ["mustard flavored mini pretzels"], "source_examples": ["1 ½ cups mustard flavored mini pretzels"]}
-{"canonical_name": "Tortilla Chips", "category": "pantry", "default_unit": "piece", "aliases": ["tortilla chips"], "source_examples": ["Tortilla chips (to serve (optional))"]}
+{"canonical_name": "Tortilla Chips", "category": "pantry", "default_unit": "oz", "aliases": ["tortilla chips"], "source_examples": ["Tortilla chips (to serve (optional))"], "notes": "oz default (audit 2026-08-29, R2): nobody counts chips — piece entry dropped"}
 {"canonical_name": "Crispy Onion", "category": "pantry", "default_unit": "oz", "aliases": ["crispy onions"], "source_examples": ["3 ounces crispy onions (or desired amount)"], "notes": "fried-onion topping; kept distinct from fresh Onion"}
 {"canonical_name": "Crispy Shallot", "category": "pantry", "default_unit": "piece", "aliases": ["crispy shallots"], "source_examples": ["Crispy shallots (to garnish)"], "notes": "fried-shallot topping; kept distinct from fresh Shallot (parallels Crispy Onion)"}
 {"canonical_name": "White Basmati Rice", "category": "grains", "default_unit": "cup", "aliases": ["white basmati rice"], "source_examples": ["2 cups white basmati rice"]}
@@ -163,7 +162,7 @@
 {"canonical_name": "English Muffin", "category": "grains", "default_unit": "piece", "aliases": ["English muffins"], "source_examples": ["4  English muffins (sliced and toasted)"]}
 {"canonical_name": "Tostada Shell", "category": "grains", "default_unit": "piece", "aliases": ["crispy tostada shells"], "source_examples": ["1 pack  crispy tostada shells (toasted)"], "notes": "dropped container 'pack'"}
 {"canonical_name": "All-Purpose Flour", "category": "baking", "default_unit": "cup", "aliases": ["all-purpose flour"], "source_examples": ["1 ½ cups all-purpose flour"]}
-{"canonical_name": "Bread Flour", "category": "baking", "default_unit": "g", "aliases": ["bread flour"], "source_examples": ["325 g bread flour (2 ⅓ cups)"], "notes": "kept distinct from All-Purpose Flour"}
+{"canonical_name": "Bread Flour", "category": "baking", "default_unit": "cup", "aliases": ["bread flour"], "source_examples": ["325 g bread flour (2 ⅓ cups)"], "notes": "kept distinct from All-Purpose Flour; default cup like every other flour (audit 2026-08-29); its density keeps gram entry honest"}
 {"canonical_name": "Baking Powder", "category": "baking", "default_unit": "tsp", "aliases": ["baking powder"], "source_examples": ["2 teaspoons baking powder"]}
 {"canonical_name": "Granulated Sugar", "category": "baking", "default_unit": "cup", "aliases": ["sugar", "granulated sugar", "cane sugar", "granulated cane sugar"], "source_examples": ["½ cup sugar", "⅓ cup (60 g) granulated sugar", "⅓ cup cane sugar"], "notes": "merged white-sugar synonyms 'sugar', 'cane sugar', 'granulated cane sugar'; kept Brown Sugar and Powdered Sugar distinct"}
 {"canonical_name": "Brown Sugar", "category": "baking", "default_unit": "cup", "aliases": ["brown sugar"], "source_examples": ["½ cup brown sugar", "⅓ cup (60 g) brown sugar (regular or light)"]}
@@ -196,7 +195,7 @@
 {"canonical_name": "Corn Tortilla", "category": "grains", "default_unit": "piece", "aliases": []}
 {"canonical_name": "Cornmeal", "category": "grains", "default_unit": "cup", "aliases": []}
 {"canonical_name": "Farro", "category": "grains", "default_unit": "cup", "aliases": []}
-{"canonical_name": "Flour Tortilla", "category": "grains", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Flour Tortilla", "category": "grains", "default_unit": "oz", "aliases": [], "notes": "R2 piece curation (audit 2026-08-29): the tortilla measure carries the count; sizes vary 6-12 inch so bare piece was ambiguous"}
 {"canonical_name": "Multigrain Bread", "category": "grains", "default_unit": "piece", "aliases": []}
 {"canonical_name": "Quinoa", "category": "grains", "default_unit": "cup", "aliases": []}
 {"canonical_name": "Red Rice", "category": "grains", "default_unit": "cup", "aliases": []}
@@ -242,8 +241,8 @@
 {"canonical_name": "Asparagus", "category": "produce", "default_unit": "piece", "aliases": []}
 {"canonical_name": "Broccoli", "category": "produce", "default_unit": "cup", "aliases": []}
 {"canonical_name": "Butternut Squash", "category": "produce", "default_unit": "piece", "aliases": []}
-{"canonical_name": "Cabbage", "category": "produce", "default_unit": "piece", "aliases": []}
-{"canonical_name": "Cantaloupe", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Cabbage", "category": "produce", "default_unit": "lb", "aliases": [], "notes": "R2 piece curation (audit 2026-08-29): head measures carry the count; bare piece was ambiguous (leaf? head?)"}
+{"canonical_name": "Cantaloupe", "category": "produce", "default_unit": "lb", "aliases": [], "notes": "R2 piece curation (audit 2026-08-29): melon measures carry the count; bare piece was ambiguous (wedge? melon?)"}
 {"canonical_name": "Cauliflower", "category": "produce", "default_unit": "cup", "aliases": []}
 {"canonical_name": "Cherries", "category": "produce", "default_unit": "cup", "aliases": []}
 {"canonical_name": "Cherry Tomatoes", "category": "produce", "default_unit": "cup", "aliases": []}
@@ -269,7 +268,7 @@
 {"canonical_name": "Orange Bell Pepper", "category": "produce", "default_unit": "piece", "aliases": []}
 {"canonical_name": "Oyster Mushroom", "category": "produce", "default_unit": "oz", "aliases": []}
 {"canonical_name": "Parsnip", "category": "produce", "default_unit": "piece", "aliases": []}
-{"canonical_name": "Pineapple", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Pineapple", "category": "produce", "default_unit": "lb", "aliases": [], "notes": "R2 piece curation (audit 2026-08-29): whole/slice measures carry the count; bare piece was ambiguous"}
 {"canonical_name": "Plantain", "category": "produce", "default_unit": "piece", "aliases": []}
 {"canonical_name": "Poblano Pepper", "category": "produce", "default_unit": "piece", "aliases": []}
 {"canonical_name": "Portobello Mushroom", "category": "produce", "default_unit": "piece", "aliases": []}
@@ -279,7 +278,7 @@
 {"canonical_name": "Red Cabbage", "category": "produce", "default_unit": "piece", "aliases": []}
 {"canonical_name": "Red Delicious Apple", "category": "produce", "default_unit": "piece", "aliases": []}
 {"canonical_name": "Red Grapes", "category": "produce", "default_unit": "cup", "aliases": []}
-{"canonical_name": "Red Leaf Lettuce", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Red Leaf Lettuce", "category": "produce", "default_unit": "oz", "aliases": [], "notes": "R2 piece curation (audit 2026-08-29): head/leaf measures carry the count; bare piece was ambiguous"}
 {"canonical_name": "Red Potato", "category": "produce", "default_unit": "piece", "aliases": []}
 {"canonical_name": "Rhubarb", "category": "produce", "default_unit": "piece", "aliases": []}
 {"canonical_name": "Strawberries", "category": "produce", "default_unit": "cup", "aliases": []}
@@ -289,3 +288,20 @@
 {"canonical_name": "White Mushroom", "category": "produce", "default_unit": "oz", "aliases": []}
 {"canonical_name": "Yellow Bell Pepper", "category": "produce", "default_unit": "piece", "aliases": []}
 {"canonical_name": "Yellow Squash", "category": "produce", "default_unit": "piece", "aliases": []}
+{"canonical_name": "Apple", "category": "produce", "default_unit": "piece", "aliases": [], "notes": "generic apple (audit 2026-08-29): varieties existed without the plain fruit recipes actually say"}
+{"canonical_name": "Beets", "category": "produce", "default_unit": "piece", "aliases": ["beetroot"], "notes": "pantry-gap addition (audit 2026-08-29)"}
+{"canonical_name": "Vegetable Broth", "category": "pantry", "default_unit": "cup", "aliases": ["veggie broth", "vegetable stock"], "notes": "pantry-gap addition (audit 2026-08-29)"}
+{"canonical_name": "Balsamic Vinegar", "category": "pantry", "default_unit": "tbsp", "aliases": [], "notes": "pantry-gap addition (audit 2026-08-29)"}
+{"canonical_name": "Apple Cider Vinegar", "category": "pantry", "default_unit": "tbsp", "aliases": ["cider vinegar"], "notes": "pantry-gap addition (audit 2026-08-29)"}
+{"canonical_name": "Baking Soda", "category": "baking", "default_unit": "tsp", "aliases": ["bicarbonate of soda", "sodium bicarbonate"], "notes": "pantry-gap addition (audit 2026-08-29)"}
+{"canonical_name": "Miso", "category": "pantry", "default_unit": "tbsp", "aliases": ["miso paste"], "notes": "pantry-gap addition (audit 2026-08-29)"}
+{"canonical_name": "Cocoa Powder", "category": "baking", "default_unit": "tbsp", "aliases": ["unsweetened cocoa powder"], "notes": "pantry-gap addition (audit 2026-08-29)"}
+{"canonical_name": "Chili Powder", "category": "spices & seasoning", "default_unit": "tsp", "aliases": [], "notes": "pantry-gap addition (audit 2026-08-29): the everyday blend; Chipotle Chili Powder stays the variety"}
+{"canonical_name": "Curry Powder", "category": "spices & seasoning", "default_unit": "tsp", "aliases": [], "notes": "pantry-gap addition (audit 2026-08-29)"}
+{"canonical_name": "Ground Coriander", "category": "spices & seasoning", "default_unit": "tsp", "aliases": [], "notes": "pantry-gap addition (audit 2026-08-29); bare 'coriander' is NOT an alias — in UK usage it means the leaf (Cilantro)"}
+{"canonical_name": "Cinnamon Stick", "category": "spices & seasoning", "default_unit": "piece", "aliases": [], "notes": "pantry-gap addition (audit 2026-08-29); match_text is 'cinnamon' ('stick' is a measure word to the normalizer) — so a bare 'cinnamon' line lands here, counted"}
+{"canonical_name": "Panko", "category": "pantry", "default_unit": "cup", "aliases": ["panko breadcrumbs", "panko bread crumbs"], "notes": "pantry-gap addition (audit 2026-08-29)"}
+{"canonical_name": "Nori", "category": "pantry", "default_unit": "piece", "aliases": ["nori sheets", "sushi nori"], "notes": "pantry-gap addition (audit 2026-08-29); honest stub — FDC only has raw wet laver, which is not a toasted nori sheet (no-analogue rule)"}
+{"canonical_name": "Seitan", "category": "proteins", "default_unit": "oz", "aliases": [], "notes": "pantry-gap addition (audit 2026-08-29); honest stub — FDC has vital wheat gluten (the flour), not cooked seitan (no-analogue rule)"}
+{"canonical_name": "Chickpea Flour", "category": "baking", "default_unit": "cup", "aliases": ["garbanzo bean flour", "besan"], "notes": "pantry-gap addition (audit 2026-08-29)"}
+{"canonical_name": "Burger Buns", "category": "grains", "default_unit": "piece", "aliases": ["hamburger buns"], "notes": "pantry-gap addition (audit 2026-08-29)"}
