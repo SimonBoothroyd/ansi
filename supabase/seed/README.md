@@ -6,16 +6,19 @@ Two things get seeded (spec §6):
    server-side only. The reference set for *creating* ingredients and prefilling
    stubs. Never synced, never matched against at import (ADR-0005).
 2. **Initial household `ingredient` vocabulary** — mined from real recipes and
-   curated (currently 291 rows), so the app isn't empty on first run. Macros +
-   density are prefilled from `usda_food` where a true match exists (248
+   curated (currently 307 rows), so the app isn't empty on first run. Macros +
+   density are prefilled from `usda_food` where a true match exists, plus a
+   handful of label-sourced macro fills in the curation pass (271
    `complete`); the rest stay honest `stub`s for the flesh-out queue.
 
 Density: derived from FDC **volume food portions parsed out of the full
 portion text** (7.8 — SR Legacy keys most volume portions by `modifier`, not
 `measure_unit`, which is why the old parser found almost none). Ranked
 cup > tbsp > tsp, unqualified before prepared-state, sanity 0.1–2.0 g/ml.
-Current vocab coverage: **211/291**. FAO/INFOODS Density DB v2.0 remains the
-planned fallback for the tail (tracker).
+Curation-pass corrections and fills sit on top (audit 2026-08-29, R1: every
+volume-default row carries a density). Current vocab coverage: **264/307**.
+FAO/INFOODS Density DB v2.0 remains the planned fallback for the tail
+(tracker).
 
 ## Building the household vocabulary (`scripts/mine_recipes.ts`)
 
@@ -125,12 +128,22 @@ vocab ingredient.
 
 `curation_overrides.jsonl` (committed, one JSON object per line, every entry
 with a `reason`) records the human/LLM judgment pass over ALL generated
-per-ingredient defaults — measures, densities, allowed units. Consumers:
+per-ingredient defaults — measures, densities, allowed units, and
+label-sourced macros (`kind: "macros"` — per-100 g numbers with a visible
+`label:…` source, for rows the no-analogue rule keeps link-less). Consumers:
 `gen_measures.ts` (measure drops/adds) and `gen_seed.ts`, which emits
-`../seed_curation.sql` — the LAST seed step: it re-materializes the template
-vocab's `allowed_units` via `default_allowed_units()` once every density
-source has run (the insert-time trigger fired before prefill), then applies
-the density and allowed-unit overrides with their reasons as SQL comments.
+`../seed_curation.sql` — the LAST seed step: it applies the macro fills,
+re-materializes the template vocab's `allowed_units` via
+`default_allowed_units()` once every density source has run (the insert-time
+trigger fired before prefill), then applies the density and allowed-unit
+overrides with their reasons as SQL comments.
+
+`seed_curation.sql` ends with the **R1 invariant** (adopted 2026-08-29): a
+volume `default_unit` REQUIRES a density — `supabase db reset` FAILS loudly
+if any template row is volume-default and density-less (a volume line on a
+density-less per-g ingredient can never compute macros). Fix by filling an
+honest density (FDC / label / tagged typical) or flipping the default to a
+weight — always through the pipeline inputs.
 
 ## Prefill: promoting stubs to `complete` (`usda_links.jsonl`)
 
