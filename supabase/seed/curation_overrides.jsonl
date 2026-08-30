@@ -193,7 +193,7 @@
 {"kind": "add_measure", "match_text": "tofu bacon", "label": "slice", "basis_amount": 15, "sort_order": 0, "source": "seed:typical", "reason": "a strip of tofu bacon is ~15 g (typical sub-recipe yield)"}
 {"kind": "add_measure", "match_text": "shiitake bacon", "label": "slice", "basis_amount": 5, "sort_order": 0, "source": "seed:typical", "reason": "a shiitake-cap slice crisps to ~5 g (typical sub-recipe yield)"}
 {"kind": "add_measure", "match_text": "burger bun", "label": "bun", "basis_amount": 44, "sort_order": 0, "source": "usda_fdc:172796 (1 roll 1 serving) — relabeled", "reason": "the FDC 'roll' serving row under the noun this vocab row counts (the extractor's rescue list doesn't know 'roll')"}
-{"kind": "add_measure", "match_text": "cinnamon", "label": "stick", "basis_amount": 2.6, "sort_order": 0, "source": "seed:typical", "reason": "cinnamon sticks are counted; a 3-inch quill is ~2.6 g"}
+{"kind": "add_measure", "match_text": "cinnamon stick", "label": "stick", "basis_amount": 2.6, "sort_order": 0, "source": "seed:typical", "reason": "cinnamon sticks are counted; a 3-inch quill is ~2.6 g"}
 {"kind": "add_measure", "match_text": "nori", "label": "sheet", "basis_amount": 2.5, "sort_order": 0, "source": "seed:typical", "reason": "nori is counted in sheets; a standard full sushi sheet is ~2.5 g"}
 //
 // --- allowed units: audit round 1 — imprecise overreach on fats & oils -----
@@ -219,3 +219,6 @@
 {"kind": "allowed_units", "match_text": "red leaf lettuce", "remove": ["tsp", "tbsp"], "reason": "cups of torn leaves are real, spoons are not"}
 {"kind": "allowed_units", "match_text": "cantaloupe", "remove": ["tsp", "tbsp"], "reason": "cups of cubed melon are real, spoons are not"}
 {"kind": "allowed_units", "match_text": "pineapple", "remove": ["tsp", "tbsp"], "reason": "cups of pineapple chunks are real, spoons are not"}
+//
+// --- audit round 2 (2026-08-29) --------------------------------------------
+{"kind": "allowed_units", "match_text": "cinnamon stick", "remove": ["pinch", "dash", "to_taste"], "reason": "quills are counted, never pinched — the category gate overreaches here (bay-leaf precedent)"}

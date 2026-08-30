@@ -232,14 +232,21 @@ export function normalize(ingredientText: string): string {
   // cloves"). Drop it as a measure only when an allium shares the phrase; else
   // it is the spice and must survive as the noun.
   const alliumPresent = /\b(garlic|shallots?|scallions?)\b/.test(cleaned);
+  // "stick" is likewise both a measure ("1 stick butter") and identity next
+  // to cinnamon ("2 cinnamon sticks" — the whole quill, a different vocab row
+  // from ground cinnamon). Keep it as the noun only when cinnamon shares the
+  // phrase; else it stays a measure and is dropped.
+  const cinnamonPresent = /\bcinnamon\b/.test(cleaned);
   const [head, ...modifiers] = cleaned.split(",");
 
   const nouns: string[] = [];
   const states: string[] = [];
-  classify(head, nouns, states, alliumPresent);
+  classify(head, nouns, states, alliumPresent, cinnamonPresent);
   // Comma modifiers are identity only if they're a state word ("…, boneless");
   // a prep modifier ("…, diced") drops out entirely.
-  for (const mod of modifiers) classify(mod, nouns, states, alliumPresent);
+  for (const mod of modifiers) {
+    classify(mod, nouns, states, alliumPresent, cinnamonPresent);
+  }
 
   return [...nouns, ...states].map(singularize).filter(Boolean).join(" ");
 }
@@ -250,6 +257,7 @@ function classify(
   nouns: string[],
   states: string[],
   alliumPresent: boolean,
+  cinnamonPresent: boolean,
 ): void {
   for (const raw of segment.split(/\s+/)) {
     // Keep any unicode letter/number (so "jalapeño" survives, not "jalapeo");
@@ -260,6 +268,10 @@ function classify(
     if (word === "clove" || word === "cloves") {
       if (alliumPresent) continue; // garlic-clove measure
       nouns.push(word); // the spice
+      continue;
+    }
+    if ((word === "stick" || word === "sticks") && cinnamonPresent) {
+      nouns.push(word); // the cinnamon quill — identity, not a measure
       continue;
     }
     if (

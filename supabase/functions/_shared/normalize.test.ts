@@ -46,6 +46,14 @@ Deno.test("normalize — clove is a measure only next to an allium", () => {
   assertEquals(normalize("pinch of cloves"), "clove"); // the spice, no allium
 });
 
+Deno.test("normalize — stick is identity only next to cinnamon", () => {
+  assertEquals(normalize("2 cinnamon sticks"), "cinnamon stick"); // the quill
+  assertEquals(normalize("Cinnamon Stick"), "cinnamon stick"); // stored name
+  assertEquals(normalize("1 stick vegan butter (melted)"), "vegan butter"); // measure
+  assertEquals(normalize("ground cinnamon"), "cinnamon ground"); // untouched
+  assertEquals(normalize("cinnamon"), "cinnamon"); // bare word → the alias row
+});
+
 Deno.test("normalize — hyphenated compounds split into words", () => {
   assertEquals(normalize("all-purpose flour"), "all purpose flour");
   assertEquals(normalize("extra-virgin olive oil"), "extra virgin olive oil");

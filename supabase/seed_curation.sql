@@ -807,6 +807,22 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'tbsp')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pineapple';
 
+-- cinnamon stick: quills are counted, never pinched — the category gate overreaches here (bay-leaf precedent)
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cinnamon stick';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cinnamon stick';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'to_taste')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cinnamon stick';
+
 -- R1 invariant (Simon, 2026-08-29): a volume default_unit REQUIRES a
 -- density — a volume line on a density-less per-g ingredient can never
 -- compute macros, so the class must not silently return. Fill an honest
@@ -826,7 +842,7 @@ begin
       'seed_curation R1: volume-default rows with no density: %',
       violators;
   end if;
-  raise notice 'seed_curation: allowed_units refreshed; 6 macro + 52 density + 53 allowed-unit overrides; R1 (volume default => density) holds';
+  raise notice 'seed_curation: allowed_units refreshed; 6 macro + 52 density + 54 allowed-unit overrides; R1 (volume default => density) holds';
 end $$;
 
 commit;
