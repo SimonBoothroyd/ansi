@@ -18,6 +18,12 @@ import { normalize } from "../../functions/_shared/normalize.ts";
 // Foundation entries carry absurd 2033 values (e.g. russet potato at 14.93 g).
 const KCAL = "1008", PROTEIN = "1003", CARB = "1005", FAT = "1004";
 const FIBER = "1079";
+// Newer Foundation foods (post-2022 releases) carry NO 1008 row — energy
+// ships only as Atwater ids: 2048 (specific factors — what labels print)
+// and 2047 (general factors). Fall back 1008 → 2048 → 2047 so those foods
+// (oat milk, almond flour, gold potatoes, …) still get a kcal and can
+// prefill vocab rows to `complete`. Where 1008 exists it always wins.
+const KCAL_ATWATER_SPECIFIC = "2048", KCAL_ATWATER_GENERAL = "2047";
 // Only these data_types are real foods to seed (Foundation ships sample rows too).
 const FOODS = new Set(["foundation_food", "sr_legacy_food"]);
 
@@ -88,6 +94,10 @@ function loadDataset(dir: string, rows: Map<string, Row>): void {
     [FIBER]: "fiber",
   };
   const nutrientText = Deno.readTextFileSync(`${dir}/food_nutrient.csv`);
+  // Atwater energy fallbacks, collected per food and applied only where no
+  // 1008 kcal row exists (see the KCAL_ATWATER_* note above).
+  const atwaterSpecific = new Map<string, number>();
+  const atwaterGeneral = new Map<string, number>();
   let first = true;
   for (const line of nutrientText.split("\n")) {
     if (first) {
@@ -96,10 +106,24 @@ function loadDataset(dir: string, rows: Map<string, Row>): void {
     }
     if (!line) continue;
     const c = line.slice(1, -1).split('","'); // strip outer quotes, split
+    if (c[2] === KCAL_ATWATER_SPECIFIC && rows.has(c[1])) {
+      atwaterSpecific.set(c[1], Number(c[3]));
+      continue;
+    }
+    if (c[2] === KCAL_ATWATER_GENERAL && rows.has(c[1])) {
+      atwaterGeneral.set(c[1], Number(c[3]));
+      continue;
+    }
     const key = KEEP[c[2]];
     if (!key) continue;
     const row = rows.get(c[1]);
     if (row) row.macros[key] = Number(c[3]);
+  }
+  for (const [fdcId, row] of rows) {
+    if (row.macros.kcal !== undefined) continue;
+    const fallback = atwaterSpecific.get(fdcId) ?? atwaterGeneral.get(fdcId);
+    // Round like a label would — sub-kcal precision is sampling noise.
+    if (fallback !== undefined) row.macros.kcal = Math.round(fallback);
   }
 
   // Density from the best-ranked usable volume portion. Candidates are
