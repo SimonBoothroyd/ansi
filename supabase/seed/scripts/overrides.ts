@@ -17,22 +17,41 @@
 //     the materialized allowed-unit list: `set` replaces wholesale, or
 //     `add`/`remove` tweak the rule output (consumed by gen_seed.ts →
 //     seed_curation.sql).
+//   * macros        {match_text, macros: {kcal, protein, fat, carb,
+//     [fiber]}, source, reason} — label-sourced macros (per 100 g) for a
+//     row FDC genuinely lacks (no-analogue rule keeps it link-less) or
+//     whose FDC macros are wrong; flips the row to `complete` and stamps
+//     `source` (e.g. "label:Bragg") so provenance stays visible
+//     (consumed by gen_seed.ts → seed_curation.sql).
 
 export interface CurationOverride {
-  kind: "drop_measure" | "add_measure" | "density" | "allowed_units";
+  kind:
+    | "drop_measure"
+    | "add_measure"
+    | "density"
+    | "allowed_units"
+    | "macros";
   match_text: string;
   reason: string;
   // add_measure / drop_measure
   label?: string;
   basis_amount?: number;
   sort_order?: number;
-  source?: string;
+  source?: string; // also: macros provenance ("label:…")
   // density
   value?: number | null;
   // allowed_units
   set?: string[];
   add?: string[];
   remove?: string[];
+  // macros (per 100 g of the ingredient's basis)
+  macros?: {
+    kcal: number;
+    protein: number;
+    fat: number;
+    carb: number;
+    fiber?: number;
+  };
 }
 
 /// Reads and validates the overrides file beside the seed data; absent file
@@ -67,6 +86,20 @@ export function readOverrides(scriptsDir: string): CurationOverride[] {
       !o.set && !(o.add?.length) && !(o.remove?.length)
     ) {
       problems.push(`allowed_units override changes nothing: ${o.match_text}`);
+    }
+    if (o.kind === "macros") {
+      const m = o.macros;
+      if (
+        !m || !(m.kcal >= 0) || !(m.protein >= 0) || !(m.fat >= 0) ||
+        !(m.carb >= 0)
+      ) {
+        problems.push(
+          `macros override needs kcal/protein/fat/carb >= 0: ${o.match_text}`,
+        );
+      }
+      if (!o.source) {
+        problems.push(`macros override needs a source: ${o.match_text}`);
+      }
     }
   }
   if (problems.length > 0) {

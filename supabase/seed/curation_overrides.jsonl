@@ -56,3 +56,70 @@
 {"kind": "allowed_units", "match_text": "cannellini bean canned", "remove": ["tsp"], "reason": "beans by the tbsp exist; by the tsp they do not"}
 {"kind": "allowed_units", "match_text": "great northern bean canned", "remove": ["tsp"], "reason": "beans by the tbsp exist; by the tsp they do not"}
 {"kind": "allowed_units", "match_text": "navy bean canned", "remove": ["tsp"], "reason": "beans by the tbsp exist; by the tsp they do not"}
+//
+// --- densities: audit round 1 (2026-08-29) — corrections -------------------
+// R1 (Simon): a volume default REQUIRES a density; these fix values the FDC
+// derivation got wrong for the vocab row's actual form.
+{"kind": "density", "match_text": "rolled oat", "value": 0.34, "reason": "FDC 169705's 156 g cup describes steel-cut/whole oats; rolled-oat labels print 40 g per 1/2 cup (~81 g/cup -> 0.34) and Steel-Cut Oats keeps the FDC value"}
+{"kind": "density", "match_text": "kosher salt", "value": 0.7, "reason": "prefill copied table salt (1.234) but kosher is flaked: Diamond Crystal ~2.8 g/tsp (0.57), Morton ~4.8 g/tsp (0.97) — 0.7 is the defensible middle; per-brand truth belongs to the user's own edit"}
+{"kind": "density", "match_text": "flaky salt", "value": 0.55, "reason": "prefill copied table salt (1.234); Maldon-style pyramid flakes run ~2.7 g/tsp (label serving) -> ~0.55"}
+{"kind": "density", "match_text": "agave", "value": 1.39, "reason": "FDC 170277's own tsp row (6.9 g -> 1.40) is right; the ranked pick took the 1/4-cup row (55 g -> 0.93) which is physically impossible for a syrup"}
+{"kind": "density", "match_text": "almond milk", "value": 1.01, "reason": "FDC 174832's cup portion overweighs (1.107); almond milk is nearly all water — labels say 240 ml ~= 245 g (1.01)"}
+{"kind": "density", "match_text": "sriracha", "value": 1.05, "reason": "FDC 171186's 6.5 g tsp (1.32) overweighs; Huy Fong's label tsp is 5 g (~1.0) — 1.05 for a dense puree"}
+{"kind": "density", "match_text": "flaxseed meal", "value": 0.47, "reason": "prefill value (0.71) is whole flaxseed; ground meal is fluffier — labels (Bob's Red Mill/Spectrum) say 2 tbsp ~= 13-14 g -> 0.47"}
+{"kind": "density", "match_text": "spelt flour", "value": 0.51, "reason": "prefill value (0.736) is the whole spelt grain (FDC 169745); milled spelt flour labels say 1/4 cup = 30 g -> 0.51"}
+{"kind": "density", "match_text": "vanilla paste", "value": 1.2, "reason": "prefill copied vanilla extract (0.879, alcohol-based); paste is a thick sugar syrup — Nielsen-Massey label tsp ~6 g -> ~1.2"}
+{"kind": "density", "match_text": "hummus", "value": 1.04, "reason": "FDC 321358's cup row lands 1.146 which overweighs a whipped spread; label tbsp ~15-16 g -> ~1.04"}
+{"kind": "density", "match_text": "panko", "value": 0.25, "reason": "prefill copies standard grated crumbs (108 g/cup -> 0.456); panko flakes are far airier — labels (Kikkoman) say 1/2 cup = 30 g -> 0.25"}
+//
+// --- densities: audit round 1 — R1 fills (volume default, no FDC portion) --
+{"kind": "density", "match_text": "wheat flour whole", "value": 0.51, "reason": "Foundation 790085 carries no volume portion; whole-wheat flour labels say 1/4 cup = 30 g (~120 g/cup -> 0.51)"}
+{"kind": "density", "match_text": "white rice flour", "value": 0.67, "reason": "Foundation 790214 carries no volume portion; SR rice flour's cup is 158 g -> 0.67"}
+{"kind": "density", "match_text": "almond flour", "value": 0.41, "reason": "Foundation 2261420 carries no volume portion; labels (King Arthur ~96 g/cup, Blue Diamond 28 g per 1/4 cup) -> ~0.41"}
+{"kind": "density", "match_text": "cashew", "value": 0.58, "reason": "FDC 170162 has only mass portions; a cup of whole raw cashews is ~137 g -> 0.58"}
+{"kind": "density", "match_text": "chia seed", "value": 0.81, "reason": "FDC 170554 has only oz portions; labels say 2 tbsp ~= 24 g -> 0.81"}
+{"kind": "density", "match_text": "nutritional yeast", "value": 0.4, "reason": "no FDC food; flake-size varies wildly by brand (Bragg 2 tbsp = 16 g -> 0.54, Bob's large flake 1/4 cup = 15 g -> 0.25) — 0.4 is the middle of the honest range"}
+{"kind": "density", "match_text": "kale", "value": 0.089, "reason": "FDC 168421 lacks a cup row; a cup of chopped raw kale is ~21 g -> 0.089"}
+{"kind": "density", "match_text": "arugula", "value": 0.085, "reason": "FDC 169387's own half-cup leaf row is 10 g -> 0.085 (excluded by the ranked pick's sanity floor)"}
+{"kind": "density", "match_text": "cilantro", "value": 0.068, "reason": "FDC 169997's 1/4-cup row is 4 g -> 0.068 (below the derivation's 0.1 sanity floor, but leafy herbs genuinely are this light)"}
+{"kind": "density", "match_text": "dill", "value": 0.038, "reason": "FDC 172233's sprig-cup ~9 g -> 0.038; feathery fresh dill really is near-weightless per cup"}
+{"kind": "density", "match_text": "ketchup", "value": 1.14, "reason": "Foundation 747693 carries no volume portion; SR ketchup tbsp is 17 g -> 1.14"}
+{"kind": "density", "match_text": "oat milk", "value": 1.01, "reason": "Foundation 2257046 carries no volume portion; oat milk is nearly all water — label 240 ml ~= 243 g -> 1.01"}
+{"kind": "density", "match_text": "plant milk", "value": 1.01, "reason": "generic milk-alternative slot: every common plant milk (oat/soy/almond) sits at ~1.01"}
+{"kind": "density", "match_text": "rice vinegar", "value": 1.0, "reason": "no FDC food; a 4-5% acetic solution is water-like — FDC's other vinegars sit 1.01 (typical)"}
+{"kind": "density", "match_text": "sherry vinegar", "value": 1.01, "reason": "no FDC food; wine vinegars (FDC red wine vinegar) sit at 1.01"}
+{"kind": "density", "match_text": "ume plum vinegar", "value": 1.02, "reason": "no FDC food; a salted plum brine, slightly denser than plain vinegar (typical)"}
+{"kind": "density", "match_text": "dijon mustard", "value": 1.05, "reason": "no FDC dijon; label tsp is 5 g -> ~1.0-1.05 (prepared yellow mustard's FDC density is 0.99; dijon is slightly denser)"}
+{"kind": "density", "match_text": "vegan mayonnaise", "value": 0.96, "reason": "no FDC food; label (Hellmann's vegan) tbsp = 14 g -> 0.95, matching dairy mayo"}
+{"kind": "density", "match_text": "mini pretzel", "value": 0.23, "reason": "FDC 167555 has no cup row; a cup of mini twists is ~55 g by label serving math (20 minis = 28 g) -> 0.23"}
+{"kind": "density", "match_text": "chex cereal", "value": 0.13, "reason": "audit suggested 0.25 but that is Wheat Chex only; snack-mix recipes overwhelmingly use Rice/Corn Chex whose labels say 27-31 g per cup -> 0.13 (recorded disagreement)"}
+{"kind": "density", "match_text": "orange juice", "value": 1.048, "reason": "matches the new FDC 169098 link (cup 248 g); kept explicit so the R1 invariant documents the value with the fills"}
+{"kind": "density", "match_text": "farro", "value": 0.79, "reason": "no FDC food; label (Bob's Red Mill) 1/4 cup = 47 g -> ~188 g/cup -> 0.79"}
+{"kind": "density", "match_text": "black rice", "value": 0.78, "reason": "no FDC food; dry rice cups run ~185 g (typical, matches white/brown rice family)"}
+{"kind": "density", "match_text": "red rice", "value": 0.78, "reason": "no FDC food; dry rice cups run ~185 g (typical, matches white/brown rice family)"}
+{"kind": "density", "match_text": "coconut whip", "value": 0.3, "reason": "no FDC food; whipped toppings are mostly air — label (So Delicious CocoWhip) 2 tbsp = 9 g -> 0.3"}
+{"kind": "density", "match_text": "coconut yogurt", "value": 1.03, "reason": "no FDC food; yogurts sit at ~1.03 (typical)"}
+{"kind": "density", "match_text": "plant butter", "value": 0.95, "reason": "no FDC food; label (Miyoko's/Country Crock plant) tbsp = 14 g -> 0.95, matching dairy butter"}
+{"kind": "density", "match_text": "chili crisp", "value": 0.95, "reason": "no FDC food; oil plus settled solids — label (Fly By Jing/Lao Gan Ma) tbsp ~= 14 g -> 0.95"}
+{"kind": "density", "match_text": "bouillon paste", "value": 1.22, "reason": "no FDC food; label (Better Than Bouillon) tsp = 6 g -> 1.22"}
+{"kind": "density", "match_text": "liquid amino", "value": 1.08, "reason": "no FDC food; soy-sauce family (FDC tamari cup 255 g -> 1.08)"}
+{"kind": "density", "match_text": "liquid smoke", "value": 1.0, "reason": "an aqueous smoke condensate (dash default, but the curated tsp entry needs the volume bridge); water-like (typical)"}
+{"kind": "density", "match_text": "vegan worcestershire sauce", "value": 1.16, "reason": "no FDC vegan food; FDC worcestershire (170063) cup is 275 g -> 1.16 — the vegan recipe differs only in omitting anchovy"}
+{"kind": "density", "match_text": "oregano fresh", "value": 0.15, "reason": "no FDC food for fresh oregano; fresh-herb leaves run ~0.7-0.8 g/tsp (FDC fresh thyme family) -> 0.15 (typical)"}
+{"kind": "density", "match_text": "tender green", "value": 0.1, "reason": "a salad-greens slot; its members bracket it (spinach 0.127, arugula 0.085) -> 0.1 (typical)"}
+{"kind": "density", "match_text": "vegan parmesan", "value": 0.42, "reason": "no FDC vegan food; grated parmesan runs ~100 g/cup -> 0.42 (borrowed family value)"}
+//
+// --- densities: audit round 1 — mass-default rows that still speak cups ----
+{"kind": "density", "match_text": "chickpea canned", "value": 0.69, "reason": "audit suggested ~1.02 (undrained can) but the linked FDC 173800 is DRAINED SOLIDS — the macro basis; a cup of drained chickpeas is ~164 g -> 0.69 (recorded disagreement)"}
+{"kind": "density", "match_text": "pinto bean canned", "value": 0.72, "reason": "linked FDC 174286 is drained solids; a cup of drained pinto beans is ~171 g -> 0.72 (audit's ~1.05 was the undrained can — recorded disagreement)"}
+{"kind": "density", "match_text": "dark red kidney bean canned", "value": 0.74, "reason": "linked FDC 174285 is drained solids; a cup of drained kidney beans is ~175 g -> 0.74 (audit's ~1.05 was the undrained can — recorded disagreement)"}
+{"kind": "density", "match_text": "light red kidney bean canned", "value": 0.74, "reason": "linked FDC 174285 is drained solids; a cup of drained kidney beans is ~175 g -> 0.74 (recorded disagreement, as dark red)"}
+{"kind": "density", "match_text": "shiitake mushroom", "value": 0.3, "reason": "FDC 169242 has no volume portion; borrowed from the mushroom family (maitake's diced cup 70 g -> 0.30) for sliced-cup entry"}
+//
+// --- macros: label-sourced fills/fixes (audit round 1) ---------------------
+{"kind": "macros", "match_text": "nutritional yeast", "macros": {"kcal": 375, "protein": 50, "fat": 3.1, "carb": 31.3, "fiber": 18.8}, "source": "label:Bragg nutritional yeast", "reason": "no FDC food (yeast extract spread is not nooch); Bragg's label per 16 g serving, scaled to 100 g"}
+{"kind": "macros", "match_text": "dijon mustard", "macros": {"kcal": 161, "protein": 7.5, "fat": 12, "carb": 3.5}, "source": "label:Maille Dijon Originale", "reason": "no FDC dijon (only prepared yellow); Maille's EU label prints per-100 g directly"}
+{"kind": "macros", "match_text": "rice vinegar", "macros": {"kcal": 18, "protein": 0, "fat": 0, "carb": 1.5}, "source": "label:typical unseasoned rice vinegar", "reason": "no FDC rice vinegar; unseasoned brewed rice vinegar labels round to zero per tbsp — ~18 kcal/100 ml from residual sugars is the typical analytic value"}
+{"kind": "macros", "match_text": "farro", "macros": {"kcal": 319, "protein": 10.6, "fat": 2.1, "carb": 68.1, "fiber": 8.5}, "source": "label:Bob's Red Mill organic farro", "reason": "no FDC farro (emmer); label per 47 g serving, scaled to 100 g"}
+{"kind": "macros", "match_text": "vegan mayonnaise", "macros": {"kcal": 643, "protein": 0, "fat": 71.4, "carb": 7.1}, "source": "label:Hellmann's vegan mayo", "reason": "no FDC vegan mayo (imitation soybean mayo is a low-fat product, not this); label per 14 g serving, scaled to 100 g"}
+{"kind": "macros", "match_text": "sprouted multigrain bread", "macros": {"kcal": 235, "protein": 11.8, "fat": 1.5, "carb": 44.1, "fiber": 8.8}, "source": "label:Food for Life Ezekiel 4:9", "reason": "FDC 171850 prints fat 0 for a whole-grain seeded bread — impossible; the category-defining sprouted loaf's label (per 34 g slice) scaled to 100 g"}

@@ -229,6 +229,27 @@ function writeCuration(dir: string): void {
     "",
   ];
 
+  // Label-sourced macros: rows FDC genuinely lacks (no-analogue keeps them
+  // link-less) or whose FDC macros are wrong get honest label numbers, flip
+  // to complete, and carry a visible "label:…" source.
+  let macroFills = 0;
+  for (const o of overrides) {
+    if (o.kind === "macros") {
+      macroFills++;
+      sql.push(
+        `-- ${o.match_text}: ${o.reason}`,
+        "update ingredient set",
+        `  macros = ${q(JSON.stringify(o.macros))}::jsonb,`,
+        `  source = ${q(o.source!)},`,
+        "  status = 'complete'",
+        `where household_id = ${q(HOUSEHOLD_ID)} and match_text = ${
+          q(o.match_text)
+        };`,
+        "",
+      );
+    }
+  }
+
   // Density overrides FIRST, so the allowed_units refresh below sees them.
   let densities = 0, unitTweaks = 0;
   for (const o of overrides) {
@@ -297,9 +318,28 @@ function writeCuration(dir: string): void {
   }
 
   sql.push(
-    "do $$ begin",
+    "-- R1 invariant (Simon, 2026-08-29): a volume default_unit REQUIRES a",
+    "-- density — a volume line on a density-less per-g ingredient can never",
+    "-- compute macros, so the class must not silently return. Fill an honest",
+    "-- density (FDC / label / typical, tagged) or flip the default to a",
+    "-- weight, always via the pipeline inputs.",
+    "do $$",
+    "declare violators text;",
+    "begin",
+    "  select string_agg(canonical_name || ' (' || default_unit || ')', ', ')",
+    "    into violators",
+    "  from ingredient",
+    `  where household_id = ${q(HOUSEHOLD_ID)} and deleted_at is null`,
+    "    and default_unit in ('ml', 'l', 'tsp', 'tbsp', 'fl_oz', 'cup')",
+    "    and density_g_per_ml is null;",
+    "  if violators is not null then",
+    "    raise exception",
+    "      'seed_curation R1: volume-default rows with no density: %',",
+    "      violators;",
+    "  end if;",
     "  raise notice 'seed_curation: allowed_units refreshed; " +
-      `${densities} density + ${unitTweaks} allowed-unit overrides';`,
+      `${macroFills} macro + ${densities} density + ${unitTweaks} ` +
+      "allowed-unit overrides; R1 (volume default => density) holds';",
     "end $$;",
     "",
     "commit;",
@@ -309,7 +349,8 @@ function writeCuration(dir: string): void {
   const target = `${dir}../../seed_curation.sql`;
   Deno.writeTextFileSync(target, sql.join("\n"));
   console.log(
-    `wrote ${target}\n  ${densities} density + ${unitTweaks} allowed-unit overrides`,
+    `wrote ${target}\n  ${macroFills} macro + ${densities} density + ` +
+      `${unitTweaks} allowed-unit overrides`,
   );
 }
 

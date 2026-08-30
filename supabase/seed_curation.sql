@@ -8,9 +8,255 @@
 
 begin;
 
+-- nutritional yeast: no FDC food (yeast extract spread is not nooch); Bragg's label per 16 g serving, scaled to 100 g
+update ingredient set
+  macros = '{"kcal":375,"protein":50,"fat":3.1,"carb":31.3,"fiber":18.8}'::jsonb,
+  source = 'label:Bragg nutritional yeast',
+  status = 'complete'
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'nutritional yeast';
+
+-- dijon mustard: no FDC dijon (only prepared yellow); Maille's EU label prints per-100 g directly
+update ingredient set
+  macros = '{"kcal":161,"protein":7.5,"fat":12,"carb":3.5}'::jsonb,
+  source = 'label:Maille Dijon Originale',
+  status = 'complete'
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'dijon mustard';
+
+-- rice vinegar: no FDC rice vinegar; unseasoned brewed rice vinegar labels round to zero per tbsp — ~18 kcal/100 ml from residual sugars is the typical analytic value
+update ingredient set
+  macros = '{"kcal":18,"protein":0,"fat":0,"carb":1.5}'::jsonb,
+  source = 'label:typical unseasoned rice vinegar',
+  status = 'complete'
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'rice vinegar';
+
+-- farro: no FDC farro (emmer); label per 47 g serving, scaled to 100 g
+update ingredient set
+  macros = '{"kcal":319,"protein":10.6,"fat":2.1,"carb":68.1,"fiber":8.5}'::jsonb,
+  source = 'label:Bob''s Red Mill organic farro',
+  status = 'complete'
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'farro';
+
+-- vegan mayonnaise: no FDC vegan mayo (imitation soybean mayo is a low-fat product, not this); label per 14 g serving, scaled to 100 g
+update ingredient set
+  macros = '{"kcal":643,"protein":0,"fat":71.4,"carb":7.1}'::jsonb,
+  source = 'label:Hellmann''s vegan mayo',
+  status = 'complete'
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegan mayonnaise';
+
+-- sprouted multigrain bread: FDC 171850 prints fat 0 for a whole-grain seeded bread — impossible; the category-defining sprouted loaf's label (per 34 g slice) scaled to 100 g
+update ingredient set
+  macros = '{"kcal":235,"protein":11.8,"fat":1.5,"carb":44.1,"fiber":8.8}'::jsonb,
+  source = 'label:Food for Life Ezekiel 4:9',
+  status = 'complete'
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sprouted multigrain bread';
+
 -- banana: the ranked pick landed on FDC's mashed cup (225 g -> 0.951); sliced (150 g/cup -> 0.634) is what a volume of banana means in a recipe
 update ingredient set density_g_per_ml = 0.634
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'banana';
+
+-- rolled oat: FDC 169705's 156 g cup describes steel-cut/whole oats; rolled-oat labels print 40 g per 1/2 cup (~81 g/cup -> 0.34) and Steel-Cut Oats keeps the FDC value
+update ingredient set density_g_per_ml = 0.34
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'rolled oat';
+
+-- kosher salt: prefill copied table salt (1.234) but kosher is flaked: Diamond Crystal ~2.8 g/tsp (0.57), Morton ~4.8 g/tsp (0.97) — 0.7 is the defensible middle; per-brand truth belongs to the user's own edit
+update ingredient set density_g_per_ml = 0.7
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'kosher salt';
+
+-- flaky salt: prefill copied table salt (1.234); Maldon-style pyramid flakes run ~2.7 g/tsp (label serving) -> ~0.55
+update ingredient set density_g_per_ml = 0.55
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'flaky salt';
+
+-- agave: FDC 170277's own tsp row (6.9 g -> 1.40) is right; the ranked pick took the 1/4-cup row (55 g -> 0.93) which is physically impossible for a syrup
+update ingredient set density_g_per_ml = 1.39
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'agave';
+
+-- almond milk: FDC 174832's cup portion overweighs (1.107); almond milk is nearly all water — labels say 240 ml ~= 245 g (1.01)
+update ingredient set density_g_per_ml = 1.01
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'almond milk';
+
+-- sriracha: FDC 171186's 6.5 g tsp (1.32) overweighs; Huy Fong's label tsp is 5 g (~1.0) — 1.05 for a dense puree
+update ingredient set density_g_per_ml = 1.05
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sriracha';
+
+-- flaxseed meal: prefill value (0.71) is whole flaxseed; ground meal is fluffier — labels (Bob's Red Mill/Spectrum) say 2 tbsp ~= 13-14 g -> 0.47
+update ingredient set density_g_per_ml = 0.47
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'flaxseed meal';
+
+-- spelt flour: prefill value (0.736) is the whole spelt grain (FDC 169745); milled spelt flour labels say 1/4 cup = 30 g -> 0.51
+update ingredient set density_g_per_ml = 0.51
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'spelt flour';
+
+-- vanilla paste: prefill copied vanilla extract (0.879, alcohol-based); paste is a thick sugar syrup — Nielsen-Massey label tsp ~6 g -> ~1.2
+update ingredient set density_g_per_ml = 1.2
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vanilla paste';
+
+-- hummus: FDC 321358's cup row lands 1.146 which overweighs a whipped spread; label tbsp ~15-16 g -> ~1.04
+update ingredient set density_g_per_ml = 1.04
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'hummus';
+
+-- panko: prefill copies standard grated crumbs (108 g/cup -> 0.456); panko flakes are far airier — labels (Kikkoman) say 1/2 cup = 30 g -> 0.25
+update ingredient set density_g_per_ml = 0.25
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'panko';
+
+-- wheat flour whole: Foundation 790085 carries no volume portion; whole-wheat flour labels say 1/4 cup = 30 g (~120 g/cup -> 0.51)
+update ingredient set density_g_per_ml = 0.51
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'wheat flour whole';
+
+-- white rice flour: Foundation 790214 carries no volume portion; SR rice flour's cup is 158 g -> 0.67
+update ingredient set density_g_per_ml = 0.67
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'white rice flour';
+
+-- almond flour: Foundation 2261420 carries no volume portion; labels (King Arthur ~96 g/cup, Blue Diamond 28 g per 1/4 cup) -> ~0.41
+update ingredient set density_g_per_ml = 0.41
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'almond flour';
+
+-- cashew: FDC 170162 has only mass portions; a cup of whole raw cashews is ~137 g -> 0.58
+update ingredient set density_g_per_ml = 0.58
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cashew';
+
+-- chia seed: FDC 170554 has only oz portions; labels say 2 tbsp ~= 24 g -> 0.81
+update ingredient set density_g_per_ml = 0.81
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'chia seed';
+
+-- nutritional yeast: no FDC food; flake-size varies wildly by brand (Bragg 2 tbsp = 16 g -> 0.54, Bob's large flake 1/4 cup = 15 g -> 0.25) — 0.4 is the middle of the honest range
+update ingredient set density_g_per_ml = 0.4
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'nutritional yeast';
+
+-- kale: FDC 168421 lacks a cup row; a cup of chopped raw kale is ~21 g -> 0.089
+update ingredient set density_g_per_ml = 0.089
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'kale';
+
+-- arugula: FDC 169387's own half-cup leaf row is 10 g -> 0.085 (excluded by the ranked pick's sanity floor)
+update ingredient set density_g_per_ml = 0.085
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'arugula';
+
+-- cilantro: FDC 169997's 1/4-cup row is 4 g -> 0.068 (below the derivation's 0.1 sanity floor, but leafy herbs genuinely are this light)
+update ingredient set density_g_per_ml = 0.068
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cilantro';
+
+-- dill: FDC 172233's sprig-cup ~9 g -> 0.038; feathery fresh dill really is near-weightless per cup
+update ingredient set density_g_per_ml = 0.038
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'dill';
+
+-- ketchup: Foundation 747693 carries no volume portion; SR ketchup tbsp is 17 g -> 1.14
+update ingredient set density_g_per_ml = 1.14
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'ketchup';
+
+-- oat milk: Foundation 2257046 carries no volume portion; oat milk is nearly all water — label 240 ml ~= 243 g -> 1.01
+update ingredient set density_g_per_ml = 1.01
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'oat milk';
+
+-- plant milk: generic milk-alternative slot: every common plant milk (oat/soy/almond) sits at ~1.01
+update ingredient set density_g_per_ml = 1.01
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'plant milk';
+
+-- rice vinegar: no FDC food; a 4-5% acetic solution is water-like — FDC's other vinegars sit 1.01 (typical)
+update ingredient set density_g_per_ml = 1
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'rice vinegar';
+
+-- sherry vinegar: no FDC food; wine vinegars (FDC red wine vinegar) sit at 1.01
+update ingredient set density_g_per_ml = 1.01
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sherry vinegar';
+
+-- ume plum vinegar: no FDC food; a salted plum brine, slightly denser than plain vinegar (typical)
+update ingredient set density_g_per_ml = 1.02
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'ume plum vinegar';
+
+-- dijon mustard: no FDC dijon; label tsp is 5 g -> ~1.0-1.05 (prepared yellow mustard's FDC density is 0.99; dijon is slightly denser)
+update ingredient set density_g_per_ml = 1.05
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'dijon mustard';
+
+-- vegan mayonnaise: no FDC food; label (Hellmann's vegan) tbsp = 14 g -> 0.95, matching dairy mayo
+update ingredient set density_g_per_ml = 0.96
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegan mayonnaise';
+
+-- mini pretzel: FDC 167555 has no cup row; a cup of mini twists is ~55 g by label serving math (20 minis = 28 g) -> 0.23
+update ingredient set density_g_per_ml = 0.23
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'mini pretzel';
+
+-- chex cereal: audit suggested 0.25 but that is Wheat Chex only; snack-mix recipes overwhelmingly use Rice/Corn Chex whose labels say 27-31 g per cup -> 0.13 (recorded disagreement)
+update ingredient set density_g_per_ml = 0.13
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'chex cereal';
+
+-- orange juice: matches the new FDC 169098 link (cup 248 g); kept explicit so the R1 invariant documents the value with the fills
+update ingredient set density_g_per_ml = 1.048
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'orange juice';
+
+-- farro: no FDC food; label (Bob's Red Mill) 1/4 cup = 47 g -> ~188 g/cup -> 0.79
+update ingredient set density_g_per_ml = 0.79
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'farro';
+
+-- black rice: no FDC food; dry rice cups run ~185 g (typical, matches white/brown rice family)
+update ingredient set density_g_per_ml = 0.78
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'black rice';
+
+-- red rice: no FDC food; dry rice cups run ~185 g (typical, matches white/brown rice family)
+update ingredient set density_g_per_ml = 0.78
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'red rice';
+
+-- coconut whip: no FDC food; whipped toppings are mostly air — label (So Delicious CocoWhip) 2 tbsp = 9 g -> 0.3
+update ingredient set density_g_per_ml = 0.3
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut whip';
+
+-- coconut yogurt: no FDC food; yogurts sit at ~1.03 (typical)
+update ingredient set density_g_per_ml = 1.03
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut yogurt';
+
+-- plant butter: no FDC food; label (Miyoko's/Country Crock plant) tbsp = 14 g -> 0.95, matching dairy butter
+update ingredient set density_g_per_ml = 0.95
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'plant butter';
+
+-- chili crisp: no FDC food; oil plus settled solids — label (Fly By Jing/Lao Gan Ma) tbsp ~= 14 g -> 0.95
+update ingredient set density_g_per_ml = 0.95
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'chili crisp';
+
+-- bouillon paste: no FDC food; label (Better Than Bouillon) tsp = 6 g -> 1.22
+update ingredient set density_g_per_ml = 1.22
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'bouillon paste';
+
+-- liquid amino: no FDC food; soy-sauce family (FDC tamari cup 255 g -> 1.08)
+update ingredient set density_g_per_ml = 1.08
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'liquid amino';
+
+-- liquid smoke: an aqueous smoke condensate (dash default, but the curated tsp entry needs the volume bridge); water-like (typical)
+update ingredient set density_g_per_ml = 1
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'liquid smoke';
+
+-- vegan worcestershire sauce: no FDC vegan food; FDC worcestershire (170063) cup is 275 g -> 1.16 — the vegan recipe differs only in omitting anchovy
+update ingredient set density_g_per_ml = 1.16
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegan worcestershire sauce';
+
+-- oregano fresh: no FDC food for fresh oregano; fresh-herb leaves run ~0.7-0.8 g/tsp (FDC fresh thyme family) -> 0.15 (typical)
+update ingredient set density_g_per_ml = 0.15
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'oregano fresh';
+
+-- tender green: a salad-greens slot; its members bracket it (spinach 0.127, arugula 0.085) -> 0.1 (typical)
+update ingredient set density_g_per_ml = 0.1
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tender green';
+
+-- vegan parmesan: no FDC vegan food; grated parmesan runs ~100 g/cup -> 0.42 (borrowed family value)
+update ingredient set density_g_per_ml = 0.42
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegan parmesan';
+
+-- chickpea canned: audit suggested ~1.02 (undrained can) but the linked FDC 173800 is DRAINED SOLIDS — the macro basis; a cup of drained chickpeas is ~164 g -> 0.69 (recorded disagreement)
+update ingredient set density_g_per_ml = 0.69
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'chickpea canned';
+
+-- pinto bean canned: linked FDC 174286 is drained solids; a cup of drained pinto beans is ~171 g -> 0.72 (audit's ~1.05 was the undrained can — recorded disagreement)
+update ingredient set density_g_per_ml = 0.72
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pinto bean canned';
+
+-- dark red kidney bean canned: linked FDC 174285 is drained solids; a cup of drained kidney beans is ~175 g -> 0.74 (audit's ~1.05 was the undrained can — recorded disagreement)
+update ingredient set density_g_per_ml = 0.74
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'dark red kidney bean canned';
+
+-- light red kidney bean canned: linked FDC 174285 is drained solids; a cup of drained kidney beans is ~175 g -> 0.74 (recorded disagreement, as dark red)
+update ingredient set density_g_per_ml = 0.74
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'light red kidney bean canned';
+
+-- shiitake mushroom: FDC 169242 has no volume portion; borrowed from the mushroom family (maitake's diced cup 70 g -> 0.30) for sliced-cup entry
+update ingredient set density_g_per_ml = 0.3
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'shiitake mushroom';
 
 -- Re-materialize allowed_units with post-prefill (and post-override)
 -- densities: the insert trigger ran before seed_prefill landed them,
@@ -313,8 +559,26 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'tsp')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'navy bean canned';
 
-do $$ begin
-  raise notice 'seed_curation: allowed_units refreshed; 1 density + 35 allowed-unit overrides';
+-- R1 invariant (Simon, 2026-08-29): a volume default_unit REQUIRES a
+-- density — a volume line on a density-less per-g ingredient can never
+-- compute macros, so the class must not silently return. Fill an honest
+-- density (FDC / label / typical, tagged) or flip the default to a
+-- weight, always via the pipeline inputs.
+do $$
+declare violators text;
+begin
+  select string_agg(canonical_name || ' (' || default_unit || ')', ', ')
+    into violators
+  from ingredient
+  where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null
+    and default_unit in ('ml', 'l', 'tsp', 'tbsp', 'fl_oz', 'cup')
+    and density_g_per_ml is null;
+  if violators is not null then
+    raise exception
+      'seed_curation R1: volume-default rows with no density: %',
+      violators;
+  end if;
+  raise notice 'seed_curation: allowed_units refreshed; 6 macro + 52 density + 35 allowed-unit overrides; R1 (volume default => density) holds';
 end $$;
 
 commit;
