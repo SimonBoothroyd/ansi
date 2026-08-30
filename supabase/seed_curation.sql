@@ -559,6 +559,254 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'tsp')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'navy bean canned';
 
+-- olive oil: a pinch of a liquid is senseless; to_taste stays — olive oil finishes dishes
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'olive oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'olive oil';
+
+-- sesame oil toasted: a pinch of a liquid is senseless; to_taste stays — toasted sesame is a finishing oil
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sesame oil toasted';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sesame oil toasted';
+
+-- avocado oil: a cooking oil is measured, not pinched or seasoned to taste
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'avocado oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'avocado oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'to_taste')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'avocado oil';
+
+-- sunflower oil: a cooking oil is measured, not pinched or seasoned to taste
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sunflower oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sunflower oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'to_taste')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sunflower oil';
+
+-- coconut oil: a cooking oil is measured, not pinched or seasoned to taste
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'to_taste')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut oil';
+
+-- high heat oil: a cooking oil is measured, not pinched or seasoned to taste
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'high heat oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'high heat oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'to_taste')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'high heat oil';
+
+-- canola oil: a cooking oil is measured, not pinched or seasoned to taste
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'canola oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'canola oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'to_taste')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'canola oil';
+
+-- corn oil: a cooking oil is measured, not pinched or seasoned to taste
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'corn oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'corn oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'to_taste')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'corn oil';
+
+-- peanut oil: a cooking oil is measured, not pinched or seasoned to taste
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'peanut oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'peanut oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'to_taste')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'peanut oil';
+
+-- safflower oil: a cooking oil is measured, not pinched or seasoned to taste
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'safflower oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'safflower oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'to_taste')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'safflower oil';
+
+-- vegetable oil: a cooking oil is measured, not pinched or seasoned to taste
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegetable oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegetable oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'to_taste')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegetable oil';
+
+-- plant butter: butter is measured in spoons/grams, not pinched
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'plant butter';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'plant butter';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'to_taste')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'plant butter';
+
+-- cabbage: the R2 weight default unlocked the volume family; cups of shredded cabbage are real, spoons are not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cabbage';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cabbage';
+
+-- romaine lettuce: cups of chopped romaine are real, spoons are not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'romaine lettuce';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'romaine lettuce';
+
+-- iceberg lettuce: cups of shredded iceberg are real, spoons are not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'iceberg lettuce';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'iceberg lettuce';
+
+-- red leaf lettuce: cups of torn leaves are real, spoons are not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'red leaf lettuce';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'red leaf lettuce';
+
+-- cantaloupe: cups of cubed melon are real, spoons are not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cantaloupe';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cantaloupe';
+
+-- pineapple: cups of pineapple chunks are real, spoons are not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pineapple';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pineapple';
+
 -- R1 invariant (Simon, 2026-08-29): a volume default_unit REQUIRES a
 -- density — a volume line on a density-less per-g ingredient can never
 -- compute macros, so the class must not silently return. Fill an honest
@@ -578,7 +826,7 @@ begin
       'seed_curation R1: volume-default rows with no density: %',
       violators;
   end if;
-  raise notice 'seed_curation: allowed_units refreshed; 6 macro + 52 density + 35 allowed-unit overrides; R1 (volume default => density) holds';
+  raise notice 'seed_curation: allowed_units refreshed; 6 macro + 52 density + 53 allowed-unit overrides; R1 (volume default => density) holds';
 end $$;
 
 commit;

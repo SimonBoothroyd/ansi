@@ -195,3 +195,27 @@
 {"kind": "add_measure", "match_text": "burger bun", "label": "bun", "basis_amount": 44, "sort_order": 0, "source": "usda_fdc:172796 (1 roll 1 serving) — relabeled", "reason": "the FDC 'roll' serving row under the noun this vocab row counts (the extractor's rescue list doesn't know 'roll')"}
 {"kind": "add_measure", "match_text": "cinnamon", "label": "stick", "basis_amount": 2.6, "sort_order": 0, "source": "seed:typical", "reason": "cinnamon sticks are counted; a 3-inch quill is ~2.6 g"}
 {"kind": "add_measure", "match_text": "nori", "label": "sheet", "basis_amount": 2.5, "sort_order": 0, "source": "seed:typical", "reason": "nori is counted in sheets; a standard full sushi sheet is ~2.5 g"}
+//
+// --- allowed units: audit round 1 — imprecise overreach on fats & oils -----
+// The category gate hands pinch/dash/to_taste to all 12 oil rows; nobody
+// pinches a liquid. to_taste survives only on the finishing oils.
+{"kind": "allowed_units", "match_text": "olive oil", "remove": ["pinch", "dash"], "reason": "a pinch of a liquid is senseless; to_taste stays — olive oil finishes dishes"}
+{"kind": "allowed_units", "match_text": "sesame oil toasted", "remove": ["pinch", "dash"], "reason": "a pinch of a liquid is senseless; to_taste stays — toasted sesame is a finishing oil"}
+{"kind": "allowed_units", "match_text": "avocado oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "sunflower oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "coconut oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "high heat oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "canola oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "corn oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "peanut oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "safflower oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "vegetable oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "plant butter", "remove": ["pinch", "dash", "to_taste"], "reason": "butter is measured in spoons/grams, not pinched"}
+//
+// --- allowed units: R2 flips — head vegetables don't fit in spoons ---------
+{"kind": "allowed_units", "match_text": "cabbage", "remove": ["tsp", "tbsp"], "reason": "the R2 weight default unlocked the volume family; cups of shredded cabbage are real, spoons are not"}
+{"kind": "allowed_units", "match_text": "romaine lettuce", "remove": ["tsp", "tbsp"], "reason": "cups of chopped romaine are real, spoons are not"}
+{"kind": "allowed_units", "match_text": "iceberg lettuce", "remove": ["tsp", "tbsp"], "reason": "cups of shredded iceberg are real, spoons are not"}
+{"kind": "allowed_units", "match_text": "red leaf lettuce", "remove": ["tsp", "tbsp"], "reason": "cups of torn leaves are real, spoons are not"}
+{"kind": "allowed_units", "match_text": "cantaloupe", "remove": ["tsp", "tbsp"], "reason": "cups of cubed melon are real, spoons are not"}
+{"kind": "allowed_units", "match_text": "pineapple", "remove": ["tsp", "tbsp"], "reason": "cups of pineapple chunks are real, spoons are not"}
