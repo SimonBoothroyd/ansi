@@ -17,6 +17,7 @@ import '../../../core/theme/mise_tokens.dart';
 import '../../../shared/method_step_text.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
+import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
 import '../domain/preview_recipe.dart';
 import '../domain/reconciliation_payload.dart';
@@ -105,7 +106,12 @@ class ReconciliationBody extends HookConsumerWidget {
         _SourceNotes(payload: payload),
         _ServingsRow(state: state, onChanged: controller.setServings),
         const SizedBox(height: 10),
-        _SectionHeader(label: 'Ingredients', count: flat.length),
+        // The count is what the recipe will HAVE — a dropped line is on its way
+        // out, and counting it would contradict the greyed card saying so.
+        _SectionHeader(
+          label: 'Ingredients',
+          count: keptLines(state.resolutions).length,
+        ),
         ...rows,
         const SizedBox(height: 24),
         _MethodPreview(recipe: recipe),
@@ -121,7 +127,13 @@ class ReconciliationBody extends HookConsumerWidget {
               ? () => controller.commit(issuesByLine: issuesByLine)
               : null,
           child: Text(
-            canSave ? 'Save recipe' : '$outstanding line(s) need you',
+            canSave
+                ? 'Save recipe'
+                : keptLines(state.resolutions).isEmpty
+                // Every line dropped: the count would read "0 line(s) need
+                // you", which is true and useless.
+                ? 'Nothing left to save'
+                : '$outstanding line(s) need you',
           ),
         ),
       ],
