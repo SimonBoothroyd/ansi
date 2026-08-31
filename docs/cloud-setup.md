@@ -345,6 +345,21 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-08-31 — step-8 hardening rollout
+
+Human steps done (Simon): signup disabled + email provider off (Google-only,
+§3c); `ANTHROPIC_API_KEY` + `IMPORT_ALLOWED_HOUSEHOLDS` secrets set;
+`import-recipe` deployed (twice — the hardened function, then the
+benchmark-v2 adapter revision); §2 template reseed (FAO densities + produce
+volume admission) followed by `rollout_ingredient_refresh.sql` per §2b —
+preview → rollout → preview-reads-zero. Google sign-in verified live on the
+sim against cloud (external-browser flow foregrounds cleanly). Then verified
+read-only:
+
+- `./scripts/cloud_verify.sh`: **9 ok · 0 warn · 0 fail** — including the new
+  signup-disabled check and the Google-only email posture (script updated this
+  pass to treat email/password disabled as the intended cloud state).
+
 ### 2026-08-28 — step 7.5 completion pass (exec plan 0009)
 
 Human steps done (Simon): seeds run (`seed_usda.sql` + `seed_prefill.sql`),
