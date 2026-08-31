@@ -1,7 +1,10 @@
 # Unit & measure matching — how amounts are interpreted end to end
 
-_Mechanics explainer. Last traced against the tree on 2026-08-30 (ADR-0008
-accepted 2026-08-29; migrations 0009/0010/0012; step 7.7 quantity sheet)._
+_Mechanics explainer. **Re-traced 2026-08-31, after step 8 shipped** (first
+traced 2026-08-30, before the import path landed; ADR-0008 accepted 2026-08-29;
+migrations 0009/0010/0012; step 7.7 quantity sheet). Moved here from
+`docs/references/` — that directory is vendored dependency snapshots, and this is
+first-class knowledge about our own system._
 
 This is a reading of the code as it stands, written to answer three owner
 questions:
@@ -13,9 +16,10 @@ questions:
 3. What is overridable today vs fixed, and how should the UI let the user
    override the unit / measure / amount interpretation?
 
-It is a map, not a patch. Where the current adapters / prompts / gold handle
-"400 g tin" inconsistently, this doc **flags** it (see [§7](#7-flagged-the-400-g-tin-is-handled-inconsistently));
-it does not change them.
+It is a map, not a patch. Where the adapters / prompts / gold handle "400 g tin"
+inconsistently, this doc **flags** it (see
+[§7](#7-flagged-the-400-g-tin-is-handled-inconsistently)); it does not change
+them. Step 8 closed two of those four flags; the re-trace notes say which.
 
 ---
 
@@ -120,18 +124,38 @@ measures — the add-measure form redirects "cup" into the density field
 
 **Two things worth internalizing:**
 
-- **Sanitize is unit-aware but vocab-blind and measure-blind.** `unit_hints.ts`
-  feeds it *only* the catalog units + accepted imprecise words + size words. It
-  is explicitly **not** told the ingredient vocab or the per-ingredient measure
-  table (`can`, `clove`, `slice`). So the model can land a printed "g" on the
-  catalog `g`, but it can never mint a `can (400 g)` measure — it has no idea
-  what a can of *this* ingredient weighs.
+- **Sanitize is unit-aware and vocab-blind — and only *half* measure-blind.**
+  *(Corrected 2026-08-31: the first trace of this doc said `unit_hints.ts`
+  withholds `can`/`clove`/`slice`. It doesn't, and hasn't since the step-8
+  integration tail.)* The hint set is four lists:
+
+  | Hint list | Contents | Why ① gets it |
+  |---|---|---|
+  | `units` | the catalog's mappable ids — g, kg, mg, oz, lb, ml, l, tsp, tbsp, fl_oz, cup, piece | land a printed unit on a real catalog id |
+  | `imprecise` | pinch, dash, to_taste, handful | let a vague amount stay honestly vague instead of being force-fit to a number |
+  | `size_words` | large, medium, small, big, tiny | size scales the amount, it isn't a unit |
+  | `measures` | **clove · head · sprig · loaf · block · slice · can · bunch · stalk** | everyday **counting nouns**; without them ① force-fits "2 garlic cloves" onto `piece` (the clove→piece failure) |
+
+  The line that matters is between a counting **noun** and a per-ingredient
+  **basis**. `clove` is a word; "a clove of garlic weighs 3 g" is a fact about
+  garlic. The nouns are hinted; the `ingredient_measure` table — the gram/ml
+  basis riding on ONE ingredient — is **not**, and never reaches the model. So ①
+  can emit `unit: "clove"`, but it still cannot mint a `can (400 g)` measure: it
+  has no idea what a can of *this* ingredient weighs. `tin` is deliberately
+  absent from the list because the prompt normalises `tin → can`, so measure
+  labels don't fragment.
+
 - **The import pipeline stops at a `ReconciliationPayload`.** `assemble()` in
   `import-recipe/index.ts` copies `qty/unit/unit_mappable/raw_amount` through
-  untouched and attaches a match band. **It never creates an
+  untouched and attaches a match band. **The server never creates an
   `ingredient_measure` row and never assigns a `measure_id`.** Measure resolution
-  and any `measure_id` assignment happen **app-side at commit/edit**, through the
-  step-7.7 quantity sheet. This is the crux of question 2.
+  is entirely app-side, at commit/edit, through the step-7.7 quantity sheet —
+  which is the crux of question 2 and the reason §6 below is an app-layer story.
+  What the app *does* do at commit (`_measureIdFor`) is resolve a line's unit word
+  back to a measure **by exact, case-insensitive label**: a `unit: "clove"` line
+  lands `measure_id = <clove>` because the seeded label is literally `clove`. A
+  `unit: "can"` line usually does **not**, because the seeded labels carry their
+  basis — `can (16 oz)`, `can (15 oz), drained` — so the user picks the chip.
 
 ### The three fields through the pipeline
 
@@ -152,16 +176,19 @@ The concrete example, ingredient e.g. "chopped tomatoes" (per-g basis).
 
 ### Step A — extraction (①)
 
-The prompt's firm rule (`extraction.ts`, mirrored in gold `_SCHEMA.md`) covers
-the **multi-pack** shape:
+The prompt's firm rule (`extraction.ts`, mirrored in gold `_SCHEMA.md`) now
+covers **both** shapes — a single tin and a multi-pack:
 
-> MULTI-PACK CANS ("2½ x 400g cans"): `qty=2.5, unit="can"` (NOT null). Keep any
-> printed drained weight in `raw_amount` and add a parse_warning.
+> CANS / TINS: a SINGLE "400 g tin" / "one 400 g can" → `qty=1, unit="can"` (NOT
+> `qty=400, unit="g"`); a MULTI-PACK "2½ × 400 g cans" → `qty=2.5, unit="can"`.
+> Either way **the count is the amount**; the gram basis lives in the measure
+> system (keep it in `raw_amount`). Normalise "tin" → "can".
 
-So a can line emerges as **`qty=N, unit="can", unit_mappable=false`**, with the
-full `"… 400 g …"` phrase in `raw_amount`. The **400 g is not yet a number the
-system can compute with** — it lives only as text in `raw_amount`. (For the
-single-tin `qty=1` case the prompt is *silent* — see [§7](#7-flagged-the-400-g-tin-is-handled-inconsistently).)
+So a can line emerges as **`qty=N, unit="can"`**, with the full `"… 400 g …"`
+phrase in `raw_amount`. The **400 g is not yet a number the system can compute
+with** — it lives only as text in `raw_amount`. (The single-tin rule was missing
+when this doc was first written; it landed with step 8 — see
+[§7](#7-flagged-the-400-g-tin-is-handled-inconsistently) for what's left.)
 
 ### Step B — normalize + match
 
@@ -272,7 +299,7 @@ honest unit to round to).
 | **Amount / quantity** | same sheet | the quantity field (nullable — "to taste" is allowed) |
 | **Add / delete a measure** | manage state of the sheet (`_MeasureManager`) | `addMeasure` (saved `manual`), `softDeleteMeasure` |
 | **Density** | manage state (`_DensityEntry`) | g/ml or "a spoon weighs N g"; unlocks the other family live |
-| **Which units are _admitted_** (`allowed_units`) | intended: the step-8 flesh-out form (ADR-0008 §Consequences) | explicit jsonb list on `ingredient`; density writes union in `densityUnlockedUnits` |
+| **Which units are _admitted_** (`allowed_units`) | **nowhere yet** — the flesh-out form ADR-0008 §Consequences promised was deferred to step 8 and step 8 didn't build it ([tracker](../exec-plans/tech-debt-tracker.md)) | explicit jsonb list on `ingredient`, materialized at creation; the only in-app write that extends it is a density save (`densityUnlockedUnits`) |
 
 The picker itself is honest by construction: `allowedUnitChoicesFor` offers
 only the ingredient's admitted units + its live measures, in ADR-0008 chip order
@@ -295,23 +322,41 @@ existing line never renders an orphaned value.
 - **The import pipeline's output** — the user resolves it at reconciliation, but
   can't reconfigure how sanitize/normalize/match behave.
 
-### The gap this exposes
+### The gap this exposed — **closed by step 8**, except one piece
 
-At **import/reconcile time**, the only override surface today is choosing an
-ingredient (match band) and, once committed, editing the line in the 7.7 sheet.
-There is **no reconciliation-stage control that turns the printed "400 g tin"
-into a `can (400 g)` measure automatically** — the pipeline preserves it only as
-`raw_amount` text, and the burden of minting the measure falls on the user in the
-manage-measures form after the fact. That is the seam the override model below
-targets.
+> When this doc was first written, reconcile-time override didn't exist: the only
+> handles were the match band, and then editing the committed line in the 7.7
+> sheet afterwards. Step 8 shipped the override model described in §6 below —
+> the review screen routes each line into the same 7.7 sheet, seeded from the raw
+> line. What did **not** ship is §6.3, the "make a measure from this label"
+> affordance. So the residual gap is narrower and specific: a printed "400 g tin"
+> still can't become a `can (400 g)` measure at review; it survives as
+> `raw_amount` text and the user mints the measure in the manage-measures form
+> after the fact.
 
 ---
 
-## 6. Recommended override model for reconciliation
+## 6. The reconciliation override model — **shipped in step 8** (§6.3 excepted)
 
 **Goal:** let the user correct the unit / measure / amount interpretation of an
 imported line *at reconcile time*, reusing the 7.7 sheet, without ever inventing
 grams.
+
+**Status per subsection**, so this reads as a description and not a proposal:
+
+| | | |
+|---|---|---|
+| §6.1 three handles | **shipped** | amount, unit, measure — all editable on the review card |
+| §6.2 seeding the sheet | **shipped** | the card opens the 7.7 sheet seeded from the `RawLineItem`; `raw_amount` shows as the "from source" caption on every line, resolved or not |
+| §6.3 measure-from-label | **NOT shipped — still the open piece** | no "can = 400 g?" proposal anywhere |
+| §6.4 honesty properties | **shipped** | no grams are written that the source didn't supply; unresolvable units degrade to an honest count |
+| §6.5 plug-in points | **shipped** | reconciliation is the fourth caller of `showQuantityUnitSheet`; a picked measure rides the line as its label and resolves to the FK at commit |
+
+Step 8 also went one step further than this section proposed: rather than only
+*offering* the sheet, the review screen **enforces admission** — a line whose unit
+isn't in the matched ingredient's admitted set is flagged ("Pick a supported
+unit"), offered inline "did you mean" unit chips, and blocks Save until it
+clears.
 
 ### 6.1 What the user can change
 
@@ -340,7 +385,7 @@ At reconcile, for each committed line, open (or lazily offer) the sheet with:
 - `raw_amount` surfaced as a caption regardless, so the source of truth is never
   hidden behind an interpretation.
 
-### 6.3 The "make a measure from this label" path (the missing piece)
+### 6.3 The "make a measure from this label" path — **still the missing piece**
 
 When the line is a container word (`unit_mappable=false`, `unit ∈ {can, tin,
 jar, sachet, block, …}`) **and** `raw_amount` contains a parseable basis amount
@@ -400,36 +445,36 @@ measure>` — and from that point the duality of §3 applies: the recipe reads
 
 ## 7. Flagged: the "400 g tin" is handled inconsistently
 
-These are observations to flag, **not** changes to make here.
+Re-traced 2026-08-31. Two of the four are now **closed**; two stand.
 
-1. **Single-tin (`qty = 1`) has no prompt/gold rule.** `extraction.ts` and gold
-   `_SCHEMA.md` specify only the **multi-pack** shape ("2½ × 400 g cans" →
-   `qty=2.5, unit="can"`). A plain "1 × 400 g tin" / "400 g tin of tomatoes" is
-   uncovered, so a provider may legitimately emit **either**:
-   - `qty=400, unit="g", unit_mappable=true` (the weight becomes the amount, the
-     "tin" is dropped from the amount and only survives if normalize strips it
-     from identity), **or**
-   - `qty=1, unit="can", unit_mappable=false` (the count is the amount, the
-     400 g survives only in `raw_amount`).
+1. ~~**Single-tin (`qty = 1`) has no prompt/gold rule.**~~ **CLOSED.**
+   `prompts/extraction.ts` now rules on it explicitly: *a SINGLE "400 g tin" /
+   "one 400 g can" / "One 14.5-ounce can" → `qty=1, unit="can"` (NOT `qty=400,
+   unit="g"`); a MULTI-PACK "2½ × 400 g cans" → `qty=2.5, unit="can"`. Either way
+   the count is the amount; the gram basis lives in the measure system (keep it
+   in `raw_amount`).* Both shapes now land on the same committed line, which was
+   the point. (The prompt also normalises `tin → can` in both the unit and the
+   identity string, so British sources don't fragment the vocabulary.)
 
-   These two produce **different committed lines** for the same source, and only
-   the first yields computable grams without a pre-existing measure. This is the
-   central inconsistency behind the owner's question.
+2. **"the gram basis lives in the measure system" is still partly aspirational at
+   import** — narrowed. The *server* still creates no measures and assigns no
+   `measure_id` (correct — it doesn't know the household's measures). The *app*
+   now resolves one at commit, but only by **exact label match**: `unit: "clove"`
+   → the seeded `clove` measure, automatically. `unit: "can"` usually misses,
+   because the seeded labels carry their basis (`can (16 oz)`, `can (15 oz),
+   drained`). So the canned case — the one this doc was written about — is still
+   the one that needs a human tap, and §6.3 is still its bridge.
 
-2. **"the gram basis lives in the measure system" is aspirational at import.**
-   Gold `_SCHEMA.md` says the multi-pack gram basis "lives in the measure
-   system," but the import pipeline (`import-recipe/index.ts`) creates **no**
-   measures and assigns **no** `measure_id`. So today the 400 g of a `unit="can"`
-   line lives **only** in `raw_amount` text until a human acts. The measure
-   system is real, but nothing in the import path populates it — §6.3 is the
-   proposed bridge.
-
-3. **`can`/`tin` are catalog-blind container words.** `unit_hints.ts` doesn't
-   list them (correctly — they're per-ingredient measures, not catalog units), so
-   a `unit="can"` line is inherently `unit_mappable=false` and `unitById("can")`
-   returns null downstream. Such a line is **not summed** by `aggregateQuantities`
-   until it's resolved to a measure — correct behaviour, but it means an
-   unresolved canned ingredient silently contributes nothing to shopping totals.
+3. **`can` IS hinted now; `unitById("can")` still returns null.** *(Corrected —
+   the original trace said `unit_hints.ts` doesn't list container words.)* `can`
+   is in the hints' `measures` list, so ① emits it confidently; but it is **not**
+   a catalog unit, so `unitById("can")` is null downstream and
+   `aggregateQuantities` **does not sum** the line until it resolves to a measure.
+   That degrade is correct — inventing grams would be worse — but the consequence
+   stands and is now easier to hit: an unresolved canned ingredient contributes
+   **nothing** to shopping totals, silently. The review screen's unit enforcement
+   catches most of these before commit (an unadmitted unit blocks Save), which is
+   the practical mitigation.
 
 4. **`normalize.ts` MEASURES vs the measure vocabulary can drift.** Container
    words are stripped from *identity* in `normalize.ts` (`can`, `tin`, `jar`,
@@ -456,6 +501,9 @@ These are observations to flag, **not** changes to make here.
 - Migrations — `supabase/migrations/0009_ingredient_measures.sql`,
   `0010_measure_provenance.sql`, `0012_unit_admission.sql`
 - Import spine — `supabase/functions/import-recipe/index.ts`
+- Import review + commit (where `measure_id` is actually resolved) —
+  `app/lib/features/import/presentation/recon_line_card.dart`,
+  `…/domain/line_validation.dart`, `…/data/import_repository_impl.dart`
 - Sanitize prompt & unit hints — `supabase/functions/_shared/prompts/extraction.ts`,
   `_shared/unit_hints.ts`
 - Normalize & match — `supabase/functions/_shared/normalize.ts`, `match.ts`,
