@@ -1,6 +1,7 @@
 # Exec plan: Import foundation — the frozen neck (W0)
 
-- **Status:** FROZEN 2026-08-30 (gold blessed by Simon; lanes A–D fanned out)
+- **Status:** done (frozen 2026-08-30, gold blessed by Simon; lanes A–D fanned out
+  and landed — step 8 shipped 2026-08-31)
 - **Owner:** Simon + Claude (foundation done solo, before any fan-out)
 - **Roadmap step:** Step 8 — AI/deterministic import
 - **Created:** 2026-08-30
@@ -37,24 +38,30 @@ tail) and **reaffirms** ADR-0004 without amending it.
 
 ## Acceptance criteria
 
-- [ ] `supabase/functions/_shared/types.ts` extended with every contract below, each
+- [x] `supabase/functions/_shared/types.ts` extended with every contract below, each
       with a doc comment pointing at its spec section. Types only — no logic.
-- [ ] `supabase/functions/_shared/contracts/` golden fixtures: one committed example
+- [ ] ~~`supabase/functions/_shared/contracts/` golden fixtures: one committed example
       JSON per contract (raw blob, `ExtractionResult`, reconciliation payload, commit
-      payload). These are what A/B/C/D build and test against.
-- [ ] Provider-adapter interface (`ExtractAdapter`) defined — the seam shared by lane
+      payload).~~ **Never built — superseded, deliberately.** The lanes needed *real*
+      fixtures, not hand-written ones, and got them: `evals/datasets/extraction/gold/`
+      (11 human-blessed labels, the `ExtractionResult` oracle) plus the committed
+      `supabase/functions/import-recipe/__fixtures__/reconciliation_payload.golden.json`
+      (the TS→Dart payload contract test's shared fixture). A hand-written third copy
+      would have been a fourth source of truth to keep in step.
+- [x] Provider-adapter interface (`ExtractAdapter`) defined — the seam shared by lane
       A (impl) and lane D (comparison).
-- [ ] Step-token model pinned with example JSON in **both** shapes: extraction
+- [x] Step-token model pinned with example JSON in **both** shapes: extraction
       (refs by **line index**) and stored (refs by **`line_item_id`**), plus the
       index→uuid remap rule for commit (§4.6).
-- [ ] Schema decision recorded: confirmed **no migration required** (or the tiny one
-      is written and `make docs` regenerates `db-schema.md`).
-- [ ] Four lane charters exist in `active/` (`0015`–`0018`) and the integration plan
-      (`0019`), each referencing this file's contracts.
-- [ ] `docs/product-specs/import-and-matching.md` §4/§6 flagged for the tail's rewrite
+- [x] Schema decision recorded: **one** migration after all —
+      `0013_recipe_times.sql` (`recipe.cook_time_seconds` / `total_time_seconds`,
+      from the gold-review decision below); `make docs` regenerated `db-schema.md`.
+- [x] Four lane charters exist (`0015`–`0018`) and the integration plan (`0019`),
+      each referencing this file's contracts. (All six now live in `completed/`.)
+- [x] `docs/product-specs/import-and-matching.md` §4/§6 flagged for the tail's rewrite
       (a TODO marker + a pointer here), so the stale-doc rule isn't silently broken
-      mid-flight.
-- [ ] `make analyze` / deno check clean on the new types + fixtures.
+      mid-flight. The rewrite itself landed with the step-8 close-out.
+- [x] `make analyze` / deno check clean on the new types + fixtures.
 
 ## The contracts (freeze reference)
 
@@ -313,8 +320,11 @@ used across three steps. Two separable problems:
 W0 is the neck, not a feature step — its "done" is **contracts frozen + lanes
 unblocked**, verified by the lanes compiling against the fixtures.
 
-- [ ] Contracts + fixtures committed; `deno check` / `make analyze` clean.
-- [ ] Four lane charters + integration plan written and cross-linked.
-- [ ] Roadmap step-8 row annotated "foundation frozen; lanes A–D in parallel".
-- [ ] Simon has reviewed this file (the freeze gate) **before** any agent fan-out.
-- [ ] Spec §4/§6 marked for the tail's rewrite; ADR-0004 reaffirmed.
+- [x] Contracts committed; `deno check` / `make analyze` clean. (Fixtures: see the
+      struck criterion above — the gold set + the golden payload fixture stand in.)
+- [x] Four lane charters + integration plan written and cross-linked.
+- [x] Roadmap step-8 row annotated "foundation frozen; lanes A–D in parallel"
+      (since superseded by the shipped row).
+- [x] Simon has reviewed this file (the freeze gate) **before** any agent fan-out.
+- [x] Spec §4/§6 marked for the tail's rewrite; ADR-0004 reaffirmed (the note landed
+      in the spec's §2 with the step-8 close-out).
