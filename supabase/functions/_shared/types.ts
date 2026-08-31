@@ -51,7 +51,9 @@ export interface RawLineItem {
   unit_mappable: boolean; // false → `unit` holds the raw phrase, UI resolves it
   ingredient_text: string; // identity, AS WRITTEN — feeds §7 normalize + learning loop
   notes: string | null; // non-identity cook-prep / usage note: "juiced" | "zested" | null
-  raw_amount: string; // the full printed amount, verbatim — never lost
+  raw_amount: string; // full printed amount, verbatim; "" when the line prints
+  // none (coercion maps a model null to ""). NB: gold fixtures predate coercion
+  // and use `null` for amount-less lines — the scorer accepts both.
   optional: boolean;
   confidence: number; // model self-reported, per line
 }
