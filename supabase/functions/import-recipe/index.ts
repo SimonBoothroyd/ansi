@@ -30,6 +30,12 @@ import type {
   ReconLine,
 } from "../_shared/types.ts";
 import { deriveUnitHints } from "../_shared/unit_hints.ts";
+import { ImportError } from "../_shared/errors.ts";
+
+// Re-exported for the stages that raise it and everything that catches it — the
+// class itself lives in `_shared/errors.ts` so intake and the adapters can throw
+// it without importing this module (see that file's header).
+export { ImportError };
 
 /**
  * Match cascade seam (lane B). The orchestrator depends on a PRE-BOUND matcher
@@ -51,14 +57,6 @@ export interface ImportDeps {
 export interface ImportRequest {
   url?: string;
   images?: Uint8Array[];
-}
-
-/** A client-visible pipeline error → surfaced as 4xx, never a 500. */
-export class ImportError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ImportError";
-  }
 }
 
 /**
@@ -149,30 +147,89 @@ function jsonResponse(status: number, body: unknown): Response {
   });
 }
 
+// --- Per-call cost caps ------------------------------------------------------
+// Every image is billed to a vision model, so the request body is bounded HERE,
+// before a byte of it reaches a provider. These are deliberately generous (a
+// long recipe spans a few pages, and `resizeForUpload` shrinks big photos) —
+// they exist to stop an accidental or hostile 200-image / 100 MB call, not to
+// second-guess a real import.
+
+/** Most photos one import may carry. */
+export const MAX_IMAGES = 8;
+/** Most DECODED bytes one photo may carry (the app already downscales). */
+export const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+// base64 inflates by 4/3; reject on the encoded length first so an oversized
+// payload is never materialised as bytes just to be measured.
+const MAX_IMAGE_B64_CHARS = Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 8;
+
 /** Decodes a base64 string to bytes (no @std dep — keeps the fn lean). */
 function decodeBase64(b64: string): Uint8Array {
-  const bin = atob(b64);
+  const bin = atob(b64); // throws on non-base64 input — callers must catch
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return bytes;
 }
 
-/** Parses a decoded JSON body into an {@link ImportRequest}, or an error message. */
+/**
+ * Parses a decoded JSON body into an {@link ImportRequest}, or an error message
+ * (⇒ 400). TOTAL: every rejection path — malformed base64 included — returns an
+ * error string rather than throwing, because this runs BEFORE the handler's
+ * try/catch and a throw here would escape as an unhandled 500.
+ */
 export function parseRequestBody(
   body: unknown,
 ): { request: ImportRequest } | { error: string } {
-  if (!body || typeof body !== "object") {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
     return { error: "body must be a JSON object" };
   }
   const b = body as Record<string, unknown>;
-  if (typeof b.url === "string") return { request: { url: b.url } };
-  if (Array.isArray(b.images)) {
-    if (!b.images.every((i) => typeof i === "string")) {
-      return { error: "`images` must be an array of base64 strings" };
+  const hasUrl = typeof b.url === "string" && b.url.trim() !== "";
+  const hasImages = Array.isArray(b.images);
+  // Checked here, not just in `intake`: with `url` winning silently, a client
+  // sending both never learned it was ambiguous.
+  if (hasUrl && hasImages) {
+    return { error: "provide either `url` or `images`, not both" };
+  }
+  if (hasUrl) return { request: { url: (b.url as string).trim() } };
+  if (hasImages) {
+    const raw = b.images as unknown[];
+    if (raw.length === 0) return { error: "`images` must not be empty" };
+    if (raw.length > MAX_IMAGES) {
+      return {
+        error:
+          `too many images: ${raw.length} (at most ${MAX_IMAGES} per import)`,
+      };
     }
-    return { request: { images: (b.images as string[]).map(decodeBase64) } };
+    const images: Uint8Array[] = [];
+    for (let i = 0; i < raw.length; i++) {
+      const s = raw[i];
+      if (typeof s !== "string") {
+        return { error: "`images` must be an array of base64 strings" };
+      }
+      if (s.length > MAX_IMAGE_B64_CHARS) {
+        return { error: oversizeMessage(i, (s.length / 4) * 3) };
+      }
+      let bytes: Uint8Array;
+      try {
+        bytes = decodeBase64(s);
+      } catch {
+        return { error: `image ${i + 1} is not valid base64` };
+      }
+      if (bytes.length > MAX_IMAGE_BYTES) {
+        return { error: oversizeMessage(i, bytes.length) };
+      }
+      images.push(bytes);
+    }
+    return { request: { images } };
   }
   return { error: "body must include a `url` or `images`" };
+}
+
+function oversizeMessage(index: number, bytes: number): string {
+  const mb = (n: number) => (n / (1024 * 1024)).toFixed(1);
+  return `image ${index + 1} is ${mb(bytes)}MB — the limit is ${
+    mb(MAX_IMAGE_BYTES)
+  }MB per image`;
 }
 
 /** Builds the HTTP handler over injected `deps` (real ones supplied at integration). */
@@ -198,10 +255,15 @@ export function makeHandler(
       if (e instanceof ImportError) {
         return jsonResponse(422, { error: e.message });
       }
-      return jsonResponse(500, {
-        error: "import failed",
-        detail: e instanceof Error ? e.message : String(e),
-      });
+      // An unexpected failure. The detail can carry provider URLs, prompt
+      // fragments, or a driver's connection string — log it, return an opaque
+      // message.
+      console.error(
+        `import-recipe: unhandled failure: ${
+          e instanceof Error ? e.stack ?? e.message : String(e)
+        }`,
+      );
+      return jsonResponse(500, { error: "import failed" });
     }
   };
 }

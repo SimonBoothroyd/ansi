@@ -187,10 +187,20 @@ function loadVocabMatcher(): ReturnType<typeof inMemoryVocabMatcher> | null {
 Deno.test("calibration — cascade over the real vocab hits a precision floor", async () => {
   const matcher = loadVocabMatcher();
   const casesRaw = readIf("evals/datasets/matching/cases.jsonl");
-  if (!matcher || !casesRaw) {
-    console.log("  (skipped: vocab.jsonl / cases.jsonl not present)");
-    return;
-  }
+  // HARD FAILURE, not a skip. This test used to `console.log("(skipped)")` and
+  // return green when a fixture was missing — which is exactly how it went
+  // unnoticed that `deno test` without `--allow-read` was never running it at
+  // all. A missing fixture is a broken test run, not a passing one.
+  assert(
+    matcher,
+    "supabase/seed/vocab.jsonl is missing or unreadable — the calibration " +
+      "test needs it (run via `deno task test`, which grants --allow-read)",
+  );
+  assert(
+    casesRaw,
+    "evals/datasets/matching/cases.jsonl is missing or unreadable — the " +
+      "calibration test needs it (run via `deno task test`)",
+  );
   interface Case {
     raw: string;
     expect_normalized: string;

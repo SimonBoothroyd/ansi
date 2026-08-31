@@ -1,14 +1,11 @@
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import {
-  createImportStub,
   prefillStubFromUsda,
   type SqlExecutor,
   sqlVocabMatcher,
   USDA_PREFILL_MIN,
-  writeCorrectionAlias,
 } from "./match_db.ts";
 import { matchOne } from "./match.ts";
-import { normalize } from "./normalize.ts";
 
 // A fake SqlExecutor: routes on a substring of the query and records calls, so the
 // SQL contracts are testable without Postgres. `deno test` stays hermetic; the
@@ -44,6 +41,12 @@ Deno.test("sqlVocabMatcher — exact query is household + text parameterized", a
   assertEquals(calls[0].params, ["hh-1", "onion"]);
   assertStringIncludes(calls[0].text, "ingredient_alias"); // unions aliases
   assertStringIncludes(calls[0].text, "deleted_at is null"); // soft-delete aware
+  // Defence in depth: the alias branch scopes the INGREDIENT to the household
+  // too, so a mis-written alias row cannot reach across households.
+  assertStringIncludes(
+    calls[0].text,
+    "a.household_id = $1 and i.household_id = $1",
+  );
 });
 
 Deno.test("sqlVocabMatcher — trigram uses the % index op, similarity(), limit", async () => {
@@ -61,7 +64,15 @@ Deno.test("sqlVocabMatcher — trigram uses the % index op, similarity(), limit"
   assertEquals(cands[0].score, 0.7);
   assertEquals(calls[0].params, ["hh-1", "suger", 3]);
   assertStringIncludes(calls[0].text, "match_text % $2"); // GIN-index path
-  assertStringIncludes(calls[0].text, "order by score desc");
+  // A TOTAL sort: score ties must break the same way on every run/plan.
+  assertStringIncludes(
+    calls[0].text,
+    "order by score desc, canonical_name asc, ingredient_id asc",
+  );
+  assertStringIncludes(
+    calls[0].text,
+    "a.household_id = $1 and i.household_id = $1",
+  );
 });
 
 Deno.test("sqlVocabMatcher — drives the cascade end to end", async () => {
@@ -78,55 +89,6 @@ Deno.test("sqlVocabMatcher — drives the cascade end to end", async () => {
   const r = await matchOne("corn tortila", sqlVocabMatcher(exec, "hh"));
   assertEquals(r.band, "suggest");
   assertEquals(r.candidates[0].canonical_name, "Corn Tortilla");
-});
-
-Deno.test("createImportStub — inserts a stub with the right status/source/match_text", async () => {
-  const { exec, calls } = fakeExec((text) => {
-    if (text.includes("select id::text from ingredient")) return []; // none existing
-    if (
-      text.startsWith("\n    insert into ingredient") ||
-      text.includes("insert into ingredient")
-    ) {
-      return [{ id: "stub-1" }];
-    }
-    return [];
-  });
-  const r = await createImportStub(exec, {
-    householdId: "hh",
-    ingredientText: "Gochujang Paste",
-    defaultUnit: "tsp",
-  });
-  assertEquals(r, { ingredient_id: "stub-1", created: true });
-  const insert = calls.find((c) => c.text.includes("insert into ingredient"))!;
-  assertStringIncludes(insert.text, "'stub', 'import_stub'");
-  // params: household, canonical_name (as written), default_unit, match_text (normalized)
-  assertEquals(insert.params, [
-    "hh",
-    "Gochujang Paste",
-    "tsp",
-    normalize("Gochujang Paste"),
-  ]);
-});
-
-Deno.test("createImportStub — idempotent: reuses an existing import stub (dedupe)", async () => {
-  let inserted = false;
-  const { exec } = fakeExec((text) => {
-    if (text.includes("select id::text from ingredient")) {
-      return [{ id: "existing" }];
-    }
-    if (text.includes("insert into ingredient")) {
-      inserted = true;
-      return [{ id: "new" }];
-    }
-    return [];
-  });
-  const r = await createImportStub(exec, {
-    householdId: "hh",
-    ingredientText: "kombu",
-    defaultUnit: "g",
-  });
-  assertEquals(r, { ingredient_id: "existing", created: false });
-  assert(!inserted, "must not insert when a matching stub already exists");
 });
 
 Deno.test("prefillStubFromUsda — confident hit fills density/macros, stays stub", async () => {
@@ -181,45 +143,4 @@ Deno.test("prefillStubFromUsda — missing/complete stub is a no-op", async () =
     fdc_id: null,
     score: 0,
   });
-});
-
-Deno.test("writeCorrectionAlias — writes an import_correction alias on the chosen ingredient", async () => {
-  const { exec, calls } = fakeExec((text) => {
-    if (text.includes("select id::text from ingredient_alias")) return [];
-    if (text.includes("insert into ingredient_alias")) return [{ id: "al-1" }];
-    return [];
-  });
-  const r = await writeCorrectionAlias(exec, {
-    householdId: "hh",
-    ingredientId: "ing-9",
-    rawText: "coco milk",
-  });
-  assertEquals(r, { alias_id: "al-1", created: true });
-  const ins = calls.find((c) =>
-    c.text.includes("insert into ingredient_alias")
-  )!;
-  assertStringIncludes(ins.text, "'import_correction'");
-  // household, ingredient, alias_text (verbatim), match_text (normalized)
-  assertEquals(ins.params, ["hh", "ing-9", "coco milk", "coco milk"]);
-});
-
-Deno.test("writeCorrectionAlias — idempotent on repeat corrections", async () => {
-  let inserted = false;
-  const { exec } = fakeExec((text) => {
-    if (text.includes("select id::text from ingredient_alias")) {
-      return [{ id: "al-existing" }];
-    }
-    if (text.includes("insert into ingredient_alias")) {
-      inserted = true;
-      return [{ id: "al-new" }];
-    }
-    return [];
-  });
-  const r = await writeCorrectionAlias(exec, {
-    householdId: "hh",
-    ingredientId: "ing-9",
-    rawText: "coco milk",
-  });
-  assertEquals(r, { alias_id: "al-existing", created: false });
-  assert(!inserted);
 });

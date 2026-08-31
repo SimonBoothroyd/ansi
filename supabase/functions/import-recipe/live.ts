@@ -10,9 +10,10 @@
 //     pg_trgm SQL is scoped to the caller's household in `WHERE household_id = $1`,
 //     so a service-role connection is safe: the household never comes from the
 //     body, only from the verified token.
-//   - auth — the `household_id` claim the `add_household_claim` hook (migration
-//     0007) injects into the caller's JWT. No bearer token → 401; a token with no
-//     household (not onboarded) → 403.
+//   - auth — `auth.ts`: the `household_id` claim the `add_household_claim` hook
+//     (migration 0007) injects into the caller's JWT, plus the deploy-time
+//     household allowlist. No bearer token → 401; a token with no household (not
+//     onboarded), or a household outside `IMPORT_ALLOWED_HOUSEHOLDS` → 403.
 //   - CORS — a permissive preflight so a browser client can call it too (the iOS
 //     app uses native HTTP, where CORS is moot).
 //
@@ -25,6 +26,7 @@ import { ClaudeHaikuAdapter } from "../_shared/adapters/claude.ts";
 import { fetchRawBlob } from "../_shared/jsonld.ts";
 import { matchLines as matchCascade } from "../_shared/match.ts";
 import { type SqlExecutor, sqlVocabMatcher } from "../_shared/match_db.ts";
+import { readCaller } from "./auth.ts";
 import { type ImportDeps, makeHandler } from "./index.ts";
 
 // --- CORS --------------------------------------------------------------------
@@ -48,53 +50,6 @@ async function withCors(res: Response): Promise<Response> {
   const headers = new Headers(res.headers);
   for (const [k, v] of Object.entries(CORS_HEADERS)) headers.set(k, v);
   return new Response(await res.text(), { status: res.status, headers });
-}
-
-// --- Auth: household_id from the verified JWT --------------------------------
-
-interface Caller {
-  userId: string;
-  householdId: string;
-}
-
-/** base64url JSON segment → object (UTF-8 safe; tolerant of missing padding). */
-function decodeSegment(seg: string): Record<string, unknown> | null {
-  try {
-    const b64 = seg.replace(/-/g, "+").replace(/_/g, "/").padEnd(
-      Math.ceil(seg.length / 4) * 4,
-      "=",
-    );
-    const bin = atob(b64);
-    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-    return JSON.parse(new TextDecoder().decode(bytes));
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Reads the caller from the request's bearer token. The Supabase edge gateway
- * verifies the JWT signature before the function runs (config `verify_jwt =
- * true`), so here we only decode the already-verified claims — the
- * `household_id` the `add_household_claim` hook stamped, plus `sub`.
- */
-function readCaller(req: Request): Caller | { error: string; status: number } {
-  const header = req.headers.get("Authorization") ?? "";
-  const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
-  if (!token) return { error: "missing bearer token", status: 401 };
-  const parts = token.split(".");
-  const claims = parts.length === 3 ? decodeSegment(parts[1]) : null;
-  if (!claims) return { error: "malformed bearer token", status: 401 };
-  const householdId = typeof claims.household_id === "string"
-    ? claims.household_id
-    : "";
-  if (!householdId) {
-    return {
-      error: "no household on this account — finish onboarding first",
-      status: 403,
-    };
-  }
-  return { userId: String(claims.sub ?? ""), householdId };
 }
 
 // --- Postgres seam -----------------------------------------------------------
@@ -144,11 +99,14 @@ async function handle(req: Request): Promise<Response> {
     deps = buildDeps(caller.householdId);
   } catch (e) {
     // A missing ANTHROPIC_API_KEY or SUPABASE_DB_URL is a server misconfig, not
-    // a client error — surface it plainly as a 500.
-    return jsonResponse(500, {
-      error: "import pipeline is not configured",
-      detail: e instanceof Error ? e.message : String(e),
-    });
+    // a client error → a 500. The detail names env vars and provider internals,
+    // so it goes to the function log, never to the caller.
+    console.error(
+      `import-recipe: dependency wiring failed: ${
+        e instanceof Error ? e.stack ?? e.message : String(e)
+      }`,
+    );
+    return jsonResponse(500, { error: "import pipeline is not configured" });
   }
   return await withCors(await makeHandler(deps)(req));
 }

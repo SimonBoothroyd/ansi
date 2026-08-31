@@ -135,7 +135,8 @@ export function matchLines(
  * The within-import dedupe key for `none` lines (§6.4 / 0014 boundary). Identical
  * `none` lines share this key, so lane C can coalesce them onto a single
  * just-created stub. It is exactly the normalized `match_text`, so it is symmetric
- * with what `createImportStub` (match_db.ts) writes and looks up.
+ * with the `match_text` the client writes on a new stub row and the cascade
+ * looks up (match_db.ts EXACT_SQL).
  */
 export function noneDedupeKey(line: RawLineItem): string {
   return normalize(line.ingredient_text);

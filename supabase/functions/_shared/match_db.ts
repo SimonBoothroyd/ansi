@@ -1,7 +1,7 @@
 // Postgres-backed side of the match cascade (lane B) — the parameterized SQL the
-// pure cascade in `match.ts` drives, plus the §9 stub lifecycle and §8 learning-loop
-// write contracts. Server-side only (ADR-0004): all of this runs in the edge
-// function against Postgres via the service role.
+// pure cascade in `match.ts` drives, plus the one §9 write that has to live on
+// the server (the USDA prefill). Server-side only (ADR-0004): all of this runs
+// in the edge function against Postgres via the service role.
 //
 // DESIGN — in-function parameterized SQL, not a new RPC (per the lane-B charter):
 // no DB migration is added here (W0 owns migration numbering). The trigram tier
@@ -17,7 +17,6 @@
 // Placeholders are $1,$2,… (Postgres positional) — the shape deno-postgres and
 // postgres.js `unsafe(text, params)` both accept.
 
-import { normalize } from "./normalize.ts";
 import type { MatchCandidate } from "./types.ts";
 import { TOP_N, type VocabMatcher } from "./match.ts";
 
@@ -31,6 +30,11 @@ export type SqlExecutor = <T = Record<string, unknown>>(
 
 // Exact `match_text` equality across ingredient + alias, one row per distinct
 // ingredient. Household-scoped and soft-delete aware (mirrors RLS + spec §5.2).
+// The alias branches scope on BOTH `a.household_id` and `i.household_id`: an
+// alias row is supposed to carry its ingredient's household, but nothing in the
+// schema forces that, and this connection is service-role (RLS does not apply).
+// Two predicates cost nothing and mean a single mis-written alias row can never
+// leak another household's ingredient into a candidate list.
 const EXACT_SQL = `
   select distinct i.id::text as ingredient_id, i.canonical_name, 1.0::float8 as score
   from ingredient i
@@ -39,12 +43,18 @@ const EXACT_SQL = `
   select distinct i.id::text, i.canonical_name, 1.0::float8
   from ingredient_alias a
   join ingredient i on i.id = a.ingredient_id and i.deleted_at is null
-  where a.household_id = $1 and a.deleted_at is null and a.match_text = $2`;
+  where a.household_id = $1 and i.household_id = $1
+    and a.deleted_at is null and a.match_text = $2`;
 
 // Trigram similarity across ingredient + alias, best score per ingredient,
 // score-desc, capped. `% $2` uses the GIN index (0002) and pg_trgm's default
 // threshold (0.3) — safely below BAND_SUGGEST_MIN, so no surfaced candidate is
 // pruned. See match.ts TRIGRAM_FLOOR.
+//
+// The sort is TOTAL (score, then canonical_name, then id): ties are common in
+// trigram space, and `order by score desc` alone lets Postgres return either
+// row first — which would make the candidate list, the band, and every golden
+// fixture built on it non-deterministic across runs and plan changes.
 const TRIGRAM_SQL = `
   select ingredient_id, canonical_name, max(score) as score
   from (
@@ -56,10 +66,11 @@ const TRIGRAM_SQL = `
     select i.id::text, i.canonical_name, similarity(a.match_text, $2)
     from ingredient_alias a
     join ingredient i on i.id = a.ingredient_id and i.deleted_at is null
-    where a.household_id = $1 and a.deleted_at is null and a.match_text % $2
+    where a.household_id = $1 and i.household_id = $1
+      and a.deleted_at is null and a.match_text % $2
   ) c
   group by ingredient_id, canonical_name
-  order by score desc
+  order by score desc, canonical_name asc, ingredient_id asc
   limit $3`;
 
 interface CandidateRow {
@@ -102,60 +113,13 @@ export function sqlVocabMatcher(
 }
 
 // --- §9: stub lifecycle ------------------------------------------------------
-
-export interface CreateStubArgs {
-  householdId: string;
-  /** The line's identity AS WRITTEN — becomes canonical_name + normalizes to match_text. */
-  ingredientText: string;
-  /** Required (ingredient.default_unit is NOT NULL); lane C supplies the picked unit. */
-  defaultUnit: string;
-}
-
-export interface StubResult {
-  ingredient_id: string;
-  /** false when an existing import stub with the same match_text was reused. */
-  created: boolean;
-}
-
-/**
- * The create-new path (§9): write an `ingredient` with `status='stub'`,
- * `source='import_stub'`, density/macros left null (honest numbers — excluded from
- * conversions/totals until a human completes it). Idempotent by (household,
- * match_text) so identical `none` lines in one import coalesce onto one stub (the
- * within-import dedupe boundary in 0014 / §6.4). No silent auto-stub: this is only
- * ever called from a deliberate user create-new action (lane C).
- *
- * CONTRACT NOTE (flagged, not resolved): 0014's CommitPayload also permits stub
- * creation through the PowerSync sync queue (a client insert), "no new tables".
- * This is the SERVER counterpart — the USDA prefill below is unavoidably
- * server-side (usda_food never syncs), so co-locating create + prefill keeps the
- * stub idempotent and immediately prefillable. The tail should pick one surface;
- * both write the same row shape.
- */
-export async function createImportStub(
-  exec: SqlExecutor,
-  args: CreateStubArgs,
-): Promise<StubResult> {
-  const matchText = normalize(args.ingredientText);
-  const existing = await exec<{ id: string }>(
-    `select id::text from ingredient
-     where household_id = $1 and match_text = $2
-       and source = 'import_stub' and deleted_at is null
-     limit 1`,
-    [args.householdId, matchText],
-  );
-  if (existing.length > 0) {
-    return { ingredient_id: existing[0].id, created: false };
-  }
-  const inserted = await exec<{ id: string }>(
-    `insert into ingredient
-       (household_id, canonical_name, default_unit, status, source, match_text)
-     values ($1, $2, $3, 'stub', 'import_stub', $4)
-     returning id::text`,
-    [args.householdId, args.ingredientText, args.defaultUnit, matchText],
-  );
-  return { ingredient_id: inserted[0].id, created: true };
-}
+//
+// The stub WRITE is not here. 0014's CommitPayload creates stubs through the
+// PowerSync sync queue (a client insert), and that is the surface that shipped —
+// lane B's server-side `createImportStub` had no production caller and was
+// deleted rather than left as a second, drifting way to write the same row. The
+// USDA prefill below stays server-side because it has to: `usda_food` never
+// syncs to a device (ADR-0005).
 
 /** Minimum usda_food trigram score to accept a background prefill. */
 export const USDA_PREFILL_MIN = 0.5;
@@ -223,48 +187,10 @@ export async function prefillStubFromUsda(
 }
 
 // --- §8: the learning loop ---------------------------------------------------
-
-export interface CorrectionArgs {
-  householdId: string;
-  /** The ingredient the user chose (undo→pick, or accept-suggestion). */
-  ingredientId: string;
-  /** The original raw line text that mis-matched — stored verbatim as the alias. */
-  rawText: string;
-}
-
-export interface AliasResult {
-  alias_id: string;
-  created: boolean;
-}
-
-/**
- * The learning loop (§8): on a user correction, write the raw string back as an
- * `ingredient_alias` (`source='import_correction'`) on the chosen ingredient, so
- * the household's own phrasing is absorbed and future imports exact-match it — zero
- * ML. The trigger is a lane-C reconciliation action; this is the server write
- * contract. Idempotent by (ingredient, match_text) so re-correcting the same line
- * doesn't pile up duplicate aliases.
- */
-export async function writeCorrectionAlias(
-  exec: SqlExecutor,
-  args: CorrectionArgs,
-): Promise<AliasResult> {
-  const matchText = normalize(args.rawText);
-  const existing = await exec<{ id: string }>(
-    `select id::text from ingredient_alias
-     where ingredient_id = $1 and match_text = $2 and deleted_at is null
-     limit 1`,
-    [args.ingredientId, matchText],
-  );
-  if (existing.length > 0) {
-    return { alias_id: existing[0].id, created: false };
-  }
-  const inserted = await exec<{ id: string }>(
-    `insert into ingredient_alias
-       (household_id, ingredient_id, alias_text, match_text, source)
-     values ($1, $2, $3, $4, 'import_correction')
-     returning id::text`,
-    [args.householdId, args.ingredientId, args.rawText, matchText],
-  );
-  return { alias_id: inserted[0].id, created: true };
-}
+//
+// Also not here, for the same reason: the correction alias
+// (`source='import_correction'`) is written by the client through the sync
+// queue when the user corrects a match. The server-side `writeCorrectionAlias`
+// contract had no production caller and was deleted. Reads of those aliases are
+// what this module does — see EXACT_SQL/TRIGRAM_SQL above, which is where the
+// absorbed phrasing comes back into the cascade.

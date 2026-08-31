@@ -42,18 +42,22 @@ if curl -fsS -m 15 -H "apikey: $CLOUD_SUPABASE_PUBLISHABLE_KEY" \
   ok "GoTrue healthy"
 else bad "auth health endpoint failed"; fi
 
-echo "• auth settings (providers, confirmations)"
+echo "• auth settings (providers, confirmations, signup)"
 settings=$(curl -fsS -m 15 -H "apikey: $CLOUD_SUPABASE_PUBLISHABLE_KEY" \
   "$CLOUD_SUPABASE_URL/auth/v1/settings" || true)
 verdict=$(echo "$settings" | python3 -c "
 import sys, json
 s = json.load(sys.stdin)
 ext = s.get('external', {})
+# disable_signup absent => the endpoint is not telling us; treat as 'unknown'
+# (2) rather than 'open', so the check warns instead of silently passing.
+ds = s.get('disable_signup')
 print(int(bool(ext.get('google'))), int(bool(ext.get('email'))),
-      int(bool(s.get('mailer_autoconfirm'))))
+      int(bool(s.get('mailer_autoconfirm'))),
+      2 if ds is None else int(bool(ds)))
 " 2>/dev/null || true)
 if [ -z "$verdict" ]; then bad "settings endpoint unreachable/unparsable"; else
-  read -r g e ac <<<"$verdict"
+  read -r g e ac ds <<<"$verdict"
   if [ "$g" = 1 ]; then ok "Google provider enabled"
   else bad "Google provider DISABLED (runbook §1.5)"; fi
   if [ "$e" = 1 ]; then ok "email/password enabled"
@@ -61,6 +65,17 @@ if [ -z "$verdict" ]; then bad "settings endpoint unreachable/unparsable"; else
   if [ "$ac" = 1 ]; then
     note "email confirmations OFF (dev convenience — turn ON before anything real)"
   else ok "email confirmations ON"; fi
+  # This project is a single household's. Open signup on a cloud instance means
+  # anyone can mint an account against the same Postgres and the same paid edge
+  # function (the import allowlist is the second gate, not the first).
+  case "$ds" in
+    1) ok "public signup DISABLED" ;;
+    0) note "public signup is OPEN — anyone can create an account on this
+      project. Turn it off: Dashboard → Authentication → Sign In / Providers →
+      'Allow new users to sign up' (off). Existing users keep signing in." ;;
+    *) note "could not read disable_signup from /auth/v1/settings — confirm
+      signup is off in the Dashboard by hand" ;;
+  esac
 fi
 
 echo "• PostgREST reachability (anon, RLS-gated)"

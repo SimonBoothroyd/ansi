@@ -1,0 +1,438 @@
+import { assert, assertEquals, assertThrows } from "@std/assert";
+import {
+  CAPS,
+  coerceExtractionResult,
+  ExtractionParseError,
+  MAX_PARSE_WARNINGS,
+  structuralIssues,
+  validateExtractionResult,
+} from "./schema.ts";
+import type { ExtractionResult, RefToken, TextToken } from "../types.ts";
+
+// The narrowest payload that coerces: every required field, nothing extra.
+const MINIMAL = {
+  title: "T",
+  servings_base: 2,
+  servings_raw: "Serves 2",
+  yield_raw: null,
+  total_time_seconds: { low_seconds: 600, high_seconds: 600 },
+  cook_time_seconds: null,
+  truncated: false,
+  image_quality: "ok",
+  parse_warnings: [],
+  groups: [{ name: null, line_items: [] }],
+  steps: [],
+};
+
+const lineItem = (over: Record<string, unknown> = {}) => ({
+  qty: 1,
+  qty_low: null,
+  qty_high: null,
+  unit: "g",
+  unit_mappable: true,
+  ingredient_text: "onion",
+  notes: null,
+  raw_amount: "1 g",
+  optional: false,
+  confidence: 0.9,
+  ...over,
+});
+
+// --- coerceExtractionResult ---------------------------------------------------
+
+Deno.test("coerceExtractionResult — a payload that is not an object throws", () => {
+  for (const bad of [null, undefined, 42, "{}", [], true]) {
+    assertThrows(
+      () => coerceExtractionResult(bad),
+      ExtractionParseError,
+      undefined,
+      `expected a throw for ${JSON.stringify(bad) ?? "undefined"}`,
+    );
+  }
+});
+
+Deno.test("coerceExtractionResult — missing fields default the honest way", () => {
+  const r = coerceExtractionResult({});
+  assertEquals(
+    r,
+    {
+      title: "",
+      servings_base: null,
+      servings_raw: null,
+      yield_raw: null,
+      total_time_seconds: null,
+      cook_time_seconds: null,
+      truncated: false,
+      image_quality: "ok",
+      parse_warnings: [],
+      groups: [],
+      steps: [],
+    } satisfies ExtractionResult,
+  );
+});
+
+Deno.test("coerceExtractionResult — wrong types coerce or null out, never throw", () => {
+  const cases: [string, unknown, (r: ExtractionResult) => unknown, unknown][] =
+    [
+      [
+        "numeric string qty",
+        { groups: [{ line_items: [lineItem({ qty: "2" })] }] },
+        (r) => r.groups[0].line_items[0].qty,
+        2,
+      ],
+      [
+        "unparseable qty",
+        { groups: [{ line_items: [lineItem({ qty: "lots" })] }] },
+        (r) => r.groups[0].line_items[0].qty,
+        null,
+      ],
+      [
+        "NaN-ish confidence",
+        { groups: [{ line_items: [lineItem({ confidence: null })] }] },
+        (r) => r.groups[0].line_items[0].confidence,
+        0,
+      ],
+      [
+        "non-boolean optional",
+        { groups: [{ line_items: [lineItem({ optional: "yes" })] }] },
+        (r) => r.groups[0].line_items[0].optional,
+        false,
+      ],
+      [
+        "fractional servings round",
+        { servings_base: 3.6 },
+        (r) => r.servings_base,
+        4,
+      ],
+      [
+        "bogus image_quality",
+        { image_quality: "sublime" },
+        (r) => r.image_quality,
+        "ok",
+      ],
+      [
+        "bare-number time",
+        { total_time_seconds: 900 },
+        (r) => r.total_time_seconds,
+        900,
+      ],
+      [
+        "equal range collapses",
+        { cook_time_seconds: { low_seconds: 60, high_seconds: 60 } },
+        (r) => r.cook_time_seconds,
+        60,
+      ],
+      [
+        "real range survives",
+        { cook_time_seconds: { low_seconds: 60, high_seconds: 90 } },
+        (r) => r.cook_time_seconds,
+        { low_seconds: 60, high_seconds: 90 },
+      ],
+      ["groups not an array", { groups: "nope" }, (r) => r.groups, []],
+      [
+        "line_items not an array",
+        { groups: [{ name: "g", line_items: 7 }] },
+        (r) => r.groups[0].line_items,
+        [],
+      ],
+      [
+        "warnings stringified",
+        { parse_warnings: [1, null, "x"] },
+        (r) => r.parse_warnings,
+        ["1", "null", "x"],
+      ],
+    ];
+  for (const [label, raw, pick, want] of cases) {
+    assertEquals(pick(coerceExtractionResult(raw)), want, label);
+  }
+});
+
+Deno.test("coerceExtractionResult — extra keys are dropped, not carried", () => {
+  const r = coerceExtractionResult({
+    ...MINIMAL,
+    nutrition: { calories: 900 },
+    groups: [{
+      name: "g",
+      line_items: [lineItem({ brand: "Acme" })],
+      extra: 1,
+    }],
+  });
+  assert(!("nutrition" in r));
+  assert(!("extra" in r.groups[0]));
+  assert(!("brand" in r.groups[0].line_items[0]));
+});
+
+Deno.test("coerceExtractionResult — an unknown token kind is dropped", () => {
+  const r = coerceExtractionResult({
+    ...MINIMAL,
+    steps: [{
+      tokens: [{ t: "text", s: "a" }, { t: "sing" }, {
+        t: "timer",
+        low_seconds: 5,
+      }],
+    }],
+  });
+  assertEquals(r.steps[0].tokens.map((t) => t.t), ["text", "timer"]);
+  assertEquals(r.steps[0].tokens[1], {
+    t: "timer",
+    low_seconds: 5,
+    high_seconds: 5, // a lone bound mirrors, it does not invent a second one
+  });
+});
+
+Deno.test("coerceExtractionResult — non-numeric refs are filtered out", () => {
+  const r = coerceExtractionResult({
+    ...MINIMAL,
+    steps: [{ tokens: [{ t: "ref", refs: [0, "x", null, 2], label: "L" }] }],
+  });
+  assertEquals((r.steps[0].tokens[0] as RefToken).refs, [0, 2]);
+});
+
+Deno.test("coerceExtractionResult — every string field is capped", () => {
+  const long = "z".repeat(20_000);
+  const r = coerceExtractionResult({
+    ...MINIMAL,
+    title: long,
+    servings_raw: long,
+    yield_raw: long,
+    parse_warnings: [long],
+    groups: [{
+      name: long,
+      line_items: [
+        lineItem({
+          ingredient_text: long,
+          notes: long,
+          raw_amount: long,
+          unit: long,
+        }),
+      ],
+    }],
+    steps: [{
+      tokens: [
+        { t: "text", s: long },
+        {
+          t: "ref",
+          refs: [0],
+          label: long,
+          portion: { qualifier: long, unit: long },
+        },
+      ],
+    }],
+  });
+  const li = r.groups[0].line_items[0];
+  assertEquals(r.title.length, CAPS.title);
+  assertEquals(r.servings_raw?.length, CAPS.servings_raw);
+  assertEquals(r.yield_raw?.length, CAPS.yield_raw);
+  assertEquals(r.parse_warnings[0].length, CAPS.parse_warning);
+  assertEquals(r.groups[0].name?.length, CAPS.group_name);
+  assertEquals(li.ingredient_text.length, CAPS.ingredient_text);
+  assertEquals(li.notes?.length, CAPS.notes);
+  assertEquals(li.raw_amount.length, CAPS.raw_amount);
+  assertEquals(li.unit?.length, CAPS.unit);
+  assertEquals((r.steps[0].tokens[0] as TextToken).s.length, CAPS.step_text);
+  const ref = r.steps[0].tokens[1] as RefToken;
+  assertEquals(ref.label.length, CAPS.label);
+  assertEquals(ref.portion?.qualifier?.length, CAPS.qualifier);
+});
+
+Deno.test("coerceExtractionResult — a warning storm is bounded", () => {
+  const r = coerceExtractionResult({
+    ...MINIMAL,
+    parse_warnings: Array.from({ length: 5_000 }, (_, i) => `w${i}`),
+  });
+  assertEquals(r.parse_warnings.length, MAX_PARSE_WARNINGS);
+  assertEquals(r.parse_warnings[0], "w0"); // the first ones are kept
+});
+
+// --- structuralIssues ---------------------------------------------------------
+
+function resultWith(
+  lines: number,
+  steps: ExtractionResult["steps"],
+  over: Partial<ExtractionResult> = {},
+): ExtractionResult {
+  return coerceExtractionResult({
+    ...MINIMAL,
+    groups: [{
+      name: null,
+      line_items: Array.from({ length: lines }, () => lineItem()),
+    }],
+    steps,
+    ...over,
+  });
+}
+
+Deno.test("structuralIssues — clean payload has none", () => {
+  const r = resultWith(2, [{
+    tokens: [{
+      t: "ref",
+      refs: [0, 1],
+      label: "both",
+      mention: "new",
+      portion: null,
+    }],
+  }]);
+  assertEquals(structuralIssues(r), []);
+});
+
+Deno.test("structuralIssues — the detectable self-inconsistencies", () => {
+  const cases: [string, ExtractionResult, string][] = [
+    [
+      "qty AND a range",
+      coerceExtractionResult({
+        ...MINIMAL,
+        groups: [{
+          line_items: [lineItem({ qty: 1, qty_low: 1, qty_high: 2 })],
+        }],
+      }),
+      "range_with_single_qty",
+    ],
+    [
+      "a line with no identity",
+      coerceExtractionResult({
+        ...MINIMAL,
+        groups: [{ line_items: [lineItem({ ingredient_text: "  " })] }],
+      }),
+      "empty_ingredient_text",
+    ],
+    [
+      "a ref past the end",
+      resultWith(1, [{
+        tokens: [{
+          t: "ref",
+          refs: [5],
+          label: "x",
+          mention: "new",
+          portion: null,
+        }],
+      }]),
+      "ref_out_of_range",
+    ],
+    [
+      "a negative ref",
+      resultWith(1, [{
+        tokens: [{
+          t: "ref",
+          refs: [-1],
+          label: "x",
+          mention: "new",
+          portion: null,
+        }],
+      }]),
+      "ref_out_of_range",
+    ],
+    [
+      "a portion with qty AND a range",
+      resultWith(1, [{
+        tokens: [{
+          t: "ref",
+          refs: [0],
+          label: "x",
+          mention: "new",
+          portion: {
+            qty: 1,
+            qty_low: 1,
+            qty_high: 2,
+            unit: null,
+            qualifier: null,
+          },
+        }],
+      }]),
+      "portion_qty_and_range",
+    ],
+  ];
+  for (const [label, result, kind] of cases) {
+    const kinds = structuralIssues(result).map((i) => i.kind);
+    assert(kinds.includes(kind as never), `${label}: got ${kinds.join(",")}`);
+  }
+});
+
+// --- validateExtractionResult -------------------------------------------------
+
+Deno.test("validateExtractionResult — a clean result passes through unchanged", () => {
+  const r = resultWith(1, [{ tokens: [{ t: "text", s: "stir" }] }]);
+  assertEquals(validateExtractionResult(r), r);
+});
+
+Deno.test("validateExtractionResult — out-of-range refs are DROPPED, not shipped", () => {
+  // 2 lines; the token points at 0 (valid) and 9 (not).
+  const r = validateExtractionResult(
+    resultWith(2, [{
+      tokens: [{
+        t: "ref",
+        refs: [0, 9],
+        label: "onion",
+        mention: "new",
+        portion: null,
+      }],
+    }]),
+  );
+  const tok = r.steps[0].tokens[0] as RefToken;
+  assertEquals(tok.t, "ref");
+  assertEquals(tok.refs, [0]); // the impossible index is gone
+  assert(r.parse_warnings.some((w) => w.includes("ref_out_of_range")));
+});
+
+Deno.test("validateExtractionResult — a wholly-invalid ref demotes to its label text", () => {
+  const r = validateExtractionResult(
+    resultWith(1, [{
+      tokens: [
+        { t: "text", s: "add " },
+        {
+          t: "ref",
+          refs: [7, 8],
+          label: "the sauce",
+          mention: "new",
+          portion: null,
+        },
+      ],
+    }]),
+  );
+  assertEquals(r.steps[0].tokens.map((t) => t.t), ["text", "text"]);
+  assertEquals((r.steps[0].tokens[1] as TextToken).s, "the sauce");
+});
+
+Deno.test("validateExtractionResult — an unlabelled invalid ref is removed entirely", () => {
+  const r = validateExtractionResult(
+    resultWith(1, [{
+      tokens: [{
+        t: "ref",
+        refs: [7],
+        label: "",
+        mention: "new",
+        portion: null,
+      }],
+    }]),
+  );
+  assertEquals(r.steps[0].tokens, []);
+});
+
+Deno.test("validateExtractionResult — other issues are reported, not repaired", () => {
+  // Honest numbers: a contradictory quantity is flagged for the human, and the
+  // payload still carries exactly what the model said.
+  const raw = coerceExtractionResult({
+    ...MINIMAL,
+    groups: [{ line_items: [lineItem({ qty: 1, qty_low: 1, qty_high: 2 })] }],
+  });
+  const r = validateExtractionResult(raw);
+  assertEquals(r.groups, raw.groups);
+  assert(r.parse_warnings.some((w) => w.includes("range_with_single_qty")));
+});
+
+Deno.test("validateExtractionResult — existing warnings are preserved", () => {
+  const r = validateExtractionResult(
+    resultWith(1, [{
+      tokens: [{
+        t: "ref",
+        refs: [4],
+        label: "x",
+        mention: "new",
+        portion: null,
+      }],
+    }], {
+      parse_warnings: ["light grey type"],
+    }),
+  );
+  assertEquals(r.parse_warnings[0], "light grey type");
+  assertEquals(r.parse_warnings.length, 2);
+});
