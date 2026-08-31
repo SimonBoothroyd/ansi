@@ -424,6 +424,18 @@
         .locknote p:last-child{margin-bottom:0;}
         .locknote b{font-weight:600;}
         .locknote .src{font-size:11.5px;color:var(--muted);}
+        /* proposal variant — amber, so a board reader can tell "decided" from "for sign-off" at a glance */
+        .locknote.prop{background:#FDF8EC;border-color:#F0DCB0;border-left-color:var(--aging);}
+        .locknote.prop .lk-h{color:#7A5A16;}
+        .ledger{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:10px 0 0;font-size:12.5px;line-height:1.45;}
+        .ledger .k{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--herb-deep);padding-top:3px;white-space:nowrap;}
+        .ledger .k.ch{color:var(--aging);}
+        /* one honest state card (permission, not-found, offline) */
+        .state{margin:0 20px 12px;border:1px solid var(--line);border-radius:14px;padding:13px;}
+        .state .sh{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;}
+        .state .sb{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.45;}
+        .state.warn{border-color:var(--aging);background:#FDF8EC;}
+        .state.warn .sh{color:#7A5A16;}
 
         /* v3 · the shipped review screen + three-part line (re-traced from code 2026-08-31) */
         .tsec{display:flex;align-items:center;gap:10px;margin:16px 20px 8px;}
@@ -1241,10 +1253,197 @@
         </div>
     </div>
 
+    <!-- ===== INGREDIENTS MANAGER V1 (PROPOSAL — step 8.5) ===== -->
+    <div class="section-head"><span class="ey">Ingredients manager · v1</span><span class="proposed-tag">proposal · not locked</span><span class="rule"></span><span class="sub">The vocabulary gets a face — list, flesh out, confirm, scan</span></div>
+
+    <div class="locknote prop">
+        <p class="lk-h">Extends the board — it does not replace it · step 8.5, for sign-off</p>
+        <p>Three frames on this board already drew this screen: <b>“New ingredient”</b> (the form’s spine), <b>“Barcode add”</b> (Open Food Facts, camera, ODbL) and <b>“Fleshing-out queue”</b> (the stub list) — plus <b>“Macros basis”</b> (7.7) and <b>“Allowed units”</b> (7.8, ADR-0008), which grew the form’s admission section while the form itself stayed unbuilt. These frames <i>re-trace</i> those and fold them into one screen. Where they diverge, the divergence is named on the frame.</p>
+        <div class="ledger">
+            <span class="k">kept</span><span>Open Food Facts as the product source, ODbL credit on the row · barcode entered from the new-ingredient form’s <b>Source</b> segment · the form’s field order (name · aliases · category + default unit · macros · density) · the 7.8 admission section (basis shown, family pre-ticked, dashed chips unlock with a density) · density both ways, one stored fact · a <b>pushed</b> screen with a back chevron, not a fifth tab.</span>
+            <span class="k ch">changed</span><span><b>The stub queue is a band, not a screen</b> — it sits on top of the full vocabulary list, because a vocabulary you can only see when it is broken is not a vocabulary you can edit. <b>Macros alone gate <span style="font-family:'IBM Plex Mono',monospace">complete</span></b>, not “density + macros”: an ingredient measured only in its own basis never needs a density, and demanding one invites a made-up number. <b>Confirming is a human act</b> — a USDA or barcode prefill fills the fields and leaves the row a stub until someone says yes. <b>A barcode prefills a draft</b>; it no longer “imports as complete”, because Open Food Facts is volunteer-entered and often has no panel at all.</span>
+            <span class="k ch">new</span><span>A <b>piece-default ingredient with a density admits volume units</b> (the ADR-0008 amendment this step proposes) — drawn on Mango, where it is obvious. <b>Renaming rewrites the match text</b>. A <b>typed barcode</b> sits under the scanner permanently.</span>
+        </div>
+        <p class="src">Exec plan: <b>docs/exec-plans/active/0020-ingredients-manager.md</b> — D1–D8 are the sign-off menu. Where it offers options, these frames draw the recommendation and the annotation names the alternative.</p>
+    </div>
+
+    <div class="board">
+
+        <div class="frame">
+            <p class="frame-name"><b>Ingredients</b> · the whole vocabulary — re-traces “Fleshing-out queue”, which becomes a band here instead of its own screen</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Ingredients</span><span class="dots">＋</span></div>
+                <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Search your vocabulary</span><span class="care"></span></div></div>
+                <div class="fq"><div class="fq-title"><span class="n">Needs fleshing out</span><span class="c">3 stubs</span></div>
+                    <div class="stub"><span class="sn">Curry leaves, fresh</span><span class="need">needs <span>macros</span></span></div>
+                    <div class="stub"><span class="sn">Tamarind paste</span><span class="need">needs <span>macros</span> · usda prefilled</span></div>
+                    <div class="stub"><span class="sn">Fenugreek</span><span class="need">needs <span>macros</span></span></div>
+                </div>
+                <p class="rc-note">Until a stub carries macros it stays out of macro totals — the honest-numbers rule, unchanged. A missing <b style="color:var(--ink)">density</b> no longer blocks completion: it only leaves the volume chips locked.</p>
+                <p class="list-h">All ingredients · 291</p>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Almond flour</div>
+                        <span class="res-cat">Baking · has density · 1 measure</span>
+                        <div class="mline">579 kcal · 21P 50F 22C <span class="per">/100 g</span></div></div>
+                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Butter beans</div>
+                        <span class="res-cat">Pantry · has density · 2 measures</span>
+                        <div class="mline">115 kcal · 8P 0F 20C <span class="per">/100 g</span></div></div>
+                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Curry leaves, fresh <span class="res-badge">stub</span></div>
+                        <span class="res-cat">Produce · needs macros — no zeros shown</span></div>
+                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Mango</div>
+                        <span class="res-cat">Produce · has density · 3 measures</span>
+                        <div class="mline">60 kcal · 1P 0F 15C <span class="per">/100 g</span></div></div>
+                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Nutritional yeast</div>
+                        <span class="res-cat">Pantry · no density — volume units locked</span>
+                        <div class="mline">385 kcal · 50P 5F 36C <span class="per">/100 g</span></div></div>
+                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                <div class="addnew">＋ add an ingredient — by hand, or scan a barcode</div>
+                <p class="conv-note">Reached from <b>Library ▸ ⋯ ▸ Ingredients</b>, beside “Import a recipe” — a pushed route, so no bottom nav. <span style="color:var(--muted)">Alternative on the table: a fifth tab. Rejected — the four tabs are the loop (plan → cook → shop); a vocabulary is reference data.</span></p>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>tap a row</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Ingredient detail</b> · the flesh-out form, finally built — “New ingredient” + the 7.7 basis frame + the 7.8 admission frame, one scroll</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Mango</span><span class="dots">⋯</span></div>
+                <p class="flabel">Canonical name</p>
+                <div class="frow"><div class="fin big">Mango</div></div>
+                <p class="conv-note" style="margin:-6px 20px 12px">renaming rewrites the match text — otherwise the next import searches for a name nothing carries</p>
+                <p class="flabel">Also known as</p>
+                <div class="frow"><div class="chips"><span class="chip">mangoes</span><span class="chip">ataulfo</span><span class="chip add">＋ alias</span></div></div>
+                <p class="flabel">Category · default unit</p>
+                <div class="frow" style="display:flex;gap:10px"><div class="fin" style="flex:1">Produce ▾</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace">piece ▾</div></div>
+                <p class="flabel">Macros — enter them as the label reads</p>
+                <div class="frow"><div class="seg"><span class="segopt on">per 100 g</span><span class="segopt">per 100 ml</span></div></div>
+                <div class="frow"><div class="macros4"><div class="mi"><div class="miv">60</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">1 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">15 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">0 g</div><div class="mil">fat</div></div></div></div>
+                <p class="flabel">Density — either way, one stored fact</p>
+                <div class="frow"><div class="seg"><span class="segopt on">g / ml</span><span class="segopt">a spoon weighs…</span></div></div>
+                <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace">0.66 g/ml <span style="color:var(--muted)">· fao_infoods_v2</span></div></div>
+                <p class="flabel">Allowed units — what a line may say</p>
+                <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
+                    <span class="uchip on">piece</span><span class="uchip on">g</span>
+                    <span class="uchip on">cup</span><span class="uchip on">tbsp</span><span class="uchip on">tsp</span><span class="uchip on">ml</span>
+                    <span class="uchip" style="color:var(--muted);border-style:dashed">kg</span>
+                </div></div>
+                <p class="conv-note" style="margin-top:2px"><b>“1 cup diced mango” is a real line.</b> Bought by the piece, still pourable — so the density unlocks the volume chips even though the default unit is a count. That is the <b>ADR-0008 amendment</b> this step proposes; today the rule fires only for mass/volume defaults and the seed patches 49 produce rows by hand.</p>
+                <p class="flabel">Measures — count-like, in the basis</p>
+                <div class="frow"><div class="fin"><span class="srcdot usda"></span> mango, medium <span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">207 g · usda portion</span></div></div>
+                <p class="flabel">Imprecise units</p>
+                <div class="frow"><div class="fin" style="display:flex;justify-content:space-between"><span>pinch · dash · to taste</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">off — category-gated</span></div></div>
+                <div class="status-line"><span class="sdot" style="background:var(--fresh)"></span>Complete — counts in conversions and macro totals.</div>
+                <div class="addnew" style="border-color:#E7C3BA;color:var(--gone)">Delete ingredient</div>
+                <p class="conv-note">Delete is refused while a live recipe line points here, with the count (“used by 3 recipes”) — a line’s ingredient is never allowed to dangle. <span style="color:var(--muted)">Open at sign-off.</span></p>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>a stub</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Flesh out a stub</b> · the same form, prefilled by the USDA job that finally fires — and still a stub until you say so</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Curry leaves, fresh</span><span class="dots">⋯</span></div>
+                <div class="srcnotes">
+                    <div class="sn-h"><span>⚠</span><span>Filled in for you — check it</span></div>
+                    <div class="sn">· USDA FoodData Central · “curry leaf, raw” · 0.71 confidence.</div>
+                    <div class="sn">· Nothing counts until you confirm.</div>
+                </div>
+                <p class="flabel" style="margin-top:12px">Canonical name</p>
+                <div class="frow"><div class="fin big">Curry leaves, fresh</div></div>
+                <p class="flabel">Macros — enter them as the label reads</p>
+                <div class="frow"><div class="seg"><span class="segopt on">per 100 g</span><span class="segopt">per 100 ml</span></div></div>
+                <div class="frow"><div class="macros4"><div class="mi"><div class="miv">108</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">6 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">19 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">1 g</div><div class="mil">fat</div></div></div></div>
+                <p class="flabel">Density — optional</p>
+                <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">— g / ml · leaves the volume chips locked</div></div>
+                <p class="flabel">Allowed units</p>
+                <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
+                    <span class="uchip on">g</span><span class="uchip on">piece</span>
+                    <span class="uchip" style="color:var(--muted);border-style:dashed">tbsp</span><span class="uchip" style="color:var(--muted);border-style:dashed">cup</span>
+                </div></div>
+                <div class="status-line"><span class="sdot"></span>Still a <b style="color:var(--ink)">&nbsp;stub</b>&nbsp;— left out of macro totals until confirmed.</div>
+                <div class="savebtn">Confirm — it counts from here</div>
+                <p class="rc-note">The prefill runs server-side the moment the stub arrives (<b style="color:var(--ink)">usda_food</b> never leaves the server — ADR-0005), so this form opens populated without asking. It never promotes the row on its own: a trigram guess quietly entering every macro total is exactly the never-invent failure. <b style="color:var(--ink)">Macros are the gate</b>; density is not. <span style="color:var(--muted)">Alternative on the table: auto-complete once density + macros are both set — the original frame’s caption. Rejected for the same reason.</span></p>
+                <p class="conv-note">Clearing the macros of a complete row sends it back to <b>stub</b> — a row is never left asserting something it no longer has.</p>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Add · scan a barcode</b> · re-traces “Barcode add” (was tagged <i>stretch</i>) — same camera, same source, now with a typed fallback under it</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">New ingredient</span><span class="dots"></span></div>
+                <p class="flabel">Source</p>
+                <div class="frow"><div class="seg"><span class="segopt">Manual</span><span class="segopt">USDA FDC</span><span class="segopt on">Barcode</span></div></div>
+                <div class="cam"><div class="reticle"><div class="scan-line"></div></div><div class="cam-hint">line up the barcode</div></div>
+                <p class="flabel">…or type the number</p>
+                <div class="field"><div class="search"><span class="mag">⌗</span><span style="color:var(--muted)">13 digits</span><span class="care"></span></div></div>
+                <p class="rc-note">The typed field is not a courtesy — it is the no-permission path, the scuffed-label path, and the only path a <b style="color:var(--ink)">simulator</b> can walk. A camera-only design would be unverifiable in <b style="color:var(--ink)">make test-sim</b>, which is where this app’s UI is actually proven.</p>
+                <p class="conv-note">Scanner: <b>mobile_scanner</b> — on iOS it is AVFoundation + Apple Vision, so no ML Kit binary rides along. The camera permission string already in <b>Info.plist</b> is worded for recipe photos; it widens to mention barcodes rather than gaining a second key.</p>
+                <p class="conv-note">The lookup runs <b>on the phone</b>, not through an edge function: Open Food Facts needs no key and no spend — the two reasons import lives on the server — and its 15 req/min limit is <b>per IP</b>, so one shared server address would pool every household onto one budget. A barcode is an exact-key fetch, not vocabulary matching, so ADR-0004 does not reach it. <span style="color:var(--muted)">Alternative: an edge function, with a shared cache. Held in reserve for the day OFF requires an account.</span></p>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>found</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Barcode result</b> · prefills a draft — the one place these frames overrule the original: it no longer “imports as complete”</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">New ingredient</span><span class="dots"></span></div>
+                <p class="flabel">Found · Open Food Facts</p>
+                <div class="matched"><div class="mnm">Coconut Milk, 400 ml</div><div class="msrc">store brand · barcode 5000159407236 · ODbL</div>
+                    <div class="macros4" style="margin-top:12px"><div class="mi"><div class="miv">197</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">2 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">3 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">20 g</div><div class="mil">fat</div></div></div>
+                    <p class="conv-note" style="margin:10px 0 0">panel read <b>per 100 ml</b> — stored as the basis, not converted</p>
+                </div>
+                <p class="flabel" style="margin-top:16px">Canonical name</p>
+                <div class="frow"><div class="fin big">Coconut milk, canned</div></div>
+                <p class="conv-note" style="margin:-6px 20px 12px">the product name is a starting point — yours is the name your recipes will read</p>
+                <p class="flabel">Also add a measure</p>
+                <div class="frow"><div class="fin" style="display:flex;justify-content:space-between"><span>can = 400 ml <span style="color:var(--muted);font-size:12px">from the pack size</span></span><span class="res-pick on">✓</span></div></div>
+                <div class="status-line"><span class="sdot"></span>Saves as a <b style="color:var(--ink)">&nbsp;stub</b>&nbsp;— confirm it to make it count.</div>
+                <div class="savebtn">Save &amp; review</div>
+                <p class="rc-note">Open Food Facts is volunteer-entered: plenty of products carry a name and no panel at all, and a per-<i>serving</i> panel cannot become per-100 without a serving weight we would have to guess. So a scan <b style="color:var(--ink)">fills the form</b> and stops. Missing macros stay blank, never zero. <span style="color:var(--muted)">The original frame said “imports as complete — macros come with it”; that assumed the panel always arrives.</span></p>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>When it doesn’t work</b> · three honest states — every one of them lands back on a form you can still finish by hand</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">New ingredient</span><span class="dots"></span></div>
+                <p class="flabel">Camera is off</p>
+                <div class="state warn">
+                    <div class="sh"><span>⚑</span><span>Mise can’t open the camera</span></div>
+                    <div class="sb">Camera access is turned off for Mise. Turn it on in Settings, or type the barcode below — both end in the same place.</div>
+                    <div class="ghostbtn" style="margin-top:10px">Open Settings</div>
+                </div>
+                <p class="flabel">Scanned, but unknown</p>
+                <div class="state">
+                    <div class="sh"><span style="color:var(--muted)">⌗</span><span>5012345678900 isn’t in Open Food Facts</span></div>
+                    <div class="sb">Nobody has added this product yet. Add it by hand — the name and macros are the only parts a barcode was going to fill in anyway.</div>
+                    <div class="ghostbtn" style="margin-top:10px">Add it by hand</div>
+                </div>
+                <p class="flabel">No connection</p>
+                <div class="state">
+                    <div class="sh"><span style="color:var(--muted)">⇣</span><span>Can’t reach Open Food Facts</span></div>
+                    <div class="sb">The lookup needs a connection. Everything else on this form works offline and syncs when you’re back.</div>
+                    <div class="ghostbtn" style="margin-top:10px">Try again</div>
+                </div>
+                <p class="rc-note">None of the three is a dead end, and none of them is a dialog — the same rule the import intake screen already follows: <b style="color:var(--ink)">a failure comes back to the form with the reason under it</b>. The offline copy is worth its length: this is the one action in the app that genuinely cannot be queued, and saying so is kinder than a spinner.</p>
+            </div></div>
+        </div>
+    </div>
+
     <footer class="footer">
         <span><b>Mise</b> — complete board</span>
         <span>Flutter · Forui · Supabase · PowerSync</span>
-        <span>21 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8) · import + recipe-view v3 (locked — re-traced from shipped code 2026-08-31)</span>
+        <span>27 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8) · import + recipe-view v3 (locked — re-traced from shipped code 2026-08-31) · ingredients manager v1 (proposal — step 8.5)</span>
     </footer>
 
 </div>
