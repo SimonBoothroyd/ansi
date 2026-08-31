@@ -176,9 +176,15 @@ Per-line Claude-vs-GPT capture → a self-contained HTML report (needs the two
 keys; `source ../.env.local` first):
 
 ```
-deno run --allow-read --allow-env --allow-net runner/capture_d2_report.ts
-deno run --allow-read runner/capture_d2_report.ts --render-only   # no API calls
+deno run --allow-read --allow-write --allow-env --allow-net \
+  runner/capture_d2_report.ts
+# re-render the HTML from the saved JSON dump — no API calls, no keys:
+deno run --allow-read --allow-write --allow-env --allow-net \
+  runner/capture_d2_report.ts --render-only
 ```
+
+(`--allow-net` is needed even for `--render-only`: the adapters pull
+`imagescript`, whose wasm loads at import time. No provider is called.)
 
 It writes `evals/reports/extraction-d2-compare.{html,json}`. Those reports are
 **regenerable output and gitignored** — `--render-only` re-renders the HTML from

@@ -16,10 +16,11 @@ deno run --allow-read "$here/score_normalization.ts"
 
 echo
 # The scorers grade every other number in this run, so they get graded first.
+# Whole-directory so a new *.test.ts is picked up without editing this script.
 # `--allow-read` is required: the tests read the seed vocab and the blessed
 # extraction gold, and a denied read makes a catch-and-skip test pass silently
 # (the same trap documented in supabase/functions/deno.json).
-deno test --allow-read --allow-env "$here/score_extraction.test.ts"
+deno test --allow-read --allow-env "$here/"
 
 echo
 # Extraction (§4.4) — scores D2 (sanitize on reconstructed gold text) with the

@@ -328,11 +328,13 @@ function esc(s: string): string {
 }
 
 function pct(x: number): string {
-  return (x * 100).toFixed(1) + "%";
+  // A dump written before a metric existed has no value for it — render an
+  // honest dash rather than "NaN%".
+  return Number.isFinite(x) ? (x * 100).toFixed(1) + "%" : "—";
 }
 
-function tick(ok: boolean | null): string {
-  if (ok === null) return `<span class="na">—</span>`;
+function tick(ok: boolean | null | undefined): string {
+  if (ok === null || ok === undefined) return `<span class="na">—</span>`;
   return ok
     ? `<span class="yes">&#10003;</span>`
     : `<span class="no">&#10007;</span>`;
