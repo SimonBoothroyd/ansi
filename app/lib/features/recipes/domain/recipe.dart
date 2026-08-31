@@ -53,6 +53,17 @@ abstract class Recipe with _$Recipe {
     String? sectionId,
     String? bookName,
     String? sectionName,
+
+    /// Honest **per-serving** macros for the recipe as written, or an
+    /// incomplete marker (step 9's recipe-page panel; the same summary the
+    /// picker rows render). Derived on read from the line items and the
+    /// vocab — never persisted, and ignored by `saveRecipe`.
+    ///
+    /// Per-serving means the servings scaler does NOT move these numbers:
+    /// scaling multiplies the whole recipe *and* the servings it yields, so
+    /// each serving is unchanged. Null only where a caller builds a [Recipe]
+    /// without line nutrition (tests, the editor's in-flight draft).
+    RecipeMacroSummary? macros,
   }) = _Recipe;
 }
 

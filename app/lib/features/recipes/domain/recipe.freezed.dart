@@ -28,7 +28,16 @@ mixin _$Recipe {
 /// any recipe surfaced through the Library; [sectionId] is null when
 /// Unsectioned. [bookName]/[sectionName] are denormalised for the recipe
 /// page's "Book · Section" hero line (display-only; assembled on read).
- String? get bookId; String? get sectionId; String? get bookName; String? get sectionName;
+ String? get bookId; String? get sectionId; String? get bookName; String? get sectionName;/// Honest **per-serving** macros for the recipe as written, or an
+/// incomplete marker (step 9's recipe-page panel; the same summary the
+/// picker rows render). Derived on read from the line items and the
+/// vocab — never persisted, and ignored by `saveRecipe`.
+///
+/// Per-serving means the servings scaler does NOT move these numbers:
+/// scaling multiplies the whole recipe *and* the servings it yields, so
+/// each serving is unchanged. Null only where a caller builds a [Recipe]
+/// without line nutrition (tests, the editor's in-flight draft).
+ RecipeMacroSummary? get macros;
 /// Create a copy of Recipe
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -39,16 +48,16 @@ $RecipeCopyWith<Recipe> get copyWith => _$RecipeCopyWithImpl<Recipe>(this as Rec
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Recipe&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.steps, steps)&&const DeepCollectionEquality().equals(other.methodSteps, methodSteps)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.sectionId, sectionId) || other.sectionId == sectionId)&&(identical(other.bookName, bookName) || other.bookName == bookName)&&(identical(other.sectionName, sectionName) || other.sectionName == sectionName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Recipe&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.steps, steps)&&const DeepCollectionEquality().equals(other.methodSteps, methodSteps)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.sectionId, sectionId) || other.sectionId == sectionId)&&(identical(other.bookName, bookName) || other.bookName == bookName)&&(identical(other.sectionName, sectionName) || other.sectionName == sectionName)&&(identical(other.macros, macros) || other.macros == macros));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,title,servingsBase,const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(steps),const DeepCollectionEquality().hash(methodSteps),keepsForDays,freezable,freezerDays,bookId,sectionId,bookName,sectionName);
+int get hashCode => Object.hash(runtimeType,id,title,servingsBase,const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(steps),const DeepCollectionEquality().hash(methodSteps),keepsForDays,freezable,freezerDays,bookId,sectionId,bookName,sectionName,macros);
 
 @override
 String toString() {
-  return 'Recipe(id: $id, title: $title, servingsBase: $servingsBase, groups: $groups, steps: $steps, methodSteps: $methodSteps, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, bookId: $bookId, sectionId: $sectionId, bookName: $bookName, sectionName: $sectionName)';
+  return 'Recipe(id: $id, title: $title, servingsBase: $servingsBase, groups: $groups, steps: $steps, methodSteps: $methodSteps, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, bookId: $bookId, sectionId: $sectionId, bookName: $bookName, sectionName: $sectionName, macros: $macros)';
 }
 
 
@@ -59,7 +68,7 @@ abstract mixin class $RecipeCopyWith<$Res>  {
   factory $RecipeCopyWith(Recipe value, $Res Function(Recipe) _then) = _$RecipeCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, double servingsBase, List<IngredientGroup> groups, List<String> steps, List<MethodStep>? methodSteps, int? keepsForDays, bool freezable, int? freezerDays, String? bookId, String? sectionId, String? bookName, String? sectionName
+ String id, String title, double servingsBase, List<IngredientGroup> groups, List<String> steps, List<MethodStep>? methodSteps, int? keepsForDays, bool freezable, int? freezerDays, String? bookId, String? sectionId, String? bookName, String? sectionName, RecipeMacroSummary? macros
 });
 
 
@@ -76,7 +85,7 @@ class _$RecipeCopyWithImpl<$Res>
 
 /// Create a copy of Recipe
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? servingsBase = null,Object? groups = null,Object? steps = null,Object? methodSteps = freezed,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? bookId = freezed,Object? sectionId = freezed,Object? bookName = freezed,Object? sectionName = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? servingsBase = null,Object? groups = null,Object? steps = null,Object? methodSteps = freezed,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? bookId = freezed,Object? sectionId = freezed,Object? bookName = freezed,Object? sectionName = freezed,Object? macros = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -91,7 +100,8 @@ as int?,bookId: freezed == bookId ? _self.bookId : bookId // ignore: cast_nullab
 as String?,sectionId: freezed == sectionId ? _self.sectionId : sectionId // ignore: cast_nullable_to_non_nullable
 as String?,bookName: freezed == bookName ? _self.bookName : bookName // ignore: cast_nullable_to_non_nullable
 as String?,sectionName: freezed == sectionName ? _self.sectionName : sectionName // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,macros: freezed == macros ? _self.macros : macros // ignore: cast_nullable_to_non_nullable
+as RecipeMacroSummary?,
   ));
 }
 
@@ -176,10 +186,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  double servingsBase,  List<IngredientGroup> groups,  List<String> steps,  List<MethodStep>? methodSteps,  int? keepsForDays,  bool freezable,  int? freezerDays,  String? bookId,  String? sectionId,  String? bookName,  String? sectionName)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  double servingsBase,  List<IngredientGroup> groups,  List<String> steps,  List<MethodStep>? methodSteps,  int? keepsForDays,  bool freezable,  int? freezerDays,  String? bookId,  String? sectionId,  String? bookName,  String? sectionName,  RecipeMacroSummary? macros)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Recipe() when $default != null:
-return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps,_that.methodSteps,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.bookId,_that.sectionId,_that.bookName,_that.sectionName);case _:
+return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps,_that.methodSteps,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.bookId,_that.sectionId,_that.bookName,_that.sectionName,_that.macros);case _:
   return orElse();
 
 }
@@ -197,10 +207,10 @@ return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  double servingsBase,  List<IngredientGroup> groups,  List<String> steps,  List<MethodStep>? methodSteps,  int? keepsForDays,  bool freezable,  int? freezerDays,  String? bookId,  String? sectionId,  String? bookName,  String? sectionName)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  double servingsBase,  List<IngredientGroup> groups,  List<String> steps,  List<MethodStep>? methodSteps,  int? keepsForDays,  bool freezable,  int? freezerDays,  String? bookId,  String? sectionId,  String? bookName,  String? sectionName,  RecipeMacroSummary? macros)  $default,) {final _that = this;
 switch (_that) {
 case _Recipe():
-return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps,_that.methodSteps,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.bookId,_that.sectionId,_that.bookName,_that.sectionName);case _:
+return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps,_that.methodSteps,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.bookId,_that.sectionId,_that.bookName,_that.sectionName,_that.macros);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -217,10 +227,10 @@ return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  double servingsBase,  List<IngredientGroup> groups,  List<String> steps,  List<MethodStep>? methodSteps,  int? keepsForDays,  bool freezable,  int? freezerDays,  String? bookId,  String? sectionId,  String? bookName,  String? sectionName)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  double servingsBase,  List<IngredientGroup> groups,  List<String> steps,  List<MethodStep>? methodSteps,  int? keepsForDays,  bool freezable,  int? freezerDays,  String? bookId,  String? sectionId,  String? bookName,  String? sectionName,  RecipeMacroSummary? macros)?  $default,) {final _that = this;
 switch (_that) {
 case _Recipe() when $default != null:
-return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps,_that.methodSteps,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.bookId,_that.sectionId,_that.bookName,_that.sectionName);case _:
+return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps,_that.methodSteps,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.bookId,_that.sectionId,_that.bookName,_that.sectionName,_that.macros);case _:
   return null;
 
 }
@@ -232,7 +242,7 @@ return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps
 
 
 class _Recipe implements Recipe {
-  const _Recipe({required this.id, required this.title, required this.servingsBase, final  List<IngredientGroup> groups = const <IngredientGroup>[], final  List<String> steps = const <String>[], final  List<MethodStep>? methodSteps, this.keepsForDays, this.freezable = false, this.freezerDays, this.bookId, this.sectionId, this.bookName, this.sectionName}): _groups = groups,_steps = steps,_methodSteps = methodSteps;
+  const _Recipe({required this.id, required this.title, required this.servingsBase, final  List<IngredientGroup> groups = const <IngredientGroup>[], final  List<String> steps = const <String>[], final  List<MethodStep>? methodSteps, this.keepsForDays, this.freezable = false, this.freezerDays, this.bookId, this.sectionId, this.bookName, this.sectionName, this.macros}): _groups = groups,_steps = steps,_methodSteps = methodSteps;
   
 
 @override final  String id;
@@ -288,6 +298,16 @@ class _Recipe implements Recipe {
 @override final  String? sectionId;
 @override final  String? bookName;
 @override final  String? sectionName;
+/// Honest **per-serving** macros for the recipe as written, or an
+/// incomplete marker (step 9's recipe-page panel; the same summary the
+/// picker rows render). Derived on read from the line items and the
+/// vocab — never persisted, and ignored by `saveRecipe`.
+///
+/// Per-serving means the servings scaler does NOT move these numbers:
+/// scaling multiplies the whole recipe *and* the servings it yields, so
+/// each serving is unchanged. Null only where a caller builds a [Recipe]
+/// without line nutrition (tests, the editor's in-flight draft).
+@override final  RecipeMacroSummary? macros;
 
 /// Create a copy of Recipe
 /// with the given fields replaced by the non-null parameter values.
@@ -299,16 +319,16 @@ _$RecipeCopyWith<_Recipe> get copyWith => __$RecipeCopyWithImpl<_Recipe>(this, _
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Recipe&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._steps, _steps)&&const DeepCollectionEquality().equals(other._methodSteps, _methodSteps)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.sectionId, sectionId) || other.sectionId == sectionId)&&(identical(other.bookName, bookName) || other.bookName == bookName)&&(identical(other.sectionName, sectionName) || other.sectionName == sectionName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Recipe&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._steps, _steps)&&const DeepCollectionEquality().equals(other._methodSteps, _methodSteps)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.sectionId, sectionId) || other.sectionId == sectionId)&&(identical(other.bookName, bookName) || other.bookName == bookName)&&(identical(other.sectionName, sectionName) || other.sectionName == sectionName)&&(identical(other.macros, macros) || other.macros == macros));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,title,servingsBase,const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_steps),const DeepCollectionEquality().hash(_methodSteps),keepsForDays,freezable,freezerDays,bookId,sectionId,bookName,sectionName);
+int get hashCode => Object.hash(runtimeType,id,title,servingsBase,const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_steps),const DeepCollectionEquality().hash(_methodSteps),keepsForDays,freezable,freezerDays,bookId,sectionId,bookName,sectionName,macros);
 
 @override
 String toString() {
-  return 'Recipe(id: $id, title: $title, servingsBase: $servingsBase, groups: $groups, steps: $steps, methodSteps: $methodSteps, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, bookId: $bookId, sectionId: $sectionId, bookName: $bookName, sectionName: $sectionName)';
+  return 'Recipe(id: $id, title: $title, servingsBase: $servingsBase, groups: $groups, steps: $steps, methodSteps: $methodSteps, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, bookId: $bookId, sectionId: $sectionId, bookName: $bookName, sectionName: $sectionName, macros: $macros)';
 }
 
 
@@ -319,7 +339,7 @@ abstract mixin class _$RecipeCopyWith<$Res> implements $RecipeCopyWith<$Res> {
   factory _$RecipeCopyWith(_Recipe value, $Res Function(_Recipe) _then) = __$RecipeCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, double servingsBase, List<IngredientGroup> groups, List<String> steps, List<MethodStep>? methodSteps, int? keepsForDays, bool freezable, int? freezerDays, String? bookId, String? sectionId, String? bookName, String? sectionName
+ String id, String title, double servingsBase, List<IngredientGroup> groups, List<String> steps, List<MethodStep>? methodSteps, int? keepsForDays, bool freezable, int? freezerDays, String? bookId, String? sectionId, String? bookName, String? sectionName, RecipeMacroSummary? macros
 });
 
 
@@ -336,7 +356,7 @@ class __$RecipeCopyWithImpl<$Res>
 
 /// Create a copy of Recipe
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? servingsBase = null,Object? groups = null,Object? steps = null,Object? methodSteps = freezed,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? bookId = freezed,Object? sectionId = freezed,Object? bookName = freezed,Object? sectionName = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? servingsBase = null,Object? groups = null,Object? steps = null,Object? methodSteps = freezed,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? bookId = freezed,Object? sectionId = freezed,Object? bookName = freezed,Object? sectionName = freezed,Object? macros = freezed,}) {
   return _then(_Recipe(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -351,7 +371,8 @@ as int?,bookId: freezed == bookId ? _self.bookId : bookId // ignore: cast_nullab
 as String?,sectionId: freezed == sectionId ? _self.sectionId : sectionId // ignore: cast_nullable_to_non_nullable
 as String?,bookName: freezed == bookName ? _self.bookName : bookName // ignore: cast_nullable_to_non_nullable
 as String?,sectionName: freezed == sectionName ? _self.sectionName : sectionName // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,macros: freezed == macros ? _self.macros : macros // ignore: cast_nullable_to_non_nullable
+as RecipeMacroSummary?,
   ));
 }
 

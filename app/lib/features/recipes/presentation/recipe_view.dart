@@ -1,5 +1,9 @@
 /// The recipe page: grouped ingredients that scale live with a servings
 /// control, plus the method — laid out as Ingredients / Method tabs.
+///
+/// The Ingredients tab closes with the per-serving macro panel (step 9,
+/// [RecipeMacroPanel]) — the only number on this page the servings scaler
+/// does not move.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -17,6 +21,7 @@ import '../domain/recipe.dart';
 import '../domain/scaling.dart';
 import 'format.dart';
 import 'ingredient_line.dart';
+import 'recipe_macro_panel.dart';
 import 'recipe_view_models.dart';
 
 class RecipeView extends ConsumerWidget {
@@ -368,6 +373,12 @@ class _IngredientsTab extends StatelessWidget {
           for (final uses in groupLineUses(group.items))
             RecipeIngredientLine(uses: uses),
         ],
+        // Below the list, as the design board's Recipe frame drew it: the
+        // strip reads as the sum of the lines above it, and it stays clear of
+        // the scaler — a static per-serving figure sitting under a stepper
+        // would invite the reading that the stepper drives it (it does not).
+        const SizedBox(height: 22),
+        RecipeMacroPanel(summary: recipe.macros),
       ],
     );
   }
