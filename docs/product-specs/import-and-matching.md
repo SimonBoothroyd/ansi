@@ -519,9 +519,13 @@ or accepts a suggestion), the original raw string is written back as a new
 a few weeks the vocabulary absorbs the household's actual phrasing ("coco milk" →
 Coconut milk, canned) and matching improves with zero ML.
 
-> The **design board's** "Import & recipe view · v3" frames still show the
-> pre-merge triage flow. They are stale and carry a warning saying so; this section
-> is what shipped.
+> The **design board's** "Import & recipe view · v3" frames were re-traced from
+> the shipped code on 2026-08-31 and are current again (locked). Two shipped
+> details beyond the bullets above: the review header's zero-state reads
+> **"looks good"** (not "0 to review"), and the Save button carries a third
+> label — **"Nothing left to save"** — when every line has been dropped; each
+> line also shows a `low confidence NN%` badge when the extractor's own
+> confidence is low.
 
 ---
 
