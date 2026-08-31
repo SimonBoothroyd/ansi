@@ -1,6 +1,9 @@
 # Exec plan: Import — Lane B, match cascade + stubs + learning loop
 
-- **Status:** active
+- **Status:** done — cascade (`_shared/match.ts` + the Postgres seam `match_db.ts`,
+  in-memory `match_trgm.ts`), stub + alias write contracts, bands per §6. **Not
+  shipped:** the `prefillStubFromUsda` background trigger is written but nothing
+  invokes it yet (tech-debt tracker).
 - **Roadmap step:** Step 8 — import (lane B of the W0 DAG)
 - **Created:** 2026-08-30
 - **Contract:** frozen in [0014](./0014-import-foundation.md) · types in

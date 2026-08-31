@@ -1,6 +1,9 @@
 # Exec plan: Import — Lane D, extraction/provider benchmark + prompts
 
-- **Status:** active
+- **Status:** done — three adapters + the scored harness shipped and ran on real
+  keys. **Verdict: Claude Haiku 4.5** (`claude-haiku-4-5`) — 98.9% line-F1 vs
+  GPT-5.4-mini's 93.4%, whose recall collapses on dense recipes. That pick is
+  wired in `import-recipe/live.ts`.
 - **Roadmap step:** Step 8 — import (lane D of the W0 DAG)
 - **Created:** 2026-08-30
 - **Contract:** frozen in [0014](./0014-import-foundation.md) · `ExtractAdapter` +

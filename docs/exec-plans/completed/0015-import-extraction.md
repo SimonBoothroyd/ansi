@@ -1,6 +1,8 @@
 # Exec plan: Import — Lane A, deterministic extraction + orchestration
 
-- **Status:** active
+- **Status:** done — all three deliverables shipped (`_shared/jsonld.ts`,
+  `_shared/unit_hints.ts`, `import-recipe/index.ts` orchestration with injected
+  `ImportDeps`); real wiring lives in `import-recipe/live.ts` (see [0019](./0019-import-integration.md)).
 - **Roadmap step:** Step 8 — import (lane A of the W0 DAG)
 - **Created:** 2026-08-30
 - **Contract:** frozen in [0014](./0014-import-foundation.md) · types in

@@ -1,6 +1,12 @@
 # Exec plan: Import — Lane C, client (intake · reconciliation · chips)
 
-- **Status:** active
+- **Status:** done — `app/lib/features/import` ships intake → review → commit →
+  chipped steps. **Diverged from this charter, deliberately** (owner refinement
+  during live iteration): the "three-state reconciliation screen" became ONE
+  merged, always-editable **Review recipe** screen — no separate triage/preview
+  split, rows expand in place, band-based auto-lock, "did you mean" chips for both
+  ingredient and unit, allowed-unit enforcement, Save gated on all-valid. The
+  @-mention editor stayed stretch and is unbuilt.
 - **Roadmap step:** Step 8 — import (lane C of the W0 DAG)
 - **Created:** 2026-08-30
 - **Contract:** frozen in [0014](./0014-import-foundation.md) · server types in

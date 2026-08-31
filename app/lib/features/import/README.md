@@ -1,17 +1,127 @@
 # Feature: import
 
-**Roadmap:** Step 8 — import + reconciliation (client side) (see `docs/exec-plans/roadmap.md`).
+**Roadmap:** Step 8 — AI/deterministic import (done; the client lane is
+`docs/exec-plans/completed/0017-import-client.md`, the frozen contracts are
+`.../completed/0014-import-foundation.md`, the integration tail
+`.../completed/0019-import-integration.md`).
 
-Kick off a server-side import; show the three-state reconciliation screen; commit resolved lines + stubs. Matching itself is server-side (ADR-0004).
+Paste a recipe URL or pick photos of a page → the server extracts and matches →
+you review and fix the result on one editable screen → Save writes a real
+recipe with chipped method steps.
 
-## Layout (fill in as this slice is built)
+**The client never matches.** Extraction and the match cascade are a server-side
+edge function (ADR-0004); this feature sends a URL or images, renders what comes
+back, and owns the human decisions and the commit.
+
+## The flow
+
+```
+ImportView (intake)                   presentation/import_view.dart
+  paste a URL  ·  pick photos → crop/rotate each page
+      │
+      ▼  ImportController.startImport(ImportSource)
+ImportRepository.startImport                 ← the seam that varies (below)
+      │            POST import-recipe {url} | {images: [b64…]}
+      ▼
+ReconciliationPayload                 domain/reconciliation_payload.dart
+  title · servings · times · warnings
+  groups[ lines[ raw, band, candidates ] ]
+  steps[ tokens ]   ← refs are by FLATTENED LINE INDEX, not ids yet
+      │
+      ▼
+ReconciliationBody — "Review recipe"  presentation/reconciliation_view.dart
+  one card per line (ReviewLineCard), compact → expands in place
+  band seeds the card's starting state; VALIDITY is what gates Save
+      │
+      ▼  ImportController.commit() → buildCommit(...)
+CommitPayload                         domain/commit_payload.dart
+      │
+      ▼  SqliteImportRepository.commit — ONE local transaction
+recipe (filed into the default book) · ingredient_group · recipe_line_item
+  · create-new stubs · correction aliases
+  · step refs remapped line_index → line_item_id
+```
+
+## Layout
 
 ```
 import/
-  domain/         entities + repository interfaces — PURE DART (no package:flutter)
-  data/           repository impls, DTOs, PowerSync queries
-  presentation/   Views (widgets) + ViewModels (Riverpod notifiers)
+  domain/         PURE DART (no package:flutter)
+    reconciliation_payload.dart  the server contract, mirrored (Freezed/json)
+    commit_payload.dart          what the commit writes
+    line_resolution.dart         one line's decision + buildCommit()
+    line_validation.dart         per-line issues + the Save gate
+    preview_recipe.dart          payload → the Recipe the method fold renders
+    import_repository.dart       ImportRepository + ImportSource
+  data/
+    import_repository_impl.dart  SqliteImportRepository — the REAL commit
+    remote_import_repository.dart EdgeImportRepository — functions.invoke
+    canned_payload.dart          the canned/offline payload (see below)
+    photo_intake.dart            pick → crop/rotate, behind injectable seams
+    import_providers.dart        importRepositoryProvider (keepAlive)
+  presentation/
+    import_view.dart             intake screen
+    reconciliation_view.dart     the merged Review recipe screen
+    recon_line_card.dart         one line: collapsed row ⇄ full edit card
+    import_view_models.dart      ImportController + the ImportState machine
 ```
 
-Empty until its roadmap step. Start by copying `docs/exec-plans/_template.md`
-into `docs/exec-plans/active/`.
+## Model notes
+
+- **One screen, not three.** 0014/0017 designed triage → preview → commit. It
+  merged during live review into a single always-editable surface: warnings at
+  the top, a card per line, the read-only method fold below (rendering the same
+  `Recipe` a save would write), Save at the bottom.
+- **Band ≠ validity.** The match band (`auto`/`suggest`/`none`) only decides how
+  a line *starts*. Whether it's **done** is recomputed by `line_validation.dart`:
+  matched, any printed range has a picked number, and the unit is one the matched
+  ingredient admits (ADR-0008 `allowed_units` + its measures + the always-admitted
+  imprecise words). So an auto-matched line can still be flagged, and Save stays
+  disabled until every line clears. `buildCommit` re-asserts this and throws —
+  a partial import can never reach PowerSync.
+- **Never-invent is a UI obligation too.** Parse warnings, a degraded image, a
+  truncated source, a printed range, and `raw_amount` are all *shown*. The source
+  line sits under every card ("from source: …") — from a photo you would
+  otherwise have no way to check what the page said.
+- **Amount editing reuses the 7.7 sheet.** `showQuantityUnitSheet` is the single
+  entry surface for quantities app-wide; reconciliation is just another caller,
+  seeded from the raw line. A picked measure rides on the line as its **label**
+  and is resolved back to an `ingredient_measure.id` at commit.
+- **Stubs are created client-side, in the commit transaction**, keyed by a
+  coalescing key so identical no-match lines share one new ingredient. The USDA
+  enrichment leg is server-side and **not yet wired** (tracker).
+- **Writes are view-safe**: local PowerSync tables are SQLite views, so every
+  statement is a plain INSERT — never UPSERT ([[mise-powersync-views-no-upsert]]).
+- **Filing into the default book is load-bearing.** The Library renders books and
+  skips book-less recipes, so a commit that left `book_id` null saved the recipe
+  somewhere nothing showed it.
+
+## The canned / offline fallback
+
+`importRepositoryProvider` always commits through `SqliteImportRepository`. Only
+the extract→match step varies:
+
+| Supabase configured (`Env.isConfigured`) | `startImport` runs |
+|---|---|
+| yes | `EdgeImportRepository` — the real `import-recipe` edge function, auth-scoped (the signed-in user's token carries the `household_id` claim that scopes matching) |
+| no — dev, offline, and **all tests** | `SqliteImportRepository.startImport` — the canned payload from `canned_payload.dart` |
+
+The canned path is not a stub that returns a fixture verbatim: it re-points the
+fixture's placeholder candidate ids at whatever the **local vocab** actually
+holds (exact canonical-name hit, else the same token-subset search the picker
+uses), and degrades a line whose candidates all miss to `none`. So the offline
+flow exercises real bands, real "did you mean" chips, and the real create-new
+path — which is what makes it useful for tests and for driving the UI without a
+backend.
+
+## Tests
+
+- Domain: `line_resolution_test`, `line_validation_test`, `preview_recipe_test`.
+- VM: `import_controller_test` (state machine, resolution edits, commit gate).
+- Repo: `import_repository_test` on a **real `PowerSyncDatabase`** — the
+  `line_index` → `line_item_id` remap, stub coalescing, `measure_id` resolution,
+  default-book filing.
+- Contract: `golden_payload_contract_test` parses the *server's* committed
+  fixture (`supabase/functions/import-recipe/__fixtures__/…golden.json`), so a
+  TS-side shape change fails on the Dart side too.
+- Widget: `recon_line_card_test`. Intake seams: `photo_intake_test`.
