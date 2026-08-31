@@ -13,6 +13,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import 'method_step.dart';
 import 'recipe_macros.dart';
 
 part 'recipe.freezed.dart';
@@ -28,8 +29,15 @@ abstract class Recipe with _$Recipe {
     required double servingsBase,
     @Default(<IngredientGroup>[]) List<IngredientGroup> groups,
 
-    /// Ordered method steps, one line each.
+    /// Ordered method steps, one line each — the plain-text form the editor
+    /// writes and reads.
     @Default(<String>[]) List<String> steps,
+
+    /// Tokenized method (step 8 import): text/ref/timer chips rendered by the
+    /// fold ([foldMethod]). Non-null only for an imported recipe; the editor's
+    /// plain-text [steps] and this are the two shapes the `steps` jsonb holds
+    /// ([mise-data-ephemeral] — no back-compat, they don't coexist on one row).
+    List<MethodStep>? methodSteps,
 
     /// Fridge shelf life; drives the cook-plan clustering (step 5), set from
     /// the recipe editor's shelf-life inputs.

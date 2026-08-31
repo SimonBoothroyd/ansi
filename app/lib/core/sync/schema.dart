@@ -44,10 +44,12 @@ const schema = Schema([
     Column.text('household_id'),
     Column.text('title'),
     Column.real('servings_base'),
-    Column.text('steps'), // JSON array of step strings
+    Column.text('steps'), // JSON: step token arrays (step 8) / legacy text
     Column.integer('keeps_for_days'),
     Column.integer('freezable'), // 0/1
     Column.integer('freezer_days'),
+    Column.integer('cook_time_seconds'), // printed cook time (step 8)
+    Column.integer('total_time_seconds'), // printed total time (step 8)
     Column.text('book_id'), // → book.id (nullable)
     Column.text(
       'section_id',

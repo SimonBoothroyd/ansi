@@ -10,11 +10,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
-import '../../../core/units/units.dart';
+import '../../../shared/method_step_text.dart';
 import '../data/recipe_providers.dart';
+import '../domain/line_display.dart';
 import '../domain/recipe.dart';
 import '../domain/scaling.dart';
 import 'format.dart';
+import 'ingredient_line.dart';
 import 'recipe_view_models.dart';
 
 class RecipeView extends ConsumerWidget {
@@ -136,7 +138,7 @@ class _RecipeBody extends HookConsumerWidget {
               onServings: (v) => servings.value = v,
             )
           else
-            _MethodTab(steps: recipe.steps),
+            _MethodTab(recipe: recipe, servings: servings.value),
         ],
       ),
     );
@@ -363,7 +365,8 @@ class _IngredientsTab extends StatelessWidget {
             ),
             const _Hairline(),
           ],
-          for (final item in group.items) _LineRow(item: item),
+          for (final uses in groupLineUses(group.items))
+            RecipeIngredientLine(uses: uses),
         ],
       ],
     );
@@ -428,64 +431,17 @@ class _ScaleControl extends StatelessWidget {
   }
 }
 
-class _LineRow extends StatelessWidget {
-  const _LineRow({required this.item});
-
-  final LineItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final name = item.note == null
-        ? item.ingredientName
-        : '${item.ingredientName}, ${item.note}';
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 9),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Expanded(child: Text(name, style: miseSans(size: 16))),
-              const SizedBox(width: 12),
-              Text(
-                _measure(item),
-                textAlign: TextAlign.right,
-                style: miseMono(size: 16),
-              ),
-            ],
-          ),
-        ),
-        const _Hairline(),
-      ],
-    );
-  }
-
-  String _measure(LineItem item) {
-    final qty = formatQuantity(item.quantity);
-    // A named measure reads as "2 potato, large" (falls back to the stored
-    // count unit below while the measure row hasn't synced).
-    final measure = item.measure;
-    if (measure != null) {
-      return qty.isEmpty ? measure.label : '$qty ${measure.label}';
-    }
-    if (item.unit.family == UnitFamily.count) {
-      return qty.isEmpty ? item.unit.label : qty;
-    }
-    if (qty.isEmpty) return item.unit.label;
-    return '$qty ${item.unit.label}';
-  }
-}
-
 class _MethodTab extends StatelessWidget {
-  const _MethodTab({required this.steps});
+  const _MethodTab({required this.recipe, required this.servings});
 
-  final List<String> steps;
+  final Recipe recipe;
+  final double servings;
 
   @override
   Widget build(BuildContext context) {
-    if (steps.isEmpty) {
+    final tokenized = recipe.methodSteps;
+    final plain = recipe.steps;
+    if ((tokenized == null || tokenized.isEmpty) && plain.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 24),
         child: Text(
@@ -494,13 +450,44 @@ class _MethodTab extends StatelessWidget {
         ),
       );
     }
+
+    // A tokenized (imported) method renders chips via the fold; the chips'
+    // numbers come live off the line items, scaled with the servings control.
+    if (tokenized != null && tokenized.isNotEmpty) {
+      final lineById = {
+        for (final g in recipe.groups)
+          for (final i in g.items) i.id: i,
+      };
+      final factor = scaleFactorFor(recipe, servings);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 16),
+          for (var i = 0; i < tokenized.length; i++) ...[
+            if (i > 0) const FDivider(),
+            _StepRow(
+              number: i + 1,
+              child: MethodStepText(
+                step: tokenized[i],
+                lineById: lineById,
+                factor: factor,
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 16),
-        for (var i = 0; i < steps.length; i++) ...[
+        for (var i = 0; i < plain.length; i++) ...[
           if (i > 0) const FDivider(),
-          _StepRow(number: i + 1, text: steps[i]),
+          _StepRow(
+            number: i + 1,
+            child: Text(plain[i], style: miseSans(size: 16, height: 1.4)),
+          ),
         ],
       ],
     );
@@ -508,10 +495,10 @@ class _MethodTab extends StatelessWidget {
 }
 
 class _StepRow extends StatelessWidget {
-  const _StepRow({required this.number, required this.text});
+  const _StepRow({required this.number, required this.child});
 
   final int number;
-  final String text;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -541,7 +528,7 @@ class _StepRow extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Text(text, style: miseSans(size: 16, height: 1.4)),
+              child: child,
             ),
           ),
         ],

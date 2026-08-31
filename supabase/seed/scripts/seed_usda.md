@@ -34,8 +34,10 @@ The raw CSVs (~40 MB) are **not committed** — only the compact generated
 - **Macros per 100 g** (`{kcal, protein, carb, fat, fiber}`) — FDC nutrient ids
   1008/1003/1005/1004/1079 (fiber falls back to 2033 AOAC). ~96% of foods have
   the core four; ~91% also have fiber.
-- **Density** (g/ml) derived from the first volume `food_portion`. Sparse today
-  (~few %) — SR Legacy stores most volume portions as free-text modifiers, and
-  the FAO/INFOODS Density DB fallback (spec §6) isn't wired yet. TODO.
+- **Density** (g/ml) derived from the best-ranked volume `food_portion` (unit
+  words matched in the whole portion text — SR Legacy stores most volume
+  portions as free-text modifiers, which is why keying on the unit table alone
+  found almost none). Where this still leaves a vocab row bare, the
+  FAO/INFOODS Density DB fallback picks it up — see `fao_density.md`.
 - **`match_text`** = the shared §7 normalizer over the description, so the same
   normalizer the household vocab and cascade use also indexes the reference.

@@ -15,7 +15,12 @@ import 'core/sync/database.dart';
 /// It does NOT connect or seed here — the session controller connects PowerSync
 /// once a user signs in (step 7), and the vocab / members / default book now
 /// arrive from the server rather than a local seeder.
+///
+/// The config guard runs *outside* the guarded zone deliberately: inside, the
+/// zone's error handler would swallow it into a `debugPrint` and the app would
+/// sit on a blank screen — the exact quiet failure the guard exists to end.
 void bootstrap() {
+  Env.assertDefinesUsable();
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();

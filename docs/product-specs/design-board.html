@@ -416,6 +416,75 @@
         .rml{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb-deep);margin-top:4px;display:flex;align-items:center;gap:6px;}
         .rml.inc{color:var(--muted);}
         .badge-inc{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#7A5A16;background:#FBF3E3;border-radius:6px;padding:2px 6px;}
+
+        /* section-level decision note (board-level, not a phone frame) */
+        .locknote{background:var(--herb-soft);border:1px solid #CBDECB;border-left:5px solid var(--herb);border-radius:12px;padding:16px 20px;margin:0 0 26px;max-width:82ch;}
+        .locknote .lk-h{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--herb-deep);font-weight:500;margin:0 0 8px;}
+        .locknote p{margin:0 0 8px;font-size:13px;line-height:1.5;color:var(--ink);}
+        .locknote p:last-child{margin-bottom:0;}
+        .locknote b{font-weight:600;}
+        .locknote .src{font-size:11.5px;color:var(--muted);}
+
+        /* v3 · the shipped review screen + three-part line (re-traced from code 2026-08-31) */
+        .tsec{display:flex;align-items:center;gap:10px;margin:16px 20px 8px;}
+        .tsec .tl{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);font-weight:500;}
+        .tsec .tc{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#fff;background:var(--herb);border-radius:999px;padding:1px 7px;min-width:18px;text-align:center;}
+        .tsec .rule{height:1px;background:var(--line);flex:1;}
+        .hdrcount{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
+        .hdrcount.ok{color:var(--herb);}
+        /* "what we could not read" — the never-invent flags, on screen not in a log */
+        .srcnotes{margin:8px 20px 10px;background:var(--paper);border:1px solid var(--aging);border-radius:12px;padding:9px 12px;}
+        .srcnotes .sn-h{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--aging);}
+        .srcnotes .sn{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.4;}
+        /* one review line card: collapsed row or expanded edit card, same box */
+        .lcard{margin:10px 20px;border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:var(--frame);}
+        .lcard.attn{border-color:var(--aging);}
+        .lcard.gone{background:var(--paper);}
+        .lcard .l3{border-bottom:none;padding:0;}
+        .attn-tag{display:inline-flex;align-items:center;gap:5px;margin-top:7px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--aging);}
+        .srcline{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;}
+        .lflags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+        .lflag{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--aging);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:2px 6px;}
+        .chead{display:flex;align-items:flex-start;gap:9px;}
+        .chead .cn{flex:1;font-size:13.5px;font-weight:600;}
+        .chead .ci{color:var(--muted);font-size:12px;flex:none;}
+        .chosen{display:flex;align-items:center;gap:7px;margin-top:9px;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:8px 10px;}
+        .chosen .ck{color:var(--herb);font-size:12px;}
+        .chosen .cnm{flex:1;font-size:13px;font-weight:600;}
+        .chosen .chint{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);}
+        .erow{display:flex;align-items:flex-start;gap:8px;margin-top:11px;}
+        .erow .elab{width:52px;flex:none;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-top:6px;}
+        .erow .ebody{flex:1;min-width:0;}
+        .amtchip{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);}
+        .amtchip .pen{color:var(--herb);}
+        .amtchip.off{color:var(--line);}
+        .sug.quiet{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+        .ghostbtn{display:inline-flex;align-items:center;gap:6px;margin-top:8px;border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:12px;font-weight:500;color:var(--ink);}
+        .notesin{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:12.5px;}
+        .notesin.hint{color:var(--muted);}
+        .lockhint{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);margin-top:8px;}
+        .drop{display:flex;align-items:center;gap:9px;}
+        .drop .dbin{color:var(--muted);font-size:12px;}
+        .drop .dbody{flex:1;min-width:0;}
+        .drop .dn{font-size:13.5px;color:var(--muted);text-decoration:line-through;}
+        .drop .dsub{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);margin-top:2px;}
+        .drop .undo{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb);flex:none;}
+        .savebtn.off{background:var(--paper);border:1px solid var(--line);color:var(--muted);}
+        .ichip.sm{font-size:11px;padding:1px 5px;}
+        .ichip.tmr{background:var(--paper);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:11px;}
+        /* three-part ingredient line: fixed amount column so ingredient text aligns every row; amount wraps within its column */
+        .l3{display:grid;grid-template-columns:84px 1fr;gap:12px;align-items:baseline;padding:7px 0;border-bottom:1px dotted var(--line);}
+        .l3:last-child{border-bottom:none;}
+        .l3.edit{grid-template-columns:84px 1fr auto;}
+        .l3-amt{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);white-space:nowrap;}
+        .l3-amt.impr{font-style:italic;}
+        .l3.multi .l3-amt{white-space:normal;}
+        .l3-body{font-size:14px;line-height:1.4;}
+        .l3-id{color:var(--ink);font-weight:500;}
+        .l3-note{color:var(--muted);font-style:italic;}
+        .l3-note::before{content:"·";margin:0 6px;color:var(--line);font-style:normal;}
+        .l3-pen{color:var(--herb);font-size:12px;align-self:center;}
+
         .footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
         .footer b{color:var(--ink);font-weight:500;}
 
@@ -995,10 +1064,187 @@
         </div>
     </div>
 
+    <!-- ===== IMPORT + RECIPE VIEW V3 (LOCKED — re-traced from shipped code 2026-08-31) ===== -->
+    <div class="section-head"><span class="ey">Import &amp; recipe view · v3</span><span class="proposed-tag">locked · re-traced from shipped code 2026-08-31</span><span class="rule"></span><span class="sub">One review screen you edit in place, then the recipe — amount · ingredient · notes</span></div>
+
+    <div class="locknote">
+        <p class="lk-h">Re-traced from shipped code — 2026-08-31</p>
+        <p>These frames were redrawn line-by-line from what step 8 actually shipped (<b>import_view.dart</b>, <b>reconciliation_view.dart</b>, <b>recon_line_card.dart</b>, <b>method_step_text.dart</b>). The earlier frames drew a <b>triage → preview → commit</b> split; driving it for real, the split read as ceremony, so it merged into <b>one always-editable “Review recipe” screen</b>. There is no triage step, and no separate preview — the review screen <i>is</i> the preview.</p>
+        <p>What survives from the original design: the <b>three-part line</b> (amount · ingredient · notes), <b>resolve-once</b> identity, the <b>seeded</b> picker that never opens blank, the 7.7 <b>quantity + unit-chip sheet</b> as the one amount editor, and a <b>read-only method</b> in v1. What changed: the match band now sets a line’s <b>starting state</b> (auto adopts its top candidate; suggest and none start unresolved) rather than choosing a screen; amount + notes stay <b>greyed until an ingredient is matched</b>; the ingredient’s <b>allowed units are enforced</b> with inline “did you mean” unit chips (five, then a fold); a line can be <b>dropped in place</b> and undone; and <b>Save is gated on every kept line being valid</b>.</p>
+        <p class="src">Behaviour spec: <b>docs/product-specs/import-and-matching.md §8</b>. Grouped repeat uses no longer appear during review (one card per source line); they re-join on the recipe page as one row — “2 cloves + 1 clove”.</p>
+    </div>
+
+    <div class="board">
+
+        <div class="frame">
+            <p class="frame-name"><b>Import · intake</b> · one form, two doors — no source tabs</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Import a recipe</span><span class="dots"></span></div>
+                <p class="rc-note" style="margin-top:4px">Paste a recipe link, or import from photos. We read the ingredients and steps, then <b style="color:var(--ink)">you confirm each match</b> — nothing is guessed for you.</p>
+                <p class="flabel" style="margin-top:16px">Recipe URL</p>
+                <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">https://…</span><span class="care"></span></div></div>
+                <div class="savebtn">Import from link</div>
+                <div class="ghostbtn" style="margin:20px 20px 0;justify-content:center;width:calc(100% - 40px);padding:13px">◻ Import from photos</div>
+                <p class="conv-note" style="margin-top:14px">link button stays disabled on an empty field</p>
+                <p class="rc-note">Photos run <b style="color:var(--ink)">pick → crop each page → import the set</b>; cancelling every page starts nothing. Failures come back to this same form with the error under it, never a dead end.</p>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>read</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Review recipe</b> · the whole import on one editable screen — bands only set where a line starts</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">3 to review</span></div>
+                <div class="r-hero"><h2 class="r-title" style="font-size:26px;margin-top:2px">Harissa Chicken &amp; Butter Beans</h2></div>
+                <div class="srcnotes">
+                    <div class="sn-h"><span>⚠</span><span>What we could not read</span></div>
+                    <div class="sn">· The photo was hard to read — amounts especially.</div>
+                    <div class="sn">· No amount printed for the chilli flakes.</div>
+                </div>
+                <div class="tsec" style="margin-top:4px"><span class="tl">Serves</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--aging)">not printed — set it</span><span class="rule"></span><span class="step">–</span><span class="val" style="font-family:'Inter',sans-serif;font-weight:600;font-size:15px">4</span><span class="step">+</span></div>
+                <div class="tsec"><span class="tl">Ingredients</span><span class="tc">8</span><span class="rule"></span></div>
+
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">6</span><span class="l3-body"><span class="l3-id">Chicken thigh, boneless</span></span><span class="l3-pen">✎</span></div>
+                </div>
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Chopped tomatoes</span><span class="l3-note">drained</span></span><span class="l3-pen">✎</span></div>
+                </div>
+
+                <div class="lcard attn">
+                    <div class="chead"><span class="cn">garlic cloves</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                    <div class="srcline">from source:  2–3 cloves garlic</div>
+                    <div class="attn-tag"><span>⚠</span><span>Match an ingredient</span></div>
+                    <p class="flabel" style="margin:9px 0 6px">Did you mean</p>
+                    <div class="suggests" style="margin-top:0"><span class="sug">Garlic</span><span class="sug">Garlic granules</span></div>
+                    <div class="ghostbtn">⌕ Something else</div>
+                    <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip off">2–3 cloves</span></span></div>
+                    <div class="lockhint">Match an ingredient first — then the amount and notes unlock.</div>
+                </div>
+
+                <div class="lcard attn">
+                    <div class="chead"><span class="cn">Aleppo chilli flakes</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                    <div class="srcline">from source:  a good pinch Aleppo chilli flakes</div>
+                    <div class="lflags"><span class="lflag">optional</span><span class="lflag">low confidence 41%</span></div>
+                    <div class="attn-tag"><span>⚠</span><span>Match an ingredient</span></div>
+                    <div class="ghostbtn">⌕ Find or create ingredient</div>
+                </div>
+
+                <div class="lcard attn">
+                    <div class="l3 edit"><span class="l3-amt">2–3 tbsp</span><span class="l3-body"><span class="l3-id">Rose harissa</span></span><span class="l3-pen">✎</span></div>
+                    <div class="attn-tag"><span>⚠</span><span>Set the amount</span></div>
+                    <div class="lockhint">auto-matched and still flagged — a printed range needs a picked number</div>
+                </div>
+
+                <p class="rc-note">ⓘ Method is read-only in v1 — chips render with live amounts; editing lands later via the recipe’s Edit route.</p>
+                <div class="savebtn off">3 line(s) need you</div>
+                <p class="conv-note" style="text-align:center;margin-top:8px">header count · card flags · Save all read one map</p>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>tap a row</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Expanded edit card</b> · in place, no new screen — re-match, amount, unit fold, notes, bin</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">1 to review</span></div>
+                <div class="lcard" style="margin-top:12px">
+                    <div class="l3 edit"><span class="l3-amt">2</span><span class="l3-body"><span class="l3-id">Red onion</span><span class="l3-note">thinly sliced</span></span><span class="l3-pen">✎</span></div>
+                </div>
+                <div class="lcard attn">
+                    <div class="chead"><span class="cn">butter beans</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                    <div class="srcline">from source:  2 × 400 g tin butter beans, drained</div>
+                    <div class="lflags"><span class="lflag">unit “tin” needs a look</span></div>
+                    <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
+                    <div class="chosen"><span class="ck">✓</span><span class="cnm">Butter beans</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                    <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 can <span class="pen">✎</span></span></span></div>
+                    <div class="erow"><span class="elab">Unit</span><span class="ebody"><div class="suggests" style="margin-top:4px"><span class="sug pick">can</span><span class="sug">g</span><span class="sug">ml</span><span class="sug">tsp</span><span class="sug">tbsp</span><span class="sug quiet">+7 more</span></div></span></div>
+                    <div class="erow"><span class="elab">Notes</span><span class="ebody"><div class="notesin">drained</div></span></div>
+                </div>
+                <p class="conv-note">five chips, then a fold — the admission set runs past a dozen and reads as a wall. The fold <b>never hides the current pick</b>: it opens on one.</p>
+                <p class="rc-note">Tapping the amount opens the <b style="color:var(--ink)">7.7 quantity + unit sheet</b>, seeded from the raw line — a range opens on its printed low endpoint, and an inadmissible unit on an ingredient with measures opens <b style="color:var(--ink)">pre-selected on that measure</b> (“can”), so resolving is one confirm tap. The flag stands until that tap.</p>
+                <div class="lcard" style="background:var(--paper)">
+                    <div class="erow" style="margin-top:0"><span class="elab">Notes</span><span class="ebody"><div class="notesin hint">e.g. finely chopped, to serve</div></span></div>
+                    <div class="lockhint">unmatched line: amount + notes stay greyed — a unit is meaningless with no ingredient to admit it</div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>bin it</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Dropped line</b> · stays on screen, greyed and reversible — nothing is written until Save</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount ok">looks good</span></div>
+                <div class="tsec" style="margin-top:12px"><span class="tl">Ingredients</span><span class="tc">7</span><span class="rule"></span></div>
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">2 can</span><span class="l3-body"><span class="l3-id">Butter beans</span><span class="l3-note">drained</span></span><span class="l3-pen">✎</span></div>
+                </div>
+                <div class="lcard gone">
+                    <div class="drop">
+                        <span class="dbin">🗑</span>
+                        <span class="dbody"><span class="dn">Aleppo chilli flakes</span><div class="dsub">removed — this line will not be saved</div></span>
+                        <span class="undo">↺ undo</span>
+                    </div>
+                </div>
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Smoked paprika</span></span><span class="l3-pen">✎</span></div>
+                </div>
+                <div class="grp" style="margin-top:14px"><p class="grp-h">to serve</p></div>
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Lemon</span><span class="l3-note">juiced</span></span><span class="l3-pen">✎</span></div>
+                </div>
+                <div class="savebtn">Save recipe</div>
+                <p class="rc-note">A dropped line is nobody’s problem: <b style="color:var(--ink)">no flag, out of the Save gate, out of the count</b> (8 → 7) — counting it would contradict the card that says it is leaving. Drop them all and Save reads “Nothing left to save”.</p>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Recipe view v3</b> · saved — amount · ingredient · notes; repeat uses re-join on one row</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+                <div class="r-hero">
+                    <span class="r-book">Our Cookbook · Weeknight</span>
+                    <h2 class="r-title">Harissa Chicken &amp; Butter Beans</h2>
+                    <div class="meta-row"><span class="pill keeps"><span class="mini-fresh"></span>keeps 3 d</span><span class="pill">serves 4</span></div>
+                </div>
+                <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
+                <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
+                <div class="grp">
+                    <div class="l3"><span class="l3-amt">6</span><span class="l3-body"><span class="l3-id">Chicken thigh, boneless</span></span></div>
+                    <div class="l3"><span class="l3-amt">2 can</span><span class="l3-body"><span class="l3-id">Butter beans</span><span class="l3-note">drained</span></span></div>
+                    <div class="l3"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Chopped tomatoes</span></span></div>
+                    <div class="l3"><span class="l3-amt">2</span><span class="l3-body"><span class="l3-id">Red onion</span><span class="l3-note">thinly sliced</span></span></div>
+                    <div class="l3 multi"><span class="l3-amt">2 cloves + 1 clove</span><span class="l3-body"><span class="l3-id">Garlic</span><span class="l3-note">finely chopped + sliced, for garnish</span></span></div>
+                    <div class="l3"><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Smoked paprika</span></span></div>
+                </div>
+                <div class="grp"><p class="grp-h">to serve</p>
+                    <div class="l3"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Lemon</span><span class="l3-note">juiced</span></span></div>
+                </div>
+                <p class="conv-note">Two tabs only — Ingredients · Method. Macros live on the ingredient, not on this page.</p>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Method · chips</b> · tokens folded at render — a collective unpacks, a portion rides the label</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+                <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span></div>
+                <div class="step"><span class="snum">1</span><div class="sbody">Season <span class="ichip">chicken thigh <span class="qn">6</span></span> and brown in a wide pan.</div></div>
+                <div class="step"><span class="snum">2</span><div class="sbody">Sweat the <span class="ichip">onion mixture</span> (<span class="ichip sm">red onion</span> <span class="ichip sm">garlic</span> <span class="ichip sm">celery</span>) until soft, <span class="ichip tmr">⏱ 6–8 min</span>.</div></div>
+                <div class="step"><span class="snum">3</span><div class="sbody">Stir in <span class="ichip">rose harissa <span class="qn">2 tbsp</span></span> and <span class="ichip">smoked paprika <span class="qn">1 tsp</span></span>; toast until fragrant.</div></div>
+                <div class="step"><span class="snum">4</span><div class="sbody">Add the <span class="ichip">butter beans <span class="qn">2 can</span></span>, then <span class="ichip">onion mixture <span class="qn">half</span></span> back to the pan and simmer.</div></div>
+                <div class="step"><span class="snum">5</span><div class="sbody">Return the <span class="ichip">chicken thigh</span> to the pan and finish uncovered.</div></div>
+                <p class="rc-note">Chips are <b style="color:var(--ink)">id refs folded at render</b>, never text matched. Numbers derive live off the line item and scale with servings: <b style="color:var(--ink)">first mention</b> only, a step-named <b style="color:var(--ink)">portion</b> wins where the prose named one, and a <b style="color:var(--ink)">collective</b> chip never shows a number — it names its constituents in smaller chips instead, so “onion mixture” can’t hide what went in. A ref whose line never landed simply isn’t drawn.</p>
+            </div></div>
+        </div>
+    </div>
+
     <footer class="footer">
         <span><b>Mise</b> — complete board</span>
         <span>Flutter · Forui · Supabase · PowerSync</span>
-        <span>21 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8, form builds in step 8)</span>
+        <span>21 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8) · import + recipe-view v3 (locked — re-traced from shipped code 2026-08-31)</span>
     </footer>
 
 </div>

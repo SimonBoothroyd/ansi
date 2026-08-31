@@ -59,8 +59,9 @@ class SqliteIngredientRepository implements IngredientRepository {
     // Normalization also strips `%`/`_`, so nothing user-typed can act as a
     // LIKE wildcard below.
     final q = normalizeSearchQuery(query);
+    final tokens = searchTokens(query);
 
-    if (q.isEmpty) {
+    if (tokens.isEmpty) {
       final rows = await _db.getAll(
         'SELECT i.*, $_measureCount FROM ingredient i '
         'WHERE i.deleted_at IS NULL '
@@ -70,22 +71,83 @@ class SqliteIngredientRepository implements IngredientRepository {
       return rows.map(_toIngredient).toList();
     }
 
-    // Word-boundary match (`q%` = leading word, `% q%` = any later word) on
-    // the ingredient or any alias, live rows only; rank exact hits first, then
-    // shorter names (a closer match), then alphabetically.
+    // Token-subset match: EVERY query token must be a word-prefix of the
+    // ingredient's `match_text` OR one of its live aliases (order-independent,
+    // so "canned tomatoes" finds "Canned Whole Tomatoes"). Each token is a
+    // word-boundary LIKE (`tok%` = leading word, `% tok%` = any later word).
+    // Rank exact full-query hits first, then shorter names, then by name.
+    final where = StringBuffer('i.deleted_at IS NULL');
+    final params = <Object?>[];
+    for (final tok in tokens) {
+      where.write(
+        ' AND (i.match_text LIKE ? OR i.match_text LIKE ? '
+        'OR EXISTS (SELECT 1 FROM ingredient_alias a '
+        'WHERE a.ingredient_id = i.id AND a.deleted_at IS NULL '
+        'AND (a.match_text LIKE ? OR a.match_text LIKE ?)))',
+      );
+      params.addAll(['$tok%', '% $tok%', '$tok%', '% $tok%']);
+    }
     final rows = await _db.getAll(
-      'SELECT DISTINCT i.*, $_measureCount FROM ingredient i '
-      'LEFT JOIN ingredient_alias a '
-      'ON a.ingredient_id = i.id AND a.deleted_at IS NULL '
-      'WHERE i.deleted_at IS NULL AND '
-      '(i.match_text LIKE ? OR i.match_text LIKE ? '
-      'OR a.match_text LIKE ? OR a.match_text LIKE ?) '
+      'SELECT i.*, $_measureCount FROM ingredient i '
+      'WHERE $where '
       'ORDER BY (i.match_text = ?) DESC, length(i.canonical_name), '
       'i.canonical_name '
       'LIMIT ?',
-      ['$q%', '% $q%', '$q%', '% $q%', q, limit],
+      [...params, q, limit],
     );
-    return rows.map(_toIngredient).toList();
+    if (rows.isNotEmpty) return rows.map(_toIngredient).toList();
+
+    // Nothing matched the exact/prefix pass. For a MULTI-word query it is
+    // likely one token was mistyped ("chikn thigh") — fall back to a
+    // deterministic typo-tolerant scan over the live vocab (name + aliases),
+    // ranked by fuzzy score. A single-word query stays strict word-boundary
+    // (a lone "nion" must not fuzzy-hit "onion"): the extra tokens are what
+    // make a fuzzy match trustworthy. Deterministic, no fuzzy index
+    // (ADR-0004): a scored character comparison, in Dart.
+    if (tokens.length < 2) return const [];
+    return _fuzzySearch(query, limit: limit);
+  }
+
+  /// The typo-tolerant fallback: scores every live ingredient's `match_text`
+  /// (with its aliases joined) against [query] and returns those that clear
+  /// the per-token floor, closest first. Runs only when the exact/prefix pass
+  /// finds nothing, so the common path never pays for it.
+  Future<List<Ingredient>> _fuzzySearch(
+    String query, {
+    required int limit,
+  }) async {
+    // The separator is a SINGLE-quoted string literal: SQLite reads `"x"` as an
+    // identifier first and only falls back to a string as a legacy quirk, which
+    // `SQLITE_DQS=0` builds disable outright. No LIMIT either — a cap would
+    // silently stop typo-tolerance working for whatever fell off the end as the
+    // household's vocab grew, and this pass only runs when the exact/prefix
+    // search already found nothing.
+    final rows = await _db.getAll(
+      'SELECT i.*, $_measureCount, '
+      "(SELECT GROUP_CONCAT(a.match_text, ' ') FROM ingredient_alias a "
+      'WHERE a.ingredient_id = i.id AND a.deleted_at IS NULL) AS alias_text '
+      'FROM ingredient i WHERE i.deleted_at IS NULL '
+      'ORDER BY i.canonical_name',
+    );
+    final scored = <({double score, int length, Ingredient ingredient})>[];
+    for (final r in rows) {
+      final text = '${r['match_text'] ?? ''} ${r['alias_text'] ?? ''}'.trim();
+      final score = fuzzyQueryScore(query, text);
+      if (score < 0) continue;
+      scored.add((
+        score: score,
+        length: (r['canonical_name'] as String).length,
+        ingredient: _toIngredient(r),
+      ));
+    }
+    scored.sort((a, b) {
+      final byScore = b.score.compareTo(a.score);
+      if (byScore != 0) return byScore;
+      final byLength = a.length.compareTo(b.length);
+      if (byLength != 0) return byLength;
+      return a.ingredient.canonicalName.compareTo(b.ingredient.canonicalName);
+    });
+    return [for (final s in scored.take(limit)) s.ingredient];
   }
 
   @override
@@ -123,6 +185,20 @@ class SqliteIngredientRepository implements IngredientRepository {
   }
 
   @override
+  Future<Map<String, Ingredient>> byIds(Set<String> ids) async {
+    if (ids.isEmpty) return const {};
+    // Ids are uuids we minted or synced, never user text; they still ride as
+    // bound parameters rather than being interpolated into the SQL.
+    final placeholders = List.filled(ids.length, '?').join(', ');
+    final rows = await _db.getAll(
+      'SELECT i.*, $_measureCount FROM ingredient i '
+      'WHERE i.deleted_at IS NULL AND i.id IN ($placeholders)',
+      ids.toList(),
+    );
+    return {for (final r in rows) r['id'] as String: _toIngredient(r)};
+  }
+
+  @override
   Future<Ingredient> createStub(String name) async {
     final id = _uuid.v4();
     final now = DateTime.now().toUtc().toIso8601String();
@@ -151,22 +227,39 @@ class SqliteIngredientRepository implements IngredientRepository {
     if (!(gPerMl > 0)) {
       throw ArgumentError.value(gPerMl, 'gPerMl', 'must be a positive number');
     }
-    final current = await byId(ingredientId);
-    if (current == null) return null;
-    // Extend the explicit list with what this density unlocks, in the same
-    // write (see the interface doc). A row still on the derived fallback is
-    // materialized first, so the extension has something explicit to join.
-    final unlocked = {
-      ...current.allowedUnits ?? defaultAllowedUnitSet(current),
-      ...densityUnlockedUnits(current),
-    };
-    final allowedJson = jsonEncode([for (final u in unlocked) u.id]);
+    // Read-modify-write: the allowed set written back is derived from the row
+    // as it is read, so the read and the write must be one transaction — a
+    // concurrent density/allowed-units write between them would be clobbered.
+    // This is the repo's only such pair; every other write is self-contained.
     final now = DateTime.now().toUtc().toIso8601String();
-    await _db.execute(
-      'UPDATE ingredient SET density_g_per_ml = ?, allowed_units = ?, '
-      'updated_at = ? WHERE id = ?',
-      [gPerMl, allowedJson, now, ingredientId],
-    );
+    final updated = await _db.writeTransaction((tx) async {
+      final row = await tx.getOptional(
+        'SELECT i.*, $_measureCount FROM ingredient i '
+        'WHERE i.id = ? AND i.deleted_at IS NULL',
+        [ingredientId],
+      );
+      if (row == null) return false;
+      final current = _toIngredient(row);
+      // Extend the explicit list with what this density unlocks, in the same
+      // write (see the interface doc). A row still on the derived fallback is
+      // materialized first, so the extension has something explicit to join.
+      final unlocked = {
+        ...current.allowedUnits ?? defaultAllowedUnitSet(current),
+        ...densityUnlockedUnits(current),
+      };
+      await tx.execute(
+        'UPDATE ingredient SET density_g_per_ml = ?, allowed_units = ?, '
+        'updated_at = ? WHERE id = ?',
+        [
+          gPerMl,
+          jsonEncode([for (final u in unlocked) u.id]),
+          now,
+          ingredientId,
+        ],
+      );
+      return true;
+    });
+    if (!updated) return null;
     return byId(ingredientId);
   }
 

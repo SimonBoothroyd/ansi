@@ -101,6 +101,7 @@ const pieces = Unit._('piece', 'piece', UnitFamily.count, null);
 // Imprecise (non-scaling, non-converting).
 const pinch = Unit._('pinch', 'pinch', UnitFamily.imprecise, null);
 const dash = Unit._('dash', 'dash', UnitFamily.imprecise, null);
+const handful = Unit._('handful', 'handful', UnitFamily.imprecise, null);
 const toTaste = Unit._('to_taste', 'to taste', UnitFamily.imprecise, null);
 
 /// Every unit the system knows, in a stable order.
@@ -108,7 +109,7 @@ const kAllUnits = <Unit>[
   g, kg, mg, oz, lb, //
   ml, l, tsp, tbsp, flOz, cup, //
   pieces, //
-  pinch, dash, toTaste,
+  pinch, dash, handful, toTaste,
 ];
 
 final Map<String, Unit> _byId = {for (final u in kAllUnits) u.id: u};

@@ -20,7 +20,8 @@ docs/
 ├── README.md                ← you are here: how the harness works
 ├── design-docs/
 │   ├── index.md             catalogue of design knowledge
-│   └── core-beliefs.md      agent-first operating principles ("golden rules")
+│   ├── core-beliefs.md      agent-first operating principles ("golden rules")
+│   └── *.md                 mechanics explainers for OUR system, traced to code
 ├── decisions/               ADRs — immutable records of *why*
 ├── product-specs/
 │   ├── index.md             catalogue of product behaviour

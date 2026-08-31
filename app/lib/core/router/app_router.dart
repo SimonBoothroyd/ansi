@@ -24,6 +24,7 @@ import '../../features/auth/presentation/connecting_view.dart';
 import '../../features/auth/presentation/sign_in_view.dart';
 import '../../features/books/presentation/library_view.dart';
 import '../../features/cook_plan/presentation/cook_view.dart';
+import '../../features/import/presentation/import_view.dart';
 import '../../features/planning/presentation/week_view.dart';
 import '../../features/recipes/presentation/recipe_editor_view.dart';
 import '../../features/recipes/presentation/recipe_view.dart';
@@ -96,6 +97,11 @@ GoRouter router(Ref ref) {
         path: '/shop',
         name: 'shop',
         builder: (context, state) => const ShoppingView(),
+      ),
+      GoRoute(
+        path: '/import',
+        name: 'import',
+        builder: (context, state) => const ImportView(),
       ),
       GoRoute(
         path: '/recipes/new',

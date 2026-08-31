@@ -20,5 +20,16 @@ Immutable records of significant choices and their rationale.
 
 ## Deep design
 
+Mechanics explainers — how a part of our own system actually works, traced
+against the code. (Vendored snapshots of *other people's* docs live in
+[`../references/`](../references/README.md); these are ours.)
+
 - [Import & ingredient matching](../product-specs/import-and-matching.md) — the
   full pipeline: extraction → normalize → match cascade → reconcile → commit.
+- [`unit-and-measure-matching.md`](./unit-and-measure-matching.md) — how an
+  amount is interpreted end to end: the unit catalog vs the per-ingredient
+  measure system, how "1 × 400 g tin" becomes both *400 g used* and *1 tin
+  bought* from one stored number, and what the user can override where.
+- [`powersync-watch-triggers.md`](./powersync-watch-triggers.md) — what makes a
+  watched query re-fire, the unselected-LEFT-JOIN trap that silently drops a
+  table from the trigger set, and the `triggerOnTables:` escape hatch.

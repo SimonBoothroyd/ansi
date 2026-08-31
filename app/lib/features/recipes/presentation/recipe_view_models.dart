@@ -79,6 +79,10 @@ class RecipeEditor extends _$RecipeEditor {
   Recipe get _current => state.requireValue;
   void _set(Recipe r) => state = AsyncData(r);
 
+  /// True while a [save] is in flight. A double-tapped Save would otherwise run
+  /// the child-diff write twice concurrently.
+  bool _saving = false;
+
   void setTitle(String title) => _set(_current.copyWith(title: title));
 
   void setServings(double servings) =>
@@ -204,13 +208,16 @@ class RecipeEditor extends _$RecipeEditor {
   void setStepsText(String text) =>
       _set(_current.copyWith(steps: text.split('\n')));
 
-  /// Persists the recipe (dropping blank steps) and returns its id.
+  /// Persists the recipe (dropping blank steps) and returns its id. A second
+  /// call while the first is still writing is a no-op that returns the same id
+  /// — a double-tapped Save must not race two child-diff writes.
   ///
   /// Also resets the provider: the editor is left after a save, and without an
   /// explicit reset a lingering instance (auto-dispose only fires once the
   /// last listener is gone, which navigation timing can defer) hands the old
   /// draft to the next "New recipe" open. Invalidate-on-save guarantees a
-  /// fresh open always rebuilds from scratch.
+  /// fresh open always rebuilds from scratch — but only while this notifier is
+  /// still alive: after an auto-dispose mid-write, touching `ref` throws.
   Future<String> save() async {
     final recipe = _current.copyWith(
       title: _current.title.trim(),
@@ -219,8 +226,14 @@ class RecipeEditor extends _$RecipeEditor {
           .where((s) => s.isNotEmpty)
           .toList(),
     );
-    await ref.read(recipeRepositoryProvider).saveRecipe(recipe);
-    ref.invalidateSelf();
+    if (_saving) return recipe.id;
+    _saving = true;
+    try {
+      await ref.read(recipeRepositoryProvider).saveRecipe(recipe);
+    } finally {
+      _saving = false;
+    }
+    if (ref.mounted) ref.invalidateSelf();
     return recipe.id;
   }
 

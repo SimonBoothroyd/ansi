@@ -71,7 +71,7 @@ test-sim: ## Integration smoke on a booted iOS sim (needs the local backend up: 
 	cd $(APP) && flutter test integration_test $(DART_DEFINES)
 
 test-fns: ## Edge-function (Deno) tests
-	cd $(FNS) && deno test
+	cd $(FNS) && deno task test
 
 .PHONY: coverage
 coverage: ## Flutter tests with coverage

@@ -11,14 +11,25 @@ Two things get seeded (spec §6):
    handful of label-sourced macro fills in the curation pass (271
    `complete`); the rest stay honest `stub`s for the flesh-out queue.
 
-Density: derived from FDC **volume food portions parsed out of the full
-portion text** (7.8 — SR Legacy keys most volume portions by `modifier`, not
-`measure_unit`, which is why the old parser found almost none). Ranked
-cup > tbsp > tsp, unqualified before prepared-state, sanity 0.1–2.0 g/ml.
-Curation-pass corrections and fills sit on top (audit 2026-08-29, R1: every
-volume-default row carries a density). Current vocab coverage: **264/307**.
-FAO/INFOODS Density DB v2.0 remains the planned fallback for the tail
-(tracker).
+Density comes from three sources, in this order, each filling only what the
+one before it left empty:
+
+1. **FDC volume food portions**, parsed out of the full portion text (7.8 —
+   SR Legacy keys most volume portions by `modifier`, not `measure_unit`,
+   which is why the old parser found almost none). Ranked cup > tbsp > tsp,
+   unqualified before prepared-state, sanity 0.1–2.0 g/ml.
+2. **Curation-pass** corrections and fills on top (audit 2026-08-29).
+3. **FAO/INFOODS Density Database v2.0** as the fallback for the tail, via a
+   reviewed mapping — see `scripts/fao_density.md`. Never overwrites 1 or 2:
+   every fill carries a `density_g_per_ml is null` guard.
+
+Current vocab coverage: **277/307** (was 264 before the FAO fallback landed;
+12 of the 42-row tail filled, 30 audited and honestly left empty — FAO v2.0
+has no tofu, tortilla, seaweed or mushroom row).
+
+Two invariants hold at `db reset` (`seed_curation.sql`): **R1**, a volume
+`default_unit` requires a density; **R2**, every stored density lands in the
+kitchen band 0.03–2.0 g/ml.
 
 ## Building the household vocabulary (`scripts/mine_recipes.ts`)
 
@@ -132,18 +143,36 @@ per-ingredient defaults — measures, densities, allowed units, and
 label-sourced macros (`kind: "macros"` — per-100 g numbers with a visible
 `label:…` source, for rows the no-analogue rule keeps link-less). Consumers:
 `gen_measures.ts` (measure drops/adds) and `gen_seed.ts`, which emits
-`../seed_curation.sql` — the LAST seed step: it applies the macro fills,
-re-materializes the template vocab's `allowed_units` via
-`default_allowed_units()` once every density source has run (the insert-time
-trigger fired before prefill), then applies the density and allowed-unit
-overrides with their reasons as SQL comments.
+`../seed_curation.sql` — the LAST seed step, in this order: macro fills →
+density overrides → **FAO density fallback** (`scripts/fao_density.md`) →
+re-materialize `allowed_units` via `default_allowed_units()` now that every
+density source has run (the insert-time trigger fired before prefill) →
+produce volume leg → allowed-unit overrides. Every override's reason is
+emitted as a SQL comment so the generated file stays auditable on its own.
 
-`seed_curation.sql` ends with the **R1 invariant** (adopted 2026-08-29): a
-volume `default_unit` REQUIRES a density — `supabase db reset` FAILS loudly
-if any template row is volume-default and density-less (a volume line on a
-density-less per-g ingredient can never compute macros). Fix by filling an
-honest density (FDC / label / tagged typical) or flipping the default to a
-weight — always through the pipeline inputs.
+**Produce volume leg.** ADR-0008's density leg fires only for mass/volume
+defaults — a count default gets nothing from a density, because "a density
+can't describe a piece". Produce is where that stops being true: "1 cup diced
+mango" is an ordinary recipe line, the row is legitimately piece-default, and
+the density is exactly what makes the cup computable. Without this, every
+cup-measured produce import failed *"Pick a supported unit"* despite the row
+carrying an honest density all along. It is category-gated (like the imprecise
+leg beside it) and applies only where a density exists. **The rule belongs in
+`default_allowed_units()` and its `allowed_units.dart` mirror** — until
+ADR-0008 is amended, the template vocab carries the honest list explicitly,
+which `allowed_units` being an explicit stored attribute exists to allow.
+
+`seed_curation.sql` ends with two invariants — `supabase db reset` FAILS
+loudly on either:
+
+- **R1** (adopted 2026-08-29): a volume `default_unit` REQUIRES a density (a
+  volume line on a density-less per-g ingredient can never compute macros).
+  Fix by filling an honest density (FDC / FAO / label / tagged typical) or
+  flipping the default to a weight — always through the pipeline inputs.
+- **R2**: every stored density lands in the kitchen band **0.03–2.0 g/ml**,
+  whatever its source. Catches the wrong physical quantity (FAO publishes
+  salt at 2.165 — a crystal density, not what a spoonful weighs) without
+  second-guessing the genuinely light end (dill 0.038).
 
 ## Prefill: promoting stubs to `complete` (`usda_links.jsonl`)
 
@@ -156,9 +185,19 @@ Unmatched ingredients stay `stub`. `gen-seed` reads `usda_links.jsonl` and emits
 `../seed_prefill.sql`, which copies macros/density onto matched rows and flips
 them to `complete` (a guard skips USDA rows with no macros).
 
+## Density fallback (`fao_density_links.jsonl`)
+
+`fao_density.jsonl` (the FAO/INFOODS Density Database v2.0 table, derived and
+committed) + `fao_density_links.jsonl` (the reviewed vocab → FAO mapping, every
+line with a reason, `"fao_food": null` recording an audited rejection). The
+last density source, filling only the tail the FDC derivation and the curation
+overrides leave. Full detail, licence note and refresh steps:
+**`scripts/fao_density.md`**.
+
 ## Load order
 
 `config.toml` `[db.seed].sql_paths` runs, in order: `seed.sql` (household +
 vocab) → `seed_usda.sql` (reference) → `seed_prefill.sql` (macros + density)
-→ `seed_measures.sql` (measures) → `seed_curation.sql` (allowed-units
-refresh + curation overrides). `supabase db reset` applies all five.
+→ `seed_measures.sql` (measures) → `seed_curation.sql` (curation overrides +
+FAO density fallback + allowed-units refresh). `supabase db reset` applies
+all five.

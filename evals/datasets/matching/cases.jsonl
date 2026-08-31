@@ -2,9 +2,9 @@
 {"raw":".2 tsp soy sauce","expect_normalized":"soy sauce","expect_band":"auto","expect_match":"Soy Sauce"}
 {"raw":".75 tbsp sugar","expect_normalized":"sugar","expect_band":"auto","expect_match":"Granulated Sugar"}
 {"raw":"0.75 tsp sesame seeds","expect_normalized":"sesame seed","expect_band":"auto","expect_match":"Sesame Seeds"}
-{"raw":"1  (15-ounce) can chickpeas, drained (or desired bean)","expect_normalized":"chickpea","expect_band":"auto","expect_match":"Chickpea"}
-{"raw":"1  (15-ounce) can kidney beans, drained (or desired bean)","expect_normalized":"kidney bean","expect_band":"auto","expect_match":"Kidney Bean"}
-{"raw":"1  (28-ounce) can fire-roasted, chopped tomatoes","expect_normalized":"fire tomato roasted","expect_band":"auto","expect_match":"Fire-Roasted Tomato"}
+{"raw":"1  (15-ounce) can chickpeas, drained (or desired bean)","expect_normalized":"chickpea","expect_band":"auto","expect_match":"Canned Chickpeas"}
+{"raw":"1  (15-ounce) can kidney beans, drained (or desired bean)","expect_normalized":"kidney bean","expect_band":"auto","expect_match":"Canned Dark Red Kidney Beans"}
+{"raw":"1  (28-ounce) can fire-roasted, chopped tomatoes","expect_normalized":"fire tomato roasted","expect_band":"auto","expect_match":"Canned Fire-Roasted Tomatoes"}
 {"raw":"1  avocado (cut into bite-sized chunks)","expect_normalized":"avocado","expect_band":"auto","expect_match":"Avocado"}
 {"raw":"1  big handful of cilantro leaves and tender stems (remove thick stems)","expect_normalized":"cilantro leaf tender stem","expect_band":"auto","expect_match":"Cilantro"}
 {"raw":"1  bunch dill* (rinsed well and roughly chopped)","expect_normalized":"dill","expect_band":"auto","expect_match":"Dill"}
@@ -36,11 +36,11 @@
 {"raw":"1 (13.5 ounces) can full-fat coconut milk (melted if hard)","expect_normalized":"full fat coconut milk","expect_band":"auto","expect_match":"Coconut Milk"}
 {"raw":"1 ½ cups (150 g) powdered sugar (icing sugar)","expect_normalized":"sugar powdered","expect_band":"auto","expect_match":"Powdered Sugar"}
 {"raw":"1 ½ cups all-purpose flour","expect_normalized":"all purpose flour","expect_band":"auto","expect_match":"All-Purpose Flour"}
-{"raw":"1 ½ cups desired berries (plus some to garnish)","expect_normalized":"berry","expect_band":"auto","expect_match":"Berries"}
-{"raw":"1 ½ cups mustard flavored mini pretzels","expect_normalized":"mustard flavored mini pretzel","expect_band":"auto","expect_match":"Mini Pretzel"}
+{"raw":"1 ½ cups desired berries (plus some to garnish)","expect_normalized":"berry","expect_band":"auto","expect_match":"Blueberries"}
+{"raw":"1 ½ cups mustard flavored mini pretzels","expect_normalized":"mustard flavored mini pretzel","expect_band":"auto","expect_match":"Mini Pretzels"}
 {"raw":"1 ½ cups water","expect_normalized":"water","expect_band":"auto","expect_match":"Water"}
 {"raw":"1 ½ tablespoons agave or maple syrup","expect_normalized":"agave | maple syrup","expect_band":"suggest","expect_candidates":["Agave","Maple Syrup"]}
-{"raw":"1 ½ tablespoons capers (drained and chopped)","expect_normalized":"caper","expect_band":"auto","expect_match":"Caper"}
+{"raw":"1 ½ tablespoons capers (drained and chopped)","expect_normalized":"caper","expect_band":"auto","expect_match":"Capers"}
 {"raw":"1 ½ tablespoons desired vinegar (rice, champagne, sherry, or red wine)","expect_normalized":"vinegar","expect_band":"none"}
 {"raw":"1 ½ tablespoons nutritional yeast","expect_normalized":"nutritional yeast","expect_band":"auto","expect_match":"Nutritional Yeast"}
 {"raw":"1 ½ tablespoons soy sauce or tamari ((Note 2))","expect_normalized":"soy sauce | tamari","expect_band":"suggest","expect_candidates":["Soy Sauce","Tamari"]}
@@ -54,17 +54,17 @@
 {"raw":"1 bunch  fresh cilantro (roughly chopped)","expect_normalized":"cilantro fresh","expect_band":"auto","expect_match":"Cilantro"}
 {"raw":"1 can full-fat coconut milk (room temp and shaken well)","expect_normalized":"full fat coconut milk","expect_band":"auto","expect_match":"Coconut Milk"}
 {"raw":"1 cup (236 mL) plant milk (preferably full-fat oat)","expect_normalized":"plant milk","expect_band":"auto","expect_match":"Plant Milk"}
-{"raw":"1 cup dried currants or raisins","expect_normalized":"currant dried | raisin","expect_band":"suggest","expect_candidates":["Dried Currant","Raisin"]}
+{"raw":"1 cup dried currants or raisins","expect_normalized":"currant dried | raisin","expect_band":"suggest","expect_candidates":["Dried Currants","Raisins"]}
 {"raw":"1 cup finely chopped onion","expect_normalized":"onion","expect_band":"auto","expect_match":"Onion"}
 {"raw":"1 cup granulated cane sugar (plus some for sprinkling)","expect_normalized":"granulated cane sugar","expect_band":"auto","expect_match":"Granulated Sugar"}
 {"raw":"1 cup kimchi (see notes)","expect_normalized":"kimchi","expect_band":"auto","expect_match":"Kimchi"}
-{"raw":"1 cup raw cashews","expect_normalized":"cashew raw","expect_band":"auto","expect_match":"Cashew"}
-{"raw":"1 cup raw pecans","expect_normalized":"pecan raw","expect_band":"auto","expect_match":"Pecan"}
+{"raw":"1 cup raw cashews","expect_normalized":"cashew raw","expect_band":"auto","expect_match":"Cashews"}
+{"raw":"1 cup raw pecans","expect_normalized":"pecan raw","expect_band":"auto","expect_match":"Pecans"}
 {"raw":"1 cup ripe mango (chopped (1 to 2 mangoes))","expect_normalized":"mango ripe","expect_band":"auto","expect_match":"Mango"}
 {"raw":"1 cup warm water","expect_normalized":"warm water","expect_band":"auto","expect_match":"Water"}
 {"raw":"1 head iceberg lettuce (separated)","expect_normalized":"iceberg lettuce","expect_band":"auto","expect_match":"Iceberg Lettuce"}
 {"raw":"1 head of garlic (peeled and chopped)","expect_normalized":"garlic","expect_band":"auto","expect_match":"Garlic"}
-{"raw":"1 head romaine or iceberg lettuce (shredded)","expect_normalized":"romaine | iceberg lettuce","expect_band":"suggest","expect_candidates":["Romaine","Iceberg Lettuce"]}
+{"raw":"1 head romaine or iceberg lettuce (shredded)","expect_normalized":"romaine | iceberg lettuce","expect_band":"suggest","expect_candidates":["Romaine Lettuce","Iceberg Lettuce"]}
 {"raw":"1 heaping tablespoon  dijon mustard","expect_normalized":"dijon mustard","expect_band":"auto","expect_match":"Dijon Mustard"}
 {"raw":"1 heaping tablespoon  nutritional yeast (plus more to taste)","expect_normalized":"nutritional yeast","expect_band":"auto","expect_match":"Nutritional Yeast"}
 {"raw":"1 heaping tablespoon (8 g) ground cinnamon","expect_normalized":"cinnamon ground","expect_band":"auto","expect_match":"Ground Cinnamon"}
@@ -76,13 +76,13 @@
 {"raw":"1 medium onion (finely chopped)","expect_normalized":"onion","expect_band":"auto","expect_match":"Onion"}
 {"raw":"1 pack  crispy tostada shells (toasted)","expect_normalized":"crispy tostada shell","expect_band":"auto","expect_match":"Tostada Shell"}
 {"raw":"1 pack Beyond Meat Sausage (preferably Hot Italian, roughly chopped)","expect_normalized":"beyond meat sausage","expect_band":"auto","expect_match":"Vegan Sausage"}
-{"raw":"1 pound  frozen peas","expect_normalized":"pea frozen","expect_band":"auto","expect_match":"Frozen Pea"}
+{"raw":"1 pound  frozen peas","expect_normalized":"pea frozen","expect_band":"auto","expect_match":"Frozen Peas"}
 {"raw":"1 pound  pasta (mezze rigatoni or desired shape*)","expect_normalized":"pasta","expect_band":"auto","expect_match":"Pasta"}
-{"raw":"1 pound brussels sprouts","expect_normalized":"brussel sprout","expect_band":"auto","expect_match":"Brussels Sprout"}
-{"raw":"1 pound French green lentils (plus water and salt)","expect_normalized":"french green lentil","expect_band":"auto","expect_match":"French Green Lentil"}
-{"raw":"1 pound whole dried mung beans (plus water to soak and cook)","expect_normalized":"mung bean whole dried","expect_band":"auto","expect_match":"Dried Mung Bean"}
+{"raw":"1 pound brussels sprouts","expect_normalized":"brussel sprout","expect_band":"auto","expect_match":"Brussels Sprouts"}
+{"raw":"1 pound French green lentils (plus water and salt)","expect_normalized":"french green lentil","expect_band":"auto","expect_match":"French Green Lentils"}
+{"raw":"1 pound whole dried mung beans (plus water to soak and cook)","expect_normalized":"mung bean whole dried","expect_band":"auto","expect_match":"Dried Mung Beans"}
 {"raw":"1 scant teaspoon  freshly cracked black pepper","expect_normalized":"cracked black pepper","expect_band":"auto","expect_match":"Black Pepper"}
-{"raw":"1 small handful chives (thinly sliced or chopped (optional))","expect_normalized":"chive","expect_band":"auto","expect_match":"Chive"}
+{"raw":"1 small handful chives (thinly sliced or chopped (optional))","expect_normalized":"chive","expect_band":"auto","expect_match":"Chives"}
 {"raw":"1 small handful fresh basil leaves","expect_normalized":"basil leaf fresh","expect_band":"auto","expect_match":"Basil"}
 {"raw":"1 small handful fresh mint leaves","expect_normalized":"mint leaf fresh","expect_band":"auto","expect_match":"Mint"}
 {"raw":"1 small shallot (chopped)","expect_normalized":"shallot","expect_band":"auto","expect_match":"Shallot"}
@@ -144,7 +144,7 @@
 {"raw":"1-2  small russet potatoes (julienned)","expect_normalized":"russet potato","expect_band":"auto","expect_match":"Russet Potato"}
 {"raw":"1/3 cup rice vinegar (or red wine or plain white)","expect_normalized":"rice vinegar","expect_band":"auto","expect_match":"Rice Vinegar"}
 {"raw":"½  cucumber (roughly chopped (optional))","expect_normalized":"cucumber","expect_band":"auto","expect_match":"Cucumber"}
-{"raw":"½  cup raw cashews","expect_normalized":"cashew raw","expect_band":"auto","expect_match":"Cashew"}
+{"raw":"½  cup raw cashews","expect_normalized":"cashew raw","expect_band":"auto","expect_match":"Cashews"}
 {"raw":"½  medium red onion (or 1 small shallot) (very thinly sliced)","expect_normalized":"red onion","expect_band":"auto","expect_match":"Red Onion"}
 {"raw":"½  of a medium ripe avocado","expect_normalized":"avocado ripe","expect_band":"auto","expect_match":"Avocado"}
 {"raw":"½  teaspoon freshly cracked black pepper","expect_normalized":"cracked black pepper","expect_band":"auto","expect_match":"Black Pepper"}
@@ -160,7 +160,7 @@
 {"raw":"½ cup ripe avocado (diced (½ a large avocado or 1 small))","expect_normalized":"avocado ripe","expect_band":"auto","expect_match":"Avocado"}
 {"raw":"½ cup ripe tomato (chopped (ideally cherry tomatoes))","expect_normalized":"tomato ripe","expect_band":"auto","expect_match":"Tomato"}
 {"raw":"½ cup sugar","expect_normalized":"sugar","expect_band":"auto","expect_match":"Granulated Sugar"}
-{"raw":"½ cup toasted sunflower seeds (plus more to taste (optional))","expect_normalized":"sunflower seed toasted","expect_band":"auto","expect_match":"Sunflower Seed"}
+{"raw":"½ cup toasted sunflower seeds (plus more to taste (optional))","expect_normalized":"sunflower seed toasted","expect_band":"auto","expect_match":"Sunflower Seeds"}
 {"raw":"½ cup water","expect_normalized":"water","expect_band":"auto","expect_match":"Water"}
 {"raw":"½ cup water (plus more to taste)","expect_normalized":"water","expect_band":"auto","expect_match":"Water"}
 {"raw":"½ large lime (to squeeze)","expect_normalized":"lime","expect_band":"auto","expect_match":"Lime"}
@@ -169,9 +169,9 @@
 {"raw":"½ tablespoon toasted sesame seed oil","expect_normalized":"sesame seed oil toasted","expect_band":"auto","expect_match":"Toasted Sesame Oil"}
 {"raw":"½ teaspoon black pepper","expect_normalized":"black pepper","expect_band":"auto","expect_match":"Black Pepper"}
 {"raw":"½ teaspoon dried oregano","expect_normalized":"oregano dried","expect_band":"auto","expect_match":"Dried Oregano"}
-{"raw":"½ teaspoon dried sage","expect_normalized":"sage dried","expect_band":"auto","expect_match":"Dried Sage"}
+{"raw":"½ teaspoon dried sage","expect_normalized":"sage dried","expect_band":"none"}
 {"raw":"½ teaspoon dried thyme","expect_normalized":"thyme dried","expect_band":"auto","expect_match":"Dried Thyme"}
-{"raw":"½ teaspoon fennel seeds (roughly chopped)","expect_normalized":"fennel seed","expect_band":"auto","expect_match":"Fennel Seed"}
+{"raw":"½ teaspoon fennel seeds (roughly chopped)","expect_normalized":"fennel seed","expect_band":"auto","expect_match":"Fennel Seeds"}
 {"raw":"½ teaspoon freshly cracked black pepper","expect_normalized":"cracked black pepper","expect_band":"auto","expect_match":"Black Pepper"}
 {"raw":"½ teaspoon garlic powder","expect_normalized":"garlic powder","expect_band":"auto","expect_match":"Garlic Powder"}
 {"raw":"½ teaspoon garlic powder (plus more to taste)","expect_normalized":"garlic powder","expect_band":"auto","expect_match":"Garlic Powder"}
@@ -195,7 +195,7 @@
 {"raw":"¼ cup (56g) tahini","expect_normalized":"tahini","expect_band":"auto","expect_match":"Tahini"}
 {"raw":"¼ cup avocado oil (or sunflower/coconut oil)","expect_normalized":"avocado oil","expect_band":"auto","expect_match":"Avocado Oil"}
 {"raw":"¼ cup avocado or sunflower oil","expect_normalized":"avocado | sunflower oil","expect_band":"suggest","expect_candidates":["Avocado","Sunflower Oil"]}
-{"raw":"¼ cup chia seeds","expect_normalized":"chia seed","expect_band":"auto","expect_match":"Chia Seed"}
+{"raw":"¼ cup chia seeds","expect_normalized":"chia seed","expect_band":"auto","expect_match":"Chia Seeds"}
 {"raw":"¼ cup chopped parsley","expect_normalized":"parsley","expect_band":"auto","expect_match":"Parsley"}
 {"raw":"¼ cup coconut oil (refined or unrefined)","expect_normalized":"coconut oil","expect_band":"auto","expect_match":"Coconut Oil"}
 {"raw":"¼ cup plant milk","expect_normalized":"plant milk","expect_band":"auto","expect_match":"Plant Milk"}
@@ -214,10 +214,10 @@
 {"raw":"1½  cups diced celery","expect_normalized":"celery","expect_band":"auto","expect_match":"Celery"}
 {"raw":"1½ teaspoons smoked paprika","expect_normalized":"paprika smoked","expect_band":"auto","expect_match":"Smoked Paprika"}
 {"raw":"1½ teaspoons tamari","expect_normalized":"tamari","expect_band":"auto","expect_match":"Tamari"}
-{"raw":"12 ounces  fresh, trimmed green beans (cut bite-sized)","expect_normalized":"green bean fresh","expect_band":"auto","expect_match":"Green Bean"}
+{"raw":"12 ounces  fresh, trimmed green beans (cut bite-sized)","expect_normalized":"green bean fresh","expect_band":"auto","expect_match":"Green Beans"}
 {"raw":"12 ounces (340g) shelled frozen edamame, defrosted  ((Note 1))","expect_normalized":"edamame defrosted shelled frozen","expect_band":"suggest","expect_candidates":["Frozen Edamame"]}
 {"raw":"14 ounces extra-firm tofu","expect_normalized":"extra firm tofu","expect_band":"auto","expect_match":"Extra Firm Tofu"}
-{"raw":"15 ounces cannellini beans (drained and rinsed (1 can))","expect_normalized":"cannellini bean","expect_band":"auto","expect_match":"Cannellini Bean"}
+{"raw":"15 ounces cannellini beans (drained and rinsed (1 can))","expect_normalized":"cannellini bean","expect_band":"auto","expect_match":"Canned Cannellini Beans"}
 {"raw":"16 ounces frozen edamame","expect_normalized":"edamame frozen","expect_band":"auto","expect_match":"Frozen Edamame"}
 {"raw":"16 ounces tofu (extra firm or high protein (1 block))","expect_normalized":"tofu","expect_band":"auto","expect_match":"Extra Firm Tofu"}
 {"raw":"16 oz breaded vegan chicken nuggets or strips (baked & sliced)","expect_normalized":"breaded vegan chicken nugget | strip","expect_band":"auto","expect_match":"Breaded Vegan Chicken Nugget"}
@@ -232,7 +232,7 @@
 {"raw":"2 ½ cups all-purpose flour","expect_normalized":"all purpose flour","expect_band":"auto","expect_match":"All-Purpose Flour"}
 {"raw":"2 ½ cups water","expect_normalized":"water","expect_band":"auto","expect_match":"Water"}
 {"raw":"2 ½ teaspoons sea salt","expect_normalized":"sea salt","expect_band":"auto","expect_match":"Sea Salt"}
-{"raw":"2 15-oz cans pinto beans (drained and rinsed)","expect_normalized":"pinto bean","expect_band":"auto","expect_match":"Pinto Bean"}
+{"raw":"2 15-oz cans pinto beans (drained and rinsed)","expect_normalized":"pinto bean","expect_band":"auto","expect_match":"Canned Pinto Beans"}
 {"raw":"2 big pinches sea salt (ideally coarse or flaky)","expect_normalized":"sea salt","expect_band":"auto","expect_match":"Sea Salt"}
 {"raw":"2 cloves garlic (peeled and left whole)","expect_normalized":"garlic","expect_band":"auto","expect_match":"Garlic"}
 {"raw":"2 cups all-purpose flour (240 g)","expect_normalized":"all purpose flour","expect_band":"auto","expect_match":"All-Purpose Flour"}
@@ -241,7 +241,7 @@
 {"raw":"2 cups filtered water","expect_normalized":"filtered water","expect_band":"auto","expect_match":"Water"}
 {"raw":"2 cups fresh parsley (roughly chopped)","expect_normalized":"parsley fresh","expect_band":"auto","expect_match":"Parsley"}
 {"raw":"2 cups pasta water","expect_normalized":"pasta water","expect_band":"suggest","expect_candidates":["Pasta","Water"]}
-{"raw":"2 cups pecan halves","expect_normalized":"pecan half","expect_band":"auto","expect_match":"Pecan"}
+{"raw":"2 cups pecan halves","expect_normalized":"pecan half","expect_band":"auto","expect_match":"Pecans"}
 {"raw":"2 cups thick (plain coconut yogurt)","expect_normalized":"thick","expect_band":"none"}
 {"raw":"2 cups water","expect_normalized":"water","expect_band":"auto","expect_match":"Water"}
 {"raw":"2 cups white basmati rice","expect_normalized":"white basmati rice","expect_band":"auto","expect_match":"White Basmati Rice"}
@@ -251,11 +251,11 @@
 {"raw":"2 large  cucumbers","expect_normalized":"cucumber","expect_band":"auto","expect_match":"Cucumber"}
 {"raw":"2 large  limes (quartered)","expect_normalized":"lime","expect_band":"auto","expect_match":"Lime"}
 {"raw":"2 large or 3 medium carrots","expect_normalized":"carrot","expect_band":"auto","expect_match":"Carrot"}
-{"raw":"2 ounces dried coconut flakes","expect_normalized":"coconut flake dried","expect_band":"auto","expect_match":"Dried Coconut Flake"}
+{"raw":"2 ounces dried coconut flakes","expect_normalized":"coconut flake dried","expect_band":"auto","expect_match":"Dried Coconut Flakes"}
 {"raw":"2 pounds  cucumbers (about 3 medium cucumbers) (thickly or thinly sliced)","expect_normalized":"cucumber","expect_band":"auto","expect_match":"Cucumber"}
 {"raw":"2 small  (or 1 large) hot chili (thinly sliced)","expect_normalized":"hot chili","expect_band":"auto","expect_match":"Hot Chili"}
 {"raw":"2 tablespoons  olive oil","expect_normalized":"olive oil","expect_band":"auto","expect_match":"Olive Oil"}
-{"raw":"2 tablespoons chopped raw pistachios (plus more to taste)","expect_normalized":"pistachio raw","expect_band":"auto","expect_match":"Pistachio"}
+{"raw":"2 tablespoons chopped raw pistachios (plus more to taste)","expect_normalized":"pistachio raw","expect_band":"auto","expect_match":"Pistachios"}
 {"raw":"2 tablespoons cornstarch","expect_normalized":"cornstarch","expect_band":"auto","expect_match":"Cornstarch"}
 {"raw":"2 tablespoons ground flaxseed meal","expect_normalized":"flaxseed meal ground","expect_band":"auto","expect_match":"Flaxseed Meal"}
 {"raw":"2 tablespoons lemon juice","expect_normalized":"lemon juice","expect_band":"auto","expect_match":"Lemon Juice"}
@@ -283,24 +283,24 @@
 {"raw":"2 teaspoons ume plum vinegar","expect_normalized":"ume plum vinegar","expect_band":"auto","expect_match":"Ume Plum Vinegar"}
 {"raw":"2 tsp kosher salt (to draw out moisture)","expect_normalized":"kosher salt","expect_band":"auto","expect_match":"Kosher Salt"}
 {"raw":"2-3 tablespoons orange juice (from zested orange)","expect_normalized":"orange juice","expect_band":"auto","expect_match":"Orange Juice"}
-{"raw":"2-4  fresh or dried bay leaves","expect_normalized":"fresh | bay leaf dried","expect_band":"auto","expect_match":"Bay Leaf"}
+{"raw":"2-4  fresh or dried bay leaves","expect_normalized":"fresh | bay leaf dried","expect_band":"auto","expect_match":"Bay Leaves"}
 {"raw":"2.12 ounces g (60 g) plant butter (block-style) (softened)","expect_normalized":"plant butter","expect_band":"auto","expect_match":"Plant Butter"}
 {"raw":"2.25 tbsp rice vinegar","expect_normalized":"rice vinegar","expect_band":"auto","expect_match":"Rice Vinegar"}
 {"raw":"2.65 ounces (75 g) plant butter (block-style) (melted, plus some to grease the bowl)","expect_normalized":"plant butter","expect_band":"auto","expect_match":"Plant Butter"}
 {"raw":"275 g water (1 ¼ cups)","expect_normalized":"water","expect_band":"auto","expect_match":"Water"}
-{"raw":"28 ounces fire roasted tomatoes (diced) (one large can)","expect_normalized":"fire tomato roasted","expect_band":"auto","expect_match":"Fire-Roasted Tomato"}
-{"raw":"3  bay leaves (dried or fresh)","expect_normalized":"bay leaf","expect_band":"auto","expect_match":"Bay Leaf"}
+{"raw":"28 ounces fire roasted tomatoes (diced) (one large can)","expect_normalized":"fire tomato roasted","expect_band":"auto","expect_match":"Canned Fire-Roasted Tomatoes"}
+{"raw":"3  bay leaves (dried or fresh)","expect_normalized":"bay leaf","expect_band":"auto","expect_match":"Bay Leaves"}
 {"raw":"3  crunchy Japanese or Persian cucumbers","expect_normalized":"crunchy japanese | persian cucumber","expect_band":"auto","expect_match":"Cucumber"}
-{"raw":"3  dates (deseeded (or ¼ cup maple syrup))","expect_normalized":"date","expect_band":"auto","expect_match":"Date"}
+{"raw":"3  dates (deseeded (or ¼ cup maple syrup))","expect_normalized":"date","expect_band":"auto","expect_match":"Dates"}
 {"raw":"3  fat cloves garlic (minced or microplaned)","expect_normalized":"fat garlic","expect_band":"auto","expect_match":"Garlic"}
 {"raw":"3  fat garlic cloves (thinly sliced)","expect_normalized":"fat garlic","expect_band":"auto","expect_match":"Garlic"}
 {"raw":"3  garlic cloves (thinly sliced)","expect_normalized":"garlic","expect_band":"auto","expect_match":"Garlic"}
 {"raw":"3  medium navel oranges (zested)","expect_normalized":"navel orange","expect_band":"auto","expect_match":"Orange"}
-{"raw":"3  romaine hearts (chopped, rinsed, dried (about 1.5 pounds))","expect_normalized":"romaine heart","expect_band":"auto","expect_match":"Romaine"}
+{"raw":"3  romaine hearts (chopped, rinsed, dried (about 1.5 pounds))","expect_normalized":"romaine heart","expect_band":"auto","expect_match":"Romaine Lettuce"}
 {"raw":"3  tablespoons sherry vinegar (or red wine vinegar)","expect_normalized":"sherry vinegar","expect_band":"auto","expect_match":"Sherry Vinegar"}
 {"raw":"3 ⅔ cups (460 g) all-purpose flour*","expect_normalized":"all purpose flour","expect_band":"auto","expect_match":"All-Purpose Flour"}
 {"raw":"3 cloves garlic (minced)","expect_normalized":"garlic","expect_band":"auto","expect_match":"Garlic"}
-{"raw":"3 cups blueberries (plus some for sprinkling (fresh or frozen))","expect_normalized":"blueberry","expect_band":"auto","expect_match":"Blueberry"}
+{"raw":"3 cups blueberries (plus some for sprinkling (fresh or frozen))","expect_normalized":"blueberry","expect_band":"auto","expect_match":"Blueberries"}
 {"raw":"3 cups thinly shaved zucchini (see instructions)","expect_normalized":"shaved zucchini","expect_band":"auto","expect_match":"Zucchini"}
 {"raw":"3 fat garlic cloves (minced)","expect_normalized":"fat garlic","expect_band":"auto","expect_match":"Garlic"}
 {"raw":"3 heaping tablespoons  vegan mayonnaise","expect_normalized":"vegan mayonnaise","expect_band":"auto","expect_match":"Vegan Mayonnaise"}
@@ -315,7 +315,7 @@
 {"raw":"3 tablespoons tomato paste","expect_normalized":"tomato paste","expect_band":"auto","expect_match":"Tomato Paste"}
 {"raw":"3-4  medium carrots (peeled and julienned (or shredded))","expect_normalized":"carrot","expect_band":"auto","expect_match":"Carrot"}
 {"raw":"325 g bread flour (2 ⅓ cups)","expect_normalized":"bread flour","expect_band":"auto","expect_match":"Bread Flour"}
-{"raw":"4  bay leaves (fresh or dried)","expect_normalized":"bay leaf","expect_band":"auto","expect_match":"Bay Leaf"}
+{"raw":"4  bay leaves (fresh or dried)","expect_normalized":"bay leaf","expect_band":"auto","expect_match":"Bay Leaves"}
 {"raw":"4  English muffins (sliced and toasted)","expect_normalized":"english muffin","expect_band":"auto","expect_match":"English Muffin"}
 {"raw":"4  fat garlic cloves (thinly sliced)","expect_normalized":"fat garlic","expect_band":"auto","expect_match":"Garlic"}
 {"raw":"4  garlic cloves (roughly chopped)","expect_normalized":"garlic","expect_band":"auto","expect_match":"Garlic"}
@@ -334,19 +334,19 @@
 {"raw":"6 cups water","expect_normalized":"water","expect_band":"auto","expect_match":"Water"}
 {"raw":"6 g fine sea salt (1 teaspoon)","expect_normalized":"fine sea salt","expect_band":"auto","expect_match":"Fine Sea Salt"}
 {"raw":"6 ounces frozen shelled edamame (defrosted)","expect_normalized":"edamame frozen shelled","expect_band":"auto","expect_match":"Frozen Edamame"}
-{"raw":"6 tablespoons hemp seeds","expect_normalized":"hemp seed","expect_band":"auto","expect_match":"Hemp Seed"}
+{"raw":"6 tablespoons hemp seeds","expect_normalized":"hemp seed","expect_band":"auto","expect_match":"Hemp Seeds"}
 {"raw":"6 tablespoons rice vinegar (¼ cup)","expect_normalized":"rice vinegar","expect_band":"auto","expect_match":"Rice Vinegar"}
 {"raw":"6-7 ounces shiitake mushrooms","expect_normalized":"shiitake mushroom","expect_band":"auto","expect_match":"Shiitake Mushroom"}
 {"raw":"7 cups chex style cereal","expect_normalized":"chex style cereal","expect_band":"auto","expect_match":"Chex Cereal"}
-{"raw":"7 ounces vegan cheddar or American cheese (shreds or if using a block, diced)","expect_normalized":"vegan cheddar | american cheese","expect_band":"suggest","expect_candidates":["Vegan Cheddar","American Cheese"]}
+{"raw":"7 ounces vegan cheddar or American cheese (shreds or if using a block, diced)","expect_normalized":"vegan cheddar | american cheese","expect_band":"suggest","expect_candidates":["Vegan Cheddar","Vegan American Cheese"]}
 {"raw":"8 g fine sea salt (2 scant teaspoons)","expect_normalized":"fine sea salt","expect_band":"auto","expect_match":"Fine Sea Salt"}
 {"raw":"8 g olive oil (2 teaspoons)","expect_normalized":"olive oil","expect_band":"auto","expect_match":"Olive Oil"}
 {"raw":"8 ounces (1 cup) salted, cultured plant butter ( cut into cubes)","expect_normalized":"cultured plant butter salted","expect_band":"auto","expect_match":"Plant Butter"}
 {"raw":"8 ounces cremini mushrooms (bottoms removed and thinly sliced)","expect_normalized":"cremini mushroom","expect_band":"auto","expect_match":"Cremini Mushroom"}
 {"raw":"8 ounces tempeh","expect_normalized":"tempeh","expect_band":"auto","expect_match":"Tempeh"}
-{"raw":"8 ounces trimmed green beans (chopped into bite sized pieces)","expect_normalized":"green bean","expect_band":"auto","expect_match":"Green Bean"}
+{"raw":"8 ounces trimmed green beans (chopped into bite sized pieces)","expect_normalized":"green bean","expect_band":"auto","expect_match":"Green Beans"}
 {"raw":"8 slices seeded or sprouted multigrain bread ((toasted, if desired) )","expect_normalized":"sprouted multigrain bread","expect_band":"auto","expect_match":"Sprouted Multigrain Bread"}
-{"raw":"8 slices soft sandwich bread or 4 ciabatta buns (lightly toasted)","expect_normalized":"soft sandwich bread | ciabatta bun","expect_band":"suggest","expect_candidates":["Soft Sandwich Bread","Ciabatta Bun"]}
+{"raw":"8 slices soft sandwich bread or 4 ciabatta buns (lightly toasted)","expect_normalized":"soft sandwich bread | ciabatta bun","expect_band":"auto","expect_match":"Soft Sandwich Bread"}
 {"raw":"Big  pinch cayenne pepper (optional)","expect_normalized":"cayenne pepper","expect_band":"auto","expect_match":"Cayenne Pepper"}
 {"raw":"Big handful cilantro (roughly chopped)","expect_normalized":"cilantro","expect_band":"auto","expect_match":"Cilantro"}
 {"raw":"Big handful tender greens (like spinach or arugula)","expect_normalized":"tender green","expect_band":"auto","expect_match":"Tender Greens"}
@@ -377,7 +377,7 @@
 {"raw":"Flaky salt (to taste)","expect_normalized":"flaky salt","expect_band":"auto","expect_match":"Flaky Salt"}
 {"raw":"Flaky salt, to garnish (optional)","expect_normalized":"flaky salt to garnish","expect_band":"suggest","expect_candidates":["Flaky Salt"]}
 {"raw":"Flaky sea salt (or Fleur de sel, to taste)","expect_normalized":"flaky sea salt","expect_band":"auto","expect_match":"Flaky Salt"}
-{"raw":"Fresh chives (thinly sliced, to garnish)","expect_normalized":"chive fresh","expect_band":"auto","expect_match":"Chive"}
+{"raw":"Fresh chives (thinly sliced, to garnish)","expect_normalized":"chive fresh","expect_band":"auto","expect_match":"Chives"}
 {"raw":"Fresh herbs (such as basil, dill, or tarragon) (roughly chopped or torn)","expect_normalized":"herb fresh","expect_band":"none"}
 {"raw":"Fresh herbs (such as scallions, chives, or dill)","expect_normalized":"herb fresh","expect_band":"none"}
 {"raw":"Fresh spinach or arugula","expect_normalized":"spinach fresh | arugula","expect_band":"suggest","expect_candidates":["Spinach","Arugula"]}
@@ -421,6 +421,6 @@
 {"raw":"Tamari (to taste)","expect_normalized":"tamari","expect_band":"auto","expect_match":"Tamari"}
 {"raw":"Thinly sliced red onion","expect_normalized":"red onion","expect_band":"auto","expect_match":"Red Onion"}
 {"raw":"Toasted sesame seeds","expect_normalized":"sesame seed toasted","expect_band":"auto","expect_match":"Sesame Seeds"}
-{"raw":"Toasted sesame seeds or toasted peanuts (roughly chopped)","expect_normalized":"sesame seed toasted | peanut toasted","expect_band":"suggest","expect_candidates":["Sesame Seeds","Peanut"]}
-{"raw":"Toasted sunflower seeds or sesame seeds","expect_normalized":"sunflower seed toasted | sesame seed","expect_band":"suggest","expect_candidates":["Sunflower Seed","Sesame Seeds"]}
-{"raw":"Tortilla chips (to serve (optional))","expect_normalized":"tortilla chip","expect_band":"auto","expect_match":"Tortilla Chip"}
+{"raw":"Toasted sesame seeds or toasted peanuts (roughly chopped)","expect_normalized":"sesame seed toasted | peanut toasted","expect_band":"suggest","expect_candidates":["Sesame Seeds","Peanuts"]}
+{"raw":"Toasted sunflower seeds or sesame seeds","expect_normalized":"sunflower seed toasted | sesame seed","expect_band":"suggest","expect_candidates":["Sunflower Seeds","Sesame Seeds"]}
+{"raw":"Tortilla chips (to serve (optional))","expect_normalized":"tortilla chip","expect_band":"auto","expect_match":"Tortilla Chips"}

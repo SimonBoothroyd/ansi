@@ -1,0 +1,10 @@
+# json_serializable defaults for the whole app. The import payload (step 8)
+# mirrors the server's snake_case contract (supabase/functions/_shared/types.ts),
+# so Dart fields are camelCase and serialize to snake_case here — no per-field
+# @JsonKey noise. No other feature used json codegen before this.
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          field_rename: snake

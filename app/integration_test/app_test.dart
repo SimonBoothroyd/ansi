@@ -32,6 +32,14 @@
 ///                 quantity sheet, and check-off. Runs with LIVE sync —
 ///                 `plan_entry.eaters` must survive the jsonb round-trip as
 ///                 a real array.
+///   4 import      paste a link → the review screen → resolve every line
+///                 (an auto match confirmed, a printed RANGE picked, a
+///                 `suggest` pill taken onto a real vocab row, `none` lines
+///                 created as stubs that coalesce) → Save → the recipe lands
+///                 FILED in a book with tokenized steps whose refs are real
+///                 line_item ids, over LIVE sync. The import repository is
+///                 overridden to the local one, so NO edge function and NO
+///                 LLM is called — see `openLibraryWithLocalImport`.
 library;
 
 import 'dart:convert';
@@ -46,6 +54,11 @@ import 'package:mise/app.dart';
 import 'package:mise/core/config/env.dart';
 import 'package:mise/core/sync/database.dart';
 import 'package:mise/core/sync/schema.dart';
+import 'package:mise/core/sync/session.dart' show currentHouseholdIdProvider;
+import 'package:mise/features/import/data/import_providers.dart';
+import 'package:mise/features/import/data/import_repository_impl.dart';
+import 'package:mise/features/import/presentation/recon_line_card.dart'
+    show AmountEditor;
 import 'package:mise/features/ingredients/presentation/quantity_unit_sheet.dart'
     show QuantityUnitEditor, UnitChipRow;
 import 'package:mise/features/planning/domain/planning.dart' show mondayOf;
@@ -212,16 +225,65 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// [openLibrary], but with the import repository swapped for the LOCAL one —
+  /// `SqliteImportRepository`, exactly what `importRepositoryProvider` builds
+  /// when Supabase is unconfigured. It is the fake edge function: it returns
+  /// the canned payload and re-resolves its candidates against the household's
+  /// really-synced vocab. Nothing on the import path touches the network or a
+  /// provider key; every other collaborator stays real.
+  Future<void> openLibraryWithLocalImport(WidgetTester tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          powerSyncDatabaseProvider.overrideWithValue(db),
+          importRepositoryProvider.overrideWith(
+            (Ref ref) => SqliteImportRepository(
+              ref.watch(databaseProvider),
+              householdId: ref.watch(currentHouseholdIdProvider),
+            ),
+          ),
+        ],
+        child: const MiseApp(),
+      ),
+    );
+    await tester.pump();
+    await pumpUntilFound(
+      tester,
+      find.text('Our Cookbook'),
+      timeout: const Duration(seconds: 60),
+    );
+    await tester.pumpAndSettle();
+  }
+
   Future<void> scrollTo(
     WidgetTester tester,
     Finder finder, {
     double delta = 150,
   }) async {
-    await tester.scrollUntilVisible(
+    // The FIRST Scrollable is not always the screen's list: an expanded
+    // review card puts horizontal chip rows earlier in the tree, and scrolling
+    // one of those never reveals anything below the fold. Scroll the first
+    // VERTICAL scrollable instead — downward first, and if the target never
+    // appears (it may be ABOVE the viewport when a flow revisits an earlier
+    // card), retry upward.
+    final vertical = find
+        .byWidgetPredicate(
+          (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+        )
+        .first;
+    for (final d in [delta, -delta]) {
+      for (var i = 0; i < 50 && finder.evaluate().isEmpty; i++) {
+        await tester.drag(vertical, Offset(0, -d));
+        await tester.pumpAndSettle();
+      }
+      if (finder.evaluate().isNotEmpty) break;
+    }
+    expect(
       finder,
-      delta,
-      scrollable: find.byType(Scrollable).first,
+      findsWidgets,
+      reason: 'scrollTo exhausted both directions without finding the target',
     );
+    await tester.ensureVisible(finder.first);
     await tester.pumpAndSettle();
   }
 
@@ -856,6 +918,273 @@ void main() {
     // lines remain.
     await tester.pumpAndSettle();
     expect(find.textContaining('Chicken Curry · cook Mon'), findsOneWidget);
+  });
+
+  // ---------------------------------------------------------------------------
+  // 4 · IMPORT — paste a link → review → resolve every line → Save, over live
+  //     sync. NO LLM AND NO NETWORK on the import path:
+  //     `importRepositoryProvider` is overridden to `SqliteImportRepository`,
+  //     the same local repository the app uses when Supabase is unconfigured.
+  //     That is the fake edge function — it returns the canned payload and
+  //     RE-RESOLVES its candidates against the household's really-synced
+  //     vocab, so the auto/suggest/none bands below are produced by real data,
+  //     not by the fixture. Only the extract+match hop is stubbed; the
+  //     reconciliation UI, the commit write path, PowerSync and the Library are
+  //     all the real thing.
+  // ---------------------------------------------------------------------------
+
+  /// The review card for flattened line [i] (`ValueKey('review-line-$i')`).
+  Finder reviewCard(int i) => find.byKey(ValueKey('review-line-$i'));
+
+  /// Expands card [i] if it is still compact. The collapsed card has exactly
+  /// one pencil; once expanded the AMOUNT chip carries one too, so guard on
+  /// the 'AMOUNT' label instead.
+  Future<void> expandLine(WidgetTester tester, int i) async {
+    await scrollTo(tester, reviewCard(i));
+    final expanded = find.descendant(
+      of: reviewCard(i),
+      matching: find.text('AMOUNT'),
+    );
+    if (expanded.evaluate().isNotEmpty) return;
+    final pencil = find.descendant(
+      of: reviewCard(i),
+      matching: find.byIcon(FLucideIcons.pencil),
+    );
+    await tester.ensureVisible(pencil.first);
+    await tester.pumpAndSettle();
+    await tester.tap(pencil.first);
+    await tester.pumpAndSettle();
+  }
+
+  /// Whether card [i] currently shows [text].
+  bool lineShows(int i, String text) => find
+      .descendant(of: reviewCard(i), matching: find.text(text))
+      .evaluate()
+      .isNotEmpty;
+
+  /// Resolves an unmatched (`none`) line by creating a new ingredient stub:
+  /// open the seeded search sheet, then take its create-new footer.
+  Future<void> createStubForLine(WidgetTester tester, int i) async {
+    await expandLine(tester, i);
+    final open = find.descendant(
+      of: reviewCard(i),
+      matching: find.text('Find or create ingredient'),
+    );
+    await tester.ensureVisible(open);
+    await tester.pumpAndSettle();
+    await tester.tap(open);
+    await tester.pumpAndSettle();
+    // The sheet seeds create-new with the raw line text, so the two identical
+    // "Aleppo chilli flakes" lines default to the same name and coalesce.
+    final create = find.textContaining('as a new ingredient');
+    expect(create, findsOneWidget, reason: 'the create-new footer for line $i');
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+  }
+
+  /// Picks a printed range's number by confirming the amount sheet, which opens
+  /// on the printed low endpoint (a real value, never an invented one).
+  Future<void> pickRangeAmountForLine(WidgetTester tester, int i) async {
+    await expandLine(tester, i);
+    final chip = find.descendant(
+      of: reviewCard(i),
+      matching: find.byType(AmountEditor),
+    );
+    await tester.ensureVisible(chip);
+    await tester.pumpAndSettle();
+    await tester.tap(chip);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('4 import: link → review → resolve → saved recipe in the '
+      'Library', (tester) async {
+    ignoreForuiSemanticsAssertion();
+
+    // The canned payload's `suggest` line only lands in the suggest band if the
+    // household vocab actually holds a Parmesan row for it to re-point at.
+    // Assert that up front so a vocab change fails HERE, with a clear reason,
+    // rather than as a mystery finder miss further down.
+    final parmesanRows = await db.getAll(
+      'SELECT canonical_name FROM ingredient '
+      "WHERE canonical_name LIKE '%armesan%' AND deleted_at IS NULL",
+    );
+    expect(
+      parmesanRows,
+      hasLength(1),
+      reason:
+          'scenario 4 needs exactly one %armesan% vocab row: the suggest '
+          'line re-points at it and the "did you mean" pill carries its name',
+    );
+
+    await openLibraryWithLocalImport(tester);
+
+    // The Library's header ＋ menu → Import a recipe.
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byType(FHeaderAction),
+            matching: find.byIcon(FLucideIcons.plus),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Import a recipe'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Import a recipe'), findsWidgets); // the header
+    await tester.enterText(
+      find.byType(EditableText).first,
+      'https://example.com/weeknight-tomato-pasta',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Import from link'));
+    await pumpUntilFound(tester, find.text('Review recipe'));
+
+    // The extraction arrived, grouped, with every line surfaced for review.
+    expect(find.text('Weeknight Tomato Pasta'), findsOneWidget);
+    expect(find.text('To finish'), findsOneWidget); // the named group
+    expect(find.text('INGREDIENTS'), findsOneWidget);
+    // Nothing is auto-committed: the header counts what still wants a look.
+    expect(find.textContaining('to review'), findsOneWidget);
+
+    // MATCHING really ran against the synced vocab: line 0 (spaghetti) arrived
+    // auto-matched, so it needs nothing from the user.
+    await expandLine(tester, 0);
+    expect(lineShows(0, 'Match an ingredient'), isFalse);
+    expect(lineShows(0, 'Spaghetti'), isTrue);
+
+    // Line 1 — an auto match whose amount is a printed RANGE ("2–3 cloves").
+    // The ingredient is locked; only the number is outstanding.
+    await expandLine(tester, 1);
+    expect(lineShows(1, 'Set the amount'), isTrue);
+    await pickRangeAmountForLine(tester, 1);
+    expect(lineShows(1, 'Set the amount'), isFalse);
+
+    // Line 5 — the `suggest` band: confirm the "did you mean" pill onto an
+    // EXISTING vocab row rather than creating a stub.
+    //
+    // The fake repository re-points the candidate at whatever the household
+    // vocab really holds AND takes that row's canonical name, so the pill is
+    // labelled with the vocab row's name (e.g. "Vegan Parmesan"), not the
+    // canned payload's "Parmesan". Derive the expected label from the vocab
+    // (queried by the precondition at the top of this test) so a reseed fails
+    // loudly rather than as a mystery finder miss.
+    final pillLabel = parmesanRows.single['canonical_name'] as String;
+    await expandLine(tester, 5);
+    expect(lineShows(5, 'Did you mean'), isTrue);
+    final pill = find.descendant(
+      of: reviewCard(5),
+      matching: find.text(pillLabel),
+    );
+    await tester.ensureVisible(pill);
+    await tester.pumpAndSettle();
+    await tester.tap(pill);
+    await tester.pumpAndSettle();
+    expect(lineShows(5, 'Did you mean'), isFalse);
+
+    // Everything still unmatched (`none`) becomes a new ingredient stub. The
+    // two identical chilli lines seed the same name, so they must coalesce onto
+    // ONE created ingredient at commit.
+    for (final i in [2, 3, 4, 6]) {
+      // Expand FIRST: a below-the-fold ListView child isn't built at all, so
+      // probing its labels before scrolling to it always reads "clean" and the
+      // loop would silently skip the line (exactly how the gate stayed locked
+      // on the first on-sim run of this tail).
+      await expandLine(tester, i);
+      if (lineShows(i, 'Match an ingredient') ||
+          lineShows(i, 'Find or create ingredient')) {
+        await createStubForLine(tester, i);
+      }
+    }
+
+    // Every line is clean → the header count flips and Save unlocks. Scroll to
+    // the footer button in EITHER state so a still-locked gate fails with the
+    // button's own message ("N line(s) need you") rather than a finder miss.
+    final footer = find.textContaining(RegExp('Save recipe|need you'));
+    await scrollTo(tester, footer);
+    expect(
+      find.text('Save recipe'),
+      findsOneWidget,
+      reason:
+          'the Save gate is still locked: '
+          '${tester.widget<Text>(footer.first).data}',
+    );
+    expect(find.text('looks good'), findsOneWidget);
+    await tester.tap(find.text('Save recipe'));
+
+    // The commit routes to the saved recipe's page.
+    await pumpUntilFound(tester, find.text('Weeknight Tomato Pasta'));
+    await tester.pumpAndSettle();
+
+    // --- what actually landed in the local database --------------------------
+    final recipe = await db.get(
+      "SELECT id, book_id, steps FROM recipe WHERE title = 'Weeknight Tomato "
+      "Pasta' AND deleted_at IS NULL",
+    );
+    final recipeId = recipe['id'] as String;
+
+    // FILED: the Library renders books and skips book-less recipes, so an
+    // imported recipe with a null book_id would save into a place nothing
+    // shows it.
+    expect(recipe['book_id'], isNotNull);
+
+    // Tokenized method steps, with refs remapped from line_index to real
+    // line_item ids (§4.6) — never a plain-text step list.
+    final steps = jsonDecode(recipe['steps'] as String) as List;
+    expect(steps, hasLength(3));
+    final lineIds = (await db.getAll(
+      'SELECT li.id FROM recipe_line_item li '
+      'JOIN ingredient_group g ON g.id = li.group_id '
+      'WHERE g.recipe_id = ? AND li.deleted_at IS NULL',
+      [recipeId],
+    )).map((r) => r['id'] as String).toSet();
+    expect(lineIds, hasLength(7));
+    final refs = [
+      for (final s in steps)
+        for (final t in (s as Map)['tokens'] as List)
+          if ((t as Map)['t'] == 'ref') ...(t['refs'] as List).cast<String>(),
+    ];
+    expect(refs, isNotEmpty);
+    for (final ref in refs) {
+      expect(
+        lineIds,
+        contains(ref),
+        reason: 'a step ref still points at a line_index, not a line_item_id',
+      );
+    }
+
+    // Every line resolved to a real ingredient, and the duplicate no-match
+    // lines coalesced onto ONE created stub.
+    final unresolved = await db.get(
+      'SELECT COUNT(*) AS c FROM recipe_line_item li '
+      'JOIN ingredient_group g ON g.id = li.group_id '
+      'WHERE g.recipe_id = ? AND li.ingredient_id IS NULL',
+      [recipeId],
+    );
+    expect(unresolved['c'] as int, 0);
+    final chilliStubs = await db.getAll(
+      "SELECT id FROM ingredient WHERE source = 'import_stub' "
+      "AND canonical_name LIKE '%chilli flakes%' AND deleted_at IS NULL",
+    );
+    expect(chilliStubs, hasLength(1));
+
+    // It SYNCED — the whole point of running this on a device.
+    await waitForSyncRoundTrip(tester);
+
+    // …and it is visible in the Library, filed under a book. The recipe page
+    // sits OUTSIDE the tab shell (no bottom nav here); its header back action
+    // pops — or, after the commit's `context.go`, falls back to `/` — either
+    // way landing on the Library.
+    await tester.tap(find.byType(FHeaderAction).first);
+    await pumpUntilFound(tester, find.text('Our Cookbook'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Weeknight Tomato Pasta'),
+      findsWidgets,
+      reason: 'the imported recipe never appeared in the Library',
+    );
   });
 }
 

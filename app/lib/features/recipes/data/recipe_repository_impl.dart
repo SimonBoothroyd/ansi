@@ -14,6 +14,7 @@ import 'package:sqlite_async/sqlite_async.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../domain/method_step.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_macros.dart';
 import '../domain/recipe_repository.dart';
@@ -201,11 +202,13 @@ class SqliteRecipeRepository implements RecipeRepository {
       (itemsByGroup[row['group_id'] as String] ??= []).add(_toLineItem(row));
     }
 
+    final (plainSteps, methodSteps) = _parseSteps(r['steps'] as String?);
     return Recipe(
       id: r['id'] as String,
       title: r['title'] as String,
       servingsBase: (r['servings_base'] as num).toDouble(),
-      steps: (jsonDecode(r['steps'] as String? ?? '[]') as List).cast<String>(),
+      steps: plainSteps,
+      methodSteps: methodSteps,
       keepsForDays: r['keeps_for_days'] as int?,
       freezable: (r['freezable'] as int? ?? 0) == 1,
       freezerDays: r['freezer_days'] as int?,
@@ -254,10 +257,39 @@ class SqliteRecipeRepository implements RecipeRepository {
     );
   }
 
+  /// Reads the `steps` jsonb, which holds one of two shapes ([mise-data-
+  /// ephemeral], no coexistence): a legacy array of plain-text strings (the
+  /// editor) or an array of tokenized step objects (import, step 8). A string
+  /// element ⇒ plain text; an object with `tokens` ⇒ tokenized.
+  (List<String>, List<MethodStep>?) _parseSteps(String? raw) {
+    final decoded = jsonDecode(raw ?? '[]');
+    if (decoded is! List || decoded.isEmpty) return (const [], null);
+    if (decoded.first is String) return (decoded.cast<String>(), null);
+    return (
+      const <String>[],
+      [
+        for (final e in decoded)
+          MethodStep.fromJson((e as Map).cast<String, Object?>()),
+      ],
+    );
+  }
+
+  /// What the `steps` jsonb is written as. The column holds ONE of two shapes
+  /// ([mise-data-ephemeral], see [_parseSteps]), and a recipe carries whichever
+  /// one it was loaded with: an imported recipe's [Recipe.methodSteps] is the
+  /// tokenized shape and its plain [Recipe.steps] is empty, so serializing the
+  /// plain list unconditionally would erase the imported method on the first
+  /// save. The tokenized shape therefore wins whenever it is present.
+  Object _stepsJson(Recipe recipe) {
+    final tokenized = recipe.methodSteps;
+    if (tokenized == null) return recipe.steps;
+    return [for (final step in tokenized) step.toJson()];
+  }
+
   @override
   Future<void> saveRecipe(Recipe recipe) async {
     final now = DateTime.now().toUtc().toIso8601String();
-    final steps = jsonEncode(recipe.steps);
+    final steps = jsonEncode(_stepsJson(recipe));
     final freezable = recipe.freezable ? 1 : 0;
     await _db.writeTransaction((tx) async {
       // PowerSync's local tables are SQLite VIEWS with INSTEAD OF triggers,

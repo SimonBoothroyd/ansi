@@ -33,9 +33,13 @@ books/
 - **A recipe lives in one book** (`recipe.book_id`). Multi-book many-to-many is a
   deferred open question (spec §8).
 - **Default book** ("Our Cookbook") is auto-created on first run and adopts any
-  book-less recipes — `bootstrap.dart` calls `ensureDefaultBook()` after the
-  vocab seeder (empty-only gate, idempotent). New recipes default into it via the
-  editor's "file under" picker.
+  book-less recipes (empty-only gate, idempotent). Since step 7 the caller is
+  `core/sync/session.dart` — after `.connect()` **and** `waitForFirstSync()`, so
+  an existing household's books arrive before we'd seed one and a second device
+  can't mint a duplicate. `bootstrap.dart` no longer does this — the vocab
+  seeder it used to follow was retired when vocab started syncing. New recipes default into it via `RecipeEditor.build`, and imports file
+  into it inside the commit transaction — the Library renders books and skips
+  book-less recipes, so a null `book_id` hides the recipe.
 - **Writes are view-safe**: local PowerSync tables are SQLite views, so every
   statement is a plain INSERT/UPDATE (no UPSERT, no subquery DELETE). Repo tests
   run on plain SQLite (real tables) and can't catch view-only failures, so the

@@ -40,6 +40,15 @@ uri = "pg-functions://postgres/public/add_household_claim"
 port = 54321
 schemas = ["public"]
 
+# Edge functions. The import pipeline (step 8) is auth-scoped: the gateway
+# verifies the caller's JWT before the function runs, so `import-recipe` can trust
+# the `household_id` claim (the add_household_claim hook) it decodes from the
+# token. The ANTHROPIC_API_KEY it needs is passed at serve time via --env-file
+# (the gitignored .env.local) — never committed. See supabase/functions/import-recipe.
+[functions.import-recipe]
+enabled = true
+verify_jwt = true
+
 # PowerSync needs asymmetric JWTs + (for the demo pattern) anonymous sign-in.
 # See the powersync-community/flutter-powersync-supabase starter.
 # signing_keys_path = "./signing_keys.json"

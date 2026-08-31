@@ -81,5 +81,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Photo intake for recipe import (image_picker): the OS shows these when
+	     the user picks from the library or captures a page. The simulator has no
+	     camera, so the library grant is the one exercised on the sim. -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Mise needs access to your photos so you can import a recipe from a picture.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Mise needs camera access so you can photograph a recipe to import it.</string>
 </dict>
 </plist>

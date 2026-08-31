@@ -8,6 +8,13 @@
 
 import { normalize } from "../../functions/_shared/normalize.ts";
 import { readOverrides } from "./overrides.ts";
+import {
+  FAO_DATASET,
+  FAO_PROVENANCE,
+  LINK_DENSITY_MAX,
+  LINK_DENSITY_MIN,
+  resolveFaoFills,
+} from "./fao.ts";
 
 // A fixed household so re-generating is stable and the seed is idempotent under
 // `supabase db reset`.
@@ -156,7 +163,7 @@ function main(): void {
   );
 
   writePrefill(dir);
-  writeCuration(dir);
+  writeCuration(dir, new Set(ingredients.map((i) => i.match)));
 }
 
 // seed_prefill.sql — fills macros/density from usda_food for the ingredients
@@ -202,18 +209,22 @@ function writePrefill(dir: string): void {
 
 // seed_curation.sql — the LAST seed step (config.toml sql_paths order):
 //
-//   1. refreshes the template vocab's materialized `allowed_units` from
+//   1. applies the committed curation overrides (curation_overrides.jsonl,
+//      plan 0013): per-ingredient macros and densities a human judged the
+//      rules wrong about, each with its reason emitted as a SQL comment so
+//      the generated file stays auditable on its own;
+//   2. fills the density TAIL from the FAO/INFOODS fallback (fao.ts) —
+//      strictly into rows the FDC derivation and the overrides both left
+//      null;
+//   3. refreshes the template vocab's materialized `allowed_units` from
 //      `default_allowed_units()` (0012) — the insert-time trigger ran before
 //      seed_prefill landed densities, so the density-unlocked family only
 //      appears once every density source has run;
-//   2. applies the committed curation overrides (curation_overrides.jsonl,
-//      plan 0013): per-ingredient densities and allowed-unit adjustments a
-//      human judged the rules wrong about, each with its reason emitted as a
-//      SQL comment so the generated file stays auditable on its own.
+//   4. applies the allowed-unit overrides on top of that refresh.
 //
 // Measure overrides (drop/add) are gen_measures.ts's job — they change what
 // seed_measures.sql emits rather than patching it afterwards.
-function writeCuration(dir: string): void {
+function writeCuration(dir: string, vocabMatchTexts: Set<string>): void {
   const overrides = readOverrides(dir);
   const q = sqlStr;
   const sql: string[] = [
@@ -221,9 +232,14 @@ function writeCuration(dir: string): void {
     "-- curation_overrides.jsonl. Do not edit by hand; edit the overrides",
     "-- (with reasons) and regenerate (deno task gen-seed).",
     "--",
-    "-- Runs LAST: refreshes the template vocab's materialized allowed_units",
-    "-- now that every density source has run, then applies the audited",
-    "-- curation overrides (plan 0013).",
+    "-- Runs LAST: applies the audited curation overrides (plan 0013), fills",
+    "-- the density tail from the FAO/INFOODS fallback, then refreshes the",
+    "-- template vocab's materialized allowed_units now that every density",
+    "-- source has run.",
+    "--",
+    `-- Density fallback dataset: ${FAO_DATASET}`,
+    "-- (see seed/fao_density.jsonl for the source URL + sha256, and",
+    "--  seed/fao_density_links.jsonl for the reviewed mapping).",
     "",
     "begin;",
     "",
@@ -267,6 +283,49 @@ function writeCuration(dir: string): void {
     }
   }
 
+  // FAO/INFOODS density fallback — LAST of the three density sources, and
+  // only into the gap: every statement carries `density_g_per_ml is null`, so
+  // an FDC-derived or curation-set density can never be overwritten no matter
+  // what the mapping says.
+  const fao = resolveFaoFills(
+    dir,
+    vocabMatchTexts,
+    new Set(
+      overrides.filter((o) => o.kind === "density").map((o) => o.match_text),
+    ),
+  );
+  const faoFills = fao?.fills ?? [];
+  if (fao) {
+    sql.push(
+      `-- Density fallback: ${FAO_DATASET}, via the reviewed`,
+      "-- fao_density_links.jsonl map. Fills ONLY rows the FDC volume-portion",
+      "-- derivation and the curation overrides above both left null; the",
+      `-- null guard on each statement is what enforces that. ${faoFills.length} fills,`,
+      `-- ${fao.rejected} tail rows audited and honestly left density-less.`,
+      "",
+    );
+    for (const f of faoFills) {
+      sql.push(
+        `-- ${f.match_text} <- FAO "${f.food}" [${f.biblio}; ${f.section}]:`,
+        `--   ${f.reason}`,
+        "update ingredient set",
+        `  density_g_per_ml = ${f.density},`,
+        // Keep whatever provenance the row already carries (a macro source
+        // like usda_fdc:… or label:…) and append the density's own, so a
+        // reader can see BOTH where the numbers came from. Rows that only
+        // ever said 'seed' just take the FAO tag.
+        "  source = case when source is null or source = 'seed'",
+        `    then ${q(`${FAO_PROVENANCE}:${f.food}`)}`,
+        `    else source || ${q(` + ${FAO_PROVENANCE}:${f.food}`)} end`,
+        `where household_id = ${q(HOUSEHOLD_ID)} and match_text = ${
+          q(f.match_text)
+        }`,
+        "  and density_g_per_ml is null;",
+        "",
+      );
+    }
+  }
+
   sql.push(
     "-- Re-materialize allowed_units with post-prefill (and post-override)",
     "-- densities: the insert trigger ran before seed_prefill landed them,",
@@ -274,6 +333,28 @@ function writeCuration(dir: string): void {
     "update ingredient set allowed_units = default_allowed_units(",
     "  default_unit, macros_basis, density_g_per_ml, category)",
     `where household_id = ${q(HOUSEHOLD_ID)} and deleted_at is null;`,
+    "",
+    "-- Produce volume leg (Simon's cup-produce report, 2026-08-31).",
+    "-- ADR-0008's density leg fires only for mass/volume defaults: a",
+    '-- count-default row gets nothing from a density, because "a density',
+    `-- can't describe a piece" (allowed_units.dart) — you cannot pour a cup`,
+    '-- of eggs. Produce is the class where that stops being true: "1 cup',
+    '-- diced mango", "2 cups chopped onion" are ordinary recipe lines, the',
+    "-- row IS piece-default (you buy one mango), and the density is exactly",
+    "-- what makes the cup computable. Without this, every cup-measured",
+    "-- produce import fails 'Pick a supported unit' even though the row has",
+    "-- carried an honest density all along — mango, tomato, onion, avocado.",
+    "-- Category-gated, like the imprecise leg beside it, and applied ONLY",
+    "-- where a density exists. The rule belongs in default_allowed_units()",
+    "-- and its allowed_units.dart mirror; until ADR-0008 is amended the",
+    "-- template vocab carries the honest list explicitly (the column is an",
+    "-- explicit stored attribute for exactly this reason).",
+    "update ingredient set allowed_units = allowed_units ||",
+    `  '["cup", "tbsp", "ml"]'::jsonb`,
+    `where household_id = ${q(HOUSEHOLD_ID)} and deleted_at is null`,
+    "  and category = 'produce' and default_unit = 'piece'",
+    "  and density_g_per_ml is not null",
+    "  and not allowed_units ? 'cup';",
     "",
   );
 
@@ -337,9 +418,29 @@ function writeCuration(dir: string): void {
     "      'seed_curation R1: volume-default rows with no density: %',",
     "      violators;",
     "  end if;",
+    "",
+    "  -- R2: every stored density is a KITCHEN density. A number outside",
+    "  -- this band is a parse artifact or the wrong physical quantity (FAO",
+    "  -- publishes salt at 2.165 and bicarbonate at 2.2 — crystal densities,",
+    "  -- not what a spoonful weighs). Generation bounds the FAO fills; this",
+    "  -- bounds what actually landed, whatever the source.",
+    "  select string_agg(",
+    "           canonical_name || ' (' || density_g_per_ml || ')', ', ')",
+    "    into violators",
+    "  from ingredient",
+    `  where household_id = ${q(HOUSEHOLD_ID)} and deleted_at is null`,
+    "    and density_g_per_ml is not null",
+    `    and density_g_per_ml not between ${LINK_DENSITY_MIN} and ${LINK_DENSITY_MAX};`,
+    "  if violators is not null then",
+    "    raise exception",
+    `      'seed_curation R2: densities outside ${LINK_DENSITY_MIN}-${LINK_DENSITY_MAX} g/ml: %',`,
+    "      violators;",
+    "  end if;",
+    "",
     "  raise notice 'seed_curation: allowed_units refreshed; " +
       `${macroFills} macro + ${densities} density + ${unitTweaks} ` +
-      "allowed-unit overrides; R1 (volume default => density) holds';",
+      `allowed-unit overrides + ${faoFills.length} FAO density fills; ` +
+      "R1 (volume default => density) and R2 (kitchen density band) hold';",
     "end $$;",
     "",
     "commit;",
@@ -350,7 +451,11 @@ function writeCuration(dir: string): void {
   Deno.writeTextFileSync(target, sql.join("\n"));
   console.log(
     `wrote ${target}\n  ${macroFills} macro + ${densities} density + ` +
-      `${unitTweaks} allowed-unit overrides`,
+      `${unitTweaks} allowed-unit overrides` +
+      (fao
+        ? `\n  ${faoFills.length} FAO density fills, ${fao.rejected} audited ` +
+          `rejections (${fao.table.length} rows in ${FAO_DATASET})`
+        : ""),
   );
 }
 

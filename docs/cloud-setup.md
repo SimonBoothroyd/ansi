@@ -119,6 +119,63 @@ stream change).
 statements (`truncate`, `delete`) against cloud are intentionally blocked by the
 harness — a human runs those, or use soft-delete (`update … set deleted_at`).
 
+### 2b. Rolling reseeded `ingredient` columns onto existing households
+
+A template reseed reaches **new** households only: `ensure_onboarded` clones
+the vocab exactly once, at household creation. An already-onboarded household
+keeps the copy it was born with — and wipe-and-re-onboard is not an option for
+a household holding real recipes. So a reseed that improves the vocab (the
+2026-08-31 FAO/INFOODS density fills, and the produce rows those densities
+let into cup/tbsp/ml) needs an explicit rollout:
+[`supabase/rollout_ingredient_refresh.sql`](../supabase/rollout_ingredient_refresh.sql).
+
+It joins every non-template household's `ingredient` rows to the template's by
+**`match_text`** (the identity that survives cloning — `ensure_onboarded`
+copies it verbatim and re-associates aliases/measures by it), then moves
+exactly two columns, both monotonically: it **fills** `density_g_per_ml` where
+the household's is null and the template's is not, and **extends**
+`allowed_units` to the union of the two lists. `updated_at` is bumped so
+PowerSync replicates the rows down. It never overwrites a household's own
+density, never removes a unit it admitted, never touches rows the household
+created itself (no template counterpart) or soft-deleted, and never writes
+`source`/`status`/`macros`. Re-running it is a no-op.
+
+Human-run sequence, after the §2 reseed commands above:
+
+```bash
+# 1. reseed the template — the §2 block, unchanged (seed_curation.sql LAST).
+
+# 2. PREVIEW (read-only): per-household blast radius. Copy the commented
+#    preview block from the top of the script into the SQL editor, or:
+supabase db query --linked "$(sed -n '/^-- with tpl_household as/,/^-- order by h.name, h.id;/p' \
+  supabase/rollout_ingredient_refresh.sql | sed 's/^-- //; s/^--$//')"
+
+# 3. run the rollout (idempotent; reports the rows it touched)
+supabase db query --linked -f supabase/rollout_ingredient_refresh.sql
+
+# 4. re-run the preview: every leg should now read 0.
+```
+
+Then **each family member signs out and back in, or just waits** — the rows
+arrive over normal sync; no re-onboarding, no reinstall. (Sign-out/in is only
+the impatient path; nothing about the rollout requires a new JWT.)
+
+This generalizes: it is written as "carry the template's `density_g_per_ml`
+and `allowed_units` forward", not as a one-off FAO patch, so re-run it after
+any future template reseed that fills densities or widens unit admission. A
+rollout that has to move a *different* ingredient column is this script with
+another monotone leg — keep the fill-only/union-only shape, or a household's
+own edits get clobbered.
+
+**Interplay with the measures backfill: none — they are separate mechanisms.**
+`ingredient_measure` retrofits through the run-once `backfilled_at` clone
+inside `ensure_onboarded` (0011, described above); this script never reads or
+writes `ingredient_measure` or `household.backfilled_at`, and never
+resurrects a soft-deleted row. Run them in either order. The measures path
+still costs a household its user-authored measures (it needs zero live rows to
+clone) — this one costs nothing, which is exactly why `ingredient` gets a
+script instead of a marker reset.
+
 ## 3. PowerSync Cloud instance
 
 Dashboard at powersync.com → create an instance (free tier). Then:
@@ -147,6 +204,64 @@ Dashboard at powersync.com → create an instance (free tier). Then:
    Copy the instance URL (`https://<id>.powersync.journeyapps.com`) into
    `cloud.env` at the repo root.
 
+## 3b. Deploy the import edge function (step 8)
+
+Recipe import calls the `import-recipe` edge function. It is **not** deployed by
+`db push` — functions ship separately, and their secrets are set separately.
+
+**Order matters: migrations before app builds.** `supabase db push` must run
+before an app build that writes new columns reaches a device. PostgREST rejects
+a write naming a column it doesn't know (`PGRST204`), and PowerSync retries the
+failed upload forever — sync wedges entirely, not just the one row. (Observed
+live: the step-8 sim suite against a local stack that predated migration 0013 —
+`make db-reset` locally, `db push` on cloud, is the cure and the prevention.)
+
+```bash
+supabase functions deploy import-recipe          # deploys the function
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-…  # PLACEHOLDER — paste the real key
+supabase secrets set IMPORT_ALLOWED_HOUSEHOLDS=<household uuid>
+```
+
+Never commit either value, and never paste a real key into this file or a
+transcript — `supabase secrets set` is the only place they belong. `supabase
+secrets list` shows the names (and a digest), not the values.
+
+- **`ANTHROPIC_API_KEY`** — the extraction provider (Claude Haiku 4.5). Missing
+  ⇒ the function returns a clear 500 rather than silently degrading.
+- **`IMPORT_ALLOWED_HOUSEHOLDS`** — a comma-separated allowlist of household
+  UUIDs permitted to spend model tokens. This is the cost fence on a personal
+  project with a public sign-in surface: a caller with a valid JWT but a
+  household outside the list is refused before any model call. Get the uuid from
+  the JWT's `household_id` claim (or `select id from household where not
+  is_template`).
+
+`SUPABASE_DB_URL` and the service-role key are injected by the platform — don't
+set them. The function reads the caller's `household_id` from the **verified
+JWT** and never from the request body, so a service-role DB connection stays
+safely household-scoped.
+
+Verify a deploy: sign in on the device and import a URL. On failure, `supabase
+functions logs import-recipe` shows the handled `{error, detail}` the app
+surfaces.
+
+## 3c. Turn public sign-up OFF
+
+The cloud project is a **private household app**, but a Supabase project with
+email/password enabled will happily create an account for anyone who finds the
+anon key (which is public by design). So sign-up is disabled:
+
+**Dashboard → Authentication → Sign In / Providers → "Allow new users to sign
+up" = OFF.**
+
+Existing users still sign in; Google OAuth users already onboarded still sign
+in; nobody new can self-provision. Add a household member by inviting them from
+the dashboard (Authentication → Users → Invite) rather than by re-opening
+sign-up. Note this also blocks `scripts/smoke_auth.sh`, which self-provisions a
+throwaway user — flip sign-up on for the length of that run, then off again.
+
+`scripts/cloud_verify.sh` checks this toggle (via `/auth/v1/settings`) and fails
+if sign-up is open.
+
 ## 4. Point the app at cloud
 
 The app reads three `--dart-define`s (see the `Makefile`). To run against cloud
@@ -166,10 +281,11 @@ sync completes → the Library appears, populated from cloud.
 
 ## Dashboard-only config checklist
 
-These toggles live only in the two dashboards — no public endpoint or CLI can
-read them back, so `scripts/cloud_verify.sh` cannot check them. Walk this table
-whenever cloud misbehaves or after touching either dashboard, and record the
-walk in the ledger below. Endpoints come from `cloud.env` at the repo root.
+These settings live in the two dashboards (or, for row 9, in function secrets).
+Most have no readable endpoint, so `scripts/cloud_verify.sh` can't check them —
+the exceptions are noted per row. Walk this table whenever cloud misbehaves or
+after touching either dashboard, and record the walk in the ledger below.
+Endpoints come from `cloud.env` at the repo root.
 
 | # | Setting (where) | Expected value |
 |---|-----------------|----------------|
@@ -180,6 +296,8 @@ walk in the ledger below. Endpoints come from `cloud.env` at the repo root.
 | 5 | PowerSync JWKS URI (PowerSync dashboard → instance → Client Auth) | "Use Supabase Auth" checked; JWKS URI = `<CLOUD_SUPABASE_URL>/auth/v1/.well-known/jwks.json` |
 | 6 | PowerSync JWT audience (same screen) | Includes `authenticated` — without it every token 401s with `PSYNC_S2105` (§3.2). |
 | 7 | Sync Streams (PowerSync dashboard → instance → Sync Streams) | Exact paste of [`docker/powersync-cloud.streams.yaml`](../docker/powersync-cloud.streams.yaml) → Validate → **Deploy**. Any manual dashboard edit is drift. |
+| 8 | **Public sign-up** (Supabase → Authentication → Sign In / Providers → "Allow new users to sign up") | **OFF** (§3c). The anon key is public by design, so an open sign-up lets a stranger provision a household. `cloud_verify.sh` checks this and fails if it's open. Turn it on only for the length of a `smoke_auth.sh` run, then off again. |
+| 9 | **Edge-function secrets** (`supabase secrets list`) | `ANTHROPIC_API_KEY` and `IMPORT_ALLOWED_HOUSEHOLDS` both present, and `import-recipe` deployed (§3b). Values are never readable — the listing shows names only, which is all this row checks. |
 
 ## Verify it — `scripts/cloud_verify.sh` + `scripts/smoke_auth.sh`
 
@@ -213,6 +331,10 @@ A ✓ means the dashboard hook is correctly wired (the JWT carries `household_id
 - **Free-tier rate limits**: confirmation-email sends throttle hard (disable for
   dev); rapid auth request bursts can return transient 404s — retry/slow down.
 - **WAL config** (§1.3) or an idle instance fills its disk.
+- **`db push` doesn't deploy edge functions either** — `supabase functions
+  deploy import-recipe` + `supabase secrets set …` are separate steps (§3b).
+- **Sign-up must stay OFF** (§3c): the anon key is public, so an open sign-up is
+  an open door. `smoke_auth.sh` needs it briefly — remember to close it again.
 - **Mixing local + cloud on one device**: signing a device that has local dev
   data into cloud drains that local write-queue *up* to cloud (real behavior).
   For a clean slate, sign out first (clears local) or clear app data.
@@ -222,6 +344,21 @@ A ✓ means the dashboard hook is correctly wired (the JWT carries `household_id
 Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
+
+### 2026-08-31 — step-8 hardening rollout
+
+Human steps done (Simon): signup disabled + email provider off (Google-only,
+§3c); `ANTHROPIC_API_KEY` + `IMPORT_ALLOWED_HOUSEHOLDS` secrets set;
+`import-recipe` deployed (twice — the hardened function, then the
+benchmark-v2 adapter revision); §2 template reseed (FAO densities + produce
+volume admission) followed by `rollout_ingredient_refresh.sql` per §2b —
+preview → rollout → preview-reads-zero. Google sign-in verified live on the
+sim against cloud (external-browser flow foregrounds cleanly). Then verified
+read-only:
+
+- `./scripts/cloud_verify.sh`: **9 ok · 0 warn · 0 fail** — including the new
+  signup-disabled check and the Google-only email posture (script updated this
+  pass to treat email/password disabled as the intended cloud state).
 
 ### 2026-08-28 — step 7.5 completion pass (exec plan 0009)
 
