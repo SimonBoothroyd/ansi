@@ -501,3 +501,13 @@ Append-only.
 - [ ] Tech-debt rows **added** for corners knowingly cut, and **retired** for
       the five rows this step pays off.
 - [ ] `make ci` green.
+- 2026-08-31 — **Owner sign-off.** D1–D8 decided as recommended (D1 prefill-
+  never-complete overrules the old frame caption; D5 macros-gate-completion
+  overrules the board/spec wording — both edits are in the acceptance
+  criteria). Deletion (the open question) is IN SCOPE with the proposed rule:
+  soft-delete only when no live line references the ingredient, else refuse
+  showing the count. Build fan-out launched: lane S (server — migration 0014,
+  ADR-0008 amendment, prefill trigger, TS deletion, seed-patch retirement),
+  lane M (domain + manager UI — normalize port, rename hazard, list/form/
+  delete, /ingredients route), lane B (barcode — scanner sheet, on-device OFF
+  client, draft mapper), converging like step 8's DAG.
