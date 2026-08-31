@@ -10,8 +10,9 @@
 ///
 /// `commit` is unchanged — it always writes locally through PowerSync — so this
 /// class delegates it to the SQLite repository. Only the extract→match step
-/// moved server-side; the fake/canned repository stays the default when Supabase
-/// is unconfigured (dev/offline) and in tests.
+/// moved server-side. With Supabase unconfigured there is nothing to extract
+/// with, and `importRepositoryProvider` fails the import loudly rather than
+/// substituting the canned payload.
 library;
 
 import 'dart:async';

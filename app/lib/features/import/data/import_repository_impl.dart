@@ -1,9 +1,11 @@
 /// [ImportRepository] over the local PowerSync SQLite.
 ///
-/// `startImport` is the **fake edge function** (0017): it parses the canned
-/// payload and re-resolves its placeholder candidate ids against the real local
-/// vocab by canonical name, so the pre-integration demo lands real matches. The
-/// real `functions.invoke` replaces this method at the tail.
+/// `startImport` here is the CANNED stand-in, not the app's import path: it
+/// parses the canned payload and re-resolves its placeholder candidates against
+/// the real local vocab, so tests and the on-device smoke test exercise the
+/// whole reconciliation flow with no network and no LLM. The app itself calls
+/// the real `import-recipe` edge function (`EdgeImportRepository`); this class
+/// only reaches a running app when something names it directly.
 ///
 /// `commit` is real. It writes the resolved recipe, its groups and line items,
 /// any create-new stubs, and correction aliases in one transaction, generating
@@ -36,8 +38,8 @@ class SqliteImportRepository implements ImportRepository {
 
   @override
   Future<ReconciliationPayload> startImport(ImportSource source) async {
-    // The fake edge function ignores the source and returns the canned payload,
-    // with candidate ids re-pointed at whatever the local vocab actually holds.
+    // The canned stand-in ignores the source and returns a fixed payload, with
+    // candidate ids re-pointed at whatever the local vocab actually holds.
     final payload = ReconciliationPayload.fromJson(
       jsonDecode(cannedReconciliationPayloadJson) as Map<String, Object?>,
     );

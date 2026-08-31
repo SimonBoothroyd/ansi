@@ -2,10 +2,10 @@
 ///
 /// PURE DART (invariant 2): no `package:flutter`. These types mirror the frozen
 /// server contract in `supabase/functions/_shared/types.ts`
-/// (`ReconciliationPayload` and friends) one-for-one — the fake import
-/// repository parses a gold-derived JSON into them, and the real edge function
-/// returns the same shape at integration. Field names are camelCase here and
-/// serialize to the contract's snake_case via `build.yaml`'s `field_rename`.
+/// (`ReconciliationPayload` and friends) one-for-one — the real `import-recipe`
+/// edge function returns this shape, and the canned test payload parses into
+/// it. Field names are camelCase here and serialize to the contract's
+/// snake_case via `build.yaml`'s `field_rename`.
 ///
 /// INVARIANT — extraction never invents (0014): absent/ambiguous values arrive
 /// as nulls, ranges (`qtyLow`/`qtyHigh`), `unitMappable: false`, or
@@ -214,8 +214,7 @@ abstract class ReconGroup with _$ReconGroup {
       _$ReconGroupFromJson(json);
 }
 
-/// What `import-recipe` returns; what the fake edge function emits. Step refs
-/// are still by line index here.
+/// What `import-recipe` returns. Step refs are still by line index here.
 @freezed
 abstract class ReconciliationPayload with _$ReconciliationPayload {
   const factory ReconciliationPayload({
