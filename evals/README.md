@@ -21,6 +21,12 @@ evaluation harnesses as first-class repo content.
   paths, and the never-invent ledger.
 - `reports/` — regenerable HTML/JSON output from `runner/capture_d2_report.ts`.
   **Gitignored**: it is a rendering of a paid run, not a source artifact.
+- `runs/` — the paid runs themselves: each provider's verbatim response per
+  case, plus usage, latency and the exact input. **Committed**, because this is
+  what the money bought; `--rescore` re-scores it for free. See
+  `runs/README.md`.
+- `runner/pricing.ts` — the dated $/Mtok table the cost columns are computed
+  from, one row per pinned model with its source URL and retrieval date.
 - `runner/run.sh` — scores normalization, the scorers' own self-tests, the
   extraction D2 stage (keyless mock), and the matching bands through the real
   cascade. Wired into `make evals` and the nightly workflow. No paid calls.
@@ -35,4 +41,11 @@ make evals        # or: cd evals && ./runner/run.sh
 
 Everything in `run.sh` is keyless. The live provider compares
 (`runner/run_extraction_live.ts`, `runner/capture_d2_report.ts`) are run on
-demand and are the only things that cost money.
+demand and are the only things that cost money — and they now cost it **once**:
+a live run saves every raw response under `runs/`, and
+
+```
+cd evals && deno run --allow-read runner/score_extraction.ts --rescore runs/<dir>
+```
+
+re-scores it with today's scorer and no API calls at all.

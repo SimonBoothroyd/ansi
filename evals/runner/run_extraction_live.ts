@@ -14,8 +14,15 @@
 //                         (SEAM: wire `blobFromUrl` to lane A when it lands)
 //
 // Each provider whose key is unset is skipped with a note — never a crash. Run:
-//   deno run --allow-read --allow-env --allow-net runner/run_extraction_live.ts
-//   # optional: --providers=claude-haiku,gpt-5-mini  --stage=D2
+//   deno run --allow-read --allow-write --allow-env --allow-net --allow-run=git \
+//     runner/run_extraction_live.ts --label=my-run
+//   # optional: --providers=claude-haiku,gpt-5-mini  --stage=D2  --no-persist
+//
+// PERSISTENCE: unless `--no-persist` is passed, every provider's VERBATIM
+// response is written to `evals/runs/<yyyy-mm-dd>-<label>/<provider>/<case>.json`
+// along with usage, latency and the exact input. Those files are COMMITTED —
+// they are what the run cost — and `score_extraction.ts --rescore <dir>` scores
+// them again for free, so a scorer or gold fix never buys a second run.
 
 import type {
   ExtractAdapter,
@@ -36,10 +43,19 @@ import {
 } from "./fixtures.ts";
 import {
   type BenchmarkReport,
+  printCost,
   runBenchmark,
   type Stage,
   summarize,
 } from "./score_extraction.ts";
+import {
+  buildManifest,
+  gitRev,
+  runDir,
+  toSavedCase,
+  writeCase,
+  writeManifest,
+} from "./run_store.ts";
 
 const IMAGES_DIR = new URL("../datasets/extraction/images/", import.meta.url);
 const RECIPE_URLS = new URL(
@@ -89,19 +105,27 @@ export async function loadRecipeUrls(): Promise<string[]> {
 interface Args {
   providers: ProviderName[];
   stages: Stage[];
+  label: string;
+  persist: boolean;
 }
 
 function parseArgs(): Args {
   let providers = [...PROVIDER_NAMES];
   let stages: Stage[] = ["D2", "D1", "D3"];
+  let label = "compare";
+  let persist = true;
   for (const arg of Deno.args) {
     if (arg.startsWith("--providers=")) {
       providers = arg.slice("--providers=".length).split(",") as ProviderName[];
     } else if (arg.startsWith("--stage=")) {
       stages = arg.slice("--stage=".length).split(",") as Stage[];
+    } else if (arg.startsWith("--label=")) {
+      label = arg.slice("--label=".length);
+    } else if (arg === "--no-persist") {
+      persist = false;
     }
   }
-  return { providers, stages };
+  return { providers, stages, label, persist };
 }
 
 function printReport(r: BenchmarkReport): void {
@@ -114,6 +138,30 @@ function printReport(r: BenchmarkReport): void {
       `unit=${(s.unit_acc * 100).toFixed(1)}% dangerous=${s.ledger_total} ` +
       `ECE=${s.calibration.ece.toFixed(3)}`,
   );
+  printCost(r.cost);
+}
+
+/**
+ * Writes one report's captured calls into the run directory. Called per report
+ * rather than at the end so a run that dies halfway still leaves the responses
+ * it already paid for on disk.
+ */
+async function persistReport(dir: URL, r: BenchmarkReport): Promise<void> {
+  for (const c of r.calls) {
+    await writeCase(
+      dir,
+      await toSavedCase({
+        caseId: c.id,
+        stage: r.stage,
+        path: r.path,
+        inputText: c.input_text,
+        call: c.call,
+        provider: r.provider,
+        model: r.cost?.model ?? "unknown",
+        error: c.error,
+      }),
+    );
+  }
 }
 
 async function runD2PageText(
@@ -175,13 +223,17 @@ async function runPhotoStage(
 }
 
 async function main(): Promise<void> {
-  const { providers, stages } = parseArgs();
+  const { providers, stages, label, persist } = parseArgs();
   const cases = await loadGold();
+  const dir = runDir(label);
   console.log(
     `live extraction compare · ${cases.length} gold recipes · ` +
       `providers=${providers.join(",")} · stages=${stages.join(",")}`,
   );
+  if (persist) console.log(`persisting raw responses → ${dir.pathname}`);
+  else console.log(`--no-persist: raw responses will NOT be saved`);
 
+  const ran: { provider: string; model: string }[] = [];
   for (const name of providers) {
     let adapter: ExtractAdapter;
     try {
@@ -193,17 +245,40 @@ async function main(): Promise<void> {
       }
       throw e;
     }
+    ran.push({ provider: name, model: adapter.model ?? "unknown" });
     if (stages.includes("D2")) {
-      printReport(await runD2PageText(name, adapter, cases));
+      const report = await runD2PageText(name, adapter, cases);
+      printReport(report);
+      if (persist) await persistReport(dir, report);
     }
     for (const stage of stages) {
       if (stage === "D2") continue;
       const report = await runPhotoStage(name, adapter, cases, stage);
-      if (report) printReport(report);
-      else {console.log(
+      if (report) {
+        printReport(report);
+        if (persist) await persistReport(dir, report);
+      } else {console.log(
           `\n## ${name} · ${stage} · photo — SKIPPED (no local images or no vision).`,
         );}
     }
+  }
+  if (persist && ran.length > 0) {
+    await writeManifest(
+      dir,
+      buildManifest({
+        label,
+        gitRev: await gitRev(),
+        stage: stages.join(","),
+        path: "page_text,photo",
+        providers: ran,
+        caseIds: cases.map((c) => c.id),
+      }),
+    );
+    console.log(
+      `\nwrote ${dir.pathname} — COMMIT it (it is the paid artifact), then ` +
+        `rescore for free with:\n  deno run --allow-read ` +
+        `runner/score_extraction.ts --rescore ${dir.pathname}`,
+    );
   }
   const urls = await loadRecipeUrls();
   console.log(

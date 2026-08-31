@@ -128,8 +128,61 @@ export interface UnitHints {
   measures: string[]; // generic count-measure nouns: clove, head, can, slice…
 }
 
+/**
+ * Token usage for ONE provider call, NORMALIZED across providers so a cost
+ * formula can be written once (evals/runner/pricing.ts). The three vendors
+ * disagree about what their own totals include, so the adapters' parsers
+ * (`_shared/adapters/usage.ts`) reduce them all to this contract:
+ *
+ * - `input_tokens` is the **uncached, non-cache-write** billable input. OpenAI
+ *   and Gemini fold cached tokens INTO their prompt count and Anthropic does
+ *   not; the parsers subtract, so every provider reports the same thing here.
+ * - `output_tokens` INCLUDES reasoning/thinking tokens, which every provider
+ *   bills at the output rate even when it reports them in a separate field.
+ * - Any field the provider did not report stays `null` — never 0, so "not
+ *   reported" is distinguishable from "genuinely zero" in a cost table.
+ */
+export interface TokenUsage {
+  input_tokens: number | null;
+  output_tokens: number | null;
+  cache_read_tokens: number | null;
+  cache_write_tokens: number | null;
+  /** Reasoning/thinking tokens — already counted inside `output_tokens`. */
+  reasoning_tokens: number | null;
+  /** The provider's own total, verbatim, when it reports one. Audit only. */
+  total_tokens: number | null;
+}
+
+/**
+ * One completed provider HTTP call, handed to an optional observer. This is the
+ * benchmark's side-channel: it carries the VERBATIM response so a paid run can
+ * be persisted and rescored for free, plus usage and latency for the cost
+ * columns. It is deliberately a callback rather than a change to `sanitize`'s
+ * return type, so `import-recipe` (which never sets an observer) is untouched.
+ */
+export interface ProviderCall {
+  provider: string; // adapter name, e.g. "gpt-5-mini"
+  model: string; // the PINNED model id actually sent
+  op: "transcribe" | "sanitize";
+  usage: TokenUsage | null;
+  latency_ms: number;
+  /** The provider's response body exactly as parsed from the wire. */
+  raw: unknown;
+}
+
+export type ProviderCallSink = (call: ProviderCall) => void;
+
 export interface ExtractAdapter {
   name: string; // "gemini-flash" | "gpt-5-mini" | "claude-haiku" | "jsonld"
+  /** The pinned model id this adapter sends (absent for non-LLM adapters). */
+  readonly model?: string;
+  /**
+   * OPTIONAL observer, off by default. The edge function leaves it unset and
+   * behaves exactly as before; the eval runner sets it to capture usage + the
+   * raw response. An observer that throws must never fail an import — the
+   * adapters swallow its errors.
+   */
+  onCall?: ProviderCallSink;
   transcribe?(images: Uint8Array[]): Promise<RawBlob>; // vision tier (LLM)
   sanitize(blob: RawBlob, hints: UnitHints): Promise<ExtractionResult>; // ①
 }
