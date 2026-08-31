@@ -15,6 +15,11 @@
 ///   (`mention == StepMention.isNew`);
 /// - else the chip is quantity-less;
 /// - a **collective** chip (more than one ref) never shows a number.
+///
+/// A collective chip also carries its [MethodChipSpan.constituents] — the
+/// display names of the lines it stands for — so "onion mixture" can render as
+/// `onion mixture (onion, celery, green bell pepper)` rather than hiding what
+/// went into it.
 library;
 
 // The library doc above spells out the fold rules as prose; a few of its
@@ -104,10 +109,21 @@ class MethodTextSpan extends MethodSpan {
 }
 
 /// An ingredient chip. [amount] is null for a quantity-less or collective chip.
+///
+/// [constituents] is non-empty only for a *named* collective chip ("onion
+/// mixture"): it holds, in ref order, the display name of every line the chip
+/// stands for that still resolves. A view renders them as a parenthesised run
+/// of smaller chips after the label. Refs the payload dropped or demoted resolve
+/// to nothing and are simply absent — a dangling chip would be a lie.
 class MethodChipSpan extends MethodSpan {
-  const MethodChipSpan({required this.label, this.amount});
+  const MethodChipSpan({
+    required this.label,
+    this.amount,
+    this.constituents = const [],
+  });
   final String label;
   final String? amount;
+  final List<String> constituents;
 }
 
 /// A timer chip, its span already formatted ("6–8 min").
@@ -135,6 +151,7 @@ List<MethodSpan> foldMethod(
           MethodChipSpan(
             label: _chipLabel(label, refs, lineById),
             amount: _chipAmount(refs, mention, portion, lineById, factor),
+            constituents: _constituents(label, refs, lineById),
           ),
         );
     }
@@ -156,12 +173,33 @@ String _chipLabel(
 ) {
   final given = label.trim();
   if (given.isNotEmpty) return given;
-  final names = [
-    for (final ref in refs)
-      if (lineById[ref]?.ingredientName.trim().isNotEmpty ?? false)
-        lineById[ref]!.ingredientName.trim(),
-  ];
-  return names.join(', ');
+  return _resolvedNames(refs, lineById).join(', ');
+}
+
+/// The constituents a *named* collective chip shows in parentheses.
+///
+/// Empty for a single ref (nothing to unpack) and for a blank label — there
+/// [_chipLabel] has already joined the very same names, and repeating them
+/// would read as "onion, celery (onion, celery)".
+List<String> _constituents(
+  String label,
+  List<String> refs,
+  Map<String, LineItem> lineById,
+) {
+  if (refs.length < 2 || label.trim().isEmpty) return const [];
+  return _resolvedNames(refs, lineById);
+}
+
+/// The ingredient display names [refs] resolve to, in ref order. A ref the
+/// payload dropped (or demoted to a line that never landed) resolves to
+/// nothing and is skipped rather than named.
+List<String> _resolvedNames(List<String> refs, Map<String, LineItem> lineById) {
+  final names = <String>[];
+  for (final ref in refs) {
+    final name = lineById[ref]?.ingredientName.trim() ?? '';
+    if (name.isNotEmpty) names.add(name);
+  }
+  return names;
 }
 
 /// The number a chip renders, or null when it is quantity-less.

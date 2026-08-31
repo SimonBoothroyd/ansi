@@ -148,6 +148,53 @@ void main() {
     });
   });
 
+  group('collective constituents', () {
+    List<List<String>> constituentsOf(MethodStep step) => foldMethod(
+      step,
+      lineById: lines,
+    ).whereType<MethodChipSpan>().map((c) => c.constituents).toList();
+
+    test('a named collective chip carries its lines, in ref order', () {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(refs: ['eggs', 'flour'], label: 'the dry ingredients'),
+        ],
+      );
+      expect(constituentsOf(step), [
+        ['eggs', 'flour'],
+      ]);
+    });
+
+    test('a single-ref chip has none — there is nothing to unpack', () {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(refs: ['flour'], label: 'the flour'),
+        ],
+      );
+      expect(constituentsOf(step), [<String>[]]);
+    });
+
+    test('a blank label has none — its label already joins the names', () {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(refs: ['flour', 'eggs'], label: ''),
+        ],
+      );
+      expect(constituentsOf(step), [<String>[]]);
+    });
+
+    test('a dropped ref is skipped, never named', () {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(refs: ['flour', 'ghost', 'eggs'], label: 'the base'),
+        ],
+      );
+      expect(constituentsOf(step), [
+        ['flour', 'eggs'],
+      ]);
+    });
+  });
+
   group('scaling', () {
     test('a first-mention line quantity and a numeric portion both scale', () {
       const step = MethodStep(

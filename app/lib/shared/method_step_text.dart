@@ -34,31 +34,51 @@ class MethodStepText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final spans = foldMethod(step, lineById: lineById, factor: factor);
+    final children = <InlineSpan>[];
+    for (final span in foldMethod(step, lineById: lineById, factor: factor)) {
+      switch (span) {
+        case MethodTextSpan(:final text):
+          children.add(TextSpan(text: text));
+        case MethodTimerSpan(:final text):
+          children.add(
+            _chip(MethodChip(label: text, timer: true, textSize: textSize)),
+          );
+        case MethodChipSpan(:final label, :final amount, :final constituents):
+          // The portion/quantity rides on the label chip; the constituents
+          // that follow are names only.
+          children.add(
+            _chip(MethodChip(label: label, amount: amount, textSize: textSize)),
+          );
+          if (constituents.isNotEmpty) {
+            children.addAll(_constituentSpans(constituents));
+          }
+      }
+    }
     return Text.rich(
       TextSpan(
-        children: [
-          for (final span in spans)
-            switch (span) {
-              MethodTextSpan(:final text) => TextSpan(text: text),
-              MethodChipSpan(:final label, :final amount) => WidgetSpan(
-                alignment: PlaceholderAlignment.middle,
-                child: MethodChip(
-                  label: label,
-                  amount: amount,
-                  textSize: textSize,
-                ),
-              ),
-              MethodTimerSpan(:final text) => WidgetSpan(
-                alignment: PlaceholderAlignment.middle,
-                child: MethodChip(label: text, timer: true, textSize: textSize),
-              ),
-            },
-        ],
+        children: children,
         style: miseSans(size: textSize, height: 1.5),
       ),
     );
   }
+
+  /// A collective chip's constituents as `(a b c)`.
+  ///
+  /// One span per chip with real whitespace between them, never a single
+  /// WidgetSpan holding a Row: a WidgetSpan is an atomic box to the line
+  /// breaker, so a packed run of eight constituents would overflow the step
+  /// instead of wrapping onto the next line.
+  Iterable<InlineSpan> _constituentSpans(List<String> constituents) sync* {
+    yield const TextSpan(text: ' (');
+    for (var i = 0; i < constituents.length; i++) {
+      if (i > 0) yield const TextSpan(text: ' ');
+      yield _chip(MethodChip(label: constituents[i], textSize: textSize - 1));
+    }
+    yield const TextSpan(text: ')');
+  }
+
+  WidgetSpan _chip(MethodChip chip) =>
+      WidgetSpan(alignment: PlaceholderAlignment.middle, child: chip);
 }
 
 /// One inline chip. An ingredient chip is the herb-soft pill carrying the
