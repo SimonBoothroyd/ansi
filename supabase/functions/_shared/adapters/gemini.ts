@@ -1,8 +1,8 @@
 // Gemini Flash adapter — behind the frozen ExtractAdapter.
 //
-// Model id: `gemini-3.5-flash` (the `GEMINI_FLASH_MODEL` constant below).
+// Model id: `gemini-3.7-flash` (the `GEMINI_FLASH_MODEL` constant below).
 // CONFIRMED 2026-08-31 against Google's own model-list endpoint
-// (`GET /v1beta/models`, which reports version `3.5-flash-05-2026`) and
+// (`GET /v1beta/models`, which reports version `3.7-flash-08-2026` (verify on first live call)) and
 // https://ai.google.dev/gemini-api/docs/models. This replaces the previous
 // `gemini-flash-latest` pin, which was an ALIAS — the 0018 convention is exact
 // ids, because an alias silently re-points and makes two dated benchmark runs
@@ -42,7 +42,7 @@ import {
   toBase64,
 } from "./http.ts";
 
-export const GEMINI_FLASH_MODEL = "gemini-3.5-flash";
+export const GEMINI_FLASH_MODEL = "gemini-3.7-flash";
 /** The alias this adapter used before 2026-08-31 — kept for A/B reruns only. */
 export const GEMINI_FLASH_MODEL_PREVIOUS = "gemini-flash-latest";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
