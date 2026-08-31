@@ -140,7 +140,9 @@ class SqliteRecipeRepository implements RecipeRepository {
   Stream<Recipe?> watchRecipe(String id) {
     // The triggers for this stream are the watched query's source tables, so
     // every table [_loadRecipe] reads must be one — including ingredient
-    // (line-item names) and book/section (the breadcrumb). Each joined table
+    // (line-item names AND the nutrition behind the macro panel, so a vocab
+    // row gaining macros/density re-fires the page) and book/section (the
+    // breadcrumb). Each joined table
     // must also contribute a *selected* column: SQLite omits a LEFT JOIN whose
     // columns go unused, and an omitted join is an undetected table (the
     // stale-breadcrumb class). The rows themselves are ignored; each fire
@@ -183,8 +185,13 @@ class SqliteRecipeRepository implements RecipeRepository {
       [id],
     );
     final itemRows = await _db.getAll(
+      // The nutrition columns feed the recipe page's macro panel (step 9) —
+      // the same summation the picker rows use, so the two agree.
       'SELECT li.*, ing.canonical_name AS ingredient_name, '
-      'ing.macros_basis AS ingredient_basis, '
+      'ing.macros_basis AS ingredient_basis, ing.macros AS ingredient_macros, '
+      'ing.density_g_per_ml AS ingredient_density, '
+      'ing.status AS ingredient_status, '
+      'ing.deleted_at AS ingredient_deleted_at, '
       'im.label AS measure_label, im.basis_amount AS measure_amount, '
       'im.sort_order AS measure_sort, im.source AS measure_source '
       'FROM recipe_line_item li '
@@ -198,8 +205,27 @@ class SqliteRecipeRepository implements RecipeRepository {
     );
 
     final itemsByGroup = <String, List<LineItem>>{};
+    final lines = <LineItem>[];
+    final nutritionByIngredient = <String, IngredientNutrition>{};
     for (final row in itemRows) {
-      (itemsByGroup[row['group_id'] as String] ??= []).add(_toLineItem(row));
+      final line = _toLineItem(row);
+      lines.add(line);
+      (itemsByGroup[row['group_id'] as String] ??= []).add(line);
+      // A tombstoned or unknown ingredient contributes no nutrition, so its
+      // lines read as stubs and the panel says so — matching what the picker
+      // rows do for the same recipe (its LEFT JOIN nulls the status instead).
+      if (row['ingredient_status'] != null &&
+          row['ingredient_deleted_at'] == null) {
+        nutritionByIngredient[row['ingredient_id'] as String] = (
+          // A stub's macros are excluded even if a value lingers on the row —
+          // status is the source of truth for completeness (invariant 3).
+          macros: row['ingredient_status'] == 'complete'
+              ? Macros.tryParse(row['ingredient_macros'] as String?)
+              : null,
+          basis: MacrosBasis.fromDb(row['ingredient_basis'] as String?),
+          densityGPerMl: (row['ingredient_density'] as num?)?.toDouble(),
+        );
+      }
     }
 
     final (plainSteps, methodSteps) = _parseSteps(r['steps'] as String?);
@@ -216,6 +242,11 @@ class SqliteRecipeRepository implements RecipeRepository {
       sectionId: r['section_id'] as String?,
       bookName: r['book_name'] as String?,
       sectionName: r['section_name'] as String?,
+      macros: summarizeRecipeMacros(
+        servingsBase: (r['servings_base'] as num).toDouble(),
+        lines: lines,
+        nutritionOf: (id) => nutritionByIngredient[id],
+      ),
       groups: [
         for (final g in groupRows)
           IngredientGroup(

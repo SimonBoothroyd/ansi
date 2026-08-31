@@ -112,6 +112,13 @@
         .macro .m:last-child{border-right:none;}
         .macro .mv{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:14px;}
         .macro .ml{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:2px;}
+        /* step 9 · the panel's caption and its honest refusal state */
+        .macro-lab{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:20px 20px 8px;}
+        .macro.tight{margin-top:0;}
+        .macro-inc{margin:0 20px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+        .macro-inc .mi-h{display:flex;align-items:center;gap:8px;}
+        .macro-inc .mi-n{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
+        .macro-inc .mi-b{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.35;}
 
         /* method */
         .scale-chip{margin:0 20px 12px;display:inline-flex;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb-deep);background:var(--herb-soft);border-radius:999px;padding:5px 11px;}
@@ -569,7 +576,7 @@
         </div>
 
         <div class="frame">
-            <p class="frame-name"><b>Recipe</b> · groups, scaling, shelf life</p>
+            <p class="frame-name"><b>Recipe</b> · groups, scaling, shelf life · <i>superseded by “Recipe view v3” (two tabs, no Notes); its macro strip is where the step-9 panel comes from</i></p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">‹</span><span class="ttl">Dinners</span><span class="dots">⋯</span></div>
                 <div class="r-hero">
@@ -1077,7 +1084,7 @@
     </div>
 
     <!-- ===== IMPORT + RECIPE VIEW V3 (LOCKED — re-traced from shipped code 2026-08-31) ===== -->
-    <div class="section-head"><span class="ey">Import &amp; recipe view · v3</span><span class="proposed-tag">locked · re-traced from shipped code 2026-08-31</span><span class="rule"></span><span class="sub">One review screen you edit in place, then the recipe — amount · ingredient · notes</span></div>
+    <div class="section-head"><span class="ey">Import &amp; recipe view · v3</span><span class="proposed-tag">locked · re-traced from shipped code 2026-08-31 · macro panel added step 9</span><span class="rule"></span><span class="sub">One review screen you edit in place, then the recipe — amount · ingredient · notes, closing on the per-serving macros</span></div>
 
     <div class="locknote">
         <p class="lk-h">Re-traced from shipped code — 2026-08-31</p>
@@ -1234,8 +1241,46 @@
                 <div class="grp"><p class="grp-h">to serve</p>
                     <div class="l3"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Lemon</span><span class="l3-note">juiced</span></span></div>
                 </div>
-                <p class="conv-note">Two tabs only — Ingredients · Method. Macros live on the ingredient, not on this page.</p>
+                <p class="conv-note">Two tabs only — Ingredients · Method. Macros are not on the line: they arrive as one <b>per-serving panel</b> closing this tab (step 9, next frame) — re-traced 2026-08-31, annotation updated when the panel shipped.</p>
             </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Macro panel</b> · step 9 — the per-serving strip closing the Ingredients tab (drawn at build; shipped step 9)</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+                <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
+                <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
+                <div class="grp">
+                    <div class="l3"><span class="l3-amt">6</span><span class="l3-body"><span class="l3-id">Chicken thigh, boneless</span></span></div>
+                    <div class="l3"><span class="l3-amt">2 can</span><span class="l3-body"><span class="l3-id">Butter beans</span><span class="l3-note">drained</span></span></div>
+                    <div class="l3"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Chopped tomatoes</span></span></div>
+                    <div class="l3"><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Smoked paprika</span></span></div>
+                </div>
+                <p class="macro-lab">Per serving</p>
+                <div class="macro tight"><div class="m"><div class="mv">612</div><div class="ml">kcal</div></div><div class="m"><div class="mv">41 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">18 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">39 g</div><div class="ml">fat</div></div></div>
+            </div></div>
+            <p class="rc-note"><b style="color:var(--ink)">Placement</b> — below the list, where the step-2 Recipe frame first drew the strip: it reads as the sum of the lines above it, and it stays clear of the scaler. A static figure sitting under a stepper would invite the reading that the stepper drives it — and it does not: the panel is <b style="color:var(--ink)">per serving</b>, so scaling to 8 doubles every line and the servings both, leaving a serving unchanged. Conservative on purpose: the numbers are the picker rows' numbers (one summation), the strip is the board's own <code>.macro</code>, and nothing new was invented for this slice.</p>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Macro panel · incomplete</b> · the same box refusing, in the picker rows' exact words</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+                <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
+                <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
+                <div class="grp">
+                    <div class="l3"><span class="l3-amt">2</span><span class="l3-body"><span class="l3-id">Red onion</span><span class="l3-note">thinly sliced</span></span></div>
+                    <div class="l3"><span class="l3-amt">2 tbsp</span><span class="l3-body"><span class="l3-id">Rose harissa</span></span></div>
+                    <div class="l3"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Lemon</span><span class="l3-note">juiced</span></span></div>
+                </div>
+                <p class="macro-lab">Per serving</p>
+                <div class="macro-inc">
+                    <div class="mi-h"><span class="badge-inc">incomplete</span><span class="mi-n">1 stub line · 1 unconvertible</span></div>
+                    <div class="mi-b">Left out of the total until every line resolves — a partial number would not be this recipe.</div>
+                </div>
+            </div></div>
+            <p class="rc-note">Invariant 3 on the page, not just in the picker: the badge, and the reason in the <b style="color:var(--ink)">same words the picker rows use</b> (<code>1 stub line</code> · <code>2 stub lines · 1 unconvertible</code> · <code>no ingredients yet</code>) — they render from one shared helper so they cannot drift into two different failures. No cell shows a partial total, and an empty recipe never reads “0 kcal”.</p>
         </div>
 
         <div class="frame">
@@ -1443,7 +1488,7 @@
     <footer class="footer">
         <span><b>Mise</b> — complete board</span>
         <span>Flutter · Forui · Supabase · PowerSync</span>
-        <span>27 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8) · import + recipe-view v3 (locked — re-traced from shipped code 2026-08-31) · ingredients manager v1 (proposal — step 8.5)</span>
+        <span>29 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8) · import + recipe-view v3 (locked — re-traced from shipped code 2026-08-31) · macro panel (step 9) · ingredients manager v1 (proposal — step 8.5)</span>
     </footer>
 
 </div>

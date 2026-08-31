@@ -19,6 +19,7 @@ import 'package:mise/features/recipes/data/recipe_providers.dart';
 import 'package:mise/features/recipes/domain/recipe.dart';
 import 'package:mise/features/recipes/domain/recipe_macros.dart';
 import 'package:mise/features/recipes/domain/recipe_repository.dart';
+import 'package:mise/shared/incomplete_macros.dart';
 
 /// The picker's read models, canned: two recipes — a favorite with complete
 /// per-serving macros planned 3 days ago, and an unplanned one whose macros

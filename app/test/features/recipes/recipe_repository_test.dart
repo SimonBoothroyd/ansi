@@ -344,6 +344,144 @@ void main() {
     expect(results, hasLength(2)); // the vocab edit re-fired the summaries
   });
 
+  test('the recipe aggregate carries the same macro summary as its '
+      'list row (step 9 panel)', () async {
+    for (final id in ['ing-rice', 'ing-onion']) {
+      await db.execute('UPDATE ingredient SET macros = ? WHERE id = ?', [
+        '{"kcal":130,"protein":2.7,"carb":28,"fat":0.3}',
+        id,
+      ]);
+    }
+    await repo.saveRecipe(_sampleRecipe());
+    await repo.saveRecipe(
+      const Recipe(
+        id: 'r-rice',
+        title: 'Plain rice',
+        servingsBase: 2,
+        groups: [
+          IngredientGroup(
+            id: 'gr1',
+            items: [
+              LineItem(
+                id: 'ri1',
+                ingredientId: 'ing-rice',
+                ingredientName: 'Rice',
+                unit: g,
+                quantity: 150,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    // The panel and the picker row must never disagree about the same
+    // recipe: both read the one summation over the same rows.
+    final rows = {
+      for (final r in await repo.watchRecipes().first) r.id: r.macros,
+    };
+    for (final id in ['r1', 'r-rice']) {
+      final page = (await repo.watchRecipe(id).first)!.macros;
+      expect(page, rows[id], reason: id);
+    }
+
+    final complete = (await repo.watchRecipe('r-rice').first)!.macros!;
+    expect(complete.incomplete, isFalse);
+    expect(complete.perServing!.kcal, closeTo(97.5, 1e-9)); // 130 × 1.5 / 2
+    final incomplete = (await repo.watchRecipe('r1').first)!.macros!;
+    expect(incomplete.incomplete, isTrue);
+    expect(incomplete.stubLines, 1); // Salt: complete status, no macros
+    expect(incomplete.unconvertibleLines, 1); // Onion: count, no measure
+  });
+
+  test('a recipe page with no lines is incomplete, never ~0 kcal', () async {
+    await repo.saveRecipe(
+      const Recipe(id: 'r-bare', title: 'Bare', servingsBase: 4),
+    );
+    final macros = (await repo.watchRecipe('r-bare').first)!.macros!;
+    expect(macros.noLines, isTrue);
+    expect(macros.perServing, isNull);
+  });
+
+  test('the recipe page re-fires when vocab macros change under it', () async {
+    await repo.saveRecipe(
+      const Recipe(
+        id: 'r-rice',
+        title: 'Plain rice',
+        servingsBase: 2,
+        groups: [
+          IngredientGroup(
+            id: 'gr1',
+            items: [
+              LineItem(
+                id: 'ri1',
+                ingredientId: 'ing-rice',
+                ingredientName: 'Rice',
+                unit: g,
+                quantity: 150,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    final recipes = StreamIterator(repo.watchRecipe('r-rice'));
+    expect(await recipes.moveNext(), isTrue);
+    expect(recipes.current!.macros!.incomplete, isTrue); // no macros yet
+
+    await db.execute('UPDATE ingredient SET macros = ? WHERE id = ?', [
+      '{"kcal":130,"protein":2.7,"carb":28,"fat":0.3}',
+      'ing-rice',
+    ]);
+    // The panel is derived from the watched aggregate, so a vocab row
+    // gaining macros turns the badge into numbers without a page reload.
+    expect(await recipes.moveNext(), isTrue);
+    expect(recipes.current!.macros!.perServing!.kcal, closeTo(97.5, 1e-9));
+    await recipes.cancel();
+  });
+
+  test('a tombstoned ingredient reads as a stub line on the page', () async {
+    await db.execute('UPDATE ingredient SET macros = ? WHERE id = ?', [
+      '{"kcal":130,"protein":2.7,"carb":28,"fat":0.3}',
+      'ing-rice',
+    ]);
+    await repo.saveRecipe(
+      const Recipe(
+        id: 'r-rice',
+        title: 'Plain rice',
+        servingsBase: 2,
+        groups: [
+          IngredientGroup(
+            id: 'gr1',
+            items: [
+              LineItem(
+                id: 'ri1',
+                ingredientId: 'ing-rice',
+                ingredientName: 'Rice',
+                unit: g,
+                quantity: 150,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    expect(
+      (await repo.watchRecipe('r-rice').first)!.macros!.incomplete,
+      isFalse,
+    );
+
+    await db.execute('UPDATE ingredient SET deleted_at = ? WHERE id = ?', [
+      DateTime.now().toUtc().toIso8601String(),
+      'ing-rice',
+    ]);
+    // A tombstoned vocab row must not keep feeding a total the picker rows
+    // already refuse to compute (their join drops it).
+    final macros = (await repo.watchRecipe('r-rice').first)!.macros!;
+    expect(macros.incomplete, isTrue);
+    expect(macros.stubLines, 1);
+  });
+
   test('setFavorite round-trips through the summary row', () async {
     await repo.saveRecipe(_sampleRecipe());
     expect((await repo.watchRecipes().first).single.favorite, isFalse);
