@@ -17,7 +17,9 @@
 ///   with `ensure_onboarded` in the background.
 /// - Sign-out: disconnect, clear the local database and the cached household.
 /// - Any failure surfaces as [SessionError]; the connecting screen offers
-///   retry and sign-out instead of an infinite spinner.
+///   retry and sign-out instead of an infinite spinner. One failure is
+///   singled out — a user the server no longer has
+///   ([SessionError.accountMissing]) — because retry can only ever fail again.
 ///
 /// Auth events that arrive while one is being handled are never dropped: the
 /// latest is queued and processed after the current one, so a sign-out during
@@ -64,9 +66,23 @@ final class SessionConnecting extends SessionState {
 /// Session establishment failed (e.g. no network on a fresh device, RPC
 /// error). The connecting screen shows [message] with retry and sign-out.
 final class SessionError extends SessionState {
-  const SessionError(this.message);
+  const SessionError(this.message, {this.accountMissing = false});
+
+  /// [message] for the one failure retry cannot fix — see [accountMissing].
+  static const accountMissingMessage =
+      'This account no longer exists on the server — it was probably removed '
+      'by a database reset. Sign out and sign in again.';
 
   final String message;
+
+  /// The server has no such user: onboarding was refused because the signed-in
+  /// account is gone (a local `supabase db reset` drops `auth.users` while the
+  /// device keeps a still-valid JWT — see [_isMissingAccount]).
+  ///
+  /// Retrying cannot help until the token expires; the connecting screen leads
+  /// with sign-out instead. Never inferred from a network or generic server
+  /// failure, which would mask a real outage behind a bogus "sign out".
+  final bool accountMissing;
 }
 
 /// Fully established: PowerSync connected and the household resolved.
@@ -88,6 +104,23 @@ Future<String> Function() ensureOnboarded(Ref ref) {
   return () async =>
       (await supabase.rpc<dynamic>('ensure_onboarded')).toString();
 }
+
+/// Postgres `foreign_key_violation`, which PostgREST passes through as the
+/// error body's `code` (and postgrest-dart lifts into [PostgrestException]).
+const _foreignKeyViolation = '23503';
+
+/// Whether [e] is `ensure_onboarded` refusing to onboard a user the server no
+/// longer has — the "ghost user" a local `supabase db reset` leaves behind.
+///
+/// `auth.uid()` is read out of the JWT and never checked against the table, so
+/// a device holding a token minted before the reset still reaches the RPC's
+/// last statement — `insert into household_member (…, auth_user_id, …)`, whose
+/// column is `references auth.users(id)` (migration 0001). That insert is the
+/// only foreign key the RPC can fail: every other one it writes (the household
+/// it just created, the vocab it just cloned) is inserted in the same
+/// transaction. A 23503 from here therefore means exactly one thing.
+bool _isMissingAccount(Object e) =>
+    e is PostgrestException && e.code == _foreignKeyViolation;
 
 /// Local user-id → household-id cache, so a signed-in relaunch reaches the
 /// Library without awaiting the onboarding RPC (offline-first: an offline
@@ -238,7 +271,12 @@ class SessionController extends _$SessionController {
       await cache.write(userId, householdId);
       state = SessionReady((userId: userId, householdId: householdId));
     } on Exception catch (e) {
-      state = SessionError('$e');
+      state = _isMissingAccount(e)
+          ? const SessionError(
+              SessionError.accountMissingMessage,
+              accountMissing: true,
+            )
+          : SessionError('$e');
     }
   }
 

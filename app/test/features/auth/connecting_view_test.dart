@@ -1,6 +1,7 @@
 /// Widget tests for [ConnectingView]: the spinner while connecting, and the
 /// retry / sign-out affordances once the session machine reports an error (a
-/// failure must never strand the user on an infinite spinner).
+/// failure must never strand the user on an infinite spinner), including the
+/// swap in prominence when the account is gone server-side.
 library;
 
 import 'package:flutter/material.dart';
@@ -50,6 +51,11 @@ Widget _host(SessionState initial, _Calls calls) => ProviderScope(
   ),
 );
 
+/// The [FButton] wrapping the given label, to read its prominence.
+FButton _buttonFor(WidgetTester tester, String label) => tester.widget<FButton>(
+  find.ancestor(of: find.text(label), matching: find.byType(FButton)),
+);
+
 void main() {
   testWidgets('while connecting: spinner plus a sign-out escape hatch', (
     tester,
@@ -80,6 +86,9 @@ void main() {
 
     expect(find.text('Could not set up your kitchen.'), findsOneWidget);
     expect(find.textContaining('network down'), findsOneWidget);
+    // Retry leads for anything that might just be a bad moment.
+    expect(_buttonFor(tester, 'Retry').variant, FButtonVariant.primary);
+    expect(_buttonFor(tester, 'Sign out').variant, FButtonVariant.ghost);
 
     await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();
@@ -88,5 +97,38 @@ void main() {
     await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
     expect(calls.signOuts, 1);
+  });
+
+  testWidgets('on a deleted account: sign-out leads, retry steps back', (
+    tester,
+  ) async {
+    final calls = _Calls();
+    await tester.pumpWidget(
+      _host(
+        const SessionError(
+          SessionError.accountMissingMessage,
+          accountMissing: true,
+        ),
+        calls,
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.textContaining('This account no longer exists on the server'),
+      findsOneWidget,
+    );
+    // Prominence is the whole point: retrying a ghost session only fails
+    // again, so sign-out and retry trade places.
+    expect(_buttonFor(tester, 'Sign out').variant, FButtonVariant.primary);
+    expect(_buttonFor(tester, 'Retry').variant, FButtonVariant.ghost);
+
+    await tester.tap(find.text('Sign out'));
+    await tester.pumpAndSettle();
+    expect(calls.signOuts, 1);
+
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+    expect(calls.retries, 1, reason: 'retry stays available, just secondary');
   });
 }
