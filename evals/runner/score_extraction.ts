@@ -96,8 +96,11 @@ export function qtyMatch(gold: RawLineItem, got: RawLineItem): boolean {
 }
 
 /**
- * The generic count-measure nouns (`_SCHEMA.md` "count-measure nouns are
+ * The generic count-measure nouns (`_SCHEMA.md` "every count-measure noun is
  * mappable", mirrored from `_shared/unit_hints.ts`) plus the canonical `piece`.
+ * Every noun here carries `unit_mappable: true` in the gold — uniformly, since
+ * the 2026-08-31 owner ruling — so `piece` vs `block`/`loaf`/`head` scores as
+ * family-equivalent exactly like `piece` vs `clove`/`sprig`/`can`.
  */
 const COUNT_MEASURE_NOUNS = new Set([
   "clove",

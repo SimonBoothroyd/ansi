@@ -1,4 +1,4 @@
-# Gold schema (finalized 2026-08-30; owner rulings folded in 2026-08-30)
+# Gold schema (finalized 2026-08-30; owner rulings folded in through 2026-08-31)
 
 The shape every `gold/<recipe>.json` conforms to. Mirrors the `ExtractionResult`
 contract in `docs/exec-plans/completed/0014-import-foundation.md`. When W0's
@@ -55,7 +55,7 @@ Conventions (all source-derived, none invented):
 - **Compound INGREDIENT line** `"Sea salt and freshly cracked black pepper"` → **split into two line items**. Re-index every step `line_index` that shifts as a result, and flag the split in `_review`.
 - **Compound AMOUNT, one ingredient** `"2 tbsp + ½ cup parsley"` (both volume) → sum within the family for the line total (`0.625 cup`); the split is represented per-step via `portion` (below). Cross-family compounds that can't bridge → keep `raw_amount`, `qty:null`, flag.
 - **The PACK is the unit** (generalises the cans rule). Whenever the printed amount counts a *container or sold unit* and states its size, the COUNT is the amount and the size stays in `raw_amount`: `"One 14-ounce block"` → `qty:1, unit:"block"` (NOT `qty:14, unit:"oz"`); same for `can`, `loaf`, `head`, `bunch`, `slice`, `stalk`, `sprig`, `clove`. The gram/oz basis is the measure system's job, not the line's. *(owner ruling)*
-- **Count-measure nouns are mappable.** The count family is `piece` plus the generic measure nouns `clove · head · sprig · loaf · block · slice · can · bunch · stalk` (the same list `_shared/unit_hints.ts` hands the model). `sprig` in particular is `unit_mappable: true` — `"Leaves from 4 sprigs rosemary"` → `qty:4, unit:"sprig", unit_mappable:true`. *(owner ruling)* **Known gold inconsistency:** `block` / `loaf` / `head` are still labelled `unit_mappable:false` in three files and await one consistent ruling — see those files' `_review`.
+- **Every count-measure noun is mappable — no exceptions.** The count family is `piece` plus the generic measure nouns `clove · head · sprig · loaf · block · slice · can · bunch · stalk` (the same list `_shared/unit_hints.ts` hands the model and `runner/score_extraction.ts` scores as one family). **All of them take `unit_mappable: true`**, uniformly: `"Leaves from 4 sprigs rosemary"` → `qty:4, unit:"sprig"`, `"One 14-ounce block"` → `qty:1, unit:"block"`, `"½ loaf"` → `qty:0.5, unit:"loaf"`, `"1 large head of broccoli"` → `qty:1, unit:"head"` — every one `unit_mappable:true`. *(owner ruling 2026-08-31, superseding the earlier per-noun split.)* `unit_mappable:false` is for amounts with **no** measure noun to map at all (`"Thumb-sized piece"`, `"2 large handfuls"`, a bare unquantified line).
 - **`heaped` / `scant` / `rounded` modifiers** → keep the **printed** qty exactly (never inflate or deflate a number for them) **and** put the modifier word in `notes`: `"3 heaped tbsp peanut butter"` → `qty:3, unit:"tbsp", notes:"heaped"`, full phrase still in `raw_amount`. *(owner ruling)*
 - **Printed qty + "or to taste"** → the printed number **wins**: keep `qty`/`unit` as printed and put the qualifier in `notes` (`"1 teaspoon sea salt, or to taste"` → `qty:1, unit:"tsp", notes:"or to taste"`). `qty` goes null only when **no** number is printed. *(owner ruling)*
 - **Count-on-produce-with-a-transform** `"Juice of 1 lemon"` → `qty:1, unit:"piece", ingredient_text:"lemon", notes:"juiced"` (match the produce). If the page gives a volume `"(about 3 tbsp)"` → `qty:3, unit:"tbsp"`, lemon count stays in `raw_amount`. An **optional second use of the SAME produce** (`"plus zest (optional)"`) folds into that line's `notes` — it does **not** become a second line item. *(owner ruling)*
@@ -96,12 +96,13 @@ Rules:
   `1 onion, thinly sliced` is a **base + cook-prep** (`onion` identity, `thinly sliced`
   → `notes`). "Chopped/crushed/diced tomatoes (tinned)" are DIFFERENT PRODUCTS — never
   move that "chopped" to `notes`.
-- **`freshly cracked black pepper`** → `ingredient_text: "black pepper"`, `notes: "freshly cracked"`.
-  The grind/freshness wording is a cook-side qualifier, not a distinct SKU, so it never
-  pollutes the match text. Plain `"black pepper"` lines are unchanged. By contrast
-  **`rubbed sage` stays in identity** — rubbed sage is genuinely how it is sold. *(owner ruling.
-  `freshly ground black pepper` — same shape, not named in the ruling — is still left as
-  printed in `mint-pea-soup.json`; see its `_review`.)*
+- **`freshly cracked` / `freshly ground` black pepper** → `ingredient_text: "black pepper"`,
+  `notes: "freshly cracked"` / `notes: "freshly ground"`. Both grind wordings are cook-side
+  freshness qualifiers, not distinct SKUs, so neither pollutes the match text. Plain
+  `"black pepper"` lines are unchanged. By contrast **`rubbed sage` stays in identity** —
+  rubbed sage is genuinely how it is sold, and so does bare **`ground cumin` / `ground white
+  pepper`** (sold ground, with no "freshly"). *(owner ruling; `freshly ground` folded in
+  2026-08-31 as the same shape as `freshly cracked`.)*
 - **Usage qualifiers** (`for serving`, `for frying`, `for roasting`, `to serve`,
   `plus more for garnish`, `plus more to taste`, `or to taste`) are quantity / usage
   notes, **not** cook-prep, but they still come **out of `ingredient_text` into `notes`**
