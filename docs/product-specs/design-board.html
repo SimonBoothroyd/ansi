@@ -416,6 +416,47 @@
         .rml{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb-deep);margin-top:4px;display:flex;align-items:center;gap:6px;}
         .rml.inc{color:var(--muted);}
         .badge-inc{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#7A5A16;background:#FBF3E3;border-radius:6px;padding:2px 6px;}
+
+        /* v3 · import triage + three-part line (new classes only; reuses tokens + earlier classes) */
+        .triage-warn{display:flex;gap:9px;margin:8px 20px 4px;background:#FBF3E3;border:1px solid #F0DCB0;border-radius:11px;padding:9px 11px;font-size:11.5px;color:#7A5A16;line-height:1.4;}
+        .triage-warn .ic{flex:none;}
+        .tsec{display:flex;align-items:center;gap:10px;margin:16px 20px 8px;}
+        .tsec .tl{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);font-weight:500;}
+        .tsec .tc{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#fff;background:var(--gone);border-radius:999px;padding:1px 7px;min-width:18px;text-align:center;}
+        .tsec .tc.ok{background:var(--fresh);}
+        .tsec .rule{height:1px;background:var(--line);flex:1;}
+        .tsec .expand{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb);white-space:nowrap;}
+        .prepchip{display:inline-flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:7px;padding:4px 8px;margin:6px 0 2px;}
+        .prepchip .hsh{color:var(--herb);}
+        .uses-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+        .uses-head .uw{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--herb-deep);background:var(--herb-soft);border-radius:999px;padding:3px 8px;white-space:nowrap;}
+        .uses{display:flex;flex-direction:column;margin-top:8px;border-top:1px dotted var(--line);}
+        .use{display:grid;grid-template-columns:14px 1fr auto;gap:9px;align-items:baseline;padding:6px 0;border-bottom:1px dotted var(--line);}
+        .use:last-child{border-bottom:none;}
+        .use .ux{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+        .use .ua{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink);}
+        .use .up{font-size:12px;color:var(--muted);font-style:italic;margin-top:2px;}
+        .use .up .hsh{font-style:normal;color:var(--herb);font-family:'IBM Plex Mono',monospace;font-size:10px;margin-right:3px;}
+        .use .uflag{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 6px;white-space:nowrap;}
+        .use .uedit{color:var(--herb);font-size:12px;}
+        .auto-row{display:flex;align-items:center;gap:8px;margin:0 20px;padding:8px 0;border-bottom:1px dotted var(--line);font-size:13px;}
+        .auto-row .an{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);}
+        .auto-row .an b{color:var(--ink);font-weight:500;}
+        .auto-row .aq{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;}
+        .auto-row .ok{color:var(--fresh);}
+        /* three-part ingredient line: fixed amount column so ingredient text aligns every row; amount wraps within its column */
+        .l3{display:grid;grid-template-columns:84px 1fr;gap:12px;align-items:baseline;padding:7px 0;border-bottom:1px dotted var(--line);}
+        .l3:last-child{border-bottom:none;}
+        .l3.edit{grid-template-columns:84px 1fr auto;}
+        .l3-amt{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);white-space:nowrap;}
+        .l3-amt.impr{font-style:italic;}
+        .l3.multi .l3-amt{white-space:normal;}
+        .l3-body{font-size:14px;line-height:1.4;}
+        .l3-id{color:var(--ink);font-weight:500;}
+        .l3-note{color:var(--muted);font-style:italic;}
+        .l3-note::before{content:"·";margin:0 6px;color:var(--line);font-style:normal;}
+        .l3-pen{color:var(--herb);font-size:12px;align-self:center;}
+
         .footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
         .footer b{color:var(--ink);font-weight:500;}
 
@@ -995,10 +1036,174 @@
         </div>
     </div>
 
+    <!-- ===== IMPORT + RECIPE VIEW V3 (LOCKED) ===== -->
+    <div class="section-head"><span class="ey">Import &amp; recipe view · v3</span><span class="proposed-tag">locked</span><span class="rule"></span><span class="sub">Triage only what needs you → preview → commit; the recipe reads amount · ingredient · notes</span></div>
+    <div class="board">
+
+        <div class="frame">
+            <p class="frame-name"><b>Import · intake</b> · link or photo — you review what we read</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Import a recipe</span><span class="dots"></span></div>
+                <div class="rc-src"><span class="rc-tab on">◱ From a link</span><span class="rc-tab">◲ From photos</span></div>
+                <p class="flabel">Recipe URL</p>
+                <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Paste a recipe link…</span><span class="care"></span></div></div>
+                <p class="rc-note">We’ll read it and <b style="color:var(--ink)">you’ll review what we read before it’s saved</b> — most lines confirm themselves, so it’s a quick triage, not line-by-line clicking.</p>
+                <div class="savebtn">Read this recipe</div>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>read</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Triage</b> · only lines that need you; matched lines fold — “2 to review”</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Review import</span><span class="dots">2 to review</span></div>
+                <div class="triage-warn"><span class="ic">⚠</span><span>Chilli-flakes amount wasn’t printed — set it below. One can needs a weight.</span></div>
+                <div class="scaler"><span class="lab">Serves</span><div class="ctrl"><span class="step">–</span><span class="val">4</span><span class="step">+</span></div></div>
+                <div class="tsec"><span class="tl">Needs you</span><span class="tc">2</span><span class="rule"></span></div>
+                <div class="match">
+                    <div class="raw" style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span>garlic cloves</span><span class="uchip">2–3 cloves ✎</span></div>
+                    <span class="prepchip"><span class="hsh">⌗</span> finely chopped</span>
+                    <div class="suggests"><span class="sug pick">2 cloves</span><span class="sug">3 cloves</span></div>
+                    <div class="status" style="margin-top:8px"><span class="dot mid"></span><span class="to">did you mean?</span></div>
+                    <div class="suggests"><span class="sug pick">Garlic</span><span class="sug">Garlic granules</span></div>
+                </div>
+                <div class="match" style="border-color:#E7C3BA">
+                    <div class="uses-head"><span class="res-nm">Aleppo chilli flakes</span><span class="uw">used 2 ways</span></div>
+                    <div class="status" style="margin-top:6px"><span class="dot no"></span><span class="to">no match found</span></div>
+                    <div class="addnew-stub">＋ find or create ingredient</div>
+                    <div class="uses">
+                        <div class="use"><span class="ux">1</span><div><div class="ua">a good pinch</div><div class="up"><span class="hsh">⌗</span>toasted</div></div><span class="uflag">optional</span></div>
+                        <div class="use"><span class="ux">2</span><div><div class="ua">extra</div><div class="up"><span class="hsh">⌗</span>to serve</div></div><span class="uflag">optional</span></div>
+                    </div>
+                </div>
+                <div class="tsec"><span class="tl">Auto-matched</span><span class="tc ok">7</span><span class="rule"></span><span class="expand">review all ▾</span></div>
+                <div class="auto-row"><span class="an"><b>chicken thighs, boneless</b> → Chicken thigh</span><span class="aq">6</span><span class="ok">✓</span></div>
+                <div class="auto-row"><span class="an"><b>tinned chopped tomatoes</b> → Chopped tomatoes</span><span class="aq">400 g</span><span class="ok">✓</span></div>
+                <div class="auto-row"><span class="an"><b>rose harissa</b> → Rose harissa</span><span class="aq">2 tbsp</span><span class="ok">✓</span></div>
+                <div class="auto-row"><span class="an"><b>smoked paprika</b> → Smoked paprika</span><span class="aq">1 tsp</span><span class="ok">✓</span></div>
+                <div class="savebtn" style="background:var(--paper);border:1px solid var(--line);color:var(--muted)">2 lines need you</div>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>zoom</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Grouped uses</b> · one identity resolved once; each use keeps its own amount + prep</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Review import</span><span class="dots">2 to review</span></div>
+                <div class="match" style="margin-top:12px">
+                    <div class="uses-head"><span class="res-nm">garlic</span><span class="uw">used 2 ways · resolve once</span></div>
+                    <div class="status" style="margin-top:6px"><span class="dot hi"></span><span class="to">matched <b>Garlic</b> — applies to both uses</span></div>
+                    <div class="uses">
+                        <div class="use"><span class="ux">1</span><div><div class="ua">2 cloves</div><div class="up"><span class="hsh">⌗</span>finely chopped</div></div><span class="uedit">✎</span></div>
+                        <div class="use"><span class="ux">2</span><div><div class="ua">1 clove</div><div class="up"><span class="hsh">⌗</span>sliced · for garnish</div></div><span class="uedit">✎</span></div>
+                    </div>
+                </div>
+                <p class="rc-note">Resolving the group writes the same ingredient to every sibling; amount + prep stay strictly per use — never merged.</p>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>no match</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Suggesting picker</b> · opens pre-seeded with this line’s candidates — never blank</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Match “Aleppo chilli flakes”</span><span class="dots"></span></div>
+                <p class="flabel">Search</p>
+                <div class="field"><div class="search"><span class="mag">⌕</span><span>Aleppo chilli flakes</span><span class="care"></span></div></div>
+                <p class="list-h">Suggested for this line</p>
+                <div class="res-row"><div style="flex:1;min-width:0"><div class="res-nm">Chilli flakes</div><span class="res-cat">Spice · has density</span></div><span class="rplus">＋</span></div>
+                <div class="res-row"><div style="flex:1;min-width:0"><div class="res-nm">Aleppo pepper</div><span class="res-cat">Spice · vocab hit</span></div><span class="rplus">＋</span></div>
+                <div class="res-row"><div style="flex:1;min-width:0"><div class="res-nm">Red pepper flakes</div><span class="res-cat">Spice</span></div><span class="rplus">＋</span></div>
+                <p class="list-h">Recent</p>
+                <div class="suggests" style="margin:2px 20px 0"><span class="sug">Garlic</span><span class="sug">Rose harissa</span><span class="sug">Smoked paprika</span></div>
+                <div class="addnew">＋ create “Aleppo chilli flakes” as a new ingredient</div>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>tap amount</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Tap-to-edit amount</b> · the step-7.7 number-pad + unit chips; “tin” is your can (400 g)</p>
+            <div class="phone"><div class="notch"></div><div class="screen sheet">
+                <div class="grab"></div>
+                <div class="picked"><div style="flex:1"><div class="ptitle">Butter beans</div><div class="mline">raw: 2 × 400 g tin, drained</div></div></div>
+                <p class="flabel" style="margin-top:14px">Quantity</p>
+                <div class="field" style="margin-bottom:0"><div class="qty-big"><span class="qn">2</span><span class="care"></span><span class="qu">can</span></div></div>
+                <div class="dock">
+                    <p class="conv-note" style="margin:0 0 9px">2 × <b>can (400 g)</b> ≈ <b>800 g</b> · buy 2</p>
+                    <div class="uchips"><span class="uchip">g</span><span class="uchip on"><span class="srcdot typ"></span>can (400 g)</span><span class="uchip"><span class="srcdot you"></span>½ can</span><span class="uchip-sep"></span><span class="uchip addm">＋ measure</span></div>
+                    <div class="kbd numpad">
+                        <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
+                        <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
+                        <div class="kbd-row"><span class="key">7</span><span class="key">8</span><span class="key">9</span></div>
+                        <div class="kbd-row"><span class="key">.</span><span class="key">0</span><span class="key">⌫</span></div>
+                        <div class="kbd-row"><span class="key done">Done</span></div>
+                    </div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="flow"><span>resolved</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Preview before commit</b> · the real editable recipe; method read-only in v1</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="dots" style="color:var(--herb);font-size:13px">Save</span></div>
+                <div class="r-hero">
+                    <span class="r-book">new import</span>
+                    <h2 class="r-title">Harissa Chicken &amp; Butter Beans</h2>
+                    <div class="meta-row"><span class="pill">serves 4 · – +</span><span class="pill keeps"><span class="mini-fresh"></span>keeps 3 d</span></div>
+                </div>
+                <div class="grp">
+                    <div class="l3 edit"><span class="l3-amt">6</span><span class="l3-body"><span class="l3-id">Chicken thighs, boneless</span></span><span class="l3-pen">✎</span></div>
+                    <div class="l3 edit"><span class="l3-amt">2 tin</span><span class="l3-body"><span class="l3-id">Butter beans</span><span class="l3-note">drained</span></span><span class="l3-pen">✎</span></div>
+                    <div class="l3 edit"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Tinned chopped tomatoes</span></span><span class="l3-pen">✎</span></div>
+                    <div class="l3 edit"><span class="l3-amt">2</span><span class="l3-body"><span class="l3-id">Red onion</span><span class="l3-note">thinly sliced</span></span><span class="l3-pen">✎</span></div>
+                    <div class="l3 edit multi"><span class="l3-amt">2 cloves + 1 clove</span><span class="l3-body"><span class="l3-id">Garlic</span><span class="l3-note">finely chopped + sliced, for garnish</span></span><span class="l3-pen">✎</span></div>
+                    <div class="l3 edit"><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Smoked paprika</span></span><span class="l3-pen">✎</span></div>
+                </div>
+                <div class="grp"><p class="grp-h">to serve</p>
+                    <div class="l3 edit multi"><span class="l3-amt impr">a pinch + extra</span><span class="l3-body"><span class="l3-id">Aleppo chilli flakes</span><span class="l3-note">toasted + to serve</span></span><span class="l3-pen">✎</span></div>
+                    <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Lemon</span><span class="l3-note">juiced</span></span><span class="l3-pen">✎</span></div>
+                </div>
+                <p class="rc-note">ⓘ Method is read-only in v1 — chips render with live amounts; editing lands later via the recipe’s Edit route.</p>
+                <div class="savebtn">Save recipe</div>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Recipe view v3</b> · fixed two-column line — amount · ingredient · notes; repeat uses on one row</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Dinners</span><span class="dots">⋯</span></div>
+                <div class="r-hero">
+                    <span class="r-book">Our Cookbook · Weeknight</span>
+                    <h2 class="r-title">Harissa Chicken &amp; Butter Beans</h2>
+                    <div class="meta-row"><span class="pill keeps"><span class="mini-fresh"></span>keeps 3 d</span><span class="pill">serves 4</span></div>
+                </div>
+                <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span><span class="tabx">Notes</span></div>
+                <div class="grp">
+                    <div class="l3"><span class="l3-amt">6</span><span class="l3-body"><span class="l3-id">Chicken thighs, boneless</span></span></div>
+                    <div class="l3"><span class="l3-amt">2 tin</span><span class="l3-body"><span class="l3-id">Butter beans</span><span class="l3-note">drained</span></span></div>
+                    <div class="l3"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Tinned chopped tomatoes</span></span></div>
+                    <div class="l3"><span class="l3-amt">2</span><span class="l3-body"><span class="l3-id">Red onion</span><span class="l3-note">thinly sliced</span></span></div>
+                    <div class="l3 multi"><span class="l3-amt">2 cloves + 1 clove</span><span class="l3-body"><span class="l3-id">Garlic</span><span class="l3-note">finely chopped + sliced, for garnish</span></span></div>
+                    <div class="l3"><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Smoked paprika</span></span></div>
+                </div>
+                <div class="grp"><p class="grp-h">to serve</p>
+                    <div class="l3 multi"><span class="l3-amt impr">a pinch + extra</span><span class="l3-body"><span class="l3-id">Aleppo chilli flakes</span><span class="l3-note">toasted + to serve</span></span></div>
+                    <div class="l3"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Lemon</span><span class="l3-note">juiced</span></span></div>
+                </div>
+                <div class="macro"><div class="m"><div class="mv">548</div><div class="ml">kcal</div></div><div class="m"><div class="mv">44 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">28 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">26 g</div><div class="ml">fat</div></div></div>
+            </div></div>
+        </div>
+    </div>
+
     <footer class="footer">
         <span><b>Mise</b> — complete board</span>
         <span>Flutter · Forui · Supabase · PowerSync</span>
-        <span>21 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8, form builds in step 8)</span>
+        <span>21 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8) · import + recipe-view v3 (locked)</span>
     </footer>
 
 </div>

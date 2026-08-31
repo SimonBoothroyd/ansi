@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (13 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (14 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -110,6 +110,7 @@ introduced in `0003_recipes.sql` · RLS enabled · in the `powersync` publicatio
 | `book_id` | `uuid` | yes | references book(id) *(added in `0004_books.sql`)* |
 | `section_id` | `uuid` | yes | references book_section(id) *(added in `0004_books.sql`)* |
 | `favorite` | `boolean` | no | not null default false *(added in `0011_picker_uplift.sql`)* |
+| `cook_time_seconds` | `int` | yes | check (cook_time_seconds is null or cook_time_seconds >= 0), add column total_time_seconds int check (total_time_seconds is null or total_time_seconds >= 0) *(added in `0013_recipe_times.sql`)* |
 
 ## `ingredient_group`
 

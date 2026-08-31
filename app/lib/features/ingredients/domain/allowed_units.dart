@@ -120,7 +120,7 @@ Set<Unit> defaultAllowedUnitSet(Ingredient ingredient) {
   // Imprecise leg: category-gated (imprecise-default rows keep the tail).
   if (d.family == UnitFamily.imprecise ||
       kImpreciseGatedCategories.contains(ingredient.category)) {
-    units.addAll([pinch, dash, toTaste]);
+    units.addAll([pinch, dash, handful, toTaste]);
   }
   return units;
 }
@@ -174,7 +174,7 @@ List<Unit> _orderUnits(Iterable<Unit> unitsIn, Ingredient ingredient) {
   for (final family in demotedFamilies) {
     _kitchenOrder[family]!.forEach(take);
   }
-  for (final u in [pinch, dash, toTaste]) {
+  for (final u in [pinch, dash, handful, toTaste]) {
     take(u);
   }
   // Totality: anything the groups above don't know still renders (a future

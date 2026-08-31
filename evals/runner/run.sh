@@ -10,6 +10,15 @@ here="$(dirname "$0")"
 
 deno run --allow-read "$here/score_normalization.ts"
 
+echo
+# Extraction (§4.4) — scores D2 (sanitize on reconstructed gold text) with the
+# keyless MOCK adapter: proves the harness + scorers + never-invent ledger are
+# wired and green with no provider key. The live Gemini/GPT/Claude compare
+# (runner/run_extraction_live.ts) needs keys and is run on demand — see
+# runner/EXTRACTION.md.
+deno run --allow-read --allow-env "$here/score_extraction.ts"
+
+echo
 matching="$here/../datasets/matching/cases.jsonl"
 n=$(grep -c '' "$matching" || true)
 echo "matching/band: $n calibration cases ready; engine not implemented yet" \

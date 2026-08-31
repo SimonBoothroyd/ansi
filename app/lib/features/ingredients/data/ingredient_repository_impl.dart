@@ -59,8 +59,9 @@ class SqliteIngredientRepository implements IngredientRepository {
     // Normalization also strips `%`/`_`, so nothing user-typed can act as a
     // LIKE wildcard below.
     final q = normalizeSearchQuery(query);
+    final tokens = searchTokens(query);
 
-    if (q.isEmpty) {
+    if (tokens.isEmpty) {
       final rows = await _db.getAll(
         'SELECT i.*, $_measureCount FROM ingredient i '
         'WHERE i.deleted_at IS NULL '
@@ -70,22 +71,78 @@ class SqliteIngredientRepository implements IngredientRepository {
       return rows.map(_toIngredient).toList();
     }
 
-    // Word-boundary match (`q%` = leading word, `% q%` = any later word) on
-    // the ingredient or any alias, live rows only; rank exact hits first, then
-    // shorter names (a closer match), then alphabetically.
+    // Token-subset match: EVERY query token must be a word-prefix of the
+    // ingredient's `match_text` OR one of its live aliases (order-independent,
+    // so "canned tomatoes" finds "Canned Whole Tomatoes"). Each token is a
+    // word-boundary LIKE (`tok%` = leading word, `% tok%` = any later word).
+    // Rank exact full-query hits first, then shorter names, then by name.
+    final where = StringBuffer('i.deleted_at IS NULL');
+    final params = <Object?>[];
+    for (final tok in tokens) {
+      where.write(
+        ' AND (i.match_text LIKE ? OR i.match_text LIKE ? '
+        'OR EXISTS (SELECT 1 FROM ingredient_alias a '
+        'WHERE a.ingredient_id = i.id AND a.deleted_at IS NULL '
+        'AND (a.match_text LIKE ? OR a.match_text LIKE ?)))',
+      );
+      params.addAll(['$tok%', '% $tok%', '$tok%', '% $tok%']);
+    }
     final rows = await _db.getAll(
-      'SELECT DISTINCT i.*, $_measureCount FROM ingredient i '
-      'LEFT JOIN ingredient_alias a '
-      'ON a.ingredient_id = i.id AND a.deleted_at IS NULL '
-      'WHERE i.deleted_at IS NULL AND '
-      '(i.match_text LIKE ? OR i.match_text LIKE ? '
-      'OR a.match_text LIKE ? OR a.match_text LIKE ?) '
+      'SELECT i.*, $_measureCount FROM ingredient i '
+      'WHERE $where '
       'ORDER BY (i.match_text = ?) DESC, length(i.canonical_name), '
       'i.canonical_name '
       'LIMIT ?',
-      ['$q%', '% $q%', '$q%', '% $q%', q, limit],
+      [...params, q, limit],
     );
-    return rows.map(_toIngredient).toList();
+    if (rows.isNotEmpty) return rows.map(_toIngredient).toList();
+
+    // Nothing matched the exact/prefix pass. For a MULTI-word query it is
+    // likely one token was mistyped ("chikn thigh") — fall back to a
+    // deterministic typo-tolerant scan over the live vocab (name + aliases),
+    // ranked by fuzzy score. A single-word query stays strict word-boundary
+    // (a lone "nion" must not fuzzy-hit "onion"): the extra tokens are what
+    // make a fuzzy match trustworthy. Deterministic, no fuzzy index
+    // (ADR-0004): a scored character comparison, in Dart.
+    if (tokens.length < 2) return const [];
+    return _fuzzySearch(query, limit: limit);
+  }
+
+  /// The typo-tolerant fallback: scores every live ingredient's `match_text`
+  /// (with its aliases joined) against [query] and returns those that clear
+  /// the per-token floor, closest first. Runs only when the exact/prefix pass
+  /// finds nothing, so the common path never pays for it.
+  Future<List<Ingredient>> _fuzzySearch(
+    String query, {
+    required int limit,
+  }) async {
+    final rows = await _db.getAll(
+      'SELECT i.*, $_measureCount, '
+      '(SELECT GROUP_CONCAT(a.match_text, " ") FROM ingredient_alias a '
+      'WHERE a.ingredient_id = i.id AND a.deleted_at IS NULL) AS alias_text '
+      'FROM ingredient i WHERE i.deleted_at IS NULL '
+      'ORDER BY i.canonical_name LIMIT 500',
+    );
+    final scored = <({double score, int length, Ingredient ingredient})>[];
+    for (final r in rows) {
+      final text =
+          '${r['match_text'] ?? ''} ${r['alias_text'] ?? ''}'.trim();
+      final score = fuzzyQueryScore(query, text);
+      if (score < 0) continue;
+      scored.add((
+        score: score,
+        length: (r['canonical_name'] as String).length,
+        ingredient: _toIngredient(r),
+      ));
+    }
+    scored.sort((a, b) {
+      final byScore = b.score.compareTo(a.score);
+      if (byScore != 0) return byScore;
+      final byLength = a.length.compareTo(b.length);
+      if (byLength != 0) return byLength;
+      return a.ingredient.canonicalName.compareTo(b.ingredient.canonicalName);
+    });
+    return [for (final s in scored.take(limit)) s.ingredient];
   }
 
   @override

@@ -52,3 +52,8 @@ evals/node_modules/
 
 # Local scratch space (screenshots, throwaway files)
 scratch/
+
+# Benchmark raw recipe photos — kept LOCAL ONLY. They carry GPS EXIF and are
+# copyrighted cookbook pages, so the raw images must never be committed. Only the
+# derived, human-verified gold labels (evals/datasets/extraction/gold/) are tracked.
+evals/datasets/extraction/images/

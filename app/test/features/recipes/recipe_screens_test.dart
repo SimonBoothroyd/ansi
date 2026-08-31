@@ -158,6 +158,56 @@ void main() {
     expect(find.text('keeps 4 d'), findsOneWidget);
   });
 
+  testWidgets('RecipeView folds two uses of one ingredient into one row', (
+    tester,
+  ) async {
+    const recipe = Recipe(
+      id: '2',
+      title: 'Garlic Two Ways',
+      servingsBase: 2,
+      groups: [
+        IngredientGroup(
+          id: 'g1',
+          items: [
+            LineItem(
+              id: 'i1',
+              ingredientId: 'garlic',
+              ingredientName: 'Garlic',
+              unit: pieces,
+              quantity: 2,
+              note: 'finely chopped',
+            ),
+            LineItem(
+              id: 'i2',
+              ingredientId: 'garlic',
+              ingredientName: 'Garlic',
+              unit: pieces,
+              quantity: 1,
+              note: 'sliced',
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _host(const RecipeView(recipeId: '2'), [
+        recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(recipe)),
+      ]),
+    );
+    await tester.pump();
+
+    // One folded row: the two garlic uses share a single amount cell whose
+    // amounts are joined "2 + 1" (never summed to 3).
+    expect(find.text('2 + 1'), findsOneWidget);
+    expect(find.text('3'), findsNothing);
+    // The ingredient identity renders in a rich line (amount + name + notes).
+    expect(
+      find.textContaining('Garlic', findRichText: true),
+      findsWidgets,
+    );
+  });
+
   testWidgets('RecipeEditorView builds a blank create form', (tester) async {
     await tester.pumpWidget(
       _host(const RecipeEditorView(), [

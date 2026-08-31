@@ -44,7 +44,7 @@ void main() {
       final units = allowedUnitsFor(
         _ing(tbsp, density: 0.91, category: 'fats & oils'),
       );
-      expect(units, [tbsp, tsp, cup, ml, g, pinch, dash, toTaste]);
+      expect(units, [tbsp, tsp, cup, ml, g, pinch, dash, handful, toTaste]);
     });
 
     test('the egg shape: count default /g — piece + basis base only', () {
@@ -55,14 +55,14 @@ void main() {
     test('the salt shape: the seasoning category admits the imprecise '
         'tail', () {
       final units = allowedUnitsFor(_ing(tsp, category: 'spices & seasoning'));
-      expect(units, [tsp, tbsp, g, pinch, dash, toTaste]);
+      expect(units, [tsp, tbsp, g, pinch, dash, handful, toTaste]);
     });
 
     test('an imprecise default keeps its whole tail + the basis base', () {
       final units = allowedUnitsFor(
         _ing(pinch, category: 'spices & seasoning'),
       );
-      expect(units, [g, pinch, dash, toTaste]);
+      expect(units, [g, pinch, dash, handful, toTaste]);
     });
 
     test('a per-ml liquid: volume default IS the basis family — no gram '

@@ -1,0 +1,155 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mise/core/units/units.dart';
+import 'package:mise/features/recipes/domain/method_step.dart';
+import 'package:mise/features/recipes/domain/recipe.dart';
+
+LineItem _li(String id, {double? qty, Unit unit = g}) => LineItem(
+  id: id,
+  ingredientId: 'ing-$id',
+  ingredientName: id,
+  unit: unit,
+  quantity: qty,
+);
+
+/// Runs the fold and returns only the chip amounts (null = quantity-less),
+/// in order.
+List<String?> _chipAmounts(
+  MethodStep step, {
+  required Map<String, LineItem> lineById,
+  double factor = 1,
+}) => foldMethod(
+  step,
+  lineById: lineById,
+  factor: factor,
+).whereType<MethodChipSpan>().map((c) => c.amount).toList();
+
+void main() {
+  final lines = {
+    'flour': _li('flour', qty: 200),
+    'eggs': _li('eggs', qty: 2, unit: pieces),
+    'salt': _li('salt', unit: toTaste),
+    'stock': _li('stock', qty: 2.5, unit: cup),
+  };
+
+  group('chip number derivation', () {
+    test('first mention (isNew) shows the line quantity', () {
+      const step = MethodStep(
+        tokens: [
+          MethodText(s: 'Add the '),
+          MethodRef(refs: ['flour'], label: 'flour'),
+          MethodText(s: '.'),
+        ],
+      );
+      expect(_chipAmounts(step, lineById: lines), ['200 g']);
+    });
+
+    test('a re-mention is quantity-less', () {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(
+            refs: ['flour'],
+            label: 'flour',
+            mention: StepMention.rementioned,
+          ),
+        ],
+      );
+      expect(_chipAmounts(step, lineById: lines), [null]);
+    });
+
+    test('a count reads as a bare number; an imprecise unit as its word', () {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(refs: ['eggs'], label: 'eggs'),
+          MethodRef(refs: ['salt'], label: 'salt'),
+        ],
+      );
+      expect(_chipAmounts(step, lineById: lines), ['2', 'to taste']);
+    });
+
+    test('a collective chip (more than one ref) shows no number', () {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(refs: ['flour', 'eggs'], label: 'the dry ingredients'),
+        ],
+      );
+      expect(_chipAmounts(step, lineById: lines), [null]);
+    });
+
+    test('a step portion wins over the line qty, even on a re-mention', () {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(
+            refs: ['stock'],
+            label: 'stock',
+            mention: StepMention.fraction,
+            portion: StepPortion(qty: 1, unit: 'cup'),
+          ),
+        ],
+      );
+      expect(_chipAmounts(step, lineById: lines), ['1 cup']);
+    });
+
+    test('a qualifier-only portion renders the relative word, no number', () {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(
+            refs: ['salt'],
+            label: 'salt',
+            portion: StepPortion(qualifier: 'for garnish'),
+          ),
+        ],
+      );
+      expect(_chipAmounts(step, lineById: lines), ['for garnish']);
+    });
+  });
+
+  group('scaling', () {
+    test('a first-mention line quantity and a numeric portion both scale', () {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(refs: ['flour'], label: 'flour'),
+          MethodRef(
+            refs: ['stock'],
+            label: 'stock',
+            portion: StepPortion(qty: 1, unit: 'cup'),
+          ),
+        ],
+      );
+      expect(_chipAmounts(step, lineById: lines, factor: 2), [
+        '400 g',
+        '2 cup',
+      ]);
+    });
+  });
+
+  group('timer formatting', () {
+    List<String> timers(MethodStep step) => foldMethod(
+      step,
+      lineById: const {},
+    ).whereType<MethodTimerSpan>().map((t) => t.text).toList();
+
+    test('single, range, and multi-hour times', () {
+      expect(
+        timers(
+          const MethodStep(
+            tokens: [
+              MethodTimer(lowSeconds: 600, highSeconds: 600),
+              MethodTimer(lowSeconds: 540, highSeconds: 660),
+              MethodTimer(lowSeconds: 9000, highSeconds: 9000),
+            ],
+          ),
+        ),
+        ['10 min', '9–11 min', '2 h 30 min'],
+      );
+    });
+  });
+
+  test('a missing line reference is quantity-less, never invented', () {
+    const step = MethodStep(
+      tokens: [
+        MethodRef(refs: ['ghost'], label: 'ghost'),
+      ],
+    );
+    expect(_chipAmounts(step, lineById: lines), [null]);
+  });
+}

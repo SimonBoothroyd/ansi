@@ -43,6 +43,11 @@ class LibraryView extends ConsumerWidget {
                     onPress: () => context.push('/recipes/new'),
                   ),
                   FItem(
+                    prefix: const Icon(FLucideIcons.download),
+                    title: const Text('Import a recipe'),
+                    onPress: () => context.push('/import'),
+                  ),
+                  FItem(
                     prefix: const Icon(FLucideIcons.bookPlus),
                     title: const Text('New book'),
                     onPress: () async {

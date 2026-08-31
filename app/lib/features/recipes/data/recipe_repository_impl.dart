@@ -14,6 +14,7 @@ import 'package:sqlite_async/sqlite_async.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../domain/method_step.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_macros.dart';
 import '../domain/recipe_repository.dart';
@@ -201,11 +202,13 @@ class SqliteRecipeRepository implements RecipeRepository {
       (itemsByGroup[row['group_id'] as String] ??= []).add(_toLineItem(row));
     }
 
+    final (plainSteps, methodSteps) = _parseSteps(r['steps'] as String?);
     return Recipe(
       id: r['id'] as String,
       title: r['title'] as String,
       servingsBase: (r['servings_base'] as num).toDouble(),
-      steps: (jsonDecode(r['steps'] as String? ?? '[]') as List).cast<String>(),
+      steps: plainSteps,
+      methodSteps: methodSteps,
       keepsForDays: r['keeps_for_days'] as int?,
       freezable: (r['freezable'] as int? ?? 0) == 1,
       freezerDays: r['freezer_days'] as int?,
@@ -251,6 +254,23 @@ class SqliteRecipeRepository implements RecipeRepository {
               source: r['measure_source'] as String?,
             ),
       note: r['note'] as String?,
+    );
+  }
+
+  /// Reads the `steps` jsonb, which holds one of two shapes ([mise-data-
+  /// ephemeral], no coexistence): a legacy array of plain-text strings (the
+  /// editor) or an array of tokenized step objects (import, step 8). A string
+  /// element ⇒ plain text; an object with `tokens` ⇒ tokenized.
+  (List<String>, List<MethodStep>?) _parseSteps(String? raw) {
+    final decoded = jsonDecode(raw ?? '[]');
+    if (decoded is! List || decoded.isEmpty) return (const [], null);
+    if (decoded.first is String) return (decoded.cast<String>(), null);
+    return (
+      const <String>[],
+      [
+        for (final e in decoded)
+          MethodStep.fromJson((e as Map).cast<String, Object?>()),
+      ],
     );
   }
 

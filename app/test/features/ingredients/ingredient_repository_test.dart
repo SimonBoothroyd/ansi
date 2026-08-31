@@ -65,6 +65,9 @@ void main() {
     await _seed(db, id: '3', name: 'Olive Oil', status: 'stub');
     await _seed(db, id: '4', name: 'Extra Firm Tofu');
     await _seed(db, id: '5', name: 'All-Purpose Flour');
+    await _seed(db, id: '6', name: 'Canned Whole Tomatoes');
+    await _seed(db, id: '7', name: 'Chicken thigh');
+    await _seed(db, id: '8', name: 'Coconut milk, canned');
   });
 
   tearDown(() => closeTestDb(db, dir));
@@ -73,6 +76,9 @@ void main() {
     final all = await repo.search('');
     expect(all.map((i) => i.canonicalName), [
       'All-Purpose Flour',
+      'Canned Whole Tomatoes',
+      'Chicken thigh',
+      'Coconut milk, canned',
       'Extra Firm Tofu',
       'Olive Oil',
       'Onion',
@@ -110,6 +116,48 @@ void main() {
     // And the un-hyphenated spelling hits the same row.
     final r2 = await repo.search('all purpose');
     expect(r2.map((i) => i.canonicalName), contains('All-Purpose Flour'));
+  });
+
+  group('token-subset search (order-independent, extra words fine)', () {
+    test('"canned tomatoes" finds "Canned Whole Tomatoes"', () async {
+      final r = await repo.search('canned tomatoes');
+      expect(
+        r.map((i) => i.canonicalName),
+        contains('Canned Whole Tomatoes'),
+      );
+    });
+
+    test('"coconut milk" finds "Coconut milk, canned"', () async {
+      final r = await repo.search('coconut milk');
+      expect(r.map((i) => i.canonicalName), contains('Coconut milk, canned'));
+    });
+
+    test('word order does not matter', () async {
+      final r = await repo.search('tomatoes canned');
+      expect(
+        r.map((i) => i.canonicalName),
+        contains('Canned Whole Tomatoes'),
+      );
+    });
+
+    test('every token must be present — a missing token excludes the row',
+        () async {
+      // "canned" alone hits both canned rows; adding "beans" (present in
+      // neither) must drop them.
+      expect(await repo.search('canned beans'), isEmpty);
+    });
+
+    test('a mistyped token in a multi-word query still finds it (fuzzy '
+        'fallback)', () async {
+      final r = await repo.search('chikn thigh');
+      expect(r.map((i) => i.canonicalName), contains('Chicken thigh'));
+    });
+
+    test('a single mistyped word does NOT fuzzy-hit (strict word boundary)',
+        () async {
+      // The fuzzy fallback needs the corroboration of a second token.
+      expect(await repo.search('chikn'), isEmpty);
+    });
   });
 
   test('a LIKE wildcard in the query is stripped, not a pattern', () async {

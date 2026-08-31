@@ -10,11 +10,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
-import '../../../core/units/units.dart';
 import '../data/recipe_providers.dart';
+import '../domain/line_display.dart';
+import '../domain/method_step.dart';
 import '../domain/recipe.dart';
 import '../domain/scaling.dart';
 import 'format.dart';
+import 'ingredient_line.dart';
 import 'recipe_view_models.dart';
 
 class RecipeView extends ConsumerWidget {
@@ -136,7 +138,7 @@ class _RecipeBody extends HookConsumerWidget {
               onServings: (v) => servings.value = v,
             )
           else
-            _MethodTab(steps: recipe.steps),
+            _MethodTab(recipe: recipe, servings: servings.value),
         ],
       ),
     );
@@ -363,7 +365,8 @@ class _IngredientsTab extends StatelessWidget {
             ),
             const _Hairline(),
           ],
-          for (final item in group.items) _LineRow(item: item),
+          for (final uses in groupLineUses(group.items))
+            RecipeIngredientLine(uses: uses),
         ],
       ],
     );
@@ -428,64 +431,18 @@ class _ScaleControl extends StatelessWidget {
   }
 }
 
-class _LineRow extends StatelessWidget {
-  const _LineRow({required this.item});
-
-  final LineItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final name = item.note == null
-        ? item.ingredientName
-        : '${item.ingredientName}, ${item.note}';
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 9),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Expanded(child: Text(name, style: miseSans(size: 16))),
-              const SizedBox(width: 12),
-              Text(
-                _measure(item),
-                textAlign: TextAlign.right,
-                style: miseMono(size: 16),
-              ),
-            ],
-          ),
-        ),
-        const _Hairline(),
-      ],
-    );
-  }
-
-  String _measure(LineItem item) {
-    final qty = formatQuantity(item.quantity);
-    // A named measure reads as "2 potato, large" (falls back to the stored
-    // count unit below while the measure row hasn't synced).
-    final measure = item.measure;
-    if (measure != null) {
-      return qty.isEmpty ? measure.label : '$qty ${measure.label}';
-    }
-    if (item.unit.family == UnitFamily.count) {
-      return qty.isEmpty ? item.unit.label : qty;
-    }
-    if (qty.isEmpty) return item.unit.label;
-    return '$qty ${item.unit.label}';
-  }
-}
 
 class _MethodTab extends StatelessWidget {
-  const _MethodTab({required this.steps});
+  const _MethodTab({required this.recipe, required this.servings});
 
-  final List<String> steps;
+  final Recipe recipe;
+  final double servings;
 
   @override
   Widget build(BuildContext context) {
-    if (steps.isEmpty) {
+    final tokenized = recipe.methodSteps;
+    final plain = recipe.steps;
+    if ((tokenized == null || tokenized.isEmpty) && plain.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 24),
         child: Text(
@@ -494,13 +451,44 @@ class _MethodTab extends StatelessWidget {
         ),
       );
     }
+
+    // A tokenized (imported) method renders chips via the fold; the chips'
+    // numbers come live off the line items, scaled with the servings control.
+    if (tokenized != null && tokenized.isNotEmpty) {
+      final lineById = {
+        for (final g in recipe.groups)
+          for (final i in g.items) i.id: i,
+      };
+      final factor = scaleFactorFor(recipe, servings);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 16),
+          for (var i = 0; i < tokenized.length; i++) ...[
+            if (i > 0) const FDivider(),
+            _StepRow(
+              number: i + 1,
+              child: _TokenizedStep(
+                step: tokenized[i],
+                lineById: lineById,
+                factor: factor,
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 16),
-        for (var i = 0; i < steps.length; i++) ...[
+        for (var i = 0; i < plain.length; i++) ...[
           if (i > 0) const FDivider(),
-          _StepRow(number: i + 1, text: steps[i]),
+          _StepRow(
+            number: i + 1,
+            child: Text(plain[i], style: miseSans(size: 16, height: 1.4)),
+          ),
         ],
       ],
     );
@@ -508,10 +496,10 @@ class _MethodTab extends StatelessWidget {
 }
 
 class _StepRow extends StatelessWidget {
-  const _StepRow({required this.number, required this.text});
+  const _StepRow({required this.number, required this.child});
 
   final int number;
-  final String text;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -541,10 +529,124 @@ class _StepRow extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Text(text, style: miseSans(size: 16, height: 1.4)),
+              child: child,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Renders one tokenized step: prose interleaved with ingredient chips and
+/// timers, produced by the pure [foldMethod] fold (never render-time matching).
+class _TokenizedStep extends StatelessWidget {
+  const _TokenizedStep({
+    required this.step,
+    required this.lineById,
+    required this.factor,
+  });
+
+  final MethodStep step;
+  final Map<String, LineItem> lineById;
+  final double factor;
+
+  @override
+  Widget build(BuildContext context) {
+    final spans = foldMethod(step, lineById: lineById, factor: factor);
+    return Text.rich(
+      TextSpan(
+        children: [
+          for (final span in spans)
+            switch (span) {
+              MethodTextSpan(:final text) => TextSpan(text: text),
+              MethodChipSpan(:final label, :final amount) => WidgetSpan(
+                alignment: PlaceholderAlignment.middle,
+                child: _IngredientChip(label: label, amount: amount),
+              ),
+              MethodTimerSpan(:final text) => WidgetSpan(
+                alignment: PlaceholderAlignment.middle,
+                child: _TimerChip(text: text),
+              ),
+            },
+        ],
+        style: miseSans(size: 16, height: 1.5),
+      ),
+    );
+  }
+}
+
+/// An inline ingredient chip: the label, plus the live amount when the fold
+/// derived one (first mention or a step portion; collective chips show none).
+class _IngredientChip extends StatelessWidget {
+  const _IngredientChip({required this.label, this.amount});
+
+  final String label;
+  final String? amount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 1),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: MiseColors.herbSoft,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: miseSans(
+                  size: 15,
+                  color: MiseColors.herbDeep,
+                  weight: FontWeight.w600,
+                ),
+              ),
+              if (amount != null) ...[
+                const SizedBox(width: 5),
+                Text(
+                  amount!,
+                  style: miseMono(size: 12, color: MiseColors.herb),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimerChip extends StatelessWidget {
+  const _TimerChip({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 1),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: MiseColors.paper,
+          border: Border.all(color: MiseColors.line),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(FLucideIcons.timer, size: 12, color: MiseColors.muted),
+              const SizedBox(width: 4),
+              Text(text, style: miseMono(size: 12)),
+            ],
+          ),
+        ),
       ),
     );
   }

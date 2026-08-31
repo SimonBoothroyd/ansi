@@ -13,11 +13,14 @@ evaluation harnesses as first-class repo content.
   choice/compound lines carry several candidates. Scored once the cascade lands
   (step 8). Regenerate after re-mining or editing the vocab:
   `deno run --allow-read --allow-write runner/gen_matching_cases.ts`.
-- `datasets/extraction/` — page/photo fixtures with expected structured output
-  (added later; extraction is roadmap step 8).
-- `runner/run.sh` — scores normalization now; reports the matching set as ready
-  but unscored until the engine exists. Wired into `make evals` and the nightly
-  workflow.
+- `datasets/extraction/gold/` — the blessed structured gold (the oracle, 11
+  labelled recipes; read-only). The source photos live in `images/` and are
+  gitignored (copyright + EXIF). Scored by the extraction / provider benchmark
+  (lane D) — see `runner/EXTRACTION.md` for the rubric, stages (D1/D2/D3),
+  paths, and the never-invent ledger.
+- `runner/run.sh` — scores normalization + the extraction D2 stage (keyless mock)
+  now; reports the matching set as ready but unscored until the engine exists.
+  Wired into `make evals` and the nightly workflow.
 
 ## Run
 
