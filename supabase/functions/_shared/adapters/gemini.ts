@@ -1,23 +1,27 @@
 // Gemini Flash adapter — behind the frozen ExtractAdapter.
 //
-// Model id: `gemini-flash-latest` (the `GEMINI_FLASH_MODEL` constant below —
-// the current Flash tier; overridable via options). NOTE: model id + capability
-// facts for Gemini come from general
-// provider knowledge, not the `claude-api` reference (which is Anthropic-only) —
-// re-confirm against Google's docs before the live compare. Vision: yes
-// (inline_data image parts). Native structured output: `responseMimeType:
-// "application/json"` + `responseSchema` in generationConfig. Raw HTTP to the
-// Generative Language REST endpoint keeps the three adapters uniform.
+// Model id: `gemini-3.5-flash` (the `GEMINI_FLASH_MODEL` constant below).
+// CONFIRMED 2026-08-31 against Google's own model-list endpoint
+// (`GET /v1beta/models`, which reports version `3.5-flash-05-2026`) and
+// https://ai.google.dev/gemini-api/docs/models. This replaces the previous
+// `gemini-flash-latest` pin, which was an ALIAS — the 0018 convention is exact
+// ids, because an alias silently re-points and makes two dated benchmark runs
+// incomparable. Vision: yes (inline_data image parts). Native structured
+// output: `responseMimeType: "application/json"` + `responseSchema` in
+// generationConfig. Raw HTTP to the Generative Language REST endpoint keeps the
+// three adapters uniform.
 //
 // KEYLESS: needs GEMINI_API_KEY (or GOOGLE_API_KEY) for a live call.
 
 import type {
   ExtractAdapter,
   ExtractionResult,
+  ProviderCallSink,
   RawBlob,
   UnitHints,
 } from "../types.ts";
 import { ImportError } from "../errors.ts";
+import { emitCall, geminiUsage } from "./usage.ts";
 import {
   coerceExtractionResult,
   ExtractionParseError,
@@ -38,7 +42,9 @@ import {
   toBase64,
 } from "./http.ts";
 
-export const GEMINI_FLASH_MODEL = "gemini-flash-latest";
+export const GEMINI_FLASH_MODEL = "gemini-3.5-flash";
+/** The alias this adapter used before 2026-08-31 — kept for A/B reruns only. */
+export const GEMINI_FLASH_MODEL_PREVIOUS = "gemini-flash-latest";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 export interface GeminiAdapterOptions {
@@ -69,18 +75,71 @@ function resolveKey(explicit?: string): string {
   return requireKey("GEMINI_API_KEY", "Gemini");
 }
 
+/** `finishReason: "MAX_TOKENS"` ⇒ the payload is cut off; never parse it. */
+function assertComplete(res: GeminiResponse): void {
+  if (res.candidates?.[0]?.finishReason === "MAX_TOKENS") {
+    throw new ImportError(
+      "this recipe is too long to import in one go — try importing it in parts",
+    );
+  }
+}
+
+function firstText(res: GeminiResponse): string {
+  const parts = res.candidates?.[0]?.content?.parts ?? [];
+  const text = parts.map((p) => p.text ?? "").join("");
+  if (text.trim() === "") {
+    throw new ExtractionParseError("Gemini returned no text", res);
+  }
+  return text;
+}
+
+/**
+ * VERBATIM response → `ExtractionResult`. Split out of `sanitize` so a saved raw
+ * response can be rescored later with no second paid call (evals `--rescore`).
+ */
+export function decodeGeminiSanitize(res: unknown): ExtractionResult {
+  const typed = res as GeminiResponse;
+  assertComplete(typed); // never JSON.parse a truncated payload
+  const json = JSON.parse(extractJson(firstText(typed)));
+  return validateExtractionResult(coerceExtractionResult(json));
+}
+
+/** VERBATIM response → the transcription text (the D1 half of the decode). */
+export function decodeGeminiTranscribe(res: unknown): string {
+  const typed = res as GeminiResponse;
+  assertComplete(typed);
+  return firstText(typed);
+}
+
 export class GeminiFlashAdapter implements ExtractAdapter {
   readonly name = "gemini-flash";
-  readonly #model: string;
+  readonly model: string;
   readonly #apiKey: string;
+  /** Optional benchmark observer; unset in production (see `ExtractAdapter`). */
+  onCall?: ProviderCallSink;
 
   constructor(opts: GeminiAdapterOptions = {}) {
-    this.#model = opts.model ?? GEMINI_FLASH_MODEL;
+    this.model = opts.model ?? GEMINI_FLASH_MODEL;
     this.#apiKey = resolveKey(opts.apiKey);
   }
 
   #url(): string {
-    return `${GEMINI_BASE}/${this.#model}:generateContent`;
+    return `${GEMINI_BASE}/${this.model}:generateContent`;
+  }
+
+  #emit(
+    op: "transcribe" | "sanitize",
+    raw: unknown,
+    startedAt: number,
+  ): void {
+    emitCall(this.onCall, {
+      provider: this.name,
+      model: this.model,
+      op,
+      usage: geminiUsage(raw),
+      latency_ms: Math.round(performance.now() - startedAt),
+      raw,
+    });
   }
 
   /**
@@ -92,24 +151,6 @@ export class GeminiFlashAdapter implements ExtractAdapter {
     return { "x-goog-api-key": this.#apiKey };
   }
 
-  /** `finishReason: "MAX_TOKENS"` ⇒ the payload is cut off; never parse it. */
-  #assertComplete(res: GeminiResponse): void {
-    if (res.candidates?.[0]?.finishReason === "MAX_TOKENS") {
-      throw new ImportError(
-        "this recipe is too long to import in one go — try importing it in parts",
-      );
-    }
-  }
-
-  #firstText(res: GeminiResponse): string {
-    const parts = res.candidates?.[0]?.content?.parts ?? [];
-    const text = parts.map((p) => p.text ?? "").join("");
-    if (text.trim() === "") {
-      throw new ExtractionParseError("Gemini returned no text", res);
-    }
-    return text;
-  }
-
   async transcribe(images: Uint8Array[]): Promise<RawBlob> {
     const resized = await Promise.all(images.map(resizeForUpload));
     const parts = [
@@ -118,6 +159,7 @@ export class GeminiFlashAdapter implements ExtractAdapter {
       })),
       { text: TRANSCRIBE_PROMPT },
     ];
+    const startedAt = performance.now();
     const res = await postJson({
       url: this.#url(),
       headers: this.#headers(),
@@ -126,17 +168,18 @@ export class GeminiFlashAdapter implements ExtractAdapter {
         contents: [{ role: "user", parts }],
         generationConfig: { maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS },
       },
-    }) as GeminiResponse;
-    this.#assertComplete(res);
+    });
+    this.#emit("transcribe", res, startedAt);
     return {
       source: "transcription",
       url: null,
       jsonld: null,
-      text: this.#firstText(res),
+      text: decodeGeminiTranscribe(res),
     };
   }
 
   async sanitize(blob: RawBlob, hints: UnitHints): Promise<ExtractionResult> {
+    const startedAt = performance.now();
     const res = await postJson({
       url: this.#url(),
       headers: this.#headers(),
@@ -153,9 +196,8 @@ export class GeminiFlashAdapter implements ExtractAdapter {
           maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS,
         },
       },
-    }) as GeminiResponse;
-    this.#assertComplete(res); // never JSON.parse a truncated payload
-    const json = JSON.parse(extractJson(this.#firstText(res)));
-    return validateExtractionResult(coerceExtractionResult(json));
+    });
+    this.#emit("sanitize", res, startedAt);
+    return decodeGeminiSanitize(res);
   }
 }
