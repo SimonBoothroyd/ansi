@@ -14,6 +14,7 @@
 /// is unconfigured (dev/offline) and in tests.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
@@ -35,6 +36,13 @@ const _uploadMaxEdge = 1568;
 
 /// Re-encode quality for the downscaled JPEG (matches the server's ~85).
 const _uploadJpegQuality = 85;
+
+/// How long the client waits for `import-recipe`. A multi-page photo import
+/// through the vision tier is genuinely slow (tens of seconds), so this is
+/// generous — but unbounded is not an option: `functions.invoke` has no
+/// deadline of its own, and a hung request leaves the user on the "Reading the
+/// recipe…" spinner with no way back but killing the app.
+const _invokeTimeout = Duration(seconds: 60);
 
 /// Downscales one page's [bytes] so its longest edge is ≈ [_uploadMaxEdge],
 /// re-encoded as JPEG. Runs off the UI isolate (decoding a full-res phone photo
@@ -89,7 +97,14 @@ class EdgeImportRepository implements ImportRepository {
     final body = await _bodyFor(source);
     final FunctionResponse response;
     try {
-      response = await _functions.invoke('import-recipe', body: body);
+      response = await _functions
+          .invoke('import-recipe', body: body)
+          .timeout(_invokeTimeout);
+    } on TimeoutException {
+      throw const ImportException(
+        'the import service took too long to answer — check your connection '
+        'and try again',
+      );
     } on FunctionException catch (e) {
       // The edge fn returns `{error, detail}` on a handled failure (422/500);
       // surface the human-readable `error` when present.

@@ -13,9 +13,14 @@ part of 'import_providers.dart';
 /// `commit` is always the local PowerSync writer ([SqliteImportRepository]).
 /// The extract→match step is what varies: with Supabase configured
 /// ([Env.isConfigured]) it runs for real against the `import-recipe` edge
-/// function ([EdgeImportRepository]); unconfigured (dev/offline, and tests) it
-/// falls back to the canned/fake repository so the flow still exercises end to
-/// end without a backend.
+/// function ([EdgeImportRepository]).
+///
+/// Unconfigured, extraction has nowhere to run, so it FAILS LOUDLY
+/// ([_UnconfiguredImport]). It used to fall through to the canned demo payload
+/// — which meant a misconfigured build silently answered "import this URL" with
+/// somebody else's spaghetti recipe. Tests and the on-device smoke test get the
+/// canned repository by naming [SqliteImportRepository] directly, never by
+/// accident.
 
 @ProviderFor(importRepository)
 const importRepositoryProvider = ImportRepositoryProvider._();
@@ -25,9 +30,14 @@ const importRepositoryProvider = ImportRepositoryProvider._();
 /// `commit` is always the local PowerSync writer ([SqliteImportRepository]).
 /// The extract→match step is what varies: with Supabase configured
 /// ([Env.isConfigured]) it runs for real against the `import-recipe` edge
-/// function ([EdgeImportRepository]); unconfigured (dev/offline, and tests) it
-/// falls back to the canned/fake repository so the flow still exercises end to
-/// end without a backend.
+/// function ([EdgeImportRepository]).
+///
+/// Unconfigured, extraction has nowhere to run, so it FAILS LOUDLY
+/// ([_UnconfiguredImport]). It used to fall through to the canned demo payload
+/// — which meant a misconfigured build silently answered "import this URL" with
+/// somebody else's spaghetti recipe. Tests and the on-device smoke test get the
+/// canned repository by naming [SqliteImportRepository] directly, never by
+/// accident.
 
 final class ImportRepositoryProvider
     extends
@@ -42,9 +52,14 @@ final class ImportRepositoryProvider
   /// `commit` is always the local PowerSync writer ([SqliteImportRepository]).
   /// The extract→match step is what varies: with Supabase configured
   /// ([Env.isConfigured]) it runs for real against the `import-recipe` edge
-  /// function ([EdgeImportRepository]); unconfigured (dev/offline, and tests) it
-  /// falls back to the canned/fake repository so the flow still exercises end to
-  /// end without a backend.
+  /// function ([EdgeImportRepository]).
+  ///
+  /// Unconfigured, extraction has nowhere to run, so it FAILS LOUDLY
+  /// ([_UnconfiguredImport]). It used to fall through to the canned demo payload
+  /// — which meant a misconfigured build silently answered "import this URL" with
+  /// somebody else's spaghetti recipe. Tests and the on-device smoke test get the
+  /// canned repository by naming [SqliteImportRepository] directly, never by
+  /// accident.
   const ImportRepositoryProvider._()
     : super(
         from: null,
@@ -78,4 +93,4 @@ final class ImportRepositoryProvider
   }
 }
 
-String _$importRepositoryHash() => r'9ba16193303fe20d00999a34a404a59c96e3dd22';
+String _$importRepositoryHash() => r'c7deb4afe5ccc5bfffc7b3b1c9d2c7ff2477a428';

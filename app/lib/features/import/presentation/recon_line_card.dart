@@ -37,14 +37,12 @@ class ReviewLineCard extends HookConsumerWidget {
   const ReviewLineCard({
     required this.line,
     required this.resolution,
-    required this.controller,
     this.validation,
     super.key,
   });
 
   final ReconLine line;
   final LineResolution resolution;
-  final ImportController controller;
 
   /// The line's validity + unit chips (from `importValidation`). Null while
   /// validation is still loading — the card falls back to the structural
@@ -67,7 +65,6 @@ class ReviewLineCard extends HookConsumerWidget {
           ? _Expanded(
               line: line,
               resolution: resolution,
-              controller: controller,
               validation: effective,
               matched: matched,
               onCollapse: () => expanded.value = false,
@@ -189,11 +186,10 @@ class _Collapsed extends StatelessWidget {
 /// (tap the ingredient), then the amount editor + notes — which stay disabled
 /// until an ingredient is matched (round-2 #7: a unit/note is meaningless with
 /// no ingredient to derive an allowed set from).
-class _Expanded extends StatelessWidget {
+class _Expanded extends ConsumerWidget {
   const _Expanded({
     required this.line,
     required this.resolution,
-    required this.controller,
     required this.validation,
     required this.matched,
     required this.onCollapse,
@@ -201,7 +197,6 @@ class _Expanded extends StatelessWidget {
 
   final ReconLine line;
   final LineResolution resolution;
-  final ImportController controller;
   final LineValidation validation;
   final bool matched;
   final VoidCallback onCollapse;
@@ -209,7 +204,12 @@ class _Expanded extends StatelessWidget {
   int get _index => resolution.lineIndex;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Read at CALL time, never captured: `Resolver` hands its picks back after
+    // an awaited sheet, and a notifier instance captured before that await can
+    // be a disposed one by the time it lands.
+    void update(LineResolution Function(LineResolution) f) =>
+        ref.read(importControllerProvider.notifier).updateResolution(_index, f);
     final issues = validation.issues;
     final label = attentionLabel(issues);
     final reference = rawLineText(line.raw);
@@ -264,15 +264,10 @@ class _Expanded extends StatelessWidget {
         Resolver(
           candidates: line.candidates,
           resolution: resolution,
-          onResolveExisting: (id, name, {required correction}) =>
-              controller.updateResolution(
-                _index,
-                (r) => r.resolveToIngredient(id, name, correction: correction),
-              ),
-          onResolveStub: (name) => controller.updateResolution(
-            _index,
-            (r) => r.resolveToNewStub(name),
+          onResolveExisting: (id, name, {required correction}) => update(
+            (r) => r.resolveToIngredient(id, name, correction: correction),
           ),
+          onResolveStub: (name) => update((r) => r.resolveToNewStub(name)),
         ),
         const SizedBox(height: 14),
         Row(
@@ -280,7 +275,7 @@ class _Expanded extends StatelessWidget {
             SizedBox(width: 64, child: Text('AMOUNT', style: miseLabel())),
             const SizedBox(width: 8),
             if (matched)
-              AmountEditor(lineIndex: _index, controller: controller)
+              AmountEditor(lineIndex: _index)
             else
               _DisabledChip(label: amountLabel(resolution, line.raw)),
           ],
@@ -290,16 +285,11 @@ class _Expanded extends StatelessWidget {
           _UnitSuggestions(
             choices: validation.unitChoices,
             selected: resolution.unit,
-            onPick: (token) =>
-                controller.updateResolution(_index, (r) => r.pickUnit(token)),
+            onPick: (token) => update((r) => r.pickUnit(token)),
           ),
         ],
         const SizedBox(height: 12),
-        _NotesEditor(
-          lineIndex: _index,
-          controller: controller,
-          enabled: matched,
-        ),
+        _NotesEditor(lineIndex: _index, enabled: matched),
         if (!matched)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -402,14 +392,9 @@ class _AttentionTag extends StatelessWidget {
 /// The inline notes field — the missing "edit the notes" affordance. Blank
 /// clears the note; a value is trimmed and stored.
 class _NotesEditor extends ConsumerWidget {
-  const _NotesEditor({
-    required this.lineIndex,
-    required this.controller,
-    required this.enabled,
-  });
+  const _NotesEditor({required this.lineIndex, required this.enabled});
 
   final int lineIndex;
-  final ImportController controller;
   final bool enabled;
 
   @override
@@ -429,10 +414,9 @@ class _NotesEditor extends ConsumerWidget {
             hint: 'e.g. finely chopped, to serve',
             control: FTextFieldControl.managed(
               initial: TextEditingValue(text: resolution.notes ?? ''),
-              onChange: (v) => controller.updateResolution(
-                lineIndex,
-                (r) => r.setNotes(v.text),
-              ),
+              onChange: (v) => ref
+                  .read(importControllerProvider.notifier)
+                  .updateResolution(lineIndex, (r) => r.setNotes(v.text)),
             ),
           ),
         ),
@@ -516,7 +500,6 @@ class _Card extends StatelessWidget {
 Future<void> editLineAmount(
   BuildContext context,
   WidgetRef ref,
-  ImportController controller,
   int lineIndex,
 ) async {
   final state = ref.read(importControllerProvider);
@@ -566,7 +549,10 @@ Future<void> editLineAmount(
     initialChoice: unit != null ? UnitOption(unit) : null,
   );
   if (result is! QuantitySaved) return;
-  controller.updateResolution(lineIndex, (r) {
+  // The notifier is read HERE, after the awaited sheet — never captured before
+  // it and never threaded in through a constructor: the instance a widget was
+  // built with can be stale (or disposed) by the time the sheet closes.
+  ref.read(importControllerProvider.notifier).updateResolution(lineIndex, (r) {
     final picked = sheetChoiceUnit(
       choice: result.choice,
       unitPicked: result.unitPicked,
@@ -579,14 +565,9 @@ Future<void> editLineAmount(
 /// The tap-to-edit amount chip (decision 6). Shows the resolved amount, else
 /// the printed raw amount, else a prompt; tapping opens the amount sheet.
 class AmountEditor extends ConsumerWidget {
-  const AmountEditor({
-    required this.lineIndex,
-    required this.controller,
-    super.key,
-  });
+  const AmountEditor({required this.lineIndex, super.key});
 
   final int lineIndex;
-  final ImportController controller;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -599,7 +580,7 @@ class AmountEditor extends ConsumerWidget {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => editLineAmount(context, ref, controller, lineIndex),
+      onTap: () => editLineAmount(context, ref, lineIndex),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: MiseColors.paper,
@@ -643,7 +624,7 @@ class _Flags extends StatelessWidget {
   Widget build(BuildContext context) {
     final flags = <String>[
       if (raw.optional) 'optional',
-      if (raw.confidence < 0.75)
+      if (raw.confidence < kLowConfidenceFloor)
         'low confidence ${(raw.confidence * 100).round()}%',
       if (!raw.unitMappable && (raw.unit?.isNotEmpty ?? false))
         'unit "${raw.unit}" needs a look',

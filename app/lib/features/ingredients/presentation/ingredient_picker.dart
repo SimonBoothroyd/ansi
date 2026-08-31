@@ -247,7 +247,7 @@ class IngredientRow extends StatelessWidget {
 /// "＋ can't find it? add a new ingredient" — creates a manual stub named
 /// after the query (or prompts nothing when the query is blank: the row is
 /// disabled until something is typed).
-class AddNewIngredientRow extends ConsumerWidget {
+class AddNewIngredientRow extends HookConsumerWidget {
   const AddNewIngredientRow({
     required this.query,
     required this.onCreated,
@@ -260,16 +260,25 @@ class AddNewIngredientRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final name = query.trim();
-    final enabled = name.isNotEmpty;
+    // Creating a stub is a write with no idempotency key, so a double tap
+    // during the round-trip would author two identical vocab rows. The row
+    // goes inert for the duration instead.
+    final creating = useState(false);
+    final enabled = name.isNotEmpty && !creating.value;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: !enabled
           ? null
           : () async {
-              final created = await ref
-                  .read(ingredientRepositoryProvider)
-                  .createStub(name);
-              if (context.mounted) onCreated(created);
+              creating.value = true;
+              try {
+                final created = await ref
+                    .read(ingredientRepositoryProvider)
+                    .createStub(name);
+                if (context.mounted) onCreated(created);
+              } finally {
+                if (context.mounted) creating.value = false;
+              }
             },
       child: DashedBorderBox(
         color: enabled ? MiseColors.herb : MiseColors.line,

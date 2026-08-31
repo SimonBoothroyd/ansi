@@ -23,6 +23,12 @@ abstract interface class IngredientRepository {
   /// e.g. the edit-top-up sheet filtering its unit picker.
   Future<Ingredient?> byId(String id);
 
+  /// The live vocab rows for [ids], keyed by id — missing/tombstoned ids are
+  /// simply absent. One query for a whole set: the import review validates
+  /// every line's unit against its ingredient, and doing that a row at a time
+  /// is a DB round-trip per line on every edit.
+  Future<Map<String, Ingredient>> byIds(Set<String> ids);
+
   /// Creates a stub vocab row named [name] (source `manual`, no density or
   /// macros — invariant 3 keeps it out of conversions until fleshed out) and
   /// returns it. The picker's "can't find it? add new" affordance.

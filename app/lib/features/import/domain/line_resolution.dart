@@ -5,13 +5,14 @@
 /// which ingredient it resolved to (an existing one, or a create-new stub),
 /// and — for a printed **range** — which number the user picked. `none` lines
 /// start unresolved; the human resolves them (spec §8). The invariant is
-/// enforced at the seam: `buildCommit` throws if any line is still unresolved,
-/// so a partial import can never reach PowerSync.
+/// enforced at the seam: `buildCommit` throws unless every line is resolved AND
+/// valid, so a partial import can never reach PowerSync.
 library;
 
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/search_query.dart';
 import 'commit_payload.dart';
+import 'line_validation.dart';
 import 'reconciliation_payload.dart';
 
 /// One line's resolution. Exactly one of [chosenIngredientId] /
@@ -188,76 +189,17 @@ List<LineResolution> initialResolutions(ReconciliationPayload payload) {
   ];
 }
 
-/// Whether every line in [resolutions] is resolved — the commit gate.
+/// Whether every line in [resolutions] is resolved — the structural half of
+/// the commit gate ([buildCommit] also demands unit validity).
 bool allResolved(List<LineResolution> resolutions) =>
     resolutions.every((r) => r.isResolved);
 
-/// The confidence floor below which a line is surfaced for review (mirrors the
-/// recon card's honest-import flags).
-const _confidenceFloor = 0.75;
+/// The confidence floor below which an extracted line is surfaced as shaky —
+/// the single source for the recon card's honest-import flags (0014).
+const kLowConfidenceFloor = 0.75;
 
-/// Whether a line needs the user's attention in triage (v3): anything not a
-/// clean `auto` match. An `auto` line that resolved cleanly — mappable unit,
-/// confident, no unpicked range, and (for a precise unit) a printed number —
-/// folds into the collapsed "auto-matched" section; everything else surfaces.
-///
-/// This is the never-invent surfacing rule (0014) turned into a single
-/// predicate: a shaky match is never quietly folded away.
-bool needsReview(ReconLine line, LineResolution resolution) {
-  if (!resolution.isResolved) return true;
-  if (resolution.isRange) return true;
-  if (line.band != MatchBand.auto) return true;
-  final raw = line.raw;
-  if (!raw.unitMappable) return true;
-  if (raw.confidence < _confidenceFloor) return true;
-  // A precise (mass/volume) unit with no number is a "needs a weight" line.
-  final hasPreciseUnit = (raw.unit?.isNotEmpty ?? false) && raw.unitMappable;
-  if (hasPreciseUnit && resolution.quantity == null) return true;
-  return false;
-}
-
-/// One triage row: a set of flattened line indexes that share an ingredient
-/// identity within a single reconciliation group (the "used N ways" fold). A
-/// single-use line is a one-element group. Resolving the group writes the same
-/// ingredient to every member; amounts + prep stay strictly per use.
-class ReconUseGroup {
-  const ReconUseGroup({required this.lineIndexes})
-    : assert(lineIndexes.length > 0, 'a use group needs a line');
-
-  final List<int> lineIndexes;
-
-  bool get isMultiUse => lineIndexes.length > 1;
-  int get first => lineIndexes.first;
-}
-
-/// Folds a payload's flattened lines into [ReconUseGroup]s: lines with the same
-/// normalized identity within one reconciliation group coalesce, in
-/// first-occurrence order. Identity is the raw `ingredientText` — grouping is
-/// blind to the eventual match, exactly as the recipe page's inline fold is.
-List<ReconUseGroup> groupReconUses(ReconciliationPayload payload) {
-  final groups = <ReconUseGroup>[];
-  var flatIndex = 0;
-  for (final group in payload.groups) {
-    final order = <String>[];
-    final byKey = <String, List<int>>{};
-    for (final line in group.lines) {
-      final key = normalizeSearchQuery(line.raw.ingredientText);
-      byKey
-          .putIfAbsent(key, () {
-            order.add(key);
-            return <int>[];
-          })
-          .add(flatIndex);
-      flatIndex++;
-    }
-    for (final key in order) {
-      groups.add(ReconUseGroup(lineIndexes: byKey[key]!));
-    }
-  }
-  return groups;
-}
-
-/// Builds the [CommitPayload] from a fully-resolved reconciliation.
+/// Builds the [CommitPayload] from a fully-resolved, fully-valid
+/// reconciliation.
 ///
 /// - Coalesces create-new stubs by normalized name — identical no-match lines
 ///   land on one [CommitStub] (0014's within-import dedupe).
@@ -265,15 +207,28 @@ List<ReconUseGroup> groupReconUses(ReconciliationPayload payload) {
 ///   refs index into it; the repo remaps on write).
 /// - Emits an alias correction for every user override of a matched line.
 ///
-/// Throws [StateError] if any line is unresolved — the never-dangling-line
-/// invariant is enforced here, not hoped for.
+/// Throws [StateError] unless EVERY line clears [issuesByLine] — the
+/// never-dangling-line invariant, and unit validity with it, are enforced here
+/// rather than hoped for. [issuesByLine] is the per-line [lineIssues] result
+/// for the whole import (see `importValidation`); the review screen derives its
+/// Save button from the same map, so the button and this gate can never
+/// disagree. Pass `null` only where the ingredient-backed unit check genuinely
+/// cannot run — the structural resolve check still applies.
 CommitPayload buildCommit(
   ReconciliationPayload payload,
   List<LineResolution> resolutions, {
   required double servingsBase,
+  required Map<int, List<LineIssue>>? issuesByLine,
 }) {
   if (!allResolved(resolutions)) {
     throw StateError('every line must be resolved before commit');
+  }
+  if (issuesByLine != null && !allLinesValid(issuesByLine)) {
+    final open = issuesByLine.entries
+        .where((e) => e.value.isNotEmpty)
+        .map((e) => '${e.key}:${e.value.map((i) => i.name).join('+')}')
+        .join(', ');
+    throw StateError('every line must be valid before commit — open: $open');
   }
   final byIndex = {for (final r in resolutions) r.lineIndex: r};
 
