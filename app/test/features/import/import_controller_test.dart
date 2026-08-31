@@ -120,6 +120,57 @@ void main() {
     expect(pending, completes);
   });
 
+  test('dropping the lines that need work clears the Save gate, and they are '
+      'not written', () async {
+    await controller().startImport(const ImportFromUrl('x'));
+    var state = container.read(importControllerProvider) as ImportReconciling;
+    final before = state.resolutions.length;
+    for (final r in state.resolutions) {
+      final needsWork =
+          (r.chosenIngredientId == null && r.createStubName == null) ||
+          (r.isRange && r.quantity == null);
+      if (needsWork) {
+        controller().updateResolution(r.lineIndex, (x) => x.drop());
+      }
+    }
+
+    state = container.read(importControllerProvider) as ImportReconciling;
+    expect(state.unresolvedCount, 0);
+    expect(state.canCommit, isTrue);
+
+    await controller().commit(issuesByLine: null);
+    final written = fake.committed!.groups
+        .expand((g) => g.lines)
+        .map((l) => l.lineIndex)
+        .toList();
+    expect(written, isNotEmpty);
+    expect(written.length, lessThan(before));
+    // Only the kept lines were written, and their flat indexes are unchanged
+    // (a step ref pointing at a dropped one has nothing to land on).
+    expect(
+      written,
+      everyElement(
+        isIn([
+          for (final r in state.resolutions)
+            if (!r.isDropped) r.lineIndex,
+        ]),
+      ),
+    );
+  });
+
+  test('an import with every line dropped is not committable', () async {
+    await controller().startImport(const ImportFromUrl('x'));
+    final state = container.read(importControllerProvider) as ImportReconciling;
+    for (final r in state.resolutions) {
+      controller().updateResolution(r.lineIndex, (x) => x.drop());
+    }
+    final emptied =
+        container.read(importControllerProvider) as ImportReconciling;
+    expect(emptied.canCommit, isFalse);
+    expect(await controller().commit(issuesByLine: null), isNull);
+    expect(fake.committed, isNull);
+  });
+
   test('commit refuses a payload whose lines are not all valid', () async {
     await controller().startImport(const ImportFromUrl('x'));
     var state = container.read(importControllerProvider) as ImportReconciling;

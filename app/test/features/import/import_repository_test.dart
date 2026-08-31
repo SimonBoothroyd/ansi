@@ -299,6 +299,50 @@ void main() {
     expect(refs[1], [idByIndex[1]]);
   });
 
+  test(
+    'a chip pointing at a DROPPED line demotes to its label as text',
+    () async {
+      // The never-dangling-line invariant's other half: the line is not
+      // written, and the step that named it keeps the word instead of losing
+      // it (or pointing at whatever line inherited the index).
+      const p = payload;
+      final resolutions = [
+        initialResolution(0, p.flatLines[0]), // onion, kept
+        initialResolution(1, p.flatLines[1]).resolveToNewStub('Mystery').drop(),
+        initialResolution(2, p.flatLines[2]).resolveToNewStub('Mystery'),
+        initialResolution(
+          3,
+          p.flatLines[3],
+        ).resolveToIngredient('ing-onion', 'Onion'),
+      ];
+
+      final recipeId = await repo.commit(
+        buildCommit(p, resolutions, servingsBase: 2, issuesByLine: null),
+      );
+      final lines = await db.getAll(
+        'SELECT li.id FROM recipe_line_item li '
+        'JOIN ingredient_group g ON g.id = li.group_id '
+        'WHERE g.recipe_id = ? ORDER BY li.sort_order',
+        [recipeId],
+      );
+      expect(lines, hasLength(3)); // the dropped line was never written
+
+      final row = await db.getOptional(
+        'SELECT steps FROM recipe WHERE id = ?',
+        [recipeId],
+      );
+      final steps = jsonDecode(row!['steps'] as String) as List;
+      final tokens = ((steps.single as Map)['tokens'] as List)
+          .cast<Map<String, Object?>>();
+      // The onion chip survives; the spice chip is now prose reading "spice".
+      expect(tokens.where((t) => t['t'] == 'ref'), hasLength(1));
+      expect(
+        tokens.where((t) => t['t'] == 'text').map((t) => t['s']),
+        containsAllInOrder(<String>['Soften the ', ' with the ', 'spice', '.']),
+      );
+    },
+  );
+
   test('the committed recipe reloads with tokenized method steps', () async {
     final c = resolvedCommit();
     final recipeId = await repo.commit(

@@ -62,6 +62,50 @@ void main() {
     expect(ref.refs, [previewLineId(0)]);
   });
 
+  test('a dropped line leaves the preview, and its chip demotes to prose', () {
+    final payload = ReconciliationPayload(
+      title: 'T',
+      groups: [
+        ReconGroup(
+          lines: [
+            _line('spaghetti', qty: 200, unit: 'g'),
+            _line('basil', qty: 1, unit: 'handful'),
+          ],
+        ),
+      ],
+      steps: [
+        const Step(
+          tokens: [
+            TextToken(s: 'Finish with '),
+            RefToken(refs: [1], label: 'basil'),
+            TextToken(s: '.'),
+          ],
+        ),
+      ],
+    );
+    final resolutions = [
+      initialResolution(0, payload.flatLines[0]).resolveToNewStub('Spaghetti'),
+      initialResolution(
+        1,
+        payload.flatLines[1],
+      ).resolveToNewStub('Basil').drop(),
+    ];
+
+    final recipe = buildPreviewRecipe(payload, resolutions, servingsBase: 2);
+
+    // The dropped line is gone from the ingredient list…
+    expect(recipe.groups.single.items, hasLength(1));
+    expect(recipe.groups.single.items.single.id, previewLineId(0));
+    // …and the step keeps the word, having lost only the chip.
+    final tokens = recipe.methodSteps!.single.tokens;
+    expect(tokens.whereType<MethodRef>(), isEmpty);
+    expect(tokens.whereType<MethodText>().map((t) => t.s), [
+      'Finish with ',
+      'basil',
+      '.',
+    ]);
+  });
+
   test('identical no-match uses share an identity id so they fold inline', () {
     final payload = ReconciliationPayload(
       title: 'T',
