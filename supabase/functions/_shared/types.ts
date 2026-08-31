@@ -1,7 +1,7 @@
 // Shared types for the import pipeline — the SERVER boundary contracts.
 //
 // Mirrors docs/product-specs/import-and-matching.md §4.4 and the finalized shapes
-// in docs/exec-plans/active/0014-import-foundation.md + the gold schema at
+// in docs/exec-plans/completed/0014-import-foundation.md + the gold schema at
 // evals/datasets/extraction/gold/_SCHEMA.md (one source — keep them in step).
 // Types only — no logic.
 //

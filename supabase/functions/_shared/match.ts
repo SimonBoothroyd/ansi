@@ -1,5 +1,5 @@
 // The match cascade (docs/product-specs/import-and-matching.md §6; lane B of the
-// step-8 import DAG — see docs/exec-plans/active/0016-import-matching.md).
+// step-8 import DAG — see docs/exec-plans/completed/0016-import-matching.md).
 //
 // Deterministic, server-side matching (ADR-0004). Consumes sanitized `RawLineItem`s
 // and returns a `MatchedLine` per input line: a confidence band plus the top-N
