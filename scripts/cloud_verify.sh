@@ -60,11 +60,16 @@ if [ -z "$verdict" ]; then bad "settings endpoint unreachable/unparsable"; else
   read -r g e ac ds <<<"$verdict"
   if [ "$g" = 1 ]; then ok "Google provider enabled"
   else bad "Google provider DISABLED (runbook §1.5)"; fi
-  if [ "$e" = 1 ]; then ok "email/password enabled"
-  else bad "email/password disabled"; fi
-  if [ "$ac" = 1 ]; then
+  # Google-only is the intended CLOUD posture (2026-08-31): email/password was
+  # only ever the local-dev convenience, and disabling it removes the password
+  # surface entirely. Enabled is therefore the state that warrants a look.
+  if [ "$e" = 1 ]; then
+    note "email/password enabled (local-dev convenience — Google-only is the intended cloud posture; disable it in Sign In / Providers)"
+  else ok "email/password disabled (Google-only)"; fi
+  # Confirmations only matter while the email provider exists.
+  if [ "$e" = 1 ] && [ "$ac" = 1 ]; then
     note "email confirmations OFF (dev convenience — turn ON before anything real)"
-  else ok "email confirmations ON"; fi
+  else ok "email confirmations moot or ON"; fi
   # This project is a single household's. Open signup on a cloud instance means
   # anyone can mint an account against the same Postgres and the same paid edge
   # function (the import allowlist is the second gate, not the first).
