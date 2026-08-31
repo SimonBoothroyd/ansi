@@ -7,6 +7,15 @@
     "postgres": "https://deno.land/x/postgresjs@v3.4.5/mod.js"
   },
   "tasks": {
-    "test": "deno test"
+    // `--allow-read`: several tests read repo fixtures (the seed vocab, the
+    // blessed extraction gold, the committed golden payload). Without it Deno
+    // denies the read and a test that catches the failure SKIPS SILENTLY —
+    // which is how `_shared/match.test.ts`'s calibration case was passing
+    // without ever running. `--allow-env` is scoped to the one flag that
+    // rewrites the golden fixture.
+    "test": "deno test --allow-read --allow-env=UPDATE_GOLDEN",
+    // Rewrite the TS→Dart contract fixture after an INTENTIONAL contract
+    // change, then review the diff and update the Dart assertions.
+    "golden": "UPDATE_GOLDEN=1 deno test --allow-read --allow-write --allow-env=UPDATE_GOLDEN import-recipe/golden_payload.test.ts"
   }
 }
