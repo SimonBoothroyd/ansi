@@ -30,7 +30,8 @@ while IFS= read -r md; do
       broken=$((broken + 1))
     fi
   done <<< "$links"
-done < <(find . -name '*.md' -not -path './app/build/*' -not -path '*/node_modules/*')
+done < <(find . -name '*.md' -not -path './app/build/*' -not -path '*/node_modules/*' \
+  -not -path './.claude/*' -not -path '*/SourcePackages/*')
 
 if [ "$broken" -gt 0 ]; then echo "  $broken broken link(s)"; fail=1; else echo "  ✓ all links resolve"; fi
 
