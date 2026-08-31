@@ -119,6 +119,63 @@ stream change).
 statements (`truncate`, `delete`) against cloud are intentionally blocked by the
 harness — a human runs those, or use soft-delete (`update … set deleted_at`).
 
+### 2b. Rolling reseeded `ingredient` columns onto existing households
+
+A template reseed reaches **new** households only: `ensure_onboarded` clones
+the vocab exactly once, at household creation. An already-onboarded household
+keeps the copy it was born with — and wipe-and-re-onboard is not an option for
+a household holding real recipes. So a reseed that improves the vocab (the
+2026-08-31 FAO/INFOODS density fills, and the produce rows those densities
+let into cup/tbsp/ml) needs an explicit rollout:
+[`supabase/rollout_ingredient_refresh.sql`](../supabase/rollout_ingredient_refresh.sql).
+
+It joins every non-template household's `ingredient` rows to the template's by
+**`match_text`** (the identity that survives cloning — `ensure_onboarded`
+copies it verbatim and re-associates aliases/measures by it), then moves
+exactly two columns, both monotonically: it **fills** `density_g_per_ml` where
+the household's is null and the template's is not, and **extends**
+`allowed_units` to the union of the two lists. `updated_at` is bumped so
+PowerSync replicates the rows down. It never overwrites a household's own
+density, never removes a unit it admitted, never touches rows the household
+created itself (no template counterpart) or soft-deleted, and never writes
+`source`/`status`/`macros`. Re-running it is a no-op.
+
+Human-run sequence, after the §2 reseed commands above:
+
+```bash
+# 1. reseed the template — the §2 block, unchanged (seed_curation.sql LAST).
+
+# 2. PREVIEW (read-only): per-household blast radius. Copy the commented
+#    preview block from the top of the script into the SQL editor, or:
+supabase db query --linked "$(sed -n '/^-- with tpl_household as/,/^-- order by h.name, h.id;/p' \
+  supabase/rollout_ingredient_refresh.sql | sed 's/^-- //; s/^--$//')"
+
+# 3. run the rollout (idempotent; reports the rows it touched)
+supabase db query --linked -f supabase/rollout_ingredient_refresh.sql
+
+# 4. re-run the preview: every leg should now read 0.
+```
+
+Then **each family member signs out and back in, or just waits** — the rows
+arrive over normal sync; no re-onboarding, no reinstall. (Sign-out/in is only
+the impatient path; nothing about the rollout requires a new JWT.)
+
+This generalizes: it is written as "carry the template's `density_g_per_ml`
+and `allowed_units` forward", not as a one-off FAO patch, so re-run it after
+any future template reseed that fills densities or widens unit admission. A
+rollout that has to move a *different* ingredient column is this script with
+another monotone leg — keep the fill-only/union-only shape, or a household's
+own edits get clobbered.
+
+**Interplay with the measures backfill: none — they are separate mechanisms.**
+`ingredient_measure` retrofits through the run-once `backfilled_at` clone
+inside `ensure_onboarded` (0011, described above); this script never reads or
+writes `ingredient_measure` or `household.backfilled_at`, and never
+resurrects a soft-deleted row. Run them in either order. The measures path
+still costs a household its user-authored measures (it needs zero live rows to
+clone) — this one costs nothing, which is exactly why `ingredient` gets a
+script instead of a marker reset.
+
 ## 3. PowerSync Cloud instance
 
 Dashboard at powersync.com → create an instance (free tier). Then:
