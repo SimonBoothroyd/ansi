@@ -260,11 +260,30 @@ void main() {
     Finder finder, {
     double delta = 150,
   }) async {
-    await tester.scrollUntilVisible(
+    // The FIRST Scrollable is not always the screen's list: an expanded
+    // review card puts horizontal chip rows earlier in the tree, and scrolling
+    // one of those never reveals anything below the fold. Scroll the first
+    // VERTICAL scrollable instead — downward first, and if the target never
+    // appears (it may be ABOVE the viewport when a flow revisits an earlier
+    // card), retry upward.
+    final vertical = find
+        .byWidgetPredicate(
+          (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+        )
+        .first;
+    for (final d in [delta, -delta]) {
+      for (var i = 0; i < 50 && finder.evaluate().isEmpty; i++) {
+        await tester.drag(vertical, Offset(0, -d));
+        await tester.pumpAndSettle();
+      }
+      if (finder.evaluate().isNotEmpty) break;
+    }
+    expect(
       finder,
-      delta,
-      scrollable: find.byType(Scrollable).first,
+      findsWidgets,
+      reason: 'scrollTo exhausted both directions without finding the target',
     );
+    await tester.ensureVisible(finder.first);
     await tester.pumpAndSettle();
   }
 
@@ -993,8 +1012,10 @@ void main() {
     );
     expect(
       parmesanRows,
-      isNotEmpty,
-      reason: 'the synced vocab has no Parmesan row for the suggest line',
+      hasLength(1),
+      reason:
+          'scenario 4 needs exactly one %armesan% vocab row: the suggest '
+          'line re-points at it and the "did you mean" pill carries its name',
     );
 
     await openLibraryWithLocalImport(tester);
@@ -1044,17 +1065,18 @@ void main() {
     // Line 5 — the `suggest` band: confirm the "did you mean" pill onto an
     // EXISTING vocab row rather than creating a stub.
     //
-    // The pill is labelled with the CANDIDATE's `canonical_name`, which the
-    // fake repository leaves as the canned payload wrote it ("Parmesan") even
-    // though it re-points the candidate's `ingredient_id` at whatever the
-    // household vocab really holds. So match on the candidate label, not on the
-    // vocab row's name. (Neither the compact row — "Parmesan, grated" — nor the
-    // "from source" line is an exact-text match for it.)
+    // The fake repository re-points the candidate at whatever the household
+    // vocab really holds AND takes that row's canonical name, so the pill is
+    // labelled with the vocab row's name (e.g. "Vegan Parmesan"), not the
+    // canned payload's "Parmesan". Derive the expected label from the vocab
+    // (queried by the precondition at the top of this test) so a reseed fails
+    // loudly rather than as a mystery finder miss.
+    final pillLabel = parmesanRows.single['canonical_name'] as String;
     await expandLine(tester, 5);
     expect(lineShows(5, 'Did you mean'), isTrue);
     final pill = find.descendant(
       of: reviewCard(5),
-      matching: find.text('Parmesan'),
+      matching: find.text(pillLabel),
     );
     await tester.ensureVisible(pill);
     await tester.pumpAndSettle();
@@ -1066,20 +1088,29 @@ void main() {
     // two identical chilli lines seed the same name, so they must coalesce onto
     // ONE created ingredient at commit.
     for (final i in [2, 3, 4, 6]) {
+      // Expand FIRST: a below-the-fold ListView child isn't built at all, so
+      // probing its labels before scrolling to it always reads "clean" and the
+      // loop would silently skip the line (exactly how the gate stayed locked
+      // on the first on-sim run of this tail).
+      await expandLine(tester, i);
       if (lineShows(i, 'Match an ingredient') ||
-          find
-              .descendant(
-                of: reviewCard(i),
-                matching: find.text('Find or create ingredient'),
-              )
-              .evaluate()
-              .isNotEmpty) {
+          lineShows(i, 'Find or create ingredient')) {
         await createStubForLine(tester, i);
       }
     }
 
-    // Every line is clean → the header count flips and Save unlocks.
-    await scrollTo(tester, find.text('Save recipe'));
+    // Every line is clean → the header count flips and Save unlocks. Scroll to
+    // the footer button in EITHER state so a still-locked gate fails with the
+    // button's own message ("N line(s) need you") rather than a finder miss.
+    final footer = find.textContaining(RegExp('Save recipe|need you'));
+    await scrollTo(tester, footer);
+    expect(
+      find.text('Save recipe'),
+      findsOneWidget,
+      reason:
+          'the Save gate is still locked: '
+          '${tester.widget<Text>(footer.first).data}',
+    );
     expect(find.text('looks good'), findsOneWidget);
     await tester.tap(find.text('Save recipe'));
 
@@ -1142,8 +1173,11 @@ void main() {
     // It SYNCED — the whole point of running this on a device.
     await waitForSyncRoundTrip(tester);
 
-    // …and it is visible in the Library, filed under a book.
-    await tester.tap(find.byIcon(FLucideIcons.bookOpen).first);
+    // …and it is visible in the Library, filed under a book. The recipe page
+    // sits OUTSIDE the tab shell (no bottom nav here); its header back action
+    // pops — or, after the commit's `context.go`, falls back to `/` — either
+    // way landing on the Library.
+    await tester.tap(find.byType(FHeaderAction).first);
     await pumpUntilFound(tester, find.text('Our Cookbook'));
     await tester.pumpAndSettle();
     expect(

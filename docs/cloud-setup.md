@@ -152,6 +152,13 @@ Dashboard at powersync.com → create an instance (free tier). Then:
 Recipe import calls the `import-recipe` edge function. It is **not** deployed by
 `db push` — functions ship separately, and their secrets are set separately.
 
+**Order matters: migrations before app builds.** `supabase db push` must run
+before an app build that writes new columns reaches a device. PostgREST rejects
+a write naming a column it doesn't know (`PGRST204`), and PowerSync retries the
+failed upload forever — sync wedges entirely, not just the one row. (Observed
+live: the step-8 sim suite against a local stack that predated migration 0013 —
+`make db-reset` locally, `db push` on cloud, is the cure and the prevention.)
+
 ```bash
 supabase functions deploy import-recipe          # deploys the function
 supabase secrets set ANTHROPIC_API_KEY=sk-ant-…  # PLACEHOLDER — paste the real key
