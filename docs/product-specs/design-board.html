@@ -417,6 +417,14 @@
         .rml.inc{color:var(--muted);}
         .badge-inc{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#7A5A16;background:#FBF3E3;border-radius:6px;padding:2px 6px;}
 
+        /* stale-section banner (board-level, not a phone frame) */
+        .stale{background:#FCEEEA;border:1px solid #F0C4B8;border-left:5px solid var(--gone);border-radius:12px;padding:16px 20px;margin:0 0 26px;max-width:82ch;}
+        .stale .st-h{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gone);font-weight:500;margin:0 0 8px;}
+        .stale p{margin:0 0 8px;font-size:13px;line-height:1.5;color:var(--ink);}
+        .stale p:last-child{margin-bottom:0;}
+        .stale b{font-weight:600;}
+        .stale .src{font-size:11.5px;color:var(--muted);}
+
         /* v3 · import triage + three-part line (new classes only; reuses tokens + earlier classes) */
         .triage-warn{display:flex;gap:9px;margin:8px 20px 4px;background:#FBF3E3;border:1px solid #F0DCB0;border-radius:11px;padding:9px 11px;font-size:11.5px;color:#7A5A16;line-height:1.4;}
         .triage-warn .ic{flex:none;}
@@ -1036,8 +1044,16 @@
         </div>
     </div>
 
-    <!-- ===== IMPORT + RECIPE VIEW V3 (LOCKED) ===== -->
-    <div class="section-head"><span class="ey">Import &amp; recipe view · v3</span><span class="proposed-tag">locked</span><span class="rule"></span><span class="sub">Triage only what needs you → preview → commit; the recipe reads amount · ingredient · notes</span></div>
+    <!-- ===== IMPORT + RECIPE VIEW V3 (STALE — see the banner) ===== -->
+    <div class="section-head"><span class="ey">Import &amp; recipe view · v3</span><span class="proposed-tag">stale</span><span class="rule"></span><span class="sub">These frames are NOT what shipped — read the note below before designing against them</span></div>
+
+    <div class="stale">
+        <p class="st-h">⚠ Stale — the shipped UI diverged from these frames</p>
+        <p>Step 8 shipped, and the import UI changed during live review. <b>The frames below show the pre-merge flow and are no longer accurate.</b> Do not design against them without reading what actually landed.</p>
+        <p>What changed: the <b>triage → preview → commit</b> split collapsed into <b>one merged, always-editable “Review recipe” screen</b>. Rows are compact by default and <b>expand in place</b> into a full edit card. The match band no longer picks a screen — it sets a line’s <b>starting state (band-based auto-lock)</b>. Lines carry <b>“did you mean” chips for both ingredient and unit</b>, fields stay greyed until matched, the ingredient’s <b>allowed units are enforced</b>, “to taste”/imprecise amounts are handled explicitly, and <b>Save is gated on every line being valid</b>.</p>
+        <p class="src">Source of truth for the shipped behaviour: <b>docs/product-specs/import-and-matching.md §8</b>. Tracked as a tech-debt row — refresh this section, or re-shoot the frames from the running app. This board stays the single source of truth for <i>design</i>; it just hasn’t caught up here yet.</p>
+    </div>
+
     <div class="board">
 
         <div class="frame">
@@ -1203,7 +1219,7 @@
     <footer class="footer">
         <span><b>Mise</b> — complete board</span>
         <span>Flutter · Forui · Supabase · PowerSync</span>
-        <span>21 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8) · import + recipe-view v3 (locked)</span>
+        <span>21 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8) · import + recipe-view v3 (STALE — shipped UI diverged)</span>
     </footer>
 
 </div>
