@@ -179,6 +179,21 @@ at label boundaries. Rendering walks the array — there is NO text matching lat
 Return ONLY the JSON object matching the provided schema. No prose, no markdown.`;
 }
 
+/**
+ * Chars of source material one prompt may carry. A recipe is a few thousand;
+ * these are the ceiling that stops a hostile or broken page from being billed
+ * in full. `jsonld.ts` caps page text at intake — this is the last line of
+ * defence, and the only bound on a JSON-LD object (which arrives parsed, so its
+ * serialized size is not otherwise checked).
+ */
+export const MAX_JSONLD_CHARS = 60_000;
+/** Same, for a text blob (page text or a vision transcription). */
+export const MAX_SOURCE_TEXT_CHARS = 120_000;
+
+function cap(s: string, max: number): string {
+  return s.length <= max ? s : `${s.slice(0, max)}\n…[source truncated]`;
+}
+
 /** Renders the user turn for ① from a RawBlob (jsonld / page_text / transcription). */
 export function sanitizeUserPrompt(blob: RawBlob): string {
   if (blob.source === "jsonld" && blob.jsonld) {
@@ -188,7 +203,7 @@ export function sanitizeUserPrompt(blob: RawBlob): string {
       "the JSON-LD does not contain).",
       "",
       "```json",
-      JSON.stringify(blob.jsonld, null, 2),
+      cap(JSON.stringify(blob.jsonld, null, 2), MAX_JSONLD_CHARS),
       "```",
     ].join("\n");
   }
@@ -198,6 +213,6 @@ export function sanitizeUserPrompt(blob: RawBlob): string {
   return [
     `Structure this recipe. ${label}`,
     "",
-    blob.text ?? "",
+    cap(blob.text ?? "", MAX_SOURCE_TEXT_CHARS),
   ].join("\n");
 }
