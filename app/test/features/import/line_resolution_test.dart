@@ -71,8 +71,13 @@ void main() {
         '(ingredient lock ⟂ amount — round-3 #4)', () {
       final r = initialResolution(
         0,
-        _line('garlic', band: MatchBand.auto, qtyLow: 2, qtyHigh: 3,
-            candidates: [_cand]),
+        _line(
+          'garlic',
+          band: MatchBand.auto,
+          qtyLow: 2,
+          qtyHigh: 3,
+          candidates: [_cand],
+        ),
       );
       // Locked on the exact/auto match…
       expect(r.chosenIngredientId, 'ing-onion');
@@ -179,8 +184,13 @@ void main() {
     test('writes a picked quantity + unit and resolves a range', () {
       final r = initialResolution(
         0,
-        _line('garlic', band: MatchBand.auto, qtyLow: 2, qtyHigh: 3,
-            candidates: [_cand]),
+        _line(
+          'garlic',
+          band: MatchBand.auto,
+          qtyLow: 2,
+          qtyHigh: 3,
+          candidates: [_cand],
+        ),
       );
       expect(r.isResolved, isFalse);
       final edited = r.setAmount(quantity: 2, unit: 'clove');
@@ -242,8 +252,13 @@ void main() {
         'amount)', () {
       final r = initialResolution(
         0,
-        _line('garlic', band: MatchBand.auto, qtyLow: 2, qtyHigh: 3,
-            candidates: [_cand]),
+        _line(
+          'garlic',
+          band: MatchBand.auto,
+          qtyLow: 2,
+          qtyHigh: 3,
+          candidates: [_cand],
+        ),
       );
       final picked = r.pickUnit('clove');
       expect(picked.unit, 'clove');
@@ -253,8 +268,13 @@ void main() {
     test('a picked unit + value resolves a range through setAmount', () {
       final r = initialResolution(
         0,
-        _line('garlic', band: MatchBand.auto, qtyLow: 2, qtyHigh: 3,
-            candidates: [_cand]),
+        _line(
+          'garlic',
+          band: MatchBand.auto,
+          qtyLow: 2,
+          qtyHigh: 3,
+          candidates: [_cand],
+        ),
       );
       const clove = Measure(id: 'm-clove', label: 'clove', amount: 3);
       final unit = sheetChoiceUnit(
@@ -292,21 +312,45 @@ void main() {
 
   group('triage: needsReview', () {
     test('a clean auto match with a number does not need review', () {
-      final line = _line('pasta', band: MatchBand.auto, qty: 200, unit: 'g',
-          candidates: [_cand]);
+      final line = _line(
+        'pasta',
+        band: MatchBand.auto,
+        qty: 200,
+        unit: 'g',
+        candidates: [_cand],
+      );
       expect(needsReview(line, initialResolution(0, line)), isFalse);
     });
 
     test('suggest, none, ranges, unmappable, low-confidence surface', () {
-      final suggest = _line('cheese', band: MatchBand.suggest, qty: 1,
-          candidates: [_cand]);
+      final suggest = _line(
+        'cheese',
+        band: MatchBand.suggest,
+        qty: 1,
+        candidates: [_cand],
+      );
       final none = _line('mystery', qty: 1);
-      final range = _line('garlic', band: MatchBand.auto, qtyLow: 2,
-          qtyHigh: 3, candidates: [_cand]);
-      final unmappable = _line('basil', band: MatchBand.auto, unit: 'handful',
-          unitMappable: false, candidates: [_cand]);
-      final shaky = _line('thing', band: MatchBand.auto, qty: 1,
-          confidence: 0.5, candidates: [_cand]);
+      final range = _line(
+        'garlic',
+        band: MatchBand.auto,
+        qtyLow: 2,
+        qtyHigh: 3,
+        candidates: [_cand],
+      );
+      final unmappable = _line(
+        'basil',
+        band: MatchBand.auto,
+        unit: 'handful',
+        unitMappable: false,
+        candidates: [_cand],
+      );
+      final shaky = _line(
+        'thing',
+        band: MatchBand.auto,
+        qty: 1,
+        confidence: 0.5,
+        candidates: [_cand],
+      );
       expect(needsReview(suggest, initialResolution(0, suggest)), isTrue);
       expect(needsReview(none, initialResolution(0, none)), isTrue);
       expect(needsReview(range, initialResolution(0, range)), isTrue);
@@ -320,11 +364,13 @@ void main() {
       final payload = ReconciliationPayload(
         title: 'T',
         groups: [
-          ReconGroup(lines: [
-            _line('Aleppo chilli flakes'),
-            _line('garlic', band: MatchBand.auto, qty: 1),
-            _line('Aleppo chilli flakes'),
-          ]),
+          ReconGroup(
+            lines: [
+              _line('Aleppo chilli flakes'),
+              _line('garlic', band: MatchBand.auto, qty: 1),
+              _line('Aleppo chilli flakes'),
+            ],
+          ),
           ReconGroup(name: 'to serve', lines: [_line('basil')]),
         ],
       );

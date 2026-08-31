@@ -66,9 +66,7 @@ class ImportReconciling extends ImportState {
     final flat = payload.flatLines;
     return groupReconUses(payload)
         .where(
-          (g) => g.lineIndexes.any(
-            (i) => needsReview(flat[i], byIndex[i]!),
-          ),
+          (g) => g.lineIndexes.any((i) => needsReview(flat[i], byIndex[i]!)),
         )
         .length;
   }

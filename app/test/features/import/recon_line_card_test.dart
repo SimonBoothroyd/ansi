@@ -212,8 +212,7 @@ void main() {
     await tester.enterText(find.byType(TextField), 'finely chopped');
     await tester.pumpAndSettle();
 
-    final state =
-        container.read(importControllerProvider) as ImportReconciling;
+    final state = container.read(importControllerProvider) as ImportReconciling;
     final line0 = state.resolutions.firstWhere((r) => r.lineIndex == 0);
     expect(line0.notes, 'finely chopped');
   });

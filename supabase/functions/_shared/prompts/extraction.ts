@@ -54,7 +54,9 @@ function unitHintsBlock(h: UnitHints): string {
       h.size_words.join(", ")
     }.`,
     `Count-measure nouns you MAY use as the unit when the recipe counts by them`,
-    `(a whole/each-of, not a size word): ${h.measures.join(", ")}. Prefer these`,
+    `(a whole/each-of, not a size word): ${
+      h.measures.join(", ")
+    }. Prefer these`,
     `over "piece" when the source names one ("2 garlic cloves" → unit="clove",`,
     `"1 head of broccoli" → unit="head", "One 400 g can" → unit="can"); normalise`,
     `"tin" → "can".`,

@@ -431,7 +431,6 @@ class _ScaleControl extends StatelessWidget {
   }
 }
 
-
 class _MethodTab extends StatelessWidget {
   const _MethodTab({required this.recipe, required this.servings});
 

@@ -24,7 +24,7 @@ import type { ExtractAdapter } from "../_shared/types.ts";
 import { ClaudeHaikuAdapter } from "../_shared/adapters/claude.ts";
 import { fetchRawBlob } from "../_shared/jsonld.ts";
 import { matchLines as matchCascade } from "../_shared/match.ts";
-import { sqlVocabMatcher, type SqlExecutor } from "../_shared/match_db.ts";
+import { type SqlExecutor, sqlVocabMatcher } from "../_shared/match_db.ts";
 import { type ImportDeps, makeHandler } from "./index.ts";
 
 // --- CORS --------------------------------------------------------------------
@@ -135,7 +135,9 @@ async function handle(req: Request): Promise<Response> {
     return new Response("ok", { headers: CORS_HEADERS });
   }
   const caller = readCaller(req);
-  if ("error" in caller) return jsonResponse(caller.status, { error: caller.error });
+  if ("error" in caller) {
+    return jsonResponse(caller.status, { error: caller.error });
+  }
 
   let deps: ImportDeps;
   try {

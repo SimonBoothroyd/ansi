@@ -202,10 +202,7 @@ void main() {
     expect(find.text('2 + 1'), findsOneWidget);
     expect(find.text('3'), findsNothing);
     // The ingredient identity renders in a rich line (amount + name + notes).
-    expect(
-      find.textContaining('Garlic', findRichText: true),
-      findsWidgets,
-    );
+    expect(find.textContaining('Garlic', findRichText: true), findsWidgets);
   });
 
   testWidgets('RecipeEditorView builds a blank create form', (tester) async {

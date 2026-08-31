@@ -34,11 +34,23 @@ void main() {
 
   test('same ingredientId folds into one multi-use row at first position', () {
     final rows = groupLineUses([
-      _item('a', 'garlic', 'Garlic',
-          quantity: 2, unit: pieces, note: 'finely chopped'),
+      _item(
+        'a',
+        'garlic',
+        'Garlic',
+        quantity: 2,
+        unit: pieces,
+        note: 'finely chopped',
+      ),
       _item('b', 'tomato', 'Chopped tomatoes', quantity: 400),
-      _item('c', 'garlic', 'Garlic',
-          quantity: 1, unit: pieces, note: 'sliced, for garnish'),
+      _item(
+        'c',
+        'garlic',
+        'Garlic',
+        quantity: 1,
+        unit: pieces,
+        note: 'sliced, for garnish',
+      ),
     ]);
 
     // Garlic folds (first-occurrence position 0); tomatoes stays its own row.

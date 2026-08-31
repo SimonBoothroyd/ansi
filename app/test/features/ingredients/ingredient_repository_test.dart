@@ -121,10 +121,7 @@ void main() {
   group('token-subset search (order-independent, extra words fine)', () {
     test('"canned tomatoes" finds "Canned Whole Tomatoes"', () async {
       final r = await repo.search('canned tomatoes');
-      expect(
-        r.map((i) => i.canonicalName),
-        contains('Canned Whole Tomatoes'),
-      );
+      expect(r.map((i) => i.canonicalName), contains('Canned Whole Tomatoes'));
     });
 
     test('"coconut milk" finds "Coconut milk, canned"', () async {
@@ -134,18 +131,17 @@ void main() {
 
     test('word order does not matter', () async {
       final r = await repo.search('tomatoes canned');
-      expect(
-        r.map((i) => i.canonicalName),
-        contains('Canned Whole Tomatoes'),
-      );
+      expect(r.map((i) => i.canonicalName), contains('Canned Whole Tomatoes'));
     });
 
-    test('every token must be present — a missing token excludes the row',
-        () async {
-      // "canned" alone hits both canned rows; adding "beans" (present in
-      // neither) must drop them.
-      expect(await repo.search('canned beans'), isEmpty);
-    });
+    test(
+      'every token must be present — a missing token excludes the row',
+      () async {
+        // "canned" alone hits both canned rows; adding "beans" (present in
+        // neither) must drop them.
+        expect(await repo.search('canned beans'), isEmpty);
+      },
+    );
 
     test('a mistyped token in a multi-word query still finds it (fuzzy '
         'fallback)', () async {
@@ -153,11 +149,13 @@ void main() {
       expect(r.map((i) => i.canonicalName), contains('Chicken thigh'));
     });
 
-    test('a single mistyped word does NOT fuzzy-hit (strict word boundary)',
-        () async {
-      // The fuzzy fallback needs the corroboration of a second token.
-      expect(await repo.search('chikn'), isEmpty);
-    });
+    test(
+      'a single mistyped word does NOT fuzzy-hit (strict word boundary)',
+      () async {
+        // The fuzzy fallback needs the corroboration of a second token.
+        expect(await repo.search('chikn'), isEmpty);
+      },
+    );
   });
 
   test('a LIKE wildcard in the query is stripped, not a pattern', () async {

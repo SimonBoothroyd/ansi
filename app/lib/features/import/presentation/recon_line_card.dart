@@ -290,10 +290,8 @@ class _Expanded extends StatelessWidget {
           _UnitSuggestions(
             choices: validation.unitChoices,
             selected: resolution.unit,
-            onPick: (token) => controller.updateResolution(
-              _index,
-              (r) => r.pickUnit(token),
-            ),
+            onPick: (token) =>
+                controller.updateResolution(_index, (r) => r.pickUnit(token)),
           ),
         ],
         const SizedBox(height: 12),
@@ -368,10 +366,7 @@ class _UnitSuggestions extends StatelessWidget {
             runSpacing: 6,
             children: [
               for (final c in choices)
-                _Pill(
-                  label: c.label,
-                  onTap: () => onPick(c.token),
-                ),
+                _Pill(label: c.label, onTap: () => onPick(c.token)),
             ],
           ),
         ),
@@ -426,10 +421,7 @@ class _NotesEditor extends ConsumerWidget {
     );
     return Row(
       children: [
-        SizedBox(
-          width: 64,
-          child: Text('NOTES', style: miseLabel()),
-        ),
+        SizedBox(width: 64, child: Text('NOTES', style: miseLabel())),
         const SizedBox(width: 8),
         Expanded(
           child: FTextField(
@@ -632,11 +624,7 @@ class AmountEditor extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 5),
-              const Icon(
-                FLucideIcons.pencil,
-                size: 11,
-                color: MiseColors.herb,
-              ),
+              const Icon(FLucideIcons.pencil, size: 11, color: MiseColors.herb),
             ],
           ),
         ),
@@ -776,9 +764,7 @@ class Resolver extends StatelessWidget {
           prefix: const Icon(FLucideIcons.search),
           onPress: () => _openSearch(context),
           child: Text(
-            candidates.isEmpty
-                ? 'Find or create ingredient'
-                : 'Something else',
+            candidates.isEmpty ? 'Find or create ingredient' : 'Something else',
           ),
         ),
       ],

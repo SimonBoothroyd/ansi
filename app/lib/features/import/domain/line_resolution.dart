@@ -120,11 +120,8 @@ class LineResolution {
   /// picked [quantity] (null clears it — "to taste") and, when the user picked
   /// a unit chip, the [unit]. A range resolves the moment a number is set here,
   /// exactly like an explicit endpoint pick.
-  LineResolution setAmount({double? quantity, String? unit}) => copyWith(
-    quantity: quantity,
-    clearQuantity: quantity == null,
-    unit: unit,
-  );
+  LineResolution setAmount({double? quantity, String? unit}) =>
+      copyWith(quantity: quantity, clearQuantity: quantity == null, unit: unit);
 
   /// Picks a unit from the inline unit-suggestion chips, leaving the quantity
   /// untouched (unit resolution is independent of the amount — round-3 #4).
@@ -245,10 +242,12 @@ List<ReconUseGroup> groupReconUses(ReconciliationPayload payload) {
     final byKey = <String, List<int>>{};
     for (final line in group.lines) {
       final key = normalizeSearchQuery(line.raw.ingredientText);
-      byKey.putIfAbsent(key, () {
-        order.add(key);
-        return <int>[];
-      }).add(flatIndex);
+      byKey
+          .putIfAbsent(key, () {
+            order.add(key);
+            return <int>[];
+          })
+          .add(flatIndex);
       flatIndex++;
     }
     for (final key in order) {

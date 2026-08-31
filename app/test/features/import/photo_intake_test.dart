@@ -12,10 +12,7 @@ void main() {
         pickImages: () async => ['/a.jpg', '/b.jpg'],
         cropImage: (p) async => p.replaceAll('.jpg', '.cropped.jpg'),
       );
-      expect(await service.pickAndCrop(), [
-        '/a.cropped.jpg',
-        '/b.cropped.jpg',
-      ]);
+      expect(await service.pickAndCrop(), ['/a.cropped.jpg', '/b.cropped.jpg']);
     });
 
     test('drops just the page the user cancels in the cropper', () async {

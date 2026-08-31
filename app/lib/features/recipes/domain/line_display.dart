@@ -55,12 +55,12 @@ List<LineUses> groupLineUses(List<LineItem> items) {
   final order = <String>[];
   final byId = <String, List<LineItem>>{};
   for (final item in items) {
-    byId.putIfAbsent(item.ingredientId, () {
-      order.add(item.ingredientId);
-      return <LineItem>[];
-    }).add(item);
+    byId
+        .putIfAbsent(item.ingredientId, () {
+          order.add(item.ingredientId);
+          return <LineItem>[];
+        })
+        .add(item);
   }
-  return [
-    for (final id in order) LineUses(ingredientId: id, uses: byId[id]!),
-  ];
+  return [for (final id in order) LineUses(ingredientId: id, uses: byId[id]!)];
 }

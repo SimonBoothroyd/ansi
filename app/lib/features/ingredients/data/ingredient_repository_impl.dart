@@ -125,8 +125,7 @@ class SqliteIngredientRepository implements IngredientRepository {
     );
     final scored = <({double score, int length, Ingredient ingredient})>[];
     for (final r in rows) {
-      final text =
-          '${r['match_text'] ?? ''} ${r['alias_text'] ?? ''}'.trim();
+      final text = '${r['match_text'] ?? ''} ${r['alias_text'] ?? ''}'.trim();
       final score = fuzzyQueryScore(query, text);
       if (score < 0) continue;
       scored.add((

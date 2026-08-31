@@ -48,9 +48,7 @@ bool matchesSearchQuery(String text, String rawQuery) {
   final tokens = searchTokens(rawQuery);
   if (tokens.isEmpty) return true;
   final words = normalizeSearchQuery(text).split(' ');
-  return tokens.every(
-    (tok) => words.any((w) => w.startsWith(tok)),
-  );
+  return tokens.every((tok) => words.any((w) => w.startsWith(tok)));
 }
 
 /// The normalized, order-independent tokens of a query — the unit the vocab

@@ -53,9 +53,10 @@ class RecipeIngredientLine extends StatelessWidget {
 
     final amountText = Text(
       amount,
-      style: miseMono(size: 15, color: MiseColors.muted).copyWith(
-        fontStyle: imprecise ? FontStyle.italic : FontStyle.normal,
-      ),
+      style: miseMono(
+        size: 15,
+        color: MiseColors.muted,
+      ).copyWith(fontStyle: imprecise ? FontStyle.italic : FontStyle.normal),
     );
 
     return Column(

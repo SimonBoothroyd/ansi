@@ -85,9 +85,7 @@ class ReconciliationBody extends HookConsumerWidget {
     // unit inside the matched ingredient's allowed set (round-2 #2). While
     // validation is still loading it stays disabled.
     final canSave =
-        issuesByLine != null &&
-        state.canCommit &&
-        allLinesValid(issuesByLine);
+        issuesByLine != null && state.canCommit && allLinesValid(issuesByLine);
     final outstanding = issuesByLine == null
         ? state.unresolvedCount
         : issuesByLine.values.where((i) => i.isNotEmpty).length;
@@ -159,7 +157,6 @@ class _SectionHeader extends StatelessWidget {
     );
   }
 }
-
 
 class _ServingsRow extends StatelessWidget {
   const _ServingsRow({required this.state, required this.onChanged});

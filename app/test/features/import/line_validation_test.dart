@@ -118,7 +118,10 @@ void main() {
     test('true only when every line is clean', () {
       expect(allLinesValid({0: const [], 1: const []}), isTrue);
       expect(
-        allLinesValid({0: const [], 1: const [LineIssue.unmatched]}),
+        allLinesValid({
+          0: const [],
+          1: const [LineIssue.unmatched],
+        }),
         isFalse,
       );
     });

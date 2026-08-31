@@ -53,9 +53,29 @@ Deno.test("deriveUnitHints — count-measure nouns are a DISTINCT list", () => {
   // stay out of those three lists (ADR-0004: not the per-ingredient gram basis).
   const { units, imprecise, size_words, measures } = deriveUnitHints();
   const others = [...units, ...imprecise, ...size_words];
-  for (const noun of ["clove", "head", "sprig", "loaf", "block", "slice", "can", "bunch", "stalk"]) {
-    assertEquals(measures.includes(noun), true, `measures should include ${noun}`);
-    assertEquals(others.includes(noun), false, `${noun} belongs only in measures`);
+  for (
+    const noun of [
+      "clove",
+      "head",
+      "sprig",
+      "loaf",
+      "block",
+      "slice",
+      "can",
+      "bunch",
+      "stalk",
+    ]
+  ) {
+    assertEquals(
+      measures.includes(noun),
+      true,
+      `measures should include ${noun}`,
+    );
+    assertEquals(
+      others.includes(noun),
+      false,
+      `${noun} belongs only in measures`,
+    );
   }
   // "tin" is normalised to "can" in the prompt — it is not itself a hint noun.
   assertEquals(measures.includes("tin"), false, "tin normalises to can");
