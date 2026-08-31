@@ -6,7 +6,7 @@ Haiku** on the blessed gold (`datasets/extraction/gold/`, the oracle —
 read-only) per-stage and per-path, with a never-invent ledger as the
 disqualifying dimension.
 
-Contract: `docs/exec-plans/active/0018-import-benchmark.md` (charter) +
+Contract: `docs/exec-plans/completed/0018-import-benchmark.md` (charter) +
 `0014-import-foundation.md` (frozen `ExtractAdapter` / `ExtractionResult`).
 
 ## Files

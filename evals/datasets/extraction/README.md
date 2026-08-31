@@ -1,7 +1,7 @@
 # Extraction fixtures
 
 The dataset for the extraction / provider benchmark (lane D — charter
-`docs/exec-plans/active/0018-import-benchmark.md`).
+`docs/exec-plans/completed/0018-import-benchmark.md`).
 
 - `gold/` — the blessed structured gold: one `<recipe>.json` per source,
   conforming to `gold/_SCHEMA.md` (mirrors the frozen `ExtractionResult`). This

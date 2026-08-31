@@ -1,7 +1,7 @@
 # Gold schema (finalized 2026-08-30; owner rulings folded in 2026-08-30)
 
 The shape every `gold/<recipe>.json` conforms to. Mirrors the `ExtractionResult`
-contract in `docs/exec-plans/active/0014-import-foundation.md`. When W0's
+contract in `docs/exec-plans/completed/0014-import-foundation.md`. When W0's
 `supabase/functions/_shared/types.ts` is written, it matches this file — one source.
 
 ## Governing rule — NEVER INVENT
