@@ -66,7 +66,7 @@ Conventions (all source-derived, none invented):
 - **Range** → `qty:null`, `qty_low`+`qty_high` from `raw_amount`.
 - **Cans / tins** — a **single** `"400 g tin"` / `"one 400 g can"` / `"One 14.5-oz can"` → `qty:1, unit:"can"` (NOT `qty:400, unit:"g"`); a **multi-pack** `"2½ × 400 g cans"` → `qty:2.5, unit:"can"` (NOT null). Either way the count is the amount and the gram basis lives in the measure system (it stays only in `raw_amount` until the app resolves it). **Normalise `"tin"` → `"can"`** (British/American synonym) so measure labels don't fragment. Keep any printed **drained weight** in `raw_amount` and flag it.
 - **Compound INGREDIENT line** `"Sea salt and freshly cracked black pepper"` → **split into two line items**. Re-index every step `line_index` that shifts as a result, and flag the split in `_review`.
-- **Compound AMOUNT, one ingredient** `"2 tbsp + ½ cup parsley"` (both volume) → sum within the family for the line total (`0.625 cup`); the split is represented per-step via `portion` (below). Cross-family compounds that can't bridge → keep `raw_amount`, `qty:null`, flag.
+- **Compound AMOUNT, one ingredient** `"2 tbsp + ½ cup parsley"` (both volume) → sum within the family for the line total (`0.625 cup`); the split is represented per-step via `portion` (below). Cross-family compounds that can't bridge → keep `raw_amount`, `qty:null`, flag. The sum is an **exact catalog conversion, never an estimate**: `2 tbsp` *is* `0.125 cup`, and `0.125 + 0.5 = 0.625` exactly. Two amounts that can only be bridged approximately are not same-family — that line keeps `qty: null` and a flag, because a rounded-off total is an invented number. Summing loses nothing: the printed split survives verbatim in `raw_amount` and step by step in the `portion`s. *(owner ruling 2026-08-31 — gumbo line 8's parsley, arithmetic human-verified.)*
 - **The PACK is the unit** (generalises the cans rule). Whenever the printed amount counts a *container or sold unit* and states its size, the COUNT is the amount and the size stays in `raw_amount`: `"One 14-ounce block"` → `qty:1, unit:"block"` (NOT `qty:14, unit:"oz"`); same for `can`, `loaf`, `head`, `bunch`, `slice`, `stalk`, `sprig`, `clove`. The gram/oz basis is the measure system's job, not the line's. *(owner ruling)*
 - **Every count-measure noun is mappable — no exceptions.** The count family is `piece` plus the generic measure nouns `clove · head · sprig · loaf · block · slice · can · bunch · stalk` (the same list `_shared/unit_hints.ts` hands the model and `runner/score_extraction.ts` scores as one family). **All of them take `unit_mappable: true`**, uniformly: `"Leaves from 4 sprigs rosemary"` → `qty:4, unit:"sprig"`, `"One 14-ounce block"` → `qty:1, unit:"block"`, `"½ loaf"` → `qty:0.5, unit:"loaf"`, `"1 large head of broccoli"` → `qty:1, unit:"head"` — every one `unit_mappable:true`. *(owner ruling 2026-08-31, superseding the earlier per-noun split.)* `unit_mappable:false` is for amounts with **no** measure noun to map at all (`"Thumb-sized piece"`, `"2 large handfuls"`, a bare unquantified line).
 - **`heaped` / `scant` / `rounded` modifiers** → keep the **printed** qty exactly (never inflate or deflate a number for them) **and** put the modifier word in `notes`: `"3 heaped tbsp peanut butter"` → `qty:3, unit:"tbsp", notes:"heaped"`, full phrase still in `raw_amount`. *(owner ruling)*
@@ -177,6 +177,23 @@ Token rules:
   one member. *(owner ruling 2026-08-31 — green-goddess step 2's `"all the remaining
   sauce ingredients"` chip `[10,11,12,13]` stays `"new"` although line 13 was
   fraction-used in step 1.)*
+- **A derived liquid links to the line it is made OF, not to what flavoured it.** When
+  an earlier step steeps or infuses one line in another and then **strains**, the later
+  `"the mushroom broth"` / `"the soaking liquid"` is a single ref on the line that became
+  the liquid — not a collective. The strained-out solids are still their own ingredient
+  and get their own chip where the prose uses them, so sweeping them into the liquid's
+  ref would double-count them. (This is the boundary of the intermediate-mixture rule
+  above: a *mixture* keeps every constituent, a *strained infusion* keeps only the
+  liquid.) *(owner ruling 2026-08-31 — gumbo step 3's `"mushroom broth"` is `[0]`, the
+  boiling water, `mention: "rementioned"`; the shiitakes (1) come back separately in
+  step 7's `[1,2]`.)*
+- **The same ingredient printed on two lines links by ROLE.** A recipe that prints
+  `"2 tbsp fresh mint leaves"` for the soup and `"1 tbsp fresh mint, chopped, for
+  garnish"` to finish it has two distinct lines, and a step's mention takes the one
+  whose printed role matches that step's use — the finishing step chips the garnish
+  line, not the line the earlier step already spent. Match on role, not on which line
+  the words resemble more. *(owner ruling 2026-08-31 — mint-pea step 2's `"the mint"`
+  is line 10, `mention: "new"` — that garnish line's first and only use.)*
 - **A printed catch-all spans its WHOLE group.** `"add all the ingredients"` /
   `"all the remaining sauce ingredients"` → one collective ref over every line of that
   group (minus only the lines the prose explicitly exempts) — **seasoning lines
@@ -184,6 +201,14 @@ Token rules:
   evidence that the printed salt/pepper lines fall outside the catch-all; it never
   narrows the ref set. *(owner ruling 2026-08-31 — nutty-broccoli step 4's chip spans
   `[6–16]`, keeping the salt (15) and black pepper (16) lines.)*
+  **Serve-along items are the one exclusion.** A line printed `"to serve"` / `"for
+  serving"` (and any line the step chips at its own prose position further on) is never
+  swept into a catch-all collective: the catch-all is what goes *into* the bowl, the
+  serve-alongs go *alongside* it, and the prose says so by naming them separately.
+  *(owner ruling 2026-08-31 — dense-bean step 4's `"all the remaining ingredients"` is
+  `[3–10]`, the salad body; toasted seeds (11) and crackers (12), both `notes: "to
+  serve"`, keep their own chips outside it. Optionality alone is not an exclusion —
+  the optional chilli (10) stays in.)*
 - **`ref.portion`** — OPTIONAL; present only when the STEP names a sub-amount.
   A number (`qty`, or `qty_low`/`qty_high` for a step range) + `unit`, both
   transcribed from the step text; OR a relative `qualifier`
@@ -233,6 +258,33 @@ Token rules:
   cross-reference included — and stays one until **roadmap 8.6 (nested recipes)**
   gives it a real recipe↔recipe link; flag it in `_review` as an 8.6 candidate rather
   than modelling it now. *(owner ruling 2026-08-31.)*
+- **A matching line is not enough — the use must be step-consumable.** A chip says the
+  step spends some of *that line's* amount. Two mentions look linkable and are not:
+  a **`"pinch of"`** taken while a line's own amount is already spoken for (the printed
+  `1 tsp sea salt` is a component of the sauce the recipe blends later, so the pinch in
+  the frying pan draws on nothing the page quantified), and an ingredient that exists
+  only **inside another line's `notes`** (the optional zest folded into the lemon line
+  by the zest ruling above is not an amount of its own). Both stay **plain text**.
+  *(owner ruling 2026-08-31 — green-goddess step 1's `"a pinch of salt"` and step 4's
+  `"lemon zest"`, both unchipped. The contrast is harissa step 2, where `"a big pinch
+  of salt"` DOES chip line 8: that `Sea salt` line is printed with no amount at all and
+  sits in the very group being seasoned, so the pinch is its use.)*
+- **Seasoning links stay inside their scope — never hunt across groups for a salt
+  line.** A step seasoning one component links only within that component's natural
+  scope: its own group, or the ungrouped body it is building. A salt line printed under
+  `"For the dressing"` belongs to the dressing (and is already spanned by the dressing
+  step's catch-all); the tray of broccoli going into the oven is seasoned with untracked
+  salt, and that mention stays **plain text** rather than reaching into another group.
+  *(owner ruling 2026-08-31 — nutty-broccoli steps 2 and 3, whose `salt` chips on the
+  dressing group's line 15 were removed.)*
+- **An either/or mention links to the branch that is a real line.** `"a drizzle of olive
+  or chilli oil"` chips whichever alternative the page actually prints as an ingredient
+  line, at that branch's own words — the other branch stays inside the surrounding text
+  span. If **neither** branch is a line, the whole mention stays plain text; a branch
+  printed for a different role (an `"Olive oil, for frying"` line already spent in an
+  earlier step) is not the finishing drizzle and does not qualify. *(owner ruling
+  2026-08-31 — harissa step 4's chip is `[10]`, the `"Chilli oil, to serve"` line, with
+  `"olive or "` left as prose.)*
 - **Garnish re-mentions stay plain text.** When a step names an ingredient again purely
   as a garnish (`"Serve garnished with the green onions"`) and that line is already
   chipped earlier, do **not** emit a second `ref` chip. One chip per line per genuine
