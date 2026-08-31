@@ -10,9 +10,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
+import '../../../shared/method_step_text.dart';
 import '../data/recipe_providers.dart';
 import '../domain/line_display.dart';
-import '../domain/method_step.dart';
 import '../domain/recipe.dart';
 import '../domain/scaling.dart';
 import 'format.dart';
@@ -467,7 +467,7 @@ class _MethodTab extends StatelessWidget {
             if (i > 0) const FDivider(),
             _StepRow(
               number: i + 1,
-              child: _TokenizedStep(
+              child: MethodStepText(
                 step: tokenized[i],
                 lineById: lineById,
                 factor: factor,
@@ -532,120 +532,6 @@ class _StepRow extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Renders one tokenized step: prose interleaved with ingredient chips and
-/// timers, produced by the pure [foldMethod] fold (never render-time matching).
-class _TokenizedStep extends StatelessWidget {
-  const _TokenizedStep({
-    required this.step,
-    required this.lineById,
-    required this.factor,
-  });
-
-  final MethodStep step;
-  final Map<String, LineItem> lineById;
-  final double factor;
-
-  @override
-  Widget build(BuildContext context) {
-    final spans = foldMethod(step, lineById: lineById, factor: factor);
-    return Text.rich(
-      TextSpan(
-        children: [
-          for (final span in spans)
-            switch (span) {
-              MethodTextSpan(:final text) => TextSpan(text: text),
-              MethodChipSpan(:final label, :final amount) => WidgetSpan(
-                alignment: PlaceholderAlignment.middle,
-                child: _IngredientChip(label: label, amount: amount),
-              ),
-              MethodTimerSpan(:final text) => WidgetSpan(
-                alignment: PlaceholderAlignment.middle,
-                child: _TimerChip(text: text),
-              ),
-            },
-        ],
-        style: miseSans(size: 16, height: 1.5),
-      ),
-    );
-  }
-}
-
-/// An inline ingredient chip: the label, plus the live amount when the fold
-/// derived one (first mention or a step portion; collective chips show none).
-class _IngredientChip extends StatelessWidget {
-  const _IngredientChip({required this.label, this.amount});
-
-  final String label;
-  final String? amount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 1),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: MiseColors.herbSoft,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: miseSans(
-                  size: 15,
-                  color: MiseColors.herbDeep,
-                  weight: FontWeight.w600,
-                ),
-              ),
-              if (amount != null) ...[
-                const SizedBox(width: 5),
-                Text(
-                  amount!,
-                  style: miseMono(size: 12, color: MiseColors.herb),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TimerChip extends StatelessWidget {
-  const _TimerChip({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 1),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: MiseColors.paper,
-          border: Border.all(color: MiseColors.line),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(FLucideIcons.timer, size: 12, color: MiseColors.muted),
-              const SizedBox(width: 4),
-              Text(text, style: miseMono(size: 12)),
-            ],
-          ),
-        ),
       ),
     );
   }

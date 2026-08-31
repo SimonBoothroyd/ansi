@@ -1,9 +1,11 @@
 /// [ImportRepository] over the local PowerSync SQLite.
 ///
-/// `startImport` is the **fake edge function** (0017): it parses the canned
-/// payload and re-resolves its placeholder candidate ids against the real local
-/// vocab by canonical name, so the pre-integration demo lands real matches. The
-/// real `functions.invoke` replaces this method at the tail.
+/// `startImport` here is the CANNED stand-in, not the app's import path: it
+/// parses the canned payload and re-resolves its placeholder candidates against
+/// the real local vocab, so tests and the on-device smoke test exercise the
+/// whole reconciliation flow with no network and no LLM. The app itself calls
+/// the real `import-recipe` edge function (`EdgeImportRepository`); this class
+/// only reaches a running app when something names it directly.
 ///
 /// `commit` is real. It writes the resolved recipe, its groups and line items,
 /// any create-new stubs, and correction aliases in one transaction, generating
@@ -36,8 +38,8 @@ class SqliteImportRepository implements ImportRepository {
 
   @override
   Future<ReconciliationPayload> startImport(ImportSource source) async {
-    // The fake edge function ignores the source and returns the canned payload,
-    // with candidate ids re-pointed at whatever the local vocab actually holds.
+    // The canned stand-in ignores the source and returns a fixed payload, with
+    // candidate ids re-pointed at whatever the local vocab actually holds.
     final payload = ReconciliationPayload.fromJson(
       jsonDecode(cannedReconciliationPayloadJson) as Map<String, Object?>,
     );
@@ -48,19 +50,26 @@ class SqliteImportRepository implements ImportRepository {
     return payload.copyWith(groups: groups);
   }
 
-  /// Re-points a canned line's placeholder candidates at real vocab ids: an
+  /// Re-points a canned line's placeholder candidates at real vocab rows: an
   /// exact canonical-name match first, then the same token-subset search the
   /// picker uses (so a candidate named "Parmesan" still lands on a seeded
   /// "Parmesan cheese" — the round-1 bug where suggestions silently vanished
-  /// because only exact names resolved). A line whose candidates all miss
-  /// degrades to `none` — the user resolves it, exactly as an unmatched line
-  /// from the real server.
+  /// because only exact names resolved). The RESOLVED row's own name replaces
+  /// the canned one: a candidate that reads "Parmesan" while pointing at
+  /// "Parmesan cheese" would put the wrong label on the chip the user taps,
+  /// and that label is what the resolution stores as `chosenName`. A line
+  /// whose candidates all miss degrades to `none` — the user resolves it,
+  /// exactly as an unmatched line from the real server.
   Future<ReconLine> _resolve(ReconLine line) async {
     if (line.candidates.isEmpty) return line;
     final resolved = <MatchCandidate>[];
     for (final c in line.candidates) {
-      final id = await _findVocabId(c.canonicalName);
-      if (id != null) resolved.add(c.copyWith(ingredientId: id));
+      final row = await _findVocabRow(c.canonicalName);
+      if (row != null) {
+        resolved.add(
+          c.copyWith(ingredientId: row.id, canonicalName: row.canonicalName),
+        );
+      }
     }
     if (resolved.isEmpty) {
       return line.copyWith(band: MatchBand.none, candidates: const []);
@@ -68,16 +77,23 @@ class SqliteImportRepository implements ImportRepository {
     return line.copyWith(candidates: resolved);
   }
 
-  /// The live vocab id a candidate [name] resolves to: an exact canonical-name
+  /// The live vocab row a candidate [name] resolves to: an exact canonical-name
   /// hit, else the top token-subset match (every token of [name] a word-prefix
   /// of the ingredient's `match_text`), else null.
-  Future<String?> _findVocabId(String name) async {
+  Future<({String id, String canonicalName})?> _findVocabRow(
+    String name,
+  ) async {
     final exact = await _db.getOptional(
-      'SELECT id FROM ingredient '
+      'SELECT id, canonical_name FROM ingredient '
       'WHERE deleted_at IS NULL AND LOWER(canonical_name) = LOWER(?) LIMIT 1',
       [name],
     );
-    if (exact != null) return exact['id'] as String;
+    if (exact != null) {
+      return (
+        id: exact['id'] as String,
+        canonicalName: exact['canonical_name'] as String,
+      );
+    }
 
     final tokens = searchTokens(name);
     if (tokens.isEmpty) return null;
@@ -88,11 +104,15 @@ class SqliteImportRepository implements ImportRepository {
       params.addAll(['$tok%', '% $tok%']);
     }
     final row = await _db.getOptional(
-      'SELECT id FROM ingredient WHERE $where '
+      'SELECT id, canonical_name FROM ingredient WHERE $where '
       'ORDER BY length(canonical_name), canonical_name LIMIT 1',
       params,
     );
-    return row?['id'] as String?;
+    if (row == null) return null;
+    return (
+      id: row['id'] as String,
+      canonicalName: row['canonical_name'] as String,
+    );
   }
 
   @override
@@ -205,7 +225,20 @@ class SqliteImportRepository implements ImportRepository {
       }
 
       // 4. Correction aliases (source='import_correction') — lane B's loop.
+      // Find-or-create, not blind insert: correcting "yellow onion" onto Onion
+      // on every import would otherwise pile up a duplicate alias row per
+      // import, all of them matching identically. Local tables are VIEWS, so
+      // this is an existence check + a plain INSERT, never an UPSERT
+      // ([mise-powersync-views-no-upsert]).
       for (final c in payload.corrections) {
+        final matchText = normalizeSearchQuery(c.aliasText);
+        final existing = await tx.getOptional(
+          'SELECT id FROM ingredient_alias '
+          'WHERE ingredient_id = ? AND match_text = ? AND deleted_at IS NULL '
+          'LIMIT 1',
+          [c.ingredientId, matchText],
+        );
+        if (existing != null) continue;
         await tx.execute(
           'INSERT INTO ingredient_alias (id, household_id, ingredient_id, '
           'alias_text, match_text, source, created_at, updated_at) '
@@ -215,7 +248,7 @@ class SqliteImportRepository implements ImportRepository {
             _householdId,
             c.ingredientId,
             c.aliasText,
-            normalizeSearchQuery(c.aliasText),
+            matchText,
             now,
             now,
           ],

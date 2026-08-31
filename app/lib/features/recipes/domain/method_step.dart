@@ -133,13 +133,35 @@ List<MethodSpan> foldMethod(
       case MethodRef(:final refs, :final label, :final mention, :final portion):
         spans.add(
           MethodChipSpan(
-            label: label,
+            label: _chipLabel(label, refs, lineById),
             amount: _chipAmount(refs, mention, portion, lineById, factor),
           ),
         );
     }
   }
   return spans;
+}
+
+/// The ingredient a chip names. The token's own [label] is the surface text
+/// the extractor chose and always wins — but it can arrive blank, and a chip
+/// with no label renders as a bare number ("Add the chopped 1, 0.5, 0.25"),
+/// which is the worst thing this fold can produce. A blank label therefore
+/// falls back to the referenced line item's ingredient name; a collective chip
+/// joins the names it can resolve. Still an id lookup, never render-time text
+/// matching (ADR-0004).
+String _chipLabel(
+  String label,
+  List<String> refs,
+  Map<String, LineItem> lineById,
+) {
+  final given = label.trim();
+  if (given.isNotEmpty) return given;
+  final names = [
+    for (final ref in refs)
+      if (lineById[ref]?.ingredientName.trim().isNotEmpty ?? false)
+        lineById[ref]!.ingredientName.trim(),
+  ];
+  return names.join(', ');
 }
 
 /// The number a chip renders, or null when it is quantity-less.

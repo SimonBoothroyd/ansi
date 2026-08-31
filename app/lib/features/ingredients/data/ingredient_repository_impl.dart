@@ -116,12 +116,18 @@ class SqliteIngredientRepository implements IngredientRepository {
     String query, {
     required int limit,
   }) async {
+    // The separator is a SINGLE-quoted string literal: SQLite reads `"x"` as an
+    // identifier first and only falls back to a string as a legacy quirk, which
+    // `SQLITE_DQS=0` builds disable outright. No LIMIT either — a cap would
+    // silently stop typo-tolerance working for whatever fell off the end as the
+    // household's vocab grew, and this pass only runs when the exact/prefix
+    // search already found nothing.
     final rows = await _db.getAll(
       'SELECT i.*, $_measureCount, '
-      '(SELECT GROUP_CONCAT(a.match_text, " ") FROM ingredient_alias a '
+      "(SELECT GROUP_CONCAT(a.match_text, ' ') FROM ingredient_alias a "
       'WHERE a.ingredient_id = i.id AND a.deleted_at IS NULL) AS alias_text '
       'FROM ingredient i WHERE i.deleted_at IS NULL '
-      'ORDER BY i.canonical_name LIMIT 500',
+      'ORDER BY i.canonical_name',
     );
     final scored = <({double score, int length, Ingredient ingredient})>[];
     for (final r in rows) {
@@ -179,6 +185,20 @@ class SqliteIngredientRepository implements IngredientRepository {
   }
 
   @override
+  Future<Map<String, Ingredient>> byIds(Set<String> ids) async {
+    if (ids.isEmpty) return const {};
+    // Ids are uuids we minted or synced, never user text; they still ride as
+    // bound parameters rather than being interpolated into the SQL.
+    final placeholders = List.filled(ids.length, '?').join(', ');
+    final rows = await _db.getAll(
+      'SELECT i.*, $_measureCount FROM ingredient i '
+      'WHERE i.deleted_at IS NULL AND i.id IN ($placeholders)',
+      ids.toList(),
+    );
+    return {for (final r in rows) r['id'] as String: _toIngredient(r)};
+  }
+
+  @override
   Future<Ingredient> createStub(String name) async {
     final id = _uuid.v4();
     final now = DateTime.now().toUtc().toIso8601String();
@@ -207,22 +227,39 @@ class SqliteIngredientRepository implements IngredientRepository {
     if (!(gPerMl > 0)) {
       throw ArgumentError.value(gPerMl, 'gPerMl', 'must be a positive number');
     }
-    final current = await byId(ingredientId);
-    if (current == null) return null;
-    // Extend the explicit list with what this density unlocks, in the same
-    // write (see the interface doc). A row still on the derived fallback is
-    // materialized first, so the extension has something explicit to join.
-    final unlocked = {
-      ...current.allowedUnits ?? defaultAllowedUnitSet(current),
-      ...densityUnlockedUnits(current),
-    };
-    final allowedJson = jsonEncode([for (final u in unlocked) u.id]);
+    // Read-modify-write: the allowed set written back is derived from the row
+    // as it is read, so the read and the write must be one transaction — a
+    // concurrent density/allowed-units write between them would be clobbered.
+    // This is the repo's only such pair; every other write is self-contained.
     final now = DateTime.now().toUtc().toIso8601String();
-    await _db.execute(
-      'UPDATE ingredient SET density_g_per_ml = ?, allowed_units = ?, '
-      'updated_at = ? WHERE id = ?',
-      [gPerMl, allowedJson, now, ingredientId],
-    );
+    final updated = await _db.writeTransaction((tx) async {
+      final row = await tx.getOptional(
+        'SELECT i.*, $_measureCount FROM ingredient i '
+        'WHERE i.id = ? AND i.deleted_at IS NULL',
+        [ingredientId],
+      );
+      if (row == null) return false;
+      final current = _toIngredient(row);
+      // Extend the explicit list with what this density unlocks, in the same
+      // write (see the interface doc). A row still on the derived fallback is
+      // materialized first, so the extension has something explicit to join.
+      final unlocked = {
+        ...current.allowedUnits ?? defaultAllowedUnitSet(current),
+        ...densityUnlockedUnits(current),
+      };
+      await tx.execute(
+        'UPDATE ingredient SET density_g_per_ml = ?, allowed_units = ?, '
+        'updated_at = ? WHERE id = ?',
+        [
+          gPerMl,
+          jsonEncode([for (final u in unlocked) u.id]),
+          now,
+          ingredientId,
+        ],
+      );
+      return true;
+    });
+    if (!updated) return null;
     return byId(ingredientId);
   }
 

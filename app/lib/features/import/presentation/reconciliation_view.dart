@@ -14,7 +14,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
-import '../../recipes/domain/method_step.dart';
+import '../../../shared/method_step_text.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
 import '../domain/line_validation.dart';
@@ -36,9 +36,12 @@ class ReconciliationBody extends HookConsumerWidget {
     final byIndex = {for (final r in state.resolutions) r.lineIndex: r};
     // Per-line validity (matched? range picked? unit in the ingredient's
     // allowed set?) + inline unit chips — drives each card's flag, its unit
-    // suggestions, AND the Save gate.
-    final validation = ref.watch(importValidationProvider);
-    final byLine = validation.asData?.value;
+    // suggestions, AND the Save gate. Read through `AsyncValue.value`, NOT
+    // `asData`: a recompute passes through a loading state whose data-only
+    // view is null, and reading THAT blinked every card's border, the counter
+    // and the Save button on every keystroke. `.value` keeps the last map
+    // until the new one lands.
+    final byLine = ref.watch(importValidationProvider).value;
     final issuesByLine = byLine == null
         ? null
         : {for (final e in byLine.entries) e.key: e.value.issues};
@@ -73,7 +76,6 @@ class ReconciliationBody extends HookConsumerWidget {
             key: ValueKey('review-line-$i'),
             line: flat[i],
             resolution: byIndex[i]!,
-            controller: controller,
             validation: byLine?[i],
           ),
         );
@@ -83,12 +85,14 @@ class ReconciliationBody extends HookConsumerWidget {
 
     // Save is gated on EVERY line being valid: matched, range picked, and a
     // unit inside the matched ingredient's allowed set (round-2 #2). While
-    // validation is still loading it stays disabled.
+    // validation has never yet loaded it stays disabled — and `buildCommit`
+    // re-checks the same map, so the button can't be the only thing holding
+    // the invariant.
     final canSave =
         issuesByLine != null && state.canCommit && allLinesValid(issuesByLine);
-    final outstanding = issuesByLine == null
-        ? state.unresolvedCount
-        : issuesByLine.values.where((i) => i.isNotEmpty).length;
+    // ONE count, shared with the header's "N to review" (they were two
+    // different rules and the header never decremented).
+    final outstanding = ref.watch(importOutstandingLinesProvider);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -98,6 +102,7 @@ class ReconciliationBody extends HookConsumerWidget {
           style: miseSerif(size: 28, weight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
+        _SourceNotes(payload: payload),
         _ServingsRow(state: state, onChanged: controller.setServings),
         const SizedBox(height: 10),
         _SectionHeader(label: 'Ingredients', count: flat.length),
@@ -112,12 +117,88 @@ class ReconciliationBody extends HookConsumerWidget {
         ),
         const SizedBox(height: 20),
         FButton(
-          onPress: canSave ? controller.commit : null,
+          onPress: canSave
+              ? () => controller.commit(issuesByLine: issuesByLine)
+              : null,
           child: Text(
             canSave ? 'Save recipe' : '$outstanding line(s) need you',
           ),
         ),
       ],
+    );
+  }
+}
+
+/// What the extractor could NOT read cleanly: a truncated source, a
+/// degraded/poor photo, and the model's own [ReconciliationPayload.parseWarnings]
+/// — which were carried all the way to the client and then never rendered,
+/// while this file's doc claimed they were shown. Empty when the import came
+/// back clean.
+List<String> sourceNotes(ReconciliationPayload payload) => <String?>[
+  if (payload.truncated)
+    'The source was longer than we could read — check nothing is missing.',
+  switch (payload.imageQuality) {
+    ImportImageQuality.ok => null,
+    ImportImageQuality.degraded =>
+      'The photo was hard to read — amounts especially.',
+    ImportImageQuality.poor =>
+      'The photo was very hard to read — check every line.',
+  },
+  ...payload.parseWarnings,
+].whereType<String>().toList();
+
+/// [sourceNotes] at the top of the review — the never-invent flags (0014)
+/// belong on screen, not in a log. Each is a reason to look harder at the lines
+/// below, so they read as one quiet block rather than an alarm.
+class _SourceNotes extends StatelessWidget {
+  const _SourceNotes({required this.payload});
+
+  final ReconciliationPayload payload;
+
+  @override
+  Widget build(BuildContext context) {
+    final notes = sourceNotes(payload);
+    if (notes.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: MiseColors.paper,
+          border: Border.all(color: MiseColors.aging),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    FLucideIcons.triangleAlert,
+                    size: 12,
+                    color: MiseColors.aging,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'WHAT WE COULD NOT READ',
+                    style: miseLabel(color: MiseColors.aging),
+                  ),
+                ],
+              ),
+              for (final note in notes)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    '· $note',
+                    style: miseMono(size: 11, color: MiseColors.muted),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -201,7 +282,7 @@ class _ServingsRow extends StatelessWidget {
 }
 
 /// The read-only method: each step folded to prose + inline ingredient/timer
-/// chips by [foldMethod] (no render-time matching), numbered.
+/// chips by [MethodStepText] (no render-time matching), numbered.
 class _MethodPreview extends StatelessWidget {
   const _MethodPreview({required this.recipe});
 
@@ -233,98 +314,16 @@ class _MethodPreview extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _StepText(
-                    spans: foldMethod(steps[i], lineById: lineById),
+                  child: MethodStepText(
+                    step: steps[i],
+                    lineById: lineById,
+                    textSize: 15,
                   ),
                 ),
               ],
             ),
           ),
       ],
-    );
-  }
-}
-
-class _StepText extends StatelessWidget {
-  const _StepText({required this.spans});
-
-  final List<MethodSpan> spans;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(
-        children: [
-          for (final span in spans)
-            switch (span) {
-              MethodTextSpan(:final text) => TextSpan(text: text),
-              MethodChipSpan(:final label, :final amount) => WidgetSpan(
-                alignment: PlaceholderAlignment.middle,
-                child: _Chip(label: label, amount: amount),
-              ),
-              MethodTimerSpan(:final text) => WidgetSpan(
-                alignment: PlaceholderAlignment.middle,
-                child: _Chip(label: text, timer: true),
-              ),
-            },
-        ],
-        style: miseSans(size: 15, height: 1.5),
-      ),
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  const _Chip({required this.label, this.amount, this.timer = false});
-
-  final String label;
-  final String? amount;
-  final bool timer;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 1),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: timer ? MiseColors.paper : MiseColors.herbSoft,
-          border: timer ? Border.all(color: MiseColors.line) : null,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (timer) ...[
-                const Icon(
-                  FLucideIcons.timer,
-                  size: 12,
-                  color: MiseColors.muted,
-                ),
-                const SizedBox(width: 4),
-              ],
-              Text(
-                label,
-                style: timer
-                    ? miseMono(size: 12)
-                    : miseSans(
-                        size: 15,
-                        color: MiseColors.herbDeep,
-                        weight: FontWeight.w600,
-                      ),
-              ),
-              if (amount != null) ...[
-                const SizedBox(width: 5),
-                Text(
-                  amount!,
-                  style: miseMono(size: 12, color: MiseColors.herb),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

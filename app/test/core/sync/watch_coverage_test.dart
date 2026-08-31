@@ -19,26 +19,35 @@
 /// skipped (it can't name a literal table), and files with several watch
 /// queries are checked against the union of their watch tables. If this test
 /// ever turns brittle, replace it with a pinned watched-tables list per repo.
+///
+/// The rule is OPT-OUT: every `lib/features/*/data/*_repository_impl.dart` that
+/// contains a `.watch(` is covered automatically, so a new repository joins the
+/// rule by existing rather than by someone remembering to list it. Skipping one
+/// takes an entry in [_excluded] with a reason.
 library;
 
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// The repositories under the rule. Paths are relative to `app/` (the cwd of
-/// `flutter test`). `exempt` names tables read only by one-shot Future APIs
-/// that are not part of the watch stream's load path.
-const _repos = <String, Set<String>>{
-  'lib/features/recipes/data/recipe_repository_impl.dart': {},
-  'lib/features/shopping/data/shopping_repository_impl.dart': {},
-  'lib/features/books/data/book_repository_impl.dart': {},
-  'lib/features/cook_plan/data/cook_plan_repository_impl.dart': {},
-  'lib/features/ingredients/data/measure_repository_impl.dart': {},
+/// Where the covered repositories live, relative to `app/` (the cwd of
+/// `flutter test`).
+const _repoGlobDir = 'lib/features';
+const _repoSuffix = '_repository_impl.dart';
+
+/// Tables a given repo reads only from a one-shot Future API that is not part
+/// of any watch stream's load path.
+const _exemptTables = <String, Set<String>>{
   // `members()` is a one-shot Future (eater picker), not part of watchWeek.
   'lib/features/planning/data/planning_repository_impl.dart': {
     'household_member',
   },
 };
+
+/// Repositories deliberately outside the rule, each with the reason. A watching
+/// repo may only be added here with a real justification — this list is the
+/// audit trail, not a place to silence a failure.
+const _excluded = <String, String>{};
 
 /// A single- or double-quoted Dart string literal.
 final _literal = RegExp('"(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\'');
@@ -103,13 +112,47 @@ Map<String, String> _tables(String sql) {
   return tables;
 }
 
+/// Every repository implementation on disk, path-sorted so the generated test
+/// list is stable.
+List<String> _repositoryImpls() {
+  final dir = Directory(_repoGlobDir);
+  final paths =
+      dir
+          .listSync()
+          .whereType<Directory>()
+          .map((f) => Directory('${f.path}/data'))
+          .where((d) => d.existsSync())
+          .expand((d) => d.listSync().whereType<File>())
+          .map((f) => f.path)
+          .where((p) => p.endsWith(_repoSuffix))
+          .toList()
+        ..sort();
+  return paths;
+}
+
 void main() {
-  for (final entry in _repos.entries) {
-    final path = entry.key;
-    final exempt = entry.value;
+  final impls = _repositoryImpls();
+
+  test('the repository glob actually found the repositories', () {
+    // A broken glob would make every check below vacuously pass.
+    expect(impls.length, greaterThanOrEqualTo(6), reason: 'found: $impls');
+  });
+
+  for (final path in impls) {
+    final source = _blankComments(File(path).readAsStringSync());
+    final reason = _excluded[path];
+    if (reason != null) {
+      test('$path — excluded from the watch rule', () {
+        expect(reason, isNotEmpty);
+      });
+      continue;
+    }
+    // Opt-out: a repo without a watched query has no watch stream to keep
+    // honest (the import repo is commit-only, the vocab repo is search-only).
+    if (!source.contains('.watch(')) continue;
+    final exempt = _exemptTables[path] ?? const <String>{};
 
     test('$path — watch SQL covers every load-path table', () {
-      final source = _blankComments(File(path).readAsStringSync());
       final strings = _mergedStrings(source);
 
       // The watch queries: the first merged string after each `.watch(`.

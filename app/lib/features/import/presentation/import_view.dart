@@ -34,8 +34,11 @@ class ImportView extends HookConsumerWidget {
       _ => 'Import a recipe',
     };
     // "N to review" rides the header — the honest count of lines still wanting
-    // a look, on the single review surface.
-    final reviewCount = state is ImportReconciling ? state.reviewCount : null;
+    // a look, read from the same provider the Save button is gated on so the
+    // two can never drift.
+    final reviewCount = state is ImportReconciling
+        ? ref.watch(importOutstandingLinesProvider)
+        : null;
     return FScaffold(
       childPad: false,
       header: FHeader.nested(

@@ -61,6 +61,9 @@ class _FakeIngredientRepo implements IngredientRepository {
   Future<Ingredient?> byId(String id) async => null;
 
   @override
+  Future<Map<String, Ingredient>> byIds(Set<String> ids) async => const {};
+
+  @override
   Future<Ingredient> createStub(String name) async => Ingredient(
     id: 'stub-1',
     canonicalName: name,

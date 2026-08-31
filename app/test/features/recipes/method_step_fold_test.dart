@@ -103,6 +103,51 @@ void main() {
     });
   });
 
+  group('chip label', () {
+    List<String> labelsOf(MethodStep step) => foldMethod(
+      step,
+      lineById: lines,
+    ).whereType<MethodChipSpan>().map((c) => c.label).toList();
+
+    test('the token label wins when it has one', () {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(refs: ['flour'], label: 'the flour'),
+        ],
+      );
+      expect(labelsOf(step), ['the flour']);
+    });
+
+    test('a BLANK label falls back to the line item ingredient', () {
+      // The shipped bug: steps read "Add the chopped 1, 0.5, 0.25" — amounts
+      // with no ingredient — because the chip rendered an empty label.
+      const step = MethodStep(
+        tokens: [
+          MethodRef(refs: ['flour'], label: ''),
+        ],
+      );
+      expect(labelsOf(step), ['flour']);
+    });
+
+    test('a collective chip joins the names it can resolve', () {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(refs: ['flour', 'eggs', 'ghost'], label: '   '),
+        ],
+      );
+      expect(labelsOf(step), ['flour, eggs']);
+    });
+
+    test('an unresolvable blank-label chip stays empty, never invented', () {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(refs: ['ghost'], label: ''),
+        ],
+      );
+      expect(labelsOf(step), ['']);
+    });
+  });
+
   group('scaling', () {
     test('a first-mention line quantity and a numeric portion both scale', () {
       const step = MethodStep(

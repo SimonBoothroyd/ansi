@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mise/core/units/measure.dart';
 import 'package:mise/core/units/units.dart';
 import 'package:mise/features/import/domain/line_resolution.dart';
+import 'package:mise/features/import/domain/line_validation.dart';
 import 'package:mise/features/import/domain/reconciliation_payload.dart';
 import 'package:mise/features/ingredients/domain/allowed_units.dart';
 
@@ -136,7 +137,12 @@ void main() {
         initialResolution(2, payload.flatLines[2]).resolveToNewStub('basil'),
       ];
 
-      final commit = buildCommit(payload, resolutions, servingsBase: 2);
+      final commit = buildCommit(
+        payload,
+        resolutions,
+        servingsBase: 2,
+        issuesByLine: null,
+      );
       // Two distinct stubs: the duplicate chilli lines share one.
       expect(commit.stubs, hasLength(2));
       final lines = commit.groups.single.lines;
@@ -173,7 +179,12 @@ void main() {
         ).resolveToIngredient('ing-scallion', 'Scallion', correction: true),
       ];
 
-      final commit = buildCommit(payload, resolutions, servingsBase: 2);
+      final commit = buildCommit(
+        payload,
+        resolutions,
+        servingsBase: 2,
+        issuesByLine: null,
+      );
       expect(commit.corrections, hasLength(1));
       expect(commit.corrections.single.ingredientId, 'ing-scallion');
       expect(commit.corrections.single.aliasText, 'spring onion');
@@ -310,88 +321,50 @@ void main() {
     });
   });
 
-  group('triage: needsReview', () {
-    test('a clean auto match with a number does not need review', () {
-      final line = _line(
-        'pasta',
-        band: MatchBand.auto,
-        qty: 200,
-        unit: 'g',
-        candidates: [_cand],
-      );
-      expect(needsReview(line, initialResolution(0, line)), isFalse);
-    });
-
-    test('suggest, none, ranges, unmappable, low-confidence surface', () {
-      final suggest = _line(
-        'cheese',
-        band: MatchBand.suggest,
-        qty: 1,
-        candidates: [_cand],
-      );
-      final none = _line('mystery', qty: 1);
-      final range = _line(
-        'garlic',
-        band: MatchBand.auto,
-        qtyLow: 2,
-        qtyHigh: 3,
-        candidates: [_cand],
-      );
-      final unmappable = _line(
-        'basil',
-        band: MatchBand.auto,
-        unit: 'handful',
-        unitMappable: false,
-        candidates: [_cand],
-      );
-      final shaky = _line(
-        'thing',
-        band: MatchBand.auto,
-        qty: 1,
-        confidence: 0.5,
-        candidates: [_cand],
-      );
-      expect(needsReview(suggest, initialResolution(0, suggest)), isTrue);
-      expect(needsReview(none, initialResolution(0, none)), isTrue);
-      expect(needsReview(range, initialResolution(0, range)), isTrue);
-      expect(needsReview(unmappable, initialResolution(0, unmappable)), isTrue);
-      expect(needsReview(shaky, initialResolution(0, shaky)), isTrue);
-    });
-  });
-
-  group('triage: groupReconUses', () {
-    test('same identity within a group folds to one use-group', () {
-      final payload = ReconciliationPayload(
-        title: 'T',
-        groups: [
-          ReconGroup(
-            lines: [
-              _line('Aleppo chilli flakes'),
-              _line('garlic', band: MatchBand.auto, qty: 1),
-              _line('Aleppo chilli flakes'),
-            ],
-          ),
-          ReconGroup(name: 'to serve', lines: [_line('basil')]),
-        ],
-      );
-      final groups = groupReconUses(payload);
-      // chilli (folded, 2 uses), garlic, basil.
-      expect(groups, hasLength(3));
-      expect(groups[0].isMultiUse, isTrue);
-      expect(groups[0].lineIndexes, [0, 2]);
-      expect(groups[1].lineIndexes, [1]);
-      expect(groups[2].lineIndexes, [3]);
-    });
-  });
-
   group('commit gate', () {
     test('buildCommit throws while any line is unresolved', () {
       final payload = _payload([_line('mystery', qty: 1)]);
       final resolutions = initialResolutions(payload); // none, unresolved
       expect(allResolved(resolutions), isFalse);
       expect(
-        () => buildCommit(payload, resolutions, servingsBase: 2),
+        () => buildCommit(
+          payload,
+          resolutions,
+          servingsBase: 2,
+          issuesByLine: null,
+        ),
         throwsStateError,
+      );
+    });
+
+    test('buildCommit throws when a resolved line is still INVALID', () {
+      // Unit validity used to live only in the view's disabled Save button, so
+      // this function's doc claimed an invariant it did not enforce.
+      final payload = _payload([
+        _line('garlic', band: MatchBand.auto, qty: 1, candidates: [_cand]),
+      ]);
+      final resolutions = initialResolutions(payload);
+      expect(allResolved(resolutions), isTrue);
+      expect(
+        () => buildCommit(
+          payload,
+          resolutions,
+          servingsBase: 2,
+          issuesByLine: const {
+            0: [LineIssue.unitNotAllowed],
+          },
+        ),
+        throwsStateError,
+      );
+      // A clean map commits.
+      expect(
+        buildCommit(
+          payload,
+          resolutions,
+          servingsBase: 2,
+          issuesByLine: const {0: <LineIssue>[]},
+        ).groups.single.lines,
+        hasLength(1),
       );
     });
 
@@ -410,7 +383,12 @@ void main() {
         for (var i = 0; i < payload.flatLines.length; i++)
           initialResolution(i, payload.flatLines[i]).resolveToNewStub('s$i'),
       ];
-      final commit = buildCommit(payload, resolutions, servingsBase: 4);
+      final commit = buildCommit(
+        payload,
+        resolutions,
+        servingsBase: 4,
+        issuesByLine: null,
+      );
       expect(commit.groups.map((g) => g.name), ['A', 'B']);
       expect(commit.groups.expand((g) => g.lines).map((l) => l.lineIndex), [
         0,

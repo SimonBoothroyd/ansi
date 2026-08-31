@@ -102,7 +102,12 @@ void main() {
   test('commit writes the recipe, groups, and non-null line items', () async {
     final c = resolvedCommit();
     final recipeId = await repo.commit(
-      buildCommit(c.payload, c.resolutions, servingsBase: 3),
+      buildCommit(
+        c.payload,
+        c.resolutions,
+        servingsBase: 3,
+        issuesByLine: null,
+      ),
     );
 
     final recipe = await db.getOptional('SELECT * FROM recipe WHERE id = ?', [
@@ -156,7 +161,12 @@ void main() {
       ],
     );
     final recipeId = await repo.commit(
-      buildCommit(p, [initialResolution(0, p.flatLines[0])], servingsBase: 1),
+      buildCommit(
+        p,
+        [initialResolution(0, p.flatLines[0])],
+        servingsBase: 1,
+        issuesByLine: null,
+      ),
     );
     final line = await db.getAll(
       'SELECT li.unit, li.measure_id FROM recipe_line_item li '
@@ -177,7 +187,12 @@ void main() {
     );
     final c = resolvedCommit();
     final recipeId = await repo.commit(
-      buildCommit(c.payload, c.resolutions, servingsBase: 2),
+      buildCommit(
+        c.payload,
+        c.resolutions,
+        servingsBase: 2,
+        issuesByLine: null,
+      ),
     );
 
     final row = await db.get('SELECT book_id FROM recipe WHERE id = ?', [
@@ -189,7 +204,12 @@ void main() {
   test('with no book yet, the commit creates the default one', () async {
     final c = resolvedCommit();
     final recipeId = await repo.commit(
-      buildCommit(c.payload, c.resolutions, servingsBase: 2),
+      buildCommit(
+        c.payload,
+        c.resolutions,
+        servingsBase: 2,
+        issuesByLine: null,
+      ),
     );
 
     final books = await db.getAll('SELECT id, name FROM book');
@@ -203,7 +223,14 @@ void main() {
 
   test('identical no-match lines coalesce onto one created stub', () async {
     final c = resolvedCommit();
-    await repo.commit(buildCommit(c.payload, c.resolutions, servingsBase: 2));
+    await repo.commit(
+      buildCommit(
+        c.payload,
+        c.resolutions,
+        servingsBase: 2,
+        issuesByLine: null,
+      ),
+    );
 
     final stubs = await db.getAll(
       "SELECT * FROM ingredient WHERE source = 'import_stub'",
@@ -222,7 +249,14 @@ void main() {
 
   test('a correction writes an import_correction alias', () async {
     final c = resolvedCommit();
-    await repo.commit(buildCommit(c.payload, c.resolutions, servingsBase: 2));
+    await repo.commit(
+      buildCommit(
+        c.payload,
+        c.resolutions,
+        servingsBase: 2,
+        issuesByLine: null,
+      ),
+    );
 
     final aliases = await db.getAll(
       "SELECT * FROM ingredient_alias WHERE source = 'import_correction'",
@@ -235,7 +269,12 @@ void main() {
   test('step line_index refs are remapped to real line_item_ids', () async {
     final c = resolvedCommit();
     final recipeId = await repo.commit(
-      buildCommit(c.payload, c.resolutions, servingsBase: 2),
+      buildCommit(
+        c.payload,
+        c.resolutions,
+        servingsBase: 2,
+        issuesByLine: null,
+      ),
     );
 
     final lines = await db.getAll(
@@ -263,7 +302,12 @@ void main() {
   test('the committed recipe reloads with tokenized method steps', () async {
     final c = resolvedCommit();
     final recipeId = await repo.commit(
-      buildCommit(c.payload, c.resolutions, servingsBase: 2),
+      buildCommit(
+        c.payload,
+        c.resolutions,
+        servingsBase: 2,
+        issuesByLine: null,
+      ),
     );
 
     final recipeRepo = SqliteRecipeRepository(db, householdId: 'h');

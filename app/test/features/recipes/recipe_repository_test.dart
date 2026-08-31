@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mise/core/units/units.dart';
 import 'package:mise/features/recipes/data/recipe_repository_impl.dart';
+import 'package:mise/features/recipes/domain/method_step.dart';
 import 'package:mise/features/recipes/domain/recipe.dart';
 import 'package:powersync/powersync.dart';
 
@@ -100,6 +101,46 @@ void main() {
     expect(rice.quantity, 150);
     expect(rice.unit, g);
     expect(rice.note, 'rinsed');
+  });
+
+  test('an imported recipe keeps its tokenized method across a save', () async {
+    // An import-shaped recipe: the method lives in `methodSteps` (token stream)
+    // and the plain `steps` list is empty. Editing anything else and saving
+    // must not erase it — serializing the empty plain list would.
+    final imported = _sampleRecipe().copyWith(
+      steps: const [],
+      methodSteps: const [
+        MethodStep(
+          tokens: [
+            MethodToken.text(s: 'Fry the '),
+            MethodToken.ref(refs: ['i1'], label: 'onion'),
+            MethodToken.text(s: ' for '),
+            MethodToken.timer(lowSeconds: 300, highSeconds: 480),
+          ],
+        ),
+      ],
+    );
+    await repo.saveRecipe(imported);
+
+    var loaded = await repo.watchRecipe('r1').first;
+    expect(loaded!.steps, isEmpty);
+    expect(loaded.methodSteps, hasLength(1));
+
+    // The round-trip survives a second save of what was loaded — the editor's
+    // save path (title edit, method untouched).
+    await repo.saveRecipe(loaded.copyWith(title: 'Renamed'));
+    loaded = await repo.watchRecipe('r1').first;
+    expect(loaded!.title, 'Renamed');
+    expect(loaded.methodSteps, hasLength(1));
+    final tokens = loaded.methodSteps!.single.tokens;
+    expect(tokens, hasLength(4));
+    final refToken = tokens.whereType<MethodRef>().single;
+    expect(refToken.refs, ['i1']);
+    expect(refToken.label, 'onion');
+    expect(refToken.mention, StepMention.isNew);
+    final timer = tokens.whereType<MethodTimer>().single;
+    expect(timer.lowSeconds, 300);
+    expect(timer.highSeconds, 480);
   });
 
   test('a measure line round-trips: id persisted, measure resolved', () async {

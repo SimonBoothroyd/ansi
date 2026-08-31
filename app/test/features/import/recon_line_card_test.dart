@@ -138,7 +138,6 @@ class _Body extends ConsumerWidget {
         ReviewLineCard(
           line: state.payload.flatLines[0],
           resolution: state.resolutions.firstWhere((r) => r.lineIndex == 0),
-          controller: ref.read(importControllerProvider.notifier),
           validation: validation,
         ),
       ],

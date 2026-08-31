@@ -27,7 +27,8 @@ class ImportIdle extends ImportState {
   const ImportIdle();
 }
 
-/// Extraction + matching is running (the fake edge function, for now).
+/// Extraction + matching is running server-side (the `import-recipe` edge
+/// function).
 class ImportLoading extends ImportState {
   const ImportLoading();
 }
@@ -39,7 +40,6 @@ class ImportReconciling extends ImportState {
     required this.payload,
     required this.resolutions,
     required this.servings,
-    this.previewing = false,
   });
 
   final ReconciliationPayload payload;
@@ -49,37 +49,44 @@ class ImportReconciling extends ImportState {
   /// (defaulting to 1 when the source was unclear, which the UI flags).
   final double servings;
 
-  /// True once the user has moved from triage to the pre-commit preview (the
-  /// resolutions stay live and editable behind it).
-  final bool previewing;
-
-  /// Every line resolved — the commit gate.
+  /// Every line resolved — the structural half of the commit gate. Unit
+  /// validity is the other half and needs the vocab, so it lives in
+  /// [importValidation]; [importOutstandingLines] is what the UI gates on.
   bool get canCommit => allResolved(resolutions);
 
-  /// Count of lines still needing the user (the intake→commit progress hint).
+  /// Count of lines still structurally unresolved — the fallback count while
+  /// the ingredient-backed validation is loading for the first time.
   int get unresolvedCount => resolutions.where((r) => !r.isResolved).length;
 
-  /// The number of triage rows still asking for the user ("N to review"): a
-  /// use-group counts once, regardless of how many uses it folds.
-  int get reviewCount {
-    final byIndex = {for (final r in resolutions) r.lineIndex: r};
-    final flat = payload.flatLines;
-    return groupReconUses(payload)
-        .where(
-          (g) => g.lineIndexes.any((i) => needsReview(flat[i], byIndex[i]!)),
-        )
-        .length;
+  /// The fingerprint of everything [importValidation] depends on: per line, its
+  /// match, its unit, and whether a printed range still needs a number. Notes
+  /// and the serving count change no line's validity, so typing a note must not
+  /// re-run a vocab query per line.
+  String get validationKey {
+    final key = StringBuffer();
+    for (final r in resolutions) {
+      key
+        ..write(r.lineIndex)
+        ..write('|')
+        ..write(r.chosenIngredientId ?? '')
+        ..write('|')
+        ..write(r.createStubName ?? '')
+        ..write('|')
+        ..write(r.unit ?? '')
+        ..write('|')
+        ..write(r.isRange && r.quantity == null)
+        ..write(';');
+    }
+    return key.toString();
   }
 
   ImportReconciling copyWith({
     List<LineResolution>? resolutions,
     double? servings,
-    bool? previewing,
   }) => ImportReconciling(
     payload: payload,
     resolutions: resolutions ?? this.resolutions,
     servings: servings ?? this.servings,
-    previewing: previewing ?? this.previewing,
   );
 }
 
@@ -100,13 +107,28 @@ class ImportFailed extends ImportState {
   final String message;
 }
 
+/// The import session controller.
+///
+/// It is `autoDispose` (the default), so the user can back out of `/import`
+/// while an extraction or a commit is still in flight — and in Riverpod 3
+/// writing `state` on a disposed notifier THROWS (in release too). Every
+/// post-await assignment here, the `catch` blocks included, is therefore
+/// guarded by [Ref.mounted]. Guards rather than `keepAlive`: an abandoned
+/// import should be collected, not kept warm for a flow the user left.
 @riverpod
 class ImportController extends _$ImportController {
   @override
   ImportState build() => const ImportIdle();
 
-  /// Runs the (faked) edge function for [source] and moves to reconciliation.
+  /// True while [startImport] is running. Extraction is a billed LLM call, so a
+  /// double-tapped "Import" must not fire two of them.
+  bool _starting = false;
+
+  /// Runs the extract→match pipeline for [source] and moves to reconciliation.
+  /// A second call while the first is in flight is a no-op.
   Future<void> startImport(ImportSource source) async {
+    if (_starting) return;
+    _starting = true;
     state = const ImportLoading();
     try {
       // The keepAlive repo provider, read directly after the await — never a
@@ -114,13 +136,17 @@ class ImportController extends _$ImportController {
       final payload = await ref
           .read(importRepositoryProvider)
           .startImport(source);
+      if (!ref.mounted) return;
       state = ImportReconciling(
         payload: payload,
         resolutions: initialResolutions(payload),
         servings: (payload.servingsBase ?? 1).toDouble(),
       );
     } on Object catch (e) {
+      if (!ref.mounted) return;
       state = ImportFailed('Could not import this recipe: $e');
+    } finally {
+      _starting = false;
     }
   }
 
@@ -147,38 +173,33 @@ class ImportController extends _$ImportController {
     state = s.copyWith(servings: servings < 1 ? 1 : servings);
   }
 
-  /// Moves from triage to the pre-commit preview. A no-op unless every line is
-  /// resolved — the preview shows the recipe that would be saved.
-  void showPreview() {
-    final s = state;
-    if (s is! ImportReconciling || !s.canCommit) return;
-    state = s.copyWith(previewing: true);
-  }
-
-  /// Returns from the preview to triage (the resolutions are untouched).
-  void backToTriage() {
-    final s = state;
-    if (s is! ImportReconciling) return;
-    state = s.copyWith(previewing: false);
-  }
-
   /// Builds the commit payload and writes it. Returns the new recipe id, or
   /// null if the flow wasn't ready / a write failed.
-  Future<String?> commit() async {
+  ///
+  /// [issuesByLine] is the review screen's per-line validity (from
+  /// [importValidation]) — the SAME map the Save button is derived from, handed
+  /// down so [buildCommit] can enforce the gate rather than trust the caller.
+  Future<String?> commit({
+    required Map<int, List<LineIssue>>? issuesByLine,
+  }) async {
     final s = state;
     if (s is! ImportReconciling || !s.canCommit) return null;
     final payload = buildCommit(
       s.payload,
       s.resolutions,
       servingsBase: s.servings,
+      issuesByLine: issuesByLine,
     );
     state = const ImportCommitting();
     try {
       final id = await ref.read(importRepositoryProvider).commit(payload);
-      state = ImportCommitted(id);
+      // The recipe IS saved. If the user left mid-write we can't route them to
+      // it, but we must not throw over a disposed notifier either — return the
+      // id so the caller can still act on it.
+      if (ref.mounted) state = ImportCommitted(id);
       return id;
     } on Object catch (e) {
-      state = ImportFailed('Could not save the recipe: $e');
+      if (ref.mounted) state = ImportFailed('Could not save the recipe: $e');
       return null;
     }
   }
@@ -187,32 +208,65 @@ class ImportController extends _$ImportController {
   void reset() => state = const ImportIdle();
 }
 
+/// The narrow slice of the controller [importValidation] actually depends on
+/// (see [ImportReconciling.validationKey]). Watching THIS rather than the whole
+/// state is what keeps a note keystroke or a servings tap from re-running a
+/// vocab query per line.
+@riverpod
+String importValidationKey(Ref ref) {
+  final state = ref.watch(importControllerProvider);
+  return state is ImportReconciling ? state.validationKey : '';
+}
+
 /// Per-line validity for the current reconciliation, keyed by flat line index —
-/// loads each matched line's ingredient + measures and checks its unit against
-/// the ingredient's allowed set (ADR-0008), and offers that ingredient's valid
-/// units as inline suggestion chips. Recomputed on every edit; the review
-/// screen reads it for the per-line needs-attention flag, the unit chips, AND
-/// the Save gate. Empty until reconciling.
+/// resolves each matched line's ingredient + measures and checks its unit
+/// against the ingredient's allowed set (ADR-0008), offering that ingredient's
+/// valid units as inline suggestion chips. The review screen reads it for the
+/// per-line needs-attention flag, the unit chips, AND the Save gate. Empty
+/// until reconciling.
+///
+/// It is deliberately NOT recomputed on every controller change: it depends on
+/// [importValidationKey], so editing a note or the servings leaves the cached
+/// map alone. When it does recompute, the whole import's vocab is fetched in
+/// ONE query and the per-ingredient measure streams are all subscribed before
+/// the first await — never N sequential round-trips down the line list. Views
+/// must read it with `AsyncValue.value` (which keeps the last data across a
+/// refresh), never a data-only view that goes null mid-recompute.
 @riverpod
 Future<Map<int, LineValidation>> importValidation(Ref ref) async {
-  final state = ref.watch(importControllerProvider);
+  ref.watch(importValidationKeyProvider);
+  final state = ref.read(importControllerProvider);
   if (state is! ImportReconciling) return const {};
-  final repo = ref.read(ingredientRepositoryProvider);
+
+  final matchedIds = {
+    for (final r in state.resolutions)
+      if (r.chosenIngredientId != null) r.chosenIngredientId!,
+  };
+  // Subscribe to every measure stream FIRST (synchronously, so the watches are
+  // registered before any await), then resolve them — they load concurrently.
+  final measureFutures = {
+    for (final id in matchedIds)
+      id: ref.watch(ingredientMeasuresProvider(id).future),
+  };
+  final vocab = await ref.read(ingredientRepositoryProvider).byIds(matchedIds);
+  final measuresById = <String, List<Measure>>{};
+  for (final entry in measureFutures.entries) {
+    try {
+      measuresById[entry.key] = await entry.value;
+    } on Object {
+      // Measures unavailable → check against the catalog set only.
+      measuresById[entry.key] = const [];
+    }
+  }
+
   final result = <int, LineValidation>{};
   for (final r in state.resolutions) {
     Ingredient? ingredient;
     var measures = const <Measure>[];
     if (r.chosenIngredientId != null) {
-      ingredient = await repo.byId(r.chosenIngredientId!);
+      ingredient = vocab[r.chosenIngredientId];
       if (ingredient != null) {
-        try {
-          measures = await ref.watch(
-            ingredientMeasuresProvider(ingredient.id).future,
-          );
-        } on Object {
-          // Measures unavailable → check against the catalog set only.
-          measures = const [];
-        }
+        measures = measuresById[ingredient.id] ?? const [];
       }
     } else if (r.createStubName != null) {
       // A create-new stub commits as a plain 'g' vocab row — validate the unit
@@ -232,4 +286,20 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
     );
   }
   return result;
+}
+
+/// The ONE "how many lines still want you" count — the header's "N to review"
+/// and the Save button's "N line(s) need you" are the same number, read from
+/// the same place (they used to be two different rules, and the header's never
+/// decremented). Until the first validation lands it falls back to the
+/// structural unresolved count, so the header is never blank or wrong-by-zero.
+@riverpod
+int importOutstandingLines(Ref ref) {
+  final state = ref.watch(importControllerProvider);
+  if (state is! ImportReconciling) return 0;
+  // `AsyncValue.value` keeps the previous map through a refresh; a data-only
+  // read would drop to null on every edit and make the count jump.
+  final byLine = ref.watch(importValidationProvider).value;
+  if (byLine == null) return state.unresolvedCount;
+  return byLine.values.where((v) => !v.isClean).length;
 }

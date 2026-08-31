@@ -210,7 +210,7 @@ packages:
     source: hosted
     version: "4.11.1"
   collection:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: collection
       sha256: "2f5709ae4d3d59dd8f7cd309b4e023046b57d8a6c82130785d2b0e5868084e76"
@@ -423,14 +423,6 @@ packages:
     description:
       name: forui_assets
       sha256: "24878cea09f73d9fc286e37948f4c75db4a78048959acc2fb9e19280d7355abe"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.22.1"
-  forui_hooks:
-    dependency: "direct main"
-    description:
-      name: forui_hooks
-      sha256: d79442f90441d054589a4265c5d9ab49b9b3f33c8a8bab58244b36a139a3b6e1
       url: "https://pub.dev"
     source: hosted
     version: "0.22.1"
@@ -701,7 +693,7 @@ packages:
     source: hosted
     version: "1.0.0"
   json_annotation:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: json_annotation
       sha256: "1ce844379ca14835a50d2f019a3099f419082cfdd231cd86a142af94dd5c6bb1"
