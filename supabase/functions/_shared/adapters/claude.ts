@@ -19,6 +19,7 @@ import type {
   RawBlob,
   UnitHints,
 } from "../types.ts";
+import { ImportError } from "../errors.ts";
 import {
   coerceExtractionResult,
   EXTRACTION_JSON_SCHEMA,
@@ -42,6 +43,14 @@ import {
 export const CLAUDE_HAIKU_MODEL = "claude-haiku-4-5";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
+/**
+ * `max_tokens` is a CEILING, not a target — an unreached one costs nothing, and
+ * a reached one truncates the JSON mid-object. claude-haiku-4-5 tops out at 64K
+ * output tokens; we ask for half of that, which no real recipe approaches while
+ * keeping a non-streaming request comfortably inside its HTTP timeout. (Was
+ * 8192, which a long multi-page recipe could genuinely hit.)
+ */
+const DEFAULT_MAX_TOKENS = 32_000;
 
 export interface ClaudeAdapterOptions {
   apiKey?: string; // defaults to ANTHROPIC_API_KEY
@@ -55,6 +64,7 @@ interface AnthropicContentBlock {
 }
 interface AnthropicResponse {
   content?: AnthropicContentBlock[];
+  stop_reason?: string | null;
 }
 
 export class ClaudeHaikuAdapter implements ExtractAdapter {
@@ -66,7 +76,7 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
   constructor(opts: ClaudeAdapterOptions = {}) {
     this.#model = opts.model ?? CLAUDE_HAIKU_MODEL;
     this.#apiKey = opts.apiKey ?? requireKey("ANTHROPIC_API_KEY", "Claude");
-    this.#maxTokens = opts.maxTokens ?? 8192;
+    this.#maxTokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
   }
 
   #headers(): Record<string, string> {
@@ -82,6 +92,20 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
       throw new ExtractionParseError("Claude returned no text content", res);
     }
     return block.text;
+  }
+
+  /**
+   * A `max_tokens` stop means the JSON was cut off mid-object. Parsing it would
+   * either throw a confusing syntax error or — worse, if the truncation happens
+   * to land on a valid boundary — silently drop the tail of a recipe. Fail with
+   * something the user can act on instead (⇒ 422).
+   */
+  #assertComplete(res: AnthropicResponse): void {
+    if (res.stop_reason === "max_tokens") {
+      throw new ImportError(
+        "this recipe is too long to import in one go — try importing it in parts",
+      );
+    }
   }
 
   async transcribe(images: Uint8Array[]): Promise<RawBlob> {
@@ -107,6 +131,7 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
         messages: [{ role: "user", content }],
       },
     }) as AnthropicResponse;
+    this.#assertComplete(res);
     return {
       source: "transcription",
       url: null,
@@ -148,6 +173,7 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
         },
       },
     }) as AnthropicResponse;
+    this.#assertComplete(res); // never JSON.parse a truncated payload
     const json = JSON.parse(extractJson(this.#firstText(res)));
     return validateExtractionResult(coerceExtractionResult(json));
   }

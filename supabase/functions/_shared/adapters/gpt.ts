@@ -1,6 +1,7 @@
 // GPT-5 Mini adapter — behind the frozen ExtractAdapter.
 //
-// Model id: `gpt-5-mini` (overridable via env / options). NOTE: model id +
+// Model id: `gpt-5.4-mini` (the `GPT_MINI_MODEL` constant below; overridable via
+// options). NOTE: model id +
 // capability facts for OpenAI come from general provider knowledge, not the
 // `claude-api` reference (Anthropic-only) — re-confirm against OpenAI's docs
 // before the live compare. Vision: yes (image_url data-URI parts). Native
@@ -17,6 +18,7 @@ import type {
   RawBlob,
   UnitHints,
 } from "../types.ts";
+import { ImportError } from "../errors.ts";
 import {
   coerceExtractionResult,
   EXTRACTION_JSON_SCHEMA,
@@ -39,6 +41,12 @@ import {
 
 export const GPT_MINI_MODEL = "gpt-5.4-mini";
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+/**
+ * A ceiling, not a target — unreached it costs nothing, reached it truncates the
+ * JSON. Well inside this tier's output limit and far above any real recipe.
+ * (Was 8192, which a long multi-page recipe could genuinely hit.)
+ */
+const DEFAULT_MAX_TOKENS = 32_000;
 
 export interface GptAdapterOptions {
   apiKey?: string; // defaults to OPENAI_API_KEY
@@ -47,7 +55,7 @@ export interface GptAdapterOptions {
 }
 
 interface OpenAiResponse {
-  choices?: { message?: { content?: string } }[];
+  choices?: { message?: { content?: string }; finish_reason?: string | null }[];
 }
 
 export class GptMiniAdapter implements ExtractAdapter {
@@ -59,11 +67,20 @@ export class GptMiniAdapter implements ExtractAdapter {
   constructor(opts: GptAdapterOptions = {}) {
     this.#model = opts.model ?? GPT_MINI_MODEL;
     this.#apiKey = opts.apiKey ?? requireKey("OPENAI_API_KEY", "GPT");
-    this.#maxTokens = opts.maxTokens ?? 8192;
+    this.#maxTokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
   }
 
   #headers(): Record<string, string> {
     return { authorization: `Bearer ${this.#apiKey}` };
+  }
+
+  /** `finish_reason: "length"` ⇒ the payload is cut off; never parse it. */
+  #assertComplete(res: OpenAiResponse): void {
+    if (res.choices?.[0]?.finish_reason === "length") {
+      throw new ImportError(
+        "this recipe is too long to import in one go — try importing it in parts",
+      );
+    }
   }
 
   #firstText(res: OpenAiResponse): string {
@@ -95,6 +112,7 @@ export class GptMiniAdapter implements ExtractAdapter {
         messages: [{ role: "user", content }],
       },
     }) as OpenAiResponse;
+    this.#assertComplete(res);
     return {
       source: "transcription",
       url: null,
@@ -125,6 +143,7 @@ export class GptMiniAdapter implements ExtractAdapter {
         },
       },
     }) as OpenAiResponse;
+    this.#assertComplete(res); // never JSON.parse a truncated payload
     const json = JSON.parse(extractJson(this.#firstText(res)));
     return validateExtractionResult(coerceExtractionResult(json));
   }
