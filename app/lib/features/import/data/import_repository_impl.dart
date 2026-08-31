@@ -132,11 +132,16 @@ class SqliteImportRepository implements ImportRepository {
         );
       }
 
-      // 2. The recipe row, carrying the remapped tokenized steps.
+      // 2. The recipe row, carrying the remapped tokenized steps. It is FILED
+      // into the default book, exactly as the new-recipe path does
+      // (`RecipeEditor.build` → `ensureDefaultBook`): the Library renders books
+      // and skips book-less recipes, so a null `book_id` here saves the recipe
+      // into a place nothing shows it.
+      final bookId = await _defaultBookId(tx, now);
       await tx.execute(
         'INSERT INTO recipe (id, household_id, title, servings_base, steps, '
-        'cook_time_seconds, total_time_seconds, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'cook_time_seconds, total_time_seconds, book_id, created_at, '
+        'updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           recipeId,
           _householdId,
@@ -145,6 +150,7 @@ class SqliteImportRepository implements ImportRepository {
           stepsJson,
           payload.cookTimeSeconds,
           payload.totalTimeSeconds,
+          bookId,
           now,
           now,
         ],
@@ -218,6 +224,32 @@ class SqliteImportRepository implements ImportRepository {
     });
 
     return recipeId;
+  }
+
+  /// The book an imported recipe is filed into: the household's first live book
+  /// (creating "Our Cookbook" if there is somehow none), mirroring
+  /// `BookRepository.ensureDefaultBook`. Kept inline rather than delegating so
+  /// the whole commit stays in one transaction — a recipe must never land
+  /// half-filed. The orphan-adoption leg of `ensureDefaultBook` is deliberately
+  /// not mirrored: this write sets `book_id` directly.
+  Future<String> _defaultBookId(SqliteWriteContext tx, String now) async {
+    final existing = await tx.getOptional(
+      'SELECT id FROM book WHERE deleted_at IS NULL '
+      'ORDER BY sort_order, created_at LIMIT 1',
+    );
+    if (existing != null) return existing['id'] as String;
+
+    final id = _uuid.v4();
+    final order = await tx.get(
+      'SELECT COALESCE(MAX(sort_order), -1) AS m FROM book '
+      'WHERE deleted_at IS NULL',
+    );
+    await tx.execute(
+      'INSERT INTO book (id, household_id, name, sort_order, created_at, '
+      "updated_at) VALUES (?, ?, 'Our Cookbook', ?, ?, ?)",
+      [id, _householdId, (order['m'] as int) + 1, now, now],
+    );
+    return id;
   }
 
   /// The stored unit id for a line: the catalog unit when the printed word maps

@@ -167,6 +167,40 @@ void main() {
     expect(line.single['unit'], 'piece'); // measure rows store unit='piece'
   });
 
+  test('the committed recipe is FILED into the default book', () async {
+    // The Library renders books and skips book-less recipes, so a null book_id
+    // saves the recipe where nothing can show it. Import files it exactly like
+    // the new-recipe path (`RecipeEditor.build` → `ensureDefaultBook`).
+    await db.execute(
+      'INSERT INTO book (id, household_id, name, sort_order, created_at, '
+      "updated_at) VALUES ('bk-1', 'h', 'Our Cookbook', 0, '', '')",
+    );
+    final c = resolvedCommit();
+    final recipeId = await repo.commit(
+      buildCommit(c.payload, c.resolutions, servingsBase: 2),
+    );
+
+    final row = await db.get('SELECT book_id FROM recipe WHERE id = ?', [
+      recipeId,
+    ]);
+    expect(row['book_id'], 'bk-1');
+  });
+
+  test('with no book yet, the commit creates the default one', () async {
+    final c = resolvedCommit();
+    final recipeId = await repo.commit(
+      buildCommit(c.payload, c.resolutions, servingsBase: 2),
+    );
+
+    final books = await db.getAll('SELECT id, name FROM book');
+    expect(books, hasLength(1));
+    expect(books.single['name'], 'Our Cookbook');
+    final row = await db.get('SELECT book_id FROM recipe WHERE id = ?', [
+      recipeId,
+    ]);
+    expect(row['book_id'], books.single['id']);
+  });
+
   test('identical no-match lines coalesce onto one created stub', () async {
     final c = resolvedCommit();
     await repo.commit(buildCommit(c.payload, c.resolutions, servingsBase: 2));
@@ -270,22 +304,19 @@ void main() {
     },
   );
 
-  test(
-    'a candidate resolves by token match, not only exact name (so a '
-    'suggestion still surfaces when the vocab name differs)',
-    () async {
-      // Vocab holds "Parmesan cheese"; the canned candidate is bare
-      // "Parmesan". Round-1 bug: only exact names resolved, so this line
-      // silently degraded to `none` and showed no suggestion.
-      await _seedIngredient(db, 'ing-parm', 'Parmesan cheese');
-      final result = await repo.startImport(const ImportFromUrl('x'));
-      final parm = result.flatLines.firstWhere(
-        (l) => l.raw.ingredientText == 'Parmesan, grated',
-      );
-      expect(parm.band, MatchBand.suggest);
-      expect(parm.candidates.single.ingredientId, 'ing-parm');
-    },
-  );
+  test('a candidate resolves by token match, not only exact name (so a '
+      'suggestion still surfaces when the vocab name differs)', () async {
+    // Vocab holds "Parmesan cheese"; the canned candidate is bare
+    // "Parmesan". Round-1 bug: only exact names resolved, so this line
+    // silently degraded to `none` and showed no suggestion.
+    await _seedIngredient(db, 'ing-parm', 'Parmesan cheese');
+    final result = await repo.startImport(const ImportFromUrl('x'));
+    final parm = result.flatLines.firstWhere(
+      (l) => l.raw.ingredientText == 'Parmesan, grated',
+    );
+    expect(parm.band, MatchBand.suggest);
+    expect(parm.candidates.single.ingredientId, 'ing-parm');
+  });
 }
 
 typedef CommitPayloadResult = ({
