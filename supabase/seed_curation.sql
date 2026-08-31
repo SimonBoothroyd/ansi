@@ -2,9 +2,14 @@
 -- curation_overrides.jsonl. Do not edit by hand; edit the overrides
 -- (with reasons) and regenerate (deno task gen-seed).
 --
--- Runs LAST: refreshes the template vocab's materialized allowed_units
--- now that every density source has run, then applies the audited
--- curation overrides (plan 0013).
+-- Runs LAST: applies the audited curation overrides (plan 0013), fills
+-- the density tail from the FAO/INFOODS fallback, then refreshes the
+-- template vocab's materialized allowed_units now that every density
+-- source has run.
+--
+-- Density fallback dataset: FAO/INFOODS Density Database v2.0 (2012)
+-- (see seed/fao_density.jsonl for the source URL + sha256, and
+--  seed/fao_density_links.jsonl for the reviewed mapping).
 
 begin;
 
@@ -321,12 +326,160 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 've
 update ingredient set density_g_per_ml = 0.34
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'crispy shallot';
 
+-- Density fallback: FAO/INFOODS Density Database v2.0 (2012), via the reviewed
+-- fao_density_links.jsonl map. Fills ONLY rows the FDC volume-portion
+-- derivation and the curation overrides above both left null; the
+-- null guard on each statement is what enforces that. 12 fills,
+-- 30 tail rows audited and honestly left density-less.
+
+-- burger bun <- FAO "Bread, roll, soft" [FNDDS 4.1; Cereal and cereal products]:
+--   a burger bun IS a soft bread roll — FNDDS 4.1's 0.18 is the whole-roll packing density, not a crumb density
+update ingredient set
+  density_g_per_ml = 0.18,
+  source = case when source is null or source = 'seed'
+    then 'fao_infoods_v2:Bread, roll, soft'
+    else source || ' + fao_infoods_v2:Bread, roll, soft' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'burger bun'
+  and density_g_per_ml is null;
+
+-- gold potato <- FAO "Potato, english, raw" [KEN; Tubers and products]:
+--   KEN's 'english potato' is the ordinary white/yellow table potato — the same food. Foundation 2346403 has no volume portion
+update ingredient set
+  density_g_per_ml = 0.59,
+  source = case when source is null or source = 'seed'
+    then 'fao_infoods_v2:Potato, english, raw'
+    else source || ' + fao_infoods_v2:Potato, english, raw' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'gold potato'
+  and density_g_per_ml is null;
+
+-- green olive <- FAO "Olives, green, with stone" [RC; Vegetables]:
+--   RC's row is exactly this food in its jarred form, stone in. FDC 169096 has only mass portions
+update ingredient set
+  density_g_per_ml = 0.65,
+  source = case when source is null or source = 'seed'
+    then 'fao_infoods_v2:Olives, green, with stone'
+    else source || ' + fao_infoods_v2:Olives, green, with stone' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'green olive'
+  and density_g_per_ml is null;
+
+-- multigrain bread <- FAO "Bread" [FNDDS 4.1; Cereal and cereal products]:
+--   FNDDS 4.1's generic sliced-loaf row (0.29). A multigrain crumb is slightly denser, but FAO publishes to two decimals and the generic loaf is the honest figure at that resolution
+update ingredient set
+  density_g_per_ml = 0.29,
+  source = case when source is null or source = 'seed'
+    then 'fao_infoods_v2:Bread'
+    else source || ' + fao_infoods_v2:Bread' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'multigrain bread'
+  and density_g_per_ml is null;
+
+-- poblano pepper <- FAO "Chili, green" [KEN; Vegetables]:
+--   a poblano IS a mild fresh green chilli; KEN's 0.5 matches the sweet-pepper row (0.51) it sits beside, which is the cross-check
+update ingredient set
+  density_g_per_ml = 0.5,
+  source = case when source is null or source = 'seed'
+    then 'fao_infoods_v2:Chili, green'
+    else source || ' + fao_infoods_v2:Chili, green' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'poblano pepper'
+  and density_g_per_ml is null;
+
+-- red onion <- FAO "Onions, raw, cubed" [RC; Vegetables]:
+--   RC's fresh raw cubed onion (0.55) is the form a cup of chopped onion takes; bulb colour does not change packing density. FDC 790577 carries no volume portion, which is why the row is bare
+update ingredient set
+  density_g_per_ml = 0.55,
+  source = case when source is null or source = 'seed'
+    then 'fao_infoods_v2:Onions, raw, cubed'
+    else source || ' + fao_infoods_v2:Onions, raw, cubed' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'red onion'
+  and density_g_per_ml is null;
+
+-- soft sandwich bread <- FAO "Bread, white, sliced, prepacked" [FNDDS 4.1; Cereal and cereal products]:
+--   a soft prepacked sliced white loaf — the same food FNDDS describes (it already shares FDC 325871 with White Bread)
+update ingredient set
+  density_g_per_ml = 0.29,
+  source = case when source is null or source = 'seed'
+    then 'fao_infoods_v2:Bread, white, sliced, prepacked'
+    else source || ' + fao_infoods_v2:Bread, white, sliced, prepacked' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'soft sandwich bread'
+  and density_g_per_ml is null;
+
+-- sprouted multigrain bread <- FAO "Bread" [FNDDS 4.1; Cereal and cereal products]:
+--   as multigrain bread. Ezekiel-style sprouted loaves run denser than the generic 0.29; this is FAO's floor for the form, and a user edit is the place for the brand's own number
+update ingredient set
+  density_g_per_ml = 0.29,
+  source = case when source is null or source = 'seed'
+    then 'fao_infoods_v2:Bread'
+    else source || ' + fao_infoods_v2:Bread' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sprouted multigrain bread'
+  and density_g_per_ml is null;
+
+-- tatsoi <- FAO "Salad, green, leaves, raw" [RC; Vegetables]:
+--   tatsoi is sold and eaten as a raw salad leaf, so RC's raw-salad-leaf row is its form. Lands at 0.06 against the curated kale 0.089 / arugula 0.085 — the light end of the same honest band
+update ingredient set
+  density_g_per_ml = 0.06,
+  source = case when source is null or source = 'seed'
+    then 'fao_infoods_v2:Salad, green, leaves, raw'
+    else source || ' + fao_infoods_v2:Salad, green, leaves, raw' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tatsoi'
+  and density_g_per_ml is null;
+
+-- wheat bread whole <- FAO "Bread" [FNDDS 4.1; Cereal and cereal products]:
+--   as multigrain bread: FAO has no wholemeal row, and the generic sliced loaf is the same form
+update ingredient set
+  density_g_per_ml = 0.29,
+  source = case when source is null or source = 'seed'
+    then 'fao_infoods_v2:Bread'
+    else source || ' + fao_infoods_v2:Bread' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'wheat bread whole'
+  and density_g_per_ml is null;
+
+-- white bread <- FAO "Bread, white, sliced, prepacked" [FNDDS 4.1; Cereal and cereal products]:
+--   FNDDS 4.1's row is precisely this food; a density is what makes '2 cups cubed bread' computable
+update ingredient set
+  density_g_per_ml = 0.29,
+  source = case when source is null or source = 'seed'
+    then 'fao_infoods_v2:Bread, white, sliced, prepacked'
+    else source || ' + fao_infoods_v2:Bread, white, sliced, prepacked' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'white bread'
+  and density_g_per_ml is null;
+
+-- yellow bell pepper <- FAO "Sweet pepper, raw, cubes" [RC; Vegetables]:
+--   RC's raw diced sweet pepper (0.51) is exactly this food in exactly the form a cup of it is cut to; FAO does not distinguish the colour
+update ingredient set
+  density_g_per_ml = 0.51,
+  source = case when source is null or source = 'seed'
+    then 'fao_infoods_v2:Sweet pepper, raw, cubes'
+    else source || ' + fao_infoods_v2:Sweet pepper, raw, cubes' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'yellow bell pepper'
+  and density_g_per_ml is null;
+
 -- Re-materialize allowed_units with post-prefill (and post-override)
 -- densities: the insert trigger ran before seed_prefill landed them,
 -- so density-unlocked families are missing until this refresh.
 update ingredient set allowed_units = default_allowed_units(
   default_unit, macros_basis, density_g_per_ml, category)
 where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null;
+
+-- Produce volume leg (Simon's cup-produce report, 2026-08-31).
+-- ADR-0008's density leg fires only for mass/volume defaults: a
+-- count-default row gets nothing from a density, because "a density
+-- can't describe a piece" (allowed_units.dart) — you cannot pour a cup
+-- of eggs. Produce is the class where that stops being true: "1 cup
+-- diced mango", "2 cups chopped onion" are ordinary recipe lines, the
+-- row IS piece-default (you buy one mango), and the density is exactly
+-- what makes the cup computable. Without this, every cup-measured
+-- produce import fails 'Pick a supported unit' even though the row has
+-- carried an honest density all along — mango, tomato, onion, avocado.
+-- Category-gated, like the imprecise leg beside it, and applied ONLY
+-- where a density exists. The rule belongs in default_allowed_units()
+-- and its allowed_units.dart mirror; until ADR-0008 is amended the
+-- template vocab carries the honest list explicitly (the column is an
+-- explicit stored attribute for exactly this reason).
+update ingredient set allowed_units = allowed_units ||
+  '["cup", "tbsp", "ml"]'::jsonb
+where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null
+  and category = 'produce' and default_unit = 'piece'
+  and density_g_per_ml is not null
+  and not allowed_units ? 'cup';
 
 -- coconut milk: count-default (sold by the can) but recipes also speak cups/tbsp of it, and its density makes volume honest
 update ingredient set allowed_units = allowed_units || '["cup"]'::jsonb
@@ -905,7 +1058,26 @@ begin
       'seed_curation R1: volume-default rows with no density: %',
       violators;
   end if;
-  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 59 density + 54 allowed-unit overrides; R1 (volume default => density) holds';
+
+  -- R2: every stored density is a KITCHEN density. A number outside
+  -- this band is a parse artifact or the wrong physical quantity (FAO
+  -- publishes salt at 2.165 and bicarbonate at 2.2 — crystal densities,
+  -- not what a spoonful weighs). Generation bounds the FAO fills; this
+  -- bounds what actually landed, whatever the source.
+  select string_agg(
+           canonical_name || ' (' || density_g_per_ml || ')', ', ')
+    into violators
+  from ingredient
+  where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null
+    and density_g_per_ml is not null
+    and density_g_per_ml not between 0.03 and 2;
+  if violators is not null then
+    raise exception
+      'seed_curation R2: densities outside 0.03-2 g/ml: %',
+      violators;
+  end if;
+
+  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 59 density + 54 allowed-unit overrides + 12 FAO density fills; R1 (volume default => density) and R2 (kitchen density band) hold';
 end $$;
 
 commit;
