@@ -27,6 +27,7 @@ import {
   PROVIDER_NAMES,
   type ProviderName,
 } from "../../supabase/functions/_shared/adapters/mod.ts";
+import { fetchRawBlob } from "../../supabase/functions/_shared/jsonld.ts";
 import {
   type GoldCase,
   type GoldRecipe,
@@ -41,6 +42,10 @@ import {
 } from "./score_extraction.ts";
 
 const IMAGES_DIR = new URL("../datasets/extraction/images/", import.meta.url);
+const RECIPE_URLS = new URL(
+  "../../supabase/seed/scripts/recipe_urls.txt",
+  import.meta.url,
+);
 
 /** Reads the local (gitignored) photos for a gold case, or null when absent. */
 async function loadImages(gold: GoldRecipe): Promise<Uint8Array[] | null> {
@@ -58,15 +63,27 @@ async function loadImages(gold: GoldRecipe): Promise<Uint8Array[] | null> {
 }
 
 /**
- * SEAM: the jsonld / page_text web path needs lane A's `_shared/jsonld.ts` to
- * turn a URL into a RawBlob. Until it lands, this throws — the web corpus rows
- * are wired but gated. (Lane A owns jsonld; lane D must not implement it.)
+ * The jsonld / page_text web path: URL → `RawBlob`, straight through lane A's
+ * `_shared/jsonld.ts` (`fetchRawBlob` = `fetch` + `buildRawBlob`). Lane A owns
+ * the implementation; the eval only calls it, so the harness and production
+ * intake read a page the same way.
+ *
+ * `fetchRawBlob` is total: a non-OK response or a network error yields a text
+ * blob rather than throwing, and `buildRawBlob` picks `source: "jsonld"` when
+ * the page publishes a schema.org/Recipe block and `"page_text"` otherwise —
+ * which is exactly the `jsonld` vs `page_text` path split this runner reports.
  */
-export function blobFromUrl(_url: string): Promise<RawBlob> {
-  throw new Error(
-    "web path needs lane A's _shared/jsonld.ts (not yet available); " +
-      "wire blobFromUrl to it at integration.",
-  );
+export function blobFromUrl(url: string): Promise<RawBlob> {
+  return fetchRawBlob(url);
+}
+
+/** Reads the 36-URL web corpus (`#` comments and blanks ignored). */
+export async function loadRecipeUrls(): Promise<string[]> {
+  const text = await Deno.readTextFile(RECIPE_URLS);
+  return text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l !== "" && !l.startsWith("#"));
 }
 
 interface Args {
@@ -188,9 +205,12 @@ async function main(): Promise<void> {
         );}
     }
   }
+  const urls = await loadRecipeUrls();
   console.log(
-    "\nWeb corpus (jsonld / 36 recipe_urls.txt) is wired but gated on lane A's " +
-      "jsonld.ts — see blobFromUrl().",
+    `\nWeb corpus: ${urls.length} recipe_urls.txt pages reachable through ` +
+      `blobFromUrl() → _shared/jsonld.ts (fetchRawBlob). There is no structured ` +
+      `gold for those pages, so they are an INPUT corpus for the ledger and the ` +
+      `prose judge, not a scored oracle — the scored rows are the ${cases.length} gold recipes.`,
   );
 }
 
