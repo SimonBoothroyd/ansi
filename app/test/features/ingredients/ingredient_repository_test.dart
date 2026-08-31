@@ -192,6 +192,23 @@ void main() {
     expect(await repo.byId('9'), isNull);
   });
 
+  test('byIds loads a whole set in one query, skipping the dead', () async {
+    // The import review validates every line's unit against its ingredient;
+    // doing that one `byId` at a time was a DB round-trip per line per edit.
+    await _seed(
+      db,
+      id: '9',
+      name: 'Onion Powder',
+      deletedAt: '2026-01-01T00:00:00Z',
+    );
+    final byIds = await repo.byIds({'1', '2', '9', 'nope'});
+    expect(byIds.keys, containsAll(<String>['1', '2']));
+    expect(byIds['1']!.canonicalName, 'Onion');
+    expect(byIds.containsKey('9'), isFalse); // tombstoned
+    expect(byIds.containsKey('nope'), isFalse);
+    expect(await repo.byIds(const {}), isEmpty);
+  });
+
   test('maps status and category', () async {
     final oil = (await repo.search('olive')).single;
     expect(oil.status, IngredientStatus.stub);

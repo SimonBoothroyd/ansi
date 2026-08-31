@@ -129,11 +129,27 @@ class ReconciliationBody extends HookConsumerWidget {
   }
 }
 
-/// What the extractor could NOT read cleanly, shown at the top of the review —
-/// the never-invent flags (0014) belong on screen, not in a log: the model's
-/// own `parseWarnings`, a truncated source, and a degraded/poor photo. Each is
-/// a reason to look harder at the lines below, so they read as one quiet block
-/// rather than an alarm.
+/// What the extractor could NOT read cleanly: a truncated source, a
+/// degraded/poor photo, and the model's own [ReconciliationPayload.parseWarnings]
+/// — which were carried all the way to the client and then never rendered,
+/// while this file's doc claimed they were shown. Empty when the import came
+/// back clean.
+List<String> sourceNotes(ReconciliationPayload payload) => <String?>[
+  if (payload.truncated)
+    'The source was longer than we could read — check nothing is missing.',
+  switch (payload.imageQuality) {
+    ImportImageQuality.ok => null,
+    ImportImageQuality.degraded =>
+      'The photo was hard to read — amounts especially.',
+    ImportImageQuality.poor =>
+      'The photo was very hard to read — check every line.',
+  },
+  ...payload.parseWarnings,
+].whereType<String>().toList();
+
+/// [sourceNotes] at the top of the review — the never-invent flags (0014)
+/// belong on screen, not in a log. Each is a reason to look harder at the lines
+/// below, so they read as one quiet block rather than an alarm.
 class _SourceNotes extends StatelessWidget {
   const _SourceNotes({required this.payload});
 
@@ -141,18 +157,7 @@ class _SourceNotes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final notes = <String?>[
-      if (payload.truncated)
-        'The source was longer than we could read — check nothing is missing.',
-      switch (payload.imageQuality) {
-        ImportImageQuality.ok => null,
-        ImportImageQuality.degraded =>
-          'The photo was hard to read — amounts especially.',
-        ImportImageQuality.poor =>
-          'The photo was very hard to read — check every line.',
-      },
-      ...payload.parseWarnings,
-    ].whereType<String>().toList();
+    final notes = sourceNotes(payload);
     if (notes.isEmpty) return const SizedBox.shrink();
 
     return Padding(
