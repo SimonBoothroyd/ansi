@@ -1,4 +1,4 @@
-# Gold schema (finalized 2026-08-30)
+# Gold schema (finalized 2026-08-30; owner rulings folded in 2026-08-30)
 
 The shape every `gold/<recipe>.json` conforms to. Mirrors the `ExtractionResult`
 contract in `docs/exec-plans/active/0014-import-foundation.md`. When W0's
@@ -54,7 +54,11 @@ Conventions (all source-derived, none invented):
 - **Cans / tins** — a **single** `"400 g tin"` / `"one 400 g can"` / `"One 14.5-oz can"` → `qty:1, unit:"can"` (NOT `qty:400, unit:"g"`); a **multi-pack** `"2½ × 400 g cans"` → `qty:2.5, unit:"can"` (NOT null). Either way the count is the amount and the gram basis lives in the measure system (it stays only in `raw_amount` until the app resolves it). **Normalise `"tin"` → `"can"`** (British/American synonym) so measure labels don't fragment. Keep any printed **drained weight** in `raw_amount` and flag it.
 - **Compound INGREDIENT line** `"Sea salt and freshly cracked black pepper"` → **split into two line items**. Re-index every step `line_index` that shifts as a result, and flag the split in `_review`.
 - **Compound AMOUNT, one ingredient** `"2 tbsp + ½ cup parsley"` (both volume) → sum within the family for the line total (`0.625 cup`); the split is represented per-step via `portion` (below). Cross-family compounds that can't bridge → keep `raw_amount`, `qty:null`, flag.
-- **Count-on-produce-with-a-transform** `"Juice of 1 lemon"` → `qty:1, unit:"piece", ingredient_text:"lemon", notes:"juiced"` (match the produce). If the page gives a volume `"(about 3 tbsp)"` → `qty:3, unit:"tbsp"`, lemon count stays in `raw_amount`.
+- **The PACK is the unit** (generalises the cans rule). Whenever the printed amount counts a *container or sold unit* and states its size, the COUNT is the amount and the size stays in `raw_amount`: `"One 14-ounce block"` → `qty:1, unit:"block"` (NOT `qty:14, unit:"oz"`); same for `can`, `loaf`, `head`, `bunch`, `slice`, `stalk`, `sprig`, `clove`. The gram/oz basis is the measure system's job, not the line's. *(owner ruling)*
+- **Count-measure nouns are mappable.** The count family is `piece` plus the generic measure nouns `clove · head · sprig · loaf · block · slice · can · bunch · stalk` (the same list `_shared/unit_hints.ts` hands the model). `sprig` in particular is `unit_mappable: true` — `"Leaves from 4 sprigs rosemary"` → `qty:4, unit:"sprig", unit_mappable:true`. *(owner ruling)* **Known gold inconsistency:** `block` / `loaf` / `head` are still labelled `unit_mappable:false` in three files and await one consistent ruling — see those files' `_review`.
+- **`heaped` / `scant` / `rounded` modifiers** → keep the **printed** qty exactly (never inflate or deflate a number for them) **and** put the modifier word in `notes`: `"3 heaped tbsp peanut butter"` → `qty:3, unit:"tbsp", notes:"heaped"`, full phrase still in `raw_amount`. *(owner ruling)*
+- **Printed qty + "or to taste"** → the printed number **wins**: keep `qty`/`unit` as printed and put the qualifier in `notes` (`"1 teaspoon sea salt, or to taste"` → `qty:1, unit:"tsp", notes:"or to taste"`). `qty` goes null only when **no** number is printed. *(owner ruling)*
+- **Count-on-produce-with-a-transform** `"Juice of 1 lemon"` → `qty:1, unit:"piece", ingredient_text:"lemon", notes:"juiced"` (match the produce). If the page gives a volume `"(about 3 tbsp)"` → `qty:3, unit:"tbsp"`, lemon count stays in `raw_amount`. An **optional second use of the SAME produce** (`"plus zest (optional)"`) folds into that line's `notes` — it does **not** become a second line item. *(owner ruling)*
 - **Count produce** `"1 red bell pepper"` → `unit:"piece"`.
 
 ### `notes` — cook-prep vs product-form (the identity split)
@@ -92,13 +96,29 @@ Rules:
   `1 onion, thinly sliced` is a **base + cook-prep** (`onion` identity, `thinly sliced`
   → `notes`). "Chopped/crushed/diced tomatoes (tinned)" are DIFFERENT PRODUCTS — never
   move that "chopped" to `notes`.
-- `freshly ground` / `freshly cracked` **black pepper** stays identity (idiomatic
-  form of the pepper, not a distinct kitchen action worth splitting).
-- **Usage qualifiers other than garnish** (`for serving`, `for frying`, `for roasting`,
-  `to serve`, `plus more for garnish`, `plus more to taste`, `or to taste`) are quantity
-  / usage notes, **not** cook-prep — leave them in `ingredient_text` and flag if unsure.
-- Genuinely borderline calls (is `pitted` a product form or an action? is a whole
-  compound-`or` line splittable?) → **make the call but flag it in `_review`**.
+- **`freshly cracked black pepper`** → `ingredient_text: "black pepper"`, `notes: "freshly cracked"`.
+  The grind/freshness wording is a cook-side qualifier, not a distinct SKU, so it never
+  pollutes the match text. Plain `"black pepper"` lines are unchanged. By contrast
+  **`rubbed sage` stays in identity** — rubbed sage is genuinely how it is sold. *(owner ruling.
+  `freshly ground black pepper` — same shape, not named in the ruling — is still left as
+  printed in `mint-pea-soup.json`; see its `_review`.)*
+- **Usage qualifiers** (`for serving`, `for frying`, `for roasting`, `to serve`,
+  `plus more for garnish`, `plus more to taste`, `or to taste`) are quantity / usage
+  notes, **not** cook-prep, but they still come **out of `ingredient_text` into `notes`**
+  so the identity stays clean for matching. *(owner ruling — this supersedes the earlier
+  "leave them in `ingredient_text`" draft; every gold file already follows it.)*
+- **Substitution instructions live in `notes`** — there is no dedicated field. A long
+  parenthetical like `"(if not using fermented tofu, season the crumbled tofu with lemon
+  juice and salt before adding)"` joins the line's other cook-prep in one `notes` string;
+  `ingredient_text` keeps only the identity. *(owner ruling)*
+- **The split applies INSIDE an `or`-alternative.** `"shelled fresh peas or thawed frozen
+  peas"` → identity `"shelled fresh peas or frozen peas"` (both `shelled` and `frozen` are
+  product-forms, and the whole alternative is kept) + `notes: "thawed"` (an action you take).
+  Extract the cook-prep word; do not split the line into two. *(owner ruling)*
+- **Multiple note fragments join in printed order**, `; `-separated:
+  `"freshly cracked; or to taste"`.
+- Genuinely borderline calls (is `pitted` a product form or an action?) → **make the call
+  but flag it in `_review`**.
 
 ## Steps — token arrays (NOT strings + a ref list)
 
@@ -140,7 +160,22 @@ Token rules:
   positioned in the stream (a step may have several). Alternatives/conditionals
   (`"5 min for fresh, 2 min for frozen"`) are **separate bare timer tokens** — the
   condition stays in the surrounding `text` span; there is no condition/label field.
+  **Rest / stand / chill / marinate times ARE timers** (`"let sit for 5 minutes"` →
+  300/300) — a timer token is "a duration the cook waits", not "a duration the heat is
+  on". *(owner ruling)*
 - Text the model can't confidently link stays a plain `text` span (no chip). A
   `"pinch of salt"` with no matching line, or a **sub-recipe reference**
   (`"Romesco Aioli (p38)"`), stays plain text (nested recipes are deferred).
+- **Garnish re-mentions stay plain text.** When a step names an ingredient again purely
+  as a garnish (`"Serve garnished with the green onions"`) and that line is already
+  chipped earlier, do **not** emit a second `ref` chip. One chip per line per genuine
+  use; the garnish restatement is prose. *(owner ruling)*
+- **Never-mentioned ingredients stay unlinked.** A line item no step mentions gets no
+  ref anywhere — do not invent a chip to tidy up an authorial omission. Note the orphan
+  in `_review`. *(owner ruling)*
+- **No editorial markers in step text.** When the source is cut off (a missing page), the
+  gold **ends at the printed cut**, mid-sentence if that is where it stops — never
+  `"[RECIPE CONTINUES — page 2 missing]"` or any other bracketed annotation. The cut is
+  recorded in `truncated: true`, `parse_warnings`, and `_review`. A marker inside the
+  prose is invented content the model would then be scored against. *(owner ruling)*
 - A step with zero refs is fine.
