@@ -55,12 +55,48 @@ interface Gold {
   raw: string;
   match_text: string;
 }
+
+/**
+ * The raw → match_text ground truth.
+ *
+ * Preferred source is the miner's `out/gold_labels.jsonl`. That file is
+ * GITIGNORED (regenerable, and producing it re-fetches 36 live recipe pages),
+ * so when it is absent we recover the very same pairs from the committed
+ * `cases.jsonl` — `expect_normalized` is exactly `match_texts.join(" | ")`, so
+ * the round-trip is lossless. Either way the LABELS (which vocab entry each
+ * match_text resolves to) are recomputed from the CURRENT `vocab.jsonl`, which
+ * is the whole point of regenerating: the committed set drifted when the vocab
+ * was re-curated (`Cashew` → `Cashews`, the new `Canned X` rows) and ~9% of the
+ * cascade's apparent misses were stale labels, not defects (ledger 0019).
+ */
+function loadGoldPairs(): Gold[] {
+  try {
+    return (jsonl(
+      read("supabase/seed/scripts/out/gold_labels.jsonl"),
+    ) as Gold[])
+      .map((g) => ({ raw: g.raw, match_text: g.match_text }));
+  } catch {
+    // Fall back to the previous generation's own raw → normalized pairs.
+    const prev = jsonl(read("evals/datasets/matching/cases.jsonl")) as {
+      raw: string;
+      expect_normalized: string;
+    }[];
+    console.log(
+      "  note: supabase/seed/scripts/out/gold_labels.jsonl is absent " +
+        "(gitignored miner output) — recovering raw → match_text from the " +
+        "committed cases.jsonl and re-labelling against the current vocab.",
+    );
+    return prev.flatMap((c) =>
+      c.expect_normalized.split(" | ").filter(Boolean).map((match_text) => ({
+        raw: c.raw,
+        match_text,
+      }))
+    );
+  }
+}
+
 const groups = new Map<string, Set<string>>();
-for (
-  const g of jsonl(
-    read("supabase/seed/scripts/out/gold_labels.jsonl"),
-  ) as Gold[]
-) {
+for (const g of loadGoldPairs()) {
   if (!g.match_text) continue;
   (groups.get(g.raw) ?? groups.set(g.raw, new Set()).get(g.raw)!).add(
     g.match_text,
