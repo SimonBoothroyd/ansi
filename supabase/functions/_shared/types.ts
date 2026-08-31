@@ -151,8 +151,11 @@ export interface MatchedLine {
 }
 
 // --- Edge fn → app: ReconciliationPayload (lanes B, C) -----------------------
-// What `import-recipe` returns; what lane C's fake edge fn emits. Step refs are
-// still by line_index here; the app remaps them to line_item_ids on commit.
+// What the deployed `import-recipe` function returns and the app's reconciliation
+// screen consumes. The Dart side pins this shape through the committed golden
+// fixture (`import-recipe/__fixtures__/reconciliation_payload.golden.json`), so a
+// change here is a change to that contract. Step refs are still by line_index;
+// the app remaps them to line_item_ids on commit.
 
 export interface ReconLine {
   raw: RawLineItem;
