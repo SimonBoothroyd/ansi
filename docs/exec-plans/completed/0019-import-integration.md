@@ -30,9 +30,9 @@ doc/roadmap changes step 8 owns. This is the only inherently-serial node.
    (URL and a photo) → reconcile (auto/suggest/none, a range, a create-new stub) →
    commit → the recipe appears with chipped steps, over **live sync**. Record the result.
    - **Result:** URL path driven live (Mango Salsa, 14 ingredients, committed with
-     chips). Photo path driven live from the **gallery** (a Dense Bean Salad cookbook
-     photo: 19 ingredients, "2.5 can"/"handful"/notes all correct) — only real-**camera**
-     capture is unverified (no camera on the sim). The scripted `make test-sim`
+     chips). Photo path driven live from the **gallery picker** (a Dense Bean Salad
+     cookbook photo: 19 ingredients, "2.5 can"/"handful"/notes all correct) — there is
+     no in-app camera capture, and no run on a physical phone. The scripted `make test-sim`
      scenario 4 (import → reconcile → commit) is committed but its **tail** (stub loop
      → Save → post-commit asserts) has not been run on-sim yet. Both are tracker rows.
 4. **Docs** — rewrite import-and-matching.md **§4** (extraction = transcribe/parse →
