@@ -1,9 +1,10 @@
 // Per-recipe "what each model got right vs wrong" capture + side-by-side
 // comparison for the extraction benchmark (D2 · page_text · TEXT input).
 //
-// ONE cheap pass over the 11 gold recipes for BOTH providers:
-//   - claude-haiku-4-5  (ClaudeHaikuAdapter)
-//   - gpt-5.4-mini      (GptMiniAdapter)
+// ONE cheap pass over the 11 gold recipes for BOTH providers (whatever ids the
+// adapters are currently pinned to — CLAUDE_HAIKU_MODEL / GPT_MINI_MODEL):
+//   - ClaudeHaikuAdapter
+//   - GptMiniAdapter
 // => 22 text calls, no images. Scored with the SAME per-line + dangerous-ledger
 // logic as score_extraction.ts (imported, not rewritten), then rendered to a
 // self-contained, theme-aware HTML report that puts both providers' output side
@@ -19,11 +20,16 @@ import type {
   ExtractAdapter,
   ExtractionResult,
   RawLineItem,
+  TokenUsage,
 } from "../../supabase/functions/_shared/types.ts";
 import {
+  CLAUDE_HAIKU_MODEL,
   ClaudeHaikuAdapter,
+  GPT_MINI_MODEL,
   GptMiniAdapter,
 } from "../../supabase/functions/_shared/adapters/mod.ts";
+import { emptyUsage } from "../../supabase/functions/_shared/adapters/usage.ts";
+import { addUsage, costOf, usd } from "./pricing.ts";
 import { flattenLines } from "../../supabase/functions/_shared/adapters/schema.ts";
 import { normalize } from "../../supabase/functions/_shared/normalize.ts";
 import {
@@ -47,9 +53,14 @@ import {
 
 const PROVIDERS = ["claude", "gpt"] as const;
 type ProviderKey = typeof PROVIDERS[number];
+/**
+ * The labels come from the adapters' own pinned constants — a hard-coded copy
+ * here would go stale the moment a model id is re-pinned, and a report that
+ * names the wrong model is worse than one that names none.
+ */
 const PROVIDER_LABEL: Record<ProviderKey, string> = {
-  claude: "claude-haiku-4-5",
-  gpt: "gpt-5.4-mini",
+  claude: CLAUDE_HAIKU_MODEL,
+  gpt: GPT_MINI_MODEL,
 };
 
 // --- captured shapes ---------------------------------------------------------
@@ -105,6 +116,9 @@ interface ProvScore {
   ledger_total: number;
   recipe_danger: string[];
   error: string | null;
+  /** Normalized token usage for this one call, or null when none was reported. */
+  usage: TokenUsage | null;
+  latency_ms: number | null;
 }
 
 interface RecipeReport {
@@ -159,14 +173,32 @@ async function runProvider(
   adapter: ExtractAdapter,
   gold: GoldRecipe,
   id: string,
-): Promise<{ got: ExtractionResult; error: string | null }> {
+): Promise<
+  {
+    got: ExtractionResult;
+    error: string | null;
+    usage: TokenUsage | null;
+    latency_ms: number | null;
+  }
+> {
+  let usage: TokenUsage | null = null;
+  let latency: number | null = null;
+  const previous = adapter.onCall;
+  adapter.onCall = (call) => {
+    usage = call.usage;
+    latency = call.latency_ms;
+  };
   try {
     const got = await adapter.sanitize(goldToBlob(gold), UNIT_HINTS);
-    return { got, error: null };
+    return { got, error: null, usage, latency_ms: latency };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     console.error(`  ! ${adapter.name}/${id}: ${error}`);
-    return { got: EMPTY_RESULT, error };
+    // A failed call may still have been BILLED (a truncated response is paid
+    // for), so its usage is kept rather than dropped.
+    return { got: EMPTY_RESULT, error, usage, latency_ms: latency };
+  } finally {
+    adapter.onCall = previous;
   }
 }
 
@@ -175,6 +207,8 @@ function provScore(
   gold: GoldRecipe,
   got: ExtractionResult,
   error: string | null,
+  usage: TokenUsage | null,
+  latencyMs: number | null,
 ): ProvScore {
   const s = scoreExtraction(id, gold, got, error === null);
   const recipeDanger: string[] = [];
@@ -209,6 +243,8 @@ function provScore(
     ledger_total: ledgerTotal(s.ledger),
     recipe_danger: recipeDanger,
     error,
+    usage,
+    latency_ms: latencyMs,
   };
 }
 
@@ -231,11 +267,15 @@ async function capture(): Promise<RecipeReport[]> {
     const gotLines: Record<ProviderKey, RawLineItem[]> = {} as never;
 
     for (const p of PROVIDERS) {
-      const { got: g, error } = await runProvider(adapters[p], gold, c.id);
+      const { got: g, error, usage, latency_ms } = await runProvider(
+        adapters[p],
+        gold,
+        c.id,
+      );
       got[p] = g;
       gotLines[p] = flattenLines(g);
       align[p] = alignLines(goldLines, gotLines[p]);
-      score[p] = provScore(c.id, gold, g, error);
+      score[p] = provScore(c.id, gold, g, error, usage, latency_ms);
       console.log(
         `  ${c.id.padEnd(30)} ${PROVIDER_LABEL[p].padEnd(16)} ` +
           `F1=${(score[p].line_f1 * 100).toFixed(0).padStart(3)}% ` +
@@ -331,6 +371,18 @@ function pct(x: number): string {
   // A dump written before a metric existed has no value for it — render an
   // honest dash rather than "NaN%".
   return Number.isFinite(x) ? (x * 100).toFixed(1) + "%" : "—";
+}
+
+/** A dollar cell — "n/a" when the run carries no usage or the model no price. */
+function money(priced: boolean, x: number): string {
+  return priced ? usd(x) : `<span class="na">n/a</span>`;
+}
+
+/** Plain text (no markup) — this one is printed to the terminal as well. */
+function tokens(inTok: number | null, outTok: number | null): string {
+  if (inTok === null && outTok === null) return "n/a";
+  const f = (x: number | null) => x === null ? "—" : x.toLocaleString("en-US");
+  return `${f(inTok)} / ${f(outTok)}`;
 }
 
 function tick(ok: boolean | null | undefined): string {
@@ -521,6 +573,33 @@ ${extrasHtml}
   </details>`;
 }
 
+/**
+ * Per-provider token totals and dollars over the whole capture. A dump written
+ * before usage capture existed has `usage: undefined` on every row, which is
+ * why `priced` is reported separately — the report then says "n/a" rather than
+ * presenting an old, un-costed run as free.
+ */
+function costAgg(p: ProviderKey, reports: RecipeReport[]) {
+  let usage = emptyUsage();
+  let any = false;
+  for (const r of reports) {
+    const u = r.score[p].usage;
+    if (!u) continue;
+    any = true;
+    usage = addUsage(usage, u);
+  }
+  const cost = costOf(PROVIDER_LABEL[p], usage);
+  const n = reports.length || 1;
+  return {
+    priced: any && cost !== null,
+    tokens_in: usage.input_tokens,
+    tokens_out: usage.output_tokens,
+    usd_total: cost?.usd_total ?? 0,
+    usd_per_import: (cost?.usd_total ?? 0) / n,
+    usd_per_100: ((cost?.usd_total ?? 0) / n) * 100,
+  };
+}
+
 function renderHtml(reports: RecipeReport[]): string {
   const mean = (xs: number[]) =>
     xs.reduce((a, b) => a + b, 0) / (xs.length || 1);
@@ -534,6 +613,7 @@ function renderHtml(reports: RecipeReport[]): string {
     danger: reports.reduce((a, r) => a + r.score[p].ledger_total, 0),
     omitted: reports.reduce((a, r) => a + r.score[p].ledger.omitted_lines, 0),
     invented: reports.reduce((a, r) => a + r.score[p].ledger.invented_lines, 0),
+    ...costAgg(p, reports),
   });
   const C = agg("claude"), G = agg("gpt");
 
@@ -638,6 +718,31 @@ function renderHtml(reports: RecipeReport[]): string {
       String(C.invented),
       String(G.invented),
       win(C.invented, G.invented, false),
+    )
+  }
+          ${
+    cmpRow(
+      "tokens in / out",
+      tokens(C.tokens_in, C.tokens_out),
+      tokens(G.tokens_in, G.tokens_out),
+    )
+  }
+          ${
+    cmpRow(
+      "$ / import",
+      money(C.priced, C.usd_per_import),
+      money(G.priced, G.usd_per_import),
+      C.priced && G.priced
+        ? win(C.usd_per_import, G.usd_per_import, false)
+        : null,
+    )
+  }
+          ${
+    cmpRow(
+      "$ / 100 imports",
+      money(C.priced, C.usd_per_100),
+      money(G.priced, G.usd_per_100),
+      C.priced && G.priced ? win(C.usd_per_100, G.usd_per_100, false) : null,
     )
   }
         </tbody>
@@ -815,7 +920,8 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    "D2 capture · claude-haiku-4-5 + gpt-5.4-mini · 11 gold · page_text (text)\n",
+    `D2 capture · ${PROVIDER_LABEL.claude} + ${PROVIDER_LABEL.gpt} · ` +
+      `11 gold · page_text (text)\n`,
   );
   const reports = await capture();
 
@@ -835,6 +941,14 @@ async function main(): Promise<void> {
           pct(mean(reports.map((r) => (r.score[p].servings_match ? 1 : 0))))
         } ` +
         `dangerous=${reports.reduce((a, r) => a + r.score[p].ledger_total, 0)}`,
+    );
+    const cost = costAgg(p, reports);
+    console.log(
+      `          tokens in/out = ${
+        tokens(cost.tokens_in, cost.tokens_out)
+      } · ` +
+        `$/import = ${cost.priced ? usd(cost.usd_per_import) : "n/a"} · ` +
+        `$/100 imports = ${cost.priced ? usd(cost.usd_per_100) : "n/a"}`,
     );
   }
 
