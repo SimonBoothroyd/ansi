@@ -32,6 +32,19 @@ range, tokenizing prose) is source-derived or it doesn't happen.
 
 Nutrition banners are **ignored** (we compute macros ourselves).
 
+## Groups (`groups[]`)
+
+A group is one printed ingredient block: `{ "name": "ROASTED FENNEL", "line_items": [ … ] }`.
+`name` is the printed heading, verbatim; `line_items` are its lines in printed order.
+
+- **An unheaded block is still a group — `name: null`.** When the page separates a
+  block only by a printed dash/rule (or a blank run) and prints no heading over it,
+  keep it as its own group with `name: null`. Never invent a heading (`"To serve"`,
+  `"Assembly"`) to fill the slot, and never fold the block into the group above just
+  because it is untitled — the printed separator is the source-derived evidence that
+  a new group starts. *(owner ruling 2026-08-31 — sausage-sliders' third block, the
+  one split from CARAMELIZED ONIONS by a bare dash.)*
+
 ## Line items (inside `groups[].line_items[]`)
 
 ```jsonc
@@ -148,6 +161,29 @@ Token rules:
   (`"the dry ingredients"`). `mention`: `"new" | "rementioned" | "fraction"` —
   meaningful only on a **single-line** ref; on a collective (`refs.length > 1`)
   it's advisory (a collective shows no number anyway, §4.6).
+- **An intermediate mixture is ONE collective chip per use.** When a step names a
+  mixture an earlier step built (`"the onion mixture"`, `"the reserved chopped
+  mushrooms"`), chip it as a single `ref` over **every** line that went into it, and
+  use that **same ref set at each later use** — never re-chip the constituents
+  individually, and never shrink the set to whichever one line the prose happens to
+  echo. `mention: "fraction"` on each use (a mixture built once and drawn on twice is
+  used in parts), with the `portion` carrying **that step's** sub-amount or qualifier.
+  *(owner ruling 2026-08-31 — gumbo's `"onion mixture"` is `[3,4,5,6,7]` in both step 5
+  and step 8: step 5 takes `qualifier: "the larger amount"`, step 8 takes `1½ cups`.)*
+- **A collective's `mention` describes the COLLECTIVE's own first appearance**, not
+  its constituents' histories. The first time that chip is emitted it is `"new"` —
+  even when one line inside it was already chipped, or fraction-used, in an earlier
+  step. Do not downgrade the whole set to `"rementioned"`/`"fraction"` on account of
+  one member. *(owner ruling 2026-08-31 — green-goddess step 2's `"all the remaining
+  sauce ingredients"` chip `[10,11,12,13]` stays `"new"` although line 13 was
+  fraction-used in step 1.)*
+- **A printed catch-all spans its WHOLE group.** `"add all the ingredients"` /
+  `"all the remaining sauce ingredients"` → one collective ref over every line of that
+  group (minus only the lines the prose explicitly exempts) — **seasoning lines
+  included**. A `"Season to taste"` sentence later in the same step is extra prose, not
+  evidence that the printed salt/pepper lines fall outside the catch-all; it never
+  narrows the ref set. *(owner ruling 2026-08-31 — nutty-broccoli step 4's chip spans
+  `[6–16]`, keeping the salt (15) and black pepper (16) lines.)*
 - **`ref.portion`** — OPTIONAL; present only when the STEP names a sub-amount.
   A number (`qty`, or `qty_low`/`qty_high` for a step range) + `unit`, both
   transcribed from the step text; OR a relative `qualifier`
@@ -156,6 +192,31 @@ Token rules:
   rule: **per-serving** recipes legitimately state a per-bowl portion (`"1 tbsp
   per bowl"` × 4 servings = the `¼ cup` line), so a portion smaller than the line
   total is normal — reconcile by servings, don't treat it as an error.
+- **`qualifier: "for garnish"` may be INFERRED from the prose.** A step that says
+  `"garnish with chopped parsley"` licenses `portion.qualifier: "for garnish"` on that
+  ref even though the words "for garnish" are not printed on the line — the garnish
+  role *is* stated by the source, and the qualifier only names it. This is the one
+  portion value read from the verb instead of transcribed, and it stops there: a
+  garnish use with no printed amount takes the qualifier and **no number**.
+  *(owner ruling 2026-08-31 — gumbo step 9, parsley (8) and green onions (25).)*
+  This is about the *qualifier*, not about whether a chip is emitted at all: the
+  "garnish re-mentions stay plain text" rule below covers a restatement **inside the
+  same step** (dirty-rice step 5 chips the green onions once and leaves the closing
+  `"Serve garnished with the green onions"` as prose); a garnish use in a **later**
+  step, as in gumbo, is a genuine separate use and takes its own chip.
+- **"The reserved …" is a relative portion qualifier.** When a step draws on a share an
+  earlier step set aside (`"the reserved basil"`, `"the reserved 1½ cups"`), the ref
+  takes `mention: "fraction"` with `portion.qualifier: "the reserved"` and no number —
+  unless the step prints one, in which case it is an ordinary numeric portion. The
+  *reserving* step needs no portion of its own: a reserve is quantified only where the
+  prose quantifies it, and inventing a complementary amount for the earlier step would
+  be fabrication. *(owner ruling 2026-08-31 — harissa step 4.)*
+- **A line born of a compound-INGREDIENT split is chipped like any other line.** A step
+  that uses part of it without naming an amount takes `mention: "fraction"` with
+  `portion: null` — the split is a transcription artefact, not a reason to leave the use
+  unlinked or to force a portion onto it. *(owner ruling 2026-08-31 — harissa step 4's
+  `"lots of freshly cracked black pepper"` → line 9, the pepper half of the split
+  `"Sea salt and black pepper"` line, `fraction` / `portion: null`, blessed as-is.)*
 - **`timer`** — `low_seconds`/`high_seconds` (single time → both equal;
   `"15 to 20 min"` → 900/1200). **Every** time phrase becomes its own timer token,
   positioned in the stream (a step may have several). Alternatives/conditionals
@@ -167,6 +228,11 @@ Token rules:
 - Text the model can't confidently link stays a plain `text` span (no chip). A
   `"pinch of salt"` with no matching line, or a **sub-recipe reference**
   (`"Romesco Aioli (p38)"`), stays plain text (nested recipes are deferred).
+  A sub-recipe that the page *prints as an ingredient line* (`"1 Italian Sausage
+  (page 45)"`) is transcribed as an ordinary line item — identity as printed, page
+  cross-reference included — and stays one until **roadmap 8.6 (nested recipes)**
+  gives it a real recipe↔recipe link; flag it in `_review` as an 8.6 candidate rather
+  than modelling it now. *(owner ruling 2026-08-31.)*
 - **Garnish re-mentions stay plain text.** When a step names an ingredient again purely
   as a garnish (`"Serve garnished with the green onions"`) and that line is already
   chipped earlier, do **not** emit a second `ref` chip. One chip per line per genuine
