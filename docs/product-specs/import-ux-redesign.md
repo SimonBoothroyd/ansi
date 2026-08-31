@@ -1,3 +1,10 @@
+> ⚠️ **EPHEMERAL — superseded working scratch. Do not design against this.**
+> This was a one-shot UX *proposal*; the shipped UI diverged from it substantially
+> during live iteration (merged single editable review, expand-to-edit, band-based
+> auto-lock, suggestion chips, save-gating). The **source of truth for the import +
+> recipe-view design is [`design-board.html`](./design-board.html)** — its "Import &
+> recipe view · v3" section. This file is not maintained.
+
 **Status:** Proposal for Simon to react to · **Scope:** Mise v1 import reconciliation + preview UX · **Type:** UX design (no code)
 **Supersedes (UX only):** the three-state "Review import" screen described in `import-and-matching.md` §8 and the design-board "Import & match" frame.
 **Does NOT touch:** the frozen data contract (`supabase/functions/_shared/types.ts`, `evals/datasets/extraction/gold/_SCHEMA.md`), the match cascade, or normalization. Everything here is client-side *view + resolution* work plus reuse of the existing recipe editor / pickers.
