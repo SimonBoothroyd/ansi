@@ -20,6 +20,57 @@ LineItem _item(
 );
 
 void main() {
+  group('joinSourceLine (the import review\'s "from source" reference)', () {
+    test('elides the measure word both halves print', () {
+      // The reported stutter: "2–3 cloves garlic cloves, sliced".
+      expect(
+        joinSourceLine('2–3 cloves', 'garlic cloves, sliced'),
+        '2–3 garlic cloves, sliced',
+      );
+    });
+
+    test('is case- and plural-insensitive', () {
+      expect(
+        joinSourceLine('2 Cloves', 'clove of garlic'),
+        '2 clove of garlic',
+      );
+      expect(joinSourceLine('1 tin', 'Tins of tomatoes'), '1 Tins of tomatoes');
+    });
+
+    test('elides a multi-word overlap, once', () {
+      expect(
+        joinSourceLine('2 spring onions', 'spring onions, trimmed'),
+        '2 spring onions, trimmed',
+      );
+    });
+
+    test('leaves a line whose halves share nothing', () {
+      expect(joinSourceLine('200g', 'spaghetti'), '200g spaghetti');
+      // "tin" is not "tinned" — a near miss is left alone rather than stemmed
+      // into a match that would drop a word the source printed.
+      expect(
+        joinSourceLine('1 x 400g tin', 'tinned chopped tomatoes'),
+        '1 x 400g tin tinned chopped tomatoes',
+      );
+    });
+
+    test('only the LEADING phrase counts — a prep note is a second fact', () {
+      expect(
+        joinSourceLine('2 cloves', 'garlic, cloves separated'),
+        '2 cloves garlic, cloves separated',
+      );
+    });
+
+    test('an all-overlap amount leaves the ingredient text standing', () {
+      expect(joinSourceLine('cloves', 'cloves of garlic'), 'cloves of garlic');
+    });
+
+    test('a missing half is not padded', () {
+      expect(joinSourceLine('', 'basil leaves'), 'basil leaves');
+      expect(joinSourceLine('  ', ''), '');
+    });
+  });
+
   test('single-use items each become their own row, in order', () {
     final rows = groupLineUses([
       _item('a', 'chicken', 'Chicken thigh', quantity: 6, unit: pieces),

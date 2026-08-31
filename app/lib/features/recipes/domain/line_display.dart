@@ -1,4 +1,5 @@
-/// Inline display grouping for the recipe page — PURE DART (invariant 2).
+/// How an ingredient line READS — inline display grouping for the recipe page
+/// and the source-line join the import review shows — PURE DART (invariant 2).
 ///
 /// The recipe page reads `amount · ingredient · notes` on one line per
 /// ingredient identity (v3 LOCKED design). When several line items in a group
@@ -46,6 +47,72 @@ class LineUses {
     for (final u in uses)
       if (u.note != null && u.note!.trim().isNotEmpty) u.note!.trim(),
   ];
+}
+
+/// Joins one imported line's printed amount and ingredient text into the
+/// single "from source" reference string, eliding a word the two both print.
+///
+/// Extractors routinely repeat the measure word on both sides — `2–3 cloves` +
+/// `garlic cloves, sliced` — and rendering them back to back stutters: "2–3
+/// cloves garlic cloves, sliced". The overlap is dropped from the AMOUNT side
+/// so the ingredient text (the identity we matched on) survives verbatim:
+/// "2–3 garlic cloves, sliced".
+///
+/// The comparison is case- and plural-insensitive and looks only at the
+/// ingredient text's leading phrase (up to the first comma/bracket): a word
+/// repeated in a trailing prep note ("garlic, cloves separated") is a second
+/// fact, not a stutter. Only whole trailing words of the amount are elided, and
+/// only once — the printed source is a reference, never prose we rewrite.
+String joinSourceLine(String rawAmount, String ingredientText) {
+  final amount = rawAmount.trim();
+  final text = ingredientText.trim();
+  if (amount.isEmpty || text.isEmpty) {
+    return [amount, text].where((s) => s.isNotEmpty).join(' ');
+  }
+
+  final amountWords = amount.split(RegExp(r'\s+'));
+  final lead = [
+    for (final w in text.split(RegExp(r'[,;(\[]')).first.split(RegExp(r'\s+')))
+      _displayWordKey(w),
+  ];
+  for (var k = amountWords.length; k > 0; k--) {
+    final tail = [
+      for (final w in amountWords.sublist(amountWords.length - k))
+        _displayWordKey(w),
+    ];
+    if (tail.any((w) => w.isEmpty)) continue;
+    if (!_containsRun(lead, tail)) continue;
+    final kept = amountWords.sublist(0, amountWords.length - k).join(' ');
+    return kept.isEmpty ? text : '$kept $text';
+  }
+  return '$amount $text';
+}
+
+/// A word reduced to what makes two printings "the same word": lowercase,
+/// letters and digits only, and the simple `s` plural dropped (only on a word
+/// long enough for that to be a plural — "as" is not "a").
+String _displayWordKey(String word) {
+  final bare = word.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '');
+  if (bare.length >= 4 && bare.endsWith('s')) {
+    return bare.substring(0, bare.length - 1);
+  }
+  return bare;
+}
+
+/// Whether [run] appears as a contiguous subsequence of [words].
+bool _containsRun(List<String> words, List<String> run) {
+  if (run.isEmpty || run.length > words.length) return false;
+  for (var i = 0; i + run.length <= words.length; i++) {
+    var hit = true;
+    for (var j = 0; j < run.length; j++) {
+      if (words[i + j] != run[j]) {
+        hit = false;
+        break;
+      }
+    }
+    if (hit) return true;
+  }
+  return false;
 }
 
 /// Folds [items] into inline display rows, one per ingredient identity, in
