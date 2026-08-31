@@ -110,7 +110,8 @@ introduced in `0003_recipes.sql` · RLS enabled · in the `powersync` publicatio
 | `book_id` | `uuid` | yes | references book(id) *(added in `0004_books.sql`)* |
 | `section_id` | `uuid` | yes | references book_section(id) *(added in `0004_books.sql`)* |
 | `favorite` | `boolean` | no | not null default false *(added in `0011_picker_uplift.sql`)* |
-| `cook_time_seconds` | `int` | yes | check (cook_time_seconds is null or cook_time_seconds >= 0), add column total_time_seconds int check (total_time_seconds is null or total_time_seconds >= 0) *(added in `0013_recipe_times.sql`)* |
+| `cook_time_seconds` | `int` | yes | check (cook_time_seconds is null or cook_time_seconds >= 0) *(added in `0013_recipe_times.sql`)* |
+| `total_time_seconds` | `int` | yes | check (total_time_seconds is null or total_time_seconds >= 0) *(added in `0013_recipe_times.sql`)* |
 
 ## `ingredient_group`
 

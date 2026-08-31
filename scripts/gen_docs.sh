@@ -64,13 +64,22 @@ for path in MIGRATIONS:
             tables[name] = t
             order.append(name)
             continue
-        m = re.match(r"alter table (\w+) add column (?:if not exists )?(.*)$", stmt, re.I)
-        if m and m.group(1) in tables:
-            tables[m.group(1)]["columns"].append(parse_column(m.group(2), path.name))
-            continue
         m = re.match(r"alter table (\w+) enable row level security$", stmt, re.I)
         if m and m.group(1) in tables:
             tables[m.group(1)]["rls"] = True
+            continue
+        # One `alter table` may carry several comma-separated clauses:
+        #   alter table recipe add column a int check (…), add column b int …
+        # Splitting at the top level (so commas inside a check(...) don't count)
+        # is what keeps the second column from being smeared into the first's
+        # "details" cell. Non-`add column` clauses are ignored, not guessed at.
+        m = re.match(r"alter table (\w+) (.*)$", stmt, re.I)
+        if m and m.group(1) in tables:
+            for clause in split_top_level(m.group(2)):
+                c = re.match(r"add column (?:if not exists )?(.*)$", clause, re.I)
+                if c:
+                    tables[m.group(1)]["columns"].append(
+                        parse_column(c.group(1), path.name))
             continue
         m = re.match(r"alter publication powersync add table (.*)$", stmt, re.I)
         if m:
