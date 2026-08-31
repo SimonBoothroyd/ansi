@@ -30,11 +30,6 @@ import type {
   ReconLine,
 } from "../_shared/types.ts";
 import { deriveUnitHints } from "../_shared/unit_hints.ts";
-import { fetchRawBlob } from "../_shared/jsonld.ts";
-import {
-  matchLines as matchCascade,
-  type VocabMatcher,
-} from "../_shared/match.ts";
 
 /**
  * Match cascade seam (lane B). The orchestrator depends on a PRE-BOUND matcher
@@ -211,40 +206,17 @@ export function makeHandler(
   };
 }
 
-// The extraction provider (lane D's chosen LLM adapter) is wired at integration
-// (0019). Until then the deployed function has the deterministic intake + match
-// seams but no sanitize provider, so a live request reports it plainly. The
-// orchestration itself is exercised via `importRecipe()` with fakes in tests.
-const unconfiguredAdapter: ExtractAdapter = {
-  name: "unconfigured",
-  sanitize(): Promise<never> {
-    return Promise.reject(
-      new ImportError(
-        "extraction provider not configured — wired at integration (plan 0019)",
-      ),
-    );
-  },
-};
-
-// The household-scoped Postgres VocabMatcher (match_db.ts) is built per-request
-// at integration; until then there is no vocab to match against. The real lane-B
-// cascade is wired to it here so the seam is documented, even though a live
-// request fails earlier at the unconfigured sanitize provider.
-const unconfiguredMatcher: VocabMatcher = {
-  exact: () => Promise.reject(unconfiguredMatcherError()),
-  trigram: () => Promise.reject(unconfiguredMatcherError()),
-};
-
-function unconfiguredMatcherError(): ImportError {
-  return new ImportError(
-    "vocab matcher not configured — wired at integration (plan 0019)",
-  );
-}
-
+// Production wiring — the real ClaudeHaikuAdapter, the household-scoped Postgres
+// `sqlVocabMatcher`, auth (the `household_id` JWT claim), and CORS — lives in
+// `live.ts` (plan 0019). It is loaded ONLY when this module runs as the served
+// entry point, so the pure orchestration above (and its tests) never pull in the
+// Postgres driver or the provider SDK path. `deno check index.ts` still follows
+// this literal import and type-checks the live wiring.
 if (import.meta.main) {
-  Deno.serve(makeHandler({
-    adapter: unconfiguredAdapter,
-    matchLines: (lines) => matchCascade(lines, unconfiguredMatcher),
-    fetchBlob: fetchRawBlob,
-  }));
+  // NOT a top-level await: `live.ts` imports back from this module, so awaiting
+  // the dynamic import here deadlocks module evaluation (the cycle can't resolve
+  // while this module is still evaluating). Defer with `.then` so this module
+  // finishes evaluating first; `live.ts` then loads against the completed module
+  // and registers `Deno.serve`.
+  import("./live.ts").then((m) => m.serveImport());
 }

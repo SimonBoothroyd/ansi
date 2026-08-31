@@ -11,6 +11,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
+import '../data/photo_intake.dart';
 import '../domain/import_repository.dart';
 import 'import_view_models.dart';
 import 'reconciliation_view.dart';
@@ -139,9 +140,14 @@ class _IntakeForm extends HookConsumerWidget {
         FButton(
           variant: FButtonVariant.outline,
           prefix: const Icon(FLucideIcons.camera),
-          // Photo picking is wired at the integration tail; the fake edge
-          // function ignores the source, so this drives the same flow now.
-          onPress: () => controller.startImport(const ImportFromPhotos([])),
+          // Pick one or more pages → crop/rotate each → import the cropped set.
+          // An empty result (nothing picked, every page cancelled) starts
+          // nothing; the repository downscales each page before upload.
+          onPress: () async {
+            final paths = await ref.read(photoIntakeProvider).pickAndCrop();
+            if (paths.isEmpty) return;
+            await controller.startImport(ImportFromPhotos(paths));
+          },
           child: const Text('Import from photos'),
         ),
         if (error != null) ...[

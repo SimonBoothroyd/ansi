@@ -33,11 +33,16 @@ dependencies:
   sqlite3: ^2.9.0         # Row/ResultSet types from query results
 
   # Utilities
+  image: ^4.3.0           # downscale recipe photos before upload (import, step 8)
   path_provider: ^2.1.0   # on-device location for the local PowerSync SQLite
   shared_preferences: ^2.5.0  # cached household id for offline relaunch (session.dart)
   path: ^1.9.0
   collection: ^1.19.0
   meta: ^1.16.0            # @immutable etc. (used in core/result)
+
+  # Photo intake (import, step 8): pick/capture → crop+rotate → downscale.
+  image_picker: ^1.2.3    # capture/pick recipe photos
+  image_cropper: ^12.2.1  # per-page crop + rotate before upload
   # fl_chart: ^0.69.0   # stretch: macro charts (spec §7 step 9)
 
 dev_dependencies:

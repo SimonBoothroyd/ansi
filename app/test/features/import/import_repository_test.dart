@@ -123,6 +123,50 @@ void main() {
     expect(lines.every((r) => r['ingredient_id'] != null), isTrue);
   });
 
+  test('a resolved measure persists as measure_id + piece', () async {
+    // The onion carries a "clove" measure; a line resolved to it and quantified
+    // by that measure must persist the FK (not degrade to a bare "clove"/piece).
+    await db.execute(
+      'INSERT INTO ingredient_measure (id, household_id, ingredient_id, label, '
+      'basis_amount, sort_order, source) VALUES '
+      "('m-clove', 'h', 'ing-onion', 'clove', 3, 0, 'manual')",
+    );
+    const p = ReconciliationPayload(
+      title: 'Measured',
+      servingsBase: 1,
+      groups: [
+        ReconGroup(
+          lines: [
+            ReconLine(
+              raw: RawLineItem(
+                ingredientText: 'garlic clove',
+                qty: 2,
+                unit: 'clove', // the measure label rides on the line's unit
+              ),
+              band: MatchBand.auto,
+              candidates: [
+                MatchCandidate(
+                  ingredientId: 'ing-onion',
+                  canonicalName: 'Onion',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    final recipeId = await repo.commit(
+      buildCommit(p, [initialResolution(0, p.flatLines[0])], servingsBase: 1),
+    );
+    final line = await db.getAll(
+      'SELECT li.unit, li.measure_id FROM recipe_line_item li '
+      'JOIN ingredient_group g ON g.id = li.group_id WHERE g.recipe_id = ?',
+      [recipeId],
+    );
+    expect(line.single['measure_id'], 'm-clove');
+    expect(line.single['unit'], 'piece'); // measure rows store unit='piece'
+  });
+
   test('identical no-match lines coalesce onto one created stub', () async {
     final c = resolvedCommit();
     await repo.commit(buildCommit(c.payload, c.resolutions, servingsBase: 2));

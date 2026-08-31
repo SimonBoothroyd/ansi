@@ -8,9 +8,26 @@ part of 'import_providers.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// The import repository the app uses.
+///
+/// `commit` is always the local PowerSync writer ([SqliteImportRepository]).
+/// The extract→match step is what varies: with Supabase configured
+/// ([Env.isConfigured]) it runs for real against the `import-recipe` edge
+/// function ([EdgeImportRepository]); unconfigured (dev/offline, and tests) it
+/// falls back to the canned/fake repository so the flow still exercises end to
+/// end without a backend.
 
 @ProviderFor(importRepository)
 const importRepositoryProvider = ImportRepositoryProvider._();
+
+/// The import repository the app uses.
+///
+/// `commit` is always the local PowerSync writer ([SqliteImportRepository]).
+/// The extract→match step is what varies: with Supabase configured
+/// ([Env.isConfigured]) it runs for real against the `import-recipe` edge
+/// function ([EdgeImportRepository]); unconfigured (dev/offline, and tests) it
+/// falls back to the canned/fake repository so the flow still exercises end to
+/// end without a backend.
 
 final class ImportRepositoryProvider
     extends
@@ -20,6 +37,14 @@ final class ImportRepositoryProvider
           ImportRepository
         >
     with $Provider<ImportRepository> {
+  /// The import repository the app uses.
+  ///
+  /// `commit` is always the local PowerSync writer ([SqliteImportRepository]).
+  /// The extract→match step is what varies: with Supabase configured
+  /// ([Env.isConfigured]) it runs for real against the `import-recipe` edge
+  /// function ([EdgeImportRepository]); unconfigured (dev/offline, and tests) it
+  /// falls back to the canned/fake repository so the flow still exercises end to
+  /// end without a backend.
   const ImportRepositoryProvider._()
     : super(
         from: null,
@@ -53,4 +78,4 @@ final class ImportRepositoryProvider
   }
 }
 
-String _$importRepositoryHash() => r'ab92a536e5ebdf7401ea4dc52ea13205aa38d050';
+String _$importRepositoryHash() => r'9ba16193303fe20d00999a34a404a59c96e3dd22';

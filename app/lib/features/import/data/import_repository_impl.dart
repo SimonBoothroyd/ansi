@@ -167,6 +167,15 @@ class SqliteImportRepository implements ImportRepository {
           if (ingredientId == null) {
             throw StateError('line ${line.lineIndex} has no ingredient');
           }
+          // A resolved measure (the user picked "can", "clove"…) persists as a
+          // `measure_id` FK with `unit='piece'` (migration 0009) so the count↔
+          // basis bridge survives commit, instead of degrading to a bare
+          // "piece". Only an existing vocab row can carry measures — a
+          // freshly-created stub never does — and a measure that has since
+          // vanished still degrades to an honest count via [_unitId].
+          final measureId = line.ingredientId == null
+              ? null
+              : await _measureIdFor(tx, line.ingredientId!, line.unit);
           await tx.execute(
             'INSERT INTO recipe_line_item (id, household_id, group_id, '
             'ingredient_id, quantity, unit, measure_id, note, sort_order, '
@@ -177,8 +186,8 @@ class SqliteImportRepository implements ImportRepository {
               groupId,
               ingredientId,
               line.quantity,
-              _unitId(line),
-              null,
+              if (measureId != null) pieces.id else _unitId(line),
+              measureId,
               line.note,
               sortInGroup,
               now,
@@ -219,6 +228,27 @@ class SqliteImportRepository implements ImportRepository {
     final mapped = line.unit == null ? null : unitById(line.unit!);
     if (mapped != null) return mapped.id;
     return line.quantity == null ? toTaste.id : pieces.id;
+  }
+
+  /// The `ingredient_measure.id` that a line's [unit] names for [ingredientId],
+  /// or null. Returns null for a catalog unit (`tbsp`, `g`, `piece`…) — those
+  /// aren't measures — and for a measure word that names no live measure of the
+  /// ingredient. A measure pick rides on the line as its raw `label` (see
+  /// `sheetChoiceUnit`), so an exact case-insensitive label match resolves it
+  /// back to the FK the commit persists.
+  Future<String?> _measureIdFor(
+    SqliteWriteContext tx,
+    String ingredientId,
+    String? unit,
+  ) async {
+    if (unit == null || unitById(unit) != null) return null;
+    final row = await tx.getOptional(
+      'SELECT id FROM ingredient_measure '
+      'WHERE ingredient_id = ? AND deleted_at IS NULL '
+      'AND LOWER(label) = LOWER(?) LIMIT 1',
+      [ingredientId, unit],
+    );
+    return row?['id'] as String?;
   }
 
   /// Rebuilds the stored step JSON, remapping each ref token's `line_index`

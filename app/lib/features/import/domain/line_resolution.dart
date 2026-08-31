@@ -141,10 +141,12 @@ class LineResolution {
 
 /// The unit string a [UnitChoice] picked in the quantity sheet resolves to on a
 /// reconciliation line. A catalog [UnitOption] rides its own id; a
-/// [MeasureOption] rides its LABEL ("clove", "can") — import's commit has no
-/// `measure_id` column, so the honest free-text unit word is stored rather than
-/// silently degrading the pick to "piece" (the round-1 UX bug: tapping the
-/// `clove` chip left the line reading `piece`). When no chip was tapped
+/// [MeasureOption] rides its LABEL ("clove", "can") — the honest measure word,
+/// rather than silently degrading the pick to "piece" (the round-1 UX bug:
+/// tapping the `clove` chip left the line reading `piece`). Commit re-resolves
+/// that label back to the ingredient's `ingredient_measure.id`, persisting it
+/// as a `measure_id` FK (migration 0009); a label that no longer names a live
+/// measure still degrades to an honest count. When no chip was tapped
 /// ([unitPicked] false) the line keeps [currentUnit].
 String? sheetChoiceUnit({
   required UnitChoice choice,
