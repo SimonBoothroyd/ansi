@@ -274,10 +274,22 @@ class SqliteRecipeRepository implements RecipeRepository {
     );
   }
 
+  /// What the `steps` jsonb is written as. The column holds ONE of two shapes
+  /// ([mise-data-ephemeral], see [_parseSteps]), and a recipe carries whichever
+  /// one it was loaded with: an imported recipe's [Recipe.methodSteps] is the
+  /// tokenized shape and its plain [Recipe.steps] is empty, so serializing the
+  /// plain list unconditionally would erase the imported method on the first
+  /// save. The tokenized shape therefore wins whenever it is present.
+  Object _stepsJson(Recipe recipe) {
+    final tokenized = recipe.methodSteps;
+    if (tokenized == null) return recipe.steps;
+    return [for (final step in tokenized) step.toJson()];
+  }
+
   @override
   Future<void> saveRecipe(Recipe recipe) async {
     final now = DateTime.now().toUtc().toIso8601String();
-    final steps = jsonEncode(recipe.steps);
+    final steps = jsonEncode(_stepsJson(recipe));
     final freezable = recipe.freezable ? 1 : 0;
     await _db.writeTransaction((tx) async {
       // PowerSync's local tables are SQLite VIEWS with INSTEAD OF triggers,

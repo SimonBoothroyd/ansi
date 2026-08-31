@@ -122,15 +122,61 @@ class _EditorForm extends StatelessWidget {
         ),
         const SizedBox(height: 28),
         const _Label('METHOD'),
-        FTextField.multiline(
-          hint: 'One step per line',
-          maxLines: 12,
-          control: FTextFieldControl.managed(
-            initial: TextEditingValue(text: recipe.steps.join('\n')),
-            onChange: (v) => notifier.setStepsText(v.text),
+        if (recipe.methodSteps != null)
+          const _TokenizedMethodNotice()
+        else
+          FTextField.multiline(
+            hint: 'One step per line',
+            maxLines: 12,
+            control: FTextFieldControl.managed(
+              initial: TextEditingValue(text: recipe.steps.join('\n')),
+              onChange: (v) => notifier.setStepsText(v.text),
+            ),
           ),
-        ),
       ],
+    );
+  }
+}
+
+/// What the METHOD slot shows for an IMPORTED recipe. Its method is a token
+/// stream (ingredient chips + timers), which this plain-text field cannot
+/// represent — rendering it as an empty box would read as "this recipe has no
+/// method" and invite the user to type one over it. So the editor says so
+/// plainly instead: the method is preserved untouched by a save, and stays
+/// readable on the recipe page. Editing tokenized steps lands with the method
+/// editor.
+class _TokenizedMethodNotice extends StatelessWidget {
+  const _TokenizedMethodNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: MiseColors.paper,
+        border: Border.all(color: MiseColors.line),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(FLucideIcons.info, size: 14, color: MiseColors.muted),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'This recipe’s method was imported as ingredient chips and '
+                'timers, which this text editor can’t show. It is kept exactly '
+                'as it is when you save — read it on the recipe page.',
+                style: miseMono(
+                  size: 11,
+                  color: MiseColors.muted,
+                ).copyWith(height: 1.5),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
