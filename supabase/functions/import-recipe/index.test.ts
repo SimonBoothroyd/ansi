@@ -1,9 +1,11 @@
-import { assertEquals, assertRejects } from "@std/assert";
+import { assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
 import {
   type ImportDeps,
   ImportError,
   importRecipe,
   makeHandler,
+  MAX_IMAGE_BYTES,
+  MAX_IMAGES,
   parseRequestBody,
 } from "./index.ts";
 import type {
@@ -232,6 +234,90 @@ Deno.test("parseRequestBody — url, images, and errors", () => {
   assertEquals("error" in parseRequestBody({}), true);
   assertEquals("error" in parseRequestBody("nope"), true);
   assertEquals("error" in parseRequestBody({ images: [1, 2] }), true);
+  assertEquals("error" in parseRequestBody({ images: [] }), true);
+  assertEquals("error" in parseRequestBody({ url: "   " }), true);
+});
+
+/** The error string `parseRequestBody` rejected with (fails if it accepted). */
+function rejection(body: unknown): string {
+  const r = parseRequestBody(body);
+  if (!("error" in r)) throw new Error(`expected a rejection, got a request`);
+  return r.error;
+}
+
+Deno.test("parseRequestBody — `url` and `images` together is a real error", () => {
+  // It used to let `url` win silently, so a confused client never found out.
+  assertStringIncludes(
+    rejection({ url: "https://x.test", images: [btoa("a")] }),
+    "not both",
+  );
+});
+
+Deno.test("parseRequestBody — caps the number of images", () => {
+  const one = btoa("a");
+  const ok = parseRequestBody({ images: Array(MAX_IMAGES).fill(one) });
+  assertEquals("request" in ok && ok.request.images?.length, MAX_IMAGES);
+  assertStringIncludes(
+    rejection({ images: Array(MAX_IMAGES + 1).fill(one) }),
+    `at most ${MAX_IMAGES}`,
+  );
+});
+
+Deno.test("parseRequestBody — caps the size of one image", () => {
+  // Encoded-length pre-check: a payload this size is refused without ever being
+  // decoded into bytes.
+  const huge = "A".repeat(Math.ceil((MAX_IMAGE_BYTES + 1_000_000) / 3) * 4);
+  assertStringIncludes(rejection({ images: [huge] }), "the limit is");
+  // And a payload that only reveals its size after decoding is refused too.
+  const justOver = "A".repeat(Math.ceil((MAX_IMAGE_BYTES + 64) / 3) * 4);
+  assertStringIncludes(rejection({ images: [justOver] }), "the limit is");
+});
+
+Deno.test("parseRequestBody — malformed base64 is a 400, not an unhandled throw", () => {
+  // `atob` throws; this runs BEFORE the handler's try/catch, so an escaping
+  // throw was a 500 with a stack trace in it.
+  assertStringIncludes(rejection({ images: ["not!valid!base64"] }), "base64");
+});
+
+Deno.test("makeHandler — an oversized/!malformed body is a 400 with a message", async () => {
+  const handler = makeHandler(deps());
+  const post = (body: unknown) =>
+    handler(
+      new Request("https://fn.test", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    );
+  for (
+    const body of [
+      { images: ["%%%%"] },
+      { images: Array(MAX_IMAGES + 1).fill(btoa("a")) },
+      { url: "https://x.test", images: [btoa("a")] },
+    ]
+  ) {
+    const res = await post(body);
+    assertEquals(res.status, 400);
+    assertEquals(typeof (await res.json()).error, "string");
+  }
+});
+
+Deno.test("makeHandler — an unexpected failure returns an OPAQUE 500", async () => {
+  // The detail can carry provider URLs, prompts, or a connection string.
+  const leaky = deps({
+    matchLines: () => {
+      throw new Error("postgres://user:hunter2@db.internal:5432 refused");
+    },
+  });
+  const res = await makeHandler(leaky)(
+    new Request("https://fn.test", {
+      method: "POST",
+      body: JSON.stringify({ url: "https://example.test/x" }),
+    }),
+  );
+  assertEquals(res.status, 500);
+  const body = await res.json();
+  assertEquals(body, { error: "import failed" });
+  assertEquals("detail" in body, false);
 });
 
 Deno.test("makeHandler — POST url returns 200 payload", async () => {
