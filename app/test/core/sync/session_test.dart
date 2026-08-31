@@ -5,7 +5,9 @@
 ///   (the sign-up token lacks the `household_id` claim, so connecting with it
 ///   yields an empty first sync that wipes local rows);
 /// - a cached household connects offline without awaiting the network RPC;
-/// - failures surface as [SessionError] and retry() recovers;
+/// - failures surface as [SessionError] and retry() recovers, with a
+///   server-side-deleted account ([SessionError.accountMissing]) told apart
+///   from every other server error;
 /// - auth events arriving mid-handle are queued (latest wins), so a sign-out
 ///   during onboarding still clears local data.
 library;
@@ -221,6 +223,58 @@ void main() {
 
       expect(c.read(sessionControllerProvider), isA<SessionReady>());
       expect(cache.values, {'u1': 'hh-1'});
+    });
+
+    test(
+      'a deleted account is called out, not left as a generic error',
+      () async {
+        // What a ghost user (JWT outliving a `supabase db reset`) gets back:
+        // `ensure_onboarded`'s household_member insert trips the auth.users FK,
+        // and PostgREST passes the SQLSTATE through as `code`.
+        onboard = () async => throw const PostgrestException(
+          message:
+              'insert or update on table "household_member" violates foreign '
+              'key constraint "household_member_auth_user_id_fkey"',
+          code: '23503',
+          details: 'Key (auth_user_id)=(u1) is not present in table "users".',
+        );
+        final c = container();
+
+        signIn('u1');
+        await _settle();
+
+        expect(
+          c.read(sessionControllerProvider),
+          isA<SessionError>()
+              .having((s) => s.accountMissing, 'accountMissing', isTrue)
+              .having(
+                (s) => s.message,
+                'message',
+                SessionError.accountMissingMessage,
+              ),
+        );
+        expect(cache.values, isEmpty);
+      },
+    );
+
+    test('other server errors stay generic', () async {
+      // Not the FK: a 5xx-ish RPC failure is a real server problem, and
+      // telling the user to sign out would mask it.
+      onboard = () async => throw const PostgrestException(
+        message: 'canceling statement due to statement timeout',
+        code: '57014',
+      );
+      final c = container();
+
+      signIn('u1');
+      await _settle();
+
+      expect(
+        c.read(sessionControllerProvider),
+        isA<SessionError>()
+            .having((s) => s.accountMissing, 'accountMissing', isFalse)
+            .having((s) => s.message, 'message', contains('statement timeout')),
+      );
     });
   });
 

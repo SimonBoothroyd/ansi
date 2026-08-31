@@ -3,6 +3,8 @@
 /// holds the user here until the household resolves ([SessionReady]); a
 /// [SessionError] surfaces here with retry and sign-out affordances, so a
 /// failure never pins the user on an infinite spinner (see `app_router.dart`).
+/// The two swap prominence when the server no longer has this account
+/// ([SessionError.accountMissing]): only signing out can clear that one.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -20,7 +22,10 @@ class ConnectingView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionControllerProvider);
     final controller = ref.read(sessionControllerProvider.notifier);
-    final error = session is SessionError ? session.message : null;
+    final error = session is SessionError ? session : null;
+    // When the server no longer has this account, retry can only fail again:
+    // sign-out leads and retry steps back to the ghost slot.
+    final accountMissing = error?.accountMissing ?? false;
 
     return FScaffold(
       child: Center(
@@ -54,21 +59,25 @@ class ConnectingView extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    error,
+                    error.message,
                     textAlign: TextAlign.center,
                     style: miseSans(size: 12.5, color: MiseColors.gone),
                   ),
                   const SizedBox(height: 20),
                   FButton(
-                    onPress: controller.retry,
-                    child: const Text('Retry'),
+                    onPress: accountMissing
+                        ? controller.signOut
+                        : controller.retry,
+                    child: Text(accountMissing ? 'Sign out' : 'Retry'),
                   ),
                 ],
                 const SizedBox(height: 10),
                 FButton(
                   variant: FButtonVariant.ghost,
-                  onPress: controller.signOut,
-                  child: const Text('Sign out'),
+                  onPress: accountMissing
+                      ? controller.retry
+                      : controller.signOut,
+                  child: Text(accountMissing ? 'Retry' : 'Sign out'),
                 ),
               ],
             ),
