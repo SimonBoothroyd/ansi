@@ -321,6 +321,178 @@ void main() {
     });
   });
 
+  group('a raw amount that is really prose routes to NOTES', () {
+    test('the parenthetical lands in the note, not the amount slot', () {
+      const line = ReconLine(
+        raw: RawLineItem(
+          ingredientText: 'Tortilla chips',
+          rawAmount: '(to serve (optional))',
+          optional: true,
+        ),
+        band: MatchBand.none,
+      );
+      expect(initialResolution(0, line).notes, 'to serve (optional)');
+    });
+
+    test('an extractor note is never overwritten by the amount', () {
+      const line = ReconLine(
+        raw: RawLineItem(
+          ingredientText: 'basil',
+          notes: 'torn',
+          rawAmount: '(to serve)',
+        ),
+        band: MatchBand.none,
+      );
+      expect(initialResolution(0, line).notes, 'torn');
+    });
+
+    test('an amount the editor can render stays in the amount slot', () {
+      // A mapped unit ("A good pinch" → pinch) and a printed number are both
+      // amounts — only numberless, unmappable prose is rerouted.
+      const pinchLine = ReconLine(
+        raw: RawLineItem(
+          ingredientText: 'chilli flakes',
+          unit: 'pinch',
+          rawAmount: 'A good pinch',
+        ),
+        band: MatchBand.none,
+      );
+      const tinLine = ReconLine(
+        raw: RawLineItem(
+          ingredientText: 'tomatoes',
+          qty: 400,
+          rawAmount: '1 x 400g tin',
+        ),
+        band: MatchBand.none,
+      );
+      expect(initialResolution(0, pinchLine).notes, isNull);
+      expect(initialResolution(0, tinLine).notes, isNull);
+    });
+  });
+
+  group('dropping a line at review', () {
+    final base = initialResolution(
+      0,
+      _line('garlic', band: MatchBand.auto, qty: 1, candidates: [_cand]),
+    );
+
+    test('drop is reversible and edits nothing else', () {
+      final dropped = base.setNotes('sliced').drop();
+      expect(dropped.isDropped, isTrue);
+      final back = dropped.undrop();
+      expect(back.isDropped, isFalse);
+      expect(back.notes, 'sliced');
+      expect(back.chosenIngredientId, base.chosenIngredientId);
+    });
+
+    test('a dropped line reports no issues — it cannot hold up Save', () {
+      final unmatched = initialResolution(0, _line('mystery'));
+      expect(lineIssues(unmatched), [LineIssue.unmatched]);
+      expect(lineIssues(unmatched.drop()), isEmpty);
+    });
+
+    test('allResolved skips a dropped line but still demands the rest', () {
+      final resolutions = [
+        base,
+        initialResolution(1, _line('mystery')), // unresolved
+      ];
+      expect(allResolved(resolutions), isFalse);
+      expect(allResolved([resolutions[0], resolutions[1].drop()]), isTrue);
+      expect(keptLines([resolutions[0], resolutions[1].drop()]), hasLength(1));
+    });
+
+    test('buildCommit writes no line for a dropped one, and leaves its index '
+        'unused so a step ref demotes instead of pointing elsewhere', () {
+      final payload = _payload([
+        _line('garlic', band: MatchBand.auto, qty: 1, candidates: [_cand]),
+        _line('basil', band: MatchBand.auto, qty: 1, candidates: [_cand]),
+        _line('parsley', band: MatchBand.auto, qty: 1, candidates: [_cand]),
+      ]);
+      final resolutions = [
+        initialResolution(0, payload.flatLines[0]),
+        initialResolution(1, payload.flatLines[1]).drop(),
+        initialResolution(2, payload.flatLines[2]),
+      ];
+      final commit = buildCommit(
+        payload,
+        resolutions,
+        servingsBase: 2,
+        issuesByLine: null,
+      );
+      final lines = commit.groups.single.lines;
+      expect(lines.map((l) => l.lineIndex), [0, 2]);
+    });
+
+    test('a dropped line drags no correction or stub along with it', () {
+      final payload = _payload([
+        _line('yellow onion', band: MatchBand.auto, qty: 1, candidates: []),
+        _line('mystery', qty: 1),
+      ]);
+      final resolutions = [
+        initialResolution(0, payload.flatLines[0])
+            .resolveToIngredient('ing-scallion', 'Scallion', correction: true)
+            .drop(),
+        initialResolution(1, payload.flatLines[1]).resolveToNewStub('Mystery'),
+      ];
+      final commit = buildCommit(
+        payload,
+        resolutions,
+        servingsBase: 2,
+        issuesByLine: null,
+      );
+      expect(commit.corrections, isEmpty);
+      expect(commit.stubs, hasLength(1));
+    });
+
+    test('a group whose every line was dropped is not written', () {
+      final payload = ReconciliationPayload(
+        title: 'T',
+        groups: [
+          ReconGroup(name: 'A', lines: [_line('x', qty: 1)]),
+          ReconGroup(name: 'B', lines: [_line('y', qty: 2)]),
+        ],
+      );
+      final commit = buildCommit(
+        payload,
+        [
+          initialResolution(0, payload.flatLines[0]).resolveToNewStub('X'),
+          initialResolution(
+            1,
+            payload.flatLines[1],
+          ).resolveToNewStub('Y').drop(),
+        ],
+        servingsBase: 2,
+        issuesByLine: null,
+      );
+      expect(commit.groups.map((g) => g.name), ['A']);
+    });
+
+    test('a dropped line’s stale issues do not block the commit', () {
+      final payload = _payload([
+        _line('garlic', band: MatchBand.auto, qty: 1, candidates: [_cand]),
+      ]);
+      final resolutions = [initialResolution(0, payload.flatLines[0]).drop()];
+      // Nothing survives → refused, but for the honest reason.
+      expect(
+        () => buildCommit(
+          payload,
+          resolutions,
+          servingsBase: 2,
+          issuesByLine: const {
+            0: [LineIssue.unitNotAllowed],
+          },
+        ),
+        throwsA(
+          isStateError.having(
+            (e) => e.message,
+            'message',
+            contains('nothing to save'),
+          ),
+        ),
+      );
+    });
+  });
+
   group('commit gate', () {
     test('buildCommit throws while any line is unresolved', () {
       final payload = _payload([_line('mystery', qty: 1)]);

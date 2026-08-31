@@ -49,19 +49,25 @@ class ImportReconciling extends ImportState {
   /// (defaulting to 1 when the source was unclear, which the UI flags).
   final double servings;
 
-  /// Every line resolved — the structural half of the commit gate. Unit
-  /// validity is the other half and needs the vocab, so it lives in
-  /// [importValidation]; [importOutstandingLines] is what the UI gates on.
-  bool get canCommit => allResolved(resolutions);
+  /// Every kept line resolved, and at least one line kept — the structural half
+  /// of the commit gate. Unit validity is the other half and needs the vocab,
+  /// so it lives in [importValidation]; [importOutstandingLines] is what the UI
+  /// gates on. Dropping every line leaves nothing to save, and [buildCommit]
+  /// refuses it at the seam as well.
+  bool get canCommit =>
+      allResolved(resolutions) && keptLines(resolutions).isNotEmpty;
 
   /// Count of lines still structurally unresolved — the fallback count while
-  /// the ingredient-backed validation is loading for the first time.
-  int get unresolvedCount => resolutions.where((r) => !r.isResolved).length;
+  /// the ingredient-backed validation is loading for the first time. A dropped
+  /// line never counts: it is leaving.
+  int get unresolvedCount =>
+      resolutions.where((r) => !r.isDropped && !r.isResolved).length;
 
   /// The fingerprint of everything [importValidation] depends on: per line, its
-  /// match, its unit, and whether a printed range still needs a number. Notes
-  /// and the serving count change no line's validity, so typing a note must not
-  /// re-run a vocab query per line.
+  /// match, its unit, whether a printed range still needs a number, and whether
+  /// it was dropped (a dropped line reports no issues). Notes and the serving
+  /// count change no line's validity, so typing a note must not re-run a vocab
+  /// query per line.
   String get validationKey {
     final key = StringBuffer();
     for (final r in resolutions) {
@@ -75,6 +81,8 @@ class ImportReconciling extends ImportState {
         ..write(r.unit ?? '')
         ..write('|')
         ..write(r.isRange && r.quantity == null)
+        ..write('|')
+        ..write(r.isDropped)
         ..write(';');
     }
     return key.toString();

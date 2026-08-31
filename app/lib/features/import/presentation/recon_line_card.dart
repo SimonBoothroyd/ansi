@@ -6,6 +6,11 @@
 /// decision 6), and an inline notes field. Auto / suggest / none lines are all
 /// equally editable; a needs-attention line only gets a visual flag. The
 /// never-invent flags (0014) are shown, not hidden.
+///
+/// A line can also be DROPPED here (the bin on the expanded card): the card
+/// greys into an "as deleted" state that says so and offers undo, and the line
+/// stops being anyone's problem — no flag, no Save gate — until Save makes the
+/// removal real (see [LineResolution.isDropped]).
 library;
 
 import 'package:flutter/widgets.dart';
@@ -15,6 +20,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/picker_shell.dart';
 import '../../ingredients/data/ingredient_providers.dart';
@@ -22,7 +28,9 @@ import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_picker.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
+import '../../recipes/domain/line_display.dart';
 import '../../recipes/presentation/format.dart';
+import '../domain/amount_text.dart';
 import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
 import '../domain/reconciliation_payload.dart';
@@ -52,13 +60,35 @@ class ReviewLineCard extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final expanded = useState(false);
-    final effective =
-        validation ?? LineValidation(issues: lineIssues(resolution));
+    final dropped = resolution.isDropped;
+    // A dropped line has no issues by construction; the map handed in can still
+    // be one recompute behind, so don't let a stale flag survive the drop.
+    final effective = dropped
+        ? const LineValidation(issues: [])
+        : (validation ?? LineValidation(issues: lineIssues(resolution)));
     final attention = effective.issues.isNotEmpty;
     final matched =
         resolution.chosenIngredientId != null ||
         resolution.createStubName != null;
+    // Read the notifier at CALL time, never captured (the file's rule).
+    void setDropped({required bool value}) => ref
+        .read(importControllerProvider.notifier)
+        .updateResolution(
+          resolution.lineIndex,
+          (r) => value ? r.drop() : r.undrop(),
+        );
 
+    if (dropped) {
+      return _Card(
+        attention: false,
+        dropped: true,
+        child: _DroppedLine(
+          line: line,
+          resolution: resolution,
+          onRestore: () => setDropped(value: false),
+        ),
+      );
+    }
     return _Card(
       attention: attention,
       child: expanded.value
@@ -68,6 +98,7 @@ class ReviewLineCard extends HookConsumerWidget {
               validation: effective,
               matched: matched,
               onCollapse: () => expanded.value = false,
+              onDrop: () => setDropped(value: true),
             )
           : _Collapsed(
               line: line,
@@ -75,6 +106,69 @@ class ReviewLineCard extends HookConsumerWidget {
               issues: effective.issues,
               onExpand: () => expanded.value = true,
             ),
+    );
+  }
+}
+
+/// The "as deleted" card: the line stays on screen, greyed and plainly
+/// labelled, with the un-delete beside it. Nothing is written until Save, so
+/// this state is the whole deletion — reversible, visible, and out of the
+/// Save gate.
+class _DroppedLine extends StatelessWidget {
+  const _DroppedLine({
+    required this.line,
+    required this.resolution,
+    required this.onRestore,
+  });
+
+  final ReconLine line;
+  final LineResolution resolution;
+  final VoidCallback onRestore;
+
+  @override
+  Widget build(BuildContext context) {
+    final name =
+        resolution.chosenName ??
+        resolution.createStubName ??
+        line.raw.ingredientText;
+    return Row(
+      children: [
+        const Icon(FLucideIcons.trash2, size: 14, color: MiseColors.muted),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: miseSans(
+                  size: 15,
+                  color: MiseColors.muted,
+                ).copyWith(decoration: TextDecoration.lineThrough),
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'removed — this line will not be saved',
+                style: miseMono(size: 10, color: MiseColors.muted),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onRestore,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(FLucideIcons.undo2, size: 13, color: MiseColors.herb),
+              const SizedBox(width: 5),
+              Text('undo', style: miseMono(size: 11, color: MiseColors.herb)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -91,11 +185,11 @@ String? attentionLabel(List<LineIssue> issues) {
 
 /// The original imported line as written — amount + ingredient — shown as a
 /// muted reference so the user always sees what the source said (round-2 #3:
-/// "from a photo I wouldn't know the original amount").
-String rawLineText(RawLineItem raw) => [
-  raw.rawAmount.trim(),
-  raw.ingredientText.trim(),
-].where((s) => s.isNotEmpty).join('  ');
+/// "from a photo I wouldn't know the original amount"). The two halves are
+/// joined by [joinSourceLine], which drops the measure word they both print
+/// rather than stuttering it ("2–3 cloves garlic cloves, sliced").
+String rawLineText(RawLineItem raw) =>
+    joinSourceLine(raw.rawAmount, raw.ingredientText);
 
 /// The compact three-part row: amount · ingredient · notes, a pencil, and (when
 /// still open) a clear "needs you" label. Tapping anywhere expands it.
@@ -193,6 +287,7 @@ class _Expanded extends ConsumerWidget {
     required this.validation,
     required this.matched,
     required this.onCollapse,
+    required this.onDrop,
   });
 
   final ReconLine line;
@@ -200,6 +295,9 @@ class _Expanded extends ConsumerWidget {
   final LineValidation validation;
   final bool matched;
   final VoidCallback onCollapse;
+
+  /// Drops the line from the import — reversible right up to Save.
+  final VoidCallback onDrop;
 
   int get _index => resolution.lineIndex;
 
@@ -230,6 +328,21 @@ class _Expanded extends ConsumerWidget {
               child: Text(
                 line.raw.ingredientText,
                 style: miseSans(size: 15, weight: FontWeight.w600),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Drop the line: the recipe prints it, this cook doesn't want it.
+            // It greys out in place and only Save makes the removal real.
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onDrop,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(
+                  FLucideIcons.trash2,
+                  size: 16,
+                  color: MiseColors.muted,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -332,7 +445,13 @@ class _DisabledChip extends StatelessWidget {
 /// Inline unit "did you mean" chips (round-3 #2) — the matched ingredient's
 /// valid units, offered when the current unit is unsupported so the user can
 /// pick a good one in a tap, parallel to the ingredient candidate pills.
-class _UnitSuggestions extends StatelessWidget {
+///
+/// The admission set for a common ingredient runs past a dozen units, which
+/// reads as a wall rather than a choice. Owner's call: [kVisibleUnitChips] of
+/// them — [rankedUnitChips]' likeliest — and the rest behind a "more" chip that
+/// expands IN PLACE. Nothing is unreachable, and the fold never hides the
+/// current selection: it opens on one.
+class _UnitSuggestions extends StatefulWidget {
   const _UnitSuggestions({
     required this.choices,
     required this.selected,
@@ -340,11 +459,33 @@ class _UnitSuggestions extends StatelessWidget {
   });
 
   final List<UnitSuggestion> choices;
+
+  /// The line's current unit token — both the selection to mark and the parsed
+  /// unit the ranking fronts.
   final String? selected;
   final ValueChanged<String> onPick;
 
   @override
+  State<_UnitSuggestions> createState() => _UnitSuggestionsState();
+}
+
+class _UnitSuggestionsState extends State<_UnitSuggestions> {
+  /// Sticky across the parent's rebuilds (every keystroke rebuilds the card),
+  /// so an opened fold stays open — and so does the selection inside it.
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final ranked = rankedUnitChips(widget.choices, parsedUnit: widget.selected);
+    final hiddenCount = ranked.length - kVisibleUnitChips;
+    final selectedIsFolded = ranked
+        .skip(kVisibleUnitChips)
+        .any((c) => c.token == widget.selected);
+    final open = _expanded || selectedIsFolded;
+    final visible = hiddenCount > 0 && !open
+        ? ranked.take(kVisibleUnitChips).toList()
+        : ranked;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -355,8 +496,18 @@ class _UnitSuggestions extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
-              for (final c in choices)
-                _Pill(label: c.label, onTap: () => onPick(c.token)),
+              for (final c in visible)
+                _Pill(
+                  label: c.label,
+                  selected: c.token == widget.selected,
+                  onTap: () => widget.onPick(c.token),
+                ),
+              if (hiddenCount > 0 && !selectedIsFolded)
+                _Pill(
+                  label: _expanded ? 'fewer' : '+$hiddenCount more',
+                  quiet: true,
+                  onTap: () => setState(() => _expanded = !_expanded),
+                ),
             ],
           ),
         ),
@@ -427,9 +578,15 @@ class _NotesEditor extends ConsumerWidget {
 
 /// The amount label. With a picked number: the quantity + unit (count shows
 /// just its number). With NO picked number: the original printed amount is
-/// preferred (so a range reads "2–3 cloves", never a bare "clove" — round-2
-/// #3), else the imprecise/measure unit word ("to taste"), else empty (the
-/// caller renders "—" or a "set amount" prompt — never an invented unit).
+/// preferred while it still reads as an amount (so a range reads "2–3 cloves",
+/// never a bare "clove" — round-2 #3), else the imprecise/measure unit word
+/// ("to taste"), else empty (the caller renders "—" or a "set amount" prompt —
+/// never an invented unit).
+///
+/// The AMOUNT slot never carries prose. A raw amount with no number in it is
+/// not an amount — "(to serve (optional))" — so it shows the qualifier the
+/// source named ("to serve") and nothing else; the prose itself rides the NOTES
+/// slot instead (see [noteFromRawAmount]).
 String amountLabel(LineResolution r, RawLineItem raw) {
   final mapped = r.unit == null ? null : unitById(r.unit!);
   if (r.quantity != null) {
@@ -443,11 +600,12 @@ String amountLabel(LineResolution r, RawLineItem raw) {
   // "pinch" / "to taste" / "handful", NEVER the raw phrase "A good pinch"
   // (round-3 #1a: an imprecise amount is a clean unit, not raw text).
   if (mapped != null) return mapped.label;
-  // Unmapped/absent unit: fall back to the printed original (a range,
-  // "2–3 cloves"), else the raw unit word, else empty.
-  if (raw.rawAmount.trim().isNotEmpty) return raw.rawAmount.trim();
-  if (r.unit != null && r.unit!.isNotEmpty) return r.unit!;
-  return '';
+  // Unmapped/absent unit: the printed original still wins WHILE IT IS ONE — an
+  // unpicked range ("2–3 cloves"), a "2 sprigs" the vocab couldn't map.
+  final printed = raw.rawAmount.trim();
+  if (printed.isNotEmpty && !isProseAmount(printed)) return printed;
+  return amountQualifier(printed) ??
+      (r.unit?.isNotEmpty ?? false ? r.unit! : '');
 }
 
 bool _isImprecise(LineResolution r) {
@@ -456,11 +614,18 @@ bool _isImprecise(LineResolution r) {
 }
 
 /// The card chrome — an aging border while the line needs the user, a quiet
-/// line once it is done (the amber clears on resolution, round-2 #4).
+/// line once it is done (the amber clears on resolution, round-2 #4), and the
+/// flat paper fill of a [dropped] line, which is on its way out and should read
+/// that way.
 class _Card extends StatelessWidget {
-  const _Card({required this.attention, required this.child});
+  const _Card({
+    required this.attention,
+    required this.child,
+    this.dropped = false,
+  });
 
   final bool attention;
+  final bool dropped;
   final Widget child;
 
   @override
@@ -469,7 +634,7 @@ class _Card extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: MiseColors.surface,
+          color: dropped ? MiseColors.paper : MiseColors.surface,
           border: Border.all(
             color: attention ? MiseColors.aging : MiseColors.line,
           ),
@@ -497,6 +662,12 @@ class _Card extends StatelessWidget {
 /// Round-1 fixes still hold: a picked MEASURE chip ("clove") rides its LABEL
 /// through [sheetChoiceUnit] not a degraded "piece", and a RANGE opens on its
 /// printed low endpoint so confirming resolves it.
+///
+/// Owner call (count-measure pre-selection): when the line's parsed unit is one
+/// this ingredient cannot carry — the "pick a supported unit" flag — and the
+/// ingredient names a measure, the sheet opens with that measure already
+/// selected ([preselectedMeasure]), and Done adopts it even if no chip was
+/// tapped. Resolving becomes one confirm tap; the flag stands until that tap.
 Future<void> editLineAmount(
   BuildContext context,
   WidgetRef ref,
@@ -514,13 +685,20 @@ Future<void> editLineAmount(
   if (!matched) return; // units need an ingredient to derive an allowed set
 
   Ingredient? loaded;
-  if (resolution.chosenIngredientId != null) {
+  var measures = const <Measure>[];
+  final chosenId = resolution.chosenIngredientId;
+  if (chosenId != null) {
     try {
-      loaded = await ref
-          .read(ingredientRepositoryProvider)
-          .byId(resolution.chosenIngredientId!);
+      loaded = await ref.read(ingredientRepositoryProvider).byId(chosenId);
     } on Object {
       loaded = null; // never leave the tap inert — fall back to a stand-in
+    }
+    try {
+      // Already resolved and cached: `importValidation` holds this same watch
+      // open for every matched line.
+      measures = await ref.read(ingredientMeasuresProvider(chosenId).future);
+    } on Object {
+      measures = const []; // no measures reachable → simply no pre-selection
     }
   }
   if (!context.mounted) return;
@@ -542,20 +720,30 @@ Future<void> editLineAmount(
   final initialQuantity =
       resolution.quantity ??
       (resolution.isRange ? (raw.qtyLow ?? raw.qtyHigh) : null);
+  // An inadmissible unit on an ingredient that names measures opens on the
+  // likeliest measure — "2 clove" for a garlic line that arrived as "2 ml".
+  final preselect = loaded == null
+      ? null
+      : preselectedMeasure(loaded, measures, unit: resolution.unit);
   final result = await showQuantityUnitSheet(
     context,
     ingredient: amountSheetIngredient(base),
     initialQuantity: initialQuantity,
-    initialChoice: unit != null ? UnitOption(unit) : null,
+    initialChoice: preselect != null
+        ? MeasureOption(preselect)
+        : (unit != null ? UnitOption(unit) : null),
   );
   if (result is! QuantitySaved) return;
   // The notifier is read HERE, after the awaited sheet — never captured before
   // it and never threaded in through a constructor: the instance a widget was
   // built with can be stale (or disposed) by the time the sheet closes.
   ref.read(importControllerProvider.notifier).updateResolution(lineIndex, (r) {
+    // A pre-selected measure counts as picked on confirm: the sheet opened ON
+    // it, so Done means "yes, that one" — otherwise the one-tap resolve would
+    // silently keep the unit the line was flagged for.
     final picked = sheetChoiceUnit(
       choice: result.choice,
-      unitPicked: result.unitPicked,
+      unitPicked: result.unitPicked || preselect != null,
       currentUnit: r.unit,
     );
     return r.setAmount(quantity: result.quantity, unit: picked);
@@ -815,9 +1003,22 @@ class _Chosen extends StatelessWidget {
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.onTap});
+  const _Pill({
+    required this.label,
+    required this.onTap,
+    this.selected = false,
+    this.quiet = false,
+  });
 
   final String label;
+
+  /// The chip carries the line's current value — filled, so a selection stays
+  /// visible when the fold reorders the row around it.
+  final bool selected;
+
+  /// A chrome chip (the fold's "more") rather than a choice — it reads mono and
+  /// muted so it never looks like one of the units.
+  final bool quiet;
   final VoidCallback onTap;
 
   @override
@@ -827,13 +1028,23 @@ class _Pill extends StatelessWidget {
       onTap: onTap,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: MiseColors.surface,
-          border: Border.all(color: MiseColors.line),
+          color: selected ? MiseColors.herbSoft : MiseColors.surface,
+          border: Border.all(
+            color: selected ? MiseColors.herb : MiseColors.line,
+          ),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: Text(label, style: miseSans(size: 13)),
+          child: Text(
+            label,
+            style: quiet
+                ? miseMono(size: 11, color: MiseColors.muted)
+                : miseSans(
+                    size: 13,
+                    color: selected ? MiseColors.herbDeep : MiseColors.ink,
+                  ),
+          ),
         ),
       ),
     );

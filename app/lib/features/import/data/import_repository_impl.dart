@@ -318,7 +318,10 @@ class SqliteImportRepository implements ImportRepository {
 
   /// Rebuilds the stored step JSON, remapping each ref token's `line_index`
   /// refs to the created `line_item_id`s (§4.6). Text and timer tokens pass
-  /// through; a ref to an out-of-range index is dropped (never invented).
+  /// through; a ref whose lines all vanished — an out-of-range index, or a line
+  /// the user DROPPED at review — never invents a target: it demotes to its own
+  /// label as plain prose, so "finish with basil" keeps the word and loses only
+  /// the chip.
   List<Map<String, Object?>> _remapSteps(
     List<Step> steps,
     Map<int, String> lineIds,
@@ -348,7 +351,13 @@ class SqliteImportRepository implements ImportRepository {
           for (final i in refs)
             if (lineIds[i] != null) lineIds[i]!,
         ];
-        if (ids.isEmpty) return null; // no line survived — drop the chip
+        if (ids.isEmpty) {
+          // No line survived. The chip's label is the extractor's own prose, so
+          // keeping it as text loses the link and nothing else; a chip with no
+          // label has nothing honest to say and goes.
+          final text = label.trim();
+          return text.isEmpty ? null : {'t': 'text', 's': text};
+        }
         return {
           't': 'ref',
           'refs': ids,

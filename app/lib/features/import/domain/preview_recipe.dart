@@ -26,12 +26,19 @@ String previewLineId(int index) => 'line-$index';
 /// identity shares one [LineItem.ingredientId] so the recipe page folds it into
 /// a single inline row. Method steps are remapped from line-index refs to the
 /// synthetic line ids and rendered by the existing fold.
+///
+/// A DROPPED line is left out, exactly as [buildCommit] leaves it out, and any
+/// step chip that pointed at it demotes to its own label as plain prose — so
+/// the preview keeps showing what a save would actually write.
 Recipe buildPreviewRecipe(
   ReconciliationPayload payload,
   List<LineResolution> resolutions, {
   required double servingsBase,
 }) {
-  final byIndex = {for (final r in resolutions) r.lineIndex: r};
+  final byIndex = {
+    for (final r in resolutions)
+      if (!r.isDropped) r.lineIndex: r,
+  };
 
   final groups = <IngredientGroup>[];
   var flatIndex = 0;
@@ -39,7 +46,11 @@ Recipe buildPreviewRecipe(
     final group = payload.groups[gi];
     final items = <LineItem>[];
     for (final _ in group.lines) {
-      final r = byIndex[flatIndex]!;
+      final r = byIndex[flatIndex];
+      if (r == null) {
+        flatIndex++;
+        continue;
+      }
       items.add(
         LineItem(
           id: previewLineId(flatIndex),
@@ -52,9 +63,11 @@ Recipe buildPreviewRecipe(
       );
       flatIndex++;
     }
-    groups.add(
-      IngredientGroup(id: 'group-$gi', name: group.name, items: items),
-    );
+    if (items.isNotEmpty) {
+      groups.add(
+        IngredientGroup(id: 'group-$gi', name: group.name, items: items),
+      );
+    }
   }
 
   return Recipe(
@@ -62,7 +75,9 @@ Recipe buildPreviewRecipe(
     title: payload.title,
     servingsBase: servingsBase <= 0 ? 1 : servingsBase,
     groups: groups,
-    methodSteps: [for (final step in payload.steps) _methodStep(step)],
+    methodSteps: [
+      for (final step in payload.steps) _methodStep(step, byIndex.keys.toSet()),
+    ],
   );
 }
 
@@ -89,7 +104,12 @@ Unit _unitOf(LineResolution r) {
   return r.quantity == null ? toTaste : pieces;
 }
 
-MethodStep _methodStep(Step step) => MethodStep(
+/// One step's tokens, remapped onto the surviving lines in [keptIndexes]. A
+/// chip keeps every ref that survived; a chip whose lines were ALL dropped
+/// demotes to its own label as prose (the same demotion the repository does at
+/// commit), so the sentence still reads — "finish with basil", chip-less —
+/// instead of losing the word.
+MethodStep _methodStep(Step step, Set<int> keptIndexes) => MethodStep(
   tokens: [
     for (final token in step.tokens)
       switch (token) {
@@ -99,12 +119,17 @@ MethodStep _methodStep(Step step) => MethodStep(
           highSeconds: highSeconds,
         ),
         RefToken(:final refs, :final label, :final mention, :final portion) =>
-          MethodToken.ref(
-            refs: [for (final i in refs) previewLineId(i)],
-            label: label,
-            mention: _mention(mention),
-            portion: portion == null ? null : _portion(portion),
-          ),
+          refs.any(keptIndexes.contains)
+              ? MethodToken.ref(
+                  refs: [
+                    for (final i in refs)
+                      if (keptIndexes.contains(i)) previewLineId(i),
+                  ],
+                  label: label,
+                  mention: _mention(mention),
+                  portion: portion == null ? null : _portion(portion),
+                )
+              : MethodToken.text(s: label),
       },
   ],
 );

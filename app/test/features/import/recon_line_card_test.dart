@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mise/core/theme/mise_theme.dart';
+import 'package:mise/core/units/measure.dart';
+import 'package:mise/core/units/units.dart';
 import 'package:mise/features/import/data/import_providers.dart';
 import 'package:mise/features/import/domain/commit_payload.dart';
 import 'package:mise/features/import/domain/import_repository.dart';
@@ -14,6 +16,10 @@ import 'package:mise/features/import/domain/line_validation.dart';
 import 'package:mise/features/import/domain/reconciliation_payload.dart';
 import 'package:mise/features/import/presentation/import_view_models.dart';
 import 'package:mise/features/import/presentation/recon_line_card.dart';
+import 'package:mise/features/ingredients/data/ingredient_providers.dart';
+import 'package:mise/features/ingredients/domain/ingredient.dart';
+import 'package:mise/features/ingredients/domain/ingredient_repository.dart';
+import 'package:mise/features/ingredients/domain/measure_repository.dart';
 
 /// A fake edge function returning a fixed single-line payload; commit records.
 class _FakeRepo implements ImportRepository {
@@ -111,6 +117,84 @@ ReconciliationPayload _autoRangePayload() => const ReconciliationPayload(
   ],
 );
 
+/// A matched line whose printed unit the ingredient cannot carry (`ml` on a
+/// density-less garlic) — the "pick a supported unit" case.
+ReconciliationPayload _unitMismatchPayload() => const ReconciliationPayload(
+  title: 'T',
+  servingsBase: 2,
+  groups: [
+    ReconGroup(
+      lines: [
+        ReconLine(
+          raw: RawLineItem(
+            ingredientText: 'garlic',
+            qty: 2,
+            unit: 'ml',
+            rawAmount: '2 ml',
+          ),
+          band: MatchBand.auto,
+          candidates: [
+            MatchCandidate(
+              ingredientId: 'ing-garlic',
+              canonicalName: 'Garlic',
+              score: 0.95,
+            ),
+          ],
+        ),
+      ],
+    ),
+  ],
+);
+
+const _garlic = Ingredient(
+  id: 'ing-garlic',
+  canonicalName: 'Garlic',
+  defaultUnit: g,
+  status: IngredientStatus.complete,
+);
+
+const _clove = Measure(id: 'm-clove', label: 'clove', amount: 3);
+
+class _FakeIngredientRepo implements IngredientRepository {
+  @override
+  Future<Ingredient?> byId(String id) async => _garlic;
+
+  @override
+  Future<Map<String, Ingredient>> byIds(Set<String> ids) async => {
+    for (final id in ids) id: _garlic,
+  };
+
+  @override
+  Future<List<Ingredient>> search(String query, {int limit = 30}) async =>
+      const [];
+
+  @override
+  Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
+
+  @override
+  Future<Ingredient> createStub(String name) async => _garlic;
+
+  @override
+  Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>
+      null;
+}
+
+class _FakeMeasureRepo implements MeasureRepository {
+  @override
+  Stream<List<Measure>> watchMeasures(String ingredientId) =>
+      Stream.value(const [_clove]);
+
+  @override
+  Future<Measure> addMeasure({
+    required String ingredientId,
+    required String label,
+    required double amount,
+  }) async => _clove;
+
+  @override
+  Future<void> softDeleteMeasure(String measureId) async {}
+}
+
 Widget _host(ProviderContainer container, {LineValidation? validation}) =>
     UncontrolledProviderScope(
       container: container,
@@ -139,6 +223,28 @@ class _Body extends ConsumerWidget {
           line: state.payload.flatLines[0],
           resolution: state.resolutions.firstWhere((r) => r.lineIndex == 0),
           validation: validation,
+        ),
+      ],
+    );
+  }
+}
+
+/// The card wired to the REAL validation provider (the review screen's own
+/// wiring), so the ingredient + its measures resolve exactly as on device.
+class _LiveBody extends ConsumerWidget {
+  const _LiveBody();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(importControllerProvider);
+    if (state is! ImportReconciling) return const SizedBox.shrink();
+    final byLine = ref.watch(importValidationProvider).value;
+    return ListView(
+      children: [
+        ReviewLineCard(
+          line: state.payload.flatLines[0],
+          resolution: state.resolutions.firstWhere((r) => r.lineIndex == 0),
+          validation: byLine?[0],
         ),
       ],
     );
@@ -373,6 +479,149 @@ void main() {
     expect(updated.resolutions.first.unit, 'piece');
   });
 
+  testWidgets('the unit chips show five and fold the rest, expanding in place '
+      'without losing the selection', (tester) async {
+    _filterSemanticsAssertions();
+    final container = ProviderContainer(
+      overrides: [
+        importRepositoryProvider.overrideWithValue(_FakeRepo(_autoPayload())),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container
+        .read(importControllerProvider.notifier)
+        .startImport(const ImportFromUrl('x'));
+    await tester.pumpWidget(
+      _host(
+        container,
+        validation: const LineValidation(
+          issues: [LineIssue.unitNotAllowed],
+          unitChoices: [
+            UnitSuggestion(token: 'g', label: 'g'),
+            UnitSuggestion(token: 'kg', label: 'kg'),
+            UnitSuggestion(token: 'clove', label: 'clove'),
+            UnitSuggestion(token: 'tsp', label: 'tsp'),
+            UnitSuggestion(token: 'tbsp', label: 'tbsp'),
+            UnitSuggestion(token: 'cup', label: 'cup'),
+            UnitSuggestion(token: 'pinch', label: 'pinch'),
+            UnitSuggestion(token: 'to_taste', label: 'to taste'),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(FLucideIcons.pencil));
+    await tester.pumpAndSettle();
+
+    // Five chips, and the imprecise tail is behind the fold.
+    expect(find.text('+3 more'), findsOneWidget);
+    expect(find.text('to taste'), findsNothing);
+    expect(find.text('pinch'), findsNothing);
+
+    // The fold expands IN PLACE — same card, no sheet.
+    await tester.tap(find.text('+3 more'));
+    await tester.pumpAndSettle();
+    expect(find.text('to taste'), findsOneWidget);
+    expect(find.text('fewer'), findsOneWidget);
+
+    // Picking a folded chip writes through, and the choice survives the fold.
+    await tester.tap(find.text('to taste'));
+    await tester.pumpAndSettle();
+    final updated =
+        container.read(importControllerProvider) as ImportReconciling;
+    expect(updated.resolutions.first.unit, 'to_taste');
+    expect(find.text('to taste'), findsOneWidget);
+  });
+
+  testWidgets('an inadmissible unit opens the amount editor on the '
+      'ingredient’s count measure — one confirm tap resolves it', (
+    tester,
+  ) async {
+    _filterSemanticsAssertions();
+    final container = ProviderContainer(
+      overrides: [
+        importRepositoryProvider.overrideWithValue(
+          _FakeRepo(_unitMismatchPayload()),
+        ),
+        ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
+        measureRepositoryProvider.overrideWithValue(_FakeMeasureRepo()),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container
+        .read(importControllerProvider.notifier)
+        .startImport(const ImportFromUrl('x'));
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: FTheme(
+            data: miseThemeData(),
+            child: const FScaffold(child: _LiveBody()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Flagged: "ml" is not a unit density-less garlic can carry.
+    expect(find.text('Pick a supported unit'), findsWidgets);
+
+    await tester.tap(find.byIcon(FLucideIcons.pencil));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(AmountEditor));
+    await tester.pumpAndSettle();
+
+    // The sheet opened ON the measure — confirming adopts it, no chip hunt.
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    final updated =
+        container.read(importControllerProvider) as ImportReconciling;
+    expect(updated.resolutions.single.unit, 'clove');
+    expect(updated.resolutions.single.quantity, 2);
+    // And the flag clears now that the unit is one the ingredient carries.
+    expect(find.text('Pick a supported unit'), findsNothing);
+  });
+
+  testWidgets('the bin drops the line into an "as deleted" card, and undo '
+      'brings it back untouched', (tester) async {
+    _filterSemanticsAssertions();
+    final container = ProviderContainer(
+      overrides: [
+        importRepositoryProvider.overrideWithValue(_FakeRepo(_autoPayload())),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container
+        .read(importControllerProvider.notifier)
+        .startImport(const ImportFromUrl('x'));
+    await tester.pumpWidget(_host(container));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(FLucideIcons.pencil));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(FLucideIcons.trash2));
+    await tester.pumpAndSettle();
+
+    // Greyed, labelled, and out of the editing surface entirely.
+    expect(find.text('removed — this line will not be saved'), findsOneWidget);
+    expect(find.text('AMOUNT'), findsNothing);
+    final dropped =
+        container.read(importControllerProvider) as ImportReconciling;
+    expect(dropped.resolutions.single.isDropped, isTrue);
+    // It stops being work: no flag, and nothing left unresolved.
+    expect(dropped.unresolvedCount, 0);
+
+    await tester.tap(find.text('undo'));
+    await tester.pumpAndSettle();
+    final back = container.read(importControllerProvider) as ImportReconciling;
+    expect(back.resolutions.single.isDropped, isFalse);
+    expect(back.resolutions.single.chosenName, 'Spaghetti');
+    expect(find.text('200 g'), findsOneWidget);
+  });
+
   group('amountLabel (round-3 #1a)', () {
     test('an imprecise unit reads as the clean unit, never the raw phrase', () {
       const r = LineResolution(
@@ -421,6 +670,57 @@ void main() {
         quantity: 400,
       );
       expect(amountLabel(r, const RawLineItem(ingredientText: 'x')), '400 g');
+    });
+
+    test('a prose amount shows the qualifier, never the raw parenthetical', () {
+      const r = LineResolution(
+        lineIndex: 0,
+        band: MatchBand.none,
+        ingredientText: 'Tortilla chips',
+        isRange: false,
+        unit: null,
+      );
+      expect(
+        amountLabel(
+          r,
+          const RawLineItem(
+            ingredientText: 'Tortilla chips',
+            rawAmount: '(to serve (optional))',
+          ),
+        ),
+        'to serve',
+      );
+    });
+
+    test('nothing printed reads as nothing — the caller renders "—"', () {
+      const r = LineResolution(
+        lineIndex: 0,
+        band: MatchBand.none,
+        ingredientText: 'Tortilla chips',
+        isRange: false,
+        unit: null,
+      );
+      expect(
+        amountLabel(r, const RawLineItem(ingredientText: 'Tortilla chips')),
+        '',
+      );
+    });
+
+    test('a printed amount the vocab could not map still shows as printed', () {
+      const r = LineResolution(
+        lineIndex: 0,
+        band: MatchBand.none,
+        ingredientText: 'thyme',
+        isRange: false,
+        unit: 'sprig',
+      );
+      expect(
+        amountLabel(
+          r,
+          const RawLineItem(ingredientText: 'thyme', rawAmount: '2 sprigs'),
+        ),
+        '2 sprigs',
+      );
     });
   });
 }
