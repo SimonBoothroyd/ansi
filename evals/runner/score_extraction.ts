@@ -38,12 +38,34 @@ import {
 
 // --- number / field equality -------------------------------------------------
 
-const NUM_TOL_ABS = 0.02;
+/**
+ * Absolute slack, so a rounded fraction passes: gold `⅓ → 0.33` vs a model's
+ * `0.3333` differs by 0.0033. Two decimal places of rounding on any vulgar
+ * fraction stays inside 0.005, so 0.006 covers the family with a hair to spare.
+ */
+const NUM_TOL_ABS = 0.006;
+/**
+ * Relative slack for large magnitudes (seconds, grams) — deliberately TINY.
+ * The old rule was 2% relative, which passed 400 g vs 395 g and 30 min vs
+ * 29 min: a transcription error scored as a hit. 0.2% only absorbs float noise.
+ */
+const NUM_TOL_REL = 0.002;
 
-function numEq(a: number | null, b: number | null): boolean {
+/**
+ * Numeric equality: absolute slack OR a very small relative slack, whichever is
+ * larger. `⅓ → 0.333` vs `0.33` passes; `400` vs `395` fails.
+ */
+export function numEq(a: number | null, b: number | null): boolean {
   if (a === null && b === null) return true;
   if (a === null || b === null) return false;
-  return Math.abs(a - b) <= NUM_TOL_ABS * Math.max(1, Math.abs(a));
+  const tol = Math.max(
+    NUM_TOL_ABS,
+    NUM_TOL_REL * Math.max(
+      Math.abs(a),
+      Math.abs(b),
+    ),
+  );
+  return Math.abs(a - b) <= tol;
 }
 
 function timeEq(a: TimeField, b: TimeField): boolean {
@@ -73,13 +95,132 @@ export function qtyMatch(gold: RawLineItem, got: RawLineItem): boolean {
   return numEq(gold.qty_low, got.qty_low) && numEq(gold.qty_high, got.qty_high);
 }
 
-function normUnit(u: string | null): string {
-  return (u ?? "").trim().toLowerCase();
+/**
+ * The generic count-measure nouns (`_SCHEMA.md` "count-measure nouns are
+ * mappable", mirrored from `_shared/unit_hints.ts`) plus the canonical `piece`.
+ */
+const COUNT_MEASURE_NOUNS = new Set([
+  "clove",
+  "head",
+  "sprig",
+  "loaf",
+  "block",
+  "slice",
+  "can",
+  "bunch",
+  "stalk",
+]);
+
+/** Case-folds, singularizes a known measure noun, and folds `tin` → `can`. */
+export function normUnit(u: string | null): string {
+  let s = (u ?? "").trim().toLowerCase().replace(/\s+/gu, "_");
+  if (s === "tin" || s === "tins") return "can";
+  if (s.endsWith("es") && COUNT_MEASURE_NOUNS.has(s.slice(0, -2))) {
+    s = s.slice(0, -2);
+  } else if (s.endsWith("s") && COUNT_MEASURE_NOUNS.has(s.slice(0, -1))) {
+    s = s.slice(0, -1);
+  } else if (s === "pieces") s = "piece";
+  return s;
 }
 
+export type UnitVerdict = "exact" | "family" | "mismatch";
+
+/**
+ * Unit agreement in three grades.
+ *
+ * - `exact`   — same normalized unit word AND the same `unit_mappable`.
+ * - `family`  — one side is the GENERIC count unit `piece` and the other is a
+ *   specific count-measure noun (`clove`, `sprig`, `can`…), with `unit_mappable`
+ *   agreeing. "2 garlic cloves" read as `2 piece` is a labelling choice inside
+ *   one family, not a transcription error, and the old exact-string rule was
+ *   the single largest source of the residual unit-accuracy gap (tech-debt
+ *   2026-08-31). Two DIFFERENT specific nouns (`clove` vs `can`) stay a
+ *   mismatch — that is a real error.
+ * - `mismatch` — everything else, including any `unit_mappable` disagreement
+ *   (a forced mapping is a ledger event, never a near-miss).
+ */
+export function unitVerdict(gold: RawLineItem, got: RawLineItem): UnitVerdict {
+  if (gold.unit_mappable !== got.unit_mappable) return "mismatch";
+  const g = normUnit(gold.unit), t = normUnit(got.unit);
+  if (g === t) return "exact";
+  const generic = (u: string) => u === "piece";
+  const specific = (u: string) => COUNT_MEASURE_NOUNS.has(u);
+  if ((generic(g) && specific(t)) || (specific(g) && generic(t))) {
+    return "family";
+  }
+  return "mismatch";
+}
+
+/** Headline unit agreement — exact OR count-family equivalent. */
 export function unitMatch(gold: RawLineItem, got: RawLineItem): boolean {
-  return normUnit(gold.unit) === normUnit(got.unit) &&
-    gold.unit_mappable === got.unit_mappable;
+  return unitVerdict(gold, got) !== "mismatch";
+}
+
+/** The strict, string-equality reading, reported alongside the headline. */
+export function unitExactMatch(gold: RawLineItem, got: RawLineItem): boolean {
+  return unitVerdict(gold, got) === "exact";
+}
+
+// --- notes agreement ---------------------------------------------------------
+
+/**
+ * Filler words dropped before comparing `notes`. The question the metric asks is
+ * "did the cook-prep survive into the note slot", not "did the model reproduce
+ * the connective tissue".
+ */
+const NOTES_STOPWORDS = new Set([
+  "a",
+  "an",
+  "the",
+  "of",
+  "and",
+  "or",
+  "to",
+  "into",
+  "with",
+  "if",
+  "then",
+  "in",
+  "on",
+  "at",
+  "is",
+  "it",
+]);
+
+function notesTokens(s: string | null): Set<string> {
+  return new Set(
+    (s ?? "")
+      .toLowerCase()
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter(Boolean)
+      .filter((w) => !NOTES_STOPWORDS.has(w)),
+  );
+}
+
+/** Jaccard threshold for {@link notesAgree}. */
+export const NOTES_AGREE_THRESHOLD = 0.6;
+
+/**
+ * Fuzzy `notes` agreement over an aligned pair.
+ *
+ * Rule (documented in EXTRACTION.md): lowercase, split on non-alphanumerics,
+ * drop the stopword list above, then compare the two token SETS by Jaccard.
+ * Both empty ⇒ agree (the gold says there is no cook-prep and the model agreed).
+ * Exactly one empty ⇒ disagree. Otherwise agree when Jaccard ≥ 0.6, which
+ * tolerates word order and light rewording ("chopped, for garnish" vs
+ * "for garnish, chopped") but not a dropped qualifier ("finely diced" vs
+ * "diced" scores 0.5 and fails).
+ */
+export function notesAgree(
+  gold: RawLineItem,
+  got: RawLineItem,
+): boolean {
+  const a = notesTokens(gold.notes), b = notesTokens(got.notes);
+  if (a.size === 0 && b.size === 0) return true;
+  if (a.size === 0 || b.size === 0) return false;
+  let inter = 0;
+  for (const w of a) if (b.has(w)) inter++;
+  return inter / (a.size + b.size - inter) >= NOTES_AGREE_THRESHOLD;
 }
 
 // --- fuzzy line alignment ----------------------------------------------------
@@ -239,6 +380,22 @@ export function ledgerTotal(l: Ledger): number {
 export interface CalibrationSample {
   confidence: number;
   correct: boolean;
+  /** Where the sample came from — exposed so ECE's composition is auditable. */
+  kind: "aligned" | "invented" | "omitted";
+}
+
+/** Raw per-field counts, so the aggregate can be line-weighted, not just macro. */
+export interface FieldCounts {
+  qty_ok: number;
+  unit_ok: number;
+  unit_exact_ok: number;
+  normalize_ok: number;
+  notes_ok: number;
+  /** Aligned pairs — the denominator of the "aligned-only" reading. */
+  aligned: number;
+  /** Gold line count — the denominator of the HONEST headline reading. */
+  gold_lines: number;
+  got_lines: number;
 }
 
 export interface CaseScore {
@@ -249,17 +406,44 @@ export interface CaseScore {
   total_time_correct: boolean;
   cook_time_correct: boolean;
   line: { p: number; r: number; f1: number };
-  qty_acc: number; // over aligned pairs
+  /**
+   * HEADLINE field accuracies — over the GOLD denominator: an omitted line is a
+   * line the model got wrong, so it counts against qty/unit/normalize/notes.
+   * Scoring these over aligned pairs alone (as this scorer used to) let a model
+   * raise its accuracy by dropping the lines it was unsure of.
+   */
+  qty_acc: number;
   unit_acc: number;
+  unit_exact_acc: number;
   normalize_agree: number;
+  notes_agree: number;
+  /** The same four over aligned pairs only — "when it did emit a line, was it right". */
+  qty_acc_aligned: number;
+  unit_acc_aligned: number;
+  normalize_agree_aligned: number;
+  notes_agree_aligned: number;
+  counts: FieldCounts;
   step_ref: { p: number; r: number; f1: number };
   timer: { p: number; r: number; f1: number };
+  /**
+   * Whether the recipe has anything to say about step-refs / timers at all. A
+   * recipe with no timers in the gold AND none in the output used to score a
+   * free 1.0 F1 that inflated the macro average; those cases are now excluded
+   * from the metric and reported as reduced coverage instead.
+   */
+  step_ref_applicable: boolean;
+  timer_applicable: boolean;
   aligned: number;
   ledger: Ledger;
   calibration: CalibrationSample[];
 }
 
-const EMPTY_RESULT: ExtractionResult = {
+/**
+ * The result a case is scored against when the adapter throws — a total miss.
+ * Exported because `capture_d2_report.ts` needs the identical shape (it used to
+ * re-declare its own copy, which could drift from this one).
+ */
+export const EMPTY_RESULT: ExtractionResult = {
   title: "",
   servings_base: null,
   servings_raw: null,
@@ -289,7 +473,7 @@ export function scoreExtraction(
   ledger.structural_flags =
     got.parse_warnings.filter((w) => w.startsWith("structural-review:")).length;
 
-  let qtyOk = 0, unitOk = 0, normOk = 0;
+  let qtyOk = 0, unitOk = 0, unitExactOk = 0, normOk = 0, notesOk = 0;
   const calibration: CalibrationSample[] = [];
   for (const pair of align.pairs) {
     const g = goldLines[pair.goldIdx];
@@ -298,7 +482,9 @@ export function scoreExtraction(
     const um = unitMatch(g, t);
     if (qm) qtyOk++;
     if (um) unitOk++;
+    if (unitExactMatch(g, t)) unitExactOk++;
     if (normalize(g.ingredient_text) === normalize(t.ingredient_text)) normOk++;
+    if (notesAgree(g, t)) notesOk++;
 
     // ledger: force-fit / invention detectable on an aligned pair
     if (amountShape(g) === "none" && amountShape(t) !== "none") {
@@ -309,9 +495,32 @@ export function scoreExtraction(
     }
     if (!g.unit_mappable && t.unit_mappable) ledger.forced_unit++;
 
-    calibration.push({ confidence: t.confidence, correct: qm && um });
+    calibration.push({
+      confidence: t.confidence,
+      correct: qm && um,
+      kind: "aligned",
+    });
+  }
+  // Calibration over the WHOLE gold, not just the lines that aligned. A line the
+  // model invented is a confident claim that was wrong; a line it dropped is a
+  // gold line it did not get right. Counting only aligned pairs meant the two
+  // dangerous failure modes contributed nothing to ECE at all.
+  for (const gi of align.extraGot) {
+    calibration.push({
+      confidence: gotLines[gi].confidence,
+      correct: false,
+      kind: "invented",
+    });
+  }
+  for (const _ of align.missedGold) {
+    // An omission carries no model confidence — it is binned at 0 so it enters
+    // the sample count (ECE is over the gold denominator) without a fabricated
+    // confidence. It therefore barely moves ECE: the honest headline for
+    // omissions is `ledger.omitted_lines` and the gold-denominator accuracies.
+    calibration.push({ confidence: 0, correct: false, kind: "omitted" });
   }
   const nPairs = align.pairs.length || 1;
+  const nGold = goldLines.length || 1;
 
   // recipe-level invention
   if (gold.total_time_seconds === null && got.total_time_seconds !== null) {
@@ -350,11 +559,29 @@ export function scoreExtraction(
       gold: goldLines.length,
       got: gotLines.length,
     }),
-    qty_acc: qtyOk / nPairs,
-    unit_acc: unitOk / nPairs,
-    normalize_agree: normOk / nPairs,
+    qty_acc: qtyOk / nGold,
+    unit_acc: unitOk / nGold,
+    unit_exact_acc: unitExactOk / nGold,
+    normalize_agree: normOk / nGold,
+    notes_agree: notesOk / nGold,
+    qty_acc_aligned: qtyOk / nPairs,
+    unit_acc_aligned: unitOk / nPairs,
+    normalize_agree_aligned: normOk / nPairs,
+    notes_agree_aligned: notesOk / nPairs,
+    counts: {
+      qty_ok: qtyOk,
+      unit_ok: unitOk,
+      unit_exact_ok: unitExactOk,
+      normalize_ok: normOk,
+      notes_ok: notesOk,
+      aligned: align.pairs.length,
+      gold_lines: goldLines.length,
+      got_lines: gotLines.length,
+    },
     step_ref: prF1(stepRefPR),
     timer: prF1(timerPR),
+    step_ref_applicable: stepRefPR.gold > 0 || stepRefPR.got > 0,
+    timer_applicable: timerPR.gold > 0 || timerPR.got > 0,
     aligned: align.pairs.length,
     ledger,
     calibration,
@@ -375,6 +602,10 @@ export interface Calibration {
   bins: CalibrationBin[];
   ece: number; // expected calibration error
   n: number;
+  /** Sample composition, so a low ECE can't hide a pile of omissions. */
+  n_aligned: number;
+  n_invented: number;
+  n_omitted: number;
 }
 
 export function calibrate(samples: CalibrationSample[]): Calibration {
@@ -396,7 +627,16 @@ export function calibrate(samples: CalibrationSample[]): Calibration {
     (a, bin) => a + (bin.n / total) * Math.abs(bin.meanConf - bin.accuracy),
     0,
   );
-  return { bins, ece, n: samples.length };
+  const count = (k: CalibrationSample["kind"]) =>
+    samples.filter((s) => (s.kind ?? "aligned") === k).length;
+  return {
+    bins,
+    ece,
+    n: samples.length,
+    n_aligned: count("aligned"),
+    n_invented: count("invented"),
+    n_omitted: count("omitted"),
+  };
 }
 
 // --- prose judge seam (LLM-judge; prose fidelity only) -----------------------
@@ -419,6 +659,15 @@ export const NOOP_PROSE_JUDGE: ProseJudge = {
 
 // --- aggregation -------------------------------------------------------------
 
+/** The four field accuracies under one denominator. */
+export interface FieldAccuracies {
+  qty: number;
+  unit: number;
+  unit_exact: number;
+  normalize: number;
+  notes: number;
+}
+
 export interface Summary {
   provider: string;
   n: number;
@@ -429,11 +678,27 @@ export interface Summary {
   line_p: number;
   line_r: number;
   line_f1: number;
+  /**
+   * HEADLINE: per-recipe macro average of the GOLD-denominator accuracies —
+   * every recipe counts once, and a dropped line counts as a wrong line.
+   */
   qty_acc: number;
   unit_acc: number;
+  unit_exact_acc: number;
   normalize_agree: number;
+  notes_agree: number;
+  /** Same metrics over aligned pairs only — "when it emitted a line, was it right". */
+  aligned_only: FieldAccuracies;
+  /** Line-WEIGHTED (micro) aggregate over the gold denominator — big recipes count more. */
+  weighted: FieldAccuracies;
+  gold_lines: number;
+  got_lines: number;
+  aligned_lines: number;
   step_ref_f1: number;
   timer_f1: number;
+  /** Fraction of recipes that actually have step-refs / timers to score. */
+  step_ref_coverage: number;
+  timer_coverage: number;
   ledger: Ledger;
   ledger_total: number;
   calibration: Calibration;
@@ -443,9 +708,26 @@ function mean(xs: number[]): number {
   return xs.length === 0 ? 0 : xs.reduce((a, b) => a + b, 0) / xs.length;
 }
 
+function sum(xs: number[]): number {
+  return xs.reduce((a, b) => a + b, 0);
+}
+
+/** Ratio with an explicit 0-denominator convention (no free 1.0). */
+function ratio(num: number, den: number): number {
+  return den === 0 ? 0 : num / den;
+}
+
 export function summarize(provider: string, scores: CaseScore[]): Summary {
   const ledger = scores.reduce((a, s) => addLedger(a, s.ledger), emptyLedger());
   const calibration = calibrate(scores.flatMap((s) => s.calibration));
+  const c = scores.map((s) => s.counts);
+  const goldLines = sum(c.map((x) => x.gold_lines));
+  const alignedLines = sum(c.map((x) => x.aligned));
+  // Empty-vs-empty recipes are EXCLUDED from these two macro averages rather
+  // than scoring a free 1.0 (a recipe with no timers proved nothing about timer
+  // extraction); `*_coverage` reports how much of the set the number covers.
+  const refApplicable = scores.filter((s) => s.step_ref_applicable);
+  const timerApplicable = scores.filter((s) => s.timer_applicable);
   return {
     provider,
     n: scores.length,
@@ -458,9 +740,30 @@ export function summarize(provider: string, scores: CaseScore[]): Summary {
     line_f1: mean(scores.map((s) => s.line.f1)),
     qty_acc: mean(scores.map((s) => s.qty_acc)),
     unit_acc: mean(scores.map((s) => s.unit_acc)),
+    unit_exact_acc: mean(scores.map((s) => s.unit_exact_acc)),
     normalize_agree: mean(scores.map((s) => s.normalize_agree)),
-    step_ref_f1: mean(scores.map((s) => s.step_ref.f1)),
-    timer_f1: mean(scores.map((s) => s.timer.f1)),
+    notes_agree: mean(scores.map((s) => s.notes_agree)),
+    aligned_only: {
+      qty: ratio(sum(c.map((x) => x.qty_ok)), alignedLines),
+      unit: ratio(sum(c.map((x) => x.unit_ok)), alignedLines),
+      unit_exact: ratio(sum(c.map((x) => x.unit_exact_ok)), alignedLines),
+      normalize: ratio(sum(c.map((x) => x.normalize_ok)), alignedLines),
+      notes: ratio(sum(c.map((x) => x.notes_ok)), alignedLines),
+    },
+    weighted: {
+      qty: ratio(sum(c.map((x) => x.qty_ok)), goldLines),
+      unit: ratio(sum(c.map((x) => x.unit_ok)), goldLines),
+      unit_exact: ratio(sum(c.map((x) => x.unit_exact_ok)), goldLines),
+      normalize: ratio(sum(c.map((x) => x.normalize_ok)), goldLines),
+      notes: ratio(sum(c.map((x) => x.notes_ok)), goldLines),
+    },
+    gold_lines: goldLines,
+    got_lines: sum(c.map((x) => x.got_lines)),
+    aligned_lines: alignedLines,
+    step_ref_f1: mean(refApplicable.map((s) => s.step_ref.f1)),
+    timer_f1: mean(timerApplicable.map((s) => s.timer.f1)),
+    step_ref_coverage: ratio(refApplicable.length, scores.length),
+    timer_coverage: ratio(timerApplicable.length, scores.length),
     ledger,
     ledger_total: ledgerTotal(ledger),
     calibration,
@@ -594,7 +897,7 @@ function pct(x: number): string {
   return (x * 100).toFixed(1).padStart(5) + "%";
 }
 
-function printSummary(s: Summary): void {
+export function printSummary(s: Summary): void {
   console.log(`\n  ${s.provider}  (n=${s.n})`);
   console.log(`    json-valid      ${pct(s.json_valid_rate)}`);
   console.log(
@@ -602,19 +905,59 @@ function printSummary(s: Summary): void {
       pct(s.line_f1)
     }`,
   );
+  console.log(
+    `    lines           gold=${s.gold_lines} got=${s.got_lines} aligned=${s.aligned_lines}`,
+  );
+  console.log(
+    `    -- field accuracy: recipe-macro over the GOLD denominator (omissions count as wrong)`,
+  );
   console.log(`    qty accuracy    ${pct(s.qty_acc)}`);
-  console.log(`    unit accuracy   ${pct(s.unit_acc)}`);
+  console.log(
+    `    unit accuracy   ${pct(s.unit_acc)}   (exact-string ${
+      pct(s.unit_exact_acc)
+    })`,
+  );
   console.log(`    §7 normalize    ${pct(s.normalize_agree)}`);
+  console.log(`    notes agree     ${pct(s.notes_agree)}`);
+  console.log(
+    `    -- same four, line-weighted (micro) / aligned-pairs-only`,
+  );
+  console.log(
+    `    qty             ${pct(s.weighted.qty)} / ${pct(s.aligned_only.qty)}`,
+  );
+  console.log(
+    `    unit            ${pct(s.weighted.unit)} / ${pct(s.aligned_only.unit)}`,
+  );
+  console.log(
+    `    §7 normalize    ${pct(s.weighted.normalize)} / ${
+      pct(s.aligned_only.normalize)
+    }`,
+  );
+  console.log(
+    `    notes           ${pct(s.weighted.notes)} / ${
+      pct(s.aligned_only.notes)
+    }`,
+  );
   console.log(`    servings        ${pct(s.servings_acc)}`);
   console.log(
     `    time total/cook ${pct(s.total_time_acc)} / ${pct(s.cook_time_acc)}`,
   );
-  console.log(`    step-ref F1     ${pct(s.step_ref_f1)}`);
-  console.log(`    timer F1        ${pct(s.timer_f1)}`);
+  console.log(
+    `    step-ref F1     ${pct(s.step_ref_f1)} (over ${
+      pct(s.step_ref_coverage)
+    } of recipes — n/a cases excluded)`,
+  );
+  console.log(
+    `    timer F1        ${pct(s.timer_f1)} (over ${
+      pct(s.timer_coverage)
+    } of recipes — n/a cases excluded)`,
+  );
   console.log(
     `    calibration ECE ${
       s.calibration.ece.toFixed(3)
-    } (n=${s.calibration.n})`,
+    } (n=${s.calibration.n}: ` +
+      `${s.calibration.n_aligned} aligned, ${s.calibration.n_invented} invented, ` +
+      `${s.calibration.n_omitted} omitted)`,
   );
   const l = s.ledger;
   console.log(

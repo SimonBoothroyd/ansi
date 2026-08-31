@@ -37,25 +37,13 @@ import {
   alignLines,
   amountShape,
   type CaseScore,
+  EMPTY_RESULT,
   ledgerTotal,
+  notesAgree,
   qtyMatch,
   scoreExtraction,
   unitMatch,
 } from "./score_extraction.ts";
-
-const EMPTY_RESULT: ExtractionResult = {
-  title: "",
-  servings_base: null,
-  servings_raw: null,
-  yield_raw: null,
-  total_time_seconds: null,
-  cook_time_seconds: null,
-  truncated: false,
-  image_quality: "poor",
-  parse_warnings: [],
-  groups: [],
-  steps: [],
-};
 
 const PROVIDERS = ["claude", "gpt"] as const;
 type ProviderKey = typeof PROVIDERS[number];
@@ -83,6 +71,7 @@ interface ProvCell {
   ingredientExact: boolean;
   qtyOk: boolean | null;
   unitOk: boolean | null;
+  notesOk: boolean | null;
   danger: string[]; // per-line dangerous events on this pair
   correct: boolean; // present && qtyOk && unitOk (headline "line right")
 }
@@ -105,6 +94,7 @@ interface ProvScore {
   line_f1: number;
   qty_acc: number;
   unit_acc: number;
+  notes_acc: number;
   aligned: number;
   got_lines: number;
   title_match: boolean;
@@ -144,7 +134,9 @@ function servingsText(
   r: { servings_base: number | null; servings_raw: string | null },
 ): string {
   const parts: string[] = [];
-  parts.push(r.servings_base === null ? "base=null" : `base=${r.servings_base}`);
+  parts.push(
+    r.servings_base === null ? "base=null" : `base=${r.servings_base}`,
+  );
   if (r.servings_raw) parts.push(`"${r.servings_raw}"`);
   return parts.join(" ");
 }
@@ -202,8 +194,11 @@ function provScore(
     line_p: s.line.p,
     line_r: s.line.r,
     line_f1: s.line.f1,
+    // Gold-denominator readings (an omitted line counts as wrong) — the same
+    // headline score_extraction.ts reports.
     qty_acc: s.qty_acc,
     unit_acc: s.unit_acc,
+    notes_acc: s.notes_agree,
     aligned: s.aligned,
     got_lines: flattenLines(got).length,
     title_match: s.title_match,
@@ -246,6 +241,7 @@ async function capture(): Promise<RecipeReport[]> {
           `F1=${(score[p].line_f1 * 100).toFixed(0).padStart(3)}% ` +
           `qty=${(score[p].qty_acc * 100).toFixed(0).padStart(3)}% ` +
           `unit=${(score[p].unit_acc * 100).toFixed(0).padStart(3)}% ` +
+          `notes=${(score[p].notes_acc * 100).toFixed(0).padStart(3)}% ` +
           `danger=${score[p].ledger_total}${error ? "  ERROR" : ""}`,
       );
     }
@@ -272,6 +268,7 @@ async function capture(): Promise<RecipeReport[]> {
             ingredientExact: false,
             qtyOk: null,
             unitOk: null,
+            notesOk: null,
             danger: [],
             correct: false,
           };
@@ -286,6 +283,7 @@ async function capture(): Promise<RecipeReport[]> {
               normalize(g.ingredient_text) === normalize(t.ingredient_text),
             qtyOk: qOk,
             unitOk: uOk,
+            notesOk: notesAgree(g, t),
             danger: pairDanger(g, t),
             correct: qOk && uOk,
           };
@@ -330,11 +328,13 @@ function esc(s: string): string {
 }
 
 function pct(x: number): string {
-  return (x * 100).toFixed(1) + "%";
+  // A dump written before a metric existed has no value for it — render an
+  // honest dash rather than "NaN%".
+  return Number.isFinite(x) ? (x * 100).toFixed(1) + "%" : "—";
 }
 
-function tick(ok: boolean | null): string {
-  if (ok === null) return `<span class="na">—</span>`;
+function tick(ok: boolean | null | undefined): string {
+  if (ok === null || ok === undefined) return `<span class="na">—</span>`;
   return ok
     ? `<span class="yes">&#10003;</span>`
     : `<span class="no">&#10007;</span>`;
@@ -394,9 +394,11 @@ function recipeSection(r: RecipeReport): string {
         <td class="c-prov ${cCls}">${provGotCell(row.cells.claude)}</td>
         <td class="c-f">${tick(row.cells.claude.qtyOk)}</td>
         <td class="c-f">${tick(row.cells.claude.unitOk)}</td>
+        <td class="c-f">${tick(row.cells.claude.notesOk)}</td>
         <td class="c-prov ${gCls}">${provGotCell(row.cells.gpt)}</td>
         <td class="c-f">${tick(row.cells.gpt.qtyOk)}</td>
         <td class="c-f">${tick(row.cells.gpt.unitOk)}</td>
+        <td class="c-f">${tick(row.cells.gpt.notesOk)}</td>
       </tr>`;
     })
     .join("\n");
@@ -415,6 +417,7 @@ function recipeSection(r: RecipeReport): string {
       }</td>
         <td class="c-f"><span class="na">—</span></td>
         <td class="c-f"><span class="na">—</span></td>
+        <td class="c-f"><span class="na">—</span></td>
         <td class="c-prov prov-extra">${
         !isC
           ? `<span class="no bold" title="hallucinated line">EXTRA</span> ${
@@ -422,6 +425,7 @@ function recipeSection(r: RecipeReport): string {
           }`
           : `<span class="na">—</span>`
       }</td>
+        <td class="c-f"><span class="na">—</span></td>
         <td class="c-f"><span class="na">—</span></td>
         <td class="c-f"><span class="na">—</span></td>
       </tr>`;
@@ -440,6 +444,7 @@ function recipeSection(r: RecipeReport): string {
     return `<span class="chip ${p}">${name} F1 ${pct(s.line_f1)}</span>` +
       `<span class="chip ${p}">${name} qty ${pct(s.qty_acc)}</span>` +
       `<span class="chip ${p}">${name} unit ${pct(s.unit_acc)}</span>` +
+      `<span class="chip ${p}">${name} notes ${pct(s.notes_acc)}</span>` +
       `<span class="chip ${
         s.ledger_total === 0 ? "chip-good" : "chip-danger"
       }">${name} danger ${s.ledger_total}</span>`;
@@ -448,9 +453,9 @@ function recipeSection(r: RecipeReport): string {
   const errBanner = PROVIDERS
     .filter((p) => r.score[p].error)
     .map((p) =>
-      `<div class="errbanner">${PROVIDER_LABEL[p]} error (scored as total miss): ${
-        esc(r.score[p].error!)
-      }</div>`
+      `<div class="errbanner">${
+        PROVIDER_LABEL[p]
+      } error (scored as total miss): ${esc(r.score[p].error!)}</div>`
     )
     .join("");
 
@@ -459,7 +464,11 @@ function recipeSection(r: RecipeReport): string {
     ? `<span class="chip chip-diverge">${divergeCount} diverge</span>`
     : "";
 
-  const metaRow = (label: string, gold: string, sel: (p: ProviderKey) => string) =>
+  const metaRow = (
+    label: string,
+    gold: string,
+    sel: (p: ProviderKey) => string,
+  ) =>
     `<div><b>${label}</b> gold <code>${esc(gold)}</code> · C <code>${
       esc(sel("claude"))
     }</code> · G <code>${esc(sel("gpt"))}</code></div>`;
@@ -467,7 +476,9 @@ function recipeSection(r: RecipeReport): string {
   return `<details class="recipe">
     <summary>
       <span class="rname">${esc(r.id)}</span>
-      <span class="chips">${provChips("claude")}${provChips("gpt")}${divergeChip}</span>
+      <span class="chips">${provChips("claude")}${
+    provChips("gpt")
+  }${divergeChip}</span>
     </summary>
     ${errBanner}
     <div class="meta">
@@ -482,7 +493,8 @@ function recipeSection(r: RecipeReport): string {
     metaRow(
       "servings",
       r.servings_gold,
-      (p) => r.score[p].servings_got + (r.score[p].servings_match ? " ✓" : " ✗"),
+      (p) =>
+        r.score[p].servings_got + (r.score[p].servings_match ? " ✓" : " ✗"),
     )
   }
     </div>
@@ -491,12 +503,12 @@ function recipeSection(r: RecipeReport): string {
       <thead>
         <tr>
           <th class="c-gold" rowspan="2">gold (amount · ingredient · notes)</th>
-          <th class="prov-h claude" colspan="3">claude-haiku-4-5</th>
-          <th class="prov-h gpt" colspan="3">gpt-5.4-mini</th>
+          <th class="prov-h claude" colspan="4">claude-haiku-4-5</th>
+          <th class="prov-h gpt" colspan="4">gpt-5.4-mini</th>
         </tr>
         <tr>
-          <th class="c-prov">got</th><th class="c-f">qty</th><th class="c-f">unit</th>
-          <th class="c-prov">got</th><th class="c-f">qty</th><th class="c-f">unit</th>
+          <th class="c-prov">got</th><th class="c-f">qty</th><th class="c-f">unit</th><th class="c-f">note</th>
+          <th class="c-prov">got</th><th class="c-f">qty</th><th class="c-f">unit</th><th class="c-f">note</th>
         </tr>
       </thead>
       <tbody>
@@ -516,6 +528,7 @@ function renderHtml(reports: RecipeReport[]): string {
     line_f1: mean(reports.map((r) => r.score[p].line_f1)),
     qty: mean(reports.map((r) => r.score[p].qty_acc)),
     unit: mean(reports.map((r) => r.score[p].unit_acc)),
+    notes: mean(reports.map((r) => r.score[p].notes_acc)),
     title: mean(reports.map((r) => (r.score[p].title_match ? 1 : 0))),
     servings: mean(reports.map((r) => (r.score[p].servings_match ? 1 : 0))),
     danger: reports.reduce((a, r) => a + r.score[p].ledger_total, 0),
@@ -524,7 +537,12 @@ function renderHtml(reports: RecipeReport[]): string {
   });
   const C = agg("claude"), G = agg("gpt");
 
-  const cmpRow = (label: string, c: string, g: string, better?: "c" | "g" | null) =>
+  const cmpRow = (
+    label: string,
+    c: string,
+    g: string,
+    better?: "c" | "g" | null,
+  ) =>
     `<tr>
       <td class="cmp-k">${label}</td>
       <td class="cmp-v ${better === "c" ? "win" : ""}">${c}</td>
@@ -565,14 +583,63 @@ function renderHtml(reports: RecipeReport[]): string {
       <table class="cmp">
         <thead><tr><th></th><th class="claude-t">claude-haiku-4-5</th><th class="gpt-t">gpt-5.4-mini</th></tr></thead>
         <tbody>
-          ${cmpRow("line F1", pct(C.line_f1), pct(G.line_f1), win(C.line_f1, G.line_f1))}
-          ${cmpRow("qty acc", pct(C.qty), pct(G.qty), win(C.qty, G.qty))}
-          ${cmpRow("unit acc", pct(C.unit), pct(G.unit), win(C.unit, G.unit))}
-          ${cmpRow("title acc", pct(C.title), pct(G.title), win(C.title, G.title))}
-          ${cmpRow("servings acc", pct(C.servings), pct(G.servings), win(C.servings, G.servings))}
-          ${cmpRow("dangerous total", String(C.danger), String(G.danger), win(C.danger, G.danger, false))}
-          ${cmpRow("omitted lines", String(C.omitted), String(G.omitted), win(C.omitted, G.omitted, false))}
-          ${cmpRow("hallucinated lines", String(C.invented), String(G.invented), win(C.invented, G.invented, false))}
+          ${
+    cmpRow("line F1", pct(C.line_f1), pct(G.line_f1), win(C.line_f1, G.line_f1))
+  }
+          ${
+    cmpRow("qty acc (gold denom)", pct(C.qty), pct(G.qty), win(C.qty, G.qty))
+  }
+          ${
+    cmpRow(
+      "unit acc (gold denom)",
+      pct(C.unit),
+      pct(G.unit),
+      win(C.unit, G.unit),
+    )
+  }
+          ${
+    cmpRow(
+      "notes agree (gold denom)",
+      pct(C.notes),
+      pct(G.notes),
+      win(C.notes, G.notes),
+    )
+  }
+          ${
+    cmpRow("title acc", pct(C.title), pct(G.title), win(C.title, G.title))
+  }
+          ${
+    cmpRow(
+      "servings acc",
+      pct(C.servings),
+      pct(G.servings),
+      win(C.servings, G.servings),
+    )
+  }
+          ${
+    cmpRow(
+      "dangerous total",
+      String(C.danger),
+      String(G.danger),
+      win(C.danger, G.danger, false),
+    )
+  }
+          ${
+    cmpRow(
+      "omitted lines",
+      String(C.omitted),
+      String(G.omitted),
+      win(C.omitted, G.omitted, false),
+    )
+  }
+          ${
+    cmpRow(
+      "hallucinated lines",
+      String(C.invented),
+      String(G.invented),
+      win(C.invented, G.invented, false),
+    )
+  }
         </tbody>
       </table>
       <div class="diverge">
@@ -711,7 +778,7 @@ function renderHtml(reports: RecipeReport[]): string {
 <body>
 <div class="wrap">
   <h1>Extraction D2 — Claude vs GPT, right vs wrong</h1>
-  <p class="lede">Sanitize stage on reconstructed gold page-text (TEXT input, no images), 11 gold recipes. Each provider's line is aligned to the gold and scored per field. <span class="claude-t">Claude</span> and <span class="gpt-t">GPT</span> shown side by side; missed / hallucinated / dangerous rows highlighted.</p>
+  <p class="lede">Sanitize stage on reconstructed gold page-text (TEXT input, no images), 11 gold recipes. Each provider's line is aligned to the gold and scored per field. Headline accuracies use the GOLD denominator — a line the provider omitted counts as a line it got wrong. <span class="claude-t">Claude</span> and <span class="gpt-t">GPT</span> shown side by side; missed / hallucinated / dangerous rows highlighted.</p>
   <div class="legend">
     <span><span class="sw" style="background:var(--ok-bg)"></span> field-correct</span>
     <span><span class="sw" style="background:var(--warn-bg)"></span> wrong field / dangerous</span>
@@ -741,7 +808,9 @@ async function main(): Promise<void> {
       await Deno.readTextFile(jsonUrl),
     ) as RecipeReport[];
     await Deno.writeTextFile(htmlUrl, renderHtml(reports));
-    console.log(`re-rendered ${htmlUrl.pathname} from saved JSON (no API calls)`);
+    console.log(
+      `re-rendered ${htmlUrl.pathname} from saved JSON (no API calls)`,
+    );
     return;
   }
 
@@ -758,7 +827,10 @@ async function main(): Promise<void> {
         `lineF1=${pct(mean(reports.map((r) => r.score[p].line_f1)))} ` +
         `qty=${pct(mean(reports.map((r) => r.score[p].qty_acc)))} ` +
         `unit=${pct(mean(reports.map((r) => r.score[p].unit_acc)))} ` +
-        `title=${pct(mean(reports.map((r) => (r.score[p].title_match ? 1 : 0))))} ` +
+        `notes=${pct(mean(reports.map((r) => r.score[p].notes_acc)))} ` +
+        `title=${
+          pct(mean(reports.map((r) => (r.score[p].title_match ? 1 : 0))))
+        } ` +
         `servings=${
           pct(mean(reports.map((r) => (r.score[p].servings_match ? 1 : 0))))
         } ` +
