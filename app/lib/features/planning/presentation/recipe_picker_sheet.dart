@@ -19,12 +19,12 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
 import '../../../shared/dashed_border_box.dart';
+import '../../../shared/incomplete_macros.dart';
 import '../../../shared/picker_shell.dart';
 import '../../books/domain/book.dart';
 import '../../books/presentation/book_view_models.dart';
 import '../../ingredients/domain/search_query.dart';
 import '../../recipes/domain/recipe.dart';
-import '../../recipes/domain/recipe_macros.dart';
 import '../../recipes/presentation/format.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/planning.dart';
@@ -618,43 +618,6 @@ class _MacroLine extends StatelessWidget {
             style: miseMono(size: 10, color: MiseColors.muted),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Why a summary is incomplete, for the row note: `no ingredients yet`,
-/// `1 stub line`, `2 stub lines · 1 unconvertible` — never an empty string
-/// (a reasonless badge would leave a dangling separator).
-String incompleteNote(RecipeMacroSummary summary) {
-  if (summary.noLines) return 'no ingredients yet';
-  final stubs = summary.stubLines;
-  final parts = [
-    if (stubs == 1) '1 stub line',
-    if (stubs > 1) '$stubs stub lines',
-    if (summary.unconvertibleLines > 0)
-      '${summary.unconvertibleLines} unconvertible',
-  ];
-  // Every line joined and there are lines — the only remaining cause is a
-  // non-positive serving count (the DB check makes this near-unreachable).
-  return parts.isEmpty ? 'servings not set' : parts.join(' · ');
-}
-
-/// The amber `incomplete` badge (design board `.badge-inc`).
-class IncompleteBadge extends StatelessWidget {
-  const IncompleteBadge({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFBF3E3),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        'incomplete',
-        style: miseMono(size: 9, color: const Color(0xFF7A5A16)),
       ),
     );
   }

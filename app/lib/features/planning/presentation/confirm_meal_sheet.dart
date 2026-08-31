@@ -19,13 +19,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
+import '../../../shared/incomplete_macros.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
-import 'recipe_picker_sheet.dart' show IncompleteBadge, incompleteNote;
 import 'week_format.dart';
 import 'week_view_models.dart';
 import 'week_widgets.dart';
