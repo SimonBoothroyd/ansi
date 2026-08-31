@@ -28,18 +28,29 @@ datasets/extraction/gold/*.json     the blessed structured gold (the oracle)
 datasets/extraction/gold/_SCHEMA.md the gold contract + every owner ruling
 datasets/extraction/gold/_INDEX.md  per-file confidence, rulings, what is open
 datasets/extraction/images/         the 12 source photos (GITIGNORED)
-reports/                            capture_d2_report.ts output (GITIGNORED)
+reports/                            capture_d2_report.ts output (GITIGNORED — derived)
+runs/                               persisted PAID runs (COMMITTED — see runs/README.md)
 runner/run.sh                       runs every keyless scorer (make evals)
 runner/score_normalization.ts       scores the normalization dimension
 runner/gen_matching_cases.ts        (re)builds the matching set from the vocab
 runner/score_matching.ts            scores the band cascade over that set
 runner/fixtures.ts                  gold loader, unit hints, gold → source text
-runner/score_extraction.ts          extraction scorers + ledger + calibration
+runner/pricing.ts                   dated $/Mtok table, one row per pinned model
+runner/run_store.ts                 persisted-run format + saved-response replay
+runner/score_extraction.ts          extraction scorers + ledger + calibration + cost
 runner/score_extraction.test.ts     the scorers' own self-tests (run in run.sh)
-runner/run_extraction_live.ts       live provider compare (needs keys)
+runner/cost_rescore.test.ts         pricing + persist→rescore self-tests (run in run.sh)
+runner/run_extraction_live.ts       live provider compare (needs keys); persists runs
 runner/capture_d2_report.ts         per-line Claude-vs-GPT HTML report (needs keys)
-runner/EXTRACTION.md                the extraction rubric, stages, paths, ledger
+runner/EXTRACTION.md                the extraction rubric, stages, paths, ledger, cost
 ```
+
+**`reports/` is gitignored; `runs/` is not.** A report is derived — regenerable
+from the tracked datasets for free, and a committed one rots the moment a prompt
+or scorer changes. A run directory is the opposite: it holds the providers'
+verbatim responses, which is the thing the run *paid for*. It is committed so a
+scorer or gold fix can be re-scored (`score_extraction.ts --rescore`) instead of
+re-bought. Do not add a broad `evals/*` ignore rule that would swallow it.
 
 **Score honestly.** The scorers grade every number this harness reports, so they
 are themselves tested in `run.sh`. Two standing rules, both learned the hard way

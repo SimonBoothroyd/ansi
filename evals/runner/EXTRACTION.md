@@ -13,15 +13,19 @@ Contract: `docs/exec-plans/completed/0018-import-benchmark.md` (charter) +
 
 | File                                                         | Role                                                                                                                |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `supabase/functions/_shared/adapters/{claude,gemini,gpt}.ts` | The three provider adapters behind the frozen `ExtractAdapter` (native structured output; vocab-blind, unit-aware). |
-| `supabase/functions/_shared/adapters/mock.ts`                | Keyless reference adapter — makes the harness self-test with no key.                                                |
+| `supabase/functions/_shared/adapters/{claude,gemini,gpt}.ts` | The three provider adapters behind the frozen `ExtractAdapter` (native structured output; vocab-blind, unit-aware). Each also exports a pure `decode<Provider>Sanitize` — the decode path a rescore replays. |
+| `supabase/functions/_shared/adapters/usage.ts`               | Per-provider token-usage parsing, normalized onto one `TokenUsage` contract.                                        |
+| `supabase/functions/_shared/adapters/mock.ts`                | Keyless reference adapter — makes the harness self-test with no key. Emits deterministic fake usage.                |
 | `supabase/functions/_shared/adapters/schema.ts`              | The one structured-output JSON Schema + coercion + structural never-invent validation.                              |
 | `supabase/functions/_shared/prompts/extraction.ts`           | The transcription prompt and the ① sanitize prompt.                                                                 |
 | `runner/fixtures.ts`                                         | Gold loader, the unit-hint set, and the gold → source-text renderer (the D2 input, `notes` included).               |
-| `runner/score_extraction.ts`                                 | Programmatic scorers + ledger + calibration + LLM-judge seam; keyless mock CLI.                                     |
-| `runner/run_extraction_live.ts`                              | The live provider compare (needs keys). `blobFromUrl` → `_shared/jsonld.ts` for the web paths.                      |
+| `runner/pricing.ts`                                          | The dated $/Mtok price list, one row per model, each with its source URL + retrieval date. Checked in.              |
+| `runner/run_store.ts`                                        | Persisted-run format: write/read `evals/runs/<date>-<label>/`, and replay a saved response through its decoder.     |
+| `runner/score_extraction.ts`                                 | Programmatic scorers + ledger + calibration + cost + LLM-judge seam; keyless mock CLI; `--rescore`.                 |
+| `runner/run_extraction_live.ts`                              | The live provider compare (needs keys). Persists raw responses. `blobFromUrl` → `_shared/jsonld.ts` for web paths.  |
 | `runner/capture_d2_report.ts`                                | Per-line Claude-vs-GPT D2 capture → a self-contained HTML report (needs keys; `--render-only` re-renders for free). |
 | `runner/score_extraction.test.ts`                            | Keyless self-test (oracle → perfect; degraded → ledger fires; every honesty rule above pinned). Part of `run.sh`.   |
+| `runner/cost_rescore.test.ts`                                | Keyless self-test for pricing + the persist → rescore round-trip. Part of `run.sh`.                                 |
 
 ## Stages and paths
 
@@ -89,6 +93,7 @@ equally, the micro does not.
 | **timer F1**                     | Multiset match of `timer` tokens (low/high seconds). **n/a recipes excluded** (see below).                                                                       |
 | **calibration ECE**              | Expected calibration error of per-line `confidence` vs actual (qty+unit) correctness, 10 bins. A calibration tool, not a gate.                                    |
 | **prose fidelity** _(LLM-judge)_ | Keyed only. Judges whether step **text** spans faithfully preserve the source prose — the one dimension not mechanically checkable. Keyless ⇒ `n/a`.             |
+| **$/import · $/100 imports**     | Total token cost over the scored recipes, divided by the number of imports. Priced from `runner/pricing.ts` (see "Cost" below). Unpriced model ⇒ `n/a`, never `$0`. |
 
 ### The comparison rules
 
@@ -163,14 +168,87 @@ deno run  --allow-read --allow-env runner/score_extraction.ts
 Live compare (needs keys; run on demand once Simon provides them):
 
 ```
-export ANTHROPIC_API_KEY=…   # Claude Haiku
-export OPENAI_API_KEY=…       # GPT-5 Mini
-export GEMINI_API_KEY=…       # Gemini Flash
-deno run --allow-read --allow-env --allow-net runner/run_extraction_live.ts
-# optional: --providers=claude-haiku,gpt-5-mini  --stage=D2
+source ../.env.local          # ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY
+deno run --allow-read --allow-write --allow-env --allow-net --allow-run=git \
+  runner/run_extraction_live.ts --label=first-compare
+# optional: --providers=claude-haiku,gpt-5-mini  --stage=D2  --no-persist
 ```
 
 A provider whose key is unset is skipped with a note, never a crash.
+`--allow-write` + `--allow-run=git` are for the run artifact below; without
+`--allow-run` the run still saves, with `git_rev: "unknown"`.
+
+## Cost, and never paying twice
+
+The benchmark reports **dollars beside accuracy**, and a paid run is saved so it
+can be re-scored for free. Three pieces:
+
+**1. Usage capture.** `ExtractAdapter` carries an optional `onCall` observer
+(`_shared/types.ts`). The edge function never sets it and is unaffected; the
+runner sets it and receives, per call, the provider's **verbatim response**, its
+token usage, and the latency. `_shared/adapters/usage.ts` normalizes the three
+vendors' disagreeing usage blocks onto one contract:
+
+- `input_tokens` is **uncached, non-cache-write** billable input. Anthropic
+  already excludes cache tokens from `input_tokens`; OpenAI and Gemini fold them
+  in, so the parsers subtract.
+- `output_tokens` **includes** reasoning/thinking, which every vendor bills at
+  the output rate — Gemini reports `thoughtsTokenCount` outside
+  `candidatesTokenCount`, so it is added in; OpenAI's reasoning is already
+  inside `completion_tokens`, so it is not.
+- A field the provider did not report stays `null`, never `0`, and a cost
+  computed over one is flagged as a **lower bound**.
+
+**2. Pricing.** `runner/pricing.ts` is a checked-in, dated table: $/Mtok input /
+output / cache-read (+ cache-write where billed), one row per exact model id,
+each row carrying the vendor URL it came from and the date it was read. It is
+checked in rather than fetched because a run is a dated artifact — fetching at
+score time would silently re-price an old run at today's rates. A model with no
+row costs `n/a`, never `$0.00`.
+
+**3. Persisted runs → `--rescore`.** A live run writes
+
+```
+evals/runs/<yyyy-mm-dd>-<label>/manifest.json          label, time, git rev, models + price rows
+evals/runs/<yyyy-mm-dd>-<label>/<provider>/<case>.json raw response + usage + latency + exact input
+```
+
+Those files are **committed** — `evals/reports/` is gitignored because it is
+derived, and a run directory is the opposite: it is what the run *bought*.
+Failed cases are saved too (a run keeping only its successes cannot be re-scored
+honestly — the failures are the json-valid rate). Then:
+
+```
+deno run --allow-read runner/score_extraction.ts --rescore runs/<yyyy-mm-dd>-<label>
+```
+
+replays every saved response through the **same** adapter decoder the live call
+used and scores it with today's scorer — zero API calls, no key. So a scorer
+fix, a gold correction or a brand-new metric costs nothing after the first run.
+
+Two guards keep a rescore honest: each saved case stores the sha256 of the exact
+text the provider saw, so a gold edit that changed the rendered input is
+reported as **INPUT DRIFT** rather than silently graded as if the model had seen
+the new text; and a case whose gold no longer exists is reported as an
+**orphan** rather than scored as a total miss (which would look identical to a
+model that failed it).
+
+The persist → rescore round-trip is self-tested keyless in
+`runner/cost_rescore.test.ts`: a fake run written from the MockAdapter must
+rescore to byte-identical headline numbers.
+
+### Adding a model
+
+1. Pin its **exact** id in the adapter constant (`GPT_MINI_MODEL`,
+   `GEMINI_FLASH_MODEL`, `CLAUDE_HAIKU_MODEL`) — never an alias like `-latest`
+   or `-preview`, which re-points under you and makes two dated runs
+   incomparable. Confirm the id against the vendor's own model-list endpoint
+   (`GET /v1/models`, `GET /v1beta/models`), not from memory.
+2. Add a `runner/pricing.ts` row keyed by that exact id, with `source` and
+   `retrieved`.
+
+That is the whole change — nothing else keys off the model string, and
+`cost_rescore.test.ts` fails if a pinned model has no price row.
 
 Per-line Claude-vs-GPT capture → a self-contained HTML report (needs the two
 keys; `source ../.env.local` first):
@@ -194,16 +272,55 @@ run again.
 ## Pinned model IDs
 
 Ids come from the adapters' exported constants — those are the source of truth;
-this table mirrors them.
+this table mirrors them. All three were confirmed on **2026-08-31** against each
+vendor's own model-list endpoint (a free call), not from memory.
 
-| Provider     | Model id             | Constant              | Vision | Native structured output                               | Source                                         |
-| ------------ | -------------------- | --------------------- | ------ | ------------------------------------------------------ | ---------------------------------------------- |
-| Claude Haiku | `claude-haiku-4-5`   | `CLAUDE_HAIKU_MODEL`  | yes    | `output_config.format` `json_schema` (Messages API)    | `claude-api` reference                         |
-| Gemini Flash | `gemini-flash-latest`| `GEMINI_FLASH_MODEL`  | yes    | `generationConfig.responseSchema` + `responseMimeType` | provider knowledge — re-confirm before compare |
-| GPT-5 Mini   | `gpt-5.4-mini`       | `GPT_MINI_MODEL`      | yes    | `response_format: json_schema` (Chat Completions)      | provider knowledge — re-confirm before compare |
+| Provider     | Model id           | Constant             | Vision | Native structured output                               | Confirmed against                                       |
+| ------------ | ------------------ | -------------------- | ------ | ------------------------------------------------------ | ------------------------------------------------------- |
+| Claude Haiku | `claude-haiku-4-5` | `CLAUDE_HAIKU_MODEL` | yes    | `output_config.format` `json_schema` (Messages API)    | `GET api.anthropic.com/v1/models` + `claude-api` ref     |
+| Gemini Flash | `gemini-3.5-flash` | `GEMINI_FLASH_MODEL` | yes    | `generationConfig.responseSchema` + `responseMimeType` | `GET generativelanguage.googleapis.com/v1beta/models`    |
+| GPT (budget) | `gpt-5.6-luna`     | `GPT_MINI_MODEL`     | yes    | `response_format: json_schema` (Chat Completions)      | `GET api.openai.com/v1/models` + developers.openai.com   |
+
+Notes on the two that moved:
+
+- **`gemini-flash-latest` → `gemini-3.5-flash`.** The old pin was an **alias**.
+  Aliases re-point silently, which makes two dated benchmark runs
+  incomparable — the whole reason the 0018 convention says exact ids. The
+  models list reports `gemini-3.5-flash` at version `3.5-flash-05-2026`.
+- **`gpt-5.4-mini` → `gpt-5.6-luna`.** The GPT-5.6 family renamed its tiers:
+  `sol` (flagship, $4/$20), `terra` (mid, $2/$12), `luna` (budget, $0.20/$1.20).
+  `luna` is the successor to the `-mini` tier and the one that matches this
+  project's flash-tier framing. There is no dated `gpt-5.6-luna-YYYY-MM-DD`
+  snapshot in the models list, so that string *is* the exact pin.
+
+Claude stays on `claude-haiku-4-5`: the models list shows no Haiku newer than
+`claude-haiku-4-5-20251001` (which is what this alias resolves to).
+
+Alternatives the owner may prefer, all already priced in `runner/pricing.ts` so
+a swap is a one-line change: `gemini-3.7-flash` (newer than the pinned 3.5 and
+currently *cheaper* at a promotional $0.75/$3.75 through 2026-12-31),
+`gemini-3.6-flash` (same price), `gemini-3.5-flash-lite` ($0.30/$2.50), and
+`gpt-5.4-mini` ($0.75/$4.50, the previous pin).
 
 Override any id via the adapter's `model` option or by editing the exported
-constant. Only the Claude id/behaviour was pinned against the `claude-api`
-reference (Anthropic-only); the Gemini/GPT ids come from general provider
-knowledge and should be re-confirmed against each vendor's docs at the compare
-step.
+constant.
+
+## Prices (per 1M tokens, read 2026-08-31)
+
+Mirrors `runner/pricing.ts`, which is the source of truth.
+
+| Model                   | Input        | Output       | Cache read | Cache write | Source                                            |
+| ----------------------- | ------------ | ------------ | ---------- | ----------- | ------------------------------------------------- |
+| `claude-haiku-4-5`      | $1.00        | $5.00        | $0.10      | $1.25 (5m)  | platform.claude.com/docs/en/about-claude/pricing  |
+| `gpt-5.6-luna`          | $0.20        | $1.20        | $0.02      | n/a         | developers.openai.com/api/docs/pricing            |
+| `gemini-3.5-flash`      | $1.50        | $9.00        | $0.15      | n/a         | ai.google.dev/gemini-api/docs/pricing             |
+| `gemini-3.7-flash` \*   | $0.75        | $3.75        | $0.075     | n/a         | ai.google.dev/gemini-api/docs/pricing             |
+| `gemini-3.5-flash-lite` | $0.30        | $2.50        | $0.03      | n/a         | ai.google.dev/gemini-api/docs/pricing             |
+| `gpt-5.4-mini`          | $0.75        | $4.50        | $0.075     | n/a         | developers.openai.com/api/docs/pricing            |
+
+\* promotional through 2026-12-31, then $1.50 / $7.50.
+
+On these rates the pinned trio is **not** the cheap trio it looks like: at equal
+token counts Gemini 3.5 Flash is ~7.5× GPT-5.6 Luna on input and ~7.5× on
+output, and Claude Haiku ~5×/~4×. That spread is exactly what the `$/import`
+column exists to surface next to the accuracy numbers.
