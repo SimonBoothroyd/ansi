@@ -14,20 +14,28 @@
 import type {
   ExtractAdapter,
   ExtractionResult,
+  ProviderCall,
   RawBlob,
   RawLineItem,
   Step,
   TimeField,
+  TokenUsage,
 } from "../../supabase/functions/_shared/types.ts";
 import {
   ExtractionParseError,
   flattenLines,
 } from "../../supabase/functions/_shared/adapters/schema.ts";
 import { normalize } from "../../supabase/functions/_shared/normalize.ts";
+import { emptyUsage } from "../../supabase/functions/_shared/adapters/usage.ts";
 import {
   fixedMock,
+  MOCK_MODEL,
   MockAdapter,
 } from "../../supabase/functions/_shared/adapters/mock.ts";
+import {
+  PROVIDER_MODELS,
+  PROVIDER_NAMES,
+} from "../../supabase/functions/_shared/adapters/mod.ts";
 import {
   type GoldCase,
   type GoldRecipe,
@@ -35,6 +43,17 @@ import {
   loadGold,
   UNIT_HINTS,
 } from "./fixtures.ts";
+import {
+  addCost,
+  addUsage,
+  type Cost,
+  costOf,
+  type PriceRow,
+  priceRow,
+  usd,
+  zeroCost,
+} from "./pricing.ts";
+import { decodeSaved, loadRun, type SavedCase } from "./run_store.ts";
 
 // --- number / field equality -------------------------------------------------
 
@@ -773,6 +792,74 @@ export function summarize(provider: string, scores: CaseScore[]): Summary {
   };
 }
 
+// --- cost --------------------------------------------------------------------
+
+/**
+ * What a run cost, beside what it scored. `$/import` is the number the owner
+ * actually decides on — the benchmark's whole point is that accuracy and price
+ * are read together, so this travels inside `BenchmarkReport`, not in a
+ * separate tool that would drift from it.
+ */
+export interface CostSummary {
+  model: string;
+  /** The dated price row used, or null when the model has no row (⇒ n/a). */
+  price: PriceRow | null;
+  /** Calls that reported usage; the denominator of `usd_per_call`. */
+  calls: number;
+  /** Imports scored — the denominator of `$/import`. */
+  imports: number;
+  usage: TokenUsage;
+  cost: Cost;
+  usd_per_import: number;
+  usd_per_100_imports: number;
+  /**
+   * True when a priced field was missing from at least one response, so the
+   * totals are a LOWER BOUND. Printed, never silently rounded away.
+   */
+  partial: boolean;
+}
+
+/** One case's captured provider call (or the absence of one). */
+export interface CaseCall {
+  id: string;
+  /** The exact text handed to `sanitize` — persisted so a rescore can verify it. */
+  input_text: string;
+  call: ProviderCall | null;
+  error: string | null;
+}
+
+export function summarizeCost(
+  model: string,
+  calls: CaseCall[],
+  imports: number,
+): CostSummary {
+  const row = priceRow(model);
+  let usage = emptyUsage();
+  let cost = zeroCost();
+  let n = 0;
+  for (const c of calls) {
+    if (!c.call) continue;
+    n++;
+    usage = addUsage(usage, c.call.usage);
+    const one = costOf(model, c.call.usage);
+    if (one) cost = addCost(cost, one);
+    else cost = { ...cost, partial: true };
+  }
+  const den = imports || 1;
+  return {
+    model,
+    price: row,
+    calls: n,
+    imports,
+    usage,
+    cost,
+    usd_per_import: cost.usd_total / den,
+    usd_per_100_imports: (cost.usd_total / den) * 100,
+    // An unpriced model is partial by definition: we know the tokens, not the bill.
+    partial: cost.partial || row === null,
+  };
+}
+
 // --- benchmark driver --------------------------------------------------------
 
 export type Stage = "D1" | "D2" | "D3";
@@ -796,6 +883,13 @@ export interface BenchmarkReport {
   scores: CaseScore[];
   summary: Summary;
   prose: { id: string; verdict: ProseVerdict }[];
+  /**
+   * The captured provider calls, one per case — the raw material a live run
+   * persists to `evals/runs/`. Empty when the adapter reports no usage.
+   */
+  calls: CaseCall[];
+  /** Cost beside accuracy. `null` when nothing was captured (no observer seam). */
+  cost: CostSummary | null;
 }
 
 export async function runBenchmark(
@@ -805,26 +899,55 @@ export async function runBenchmark(
   const judge = opts.judge ?? NOOP_PROSE_JUDGE;
   const scores: CaseScore[] = [];
   const prose: { id: string; verdict: ProseVerdict }[] = [];
-  for (const c of opts.cases) {
-    let got: ExtractionResult = EMPTY_RESULT;
-    let jsonValid = true;
-    try {
-      got = await opts.adapter.sanitize(blobFor(c.gold), UNIT_HINTS);
-    } catch (e) {
-      jsonValid = !(e instanceof ExtractionParseError);
-      // Any adapter error → an empty result scored as a total miss for this case.
-      got = EMPTY_RESULT;
-      if (!(e instanceof ExtractionParseError)) {
-        // Non-parse errors (e.g. missing key) are logged but still scored 0 so a
-        // partial provider outage shows as a failure, not a crash.
-        console.error(`  ! ${opts.provider}/${c.id}: ${(e as Error).message}`);
+  const calls: CaseCall[] = [];
+
+  // Attach the usage/raw observer for the length of this run only, and restore
+  // whatever was there — the adapter may be shared across several benchmarks.
+  const previousSink = opts.adapter.onCall;
+  let current: ProviderCall | null = null;
+  opts.adapter.onCall = (call) => {
+    current = call;
+    previousSink?.(call);
+  };
+
+  try {
+    for (const c of opts.cases) {
+      let got: ExtractionResult = EMPTY_RESULT;
+      let jsonValid = true;
+      let error: string | null = null;
+      current = null;
+      const blob = blobFor(c.gold);
+      try {
+        got = await opts.adapter.sanitize(blob, UNIT_HINTS);
+      } catch (e) {
+        jsonValid = !(e instanceof ExtractionParseError);
+        // Any adapter error → an empty result scored as a total miss for this case.
+        got = EMPTY_RESULT;
+        error = e instanceof Error ? e.message : String(e);
+        if (!(e instanceof ExtractionParseError)) {
+          // Non-parse errors (e.g. missing key) are logged but still scored 0 so a
+          // partial provider outage shows as a failure, not a crash.
+          console.error(`  ! ${opts.provider}/${c.id}: ${error}`);
+        }
+      }
+      // A failed call is still recorded. A run that saved only its successes
+      // could not be re-scored honestly — the failures ARE the json-valid rate.
+      calls.push({
+        id: c.id,
+        input_text: blob.text ?? "",
+        call: current,
+        error,
+      });
+      scores.push(scoreExtraction(c.id, c.gold, got, jsonValid));
+      if (judge !== NOOP_PROSE_JUDGE) {
+        prose.push({ id: c.id, verdict: await judge.judge(c.gold, got) });
       }
     }
-    scores.push(scoreExtraction(c.id, c.gold, got, jsonValid));
-    if (judge !== NOOP_PROSE_JUDGE) {
-      prose.push({ id: c.id, verdict: await judge.judge(c.gold, got) });
-    }
+  } finally {
+    opts.adapter.onCall = previousSink;
   }
+
+  const model = calls.find((c) => c.call)?.call?.model ?? opts.adapter.model;
   return {
     provider: opts.provider,
     stage: opts.stage,
@@ -832,6 +955,10 @@ export async function runBenchmark(
     scores,
     summary: summarize(opts.provider, scores),
     prose,
+    calls,
+    cost: model === undefined
+      ? null
+      : summarizeCost(model, calls, opts.cases.length),
   };
 }
 
@@ -972,7 +1099,192 @@ export function printSummary(s: Summary): void {
   );
 }
 
+/** Token counts + dollars, printed directly beneath the accuracy block. */
+export function printCost(c: CostSummary | null): void {
+  if (!c) {
+    console.log(
+      `    COST            n/a (adapter reported no usage)`,
+    );
+    return;
+  }
+  const u = c.usage;
+  const tok = (x: number | null) =>
+    x === null ? "—" : x.toLocaleString("en-US");
+  console.log(
+    `    tokens          in=${tok(u.input_tokens)} out=${
+      tok(u.output_tokens)
+    } cache_read=${tok(u.cache_read_tokens)} cache_write=${
+      tok(u.cache_write_tokens)
+    }`,
+  );
+  if (!c.price) {
+    console.log(
+      `    COST            n/a — no pricing row for "${c.model}" ` +
+        `(add one to runner/pricing.ts)`,
+    );
+    return;
+  }
+  console.log(
+    `    COST            ${usd(c.cost.usd_total)} total over ${c.imports} ` +
+      `imports (${c.calls} calls) · model=${c.model} @ ${c.price.retrieved}`,
+  );
+  console.log(
+    `    $/import        ${usd(c.usd_per_import)}   ·   $/100 imports ${
+      usd(c.usd_per_100_imports)
+    }${c.partial ? "   [LOWER BOUND — a priced field was unreported]" : ""}`,
+  );
+}
+
+// --- rescore: score a persisted run, zero API calls --------------------------
+
+export interface RescoreReport {
+  provider: string;
+  model: string;
+  summary: Summary;
+  cost: CostSummary;
+  scores: CaseScore[];
+  /** Cases whose saved input no longer matches today's gold rendering. */
+  input_drift: string[];
+  /** Cases in the run with no matching gold file (renamed or removed). */
+  orphans: string[];
+}
+
+/**
+ * Scores a saved run with TODAY's scorer and gold, from the persisted raw
+ * responses. No key, no network, no cost — this is what makes a scorer or gold
+ * fix free after a paid run.
+ *
+ * `input_drift` is the honesty check: a saved case carries the sha256 of the
+ * exact text the provider saw, so a gold edit that changed the rendered input
+ * is reported rather than silently re-scored as if the model had seen the new
+ * text. It is a WARNING, not a refusal — most gold fixes touch the labels, not
+ * the rendering, and those rescore perfectly.
+ */
+export async function rescoreProvider(
+  provider: string,
+  saved: SavedCase[],
+  goldById: Map<string, GoldRecipe>,
+  blobFor: (gold: GoldRecipe) => RawBlob,
+): Promise<RescoreReport> {
+  const { sha256Hex } = await import("./run_store.ts");
+  const scores: CaseScore[] = [];
+  const calls: CaseCall[] = [];
+  const inputDrift: string[] = [];
+  const orphans: string[] = [];
+  for (const rec of saved) {
+    const gold = goldById.get(rec.case_id);
+    if (!gold) {
+      orphans.push(rec.case_id);
+      continue;
+    }
+    const nowHash = await sha256Hex(blobFor(gold).text ?? "");
+    if (nowHash !== rec.input.sha256) inputDrift.push(rec.case_id);
+
+    let got: ExtractionResult = EMPTY_RESULT;
+    let jsonValid = true;
+    try {
+      got = decodeSaved(rec);
+    } catch (e) {
+      // Reproduce the live run's verdict exactly: a parse failure is an invalid
+      // JSON case, anything else is a scored-zero adapter failure.
+      jsonValid = !(e instanceof ExtractionParseError);
+      got = EMPTY_RESULT;
+    }
+    scores.push(scoreExtraction(rec.case_id, gold, got, jsonValid));
+    calls.push({
+      id: rec.case_id,
+      input_text: rec.input.text,
+      call: {
+        provider: rec.provider,
+        model: rec.model,
+        op: rec.op,
+        usage: rec.usage,
+        latency_ms: rec.latency_ms,
+        raw: rec.raw,
+      },
+      error: rec.error,
+    });
+  }
+  const model = saved[0]?.model ?? "unknown";
+  return {
+    provider,
+    model,
+    summary: summarize(provider, scores),
+    cost: summarizeCost(model, calls, scores.length),
+    scores,
+    input_drift: inputDrift,
+    orphans,
+  };
+}
+
+/** Rescores every provider directory under a saved run. */
+export async function rescoreRun(dir: URL): Promise<RescoreReport[]> {
+  const run = await loadRun(dir);
+  const goldById = new Map(
+    (await loadGold()).map((c) => [c.id, c.gold as GoldRecipe]),
+  );
+  const out: RescoreReport[] = [];
+  console.log(`rescore · ${dir.pathname}`);
+  if (run.manifest) {
+    console.log(
+      `  run "${run.manifest.label}" · ${run.manifest.created_at} · ` +
+        `stage=${run.manifest.stage} path=${run.manifest.path} · ` +
+        `git ${run.manifest.git_rev.slice(0, 12)}`,
+    );
+  } else {
+    console.log("  (no manifest — provenance unavailable, responses intact)");
+  }
+  for (const [provider, saved] of run.byProvider) {
+    out.push(await rescoreProvider(provider, saved, goldById, goldToBlob));
+  }
+  return out;
+}
+
+function printRescore(r: RescoreReport): void {
+  printSummary(r.summary);
+  printCost(r.cost);
+  if (r.input_drift.length > 0) {
+    console.log(
+      `    ! INPUT DRIFT   ${r.input_drift.length} case(s) render differently ` +
+        `from the gold today than when this run was captured: ${
+          r.input_drift.join(", ")
+        }`,
+    );
+  }
+  if (r.orphans.length > 0) {
+    console.log(
+      `    ! NO GOLD       ${r.orphans.join(", ")} (renamed or removed since)`,
+    );
+  }
+}
+
 export async function main(): Promise<void> {
+  const rescoreArg = Deno.args.find((a) =>
+    a === "--rescore" || a.startsWith("--rescore=")
+  );
+  if (rescoreArg) {
+    const value = rescoreArg.includes("=")
+      ? rescoreArg.slice("--rescore=".length)
+      : Deno.args[Deno.args.indexOf(rescoreArg) + 1];
+    if (!value) {
+      console.error("usage: score_extraction.ts --rescore <run-dir>");
+      Deno.exit(2);
+    }
+    const dir = new URL(
+      value.endsWith("/") ? value : `${value}/`,
+      `file://${Deno.cwd()}/`,
+    );
+    const reports = await rescoreRun(dir);
+    if (reports.length === 0) {
+      console.log("  (no provider directories found)");
+    }
+    for (const r of reports) printRescore(r);
+    console.log(
+      "\n  NOTE: scored entirely from saved responses — zero API calls.",
+    );
+    return;
+  }
+
   const cases = await loadGold();
   console.log(
     `extraction eval — D2 (sanitize on reconstructed gold text), path=page_text`,
@@ -997,9 +1309,19 @@ export async function main(): Promise<void> {
   }
   const oracleScores = oracleReports.flatMap((r) => r.scores);
   printSummary(summarize("mock-oracle", oracleScores));
+  // The mock's usage is a deterministic fixture priced at $0, so these lines
+  // prove the token → cost plumbing works without ever costing anything.
+  printCost(
+    summarizeCost(
+      MOCK_MODEL,
+      oracleReports.flatMap((r) => r.calls),
+      cases.length,
+    ),
+  );
 
   // Degraded: a fixed corruption → exercises every scorer and every ledger row.
   const degradedScores: CaseScore[] = [];
+  const degradedCalls: CaseCall[] = [];
   for (const c of cases) {
     const adapter = new MockAdapter({
       name: "mock-degraded",
@@ -1013,17 +1335,27 @@ export async function main(): Promise<void> {
       path: "page_text",
     });
     degradedScores.push(...report.scores);
+    degradedCalls.push(...report.calls);
   }
   printSummary(summarize("mock-degraded", degradedScores));
+  printCost(summarizeCost(MOCK_MODEL, degradedCalls, cases.length));
 
   console.log(
     "\n  NOTE: mock rows prove the harness + scorer are wired and keyless.",
   );
   console.log(
-    "  Real Gemini-Flash / GPT-5-Mini / Claude-Haiku rows need provider keys",
+    `  Real rows need provider keys — pinned models: ${
+      PROVIDER_NAMES.map((p) => `${p}=${PROVIDER_MODELS[p]}`).join(", ")
+    }`,
   );
   console.log(
     "  (ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY) — see runner/EXTRACTION.md.",
+  );
+  console.log(
+    "  A live run persists its raw responses under evals/runs/; rescore one for",
+  );
+  console.log(
+    "  free with: deno run --allow-read runner/score_extraction.ts --rescore <dir>",
   );
 }
 

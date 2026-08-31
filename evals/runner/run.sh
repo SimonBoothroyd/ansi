@@ -20,7 +20,10 @@ echo
 # `--allow-read` is required: the tests read the seed vocab and the blessed
 # extraction gold, and a denied read makes a catch-and-skip test pass silently
 # (the same trap documented in supabase/functions/deno.json).
-deno test --allow-read --allow-env "$here/"
+# `--allow-write` is for the persist → rescore round-trip in
+# cost_rescore.test.ts, which writes a fake run into a TEMP dir (never the repo)
+# and reads it back; that round-trip is what keeps a paid run re-scoreable.
+deno test --allow-read --allow-write --allow-env "$here/"
 
 echo
 # Extraction (§4.4) — scores D2 (sanitize on reconstructed gold text) with the
