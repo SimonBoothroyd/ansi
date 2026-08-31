@@ -35,4 +35,11 @@ tracker / a polish pass later.
   ingredient line in the amount column. (Same family as the pinch/handful
   raw-text fallback.)
 
+- **Library doesn't refresh after an import commit.** A freshly-imported recipe
+  doesn't appear on the Library screen until you switch tabs and back (which
+  forces a re-watch). The library's watched query isn't re-firing on the commit's
+  writes — likely the LEFT-JOIN watch trap ([[mise-powersync-watch-left-join]]):
+  select a column from every table the commit touches. (Functional bug, not
+  cosmetic — promoted to the tech-debt tracker.)
+
 ## Add here as we find more.
