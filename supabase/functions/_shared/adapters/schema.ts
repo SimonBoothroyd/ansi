@@ -169,6 +169,33 @@ export class ExtractionParseError extends Error {
 
 // --- Coercion: provider JSON → frozen ExtractionResult -----------------------
 
+// Length caps on every coerced string. A provider under a bad prompt (or a page
+// that fed it a megabyte of junk) can emit an arbitrarily long "title" or
+// "notes", and those strings go on to be stored, synced to every device, and
+// rendered. Generous — several times the longest real value — but bounded.
+export const CAPS = {
+  title: 300,
+  servings_raw: 120,
+  yield_raw: 200,
+  group_name: 200,
+  ingredient_text: 300,
+  notes: 500,
+  raw_amount: 300,
+  unit: 60,
+  qualifier: 120,
+  label: 300,
+  step_text: 5_000,
+  parse_warning: 500,
+} as const;
+
+/** Max entries kept in `parse_warnings` (a per-line warning storm is bounded). */
+export const MAX_PARSE_WARNINGS = 100;
+
+/** Truncates to `max` chars. Never pads, never invents — only ever removes. */
+function cap(s: string, max: number): string {
+  return s.length <= max ? s : s.slice(0, max);
+}
+
 function asRecord(v: unknown): Record<string, unknown> {
   if (v === null || typeof v !== "object" || Array.isArray(v)) {
     throw new ExtractionParseError("expected an object", v);
@@ -185,9 +212,9 @@ function numOrNull(v: unknown): number | null {
   return null;
 }
 
-function strOrNull(v: unknown): string | null {
+function strOrNull(v: unknown, max: number): string | null {
   if (v === null || v === undefined) return null;
-  return String(v);
+  return cap(String(v), max);
 }
 
 function boolOr(v: unknown, fallback: boolean): boolean {
@@ -218,13 +245,13 @@ function coerceLineItem(v: unknown): RawLineItem {
     qty: numOrNull(o.qty),
     qty_low: numOrNull(o.qty_low),
     qty_high: numOrNull(o.qty_high),
-    unit: strOrNull(o.unit),
+    unit: strOrNull(o.unit, CAPS.unit),
     unit_mappable: boolOr(o.unit_mappable, false),
-    ingredient_text: String(o.ingredient_text ?? ""),
-    notes: strOrNull(o.notes),
+    ingredient_text: cap(String(o.ingredient_text ?? ""), CAPS.ingredient_text),
+    notes: strOrNull(o.notes, CAPS.notes),
     raw_amount: o.raw_amount === null || o.raw_amount === undefined
       ? ""
-      : String(o.raw_amount),
+      : cap(String(o.raw_amount), CAPS.raw_amount),
     optional: boolOr(o.optional, false),
     confidence: numOrNull(o.confidence) ?? 0,
   };
@@ -241,15 +268,17 @@ function coercePortion(v: unknown): RefPortion | null {
     qty: numOrNull(o.qty),
     qty_low: numOrNull(o.qty_low),
     qty_high: numOrNull(o.qty_high),
-    unit: strOrNull(o.unit),
-    qualifier: strOrNull(o.qualifier),
+    unit: strOrNull(o.unit, CAPS.unit),
+    qualifier: strOrNull(o.qualifier, CAPS.qualifier),
   };
 }
 
 function coerceToken(v: unknown): StepToken | null {
   const o = asRecord(v);
   const t = o.t;
-  if (t === "text") return { t: "text", s: String(o.s ?? "") };
+  if (t === "text") {
+    return { t: "text", s: cap(String(o.s ?? ""), CAPS.step_text) };
+  }
   if (t === "timer") {
     const low = numOrNull(o.low_seconds) ?? numOrNull(o.high_seconds) ?? 0;
     const high = numOrNull(o.high_seconds) ?? low;
@@ -262,7 +291,7 @@ function coerceToken(v: unknown): StepToken | null {
     return {
       t: "ref",
       refs,
-      label: String(o.label ?? ""),
+      label: cap(String(o.label ?? ""), CAPS.label),
       mention: coerceMention(o.mention),
       portion: coercePortion(o.portion),
     };
@@ -283,7 +312,7 @@ export function coerceExtractionResult(raw: unknown): ExtractionResult {
     ? o.groups.map((g) => {
       const gr = asRecord(g);
       return {
-        name: strOrNull(gr.name),
+        name: strOrNull(gr.name, CAPS.group_name),
         line_items: Array.isArray(gr.line_items)
           ? gr.line_items.map(coerceLineItem)
           : [],
@@ -301,16 +330,18 @@ export function coerceExtractionResult(raw: unknown): ExtractionResult {
     : [];
   const servings = numOrNull(o.servings_base);
   return {
-    title: String(o.title ?? ""),
+    title: cap(String(o.title ?? ""), CAPS.title),
     servings_base: servings === null ? null : Math.round(servings),
-    servings_raw: strOrNull(o.servings_raw),
-    yield_raw: strOrNull(o.yield_raw),
+    servings_raw: strOrNull(o.servings_raw, CAPS.servings_raw),
+    yield_raw: strOrNull(o.yield_raw, CAPS.yield_raw),
     total_time_seconds: coerceTime(o.total_time_seconds),
     cook_time_seconds: coerceTime(o.cook_time_seconds),
     truncated: boolOr(o.truncated, false),
     image_quality: coerceImageQuality(o.image_quality),
     parse_warnings: Array.isArray(o.parse_warnings)
-      ? o.parse_warnings.map((w) => String(w))
+      ? o.parse_warnings.slice(0, MAX_PARSE_WARNINGS).map((w) =>
+        cap(String(w), CAPS.parse_warning)
+      )
       : [],
     groups,
     steps,
@@ -319,9 +350,14 @@ export function coerceExtractionResult(raw: unknown): ExtractionResult {
 
 // --- Structural never-invent validation --------------------------------------
 // The scorer owns *content* hallucination (got vs gold). Here we catch the
-// invariant violations that are detectable from the payload ALONE, and fold
-// them into parse_warnings so a comparison run can count them. These are the
-// self-inconsistencies a faithful extractor should never produce.
+// invariant violations that are detectable from the payload ALONE — the
+// self-inconsistencies a faithful extractor should never produce — and fold
+// them into parse_warnings so a comparison run can count them.
+//
+// Reporting is the rule; ONE issue is also repaired. An out-of-range step ref
+// is not merely inconsistent, it mis-points at a real ingredient, so
+// `validateExtractionResult` drops it rather than shipping it behind a warning.
+// Everything else is surfaced honestly and left for the human at reconciliation.
 
 /** Flatten line items across groups, in the order steps index into. */
 export function flattenLines(r: ExtractionResult): RawLineItem[] {
@@ -332,7 +368,7 @@ export interface StructuralIssue {
   kind:
     | "range_with_single_qty" // qty AND qty_low/high both set
     | "empty_ingredient_text" // a line with no identity
-    | "ref_out_of_range" // a step ref points at a non-existent line
+    | "ref_out_of_range" // a step ref points at a non-existent line (dropped)
     | "portion_qty_and_range" // portion has qty AND qty_low/high
     | "negative_or_nan_number";
   where: string;
@@ -396,23 +432,55 @@ export function structuralIssues(r: ExtractionResult): StructuralIssue[] {
 }
 
 /**
+ * Removes step refs that point outside the flattened line space, since a ref
+ * that cannot resolve is the one structural issue that is actively DANGEROUS
+ * downstream: `line_index` is positional, so a stale index does not fail — it
+ * silently chips the wrong ingredient (or, once the app remaps to
+ * line_item_ids, throws in the client). A ref token left with no valid refs is
+ * demoted to the plain text of its label, which is what it would have been had
+ * the model not tried to link it; an unlabelled one is dropped entirely.
+ *
+ * This is the one place the pipeline REMOVES model output. It is still
+ * never-invent: nothing is added or guessed, and the drop is recorded in
+ * parse_warnings by the caller.
+ */
+function dropOutOfRangeRefs(r: ExtractionResult): ExtractionResult {
+  const n = flattenLines(r).length;
+  const valid = (ref: number) => Number.isInteger(ref) && ref >= 0 && ref < n;
+  return {
+    ...r,
+    steps: r.steps.map((step) => ({
+      tokens: step.tokens.flatMap((tok): StepToken[] => {
+        if (tok.t !== "ref") return [tok];
+        const refs = tok.refs.filter(valid);
+        if (refs.length === tok.refs.length) return [tok];
+        if (refs.length > 0) return [{ ...tok, refs }];
+        return tok.label.trim() === "" ? [] : [{ t: "text", s: tok.label }];
+      }),
+    })),
+  };
+}
+
+/**
  * Runs coercion + structural validation. Appends a single `parse_warnings`
  * summary when structural issues are found (so downstream sees the flag without
- * the adapter silently "fixing" the data — honest numbers). Returns the result.
+ * the adapter silently "fixing" the data — honest numbers), and DROPS the
+ * unresolvable step refs (see {@link dropOutOfRangeRefs}). Returns the result.
  */
 export function validateExtractionResult(
   r: ExtractionResult,
 ): ExtractionResult {
   const issues = structuralIssues(r);
-  if (issues.length > 0) {
-    const summary = issues.map((i) => `${i.kind} @ ${i.where}`).join("; ");
-    return {
-      ...r,
-      parse_warnings: [
-        ...r.parse_warnings,
-        `structural-review: ${summary}`,
-      ],
-    };
-  }
-  return r;
+  if (issues.length === 0) return r;
+  const cleaned = issues.some((i) => i.kind === "ref_out_of_range")
+    ? dropOutOfRangeRefs(r)
+    : r;
+  const summary = issues.map((i) => `${i.kind} @ ${i.where}`).join("; ");
+  return {
+    ...cleaned,
+    parse_warnings: [
+      ...cleaned.parse_warnings,
+      `structural-review: ${summary}`,
+    ],
+  };
 }
