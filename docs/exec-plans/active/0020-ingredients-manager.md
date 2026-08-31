@@ -1,0 +1,503 @@
+# Exec plan: Ingredients manager — the vocabulary gets a face
+
+- **Status:** draft — **design only; awaiting owner sign-off before any build**
+- **Owner:** Simon + Claude (design phase solo, before any fan-out)
+- **Roadmap step:** Step 8.5 — Ingredients manager
+- **Created:** 2026-08-31
+
+## Goal
+
+Give the household vocabulary a screen. Today `ingredient` is written by the
+seed, by the picker's add-new, and by import — and read everywhere — but there
+is **no place to look at it or change it**. This step lands: a list of the whole
+vocab (search, stub surfacing), an ingredient **detail / flesh-out form** that
+owns `allowed_units`, density, macros, `canonical_name` and aliases, and can
+**confirm a stub into `complete`**; plus **add-from-barcode**. Server-side it
+lands the [ADR-0008](../../decisions/0008-unit-admission-model.md) density
+amendment, wires the USDA stub prefill that has never fired, and closes the stub
+`match_text` divergence.
+
+Observable done: you can open Library ▸ Ingredients, find "Curry leaves, fresh",
+see it is a stub, fill it in, confirm it, and watch a recipe that uses it stop
+saying `incomplete` — and you can scan a tin of coconut milk and get a real
+ingredient row out of it.
+
+## Non-goals — the scope fence
+
+Named here so they don't creep in mid-build. Each is a real thing someone will
+ask for; each is a separate slice.
+
+- **Nutrition-label OCR.** Photographing a label and reading the panel. Barcode
+  is a primary-key lookup and deterministic; OCR is extraction, i.e. step 8's
+  machinery pointed at a new target. Out.
+- **Non-food items in the vocab.** Paper towels stay what step 6 made them —
+  free-text shopping rows with no `ingredient_id`. The vocabulary is food.
+- **Bulk edits / multi-select.** No "set category on 12 rows". A 300-row vocab
+  edited by two people does not need it, and it is the fastest way to write a
+  wrong density 12 times.
+- **Merging two ingredients into one.** Real (import will mint a near-duplicate
+  eventually) and genuinely hard — it has to rewrite line items, contributions,
+  measures and aliases. Its own slice; tracker row at close-out.
+- **Writing back to Open Food Facts.** We read. Contributing corrections
+  upstream is a different consent conversation.
+- **Barcode anywhere but ingredient creation.** No scan-while-shopping, no
+  scanning to check off a list item.
+- **Editing the `usda_food` reference set** or exposing it as a browsable
+  catalogue. It stays server-only (ADR-0005); the form reaches it only through
+  the prefill lookup (D7).
+- **Recipe-side changes.** Nothing in `features/recipes` moves. If confirming a
+  stub makes a recipe's macros compute, that happens because the data changed,
+  not because we touched the recipe code.
+
+## What already exists — read this before drawing or building
+
+This step is **not** a blank page. The design board has carried an ingredient
+editor, a barcode flow and a stub queue since the original board, and 7.7/7.8
+grew two more frames onto them. The build re-traces and extends these; it does
+not invent a parallel design.
+
+| Existing board frame | What it already settles |
+|---|---|
+| **New ingredient** · create → flesh out | The form's spine: canonical name · "Also known as" alias chips · category + default unit · density · macros per 100 g · a **Source** segment (USDA FDC · Manual · Barcode) · a stub status line · a save CTA |
+| **Barcode add** (tagged `stretch`) | **Open Food Facts** is the named source, with an ODbL attribution line; an in-app camera reticle; the result card is product name + brand + barcode + macros; the CTA is "Add as ingredient" |
+| **Fleshing-out queue** · stubs before they count | A pushed screen titled "Ingredients" (back chevron, **no bottom nav**); stub rows with a per-row "needs …" hint; the honest-numbers explainer; the USDA/CC0 provenance footer |
+| **Macros basis** (`pv2-d`, 7.7) | Macros are entered **as the label reads** — a per-100 g / per-100 ml segment, basis stored not converted |
+| **Allowed units** (`pv2-d2`, 7.8/ADR-0008) | The admission section: basis shown · family pre-ticked · dashed chips that unlock with a density · density both-ways entry · measures list · category-gated imprecise toggle |
+| **Manage measures** (`pv2-b2`, 7.7/7.8) | Measure rows with provenance dots read in words; the density g/ml ⇄ "a spoon weighs N g" pair; the volume-label redirect |
+
+**Consequently these are recorded as settled, not reopened:** the product-data
+source is Open Food Facts (D1 narrows only to *which parts of it we trust*); the
+barcode entry point is the New-ingredient form's Source segment; the form's
+field order and the allowed-units section's anatomy; the screen is a pushed
+route, not a tab (D8 confirms against the `/import` precedent rather than
+re-deciding); aliases are editable.
+
+**What is genuinely open** is what the board could not have known: the ADR-0008
+density gap found in the step-8 review (D4), the stub-lifecycle rows that were
+parked behind the never-built form (D5–D7), and *where the network call runs*
+(D2) — a question that only exists because step 8 established an edge-function
+precedent after these frames were drawn.
+
+## Decisions for sign-off
+
+Each carries options and a recommendation. The recommendation is what the board
+frames draw; alternatives are annotated on the frames.
+
+---
+
+### D1 — What we trust from Open Food Facts
+
+*Source is settled (board: "Barcode add"). Open: what a lookup may write.*
+
+Verified live, 2026-08-31: `GET https://world.openfoodfacts.org/api/v2/product/
+{barcode}.json?fields=…` returns 200 with **no key and no account**, honouring a
+`fields=` projection. `nutriments` carries `energy-kcal_100g`, `proteins_100g`,
+`carbohydrates_100g`, `fat_100g`, plus `nutrition_data_per` telling you whether
+the panel was per 100 g or per serving. `quantity` gives the pack size ("400
+ml"). Coverage sanity check: **193,525** products tagged `en:united-kingdom`.
+Licence: database ODbL, contents DbCL, images CC-BY-SA — the board's existing
+ODbL line is right.
+
+- **(a) OFF only, and a lookup may complete a row.** What the existing frame's
+  caption says ("imports as `complete` — macros come with it").
+- **(b) OFF only, and a lookup **prefills a draft** — never completes a row.**
+  OFF is volunteer-entered and unevenly populated; a product with a blank or
+  absurd `energy-kcal_100g` is common. Under never-invent, an absent macro must
+  render absent, and a machine-supplied number is confirmed by a human before it
+  counts (see D5).
+- **(c) OFF with a USDA-branded-foods fallback.** More coverage, a second
+  ingest pipeline, and a second provenance format to keep honest.
+
+**Recommendation: (b).** Same source, one caption changed. The scan fills name,
+brand, pack quantity and whatever macros exist, stamps
+`source = 'off:<barcode>'`, and hands you the form with the Confirm button
+waiting. Where OFF has no macros the fields stay blank and honest rather than
+zero. *This diverges from the existing frame's caption and is annotated as such
+on the board.* Also decided here: `nutrition_data_per = "serving"` products get
+their macros **left blank with a note**, not divided by a serving size we would
+have to guess — per-serving panels do not convert to per-100 without the serving
+mass, and OFF's `serving_size` is free text.
+
+---
+
+### D2 — Where the barcode lookup runs: on-device or an edge function
+
+- **(a) On-device HTTP.** `package:http` from the app, a pure-Dart mapper in
+  `domain/` turning the JSON into an ingredient draft.
+- **(b) A `product-lookup` edge function.** Mirrors `import-recipe`.
+- **(c) Edge function with a server-side response cache.**
+
+**Recommendation: (a) on-device.** The import precedent argues *against* copying
+itself here. `import-recipe` is server-side for two reasons that both fail to
+apply: it holds `ANTHROPIC_API_KEY` (OFF needs no key) and it spends real money
+per call, which is why it grew a household allowlist (`auth.ts`). Neither is
+true of a free, keyless, public GET.
+
+Three more reasons, in order of weight:
+
+1. **Rate limits are per IP** — 15 req/min for product reads. An edge function
+   pools *every household* behind Supabase's egress address onto one budget; on
+   device, each phone spends its own. This is not theoretical: during this
+   research the anonymous **search** endpoint returned a 503 "not available to
+   anonymous users / registered users are not subject to request limits" page
+   while the barcode read succeeded — pooling makes that class of failure worse.
+2. **ADR-0004 does not cover this.** "Matching is online-only" is about *fuzzy
+   matching against a vocabulary* — ranking, thresholds, calibration. A barcode
+   is an exact primary-key fetch: no ranking, no scoring, nothing to calibrate.
+   Worth stating explicitly because it looks superficially like the same shape.
+   The vocab search *inside* the form is the same offline local search the
+   picker already does (spec §10, left column).
+3. **Boring dependencies.** One `http` call and a pure mapper, versus a deployed
+   function with its own JWT gate, deploy step, secrets story and test harness.
+
+Costs, accepted: OFF asks for a `User-Agent` of `AppName/Version (contact)` —
+fine to send from the app. Offline, the scan fails cleanly back to the form
+("no connection — enter it by hand"), which is what an edge call would do too.
+The mapper being pure Dart means it is tested off committed JSON fixtures with
+no network in CI.
+
+**Escalation trigger, recorded now:** if OFF starts requiring an account for
+product reads, this becomes (b) — the mapper is already the reusable half.
+
+---
+
+### D3 — Scanner plugin, and the camera permission
+
+- **(a) `mobile_scanner`** (`^7.4.0`, verified publisher steenbakker.dev; 2.3k
+  likes, 160 pub points, ~1.28M downloads; last publish ~6 weeks before this
+  plan). Ships the camera preview *and* the detector. On **iOS it uses
+  AVFoundation + Apple Vision** — no ML Kit binary, so the bundled-vs-unbundled
+  ML Kit size question is an Android-only concern we don't have yet.
+- **(b) `google_mlkit_barcode_scanning`** — detection only; you bring and drive
+  your own camera preview. More of our code, more to get wrong.
+- **(c) No scanner: type the digits.** Zero dependency, and every barcode is
+  13 digits of squinting.
+
+**Recommendation: (a), with (c) always present as a sibling.** A "enter the
+number" field sits under the scanner permanently — it is the no-permission
+fallback, the damaged-label fallback, **and the only way this path is
+exercisable in the iOS Simulator**, which is where `make test-sim` verifies. A
+camera-only design would be untestable in our verification loop.
+
+**iOS plist:** `NSCameraUsageDescription` **already exists** in
+`app/ios/Runner/Info.plist`, worded for import ("…photograph a recipe to import
+it"). It must be **widened**, not added — e.g. "Mise uses the camera to
+photograph a recipe, or to scan a product barcode." One string; note it so it
+isn't missed. `mobile_scanner` needs no other entitlement on iOS. Permission
+denial is a designed state, not a crash (board frame d).
+
+---
+
+### D4 — ADR-0008 amendment: density unlocks volume regardless of default family
+
+The tracker's cup-produce row found this: ADR-0008 §2 says a density "unlocks
+the whole other family", but both implementations gate the density leg on the
+default unit's family —
+
+```dart
+// allowed_units.dart
+if (ingredient.densityGPerMl != null &&
+    (d.family == UnitFamily.mass || d.family == UnitFamily.volume)) { … }
+```
+```sql
+-- 0012_unit_admission.sql
+if p_density_g_per_ml is not null
+   and default_family in ('mass', 'volume') then …
+```
+
+— so a **piece-default** row with a perfectly good density (mango, tomato,
+onion, avocado) admits no volume unit at all, and "1 cup diced mango" fails
+`Pick a supported unit` on import. The seed papered over it for 49 produce rows
+with a category-gated `allowed_units` patch (`seed_curation.sql`), explicitly
+labelled as standing in "until ADR-0008 is amended".
+
+**Amendment text** (replaces ADR-0008 §Decision ¶2's second sentence; the ADR
+gains a dated *Amended* note, per ADR-0001's append-not-rewrite habit):
+
+> **A stored density unlocks the other mass/volume family for the ingredient,
+> whatever the default unit's family.** Density is a property of the substance,
+> not of how the shop sells it: a mango is bought by the piece and still has a
+> cup. For a mass- or volume-default row the unlocked set is the *other*
+> family's kitchen workhorses, as before. For a **count- or imprecise-default**
+> row there is no "other" family, so the density unlocks **both** families'
+> workhorses, minus what the basis leg already admits. The unlocked units stay
+> demoted below the measures in chip order.
+
+Options on the shape:
+
+- **(a) Amend the rule in `default_allowed_units()` + `densityUnlockedUnits`,
+  and delete the seed's produce patch.** One source of the fact.
+- **(b) Amend the rule and keep the seed patch as belt-and-braces.**
+- **(c) Don't amend; extend the seed patch to cover more categories.**
+
+**Recommendation: (a).** (c) is the status quo that already failed. (b) is the
+"two stored copies of one physical fact" that ADR-0008 itself rejects for
+density — and a seed `||` patch cannot help a household that creates a
+piece-default ingredient *in the app*, which is the actual bug. The safety net
+belongs in a **test**, not a duplicated write: a pgTAP assertion that every
+produce row with a density admits `cup` after migration, and matching Dart
+vectors. Keep the seed's genuinely non-derivable per-row overrides (liquid smoke
+`tsp`; allspice/clove/nutmeg `tsp`; hot sauce/sriracha/soy sauce `to_taste`) —
+those are not density-derived and have nowhere else to live.
+
+**Migration shape** — `supabase/migrations/0014_density_admission.sql`:
+
+1. `create or replace function default_allowed_units(...)` — drop the
+   `and default_family in ('mass','volume')` guard; add the count/imprecise
+   branch (`tsp,tbsp,cup,ml` + `g`, `kg` when big, minus the basis leg's).
+2. **Backfill by UNION, never by replace.** `allowed_units` is user-owned after
+   creation (0012's comment is explicit). So:
+   `update ingredient set allowed_units = allowed_units || <density-unlocked>
+   where density_g_per_ml is not null and not allowed_units ? '<unit>'` —
+   across all households, not just the template. A re-materialize would silently
+   discard a household's own edits, which is exactly what this step is building
+   a UI to make possible.
+3. Dart mirror in `allowed_units.dart` (`defaultAllowedUnitSet` **and**
+   `densityUnlockedUnits`, which today returns `const {}` for count/imprecise —
+   that is the same bug on the in-app density-write path).
+4. Shared vectors extended on both sides (`supabase/tests/unit_admission.sql`,
+   `app/test/features/ingredients/allowed_units_test.dart`).
+
+**Found while reading, fix in the same migration:** the two mirrors *already*
+disagree. Dart's imprecise leg adds `[pinch, dash, handful, toTaste]`; the SQL's
+adds `array['pinch','dash','to_taste']` — **`handful` is missing server-side**.
+The shared vectors evidently don't cover an imprecise-gated row. Pin it.
+
+---
+
+### D5 — What flips a stub to `complete`
+
+- **(a) Automatic once density **and** macros are non-null.** What the existing
+  board frame's status line says: "completes once density + macros are set."
+- **(b) Explicit user confirm; macros required, density optional.**
+- **(c) Hybrid — auto for values the user typed, confirm for machine-supplied
+  ones (USDA prefill, barcode).**
+
+**Recommendation: (b).** Two independent reasons:
+
+*Why confirm, not automatic.* The server code already assumes it —
+`prefillStubFromUsda`'s contract is "The row STAYS `status='stub'` until the
+user confirms — the prefill just means the New-ingredient screen opens
+pre-populated." Under (a), wiring that prefill (D7) would silently promote a
+trigram guess straight into every macro total: never-invent, violated by a
+background job. (c) encodes the same insight but makes `status` depend on
+*provenance of each field*, which is a rule nobody will remember in six months.
+
+*Why density is not required.* An ingredient whose lines only ever speak its
+basis family — yeast in tsp/g, eggs by the piece — never needs a density.
+Demanding one either blocks the user or invites a made-up number. So the gate is
+**`macros != null` (with its basis)**; density stays optional and simply leaves
+the cross-family chips locked, which the form already shows as dashed chips.
+
+*Consequence to accept:* this contradicts the board's queue rows ("needs
+density · macros") and product-spec §"Fleshing-out queue" ("stub ingredients
+needing density/macros"). Both get reworded: **needs macros** is the block,
+"no volume units — add a density" is an advisory hint on the same row. Drawn on
+the board; spec edit listed in acceptance criteria.
+
+*Also decided here:* confirm is **reversible** — a `complete` row whose macros
+are cleared returns to `stub` rather than sitting as a lie. And the flesh-out
+form is reachable for `complete` rows too: this is an ingredient **editor**, not
+a one-way queue.
+
+---
+
+### D6 — Closing the stub `match_text` divergence
+
+The app writes `match_text` with its character-level normalizer; the server's
+phrase rules (singularize, filler/measure/prep word classes, form-word
+reordering) live in `supabase/functions/_shared/normalize.ts` and are not
+callable from Dart. So a locally created stub can carry a `match_text` the
+server would never have written — and the next import's cascade searches by the
+server's rules and misses it.
+
+- **(a) Port `normalize.ts`'s phrase rules to Dart**, with shared test vectors
+  pinning the two in step — the pattern `default_allowed_units()` already uses
+  for its SQL⇄Dart mirror.
+- **(b) A Postgres trigger rewrites `match_text` for
+  `source in ('manual','import_stub')` rows.**
+- **(c) A tiny `normalize` edge function the save path calls, with the local
+  normalizer as the offline fallback.**
+
+**Recommendation: (a).** (b) sounds cheapest until you notice normalize.ts is
+TypeScript and a trigger would be plpgsql — a **third** copy of the word sets,
+strictly worse than two. (c) adds a network round trip to typing a name, and
+still needs (a) as its offline fallback, so it is (a) plus a function. (a) also
+keeps stub creation genuinely offline-capable, which the picker's add-new and
+import's commit both are today. The port is mechanical: ~250 lines that are
+mostly word sets.
+
+Honest cost: a third mirror to keep in step. The mitigation is the same one the
+repo already trusts — a shared vector file both sides' tests read, so drift
+fails CI rather than failing an import six weeks later.
+
+**New requirement this step introduces regardless of which option wins:** the
+flesh-out form must **re-write `match_text` when `canonical_name` changes**.
+Today nothing renames an ingredient, so nothing had to; from this step on, a
+rename that left the old `match_text` would be a silent matching regression.
+
+---
+
+### D7 — Firing `prefillStubFromUsda`
+
+`prefillStubFromUsda` exists, is unit-tested, and **has no caller** — a stub
+syncs up and nothing enriches it. It must stay server-side: `usda_food` never
+syncs to a device (ADR-0005).
+
+- **(a) A Postgres `after insert` trigger on `ingredient where status='stub'`**
+  — a plpgsql port of the function's one `similarity()` query + one `update`.
+- **(b) An `enrich-stub` edge function the client invokes after commit.**
+- **(c) Only on demand: a "Look up in USDA" button on the flesh-out form.**
+
+**Recommendation: (a) + (c) together.** (a) means a stub is enriched by the time
+it syncs back down — the user opens a pre-populated form without asking, which
+is what the prefill was designed for. (c) covers what (a) can't: rows the
+trigram missed, and **renames** (you fix "curry leafs" → "Curry leaves, fresh"
+and want the lookup re-run). (b) needs a new deployed function plus an
+auth gate, and breaks the offline commit path that step 8 deliberately built.
+
+Two things the trigger must get right, called out so they land in the migration:
+it runs **inside the client's upload transaction**, so it must be cheap (one
+indexed trigram query — `usda_match_trgm` exists) and it must **never fail the
+upload**: wrap the body, no-op on any exception. Threshold stays
+`USDA_PREFILL_MIN = 0.5`, and the row stays `stub` (D5).
+
+Follow-on: the TypeScript `prefillStubFromUsda` then has no caller again.
+**Delete it with its tests** — the same doctrine `match_db.ts` already applied
+to `writeCorrectionAlias` ("deleted rather than left as a second, drifting way
+to write the same row"). If the owner would rather TS stay authoritative, that
+is a vote for (b).
+
+---
+
+### D8 — Where the page lives
+
+*Effectively settled by the existing board frame — the "Fleshing-out queue"
+frame draws a back chevron and no bottom nav, i.e. a pushed route.* Confirmed
+against code rather than re-decided:
+
+- **(a) A fifth bottom-nav tab.** The bar is `Library · Week · Cook · Shop` —
+  those four are the *loop*. A vocabulary manager is reference data, not a step
+  of the loop, and a fifth item crowds `FBottomNavigationBar` on a 375pt phone.
+- **(b) A pushed `/ingredients` route from the Library header menu**, beside
+  "Import a recipe" — the exact precedent `/import` set in step 8
+  (`library_view.dart`'s `FPopoverMenu`).
+- **(c) Settings-adjacent.** There is no settings screen; the popover's second
+  group is just Sign out.
+
+**Recommendation: (b).** Two extra doors, both cheap and both earned:
+the menu item carries a **stub count badge** so the queue is discoverable
+without hunting; and the picker's "add a new ingredient" plus the import review
+screen's create-ingredient path **deep-link into the same detail form**, so
+there is one flesh-out surface, not a second inline one.
+
+---
+
+## Approach — a small DAG
+
+```
+W0  this plan + board frames  →  owner sign-off
+         │
+         ├── A  server        0014 migration: D4 amendment + union backfill,
+         │                    D7 prefill trigger, pgTAP; delete the TS prefill
+         ├── B  app           vocab list + ingredient detail / flesh-out form
+         │                    (D5 confirm semantics, allowed-units editor,
+         │                    density both-ways, macros+basis, aliases, rename)
+         ├── C  barcode       mobile_scanner + OFF client + pure mapper + plist
+         │                    (needs B's draft model — B publishes it first)
+         └── D  normalizer    normalize.ts phrase rules → Dart + shared vectors
+         │
+         └── tail  sim scenario · ADR amendment · spec §6/§9 · board lock ·
+                   tracker rows retired · roadmap row
+```
+
+A and D are independent of everything. B is the long pole. C depends only on B's
+ingredient-draft model, so B ships that type first and C proceeds in parallel.
+If it is being built by one agent rather than fanned out, the order is
+A → B → D → C → tail.
+
+## Acceptance criteria
+
+- [ ] `docs/exec-plans/active/0020-ingredients-manager.md` (this file) signed off
+      by Simon, with a decision recorded for D1–D8.
+- [ ] Design board carries the "Ingredients manager · v1" section, re-tracing and
+      extending the existing frames, with every divergence annotated.
+- [ ] **List page:** the whole household vocab, searched with the same
+      deterministic local search the picker uses; stub rows badged; honest
+      capability hints per row (category · density · measure count).
+- [ ] **Detail / flesh-out form:** edits `canonical_name` (re-writing
+      `match_text`), aliases, category, default unit, macros + basis, density
+      both ways, and **`allowed_units`** — the ADR-0008 section that has never
+      existed. Reachable for `complete` rows, not just stubs.
+- [ ] **Confirm a stub:** gated per D5; reversible; a recipe using that
+      ingredient stops reading `incomplete` without further action.
+- [ ] **Barcode:** scan or type a barcode → OFF lookup → prefilled draft →
+      confirm. No-permission and not-found states are designed, not crashes.
+- [ ] `default_allowed_units()` and `defaultAllowedUnitSet` agree on extended
+      shared vectors **including** a piece-default-with-density row and an
+      imprecise-gated row (the `handful` divergence).
+- [ ] A stub created in-app and a stub created by import land the **same**
+      `match_text` the server's normalizer would write (shared vectors).
+- [ ] A stub inserted server-side is USDA-prefilled and still reads `stub`.
+- [ ] Tests cover the new logic: pure-Dart mapper + normalizer + admission
+      vectors (unit), form and list (widget/repo over the real-schema harness),
+      migration (pgTAP).
+- [ ] Docs updated: ADR-0008 amended; product-spec §Ingredient + Fleshing-out
+      queue reworded for D5; `import-and-matching.md` §9's two "honest gaps"
+      struck; `app/AGENTS.md` focus; `docs/QUALITY.md`.
+- [ ] Tracker rows **retired**: flesh-out form; cup-produce/ADR-0008 gap;
+      server-arriving density not extending `allowed_units`; stub `match_text`
+      divergence; `prefillStubFromUsda` not triggered.
+
+## Decision log
+
+Append-only.
+
+- 2026-08-31 — **Design phase opened.** No app code, no simulator, no
+  `supabase/` edits: this step's first deliverable is a signed-off plan plus
+  board frames, following the [0014](../completed/0014-import-foundation.md)
+  precedent where design froze before any fan-out.
+- 2026-08-31 — **The board already had this screen.** An ingredient editor, a
+  barcode flow and a stub queue predate this plan (plus 7.7's macros-basis and
+  7.8's allowed-units frames). Recorded as settled: OFF as the source, the
+  Source-segment entry point, the form's spine, aliases editable, a pushed route
+  rather than a tab. Reopened only where later learning conflicts.
+- 2026-08-31 — **OFF verified live, not assumed.** Keyless 200 on
+  `/api/v2/product/{barcode}.json` with a `fields=` projection; 193,525 UK
+  products; macros as `*_100g`. The anonymous **search** endpoint 503s with a
+  "registered users are not subject to request limits" page — which is the
+  evidence behind D2's per-IP argument.
+- 2026-08-31 — **ADR-0004 does not reach a barcode lookup.** Exact-key fetch,
+  not vocabulary matching. Stated explicitly so the on-device recommendation
+  isn't read as eroding the invariant.
+
+## Notes / open questions
+
+- **`ingredient` deletion is not decided.** The form will want a delete. A row
+  referenced by a live recipe line cannot go (the FK is NOT NULL by design —
+  0014's commit contract). Suggested rule, for the owner to confirm at sign-off:
+  soft-delete only when no live line references it, otherwise refuse with the
+  count ("used by 3 recipes"). Not in the acceptance criteria until decided.
+- **Density famine tail.** 30 vocab rows still have no density and FAO has
+  nothing more for them (tracker). This step gives them a *place to be fixed by
+  hand* — it does not fix them. Not an acceptance criterion.
+- **`macros_basis` on a barcode row.** OFF panels are per 100 g **or** per 100
+  ml and say which. The mapper should carry that straight into `macros_basis`
+  rather than defaulting to `g` — cheap, and exactly what 7.7's basis decision
+  was for.
+- **A measure from a pack size.** OFF's `quantity` ("400 ml") is a ready-made
+  measure row ("can = 400 ml"). Tempting and in-scope-adjacent; suggest offering
+  it as an opt-in checkbox on the barcode result, not writing it silently.
+
+## Step-done checklist
+
+- [ ] Roadmap row 8.5 updated: status flipped, one line on what shipped and what
+      was deliberately deferred.
+- [ ] `docs/QUALITY.md` grade for every area touched matches reality.
+- [ ] `app/AGENTS.md` "Current focus" and command list still true.
+- [ ] Feature steps: `make test-sim` run on a booted simulator, result recorded
+      here — including the barcode path via the **typed-number** fallback (the
+      simulator has no camera; D3).
+- [ ] Tech-debt rows **added** for corners knowingly cut, and **retired** for
+      the five rows this step pays off.
+- [ ] `make ci` green.
