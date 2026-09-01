@@ -54,6 +54,15 @@
     { "from": "drops vague amount words", "in": "Drizzle olive oil", "out": "olive oil" },
     { "from": "drops vague amount words", "in": "Heaping tablespoon nutritional yeast", "out": "nutritional yeast" },
     { "from": "drops vague amount words", "in": "hot chili or red pepper flakes", "out": "hot chili red pepper flake" },
-    { "from": "drops vague amount words", "in": "garlic, peeled and chopped", "out": "garlic" }
+    { "from": "drops vague amount words", "in": "garlic, peeled and chopped", "out": "garlic" },
+
+    { "from": "a cut word is identity inside a canned phrase", "in": "Canned Diced Tomatoes", "out": "tomato canned diced" },
+    { "from": "a cut word is identity inside a canned phrase", "in": "canned chopped tomatoes", "out": "tomato canned chopped" },
+    { "from": "a cut word is identity inside a canned phrase", "in": "tinned chopped tomatoes", "out": "tinned tomato chopped" },
+    { "from": "a cut word is identity inside a canned phrase", "in": "Canned Crushed Tomatoes", "out": "tomato canned" },
+    { "from": "a cut word is identity inside a canned phrase", "in": "diced tomatoes", "out": "tomato" },
+    { "from": "a cut word is identity inside a canned phrase", "in": "2 diced tomatoes", "out": "tomato" },
+    { "from": "a cut word is identity inside a canned phrase", "in": "1  (28-ounce) can fire-roasted, chopped tomatoes", "out": "fire tomato roasted" },
+    { "from": "a cut word is identity inside a canned phrase", "in": "1 onion, diced", "out": "onion" }
   ]
 }

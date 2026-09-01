@@ -12,3 +12,6 @@
 {"raw":"1/4 cup chopped chives","expect_normalized":"chive"}
 {"raw":"Heaping tablespoon nutritional yeast","expect_normalized":"nutritional yeast"}
 {"raw":"fresh or dried thyme","expect_normalized":"thyme fresh dried"}
+{"raw":"Canned Diced Tomatoes","expect_normalized":"tomato canned diced"}
+{"raw":"tinned chopped tomatoes","expect_normalized":"tinned tomato chopped"}
+{"raw":"2 diced tomatoes","expect_normalized":"tomato"}

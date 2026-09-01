@@ -181,6 +181,34 @@ const PREP_VERBS = new Set([
 ]);
 
 /**
+ * Cut words that are prep everywhere EXCEPT inside a canned/tinned phrase,
+ * where they name the product on the shelf: a can of diced tomatoes and a can
+ * of chopped tomatoes are the same SKU, and neither is a can of crushed. The
+ * gold conventions already rule this — "Chopped/crushed/diced tomatoes
+ * (tinned) are DIFFERENT PRODUCTS" (evals/datasets/extraction/gold/_SCHEMA.md)
+ * — and the extraction prompt keeps the word in identity for exactly that
+ * reason; this is the matcher catching up, so a canned line lands on the
+ * product it names instead of flattening onto one shared row.
+ *
+ * Same shape as the `clove`/allium and `stick`/cinnamon carve-outs below: a
+ * word whose class depends on a noun sharing the phrase. Outside a canned
+ * phrase these stay prep — "2 diced tomatoes" is still `tomato`, the fresh
+ * one.
+ *
+ * **"crushed" is deliberately absent.** It is the one cut word already acting
+ * as identity: `Canned Crushed Tomatoes` holds the generic `tomato canned`
+ * key today, and `supabase/seed_measures.sql` — generated, never hand-edited
+ * — keys its two `can` measures on it and raises at `db reset` if that
+ * match_text stops existing. Regenerating needs the ~40 MB FDC CSV bundles,
+ * which are not committed. Adding "crushed" here is a one-line change once
+ * they can be re-run; until then it keeps the generic slot it already owns.
+ */
+const CANNED_CUT_WORDS = new Set(["chopped", "diced"]);
+
+/** The canned/tinned marker that turns a cut word into identity. */
+const CANNED = /\b(canned|tinned)\b/;
+
+/**
  * Form/state words that DO change identity. Kept, and moved to the end so the
  * noun leads regardless of where the descriptor sat ("fresh ginger" → "ginger
  * fresh"). This is the §7 KEEP set — the guard against over-stripping.
@@ -237,15 +265,18 @@ export function normalize(ingredientText: string): string {
   // from ground cinnamon). Keep it as the noun only when cinnamon shares the
   // phrase; else it stays a measure and is dropped.
   const cinnamonPresent = /\bcinnamon\b/.test(cleaned);
+  // "diced"/"chopped" are prep everywhere except in a canned phrase, where
+  // they name the product (see CANNED_CUT_WORDS).
+  const cannedPresent = CANNED.test(cleaned);
   const [head, ...modifiers] = cleaned.split(",");
 
   const nouns: string[] = [];
   const states: string[] = [];
-  classify(head, nouns, states, alliumPresent, cinnamonPresent);
+  classify(head, nouns, states, alliumPresent, cinnamonPresent, cannedPresent);
   // Comma modifiers are identity only if they're a state word ("…, boneless");
   // a prep modifier ("…, diced") drops out entirely.
   for (const mod of modifiers) {
-    classify(mod, nouns, states, alliumPresent, cinnamonPresent);
+    classify(mod, nouns, states, alliumPresent, cinnamonPresent, cannedPresent);
   }
 
   return [...nouns, ...states].map(singularize).filter(Boolean).join(" ");
@@ -258,6 +289,7 @@ function classify(
   states: string[],
   alliumPresent: boolean,
   cinnamonPresent: boolean,
+  cannedPresent: boolean,
 ): void {
   for (const raw of segment.split(/\s+/)) {
     // Keep any unicode letter/number (so "jalapeño" survives, not "jalapeo");
@@ -272,6 +304,13 @@ function classify(
     }
     if ((word === "stick" || word === "sticks") && cinnamonPresent) {
       nouns.push(word); // the cinnamon quill — identity, not a measure
+      continue;
+    }
+    // The cut of a canned tomato is the product, not a prep instruction. It
+    // trails like any other state word, so "canned diced tomatoes" and "diced
+    // tomatoes, canned" land together.
+    if (cannedPresent && CANNED_CUT_WORDS.has(word)) {
+      states.push(word);
       continue;
     }
     if (

@@ -54,6 +54,31 @@ Deno.test("normalize — stick is identity only next to cinnamon", () => {
   assertEquals(normalize("cinnamon"), "cinnamon"); // bare word → the alias row
 });
 
+Deno.test("normalize — a cut word is identity inside a canned phrase", () => {
+  // The gold conventions' ruling (_SCHEMA.md): chopped / crushed / diced
+  // tomatoes in a can are DIFFERENT PRODUCTS, so the cut cannot be stripped
+  // as prep the way it is on a fresh tomato.
+  assertEquals(normalize("Canned Diced Tomatoes"), "tomato canned diced");
+  assertEquals(normalize("canned chopped tomatoes"), "tomato canned chopped");
+  assertEquals(normalize("tinned chopped tomatoes"), "tinned tomato chopped");
+  // It trails like any other state word, so word order doesn't matter.
+  assertEquals(normalize("diced tomatoes, canned"), "tomato diced canned");
+
+  // OUTSIDE a canned phrase the cut is prep, exactly as before — this is the
+  // §7 own-goal guard read the other way round.
+  assertEquals(normalize("diced tomatoes"), "tomato");
+  assertEquals(normalize("2 diced tomatoes"), "tomato");
+  assertEquals(normalize("1 onion, diced"), "onion");
+  // The MEASURE "can" is not the STATE "canned": a line whose tin is the
+  // amount is unaffected (this is eval case 7, which must not move).
+  assertEquals(
+    normalize("1  (28-ounce) can fire-roasted, chopped tomatoes"),
+    "fire tomato roasted",
+  );
+  // "crushed" is not in the set — it still holds the generic canned key.
+  assertEquals(normalize("Canned Crushed Tomatoes"), "tomato canned");
+});
+
 Deno.test("normalize — hyphenated compounds split into words", () => {
   assertEquals(normalize("all-purpose flour"), "all purpose flour");
   assertEquals(normalize("extra-virgin olive oil"), "extra virgin olive oil");
