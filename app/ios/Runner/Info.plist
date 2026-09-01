@@ -85,13 +85,13 @@
 	     the user picks from the library or captures a page. The simulator has no
 	     camera, so the library grant is the one exercised on the sim. -->
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Mise needs access to your photos so you can import a recipe from a picture.</string>
+	<string>Ansi needs access to your photos so you can import a recipe from a picture.</string>
 	<!-- One camera key covers both users of the camera: image_picker's recipe
 	     capture and mobile_scanner's barcode scan (step 8.5 / plan 0020 D3 —
 	     widened, not duplicated; mobile_scanner needs no other iOS key or
 	     entitlement, and on iOS it is AVFoundation + Apple Vision, so no ML
 	     Kit binary rides along). -->
 	<key>NSCameraUsageDescription</key>
-	<string>Mise needs camera access so you can photograph a recipe to import it, and scan grocery barcodes.</string>
+	<string>Ansi needs camera access so you can photograph a recipe to import it, and scan grocery barcodes.</string>
 </dict>
 </plist>
