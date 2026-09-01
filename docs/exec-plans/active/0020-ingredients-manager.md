@@ -592,3 +592,12 @@ Append-only.
   stubs stay for now; the D7b probe + barcode + manager badge are the live
   paths for whittling them. Revisit as its own small slice when it itches —
   the FDC-probe-offline + hand-curation approach is scoped above.
+- 2026-08-31 — **Owner demo findings, batch 2** (guided sim run of the finished
+  manager; the D7b flow itself verified live — rename → flush-save → probe →
+  prefilled row, no sync wait). G1: after a successful lookup the OPEN form's
+  macro fields do not refresh (row verified filled in SQLite; the banner is
+  right, the fields are stale) — the ListView hook-state class the polish
+  pass flagged. G2: the density row overflows 55px in its "none yet" state.
+  G3: a superseded lookup status note lingers after the state changes. G4:
+  a usda-prefilled stub's list hint still reads "needs macros" — it should
+  read "needs confirm" (D5's language) once macros are prefilled.
