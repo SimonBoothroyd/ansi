@@ -243,3 +243,68 @@
 {"kind": "density", "match_text": "crispy shallot", "value": 0.34, "reason": "round-2 audit: tbsp default needs the bridge (R1) — a spoonful of fried shallot bits is ~5 g (label typical)"}
 {"kind": "drop_measure", "match_text": "red onion", "label": "onion", "reason": "round-2 audit: Foundation's single 197 g 'onion edible' outweighs the borrowed 'onion, large' (150 g) while reading as THE onion — the size classes carry the count"}
 {"kind": "add_measure", "match_text": "tatsoi", "label": "head", "basis_amount": 150, "sort_order": 0, "source": "seed:typical", "reason": "round-2 audit: tatsoi sells as a rosette head (~150 g) — the count unit its piece default implied but never quantified"}
+//
+// --- densities: audit round 3 (2026-09-01) — the D4d density pass ----------
+// Batch 5 / D4d ruled KEEP D4C STRICT, FIX THE DATA. Under D4c a row with no
+// density admits its BASIS family only, so a density-less row silently
+// refuses EVERY volume line — the Pixel field test's "2 tbsp lemon juice"
+// and "8 cups kale". R1 already guarantees no VOLUME-DEFAULT row is bare, so
+// the stranded set is the 30 mass/count-default rows the FAO fallback
+// audited and could not match. Those rejections are NOT relitigated: FAO
+// v2.0 still has no tofu, tortilla, seaweed or mushroom row. What is new is
+// a source FAO never was:
+//   (a) the same FDC food under its OTHER record. usda_links.jsonl links
+//       eight of these rows to an FDC record with no volume food_portion,
+//       while a sibling record of the same food is already in the committed
+//       reference WITH a portion-derived density. Cited as
+//       fdc_density:<fdc_id> — the sibling's id, NEVER usda_fdc:<id>, which
+//       is the macro prefill's mark (Ingredient.isUsdaPrefilled reads it).
+//   (b) an FDC record for a food the no-analogue MACRO rule keeps link-less
+//       but which is physically this food (vegan cheese, meatless nugget).
+//   (c) a family bracket — the move already made for shiitake mushroom 0.30
+//       and tender green 0.10 — or a printed label, as for crispy shallot.
+// Every value is inside R2 (0.03-2.0). Coverage 277/307 -> 296/307.
+//
+// The 11 rows STILL density-less are now a decision, not an accident. Each
+// was re-read against FDC after the FAO verdict, and each stays bare because
+// no volume line reaches it, or because nothing honest pins it:
+//   corn tortilla, flour tortilla, tostada shell, english muffin — the
+//     linked FDC records carry no volume portion and neither does any
+//     sibling; nobody measures a flatbread or a muffin by the cup. Their
+//     piece/oz defaults say everything a recipe line needs.
+//   nori, kombu — sold as dried sheets and strips and counted as such.
+//     FDC's 'Seaweed, laver/kelp, raw' (0.3381) is the fresh wet weed, a
+//     different food from the dried sheet, so it is not borrowable.
+//   lime — the fruit, by the piece. Its two volume forms are already their
+//     own rows with their own densities (lime juice 1.0229, and the zest is
+//     spooned as a measure), so the fruit row needs none.
+//   star anise — a whole hollow pod, mostly air; FDC's only anise record is
+//     ground seed (171316, 0.4531), a different substance entirely.
+//   seitan — FDC has no seitan record at all. The meatless-analogue rows
+//     (breaded nugget 0.5495, frankfurter 0.5917) are formed or coated
+//     products, a different geometry from a cup of torn seitan, and a
+//     ~30% guess on a protein's macros is worse than a flagged line.
+//   tofu bacon, shiitake bacon — prepared dishes (marinated tofu strips,
+//     roasted shiitake), not products FDC or FAO carries. FDC's 'Bacon,
+//     meatless' 0.6087 is the commercial formed strip, and 'Mushrooms,
+//     shiitake, stir-fried' 0.3762 is a wet stir-fry: neither is the
+//     crisped strip these rows mean. Both are piece-default and stay so.
+{"kind": "density", "match_text": "gala apple", "value": 0.4607, "source": "fdc_density:168204", "reason": "D4d: linked Foundation 1105781 (Apples, gala, with skin, raw) carries no volume portion, which is the only reason this row is bare; SR Legacy 168204 is the SAME food and its diced cup gives 0.4607. Unlocks '1 cup diced apple'"}
+{"kind": "density", "match_text": "granny smith apple", "value": 0.4607, "source": "fdc_density:168203", "reason": "D4d: as gala apple — linked Foundation 1105664 has no volume portion; SR Legacy 168203 is the same food (0.4607). All three apple varieties agree, which is the cross-check"}
+{"kind": "density", "match_text": "red delicious apple", "value": 0.4607, "source": "fdc_density:168201", "reason": "D4d: as gala apple — linked Foundation 1105430 has no volume portion; SR Legacy 168201 is the same food (0.4607)"}
+{"kind": "density", "match_text": "date", "value": 0.6213, "source": "fdc_density:171726", "reason": "D4d: the linked record 168191 (Dates, medjool) has no volume portion; 171726 'Dates, deglet noor' is the same food in the same pitted/chopped form (0.6213). Cultivar differs, packing does not. Unlocks '1 cup pitted dates'"}
+{"kind": "density", "match_text": "dill pickle", "value": 0.6044, "source": "fdc_density:168558", "reason": "D4d: the linked record 324653 has no volume portion; 168558 is FDC's other record of the SAME food (identical description, 'Pickles, cucumber, dill or kosher dill') and its sliced cup gives 0.6044 — the number behind '1/2 cup chopped pickles'"}
+{"kind": "density", "match_text": "tortilla chip", "value": 0.1099, "source": "fdc_density:168116", "reason": "D4d: linked 173143 (yellow, plain, salted) has no volume portion; 168116 'Snacks, tortilla chips, unsalted, white corn' is the same food in the same form (0.1099) — salt and corn colour do not change how chips pack"}
+{"kind": "density", "match_text": "plantain", "value": 0.6256, "source": "fdc_density:169130", "reason": "D4d: linked 168215 (Plantains, green, raw) has no volume portion; 169130 'Plantains, yellow, raw' is the same food one ripeness on, sliced cup 0.6256 — landing on the curated banana 0.634, which is the cross-check"}
+{"kind": "density", "match_text": "extra firm tofu", "value": 1.0651, "source": "fdc_density:172475", "reason": "D4d: linked 174290 'Tofu, extra firm, prepared with nigari' has no volume portion; 172475 and 172448 (firm, both records) agree at 1.0651 for the cubed cup. Extra-firm is pressed further but is still a ~1.05 water gel. Unlocks '1 cup cubed tofu'"}
+{"kind": "density", "match_text": "silken tofu", "value": 1.0482, "source": "fdc_density:172449", "reason": "D4d: linked 174292 (MORI-NU, silken, soft) has no volume portion — none of FDC's silken records do; 172449 'Tofu, soft, prepared with nigari' is the same undrained soft gel (1.0482), which is what a blended cup of silken tofu weighs"}
+{"kind": "density", "match_text": "mint", "value": 0.1082, "source": "fdc_density:173474", "reason": "D4d, the kale-class leaf: no FDC link (no-analogue); 173474 'Peppermint, fresh' gives 0.1082 for the loose leaf cup, sitting inside the vocab's own leafy band (dill 0.038, cilantro 0.068, arugula 0.085, kale 0.089, tender green 0.10). FDC's 'Spearmint, fresh' 0.3855 is a chopped-PACKED spoon portion, not the loose cup a recipe means"}
+{"kind": "density", "match_text": "vegan cheese", "value": 0.4776, "source": "fdc_density:168089", "reason": "D4d: FAO had no non-dairy cheese row; FDC does, and 168089 'Imitation cheese, american or cheddar' and 172198 'Cheese substitute, mozzarella' derive independently to the same 0.4776 (~113 g shredded cup) — the form a volume of vegan cheese is measured in"}
+{"kind": "density", "match_text": "vegan cheddar", "value": 0.4776, "source": "fdc_density:168089", "reason": "D4d: as vegan cheese — 168089 is literally the imitation cheddar record (0.4776), and '1 cup shredded vegan cheddar' is the line it unlocks"}
+{"kind": "density", "match_text": "vegan american cheese", "value": 0.4776, "source": "fdc_density:168089", "reason": "D4d: as vegan cheese — 168089 'Imitation cheese, american or cheddar' IS this product. It sells sliced, so the piece is the usual line; a cup of it means diced or shredded, which is the form 0.4776 describes"}
+{"kind": "density", "match_text": "coconut flake dried", "value": 0.3593, "source": "fdc_density:170577", "reason": "D4d: no FDC link (this row is unsweetened; FDC's desiccated records are all sweetened); 170577 'coconut meat, dried (desiccated), sweetened, flaked, packaged' is the same physical flake at 0.3593, bracketed by its shredded 0.3931 and canned-flake 0.3255 siblings. The added sugar makes this a slight over-read — a refused '1/2 cup shredded coconut' is worse"}
+{"kind": "density", "match_text": "breaded vegan chicken nugget", "value": 0.5495, "source": "fdc_density:167719", "reason": "D4d: the no-analogue rule keeps vegan protein link-less for MACROS, but 167719 'Chicken, meatless, breaded, fried' is exactly this product, and its cup gives 0.5495"}
+{"kind": "density", "match_text": "vegan sausage", "value": 0.5917, "source": "fdc_density:169887", "reason": "D4d: 169887 'Frankfurter, meatless' is the same formed meat-analogue log (0.5917), inside FDC's meatless cluster (meatballs 0.6087, meatless chicken 0.7101). Unlocks '1 cup crumbled vegan sausage'"}
+{"kind": "density", "match_text": "lion mane mushroom", "value": 0.3, "source": "typical:fdc raw-mushroom family bracket", "reason": "D4d: FDC has no lion's mane record; borrowed from the raw-mushroom family exactly as shiitake mushroom 0.30 already is — maitake 0.2959, white 0.2959, enoki 0.2705, oyster and portabella 0.3635 bracket 0.30 for the torn-cup entry"}
+{"kind": "density", "match_text": "sourdough starter", "value": 0.96, "source": "label:King Arthur ingredient weight chart (1 cup = 227 g)", "reason": "D4d: FDC has no starter record and FAO's dry yeast is a different substance; King Arthur publishes 1 cup stirred-down starter = 227 g -> 0.96, which is what a 100%-hydration flour-water batter must weigh. '1 cup starter' is the standard printed line, so the g default alone strands the row"}
+{"kind": "density", "match_text": "crispy onion", "value": 0.237, "source": "label:French's Crispy Fried Onions (2 tbsp = 7 g)", "reason": "D4d: FDC's only fried-onion record is 170415 breaded rings (0.2029), a different geometry; French's prints 2 tbsp = 7 g -> 0.237, matched independently by FDC 170002 dehydrated onion flakes (0.2367). Deliberately BELOW the curated crispy shallot 0.34 — oil-fried shallot bits are denser than these dry slivers"}

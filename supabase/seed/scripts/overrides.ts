@@ -10,9 +10,15 @@
 //     (consumed by gen_measures.ts; stale drops fail the run).
 //   * add_measure   {match_text, label, basis_amount, [source], [sort_order],
 //     reason} — add a measure the rules can't derive.
-//   * density       {match_text, value, reason} — set (value) or clear
-//     (value: null) the template row's density (consumed by gen_seed.ts →
-//     seed_curation.sql).
+//   * density       {match_text, value, [source], reason} — set (value) or
+//     clear (value: null) the template row's density (consumed by
+//     gen_seed.ts → seed_curation.sql). An optional `source` is the fill's
+//     PROVENANCE and is appended to the row's `source` column exactly the
+//     way the FAO fallback appends its own ("fdc_density:<fdc_id>",
+//     "label:…", "typical:…"), so a hand-curated density is auditable in
+//     the database and not only in this file. Never `usda_fdc:<id>` — that
+//     prefix is the server prefill's mark (Ingredient.isUsdaPrefilled) and
+//     means the MACROS came from FDC, which a density fill does not say.
 //   * allowed_units {match_text, [add], [remove], [set], reason} — adjust
 //     the materialized allowed-unit list: `set` replaces wholesale, or
 //     `add`/`remove` tweak the rule output (consumed by gen_seed.ts →
@@ -37,7 +43,7 @@ export interface CurationOverride {
   label?: string;
   basis_amount?: number;
   sort_order?: number;
-  source?: string; // also: macros provenance ("label:…")
+  source?: string; // also: macros / density provenance ("label:…")
   // density
   value?: number | null;
   // allowed_units
@@ -80,6 +86,25 @@ export function readOverrides(scriptsDir: string): CurationOverride[] {
     }
     if (o.kind === "density" && o.value !== null && !(o.value! > 0)) {
       problems.push(`density override needs a positive value or null: ${o.match_text}`);
+    }
+    // A density fill must not claim the prefill's mark: `usda_fdc:<id>` is
+    // what `Ingredient.isUsdaPrefilled` reads to say the MACROS came from
+    // FDC. A density borrowed from an FDC food is `fdc_density:<id>`.
+    if (o.kind === "density" && o.source?.startsWith("usda_fdc:")) {
+      problems.push(
+        `density source must not use the macro-prefill prefix ` +
+          `"usda_fdc:" (use "fdc_density:<id>"): ${o.match_text}`,
+      );
+    }
+    if (o.kind === "density" && o.source !== undefined && !o.source) {
+      problems.push(
+        `density source, when given, must be non-empty: ${o.match_text}`,
+      );
+    }
+    if (o.kind === "density" && o.source && o.value === null) {
+      problems.push(
+        `density source on a CLEARING override says nothing: ${o.match_text}`,
+      );
     }
     if (
       o.kind === "allowed_units" &&

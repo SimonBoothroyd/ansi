@@ -267,14 +267,30 @@ function writeCuration(dir: string, vocabMatchTexts: Set<string>): void {
   }
 
   // Density overrides FIRST, so the allowed_units refresh below sees them.
+  //
+  // A fill that carries a `source` also stamps its provenance onto the row,
+  // by the same append rule the FAO fallback uses below: keep whatever the
+  // row already says about its MACROS and add where the density came from,
+  // so both are readable off the row. `usda_fdc:` is refused upstream
+  // (overrides.ts) because that prefix is the macro prefill's mark.
   let densities = 0, unitTweaks = 0;
   for (const o of overrides) {
     if (o.kind === "density") {
       densities++;
+      const value = o.value === null ? "null" : `${o.value}`;
+      sql.push(`-- ${o.match_text}: ${o.reason}`);
+      if (o.source) {
+        sql.push(
+          "update ingredient set",
+          `  density_g_per_ml = ${value},`,
+          "  source = case when source is null or source = 'seed'",
+          `    then ${q(o.source)}`,
+          `    else source || ${q(` + ${o.source}`)} end`,
+        );
+      } else {
+        sql.push(`update ingredient set density_g_per_ml = ${value}`);
+      }
       sql.push(
-        `-- ${o.match_text}: ${o.reason}`,
-        "update ingredient set density_g_per_ml = " +
-          `${o.value === null ? "null" : o.value}`,
         `where household_id = ${q(HOUSEHOLD_ID)} and match_text = ${
           q(o.match_text)
         };`,
@@ -301,7 +317,11 @@ function writeCuration(dir: string, vocabMatchTexts: Set<string>): void {
       "-- fao_density_links.jsonl map. Fills ONLY rows the FDC volume-portion",
       "-- derivation and the curation overrides above both left null; the",
       `-- null guard on each statement is what enforces that. ${faoFills.length} fills,`,
-      `-- ${fao.rejected} tail rows audited and honestly left density-less.`,
+      `-- ${fao.rejected} tail rows audited and honestly left density-less,`,
+      `-- ${fao.superseded} more audited against FAO with no match and since`,
+      "-- filled by a cited curation override above (FDC sibling record,",
+      "-- label, or family bracket) — the FAO verdict stands, it just is no",
+      "-- longer the last word on those rows.",
       "",
     );
     for (const f of faoFills) {
@@ -444,7 +464,8 @@ function writeCuration(dir: string, vocabMatchTexts: Set<string>): void {
       `${unitTweaks} allowed-unit overrides` +
       (fao
         ? `\n  ${faoFills.length} FAO density fills, ${fao.rejected} audited ` +
-          `rejections (${fao.table.length} rows in ${FAO_DATASET})`
+          `rejections still bare, ${fao.superseded} since filled by ` +
+          `curation (${fao.table.length} rows in ${FAO_DATASET})`
         : ""),
   );
 }

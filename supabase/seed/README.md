@@ -18,14 +18,28 @@ one before it left empty:
    SR Legacy keys most volume portions by `modifier`, not `measure_unit`,
    which is why the old parser found almost none). Ranked cup > tbsp > tsp,
    unqualified before prepared-state, sanity 0.1–2.0 g/ml.
-2. **Curation-pass** corrections and fills on top (audit 2026-08-29).
+2. **Curation-pass** corrections and fills on top (audits 2026-08-29 and the
+   D4d density pass 2026-09-01). A fill may carry a `source` —
+   `fdc_density:<fdc_id>` when it borrows a portion-derived density from
+   another FDC record of the same food, `label:…`, or `typical:…` — which is
+   appended to the row's own `source` so the density's provenance is
+   readable off the row, like the FAO tag below. Never `usda_fdc:<id>`:
+   that prefix means the MACROS came from FDC and the generator refuses it.
 3. **FAO/INFOODS Density Database v2.0** as the fallback for the tail, via a
    reviewed mapping — see `scripts/fao_density.md`. Never overwrites 1 or 2:
    every fill carries a `density_g_per_ml is null` guard.
 
-Current vocab coverage: **277/307** (was 264 before the FAO fallback landed;
-12 of the 42-row tail filled, 30 audited and honestly left empty — FAO v2.0
-has no tofu, tortilla, seaweed or mushroom row).
+Current vocab coverage: **296/307** (264 → 277 when the FAO fallback landed,
+then → 296 in the **D4d density pass**, plan 0020 batch 5). D4c admits only
+the BASIS family on a density-less row, so a bare row silently refuses every
+volume line; the pass re-read all 30 remaining rows and filled 19 of them.
+Most were bare only because `usda_links.jsonl` links them to an FDC record
+with no volume `food_portion` while a **sibling record of the same food**
+carries one (gala apple, dill pickle, plantain, tofu…) — cited per row as
+`fdc_density:<fdc_id>` in `curation_overrides.jsonl`. The FAO rejections
+were not relitigated: FAO v2.0 still has no tofu, tortilla, seaweed or
+mushroom row. The 11 rows still bare are enumerated with their reasons in
+the overrides file's round-3 header — each is now a decision, not a gap.
 
 Two invariants hold at `db reset` (`seed_curation.sql`): **R1**, a volume
 `default_unit` requires a density; **R2**, every stored density lands in the

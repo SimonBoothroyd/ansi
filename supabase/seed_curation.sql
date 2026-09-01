@@ -326,11 +326,167 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 've
 update ingredient set density_g_per_ml = 0.34
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'crispy shallot';
 
+-- gala apple: D4d: linked Foundation 1105781 (Apples, gala, with skin, raw) carries no volume portion, which is the only reason this row is bare; SR Legacy 168204 is the SAME food and its diced cup gives 0.4607. Unlocks '1 cup diced apple'
+update ingredient set
+  density_g_per_ml = 0.4607,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:168204'
+    else source || ' + fdc_density:168204' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'gala apple';
+
+-- granny smith apple: D4d: as gala apple — linked Foundation 1105664 has no volume portion; SR Legacy 168203 is the same food (0.4607). All three apple varieties agree, which is the cross-check
+update ingredient set
+  density_g_per_ml = 0.4607,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:168203'
+    else source || ' + fdc_density:168203' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'granny smith apple';
+
+-- red delicious apple: D4d: as gala apple — linked Foundation 1105430 has no volume portion; SR Legacy 168201 is the same food (0.4607)
+update ingredient set
+  density_g_per_ml = 0.4607,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:168201'
+    else source || ' + fdc_density:168201' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'red delicious apple';
+
+-- date: D4d: the linked record 168191 (Dates, medjool) has no volume portion; 171726 'Dates, deglet noor' is the same food in the same pitted/chopped form (0.6213). Cultivar differs, packing does not. Unlocks '1 cup pitted dates'
+update ingredient set
+  density_g_per_ml = 0.6213,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:171726'
+    else source || ' + fdc_density:171726' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'date';
+
+-- dill pickle: D4d: the linked record 324653 has no volume portion; 168558 is FDC's other record of the SAME food (identical description, 'Pickles, cucumber, dill or kosher dill') and its sliced cup gives 0.6044 — the number behind '1/2 cup chopped pickles'
+update ingredient set
+  density_g_per_ml = 0.6044,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:168558'
+    else source || ' + fdc_density:168558' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'dill pickle';
+
+-- tortilla chip: D4d: linked 173143 (yellow, plain, salted) has no volume portion; 168116 'Snacks, tortilla chips, unsalted, white corn' is the same food in the same form (0.1099) — salt and corn colour do not change how chips pack
+update ingredient set
+  density_g_per_ml = 0.1099,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:168116'
+    else source || ' + fdc_density:168116' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tortilla chip';
+
+-- plantain: D4d: linked 168215 (Plantains, green, raw) has no volume portion; 169130 'Plantains, yellow, raw' is the same food one ripeness on, sliced cup 0.6256 — landing on the curated banana 0.634, which is the cross-check
+update ingredient set
+  density_g_per_ml = 0.6256,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:169130'
+    else source || ' + fdc_density:169130' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'plantain';
+
+-- extra firm tofu: D4d: linked 174290 'Tofu, extra firm, prepared with nigari' has no volume portion; 172475 and 172448 (firm, both records) agree at 1.0651 for the cubed cup. Extra-firm is pressed further but is still a ~1.05 water gel. Unlocks '1 cup cubed tofu'
+update ingredient set
+  density_g_per_ml = 1.0651,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:172475'
+    else source || ' + fdc_density:172475' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'extra firm tofu';
+
+-- silken tofu: D4d: linked 174292 (MORI-NU, silken, soft) has no volume portion — none of FDC's silken records do; 172449 'Tofu, soft, prepared with nigari' is the same undrained soft gel (1.0482), which is what a blended cup of silken tofu weighs
+update ingredient set
+  density_g_per_ml = 1.0482,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:172449'
+    else source || ' + fdc_density:172449' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'silken tofu';
+
+-- mint: D4d, the kale-class leaf: no FDC link (no-analogue); 173474 'Peppermint, fresh' gives 0.1082 for the loose leaf cup, sitting inside the vocab's own leafy band (dill 0.038, cilantro 0.068, arugula 0.085, kale 0.089, tender green 0.10). FDC's 'Spearmint, fresh' 0.3855 is a chopped-PACKED spoon portion, not the loose cup a recipe means
+update ingredient set
+  density_g_per_ml = 0.1082,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:173474'
+    else source || ' + fdc_density:173474' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'mint';
+
+-- vegan cheese: D4d: FAO had no non-dairy cheese row; FDC does, and 168089 'Imitation cheese, american or cheddar' and 172198 'Cheese substitute, mozzarella' derive independently to the same 0.4776 (~113 g shredded cup) — the form a volume of vegan cheese is measured in
+update ingredient set
+  density_g_per_ml = 0.4776,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:168089'
+    else source || ' + fdc_density:168089' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegan cheese';
+
+-- vegan cheddar: D4d: as vegan cheese — 168089 is literally the imitation cheddar record (0.4776), and '1 cup shredded vegan cheddar' is the line it unlocks
+update ingredient set
+  density_g_per_ml = 0.4776,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:168089'
+    else source || ' + fdc_density:168089' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegan cheddar';
+
+-- vegan american cheese: D4d: as vegan cheese — 168089 'Imitation cheese, american or cheddar' IS this product. It sells sliced, so the piece is the usual line; a cup of it means diced or shredded, which is the form 0.4776 describes
+update ingredient set
+  density_g_per_ml = 0.4776,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:168089'
+    else source || ' + fdc_density:168089' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegan american cheese';
+
+-- coconut flake dried: D4d: no FDC link (this row is unsweetened; FDC's desiccated records are all sweetened); 170577 'coconut meat, dried (desiccated), sweetened, flaked, packaged' is the same physical flake at 0.3593, bracketed by its shredded 0.3931 and canned-flake 0.3255 siblings. The added sugar makes this a slight over-read — a refused '1/2 cup shredded coconut' is worse
+update ingredient set
+  density_g_per_ml = 0.3593,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:170577'
+    else source || ' + fdc_density:170577' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut flake dried';
+
+-- breaded vegan chicken nugget: D4d: the no-analogue rule keeps vegan protein link-less for MACROS, but 167719 'Chicken, meatless, breaded, fried' is exactly this product, and its cup gives 0.5495
+update ingredient set
+  density_g_per_ml = 0.5495,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:167719'
+    else source || ' + fdc_density:167719' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'breaded vegan chicken nugget';
+
+-- vegan sausage: D4d: 169887 'Frankfurter, meatless' is the same formed meat-analogue log (0.5917), inside FDC's meatless cluster (meatballs 0.6087, meatless chicken 0.7101). Unlocks '1 cup crumbled vegan sausage'
+update ingredient set
+  density_g_per_ml = 0.5917,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:169887'
+    else source || ' + fdc_density:169887' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegan sausage';
+
+-- lion mane mushroom: D4d: FDC has no lion's mane record; borrowed from the raw-mushroom family exactly as shiitake mushroom 0.30 already is — maitake 0.2959, white 0.2959, enoki 0.2705, oyster and portabella 0.3635 bracket 0.30 for the torn-cup entry
+update ingredient set
+  density_g_per_ml = 0.3,
+  source = case when source is null or source = 'seed'
+    then 'typical:fdc raw-mushroom family bracket'
+    else source || ' + typical:fdc raw-mushroom family bracket' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'lion mane mushroom';
+
+-- sourdough starter: D4d: FDC has no starter record and FAO's dry yeast is a different substance; King Arthur publishes 1 cup stirred-down starter = 227 g -> 0.96, which is what a 100%-hydration flour-water batter must weigh. '1 cup starter' is the standard printed line, so the g default alone strands the row
+update ingredient set
+  density_g_per_ml = 0.96,
+  source = case when source is null or source = 'seed'
+    then 'label:King Arthur ingredient weight chart (1 cup = 227 g)'
+    else source || ' + label:King Arthur ingredient weight chart (1 cup = 227 g)' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sourdough starter';
+
+-- crispy onion: D4d: FDC's only fried-onion record is 170415 breaded rings (0.2029), a different geometry; French's prints 2 tbsp = 7 g -> 0.237, matched independently by FDC 170002 dehydrated onion flakes (0.2367). Deliberately BELOW the curated crispy shallot 0.34 — oil-fried shallot bits are denser than these dry slivers
+update ingredient set
+  density_g_per_ml = 0.237,
+  source = case when source is null or source = 'seed'
+    then 'label:French''s Crispy Fried Onions (2 tbsp = 7 g)'
+    else source || ' + label:French''s Crispy Fried Onions (2 tbsp = 7 g)' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'crispy onion';
+
 -- Density fallback: FAO/INFOODS Density Database v2.0 (2012), via the reviewed
 -- fao_density_links.jsonl map. Fills ONLY rows the FDC volume-portion
 -- derivation and the curation overrides above both left null; the
 -- null guard on each statement is what enforces that. 12 fills,
--- 30 tail rows audited and honestly left density-less.
+-- 11 tail rows audited and honestly left density-less,
+-- 19 more audited against FAO with no match and since
+-- filled by a cited curation override above (FDC sibling record,
+-- label, or family bracket) — the FAO verdict stands, it just is no
+-- longer the last word on those rows.
 
 -- burger bun <- FAO "Bread, roll, soft" [FNDDS 4.1; Cereal and cereal products]:
 --   a burger bun IS a soft bread roll — FNDDS 4.1's 0.18 is the whole-roll packing density, not a crumb density
@@ -1148,7 +1304,7 @@ begin
       violators;
   end if;
 
-  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 59 density + 55 allowed-unit overrides + 12 FAO density fills; R1 (volume default => density) and R2 (kitchen density band) hold';
+  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 78 density + 55 allowed-unit overrides + 12 FAO density fills; R1 (volume default => density) and R2 (kitchen density band) hold';
 end $$;
 
 commit;
