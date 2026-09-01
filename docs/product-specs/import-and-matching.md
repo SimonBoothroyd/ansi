@@ -86,7 +86,7 @@ flowchart TD
     I -->|Save| J[Commit through PowerSync]
     J -.create-new.-> K[Stub written in the same transaction §9]
     J -.correction.-> L[Raw string written back as an alias]
-    K -.background.-> M[USDA FDC lookup prefills density/macros]
+    K -.on arrival, DB trigger.-> M[USDA FDC lookup prefills density/macros — row stays 'stub']
 ```
 
 The stages, and who owns each:
@@ -473,6 +473,19 @@ normalizer the cascade, the row writer, and the batch seed pipeline all call
 (one source, or symmetry breaks). Its word sets are the strip/keep lists above;
 the eval harness scores it against `evals/datasets/matching/cases.jsonl`.
 
+**The app has a twin** (step 8.5, plan 0020 D6):
+`app/lib/features/ingredients/domain/normalize.dart` ports the same phrase rules
+to Dart, because the client writes `match_text` too — the picker's add-new, a
+rename in the manager, and a new alias. Before the port those paths applied the
+*character*-level rules only, so a locally created stub carried a `match_text`
+the server would never have written and the next import's cascade missed it. The
+two are pinned together by shared vectors
+(`app/test/features/ingredients/normalize_vectors.json`, copied from
+`normalize.test.ts`) — change one, change both, and extend the vectors, the same
+habit `default_allowed_units()` and `defaultAllowedUnitSet` already keep. One
+caller still lags: import's own commit writes the character-level form (→
+[tech-debt tracker](../exec-plans/tech-debt-tracker.md)).
+
 ---
 
 ## 8. Review & the learning loop
@@ -544,26 +557,48 @@ stub row written CLIENT-SIDE, inside the commit transaction
    │    in one import share ONE created ingredient
    │  · syncs up like any other local write
    │
-   ├──► appears in the fleshing-out queue  (a VIEW over ingredient
-   │    WHERE status='stub' — no table)
+   ├──► surfaces in the ingredients manager (step 8.5): a stub BAND on top
+   │    of the whole vocabulary at `/ingredients` — not a separate queue
+   │    screen, and no table (`status='stub'` is the whole mechanism)
    │
-   └──► [NOT WIRED] background job: search usda_food by match_text,
-        prefill density + macros (stays 'stub' until the user confirms)
+   └──► ON ARRIVAL, server-side: the `ingredient_usda_prefill` trigger
+        (0014, + 0015's rename leg) searches usda_food by match_text and
+        copies density + macros onto the row. It STAYS 'stub'.
    │
    ▼
-user opens the stub → confirms/edits density + macros → status='complete'
+user opens the stub in the manager → edits/fills density + macros →
+  presses Confirm → status='complete'
 ```
 
-Two honest gaps in the shipped version, both tracked:
+**The prefill, precisely** (step 8.5, plan 0020 D7). It is an `after insert or
+update of canonical_name` trigger on `ingredient` — a plpgsql port of
+`prefillStubFromUsda`, whose TypeScript original was deleted in the same change
+rather than left as a second way to write the row. It must be server-side
+(`usda_food` never syncs — ADR-0005), and a trigger is the only thing that sees
+a stub arriving through the PowerSync **upload queue**, which is the surface
+that actually creates stubs. Four properties are load-bearing:
 
-- **The USDA prefill never fires.** `prefillStubFromUsda` exists server-side (it
-  has to be server-side — `usda_food` never syncs, ADR-0005) but nothing invokes
-  it on stub insert. So a stub stays bare until someone fills it by hand.
-- **There is no flesh-out form.** The last leg — the screen where the user
-  confirms a stub into `complete` and edits its admitted units — was deferred *to*
-  step 8 by ADR-0008, this spec and the roadmap, and step 8 did not build it. It
-  is now its own unscheduled slice on the [tech-debt
-  tracker](../exec-plans/tech-debt-tracker.md).
+- **It can never fail the upload.** One indexed trigram probe (`usda_match_trgm`)
+  with a 0.5 floor, wrapped in an exception block that swallows and logs. A stub
+  whose prefill fails is just an un-enriched stub.
+- **It fires for a BARE stub only** — no density, no macros, and
+  `source in ('manual','import_stub')` (or null). That excludes `source='seed'`
+  (so the seed's audited "honestly density-less" tail is never overwritten by a
+  guess, and the onboarding clone pays no probe per row) and `off:<barcode>`
+  (so Open Food Facts provenance is not replaced by a USDA id).
+- **A rename re-runs it** (0015): fix "curry leafs" → "Curry leaves, fresh" and
+  the lookup happens again — the bare-stub guard is what makes that safe.
+- **A landed density extends `allowed_units`** through the companion
+  `ingredient_density_unlocks_units` trigger (ADR-0009), so the unlocked family
+  is not left locked by a list materialized before the density existed.
+
+**Confirming is a human act** (plan 0020 D5). Nothing promotes a row to
+`complete` on its own — not a trigram hit, not a barcode scan. **Macros are the
+gate; density is not**: the Confirm CTA is disabled without macros and the
+repository refuses the same call, while a row with macros and no density
+confirms fine (density controls what units are *sayable*, not whether the
+numbers are honest). The reverse is available too — a `complete` row can be
+un-confirmed back to `stub`.
 
 **Why the stub is written by the client, not the server.** Both surfaces were
 designed ([0019](../exec-plans/completed/0019-import-integration.md)'s coordination

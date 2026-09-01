@@ -62,7 +62,8 @@ the current 7/291.
 - `ingredient_measure` needs basis-aware amounts (currently grams-only) and
   a UI/validation rule that volume-named labels are redirected to density
   entry.
-- The flesh-out form (step 8) gains the allowed-units section: basis shown,
+- The flesh-out form (deferred to step 8; actually built in **step 8.5**,
+  `/ingredients/:id`) gains the allowed-units section: basis shown,
   family pre-ticked, density input (either entry style) unlocking the other
   family, measures list, category imprecise toggle. Board frame (d) grows
   accordingly.

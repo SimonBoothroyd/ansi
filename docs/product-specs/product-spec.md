@@ -72,8 +72,13 @@ Single shared household dataset; both members full read/write; everything scoped
   imprecise units only for seasoning/oil categories. Materialized at
   creation from `default_allowed_units()` (Dart mirror
   `defaultAllowedUnitSet` — shared test vectors), curated for the seed
-  vocab (`curation_overrides.jsonl`), editable by step 8's flesh-out form.
-  What we may *compute* is unchanged — totals still degrade honestly.
+  vocab (`curation_overrides.jsonl`), and **editable per ingredient in the
+  step-8.5 flesh-out form** (`/ingredients/:id`). Since
+  [ADR-0009](../decisions/0009-density-unlocks-both-families.md) the density leg
+  is ungated — a stored density unlocks the other family whatever the default
+  unit's family, so "1 cup diced mango" is sayable on a piece-default row — and
+  a density arriving after creation extends the list by trigger, wherever it
+  came from. What we may *compute* is unchanged — totals still degrade honestly.
 - **Density is the single volume⇄mass fact**, enterable two equivalent ways
   (7.8): as g/ml, or as "1 tbsp of this weighs N g"
   (`densityFromVolumeWeight`). A volume-named measure label is therefore
@@ -82,8 +87,15 @@ Single shared household dataset; both members full read/write; everything scoped
   `allowed_units` with the family it unlocks, in the same write.
 
 ### Ingredient
-`id · canonical_name · aliases[] · category · density_g_per_ml (nullable) · macros {kcal, protein, carb, fat} (nullable) · macros_basis ('g' | 'ml', step 7.7) · allowed_units (jsonb unit-id array, step 7.8) · default_unit · status (complete | stub) · source (usda_fdc_id | manual | barcode)`
-- `status = stub` → drives the "needs fleshing out" queue + honest macro math.
+`id · canonical_name · aliases[] · category · density_g_per_ml (nullable) · macros {kcal, protein, carb, fat} (nullable) · macros_basis ('g' | 'ml', step 7.7) · allowed_units (jsonb unit-id array, step 7.8) · default_unit · status (complete | stub) · source`
+- `source` is **provenance, and it is load-bearing**: `seed` (the template
+  vocab), `manual` (typed in the picker or the manager), `import_stub` (created
+  at an import commit), `usda_fdc:<id>` (what the server-side prefill stamps),
+  `off:<barcode>` (a barcode scan). The stub-prefill trigger reads it to decide
+  whether a row is its business — it never touches `seed` (whose density-less
+  tail is audited, not accidental) or a barcode row (whose Open Food Facts
+  provenance must not be overwritten by a USDA id).
+- `status = stub` → surfaces in the manager's stub band + honest macro math.
 - **Macros are stored WITH the basis the label read them in** (per-100 g or
   per-100 ml — liquid labels read per 100 ml, and densities are sparse, so
   converting at entry can't be the design). Consumers apply the aggregation
@@ -187,9 +199,18 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
 **Reconciliation screen (matching, not free text):**
 - Confident auto-match → shown with an "undo / wrong match" affordance to correct it
 - Medium confidence → "did you mean?" suggestions
-- No match → "add new" → creates a **stub** → lands in fleshing-out queue
+- No match → "add new" → creates a **stub**, surfaced for fleshing out
 
-**Fleshing-out queue:** list of stub ingredients needing density/macros before they count toward conversions or macro totals.
+**Fleshing out a stub (step 8.5, shipped):** a stub needs density/macros before
+it counts toward conversions or macro totals. It surfaces as a **band on top of
+the whole vocabulary** in the ingredients manager (`/ingredients`), not as a
+separate queue screen — a vocabulary you can only see when it is broken is not a
+vocabulary you can edit. Arriving stubs are **prefilled server-side** from
+`usda_food` by a database trigger (never a client lookup — ADR-0005), and a
+rename re-runs it; a barcode scan prefills the same way from Open Food Facts.
+Prefilling is never promotion: **macros gate `complete`, density does not, and
+confirming is an explicit human act** in the flesh-out form (reversible —
+a `complete` row can be un-confirmed).
 
 **Pickers (step 7.7 — design board "Pickers v2", shipped):** one selection
 anatomy, two contents. Both pickers share a sheet shell (top-anchored search,
@@ -234,7 +255,7 @@ source-tab slot, footer slot):
 |---|---|---|
 | Macros / canonical ingredients | USDA FoodData Central (Foundation Foods + SR Legacy) | CC0 |
 | Volume↔weight density | FDC food portions (primary) + FAO/INFOODS Density DB v2.0 (fallback) | CC0 / open |
-| Barcode → product (stretch) | Open Food Facts | ODbL |
+| Barcode → product (shipped, step 8.5 — on-device lookup, prefills a draft and never completes a row) | Open Food Facts | ODbL (credit shown in the app) |
 
 ---
 
@@ -248,6 +269,9 @@ source-tab slot, footer slot):
 6. **Shopping list from cook plan** (contributions per cook_session → aggregation → provenance → check-off + manual top-up)
 7. **Sync layer** (PowerSync + household + offline queue) — can begin in parallel once the schema in 1–6 stabilizes
 8. **AI/deterministic import** (JSON-LD → photo → reconciliation → stub queue)
+8.5. **Ingredients manager** (the vocabulary gets a screen: browse/search, the
+   flesh-out form owning `allowed_units`/density/macros/name, confirm a stub,
+   add from barcode)
 9. **Computed macros in UI** (stretch; "incomplete" when stubs present)
 10. **Web UI** (stretch; nearly free given Flutter)
 11. **Anti-waste extras** (stretch; freezer-aware batching, variety/monotony warnings, package-size flags)
