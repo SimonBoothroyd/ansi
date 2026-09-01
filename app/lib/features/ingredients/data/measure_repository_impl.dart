@@ -41,17 +41,11 @@ class SqliteMeasureRepository implements MeasureRepository {
     return utc.toIso8601String();
   }
 
-  /// The columns every read below selects — `m.ingredient_id` included, so a
-  /// batched read can group by it. The ingredient join supplies the basis its
-  /// amounts are denominated in (macros_basis is the single stored fact —
-  /// ADR-0008); LEFT, so a measure whose vocab row hasn't synced yet still
-  /// lists (basis falls back per-g), and with a SELECTed column so a watch
-  /// re-fires on ingredient edits too (the LEFT-JOIN watch trap).
-  static const _select =
-      'SELECT m.id, m.ingredient_id, m.label, m.basis_amount, m.sort_order, '
-      'm.source, m.created_at, i.macros_basis '
-      'FROM ingredient_measure m '
-      'LEFT JOIN ingredient i ON i.id = m.ingredient_id ';
+  // Both reads below spell their SELECT out in full rather than sharing an
+  // interpolated constant: `watch_coverage_test` reads these queries as
+  // literals to hold the LEFT-JOIN watch trap, and a `'$fragment WHERE …'`
+  // string is invisible to it. The row→list rule is shared in [_merge], which
+  // is the half that could actually drift.
 
   /// One ingredient's rows, deduplicated and ordered — the shared body of
   /// [watchMeasures] and [measuresByIngredients], so the two can never
@@ -108,8 +102,12 @@ class SqliteMeasureRepository implements MeasureRepository {
     // bound parameters rather than being interpolated into the SQL.
     final placeholders = List.filled(ids.length, '?').join(', ');
     final rows = await _db.getAll(
-      '$_select WHERE m.ingredient_id IN ($placeholders) '
-      'AND m.deleted_at IS NULL ORDER BY m.created_at, m.id',
+      'SELECT m.id, m.ingredient_id, m.label, m.basis_amount, m.sort_order, '
+      'm.source, m.created_at, i.macros_basis '
+      'FROM ingredient_measure m '
+      'LEFT JOIN ingredient i ON i.id = m.ingredient_id '
+      'WHERE m.ingredient_id IN ($placeholders) AND m.deleted_at IS NULL '
+      'ORDER BY m.created_at, m.id',
       ids.toList(),
     );
     final byIngredient = <String, List<Map<String, dynamic>>>{};
@@ -119,11 +117,20 @@ class SqliteMeasureRepository implements MeasureRepository {
     return {for (final e in byIngredient.entries) e.key: _merge(e.value)};
   }
 
+  /// The ingredient join supplies the basis its amounts are denominated in
+  /// (macros_basis is the single stored fact — ADR-0008); LEFT, so a measure
+  /// whose vocab row hasn't synced yet still lists (basis falls back per-g),
+  /// and with a SELECTed column so the watch re-fires on ingredient edits too
+  /// (the LEFT-JOIN watch trap).
   @override
   Stream<List<Measure>> watchMeasures(String ingredientId) {
     return _db
         .watch(
-          '$_select WHERE m.ingredient_id = ? AND m.deleted_at IS NULL '
+          'SELECT m.id, m.ingredient_id, m.label, m.basis_amount, '
+          'm.sort_order, m.source, m.created_at, i.macros_basis '
+          'FROM ingredient_measure m '
+          'LEFT JOIN ingredient i ON i.id = m.ingredient_id '
+          'WHERE m.ingredient_id = ? AND m.deleted_at IS NULL '
           'ORDER BY m.created_at, m.id',
           parameters: [ingredientId],
         )

@@ -914,8 +914,10 @@ class _AliasEditor extends HookConsumerWidget {
   }
 }
 
-/// Whether the imprecise tail is admitted — category-gated (ADR-0008 §5),
-/// which is a fact about the category, not a switch on this form.
+/// Which imprecise words this row admits — gated per word by category
+/// (ADR-0008 §5 as tightened by plan 0020 J3: pinch and dash for the
+/// spice/seasoning/oil classes, handful for greens). A fact about the
+/// category, not a switch on this form, so it is read out rather than offered.
 class _ImpreciseLine extends StatelessWidget {
   const _ImpreciseLine({required this.ingredient});
 
@@ -923,16 +925,20 @@ class _ImpreciseLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final on =
-        ingredient.defaultUnit.family == UnitFamily.imprecise ||
-        kImpreciseGatedCategories.contains(ingredient.category);
+    final words = impreciseUnitsFor(ingredient).map((u) => u.label).join(' · ');
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('pinch · dash · to taste', style: miseMono(size: 11)),
-        Text(
-          on ? 'on — category-gated' : 'off — category-gated',
-          style: miseMono(size: 10, color: MiseColors.muted),
+        Text('Imprecise units', style: miseMono(size: 11)),
+        // Flexible, never a Spacer: the word list grows and a Row cannot give
+        // room it has not got (the G2 lesson).
+        Flexible(
+          child: Text(
+            words.isEmpty ? 'none — category-gated' : words,
+            textAlign: TextAlign.right,
+            style: miseMono(size: 10, color: MiseColors.muted),
+          ),
         ),
       ],
     );

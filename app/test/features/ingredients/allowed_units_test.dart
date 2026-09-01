@@ -48,20 +48,24 @@ void main() {
       expect(units, [cup, tbsp, ml, l, g, kg]);
     });
 
-    test('the olive-oil shape: tbsp default /g oil — mates + g + gated '
-        'imprecise', () {
+    test('the olive-oil shape: tbsp default /g oil — mates + g + the oil '
+        'class imprecise words (J3: no handful of oil)', () {
       final units = allowedUnitsFor(
         _ing(tbsp, density: 0.91, category: 'fats & oils'),
       );
-      expect(units, [tbsp, tsp, cup, ml, g, pinch, dash, handful, toTaste]);
+      expect(units, [tbsp, tsp, cup, ml, g, pinch, dash, toTaste]);
+      expect(units, isNot(contains(handful)));
     });
 
-    test('the egg shape: count default /g — piece + basis base only', () {
+    test('the egg shape: count default /g — piece + basis base, and produce '
+        'earns handful and nothing else (J3)', () {
       final units = allowedUnitsFor(_ing(pieces, category: 'produce'));
-      expect(units, [pieces, g]);
+      expect(units, [pieces, g, handful]);
+      expect(units, isNot(contains(pinch)));
+      expect(units, isNot(contains(dash)));
     });
 
-    test('the salt shape: the seasoning category admits the imprecise tail — '
+    test('the salt shape: the seasoning category admits the whole tail — '
         'which D4c leaves alone, being no part of the mass⇄volume duality', () {
       final units = allowedUnitsFor(_ing(tsp, category: 'spices & seasoning'));
       expect(units, [g, pinch, dash, handful, toTaste]);
@@ -104,7 +108,7 @@ void main() {
       final units = allowedUnitsFor(
         _ing(pieces, density: 0.66, category: 'produce'),
       );
-      expect(units, [pieces, g, tsp, tbsp, cup, ml]);
+      expect(units, [pieces, g, tsp, tbsp, cup, ml, handful]);
       // `kg` stays out: the big metric sibling rides the same magnitude gate
       // the mass/volume legs use, and a piece default is not big-scale. It is
       // the board frame's dashed chip.
@@ -115,7 +119,11 @@ void main() {
     test('without a density a count default still admits nothing but its own '
         'piece and the basis base — the amendment unlocks on the density, '
         'not on the family', () {
-      expect(allowedUnitsFor(_ing(pieces, category: 'produce')), [pieces, g]);
+      expect(allowedUnitsFor(_ing(pieces, category: 'produce')), [
+        pieces,
+        g,
+        handful, // J3: the category's word, not the density's business
+      ]);
     });
 
     test('an imprecise default with a density unlocks both families too, and '
@@ -175,6 +183,62 @@ void main() {
       expect(unitSayableAsDefault(perMl, cup), isTrue);
       expect(unitSayableAsDefault(perMl, g), isFalse);
       expect(basisDefaultUnitFix(perMl), ml);
+    });
+  });
+
+  group('impreciseUnitsFor — the per-word category gate (J3)', () {
+    // Owner ruling off the Pixel field test: "a dash of kale" is not how
+    // anyone cooks. pinch and dash belong to the spice/seasoning/oil classes;
+    // handful belongs to greens — which `produce` is the nearest category the
+    // vocabulary can express.
+    Set<String> wordsFor(String? category) =>
+        impreciseUnitsFor(_ing(g, category: category)).map((u) => u.id).toSet();
+
+    test('the whole mapping, category by category', () {
+      expect(wordsFor('spices & seasoning'), {
+        'pinch',
+        'dash',
+        'handful',
+        'to_taste',
+      });
+      expect(wordsFor('fats & oils'), {'pinch', 'dash', 'to_taste'});
+      expect(wordsFor('produce'), {'handful'});
+      for (final ungated in [
+        'pantry',
+        'grains',
+        'baking',
+        'dairy',
+        'proteins',
+      ]) {
+        expect(wordsFor(ungated), isEmpty, reason: ungated);
+      }
+      // An uncategorised row earns nothing — the gate is a fact about the
+      // category, so no category is no licence.
+      expect(wordsFor(null), isEmpty);
+      expect(wordsFor(''), isEmpty);
+    });
+
+    test('THE KALE VECTOR: greens take a handful, never a pinch or a dash', () {
+      final kale = allowedUnitsFor(
+        _ing(cup, density: 0.2, category: 'produce'),
+      );
+      expect(kale, contains(handful));
+      expect(kale, isNot(contains(pinch)));
+      expect(kale, isNot(contains(dash)));
+    });
+
+    test('a row whose DEFAULT unit is imprecise can always say it, whatever '
+        'its category', () {
+      expect(
+        impreciseUnitsFor(_ing(pinch, category: 'produce')),
+        contains(pinch),
+      );
+      expect(impreciseUnitsFor(_ing(dash, category: 'grains')), contains(dash));
+    });
+
+    test('the category is matched case- and whitespace-insensitively', () {
+      expect(wordsFor('  Produce '), {'handful'});
+      expect(wordsFor('Spices & Seasoning'), hasLength(4));
     });
   });
 
@@ -394,21 +458,29 @@ void main() {
     test('without a density the cross-family chips are drawn LOCKED, not '
         'hidden — the section has to explain what a density buys', () {
       final curryLeaves = _ing(g, category: 'produce');
-      expect(selectedOf(curryLeaves), {'g', 'kg'});
+      expect(selectedOf(curryLeaves), {'g', 'kg', 'handful'});
       expect(lockedOf(curryLeaves), {'tsp', 'tbsp', 'cup', 'ml'});
     });
 
     test('a piece default with no density locks BOTH families beyond its own '
         'basis base — the D4 unlock is what opens them', () {
       final mangoWithoutDensity = _ing(pieces, category: 'produce');
-      expect(selectedOf(mangoWithoutDensity), {'piece', 'g'});
+      expect(selectedOf(mangoWithoutDensity), {'piece', 'g', 'handful'});
       expect(lockedOf(mangoWithoutDensity), {'tsp', 'tbsp', 'cup', 'ml'});
     });
 
     test('with the density, nothing is locked (the mango frame)', () {
       final mango = _ing(pieces, density: 0.66, category: 'produce');
       expect(lockedOf(mango), isEmpty);
-      expect(selectedOf(mango), {'piece', 'g', 'tsp', 'tbsp', 'cup', 'ml'});
+      expect(selectedOf(mango), {
+        'piece',
+        'g',
+        'tsp',
+        'tbsp',
+        'cup',
+        'ml',
+        'handful',
+      });
     });
 
     test('a stored unit the derived rules would not admit still appears, '

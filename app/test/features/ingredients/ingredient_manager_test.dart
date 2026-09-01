@@ -583,8 +583,14 @@ void main() {
       final after = (await repo.byId('mango'))!;
       expect(after.densityGPerMl, isNull);
       // The cross-family units are gone from the stored list; the basis
-      // family and the default unit's own family survive.
-      expect(after.allowedUnits!.map((u) => u.id).toSet(), {'piece', 'g'});
+      // family, the default unit's own family, and the category's imprecise
+      // word (J3 — produce earns `handful`, which owes the density nothing)
+      // all survive.
+      expect(after.allowedUnits!.map((u) => u.id).toSet(), {
+        'piece',
+        'g',
+        'handful',
+      });
       expect(_dashedChipLabels(tester), {'tsp', 'tbsp', 'cup', 'ml'});
     });
 

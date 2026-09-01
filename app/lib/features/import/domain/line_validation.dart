@@ -28,11 +28,21 @@ enum LineIssue {
   unitNotAllowed,
 }
 
-/// The imprecise units the import amount editor ALWAYS admits — a "plus more,
-/// to serve" use is legitimately imprecise regardless of the ingredient's
-/// category, so `to taste`/`pinch`/`dash`/`handful` are always selectable and
-/// always valid here.
-const List<Unit> kImportImpreciseUnits = [pinch, dash, handful, toTaste];
+/// The imprecise units the import amount editor admits for [ingredient].
+///
+/// `to taste` unconditionally: a "plus more, to serve" use is legitimately
+/// imprecise whatever the food, and an import line is exactly where that
+/// phrasing arrives. Everything else is the ingredient's own category gate
+/// ([impreciseUnitsFor]).
+///
+/// This used to be a flat list of all four words unioned onto every match,
+/// which bypassed the vocab gate entirely — so the review offered "a dash of
+/// kale" (plan 0020 **J3**). Owner ruling: pinch and dash belong to the
+/// spice/seasoning/oil classes, handful to greens.
+Set<Unit> importImpreciseUnitsFor(Ingredient ingredient) => {
+  toTaste,
+  ...impreciseUnitsFor(ingredient),
+};
 
 /// The unit tokens acceptable for a matched line: the ingredient's allowed
 /// catalog units (by id) + its [measures] (by label) + the always-admitted
@@ -178,13 +188,13 @@ class LineValidation {
 }
 
 /// The ingredient the import amount editor and the validity check both reason
-/// about: the real ingredient with the always-admitted imprecise units unioned
-/// into its allowed set, so imprecise chips are offered (and accepted) on every
-/// line without touching the stored vocab row.
+/// about: the real ingredient with the imprecise units it earns
+/// ([importImpreciseUnitsFor]) unioned into its allowed set, so those chips are
+/// offered (and accepted) on a line without touching the stored vocab row.
 Ingredient amountSheetIngredient(Ingredient ingredient) {
   final base = ingredient.allowedUnits ?? defaultAllowedUnitSet(ingredient);
   return ingredient.copyWith(
-    allowedUnits: {...base, ...kImportImpreciseUnits}.toList(),
+    allowedUnits: {...base, ...importImpreciseUnitsFor(ingredient)}.toList(),
   );
 }
 

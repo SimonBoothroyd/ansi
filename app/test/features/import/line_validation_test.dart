@@ -35,16 +35,45 @@ LineResolution _res({
 void main() {
   group('acceptableUnitTokens (allowed set + measures + imprecise)', () {
     test('a mass ingredient admits its catalog units, its measures, and the '
-        'always-on imprecise units — nothing else', () {
+        'imprecise words it earns — nothing else', () {
       final tokens = acceptableUnitTokens(_garlic, const [_clove]);
       expect(tokens, containsAll(<String>['g', 'kg'])); // mass default set
       expect(tokens, contains('clove')); // its measure, by label
-      expect(
-        tokens,
-        containsAll(<String>['pinch', 'dash', 'handful', 'to_taste']),
-      );
+      // `to taste` rides on every import line ("plus more, to serve").
+      expect(tokens, contains('to_taste'));
       // A volume unit is NOT admitted (no density) — enforcement, not anything.
       expect(tokens, isNot(contains('ml')));
+    });
+
+    test('J3: pinch and dash are NOT unioned onto every match — the review '
+        'offered "a dash of kale" because they were', () {
+      const kale = Ingredient(
+        id: 'i-kale',
+        canonicalName: 'Kale',
+        defaultUnit: cup,
+        category: 'produce',
+        status: IngredientStatus.complete,
+        densityGPerMl: 0.2,
+      );
+      final tokens = acceptableUnitTokens(kale, const []);
+      expect(tokens, isNot(contains('pinch')));
+      expect(tokens, isNot(contains('dash')));
+      // Real cooking language survives: a handful of greens, and to taste.
+      expect(tokens, containsAll(<String>['handful', 'to_taste']));
+    });
+
+    test('J3: a seasoning still earns the whole tail', () {
+      const salt = Ingredient(
+        id: 'i-salt',
+        canonicalName: 'Salt',
+        defaultUnit: tsp,
+        category: 'spices & seasoning',
+        status: IngredientStatus.complete,
+      );
+      expect(
+        acceptableUnitTokens(salt, const []),
+        containsAll(<String>['pinch', 'dash', 'handful', 'to_taste']),
+      );
     });
   });
 
@@ -227,12 +256,31 @@ void main() {
     });
 
     test('an imprecise parsed amount fronts the imprecise family instead', () {
+      // On a row that actually earns the word (J3): a seasoning line reading
+      // "a good pinch" must not have to expand to say pinch.
+      const salt = Ingredient(
+        id: 'i-salt',
+        canonicalName: 'Salt',
+        defaultUnit: tsp,
+        category: 'spices & seasoning',
+        status: IngredientStatus.complete,
+      );
       final visible = rankedUnitChips(
-        chips,
+        acceptableUnitChips(salt, const []),
         parsedUnit: 'pinch',
       ).take(kVisibleUnitChips).map((c) => c.token).toList();
       expect(visible.first, 'pinch');
       expect(visible, contains('to_taste'));
+    });
+
+    test('J3: a pinch line on a food that earns no pinch fronts the word it '
+        'DOES earn, rather than offering one it cannot honour', () {
+      final visible = rankedUnitChips(
+        chips,
+        parsedUnit: 'pinch',
+      ).map((c) => c.token).toList();
+      expect(visible, isNot(contains('pinch')));
+      expect(visible.first, 'to_taste');
     });
 
     test('the fold hides nothing — every chip survives the ranking', () {

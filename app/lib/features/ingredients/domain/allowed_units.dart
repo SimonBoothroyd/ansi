@@ -53,11 +53,46 @@ const _crossKitchen = {
   UnitFamily.mass: [g, kg],
 };
 
-/// The categories whose ingredients admit the imprecise units by default
-/// (ADR-0008 §5: category-gated, not universal). These are the vocab's
-/// ACTUAL category values — it has no separate 'condiment' category (plan
-/// 0013 note); condiment-ish pantry rows get theirs via curation overrides.
-const kImpreciseGatedCategories = {'spices & seasoning', 'fats & oils'};
+/// Which categories admit which imprecise word (ADR-0008 §5: category-gated,
+/// not universal — tightened per-WORD by plan 0020 **J3**).
+///
+/// The gate used to be one set of categories admitting all four words, so
+/// anything that earned `pinch` earned `handful` too. It was also bypassed
+/// entirely on the import surface, which is how "a dash of kale" came to be
+/// offered on the owner's phone. Owner ruling: **pinch and dash are for the
+/// spice/seasoning/oil classes; handful is for greens** — that is how cooks
+/// actually talk.
+///
+/// Keys are the vocab's ACTUAL category values (`produce`, `pantry`,
+/// `spices & seasoning`, `grains`, `baking`, `fats & oils`, `dairy`,
+/// `proteins`). It has no separate 'condiment' category (plan 0013 note), and
+/// no leafy/greens category either — `produce` is the nearest thing the
+/// vocabulary can express, so it is what `handful` is gated on; a tighter
+/// gate would need the seed to split the category, not this map to grow.
+/// Condiment-ish pantry rows get theirs via curation overrides.
+const kImpreciseCategoryGates = <Unit, Set<String>>{
+  pinch: {'spices & seasoning', 'fats & oils'},
+  dash: {'spices & seasoning', 'fats & oils'},
+  handful: {'produce', 'spices & seasoning'},
+  toTaste: {'spices & seasoning', 'fats & oils'},
+};
+
+/// The imprecise units [ingredient]'s own category earns it (**J3**), plus its
+/// default unit when that is itself imprecise — a row defaulting to `pinch`
+/// must always be able to say `pinch`.
+///
+/// This is the vocab rule. The import amount editor admits `to taste` on top
+/// of it for every food, because "plus more, to serve" is legitimately
+/// imprecise whatever the ingredient — see `importImpreciseUnitsFor`.
+Set<Unit> impreciseUnitsFor(Ingredient ingredient) {
+  final category = ingredient.category?.trim().toLowerCase();
+  final d = ingredient.defaultUnit;
+  return {
+    if (d.family == UnitFamily.imprecise) d,
+    for (final gate in kImpreciseCategoryGates.entries)
+      if (category != null && gate.value.contains(category)) gate.key,
+  };
+}
 
 /// The ADR-0008 **derived** allowed-unit defaults for [ingredient] — the
 /// Dart mirror of the database's `default_allowed_units()` (migration 0012;
@@ -80,8 +115,9 @@ const kImpreciseGatedCategories = {'spices & seasoning', 'fats & oils'};
 ///   density ([densityUnlockedUnits] — without one, [convert] would fail
 ///   with `unit/no_density`); since the plan-0020 D4 amendment this fires
 ///   for a count/imprecise default too ("1 cup diced mango");
-/// - the imprecise units only for [kImpreciseGatedCategories] (and for
-///   imprecise-default rows).
+/// - the imprecise units per [kImpreciseCategoryGates] — gated word by word
+///   since J3, so greens earn `handful` without earning `pinch` (and for
+///   imprecise-default rows, their own word).
 ///
 /// A count-default ingredient (eggs, tins) offers count + the basis base:
 /// a gram line of a per-g count food computes macros directly, while
@@ -129,11 +165,9 @@ Set<Unit> _derivedSet(Ingredient ingredient, {required bool density}) {
     units.addAll(_densityCrossLeg(ingredient));
   }
 
-  // Imprecise leg: category-gated (imprecise-default rows keep the tail).
-  if (d.family == UnitFamily.imprecise ||
-      kImpreciseGatedCategories.contains(ingredient.category)) {
-    units.addAll([pinch, dash, handful, toTaste]);
-  }
+  // Imprecise leg: gated per WORD by category (J3), and an imprecise default
+  // always keeps its own word.
+  units.addAll(impreciseUnitsFor(ingredient));
   return units;
 }
 
