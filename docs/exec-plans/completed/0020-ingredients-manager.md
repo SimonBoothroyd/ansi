@@ -542,8 +542,8 @@ Append-only.
 - [x] Tech-debt rows **added** for corners knowingly cut, and **retired** for
       the five rows this step pays off — plus the D4c SQL-mirror row updated for
       how the divergence grew under J3/J3b.
-- [x] `make ci` green — `make analyze` clean, `make test-app` 767/767,
-      `make docs-check` green at close-out.
+- [x] `make ci` green — re-run at close-out: `analyze` + `custom_lint` clean,
+      `test-app` 767/767, `test-fns` 126/126, `docs-check` OK.
 - 2026-08-31 — **Owner sign-off.** D1–D8 decided as recommended (D1 prefill-
   never-complete overrules the old frame caption; D5 macros-gate-completion
   overrules the board/spec wording — both edits are in the acceptance
