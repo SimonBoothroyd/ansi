@@ -511,3 +511,46 @@ Append-only.
   lane M (domain + manager UI — normalize port, rename hazard, list/form/
   delete, /ingredients route), lane B (barcode — scanner sheet, on-device OFF
   client, draft mapper), converging like step 8's DAG.
+- 2026-08-31 — **D4b (owner, from live exploration of the shipped form).** The
+  allowed-units editor offered both families freely; ruled instead: the
+  **basis family** (per-100g ⇒ mass, per-ml ⇒ volume) is always admitted; the
+  **other family is density-derived** — admitted while a density is saved
+  (ADR-0009's unlock) and **stripped when the density is deleted**. Editor
+  renders cross-family chips locked with a "needs a density" hint when no
+  density exists. Lines already using a stripped unit degrade to the existing
+  `unitNotAllowed` flag, never rewritten. Count/imprecise untouched. Refines
+  ADR-0009: union-never-remove still governs backfills/reseeds; density
+  deletion is the one removal leg, because that admission was derived.
+- 2026-08-31 — **Owner exploration findings (live on the sim), batch 1.**
+  F1: "Look up in USDA" is a silent no-op on an UNSAVED add-new draft (the
+  row doesn't exist to re-read; verified — no local row, empty ps_crud).
+  Fix: the button is disabled until the row is saved, and the create flow
+  offers save-then-lookup so the server prefill's round-trip is walked, not
+  shrugged at. F2: measures are read-only on the flesh-out form ("added from
+  a recipe line's quantity sheet") — wrong deferral on the manager screen;
+  embed the 7.7 manage-measures editor here. F3: category becomes a dropdown
+  of existing categories (+ add-new), not free text. All three land with the
+  D4b implementation in the post-convergence polish pass.
+- 2026-08-31 — **F1 widened (owner clarification).** The failed flow was
+  rename-then-lookup on a SAVED stub (Black Rice → Chicken Breast) with the
+  rename still unsaved in the form. F1's fix therefore covers pending EDITS,
+  not just unsaved drafts: "Look up in USDA" flushes unsaved changes (save-
+  then-lookup) before the re-read, and its helper copy explains the sync
+  round-trip it is waiting on. Pairs with migration 0015 (rename re-fires
+  the server probe on bare stubs only — fleshed-out rows are never
+  re-probed, so a rename can never clobber confirmed numbers).
+- 2026-08-31 — **D7b (owner, from exploration): enrichment should not wait for
+  sync.** `usda_food` stays server-only (ADR-0005 unmoved), but the trigger's
+  probe is additionally exposed as a `probe_usda(name)` security-definer
+  function via PostgREST: creation flows call it at birth when online (an
+  ingredient is born enriched), and "Look up in USDA" becomes a real probe-
+  and-apply instead of a re-read; offline degrades to the 0014/0015 trigger
+  path with honest copy. Fill-null-fields-on-bare-stubs-only throughout.
+  Policy: stubs are TRANSIENT, not banned (offline + unknown-import paths
+  need them); target is zero standing stubs. One-time chore added: drive the
+  36 seed stubs to zero in the seed itself (FDC probe + hand curation/OFF
+  for FDC-less rows).
+- 2026-08-31 — **Seed-stub-zero chore DEFERRED (owner).** The 36 template
+  stubs stay for now; the D7b probe + barcode + manager badge are the live
+  paths for whittling them. Revisit as its own small slice when it itches —
+  the FDC-probe-offline + hand-curation approach is scoped above.
