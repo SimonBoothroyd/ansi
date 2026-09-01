@@ -104,6 +104,19 @@ db-lint: ## Sanity-check migrations
 evals: ## Run the import/matching eval harness
 	cd evals && ./runner/run.sh
 
+# --- audits (local-only; need the stack up) ---
+# The density/admission review HTML page is built from the audit.json this
+# target produces: scripts/export_vocab.sh dumps the TEMPLATE household's vocab
+# from Postgres, then app/tool/density_audit.dart re-runs the shipped domain
+# derivation (allowedUnitsFor / rankedUnitChips) over it. Deliberately NOT in
+# CI — it reads the local Supabase stack, so it stays a one-command local tool.
+.PHONY: vocab-audit
+vocab-audit: ## Dump template vocab + derived unit admission to scratch/audit.json (needs: make db-up)
+	@mkdir -p scratch
+	./scripts/export_vocab.sh > scratch/vocab.json
+	cd $(APP) && dart run tool/density_audit.dart ../scratch/vocab.json > ../scratch/audit.json
+	@echo "scratch/vocab.json → scratch/audit.json (feeds the density/admission page)"
+
 # --- docs (knowledge base) ---
 .PHONY: docs docs-check
 docs: ## Regenerate generated docs (docs/generated/*)
