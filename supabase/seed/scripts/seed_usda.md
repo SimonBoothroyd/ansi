@@ -1,17 +1,19 @@
 # USDA reference seed (`usda_food`)
 
 `gen_usda.ts` turns the USDA FoodData Central CSV bundles into
-`supabase/seed_usda.sql` — the server-side reference table (macros + density) the
-"create a new ingredient" search and the stub prefill read. It is **never synced
-and never matched at import** (ADR-0005).
+`supabase/seed_usda.sql` — the server-side reference table (macros + density)
+the "create a new ingredient" search and the stub prefill read. It is **never
+synced and never matched at import** (ADR-0005).
 
 The raw CSVs (~40 MB) are **not committed** — only the compact generated
-`seed_usda.sql` (~1.7 MB, ~8k rows) is. Regenerate only when refreshing the data.
+`seed_usda.sql` (~1.7 MB, ~8k rows) is. Regenerate only when refreshing the
+data.
 
 ## Refresh
 
-1. Download the two CC0 bundles from <https://fdc.nal.usda.gov/download-datasets>
-   (filenames are dated; grab the latest Foundation and the frozen SR Legacy):
+1. Download the two CC0 bundles from
+   <https://fdc.nal.usda.gov/download-datasets> (filenames are dated; grab the
+   latest Foundation and the frozen SR Legacy):
 
    ```
    curl -LO https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_foundation_food_csv_2026-04-30.zip
@@ -37,7 +39,7 @@ The raw CSVs (~40 MB) are **not committed** — only the compact generated
 - **Density** (g/ml) derived from the best-ranked volume `food_portion` (unit
   words matched in the whole portion text — SR Legacy stores most volume
   portions as free-text modifiers, which is why keying on the unit table alone
-  found almost none). Where this still leaves a vocab row bare, the
-  FAO/INFOODS Density DB fallback picks it up — see `fao_density.md`.
+  found almost none). Where this still leaves a vocab row bare, the FAO/INFOODS
+  Density DB fallback picks it up — see `fao_density.md`.
 - **`match_text`** = the shared §7 normalizer over the description, so the same
   normalizer the household vocab and cascade use also indexes the reference.

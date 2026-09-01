@@ -76,16 +76,24 @@ export function readOverrides(scriptsDir: string): CurationOverride[] {
     .map((l) => JSON.parse(l) as CurationOverride);
   const problems: string[] = [];
   for (const o of overrides) {
-    if (!o.match_text) problems.push(`override without match_text: ${JSON.stringify(o)}`);
-    if (!o.reason) problems.push(`override without a reason: ${JSON.stringify(o)}`);
+    if (!o.match_text) {
+      problems.push(`override without match_text: ${JSON.stringify(o)}`);
+    }
+    if (!o.reason) {
+      problems.push(`override without a reason: ${JSON.stringify(o)}`);
+    }
     if (o.kind === "drop_measure" && !o.label) {
       problems.push(`drop_measure without label: ${o.match_text}`);
     }
     if (o.kind === "add_measure" && (!o.label || !(o.basis_amount! > 0))) {
-      problems.push(`add_measure needs label + positive basis_amount: ${o.match_text}`);
+      problems.push(
+        `add_measure needs label + positive basis_amount: ${o.match_text}`,
+      );
     }
     if (o.kind === "density" && o.value !== null && !(o.value! > 0)) {
-      problems.push(`density override needs a positive value or null: ${o.match_text}`);
+      problems.push(
+        `density override needs a positive value or null: ${o.match_text}`,
+      );
     }
     // A density fill must not claim the prefill's mark: `usda_fdc:<id>` is
     // what `Ingredient.isUsdaPrefilled` reads to say the MACROS came from

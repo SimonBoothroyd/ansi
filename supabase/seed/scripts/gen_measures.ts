@@ -72,10 +72,22 @@ const BORROWS: { matchText: string; fdcId: string; why: string }[] = [
   // These canned beans have no can-sized FDC portion of their own; pinto's
   // "can drained solids" (a standard 15 oz can) is the representative can.
   { matchText: "black bean canned", fdcId: "174286", why: "15 oz bean can" },
-  { matchText: "cannellini bean canned", fdcId: "174286", why: "15 oz bean can" },
-  { matchText: "great northern bean canned", fdcId: "174286", why: "15 oz bean can" },
+  {
+    matchText: "cannellini bean canned",
+    fdcId: "174286",
+    why: "15 oz bean can",
+  },
+  {
+    matchText: "great northern bean canned",
+    fdcId: "174286",
+    why: "15 oz bean can",
+  },
   { matchText: "navy bean canned", fdcId: "174286", why: "15 oz bean can" },
-  { matchText: "black eyed pea canned", fdcId: "174286", why: "15 oz bean can" },
+  {
+    matchText: "black eyed pea canned",
+    fdcId: "174286",
+    why: "15 oz bean can",
+  },
   // The vocab's apple varieties link Foundation foods (fresher macros) that
   // carry NO piece portions; SR Legacy has the SAME varieties with USDA's
   // measured size classes — borrow each variety's own SR sibling.
@@ -180,7 +192,8 @@ const REWRITE: Record<string, string> = {
 // cheese) — all EMITTED now (generous extraction), ranked last so chips lead
 // with the most kitchen-useful unit; the curation pass trims where a
 // fragment is senseless for the food.
-const FRAGMENT = /\b(slice|wedge|ring|strip|stick|tip|chunk|cube|ball|twist|chip)\b/;
+const FRAGMENT =
+  /\b(slice|wedge|ring|strip|stick|tip|chunk|cube|ball|twist|chip)\b/;
 const CONTAINER = /\b(can|block|package|packet|bunch|bag)\b/;
 
 /// Kitchen usefulness → `sort_order` rank: chips render in this order
@@ -264,7 +277,10 @@ function readCsv(path: string): Record<string, string>[] {
 
 /// Raw FDC descriptions for the foods we consume — they drive the basis
 /// guard ("without peel") and shared-link ownership detection.
-function loadDescriptions(dirs: string[], keep: Set<string>): Map<string, string> {
+function loadDescriptions(
+  dirs: string[],
+  keep: Set<string>,
+): Map<string, string> {
   const descs = new Map<string, string>();
   for (const dir of dirs) {
     for (const f of readCsv(`${dir}/food.csv`)) {
@@ -277,7 +293,10 @@ function loadDescriptions(dirs: string[], keep: Set<string>): Map<string, string
 }
 
 /// All usable piece-type portions per fdc_id, filtered + ranked.
-function loadPortions(dirs: string[], keep: Set<string>): Map<string, Portion[]> {
+function loadPortions(
+  dirs: string[],
+  keep: Set<string>,
+): Map<string, Portion[]> {
   const byFood = new Map<string, Portion[]>();
   for (const dir of dirs) {
     const units = new Map<string, string>();
@@ -358,10 +377,33 @@ function basisFilter(
 // Colours / preparation / generic words that must never count as a variety
 // marker for the keep-only rule below.
 const VARIETY_STOP = new Set([
-  "red", "green", "yellow", "orange", "white", "black", "purple", "sweet",
-  "hot", "baby", "dried", "canned", "frozen", "fresh", "whole", "ground",
-  "leaf", "bean", "pea", "pod", "mixed", "extra", "firm", "silken", "dark",
-  "light", "king",
+  "red",
+  "green",
+  "yellow",
+  "orange",
+  "white",
+  "black",
+  "purple",
+  "sweet",
+  "hot",
+  "baby",
+  "dried",
+  "canned",
+  "frozen",
+  "fresh",
+  "whole",
+  "ground",
+  "leaf",
+  "bean",
+  "pea",
+  "pod",
+  "mixed",
+  "extra",
+  "firm",
+  "silken",
+  "dark",
+  "light",
+  "king",
 ]);
 
 /// Variety honesty: when an ingredient is linked to a broader food ("cherry
@@ -378,7 +420,7 @@ function varietyFilter(matchText: string, portions: Portion[]): Portion[] {
   );
   if (variety.size === 0) return portions;
   const hits = portions.filter((p) =>
-    p.label.split(/[,\s]+/).some((w) => variety.has(w)),
+    p.label.split(/[,\s]+/).some((w) => variety.has(w))
   );
   return hits.length > 0 ? hits : portions;
 }
@@ -539,10 +581,16 @@ function main(): void {
   // Tier 2: explicit borrows, marked as such.
   for (const b of BORROWS) {
     const picked = pick(
-      basisFilter(b.matchText, descs.get(b.fdcId) ?? "", byFood.get(b.fdcId) ?? []),
+      basisFilter(
+        b.matchText,
+        descs.get(b.fdcId) ?? "",
+        byFood.get(b.fdcId) ?? [],
+      ),
     );
     if (picked.length === 0) {
-      throw new Error(`borrow source ${b.fdcId} (${b.matchText}) has no portions`);
+      throw new Error(
+        `borrow source ${b.fdcId} (${b.matchText}) has no portions`,
+      );
     }
     picked.forEach((p, i) => {
       rows.push({

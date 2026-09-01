@@ -115,7 +115,7 @@ function main(): void {
     "",
     "begin;",
     "",
-    "-- is_template (0008): \"Home\" is the member-less vocab template new",
+    '-- is_template (0008): "Home" is the member-less vocab template new',
     "-- households clone from at onboarding; template households are never",
     "-- joinable.",
     `insert into household (id, name, is_template)`,
