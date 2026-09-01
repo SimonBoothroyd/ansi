@@ -160,11 +160,20 @@ String _$importValidationKeyHash() =>
 ///
 /// It is deliberately NOT recomputed on every controller change: it depends on
 /// [importValidationKey], so editing a note or the servings leaves the cached
-/// map alone. When it does recompute, the whole import's vocab is fetched in
-/// ONE query and the per-ingredient measure streams are all subscribed before
-/// the first await — never N sequential round-trips down the line list. Views
-/// must read it with `AsyncValue.value` (which keeps the last data across a
-/// refresh), never a data-only view that goes null mid-recompute.
+/// map alone. Views must read it with `AsyncValue.value` (which keeps the last
+/// data across a refresh), never a data-only view that goes null mid-recompute.
+///
+/// The whole import's vocab and the whole import's measures are each fetched in
+/// ONE repository query — never N round-trips down the line list, and (plan
+/// 0020 **J2**) never through the per-ingredient measure STREAM providers.
+/// Those are autoDispose, PowerSync's `watch` does not emit synchronously, and
+/// an element disposed before its first emission completes `.future` with a
+/// `StateError` — which this loader caught and turned into "no measures", so
+/// "1 clove" of a garlic row that carries a `clove` measure validated against
+/// an empty list and was flagged "Pick a supported unit". A plain read has no
+/// element to lose. Nothing is swallowed now either: a query that genuinely
+/// fails surfaces as the provider's error rather than as a screen full of
+/// wrongly-flagged lines.
 
 @ProviderFor(importValidation)
 const importValidationProvider = ImportValidationProvider._();
@@ -178,11 +187,20 @@ const importValidationProvider = ImportValidationProvider._();
 ///
 /// It is deliberately NOT recomputed on every controller change: it depends on
 /// [importValidationKey], so editing a note or the servings leaves the cached
-/// map alone. When it does recompute, the whole import's vocab is fetched in
-/// ONE query and the per-ingredient measure streams are all subscribed before
-/// the first await — never N sequential round-trips down the line list. Views
-/// must read it with `AsyncValue.value` (which keeps the last data across a
-/// refresh), never a data-only view that goes null mid-recompute.
+/// map alone. Views must read it with `AsyncValue.value` (which keeps the last
+/// data across a refresh), never a data-only view that goes null mid-recompute.
+///
+/// The whole import's vocab and the whole import's measures are each fetched in
+/// ONE repository query — never N round-trips down the line list, and (plan
+/// 0020 **J2**) never through the per-ingredient measure STREAM providers.
+/// Those are autoDispose, PowerSync's `watch` does not emit synchronously, and
+/// an element disposed before its first emission completes `.future` with a
+/// `StateError` — which this loader caught and turned into "no measures", so
+/// "1 clove" of a garlic row that carries a `clove` measure validated against
+/// an empty list and was flagged "Pick a supported unit". A plain read has no
+/// element to lose. Nothing is swallowed now either: a query that genuinely
+/// fails surfaces as the provider's error rather than as a screen full of
+/// wrongly-flagged lines.
 
 final class ImportValidationProvider
     extends
@@ -203,11 +221,20 @@ final class ImportValidationProvider
   ///
   /// It is deliberately NOT recomputed on every controller change: it depends on
   /// [importValidationKey], so editing a note or the servings leaves the cached
-  /// map alone. When it does recompute, the whole import's vocab is fetched in
-  /// ONE query and the per-ingredient measure streams are all subscribed before
-  /// the first await — never N sequential round-trips down the line list. Views
-  /// must read it with `AsyncValue.value` (which keeps the last data across a
-  /// refresh), never a data-only view that goes null mid-recompute.
+  /// map alone. Views must read it with `AsyncValue.value` (which keeps the last
+  /// data across a refresh), never a data-only view that goes null mid-recompute.
+  ///
+  /// The whole import's vocab and the whole import's measures are each fetched in
+  /// ONE repository query — never N round-trips down the line list, and (plan
+  /// 0020 **J2**) never through the per-ingredient measure STREAM providers.
+  /// Those are autoDispose, PowerSync's `watch` does not emit synchronously, and
+  /// an element disposed before its first emission completes `.future` with a
+  /// `StateError` — which this loader caught and turned into "no measures", so
+  /// "1 clove" of a garlic row that carries a `clove` measure validated against
+  /// an empty list and was flagged "Pick a supported unit". A plain read has no
+  /// element to lose. Nothing is swallowed now either: a query that genuinely
+  /// fails surfaces as the provider's error rather than as a screen full of
+  /// wrongly-flagged lines.
   const ImportValidationProvider._()
     : super(
         from: null,
@@ -234,7 +261,7 @@ final class ImportValidationProvider
   }
 }
 
-String _$importValidationHash() => r'5245b733b9512892960c3aaef1ddec08bda850fa';
+String _$importValidationHash() => r'f83b92b7d03b45811f6e3d1a1044baa360c87b9c';
 
 /// The ONE "how many lines still want you" count — the header's "N to review"
 /// and the Save button's "N line(s) need you" are the same number, read from

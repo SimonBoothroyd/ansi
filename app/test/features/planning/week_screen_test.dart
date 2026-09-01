@@ -1,16 +1,16 @@
+import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/features/planning/data/planning_providers.dart';
+import 'package:ansi/features/planning/domain/planning.dart';
+import 'package:ansi/features/planning/domain/planning_repository.dart';
+import 'package:ansi/features/planning/presentation/week_view.dart';
+import 'package:ansi/features/recipes/data/recipe_providers.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
-import 'package:mise/core/theme/mise_theme.dart';
-import 'package:mise/features/planning/data/planning_providers.dart';
-import 'package:mise/features/planning/domain/planning.dart';
-import 'package:mise/features/planning/domain/planning_repository.dart';
-import 'package:mise/features/planning/presentation/week_view.dart';
-import 'package:mise/features/recipes/data/recipe_providers.dart';
-import 'package:mise/features/recipes/domain/recipe.dart';
-import 'package:mise/features/recipes/domain/recipe_repository.dart';
 
 /// A canned planner: emits [week] for the current week and [last] as the
 /// reference week, with two members. Mutations are inert.

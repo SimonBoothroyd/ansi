@@ -1,19 +1,19 @@
 import 'dart:async';
 
+import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/recipes/data/recipe_providers.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/domain/recipe_macros.dart';
+import 'package:ansi/features/recipes/domain/recipe_repository.dart';
+import 'package:ansi/features/recipes/presentation/recipe_macro_panel.dart';
+import 'package:ansi/features/recipes/presentation/recipe_view.dart';
+import 'package:ansi/shared/incomplete_macros.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:mise/core/theme/mise_theme.dart';
-import 'package:mise/core/units/macros.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/recipes/data/recipe_providers.dart';
-import 'package:mise/features/recipes/domain/recipe.dart';
-import 'package:mise/features/recipes/domain/recipe_macros.dart';
-import 'package:mise/features/recipes/domain/recipe_repository.dart';
-import 'package:mise/features/recipes/presentation/recipe_macro_panel.dart';
-import 'package:mise/features/recipes/presentation/recipe_view.dart';
-import 'package:mise/shared/incomplete_macros.dart';
 
 /// Serves the one recipe the page under test renders, over a controllable
 /// stream so a live vocab change can be pushed mid-test.

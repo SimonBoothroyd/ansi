@@ -14,10 +14,10 @@ library;
 
 import 'dart:async';
 
+import 'package:ansi/core/sync/database.dart';
+import 'package:ansi/core/sync/session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:mise/core/sync/database.dart';
-import 'package:mise/core/sync/session.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:powersync/powersync.dart';
 import 'package:sqlite3/common.dart' show ResultSet, Row;

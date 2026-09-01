@@ -7,11 +7,11 @@ library;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:ansi/features/ingredients/barcode/ingredient_draft.dart';
+import 'package:ansi/features/ingredients/barcode/off_lookup.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:mise/features/ingredients/barcode/ingredient_draft.dart';
-import 'package:mise/features/ingredients/barcode/off_lookup.dart';
 
 /// A found product, trimmed to the keys the mapper reads.
 const _found = '''

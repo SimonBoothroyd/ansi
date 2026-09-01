@@ -11,12 +11,12 @@ library;
 
 import 'dart:async';
 
-import 'package:mise/core/units/macros.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/ingredients/domain/allowed_units.dart';
-import 'package:mise/features/ingredients/domain/ingredient.dart';
-import 'package:mise/features/ingredients/domain/ingredient_repository.dart';
-import 'package:mise/features/ingredients/domain/normalize.dart';
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/domain/allowed_units.dart';
+import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
+import 'package:ansi/features/ingredients/domain/normalize.dart';
 
 /// The manager's write half as `UnimplementedError`s — for read-only fakes.
 mixin IngredientManagerStubs implements IngredientRepository {

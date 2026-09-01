@@ -2,13 +2,13 @@
 /// wires to at merge: one import, one await, an [IngredientDraft] or null.
 library;
 
+import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/features/ingredients/barcode/barcode_add.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:mise/core/theme/mise_theme.dart';
-import 'package:mise/features/ingredients/barcode/barcode_add.dart';
 
 const _foundBody = '''
 {"code":"3017620422003","status":1,"product":{"code":"3017620422003",

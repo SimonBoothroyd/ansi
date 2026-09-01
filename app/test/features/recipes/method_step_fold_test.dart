@@ -1,7 +1,7 @@
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/recipes/domain/method_step.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/recipes/domain/method_step.dart';
-import 'package:mise/features/recipes/domain/recipe.dart';
 
 LineItem _li(String id, {double? qty, Unit unit = g}) => LineItem(
   id: id,

@@ -8,14 +8,14 @@
 // ignore_for_file: scoped_providers_should_specify_dependencies
 library;
 
+import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
+import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/presentation/ingredient_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:mise/core/theme/mise_theme.dart';
-import 'package:mise/features/ingredients/data/ingredient_providers.dart';
-import 'package:mise/features/ingredients/domain/ingredient.dart';
-import 'package:mise/features/ingredients/presentation/ingredient_picker.dart';
 
 import '../../helpers/fake_ingredient_repository.dart';
 

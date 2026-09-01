@@ -62,6 +62,24 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ansi/app.dart';
+import 'package:ansi/core/config/env.dart';
+import 'package:ansi/core/sync/database.dart';
+import 'package:ansi/core/sync/schema.dart';
+import 'package:ansi/core/sync/session.dart' show currentHouseholdIdProvider;
+import 'package:ansi/features/import/data/import_providers.dart';
+import 'package:ansi/features/import/data/import_repository_impl.dart';
+import 'package:ansi/features/import/presentation/recon_line_card.dart'
+    show AmountEditor;
+import 'package:ansi/features/ingredients/barcode/barcode_add.dart'
+    show OffLookup, offLookupProvider;
+import 'package:ansi/features/ingredients/barcode/barcode_scan_sheet.dart'
+    show BarcodeScanSheet;
+import 'package:ansi/features/ingredients/domain/normalize.dart'
+    show normalizeMatchText;
+import 'package:ansi/features/ingredients/presentation/quantity_unit_sheet.dart'
+    show QuantityUnitEditor, UnitChipRow;
+import 'package:ansi/features/planning/domain/planning.dart' show mondayOf;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -69,24 +87,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:mise/app.dart';
-import 'package:mise/core/config/env.dart';
-import 'package:mise/core/sync/database.dart';
-import 'package:mise/core/sync/schema.dart';
-import 'package:mise/core/sync/session.dart' show currentHouseholdIdProvider;
-import 'package:mise/features/import/data/import_providers.dart';
-import 'package:mise/features/import/data/import_repository_impl.dart';
-import 'package:mise/features/import/presentation/recon_line_card.dart'
-    show AmountEditor;
-import 'package:mise/features/ingredients/barcode/barcode_add.dart'
-    show OffLookup, offLookupProvider;
-import 'package:mise/features/ingredients/barcode/barcode_scan_sheet.dart'
-    show BarcodeScanSheet;
-import 'package:mise/features/ingredients/domain/normalize.dart'
-    show normalizeMatchText;
-import 'package:mise/features/ingredients/presentation/quantity_unit_sheet.dart'
-    show QuantityUnitEditor, UnitChipRow;
-import 'package:mise/features/planning/domain/planning.dart' show mondayOf;
 import 'package:powersync/powersync.dart' hide Column;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';

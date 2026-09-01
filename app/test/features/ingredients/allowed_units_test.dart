@@ -1,9 +1,9 @@
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/domain/allowed_units.dart';
+import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/core/units/macros.dart';
-import 'package:mise/core/units/measure.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/ingredients/domain/allowed_units.dart';
-import 'package:mise/features/ingredients/domain/ingredient.dart';
 
 Ingredient _ing(
   Unit defaultUnit, {

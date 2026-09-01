@@ -4,15 +4,15 @@
 /// is gone, which navigation timing can defer).
 library;
 
+import 'package:ansi/features/books/data/book_providers.dart';
+import 'package:ansi/features/books/domain/book.dart';
+import 'package:ansi/features/books/domain/book_repository.dart';
+import 'package:ansi/features/recipes/data/recipe_providers.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/domain/recipe_repository.dart';
+import 'package:ansi/features/recipes/presentation/recipe_view_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:mise/features/books/data/book_providers.dart';
-import 'package:mise/features/books/domain/book.dart';
-import 'package:mise/features/books/domain/book_repository.dart';
-import 'package:mise/features/recipes/data/recipe_providers.dart';
-import 'package:mise/features/recipes/domain/recipe.dart';
-import 'package:mise/features/recipes/domain/recipe_repository.dart';
-import 'package:mise/features/recipes/presentation/recipe_view_models.dart';
 
 class _FakeRecipeRepo implements RecipeRepository {
   final saved = <Recipe>[];

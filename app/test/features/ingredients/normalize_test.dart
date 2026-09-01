@@ -10,9 +10,9 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ansi/features/ingredients/domain/normalize.dart';
+import 'package:ansi/features/ingredients/domain/search_query.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/features/ingredients/domain/normalize.dart';
-import 'package:mise/features/ingredients/domain/search_query.dart';
 
 void main() {
   group('shared vectors — parity with normalize.ts', () {

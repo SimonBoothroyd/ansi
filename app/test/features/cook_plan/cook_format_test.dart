@@ -1,6 +1,6 @@
+import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
+import 'package:ansi/features/cook_plan/presentation/cook_format.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/features/cook_plan/domain/cook_plan.dart';
-import 'package:mise/features/cook_plan/presentation/cook_format.dart';
 
 CookSession _session({
   required int cookDay,

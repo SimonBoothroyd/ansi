@@ -1,6 +1,6 @@
+import 'package:ansi/features/planning/domain/planning.dart';
+import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/features/planning/domain/planning.dart';
-import 'package:mise/features/planning/presentation/week_format.dart';
 
 void main() {
   group('mondayOf', () {

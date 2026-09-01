@@ -1,5 +1,5 @@
+import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/features/planning/presentation/week_format.dart';
 
 void main() {
   final today = DateTime.utc(2026, 8, 27);

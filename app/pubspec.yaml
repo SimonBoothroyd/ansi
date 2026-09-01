@@ -1,4 +1,4 @@
-name: mise
+name: ansi
 description: A shared, offline-first recipe and meal-planning app for two.
 publish_to: "none"
 version: 0.1.0+1

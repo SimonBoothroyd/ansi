@@ -1,8 +1,8 @@
+import 'package:ansi/core/result/result.dart';
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/units.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/core/result/result.dart';
-import 'package:mise/core/units/macros.dart';
-import 'package:mise/core/units/measure.dart';
-import 'package:mise/core/units/units.dart';
 
 void main() {
   const potatoLarge = Measure(id: 'm1', label: 'potato, large', amount: 299);

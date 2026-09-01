@@ -1,5 +1,5 @@
+import 'package:ansi/features/import/domain/amount_text.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/features/import/domain/amount_text.dart';
 
 void main() {
   group('amountQualifier', () {

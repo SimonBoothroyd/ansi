@@ -1,5 +1,5 @@
+import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/features/cook_plan/domain/cook_plan.dart';
 
 /// A recipe with [days] as (dayOfWeek → portions) meals, all on Dinner.
 PlannedRecipe _recipe(

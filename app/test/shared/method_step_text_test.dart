@@ -1,11 +1,11 @@
+import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/recipes/domain/method_step.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/shared/method_step_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
-import 'package:mise/core/theme/mise_theme.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/recipes/domain/method_step.dart';
-import 'package:mise/features/recipes/domain/recipe.dart';
-import 'package:mise/shared/method_step_text.dart';
 
 LineItem _li(String id, String name, {double? qty, Unit unit = g}) => LineItem(
   id: id,

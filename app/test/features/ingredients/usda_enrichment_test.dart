@@ -6,14 +6,14 @@
 /// — is the same quiet "nothing came back" rather than an error.
 library;
 
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/data/usda_enrichment.dart';
+import 'package:ansi/features/ingredients/data/usda_probe_impl.dart';
+import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/domain/normalize.dart';
+import 'package:ansi/features/ingredients/domain/usda_probe.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/core/units/macros.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/ingredients/data/usda_enrichment.dart';
-import 'package:mise/features/ingredients/data/usda_probe_impl.dart';
-import 'package:mise/features/ingredients/domain/ingredient.dart';
-import 'package:mise/features/ingredients/domain/normalize.dart';
-import 'package:mise/features/ingredients/domain/usda_probe.dart';
 
 import '../../helpers/fake_ingredient_repository.dart';
 

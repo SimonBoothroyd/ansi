@@ -1,10 +1,10 @@
 import 'dart:io';
 
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/planning/data/planning_repository_impl.dart';
+import 'package:ansi/features/shopping/data/shopping_repository_impl.dart';
+import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/planning/data/planning_repository_impl.dart';
-import 'package:mise/features/shopping/data/shopping_repository_impl.dart';
-import 'package:mise/features/shopping/domain/shopping.dart';
 import 'package:powersync/powersync.dart';
 
 import '../../helpers/test_db.dart';
