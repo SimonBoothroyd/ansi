@@ -19,7 +19,10 @@ DART_DEFINES := \
 
 .PHONY: help
 help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+	@# firstword, not $(MAKEFILE_LIST): the `include .env.local` above makes the
+	@# list two files, and grep then prefixes every hit with "Makefile:" — which
+	@# the awk below prints as the target name, hiding every real one.
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(firstword $(MAKEFILE_LIST)) \
 		| sort | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n",$$1,$$2}'
 
 # --- setup ---
