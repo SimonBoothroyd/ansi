@@ -19,7 +19,7 @@ class MiseApp extends ConsumerWidget {
     ref.watch(sessionControllerProvider);
     final theme = miseThemeData();
     return MaterialApp.router(
-      title: 'Mise',
+      title: 'Ansi',
       debugShowCheckedModeBanner: false,
       theme: miseHostTheme(),
       routerConfig: ref.watch(routerProvider),

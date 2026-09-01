@@ -1,4 +1,4 @@
-**Status:** Shipped (step 8) · re-traced against the tree 2026-08-31 · **Scope:** Mise v1 · **Supersedes:** spec §5 (Import) mechanics
+**Status:** Shipped (step 8) · re-traced against the tree 2026-08-31 · **Scope:** Ansi v1 · **Supersedes:** spec §5 (Import) mechanics
 **One-liner:** Imports run online, so matching is a server-side job — the phone never fuzzy-matches. Extraction proposes, a human confirms, and corrections quietly grow the vocabulary.
 
 > §3, §4, §6, §8 and §9 were rewritten at the step-8 close-out to describe **what

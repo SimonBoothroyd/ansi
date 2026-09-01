@@ -550,7 +550,7 @@ class _EmptyWeek extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Add what you feel like eating — Mise works out the cooking and '
+          'Add what you feel like eating — Ansi works out the cooking and '
           'shopping.',
           textAlign: TextAlign.center,
           style: miseMono(size: 12, color: MiseColors.muted),

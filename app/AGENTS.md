@@ -14,7 +14,7 @@ lib/
     result/          Result<Failure, T>
     router/          go_router config
     sync/            PowerSync schema, database, Supabase connector
-    theme/           Mise design tokens mapped to Forui
+    theme/           Ansi design tokens mapped to Forui
     units/           THE UNIT SYSTEM — pure Dart, build first (spec §4)
   features/<f>/
     domain/          entities + repo interfaces — PURE DART (no package:flutter)

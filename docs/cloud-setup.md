@@ -1,6 +1,6 @@
 # Cloud setup runbook — Supabase + PowerSync + Google
 
-How to point Mise at real cloud infrastructure (Supabase Cloud + PowerSync
+How to point Ansi at real cloud infrastructure (Supabase Cloud + PowerSync
 Cloud + Google OAuth), and the gotchas we hit doing it the first time
 (2026-08-27, step 7). Day-to-day development does **not** need any of this — the
 local stack (`make db-up` + dev email/password) is free, offline, and covers

@@ -1448,7 +1448,7 @@ void main() {
 
     // The sheet's stable chrome. On the Simulator the plugin's start neither
     // succeeds nor ERRORS — no camera means it waits forever, so the designed
-    // "Mise can't open the camera" notice never renders (errorBuilder never
+    // "Ansi can't open the camera" notice never renders (errorBuilder never
     // fires; observed round 12). The notice's on-screen verification moves to
     // the physical-device slice with the rest of the camera legs; what this
     // scenario proves is that the TYPED field stays live regardless — the

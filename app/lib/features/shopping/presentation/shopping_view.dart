@@ -430,9 +430,9 @@ class _EmptyShoppingList extends ConsumerWidget {
         Text(
           plannedButNoIngredients
               ? "You've planned meals, but their recipes don't list any "
-                    'ingredients yet — add ingredients to a recipe and Mise '
+                    'ingredients yet — add ingredients to a recipe and Ansi '
                     'sums them here.'
-              : 'Plan meals on the Week and Mise sums the shopping from the '
+              : 'Plan meals on the Week and Ansi sums the shopping from the '
                     "cook plan — or add a non-food staple you're out of.",
           textAlign: TextAlign.center,
           style: miseMono(size: 12, color: MiseColors.muted),

@@ -38,7 +38,7 @@ class ConnectingView extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Mise',
+                  'Ansi',
                   style: miseSerif(size: 34),
                   textAlign: TextAlign.center,
                 ),

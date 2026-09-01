@@ -25,7 +25,7 @@ them. Step 8 closed two of those four flags; the re-trace notes say which.
 
 ## 1. Two systems, one basis
 
-Amounts in Mise are carried by **two orthogonal vocabularies**, joined by a
+Amounts in Ansi are carried by **two orthogonal vocabularies**, joined by a
 single per-ingredient fact — the **macro basis**.
 
 ### The unit catalog (`app/lib/core/units/units.dart`)

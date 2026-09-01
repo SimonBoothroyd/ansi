@@ -12,7 +12,7 @@
 /// already follows). The sheet resolves with an [IngredientDraft] and stops:
 /// filling the form is the manager's job, and nothing here writes a row.
 ///
-/// Chrome is Forui/Mise-token only; the camera preview itself is the
+/// Chrome is Forui/Ansi-token only; the camera preview itself is the
 /// plugin's widget, which is the one thing Forui cannot supply.
 library;
 
@@ -313,7 +313,7 @@ class _CameraFrame extends StatelessWidget {
   }
 }
 
-/// "Mise can't open the camera" — shown in place of the preview, with the
+/// "Ansi can't open the camera" — shown in place of the preview, with the
 /// typed field below still live. Public so the widget tests assert the copy
 /// the plugin path actually renders.
 class CameraOffNotice extends StatelessWidget {
@@ -329,14 +329,14 @@ class CameraOffNotice extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            "Mise can't open the camera",
+            "Ansi can't open the camera",
             textAlign: TextAlign.center,
             style: miseSans(size: 14, color: MiseColors.surface),
           ),
           const SizedBox(height: 6),
           Text(
             permissionDenied
-                ? 'Camera access is turned off for Mise. Turn it on in '
+                ? 'Camera access is turned off for Ansi. Turn it on in '
                       'Settings, or type the barcode below — both end in the '
                       'same place.'
                 : 'No camera is available here. Type the barcode below — it '

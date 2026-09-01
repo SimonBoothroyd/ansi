@@ -417,7 +417,7 @@ class _EmptyCookPlan extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Plan some meals on the Week and Mise works out the batches — '
+          'Plan some meals on the Week and Ansi works out the batches — '
           'what to cook, when, and how much.',
           textAlign: TextAlign.center,
           style: miseMono(size: 12, color: MiseColors.muted),

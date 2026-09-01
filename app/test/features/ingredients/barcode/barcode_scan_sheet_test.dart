@@ -166,7 +166,7 @@ void main() {
         cameraPane: (_, _) => const CameraOffNotice(permissionDenied: true),
       );
 
-      expect(find.text("Mise can't open the camera"), findsOneWidget);
+      expect(find.text("Ansi can't open the camera"), findsOneWidget);
       expect(find.text('Open Settings'), findsOneWidget);
       expect(find.textContaining('both end in the same place'), findsOneWidget);
 
