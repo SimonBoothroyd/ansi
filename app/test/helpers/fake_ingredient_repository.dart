@@ -11,6 +11,7 @@ library;
 
 import 'dart:async';
 
+import 'package:mise/core/units/macros.dart';
 import 'package:mise/core/units/units.dart';
 import 'package:mise/features/ingredients/domain/ingredient.dart';
 import 'package:mise/features/ingredients/domain/ingredient_repository.dart';
@@ -123,13 +124,20 @@ class FakeIngredientRepo implements IngredientRepository {
   Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
 
   @override
-  Future<Ingredient> createStub(String name) async {
+  Future<Ingredient> createStub(
+    String name, {
+    String source = 'manual',
+    Macros? macros,
+    MacrosBasis macrosBasis = MacrosBasis.perG,
+  }) async {
     final created = Ingredient(
       id: 'created-${rows.length}',
       canonicalName: name,
       defaultUnit: g,
       status: IngredientStatus.stub,
-      source: 'manual',
+      macros: macros,
+      macrosBasis: macrosBasis,
+      source: source,
     );
     rows.add(created);
     matchTextById[created.id] = normalizeMatchText(name);

@@ -331,6 +331,46 @@ void main() {
     // would have written for the same phrase — which is the whole point.
     expect(row['match_text'], 'curry leaf');
     expect(row['status'], 'stub');
+    // A bare create carries no panel — a NULL column, not four zeros.
+    expect(row['macros'], isNull);
+  });
+
+  test(
+    "createStub carries a barcode draft's provenance and panel (D1)",
+    () async {
+      final created = await repo.createStub(
+        'Coconut milk, canned',
+        source: 'off:5000159407236',
+        macros: const Macros(kcal: 197, protein: 2, carb: 3, fat: 20),
+        macrosBasis: MacrosBasis.perMl,
+      );
+      final row = await db.get(
+        'SELECT source, macros, macros_basis, status, density_g_per_ml '
+        'FROM ingredient WHERE id = ?',
+        [created.id],
+      );
+      // The `source` column gets the draft's own `off:<barcode>` value…
+      expect(row['source'], 'off:5000159407236');
+      // …the panel is stored in the basis the label read it in (7.7)…
+      expect(Macros.tryParse(row['macros'] as String?)?.kcal, 197);
+      expect(row['macros_basis'], 'ml');
+      // …and none of it completes the row, or invents a density OFF never had.
+      expect(row['status'], 'stub');
+      expect(row['density_g_per_ml'], isNull);
+    },
+  );
+
+  test('createStub with no panel writes no macros at all', () async {
+    final created = await repo.createStub(
+      'NESQUIK Cacao',
+      source: 'off:3033710065967',
+    );
+    final row = await db.get(
+      'SELECT source, macros FROM ingredient WHERE id = ?',
+      [created.id],
+    );
+    expect(row['source'], 'off:3033710065967');
+    expect(row['macros'], isNull);
   });
 
   group('setDensity (ADR-0008: the single volume⇄mass fact)', () {

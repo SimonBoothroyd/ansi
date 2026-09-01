@@ -90,10 +90,27 @@ abstract interface class IngredientRepository {
   /// is a DB round-trip per line on every edit.
   Future<Map<String, Ingredient>> byIds(Set<String> ids);
 
-  /// Creates a stub vocab row named [name] (source `manual`, no density or
-  /// macros — invariant 3 keeps it out of conversions until fleshed out) and
-  /// returns it. The picker's "can't find it? add new" affordance.
-  Future<Ingredient> createStub(String name);
+  /// Creates a stub vocab row named [name] and returns it. The picker's
+  /// "can't find it? add new" affordance, and the add sheet's create.
+  ///
+  /// Defaults to a bare manual stub — no density, no macros, which is what
+  /// keeps it out of conversions until it is fleshed out (invariant 3). A
+  /// prefilling source overrides them:
+  /// - [source] is the row's provenance for the `source` column: `manual`,
+  ///   or `off:<barcode>` from a barcode draft's `sourceValue` (D1).
+  /// - [macros]/[macrosBasis] are what that source supplied, stored in the
+  ///   basis the label read them in rather than converted (7.7). Null macros
+  ///   stay null — a source with no panel writes no numbers, never zeros.
+  ///
+  /// Never a density: a barcode carries none, and one is not derivable from
+  /// a pack size. The row is a `stub` whatever arrives with it — machine
+  /// numbers do not complete an ingredient (D5: confirming is a human act).
+  Future<Ingredient> createStub(
+    String name, {
+    String source = 'manual',
+    Macros? macros,
+    MacrosBasis macrosBasis = MacrosBasis.perG,
+  });
 
   /// Stores [gPerMl] as the ingredient's density — the single volume⇄mass
   /// fact (ADR-0008; both entry styles resolve to this one number) — and

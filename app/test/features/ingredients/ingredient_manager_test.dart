@@ -1,29 +1,38 @@
 /// Widget tests for the ingredients manager (step 8.5, design board
-/// "Ingredients manager · v1" frames a–d).
+/// "Ingredients manager · v1" frames a–e).
 ///
 /// The screen states that carry the plan's decisions are the ones worth
 /// pinning: the stub band's **needs macros** wording (D5 overruled the
 /// board's "needs density · macros"), the confirm CTA's gate and its
 /// reversal, the delete refusal's count, the dashed density-locked chips
-/// (D4), the honest USDA note (D7), and the Barcode option's marked-inert
-/// state (lane B's seam).
+/// (D4), the honest USDA note (D7), and — frame (e) — a barcode scan
+/// prefilling a draft that never completes a row (D1): its provenance and
+/// ODbL credit carried, a panel-less product left blank with the reason, and
+/// a dismissed scan changing nothing.
 // The pumped ProviderScope IS the root scope of each test's tree (the same
 // pattern connecting_view_test documents).
 // ignore_for_file: scoped_providers_should_specify_dependencies
 library;
+
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:mise/core/theme/mise_theme.dart';
 import 'package:mise/core/units/macros.dart';
 import 'package:mise/core/units/measure.dart';
 import 'package:mise/core/units/units.dart';
+import 'package:mise/features/ingredients/barcode/barcode_add.dart';
+import 'package:mise/features/ingredients/barcode/barcode_scan_sheet.dart';
 import 'package:mise/features/ingredients/data/ingredient_providers.dart';
 import 'package:mise/features/ingredients/domain/ingredient.dart';
 import 'package:mise/features/ingredients/domain/measure_repository.dart';
+import 'package:mise/features/ingredients/presentation/density_entry.dart';
 import 'package:mise/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:mise/features/ingredients/presentation/ingredient_list_view.dart';
 import 'package:mise/features/ingredients/presentation/new_ingredient_sheet.dart';
@@ -414,8 +423,8 @@ void main() {
   });
 
   group('the add flow — frame (d)', () {
-    testWidgets('the Source segment renders all three, with Barcode inert and '
-        'labelled as landing at merge', (tester) async {
+    testWidgets('the Source segment renders all three, Barcode included and '
+        'live', (tester) async {
       _filterSemanticsAssertions();
       await tester.pumpWidget(
         ProviderScope(
@@ -437,15 +446,16 @@ void main() {
       expect(find.text('Manual'), findsOneWidget);
       expect(find.text('USDA FDC'), findsOneWidget);
       expect(find.text('Barcode'), findsOneWidget);
-      expect(find.textContaining('Barcode — wired at merge'), findsOneWidget);
-
-      // Tapping the inert option changes nothing — no half-built flow opens.
-      await tester.tap(find.text('Barcode'));
-      await tester.pumpAndSettle();
-      expect(
-        find.textContaining('Type the name your recipes will read'),
-        findsOneWidget,
+      // The merge seam is gone: nothing on this sheet says the option is
+      // waiting for another lane.
+      expect(find.textContaining('wired at merge'), findsNothing);
+      final barcode = tester.widget<MiseModeChip>(
+        find.ancestor(
+          of: find.text('Barcode'),
+          matching: find.byType(MiseModeChip),
+        ),
       );
+      expect(barcode.enabled, isTrue);
     });
 
     testWidgets('the USDA source explains that the lookup is server-side, not '
@@ -472,4 +482,193 @@ void main() {
       expect(find.textContaining('it never leaves the server'), findsOneWidget);
     });
   });
+
+  group('the add flow ▸ barcode — frame (e)', () {
+    /// Walks the sheet to a resolved scan of [barcode] against [body].
+    Future<void> scan(
+      WidgetTester tester, {
+      required String barcode,
+      bool lookUp = true,
+    }) async {
+      await tester.tap(find.text('Add an ingredient'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Barcode'));
+      await tester.pumpAndSettle();
+      if (!lookUp) return;
+      await tester.enterText(_scanField, barcode);
+      await tester.pump();
+      await tester.tap(find.text('Look up'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a found product prefills the draft: the name, the macros in '
+        'the basis the label read them in, and the ODbL credit', (
+      tester,
+    ) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      await tester.pumpWidget(
+        _addHost(repo, body: _fixture('oatly_per_100ml')),
+      );
+      await tester.pumpAndSettle();
+
+      await scan(tester, barcode: '7394376616020');
+
+      // The result card the frame draws — product, provenance, ODbL.
+      expect(find.text('FOUND · OPEN FOOD FACTS'), findsOneWidget);
+      // Twice on purpose: the card names what OFF said, and the field below
+      // is seeded with it.
+      expect(find.text('Ruokaan Fraiche'), findsNWidgets(2));
+      expect(
+        find.text('Oatly · barcode 7394376616020 · Open Food Facts · ODbL'),
+        findsOneWidget,
+      );
+      // Macros as the label read them: a 100ml panel stays per 100 ml.
+      expect(find.text('177 kcal · 1P 15F 9C'), findsOneWidget);
+      expect(
+        find.textContaining('panel read per 100 ml — stored as the basis'),
+        findsOneWidget,
+      );
+      // The name field is seeded, and still the user's to change.
+      expect(_nameFieldText(tester), 'Ruokaan Fraiche');
+
+      await tester.tap(find.text('Save & review'));
+      await tester.pumpAndSettle();
+
+      final created = repo.rows.single;
+      // Provenance is the draft's own `off:<barcode>` value…
+      expect(created.source, 'off:7394376616020');
+      expect(
+        created.macros,
+        const Macros(kcal: 177, protein: 1, carb: 9, fat: 15),
+      );
+      expect(created.macrosBasis, MacrosBasis.perMl);
+      // …and a machine's numbers do not complete a row (D1/D5).
+      expect(created.status, IngredientStatus.stub);
+      expect(created.densityGPerMl, isNull);
+      expect(find.text('detail created-0'), findsOneWidget);
+    });
+
+    testWidgets('a sparse product (the NESQUIK shape) leaves the macros blank '
+        'with the reason — never zeros', (tester) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      await tester.pumpWidget(
+        _addHost(repo, body: _fixture('nesquik_no_panel')),
+      );
+      await tester.pumpAndSettle();
+
+      await scan(tester, barcode: '3033710065967');
+
+      expect(find.text('NESQUIK Cacao'), findsNWidgets(2));
+      expect(
+        find.text('Open Food Facts has no nutrition panel for this product.'),
+        findsOneWidget,
+      );
+      // No panel means no numbers at all — not a row of zeros.
+      expect(find.textContaining('kcal'), findsNothing);
+
+      await tester.tap(find.text('Save & review'));
+      await tester.pumpAndSettle();
+
+      final created = repo.rows.single;
+      expect(created.macros, isNull);
+      expect(created.source, 'off:3033710065967');
+      expect(created.status, IngredientStatus.stub);
+    });
+
+    testWidgets('a dismissed scan changes nothing — back to the segment as it '
+        'was found', (tester) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      await tester.pumpWidget(
+        _addHost(repo, body: _fixture('oatly_per_100ml')),
+      );
+      await tester.pumpAndSettle();
+
+      await scan(tester, barcode: '', lookUp: false);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(BarcodeScanSheet),
+          matching: find.byIcon(FLucideIcons.x),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // No card, no name, the Manual copy back, the manual CTA back.
+      expect(find.text('FOUND · OPEN FOOD FACTS'), findsNothing);
+      expect(_nameFieldText(tester), isEmpty);
+      expect(
+        find.textContaining('Type the name your recipes will read'),
+        findsOneWidget,
+      );
+      expect(find.text('Create & flesh out'), findsOneWidget);
+      expect(repo.rows, isEmpty);
+    });
+  });
+}
+
+/// A committed Open Food Facts payload, verbatim — the same fixtures the
+/// mapper's table-driven test reads.
+String _fixture(String name) => File(
+  'test/features/ingredients/barcode/fixtures/$name.json',
+).readAsStringSync();
+
+/// The scan surface's typed-number field. Both sheets are in the tree at once
+/// while the scanner is open, so this is scoped rather than positional.
+final Finder _scanField = find.descendant(
+  of: find.byType(BarcodeScanSheet),
+  matching: find.byType(TextField),
+);
+
+String _nameFieldText(WidgetTester tester) => tester
+    .widget<TextField>(
+      find
+          .descendant(
+            of: find.byType(NewIngredientSheet),
+            matching: find.byType(TextField),
+          )
+          .first,
+    )
+    .controller!
+    .text;
+
+/// The add sheet as the list screen opens it, over a router that can receive
+/// the push a create makes. [body] is what Open Food Facts answers with.
+Widget _addHost(FakeIngredientRepo repo, {required String body}) {
+  final router = GoRouter(
+    initialLocation: '/',
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (_, _) => FScaffold(
+          child: Builder(
+            builder: (context) => FButton(
+              onPress: () => showNewIngredientSheet(
+                context,
+                lookup: OffLookup(
+                  client: MockClient((_) async => http.Response(body, 200)),
+                ),
+                cameraPane: (_, _) => const SizedBox.shrink(),
+              ),
+              child: const Text('Add an ingredient'),
+            ),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/ingredients/:id',
+        builder: (_, state) =>
+            FScaffold(child: Text('detail ${state.pathParameters['id']}')),
+      ),
+    ],
+  );
+  addTearDown(router.dispose);
+  return ProviderScope(
+    overrides: [ingredientRepositoryProvider.overrideWithValue(repo)],
+    child: MaterialApp.router(
+      routerConfig: router,
+      builder: (context, child) => FTheme(data: miseThemeData(), child: child!),
+    ),
+  );
 }

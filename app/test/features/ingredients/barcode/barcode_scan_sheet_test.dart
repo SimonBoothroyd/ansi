@@ -16,7 +16,6 @@ import 'package:http/testing.dart';
 import 'package:mise/core/theme/mise_theme.dart';
 import 'package:mise/features/ingredients/barcode/barcode_add.dart';
 import 'package:mise/features/ingredients/barcode/barcode_scan_sheet.dart';
-import 'package:mise/features/ingredients/barcode/off_lookup.dart';
 
 const _foundBody = '''
 {"code":"7394376616020","status":1,"product":{"code":"7394376616020",

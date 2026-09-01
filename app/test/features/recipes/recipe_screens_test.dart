@@ -4,6 +4,7 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 import 'package:mise/core/theme/mise_theme.dart';
+import 'package:mise/core/units/macros.dart';
 import 'package:mise/core/units/units.dart';
 import 'package:mise/features/books/data/book_providers.dart';
 import 'package:mise/features/books/domain/book.dart';
@@ -68,7 +69,12 @@ class _FakeIngredientRepo
   Future<Map<String, Ingredient>> byIds(Set<String> ids) async => const {};
 
   @override
-  Future<Ingredient> createStub(String name) async => Ingredient(
+  Future<Ingredient> createStub(
+    String name, {
+    String source = 'manual',
+    Macros? macros,
+    MacrosBasis macrosBasis = MacrosBasis.perG,
+  }) async => Ingredient(
     id: 'stub-1',
     canonicalName: name,
     defaultUnit: g,

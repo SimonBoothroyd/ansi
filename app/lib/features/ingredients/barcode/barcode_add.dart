@@ -42,8 +42,13 @@ import 'barcode_scan_sheet.dart';
 import 'ingredient_draft.dart';
 import 'off_lookup.dart';
 
+export 'barcode_scan_sheet.dart' show BarcodeCameraPane;
 export 'ingredient_draft.dart'
     show DraftMacrosGap, DraftPackSize, DraftSource, IngredientDraft;
+// The two test-hook types below are named by [scanBarcodeForDraft]'s own
+// signature, so a caller cannot inject either without them — they belong to
+// the door, not behind it.
+export 'off_lookup.dart' show OffLookup;
 
 /// Opens the barcode surface and resolves with the draft the user leaves
 /// with, or null if they closed it empty.

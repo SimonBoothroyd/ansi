@@ -46,6 +46,18 @@ final _measureCount =
     'WHERE m.ingredient_id = i.id AND m.deleted_at IS NULL '
     'AND LOWER(TRIM(m.label)) NOT IN ($_volumeLabelList)) AS measure_count';
 
+/// The `macros` column's jsonb, or null when there are none — null (not `{}`,
+/// and never four zeros) is how an absent panel is stored, on the create path
+/// and the edit path alike (invariant 3).
+String? _macrosJson(Macros? macros) => macros == null
+    ? null
+    : jsonEncode({
+        'kcal': macros.kcal,
+        'protein': macros.protein,
+        'carb': macros.carb,
+        'fat': macros.fat,
+      });
+
 class SqliteIngredientRepository implements IngredientRepository {
   const SqliteIngredientRepository(this._db, {required String householdId})
     : _householdId = householdId;
@@ -200,7 +212,12 @@ class SqliteIngredientRepository implements IngredientRepository {
   }
 
   @override
-  Future<Ingredient> createStub(String name) async {
+  Future<Ingredient> createStub(
+    String name, {
+    String source = 'manual',
+    Macros? macros,
+    MacrosBasis macrosBasis = MacrosBasis.perG,
+  }) async {
     final id = _uuid.v4();
     final now = DateTime.now().toUtc().toIso8601String();
     final trimmed = name.trim();
@@ -211,16 +228,31 @@ class SqliteIngredientRepository implements IngredientRepository {
     final matchText = normalizeMatchText(trimmed);
     await _db.execute(
       'INSERT INTO ingredient (id, household_id, canonical_name, '
-      'default_unit, status, source, match_text, created_at, updated_at) '
-      "VALUES (?, ?, ?, 'g', 'stub', 'manual', ?, ?, ?)",
-      [id, _householdId, trimmed, matchText, now, now],
+      'default_unit, status, source, match_text, macros, macros_basis, '
+      'created_at, updated_at) '
+      "VALUES (?, ?, ?, 'g', 'stub', ?, ?, ?, ?, ?, ?)",
+      [
+        id,
+        _householdId,
+        trimmed,
+        source,
+        matchText,
+        // A source with no panel writes NULL, not zeros (invariant 3) — and
+        // `status` stays 'stub' regardless of what arrived (D5).
+        _macrosJson(macros),
+        macrosBasis.dbValue,
+        now,
+        now,
+      ],
     );
     return Ingredient(
       id: id,
       canonicalName: trimmed,
       defaultUnit: g,
       status: IngredientStatus.stub,
-      source: 'manual',
+      macros: macros,
+      macrosBasis: macrosBasis,
+      source: source,
     );
   }
 
@@ -295,16 +327,7 @@ class SqliteIngredientRepository implements IngredientRepository {
       );
     }
     final macros = edit.macros;
-    // Null (not `{}` or zeros) when there are none: a stub's macro column is
-    // absent, never an invented zero (invariant 3).
-    final macrosJson = macros == null
-        ? null
-        : jsonEncode({
-            'kcal': macros.kcal,
-            'protein': macros.protein,
-            'carb': macros.carb,
-            'fat': macros.fat,
-          });
+    final macrosJson = _macrosJson(macros);
     final now = DateTime.now().toUtc().toIso8601String();
     final updated = await _db.writeTransaction((tx) async {
       final row = await tx.getOptional(

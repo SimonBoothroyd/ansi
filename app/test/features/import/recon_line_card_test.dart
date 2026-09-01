@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mise/core/theme/mise_theme.dart';
+import 'package:mise/core/units/macros.dart';
 import 'package:mise/core/units/measure.dart';
 import 'package:mise/core/units/units.dart';
 import 'package:mise/features/import/data/import_providers.dart';
@@ -176,7 +177,12 @@ class _FakeIngredientRepo
   Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
 
   @override
-  Future<Ingredient> createStub(String name) async => _garlic;
+  Future<Ingredient> createStub(
+    String name, {
+    String source = 'manual',
+    Macros? macros,
+    MacrosBasis macrosBasis = MacrosBasis.perG,
+  }) async => _garlic;
 
   @override
   Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>
