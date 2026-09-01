@@ -5,8 +5,8 @@ library;
 
 import 'package:flutter/widgets.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../domain/planning.dart';
 
 /// A rounded, tappable label that fills herb-green when [selected] (design
@@ -34,9 +34,9 @@ class Pill extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? MiseColors.herb : MiseColors.surface,
+          color: selected ? AnsiColors.herb : AnsiColors.surface,
           border: Border.all(
-            color: selected ? MiseColors.herb : MiseColors.line,
+            color: selected ? AnsiColors.herb : AnsiColors.line,
           ),
           borderRadius: BorderRadius.circular(999),
         ),
@@ -48,15 +48,15 @@ class Pill extends StatelessWidget {
                   child: Icon(
                     icon,
                     size: 14,
-                    color: selected ? MiseColors.surface : MiseColors.muted,
+                    color: selected ? AnsiColors.surface : AnsiColors.muted,
                   ),
                 ),
               )
             : Text(
                 label,
-                style: miseMono(
+                style: ansiMono(
                   size: 12,
-                  color: selected ? MiseColors.surface : MiseColors.muted,
+                  color: selected ? AnsiColors.surface : AnsiColors.muted,
                 ),
               ),
       ),
@@ -67,10 +67,10 @@ class Pill extends StatelessWidget {
 /// The avatar palette, indexed by a member's position in the roster so the same
 /// person keeps a colour everywhere (Ada green, Jun ink — design board).
 const _memberPalette = [
-  MiseColors.herb,
-  MiseColors.ink,
-  MiseColors.aging,
-  MiseColors.gone,
+  AnsiColors.herb,
+  AnsiColors.ink,
+  AnsiColors.aging,
+  AnsiColors.gone,
 ];
 
 /// The colour for the member at roster position [rank].
@@ -82,7 +82,7 @@ Color memberColor(int rank) => _memberPalette[rank % _memberPalette.length];
 class EaterAvatar extends StatelessWidget {
   const EaterAvatar({
     required this.member,
-    this.color = MiseColors.herb,
+    this.color = AnsiColors.herb,
     this.dimmed = false,
     super.key,
   });
@@ -98,15 +98,15 @@ class EaterAvatar extends StatelessWidget {
       height: 24,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: dimmed ? MiseColors.line : color,
+        color: dimmed ? AnsiColors.line : color,
         shape: BoxShape.circle,
-        border: Border.all(color: MiseColors.surface, width: 1.5),
+        border: Border.all(color: AnsiColors.surface, width: 1.5),
       ),
       child: Text(
         member.initial,
-        style: miseMono(
+        style: ansiMono(
           size: 11,
-          color: dimmed ? MiseColors.muted : MiseColors.surface,
+          color: dimmed ? AnsiColors.muted : AnsiColors.surface,
           weight: FontWeight.w600,
         ),
       ),

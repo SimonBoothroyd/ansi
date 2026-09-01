@@ -10,8 +10,8 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../books/data/book_providers.dart';
 import '../../books/presentation/book_view_models.dart';
@@ -39,7 +39,7 @@ class RecipeEditorView extends ConsumerWidget {
       header: FHeader.nested(
         title: Text(
           recipeId == null ? 'New recipe' : 'Edit recipe',
-          style: miseHeaderTitle(),
+          style: ansiHeaderTitle(),
         ),
         prefixes: [FHeaderAction.back(onPress: () => context.pop())],
         suffixes: [
@@ -64,7 +64,7 @@ class RecipeEditorView extends ConsumerWidget {
           return Center(
             child: Text(
               'Could not open the editor.',
-              style: miseMono(size: 13, color: MiseColors.muted),
+              style: ansiMono(size: 13, color: AnsiColors.muted),
             ),
           );
         },
@@ -152,8 +152,8 @@ class _TokenizedMethodNotice extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: MiseColors.paper,
-        border: Border.all(color: MiseColors.line),
+        color: AnsiColors.paper,
+        border: Border.all(color: AnsiColors.line),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Padding(
@@ -161,16 +161,16 @@ class _TokenizedMethodNotice extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(FLucideIcons.info, size: 14, color: MiseColors.muted),
+            const Icon(FLucideIcons.info, size: 14, color: AnsiColors.muted),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 'This recipe’s method was imported as ingredient chips and '
                 'timers, which this text editor can’t show. It is kept exactly '
                 'as it is when you save — read it on the recipe page.',
-                style: miseMono(
+                style: ansiMono(
                   size: 11,
-                  color: MiseColors.muted,
+                  color: AnsiColors.muted,
                 ).copyWith(height: 1.5),
               ),
             ),
@@ -199,8 +199,8 @@ class _GroupEditor extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: MiseColors.paper,
-        border: Border.all(color: MiseColors.line),
+        color: AnsiColors.paper,
+        border: Border.all(color: AnsiColors.line),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -351,7 +351,7 @@ class _LineItemEditor extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.ingredientName, style: miseSans(size: 15)),
+                Text(item.ingredientName, style: ansiSans(size: 15)),
                 const SizedBox(height: 6),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -362,8 +362,8 @@ class _LineItemEditor extends ConsumerWidget {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: MiseColors.surface,
-                      border: Border.all(color: MiseColors.line),
+                      color: AnsiColors.surface,
+                      border: Border.all(color: AnsiColors.line),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
@@ -372,7 +372,7 @@ class _LineItemEditor extends ConsumerWidget {
                         Flexible(
                           child: Text(
                             _label,
-                            style: miseMono(size: 13),
+                            style: ansiMono(size: 13),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -380,7 +380,7 @@ class _LineItemEditor extends ConsumerWidget {
                         const Icon(
                           FLucideIcons.pencil,
                           size: 12,
-                          color: MiseColors.muted,
+                          color: AnsiColors.muted,
                         ),
                       ],
                     ),
@@ -419,7 +419,7 @@ class _ServesStepper extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18),
           child: Text(
             formatQuantity(servings),
-            style: miseMono(size: 18, weight: FontWeight.w600),
+            style: ansiMono(size: 18, weight: FontWeight.w600),
           ),
         ),
         FButton.icon(
@@ -456,12 +456,12 @@ class _ShelfLifeSection extends StatelessWidget {
           child: Text(
             'Drives the batch cook plan — how far apart the same dish can be '
             'planned before it becomes two things to cook.',
-            style: miseMono(size: 11, color: MiseColors.muted),
+            style: ansiMono(size: 11, color: AnsiColors.muted),
           ),
         ),
         const SizedBox(height: 14),
         FSwitch(
-          label: Text('Freezes', style: miseSans(size: 15)),
+          label: Text('Freezes', style: ansiSans(size: 15)),
           value: recipe.freezable,
           onChange: notifier.setFreezable,
         ),
@@ -499,7 +499,7 @@ class _StepperRow extends StatelessWidget {
     final value = days;
     return Row(
       children: [
-        Expanded(child: Text(label, style: miseSans(size: 15))),
+        Expanded(child: Text(label, style: ansiSans(size: 15))),
         FButton.icon(
           onPress: value == null
               ? null
@@ -512,8 +512,8 @@ class _StepperRow extends StatelessWidget {
             value == null ? unsetText : '$value ${value == 1 ? 'day' : 'days'}',
             textAlign: TextAlign.center,
             style: value == null
-                ? miseMono(size: 13, color: MiseColors.muted)
-                : miseMono(size: 15, weight: FontWeight.w600),
+                ? ansiMono(size: 13, color: AnsiColors.muted)
+                : ansiMono(size: 15, weight: FontWeight.w600),
           ),
         ),
         FButton.icon(
@@ -624,7 +624,7 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text, style: miseLabel()),
+      child: Text(text, style: ansiLabel()),
     );
   }
 }

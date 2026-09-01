@@ -9,10 +9,10 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/sync/session.dart';
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_bottom_nav.dart';
 import '../../../shared/dashed_border_box.dart';
-import '../../../shared/mise_bottom_nav.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/presentation/ingredient_list_view.dart'
     show kIngredientsRoute;
@@ -32,9 +32,9 @@ class LibraryView extends ConsumerWidget {
     final repo = ref.read(bookRepositoryProvider);
 
     return FScaffold(
-      footer: const MiseBottomNav(current: MiseTab.library),
+      footer: const AnsiBottomNav(current: AnsiTab.library),
       header: FHeader.nested(
-        title: Text('Library', style: miseHeaderTitle()),
+        title: Text('Library', style: ansiHeaderTitle()),
         suffixes: [
           FPopoverMenu(
             menu: [
@@ -107,7 +107,7 @@ class LibraryView extends ConsumerWidget {
             child: Text(
               'Could not load the library.',
               textAlign: TextAlign.center,
-              style: miseMono(size: 13, color: MiseColors.muted),
+              style: ansiMono(size: 13, color: AnsiColors.muted),
             ),
           );
         },
@@ -129,13 +129,13 @@ Future<bool> _confirmSignOut(BuildContext context) async {
     context: context,
     builder: (context, style, animation) => FDialog(
       animation: animation,
-      title: Text('Sign out?', style: miseSerif(size: 20)),
+      title: Text('Sign out?', style: ansiSerif(size: 20)),
       body: Padding(
         padding: const EdgeInsets.only(top: 8),
         child: Text(
           'This removes the synced data from this device. It stays in your '
           'household and comes back when you sign in again.',
-          style: miseSans(size: 13, color: MiseColors.muted),
+          style: ansiSans(size: 13, color: AnsiColors.muted),
         ),
       ),
       actions: [
@@ -174,7 +174,7 @@ class _BookCard extends ConsumerWidget {
         children: [
           DecoratedBox(
             decoration: BoxDecoration(
-              border: Border.all(color: MiseColors.line),
+              border: Border.all(color: AnsiColors.line),
               borderRadius: BorderRadius.circular(16),
             ),
             child: ClipRRect(
@@ -184,16 +184,16 @@ class _BookCard extends ConsumerWidget {
                 children: [
                   // Herb header: book name + recipe count.
                   Container(
-                    color: MiseColors.herb,
+                    color: AnsiColors.herb,
                     padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           book.name,
-                          style: miseSerif(
+                          style: ansiSerif(
                             size: 19,
-                            color: MiseColors.surface,
+                            color: AnsiColors.surface,
                             weight: FontWeight.w500,
                           ),
                         ),
@@ -201,9 +201,9 @@ class _BookCard extends ConsumerWidget {
                         Text(
                           '$_recipeCount '
                           '${_recipeCount == 1 ? 'recipe' : 'recipes'}',
-                          style: miseMono(
+                          style: ansiMono(
                             size: 10,
-                            color: MiseColors.surface,
+                            color: AnsiColors.surface,
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -260,7 +260,7 @@ class _SectionBlock extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
       decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: MiseColors.line)),
+        border: Border(top: BorderSide(color: AnsiColors.line)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -270,11 +270,11 @@ class _SectionBlock extends ConsumerWidget {
               Expanded(
                 child: Text(
                   _label,
-                  style: miseSerif(
+                  style: ansiSerif(
                     size: 14,
                     color: section == null
-                        ? MiseColors.muted
-                        : MiseColors.herbDeep,
+                        ? AnsiColors.muted
+                        : AnsiColors.herbDeep,
                     weight: FontWeight.w400,
                   ).copyWith(fontStyle: FontStyle.italic),
                 ),
@@ -287,7 +287,7 @@ class _SectionBlock extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: Text(
                 'No recipes yet',
-                style: miseMono(size: 11, color: MiseColors.muted),
+                style: ansiMono(size: 11, color: AnsiColors.muted),
               ),
             )
           else
@@ -383,18 +383,18 @@ class _RecipeRow extends StatelessWidget {
             Expanded(
               child: Text(
                 recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
-                style: miseSerif(size: 17),
+                style: ansiSerif(size: 17),
               ),
             ),
             Text(
               'serves ${formatQuantity(recipe.servingsBase)}',
-              style: miseMono(size: 11, color: MiseColors.muted),
+              style: ansiMono(size: 11, color: AnsiColors.muted),
             ),
             const SizedBox(width: 8),
             const Icon(
               FLucideIcons.chevronRight,
               size: 16,
-              color: MiseColors.muted,
+              color: AnsiColors.muted,
             ),
           ],
         ),
@@ -419,13 +419,13 @@ class _AddSectionButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(FLucideIcons.plus, size: 12, color: MiseColors.herb),
+            const Icon(FLucideIcons.plus, size: 12, color: AnsiColors.herb),
             const SizedBox(width: 5),
             Text(
               'new section — name it anything',
-              style: miseMono(
+              style: ansiMono(
                 size: 11,
-                color: MiseColors.herb,
+                color: AnsiColors.herb,
                 letterSpacing: 0.5,
               ),
             ),
@@ -445,13 +445,13 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(FLucideIcons.library, size: 44, color: MiseColors.herb),
+          const Icon(FLucideIcons.library, size: 44, color: AnsiColors.herb),
           const SizedBox(height: 14),
-          Text('No books yet', style: miseSerif(size: 22)),
+          Text('No books yet', style: ansiSerif(size: 22)),
           const SizedBox(height: 6),
           Text(
             'Add one with the + above.',
-            style: miseMono(size: 12, color: MiseColors.muted),
+            style: ansiMono(size: 12, color: AnsiColors.muted),
           ),
         ],
       ),
@@ -473,7 +473,7 @@ class _StubCountBadge extends ConsumerWidget {
       variant: FBadgeVariant.secondary,
       child: Text(
         '$count stub${count == 1 ? '' : 's'}',
-        style: miseMono(size: 10, color: MiseColors.muted),
+        style: ansiMono(size: 10, color: AnsiColors.muted),
       ),
     );
   }

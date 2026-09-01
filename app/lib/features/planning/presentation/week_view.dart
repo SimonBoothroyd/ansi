@@ -13,10 +13,10 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_bottom_nav.dart';
 import '../../../shared/dashed_border_box.dart';
-import '../../../shared/mise_bottom_nav.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'confirm_meal_sheet.dart';
@@ -64,9 +64,9 @@ class WeekView extends HookConsumerWidget {
     final lens = useState<String?>(null);
 
     return FScaffold(
-      footer: const MiseBottomNav(current: MiseTab.week),
+      footer: const AnsiBottomNav(current: AnsiTab.week),
       header: FHeader.nested(
-        title: Text(formatWeekOf(weekStart), style: miseHeaderTitle()),
+        title: Text(formatWeekOf(weekStart), style: ansiHeaderTitle()),
         suffixes: [
           if (lastWeek != null)
             FPopoverMenu(
@@ -96,7 +96,7 @@ class WeekView extends HookConsumerWidget {
             child: Text(
               'Could not load the week.',
               textAlign: TextAlign.center,
-              style: miseMono(size: 13, color: MiseColors.muted),
+              style: ansiMono(size: 13, color: AnsiColors.muted),
             ),
           );
         },
@@ -168,12 +168,12 @@ class _LensBar extends StatelessWidget {
                       vertical: 7,
                     ),
                     decoration: BoxDecoration(
-                      color: MiseColors.herbSoft,
+                      color: AnsiColors.herbSoft,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
                       'copy last week',
-                      style: miseMono(size: 11, color: MiseColors.herbDeep),
+                      style: ansiMono(size: 11, color: AnsiColors.herbDeep),
                     ),
                   ),
                 ),
@@ -193,12 +193,12 @@ class _LensBar extends StatelessWidget {
                         padding: const EdgeInsets.fromLTRB(6, 5, 12, 5),
                         decoration: BoxDecoration(
                           color: lens.value == m.id
-                              ? MiseColors.herbSoft
-                              : MiseColors.surface,
+                              ? AnsiColors.herbSoft
+                              : AnsiColors.surface,
                           border: Border.all(
                             color: lens.value == m.id
-                                ? MiseColors.herb
-                                : MiseColors.line,
+                                ? AnsiColors.herb
+                                : AnsiColors.line,
                           ),
                           borderRadius: BorderRadius.circular(999),
                         ),
@@ -207,7 +207,7 @@ class _LensBar extends StatelessWidget {
                           children: [
                             EaterAvatar(member: m, color: memberColor(i)),
                             const SizedBox(width: 6),
-                            Text(m.displayName, style: miseSans(size: 13)),
+                            Text(m.displayName, style: ansiSans(size: 13)),
                           ],
                         ),
                       ),
@@ -238,8 +238,8 @@ class _SegToggle extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: MiseColors.paper,
-        border: Border.all(color: MiseColors.line),
+        color: AnsiColors.paper,
+        border: Border.all(color: AnsiColors.line),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -259,14 +259,14 @@ class _SegToggle extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? MiseColors.surface : MiseColors.paper,
+          color: selected ? AnsiColors.surface : AnsiColors.paper,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(
           label,
-          style: miseSans(
+          style: ansiSans(
             size: 13,
-            color: selected ? MiseColors.ink : MiseColors.muted,
+            color: selected ? AnsiColors.ink : AnsiColors.muted,
             weight: selected ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
@@ -315,8 +315,8 @@ class _DayCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       decoration: BoxDecoration(
-        color: MiseColors.paper,
-        border: Border.all(color: MiseColors.line),
+        color: AnsiColors.paper,
+        border: Border.all(color: AnsiColors.line),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -324,7 +324,7 @@ class _DayCard extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-            child: Text(kWeekdayFull[dayOfWeek], style: miseSerif(size: 17)),
+            child: Text(kWeekdayFull[dayOfWeek], style: ansiSerif(size: 17)),
           ),
           for (final group in groups)
             _SlotGroup(group: group, roster: roster, lens: lens),
@@ -344,15 +344,15 @@ class _DayCard extends StatelessWidget {
                     const Icon(
                       FLucideIcons.plus,
                       size: 12,
-                      color: MiseColors.herb,
+                      color: AnsiColors.herb,
                     ),
                     const SizedBox(width: 5),
                     Text(
                       'Add a meal',
                       textAlign: TextAlign.center,
-                      style: miseMono(
+                      style: ansiMono(
                         size: 11,
-                        color: MiseColors.herb,
+                        color: AnsiColors.herb,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -389,7 +389,7 @@ class _SlotGroup extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
       decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: MiseColors.line)),
+        border: Border(top: BorderSide(color: AnsiColors.line)),
       ),
       child: Row(
         children: [
@@ -397,9 +397,9 @@ class _SlotGroup extends StatelessWidget {
             width: 62,
             child: Text(
               group.first.mealSlot.toUpperCase(),
-              style: miseMono(
+              style: ansiMono(
                 size: 10,
-                color: MiseColors.muted,
+                color: AnsiColors.muted,
                 letterSpacing: 0.5,
               ),
             ),
@@ -441,10 +441,10 @@ class _DishRow extends ConsumerWidget {
             child: Text(
               entry.recipeTitle ?? '(deleted recipe)',
               style: entry.recipeTitle == null
-                  ? miseSans(size: 15, color: MiseColors.muted)
-                  : miseSans(
+                  ? ansiSans(size: 15, color: AnsiColors.muted)
+                  : ansiSans(
                       size: 15,
-                      color: MiseColors.herbDeep,
+                      color: AnsiColors.herbDeep,
                       weight: FontWeight.w600,
                     ),
             ),
@@ -470,10 +470,10 @@ class _SharedTag extends StatelessWidget {
         const Icon(
           FLucideIcons.arrowLeftRight,
           size: 10,
-          color: MiseColors.muted,
+          color: AnsiColors.muted,
         ),
         const SizedBox(width: 4),
-        Text('shared', style: miseMono(size: 10, color: MiseColors.muted)),
+        Text('shared', style: ansiMono(size: 10, color: AnsiColors.muted)),
       ],
     );
   }
@@ -519,7 +519,7 @@ class _DishMenu extends ConsumerWidget {
         child: const Icon(
           FLucideIcons.ellipsis,
           size: 16,
-          color: MiseColors.muted,
+          color: AnsiColors.muted,
         ),
       ),
     );
@@ -541,19 +541,19 @@ class _EmptyWeek extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
       children: [
-        const Icon(FLucideIcons.calendarDays, size: 44, color: MiseColors.herb),
+        const Icon(FLucideIcons.calendarDays, size: 44, color: AnsiColors.herb),
         const SizedBox(height: 14),
         Text(
           'A blank week',
           textAlign: TextAlign.center,
-          style: miseSerif(size: 24),
+          style: ansiSerif(size: 24),
         ),
         const SizedBox(height: 8),
         Text(
           'Add what you feel like eating — Ansi works out the cooking and '
           'shopping.',
           textAlign: TextAlign.center,
-          style: miseMono(size: 12, color: MiseColors.muted),
+          style: ansiMono(size: 12, color: AnsiColors.muted),
         ),
         const SizedBox(height: 22),
         FButton(
@@ -597,7 +597,7 @@ class _LastWeekReference extends StatelessWidget {
       children: [
         Text(
           'Last week, for reference',
-          style: miseMono(size: 10, color: MiseColors.muted, letterSpacing: 1),
+          style: ansiMono(size: 10, color: AnsiColors.muted, letterSpacing: 1),
         ),
         const SizedBox(height: 8),
         for (final e in week.entries)
@@ -609,12 +609,12 @@ class _LastWeekReference extends StatelessWidget {
                   child: Text(
                     '${kWeekdayShort[e.dayOfWeek]} · '
                     '${e.recipeTitle ?? '(deleted recipe)'}',
-                    style: miseMono(size: 12),
+                    style: ansiMono(size: 12),
                   ),
                 ),
                 Text(
                   '${e.portionsOrDefault}',
-                  style: miseMono(size: 12, color: MiseColors.muted),
+                  style: ansiMono(size: 12, color: AnsiColors.muted),
                 ),
               ],
             ),

@@ -1,4 +1,4 @@
-import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
@@ -42,7 +42,7 @@ const _blankCollectiveRefs = [
 
 Widget _host(MethodStep step) => MaterialApp(
   home: FTheme(
-    data: miseThemeData(),
+    data: ansiThemeData(),
     child: FScaffold(
       child: MethodStepText(step: step, lineById: _lines),
     ),

@@ -17,7 +17,7 @@ library;
 import 'dart:async';
 import 'dart:io';
 
-import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
@@ -229,11 +229,11 @@ final Finder _measureLabelField = find
     .first;
 
 /// A default-unit chip by label, scoped to the D4c selector row.
-MiseModeChip _defaultUnitChip(WidgetTester tester, String label) =>
-    tester.widget<MiseModeChip>(
+AnsiModeChip _defaultUnitChip(WidgetTester tester, String label) =>
+    tester.widget<AnsiModeChip>(
       find.descendant(
         of: find.byKey(const ValueKey('default-unit-row')),
-        matching: find.widgetWithText(MiseModeChip, label),
+        matching: find.widgetWithText(AnsiModeChip, label),
       ),
     );
 
@@ -286,7 +286,7 @@ Widget _host(
     ],
     child: MaterialApp.router(
       routerConfig: router,
-      builder: (context, child) => FTheme(data: miseThemeData(), child: child!),
+      builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
     ),
   );
 }
@@ -301,7 +301,7 @@ Widget _densityHost(Ingredient ingredient) => ProviderScope(
   ],
   child: MaterialApp(
     home: FTheme(
-      data: miseThemeData(),
+      data: ansiThemeData(),
       child: FScaffold(
         childPad: false,
         child: Padding(
@@ -327,7 +327,7 @@ Widget _sheetHost(FakeIngredientRepo repo, {UsdaProbe? probe}) => ProviderScope(
   ],
   child: MaterialApp(
     home: FTheme(
-      data: miseThemeData(),
+      data: ansiThemeData(),
       child: const FScaffold(child: NewIngredientSheet()),
     ),
   ),
@@ -1151,7 +1151,7 @@ void main() {
           ],
           child: MaterialApp(
             home: FTheme(
-              data: miseThemeData(),
+              data: ansiThemeData(),
               child: const FScaffold(child: NewIngredientSheet()),
             ),
           ),
@@ -1165,10 +1165,10 @@ void main() {
       // The merge seam is gone: nothing on this sheet says the option is
       // waiting for another lane.
       expect(find.textContaining('wired at merge'), findsNothing);
-      final barcode = tester.widget<MiseModeChip>(
+      final barcode = tester.widget<AnsiModeChip>(
         find.ancestor(
           of: find.text('Barcode'),
-          matching: find.byType(MiseModeChip),
+          matching: find.byType(AnsiModeChip),
         ),
       );
       expect(barcode.enabled, isTrue);
@@ -1186,7 +1186,7 @@ void main() {
           ],
           child: MaterialApp(
             home: FTheme(
-              data: miseThemeData(),
+              data: ansiThemeData(),
               child: const FScaffold(child: NewIngredientSheet()),
             ),
           ),
@@ -1631,7 +1631,7 @@ Widget _addHost(
     ],
     child: MaterialApp.router(
       routerConfig: router,
-      builder: (context, child) => FTheme(data: miseThemeData(), child: child!),
+      builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
     ),
   );
 }

@@ -1,4 +1,4 @@
-import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/planning_repository.dart';
@@ -72,7 +72,7 @@ class _NoRecipesRepo implements RecipeRepository {
 Widget _host(List<Override> overrides) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
-    home: FTheme(data: miseThemeData(), child: const WeekView()),
+    home: FTheme(data: ansiThemeData(), child: const WeekView()),
   ),
 );
 

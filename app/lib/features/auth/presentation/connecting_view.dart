@@ -12,8 +12,8 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/sync/session.dart';
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 
 class ConnectingView extends ConsumerWidget {
   const ConnectingView({super.key});
@@ -39,7 +39,7 @@ class ConnectingView extends ConsumerWidget {
               children: [
                 Text(
                   'Ansi',
-                  style: miseSerif(size: 34),
+                  style: ansiSerif(size: 34),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
@@ -49,19 +49,19 @@ class ConnectingView extends ConsumerWidget {
                   Text(
                     'Setting up your kitchen…',
                     textAlign: TextAlign.center,
-                    style: miseSans(size: 14, color: MiseColors.muted),
+                    style: ansiSans(size: 14, color: AnsiColors.muted),
                   ),
                 ] else ...[
                   Text(
                     'Could not set up your kitchen.',
                     textAlign: TextAlign.center,
-                    style: miseSans(size: 14),
+                    style: ansiSans(size: 14),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     error.message,
                     textAlign: TextAlign.center,
-                    style: miseSans(size: 12.5, color: MiseColors.gone),
+                    style: ansiSans(size: 12.5, color: AnsiColors.gone),
                   ),
                   const SizedBox(height: 20),
                   FButton(

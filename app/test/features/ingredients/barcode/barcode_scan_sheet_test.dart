@@ -8,7 +8,7 @@
 /// the three failure states, and what it resolves with.
 library;
 
-import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/ingredients/barcode/barcode_add.dart';
 import 'package:ansi/features/ingredients/barcode/barcode_scan_sheet.dart';
 import 'package:flutter/material.dart';
@@ -80,7 +80,7 @@ Future<void> _pump(
   await tester.pumpWidget(
     MaterialApp(
       home: FTheme(
-        data: miseThemeData(),
+        data: ansiThemeData(),
         child: FScaffold(
           child: BarcodeScanSheet(
             lookup: lookup,

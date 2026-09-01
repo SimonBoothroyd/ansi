@@ -5,12 +5,12 @@ library;
 
 import 'package:flutter/widgets.dart';
 
-import '../core/theme/mise_tokens.dart';
+import '../core/theme/ansi_tokens.dart';
 
 class DashedBorderBox extends StatelessWidget {
   const DashedBorderBox({
     required this.child,
-    this.color = MiseColors.herb,
+    this.color = AnsiColors.herb,
     this.padding = const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
     super.key,
   });

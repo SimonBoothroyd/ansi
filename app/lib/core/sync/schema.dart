@@ -1,7 +1,7 @@
 /// PowerSync client-side schema — the local SQLite mirror.
 ///
 /// Every table here is **synced** (step 7): `bootstrap` calls `db.connect()`
-/// with the `MiseConnector` once a user is signed in, so local writes queue for
+/// with the `AnsiConnector` once a user is signed in, so local writes queue for
 /// upload and the server's rows stream down. Each table mirrors its migration
 /// and is scoped to the household (the sync rules in `docker/powersync.yaml`
 /// filter every bucket to the JWT's `household_id`).

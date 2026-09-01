@@ -16,8 +16,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/env.dart';
 import '../../../core/sync/session.dart';
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 
 /// The deep-link the OAuth provider returns to (registered in supabase/config.toml).
 const _oauthRedirect = 'io.mise.app://login-callback';
@@ -64,15 +64,15 @@ class SignInView extends HookConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Mise', style: miseSerif(size: 34)),
+                Text('Ansi', style: ansiSerif(size: 34)),
                 const SizedBox(height: 6),
                 Text(
                   'Plan the week you want to eat.',
-                  style: miseSans(size: 14, color: MiseColors.muted),
+                  style: ansiSans(size: 14, color: AnsiColors.muted),
                 ),
                 const SizedBox(height: 28),
 
-                Text('EMAIL', style: miseLabel()),
+                Text('EMAIL', style: ansiLabel()),
                 const SizedBox(height: 8),
                 FTextField(
                   hint: 'you@example.com',
@@ -84,7 +84,7 @@ class SignInView extends HookConsumerWidget {
                 ),
                 const SizedBox(height: 16),
 
-                Text('PASSWORD', style: miseLabel()),
+                Text('PASSWORD', style: ansiLabel()),
                 const SizedBox(height: 8),
                 FTextField(
                   hint: 'password',
@@ -98,7 +98,7 @@ class SignInView extends HookConsumerWidget {
                   const SizedBox(height: 14),
                   Text(
                     error.value!,
-                    style: miseSans(size: 12.5, color: MiseColors.gone),
+                    style: ansiSans(size: 12.5, color: AnsiColors.gone),
                   ),
                 ],
 
@@ -134,7 +134,7 @@ class SignInView extends HookConsumerWidget {
                     const Expanded(child: FDivider()),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text('or', style: miseLabel()),
+                      child: Text('or', style: ansiLabel()),
                     ),
                     const Expanded(child: FDivider()),
                   ],

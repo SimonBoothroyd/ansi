@@ -8,7 +8,7 @@
 // ignore_for_file: scoped_providers_should_specify_dependencies
 library;
 
-import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_picker.dart';
@@ -27,7 +27,7 @@ Widget _host(
   overrides: [ingredientRepositoryProvider.overrideWithValue(repo)],
   child: MaterialApp(
     home: FTheme(
-      data: miseThemeData(),
+      data: ansiThemeData(),
       child: FScaffold(
         child: AddNewIngredientRow(
           query: 'Curry leaves',

@@ -2,7 +2,7 @@
 // pattern connecting_view_test documents).
 // ignore_for_file: scoped_providers_should_specify_dependencies
 
-import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
@@ -132,7 +132,7 @@ Widget _host({List<RecipeSummary> recipes = const [_curry, _salad]}) =>
       ],
       child: MaterialApp(
         home: FTheme(
-          data: miseThemeData(),
+          data: ansiThemeData(),
           child: FScaffold(
             child: Builder(
               builder: (context) => Center(

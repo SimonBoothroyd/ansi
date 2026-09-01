@@ -8,32 +8,32 @@ import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 
-import '../core/theme/mise_theme.dart';
-import '../core/theme/mise_tokens.dart';
+import '../core/theme/ansi_theme.dart';
+import '../core/theme/ansi_tokens.dart';
 
 /// The tab a screen occupies, and its index in the bar.
-enum MiseTab { library, week, cook, shop }
+enum AnsiTab { library, week, cook, shop }
 
-class MiseBottomNav extends StatelessWidget {
-  const MiseBottomNav({required this.current, super.key});
+class AnsiBottomNav extends StatelessWidget {
+  const AnsiBottomNav({required this.current, super.key});
 
-  final MiseTab current;
+  final AnsiTab current;
 
   @override
   Widget build(BuildContext context) {
     return FBottomNavigationBar(
       index: current.index,
       onChange: (i) {
-        final tab = MiseTab.values[i];
+        final tab = AnsiTab.values[i];
         if (tab == current) return;
         switch (tab) {
-          case MiseTab.library:
+          case AnsiTab.library:
             context.go('/');
-          case MiseTab.week:
+          case AnsiTab.week:
             context.go('/week');
-          case MiseTab.cook:
+          case AnsiTab.cook:
             context.go('/cook');
-          case MiseTab.shop:
+          case AnsiTab.shop:
             context.go('/shop');
         }
       },
@@ -59,7 +59,7 @@ class _NavItem extends StatelessWidget {
       icon: Icon(icon),
       label: Text(
         label.toUpperCase(),
-        style: miseMono(size: 10, color: MiseColors.muted, letterSpacing: 0.5),
+        style: ansiMono(size: 10, color: AnsiColors.muted, letterSpacing: 0.5),
       ),
     );
   }

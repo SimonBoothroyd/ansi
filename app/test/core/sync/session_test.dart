@@ -157,7 +157,7 @@ void main() {
     );
     addTearDown(c.dispose);
     // Activate the controller so it subscribes to auth changes (the app does
-    // this once in MiseApp).
+    // this once in AnsiApp).
     c.read(sessionControllerProvider);
     return c;
   }

@@ -2,7 +2,7 @@
 /// wires to at merge: one import, one await, an [IngredientDraft] or null.
 library;
 
-import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/ingredients/barcode/barcode_add.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,7 +33,7 @@ Widget _host({
   required void Function(IngredientDraft?) onResult,
 }) => MaterialApp(
   home: FTheme(
-    data: miseThemeData(),
+    data: ansiThemeData(),
     child: FScaffold(
       child: Builder(
         builder: (context) => FButton(

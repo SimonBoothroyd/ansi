@@ -127,7 +127,7 @@ void main() {
     );
     // A throwaway database rather than the app's own file, so a rerun starts
     // empty and everything asserted below arrived through this run's sync.
-    dir = Directory.systemTemp.createTempSync('mise_smoke');
+    dir = Directory.systemTemp.createTempSync('ansi_smoke');
     db = PowerSyncDatabase(schema: schema, path: '${dir.path}/smoke.db');
     await db.initialize();
   });
@@ -179,7 +179,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [powerSyncDatabaseProvider.overrideWithValue(db)],
-        child: const MiseApp(),
+        child: const AnsiApp(),
       ),
     );
     await tester.pump();
@@ -281,7 +281,7 @@ void main() {
             ),
           ),
         ],
-        child: const MiseApp(),
+        child: const AnsiApp(),
       ),
     );
     await tester.pump();
@@ -325,7 +325,7 @@ void main() {
             ),
           ),
         ],
-        child: const MiseApp(),
+        child: const AnsiApp(),
       ),
     );
     await tester.pump();
@@ -1608,12 +1608,12 @@ Future<String> _provisionHousehold() async {
   for (var attempt = 0; attempt < 8; attempt++) {
     final stamp = DateTime.now().millisecondsSinceEpoch;
     // NOTE: example.com is on the cloud blocklist — use the app's own domain.
-    final email = 'smoke$stamp.ada@mise.app';
+    final email = 'smoke$stamp.ada@ansi.app';
     final token = await _signUp(email, fullName: 'Ada');
     final household = await _ensureOnboarded(token);
     if (await _memberCount(token, household) > 1) continue; // filled a stray
     final partnerToken = await _signUp(
-      'smoke$stamp.jun@mise.app',
+      'smoke$stamp.jun@ansi.app',
       fullName: 'Jun',
     );
     final partnerHousehold = await _ensureOnboarded(partnerToken);

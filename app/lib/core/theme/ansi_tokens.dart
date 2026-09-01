@@ -1,9 +1,9 @@
 import 'dart:ui';
 
-/// Design tokens from the "Mise" design board (docs/product-specs/design-board.html).
+/// Design tokens from the "Ansi" design board (docs/product-specs/design-board.html).
 /// Pure colour constants — no Flutter widget imports — so they can be mapped
-/// into a Forui theme in `mise_theme.dart` without coupling.
-abstract final class MiseColors {
+/// into a Forui theme in `ansi_theme.dart` without coupling.
+abstract final class AnsiColors {
   static const surface = Color(0xFFFFFFFF);
   static const paper = Color(0xFFF4F6F1);
   static const ink = Color(0xFF18211C);

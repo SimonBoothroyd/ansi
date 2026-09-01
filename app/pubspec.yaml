@@ -74,7 +74,7 @@ flutter:
   uses-material-design: true
 
   # Bundled (offline) fonts for the three design-board type roles. OFL 1.1;
-  # see assets/fonts/OFL.txt. Wired into core/theme/mise_theme.dart.
+  # see assets/fonts/OFL.txt. Wired into core/theme/ansi_theme.dart.
   fonts:
     - family: Spectral        # serif — titles, group headers
       fonts:
@@ -98,7 +98,7 @@ flutter:
         - asset: assets/fonts/IBMPlexMono-SemiBold.ttf
           weight: 600
     # Inter (interface text) is NOT bundled here — Forui already ships it as
-    # `packages/forui/Inter`, which mise_theme's sans stack points at.
+    # `packages/forui/Inter`, which ansi_theme's sans stack points at.
 
 # NOTE: version constraints use caret ranges with recent floors. Run
 # `flutter pub get` then `flutter pub outdated` on first checkout and let the

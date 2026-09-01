@@ -5,7 +5,7 @@
 library;
 
 import 'package:ansi/core/sync/session.dart';
-import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/auth/presentation/connecting_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -47,7 +47,7 @@ Widget _host(SessionState initial, _Calls calls) => ProviderScope(
     ),
   ],
   child: MaterialApp(
-    home: FTheme(data: miseThemeData(), child: const ConnectingView()),
+    home: FTheme(data: ansiThemeData(), child: const ConnectingView()),
   ),
 );
 

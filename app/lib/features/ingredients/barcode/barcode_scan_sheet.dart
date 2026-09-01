@@ -25,8 +25,8 @@ import 'package:forui/forui.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import 'ingredient_draft.dart';
 import 'off_lookup.dart';
 
@@ -104,9 +104,9 @@ class BarcodeScanSheet extends HookWidget {
 
     return Container(
       decoration: const BoxDecoration(
-        color: MiseColors.paper,
+        color: AnsiColors.paper,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: MiseColors.line)),
+        border: Border(top: BorderSide(color: AnsiColors.line)),
       ),
       child: SafeArea(
         top: false,
@@ -131,7 +131,7 @@ class BarcodeScanSheet extends HookWidget {
                     child: Text(
                       'Scan a barcode',
                       textAlign: TextAlign.center,
-                      style: miseSerif(size: 20),
+                      style: ansiSerif(size: 20),
                     ),
                   ),
                   const SizedBox(width: 22),
@@ -145,7 +145,7 @@ class BarcodeScanSheet extends HookWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Text('OR TYPE THE NUMBER', style: miseLabel()),
+              Text('OR TYPE THE NUMBER', style: ansiLabel()),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -172,12 +172,12 @@ class BarcodeScanSheet extends HookWidget {
               if (busy.value)
                 Text(
                   'Looking it up…',
-                  style: miseMono(size: 11, color: MiseColors.muted),
+                  style: ansiMono(size: 11, color: AnsiColors.muted),
                 )
               else if (typed.value.trim().isNotEmpty && code == null)
                 Text(
                   'a barcode is 8 to 14 digits',
-                  style: miseMono(size: 11, color: MiseColors.muted),
+                  style: ansiMono(size: 11, color: AnsiColors.muted),
                 ),
               if (failed != null) ...[
                 const SizedBox(height: 12),
@@ -193,7 +193,7 @@ class BarcodeScanSheet extends HookWidget {
               Text(
                 'Product data from Open Food Facts · ODbL',
                 textAlign: TextAlign.center,
-                style: miseMono(size: 10, color: MiseColors.muted),
+                style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ],
           ),
@@ -277,7 +277,7 @@ class _CameraFrame extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(14),
             child: ColoredBox(
-              color: MiseColors.ink,
+              color: AnsiColors.ink,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -289,7 +289,7 @@ class _CameraFrame extends StatelessWidget {
                         height: 96,
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: MiseColors.surface,
+                            color: AnsiColors.surface,
                             width: 1.5,
                           ),
                           borderRadius: BorderRadius.circular(8),
@@ -306,7 +306,7 @@ class _CameraFrame extends StatelessWidget {
         Text(
           'line up the barcode',
           textAlign: TextAlign.center,
-          style: miseMono(size: 10, color: MiseColors.muted),
+          style: ansiMono(size: 10, color: AnsiColors.muted),
         ),
       ],
     );
@@ -331,7 +331,7 @@ class CameraOffNotice extends StatelessWidget {
           Text(
             "Ansi can't open the camera",
             textAlign: TextAlign.center,
-            style: miseSans(size: 14, color: MiseColors.surface),
+            style: ansiSans(size: 14, color: AnsiColors.surface),
           ),
           const SizedBox(height: 6),
           Text(
@@ -342,7 +342,7 @@ class CameraOffNotice extends StatelessWidget {
                 : 'No camera is available here. Type the barcode below — it '
                       'ends in the same place.',
             textAlign: TextAlign.center,
-            style: miseMono(size: 10, color: MiseColors.line),
+            style: ansiMono(size: 10, color: AnsiColors.line),
           ),
           if (permissionDenied) ...[
             const SizedBox(height: 10),
@@ -422,16 +422,16 @@ class BarcodeFailurePanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: MiseColors.surface,
-        border: Border.all(color: MiseColors.line),
+        color: AnsiColors.surface,
+        border: Border.all(color: AnsiColors.line),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(title, style: miseSans(size: 14, weight: FontWeight.w500)),
+          Text(title, style: ansiSans(size: 14, weight: FontWeight.w500)),
           const SizedBox(height: 5),
-          Text(body, style: miseMono(size: 10.5, color: MiseColors.muted)),
+          Text(body, style: ansiMono(size: 10.5, color: AnsiColors.muted)),
           const SizedBox(height: 10),
           FButton(
             variant: FButtonVariant.outline,

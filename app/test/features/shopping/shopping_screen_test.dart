@@ -1,4 +1,4 @@
-import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
@@ -77,7 +77,7 @@ class _FakeShoppingRepo implements ShoppingRepository {
 Widget _host(List<Override> overrides) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
-    home: FTheme(data: miseThemeData(), child: const ShoppingView()),
+    home: FTheme(data: ansiThemeData(), child: const ShoppingView()),
   ),
 );
 

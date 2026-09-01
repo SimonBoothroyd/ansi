@@ -16,8 +16,8 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../../shared/picker_shell.dart';
@@ -181,15 +181,15 @@ class _RecipePickerSheet extends HookConsumerWidget {
                   const Icon(
                     FLucideIcons.plus,
                     size: 12,
-                    color: MiseColors.herb,
+                    color: AnsiColors.herb,
                   ),
                   const SizedBox(width: 5),
                   Text(
                     'new recipe — build it from scratch',
                     textAlign: TextAlign.center,
-                    style: miseMono(
+                    style: ansiMono(
                       size: 11,
-                      color: MiseColors.herb,
+                      color: AnsiColors.herb,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -223,16 +223,16 @@ class _EatingFooter extends StatelessWidget {
           child: Text.rich(
             TextSpan(
               text: 'Eating: ',
-              style: miseMono(size: 10, color: MiseColors.muted),
+              style: ansiMono(size: 10, color: AnsiColors.muted),
               children: [
                 TextSpan(
                   text: names,
-                  style: miseMono(size: 10, weight: FontWeight.w600),
+                  style: ansiMono(size: 10, weight: FontWeight.w600),
                 ),
                 if (members.length > 1)
                   TextSpan(
                     text: ' · shared',
-                    style: miseMono(size: 10, color: MiseColors.muted),
+                    style: ansiMono(size: 10, color: AnsiColors.muted),
                   ),
               ],
             ),
@@ -260,7 +260,7 @@ class _AlreadyThisWeek extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: MiseColors.herbSoft,
+        color: AnsiColors.herbSoft,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -268,9 +268,9 @@ class _AlreadyThisWeek extends StatelessWidget {
         children: [
           Text(
             'Already this week — cook it in the same batch',
-            style: miseMono(
+            style: ansiMono(
               size: 10,
-              color: MiseColors.herbDeep,
+              color: AnsiColors.herbDeep,
               letterSpacing: 1,
             ),
           ),
@@ -289,8 +289,8 @@ class _AlreadyThisWeek extends StatelessWidget {
                       vertical: 7,
                     ),
                     decoration: BoxDecoration(
-                      color: MiseColors.surface,
-                      border: Border.all(color: MiseColors.line),
+                      color: AnsiColors.surface,
+                      border: Border.all(color: AnsiColors.line),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Row(
@@ -298,16 +298,16 @@ class _AlreadyThisWeek extends StatelessWidget {
                       children: [
                         Text(
                           e.value.title,
-                          style: miseSans(
+                          style: ansiSans(
                             size: 13,
-                            color: MiseColors.herbDeep,
+                            color: AnsiColors.herbDeep,
                             weight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           kWeekdayShort[e.value.day],
-                          style: miseMono(size: 9, color: MiseColors.muted),
+                          style: ansiMono(size: 9, color: AnsiColors.muted),
                         ),
                       ],
                     ),
@@ -352,7 +352,7 @@ class _RecentList extends StatelessWidget {
       return Center(
         child: Text(
           'No recipes yet — add one below.',
-          style: miseMono(size: 12, color: MiseColors.muted),
+          style: ansiMono(size: 12, color: AnsiColors.muted),
         ),
       );
     }
@@ -372,7 +372,7 @@ class _FavoritesList extends StatelessWidget {
       return Center(
         child: Text(
           'No favorites yet — star a recipe from its page.',
-          style: miseMono(size: 12, color: MiseColors.muted),
+          style: ansiMono(size: 12, color: AnsiColors.muted),
         ),
       );
     }
@@ -450,8 +450,8 @@ class _RecipeRow extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: MiseColors.surface,
-          border: Border.all(color: MiseColors.line),
+          color: AnsiColors.surface,
+          border: Border.all(color: AnsiColors.line),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -465,7 +465,7 @@ class _RecipeRow extends StatelessWidget {
                 children: [
                   Text(
                     recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
-                    style: miseSerif(size: 16),
+                    style: ansiSerif(size: 16),
                   ),
                   if (fileUnder.isNotEmpty || planned != null) ...[
                     const SizedBox(height: 2),
@@ -474,14 +474,14 @@ class _RecipeRow extends StatelessWidget {
                         Expanded(
                           child: Text(
                             fileUnder,
-                            style: miseMono(size: 10, color: MiseColors.muted),
+                            style: ansiMono(size: 10, color: AnsiColors.muted),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         if (planned != null)
                           Text(
                             formatLastPlanned(planned, DateTime.now()),
-                            style: miseMono(size: 10, color: MiseColors.muted),
+                            style: ansiMono(size: 10, color: AnsiColors.muted),
                           ),
                       ],
                     ),
@@ -492,7 +492,7 @@ class _RecipeRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(FLucideIcons.plus, size: 18, color: MiseColors.herb),
+            const Icon(FLucideIcons.plus, size: 18, color: AnsiColors.herb),
           ],
         ),
       ),
@@ -538,7 +538,7 @@ class _Pill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: MiseColors.herbSoft,
+        color: AnsiColors.herbSoft,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -551,13 +551,13 @@ class _Pill extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(3),
                 gradient: const LinearGradient(
-                  colors: [MiseColors.fresh, MiseColors.aging, MiseColors.gone],
+                  colors: [AnsiColors.fresh, AnsiColors.aging, AnsiColors.gone],
                 ),
               ),
             ),
             const SizedBox(width: 5),
           ],
-          Text(text, style: miseMono(size: 9.5, color: MiseColors.herbDeep)),
+          Text(text, style: ansiMono(size: 9.5, color: AnsiColors.herbDeep)),
         ],
       ),
     );
@@ -580,7 +580,7 @@ class _MacroLine extends StatelessWidget {
         padding: const EdgeInsets.only(top: 4),
         child: Text(
           serves,
-          style: miseMono(size: 10, color: MiseColors.herbDeep),
+          style: ansiMono(size: 10, color: AnsiColors.herbDeep),
         ),
       );
     }
@@ -593,11 +593,11 @@ class _MacroLine extends StatelessWidget {
             text:
                 '$serves · ~${perServing.kcal.round()} kcal · '
                 '${perServing.protein.round()}P',
-            style: miseMono(size: 10, color: MiseColors.herbDeep),
+            style: ansiMono(size: 10, color: AnsiColors.herbDeep),
             children: [
               TextSpan(
                 text: ' /serving',
-                style: miseMono(size: 10, color: MiseColors.muted),
+                style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ],
           ),
@@ -610,12 +610,12 @@ class _MacroLine extends StatelessWidget {
         children: [
           Text(
             '$serves · ',
-            style: miseMono(size: 10, color: MiseColors.muted),
+            style: ansiMono(size: 10, color: AnsiColors.muted),
           ),
           const IncompleteBadge(),
           Text(
             ' ${incompleteNote(summary)}',
-            style: miseMono(size: 10, color: MiseColors.muted),
+            style: ansiMono(size: 10, color: AnsiColors.muted),
           ),
         ],
       ),
@@ -633,13 +633,13 @@ class _RecipeThumb extends StatelessWidget {
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: MiseColors.herbSoft,
+        color: AnsiColors.herbSoft,
         borderRadius: BorderRadius.circular(9),
       ),
       child: const Icon(
         FLucideIcons.cookingPot,
         size: 18,
-        color: MiseColors.herb,
+        color: AnsiColors.herb,
       ),
     );
   }

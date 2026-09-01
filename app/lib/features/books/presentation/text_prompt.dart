@@ -5,7 +5,7 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
-import '../../../core/theme/mise_theme.dart';
+import '../../../core/theme/ansi_theme.dart';
 
 Future<String?> promptForText(
   BuildContext context, {
@@ -54,7 +54,7 @@ class _TextPromptDialogState extends State<_TextPromptDialog> {
   Widget build(BuildContext context) {
     return FDialog(
       animation: widget.animation,
-      title: Text(widget.title, style: miseSerif(size: 20)),
+      title: Text(widget.title, style: ansiSerif(size: 20)),
       body: Padding(
         padding: const EdgeInsets.only(top: 8),
         child: FTextField(

@@ -14,8 +14,8 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/picker_shell.dart';
 import '../data/ingredient_providers.dart';
@@ -150,7 +150,7 @@ class IngredientResultList extends StatelessWidget {
           query.isEmpty
               ? 'No ingredients yet.'
               : 'No match for "$query" — add it below.',
-          style: miseMono(size: 12, color: MiseColors.muted),
+          style: ansiMono(size: 12, color: AnsiColors.muted),
         ),
       );
     }
@@ -159,10 +159,10 @@ class IngredientResultList extends StatelessWidget {
         if (showingRecents)
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: Text('RECENT', style: miseLabel()),
+            child: Text('RECENT', style: ansiLabel()),
           ),
         for (final (i, ing) in results.indexed) ...[
-          if (i > 0) Container(height: 1, color: MiseColors.line),
+          if (i > 0) Container(height: 1, color: AnsiColors.line),
           IngredientRow(ingredient: ing, onPick: onPick),
         ],
       ],
@@ -229,7 +229,7 @@ class IngredientRow extends StatelessWidget {
                       Flexible(
                         child: Text(
                           ing.canonicalName,
-                          style: miseSans(size: 15, weight: FontWeight.w600),
+                          style: ansiSans(size: 15, weight: FontWeight.w600),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -243,7 +243,7 @@ class IngredientRow extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       hints,
-                      style: miseMono(size: 10, color: MiseColors.muted),
+                      style: ansiMono(size: 10, color: AnsiColors.muted),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -253,11 +253,11 @@ class IngredientRow extends StatelessWidget {
                     Text.rich(
                       TextSpan(
                         text: formatMacroLine(macros),
-                        style: miseMono(size: 10, color: MiseColors.herbDeep),
+                        style: ansiMono(size: 10, color: AnsiColors.herbDeep),
                         children: [
                           TextSpan(
                             text: ' ${macroBasisSuffix(ing.macrosBasis)}',
-                            style: miseMono(size: 10, color: MiseColors.muted),
+                            style: ansiMono(size: 10, color: AnsiColors.muted),
                           ),
                         ],
                       ),
@@ -268,7 +268,7 @@ class IngredientRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             trailing ??
-                const Icon(FLucideIcons.plus, size: 18, color: MiseColors.herb),
+                const Icon(FLucideIcons.plus, size: 18, color: AnsiColors.herb),
           ],
         ),
       ),
@@ -351,14 +351,14 @@ class AddNewIngredientRow extends HookConsumerWidget {
               }
             },
       child: DashedBorderBox(
-        color: enabled ? MiseColors.herb : MiseColors.line,
+        color: enabled ? AnsiColors.herb : AnsiColors.line,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               FLucideIcons.plus,
               size: 12,
-              color: enabled ? MiseColors.herb : MiseColors.muted,
+              color: enabled ? AnsiColors.herb : AnsiColors.muted,
             ),
             const SizedBox(width: 5),
             Flexible(
@@ -368,9 +368,9 @@ class AddNewIngredientRow extends HookConsumerWidget {
                     : 'can’t find it? type a name to add it',
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
-                style: miseMono(
+                style: ansiMono(
                   size: 11,
-                  color: enabled ? MiseColors.herb : MiseColors.muted,
+                  color: enabled ? AnsiColors.herb : AnsiColors.muted,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -406,7 +406,7 @@ class _JustCreatedStrip extends StatelessWidget {
             'added “${created.canonicalName}” as a stub',
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
-            style: miseMono(size: 11, color: MiseColors.muted),
+            style: ansiMono(size: 11, color: AnsiColors.muted),
           ),
           const SizedBox(height: 6),
           Row(
@@ -417,7 +417,7 @@ class _JustCreatedStrip extends StatelessWidget {
                 onTap: onUse,
                 child: Text(
                   'use it',
-                  style: miseMono(size: 12, color: MiseColors.herbDeep),
+                  style: ansiMono(size: 12, color: AnsiColors.herbDeep),
                 ),
               ),
               const SizedBox(width: 16),
@@ -429,13 +429,13 @@ class _JustCreatedStrip extends StatelessWidget {
                   children: [
                     Text(
                       'flesh out now',
-                      style: miseMono(size: 12, color: MiseColors.herbDeep),
+                      style: ansiMono(size: 12, color: AnsiColors.herbDeep),
                     ),
                     const SizedBox(width: 4),
                     const Icon(
                       FLucideIcons.arrowRight,
                       size: 12,
-                      color: MiseColors.herbDeep,
+                      color: AnsiColors.herbDeep,
                     ),
                   ],
                 ),
@@ -455,7 +455,7 @@ class StubBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return FBadge(
       variant: FBadgeVariant.secondary,
-      child: Text('stub', style: miseMono(size: 10, color: MiseColors.muted)),
+      child: Text('stub', style: ansiMono(size: 10, color: AnsiColors.muted)),
     );
   }
 }

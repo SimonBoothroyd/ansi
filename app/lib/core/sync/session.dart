@@ -142,7 +142,7 @@ abstract interface class HouseholdCache {
 
 /// [HouseholdCache] over [SharedPreferences].
 class SharedPrefsHouseholdCache implements HouseholdCache {
-  static const _prefix = 'mise.household_id.';
+  static const _prefix = 'ansi.household_id.';
 
   @override
   Future<String?> read(String userId) async {
@@ -281,7 +281,7 @@ class SessionController extends _$SessionController {
   }
 
   Future<void> _connect(PowerSyncDatabase db) =>
-      db.connect(connector: MiseConnector(ref.read(supabaseClientProvider)));
+      db.connect(connector: AnsiConnector(ref.read(supabaseClientProvider)));
 
   /// Re-runs `ensure_onboarded` behind an already-published cached session, to
   /// heal drift (e.g. the household changed server-side).

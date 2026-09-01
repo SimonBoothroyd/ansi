@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
@@ -44,7 +44,7 @@ Widget _host(Widget child, {Stream<Recipe?>? recipes}) => ProviderScope(
       recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(recipes)),
   ],
   child: MaterialApp(
-    home: FTheme(data: miseThemeData(), child: child),
+    home: FTheme(data: ansiThemeData(), child: child),
   ),
 );
 

@@ -1,4 +1,4 @@
-import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/shopping/data/shopping_providers.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
@@ -92,7 +92,7 @@ void main() {
         overrides: [shoppingRepositoryProvider.overrideWithValue(repo)],
         child: MaterialApp(
           home: FTheme(
-            data: miseThemeData(),
+            data: ansiThemeData(),
             child: Builder(
               builder: (context) => Center(
                 child: GestureDetector(

@@ -12,8 +12,8 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/method_step_text.dart';
 import '../data/recipe_providers.dart';
 import '../domain/line_display.dart';
@@ -41,7 +41,7 @@ class RecipeView extends ConsumerWidget {
           child: Center(
             child: Text(
               'Could not load this recipe.',
-              style: miseMono(size: 13, color: MiseColors.muted),
+              style: ansiMono(size: 13, color: AnsiColors.muted),
             ),
           ),
         );
@@ -49,7 +49,7 @@ class RecipeView extends ConsumerWidget {
       data: (recipe) => recipe == null
           ? FScaffold(
               child: Center(
-                child: Text('Recipe not found', style: miseSerif(size: 20)),
+                child: Text('Recipe not found', style: ansiSerif(size: 20)),
               ),
             )
           : _RecipeBody(recipe: recipe),
@@ -128,9 +128,9 @@ class _RecipeBody extends HookConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
         children: [
-          Text(_breadcrumb(recipe), style: miseLabel(color: MiseColors.herb)),
+          Text(_breadcrumb(recipe), style: ansiLabel(color: AnsiColors.herb)),
           const SizedBox(height: 8),
-          Text(title, style: miseSerif(size: 33, weight: FontWeight.w700)),
+          Text(title, style: ansiSerif(size: 33, weight: FontWeight.w700)),
           const SizedBox(height: 12),
           _Chips(recipe: recipe),
           const SizedBox(height: 20),
@@ -164,7 +164,7 @@ class _RecipeBody extends HookConsumerWidget {
       context: context,
       builder: (context, style, animation) => FDialog(
         animation: animation,
-        title: Text('Delete recipe?', style: miseSerif(size: 20)),
+        title: Text('Delete recipe?', style: ansiSerif(size: 20)),
         body: const Text('This removes it from your recipes.'),
         actions: [
           FButton(
@@ -201,7 +201,7 @@ class _TabBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: MiseColors.line)),
+        border: Border(bottom: BorderSide(color: AnsiColors.line)),
       ),
       child: Row(
         children: [
@@ -239,7 +239,7 @@ class _TabButton extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: selected ? MiseColors.ink : const Color(0x00000000),
+              color: selected ? AnsiColors.ink : const Color(0x00000000),
               width: 2,
             ),
           ),
@@ -248,9 +248,9 @@ class _TabButton extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 10),
           child: Text(
             label,
-            style: miseSans(
+            style: ansiSans(
               size: 16,
-              color: selected ? MiseColors.ink : MiseColors.muted,
+              color: selected ? AnsiColors.ink : AnsiColors.muted,
               weight: selected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
@@ -267,7 +267,7 @@ class _Hairline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Container(height: 1, color: MiseColors.line);
+      Container(height: 1, color: AnsiColors.line);
 }
 
 class _Chips extends StatelessWidget {
@@ -314,13 +314,13 @@ class _Chip extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(3),
                 gradient: const LinearGradient(
-                  colors: [MiseColors.fresh, MiseColors.aging, MiseColors.gone],
+                  colors: [AnsiColors.fresh, AnsiColors.aging, AnsiColors.gone],
                 ),
               ),
             ),
             const SizedBox(width: 8),
           ],
-          Text(text, style: miseMono(size: 11, color: MiseColors.herbDeep)),
+          Text(text, style: ansiMono(size: 11, color: AnsiColors.herbDeep)),
         ],
       ),
     );
@@ -361,9 +361,9 @@ class _IngredientsTab extends StatelessWidget {
                 // The stored name verbatim — authors write the full heading
                 // ("for the curry", design board), so no prefix is added here.
                 group.name!,
-                style: miseSerif(
+                style: ansiSerif(
                   size: 18,
-                  color: MiseColors.herbDeep,
+                  color: AnsiColors.herbDeep,
                   weight: FontWeight.w400,
                 ).copyWith(fontStyle: FontStyle.italic),
               ),
@@ -399,8 +399,8 @@ class _ScaleControl extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: MiseColors.paper,
-        border: Border.all(color: MiseColors.line),
+        color: AnsiColors.paper,
+        border: Border.all(color: AnsiColors.line),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Padding(
@@ -409,7 +409,7 @@ class _ScaleControl extends StatelessWidget {
           children: [
             Text(
               'Scale\nto',
-              style: miseSans(size: 13, color: MiseColors.muted),
+              style: ansiSans(size: 13, color: AnsiColors.muted),
             ),
             const Spacer(),
             FButton.icon(
@@ -422,11 +422,11 @@ class _ScaleControl extends StatelessWidget {
                 children: [
                   Text(
                     '${formatQuantity(servings)} servings',
-                    style: miseSans(size: 17, weight: FontWeight.w700),
+                    style: ansiSans(size: 17, weight: FontWeight.w700),
                   ),
                   Text(
                     '·${formatQuantity(factor)}×',
-                    style: miseMono(size: 13, color: MiseColors.muted),
+                    style: ansiMono(size: 13, color: AnsiColors.muted),
                   ),
                 ],
               ),
@@ -457,7 +457,7 @@ class _MethodTab extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 24),
         child: Text(
           'No method written yet.',
-          style: miseMono(size: 12, color: MiseColors.muted),
+          style: ansiMono(size: 12, color: AnsiColors.muted),
         ),
       );
     }
@@ -497,7 +497,7 @@ class _MethodTab extends StatelessWidget {
           if (i > 0) const FDivider(),
           _StepRow(
             number: i + 1,
-            child: Text(plain[i], style: miseSans(size: 16, height: 1.4)),
+            child: Text(plain[i], style: ansiSans(size: 16, height: 1.4)),
           ),
         ],
       ],
@@ -523,14 +523,14 @@ class _StepRow extends StatelessWidget {
             height: 26,
             alignment: Alignment.center,
             decoration: const BoxDecoration(
-              color: MiseColors.ink,
+              color: AnsiColors.ink,
               shape: BoxShape.circle,
             ),
             child: Text(
               '$number',
-              style: miseMono(
+              style: ansiMono(
                 size: 12,
-                color: MiseColors.paper,
+                color: AnsiColors.paper,
                 weight: FontWeight.w700,
               ),
             ),

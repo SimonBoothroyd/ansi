@@ -13,10 +13,10 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_bottom_nav.dart';
 import '../../../shared/dashed_border_box.dart';
-import '../../../shared/mise_bottom_nav.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../data/shopping_providers.dart';
 import '../domain/shopping.dart';
@@ -33,9 +33,9 @@ class ShoppingView extends ConsumerWidget {
     final list = ref.watch(currentShoppingListProvider);
 
     return FScaffold(
-      footer: const MiseBottomNav(current: MiseTab.shop),
+      footer: const AnsiBottomNav(current: AnsiTab.shop),
       header: FHeader.nested(
-        title: Text('Shopping list', style: miseHeaderTitle()),
+        title: Text('Shopping list', style: ansiHeaderTitle()),
       ),
       child: list.when(
         loading: () => const Center(child: FCircularProgress()),
@@ -45,7 +45,7 @@ class ShoppingView extends ConsumerWidget {
             child: Text(
               'Could not build the shopping list.',
               textAlign: TextAlign.center,
-              style: miseMono(size: 13, color: MiseColors.muted),
+              style: ansiMono(size: 13, color: AnsiColors.muted),
             ),
           );
         },
@@ -73,9 +73,9 @@ class _ListCaption extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 2),
       child: Text(
         'summed from the cook plan · with provenance',
-        style: miseMono(
+        style: ansiMono(
           size: 10.5,
-          color: MiseColors.muted,
+          color: AnsiColors.muted,
           letterSpacing: 0.5,
         ),
       ),
@@ -97,9 +97,9 @@ class _Group extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
           child: Text(
             group.label.toUpperCase(),
-            style: miseMono(
+            style: ansiMono(
               size: 10,
-              color: MiseColors.muted,
+              color: AnsiColors.muted,
               letterSpacing: 1.4,
             ),
           ),
@@ -164,8 +164,8 @@ class _ItemRow extends ConsumerWidget {
         margin: const EdgeInsets.symmetric(horizontal: 20),
         padding: const EdgeInsets.symmetric(vertical: 11),
         decoration: const BoxDecoration(
-          color: MiseColors.surface,
-          border: Border(bottom: BorderSide(color: MiseColors.line)),
+          color: AnsiColors.surface,
+          border: Border(bottom: BorderSide(color: AnsiColors.line)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,11 +178,11 @@ class _ItemRow extends ConsumerWidget {
                   child: Text(
                     item.name,
                     style:
-                        miseSans(
+                        ansiSans(
                           size: 14,
                           color: item.checked
-                              ? MiseColors.muted
-                              : MiseColors.ink,
+                              ? AnsiColors.muted
+                              : AnsiColors.ink,
                         ).copyWith(
                           decoration: item.checked
                               ? TextDecoration.lineThrough
@@ -193,10 +193,10 @@ class _ItemRow extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Text(
                   itemTotal(item),
-                  style: miseMono(
+                  style: ansiMono(
                     size: 13,
                     weight: FontWeight.w500,
-                    color: item.checked ? MiseColors.muted : MiseColors.ink,
+                    color: item.checked ? AnsiColors.muted : AnsiColors.ink,
                   ),
                 ),
               ],
@@ -211,7 +211,7 @@ class _ItemRow extends ConsumerWidget {
                   alignment: Alignment.centerRight,
                   child: Text(
                     wholeUnitHintText(item.wholeUnitHint!),
-                    style: miseMono(size: 10.5, color: MiseColors.herbDeep),
+                    style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
                   ),
                 ),
               ),
@@ -244,8 +244,8 @@ class _DeleteBackground extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 20),
       alignment: Alignment.centerRight,
       padding: const EdgeInsets.only(right: 8),
-      color: MiseColors.gone,
-      child: const Icon(FLucideIcons.trash2, size: 18, color: MiseColors.paper),
+      color: AnsiColors.gone,
+      child: const Icon(FLucideIcons.trash2, size: 18, color: AnsiColors.paper),
     );
   }
 }
@@ -302,25 +302,25 @@ class _ProvenanceLine extends StatelessWidget {
       child: Row(
         children: [
           if (isManual) ...[
-            const Icon(FLucideIcons.plus, size: 10, color: MiseColors.muted),
+            const Icon(FLucideIcons.plus, size: 10, color: AnsiColors.muted),
             const SizedBox(width: 4),
           ],
           Expanded(
             child: Text(
               c.label,
-              style: miseMono(
+              style: ansiMono(
                 size: 10.5,
-                color: isManual ? MiseColors.muted : MiseColors.herbDeep,
+                color: isManual ? AnsiColors.muted : AnsiColors.herbDeep,
               ).copyWith(fontStyle: isManual ? FontStyle.italic : null),
             ),
           ),
           if (editable) ...[
-            const Icon(FLucideIcons.pencil, size: 11, color: MiseColors.herb),
+            const Icon(FLucideIcons.pencil, size: 11, color: AnsiColors.herb),
             const SizedBox(width: 6),
           ],
           Text(
             contributionQuantity(c),
-            style: miseMono(size: 10.5, color: MiseColors.muted),
+            style: ansiMono(size: 10.5, color: AnsiColors.muted),
           ),
         ],
       ),
@@ -353,15 +353,15 @@ class _CheckBox extends StatelessWidget {
       width: 20,
       height: 20,
       decoration: BoxDecoration(
-        color: checked ? MiseColors.herb : MiseColors.surface,
+        color: checked ? AnsiColors.herb : AnsiColors.surface,
         border: Border.all(
-          color: checked ? MiseColors.herb : MiseColors.line,
+          color: checked ? AnsiColors.herb : AnsiColors.line,
           width: 1.6,
         ),
         borderRadius: BorderRadius.circular(6),
       ),
       child: checked
-          ? const Icon(FLucideIcons.check, size: 13, color: MiseColors.surface)
+          ? const Icon(FLucideIcons.check, size: 13, color: AnsiColors.surface)
           : null,
     );
   }
@@ -381,14 +381,14 @@ class _AddItemButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(FLucideIcons.plus, size: 12, color: MiseColors.herb),
+              const Icon(FLucideIcons.plus, size: 12, color: AnsiColors.herb),
               const SizedBox(width: 5),
               Text(
                 'add item or top up an ingredient',
                 textAlign: TextAlign.center,
-                style: miseMono(
+                style: ansiMono(
                   size: 11,
-                  color: MiseColors.herb,
+                  color: AnsiColors.herb,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -418,13 +418,13 @@ class _EmptyShoppingList extends ConsumerWidget {
         const Icon(
           FLucideIcons.shoppingBasket,
           size: 44,
-          color: MiseColors.herb,
+          color: AnsiColors.herb,
         ),
         const SizedBox(height: 14),
         Text(
           plannedButNoIngredients ? 'Nothing to sum yet' : 'Nothing to buy yet',
           textAlign: TextAlign.center,
-          style: miseSerif(size: 24),
+          style: ansiSerif(size: 24),
         ),
         const SizedBox(height: 8),
         Text(
@@ -435,7 +435,7 @@ class _EmptyShoppingList extends ConsumerWidget {
               : 'Plan meals on the Week and Ansi sums the shopping from the '
                     "cook plan — or add a non-food staple you're out of.",
           textAlign: TextAlign.center,
-          style: miseMono(size: 12, color: MiseColors.muted),
+          style: ansiMono(size: 12, color: AnsiColors.muted),
         ),
         const SizedBox(height: 22),
         Builder(
@@ -473,12 +473,12 @@ Future<void> _confirmRemove(
   final remove = await showFDialog<bool>(
     context: context,
     builder: (context, style, animation) => FDialog(
-      title: Text('Remove ${item.name}?', style: miseSerif(size: 18)),
+      title: Text('Remove ${item.name}?', style: ansiSerif(size: 18)),
       body: Text(
         item.isFreeText
             ? 'This non-food item will be removed from the list.'
             : 'This removes ${item.name} and your top-up from the list.',
-        style: miseSans(size: 14, color: MiseColors.muted),
+        style: ansiSans(size: 14, color: AnsiColors.muted),
       ),
       actions: [
         FButton(

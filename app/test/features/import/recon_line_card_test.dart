@@ -1,7 +1,7 @@
 // The pumped ProviderScope IS the root scope of each test's tree.
 // ignore_for_file: scoped_providers_should_specify_dependencies
 
-import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
@@ -217,7 +217,7 @@ Widget _host(ProviderContainer container, {LineValidation? validation}) =>
       container: container,
       child: MaterialApp(
         home: FTheme(
-          data: miseThemeData(),
+          data: ansiThemeData(),
           child: FScaffold(child: _Body(validation: validation)),
         ),
       ),
@@ -384,7 +384,7 @@ void main() {
       ProviderScope(
         child: MaterialApp(
           home: FTheme(
-            data: miseThemeData(),
+            data: ansiThemeData(),
             child: FScaffold(
               child: Resolver(
                 candidates: const [
@@ -574,7 +574,7 @@ void main() {
         container: container,
         child: MaterialApp(
           home: FTheme(
-            data: miseThemeData(),
+            data: ansiThemeData(),
             child: const FScaffold(child: _LiveBody()),
           ),
         ),

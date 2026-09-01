@@ -4,7 +4,7 @@
 
 import 'dart:async';
 
-import 'package:ansi/core/theme/mise_theme.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
@@ -95,7 +95,7 @@ Widget _host({
   overrides: [measureRepositoryProvider.overrideWithValue(repo)],
   child: MaterialApp(
     home: FTheme(
-      data: miseThemeData(),
+      data: ansiThemeData(),
       child: FScaffold(
         child: QuantityUnitEditor(
           ingredient: _potato,

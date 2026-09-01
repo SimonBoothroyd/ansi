@@ -55,7 +55,7 @@ cook plan's `batchHintFor`/`clusterSessions`).
 
 ## Navigation
 
-The Week is a bottom-nav tab (`shared/mise_bottom_nav.dart`), alongside Library,
+The Week is a bottom-nav tab (`shared/ansi_bottom_nav.dart`), alongside Library,
 Cook (step 5), and Shop (step 6) — all four tabs are live.
 
 ## Deferred
