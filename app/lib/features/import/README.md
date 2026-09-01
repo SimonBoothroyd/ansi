@@ -89,7 +89,12 @@ import/
   and is resolved back to an `ingredient_measure.id` at commit.
 - **Stubs are created client-side, in the commit transaction**, keyed by a
   coalescing key so identical no-match lines share one new ingredient. The USDA
-  enrichment leg is server-side and **not yet wired** (tracker).
+  enrichment leg is server-side and **now wired**: migrations `0014`/`0015` fire
+  a trigger as the stub arrives (and on a later rename), copying density + macros
+  from `usda_food` onto a bare stub — the row stays `stub` until a human confirms
+  it in the ingredients manager. One gap left: this commit still writes
+  `match_text` with the character-level normalizer rather than the phrase
+  normalizer the ingredients feature ported (tracker).
 - **Writes are view-safe**: local PowerSync tables are SQLite views, so every
   statement is a plain INSERT — never UPSERT ([[mise-powersync-views-no-upsert]]).
 - **Filing into the default book is load-bearing.** The Library renders books and

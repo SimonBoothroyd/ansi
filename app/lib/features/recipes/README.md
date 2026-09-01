@@ -30,6 +30,13 @@ The editor's **shelf-life inputs** (keeps / freezable / freezer days) landed in
 step 5 — they feed the cook plan's clustering; the recipe page renders the
 `keeps`/`freezable` chips from those values.
 
-**Deferred (implemented in later steps, not missing by accident):** the macro
-row → step 9 (needs completed, non-`stub` ingredients); cook mode, method
-ingredient-chips/timers, Notes tab, photos. See the roadmap + `tech-debt-tracker.md`.
+The **per-serving macro panel** (step 9) closes the recipe page's Ingredients
+tab: four cells (kcal · protein · carb · fat) off `Recipe.macros`, derived from
+the shared `summarizeRecipeMacros` summation — the same one the pickers use, so
+page and row can never disagree. It renders the `incomplete` badge and its
+reason (`shared/incomplete_macros.dart`) rather than a fabricated number, and it
+is **per serving**, so the servings scaler never moves it.
+
+**Deferred (implemented in later steps, not missing by accident):** cook mode,
+method ingredient-chips/timers, Notes tab, photos. See the roadmap +
+`tech-debt-tracker.md`.

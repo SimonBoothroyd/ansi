@@ -84,6 +84,12 @@ Two lookups that look similar but are different jobs (design doc §10):
 - **Human picks from a list** — the manual "Add ingredient" search. Offline,
   typo-tolerant retrieval over ~150–300 synced rows. On-device.
 
+The barcode add flow (step 8.5) does not bend this: a barcode is a **primary
+key**, so the Open Food Facts read is an exact-key fetch, not matching, and it
+runs on the device (the API is keyless and free, and its rate limit is per IP —
+a shared server address would pool every household onto one budget). What comes
+back is a *draft*, never a row.
+
 ## Two-tier ingredient vocabulary (ADR-0005)
 
 - `ingredient` — the household's lean, curated vocabulary (~150–300 rows). The
@@ -91,6 +97,18 @@ Two lookups that look similar but are different jobs (design doc §10):
 - `usda_food` — the full USDA FoodData Central reference, read-only,
   server-side only. Used to *create* ingredients and to prefill stubs. Never
   matched against at import.
+
+Because `usda_food` never reaches a device, the stub prefill is a **database
+trigger**, not a client lookup and not an edge function: migrations `0014`/`0015`
+port `prefillStubFromUsda` to plpgsql and fire it as a stub arrives through the
+PowerSync upload queue (and again on a rename). It is `security definer`, cheap
+(one indexed trigram probe) and never fails the upload — and it leaves the row
+`status='stub'`, because confirming is a human act. Since step 8.5 that human has
+somewhere to do it: `features/ingredients` owns an in-app **manager**
+(`/ingredients`) where the vocabulary is browsed and edited — `allowed_units`,
+density, macros, name, aliases — so the admission list ([ADR-0008](./docs/decisions/0008-unit-admission-model.md),
+amended by [ADR-0009](./docs/decisions/0009-density-unlocks-both-families.md)) is
+no longer write-once-at-creation.
 
 Matching against a couple hundred ingredients the household actually uses is
 high-precision; matching against 8k SR Legacy rows is not.
