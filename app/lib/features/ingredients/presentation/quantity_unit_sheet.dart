@@ -41,6 +41,7 @@ import '../domain/ingredient.dart';
 import 'density_entry.dart';
 import 'ingredient_picker.dart' show StubBadge;
 import 'macros_format.dart';
+import 'measures_editor.dart';
 
 /// What the sheet resolved to.
 sealed class QuantitySheetResult {
@@ -690,65 +691,9 @@ class _MeasureManager extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final label = useState('');
-    final amount = useState<double?>(null);
-    final error = useState<String?>(null);
-    // Set when the add form redirected a volume-named label ("cup") into
-    // the density entry — the one-line explanation + the pre-picked spoon.
+    // Set when the add form refused a volume-named label ("cup") and handed
+    // back the resolved spoon — the density entry below pre-picks it.
     final redirected = useState<Unit?>(null);
-
-    final baseLabel = ingredient.macrosBasis.baseUnit.label;
-    final listed = measures.where((m) => !isVolumeUnitLabel(m.label)).toList();
-
-    Future<void> save() async {
-      final name = label.value.trim();
-      final weight = amount.value;
-      if (name.isEmpty) {
-        error.value = 'give the measure a name';
-        return;
-      }
-      final volumeUnit = volumeUnitFromLabel(name);
-      if (volumeUnit != null) {
-        // Density owns volume conversion (ADR-0008 §2: a volume-named
-        // weight mapping IS a density) — offer the right door instead of
-        // just refusing: the density entry below, pre-set to that spoon.
-        redirected.value = volumeUnit;
-        error.value =
-            '“$name” is a unit — that mapping is the density; '
-            'enter it below and the ${volumeUnit.label} chip unlocks';
-        return;
-      }
-      if (weight == null || !(weight > 0)) {
-        error.value = 'measure it: $baseLabel must be a positive number';
-        return;
-      }
-      error.value = null;
-      final Measure added;
-      try {
-        added = await ref
-            .read(measureRepositoryProvider)
-            .addMeasure(
-              ingredientId: ingredient.id,
-              label: name,
-              amount: weight,
-            );
-        // The repo's validation contract IS ArgumentError (documented on
-        // addMeasure) — catching it here is the point: surface the refusal
-        // inline instead of crashing the sheet.
-        // ignore: avoid_catching_errors
-      } on ArgumentError catch (e) {
-        // The repository validates every write path (post-7.7 review); when
-        // its rules and the form's ever diverge, the refusal surfaces inline
-        // instead of silently diverging (or crashing the sheet).
-        if (!context.mounted) return;
-        error.value = '${e.message}';
-        return;
-      }
-      // The sheet can be dismissed while the write is in flight — touching
-      // the parent's state then would throw (every sibling path guards).
-      if (!context.mounted) return;
-      onAdded(added);
-    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -778,23 +723,13 @@ class _MeasureManager extends HookConsumerWidget {
           style: miseMono(size: 11, color: MiseColors.muted),
         ),
         const SizedBox(height: 14),
-        if (listed.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Text(
-              'No measures yet — name one below.',
-              style: miseMono(size: 12, color: MiseColors.muted),
-            ),
-          )
-        else
-          for (final m in listed) _MeasureRow(measure: m, onDelete: onDelete),
-        const SizedBox(height: 12),
-        _AddMeasureForm(
-          label: label,
-          amount: amount,
-          amountHint: baseLabel,
-          error: error.value,
-          onSave: save,
+        MeasuresEditor(
+          ingredient: ingredient,
+          measures: measures,
+          onDelete: onDelete,
+          onAdded: onAdded,
+          onVolumeLabel: (u) => redirected.value = u,
+          autofocus: true,
         ),
         const SizedBox(height: 14),
         DensityEntry(
@@ -806,183 +741,6 @@ class _MeasureManager extends HookConsumerWidget {
           },
         ),
       ],
-    );
-  }
-}
-
-class _MeasureRow extends StatelessWidget {
-  const _MeasureRow({required this.measure, required this.onDelete});
-
-  final Measure measure;
-  final Future<void> Function(Measure) onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: MiseColors.line)),
-      ),
-      child: Row(
-        children: [
-          SourceDot(kind: measure.sourceKind),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              measure.label,
-              style: miseSans(size: 14, weight: FontWeight.w500),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '${formatQuantity(measure.amount)} '
-            '${measure.basis.baseUnit.label}',
-            style: miseMono(size: 11, color: MiseColors.muted),
-          ),
-          const Spacer(),
-          Text(
-            measureSourceWord(measure.sourceKind),
-            style: miseMono(size: 9, color: MiseColors.muted),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => onDelete(measure),
-            child: const Icon(
-              FLucideIcons.trash2,
-              size: 15,
-              color: MiseColors.muted,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AddMeasureForm extends StatelessWidget {
-  const _AddMeasureForm({
-    required this.label,
-    required this.amount,
-    required this.amountHint,
-    required this.error,
-    required this.onSave,
-  });
-
-  final ValueNotifier<String> label;
-  final ValueNotifier<double?> amount;
-
-  /// The basis unit the amount is entered in ('g' — or 'ml' for a per-ml
-  /// ingredient, ADR-0008 basis-aware measures).
-  final String amountHint;
-  final String? error;
-  final VoidCallback onSave;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Icon + text, never the raw "＋" glyph (missing from the bundled
-        // fonts — renders as tofu).
-        Row(
-          children: [
-            const Icon(FLucideIcons.plus, size: 12, color: MiseColors.herb),
-            const SizedBox(width: 5),
-            Text('ADD MEASURE', style: miseLabel(color: MiseColors.herb)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: FTextField(
-                autofocus: true,
-                hint: 'label — “half can”',
-                control: FTextFieldControl.managed(
-                  onChange: (v) => label.value = v.text,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 92,
-              child: FTextField(
-                hint: amountHint,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                control: FTextFieldControl.managed(
-                  onChange: (v) =>
-                      amount.value = double.tryParse(v.text.trim()),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            FButton(
-              size: FButtonSizeVariant.sm,
-              onPress: onSave,
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        if (error != null)
-          Text(error!, style: miseMono(size: 10, color: MiseColors.gone))
-        else
-          Row(
-            children: [
-              const SourceDot(kind: MeasureSourceKind.manual),
-              const SizedBox(width: 5),
-              Text(
-                'saved as yours — synced & editable',
-                style: miseMono(size: 10, color: MiseColors.muted),
-              ),
-            ],
-          ),
-      ],
-    );
-  }
-}
-
-// --- Provenance display ------------------------------------------------------
-
-/// The humanized provenance word (frame-b review: words carry the meaning,
-/// never raw machine strings).
-String measureSourceWord(MeasureSourceKind kind) => switch (kind) {
-  MeasureSourceKind.usdaPortion => 'USDA portion',
-  MeasureSourceKind.borrowed => 'borrowed',
-  MeasureSourceKind.typical => 'typical',
-  MeasureSourceKind.manual => 'yours',
-  MeasureSourceKind.unknown => '—',
-};
-
-/// The subtle four-dot colour vocabulary (solid = USDA, ring = borrowed,
-/// amber = typical, ink = yours). Decorative beside the words — never
-/// load-bearing on its own.
-class SourceDot extends StatelessWidget {
-  const SourceDot({required this.kind, super.key});
-
-  final MeasureSourceKind kind;
-
-  @override
-  Widget build(BuildContext context) {
-    final (fill, ring) = switch (kind) {
-      MeasureSourceKind.usdaPortion => (MiseColors.herb, MiseColors.herb),
-      MeasureSourceKind.borrowed => (null, MiseColors.herb),
-      MeasureSourceKind.typical => (MiseColors.aging, MiseColors.aging),
-      MeasureSourceKind.manual => (MiseColors.ink, MiseColors.ink),
-      MeasureSourceKind.unknown => (null, MiseColors.line),
-    };
-    return Container(
-      width: 7,
-      height: 7,
-      decoration: BoxDecoration(
-        color: fill,
-        shape: BoxShape.circle,
-        border: Border.all(color: ring, width: 1.5),
-      ),
     );
   }
 }

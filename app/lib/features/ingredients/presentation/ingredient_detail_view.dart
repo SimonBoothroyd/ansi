@@ -34,6 +34,7 @@ import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/normalize.dart';
 import 'density_entry.dart';
+import 'measures_editor.dart';
 
 /// The pushed route for one vocab row.
 String ingredientDetailRoute(String id) => '/ingredients/$id';
@@ -114,6 +115,10 @@ class _DetailForm extends HookConsumerWidget {
     final allowed = useState(allowedUnitsFor(ing).toSet());
     final message = useState<String?>(null);
     final busy = useState(false);
+    // Set when the measures editor refused a volume-named label and handed
+    // back the resolved spoon — the density entry pre-picks it (F2: one
+    // shared editor, so the redirect works here exactly as in the sheet).
+    final redirectedSpoon = useState<Unit?>(null);
 
     // A density write lands through the repository and re-renders this screen
     // via the watched provider; the local allowed-set follows both ways, so
@@ -122,11 +127,13 @@ class _DetailForm extends HookConsumerWidget {
     // place this list shrinks.
     final densityValue = ing.densityGPerMl;
     useEffect(() {
-      allowed.value =
-          densityValue != null
-                ? {...allowed.value, ...densityUnlockedUnits(ing)}
-                : {...allowed.value}
-            ..removeAll(densityStrippedUnits(ing));
+      final next = {...allowed.value};
+      if (densityValue != null) {
+        next.addAll(densityUnlockedUnits(ing));
+      } else {
+        next.removeAll(densityStrippedUnits(ing));
+      }
+      allowed.value = next;
       return null;
     }, [densityValue]);
 
@@ -239,8 +246,11 @@ class _DetailForm extends HookConsumerWidget {
         const _Label('DENSITY — OPTIONAL, EITHER WAY, ONE STORED FACT'),
         DensityEntry(
           ingredient: ing,
-          redirectedSpoon: null,
-          onSaved: (_) => ref.invalidate(ingredientByIdProvider(ing.id)),
+          redirectedSpoon: redirectedSpoon.value,
+          onSaved: (_) {
+            redirectedSpoon.value = null;
+            ref.invalidate(ingredientByIdProvider(ing.id));
+          },
         ),
         if (ing.densityGPerMl == null)
           _Note(
@@ -261,7 +271,21 @@ class _DetailForm extends HookConsumerWidget {
         ),
 
         const _Label('MEASURES — COUNT-LIKE, IN THE BASIS'),
-        _MeasureList(ingredientId: ing.id),
+        MeasuresEditor(
+          ingredient: ing,
+          measures:
+              ref.watch(ingredientMeasuresProvider(ing.id)).asData?.value ??
+              const [],
+          onDelete: (m) =>
+              ref.read(measureRepositoryProvider).softDeleteMeasure(m.id),
+          // Nothing here selects a measure — the form is not a quantity
+          // entry surface; the watched provider re-renders the list.
+          onAdded: (_) {},
+          // A volume-named label is a density in disguise (ADR-0008 §2); the
+          // editor refuses it and the density section above pre-picks that
+          // spoon, which is the whole point of sharing one widget.
+          onVolumeLabel: (u) => redirectedSpoon.value = u,
+        ),
 
         const _Label('IMPRECISE UNITS'),
         _ImpreciseLine(ingredient: ing),
@@ -728,41 +752,6 @@ class _AliasEditor extends HookConsumerWidget {
             child: Text(
               error.value!,
               style: miseMono(size: 10, color: MiseColors.gone),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// The ingredient's live measures, read-only here: they are authored from a
-/// line's quantity sheet, where the amount has a quantity to sit beside.
-class _MeasureList extends ConsumerWidget {
-  const _MeasureList({required this.ingredientId});
-
-  final String ingredientId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final measures =
-        ref.watch(ingredientMeasuresProvider(ingredientId)).asData?.value ??
-        const [];
-    if (measures.isEmpty) {
-      return Text(
-        'No measures — added from a recipe line’s quantity sheet.',
-        style: miseMono(size: 11, color: MiseColors.muted),
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final m in measures)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Text(
-              '${m.label} · ${_trimZeros(m.amount)} '
-              '${m.basis.baseUnit.label} · ${m.source}',
-              style: miseMono(size: 11, color: MiseColors.muted),
             ),
           ),
       ],

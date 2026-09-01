@@ -14,6 +14,7 @@
 // ignore_for_file: scoped_providers_should_specify_dependencies
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -35,6 +36,7 @@ import 'package:mise/features/ingredients/domain/measure_repository.dart';
 import 'package:mise/features/ingredients/presentation/density_entry.dart';
 import 'package:mise/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:mise/features/ingredients/presentation/ingredient_list_view.dart';
+import 'package:mise/features/ingredients/presentation/measures_editor.dart';
 import 'package:mise/features/ingredients/presentation/new_ingredient_sheet.dart';
 import 'package:mise/shared/dashed_border_box.dart';
 
@@ -73,20 +75,37 @@ const _yeast = Ingredient(
   source: 'seed',
 );
 
-class _NoMeasures implements MeasureRepository {
+/// An in-memory measure store: enough for the flesh-out form's embedded
+/// editor (F2) and for asserting what the barcode pack-size tick wrote.
+class _FakeMeasures implements MeasureRepository {
+  _FakeMeasures([List<Measure> initial = const []]) : rows = [...initial];
+
+  final List<Measure> rows;
+  final _changes = StreamController<void>.broadcast();
+
   @override
-  Stream<List<Measure>> watchMeasures(String ingredientId) =>
-      Stream.value(const []);
+  Stream<List<Measure>> watchMeasures(String ingredientId) async* {
+    yield [...rows];
+    yield* _changes.stream.map((_) => [...rows]);
+  }
 
   @override
   Future<Measure> addMeasure({
     required String ingredientId,
     required String label,
     required double amount,
-  }) => throw UnimplementedError();
+  }) async {
+    final m = Measure(id: 'm-${rows.length}', label: label, amount: amount);
+    rows.add(m);
+    _changes.add(null);
+    return m;
+  }
 
   @override
-  Future<void> softDeleteMeasure(String measureId) async {}
+  Future<void> softDeleteMeasure(String measureId) async {
+    rows.removeWhere((m) => m.id == measureId);
+    _changes.add(null);
+  }
 }
 
 /// The flesh-out form is one long scroll; a phone-sized test viewport builds
@@ -151,7 +170,11 @@ void _filterSemanticsAssertions() {
   addTearDown(() => FlutterError.onError = reportError);
 }
 
-Widget _host(FakeIngredientRepo repo, {String at = '/ingredients'}) {
+Widget _host(
+  FakeIngredientRepo repo, {
+  String at = '/ingredients',
+  _FakeMeasures? measures,
+}) {
   final router = GoRouter(
     initialLocation: at,
     routes: [
@@ -170,7 +193,7 @@ Widget _host(FakeIngredientRepo repo, {String at = '/ingredients'}) {
   return ProviderScope(
     overrides: [
       ingredientRepositoryProvider.overrideWithValue(repo),
-      measureRepositoryProvider.overrideWithValue(_NoMeasures()),
+      measureRepositoryProvider.overrideWithValue(measures ?? _FakeMeasures()),
     ],
     child: MaterialApp.router(
       routerConfig: router,
@@ -495,7 +518,98 @@ void main() {
       expect(repo.matchTextById['curry'], 'curry leaf dried');
     });
 
-    testWidgets('F3: the category is a dropdown of the household\'s own '
+    testWidgets('F2: measures are EDITABLE here — the shared 7.7 editor, not '
+        'a read-only note', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final measures = _FakeMeasures(const [
+        Measure(id: 'm-usda', label: 'mango, medium', amount: 207),
+      ]);
+      await tester.pumpWidget(
+        _host(
+          FakeIngredientRepo(const [_mango]),
+          at: '/ingredients/mango',
+          measures: measures,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The deferral is gone.
+      expect(
+        find.textContaining('added from a recipe line’s quantity sheet'),
+        findsNothing,
+      );
+      expect(find.byType(MeasuresEditor), findsOneWidget);
+      expect(find.text('mango, medium'), findsOneWidget);
+
+      // Author one, in the row's basis unit.
+      final add = find.descendant(
+        of: find.byType(MeasuresEditor),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(add.first, 'half cheek');
+      await tester.enterText(add.last, '90');
+      await tester.pump();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MeasuresEditor),
+          matching: find.widgetWithText(FButton, 'Save'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(measures.rows.last.label, 'half cheek');
+      expect(measures.rows.last.amount, 90);
+
+      // …and delete one.
+      await tester.tap(find.byIcon(FLucideIcons.trash2).first);
+      await tester.pumpAndSettle();
+      expect(
+        measures.rows.map((m) => m.label),
+        isNot(contains('mango, medium')),
+      );
+    });
+
+    testWidgets('F2: a volume-named measure label is still refused and '
+        'redirected into the density entry (ADR-0008 §2)', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final measures = _FakeMeasures();
+      await tester.pumpWidget(
+        _host(
+          FakeIngredientRepo(const [_mango]),
+          at: '/ingredients/mango',
+          measures: measures,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final add = find.descendant(
+        of: find.byType(MeasuresEditor),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(add.first, 'cup');
+      await tester.enterText(add.last, '120');
+      await tester.pump();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MeasuresEditor),
+          matching: find.widgetWithText(FButton, 'Save'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Nothing written, the reason on screen, and the density entry above
+      // switched to the spoon phrasing with `cup` picked — the one door.
+      expect(measures.rows, isEmpty);
+      expect(
+        find.textContaining('that mapping is the density'),
+        findsOneWidget,
+      );
+      expect(find.text('weighs'), findsOneWidget);
+    });
+
+    testWidgets("F3: the category is a dropdown of the household's own "
         'categories — free text is gone', (tester) async {
       _filterSemanticsAssertions();
       _tallScreen(tester);
@@ -685,6 +799,16 @@ void main() {
       // The name field is seeded, and still the user's to change.
       expect(_nameFieldText(tester), 'Ruokaan Fraiche');
 
+      // F2: the pack size the mapper parsed ("200ml") is offered as a measure
+      // — the board's opt-in tick, read into this row's own basis.
+      expect(find.text('ALSO ADD A MEASURE'), findsOneWidget);
+      expect(find.text('= 200 ml'), findsOneWidget);
+
+      // The sheet scrolls since F2 (a panel plus a pack-size tick is taller
+      // than a phone's sheet), so the CTA has to be brought into view — as a
+      // thumb would.
+      await tester.ensureVisible(find.text('Save & review'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Save & review'));
       await tester.pumpAndSettle();
 
@@ -721,6 +845,11 @@ void main() {
       // No panel means no numbers at all — not a row of zeros.
       expect(find.textContaining('kcal'), findsNothing);
 
+      // The sheet scrolls since F2 (a panel plus a pack-size tick is taller
+      // than a phone's sheet), so the CTA has to be brought into view — as a
+      // thumb would.
+      await tester.ensureVisible(find.text('Save & review'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Save & review'));
       await tester.pumpAndSettle();
 
@@ -728,6 +857,82 @@ void main() {
       expect(created.macros, isNull);
       expect(created.source, 'off:3033710065967');
       expect(created.status, IngredientStatus.stub);
+    });
+
+    testWidgets('F2: the pack-size tick writes a real measure, in the row’s '
+        'own basis', (tester) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      final measures = _FakeMeasures();
+      await tester.pumpWidget(
+        _addHost(repo, body: _fixture('nesquik_no_panel'), measures: measures),
+      );
+      await tester.pumpAndSettle();
+
+      await scan(tester, barcode: '3033710065967');
+
+      // "1 kg" on a per-100 g row, read into grams — not stored as "1 kg".
+      expect(find.text('= 1000 g'), findsOneWidget);
+      // The label is the user's: OFF's quantity carries an amount, no noun.
+      await tester.enterText(_packLabelField, 'bag');
+      await tester.pump();
+
+      await tester.ensureVisible(find.text('Save & review'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save & review'));
+      await tester.pumpAndSettle();
+
+      expect(measures.rows.single.label, 'bag');
+      expect(measures.rows.single.amount, 1000);
+    });
+
+    testWidgets('F2: unticking it writes nothing — a pack size is a '
+        'suggestion, never an auto-add', (tester) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      final measures = _FakeMeasures();
+      await tester.pumpWidget(
+        _addHost(repo, body: _fixture('oatly_per_100ml'), measures: measures),
+      );
+      await tester.pumpAndSettle();
+
+      await scan(tester, barcode: '7394376616020');
+      await tester.tap(find.byIcon(FLucideIcons.check));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('not added'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Save & review'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save & review'));
+      await tester.pumpAndSettle();
+
+      expect(repo.rows, hasLength(1)); // the ingredient still lands
+      expect(measures.rows, isEmpty); // the measure does not
+    });
+
+    testWidgets('F2: a pack size that cannot be bridged honestly is not '
+        'offered at all (16 oz on a per-100 ml row, no density)', (
+      tester,
+    ) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      final measures = _FakeMeasures();
+      await tester.pumpWidget(
+        _addHost(repo, body: _fixture('monster_per_100ml'), measures: measures),
+      );
+      await tester.pumpAndSettle();
+
+      await scan(tester, barcode: '0070847811169');
+
+      // A mass pack size on a volume-basis row needs a density, and a barcode
+      // never carries one — so the tick is absent rather than guessing.
+      expect(find.text('ALSO ADD A MEASURE'), findsNothing);
+
+      await tester.ensureVisible(find.text('Save & review'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save & review'));
+      await tester.pumpAndSettle();
+      expect(measures.rows, isEmpty);
     });
 
     testWidgets('a dismissed scan changes nothing — back to the segment as it '
@@ -774,6 +979,15 @@ final Finder _scanField = find.descendant(
   matching: find.byType(TextField),
 );
 
+/// The pack-size tick's label field — the second text field on the add sheet
+/// (the name is the first).
+final Finder _packLabelField = find
+    .descendant(
+      of: find.byType(NewIngredientSheet),
+      matching: find.byType(TextField),
+    )
+    .at(1);
+
 String _nameFieldText(WidgetTester tester) => tester
     .widget<TextField>(
       find
@@ -788,7 +1002,11 @@ String _nameFieldText(WidgetTester tester) => tester
 
 /// The add sheet as the list screen opens it, over a router that can receive
 /// the push a create makes. [body] is what Open Food Facts answers with.
-Widget _addHost(FakeIngredientRepo repo, {required String body}) {
+Widget _addHost(
+  FakeIngredientRepo repo, {
+  required String body,
+  _FakeMeasures? measures,
+}) {
   final router = GoRouter(
     initialLocation: '/',
     routes: [
@@ -818,7 +1036,10 @@ Widget _addHost(FakeIngredientRepo repo, {required String body}) {
   );
   addTearDown(router.dispose);
   return ProviderScope(
-    overrides: [ingredientRepositoryProvider.overrideWithValue(repo)],
+    overrides: [
+      ingredientRepositoryProvider.overrideWithValue(repo),
+      measureRepositoryProvider.overrideWithValue(measures ?? _FakeMeasures()),
+    ],
     child: MaterialApp.router(
       routerConfig: router,
       builder: (context, child) => FTheme(data: miseThemeData(), child: child!),
