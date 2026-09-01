@@ -82,6 +82,46 @@ void main() {
       expect(issues, [LineIssue.unitNotAllowed]);
     });
 
+    test("D4b: deleting an ingredient's density degrades a line already "
+        'saying a cross-family unit — flagged, never rewritten', () {
+      // The mango shape before and after the density is deleted. The line is
+      // byte-identical in both calls: nothing rewrites what the user wrote,
+      // and the only thing that changes is whether the unit is still
+      // supported (plan 0020 D4b — `clearDensity` strips the admission, this
+      // is what the recipe side then sees).
+      const line = 'cup';
+      const withDensity = Ingredient(
+        id: 'i-mango',
+        canonicalName: 'Mango',
+        defaultUnit: pieces,
+        status: IngredientStatus.complete,
+        densityGPerMl: 0.66,
+        allowedUnits: [pieces, g, tsp, tbsp, cup, ml],
+      );
+      const stripped = Ingredient(
+        id: 'i-mango',
+        canonicalName: 'Mango',
+        defaultUnit: pieces,
+        status: IngredientStatus.complete,
+        allowedUnits: [pieces, g],
+      );
+
+      expect(
+        lineIssues(
+          _res(chosenIngredientId: 'i-mango', quantity: 1, unit: line),
+          ingredient: withDensity,
+        ),
+        isEmpty,
+      );
+      expect(
+        lineIssues(
+          _res(chosenIngredientId: 'i-mango', quantity: 1, unit: line),
+          ingredient: stripped,
+        ),
+        [LineIssue.unitNotAllowed],
+      );
+    });
+
     test('a measure-label unit is allowed when the ingredient has it', () {
       final issues = lineIssues(
         _res(chosenIngredientId: 'i-garlic', quantity: 2, unit: 'clove'),

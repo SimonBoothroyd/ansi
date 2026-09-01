@@ -298,6 +298,41 @@ class SqliteIngredientRepository implements IngredientRepository {
     return byId(ingredientId);
   }
 
+  @override
+  Future<Ingredient?> clearDensity(String ingredientId) async {
+    // Read-modify-write for the same reason [setDensity] is: the list written
+    // back is derived from the row as it is read.
+    final now = DateTime.now().toUtc().toIso8601String();
+    final updated = await _db.writeTransaction((tx) async {
+      final row = await tx.getOptional(
+        'SELECT i.*, $_measureCount FROM ingredient i '
+        'WHERE i.id = ? AND i.deleted_at IS NULL',
+        [ingredientId],
+      );
+      if (row == null) return false;
+      final current = _toIngredient(row);
+      if (current.densityGPerMl == null) return true; // nothing to delete
+      // D4b: the cross-family admission goes with the number it was derived
+      // from. The basis family and the default unit's family survive — see
+      // `densityStrippedUnits`. Curated units outside the derived rules are
+      // untouched: only what the density unlocked is subtracted.
+      final kept = {...current.allowedUnits ?? defaultAllowedUnitSet(current)}
+        ..removeAll(densityStrippedUnits(current));
+      await tx.execute(
+        'UPDATE ingredient SET density_g_per_ml = NULL, allowed_units = ?, '
+        'updated_at = ? WHERE id = ?',
+        [
+          jsonEncode([for (final u in kept) u.id]),
+          now,
+          ingredientId,
+        ],
+      );
+      return true;
+    });
+    if (!updated) return null;
+    return byId(ingredientId);
+  }
+
   // --- The manager's write half (step 8.5) -----------------------------------
 
   @override

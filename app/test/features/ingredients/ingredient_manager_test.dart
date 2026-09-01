@@ -36,6 +36,7 @@ import 'package:mise/features/ingredients/presentation/density_entry.dart';
 import 'package:mise/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:mise/features/ingredients/presentation/ingredient_list_view.dart';
 import 'package:mise/features/ingredients/presentation/new_ingredient_sheet.dart';
+import 'package:mise/shared/dashed_border_box.dart';
 
 import '../../helpers/fake_ingredient_repository.dart';
 
@@ -96,6 +97,34 @@ void _tallScreen(WidgetTester tester) {
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 }
+
+/// The labels of every dashed (density-locked) admission chip on screen —
+/// D4b's whole visible contract. Read off [DashedBorderBox] rather than a
+/// key, because the dashed border IS what "locked" means on this form; the
+/// alias/delete affordances share the box but never carry a unit label.
+Set<String> _dashedChipLabels(WidgetTester tester) {
+  final labels = <String>{};
+  for (final box in find.byType(DashedBorderBox).evaluate()) {
+    final texts = find.descendant(
+      of: find.byWidget(box.widget),
+      matching: find.byType(Text),
+    );
+    for (final t in texts.evaluate()) {
+      final data = (t.widget as Text).data;
+      if (data != null && kAllUnits.any((u) => u.label == data)) {
+        labels.add(data);
+      }
+    }
+  }
+  return labels;
+}
+
+/// The density entry's g/ml input (the only field it renders unless the
+/// spoon phrasing is picked).
+final Finder _densityField = find.descendant(
+  of: find.byType(DensityEntry),
+  matching: find.byType(TextField),
+);
 
 /// The macro input for [label] — keyed on the form so position changes can't
 /// silently retarget these.
@@ -324,6 +353,65 @@ void main() {
         expect(find.text(label), findsWidgets, reason: label);
       }
       expect(find.textContaining('dashed chips need a density'), findsNothing);
+    });
+
+    testWidgets('D4b, the full cycle: locked → a density unlocks → deleting '
+        'it strips again, with the basis family live throughout', (
+      tester,
+    ) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      // A piece-default per-g row with no density: mass is its basis family
+      // (always sayable), volume is the density-derived side.
+      const bareMango = Ingredient(
+        id: 'mango',
+        canonicalName: 'Mango',
+        defaultUnit: pieces,
+        status: IngredientStatus.complete,
+        category: 'produce',
+        macros: _mangoMacros,
+      );
+      final repo = FakeIngredientRepo(const [bareMango]);
+      await tester.pumpWidget(_host(repo, at: '/ingredients/mango'));
+      await tester.pumpAndSettle();
+
+      // 1. Locked: the cross-family chips are drawn dashed, with the hint.
+      expect(_dashedChipLabels(tester), {'tsp', 'tbsp', 'cup', 'ml'});
+      expect(
+        find.textContaining('dashed chips need a density'),
+        findsOneWidget,
+      );
+      // The basis side is toggleable from the start — it never needed one.
+      expect(_dashedChipLabels(tester), isNot(contains('g')));
+      expect(_dashedChipLabels(tester), isNot(contains('piece')));
+
+      // 2. Save a density: the same chips come live.
+      await tester.enterText(_densityField, '0.66');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FButton, 'Save').first);
+      await tester.pumpAndSettle();
+
+      expect((await repo.byId('mango'))!.densityGPerMl, 0.66);
+      expect(_dashedChipLabels(tester), isEmpty);
+      expect(find.textContaining('dashed chips need a density'), findsNothing);
+
+      // 3. Delete it: the strip leg, in the same write, with the consequence
+      // named before it happens.
+      await tester.tap(find.text('remove the density'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('lock again — those were sayable only because'),
+        findsOneWidget,
+      );
+      await tester.tap(find.widgetWithText(FButton, 'Remove'));
+      await tester.pumpAndSettle();
+
+      final after = (await repo.byId('mango'))!;
+      expect(after.densityGPerMl, isNull);
+      // The cross-family units are gone from the stored list; the basis
+      // family and the default unit's own family survive.
+      expect(after.allowedUnits!.map((u) => u.id).toSet(), {'piece', 'g'});
+      expect(_dashedChipLabels(tester), {'tsp', 'tbsp', 'cup', 'ml'});
     });
 
     testWidgets('a density-less row draws the locked chips and says a missing '

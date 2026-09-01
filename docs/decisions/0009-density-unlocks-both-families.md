@@ -6,6 +6,10 @@
   [ADR-0008](./0008-unit-admission-model.md) §Decision ¶2 ("Density … unlocks
   the whole other family"), which both implementations read as *gated on the
   default unit's family*. Everything else in ADR-0008 stands.
+- **Refined 2026-08-31 (plan 0020 D4b, owner):** deleting a density strips the
+  admission it granted — see [§Refinement](#refinement--deleting-a-density-strips-what-it-granted-d4b).
+  No decision here is reversed; a boundary is drawn around rule 3's
+  union-never-remove.
 
 ## Context
 
@@ -102,6 +106,54 @@ backfilled onto existing lists, which are the user's.
 - The `handful` parity fix reaches every seasoning/oil row. The seed's curated
   imprecise removals were extended to cover it (nobody takes a handful of olive
   oil, or of liquid smoke).
+
+## Refinement — deleting a density strips what it granted (D4b)
+
+*Added 2026-08-31 from the owner's live exploration of the shipped flesh-out
+form (plan 0020 decision-log entry **D4b**). A note, not a new ADR: nothing
+above is reversed. It draws the boundary of rule 3.*
+
+Rule 3 says existing rows are extended **by UNION, never by
+re-materializing**, because `allowed_units` is user-owned. That rule is about
+*defaults arriving*: a backfill, a template reseed, an operator's script.
+Every one of those is a claim about what the row could say, landing on a list
+the household owns, so removing anything would be destroying an edit.
+
+A **density deletion** is different in kind, and gets the one removal leg in
+the model:
+
+> When a stored density is deleted, the units that density was the only reason
+> to admit are removed in the **same write**. Those admissions were *derived
+> from the number being deleted*; leaving them behind would let a line say
+> `cup` with nothing left to convert it, which is the fabricated conversion
+> this app exists to refuse.
+
+What survives is derived, not listed — `densityUnlockedUnits` minus what the
+row admits with no density at all (`densityStrippedUnits` in
+`allowed_units.dart`):
+
+- The **basis family** (per-100 g ⇒ mass, per-100 ml ⇒ volume) always stays.
+  ADR-0008 §1 admits the canonical dimension with or without a density, so it
+  was never the density's to grant. The editor draws that side **live at all
+  times**; the other side draws **locked, with a "needs a density" hint**,
+  and comes live the moment one is saved.
+- The **default unit's own family** stays, for the same reason.
+- **Count and imprecise units are untouched** — no density is involved either
+  way.
+- A row whose basis family *is* the cross family (flour: cup default, per-g
+  macros) therefore loses **nothing**.
+
+Two consequences worth stating out loud:
+
+- **Recipe lines are never rewritten.** A line already saying `cup` keeps
+  saying `cup` and degrades to the ordinary `unitNotAllowed` flag on the
+  import review — the same honest refusal any other out-of-set unit gets.
+  Silently rewriting someone's line to a unit they did not choose would be a
+  worse lie than the flag.
+- **App-side only.** No server trigger removes anything; 0014's
+  `ingredient_density_unlocks_units` still only unions. The strip rides the
+  client's `clearDensity` write and syncs up like any other edit, which keeps
+  the "one event changes what is sayable" story symmetric with `setDensity`.
 
 ## Rejected alternatives
 

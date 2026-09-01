@@ -114,16 +114,20 @@ class _DetailForm extends HookConsumerWidget {
     final message = useState<String?>(null);
     final busy = useState(false);
 
-    // A density save lands through the repository and re-renders this screen
-    // via the watched provider; the local allowed-set follows so the chips
-    // don't lag the write that just unlocked them.
-    final unlockedBy = ing.densityGPerMl;
+    // A density write lands through the repository and re-renders this screen
+    // via the watched provider; the local allowed-set follows both ways, so
+    // the chips never lag the number they are derived from (D4b). Saving one
+    // unions what it unlocks; deleting one strips it again, which is the only
+    // place this list shrinks.
+    final densityValue = ing.densityGPerMl;
     useEffect(() {
-      if (unlockedBy != null) {
-        allowed.value = {...allowed.value, ...densityUnlockedUnits(ing)};
-      }
+      allowed.value =
+          densityValue != null
+                ? {...allowed.value, ...densityUnlockedUnits(ing)}
+                : {...allowed.value}
+            ..removeAll(densityStrippedUnits(ing));
       return null;
-    }, [unlockedBy]);
+    }, [densityValue]);
 
     // A `complete` row is one whose macros the household stands behind — the
     // form's own draft is what the CTA acts on, so the gate reads the draft.
@@ -241,9 +245,10 @@ class _DetailForm extends HookConsumerWidget {
           onSaved: (_) => ref.invalidate(ingredientByIdProvider(ing.id)),
         ),
         if (ing.densityGPerMl == null)
-          const _Note(
-            'no density — the volume chips below stay locked. That '
-            'blocks nothing: macros are what a row needs to count.',
+          _Note(
+            'no density — the ${_crossFamilyWord(ing)} chips below stay '
+            'locked; the ${_basisFamilyWord(ing)} ones never needed one. '
+            'That blocks nothing: macros are what a row needs to count.',
           ),
 
         const _Label('ALLOWED UNITS — WHAT A LINE MAY SAY'),
@@ -449,9 +454,11 @@ class _AdmissionChips extends StatelessWidget {
           ],
         ),
         if (candidates.any((c) => c.locked))
-          const _Note(
-            'dashed chips need a density — one number opens the other family, '
-            'whatever the default unit is (ADR-0008 as amended)',
+          _Note(
+            'dashed chips need a density — the ${_basisFamilyWord(ingredient)} '
+            'side is always yours to pick; the ${_crossFamilyWord(ingredient)} '
+            'side is admitted by the density and stripped again if you delete '
+            'it (ADR-0009, D4b)',
           ),
       ],
     );
@@ -1011,6 +1018,18 @@ class _MacroDraft {
     );
   }
 }
+
+/// The family the ingredient's macros are read in — per 100 g ⇒ weight, per
+/// 100 ml ⇒ volume. D4b: this side of the admission editor is **always**
+/// toggleable, because the canonical dimension is sayable with or without a
+/// density (ADR-0008 §1).
+String _basisFamilyWord(Ingredient ingredient) =>
+    ingredient.macrosBasis == MacrosBasis.perMl ? 'volume' : 'weight';
+
+/// The other side — the one a stored density admits and a deleted density
+/// takes back (D4b).
+String _crossFamilyWord(Ingredient ingredient) =>
+    ingredient.macrosBasis == MacrosBasis.perMl ? 'weight' : 'volume';
 
 /// `60` not `60.0`, `0.66` unchanged — seeds a numeric field with what a
 /// person would have typed.

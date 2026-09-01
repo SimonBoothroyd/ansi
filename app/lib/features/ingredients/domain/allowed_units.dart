@@ -81,7 +81,14 @@ const kImpreciseGatedCategories = {'spices & seasoning', 'fats & oils'};
 /// A count-default ingredient (eggs, tins) offers count + the basis base:
 /// a gram line of a per-g count food computes macros directly, while
 /// count↔count needs no conversion at all.
-Set<Unit> defaultAllowedUnitSet(Ingredient ingredient) {
+Set<Unit> defaultAllowedUnitSet(Ingredient ingredient) =>
+    _derivedSet(ingredient, density: ingredient.densityGPerMl != null);
+
+/// [defaultAllowedUnitSet] with the density leg forced on or off, so callers
+/// can ask the counterfactual — "what would this row admit *with* a density"
+/// ([allowedUnitCandidates]' locked chips) and "what does it admit *without*
+/// one" ([densityStrippedUnits]) — without minting a copy of the row.
+Set<Unit> _derivedSet(Ingredient ingredient, {required bool density}) {
   final d = ingredient.defaultUnit;
   final basisFamily = ingredient.macrosBasis == MacrosBasis.perMl
       ? UnitFamily.volume
@@ -108,7 +115,7 @@ Set<Unit> defaultAllowedUnitSet(Ingredient ingredient) {
 
   // Density leg: a stored density unlocks the other mass/volume family —
   // whatever the default unit's family (ADR-0008 as amended, plan 0020 D4).
-  if (ingredient.densityGPerMl != null) {
+  if (density) {
     units.addAll(densityUnlockedUnits(ingredient));
   }
 
@@ -151,6 +158,29 @@ Set<Unit> densityUnlockedUnits(Ingredient ingredient) {
     },
   };
 }
+
+/// The units an ingredient admits **only because a density is stored** — what
+/// deleting that density takes away again (plan 0020 **D4b**).
+///
+/// It is [densityUnlockedUnits] minus what the row would admit with no
+/// density at all, so the subtraction is derived rather than listed: the
+/// **basis family** (per-100 g ⇒ mass, per-100 ml ⇒ volume) and the default
+/// unit's own family survive, because neither of them ever needed a density
+/// to be sayable. Only the cross-family leg goes.
+///
+/// - Mango (piece default, per-g macros, density) → `tsp, tbsp, cup, ml`
+///   goes; `piece` and `g` stay.
+/// - Flour (cup default, per-g macros, density) → **nothing** goes: mass is
+///   its basis family and was already admitted.
+/// - Milk (ml default, per-ml macros, density) → `g` goes.
+///
+/// This is the one removal leg in the whole admission model. ADR-0009's
+/// union-never-remove rule still governs backfills and reseeds; a density
+/// **deletion** is different in kind, because that admission was *derived*
+/// from the number being deleted — see the ADR's D4b refinement note.
+Set<Unit> densityStrippedUnits(Ingredient ingredient) => densityUnlockedUnits(
+  ingredient,
+).difference(_derivedSet(ingredient, density: false));
 
 /// Orders an allowed-unit set into ADR-0008 chip order: the default unit
 /// fronted, the rest of its family in kitchen order, count next, then the
@@ -226,23 +256,33 @@ typedef UnitAdmission = ({Unit unit, bool selected, bool locked});
 /// A stored unit outside the derived rules still appears, selected and
 /// unlocked: an explicit list is user-owned and must never be silently
 /// dropped by an editor that only understands the defaults.
+///
+/// **D4b — the cross-family leg is density-derived, so it locks with the
+/// density.** A chip is locked when it is a [densityStrippedUnits] admission
+/// on a row that carries no density, *even if the stored list still names
+/// it*: a list can arrive that way from a device that wrote it before the
+/// density was deleted, and the editor must say what the number actually
+/// supports rather than what the list happens to hold. The basis family and
+/// the default unit's own family are never locked — they need no density.
 List<UnitAdmission> allowedUnitCandidates(Ingredient ingredient) {
   final selected = allowedUnitsFor(ingredient).toSet();
   final admissible = defaultAllowedUnitSet(ingredient);
   // The same rules re-run as if a density existed: the difference is exactly
   // what a density would unlock.
-  final withDensity = defaultAllowedUnitSet(
-    ingredient.densityGPerMl != null
-        ? ingredient
-        : ingredient.copyWith(densityGPerMl: 1),
-  );
+  final withDensity = _derivedSet(ingredient, density: true);
+  // Empty while a density is stored — nothing is density-locked then.
+  final needsDensity = ingredient.densityGPerMl == null
+      ? densityStrippedUnits(ingredient)
+      : const <Unit>{};
   final all = {...selected, ...admissible, ...withDensity};
   return [
     for (final u in _orderUnits(all, ingredient))
       (
         unit: u,
-        selected: selected.contains(u),
-        locked: !admissible.contains(u) && !selected.contains(u),
+        selected: selected.contains(u) && !needsDensity.contains(u),
+        locked:
+            needsDensity.contains(u) ||
+            (!admissible.contains(u) && !selected.contains(u)),
       ),
   ];
 }

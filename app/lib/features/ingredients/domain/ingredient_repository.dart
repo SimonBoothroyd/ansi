@@ -123,6 +123,28 @@ abstract interface class IngredientRepository {
   /// would fabricate Infinity conversions (invariant 3).
   Future<Ingredient?> setDensity(String ingredientId, double gPerMl);
 
+  /// Deletes the ingredient's density and, **in the same write**, removes the
+  /// units that density was the only reason to admit
+  /// (`densityStrippedUnits`) — plan 0020 **D4b**.
+  ///
+  /// This is the one place the admission list ever shrinks. ADR-0009's
+  /// union-never-remove rule governs backfills and reseeds, where the arriving
+  /// set is a *default* and the stored list is the user's; here the removed
+  /// units were **derived from the number being deleted**, so leaving them
+  /// would let a line say `cup` with nothing left to convert it. The basis
+  /// family and the default unit's own family survive — they never needed a
+  /// density.
+  ///
+  /// **Existing lines are never rewritten.** A recipe line already saying a
+  /// stripped unit keeps saying it and degrades to the ordinary
+  /// `unitNotAllowed` flag on the import review — the same honest refusal any
+  /// other out-of-set unit gets. Silently rewriting someone's line to a unit
+  /// they did not choose would be the invented number this app refuses.
+  ///
+  /// Returns the updated row, or null when [ingredientId] doesn't resolve. A
+  /// no-op (returning the row unchanged) when there is no density to delete.
+  Future<Ingredient?> clearDensity(String ingredientId);
+
   // --- The manager's write half (step 8.5) -----------------------------------
 
   /// The whole live vocabulary, canonical-name ordered, as a watched query —

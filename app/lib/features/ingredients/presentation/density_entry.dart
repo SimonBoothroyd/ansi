@@ -8,6 +8,11 @@
 /// the same `density_g_per_ml`). Both phrasings resolve to one number, and
 /// the write extends the ingredient's explicit `allowed_units` with what the
 /// density unlocks in the same transaction (`setDensity`).
+///
+/// It also owns the **deletion** of that number (plan 0020 D4b) — the mirror
+/// write, which strips the cross-family units the density was the only reason
+/// to admit (`clearDensity`). That is the single leg of the admission model
+/// where the allowed list shrinks; everything else unions.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -20,6 +25,7 @@ import '../../../core/theme/mise_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/ingredient_providers.dart';
+import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 
 class DensityEntry extends HookConsumerWidget {
@@ -50,6 +56,9 @@ class DensityEntry extends HookConsumerWidget {
     final spoon = useState<Unit>(tbsp);
     final input = useState<double?>(null);
     final error = useState<String?>(null);
+    // Deleting a density also strips what it unlocked (D4b), so the affordance
+    // asks once rather than acting on a stray tap.
+    final confirmingRemoval = useState(false);
     // A redirect ("cup" typed as a measure label) lands in spoon phrasing
     // with that spoon picked — cup is in the selectable set; any other
     // volume unit keeps the current spoon (the phrasing still applies).
@@ -80,6 +89,19 @@ class DensityEntry extends HookConsumerWidget {
           .read(ingredientRepositoryProvider)
           .setDensity(ingredient.id, gPerMl);
       if (!context.mounted || updated == null) return;
+      confirmingRemoval.value = false;
+      onSaved(updated);
+    }
+
+    // D4b's strip leg from the user's side: the number goes, and the units it
+    // was the only reason to admit go with it, in one write.
+    Future<void> remove() async {
+      final updated = await ref
+          .read(ingredientRepositoryProvider)
+          .clearDensity(ingredient.id);
+      if (!context.mounted || updated == null) return;
+      confirmingRemoval.value = false;
+      error.value = null;
       onSaved(updated);
     }
 
@@ -175,6 +197,12 @@ class DensityEntry extends HookConsumerWidget {
               const Spacer(),
             ],
           ),
+        if (density != null)
+          _RemoveDensity(
+            ingredient: ingredient,
+            confirming: confirmingRemoval,
+            onRemove: remove,
+          ),
         if (error.value != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),
@@ -195,6 +223,84 @@ class DensityEntry extends HookConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Deleting the stored density — the one write in the whole admission model
+/// that makes the allowed list *shrink* (plan 0020 D4b).
+///
+/// It asks first, and the question names the consequence rather than saying
+/// "are you sure": the cross-family chips this density unlocked
+/// ([densityStrippedUnits]) lock again in the same write, and a recipe line
+/// already saying one of them is left exactly as the user wrote it — flagged
+/// on the import review like any other unsupported unit, never rewritten.
+class _RemoveDensity extends StatelessWidget {
+  const _RemoveDensity({
+    required this.ingredient,
+    required this.confirming,
+    required this.onRemove,
+  });
+
+  final Ingredient ingredient;
+  final ValueNotifier<bool> confirming;
+  final Future<void> Function() onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!confirming.value) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => confirming.value = true,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'remove the density',
+              style: miseMono(size: 10, color: MiseColors.gone),
+            ),
+          ),
+        ),
+      );
+    }
+    final stripped = densityStrippedUnits(ingredient);
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            stripped.isEmpty
+                ? 'Remove it? Nothing about what a line may say changes — '
+                      'this row’s units come from its basis, not its density.'
+                : 'Remove it? ${stripped.map((u) => u.label).join(' · ')} '
+                      'lock again — those were sayable only because of this '
+                      'number. A line already saying one keeps saying it, '
+                      'flagged rather than rewritten.',
+            style: miseMono(size: 10, color: MiseColors.muted),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              FButton(
+                size: FButtonSizeVariant.sm,
+                onPress: onRemove,
+                child: const Text('Remove'),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => confirming.value = false,
+                child: Text(
+                  'keep it',
+                  style: miseMono(size: 10, color: MiseColors.muted),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

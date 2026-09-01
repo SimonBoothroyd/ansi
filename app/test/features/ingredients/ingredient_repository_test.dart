@@ -448,6 +448,77 @@ void main() {
     });
   });
 
+  group('clearDensity (D4b: the one leg where the admission list shrinks)', () {
+    test('the density goes and the cross-family units go with it, in one '
+        'write — the basis family stays', () async {
+      // A piece-default per-g row: the mango shape, where the volume chips
+      // exist only because of the number being deleted.
+      await db.execute(
+        "UPDATE ingredient SET default_unit = 'piece' WHERE id = '1'",
+      );
+      await repo.setDensity('1', 0.66);
+
+      final cleared = await repo.clearDensity('1');
+      expect(cleared, isNotNull);
+      expect(cleared!.densityGPerMl, isNull);
+      expect(cleared.allowedUnits!.map((u) => u.id).toSet(), {'piece', 'g'});
+
+      // One write, not a read-then-patch: the row on disk agrees.
+      final row = await db.get(
+        "SELECT density_g_per_ml, allowed_units FROM ingredient WHERE id = '1'",
+      );
+      expect(row['density_g_per_ml'], isNull);
+      expect((jsonDecode(row['allowed_units'] as String) as List).toSet(), {
+        'piece',
+        'g',
+      });
+    });
+
+    test(
+      'a curated unit the density never unlocked survives the strip',
+      () async {
+        await db.execute(
+          "UPDATE ingredient SET default_unit = 'piece' WHERE id = '1'",
+        );
+        await repo.setDensity('1', 0.66);
+        await db.execute(
+          'UPDATE ingredient SET allowed_units = ? WHERE id = ?',
+          [
+            jsonEncode(['piece', 'g', 'cup', 'ml', 'to_taste']),
+            '1',
+          ],
+        );
+        final cleared = await repo.clearDensity('1');
+        expect(cleared!.allowedUnits!.map((u) => u.id).toSet(), {
+          'piece',
+          'g',
+          'to_taste',
+        });
+      },
+    );
+
+    test('a row whose basis family IS the cross family loses nothing (the '
+        'flour shape)', () async {
+      await db.execute(
+        "UPDATE ingredient SET default_unit = 'cup' WHERE id = '5'",
+      );
+      final withDensity = await repo.setDensity('5', 0.59);
+      final before = withDensity!.allowedUnits!.map((u) => u.id).toSet();
+      final cleared = await repo.clearDensity('5');
+      expect(cleared!.densityGPerMl, isNull);
+      expect(cleared.allowedUnits!.map((u) => u.id).toSet(), before);
+    });
+
+    test(
+      'a no-op on a row that never had one, null for an unknown id',
+      () async {
+        final same = await repo.clearDensity('1');
+        expect(same!.densityGPerMl, isNull);
+        expect(await repo.clearDensity('nope'), isNull);
+      },
+    );
+  });
+
   // --- The manager's write half (step 8.5, plan 0020) ------------------------
 
   group('watchVocabulary / watchStubCount', () {

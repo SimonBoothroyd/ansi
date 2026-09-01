@@ -361,5 +361,72 @@ void main() {
       expect(selectedOf(curated), containsAll(<String>['fl_oz', 'to_taste']));
       expect(lockedOf(curated), isNot(contains('fl_oz')));
     });
+
+    test('D4b: a stored list that still names the cross-family units draws '
+        'them LOCKED once the density is gone — the number, not the list, '
+        'says what is sayable', () {
+      // The shape a device leaves behind when the density is deleted
+      // somewhere the list did not follow (an older client, a server edit).
+      final stale = _ing(pieces, allowed: const [pieces, g, cup, ml]);
+      expect(lockedOf(stale), {'tsp', 'tbsp', 'cup', 'ml'});
+      // …and the basis side is untouched: it never needed a density.
+      expect(selectedOf(stale), {'piece', 'g'});
+    });
+
+    test('D4b: the basis family is never locked, whichever way the panel '
+        'reads', () {
+      final perMl = _ing(ml, basis: MacrosBasis.perMl);
+      expect(lockedOf(perMl), {'g'});
+      expect(selectedOf(perMl), containsAll(<String>['ml', 'l']));
+
+      final perG = _ing(g);
+      expect(lockedOf(perG), {'tsp', 'tbsp', 'cup', 'ml'});
+      expect(selectedOf(perG), containsAll(<String>['g']));
+    });
+  });
+
+  group('densityStrippedUnits — what deleting a density takes back (D4b)', () {
+    test('the mango shape: the volume leg goes, piece and the basis base '
+        'stay', () {
+      final mango = _ing(pieces, density: 0.66, category: 'produce');
+      expect(densityStrippedUnits(mango), {tsp, tbsp, cup, ml});
+      expect(densityStrippedUnits(mango), isNot(contains(g)));
+      expect(densityStrippedUnits(mango), isNot(contains(pieces)));
+    });
+
+    test('the flour shape strips NOTHING: mass is its basis family, so it '
+        'was admitted with or without the density', () {
+      final flour = _ing(cup, density: 0.59, category: 'baking');
+      expect(densityStrippedUnits(flour), isEmpty);
+    });
+
+    test('the milk shape: a per-ml row loses g, keeps every volume unit', () {
+      final milk = _ing(ml, density: 1.03, basis: MacrosBasis.perMl);
+      expect(densityStrippedUnits(milk), {g});
+    });
+
+    test('what is stripped is exactly what a density adds — the two are one '
+        'rule read in opposite directions', () {
+      for (final i in [
+        _ing(pieces, density: 0.66),
+        _ing(g, density: 0.5),
+        _ing(cup, density: 0.59),
+        _ing(ml, density: 1.03, basis: MacrosBasis.perMl),
+        _ing(toTaste, density: 0.9, category: 'spices & seasoning'),
+      ]) {
+        final withDensity = defaultAllowedUnitSet(i);
+        expect(
+          withDensity.difference(densityStrippedUnits(i)),
+          allowedUnitsFor(i).toSet().difference(densityStrippedUnits(i)),
+          reason: i.defaultUnit.id,
+        );
+        // Nothing stripped is ever something the basis leg supplies.
+        expect(
+          densityStrippedUnits(i).contains(i.macrosBasis.baseUnit),
+          isFalse,
+          reason: i.defaultUnit.id,
+        );
+      }
+    });
   });
 }

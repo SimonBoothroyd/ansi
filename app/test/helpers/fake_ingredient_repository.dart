@@ -13,12 +13,17 @@ import 'dart:async';
 
 import 'package:mise/core/units/macros.dart';
 import 'package:mise/core/units/units.dart';
+import 'package:mise/features/ingredients/domain/allowed_units.dart';
 import 'package:mise/features/ingredients/domain/ingredient.dart';
 import 'package:mise/features/ingredients/domain/ingredient_repository.dart';
 import 'package:mise/features/ingredients/domain/normalize.dart';
 
 /// The manager's write half as `UnimplementedError`s — for read-only fakes.
 mixin IngredientManagerStubs implements IngredientRepository {
+  @override
+  Future<Ingredient?> clearDensity(String ingredientId) =>
+      throw UnimplementedError();
+
   @override
   Stream<List<Ingredient>> watchVocabulary() => const Stream.empty();
 
@@ -149,7 +154,42 @@ class FakeIngredientRepo implements IngredientRepository {
   Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async {
     final current = _find(ingredientId);
     if (current == null) return null;
-    final updated = current.copyWith(densityGPerMl: gPerMl);
+    final updated = current.copyWith(
+      densityGPerMl: gPerMl,
+      allowedUnits: [
+        ...{
+          ...current.allowedUnits ?? allowedUnitsFor(current),
+          ...densityUnlockedUnits(current),
+        },
+      ],
+    );
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<Ingredient?> clearDensity(String ingredientId) async {
+    final current = _find(ingredientId);
+    if (current == null) return null;
+    if (current.densityGPerMl == null) return current;
+    // D4b's strip leg, mirroring SqliteIngredientRepository: the density goes
+    // and the units it was the only reason to admit go with it. Rebuilt
+    // field-by-field because freezed reads a null `densityGPerMl` as
+    // "unchanged", and deleting it is the whole point.
+    final kept = {...current.allowedUnits ?? allowedUnitsFor(current)}
+      ..removeAll(densityStrippedUnits(current));
+    final updated = Ingredient(
+      id: current.id,
+      canonicalName: current.canonicalName,
+      defaultUnit: current.defaultUnit,
+      status: current.status,
+      category: current.category,
+      macros: current.macros,
+      macrosBasis: current.macrosBasis,
+      allowedUnits: kept.toList(),
+      measureCount: current.measureCount,
+      source: current.source,
+    );
     _replace(updated);
     return updated;
   }
