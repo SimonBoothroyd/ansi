@@ -17,7 +17,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          # Pinned, not `v2.x`: local and CI move together, so a Deno release
+          # can never turn a green working tree red on its own. Bump this in
+          # the same commit as the local `deno --version` (2.9.5 today).
+          deno-version: v2.9.5
       - name: Lint + test edge functions
         working-directory: supabase/functions
         run: |
@@ -37,12 +40,26 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
-      - name: Start local stack and apply migrations
+          # Pinned, not `latest`: the CLI picks the Postgres image tag and the
+          # pgTAP runner, so a float here means CI and a developer's machine
+          # can disagree about what "green" means. Local and CI move together —
+          # bump this in the same commit as the local `supabase --version`.
+          version: 2.115.0
+      # The local invariant this job replicates is `make db-reset` (which
+      # applies config.toml's [db.seed] sql_paths) followed by
+      # `supabase test db`. `supabase start` already runs migrations + seeds;
+      # keep the two in one step so a lint failure is attributed to the schema.
+      - name: Start local stack — migrations + seeds — and lint the schema
         run: |
           supabase start
           supabase db lint
-      - name: Verify migrations are idempotent on reset
-        run: supabase db reset --no-seed
+      # This step used to pass `--no-seed`. It proved the migrations replay
+      # cleanly, but it also emptied the database the pgTAP suite runs against:
+      # onboarding.sql needs the seeded template household
+      # (00000000-…-aa), and unit_admission.sql needs the curated vocab
+      # (the produce-density guard, the liquid-smoke addition/removal).
+      # Seeding is what `make db-reset` does, so CI does it too.
+      - name: Verify migrations are idempotent on reset (re-seeds, as `make db-reset` does)
+        run: supabase db reset
       - name: Database tests (pgTAP — RLS, constraints)
         run: supabase test db

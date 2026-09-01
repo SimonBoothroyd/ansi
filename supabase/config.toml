@@ -3,7 +3,13 @@ project_id = "ansi"
 
 [db]
 port = 54322
-major_version = 15
+# 17 = what the hosted project runs, and what a LINKED checkout already gets:
+# once `supabase link` writes supabase/.temp/postgres-version (gitignored), the
+# CLI uses that tag and ignores this line. CI never links, so CI fell back to
+# this number — and it said 15, so CI was silently testing on Postgres 15.8
+# while every developer machine ran 17.6. Keep this at the hosted major so the
+# unlinked case (CI, a fresh clone) matches the linked one.
+major_version = 17
 
 [db.seed]
 enabled = true
