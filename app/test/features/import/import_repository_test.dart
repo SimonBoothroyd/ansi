@@ -6,6 +6,8 @@ import 'package:mise/features/import/data/import_repository_impl.dart';
 import 'package:mise/features/import/domain/import_repository.dart';
 import 'package:mise/features/import/domain/line_resolution.dart';
 import 'package:mise/features/import/domain/reconciliation_payload.dart';
+import 'package:mise/features/ingredients/domain/normalize.dart';
+import 'package:mise/features/ingredients/domain/search_query.dart';
 import 'package:mise/features/recipes/data/recipe_repository_impl.dart';
 import 'package:mise/features/recipes/domain/method_step.dart';
 import 'package:powersync/powersync.dart';
@@ -264,6 +266,66 @@ void main() {
     expect(aliases, hasLength(1));
     expect(aliases.single['alias_text'], 'yellow onion');
     expect(aliases.single['ingredient_id'], 'ing-onion');
+  });
+
+  test('D6: a committed stub and a correction alias carry the SERVER phrase '
+      'rules, not the character-level search normalizer', () async {
+    // The last D6 residual: import's commit was still writing `match_text`
+    // with `normalizeSearchQuery`, so a stub it created carried text the
+    // server's cascade would never search for — the exact silent matching
+    // regression D6 closed on every other writer.
+    const p = ReconciliationPayload(
+      title: 'Test Recipe',
+      servingsBase: 2,
+      groups: [
+        ReconGroup(
+          lines: [
+            ReconLine(
+              raw: RawLineItem(ingredientText: 'chicken thighs', unit: 'g'),
+              band: MatchBand.none,
+            ),
+            ReconLine(
+              raw: RawLineItem(ingredientText: 'ripe tomatoes, chopped'),
+              band: MatchBand.none,
+            ),
+          ],
+        ),
+      ],
+    );
+    final resolutions = [
+      initialResolution(
+        0,
+        p.flatLines[0],
+      ).resolveToNewStub('Chicken thighs, boneless'),
+      initialResolution(1, p.flatLines[1]).resolveToIngredient(
+        'ing-tomatoes',
+        'Chopped tomatoes',
+        correction: true,
+      ),
+    ];
+    await repo.commit(
+      buildCommit(p, resolutions, servingsBase: 2, issuesByLine: null),
+    );
+
+    const stubName = 'Chicken thighs, boneless';
+    final stub = await db.get(
+      "SELECT match_text FROM ingredient WHERE source = 'import_stub'",
+    );
+    // The server singularizes and re-orders; the search normalizer only
+    // folds characters. Both halves matter: the value is what the server
+    // would have written, and it is NOT what the old call site wrote.
+    expect(stub['match_text'], 'chicken thigh boneless');
+    expect(stub['match_text'], normalizeMatchText(stubName));
+    expect(stub['match_text'], isNot(normalizeSearchQuery(stubName)));
+
+    const aliasText = 'ripe tomatoes, chopped';
+    final alias = await db.get(
+      'SELECT alias_text, match_text FROM ingredient_alias '
+      "WHERE source = 'import_correction'",
+    );
+    expect(alias['alias_text'], aliasText);
+    expect(alias['match_text'], normalizeMatchText(aliasText));
+    expect(alias['match_text'], isNot(normalizeSearchQuery(aliasText)));
   });
 
   test('step line_index refs are remapped to real line_item_ids', () async {

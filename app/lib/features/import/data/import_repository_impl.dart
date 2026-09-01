@@ -21,6 +21,7 @@ import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/units/units.dart';
+import '../../ingredients/domain/normalize.dart';
 import '../../ingredients/domain/search_query.dart';
 import '../domain/commit_payload.dart';
 import '../domain/import_repository.dart';
@@ -136,6 +137,15 @@ class SqliteImportRepository implements ImportRepository {
     await _db.writeTransaction((tx) async {
       // 1. Create-new stubs (status='stub', source='import_stub'). USDA flesh-
       // out is a later view over these rows — no macros/density invented now.
+      //
+      // `match_text` is written with the SERVER's phrase rules
+      // (`normalizeMatchText`, the plan-0020 D6 port), not the character-level
+      // search normalizer: this row is what the *next* import's cascade
+      // searches, and the cascade searches by the server's rules. The two
+      // genuinely differ — "Chicken thighs, boneless" is `chicken thigh
+      // boneless` to the server and `chicken thighs boneless` to the search
+      // normalizer — so writing the wrong one here is the same silent
+      // matching regression D6 closed everywhere else.
       for (final stub in payload.stubs) {
         await tx.execute(
           'INSERT INTO ingredient (id, household_id, canonical_name, '
@@ -145,7 +155,7 @@ class SqliteImportRepository implements ImportRepository {
             stubIdByKey[stub.key],
             _householdId,
             stub.name,
-            normalizeSearchQuery(stub.name),
+            normalizeMatchText(stub.name),
             now,
             now,
           ],
@@ -229,9 +239,11 @@ class SqliteImportRepository implements ImportRepository {
       // on every import would otherwise pile up a duplicate alias row per
       // import, all of them matching identically. Local tables are VIEWS, so
       // this is an existence check + a plain INSERT, never an UPSERT
-      // ([mise-powersync-views-no-upsert]).
+      // ([mise-powersync-views-no-upsert]). Same D6 rule as the stub above:
+      // the alias is written with the server's phrase normalizer, because the
+      // cascade that will one day match on it searches by those rules.
       for (final c in payload.corrections) {
-        final matchText = normalizeSearchQuery(c.aliasText);
+        final matchText = normalizeMatchText(c.aliasText);
         final existing = await tx.getOptional(
           'SELECT id FROM ingredient_alias '
           'WHERE ingredient_id = ? AND match_text = ? AND deleted_at IS NULL '

@@ -1,6 +1,9 @@
 # Exec plan: Ingredients manager — the vocabulary gets a face
 
-- **Status:** draft — **design only; awaiting owner sign-off before any build**
+- **Status:** in build — signed off 2026-08-31 (D1–D8 as recommended). Lanes S
+  (server: 0014 + 0015), M (domain + manager UI) and B (barcode) have merged;
+  the post-convergence **polish pass** (D4b, F1, F2, F3, D7b + migration 0016)
+  is landing on top. The seed-stub-zero chore is deferred by owner ruling.
 - **Owner:** Simon + Claude (design phase solo, before any fan-out)
 - **Roadmap step:** Step 8.5 — Ingredients manager
 - **Created:** 2026-08-31
