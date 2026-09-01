@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Read-only cloud health check for the Mise cloud stack (Supabase Cloud +
+# Read-only cloud health check for the Ansi cloud stack (Supabase Cloud +
 # PowerSync Cloud). STRICTLY NON-MUTATING: every check is a GET against a
 # public endpoint — this script must never be the thing that pollutes the
 # target (see exec plan 0009's decision log). It cannot see dashboard-only

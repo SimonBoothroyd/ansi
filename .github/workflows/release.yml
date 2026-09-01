@@ -223,9 +223,9 @@ jobs:
           slug="${GITHUB_REF_NAME//\//-}"
           mkdir -p "$RUNNER_TEMP/dist"
           cp build/app/outputs/flutter-apk/app-release.apk \
-             "$RUNNER_TEMP/dist/mise-$slug.apk"
+             "$RUNNER_TEMP/dist/ansi-$slug.apk"
           cp build/app/outputs/bundle/release/app-release.aab \
-             "$RUNNER_TEMP/dist/mise-$slug.aab"
+             "$RUNNER_TEMP/dist/ansi-$slug.aab"
           ls -l "$RUNNER_TEMP/dist"
           echo "dist=$RUNNER_TEMP/dist" >> "$GITHUB_OUTPUT"
 
@@ -233,7 +233,7 @@ jobs:
       # where there is no tag to attach a Release to.
       # Artifact names are ref-free: upload-artifact rejects "/" in a name, and
       # a dispatch from a branch like feat/x would otherwise fail here. The tag
-      # is in the FILE names (mise-v0.1.0.apk).
+      # is in the FILE names (ansi-v0.1.0.apk).
       - uses: actions/upload-artifact@v4
         with:
           name: android-release
@@ -328,7 +328,7 @@ jobs:
   # ---------------------------------------------------------------------------
   # iOS: COMPILE PROOF ONLY, deliberately.
   #
-  # Mise is a two-person household app installed from Xcode, not from the App
+  # Ansi is a two-person household app installed from Xcode, not from the App
   # Store. Real iOS signing would mean an Apple Developer account, a
   # distribution certificate and provisioning profile in secrets, a temporary
   # keychain, and an export-options plist — a lot of moving, expiring

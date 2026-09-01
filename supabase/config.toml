@@ -1,5 +1,5 @@
 # Minimal local config. `supabase init` will expand this; kept lean for the scaffold.
-project_id = "mise"
+project_id = "ansi"
 
 [db]
 port = 54322

@@ -3,7 +3,7 @@
 services:
   powersync:
     image: journeyapps/powersync-service:latest
-    container_name: mise-powersync
+    container_name: ansi-powersync
     restart: unless-stopped
     ports:
       - "8080:8080"

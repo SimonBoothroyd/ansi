@@ -156,7 +156,7 @@ That runs four jobs:
 | Job | Runner | Does | Output |
 |-----|--------|------|--------|
 | `guard` | ubuntu | §2.4 checks only | pass/fail, plus the Play notice |
-| `android` | ubuntu | decode keystore → write `android/key.properties` → `flutter build apk --release` + `appbundle --release` with the three dart-defines | `mise-v0.1.0.apk` + `mise-v0.1.0.aab` on the **GitHub Release** for the tag, and an `android-release` artifact |
+| `android` | ubuntu | decode keystore → write `android/key.properties` → `flutter build apk --release` + `appbundle --release` with the three dart-defines | `ansi-v0.1.0.apk` + `ansi-v0.1.0.aab` on the **GitHub Release** for the tag, and an `android-release` artifact |
 | `play-internal` | ubuntu | uploads that same AAB to the Play **internal** track (§3a) | the Pixel updates from Play |
 | `ios` | macOS | `flutter build ios --release --no-codesign` | unsigned `Runner.app` **artifact** |
 

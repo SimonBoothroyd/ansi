@@ -38,8 +38,12 @@ import {
 import type { ProviderName } from "../../supabase/functions/_shared/adapters/mod.ts";
 import { type PriceRow, priceRow } from "./pricing.ts";
 
-export const CASE_SCHEMA = "mise.eval.extraction-response/1";
-export const MANIFEST_SCHEMA = "mise.eval.extraction-run/1";
+// These tags are WRITTEN into every new run and never checked on read (loadRun
+// casts, it does not validate), which is why the 2026-09-01 Mise → Ansi rename
+// could move them without touching the runs already committed under `runs/`.
+// Those older artifacts still say `mise.eval.*` and stay fully re-scoreable.
+export const CASE_SCHEMA = "ansi.eval.extraction-response/1";
+export const MANIFEST_SCHEMA = "ansi.eval.extraction-run/1";
 
 /** Where committed run artifacts live (NOT `reports/`, which is gitignored). */
 export const RUNS_DIR = new URL("../runs/", import.meta.url);

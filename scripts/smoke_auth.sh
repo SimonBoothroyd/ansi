@@ -26,7 +26,7 @@ URL="${SUPABASE_URL:-http://127.0.0.1:54321}"
 ANON="${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}"
 # example.com is on Supabase cloud's invalid-email blocklist; use a plausible
 # real-TLD domain instead. Override with SMOKE_EMAIL if you like.
-EMAIL="${SMOKE_EMAIL:-smoke$(date +%s)@mise.app}"
+EMAIL="${SMOKE_EMAIL:-smoke$(date +%s)@ansi.app}"
 PASS="smoke-password-123"
 
 # Decode one claim from a JWT payload (no verification — inspection only).
@@ -130,7 +130,7 @@ fi
 #   update household_member m set deleted_at = now()
 #   from auth.users u
 #   where u.id = m.auth_user_id
-#     and u.email like 'smoke%@mise.app'
+#     and u.email like 'smoke%@ansi.app'
 #     and m.deleted_at is null;
 #
 #   -- 2. soft-delete any household that is now empty (never a template)

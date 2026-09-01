@@ -1,4 +1,4 @@
-# Mise task runner. Run `make help` for the list.
+# Ansi task runner. Run `make help` for the list.
 # Env for the app comes from .env.local (see .env.local.template).
 SHELL := /bin/bash
 APP := app

@@ -18,12 +18,12 @@
 #
 # Usage:
 #   ./scripts/export_vocab.sh > vocab.json
-#   MISE_DB_URL=postgresql://… ./scripts/export_vocab.sh   # non-default target
+#   ANSI_DB_URL=postgresql://… ./scripts/export_vocab.sh   # non-default target
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-DB_URL="${MISE_DB_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
-DB_CONTAINER="${MISE_DB_CONTAINER:-supabase_db_mise}"
+DB_URL="${ANSI_DB_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
+DB_CONTAINER="${ANSI_DB_CONTAINER:-supabase_db_ansi}"
 
 # Column notes for the reader:
 #   * `basis_amount` (not `grams`) — renamed in 0010_measure_provenance.sql; it
@@ -74,7 +74,7 @@ elif docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$DB_CONTAINER"; the
   docker exec -i "$DB_CONTAINER" psql -U postgres -d postgres -tA -c "$QUERY"
 else
   echo "export_vocab: no psql on PATH and container '$DB_CONTAINER' is not running." >&2
-  echo "  Start the local stack with 'make db-up', or set MISE_DB_URL /" >&2
-  echo "  MISE_DB_CONTAINER to point somewhere else." >&2
+  echo "  Start the local stack with 'make db-up', or set ANSI_DB_URL /" >&2
+  echo "  ANSI_DB_CONTAINER to point somewhere else." >&2
   exit 1
 fi
