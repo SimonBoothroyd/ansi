@@ -21,6 +21,8 @@ import 'package:mise/features/ingredients/domain/ingredient.dart';
 import 'package:mise/features/ingredients/domain/ingredient_repository.dart';
 import 'package:mise/features/ingredients/domain/measure_repository.dart';
 
+import '../../helpers/fake_ingredient_repository.dart';
+
 /// A fake edge function returning a fixed single-line payload; commit records.
 class _FakeRepo implements ImportRepository {
   _FakeRepo(this.payload);
@@ -155,7 +157,9 @@ const _garlic = Ingredient(
 
 const _clove = Measure(id: 'm-clove', label: 'clove', amount: 3);
 
-class _FakeIngredientRepo implements IngredientRepository {
+class _FakeIngredientRepo
+    with IngredientManagerStubs
+    implements IngredientRepository {
   @override
   Future<Ingredient?> byId(String id) async => _garlic;
 

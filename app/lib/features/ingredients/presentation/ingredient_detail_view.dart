@@ -1,0 +1,1018 @@
+/// The ingredient detail / flesh-out form (`/ingredients/:id`) — design board
+/// "Ingredients manager · v1" frames (b) and (c), which fold the original
+/// "New ingredient" frame together with 7.7's macros-basis frame and 7.8's
+/// allowed-units frame into one scroll.
+///
+/// It is an **editor**, not a one-way queue: a `complete` row opens here too
+/// (plan 0020 D5). What it owns, in the frame's order — canonical name (a
+/// rename rewrites `match_text`, D6), aliases, category + default unit,
+/// macros with their basis, density (the shared 7.8 [DensityEntry]), and the
+/// explicit ADR-0008 `allowed_units` list.
+///
+/// Two rules the screen exists to enforce:
+/// - **Macros gate completion, density does not** (D5). Confirming is a
+///   human act; a USDA or barcode prefill fills fields and stops.
+/// - **Delete is refused while a live recipe line points here**, with the
+///   count — a line's ingredient is never allowed to dangle.
+library;
+
+import 'package:flutter/widgets.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+import '../../../core/theme/mise_theme.dart';
+import '../../../core/theme/mise_tokens.dart';
+import '../../../core/units/macros.dart';
+import '../../../core/units/units.dart';
+import '../../../shared/dashed_border_box.dart';
+import '../data/ingredient_providers.dart';
+import '../domain/allowed_units.dart';
+import '../domain/ingredient.dart';
+import '../domain/ingredient_repository.dart';
+import '../domain/normalize.dart';
+import 'density_entry.dart';
+
+/// The pushed route for one vocab row.
+String ingredientDetailRoute(String id) => '/ingredients/$id';
+
+class IngredientDetailView extends ConsumerWidget {
+  const IngredientDetailView({required this.ingredientId, super.key});
+
+  final String ingredientId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(ingredientByIdProvider(ingredientId));
+    final ingredient = async.asData?.value;
+
+    return FScaffold(
+      childPad: false,
+      header: FHeader.nested(
+        title: Text(
+          ingredient?.canonicalName ?? 'Ingredient',
+          style: miseHeaderTitle(),
+          overflow: TextOverflow.ellipsis,
+        ),
+        prefixes: [
+          FHeaderAction.back(
+            onPress: () =>
+                context.canPop() ? context.pop() : context.go('/ingredients'),
+          ),
+        ],
+      ),
+      child: switch (async) {
+        AsyncError(:final error) => _Centered('Could not open it — $error'),
+        AsyncLoading() when ingredient == null => const _Centered('…'),
+        _ when ingredient == null => const _Centered(
+          'This ingredient is gone — it was deleted on another device.',
+        ),
+        _ => _DetailForm(
+          // Keyed by id so pushing a different ingredient rebuilds the form
+          // state instead of inheriting the previous row's typed values.
+          key: ValueKey(ingredientId),
+          ingredient: ingredient,
+        ),
+      },
+    );
+  }
+}
+
+class _Centered extends StatelessWidget {
+  const _Centered(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: miseMono(size: 12, color: MiseColors.muted),
+      ),
+    ),
+  );
+}
+
+class _DetailForm extends HookConsumerWidget {
+  const _DetailForm({required this.ingredient, super.key});
+
+  final Ingredient ingredient;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ing = ingredient;
+    final name = useState(ing.canonicalName);
+    final category = useState(ing.category ?? '');
+    final defaultUnit = useState(ing.defaultUnit);
+    final basis = useState(ing.macrosBasis);
+    final macros = useState<_MacroDraft>(_MacroDraft.from(ing.macros));
+    final allowed = useState(allowedUnitsFor(ing).toSet());
+    final message = useState<String?>(null);
+    final busy = useState(false);
+
+    // A density save lands through the repository and re-renders this screen
+    // via the watched provider; the local allowed-set follows so the chips
+    // don't lag the write that just unlocked them.
+    final unlockedBy = ing.densityGPerMl;
+    useEffect(() {
+      if (unlockedBy != null) {
+        allowed.value = {...allowed.value, ...densityUnlockedUnits(ing)};
+      }
+      return null;
+    }, [unlockedBy]);
+
+    // A `complete` row is one whose macros the household stands behind — the
+    // form's own draft is what the CTA acts on, so the gate reads the draft.
+    final draftMacros = macros.value.toMacros();
+    final stub = ing.status == IngredientStatus.stub;
+
+    Future<Ingredient?> save() async {
+      if (name.value.trim().isEmpty) {
+        message.value =
+            'A name is the one field an ingredient can’t go '
+            'without.';
+        return null;
+      }
+      if (!macros.value.isCoherent) {
+        message.value =
+            'Enter all four macros, or leave them all blank — a '
+            'part of a panel isn’t a panel.';
+        return null;
+      }
+      busy.value = true;
+      try {
+        // The keepAlive repo provider, not a throwaway notifier: this
+        // survives the await.
+        final saved = await ref
+            .read(ingredientRepositoryProvider)
+            .saveEdit(
+              ing.id,
+              IngredientEdit(
+                canonicalName: name.value,
+                defaultUnit: defaultUnit.value,
+                macrosBasis: basis.value,
+                allowedUnits: allowed.value,
+                category: category.value.trim().isEmpty
+                    ? null
+                    : category.value.trim(),
+                macros: draftMacros,
+              ),
+            );
+        if (!context.mounted) return null;
+        ref.invalidate(ingredientByIdProvider(ing.id));
+        message.value = saved == null ? 'It is no longer here.' : 'Saved.';
+        return saved;
+      } finally {
+        if (context.mounted) busy.value = false;
+      }
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 48),
+      children: [
+        if (stub && isUsdaPrefilled(ing.source)) const _PrefillBanner(),
+
+        const _Label('CANONICAL NAME'),
+        FTextField(
+          control: FTextFieldControl.managed(
+            initial: TextEditingValue(text: ing.canonicalName),
+            onChange: (v) => name.value = v.text,
+          ),
+        ),
+        const _Note(
+          'renaming rewrites the match text — otherwise the next import '
+          'searches for a name nothing carries',
+        ),
+
+        const _Label('ALSO KNOWN AS'),
+        _AliasEditor(ingredientId: ing.id),
+
+        const _Label('CATEGORY · DEFAULT UNIT'),
+        FTextField(
+          hint: 'e.g. produce',
+          control: FTextFieldControl.managed(
+            initial: TextEditingValue(text: ing.category ?? ''),
+            onChange: (v) => category.value = v.text,
+          ),
+        ),
+        const SizedBox(height: 8),
+        _UnitChoiceRow(
+          selected: defaultUnit.value,
+          onPick: (u) {
+            defaultUnit.value = u;
+            // The default unit's own family is always sayable — keep the
+            // chosen unit admitted rather than leaving a row whose default
+            // its own allowed list forbids.
+            allowed.value = {...allowed.value, u};
+          },
+        ),
+
+        const _Label('MACROS — ENTER THEM AS THE LABEL READS'),
+        Row(
+          children: [
+            MiseModeChip(
+              label: 'per 100 g',
+              selected: basis.value == MacrosBasis.perG,
+              onTap: () => basis.value = MacrosBasis.perG,
+            ),
+            const SizedBox(width: 6),
+            MiseModeChip(
+              label: 'per 100 ml',
+              selected: basis.value == MacrosBasis.perMl,
+              onTap: () => basis.value = MacrosBasis.perMl,
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _MacroFields(
+          draft: macros.value,
+          onChanged: (d) => macros.value = d,
+          initial: ing.macros,
+        ),
+
+        const _Label('DENSITY — OPTIONAL, EITHER WAY, ONE STORED FACT'),
+        DensityEntry(
+          ingredient: ing,
+          redirectedSpoon: null,
+          onSaved: (_) => ref.invalidate(ingredientByIdProvider(ing.id)),
+        ),
+        if (ing.densityGPerMl == null)
+          const _Note(
+            'no density — the volume chips below stay locked. That '
+            'blocks nothing: macros are what a row needs to count.',
+          ),
+
+        const _Label('ALLOWED UNITS — WHAT A LINE MAY SAY'),
+        _AdmissionChips(
+          ingredient: ing,
+          selected: allowed.value,
+          onToggle: (u) {
+            final next = {...allowed.value};
+            if (!next.remove(u)) next.add(u);
+            allowed.value = next;
+          },
+        ),
+
+        const _Label('MEASURES — COUNT-LIKE, IN THE BASIS'),
+        _MeasureList(ingredientId: ing.id),
+
+        const _Label('IMPRECISE UNITS'),
+        _ImpreciseLine(ingredient: ing),
+
+        const SizedBox(height: 20),
+        _StatusLine(ingredient: ing),
+
+        if (message.value != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            message.value!,
+            style: miseMono(size: 11, color: MiseColors.muted),
+          ),
+        ],
+
+        const SizedBox(height: 12),
+        FButton(onPress: busy.value ? null : save, child: const Text('Save')),
+
+        const SizedBox(height: 10),
+        if (stub)
+          _ConfirmCta(
+            enabled: !busy.value && draftMacros != null,
+            onConfirm: () async {
+              final saved = await save();
+              if (saved == null || !context.mounted) return;
+              await ref.read(ingredientRepositoryProvider).confirmStub(ing.id);
+              if (!context.mounted) return;
+              ref.invalidate(ingredientByIdProvider(ing.id));
+              message.value = 'Confirmed — it counts from here.';
+            },
+          )
+        else
+          _UnconfirmAction(
+            onUnconfirm: () async {
+              await ref.read(ingredientRepositoryProvider).unconfirm(ing.id);
+              if (!context.mounted) return;
+              ref.invalidate(ingredientByIdProvider(ing.id));
+              message.value =
+                  'Back to a stub — it stops counting until you '
+                  'confirm it again.';
+            },
+          ),
+
+        if (stub) ...[const SizedBox(height: 12), _UsdaLookup(ingredient: ing)],
+
+        const SizedBox(height: 24),
+        _DeleteAction(ingredient: ing),
+      ],
+    );
+  }
+}
+
+// --- Sections ----------------------------------------------------------------
+
+/// Frame (c)'s "Filled in for you — check it" banner. Shown only where the
+/// numbers are a machine's guess and nobody has confirmed them yet (D1/D5).
+class _PrefillBanner extends StatelessWidget {
+  const _PrefillBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: MiseColors.paper,
+        border: Border.all(color: MiseColors.aging),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                FLucideIcons.triangleAlert,
+                size: 13,
+                color: MiseColors.aging,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Filled in for you — check it',
+                style: miseSans(size: 13, weight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '· USDA FoodData Central matched this name on the server.\n'
+            '· Nothing counts until you confirm.',
+            style: miseMono(size: 10, color: MiseColors.muted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The four macro inputs. All four or none — a partial panel would compute
+/// totals out of numbers nobody supplied (invariant 3).
+class _MacroFields extends StatelessWidget {
+  const _MacroFields({
+    required this.draft,
+    required this.onChanged,
+    required this.initial,
+  });
+
+  final _MacroDraft draft;
+  final ValueChanged<_MacroDraft> onChanged;
+  final Macros? initial;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget field(String label, String? seed, _MacroDraft Function(String) put) {
+      return Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FTextField(
+              // Keyed: the four read alike, and a test that targets them by
+              // position breaks the moment a field moves.
+              key: ValueKey('macro-$label'),
+              hint: label,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              control: FTextFieldControl.managed(
+                initial: TextEditingValue(text: seed ?? ''),
+                onChange: (v) => onChanged(put(v.text)),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(label, style: miseMono(size: 9, color: MiseColors.muted)),
+          ],
+        ),
+      );
+    }
+
+    String? seed(double? v) => v == null ? null : _trimZeros(v);
+    return Row(
+      spacing: 6,
+      children: [
+        field('kcal', seed(initial?.kcal), (t) => draft.copyWith(kcal: t)),
+        field(
+          'protein',
+          seed(initial?.protein),
+          (t) => draft.copyWith(protein: t),
+        ),
+        field('carb', seed(initial?.carb), (t) => draft.copyWith(carb: t)),
+        field('fat', seed(initial?.fat), (t) => draft.copyWith(fat: t)),
+      ],
+    );
+  }
+}
+
+/// The ADR-0008 admission section, finally built: selected chips, unselected
+/// but admissible chips, and the dashed locked ones a density would open.
+class _AdmissionChips extends StatelessWidget {
+  const _AdmissionChips({
+    required this.ingredient,
+    required this.selected,
+    required this.onToggle,
+  });
+
+  final Ingredient ingredient;
+  final Set<Unit> selected;
+  final ValueChanged<Unit> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final candidates = allowedUnitCandidates(
+      ingredient,
+    ).where((c) => c.unit.family != UnitFamily.imprecise).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final c in candidates)
+              _UnitChip(
+                unit: c.unit,
+                selected: selected.contains(c.unit),
+                locked: c.locked,
+                onTap: () => onToggle(c.unit),
+              ),
+          ],
+        ),
+        if (candidates.any((c) => c.locked))
+          const _Note(
+            'dashed chips need a density — one number opens the other family, '
+            'whatever the default unit is (ADR-0008 as amended)',
+          ),
+      ],
+    );
+  }
+}
+
+class _UnitChip extends StatelessWidget {
+  const _UnitChip({
+    required this.unit,
+    required this.selected,
+    required this.locked,
+    required this.onTap,
+  });
+
+  final Unit unit;
+  final bool selected;
+  final bool locked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (locked) {
+      return DashedBorderBox(
+        color: MiseColors.line,
+        child: Text(
+          unit.label,
+          style: miseMono(size: 11, color: MiseColors.muted),
+        ),
+      );
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? MiseColors.herbSoft : MiseColors.surface,
+          border: Border.all(
+            color: selected ? MiseColors.herb : MiseColors.line,
+          ),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          unit.label,
+          style: miseMono(
+            size: 11,
+            color: selected ? MiseColors.herbDeep : MiseColors.muted,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The single-select default-unit row.
+class _UnitChoiceRow extends StatelessWidget {
+  const _UnitChoiceRow({required this.selected, required this.onPick});
+
+  final Unit selected;
+  final ValueChanged<Unit> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        spacing: 6,
+        children: [
+          for (final u in kAllUnits)
+            MiseModeChip(
+              label: u.label,
+              selected: u == selected,
+              onTap: () => onPick(u),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Also known as" — the alias chips, addable and removable.
+class _AliasEditor extends HookConsumerWidget {
+  const _AliasEditor({required this.ingredientId});
+
+  final String ingredientId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final aliases = ref.watch(ingredientAliasesProvider(ingredientId));
+    final adding = useState(false);
+    final draft = useState('');
+    final error = useState<String?>(null);
+
+    Future<void> add() async {
+      // Checked here rather than caught: the repository throws for this, and
+      // an `ArgumentError` is a programming error to a linter, not a user
+      // message. Same normalizer, so the two verdicts can't disagree.
+      if (normalizeMatchText(draft.value).isEmpty) {
+        error.value =
+            'That alias carries no identity word — it would match '
+            'everything and nothing.';
+        return;
+      }
+      await ref
+          .read(ingredientRepositoryProvider)
+          .addAlias(ingredientId, draft.value);
+      if (!context.mounted) return;
+      error.value = null;
+      adding.value = false;
+      ref.invalidate(ingredientAliasesProvider(ingredientId));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final a in aliases.asData?.value ?? const <IngredientAlias>[])
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () async {
+                  await ref
+                      .read(ingredientRepositoryProvider)
+                      .removeAlias(a.id);
+                  if (context.mounted) {
+                    ref.invalidate(ingredientAliasesProvider(ingredientId));
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: MiseColors.paper,
+                    border: Border.all(color: MiseColors.line),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(a.text, style: miseMono(size: 11)),
+                      const SizedBox(width: 5),
+                      const Icon(
+                        FLucideIcons.x,
+                        size: 10,
+                        color: MiseColors.muted,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (!adding.value)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => adding.value = true,
+                child: DashedBorderBox(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        FLucideIcons.plus,
+                        size: 11,
+                        color: MiseColors.herb,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'alias',
+                        style: miseMono(size: 11, color: MiseColors.herb),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+        if (adding.value) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: FTextField(
+                  hint: 'another name for this',
+                  control: FTextFieldControl.managed(
+                    onChange: (v) => draft.value = v.text,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FButton(
+                size: FButtonSizeVariant.sm,
+                onPress: add,
+                child: const Text('Add'),
+              ),
+            ],
+          ),
+        ],
+        if (error.value != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              error.value!,
+              style: miseMono(size: 10, color: MiseColors.gone),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The ingredient's live measures, read-only here: they are authored from a
+/// line's quantity sheet, where the amount has a quantity to sit beside.
+class _MeasureList extends ConsumerWidget {
+  const _MeasureList({required this.ingredientId});
+
+  final String ingredientId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final measures =
+        ref.watch(ingredientMeasuresProvider(ingredientId)).asData?.value ??
+        const [];
+    if (measures.isEmpty) {
+      return Text(
+        'No measures — added from a recipe line’s quantity sheet.',
+        style: miseMono(size: 11, color: MiseColors.muted),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final m in measures)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              '${m.label} · ${_trimZeros(m.amount)} '
+              '${m.basis.baseUnit.label} · ${m.source}',
+              style: miseMono(size: 11, color: MiseColors.muted),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Whether the imprecise tail is admitted — category-gated (ADR-0008 §5),
+/// which is a fact about the category, not a switch on this form.
+class _ImpreciseLine extends StatelessWidget {
+  const _ImpreciseLine({required this.ingredient});
+
+  final Ingredient ingredient;
+
+  @override
+  Widget build(BuildContext context) {
+    final on =
+        ingredient.defaultUnit.family == UnitFamily.imprecise ||
+        kImpreciseGatedCategories.contains(ingredient.category);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text('pinch · dash · to taste', style: miseMono(size: 11)),
+        Text(
+          on ? 'on — category-gated' : 'off — category-gated',
+          style: miseMono(size: 10, color: MiseColors.muted),
+        ),
+      ],
+    );
+  }
+}
+
+/// The frame's status line: what this row is doing to everyone's totals.
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({required this.ingredient});
+
+  final Ingredient ingredient;
+
+  @override
+  Widget build(BuildContext context) {
+    final stub = ingredient.status == IngredientStatus.stub;
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: stub ? MiseColors.muted : MiseColors.fresh,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            stub
+                ? 'Still a stub — left out of macro totals until confirmed.'
+                : 'Complete — counts in conversions and macro totals.',
+            style: miseMono(size: 11, color: MiseColors.muted),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// "Confirm — it counts from here". Gated on macros (D5): density is not
+/// required, and the disabled state says why rather than going quiet.
+class _ConfirmCta extends StatelessWidget {
+  const _ConfirmCta({required this.enabled, required this.onConfirm});
+
+  final bool enabled;
+  final Future<void> Function() onConfirm;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        FButton(
+          onPress: enabled ? onConfirm : null,
+          child: const Text('Confirm — it counts from here'),
+        ),
+        if (!enabled)
+          const _Note(
+            'needs macros — a row can’t count towards a total with numbers '
+            'nobody supplied',
+          ),
+      ],
+    );
+  }
+}
+
+/// Confirm is reversible (D5) — the row's macros stay, it just stops
+/// counting.
+class _UnconfirmAction extends StatelessWidget {
+  const _UnconfirmAction({required this.onUnconfirm});
+
+  final Future<void> Function() onUnconfirm;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onUnconfirm,
+      child: Text(
+        'return it to a stub',
+        style: miseMono(size: 11, color: MiseColors.muted),
+      ),
+    );
+  }
+}
+
+/// D7's manual half. `usda_food` never syncs to a device (ADR-0005), so this
+/// cannot run the lookup here: the trigram match runs server-side when the
+/// row uploads. What the button honestly does is **re-read the row** and say
+/// whether a prefill has come back down yet.
+class _UsdaLookup extends HookConsumerWidget {
+  const _UsdaLookup({required this.ingredient});
+
+  final Ingredient ingredient;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final note = useState<String?>(null);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _GhostButton(
+          label: 'Look up in USDA',
+          onTap: () async {
+            final fresh = await ref
+                .read(ingredientRepositoryProvider)
+                .byId(ingredient.id);
+            if (!context.mounted) return;
+            ref.invalidate(ingredientByIdProvider(ingredient.id));
+            note.value = fresh != null && isUsdaPrefilled(fresh.source)
+                ? 'USDA FoodData Central filled this in — check the numbers, '
+                      'then confirm.'
+                : 'Nothing back from USDA yet. The lookup runs on the server '
+                      'when this row syncs up; a rename re-runs it. Fill it '
+                      'in by hand and it stops mattering.';
+          },
+        ),
+        if (note.value != null) _Note(note.value!),
+      ],
+    );
+  }
+}
+
+/// Delete, guarded. The refusal is the interesting state: it names the count,
+/// because "used by 3 recipes" is a thing a user can act on and "failed" is
+/// not.
+class _DeleteAction extends HookConsumerWidget {
+  const _DeleteAction({required this.ingredient});
+
+  final Ingredient ingredient;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final refusal = useState<String?>(null);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () async {
+            final outcome = await ref
+                .read(ingredientRepositoryProvider)
+                .softDelete(ingredient.id);
+            if (!context.mounted) return;
+            switch (outcome) {
+              case Deleted():
+                ref.invalidate(ingredientByIdProvider(ingredient.id));
+                if (context.mounted) {
+                  context.canPop() ? context.pop() : context.go('/ingredients');
+                }
+              case DeleteRefused(:final recipeCount, :final lineCount):
+                refusal.value =
+                    'Still used by $recipeCount '
+                    '${recipeCount == 1 ? 'recipe' : 'recipes'} '
+                    '($lineCount ${lineCount == 1 ? 'line' : 'lines'}). '
+                    'Change those lines first — a line’s ingredient is never '
+                    'allowed to dangle.';
+              case DeleteMissing():
+                refusal.value = 'It is already gone.';
+            }
+          },
+          child: DashedBorderBox(
+            color: MiseColors.gone,
+            child: Text(
+              'Delete ingredient',
+              textAlign: TextAlign.center,
+              style: miseMono(size: 12, color: MiseColors.gone),
+            ),
+          ),
+        ),
+        if (refusal.value != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              refusal.value!,
+              style: miseMono(size: 11, color: MiseColors.gone),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// --- Small shared pieces -----------------------------------------------------
+
+/// The board's `ghostbtn`: a secondary action that reads as available
+/// without competing with the screen's primary CTA.
+class _GhostButton extends StatelessWidget {
+  const _GhostButton({required this.label, required this.onTap});
+
+  final String label;
+  final Future<void> Function() onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          border: Border.all(color: MiseColors.line),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: miseMono(size: 12),
+        ),
+      ),
+    );
+  }
+}
+
+class _Label extends StatelessWidget {
+  const _Label(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 20, bottom: 6),
+    child: Text(text, style: miseLabel()),
+  );
+}
+
+class _Note extends StatelessWidget {
+  const _Note(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 6),
+    child: Text(text, style: miseMono(size: 10, color: MiseColors.muted)),
+  );
+}
+
+/// The four macro inputs as typed text, so "half filled in" is a state the
+/// form can name rather than a silent zero.
+class _MacroDraft {
+  const _MacroDraft({
+    required this.kcal,
+    required this.protein,
+    required this.carb,
+    required this.fat,
+  });
+
+  factory _MacroDraft.from(Macros? m) => _MacroDraft(
+    kcal: m == null ? '' : _trimZeros(m.kcal),
+    protein: m == null ? '' : _trimZeros(m.protein),
+    carb: m == null ? '' : _trimZeros(m.carb),
+    fat: m == null ? '' : _trimZeros(m.fat),
+  );
+
+  final String kcal;
+  final String protein;
+  final String carb;
+  final String fat;
+
+  _MacroDraft copyWith({
+    String? kcal,
+    String? protein,
+    String? carb,
+    String? fat,
+  }) => _MacroDraft(
+    kcal: kcal ?? this.kcal,
+    protein: protein ?? this.protein,
+    carb: carb ?? this.carb,
+    fat: fat ?? this.fat,
+  );
+
+  List<String> get _fields => [kcal, protein, carb, fat];
+
+  bool get _allBlank => _fields.every((f) => f.trim().isEmpty);
+
+  /// All four parse, or all four are blank. Anything between is a panel with
+  /// a hole in it, which the form refuses rather than zero-filling.
+  bool get isCoherent =>
+      _allBlank ||
+      _fields.every((f) => double.tryParse(f.trim())?.isFinite ?? false);
+
+  /// The macros this draft asserts, or null for "none" — the D5 clear.
+  Macros? toMacros() {
+    if (_allBlank || !isCoherent) return null;
+    return Macros(
+      kcal: double.parse(kcal.trim()),
+      protein: double.parse(protein.trim()),
+      carb: double.parse(carb.trim()),
+      fat: double.parse(fat.trim()),
+    );
+  }
+}
+
+/// `60` not `60.0`, `0.66` unchanged — seeds a numeric field with what a
+/// person would have typed.
+String _trimZeros(double v) =>
+    v == v.roundToDouble() ? v.toStringAsFixed(0) : '$v';

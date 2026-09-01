@@ -39,3 +39,20 @@ Stream<List<Measure>> ingredientMeasures(Ref ref, String ingredientId) =>
 @riverpod
 Future<Ingredient?> ingredientById(Ref ref, String id) =>
     ref.watch(ingredientRepositoryProvider).byId(id);
+
+/// The whole live vocabulary, canonical-name ordered — the manager list
+/// (step 8.5). Watched, so a sync or another screen's edit re-renders it.
+@riverpod
+Stream<List<Ingredient>> vocabulary(Ref ref) =>
+    ref.watch(ingredientRepositoryProvider).watchVocabulary();
+
+/// How many rows still read `stub` — the Library menu's badge, so the
+/// fleshing-out queue is discoverable without hunting for it (D8).
+@riverpod
+Stream<int> stubCount(Ref ref) =>
+    ref.watch(ingredientRepositoryProvider).watchStubCount();
+
+/// One ingredient's live aliases — the form's "Also known as" chips.
+@riverpod
+Future<List<IngredientAlias>> ingredientAliases(Ref ref, String id) =>
+    ref.watch(ingredientRepositoryProvider).aliases(id);

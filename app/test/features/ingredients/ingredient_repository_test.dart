@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mise/core/units/macros.dart';
+import 'package:mise/core/units/units.dart';
 import 'package:mise/features/ingredients/data/ingredient_repository_impl.dart';
 import 'package:mise/features/ingredients/domain/ingredient.dart';
+import 'package:mise/features/ingredients/domain/ingredient_repository.dart';
 import 'package:mise/features/ingredients/domain/search_query.dart';
 import 'package:powersync/powersync.dart';
 
@@ -323,7 +326,10 @@ void main() {
     );
     expect(row['household_id'], 'h');
     expect(row['source'], 'manual');
-    expect(row['match_text'], 'curry leaves');
+    // The SERVER's phrase rules, not just the character ones (plan 0020 D6):
+    // singularized, so this is byte-identical to the `match_text` an import
+    // would have written for the same phrase — which is the whole point.
+    expect(row['match_text'], 'curry leaf');
     expect(row['status'], 'stub');
   });
 
@@ -401,4 +407,321 @@ void main() {
       expect(await repo.setDensity('nope', 1), isNull);
     });
   });
+
+  // --- The manager's write half (step 8.5, plan 0020) ------------------------
+
+  group('watchVocabulary / watchStubCount', () {
+    test(
+      'the whole live vocabulary, name-ordered, with measure counts',
+      () async {
+        final rows = await repo.watchVocabulary().first;
+        expect(rows.length, 8);
+        expect(rows.first.canonicalName, 'All-Purpose Flour');
+        expect(rows.map((r) => r.canonicalName), isNot(contains('Ghost')));
+      },
+    );
+
+    test(
+      'a tombstoned row is out of both the list and the stub count',
+      () async {
+        await _seed(
+          db,
+          id: '99',
+          name: 'Ghost',
+          status: 'stub',
+          deletedAt: '2026-01-01',
+        );
+        expect((await repo.watchVocabulary().first).length, 8);
+        expect(await repo.watchStubCount().first, 1); // only Olive Oil
+      },
+    );
+  });
+
+  group('saveEdit', () {
+    test('a RENAME rewrites match_text with the server phrase rules — the '
+        'hazard plan 0020 D6 names', () async {
+      final saved = await repo.saveEdit('1', _edit(name: 'Curry leaves'));
+      expect(saved!.canonicalName, 'Curry leaves');
+      final row = await db.get(
+        "SELECT canonical_name, match_text FROM ingredient WHERE id = '1'",
+      );
+      expect(row['canonical_name'], 'Curry leaves');
+      // Singularized, exactly as an import's own write would have been —
+      // leaving 'onion' behind would be a silent matching regression.
+      expect(row['match_text'], 'curry leaf');
+      // …and the row is findable by the new name, not the old one.
+      expect((await repo.search('curry')).single.id, '1');
+      expect(await repo.search('onion'), isNot(contains('1')));
+    });
+
+    test('writes the explicit allowed_units list verbatim — an editor that '
+        'recomputed it would silently discard a curated set', () async {
+      final saved = await repo.saveEdit(
+        '1',
+        _edit(name: 'Onion', allowed: {pieces, g, toTaste}),
+      );
+      expect(saved!.allowedUnits!.map((u) => u.id).toSet(), {
+        'piece',
+        'g',
+        'to_taste',
+      });
+      final row = await db.get(
+        "SELECT allowed_units FROM ingredient WHERE id = '1'",
+      );
+      expect((jsonDecode(row['allowed_units'] as String) as List).toSet(), {
+        'piece',
+        'g',
+        'to_taste',
+      });
+    });
+
+    test(
+      'macros round-trip with their basis, unconverted (7.7/0011)',
+      () async {
+        final saved = await repo.saveEdit(
+          '1',
+          _edit(
+            name: 'Coconut milk',
+            macros: const Macros(kcal: 197, protein: 2, carb: 3, fat: 20),
+            basis: MacrosBasis.perMl,
+          ),
+        );
+        expect(
+          saved!.macros,
+          const Macros(kcal: 197, protein: 2, carb: 3, fat: 20),
+        );
+        expect(saved.macrosBasis, MacrosBasis.perMl);
+      },
+    );
+
+    test('clearing the macros of a COMPLETE row returns it to stub — a row is '
+        'never left asserting a number it no longer has (D5)', () async {
+      await db.execute(
+        "UPDATE ingredient SET status = 'complete', "
+        'macros = \'{"kcal":1,"protein":1,"carb":1,"fat":1}\' '
+        "WHERE id = '1'",
+      );
+      final saved = await repo.saveEdit('1', _edit(name: 'Onion'));
+      expect(saved!.status, IngredientStatus.stub);
+      expect(saved.macros, isNull);
+    });
+
+    test(
+      'filling the macros in does NOT promote — confirming is a human act',
+      () async {
+        final saved = await repo.saveEdit(
+          '1',
+          _edit(
+            name: 'Onion',
+            macros: const Macros(kcal: 40, protein: 1, carb: 9, fat: 0),
+          ),
+        );
+        expect(saved!.status, IngredientStatus.complete); // it started complete
+        final stub = await repo.saveEdit(
+          '3', // Olive Oil, seeded as a stub
+          _edit(
+            name: 'Olive Oil',
+            macros: const Macros(kcal: 884, protein: 0, carb: 0, fat: 100),
+          ),
+        );
+        expect(stub!.status, IngredientStatus.stub);
+      },
+    );
+
+    test('refuses a blank name and null for an unknown id', () async {
+      await expectLater(
+        repo.saveEdit('1', _edit(name: '   ')),
+        throwsArgumentError,
+      );
+      expect(await repo.saveEdit('nope', _edit(name: 'x')), isNull);
+    });
+  });
+
+  group('confirm / unconfirm (D5: macros gate, density does not)', () {
+    test('a stub with macros but NO density confirms', () async {
+      await repo.saveEdit(
+        '3',
+        _edit(
+          name: 'Olive Oil',
+          macros: const Macros(kcal: 884, protein: 0, carb: 0, fat: 100),
+        ),
+      );
+      final confirmed = await repo.confirmStub('3');
+      expect(confirmed!.status, IngredientStatus.complete);
+      expect(confirmed.densityGPerMl, isNull);
+      expect(await repo.watchStubCount().first, 0);
+    });
+
+    test(
+      'a stub with a density but no macros is REFUSED — the gate is macros',
+      () async {
+        await repo.setDensity('3', 0.91);
+        await expectLater(repo.confirmStub('3'), throwsStateError);
+        expect((await repo.byId('3'))!.status, IngredientStatus.stub);
+      },
+    );
+
+    test('confirm is reversible', () async {
+      await repo.saveEdit(
+        '3',
+        _edit(
+          name: 'Olive Oil',
+          macros: const Macros(kcal: 884, protein: 0, carb: 0, fat: 100),
+        ),
+      );
+      await repo.confirmStub('3');
+      final back = await repo.unconfirm('3');
+      expect(back!.status, IngredientStatus.stub);
+      // The macros stay — unconfirming stops it counting, it doesn't erase
+      // what someone typed.
+      expect(back.macros, isNotNull);
+      expect(await repo.confirmStub('3'), isNotNull);
+    });
+
+    test('null for an unknown id', () async {
+      expect(await repo.confirmStub('nope'), isNull);
+      expect(await repo.unconfirm('nope'), isNull);
+    });
+  });
+
+  group(
+    'softDelete (the signed rule: refuse while a live line points here)',
+    () {
+      Future<void> line(String recipe, String group, String ingredient) async {
+        await db.execute(
+          'INSERT INTO recipe (id, household_id, title) VALUES (?, ?, ?)',
+          [recipe, 'h', 'A recipe'],
+        );
+        await db.execute(
+          'INSERT INTO ingredient_group (id, household_id, recipe_id) '
+          'VALUES (?, ?, ?)',
+          [group, 'h', recipe],
+        );
+        await db.execute(
+          'INSERT INTO recipe_line_item (id, household_id, group_id, '
+          'ingredient_id, quantity, unit) VALUES (?, ?, ?, ?, 1, ?)',
+          ['line-$group', 'h', group, ingredient, 'g'],
+        );
+      }
+
+      test(
+        'an unreferenced row tombstones, and takes its aliases with it',
+        () async {
+          await repo.addAlias('1', 'yellow onion');
+          expect(await repo.softDelete('1'), isA<Deleted>());
+          expect(await repo.byId('1'), isNull);
+          expect(await repo.aliases('1'), isEmpty);
+          final row = await db.get(
+            "SELECT deleted_at FROM ingredient WHERE id = '1'",
+          );
+          expect(
+            row['deleted_at'],
+            isNotNull,
+          ); // a tombstone, not a hard delete
+        },
+      );
+
+      test(
+        'a referenced row is refused, with the counts the screen shows',
+        () async {
+          await line('r1', 'g1', '1');
+          await line('r2', 'g2', '1');
+          final outcome = await repo.softDelete('1');
+          expect(outcome, isA<DeleteRefused>());
+          expect((outcome as DeleteRefused).recipeCount, 2);
+          expect(outcome.lineCount, 2);
+          expect(await repo.byId('1'), isNotNull); // still there, untouched
+        },
+      );
+
+      test(
+        'a line in a tombstoned recipe does not hold the ingredient hostage',
+        () async {
+          await line('r1', 'g1', '1');
+          await db.execute(
+            "UPDATE recipe SET deleted_at = '2026-01-01' WHERE id = 'r1'",
+          );
+          expect(await repo.recipeReferences('1'), (
+            recipeCount: 0,
+            lineCount: 0,
+          ));
+          expect(await repo.softDelete('1'), isA<Deleted>());
+        },
+      );
+
+      test(
+        'deleting what is already gone says so rather than pretending',
+        () async {
+          expect(await repo.softDelete('nope'), isA<DeleteMissing>());
+        },
+      );
+    },
+  );
+
+  group('aliases', () {
+    test(
+      'an alias is stored with the server-rule match_text and is findable',
+      () async {
+        final alias = await repo.addAlias('1', 'Yellow Onions');
+        expect(alias.text, 'Yellow Onions');
+        expect(alias.source, 'manual');
+        final row = await db.get(
+          'SELECT match_text, household_id FROM ingredient_alias WHERE id = ?',
+          [alias.id],
+        );
+        expect(
+          row['match_text'],
+          'yellow onion',
+        ); // singularized, as the server
+        expect(row['household_id'], 'h');
+        expect((await repo.search('yellow')).single.id, '1');
+      },
+    );
+
+    test(
+      'adding the same alias twice is a no-op, not a duplicate row',
+      () async {
+        final first = await repo.addAlias('1', 'Yellow Onions');
+        final second = await repo.addAlias('1', 'yellow onion');
+        expect(second.id, first.id);
+        expect(await repo.aliases('1'), hasLength(1));
+      },
+    );
+
+    test(
+      'refuses an alias with no identity word — it would match everything',
+      () async {
+        await expectLater(
+          repo.addAlias('1', 'a handful of'),
+          throwsArgumentError,
+        );
+      },
+    );
+
+    test('removing an alias tombstones it and it stops matching', () async {
+      final alias = await repo.addAlias('1', 'Yellow Onions');
+      await repo.removeAlias(alias.id);
+      expect(await repo.aliases('1'), isEmpty);
+      expect(await repo.search('yellow'), isEmpty);
+    });
+  });
 }
+
+/// A whole-row edit, defaulted to the seed's shape so each test states only
+/// the field it is about. [IngredientEdit] is a replacement, not a patch —
+/// the form always holds the whole row.
+IngredientEdit _edit({
+  required String name,
+  String? category,
+  Unit unit = g,
+  Macros? macros,
+  MacrosBasis basis = MacrosBasis.perG,
+  Set<Unit> allowed = const {g},
+}) => IngredientEdit(
+  canonicalName: name,
+  defaultUnit: unit,
+  macrosBasis: basis,
+  allowedUnits: allowed,
+  category: category,
+  macros: macros,
+);

@@ -89,9 +89,33 @@ void main() {
       expect(units, isNot(contains(pieces)));
     });
 
-    test('count default ignores density — count never converts', () {
-      final units = allowedUnitsFor(_ing(pieces, density: 1));
-      expect(units, [pieces, g]);
+    test('THE MANGO VECTOR (ADR-0008 as amended, plan 0020 D4): a piece '
+        'default with a density admits the volume workhorses — "1 cup diced '
+        'mango" is a real line', () {
+      final units = allowedUnitsFor(
+        _ing(pieces, density: 0.66, category: 'produce'),
+      );
+      expect(units, [pieces, g, tsp, tbsp, cup, ml]);
+      // `kg` stays out: the big metric sibling rides the same magnitude gate
+      // the mass/volume legs use, and a piece default is not big-scale. It is
+      // the board frame's dashed chip.
+      expect(units, isNot(contains(kg)));
+      expect(units, isNot(contains(l)));
+    });
+
+    test('without a density a count default still admits nothing but its own '
+        'piece and the basis base — the amendment unlocks on the density, '
+        'not on the family', () {
+      expect(allowedUnitsFor(_ing(pieces, category: 'produce')), [pieces, g]);
+    });
+
+    test('an imprecise default with a density unlocks both families too, and '
+        'keeps its whole tail INCLUDING handful (the mirror divergence plan '
+        '0020 D4 pins: the SQL leg was missing it)', () {
+      final units = allowedUnitsFor(
+        _ing(pinch, density: 1, category: 'spices & seasoning'),
+      );
+      expect(units, [g, tsp, tbsp, cup, ml, pinch, dash, handful, toTaste]);
     });
 
     test('mg and fl oz stay label-reading units: offered only as the '
@@ -298,6 +322,44 @@ void main() {
       for (final label in ['can (400 ml)', 'half cup scoop', 'clove', 'oz']) {
         expect(isVolumeUnitLabel(label), isFalse, reason: label);
       }
+    });
+  });
+
+  group("allowedUnitCandidates — the flesh-out form's admission chips", () {
+    Set<String> lockedOf(Ingredient i) => {
+      for (final c in allowedUnitCandidates(i))
+        if (c.locked) c.unit.id,
+    };
+    Set<String> selectedOf(Ingredient i) => {
+      for (final c in allowedUnitCandidates(i))
+        if (c.selected) c.unit.id,
+    };
+
+    test('without a density the cross-family chips are drawn LOCKED, not '
+        'hidden — the section has to explain what a density buys', () {
+      final curryLeaves = _ing(g, category: 'produce');
+      expect(selectedOf(curryLeaves), {'g', 'kg'});
+      expect(lockedOf(curryLeaves), {'tsp', 'tbsp', 'cup', 'ml'});
+    });
+
+    test('a piece default with no density locks BOTH families beyond its own '
+        'basis base — the D4 unlock is what opens them', () {
+      final mangoWithoutDensity = _ing(pieces, category: 'produce');
+      expect(selectedOf(mangoWithoutDensity), {'piece', 'g'});
+      expect(lockedOf(mangoWithoutDensity), {'tsp', 'tbsp', 'cup', 'ml'});
+    });
+
+    test('with the density, nothing is locked (the mango frame)', () {
+      final mango = _ing(pieces, density: 0.66, category: 'produce');
+      expect(lockedOf(mango), isEmpty);
+      expect(selectedOf(mango), {'piece', 'g', 'tsp', 'tbsp', 'cup', 'ml'});
+    });
+
+    test('a stored unit the derived rules would not admit still appears, '
+        'selected and unlocked — an explicit list is user-owned', () {
+      final curated = _ing(g, allowed: const [g, flOz, toTaste]);
+      expect(selectedOf(curated), containsAll(<String>['fl_oz', 'to_taste']));
+      expect(lockedOf(curated), isNot(contains('fl_oz')));
     });
   });
 }

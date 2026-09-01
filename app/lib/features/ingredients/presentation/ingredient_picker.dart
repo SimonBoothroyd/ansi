@@ -11,6 +11,7 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/mise_theme.dart';
@@ -19,6 +20,7 @@ import '../../../shared/dashed_border_box.dart';
 import '../../../shared/picker_shell.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/ingredient.dart';
+import 'ingredient_detail_view.dart' show ingredientDetailRoute;
 import 'macros_format.dart';
 
 /// Opens the picker as a bottom sheet; resolves to the chosen ingredient
@@ -108,6 +110,16 @@ class _IngredientPickerSheet extends HookConsumerWidget {
       footer: AddNewIngredientRow(
         query: search.query,
         onCreated: (ing) => Navigator.of(context).pop(ing),
+        // The deep-link seam (D8): the line still gets its ingredient, and
+        // the flesh-out form opens on top of wherever the picker was hosted.
+        // Only offered where a router is actually in scope — the shopping
+        // top-up embeds this row without one.
+        onFleshOut: GoRouter.maybeOf(context) == null
+            ? null
+            : (ing) {
+                Navigator.of(context).pop(ing);
+                context.push(ingredientDetailRoute(ing.id));
+              },
       ),
     );
   }
@@ -159,15 +171,30 @@ class IngredientResultList extends StatelessWidget {
 
 /// One dense, information-honest result row: name (+`stub` badge), category
 /// and capability hints, and a per-100 macro line for complete rows.
+///
+/// Shared by the picker (7.7) and the ingredients manager list (8.5) — the
+/// two must read alike or the same ingredient tells two stories. Only the
+/// trailing affordance differs: the picker adds, the manager navigates.
 class IngredientRow extends StatelessWidget {
   const IngredientRow({
     required this.ingredient,
     required this.onPick,
+    this.trailing,
+    this.advisoryDensityGap = false,
     super.key,
   });
 
   final Ingredient ingredient;
   final ValueChanged<Ingredient> onPick;
+
+  /// Defaults to the picker's `+`. The manager passes a chevron.
+  final Widget? trailing;
+
+  /// Whether a missing density is worth saying out loud. The manager list
+  /// says it ("no density — volume units locked") because it is the screen
+  /// that can fix it; the picker stays quiet because it can't (plan 0020 D5:
+  /// this is an advisory, never a completion blocker).
+  final bool advisoryDensityGap;
 
   @override
   Widget build(BuildContext context) {
@@ -176,7 +203,10 @@ class IngredientRow extends StatelessWidget {
     final macros = ing.macros;
     final hints = [
       if (ing.category != null) ing.category!,
-      if (ing.densityGPerMl != null) 'has density',
+      if (ing.densityGPerMl != null)
+        'has density'
+      else if (advisoryDensityGap)
+        'no density — volume units locked',
       if (ing.measureCount > 0)
         '${ing.measureCount} ${ing.measureCount == 1 ? 'measure' : 'measures'}',
       if (stub) 'needs macros — no zeros shown',
@@ -236,7 +266,8 @@ class IngredientRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(FLucideIcons.plus, size: 18, color: MiseColors.herb),
+            trailing ??
+                const Icon(FLucideIcons.plus, size: 18, color: MiseColors.herb),
           ],
         ),
       ),
@@ -247,15 +278,22 @@ class IngredientRow extends StatelessWidget {
 /// "＋ can't find it? add a new ingredient" — creates a manual stub named
 /// after the query (or prompts nothing when the query is blank: the row is
 /// disabled until something is typed).
+///
+/// When [onFleshOut] is supplied the row does not close over the creation:
+/// the stub is authored, and a two-action strip offers "use it" (the old
+/// behaviour) beside "flesh out now →", which deep-links into the step-8.5
+/// detail form. One flesh-out surface, not a second inline one (D8).
 class AddNewIngredientRow extends HookConsumerWidget {
   const AddNewIngredientRow({
     required this.query,
     required this.onCreated,
+    this.onFleshOut,
     super.key,
   });
 
   final String query;
   final ValueChanged<Ingredient> onCreated;
+  final ValueChanged<Ingredient>? onFleshOut;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -264,7 +302,18 @@ class AddNewIngredientRow extends HookConsumerWidget {
     // during the round-trip would author two identical vocab rows. The row
     // goes inert for the duration instead.
     final creating = useState(false);
+    final justCreated = useState<Ingredient?>(null);
     final enabled = name.isNotEmpty && !creating.value;
+
+    final created = justCreated.value;
+    if (created != null) {
+      return _JustCreatedStrip(
+        created: created,
+        onUse: () => onCreated(created),
+        onFleshOut: () => onFleshOut!(created),
+      );
+    }
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: !enabled
@@ -272,10 +321,15 @@ class AddNewIngredientRow extends HookConsumerWidget {
           : () async {
               creating.value = true;
               try {
-                final created = await ref
+                final made = await ref
                     .read(ingredientRepositoryProvider)
                     .createStub(name);
-                if (context.mounted) onCreated(created);
+                if (!context.mounted) return;
+                if (onFleshOut == null) {
+                  onCreated(made);
+                } else {
+                  justCreated.value = made;
+                }
               } finally {
                 if (context.mounted) creating.value = false;
               }
@@ -307,6 +361,72 @@ class AddNewIngredientRow extends HookConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// What the add-new row becomes once the stub exists: it is already saved
+/// (and already usable), so the two actions are "take it back to the line I
+/// was editing" and "go fill it in now".
+class _JustCreatedStrip extends StatelessWidget {
+  const _JustCreatedStrip({
+    required this.created,
+    required this.onUse,
+    required this.onFleshOut,
+  });
+
+  final Ingredient created;
+  final VoidCallback onUse;
+  final VoidCallback onFleshOut;
+
+  @override
+  Widget build(BuildContext context) {
+    return DashedBorderBox(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'added “${created.canonicalName}” as a stub',
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: miseMono(size: 11, color: MiseColors.muted),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onUse,
+                child: Text(
+                  'use it',
+                  style: miseMono(size: 12, color: MiseColors.herbDeep),
+                ),
+              ),
+              const SizedBox(width: 16),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onFleshOut,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'flesh out now',
+                      style: miseMono(size: 12, color: MiseColors.herbDeep),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      FLucideIcons.arrowRight,
+                      size: 12,
+                      color: MiseColors.herbDeep,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

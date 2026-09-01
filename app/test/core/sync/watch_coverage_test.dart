@@ -42,6 +42,20 @@ const _exemptTables = <String, Set<String>>{
   'lib/features/planning/data/planning_repository_impl.dart': {
     'household_member',
   },
+  // The vocab repo's watches (`watchVocabulary`, `watchStubCount`) render the
+  // manager list, which reads `ingredient` and its measure counts and nothing
+  // else. Every table below belongs to a one-shot Future instead: aliases to
+  // `search`/`aliases`, the reference tables to `recentlyUsed` and the delete
+  // guard's `recipeReferences`. None of them can make the LIST stale — a new
+  // alias changes no row the list draws.
+  'lib/features/ingredients/data/ingredient_repository_impl.dart': {
+    'ingredient_alias',
+    'recipe_line_item',
+    'ingredient_group',
+    'recipe',
+    'shopping_list_entry',
+    'shopping_list_contribution',
+  },
 };
 
 /// Repositories deliberately outside the rule, each with the reason. A watching

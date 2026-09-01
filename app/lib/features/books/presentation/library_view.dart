@@ -13,6 +13,9 @@ import '../../../core/theme/mise_theme.dart';
 import '../../../core/theme/mise_tokens.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/mise_bottom_nav.dart';
+import '../../ingredients/data/ingredient_providers.dart';
+import '../../ingredients/presentation/ingredient_list_view.dart'
+    show kIngredientsRoute;
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/book_providers.dart';
@@ -46,6 +49,15 @@ class LibraryView extends ConsumerWidget {
                     prefix: const Icon(FLucideIcons.download),
                     title: const Text('Import a recipe'),
                     onPress: () => context.push('/import'),
+                  ),
+                  // Beside "Import a recipe" — the `/import` precedent, plan
+                  // 0020 D8. The badge is the second door: the fleshing-out
+                  // queue is discoverable without hunting for it.
+                  FItem(
+                    prefix: const Icon(FLucideIcons.carrot),
+                    title: const Text('Ingredients'),
+                    suffix: const _StubCountBadge(),
+                    onPress: () => context.push(kIngredientsRoute),
                   ),
                   FItem(
                     prefix: const Icon(FLucideIcons.bookPlus),
@@ -442,6 +454,26 @@ class _EmptyState extends StatelessWidget {
             style: miseMono(size: 12, color: MiseColors.muted),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// How many vocab rows still read `stub`, on the Library menu's Ingredients
+/// item (plan 0020 D8). Absent — not a `0` — when there is nothing to flesh
+/// out: a badge that always shows a number stops meaning anything.
+class _StubCountBadge extends ConsumerWidget {
+  const _StubCountBadge();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(stubCountProvider).asData?.value ?? 0;
+    if (count == 0) return const SizedBox.shrink();
+    return FBadge(
+      variant: FBadgeVariant.secondary,
+      child: Text(
+        '$count stub${count == 1 ? '' : 's'}',
+        style: miseMono(size: 10, color: MiseColors.muted),
       ),
     );
   }

@@ -282,3 +282,177 @@ final class IngredientByIdFamily extends $Family
   @override
   String toString() => r'ingredientByIdProvider';
 }
+
+/// The whole live vocabulary, canonical-name ordered — the manager list
+/// (step 8.5). Watched, so a sync or another screen's edit re-renders it.
+
+@ProviderFor(vocabulary)
+const vocabularyProvider = VocabularyProvider._();
+
+/// The whole live vocabulary, canonical-name ordered — the manager list
+/// (step 8.5). Watched, so a sync or another screen's edit re-renders it.
+
+final class VocabularyProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Ingredient>>,
+          List<Ingredient>,
+          Stream<List<Ingredient>>
+        >
+    with $FutureModifier<List<Ingredient>>, $StreamProvider<List<Ingredient>> {
+  /// The whole live vocabulary, canonical-name ordered — the manager list
+  /// (step 8.5). Watched, so a sync or another screen's edit re-renders it.
+  const VocabularyProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'vocabularyProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$vocabularyHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<Ingredient>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<Ingredient>> create(Ref ref) {
+    return vocabulary(ref);
+  }
+}
+
+String _$vocabularyHash() => r'046e543cc9d9714ff1e38d324815ec14206b688f';
+
+/// How many rows still read `stub` — the Library menu's badge, so the
+/// fleshing-out queue is discoverable without hunting for it (D8).
+
+@ProviderFor(stubCount)
+const stubCountProvider = StubCountProvider._();
+
+/// How many rows still read `stub` — the Library menu's badge, so the
+/// fleshing-out queue is discoverable without hunting for it (D8).
+
+final class StubCountProvider
+    extends $FunctionalProvider<AsyncValue<int>, int, Stream<int>>
+    with $FutureModifier<int>, $StreamProvider<int> {
+  /// How many rows still read `stub` — the Library menu's badge, so the
+  /// fleshing-out queue is discoverable without hunting for it (D8).
+  const StubCountProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'stubCountProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$stubCountHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<int> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<int> create(Ref ref) {
+    return stubCount(ref);
+  }
+}
+
+String _$stubCountHash() => r'3bd615a3ce89b74c3fee12845369124dd30463ca';
+
+/// One ingredient's live aliases — the form's "Also known as" chips.
+
+@ProviderFor(ingredientAliases)
+const ingredientAliasesProvider = IngredientAliasesFamily._();
+
+/// One ingredient's live aliases — the form's "Also known as" chips.
+
+final class IngredientAliasesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<IngredientAlias>>,
+          List<IngredientAlias>,
+          FutureOr<List<IngredientAlias>>
+        >
+    with
+        $FutureModifier<List<IngredientAlias>>,
+        $FutureProvider<List<IngredientAlias>> {
+  /// One ingredient's live aliases — the form's "Also known as" chips.
+  const IngredientAliasesProvider._({
+    required IngredientAliasesFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'ingredientAliasesProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$ingredientAliasesHash();
+
+  @override
+  String toString() {
+    return r'ingredientAliasesProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<IngredientAlias>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<IngredientAlias>> create(Ref ref) {
+    final argument = this.argument as String;
+    return ingredientAliases(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is IngredientAliasesProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$ingredientAliasesHash() => r'f5cf163b526690fca645745143d2e1fbe395767d';
+
+/// One ingredient's live aliases — the form's "Also known as" chips.
+
+final class IngredientAliasesFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<IngredientAlias>>, String> {
+  const IngredientAliasesFamily._()
+    : super(
+        retry: null,
+        name: r'ingredientAliasesProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// One ingredient's live aliases — the form's "Also known as" chips.
+
+  IngredientAliasesProvider call(String id) =>
+      IngredientAliasesProvider._(argument: id, from: this);
+
+  @override
+  String toString() => r'ingredientAliasesProvider';
+}

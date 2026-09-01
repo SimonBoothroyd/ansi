@@ -1,0 +1,266 @@
+/// The **phrase-level** ingredient normalizer — PURE DART (invariant 2).
+///
+/// This is the Dart port of `supabase/functions/_shared/normalize.ts` (plan
+/// 0020 D6, spec §7). The server writes every `ingredient.match_text` with
+/// those phrase rules; before this port the app could only apply the
+/// *character* rules ([normalizeSearchQuery]), so a stub created in the picker
+/// carried a `match_text` the server would never have written — and the next
+/// import's cascade, searching by the server's rules, missed it.
+///
+/// **Two mirrors, one fact.** `normalize.ts` stays authoritative for the
+/// server; this is its twin. The shared vectors in
+/// `test/features/ingredients/normalize_vectors.json` are copied from
+/// `normalize.test.ts` and pin the two together — the same habit
+/// `default_allowed_units()` and `defaultAllowedUnitSet` already keep. Change
+/// one, change both, and extend the vectors.
+///
+/// What it does, in order (unchanged from the TS):
+/// 1. lowercase, hyphens/dashes → word breaks;
+/// 2. split trailing comma modifier(s) off the head;
+/// 3. drop non-identity words — quantities, filler, measures/containers,
+///    sizes, prep adverbs and prep verbs;
+/// 4. KEEP form/state words that DO change identity (fresh, ground, canned)
+///    and move them after the noun, so "fresh ginger" and "ginger, fresh"
+///    both land on "ginger fresh";
+/// 5. singularize what remains.
+///
+/// The §7 own-goal is over-stripping: "ground ginger" ≠ "fresh ginger". Never
+/// move a word into a strip set to make one match work.
+library;
+
+import 'search_query.dart' show normalizeSearchQuery;
+
+/// Articles and filler words carrying no identity.
+const _filler = {'a', 'an', 'the', 'of', 'or', 'and', 'desired'};
+
+/// Container / measure / vague-amount words — quantity, not identity.
+const _measures = {
+  // Standard cooking units. The miner parses them separately; they are
+  // stripped here too for when they appear mid-phrase ("heaping tablespoon
+  // nutritional yeast").
+  'teaspoon', 'teaspoons', 'tsp',
+  'tablespoon', 'tablespoons', 'tbsp', 'tbs',
+  'cup', 'cups',
+  'gram', 'grams', 'g',
+  'kg', 'kilogram', 'kilograms',
+  'ounce', 'ounces', 'oz',
+  'pound', 'pounds', 'lb', 'lbs',
+  'ml', 'milliliter', 'milliliters', 'millilitre', 'millilitres',
+  'liter', 'liters', 'litre', 'litres', 'l',
+  'quart', 'quarts', 'pint', 'pints', 'gallon', 'gallons',
+  'fl', 'fluid',
+  'can', 'cans', 'tin', 'tins', 'jar', 'jars', 'bottle', 'bottles',
+  'package', 'packages', 'packet', 'packets', 'box', 'boxes',
+  'bag', 'bags', 'bunch', 'bunches',
+  'handful', 'handfuls', 'pinch', 'pinches', 'dash', 'dashes',
+  'sprig', 'sprigs', 'stick', 'sticks', 'head', 'heads',
+  'drop', 'drops', 'piece', 'pieces', 'slices', 'few',
+  'crack', 'cracks', 'splash', 'dollop', 'knob', 'glug',
+  'sprinkle', 'drizzle',
+  'pack', 'packs', 'block', 'blocks', 'batch', 'batches',
+  'spoonful', 'spoonfuls',
+};
+
+/// Size adjectives — they scale the amount, not the ingredient. "extra" is
+/// intentionally absent: it changes identity in "extra virgin".
+const _sizes = {'large', 'small', 'medium', 'big', 'tiny'};
+
+/// Prep adverbs that only ever modify a prep verb.
+const _prepAdverbs = {
+  'finely',
+  'roughly',
+  'thinly',
+  'coarsely',
+  'freshly',
+  'heaping',
+  'scant',
+  'rounded',
+  'generous',
+  'packed',
+  'drizzling',
+  'very',
+};
+
+/// Prep verbs (past participles) that describe handling, never identity.
+/// "ground" is deliberately absent — it changes identity (ground vs fresh
+/// ginger) and lives in [_stateWords].
+const _prepVerbs = {
+  'chopped',
+  'diced',
+  'minced',
+  'sliced',
+  'grated',
+  'shredded',
+  'crushed',
+  'peeled',
+  'cubed',
+  'julienned',
+  'halved',
+  'quartered',
+  'trimmed',
+  'beaten',
+  'melted',
+  'drained',
+  'rinsed',
+  'deseeded',
+  'seeded',
+  'pitted',
+  'cored',
+  'mashed',
+  'crumbled',
+  'softened',
+  'cut',
+  'torn',
+};
+
+/// Form/state words that DO change identity. Kept, and moved to the end so
+/// the noun leads regardless of where the descriptor sat. The §7 KEEP set —
+/// the guard against over-stripping.
+const _stateWords = {
+  'fresh',
+  'ground',
+  'dried',
+  'dry',
+  'frozen',
+  'canned',
+  'smoked',
+  'whole',
+  'boneless',
+  'skinless',
+  'ripe',
+  'unsalted',
+  'salted',
+  'raw',
+  'toasted',
+  'roasted',
+  'powdered',
+  'cooked',
+  'uncooked',
+  'shelled',
+  'sweetened',
+  'unsweetened',
+};
+
+/// Irregular plurals a suffix rule would get wrong.
+const _irregularPlurals = {
+  'leaves': 'leaf',
+  'loaves': 'loaf',
+  'halves': 'half',
+  'knives': 'knife',
+  'chillies': 'chilli',
+  'chilies': 'chili',
+};
+
+const _fractionGlyphs = '¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞';
+
+/// Purely a quantity token: digits, unicode fractions, ranges.
+final _quantity = RegExp('^[0-9$_fractionGlyphs/.,\\-–—]+\$');
+
+/// Everything a word may keep: unicode letters/numbers, `/`, fraction glyphs
+/// (kept so [_quantity] can still recognise "1/2" and "½").
+final _punctuation = RegExp('[^\\p{L}\\p{N}/$_fractionGlyphs]', unicode: true);
+
+final _dashes = RegExp('[-–—]');
+final _whitespace = RegExp(r'\s+');
+final _allium = RegExp(r'\b(garlic|shallots?|scallions?)\b');
+final _cinnamon = RegExp(r'\bcinnamon\b');
+
+/// Normalizes a raw ingredient string to its `match_text` (see the library
+/// doc). Deterministic and pure: same string in, same string out.
+///
+/// This is what every locally authored vocab row's `match_text` must be
+/// written with — stub creation and rename alike — so the server's cascade
+/// can find it. [normalizeSearchQuery] stays the right tool for an in-flight
+/// *search* prefix, which must not be singularized or reordered.
+String normalizeMatchText(String ingredientText) {
+  // Hyphens join compound descriptors ("all-purpose"); treat them as word
+  // breaks so the parts tokenize rather than fusing ("allpurpose").
+  final cleaned = ingredientText.toLowerCase().replaceAll(_dashes, ' ');
+  // "clove" is both a garlic measure ("2 cloves garlic") and a spice ("ground
+  // cloves"). Drop it as a measure only when an allium shares the phrase.
+  final alliumPresent = _allium.hasMatch(cleaned);
+  // "stick" is likewise both a measure ("1 stick butter") and identity next
+  // to cinnamon ("2 cinnamon sticks" — the whole quill, a different vocab row
+  // from ground cinnamon).
+  final cinnamonPresent = _cinnamon.hasMatch(cleaned);
+
+  final nouns = <String>[];
+  final states = <String>[];
+  // Comma modifiers are identity only if they're a state word ("…, boneless");
+  // a prep modifier ("…, diced") drops out entirely — same classifier, so the
+  // head and its modifiers are treated alike.
+  for (final segment in cleaned.split(',')) {
+    _classify(
+      segment,
+      nouns: nouns,
+      states: states,
+      alliumPresent: alliumPresent,
+      cinnamonPresent: cinnamonPresent,
+    );
+  }
+
+  return [
+    ...nouns,
+    ...states,
+  ].map(_singularize).where((w) => w.isNotEmpty).join(' ');
+}
+
+/// Sorts one segment's words into identity nouns vs trailing state words.
+void _classify(
+  String segment, {
+  required List<String> nouns,
+  required List<String> states,
+  required bool alliumPresent,
+  required bool cinnamonPresent,
+}) {
+  for (final raw in segment.split(_whitespace)) {
+    final word = raw.replaceAll(_punctuation, '');
+    if (word.isEmpty) continue;
+    if (_quantity.hasMatch(word)) continue;
+    if (word == 'clove' || word == 'cloves') {
+      if (alliumPresent) continue; // the garlic-clove measure
+      nouns.add(word); // the spice
+      continue;
+    }
+    if ((word == 'stick' || word == 'sticks') && cinnamonPresent) {
+      nouns.add(word); // the cinnamon quill — identity, not a measure
+      continue;
+    }
+    if (_filler.contains(word) ||
+        _measures.contains(word) ||
+        _sizes.contains(word) ||
+        _prepAdverbs.contains(word) ||
+        _prepVerbs.contains(word)) {
+      continue;
+    }
+    if (_stateWords.contains(word)) {
+      states.add(word);
+    } else {
+      nouns.add(word);
+    }
+  }
+}
+
+final _looksSingular = RegExp(r'(ss|us|is|ous)$');
+final _ies = RegExp(r'ies$');
+final _sibilantEs = RegExp(r'(ch|sh|x|z|s)es$');
+final _oes = RegExp(r'oes$');
+
+/// English singularization, conservative enough to leave non-plurals alone.
+String _singularize(String word) {
+  final irregular = _irregularPlurals[word];
+  if (irregular != null) return irregular;
+  // Words that look plural but aren't: boneless, asparagus, molasses, …
+  if (_looksSingular.hasMatch(word)) return word;
+  if (_ies.hasMatch(word) && word.length > 4) {
+    return '${word.substring(0, word.length - 3)}y';
+  }
+  // No general -ves→-f rule: most food -ves are plain -s plurals
+  // (chives→chive, olives→olive). The genuine -ves→-f words are in
+  // [_irregularPlurals]; falling through to -s handles the rest.
+  if (_sibilantEs.hasMatch(word) || _oes.hasMatch(word)) {
+    return word.substring(0, word.length - 2);
+  }
+  if (word.endsWith('s')) return word.substring(0, word.length - 1);
+  return word;
+}
