@@ -601,3 +601,13 @@ Append-only.
   G3: a superseded lookup status note lingers after the state changes. G4:
   a usda-prefilled stub's list hint still reads "needs macros" — it should
   read "needs confirm" (D5's language) once macros are prefilled.
+- 2026-08-31 — **D4c (owner, batch 3): the default unit's family is NOT an
+  admission source.** With no density, a row admits its BASIS family (+count,
+  measures, gated imprecise) — full stop; the default-unit selector locks the
+  other family's options too. A row whose current default unit violates the
+  rule (cup-default, per-100g, no density — the renamed-rice shape) is
+  flagged with a one-tap fix ("switch default to g"), never silently
+  rewritten. The density-removal helper copy shrinks to one line COMPUTED
+  from the row (it currently claims chips are locked when they aren't), and
+  the form's helper prose generally gets an essay-trim. Existing lines in a
+  now-locked unit degrade to the standard flag, as everywhere.
