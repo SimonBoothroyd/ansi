@@ -502,7 +502,7 @@ void main() {
     });
 
     test('an empty parsed unit is the same as none — the review screen passes '
-        'the line\'s unit straight through', () {
+        "the line's unit straight through", () {
       final chips = acceptableUnitChips(flour, const []);
       expect(rankedUnitChips(chips, parsedUnit: ''), chips);
     });
