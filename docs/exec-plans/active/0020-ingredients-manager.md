@@ -680,3 +680,35 @@ Append-only.
   rows lacking one (liquids: lemon juice-class; kale-class leafy produce),
   then cloud push (0014-0016, still pending) + reseed + §2b rollout so the
   owner's live household drains its stranded rows.
+
+- 2026-09-01 — **Batch 5 landed (J1–J3), plus J4.** **J1**: a blank-label
+  collective now renders as a wrappable RUN of chips — the fold leaves it
+  label-less and its constituents (the same list the labelled case already
+  carries) become the chips, separated by real text spans, unparenthesised,
+  with any step portion on the first. **J2 — the ranking was never wrong.**
+  `g piece pinch dash handful (+1 more)` is precisely what `rankedUnitChips`
+  emits over an EMPTY measure list; the measures never arrived. The review
+  read them through the per-ingredient autoDispose STREAM providers, and
+  PowerSync's `watch` does not emit synchronously — an element disposed
+  before its first emission completes `.future` with a `StateError` that the
+  loader caught into `const []`, so every measure-word unit validated against
+  nothing. The fakes hid it (`Stream.value` resolves before anything can
+  dispose it). Both readers — `importValidation` and the card's amount-sheet
+  pre-selection, the second of which only ever worked by riding on the
+  first's subscriptions — now use a batched `measuresByIngredients`, one
+  query for the whole import, nothing swallowed. `importValidation` also read
+  its repositories after an await, which throws once the element is gone.
+  Pinned by a real-schema provider test. **J3**: the imprecise gate is
+  per-WORD by category — pinch/dash for `spices & seasoning` + `fats & oils`,
+  handful for `produce` + `spices & seasoning`, `to taste` gated the same but
+  unconditional on an import line; the import surface no longer unions all
+  four onto every match. `produce` is the nearest thing the vocabulary can
+  say to "leafy/greens": a tighter handful gate is a SEED question (split the
+  category), not a domain one. The SQL mirror's own category gate diverges
+  further — recorded with the D4c note, not edited. **J4**: the manager list
+  branches on the search FIELD's own hook controller rather than on a query
+  that can outlive the text that produced it, so an empty field is the whole
+  vocabulary by construction. Caveat: the reported device flip does NOT
+  reproduce in the widget harness (the round-trip test is green pre-fix), so
+  J4 closes the contradiction structurally and still wants a sim confirmation
+  before scenario 5 is called green.
