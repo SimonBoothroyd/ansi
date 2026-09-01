@@ -1215,6 +1215,34 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    testWidgets('with no lookup passed in, the sheet takes the one the '
+        'PROVIDER holds — the seam the integration harness overrides', (
+      tester,
+    ) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      await tester.pumpWidget(
+        _addHost(
+          repo,
+          body: _fixture('nutella_per_100g'),
+          // The app's own wiring: `showNewIngredientSheet` is called with no
+          // lookup, exactly as `ingredient_list_view` calls it.
+          viaProvider: true,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await scan(tester, barcode: '3017620422003');
+
+      // The override answered, so the provider really is what the sheet reads
+      // when no parameter is supplied. Without it this reaches the network.
+      expect(find.text('FOUND · OPEN FOOD FACTS'), findsOneWidget);
+      expect(
+        find.text('Nutella · barcode 3017620422003 · Open Food Facts · ODbL'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('a found product prefills the draft: the name, the macros in '
         'the basis the label read them in, and the ODbL credit', (
       tester,
@@ -1479,12 +1507,22 @@ String _nameFieldText(WidgetTester tester) => tester
 
 /// The add sheet as the list screen opens it, over a router that can receive
 /// the push a create makes. [body] is what Open Food Facts answers with.
+///
+/// [viaProvider] chooses WHICH seam delivers that client. False (the default)
+/// passes it as a parameter, the way a widget test reaches in. True passes
+/// nothing and overrides [offLookupProvider] instead — the app's own wiring,
+/// and the seam `make test-sim` drives, since the real list screen opens this
+/// sheet from inside a navigation stack no caller can thread a parameter
+/// through.
 Widget _addHost(
   FakeIngredientRepo repo, {
   required String body,
   _FakeMeasures? measures,
   UsdaProbe? probe,
+  bool viaProvider = false,
 }) {
+  OffLookup buildLookup() =>
+      OffLookup(client: MockClient((_) async => http.Response(body, 200)));
   final router = GoRouter(
     initialLocation: '/',
     routes: [
@@ -1495,9 +1533,7 @@ Widget _addHost(
             builder: (context) => FButton(
               onPress: () => showNewIngredientSheet(
                 context,
-                lookup: OffLookup(
-                  client: MockClient((_) async => http.Response(body, 200)),
-                ),
+                lookup: viaProvider ? null : buildLookup(),
                 cameraPane: (_, _) => const SizedBox.shrink(),
               ),
               child: const Text('Add an ingredient'),
@@ -1518,6 +1554,7 @@ Widget _addHost(
       ingredientRepositoryProvider.overrideWithValue(repo),
       measureRepositoryProvider.overrideWithValue(measures ?? _FakeMeasures()),
       usdaProbeProvider.overrideWithValue(probe ?? const _SilentProbe()),
+      if (viaProvider) offLookupProvider.overrideWithValue(buildLookup()),
     ],
     child: MaterialApp.router(
       routerConfig: router,

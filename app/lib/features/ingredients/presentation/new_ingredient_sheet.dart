@@ -156,7 +156,11 @@ class NewIngredientSheet extends HookConsumerWidget {
       try {
         final scanned = await scanBarcodeForDraft(
           context,
-          lookup: lookup,
+          // An explicit parameter still wins (the widget tests pass one).
+          // Otherwise the app's own client arrives by provider, which is the
+          // seam `make test-sim` overrides — the sheet is opened from inside a
+          // navigation stack no caller can thread a parameter through.
+          lookup: lookup ?? ref.read(offLookupProvider),
           cameraPane: cameraPane,
         );
         // The sheet can be popped while the scan surface is open; touching

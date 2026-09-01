@@ -31,6 +31,8 @@
 ///
 /// * `ingredient_draft.dart` — the hand-off type (pure Dart).
 /// * `off_lookup.dart` — the keyless GET and its failure taxonomy.
+/// * `off_lookup_provider.dart` — that client as a provider, the seam the
+///   integration harness overrides.
 /// * `off_mapper.dart` — OFF payload → draft, pure and fixture-tested.
 /// * `barcode_scan_sheet.dart` — the surface and its three failure states.
 library;
@@ -49,6 +51,9 @@ export 'ingredient_draft.dart'
 // signature, so a caller cannot inject either without them — they belong to
 // the door, not behind it.
 export 'off_lookup.dart' show OffLookup;
+// The provider seam: app code never names it (the sheet reads it), but the
+// integration harness overrides it, so it belongs to the door too.
+export 'off_lookup_provider.dart' show offLookupProvider;
 
 /// Opens the barcode surface and resolves with the draft the user leaves
 /// with, or null if they closed it empty.
