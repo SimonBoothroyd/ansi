@@ -28,6 +28,7 @@ batches (bounded by shelf life) and buys each thing once.
 | The quality bar per area                  | [`docs/QUALITY.md`](./docs/QUALITY.md) |
 | Secrets, auth, RLS                        | [`docs/SECURITY.md`](./docs/SECURITY.md) |
 | Standing up cloud (Supabase/PowerSync/Google) | [`docs/cloud-setup.md`](./docs/cloud-setup.md) |
+| Shipping — app release tags, Supabase deploys | [`docs/release.md`](./docs/release.md) |
 | How the knowledge base itself works       | [`docs/README.md`](./docs/README.md) |
 | Offline knowledge of key dependencies     | [`docs/references/`](./docs/references) |
 

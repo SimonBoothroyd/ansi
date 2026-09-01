@@ -38,6 +38,7 @@ docs/
 │   └── db-schema.md
 ├── references/              offline knowledge of key dependencies (llms.txt)
 ├── cloud-setup.md           standing up real cloud infra (Supabase/PowerSync/Google)
+├── release.md               shipping to it: release tags + Supabase deploys
 ├── QUALITY.md               the quality bar + per-area grades
 └── SECURITY.md              secrets, auth, RLS
 ```
