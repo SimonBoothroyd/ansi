@@ -459,27 +459,17 @@ update ingredient set allowed_units = default_allowed_units(
   default_unit, macros_basis, density_g_per_ml, category)
 where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null;
 
--- Produce volume leg (Simon's cup-produce report, 2026-08-31).
--- ADR-0008's density leg fires only for mass/volume defaults: a
--- count-default row gets nothing from a density, because "a density
--- can't describe a piece" (allowed_units.dart) — you cannot pour a cup
--- of eggs. Produce is the class where that stops being true: "1 cup
--- diced mango", "2 cups chopped onion" are ordinary recipe lines, the
--- row IS piece-default (you buy one mango), and the density is exactly
--- what makes the cup computable. Without this, every cup-measured
--- produce import fails 'Pick a supported unit' even though the row has
--- carried an honest density all along — mango, tomato, onion, avocado.
--- Category-gated, like the imprecise leg beside it, and applied ONLY
--- where a density exists. The rule belongs in default_allowed_units()
--- and its allowed_units.dart mirror; until ADR-0008 is amended the
--- template vocab carries the honest list explicitly (the column is an
--- explicit stored attribute for exactly this reason).
-update ingredient set allowed_units = allowed_units ||
-  '["cup", "tbsp", "ml"]'::jsonb
-where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null
-  and category = 'produce' and default_unit = 'piece'
-  and density_g_per_ml is not null
-  and not allowed_units ? 'cup';
+-- RETIRED 2026-08-31 (migration 0014 / ADR-0009): the produce volume
+-- leg used to live here as a category-gated patch — 49 piece-default
+-- produce rows given cup/tbsp/ml explicitly because ADR-0008's density
+-- leg fired only for mass/volume defaults ("a density can't describe
+-- a piece"), so "1 cup diced mango" failed on import even though the
+-- row had carried an honest density all along. ADR-0009 amended the
+-- rule instead: a density unlocks the other mass/volume family
+-- whatever the default unit's family, so the refresh above now emits
+-- those admissions on its own. One source of the fact; the safety net
+-- is a pgTAP assertion (supabase/tests/unit_admission.sql), not a
+-- second stored copy of the rule.
 
 -- coconut milk: count-default (sold by the can) but recipes also speak cups/tbsp of it, and its density makes volume honest
 update ingredient set allowed_units = allowed_units || '["cup"]'::jsonb
@@ -544,6 +534,11 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'ba
 
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'bay leaf';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
    where e <> 'to_taste')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'bay leaf';
 
@@ -556,6 +551,11 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'st
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
    where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'star anise';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'star anise';
 
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
@@ -786,6 +786,11 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'dash')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'olive oil';
 
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'olive oil';
+
 -- sesame oil toasted: a pinch of a liquid is senseless; to_taste stays — toasted sesame is a finishing oil
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
@@ -797,6 +802,11 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'dash')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sesame oil toasted';
 
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sesame oil toasted';
+
 -- avocado oil: a cooking oil is measured, not pinched or seasoned to taste
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
@@ -806,6 +816,11 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'av
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
    where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'avocado oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'avocado oil';
 
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
@@ -826,6 +841,11 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'su
 
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sunflower oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
    where e <> 'to_taste')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sunflower oil';
 
@@ -838,6 +858,11 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'co
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
    where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut oil';
 
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
@@ -858,6 +883,11 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'hi
 
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'high heat oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
    where e <> 'to_taste')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'high heat oil';
 
@@ -870,6 +900,11 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'ca
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
    where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'canola oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'canola oil';
 
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
@@ -890,6 +925,11 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'co
 
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'corn oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
    where e <> 'to_taste')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'corn oil';
 
@@ -902,6 +942,11 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pe
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
    where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'peanut oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'peanut oil';
 
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
@@ -922,6 +967,11 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sa
 
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'safflower oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
    where e <> 'to_taste')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'safflower oil';
 
@@ -934,6 +984,11 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 've
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
    where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegetable oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegetable oil';
 
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
@@ -954,8 +1009,19 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pl
 
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'plant butter';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
    where e <> 'to_taste')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'plant butter';
+
+-- liquid smoke: the only non-spice row the imprecise tail reaches (dash-default): a handful of a liquid is senseless, same as the oils — dash/to_taste stay, they are how it is actually dosed
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'liquid smoke';
 
 -- cabbage: the R2 weight default unlocked the volume family; cups of shredded cabbage are real, spoons are not
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
@@ -1036,6 +1102,11 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'ci
 
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cinnamon stick';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
    where e <> 'to_taste')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cinnamon stick';
 
@@ -1077,7 +1148,7 @@ begin
       violators;
   end if;
 
-  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 59 density + 54 allowed-unit overrides + 12 FAO density fills; R1 (volume default => density) and R2 (kitchen density band) hold';
+  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 59 density + 55 allowed-unit overrides + 12 FAO density fills; R1 (volume default => density) and R2 (kitchen density band) hold';
 end $$;
 
 commit;

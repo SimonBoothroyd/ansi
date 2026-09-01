@@ -32,8 +32,8 @@
 {"kind": "allowed_units", "match_text": "vegan worcestershire sauce", "add": ["to_taste"], "reason": "condiment-class pantry row; seasoned to taste"}
 //
 // --- allowed units: admission a human finds senseless ----------------------
-{"kind": "allowed_units", "match_text": "bay leaf", "remove": ["pinch", "dash", "to_taste"], "reason": "bay leaves are counted, never pinched — the category gate overreaches here"}
-{"kind": "allowed_units", "match_text": "star anise", "remove": ["pinch", "dash", "to_taste"], "reason": "star anise pods are counted, never pinched"}
+{"kind": "allowed_units", "match_text": "bay leaf", "remove": ["pinch", "dash", "handful", "to_taste"], "reason": "bay leaves are counted, never pinched — the category gate overreaches here"}
+{"kind": "allowed_units", "match_text": "star anise", "remove": ["pinch", "dash", "handful", "to_taste"], "reason": "star anise pods are counted, never pinched"}
 {"kind": "allowed_units", "match_text": "pasta", "remove": ["tsp", "tbsp"], "reason": "a spoon of dry pasta is senseless; the density leg keeps cup/ml"}
 {"kind": "allowed_units", "match_text": "spaghetti", "remove": ["tsp", "tbsp"], "reason": "a spoon of spaghetti is senseless"}
 {"kind": "allowed_units", "match_text": "pea frozen", "remove": ["tsp", "tbsp"], "reason": "frozen peas are poured by the cup, not spooned by the tsp"}
@@ -197,20 +197,22 @@
 {"kind": "add_measure", "match_text": "nori", "label": "sheet", "basis_amount": 2.5, "sort_order": 0, "source": "seed:typical", "reason": "nori is counted in sheets; a standard full sushi sheet is ~2.5 g"}
 //
 // --- allowed units: audit round 1 — imprecise overreach on fats & oils -----
-// The category gate hands pinch/dash/to_taste to all 12 oil rows; nobody
+// The category gate hands pinch/dash/handful/to_taste to all 12 oil rows
+// (`handful` joined the SQL leg with the 0014 parity fix); nobody
 // pinches a liquid. to_taste survives only on the finishing oils.
-{"kind": "allowed_units", "match_text": "olive oil", "remove": ["pinch", "dash"], "reason": "a pinch of a liquid is senseless; to_taste stays — olive oil finishes dishes"}
-{"kind": "allowed_units", "match_text": "sesame oil toasted", "remove": ["pinch", "dash"], "reason": "a pinch of a liquid is senseless; to_taste stays — toasted sesame is a finishing oil"}
-{"kind": "allowed_units", "match_text": "avocado oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
-{"kind": "allowed_units", "match_text": "sunflower oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
-{"kind": "allowed_units", "match_text": "coconut oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
-{"kind": "allowed_units", "match_text": "high heat oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
-{"kind": "allowed_units", "match_text": "canola oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
-{"kind": "allowed_units", "match_text": "corn oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
-{"kind": "allowed_units", "match_text": "peanut oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
-{"kind": "allowed_units", "match_text": "safflower oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
-{"kind": "allowed_units", "match_text": "vegetable oil", "remove": ["pinch", "dash", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
-{"kind": "allowed_units", "match_text": "plant butter", "remove": ["pinch", "dash", "to_taste"], "reason": "butter is measured in spoons/grams, not pinched"}
+{"kind": "allowed_units", "match_text": "olive oil", "remove": ["pinch", "dash", "handful"], "reason": "a pinch of a liquid is senseless; to_taste stays — olive oil finishes dishes"}
+{"kind": "allowed_units", "match_text": "sesame oil toasted", "remove": ["pinch", "dash", "handful"], "reason": "a pinch of a liquid is senseless; to_taste stays — toasted sesame is a finishing oil"}
+{"kind": "allowed_units", "match_text": "avocado oil", "remove": ["pinch", "dash", "handful", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "sunflower oil", "remove": ["pinch", "dash", "handful", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "coconut oil", "remove": ["pinch", "dash", "handful", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "high heat oil", "remove": ["pinch", "dash", "handful", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "canola oil", "remove": ["pinch", "dash", "handful", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "corn oil", "remove": ["pinch", "dash", "handful", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "peanut oil", "remove": ["pinch", "dash", "handful", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "safflower oil", "remove": ["pinch", "dash", "handful", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "vegetable oil", "remove": ["pinch", "dash", "handful", "to_taste"], "reason": "a cooking oil is measured, not pinched or seasoned to taste"}
+{"kind": "allowed_units", "match_text": "plant butter", "remove": ["pinch", "dash", "handful", "to_taste"], "reason": "butter is measured in spoons/grams, not pinched"}
+{"kind": "allowed_units", "match_text": "liquid smoke", "remove": ["handful"], "reason": "the only non-spice row the imprecise tail reaches (dash-default): a handful of a liquid is senseless, same as the oils — dash/to_taste stay, they are how it is actually dosed"}
 //
 // --- allowed units: R2 flips — head vegetables don't fit in spoons ---------
 {"kind": "allowed_units", "match_text": "cabbage", "remove": ["tsp", "tbsp"], "reason": "the R2 weight default unlocked the volume family; cups of shredded cabbage are real, spoons are not"}
@@ -221,7 +223,7 @@
 {"kind": "allowed_units", "match_text": "pineapple", "remove": ["tsp", "tbsp"], "reason": "cups of pineapple chunks are real, spoons are not"}
 //
 // --- audit round 2 (2026-08-29) --------------------------------------------
-{"kind": "allowed_units", "match_text": "cinnamon stick", "remove": ["pinch", "dash", "to_taste"], "reason": "quills are counted, never pinched — the category gate overreaches here (bay-leaf precedent)"}
+{"kind": "allowed_units", "match_text": "cinnamon stick", "remove": ["pinch", "dash", "handful", "to_taste"], "reason": "quills are counted, never pinched — the category gate overreaches here (bay-leaf precedent)"}
 // Round-2 ruling (a), state coherence: the five borrowed bean rows carried
 // with-liquid FDC macros + can-contents densities beside pinto's DRAINED
 // 277 g can — a ~25-30% per-can kcal undercount. They now borrow pinto's
