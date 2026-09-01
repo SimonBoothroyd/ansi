@@ -20,6 +20,7 @@ import '../../../core/units/units.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
+import '../domain/normalize.dart';
 import '../domain/search_query.dart';
 
 const _uuid = Uuid();
@@ -203,10 +204,11 @@ class SqliteIngredientRepository implements IngredientRepository {
     final id = _uuid.v4();
     final now = DateTime.now().toUtc().toIso8601String();
     final trimmed = name.trim();
-    // The character-level normalizer only — the server's full phrase rules
-    // (singularize, word classes) are a step-8 artifact; a locally created
-    // stub just needs to be findable by what its author typed.
-    final matchText = normalizeSearchQuery(trimmed);
+    // The server's OWN phrase rules, ported (plan 0020 D6). Before the port
+    // this wrote the character-level normalization only, so a locally created
+    // stub carried a `match_text` the server would never have written and the
+    // next import's cascade missed it.
+    final matchText = normalizeMatchText(trimmed);
     await _db.execute(
       'INSERT INTO ingredient (id, household_id, canonical_name, '
       'default_unit, status, source, match_text, created_at, updated_at) '
@@ -218,6 +220,7 @@ class SqliteIngredientRepository implements IngredientRepository {
       canonicalName: trimmed,
       defaultUnit: g,
       status: IngredientStatus.stub,
+      source: 'manual',
     );
   }
 
@@ -263,6 +266,223 @@ class SqliteIngredientRepository implements IngredientRepository {
     return byId(ingredientId);
   }
 
+  // --- The manager's write half (step 8.5) -----------------------------------
+
+  @override
+  Stream<List<Ingredient>> watchVocabulary() => _db
+      .watch(
+        'SELECT i.*, $_measureCount FROM ingredient i '
+        'WHERE i.deleted_at IS NULL ORDER BY i.canonical_name',
+      )
+      .map((rows) => rows.map(_toIngredient).toList());
+
+  @override
+  Stream<int> watchStubCount() => _db
+      .watch(
+        "SELECT COUNT(*) AS n FROM ingredient WHERE status = 'stub' "
+        'AND deleted_at IS NULL',
+      )
+      .map((rows) => (rows.first['n'] as int?) ?? 0);
+
+  @override
+  Future<Ingredient?> saveEdit(String ingredientId, IngredientEdit edit) async {
+    final name = edit.canonicalName.trim();
+    if (name.isEmpty) {
+      throw ArgumentError.value(
+        edit.canonicalName,
+        'canonicalName',
+        'must not be blank',
+      );
+    }
+    final macros = edit.macros;
+    // Null (not `{}` or zeros) when there are none: a stub's macro column is
+    // absent, never an invented zero (invariant 3).
+    final macrosJson = macros == null
+        ? null
+        : jsonEncode({
+            'kcal': macros.kcal,
+            'protein': macros.protein,
+            'carb': macros.carb,
+            'fat': macros.fat,
+          });
+    final now = DateTime.now().toUtc().toIso8601String();
+    final updated = await _db.writeTransaction((tx) async {
+      final row = await tx.getOptional(
+        'SELECT status FROM ingredient WHERE id = ? AND deleted_at IS NULL',
+        [ingredientId],
+      );
+      if (row == null) return false;
+      // D5's reversibility: clearing the macros of a complete row returns it
+      // to `stub` rather than leaving it asserting a number it no longer has.
+      // Filling them in never promotes — that is [confirmStub], a human act.
+      final status = macros == null ? 'stub' : row['status'] as String;
+      await tx.execute(
+        'UPDATE ingredient SET canonical_name = ?, match_text = ?, '
+        'category = ?, default_unit = ?, macros = ?, macros_basis = ?, '
+        'allowed_units = ?, status = ?, updated_at = ? WHERE id = ?',
+        [
+          name,
+          // The rename hazard (D6): the stored name and its match_text are
+          // written together or the cascade searches for a name nothing
+          // carries.
+          normalizeMatchText(name),
+          edit.category,
+          edit.defaultUnit.id,
+          macrosJson,
+          edit.macrosBasis.dbValue,
+          jsonEncode([for (final u in edit.allowedUnits) u.id]),
+          status,
+          now,
+          ingredientId,
+        ],
+      );
+      return true;
+    });
+    return updated ? byId(ingredientId) : null;
+  }
+
+  @override
+  Future<Ingredient?> confirmStub(String ingredientId) async {
+    final current = await byId(ingredientId);
+    if (current == null) return null;
+    if (current.macros == null) {
+      // The CTA is disabled without macros; the gate holds here too, so a
+      // future caller can't promote a row into every macro total by mistake.
+      throw StateError(
+        'cannot confirm "${current.canonicalName}" — it has no macros '
+        '(plan 0020 D5: macros are the gate, density is not)',
+      );
+    }
+    return _setStatus(ingredientId, 'complete');
+  }
+
+  @override
+  Future<Ingredient?> unconfirm(String ingredientId) =>
+      _setStatus(ingredientId, 'stub');
+
+  Future<Ingredient?> _setStatus(String ingredientId, String status) async {
+    await _db.execute(
+      'UPDATE ingredient SET status = ?, updated_at = ? '
+      'WHERE id = ? AND deleted_at IS NULL',
+      [status, DateTime.now().toUtc().toIso8601String(), ingredientId],
+    );
+    return byId(ingredientId);
+  }
+
+  @override
+  Future<({int recipeCount, int lineCount})> recipeReferences(
+    String ingredientId,
+  ) async {
+    // A line's recipe is reached through its group, and both must be live —
+    // a line inside a tombstoned group belongs to nothing a user can open.
+    final row = await _db.get(
+      'SELECT COUNT(*) AS lines, COUNT(DISTINCT gr.recipe_id) AS recipes '
+      'FROM recipe_line_item li '
+      'JOIN ingredient_group gr ON gr.id = li.group_id '
+      'JOIN recipe r ON r.id = gr.recipe_id '
+      'WHERE li.ingredient_id = ? AND li.deleted_at IS NULL '
+      'AND gr.deleted_at IS NULL AND r.deleted_at IS NULL',
+      [ingredientId],
+    );
+    return (
+      recipeCount: (row['recipes'] as int?) ?? 0,
+      lineCount: (row['lines'] as int?) ?? 0,
+    );
+  }
+
+  @override
+  Future<DeleteOutcome> softDelete(String ingredientId) async {
+    final current = await byId(ingredientId);
+    if (current == null) return const DeleteMissing();
+    final refs = await recipeReferences(ingredientId);
+    if (refs.lineCount > 0) {
+      return DeleteRefused(
+        recipeCount: refs.recipeCount,
+        lineCount: refs.lineCount,
+      );
+    }
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _db.writeTransaction((tx) async {
+      await tx.execute(
+        'UPDATE ingredient SET deleted_at = ?, updated_at = ? WHERE id = ?',
+        [now, now, ingredientId],
+      );
+      // The aliases go with it: an alias outliving its ingredient is a match
+      // that resolves to nothing.
+      await tx.execute(
+        'UPDATE ingredient_alias SET deleted_at = ?, updated_at = ? '
+        'WHERE ingredient_id = ? AND deleted_at IS NULL',
+        [now, now, ingredientId],
+      );
+    });
+    return const Deleted();
+  }
+
+  @override
+  Future<List<IngredientAlias>> aliases(String ingredientId) async {
+    final rows = await _db.getAll(
+      'SELECT id, alias_text, source FROM ingredient_alias '
+      'WHERE ingredient_id = ? AND deleted_at IS NULL '
+      'ORDER BY created_at, id',
+      [ingredientId],
+    );
+    return [
+      for (final r in rows)
+        IngredientAlias(
+          id: r['id'] as String,
+          text: r['alias_text'] as String,
+          source: (r['source'] as String?) ?? 'manual',
+        ),
+    ];
+  }
+
+  @override
+  Future<IngredientAlias> addAlias(String ingredientId, String text) async {
+    final trimmed = text.trim();
+    final matchText = normalizeMatchText(trimmed);
+    if (matchText.isEmpty) {
+      throw ArgumentError.value(
+        text,
+        'text',
+        'an alias must carry at least one identity word',
+      );
+    }
+    final now = DateTime.now().toUtc().toIso8601String();
+    final id = _uuid.v4();
+    // Find-or-create, not blind insert (the import cascade's rule): two
+    // identically matching aliases on one ingredient are noise that can only
+    // ever tie.
+    final existing = await _db.getOptional(
+      'SELECT id, alias_text, source FROM ingredient_alias '
+      'WHERE ingredient_id = ? AND match_text = ? AND deleted_at IS NULL '
+      'LIMIT 1',
+      [ingredientId, matchText],
+    );
+    if (existing != null) {
+      return IngredientAlias(
+        id: existing['id'] as String,
+        text: existing['alias_text'] as String,
+        source: (existing['source'] as String?) ?? 'manual',
+      );
+    }
+    await _db.execute(
+      'INSERT INTO ingredient_alias (id, household_id, ingredient_id, '
+      'alias_text, match_text, source, created_at, updated_at) '
+      "VALUES (?, ?, ?, ?, ?, 'manual', ?, ?)",
+      [id, _householdId, ingredientId, trimmed, matchText, now, now],
+    );
+    return IngredientAlias(id: id, text: trimmed, source: 'manual');
+  }
+
+  @override
+  Future<void> removeAlias(String aliasId) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _db.execute(
+      'UPDATE ingredient_alias SET deleted_at = ?, updated_at = ? WHERE id = ?',
+      [now, now, aliasId],
+    );
+  }
+
   Ingredient _toIngredient(Row r) => Ingredient(
     id: r['id'] as String,
     canonicalName: r['canonical_name'] as String,
@@ -277,6 +497,7 @@ class SqliteIngredientRepository implements IngredientRepository {
     macrosBasis: MacrosBasis.fromDb(r['macros_basis'] as String?),
     allowedUnits: _parseAllowedUnits(r['allowed_units'] as String?),
     measureCount: (r['measure_count'] as int?) ?? 0,
+    source: r['source'] as String?,
   );
 
   /// Parses the row's `allowed_units` jsonb (a JSON array of unit ids) into

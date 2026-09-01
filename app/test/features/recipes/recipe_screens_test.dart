@@ -17,6 +17,8 @@ import 'package:mise/features/recipes/domain/recipe_repository.dart';
 import 'package:mise/features/recipes/presentation/recipe_editor_view.dart';
 import 'package:mise/features/recipes/presentation/recipe_view.dart';
 
+import '../../helpers/fake_ingredient_repository.dart';
+
 class _FakeRecipeRepo implements RecipeRepository {
   _FakeRecipeRepo(this.recipe);
 
@@ -45,7 +47,9 @@ class _FakeRecipeRepo implements RecipeRepository {
   Future<void> setFavorite(String id, bool favorite) async {}
 }
 
-class _FakeIngredientRepo implements IngredientRepository {
+class _FakeIngredientRepo
+    with IngredientManagerStubs
+    implements IngredientRepository {
   @override
   Future<List<Ingredient>> search(String query, {int limit = 30}) async =>
       const [];

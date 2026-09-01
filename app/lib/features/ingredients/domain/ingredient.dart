@@ -38,5 +38,38 @@ abstract class Ingredient with _$Ingredient {
     /// row's "N measures" capability hint (7.7). Populated by list reads;
     /// 0 where a caller didn't ask for it.
     @Default(0) int measureCount,
+
+    /// The row's provenance stamp (`seed`, `manual`, `import_stub`,
+    /// `usda_fdc:<fdc_id>` — the server prefill's mark, plan 0020 D7).
+    /// Shown, never interpreted as truth: it says where the numbers came
+    /// from, and a machine-supplied one still waits for a human confirm
+    /// (D5). Null on a row read by a caller that didn't select it.
+    String? source,
   }) = _Ingredient;
+}
+
+/// Whether [source] marks a row the server's USDA prefill wrote into —
+/// `usda_fdc:<fdc_id>` (`match_db.ts`). The list's stub band and the form's
+/// "filled in for you" banner both read this rather than guessing from the
+/// presence of macros.
+bool isUsdaPrefilled(String? source) =>
+    source?.startsWith('usda_fdc:') ?? false;
+
+/// One alternate name for an ingredient ("mangoes", "ataulfo") — the search
+/// cascade matches these as well as [Ingredient.canonicalName], so the
+/// flesh-out form owns them (board: "Also known as").
+class IngredientAlias {
+  const IngredientAlias({
+    required this.id,
+    required this.text,
+    required this.source,
+  });
+
+  final String id;
+  final String text;
+
+  /// `seed`, `manual` (typed here), or `import_correction` (lane B's
+  /// correction loop). Rendered so a user can tell their own alias from one
+  /// an import minted.
+  final String source;
 }

@@ -1,11 +1,72 @@
-/// Ingredient vocabulary lookup — PURE DART (invariant 2).
+/// Ingredient vocabulary lookup and editing — PURE DART (invariant 2).
 ///
 /// The picker searches the local synced vocab offline (exact/prefix, per
-/// ADR-0004: the phone never fuzzy-matches). Step 7.7 adds the recents feed
-/// and the add-new stub path (the full flesh-out form is step 8).
+/// ADR-0004: the phone never fuzzy-matches). Step 7.7 added the recents feed
+/// and the add-new stub path; step 8.5 adds the write half the manager needs
+/// — rename (which rewrites `match_text`), the fact edits, the explicit
+/// `allowed_units` list, aliases, the D5 confirm/unconfirm pair, and the
+/// guarded soft-delete.
 library;
 
+import '../../../core/units/macros.dart';
+import '../../../core/units/units.dart';
 import 'ingredient.dart';
+
+/// What a [IngredientRepository.softDelete] attempt did.
+///
+/// Deletion is guarded, not merely audited: a `recipe_line_item`'s
+/// `ingredient_id` is NOT NULL by design (0014's commit contract), so a row a
+/// live line points at can never go. The refusal carries the counts the
+/// screen shows ("used by 3 recipes") — a refusal a user can act on beats an
+/// error they can't.
+sealed class DeleteOutcome {
+  const DeleteOutcome();
+}
+
+/// The row was tombstoned.
+final class Deleted extends DeleteOutcome {
+  const Deleted();
+}
+
+/// Refused: [lineCount] live recipe lines across [recipeCount] recipes still
+/// name this ingredient.
+final class DeleteRefused extends DeleteOutcome {
+  const DeleteRefused({required this.recipeCount, required this.lineCount});
+
+  final int recipeCount;
+  final int lineCount;
+}
+
+/// Refused: the id resolves to nothing live (already deleted, never synced).
+final class DeleteMissing extends DeleteOutcome {
+  const DeleteMissing();
+}
+
+/// The editable facts of one vocab row — everything the flesh-out form saves
+/// in a single write. Every field is a replacement, not a patch: the form
+/// always holds the whole row, and a null [macros] is a deliberate clear
+/// (which sends a `complete` row back to `stub` — D5's reversibility).
+class IngredientEdit {
+  const IngredientEdit({
+    required this.canonicalName,
+    required this.defaultUnit,
+    required this.macrosBasis,
+    required this.allowedUnits,
+    this.category,
+    this.macros,
+  });
+
+  final String canonicalName;
+  final Unit defaultUnit;
+  final MacrosBasis macrosBasis;
+
+  /// The explicit ADR-0008 admission list. Never silently recomputed — the
+  /// form is the one surface that owns it.
+  final Set<Unit> allowedUnits;
+
+  final String? category;
+  final Macros? macros;
+}
 
 abstract interface class IngredientRepository {
   /// Ingredients whose name/aliases match [query] (exact then prefix),
@@ -44,4 +105,67 @@ abstract interface class IngredientRepository {
   /// Throws [ArgumentError] for a non-positive/NaN [gPerMl] — a zero density
   /// would fabricate Infinity conversions (invariant 3).
   Future<Ingredient?> setDensity(String ingredientId, double gPerMl);
+
+  // --- The manager's write half (step 8.5) -----------------------------------
+
+  /// The whole live vocabulary, canonical-name ordered, as a watched query —
+  /// the manager list, which must re-render when a sync (or this device's own
+  /// edit) changes a row. Carries the same `measureCount` the picker rows do.
+  Stream<List<Ingredient>> watchVocabulary();
+
+  /// How many live rows still read `stub` — the Library menu's badge. Watched
+  /// so confirming one decrements it without a refresh.
+  Stream<int> watchStubCount();
+
+  /// Applies [edit] to [ingredientId] in one write and returns the updated
+  /// row (null when the id doesn't resolve).
+  ///
+  /// Two things happen here that nowhere else does:
+  /// - **A rename rewrites `match_text`** through `normalizeMatchText`, the
+  ///   server's own phrase rules (plan 0020 D6). Leaving the old value would
+  ///   be a silent matching regression — the next import searches for a name
+  ///   nothing carries.
+  /// - **Clearing the macros of a `complete` row returns it to `stub`** (D5):
+  ///   a row is never left asserting a number it no longer has. Filling them
+  ///   in does NOT promote — that takes [confirmStub], a human act.
+  Future<Ingredient?> saveEdit(String ingredientId, IngredientEdit edit);
+
+  /// Flips a `stub` to `complete` — the human confirm of D5.
+  ///
+  /// Gated on macros being present (with their basis); density is NOT
+  /// required, because an ingredient whose lines only ever speak its own
+  /// basis family never needs one. Returns null when the id doesn't resolve;
+  /// throws [StateError] when the row has no macros — the CTA is disabled
+  /// there, and the rule holds at the repository too.
+  Future<Ingredient?> confirmStub(String ingredientId);
+
+  /// Returns a `complete` row to `stub` — confirm is reversible (D5). The
+  /// macros stay stored; the row simply stops counting until re-confirmed.
+  Future<Ingredient?> unconfirm(String ingredientId);
+
+  /// Live recipe lines naming [ingredientId], as (recipes, lines). The
+  /// delete guard's evidence, readable on its own so a screen can warn before
+  /// the user commits to the action.
+  Future<({int recipeCount, int lineCount})> recipeReferences(
+    String ingredientId,
+  );
+
+  /// Soft-deletes the vocab row — but only when no live recipe line points at
+  /// it (the signed rule, plan 0020's open question). See [DeleteOutcome].
+  Future<DeleteOutcome> softDelete(String ingredientId);
+
+  /// The ingredient's live aliases, oldest first.
+  Future<List<IngredientAlias>> aliases(String ingredientId);
+
+  /// Adds a `manual` alias, its `match_text` written with the server's phrase
+  /// rules so the cascade can find it. A duplicate (same normalized text on
+  /// the same ingredient) is a no-op returning the existing row — local
+  /// tables are VIEWS, so this is an existence check plus a plain INSERT,
+  /// never an UPSERT.
+  ///
+  /// Throws [ArgumentError] for an alias that normalizes to nothing.
+  Future<IngredientAlias> addAlias(String ingredientId, String text);
+
+  /// Soft-deletes one alias.
+  Future<void> removeAlias(String aliasId);
 }
