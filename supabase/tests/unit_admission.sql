@@ -16,13 +16,13 @@
 -- additions survive), that the retired seed-level produce patch's admissions
 -- now fall out of the rule (plan 0020 D4 — this assertion IS the safety net
 -- that replaced the patch), the density→allowed_units union trigger, the
--- USDA stub prefill trigger, the basis_amount rename + positivity check, and
--- that `grams` is gone.
+-- USDA stub prefill trigger (0014's insert leg AND 0015's rename leg), the
+-- basis_amount rename + positivity check, and that `grams` is gone.
 --
 -- Run by `supabase test db`.
 
 begin;
-select plan(39);
+select plan(45);
 
 -- ---------------------------------------------------------------------------
 -- default_allowed_units() vectors (mirror allowed_units_test.dart).
@@ -383,6 +383,78 @@ select is(
   'the surviving row is simply un-enriched'
 );
 alter table usda_food_hidden_by_test rename to usda_food;
+
+-- ---------------------------------------------------------------------------
+-- 0015 / plan 0020 D7: the same prefill on a RENAME.
+--
+-- 0014's trigger was AFTER INSERT only; 0015 recreates it as AFTER INSERT OR
+-- UPDATE OF canonical_name, because D7 (c) is explicitly about renames ("you
+-- fix 'curry leafs' → 'Curry leaves, fresh' and want the lookup re-run") and
+-- the flesh-out form says so on screen. The WHEN guards are unchanged, which
+-- is what keeps the update leg from touching a row someone has filled in.
+-- ---------------------------------------------------------------------------
+
+-- A bare stub under a name the trigram misses: nothing to copy on insert.
+insert into ingredient (id, household_id, canonical_name, default_unit,
+  status, source, match_text)
+values ('cccccccc-0000-0000-0000-000000000008',
+  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Qqfoo Mystery Item', 'g',
+  'stub', 'manual', 'qqfoo mystery item');
+select is(
+  (select source from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000008'),
+  'manual',
+  'the misnamed stub arrives un-enriched (nothing matched on insert)'
+);
+
+-- The rename the user makes on the flesh-out form: name and match_text
+-- written together (D6), which is the statement 0015's trigger catches.
+update ingredient
+   set canonical_name = 'Zzquux Test Reference Food',
+       match_text = 'zzquux test reference food'
+ where id = 'cccccccc-0000-0000-0000-000000000008';
+select is(
+  (select density_g_per_ml from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000008'),
+  0.75::numeric,
+  'a rename on a BARE stub re-runs the probe and can fill it (0015)'
+);
+select is(
+  (select source from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000008'),
+  'usda_fdc:999000001',
+  'the re-run records the FDC provenance'
+);
+select is(
+  (select status from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000008'),
+  'stub',
+  'a renamed-and-prefilled row is STILL a stub (D5 holds on the new leg)'
+);
+
+-- The guard that matters most on the update leg: a row someone has already
+-- filled in is never re-probed, so a rename cannot clobber real numbers.
+insert into ingredient (id, household_id, canonical_name, default_unit,
+  status, source, match_text, macros)
+values ('cccccccc-0000-0000-0000-000000000009',
+  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Qqfoo Fleshed Out', 'g',
+  'stub', 'manual', 'qqfoo fleshed out', '{"kcal": 7}'::jsonb);
+update ingredient
+   set canonical_name = 'Zzquux Test Reference Food',
+       match_text = 'zzquux test reference food'
+ where id = 'cccccccc-0000-0000-0000-000000000009';
+select is(
+  (select macros ->> 'kcal' from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000009'),
+  '7',
+  'renaming a fleshed-out stub is a no-op — its macros survive'
+);
+select is(
+  (select source from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000009'),
+  'manual',
+  'and its provenance is not rewritten to a USDA id'
+);
 
 -- ---------------------------------------------------------------------------
 -- Basis-aware measures (0012): grams is gone; basis_amount is guarded.
