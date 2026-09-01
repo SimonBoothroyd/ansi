@@ -1,0 +1,103 @@
+name: deploy-supabase
+
+# Push migrations + the import edge function to Supabase Cloud.
+#
+# MANUAL ONLY, by design. This repo's posture (docs/cloud-setup.md,
+# supabase/AGENTS.md) is that touching cloud is a deliberate human act: a
+# migration is immutable once applied there, and a bad `db push` is not a
+# revert away. So CI's job here is to make that act ONE BUTTON with the right
+# order and the right credentials — not to make it automatic on merge.
+#
+# Run it: Actions → deploy-supabase → Run workflow. Setup: docs/release.md §4.
+#
+# NOT in this pipeline, on purpose:
+#   * Template reseeds (cloud-setup §2) and the household rollout (§2b) —
+#     they mutate live household data and stay human-run.
+#   * Function secrets — ANTHROPIC_API_KEY and IMPORT_ALLOWED_HOUSEHOLDS are
+#     managed with `supabase secrets set` (cloud-setup §3b), never from here.
+#     Values live only in the Supabase project; CI has no business holding them.
+#   * Dashboard-only settings (auth hook, JWT audience, sync streams) — see the
+#     checklist in cloud-setup.md.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-supabase # never two pushes at the same project at once
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: link → db push → functions deploy
+    runs-on: ubuntu-latest
+    env:
+      # The CLI reads the PAT from the environment; --project-ref names the
+      # target so nothing depends on a linked state carried between steps.
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Same early-guard idea as release.yml: name what is missing before the
+      # CLI fails with a generic auth error two steps later.
+      - name: Guard — deploy credentials are configured
+        run: |
+          missing=()
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing+=("  gh secret set SUPABASE_ACCESS_TOKEN")
+          [ -n "$SUPABASE_DB_PASSWORD" ]  || missing+=("  gh secret set SUPABASE_DB_PASSWORD")
+          [ -n "$PROJECT_REF" ]           || missing+=("  gh variable set SUPABASE_PROJECT_REF")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::deploy is not configured — ${#missing[@]} item(s) missing."
+            echo "Configure exactly these, then re-run (see docs/release.md §4):"
+            printf '%s\n' "${missing[@]}"
+            exit 1
+          fi
+          echo "✓ credentials present · target project: $PROJECT_REF"
+
+      - name: 1 · Link the project
+        run: supabase link --project-ref "$PROJECT_REF"
+
+      # Idempotent: db push applies only migrations the project has not seen.
+      # This runs BEFORE the function deploy and before any app release, for
+      # the reason cloud-setup §3b spells out — a client writing a column the
+      # cloud schema lacks gets PGRST204, and PowerSync then retries the failed
+      # upload forever, wedging sync entirely rather than failing one row.
+      - name: 2 · Push migrations (supabase db push)
+        run: supabase db push
+
+      # Functions ship separately from the schema; `db push` never touches them.
+      - name: 3 · Deploy the import-recipe edge function
+        run: supabase functions deploy import-recipe
+
+      # The deploy is only half the story whenever a change also altered the
+      # curated vocabulary. Nothing here can safely do that leg, so it ends by
+      # saying so out loud instead of leaving cloud half-migrated in silence.
+      - name: Reminder — seed + rollout legs are human-run
+        run: |
+          {
+            echo "### deploy-supabase finished"
+            echo
+            echo "Applied to \`$PROJECT_REF\`: **migrations** (\`db push\`) and the"
+            echo "**import-recipe** function."
+            echo
+            echo "**Not applied — do these by hand if this deploy included"
+            echo "seed-affecting changes:**"
+            echo
+            echo "- **cloud-setup §2 — reseed the cloud vocab.** Any change to"
+            echo "  \`supabase/seed/vocab.jsonl\` or the generated \`seed.sql\` only"
+            echo "  reaches cloud when you run that block (\`seed_curation.sql\` LAST)."
+            echo "- **cloud-setup §2b — roll reseeded \`ingredient\` columns onto"
+            echo "  existing households.** A reseed updates the TEMPLATE household;"
+            echo "  households already onboarded keep their old clone until the §2b"
+            echo "  rollout runs. Preview first (it reports the blast radius), then"
+            echo "  run it, then re-run the preview: every leg should read 0."
+            echo
+            echo "Also human-run: \`supabase secrets set\` (§3b) and the"
+            echo "dashboard-only checklist. Verify with \`scripts/cloud_verify.sh\`"
+            echo "and record the run in the cloud-setup ledger."
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat "$GITHUB_STEP_SUMMARY"
