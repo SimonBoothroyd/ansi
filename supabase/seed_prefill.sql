@@ -246,6 +246,7 @@ from (values
   ('thyme fresh', 173470),
   ('tomato', 170457),
   ('tomato canned', 170501),
+  ('tomato canned diced', 333281),
   ('tomato canned whole', 170051),
   ('tomato paste', 170459),
   ('tomato puree canned', 170460),
