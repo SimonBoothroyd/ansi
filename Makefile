@@ -80,9 +80,14 @@ coverage: ## Flutter tests with coverage
 
 # --- backend ---
 .PHONY: db-up db-down db-lint db-reset
-db-up: ## Start Supabase + local PowerSync
+db-up: ## Start Supabase + local PowerSync (functions need: make functions-up)
 	supabase start
 	docker compose --file ./docker/compose.yaml --env-file .env.local up -d
+	@echo "NOTE: edge functions are NOT served by db-up — run 'make functions-up' for import"
+
+.PHONY: functions-up
+functions-up: ## Serve edge functions locally (import-recipe needs this + .env.local keys)
+	supabase functions serve --env-file .env.local
 
 db-down: ## Stop local backend
 	docker compose --file ./docker/compose.yaml down

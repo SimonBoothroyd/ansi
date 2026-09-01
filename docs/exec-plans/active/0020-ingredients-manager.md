@@ -611,3 +611,15 @@ Append-only.
   from the row (it currently claims chips are locked when they aren't), and
   the form's helper prose generally gets an essay-trim. Existing lines in a
   now-locked unit degrade to the standard flag, as everywhere.
+- 2026-08-31 — **Batch 4 (owner exploration + agent verification gate).**
+  H1: `make db-up` does not serve edge functions and no target existed — a
+  photo import in the dev loop failed as "could not process this recipe"
+  with twelve containers up and no edge runtime; `make functions-up` added,
+  db-up now says so. H2: the client's unreachable-service error copy is
+  misleading ("could not process this recipe" for a connection failure) —
+  distinguish unreachable from rejected. **Scenario-5 ruling: option A.**
+  mobile_scanner's `analyzeImage` is compile-time refused on the iOS
+  Simulator (verified in the plugin's Swift source; deliberate upstream),
+  so the sim path for scenario 5 is the TYPED barcode field (identical
+  downstream handler), and **scan-from-photo ships in the on-device slice**
+  alongside the camera-capture errands — not as a sim-only error state.
