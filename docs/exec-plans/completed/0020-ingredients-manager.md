@@ -1,9 +1,12 @@
 # Exec plan: Ingredients manager — the vocabulary gets a face
 
-- **Status:** in build — signed off 2026-08-31 (D1–D8 as recommended). Lanes S
-  (server: 0014 + 0015), M (domain + manager UI) and B (barcode) have merged;
-  the post-convergence **polish pass** (D4b, F1, F2, F3, D7b + migration 0016)
-  is landing on top. The seed-stub-zero chore is deferred by owner ruling.
+- **Status:** done — 2026-09-01. Signed off 2026-08-31 (D1–D8 as recommended);
+  lanes S (server: 0014 + 0015), M (domain + manager UI) and B (barcode) merged;
+  the polish pass (D4b, F1–F3, D7b + migration 0016), demo batch 2 + D4c, and
+  the owner's Pixel field-test batch (J1–J4, J3b, D4d) landed on top.
+  **767 host tests · 134 pgTAP · `make test-sim` 5/5, scenario 5 green on-sim.**
+  Deferred by owner ruling: the seed-stub-zero chore. Deferred to a
+  physical-device slice: every camera leg (tracker).
 - **Owner:** Simon + Claude (design phase solo, before any fan-out)
 - **Roadmap step:** Step 8.5 — Ingredients manager
 - **Created:** 2026-08-31
@@ -421,13 +424,17 @@ A → B → D → C → tail.
 
 ## Acceptance criteria
 
-- [ ] `docs/exec-plans/active/0020-ingredients-manager.md` (this file) signed off
-      by Simon, with a decision recorded for D1–D8.
-- [ ] Design board carries the "Ingredients manager · v1" section, re-tracing and
-      extending the existing frames, with every divergence annotated.
-- [ ] **List page:** the whole household vocab, searched with the same
+- [x] `docs/exec-plans/completed/0020-ingredients-manager.md` (this file) signed
+      off by Simon, with a decision recorded for D1–D8.
+- [x] Design board carries the "Ingredients manager · v1" section, re-tracing and
+      extending the existing frames, with every divergence annotated. Drawn as a
+      proposal, then **locked** (`b875580`) re-traced from the shipped code and
+      the D4b/F1–F3/D7b/G1–G4/D4c rulings.
+- [x] **List page:** the whole household vocab, searched with the same
       deterministic local search the picker uses; stub rows badged; honest
-      capability hints per row (category · density · measure count).
+      capability hints per row (category · density · measure count) — with the
+      stub band on top rather than a separate queue screen, and the empty-field
+      branch taken off the FIELD's own controller (**J4**).
 - [x] **Detail / flesh-out form:** edits `canonical_name` (re-writing
       `match_text`), aliases, category (a **dropdown** of the household's own
       categories since F3 — free text is gone), default unit, macros + basis,
@@ -435,10 +442,17 @@ A → B → D → C → tail.
       F2), and **`allowed_units`** — the ADR-0008 section that has never
       existed, with its cross-family half now density-derived per **D4b**.
       Reachable for `complete` rows, not just stubs.
-- [ ] **Confirm a stub:** gated per D5; reversible; a recipe using that
-      ingredient stops reading `incomplete` without further action.
-- [ ] **Barcode:** scan or type a barcode → OFF lookup → prefilled draft →
-      confirm. No-permission and not-found states are designed, not crashes.
+- [x] **Confirm a stub:** gated per D5 (macros, not density — enforced in the
+      repository, not only on the CTA); reversible without erasing what was
+      typed; a recipe using that ingredient stops reading `incomplete` without
+      further action — the consequence is data-driven through
+      `summarizeRecipeMacros`, which reads the row, so no recipe code moved.
+- [x] **Barcode:** scan or type a barcode → OFF lookup → prefilled draft →
+      confirm. Not-found and no-connection states are designed and tested; the
+      **no-permission / camera-denied** notice is designed and widget-tested but
+      ~~verified on screen~~ — struck: a camera-less Simulator never fires
+      `errorBuilder` (it waits forever), so that render moved to the
+      physical-device slice (tracker) with the rest of the camera legs.
 - [x] `default_allowed_units()` and `defaultAllowedUnitSet` agree on extended
       shared vectors **including** a piece-default-with-density row and an
       imprecise-gated row (the `handful` divergence).
@@ -452,15 +466,24 @@ A → B → D → C → tail.
       leg: migration 0016 exposes the same probe as `probe_usda(name)`, a
       security-definer read-only RPC, so a creation flow enriches at birth and
       "Look up in USDA" is a real query — and the row still reads `stub`.
-- [ ] Tests cover the new logic: pure-Dart mapper + normalizer + admission
+- [x] Tests cover the new logic: pure-Dart mapper + normalizer + admission
       vectors (unit), form and list (widget/repo over the real-schema harness),
-      migration (pgTAP).
-- [ ] Docs updated: ADR-0008 amended; product-spec §Ingredient + Fleshing-out
-      queue reworded for D5; `import-and-matching.md` §9's two "honest gaps"
-      struck; `app/AGENTS.md` focus; `docs/QUALITY.md`.
-- [ ] Tracker rows **retired**: flesh-out form; cup-produce/ADR-0008 gap;
-      server-arriving density not extending `allowed_units`; stub `match_text`
-      divergence; `prefillStubFromUsda` not triggered.
+      migration (pgTAP), and **integration scenario 5** on a booted sim.
+      **560 → 767 host tests** (the 560 baseline re-run at `785b7b0`, the commit
+      the first 8.5 lane merged onto); `unit_admission.sql` **14 → 61**
+      assertions, suite **87 → 134** pgTAP.
+- [x] Docs updated: ADR-0008 amended (as its own [ADR-0009](../../decisions/0009-density-unlocks-both-families.md),
+      refined again by D4b); product-spec §Ingredient + Fleshing-out queue
+      reworded for D5; `import-and-matching.md` §9's two "honest gaps" struck
+      and §7's "one caller still lags" closed with the D6 residual;
+      `app/AGENTS.md` focus (it points at the roadmap — still true);
+      `docs/QUALITY.md`; `app/lib/features/ingredients/README.md`.
+- [x] Tracker rows **retired**: flesh-out form; cup-produce/ADR-0008 gap;
+      server-arriving density not extending `allowed_units`;
+      `prefillStubFromUsda` not triggered (all four at `61bc437`); stub
+      `match_text` divergence (narrowed there, **closed** at `201a5c2` and
+      retired at this close-out — `normalizeMatchText` at both
+      `SqliteImportRepository.commit` call sites).
 
 ## Decision log
 
@@ -468,7 +491,7 @@ Append-only.
 
 - 2026-08-31 — **Design phase opened.** No app code, no simulator, no
   `supabase/` edits: this step's first deliverable is a signed-off plan plus
-  board frames, following the [0014](../completed/0014-import-foundation.md)
+  board frames, following the [0014](./0014-import-foundation.md)
   precedent where design froze before any fan-out.
 - 2026-08-31 — **The board already had this screen.** An ingredient editor, a
   barcode flow and a stub queue predate this plan (plus 7.7's macros-basis and
@@ -504,16 +527,23 @@ Append-only.
 
 ## Step-done checklist
 
-- [ ] Roadmap row 8.5 updated: status flipped, one line on what shipped and what
-      was deliberately deferred.
-- [ ] `docs/QUALITY.md` grade for every area touched matches reality.
-- [ ] `app/AGENTS.md` "Current focus" and command list still true.
-- [ ] Feature steps: `make test-sim` run on a booted simulator, result recorded
-      here — including the barcode path via the **typed-number** fallback (the
-      simulator has no camera; D3).
-- [ ] Tech-debt rows **added** for corners knowingly cut, and **retired** for
-      the five rows this step pays off.
-- [ ] `make ci` green.
+- [x] Roadmap row 8.5 updated: status flipped 🟡 → 🟢, one dense cell on what
+      shipped and what was deliberately deferred.
+- [x] `docs/QUALITY.md` grade for every area touched matches reality — the
+      ingredients-manager and barcode rows regraded with scenario-5 coverage,
+      the physical-device slice named as the open sliver.
+- [x] `app/AGENTS.md` "Current focus" and command list still true (focus points
+      at the roadmap; `make functions-up` added to the command list in `3e1e1a6`
+      when batch 4 found `db-up` serves no edge runtime).
+- [x] Feature steps: `make test-sim` run on a booted simulator, result recorded
+      here — **scenario 5 green, 5/5 suite** (`87801fa`), including the barcode
+      path via the **typed-number** fallback (the simulator has no camera; D3,
+      and the option-A ruling in batch 4).
+- [x] Tech-debt rows **added** for corners knowingly cut, and **retired** for
+      the five rows this step pays off — plus the D4c SQL-mirror row updated for
+      how the divergence grew under J3/J3b.
+- [x] `make ci` green — `make analyze` clean, `make test-app` 767/767,
+      `make docs-check` green at close-out.
 - 2026-08-31 — **Owner sign-off.** D1–D8 decided as recommended (D1 prefill-
   never-complete overrules the old frame caption; D5 macros-gate-completion
   overrules the board/spec wording — both edits are in the acceptance
@@ -731,3 +761,33 @@ Append-only.
   CASCADE: that row is the `import_stub` scenario 4's commit writes, and
   scenario 4 never reached commit. Nothing in the J2 batched loader touches
   it — it is read-only and feeds validation + sheet pre-selection alone.
+
+- 2026-09-01 — **Scenario 5 green; step 8.5 closed out.** Seventeen rounds of
+  on-device forensics (`87801fa`) to walk the manager + barcode leg on the real
+  stack, and each round bought a real fix rather than a looser assertion:
+  `scrollTo` targets the primary `ListView` (a text field's inner `Scrollable`
+  had shadowed "the first vertical one"), list ends are edge-detected instead
+  of ground against a fixed budget, and a miss dumps the visible texts. **The
+  caret-scroll finding** is the one worth carrying forward: a popped form's
+  still-focused field fires `EditableTextState._scheduleShowCaretOnScreen` a
+  frame late, and that callback *scrolls the enclosing viewport* — so the list
+  you have just returned to sits at an arbitrary offset. Post-return assertions
+  therefore **scroll rather than wait**, and the same callback firing against a
+  defunct element is filtered narrowly by its stack, beside the 7.7
+  `_updateSelectionRects` filter it mirrors (tracker row added: it is the
+  second filtered framework assertion, re-checked on a framework upgrade like
+  the first). The camera-off notice moved to the **physical-device slice**: a
+  camera-less Simulator never errors, it waits forever, so `errorBuilder` never
+  fires; what the scenario proves instead is that D3's typed field stays live
+  regardless — the whole reason it is a permanent sibling and not a fallback.
+  **Final counts: 767 host tests** (560 at `785b7b0`, the commit the first lane
+  merged onto — re-run to check, not read off a commit message), **134 pgTAP**
+  (87 before; `unit_admission.sql` alone 14 → 61), **`make test-sim` 5/5**.
+  Close-out: roadmap 8.5 → 🟢; QUALITY's manager + barcode rows regraded; the
+  `match_text` divergence row **retired** (both `SqliteImportRepository.commit`
+  call sites verified on `normalizeMatchText`); the sim-coverage row narrowed
+  to the 7.8 density entry; two rows **added** (the physical-device camera
+  slice; the caret-scroll filter). Deliberately NOT done: the seed-stub-zero
+  chore (owner-deferred), the `0017` SQL-mirror parity migration — and that
+  divergence **grew** under J3/J3b, since the per-word category gate and the
+  printed-word admission are app-side only — and anything needing a camera.

@@ -1,7 +1,7 @@
 # Feature: ingredients
 
 **Roadmap:** steps 1, 7.6–7.8 and **8.5** (see `docs/exec-plans/roadmap.md`;
-the manager's plan is `docs/exec-plans/active/0020-ingredients-manager.md`).
+the manager's plan is `docs/exec-plans/completed/0020-ingredients-manager.md`).
 
 The household's controlled vocabulary and everything that reads or writes it:
 the **picker** recipes and shopping select from, the **quantity + unit** entry

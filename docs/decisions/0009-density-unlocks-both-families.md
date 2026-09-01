@@ -1,7 +1,7 @@
 # ADR-0009 — A density unlocks the other mass/volume family whatever the default unit's family
 
 - **Status:** accepted (2026-08-31, Simon + agent — exec plan
-  [0020](../exec-plans/active/0020-ingredients-manager.md) D4, owner-signed)
+  [0020](../exec-plans/completed/0020-ingredients-manager.md) D4, owner-signed)
 - **Supersedes:** the second sentence of
   [ADR-0008](./0008-unit-admission-model.md) §Decision ¶2 ("Density … unlocks
   the whole other family"), which both implementations read as *gated on the
