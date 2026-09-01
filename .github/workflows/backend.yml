@@ -6,6 +6,10 @@ on:
   pull_request:
     paths: ["supabase/**", ".github/workflows/backend.yml"]
 
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true # a newer push supersedes this run
+
 jobs:
   edge-functions:
     runs-on: ubuntu-latest

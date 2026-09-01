@@ -7,6 +7,10 @@ on:
   schedule:
     - cron: "0 6 * * 1" # Mondays 06:00 UTC
 
+concurrency:
+  group: evals-${{ github.ref }}
+  cancel-in-progress: true # a newer push supersedes this run
+
 jobs:
   matching-eval:
     runs-on: ubuntu-latest

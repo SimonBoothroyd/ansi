@@ -10,6 +10,10 @@ defaults:
   run:
     working-directory: app
 
+concurrency:
+  group: app-${{ github.ref }}
+  cancel-in-progress: true # a newer push supersedes this run
+
 jobs:
   analyze-and-test:
     runs-on: ubuntu-latest

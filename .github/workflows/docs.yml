@@ -6,6 +6,10 @@ on:
   pull_request:
     paths: ["**/*.md", "scripts/check_docs.sh", ".github/workflows/docs.yml"]
 
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true # a newer push supersedes this run
+
 jobs:
   knowledge-base:
     runs-on: ubuntu-latest
