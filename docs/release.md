@@ -57,7 +57,7 @@ val keystoreProperties = Properties().apply {
 
 …with a `release` signing config consuming exactly four keys — `storeFile`,
 `storePassword`, `keyAlias`, `keyPassword` — and `buildTypes.release` selecting
-it only when the file was found. `applicationId` is `io.mise.app` (the permanent
+it only when the file was found. `applicationId` is `io.ansi.app` (the permanent
 Android identity, matching the OAuth deep-link scheme; changing it orphans every
 installed copy).
 
@@ -222,7 +222,7 @@ Then Play Console → **Dashboard → set up your app** and work the declaration
 required even for a private internal-testing app — do the minimum honestly.
 
 > **The package name is set by your first upload, not by a form**, and it is
-> permanent. It must be exactly **`io.mise.app`** — the `applicationId` in
+> permanent. It must be exactly **`io.ansi.app`** — the `applicationId` in
 > `app/android/app/build.gradle.kts`. A mismatch creates a *different app* that
 > can never update the one on the phone.
 
@@ -304,7 +304,7 @@ fallback that needs nothing from Google.
 ### 3c. The versionCode rule
 
 **Play permanently rejects a `versionCode` it has already seen.** The number
-must strictly increase, forever, across every upload for `io.mise.app`.
+must strictly increase, forever, across every upload for `io.ansi.app`.
 
 pubspec's `version: 0.1.0+1` cannot carry that: `flutter.versionCode` reads the
 `+N`, a hand-edited constant nobody remembers to bump.

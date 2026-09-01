@@ -302,7 +302,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           # Must equal the Gradle applicationId. Play binds a package name to
           # its signing identity permanently; a mismatch here is a new app.
-          packageName: io.mise.app
+          packageName: io.ansi.app
           releaseFiles: dist/*.aab
           # `tracks`/`releaseFiles` are the current plural inputs — the singular
           # `track`/`releaseFile` still work but are deprecated upstream.
