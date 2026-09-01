@@ -15,6 +15,7 @@
 library;
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -37,7 +38,28 @@ class IngredientListView extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final search = useIngredientSearch(ref, context);
     final vocabulary = ref.watch(vocabularyProvider);
-    final searching = search.query.trim().isNotEmpty;
+    // The search field owns its controller (a hook, so it survives every
+    // rebuild) and the list branches on WHAT THE FIELD SAYS — never on a
+    // query that has outlived the text that produced it. An empty field is
+    // therefore the whole vocabulary, by construction: no round-trip, stale
+    // `onChange` or re-seeded control can leave the list showing search
+    // results under a field displaying its hint (plan 0020 **J4**).
+    final field = useTextEditingController();
+    final typed = useValueListenable(field).text;
+    final searching = typed.trim().isNotEmpty;
+    // Fetching is a side effect of the text changing; a selection-only change
+    // must not re-run the query.
+    final lastRun = useRef<String?>(null);
+    useEffect(() {
+      void onEdit() {
+        if (lastRun.value == field.text) return;
+        lastRun.value = field.text;
+        search.run(field.text);
+      }
+
+      field.addListener(onEdit);
+      return () => field.removeListener(onEdit);
+    }, [field]);
 
     final all = vocabulary.asData?.value ?? const <Ingredient>[];
     final stubs = [
@@ -70,9 +92,7 @@ class IngredientListView extends HookConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
             child: FTextField(
               hint: 'Search your vocabulary',
-              control: FTextFieldControl.managed(
-                onChange: (v) => search.run(v.text),
-              ),
+              control: FTextFieldControl.managed(controller: field),
               prefixBuilder: (context, style, _) =>
                   const Icon(FLucideIcons.search),
             ),
@@ -102,7 +122,9 @@ class IngredientListView extends HookConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                 children: [
                   if (searching)
-                    ..._searchResults(search.results, search.query, open)
+                    // The typed text, not the hook's query: the "no match"
+                    // line must name what the field shows.
+                    ..._searchResults(search.results, typed, open)
                   else ...[
                     if (stubs.isNotEmpty) _StubBand(stubs: stubs, onOpen: open),
                     Padding(

@@ -354,6 +354,66 @@ void main() {
       expect(find.text('Nutritional yeast'), findsWidgets);
     });
 
+    testWidgets('J4: the list comes back from the detail route still showing '
+        'the band and the header — a round-trip is not a search', (
+      tester,
+    ) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo(const [_mango, _curryLeaves, _yeast]);
+      await tester.pumpWidget(_host(repo));
+      await tester.pumpAndSettle();
+
+      // Initial render is fine — this is the state we must get back to.
+      expect(find.text('Needs fleshing out'), findsOneWidget);
+      expect(find.text('All ingredients · 3'), findsOneWidget);
+
+      // Push the detail, rename + save, pop back.
+      await tester.tap(find.text('Mango').first);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Mango, ripe');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FButton, 'Save').last);
+      await tester.pumpAndSettle();
+      expect((await repo.byId('mango'))!.canonicalName, 'Mango, ripe');
+
+      // Back out through the form's own chevron, the way the owner did.
+      await tester.tap(find.byType(FHeaderAction).first);
+      await tester.pumpAndSettle();
+
+      // The user typed nothing into search, so the list must not be in its
+      // search-results branch.
+      expect(find.text('Needs fleshing out'), findsOneWidget);
+      expect(find.text('All ingredients · 3'), findsOneWidget);
+      expect(find.text('Mango, ripe'), findsWidgets);
+    });
+
+    testWidgets('J4: typing still collapses the list into results, and '
+        'clearing the field brings the band and the header straight back', (
+      tester,
+    ) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      await tester.pumpWidget(
+        _host(FakeIngredientRepo(const [_mango, _curryLeaves, _yeast])),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('All ingredients · 3'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField).first, 'mang');
+      await tester.pumpAndSettle();
+      // A search is a search: the band and the header collapse into results.
+      expect(find.text('Needs fleshing out'), findsNothing);
+      expect(find.text('All ingredients · 3'), findsNothing);
+
+      await tester.enterText(find.byType(TextField).first, '');
+      await tester.pumpAndSettle();
+      // An empty field is the whole vocabulary — the branch follows the text
+      // the user can actually see, never a query that outlived it.
+      expect(find.text('Needs fleshing out'), findsOneWidget);
+      expect(find.text('All ingredients · 3'), findsOneWidget);
+    });
+
     testWidgets('rows are the 7.7 picker rows: honest hints, no zeros for a '
         'stub, and a missing density named as an advisory', (tester) async {
       _filterSemanticsAssertions();

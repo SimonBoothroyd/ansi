@@ -27,7 +27,7 @@ final _lines = {
   'lemon': _li('lemon', 'Lemon Juice', qty: 2, unit: tbsp),
   'yeast': _li('yeast', 'Nutritional Yeast', qty: 1, unit: tbsp),
   'oil': _li('oil', 'Olive Oil', qty: 1, unit: tbsp),
-  'salt': _li('salt', 'Salt', qty: 1, unit: g),
+  'salt': _li('salt', 'Salt', qty: 1),
 };
 
 const _blankCollectiveRefs = [
