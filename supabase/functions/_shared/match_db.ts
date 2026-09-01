@@ -114,77 +114,23 @@ export function sqlVocabMatcher(
 
 // --- §9: stub lifecycle ------------------------------------------------------
 //
-// The stub WRITE is not here. 0014's CommitPayload creates stubs through the
+// Nothing of §9 is here any more, and that is deliberate.
+//
+// The stub WRITE never was: 0014's CommitPayload creates stubs through the
 // PowerSync sync queue (a client insert), and that is the surface that shipped —
 // lane B's server-side `createImportStub` had no production caller and was
-// deleted rather than left as a second, drifting way to write the same row. The
-// USDA prefill below stays server-side because it has to: `usda_food` never
-// syncs to a device (ADR-0005).
-
-/** Minimum usda_food trigram score to accept a background prefill. */
-export const USDA_PREFILL_MIN = 0.5;
-
-export interface PrefillResult {
-  prefilled: boolean;
-  fdc_id: number | null;
-  score: number;
-}
-
-/**
- * The background job (§9): search `usda_food` by the stub's `match_text` and, on a
- * confident hit that actually carries values, prefill density + macros and record
- * the FDC provenance. The row STAYS `status='stub'` until the user confirms — the
- * prefill just means the New-ingredient screen opens pre-populated. `usda_food` is
- * server-only (ADR-0005); this is the only place it is read at import-time-adjacent
- * work, and never as a match target.
- */
-export async function prefillStubFromUsda(
-  exec: SqlExecutor,
-  ingredientId: string,
-): Promise<PrefillResult> {
-  const stub = await exec<{ match_text: string }>(
-    `select match_text from ingredient
-     where id = $1 and status = 'stub' and deleted_at is null`,
-    [ingredientId],
-  );
-  if (stub.length === 0) return { prefilled: false, fdc_id: null, score: 0 };
-
-  const hits = await exec<{
-    fdc_id: number;
-    density_g_per_ml: number | null;
-    macros: unknown;
-    score: number;
-  }>(
-    `select fdc_id, density_g_per_ml, macros, similarity(match_text, $1) as score
-     from usda_food
-     where match_text % $1
-     order by score desc
-     limit 1`,
-    [stub[0].match_text],
-  );
-  const hit = hits[0];
-  if (!hit || Number(hit.score) < USDA_PREFILL_MIN) {
-    return {
-      prefilled: false,
-      fdc_id: hit?.fdc_id ?? null,
-      score: Number(hit?.score ?? 0),
-    };
-  }
-  if (hit.density_g_per_ml == null && hit.macros == null) {
-    // Nothing to copy — don't churn provenance for an empty reference row.
-    return { prefilled: false, fdc_id: hit.fdc_id, score: Number(hit.score) };
-  }
-  await exec(
-    `update ingredient
-     set density_g_per_ml = coalesce($2, density_g_per_ml),
-         macros           = coalesce($3, macros),
-         source           = 'usda_fdc:' || $4::text,
-         updated_at       = now()
-     where id = $1 and status = 'stub' and deleted_at is null`,
-    [ingredientId, hit.density_g_per_ml, hit.macros, hit.fdc_id],
-  );
-  return { prefilled: true, fdc_id: hit.fdc_id, score: Number(hit.score) };
-}
+// deleted rather than left as a second, drifting way to write the same row.
+//
+// The USDA PREFILL followed it in 0014_density_admission.sql (plan 0020 D7).
+// It has to run server-side — `usda_food` never syncs to a device (ADR-0005) —
+// and the only surface that sees a stub arriving is the sync queue's INSERT,
+// which no edge function is in the path of. So it is now an `after insert`
+// trigger (`ingredient_prefill_from_usda`, a plpgsql port of the same one
+// trigram query + one guarded update, with the same 0.5 floor and the same
+// "the row STAYS `status='stub'`" contract). `prefillStubFromUsda` was written,
+// unit-tested and callerless from step 8 to step 8.5; it is deleted here for
+// the third time under the same doctrine, rather than kept as a second,
+// drifting way to write the same row.
 
 // --- §8: the learning loop ---------------------------------------------------
 //
