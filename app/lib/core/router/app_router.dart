@@ -25,6 +25,8 @@ import '../../features/auth/presentation/sign_in_view.dart';
 import '../../features/books/presentation/library_view.dart';
 import '../../features/cook_plan/presentation/cook_view.dart';
 import '../../features/import/presentation/import_view.dart';
+import '../../features/ingredients/presentation/ingredient_detail_view.dart';
+import '../../features/ingredients/presentation/ingredient_list_view.dart';
 import '../../features/planning/presentation/week_view.dart';
 import '../../features/recipes/presentation/recipe_editor_view.dart';
 import '../../features/recipes/presentation/recipe_view.dart';
@@ -102,6 +104,20 @@ GoRouter router(Ref ref) {
         path: '/import',
         name: 'import',
         builder: (context, state) => const ImportView(),
+      ),
+      // The vocabulary manager (step 8.5, plan 0020 D8) — pushed like
+      // `/import`, not a fifth tab: the four tabs are the loop, and a
+      // vocabulary is reference data.
+      GoRoute(
+        path: '/ingredients',
+        name: 'ingredients',
+        builder: (context, state) => const IngredientListView(),
+      ),
+      GoRoute(
+        path: '/ingredients/:id',
+        name: 'ingredient',
+        builder: (context, state) =>
+            IngredientDetailView(ingredientId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/recipes/new',
