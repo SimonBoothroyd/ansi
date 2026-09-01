@@ -1,0 +1,59 @@
+{
+  "_doc": [
+    "SHARED VECTORS for the ingredient phrase normalizer (plan 0020 D6).",
+    "Every pair is copied verbatim from supabase/functions/_shared/normalize.test.ts;",
+    "`from` names the Deno.test case it came out of. Two implementations claim to",
+    "apply the same rules — the TypeScript one the server writes match_text with",
+    "(_shared/normalize.ts) and the Dart port the app writes it with",
+    "(lib/features/ingredients/domain/normalize.dart). This file is what stops them",
+    "drifting: it fails CI here rather than failing an import six weeks later.",
+    "Change a rule on either side and this file changes with it.",
+    "The Deno suite can read this same file (deno test --allow-read) to close the",
+    "loop from the other direction; today it still carries its own literals."
+  ],
+  "vectors": [
+    { "from": "spec §7 worked examples", "in": "2 large Onions, diced", "out": "onion" },
+    { "from": "spec §7 worked examples", "in": "Chicken thighs, boneless", "out": "chicken thigh boneless" },
+    { "from": "spec §7 worked examples", "in": "1 can coconut milk", "out": "coconut milk" },
+    { "from": "spec §7 worked examples", "in": "fresh ginger, grated", "out": "ginger fresh" },
+    { "from": "spec §7 worked examples", "in": "a handful of curry leaves", "out": "curry leaf" },
+
+    { "from": "keeps form/state words (the §7 own-goal)", "in": "ground ginger", "out": "ginger ground" },
+    { "from": "keeps form/state words (the §7 own-goal)", "in": "fresh ginger", "out": "ginger fresh" },
+    { "from": "keeps form/state words (the §7 own-goal)", "in": "coconut milk", "out": "coconut milk" },
+    { "from": "keeps form/state words (the §7 own-goal)", "in": "coconut cream", "out": "coconut cream" },
+
+    { "from": "is symmetric on stored names", "in": "Ginger, fresh", "out": "ginger fresh" },
+    { "from": "is symmetric on stored names", "in": "ginger fresh", "out": "ginger fresh" },
+
+    { "from": "singularization edge cases", "in": "tomatoes", "out": "tomato" },
+    { "from": "singularization edge cases", "in": "berries", "out": "berry" },
+    { "from": "singularization edge cases", "in": "asparagus", "out": "asparagus" },
+    { "from": "singularization edge cases", "in": "chives", "out": "chive" },
+    { "from": "singularization edge cases", "in": "olives", "out": "olive" },
+    { "from": "singularization edge cases", "in": "bay leaves", "out": "bay leaf" },
+
+    { "from": "preserves unicode letters", "in": "jalapeño", "out": "jalapeño" },
+    { "from": "preserves unicode letters", "in": "2 jalapeños, diced", "out": "jalapeño" },
+
+    { "from": "clove is a measure only next to an allium", "in": "2 cloves garlic, minced", "out": "garlic" },
+    { "from": "clove is a measure only next to an allium", "in": "3 garlic cloves", "out": "garlic" },
+    { "from": "clove is a measure only next to an allium", "in": "Pinch ground cloves", "out": "clove ground" },
+    { "from": "clove is a measure only next to an allium", "in": "pinch of cloves", "out": "clove" },
+
+    { "from": "stick is identity only next to cinnamon", "in": "2 cinnamon sticks", "out": "cinnamon stick" },
+    { "from": "stick is identity only next to cinnamon", "in": "Cinnamon Stick", "out": "cinnamon stick" },
+    { "from": "stick is identity only next to cinnamon", "in": "1 stick vegan butter (melted)", "out": "vegan butter" },
+    { "from": "stick is identity only next to cinnamon", "in": "ground cinnamon", "out": "cinnamon ground" },
+    { "from": "stick is identity only next to cinnamon", "in": "cinnamon", "out": "cinnamon" },
+
+    { "from": "hyphenated compounds split into words", "in": "all-purpose flour", "out": "all purpose flour" },
+    { "from": "hyphenated compounds split into words", "in": "extra-virgin olive oil", "out": "extra virgin olive oil" },
+
+    { "from": "drops vague amount words", "in": "Few cracks black pepper", "out": "black pepper" },
+    { "from": "drops vague amount words", "in": "Drizzle olive oil", "out": "olive oil" },
+    { "from": "drops vague amount words", "in": "Heaping tablespoon nutritional yeast", "out": "nutritional yeast" },
+    { "from": "drops vague amount words", "in": "hot chili or red pepper flakes", "out": "hot chili red pepper flake" },
+    { "from": "drops vague amount words", "in": "garlic, peeled and chopped", "out": "garlic" }
+  ]
+}

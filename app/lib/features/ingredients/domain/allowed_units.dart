@@ -72,8 +72,9 @@ const kImpreciseGatedCategories = {'spices & seasoning', 'fats & oils'};
 ///   volumes) — the canonical dimension is always sayable, so yeast (tsp
 ///   default, per-g macros) finally admits `g`;
 /// - the opposite mass/volume family **only** when the ingredient carries a
-///   density ([_crossKitchen] workhorses — without one, [convert] would
-///   fail with `unit/no_density`);
+///   density ([densityUnlockedUnits] — without one, [convert] would fail
+///   with `unit/no_density`); since the plan-0020 D4 amendment this fires
+///   for a count/imprecise default too ("1 cup diced mango");
 /// - the imprecise units only for [kImpreciseGatedCategories] (and for
 ///   imprecise-default rows).
 ///
@@ -105,16 +106,10 @@ Set<Unit> defaultAllowedUnitSet(Ingredient ingredient) {
     if (big) units.add(basisFamily == UnitFamily.mass ? kg : l);
   }
 
-  // Density leg: a stored density unlocks the other mass/volume family.
-  if (ingredient.densityGPerMl != null &&
-      (d.family == UnitFamily.mass || d.family == UnitFamily.volume)) {
-    if (d.family == UnitFamily.mass) {
-      units.addAll(_crossKitchen[UnitFamily.volume]!);
-    } else {
-      units
-        ..add(g)
-        ..addAll(big ? const [kg] : const []);
-    }
+  // Density leg: a stored density unlocks the other mass/volume family —
+  // whatever the default unit's family (ADR-0008 as amended, plan 0020 D4).
+  if (ingredient.densityGPerMl != null) {
+    units.addAll(densityUnlockedUnits(ingredient));
   }
 
   // Imprecise leg: category-gated (imprecise-default rows keep the tail).
@@ -130,15 +125,30 @@ Set<Unit> defaultAllowedUnitSet(Ingredient ingredient) {
 /// workhorses). The density write path unions these into the EXPLICIT
 /// `allowed_units` list in the same write: the stored list is never
 /// silently recomputed, so the one event that changes what is sayable — a
-/// density arriving — extends it explicitly. Empty for count/imprecise
-/// defaults (a density can't describe a piece).
+/// density arriving — extends it explicitly.
+///
+/// **ADR-0008 as amended (plan 0020 D4).** A density is a property of the
+/// substance, not of how the shop sells it: a mango is bought by the piece
+/// and still has a cup. So the unlock no longer depends on the default
+/// unit's family. A count- or imprecise-default row has no "other" family,
+/// so it unlocks BOTH families' workhorses — the big metric siblings staying
+/// behind the same `big` gate the mass/volume legs use, which is why Mango's
+/// `kg` chip stays locked on the board frame while `cup` opens.
+///
+/// Before the amendment this returned `const {}` for count/imprecise, which
+/// was the same bug on the in-app density-write path that
+/// `seed_curation.sql` was patching by hand for 49 produce rows.
 Set<Unit> densityUnlockedUnits(Ingredient ingredient) {
   final d = ingredient.defaultUnit;
   final big = d == cup || d == lb || d == l || d == kg;
   return switch (d.family) {
     UnitFamily.mass => _crossKitchen[UnitFamily.volume]!.toSet(),
     UnitFamily.volume => {g, if (big) kg},
-    _ => const {},
+    UnitFamily.count || UnitFamily.imprecise => {
+      ..._crossKitchen[UnitFamily.volume]!,
+      g,
+      if (big) kg,
+    },
   };
 }
 
@@ -199,6 +209,42 @@ List<Unit> allowedUnitsFor(Ingredient ingredient) {
       ? defaultAllowedUnitSet(ingredient)
       : explicit;
   return _orderUnits(set, ingredient);
+}
+
+/// One chip of the flesh-out form's admission editor (board `pv2-d2`, step
+/// 7.8 — the section that never got built until 8.5).
+typedef UnitAdmission = ({Unit unit, bool selected, bool locked});
+
+/// The admission editor's chips for [ingredient], in ADR-0008 chip order.
+///
+/// Three states, which is the whole point of the section: `selected` chips
+/// are what a line may say today; unselected-and-unlocked chips are ones the
+/// ADR would admit and the user has turned off (or not yet on); `locked`
+/// chips are the dashed ones — units only a **density** would unlock, drawn
+/// rather than hidden so the form explains what entering a density buys.
+///
+/// A stored unit outside the derived rules still appears, selected and
+/// unlocked: an explicit list is user-owned and must never be silently
+/// dropped by an editor that only understands the defaults.
+List<UnitAdmission> allowedUnitCandidates(Ingredient ingredient) {
+  final selected = allowedUnitsFor(ingredient).toSet();
+  final admissible = defaultAllowedUnitSet(ingredient);
+  // The same rules re-run as if a density existed: the difference is exactly
+  // what a density would unlock.
+  final withDensity = defaultAllowedUnitSet(
+    ingredient.densityGPerMl != null
+        ? ingredient
+        : ingredient.copyWith(densityGPerMl: 1),
+  );
+  final all = {...selected, ...admissible, ...withDensity};
+  return [
+    for (final u in _orderUnits(all, ingredient))
+      (
+        unit: u,
+        selected: selected.contains(u),
+        locked: !admissible.contains(u) && !selected.contains(u),
+      ),
+  ];
 }
 
 // --- v2: units + the ingredient's live measures (step 7.6) -------------------
