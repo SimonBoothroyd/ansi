@@ -113,13 +113,35 @@ class _DetailForm extends HookConsumerWidget {
     final defaultUnit = useState(ing.defaultUnit);
     final basis = useState(ing.macrosBasis);
     final macros = useState<_MacroDraft>(_MacroDraft.from(ing.macros));
+    // What the row last handed the macro draft. "Untouched" is defined against
+    // this rather than against blankness, so a row that arrives with numbers
+    // is as re-seedable as an empty one (G1, below).
+    final seededMacros = useState<_MacroDraft>(_MacroDraft.from(ing.macros));
+    // Bumped on every re-seed, and used as the macro fields' key. See G1.
+    final macroSeed = useState(0);
     final allowed = useState(allowedUnitsFor(ing).toSet());
     final message = useState<String?>(null);
+    // The USDA lookup's status note, owned HERE rather than inside the button
+    // (plan 0020 **G3**): one piece of state, stamped with the row it was
+    // written about, so a later change to that row retires it instead of
+    // leaving a superseded sentence under a banner that has moved on.
+    final lookupNote = useState<_LookupNote?>(null);
     final busy = useState(false);
     // Set when the measures editor refused a volume-named label and handed
     // back the resolved spoon — the density entry pre-picks it (F2: one
     // shared editor, so the redirect works here exactly as in the sheet).
     final redirectedSpoon = useState<Unit?>(null);
+
+    // The row as the FORM currently reads it: the stored facts with the two
+    // draft choices the D4c admission rule turns on — the default unit and
+    // the macros basis — folded in. Every "what may this row say" question
+    // below asks this rather than the stored row, so flipping the basis chip
+    // moves the locks and the flag with it instead of leaving them answering
+    // for a row nobody is looking at.
+    final draftRow = ingredient.copyWith(
+      defaultUnit: defaultUnit.value,
+      macrosBasis: basis.value,
+    );
 
     // A density write lands through the repository and re-renders this screen
     // via the watched provider; the local allowed-set follows both ways, so
@@ -130,13 +152,54 @@ class _DetailForm extends HookConsumerWidget {
     useEffect(() {
       final next = {...allowed.value};
       if (densityValue != null) {
-        next.addAll(densityUnlockedUnits(ing));
+        next.addAll(densityUnlockedUnits(draftRow));
       } else {
-        next.removeAll(densityStrippedUnits(ing));
+        next.removeAll(densityStrippedUnits(draftRow));
       }
       allowed.value = next;
       return null;
     }, [densityValue]);
+
+    // **G1 — a lookup's numbers reach the fields, not just the row.**
+    //
+    // The macro inputs are seeded once, when their controllers are built: a
+    // successful "Look up in USDA" wrote macros into the row and re-rendered
+    // everything *derived* from it (the banner, the chips, the status line)
+    // while the four fields went on showing the blanks they were born with.
+    //
+    // Re-seeding the draft is half the fix; the other half is making the
+    // framework rebuild the controllers, which it will only do for a child
+    // whose key changed. Keying is the approach that survives this file's
+    // stable-slot rule — the ListView index does not move, so no sibling is
+    // reconciled against the wrong element; only the keyed subtree at that
+    // fixed index is replaced.
+    //
+    // The guard is what keeps a pending edit safe: the draft is re-seeded only
+    // while it still says exactly what the row last put there. Type into any
+    // macro field and the row's own changes stop overwriting you.
+    final rowMacros = ing.macros;
+    useEffect(() {
+      final fresh = _MacroDraft.from(rowMacros);
+      if (fresh == seededMacros.value) return null; // the row didn't move
+      if (macros.value != seededMacros.value) return null; // yours wins
+      seededMacros.value = fresh;
+      macros.value = fresh;
+      macroSeed.value++;
+      return null;
+    }, [rowMacros]);
+
+    // G3's other half: the lookup note is about ONE version of the row, and
+    // anything that moves the row on — a confirm, an unconfirm, a density
+    // landing, another device's write arriving — makes it a stale sentence.
+    // Retiring it here means there is exactly one place that decides, rather
+    // than a note the button forgot to clear.
+    final stamp = _lookupStamp(ing);
+    useEffect(() {
+      if (lookupNote.value != null && lookupNote.value!.forStamp != stamp) {
+        lookupNote.value = null;
+      }
+      return null;
+    }, [stamp]);
 
     // A `complete` row is one whose macros the household stands behind — the
     // form's own draft is what the CTA acts on, so the gate reads the draft.
@@ -205,10 +268,7 @@ class _DetailForm extends HookConsumerWidget {
             onChange: (v) => name.value = v.text,
           ),
         ),
-        const _Note(
-          'renaming rewrites the match text — otherwise the next import '
-          'searches for a name nothing carries',
-        ),
+        const _Note('renaming rewrites the match text'),
 
         const _Label('ALSO KNOWN AS'),
         _AliasEditor(ingredientId: ing.id),
@@ -220,13 +280,28 @@ class _DetailForm extends HookConsumerWidget {
         ),
         const SizedBox(height: 8),
         _UnitChoiceRow(
+          // Keyed so a test can ask this row — and only this row — which of
+          // its chips D4c has locked.
+          key: const ValueKey('default-unit-row'),
+          ingredient: draftRow,
           selected: defaultUnit.value,
           onPick: (u) {
             defaultUnit.value = u;
-            // The default unit's own family is always sayable — keep the
-            // chosen unit admitted rather than leaving a row whose default
-            // its own allowed list forbids.
+            // Only an admissible unit can be tapped (D4c locks the rest), so
+            // admitting the pick can never strand the row.
             allowed.value = {...allowed.value, u};
+          },
+        ),
+        // D4c: a stored default the rules no longer support — a cup default
+        // on a per-100 g row with no density. Flagged with its repair rather
+        // than rewritten: how a household buys a thing is not ours to edit.
+        _StrandedDefaultNote(
+          ingredient: draftRow,
+          onFix: () async {
+            final fix = basisDefaultUnitFix(draftRow);
+            defaultUnit.value = fix;
+            allowed.value = {...allowed.value, fix};
+            await save();
           },
         ),
 
@@ -247,7 +322,11 @@ class _DetailForm extends HookConsumerWidget {
           ],
         ),
         const SizedBox(height: 8),
+        // The key is the row-version (G1): it changes only when the row's own
+        // macros were re-seeded into the draft above, and that is exactly when
+        // the four controllers need rebuilding around their new text.
         _MacroFields(
+          key: ValueKey('macro-fields-${macroSeed.value}'),
           draft: macros.value,
           onChanged: (d) => macros.value = d,
           initial: ing.macros,
@@ -262,11 +341,11 @@ class _DetailForm extends HookConsumerWidget {
             ref.invalidate(ingredientByIdProvider(ing.id));
           },
         ),
-        _DensityGapNote(ingredient: ing),
+        _DensityGapNote(ingredient: draftRow),
 
         const _Label('ALLOWED UNITS — WHAT A LINE MAY SAY'),
         _AdmissionChips(
-          ingredient: ing,
+          ingredient: draftRow,
           selected: allowed.value,
           onToggle: (u) {
             final next = {...allowed.value};
@@ -340,7 +419,15 @@ class _DetailForm extends HookConsumerWidget {
         // again, so that landing a density (which retires the note above)
         // cannot shift this section and wipe what it just said.
         if (stub)
-          _UsdaLookup(ingredient: ing, flush: save)
+          _UsdaLookup(
+            ingredient: ing,
+            flush: save,
+            note: lookupNote.value?.text,
+            onStatus: (text, about) => lookupNote.value = _LookupNote(
+              text,
+              _lookupStamp(about ?? ing),
+            ),
+          )
         else
           const SizedBox.shrink(),
 
@@ -404,6 +491,7 @@ class _MacroFields extends StatelessWidget {
     required this.draft,
     required this.onChanged,
     required this.initial,
+    super.key,
   });
 
   final _MacroDraft draft;
@@ -490,10 +578,8 @@ class _AdmissionChips extends StatelessWidget {
         ),
         if (candidates.any((c) => c.locked))
           _Note(
-            'dashed chips need a density — the ${_basisFamilyWord(ingredient)} '
-            'side is always yours to pick; the ${_crossFamilyWord(ingredient)} '
-            'side is admitted by the density and stripped again if you delete '
-            'it (ADR-0009, D4b)',
+            'dashed chips need a density — the '
+            '${_crossFamilyWord(ingredient)} side is the density’s to give',
           ),
       ],
     );
@@ -615,9 +701,21 @@ class _CategoryPicker extends ConsumerWidget {
 }
 
 /// The single-select default-unit row.
+///
+/// **D4c** locks the options the row could not honestly say: with no density
+/// the other mass/volume family is not pickable as a default any more than it
+/// is sayable on a line. The chips are drawn disabled rather than hidden —
+/// the same rule the admission section follows, so "why can't I pick cup" has
+/// a visible answer one section down.
 class _UnitChoiceRow extends StatelessWidget {
-  const _UnitChoiceRow({required this.selected, required this.onPick});
+  const _UnitChoiceRow({
+    required this.ingredient,
+    required this.selected,
+    required this.onPick,
+    super.key,
+  });
 
+  final Ingredient ingredient;
   final Unit selected;
   final ValueChanged<Unit> onPick;
 
@@ -632,8 +730,52 @@ class _UnitChoiceRow extends StatelessWidget {
             MiseModeChip(
               label: u.label,
               selected: u == selected,
+              // A stranded stored default still renders as the selection —
+              // it is the truth about the row, and the note below it is how
+              // it gets fixed.
+              enabled: unitSayableAsDefault(ingredient, u) || u == selected,
               onTap: () => onPick(u),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// **D4c(c)** — the row whose stored default unit its own rules no longer
+/// support: `cup` on a per-100 g row with no density (the renamed-rice shape
+/// the owner hit). Never rewritten silently; named, with the one tap that
+/// repairs it.
+class _StrandedDefaultNote extends StatelessWidget {
+  const _StrandedDefaultNote({required this.ingredient, required this.onFix});
+
+  final Ingredient ingredient;
+  final Future<void> Function() onFix;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!defaultUnitNeedsDensity(ingredient)) return const SizedBox.shrink();
+    final fix = basisDefaultUnitFix(ingredient);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${ingredient.defaultUnit.label} needs a density on this row — '
+            'enter one below, or:',
+            style: miseMono(size: 10, color: MiseColors.gone),
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FButton(
+              size: FButtonSizeVariant.sm,
+              variant: FButtonVariant.outline,
+              onPress: onFix,
+              child: Text('switch default to ${fix.label}'),
+            ),
+          ),
         ],
       ),
     );
@@ -847,11 +989,7 @@ class _ConfirmCta extends StatelessWidget {
           onPress: enabled ? onConfirm : null,
           child: const Text('Confirm — it counts from here'),
         ),
-        if (!enabled)
-          const _Note(
-            'needs macros — a row can’t count towards a total with numbers '
-            'nobody supplied',
-          ),
+        if (!enabled) const _Note('needs macros'),
       ],
     );
   }
@@ -891,7 +1029,12 @@ class _UnconfirmAction extends StatelessWidget {
 /// edits, then probes under the name that is now stored. That is also why the
 /// helper copy names what the wait is — an RPC round trip, not a sync one.
 class _UsdaLookup extends HookConsumerWidget {
-  const _UsdaLookup({required this.ingredient, required this.flush});
+  const _UsdaLookup({
+    required this.ingredient,
+    required this.flush,
+    required this.note,
+    required this.onStatus,
+  });
 
   final Ingredient ingredient;
 
@@ -900,21 +1043,32 @@ class _UsdaLookup extends HookConsumerWidget {
   /// lookup that reads a name the user has already changed is the F1 bug.
   final Future<Ingredient?> Function() flush;
 
+  /// The status to show, or null for none. Held by the form (**G3**) — this
+  /// widget reports outcomes and renders what it is given, so there is one
+  /// answer to "what does the lookup currently say" and one place that
+  /// retires it.
+  final String? note;
+
+  /// Reports a new status and the row it is about — the stored row after the
+  /// flush, or the enriched row after an apply. The form stamps the note with
+  /// that version, so a later change to the row supersedes it.
+  final void Function(String text, Ingredient? about) onStatus;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final note = useState<String?>(null);
     final busy = useState(false);
 
     Future<void> lookUp() async {
       busy.value = true;
-      note.value = 'Saving, then asking USDA…';
+      onStatus('Saving, then asking USDA…', null);
       try {
         final saved = await flush();
         if (!context.mounted) return;
         if (saved == null) {
-          note.value =
-              'Save what is on this form first — the lookup asks '
-              'about the name that is stored.';
+          onStatus(
+            'Save this form first — the lookup asks about the stored name.',
+            null,
+          );
           return;
         }
         final result = await enrichFromUsda(
@@ -924,25 +1078,29 @@ class _UsdaLookup extends HookConsumerWidget {
         );
         if (!context.mounted) return;
         ref.invalidate(ingredientByIdProvider(ingredient.id));
-        note.value = switch (result.outcome) {
-          UsdaEnrichment.applied =>
-            'USDA FoodData Central filled this in — check the numbers, then '
-                'confirm. Nothing counts until you do.',
+        // Stamped against the row the outcome is ABOUT: the enriched row when
+        // one was written, otherwise the row as the flush left it. Reporting
+        // the pre-lookup row would retire the note the instant its own write
+        // arrived.
+        // G6's trim reaches here too: the banner above already says "check
+        // it / nothing counts until you confirm", so the note says what
+        // happened and stops. What survives is what only this sentence can
+        // tell you — the name that was asked about, and the offline fallback.
+        onStatus(switch (result.outcome) {
+          UsdaEnrichment.applied => 'USDA FoodData Central filled this in.',
           UsdaEnrichment.nothingToCopy =>
-            'USDA has a food by that name but no density and no panel for '
-                'it. Fill it in by hand.',
+            'USDA has that name but no numbers for it — fill it in by hand.',
           // Offline and "no confident match" are one state on purpose: the
           // user cannot act differently on them, and the server trigger
           // re-runs the same probe when this row uploads either way. Never a
           // dialog for a network miss.
           UsdaEnrichment.noAnswer =>
-            'Nothing came back for “${saved.canonicalName}”. If you are '
-                'offline the server runs the same lookup when this row syncs '
-                'up. Renaming it asks again.',
+            'Nothing came back for “${saved.canonicalName}” — if you are '
+                'offline, the server runs the same lookup when this row syncs '
+                'up.',
           UsdaEnrichment.notBare =>
-            'Nothing to fill in — this row already has numbers. A lookup only '
-                'ever fills blanks, so it can’t overwrite what you entered.',
-        };
+            'Nothing to fill in — this row already has numbers.',
+        }, result.row ?? saved);
       } finally {
         if (context.mounted) busy.value = false;
       }
@@ -955,11 +1113,32 @@ class _UsdaLookup extends HookConsumerWidget {
           label: busy.value ? 'Looking up…' : 'Look up in USDA',
           onTap: busy.value ? null : lookUp,
         ),
-        if (note.value != null) _Note(note.value!),
+        if (note != null) _Note(note!),
       ],
     );
   }
 }
+
+/// A lookup status and the row version it was written about (**G3**).
+///
+/// The stamp is deliberately narrow — the facts a lookup status can talk
+/// about, and nothing else — so an unrelated edit (a category, a measure)
+/// does not wipe a note that is still true.
+class _LookupNote {
+  const _LookupNote(this.text, this.forStamp);
+
+  final String text;
+  final String forStamp;
+}
+
+/// The row version a lookup status is pinned to.
+String _lookupStamp(Ingredient i) => [
+  i.canonicalName,
+  i.status.name,
+  i.source ?? '',
+  i.densityGPerMl?.toString() ?? '',
+  i.macros?.toString() ?? '',
+].join('|');
 
 /// Delete, guarded. The refusal is the interesting state: it names the count,
 /// because "used by 3 recipes" is a thing a user can act on and "failed" is
@@ -993,8 +1172,7 @@ class _DeleteAction extends HookConsumerWidget {
                     'Still used by $recipeCount '
                     '${recipeCount == 1 ? 'recipe' : 'recipes'} '
                     '($lineCount ${lineCount == 1 ? 'line' : 'lines'}). '
-                    'Change those lines first — a line’s ingredient is never '
-                    'allowed to dangle.';
+                    'Change those lines first.';
               case DeleteMissing():
                 refusal.value = 'It is already gone.';
             }
@@ -1065,6 +1243,12 @@ class _GhostButton extends StatelessWidget {
 /// that disappears shifts every sibling below it onto the wrong element —
 /// silently resetting their hook state, which is how the lookup's own note
 /// vanished exactly when it had good news.
+///
+/// **G6 — one line, computed.** It used to be three sentences, and the middle
+/// one was wrong for a volume-default row: it named a family as locked from
+/// the basis alone rather than from what is actually dashed below. It now
+/// reads the same candidate list the chips do and names those units, or says
+/// nothing at all when nothing is locked.
 class _DensityGapNote extends StatelessWidget {
   const _DensityGapNote({required this.ingredient});
 
@@ -1073,11 +1257,12 @@ class _DensityGapNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (ingredient.densityGPerMl != null) return const SizedBox.shrink();
-    return _Note(
-      'no density — the ${_crossFamilyWord(ingredient)} chips below stay '
-      'locked; the ${_basisFamilyWord(ingredient)} ones never needed one. '
-      'That blocks nothing: macros are what a row needs to count.',
-    );
+    final locked = [
+      for (final c in allowedUnitCandidates(ingredient))
+        if (c.locked) c.unit.label,
+    ];
+    if (locked.isEmpty) return const SizedBox.shrink();
+    return _Note('no density — ${locked.join(' · ')} locked');
   }
 }
 
@@ -1124,6 +1309,7 @@ class _Note extends StatelessWidget {
 
 /// The four macro inputs as typed text, so "half filled in" is a state the
 /// form can name rather than a silent zero.
+@immutable
 class _MacroDraft {
   const _MacroDraft({
     required this.kcal,
@@ -1158,6 +1344,19 @@ class _MacroDraft {
 
   List<String> get _fields => [kcal, protein, carb, fat];
 
+  // Value equality is load-bearing for G1: "the user has not touched these"
+  // is the comparison between the live draft and the one the row last seeded.
+  @override
+  bool operator ==(Object other) =>
+      other is _MacroDraft &&
+      other.kcal == kcal &&
+      other.protein == protein &&
+      other.carb == carb &&
+      other.fat == fat;
+
+  @override
+  int get hashCode => Object.hash(kcal, protein, carb, fat);
+
   bool get _allBlank => _fields.every((f) => f.trim().isEmpty);
 
   /// All four parse, or all four are blank. Anything between is a panel with
@@ -1178,15 +1377,8 @@ class _MacroDraft {
   }
 }
 
-/// The family the ingredient's macros are read in — per 100 g ⇒ weight, per
-/// 100 ml ⇒ volume. D4b: this side of the admission editor is **always**
-/// toggleable, because the canonical dimension is sayable with or without a
-/// density (ADR-0008 §1).
-String _basisFamilyWord(Ingredient ingredient) =>
-    ingredient.macrosBasis == MacrosBasis.perMl ? 'volume' : 'weight';
-
-/// The other side — the one a stored density admits and a deleted density
-/// takes back (D4b).
+/// The side a stored density admits and a deleted density takes back (D4b) —
+/// the opposite of the basis family, which is always sayable (ADR-0008 §1).
 String _crossFamilyWord(Ingredient ingredient) =>
     ingredient.macrosBasis == MacrosBasis.perMl ? 'weight' : 'volume';
 

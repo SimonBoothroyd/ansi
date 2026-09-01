@@ -190,6 +190,12 @@ class _ManagerRow extends StatelessWidget {
 /// The per-row hint says **needs macros**, not "needs density · macros": the
 /// D5 gate is macros alone, and a missing density is an advisory the full row
 /// below already carries.
+///
+/// **G4** — and once a prefill has put macros there, the hint stops asking
+/// for what the row already has. It reads **needs confirm**, which is D5's
+/// own language for the one thing still missing: a human standing behind the
+/// numbers. "needs macros" stays for the truly bare stubs, where it is the
+/// literal truth.
 class _StubBand extends StatelessWidget {
   const _StubBand({required this.stubs, required this.onOpen});
 
@@ -235,9 +241,13 @@ class _StubBand extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      isUsdaPrefilled(s.source)
-                          ? 'needs macros · usda prefilled'
-                          : 'needs macros',
+                      [
+                        if (s.macros == null)
+                          'needs macros'
+                        else
+                          'needs confirm',
+                        if (isUsdaPrefilled(s.source)) 'usda prefilled',
+                      ].join(' · '),
                       style: miseMono(size: 10, color: MiseColors.muted),
                     ),
                   ],
@@ -246,9 +256,7 @@ class _StubBand extends StatelessWidget {
             ),
           const SizedBox(height: 4),
           Text(
-            'Until a stub carries macros it stays out of macro totals. A '
-            'missing density blocks nothing — it only leaves the volume '
-            'chips locked.',
+            'A stub stays out of macro totals until you confirm it.',
             style: miseMono(size: 10, color: MiseColors.muted),
           ),
         ],

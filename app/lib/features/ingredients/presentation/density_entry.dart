@@ -108,49 +108,76 @@ class DensityEntry extends HookConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
+        // A `Wrap`, not a `Row` with a `Spacer` (plan 0020 **G2**). In the
+        // "none yet" state the caption is at its longest and the two phrasing
+        // chips are at their widest, and the four together are wider than a
+        // phone — 55px of debug stripe on the owner's 402pt device. A `Spacer`
+        // cannot give room it has not got; a `Wrap` drops the chips onto a
+        // second line and keeps the spaced-apart look on any width where they
+        // still fit. Each side is one indivisible group, so the caption never
+        // splits from its headline.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 6,
           children: [
-            Text(headline, style: miseLabel()),
-            const SizedBox(width: 8),
-            Text(
-              density == null
-                  ? 'none yet — unlocks volume⇄weight'
-                  : '${formatDensity(density)} g/ml',
-              style: miseMono(
-                size: 10,
-                color: density == null ? MiseColors.muted : MiseColors.herbDeep,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(headline, style: miseLabel()),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    density == null
+                        ? 'none yet — unlocks volume⇄weight'
+                        : '${formatDensity(density)} g/ml',
+                    style: miseMono(
+                      size: 10,
+                      color: density == null
+                          ? MiseColors.muted
+                          : MiseColors.herbDeep,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const Spacer(),
-            MiseModeChip(
-              label: 'g/ml',
-              selected: !spoonMode.value,
-              onTap: () => spoonMode.value = false,
-            ),
-            const SizedBox(width: 6),
-            MiseModeChip(
-              label: 'a spoon weighs…',
-              selected: spoonMode.value,
-              onTap: () => spoonMode.value = true,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                MiseModeChip(
+                  label: 'g/ml',
+                  selected: !spoonMode.value,
+                  onTap: () => spoonMode.value = false,
+                ),
+                const SizedBox(width: 6),
+                MiseModeChip(
+                  label: 'a spoon weighs…',
+                  selected: spoonMode.value,
+                  onTap: () => spoonMode.value = true,
+                ),
+              ],
             ),
           ],
         ),
         const SizedBox(height: 8),
         if (spoonMode.value)
-          Row(
+          // Also a Wrap (G2): "1 · tsp tbsp cup · weighs · [g] · Save" is a
+          // whole sentence of controls, and it had three points of slack at
+          // 402pt — none at all on a 390pt phone.
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 6,
+            runSpacing: 6,
             children: [
               Text('1', style: miseMono(size: 13)),
-              const SizedBox(width: 6),
-              for (final u in _spoons) ...[
+              for (final u in _spoons)
                 MiseModeChip(
                   label: u.label,
                   selected: spoon.value == u,
                   onTap: () => spoon.value = u,
                 ),
-                const SizedBox(width: 6),
-              ],
               Text('weighs', style: miseMono(size: 13)),
-              const SizedBox(width: 8),
               SizedBox(
                 width: 72,
                 child: FTextField(
@@ -164,7 +191,6 @@ class DensityEntry extends HookConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
               FButton(
                 size: FButtonSizeVariant.sm,
                 onPress: save,
@@ -272,12 +298,9 @@ class _RemoveDensity extends StatelessWidget {
         children: [
           Text(
             stripped.isEmpty
-                ? 'Remove it? Nothing about what a line may say changes — '
-                      'this row’s units come from its basis, not its density.'
+                ? 'Remove it? Nothing about what a line may say changes.'
                 : 'Remove it? ${stripped.map((u) => u.label).join(' · ')} '
-                      'lock again — those were sayable only because of this '
-                      'number. A line already saying one keeps saying it, '
-                      'flagged rather than rewritten.',
+                      'lock again.',
             style: miseMono(size: 10, color: MiseColors.muted),
           ),
           const SizedBox(height: 6),

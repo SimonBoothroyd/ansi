@@ -611,6 +611,47 @@ Append-only.
   from the row (it currently claims chips are locked when they aren't), and
   the form's helper prose generally gets an essay-trim. Existing lines in a
   now-locked unit degrade to the standard flag, as everywhere.
+- 2026-08-31 — **Batch 2 + D4c landed.** G1: the macro fields re-seed from the
+  refreshed row through a **row-version key** on the fields' stable ListView
+  slot (the draft is re-seeded, and the key change rebuilds the four
+  controllers around it), guarded so it only fires while the draft still says
+  what the row last put there — a pending user edit outranks the row, and no
+  sibling moves, so the polish pass's stable-slot rule holds. G2: the density
+  header and the spoon phrasing are `Wrap`s; a `Spacer` cannot give room it
+  has not got. G3: the lookup note moved into the form and carries the row
+  version it was written about, so anything that moves the row on retires it —
+  one place decides, and it is not the button. G4: a stub with macros hints
+  **needs confirm**. G5/**D4c**: `_derivedSet` gates the default-unit mates
+  leg on `density || default family == basis family`;
+  `densityUnlockedUnits` becomes `derived(with) − derived(without)` (so a
+  density landing on a cup-default per-100 g row finally unions `cup` itself,
+  which the old cross-leg-only version did not) and `densityStrippedUnits` is
+  the same rule read backwards; `allowedUnitsFor` subtracts the density-
+  derived units while the number is missing, **including from an explicit
+  list** — which is what makes the D4c(d) line degradation true for a stale
+  server-materialized list, and closes a D4b half-landing where the editor
+  drew a chip locked while the picker still offered it. The default-unit
+  selector locks the other family, and a stranded default is flagged with its
+  one-tap repair. G6: the density-gap note is one line computed from the
+  chips actually drawn locked (it is silent when nothing is), and the form's
+  prose lost every clause the UI already shows.
+- 2026-08-31 — **The SQL admission mirror is deliberately left one rule
+  behind (D4c).** `default_allowed_units()` (0012/0014) still counts the
+  default unit's family, and `density_unlocked_units(p_default_unit)` is a
+  function of the default unit ALONE — while the Dart unlock is now a
+  function of the macros basis too, so parity needs a signature change, not a
+  body edit. Not written in this batch, and recorded as tech debt instead,
+  because: (a) nothing user-visible diverges — the app subtracts the
+  density-derived units on read, so a row materialized under the looser rule
+  is drawn locked and refused on a line exactly as if the server had written
+  the strict list; (b) the one real gap is a density landing **server-side**
+  on a cross-family-default row, where the trigger's union is short by that
+  row's own family until an app-side edit re-materializes it; and (c) the
+  fix must not touch existing rows — ADR-0009's union-never-remove governs
+  server writes, and D4c is a derivation/edit rule, not a licence to backfill
+  removals over households' own lists. The pgTAP vectors move with the
+  function when it moves; `allowed_units_test.dart` carries the strict rule
+  today.
 - 2026-08-31 — **Batch 4 (owner exploration + agent verification gate).**
   H1: `make db-up` does not serve edge functions and no target existed — a
   photo import in the dev loop failed as "could not process this recipe"

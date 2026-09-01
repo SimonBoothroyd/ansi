@@ -67,6 +67,19 @@ const _curryLeaves = Ingredient(
   source: 'usda_fdc:11216',
 );
 
+/// The D4c shape the owner hit: a cup default on a per-100 g row with no
+/// density, carrying an `allowed_units` list materialized under the looser
+/// pre-D4c rule.
+const _blackRice = Ingredient(
+  id: 'rice',
+  canonicalName: 'Black rice',
+  defaultUnit: cup,
+  status: IngredientStatus.stub,
+  category: 'pantry',
+  allowedUnits: [cup, tbsp, ml, l, g, kg],
+  source: 'manual',
+);
+
 const _yeast = Ingredient(
   id: 'yeast',
   canonicalName: 'Nutritional yeast',
@@ -193,6 +206,38 @@ Finder _macroField(String label) => find.descendant(
   matching: find.byType(TextField),
 );
 
+/// What a macro field currently SHOWS — the assertion G1 exists for: the row
+/// having the numbers is not the same as the open form having them.
+String _macroFieldText(WidgetTester tester, String label) =>
+    tester.widget<TextField>(_macroField(label)).controller!.text;
+
+/// The measures editor's label input — a field the form's own save never
+/// touches, so a pending edit in it is the control for "did the re-seed
+/// clobber anything else".
+final Finder _measureLabelField = find
+    .descendant(
+      of: find.byType(MeasuresEditor),
+      matching: find.byType(TextField),
+    )
+    .first;
+
+/// A default-unit chip by label, scoped to the D4c selector row.
+MiseModeChip _defaultUnitChip(WidgetTester tester, String label) =>
+    tester.widget<MiseModeChip>(
+      find.descendant(
+        of: find.byKey(const ValueKey('default-unit-row')),
+        matching: find.widgetWithText(MiseModeChip, label),
+      ),
+    );
+
+/// A phone-width viewport, tall enough that the whole form still builds:
+/// width is what an overflow is about (G2), and the form is one long scroll.
+void _phoneWidth(WidgetTester tester) {
+  tester.view.physicalSize = const Size(402, 4000);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+}
+
 /// Opening a Forui sheet with the semantics tree live trips a framework
 /// assertion (tracker row `app/ui`); filter exactly that, as the other sheet
 /// tests do.
@@ -238,6 +283,32 @@ Widget _host(
     ),
   );
 }
+
+/// The density section on its own, inside the form's own page padding — the
+/// width G2 is about, without the rest of the scroll in the way.
+Widget _densityHost(Ingredient ingredient) => ProviderScope(
+  overrides: [
+    ingredientRepositoryProvider.overrideWithValue(
+      FakeIngredientRepo([ingredient]),
+    ),
+  ],
+  child: MaterialApp(
+    home: FTheme(
+      data: miseThemeData(),
+      child: FScaffold(
+        childPad: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: DensityEntry(
+            ingredient: ingredient,
+            redirectedSpoon: null,
+            onSaved: (_) {},
+          ),
+        ),
+      ),
+    ),
+  ),
+);
 
 /// The add sheet on its own, with the probe overridable — the creation flows
 /// are where D7b's "born enriched" lives.
@@ -304,6 +375,24 @@ void main() {
       expect(find.textContaining('60 kcal · 1P 0F 15C'), findsOneWidget);
     });
 
+    testWidgets('G4: a prefilled-but-unconfirmed stub hints NEEDS CONFIRM — '
+        'the hint stops asking for what the row already has', (tester) async {
+      _filterSemanticsAssertions();
+      // Same row, one difference: the prefill has landed its panel.
+      final prefilled = _curryLeaves.copyWith(macros: _usdaAnswer.macros);
+      await tester.pumpWidget(
+        _host(FakeIngredientRepo([_mango, prefilled, _blackRice])),
+      );
+      await tester.pumpAndSettle();
+
+      // D5's language: the numbers are there, a human standing behind them
+      // is what is missing.
+      expect(find.text('needs confirm · usda prefilled'), findsOneWidget);
+      // …while a truly bare stub still says the literal truth.
+      expect(find.text('needs macros'), findsOneWidget);
+      expect(find.text('2 stubs'), findsOneWidget);
+    });
+
     testWidgets('no band at all when nothing is a stub', (tester) async {
       _filterSemanticsAssertions();
       await tester.pumpWidget(_host(FakeIngredientRepo(const [_mango])));
@@ -341,10 +430,9 @@ void main() {
         find.text('Still a stub — left out of macro totals until confirmed.'),
         findsOneWidget,
       );
-      expect(
-        find.textContaining('needs macros — a row can’t count'),
-        findsOneWidget,
-      );
+      // G6's trim: the status line one row up already explains what a stub
+      // costs, so the CTA's own note says only what it is waiting for.
+      expect(find.text('needs macros'), findsOneWidget);
       final cta = tester.widget<FButton>(
         find.ancestor(
           of: find.text('Confirm — it counts from here'),
@@ -481,10 +569,7 @@ void main() {
       // named before it happens.
       await tester.tap(find.text('remove the density'));
       await tester.pumpAndSettle();
-      expect(
-        find.textContaining('lock again — those were sayable only because'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('lock again'), findsOneWidget);
       await tester.tap(find.widgetWithText(FButton, 'Remove'));
       await tester.pumpAndSettle();
 
@@ -496,8 +581,8 @@ void main() {
       expect(_dashedChipLabels(tester), {'tsp', 'tbsp', 'cup', 'ml'});
     });
 
-    testWidgets('a density-less row draws the locked chips and says a missing '
-        'density blocks nothing', (tester) async {
+    testWidgets('G6: a density-less row draws the locked chips, and the note '
+        'above them is ONE line naming exactly those units', (tester) async {
       _filterSemanticsAssertions();
       _tallScreen(tester);
       await tester.pumpWidget(
@@ -511,10 +596,24 @@ void main() {
         find.textContaining('dashed chips need a density'),
         findsOneWidget,
       );
+      // It used to be three sentences, one of which claimed a family was
+      // locked from the basis rather than from what is actually dashed.
       expect(
-        find.textContaining('macros are what a row needs to count'),
+        find.text('no density — tsp · tbsp · cup · ml locked'),
         findsOneWidget,
       );
+      expect(find.textContaining('That blocks nothing'), findsNothing);
+    });
+
+    testWidgets('G6: a row with a density says nothing at all there — a note '
+        'with no news is noise', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      await tester.pumpWidget(
+        _host(FakeIngredientRepo(const [_mango]), at: '/ingredients/mango'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('no density —'), findsNothing);
     });
 
     testWidgets('delete is refused with the count while a live line points '
@@ -755,6 +854,187 @@ void main() {
         find.textContaining('USDA FoodData Central filled this in'),
         findsOneWidget,
       );
+    });
+
+    testWidgets('G1: a successful lookup lands its numbers in the OPEN form’s '
+        'macro fields — the row filling up is not the same as the form '
+        'showing it', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo([
+        _curryLeaves.copyWith(source: 'manual'),
+      ]);
+      final probe = _RecordingProbe(_usdaAnswer);
+      await tester.pumpWidget(
+        _host(repo, at: '/ingredients/curry', probe: probe),
+      );
+      await tester.pumpAndSettle();
+
+      // A bare stub: four empty fields, and a pending edit in a field the
+      // form's own save does not touch.
+      expect(_macroFieldText(tester, 'kcal'), isEmpty);
+      await tester.enterText(_measureLabelField, 'small bunch');
+      await tester.pump();
+
+      await tester.tap(find.text('Look up in USDA'));
+      await tester.pumpAndSettle();
+
+      // The row got the numbers…
+      expect(
+        (await repo.byId('curry'))!.macros,
+        const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
+      );
+      // …and so did the fields, without leaving the screen. This is G1: the
+      // controllers are seeded once at build, so before the row-version key
+      // they went on showing the blanks they were born with.
+      expect(_macroFieldText(tester, 'kcal'), '108');
+      expect(_macroFieldText(tester, 'protein'), '6');
+      expect(_macroFieldText(tester, 'carb'), '19');
+      expect(_macroFieldText(tester, 'fat'), '1');
+      // The density landed too, and the entry reads it off the row.
+      expect(find.textContaining('0.35'), findsWidgets);
+      // The uncommitted edit elsewhere is exactly where it was left: the
+      // re-seed replaces the macro subtree at its own fixed slot, and shifts
+      // nothing.
+      expect(
+        tester.widget<TextField>(_measureLabelField).controller!.text,
+        'small bunch',
+      );
+    });
+
+    testWidgets('G1: numbers the user is part-way through typing are never '
+        'clobbered — a pending edit outranks the row', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo([
+        _curryLeaves.copyWith(source: 'manual'),
+      ]);
+      final probe = _RecordingProbe(_usdaAnswer);
+      await tester.pumpWidget(
+        _host(repo, at: '/ingredients/curry', probe: probe),
+      );
+      await tester.pumpAndSettle();
+
+      // Half a panel: the save refuses it, so the lookup never runs…
+      await tester.enterText(_macroField('kcal'), '999');
+      await tester.pump();
+      await tester.tap(find.text('Look up in USDA'));
+      await tester.pumpAndSettle();
+
+      expect(probe.asked, isEmpty);
+      expect(find.textContaining('Save this form first'), findsOneWidget);
+      // …and the number in flight is still in flight.
+      expect(_macroFieldText(tester, 'kcal'), '999');
+    });
+
+    testWidgets('G3: a lookup status is retired the moment the row moves on — '
+        'no superseded sentence under a banner that has changed', (
+      tester,
+    ) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo([
+        _curryLeaves.copyWith(source: 'manual'),
+      ]);
+      // A candidate with a name but nothing to copy — the note the owner saw
+      // linger.
+      final probe = _RecordingProbe(
+        const UsdaCandidate(fdcId: 11216, source: 'usda_fdc:11216', score: 0.7),
+      );
+      await tester.pumpWidget(
+        _host(repo, at: '/ingredients/curry', probe: probe),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Look up in USDA'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('no numbers for it'), findsOneWidget);
+
+      // Now the row changes underneath the note — a density lands, and it
+      // stays a stub, so the section itself is still on screen.
+      await tester.enterText(_densityField, '0.35');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FButton, 'Save').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Look up in USDA'), findsOneWidget);
+      expect(find.textContaining('no numbers for it'), findsNothing);
+    });
+
+    testWidgets('G2: the density row fits a phone — in its "none yet" state, '
+        'and in the spoon phrasing', (tester) async {
+      _filterSemanticsAssertions();
+      _phoneWidth(tester);
+      // The section on its own, at the width the form gives it. Scoped
+      // deliberately: the test font draws every glyph as a square of the font
+      // size, so a whole-form assertion would fail on rows that fit fine on a
+      // real device — and pass nothing useful about this one.
+      await tester.pumpWidget(_densityHost(_curryLeaves));
+      await tester.pumpAndSettle();
+
+      // The longest caption plus both phrasing chips: 55px of debug stripe on
+      // the owner's 402pt device before G2.
+      expect(find.text('none yet — unlocks volume⇄weight'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('a spoon weighs…'));
+      await tester.pumpAndSettle();
+      expect(find.text('weighs'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('D4c: a cup default on a per-100 g row with no density is '
+        'FLAGGED with its repair, never rewritten', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo(const [_blackRice]);
+      await tester.pumpWidget(_host(repo, at: '/ingredients/rice'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('cup needs a density on this row'),
+        findsOneWidget,
+      );
+      // Reading the form changed nothing: how a household buys a thing is
+      // not ours to edit behind its back.
+      expect((await repo.byId('rice'))!.defaultUnit, cup);
+
+      await tester.tap(find.widgetWithText(FButton, 'switch default to g'));
+      await tester.pumpAndSettle();
+
+      expect((await repo.byId('rice'))!.defaultUnit, g);
+      expect(find.textContaining('needs a density on this row'), findsNothing);
+    });
+
+    testWidgets('D4c: the default-unit selector locks the other family while '
+        'no density bridges it', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      await tester.pumpWidget(
+        _host(FakeIngredientRepo(const [_blackRice]), at: '/ingredients/rice'),
+      );
+      await tester.pumpAndSettle();
+
+      // The basis family, count and imprecise stay pickable…
+      expect(_defaultUnitChip(tester, 'g').enabled, isTrue);
+      expect(_defaultUnitChip(tester, 'kg').enabled, isTrue);
+      expect(_defaultUnitChip(tester, 'piece').enabled, isTrue);
+      expect(_defaultUnitChip(tester, 'pinch').enabled, isTrue);
+      // …the volume family does not, since nothing bridges it.
+      expect(_defaultUnitChip(tester, 'ml').enabled, isFalse);
+      expect(_defaultUnitChip(tester, 'tbsp').enabled, isFalse);
+      // The stored default still renders as the selection — it is the truth
+      // about the row, and the note is how it gets fixed.
+      expect(_defaultUnitChip(tester, 'cup').selected, isTrue);
+
+      // A density unlocks the whole selector again.
+      await tester.enterText(_densityField, '0.75');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FButton, 'Save').first);
+      await tester.pumpAndSettle();
+
+      expect(_defaultUnitChip(tester, 'ml').enabled, isTrue);
+      expect(find.textContaining('needs a density on this row'), findsNothing);
     });
 
     testWidgets('F1: offline says what it is waiting on and never raises an '
