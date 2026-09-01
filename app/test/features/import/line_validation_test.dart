@@ -409,6 +409,118 @@ void main() {
     });
   });
 
+  group('rankedUnitChips with NO parsed unit defers to the ADR order', () {
+    // The three shapes the owner read off the vocab-audit page. Densities are
+    // present because R1 requires one for a volume default; the VALUE is
+    // immaterial to chip order, only its presence (it unlocks the cross
+    // family) is.
+    const blackPepper = Ingredient(
+      id: 'i-pepper',
+      canonicalName: 'Black Pepper',
+      defaultUnit: tsp,
+      category: 'spices & seasoning',
+      status: IngredientStatus.complete,
+      densityGPerMl: 0.46,
+    );
+    const flour = Ingredient(
+      id: 'i-flour',
+      canonicalName: 'All-Purpose Flour',
+      defaultUnit: cup,
+      category: 'baking',
+      status: IngredientStatus.complete,
+      densityGPerMl: 0.53,
+    );
+
+    /// The ORDER SOURCE, which is the whole of this rule: a line that printed
+    /// no unit has no evidence to rank on, so the chips come out exactly as
+    /// `allowedUnitChoicesFor` built them — ADR-0008 kitchen order. Asserting
+    /// the source (not a transcribed list) is what keeps this test true when
+    /// the ADR order itself changes.
+    void expectsOfferOrderPreserved(Ingredient ingredient) {
+      final chips = acceptableUnitChips(ingredient, const []);
+      expect(rankedUnitChips(chips, parsedUnit: null), chips);
+    }
+
+    test('the offer order is preserved, unchanged, for every shape', () {
+      expectsOfferOrderPreserved(blackPepper);
+      expectsOfferOrderPreserved(flour);
+      expectsOfferOrderPreserved(_kale);
+    });
+
+    test('a spice leads with its own tsp, not the generic g', () {
+      final ranked = rankedUnitChips(
+        acceptableUnitChips(blackPepper, const []),
+        parsedUnit: null,
+      ).map((c) => c.token).toList();
+      expect(ranked.first, 'tsp');
+      expect(ranked.indexOf('tsp'), lessThan(ranked.indexOf('g')));
+    });
+
+    test(
+      'flour leads with its own cup — american recipes, not metric jugs',
+      () {
+        final ranked = rankedUnitChips(
+          acceptableUnitChips(flour, const []),
+          parsedUnit: null,
+        ).map((c) => c.token).toList();
+        expect(ranked.first, 'cup');
+        // The spoon beats the jug, per the ADR kitchen order within the family.
+        expect(ranked.indexOf('tbsp'), lessThan(ranked.indexOf('ml')));
+        // `g` is the DEMOTED cross-family leg, so it sits behind the whole
+        // volume family — the ADR's order, which this rule defers to.
+        expect(ranked.indexOf('ml'), lessThan(ranked.indexOf('g')));
+      },
+    );
+
+    test('kale leads with its own cup, not ml·g (the audit-page report)', () {
+      final ranked = rankedUnitChips(
+        acceptableUnitChips(_kale, const []),
+        parsedUnit: null,
+      ).map((c) => c.token).toList();
+      expect(ranked.first, 'cup');
+      expect(ranked.indexOf('cup'), lessThan(ranked.indexOf('ml')));
+      expect(ranked.indexOf('cup'), lessThan(ranked.indexOf('g')));
+      // Its imprecise words still fold to the back — the one its category
+      // earns (J3) plus the always-offered `to taste`.
+      expect(ranked.sublist(ranked.length - 2), ['handful', 'to_taste']);
+    });
+
+    test('the imprecise tail sinks even when the offer front-loads it', () {
+      // Built by hand, NOT by the offer: the sink is this rule's own promise,
+      // not something inherited from a caller that already ordered well.
+      const chips = [
+        UnitSuggestion(token: 'pinch', label: 'pinch'),
+        UnitSuggestion(token: 'tsp', label: 'tsp'),
+        UnitSuggestion(token: 'to_taste', label: 'to taste'),
+        UnitSuggestion(token: 'g', label: 'g'),
+      ];
+      final ranked = rankedUnitChips(
+        chips,
+        parsedUnit: null,
+      ).map((c) => c.token).toList();
+      expect(ranked, ['tsp', 'g', 'pinch', 'to_taste']);
+    });
+
+    test('an empty parsed unit is the same as none — the review screen passes '
+        'the line\'s unit straight through', () {
+      final chips = acceptableUnitChips(flour, const []);
+      expect(rankedUnitChips(chips, parsedUnit: ''), chips);
+    });
+
+    test('a measure keeps its offer position — behind the default family, '
+        'ahead of the imprecise tail', () {
+      // Under the old ranking a measure was boosted to rank 2, ahead of the
+      // generic g/ml at 3; deferring drops the boost, and the offer's own
+      // placement (after the default family) is what stands.
+      final chips = acceptableUnitChips(_garlic, const [_clove]);
+      final ranked = rankedUnitChips(chips, parsedUnit: null);
+      expect(ranked, chips);
+      final tokens = ranked.map((c) => c.token).toList();
+      expect(tokens.indexOf('g'), lessThan(tokens.indexOf('clove')));
+      expect(tokens.indexOf('clove'), lessThan(tokens.indexOf('to_taste')));
+    });
+  });
+
   group('preselectedMeasure (one confirm tap, not a scroll-and-choose)', () {
     test('an inadmissible unit on a measured ingredient pre-picks the first '
         'measure', () {

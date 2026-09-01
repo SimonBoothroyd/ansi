@@ -143,15 +143,33 @@ List<UnitSuggestion> acceptableUnitChips(
 /// choice — but every chip stays reachable, so nothing honest is hidden.
 const kVisibleUnitChips = 5;
 
-/// [chips] reordered so the five most likely land in front of the fold, in the
-/// owner's ranking: the line's own parsed [parsedUnit] first, then the rest of
-/// that unit's family, then the ingredient's named measures (in the order they
-/// were given — most likely first), then the generic mass/volume unit (g/ml),
-/// then everything else, with the imprecise words last.
+/// [chips] reordered so the five most likely land in front of the fold.
+///
+/// **With a parsed unit** — the line printed one — the owner's relevance
+/// ranking: the line's own [parsedUnit] first, then the rest of that unit's
+/// family, then the ingredient's named measures (in the order they were given
+/// — most likely first), then the generic mass/volume unit (g/ml), then
+/// everything else, with the imprecise words last.
 ///
 /// The imprecise tail folds UNLESS the parsed amount is itself imprecise ("a
 /// good pinch"), in which case its family leads by the same rule that fronts
 /// any other parsed unit — a pinch line should not have to expand to say pinch.
+///
+/// **With no parsed unit the incoming order is preserved as given**, imprecise
+/// still sinking to the back. A line that printed no unit offers no evidence
+/// to rank on, so the only honest order is the ingredient's own — and the
+/// caller already built it: [allowedUnitChoicesFor] hands these chips over in
+/// ADR-0008 kitchen order (the row's DEFAULT unit fronted, the rest of its
+/// family in kitchen order, then the measures, then the demoted other family,
+/// imprecise last).
+///
+/// The g/ml boost below is relevance only NEXT TO a parsed unit; with none it
+/// just outranks the row's own default, which is how the vocab audit came to
+/// offer `ml` before flour's `cup`, `g` before black pepper's `tsp`, and
+/// `ml g` ahead of kale's own `cup`. Owner ruling (batch 6): spices lead
+/// `tsp`, and "in general we use american recipes, so cup / spoon is preferred
+/// over ml / L" — which is the ADR kitchen order, so this leg ranks nothing
+/// and defers to it. One source of chip order for a line that said nothing.
 ///
 /// The sort is stable within each rank, so the ADR-0008 chip order the caller
 /// built survives inside every group.
@@ -159,12 +177,15 @@ List<UnitSuggestion> rankedUnitChips(
   List<UnitSuggestion> chips, {
   required String? parsedUnit,
 }) {
-  final parsed = parsedUnit == null || parsedUnit.isEmpty
-      ? null
-      : unitById(parsedUnit);
+  final noParsedUnit = parsedUnit == null || parsedUnit.isEmpty;
+  final parsed = noParsedUnit ? null : unitById(parsedUnit);
   int rankOf(UnitSuggestion c) {
-    if (parsedUnit != null && c.token == parsedUnit) return 0;
     final unit = unitById(c.token); // null ⇒ the token is a measure label
+    // Defer: every chip keeps its offer position, bar the imprecise tail.
+    if (noParsedUnit) {
+      return unit != null && unit.family == UnitFamily.imprecise ? 1 : 0;
+    }
+    if (c.token == parsedUnit) return 0;
     if (unit != null && parsed != null && unit.family == parsed.family) {
       return 1;
     }
