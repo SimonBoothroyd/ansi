@@ -1,0 +1,244 @@
+name: release
+
+# Cut a release by pushing a tag:  git tag v0.1.0 && git push origin v0.1.0
+# Full setup (secrets, keystore, what lands where): docs/release.md
+#
+# workflow_dispatch is here so the guard + both builds can be rehearsed without
+# minting a tag; the GitHub Release upload is the only tag-only step.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Pinned to match app.yml — the SDK everything is verified against.
+  FLUTTER_VERSION: "3.47.x"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Fail in ~15s with an actionable list, rather than 8 minutes later inside
+  # Gradle. Two classes of failure are checked, both of which otherwise produce
+  # a build that *succeeds* and ships the wrong thing:
+  #
+  #   1. Missing signing secrets → Gradle's `key.properties` fallback silently
+  #      debug-signs the release (app/android/app/build.gradle.kts). Installable,
+  #      but a different signature, so it can never update a real install.
+  #   2. Missing app config vars → Env.isConfigured is false and the app builds
+  #      in local/dev mode (app/lib/core/config/env.dart), pointing at nothing.
+  # ---------------------------------------------------------------------------
+  guard:
+    name: guard (secrets + signing block)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Release signing block is committed
+        run: |
+          if ! grep -q 'key.properties' app/android/app/build.gradle.kts; then
+            echo "::error::app/android/app/build.gradle.kts has no key.properties signing block."
+            echo "This pipeline signs by writing android/key.properties; without the Gradle"
+            echo "block that reads it, a 'release' build is silently DEBUG-signed and cannot"
+            echo "update a real install. Commit the signing block first (docs/release.md §1)."
+            exit 1
+          fi
+          echo "✓ signing block present"
+
+      - name: Signing secrets + app config are configured
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          POWERSYNC_URL: ${{ vars.POWERSYNC_URL }}
+        run: |
+          missing=()
+          for s in ANDROID_KEYSTORE_B64 ANDROID_KEYSTORE_PASSWORD \
+                   ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            [ -n "${!s}" ] || missing+=("  gh secret set $s")
+          done
+          for v in SUPABASE_URL SUPABASE_ANON_KEY POWERSYNC_URL; do
+            [ -n "${!v}" ] || missing+=("  gh variable set $v")
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::release is not configured — ${#missing[@]} item(s) missing."
+            echo "Configure exactly these, then re-run (see docs/release.md §2):"
+            printf '%s\n' "${missing[@]}"
+            exit 1
+          fi
+          echo "✓ 4 signing secrets + 3 config variables present"
+
+  # ---------------------------------------------------------------------------
+  # Android: the shippable artifacts. APK for sideloading onto our own phones,
+  # AAB because it is what any future Play upload needs.
+  # ---------------------------------------------------------------------------
+  android:
+    name: android (apk + aab → release)
+    needs: guard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the Release and upload assets to it
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      # Gradle config sets source/target + jvmTarget to 17; pin the JDK rather
+      # than inheriting whatever the runner image defaults to this month.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+
+      # The keystore never touches the workspace: RUNNER_TEMP is outside the
+      # checkout, so it cannot be picked up by a glob or left in an artifact.
+      # storeFile is written ABSOLUTE on purpose — Gradle resolves a relative
+      # storeFile against android/app/, not android/, which is a silent
+      # "keystore not found" if you guess wrong.
+      - name: Decode keystore and write android/key.properties
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          keystore="$RUNNER_TEMP/upload-keystore.jks"
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$keystore"
+          [ -s "$keystore" ] || {
+            echo "::error::ANDROID_KEYSTORE_B64 decoded to an empty file — re-run the base64 step in docs/release.md §2"
+            exit 1
+          }
+          {
+            printf 'storeFile=%s\n'     "$keystore"
+            printf 'storePassword=%s\n' "$STORE_PASSWORD"
+            printf 'keyAlias=%s\n'      "$KEY_ALIAS"
+            printf 'keyPassword=%s\n'   "$KEY_PASSWORD"
+          } > android/key.properties
+          echo "✓ key.properties written (4 keys, keystore $(wc -c < "$keystore") bytes)"
+
+      # Same three defines `make run` passes. They are repo VARIABLES, not
+      # secrets: all three are public by design (the Supabase publishable key is
+      # the anon key — RLS is the real protection, see docs/SECURITY.md), and a
+      # variable is readable in logs, which is what you want when debugging a
+      # build that shipped pointing at the wrong project.
+      - name: Build APK + AAB (release, signed)
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          POWERSYNC_URL: ${{ vars.POWERSYNC_URL }}
+        run: |
+          defines=(
+            "--dart-define=SUPABASE_URL=$SUPABASE_URL"
+            "--dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
+            "--dart-define=POWERSYNC_URL=$POWERSYNC_URL"
+          )
+          flutter build apk --release "${defines[@]}"
+          flutter build appbundle --release "${defines[@]}"
+
+      - name: Name the artifacts for the tag
+        id: stage
+        run: |
+          # Slugified: a workflow_dispatch rehearsal from a branch like
+          # feat/step-8 would otherwise put a "/" in the filename.
+          slug="${GITHUB_REF_NAME//\//-}"
+          mkdir -p "$RUNNER_TEMP/dist"
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             "$RUNNER_TEMP/dist/mise-$slug.apk"
+          cp build/app/outputs/bundle/release/app-release.aab \
+             "$RUNNER_TEMP/dist/mise-$slug.aab"
+          ls -l "$RUNNER_TEMP/dist"
+          echo "dist=$RUNNER_TEMP/dist" >> "$GITHUB_OUTPUT"
+
+      # Always keep the build products, even on a workflow_dispatch rehearsal
+      # where there is no tag to attach a Release to.
+      # Artifact names are ref-free: upload-artifact rejects "/" in a name, and
+      # a dispatch from a branch like feat/x would otherwise fail here. The tag
+      # is in the FILE names (mise-v0.1.0.apk).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: ${{ steps.stage.outputs.dist }}
+          if-no-files-found: error
+
+      # `gh` ships on the runner, so no third-party release action to audit.
+      # Re-runnable: uploads with --clobber if the Release already exists.
+      - name: Publish to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DIST: ${{ steps.stage.outputs.dist }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$DIST"/* --clobber
+          else
+            gh release create "$tag" "$DIST"/* --title "$tag" --generate-notes
+          fi
+
+  # ---------------------------------------------------------------------------
+  # iOS: COMPILE PROOF ONLY, deliberately.
+  #
+  # Mise is a two-person household app installed from Xcode, not from the App
+  # Store. Real iOS signing would mean an Apple Developer account, a
+  # distribution certificate and provisioning profile in secrets, a temporary
+  # keychain, and an export-options plist — a lot of moving, expiring
+  # machinery to produce an .ipa nobody installs. So this job proves the
+  # release configuration still compiles and stops there. The .app is an
+  # ARTIFACT, not a Release asset: it is unsigned and cannot be installed.
+  #
+  # It does not `need: guard` on purpose — the guard is about Android signing
+  # and app config, and losing the compile signal when a secret expires would
+  # be strictly worse.
+  # ---------------------------------------------------------------------------
+  ios:
+    name: ios (compile proof, unsigned)
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+
+      # Same defines as the Android job so this compiles the real configuration.
+      # If the variables are unset the defines are all blank, which Env treats
+      # as legitimate local/dev mode — the compile proof still holds.
+      - name: Build iOS (release, no codesign)
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          POWERSYNC_URL: ${{ vars.POWERSYNC_URL }}
+        run: |
+          flutter build ios --release --no-codesign \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+            --dart-define=POWERSYNC_URL="$POWERSYNC_URL"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-unsigned-${{ github.ref_name }}
+          path: app/build/ios/iphoneos/Runner.app
+          if-no-files-found: error
