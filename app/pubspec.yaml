@@ -40,6 +40,11 @@ dependencies:
   # Photo intake (import, step 8): pick/capture → crop+rotate → downscale.
   image_picker: ^1.2.3    # capture/pick recipe photos
   image_cropper: ^12.2.1  # per-page crop + rotate before upload
+
+  # Barcode → ingredient draft (step 8.5, plan 0020 D2/D3).
+  mobile_scanner: ^7.4.0  # camera preview + detector (iOS: AVFoundation+Vision)
+  http: ^1.2.0            # the keyless Open Food Facts GET, run on-device (D2)
+  url_launcher: ^6.3.0    # the camera-off panel's "Open Settings" (app-settings:)
   # fl_chart: ^0.69.0   # stretch: macro charts (spec §7 step 9)
 
 dev_dependencies:
