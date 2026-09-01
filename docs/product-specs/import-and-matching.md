@@ -482,9 +482,12 @@ the server would never have written and the next import's cascade missed it. The
 two are pinned together by shared vectors
 (`app/test/features/ingredients/normalize_vectors.json`, copied from
 `normalize.test.ts`) — change one, change both, and extend the vectors, the same
-habit `default_allowed_units()` and `defaultAllowedUnitSet` already keep. One
-caller still lags: import's own commit writes the character-level form (→
-[tech-debt tracker](../exec-plans/tech-debt-tracker.md)).
+habit `default_allowed_units()` and `defaultAllowedUnitSet` already keep. Since
+the 8.5 close-out **every** client writer calls it, import's own commit
+included — `SqliteImportRepository.commit` writes `normalizeMatchText` for both
+the `import_stub` row and the correction alias, so a stub minted at review and
+one minted in the manager land the same `match_text` the server would have
+written.
 
 ---
 
