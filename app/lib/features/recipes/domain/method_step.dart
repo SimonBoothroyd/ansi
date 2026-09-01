@@ -19,7 +19,8 @@
 /// A collective chip also carries its [MethodChipSpan.constituents] — the
 /// display names of the lines it stands for — so "onion mixture" can render as
 /// `onion mixture (onion, celery, green bell pepper)` rather than hiding what
-/// went into it.
+/// went into it. A collective with no label of its own is nothing BUT its
+/// constituents, and renders as the bare run (plan 0020 **J1**).
 library;
 
 // The library doc above spells out the fold rules as prose; a few of its
@@ -110,11 +111,18 @@ class MethodTextSpan extends MethodSpan {
 
 /// An ingredient chip. [amount] is null for a quantity-less or collective chip.
 ///
-/// [constituents] is non-empty only for a *named* collective chip ("onion
-/// mixture"): it holds, in ref order, the display name of every line the chip
-/// stands for that still resolves. A view renders them as a parenthesised run
-/// of smaller chips after the label. Refs the payload dropped or demoted resolve
-/// to nothing and are simply absent — a dangling chip would be a lie.
+/// [constituents] is non-empty only for a COLLECTIVE chip (more than one ref):
+/// it holds, in ref order, the display name of every line the chip stands for
+/// that still resolves. Refs the payload dropped or demoted resolve to nothing
+/// and are simply absent — a dangling chip would be a lie.
+///
+/// How a view draws them follows from [label]:
+///
+/// - a **named** collective ("onion mixture") draws the label chip, then the
+///   constituents as a parenthesised run of smaller chips;
+/// - a **blank-labelled** one ([label] empty) has no label to hang them off, so
+///   the constituents ARE the chip run: one full-size chip per name, no
+///   parentheses, and any step-named [amount] on the first of them (**J1**).
 class MethodChipSpan extends MethodSpan {
   const MethodChipSpan({
     required this.label,
@@ -151,7 +159,7 @@ List<MethodSpan> foldMethod(
           MethodChipSpan(
             label: _chipLabel(label, refs, lineById),
             amount: _chipAmount(refs, mention, portion, lineById, factor),
-            constituents: _constituents(label, refs, lineById),
+            constituents: _constituents(refs, lineById),
           ),
         );
     }
@@ -162,10 +170,15 @@ List<MethodSpan> foldMethod(
 /// The ingredient a chip names. The token's own [label] is the surface text
 /// the extractor chose and always wins — but it can arrive blank, and a chip
 /// with no label renders as a bare number ("Add the chopped 1, 0.5, 0.25"),
-/// which is the worst thing this fold can produce. A blank label therefore
-/// falls back to the referenced line item's ingredient name; a collective chip
-/// joins the names it can resolve. Still an id lookup, never render-time text
-/// matching (ADR-0004).
+/// which is the worst thing this fold can produce. A blank label on a SINGLE
+/// ref therefore falls back to that line item's ingredient name.
+///
+/// A blank label on a COLLECTIVE stays blank and lets [_constituents] carry the
+/// names (plan 0020 **J1**): joining them here made one chip label out of seven
+/// ingredients, and a chip is one atomic box to the line breaker, so it ran
+/// clean off a phone screen instead of wrapping.
+///
+/// Still an id lookup, never render-time text matching (ADR-0004).
 String _chipLabel(
   String label,
   List<String> refs,
@@ -173,20 +186,16 @@ String _chipLabel(
 ) {
   final given = label.trim();
   if (given.isNotEmpty) return given;
+  if (refs.length > 1) return '';
   return _resolvedNames(refs, lineById).join(', ');
 }
 
-/// The constituents a *named* collective chip shows in parentheses.
+/// The lines a collective chip stands for, in ref order — parenthesised after
+/// the label when it has one, and the whole chip run when it hasn't (**J1**).
 ///
-/// Empty for a single ref (nothing to unpack) and for a blank label — there
-/// [_chipLabel] has already joined the very same names, and repeating them
-/// would read as "onion, celery (onion, celery)".
-List<String> _constituents(
-  String label,
-  List<String> refs,
-  Map<String, LineItem> lineById,
-) {
-  if (refs.length < 2 || label.trim().isEmpty) return const [];
+/// Empty for a single ref: there is nothing to unpack.
+List<String> _constituents(List<String> refs, Map<String, LineItem> lineById) {
+  if (refs.length < 2) return const [];
   return _resolvedNames(refs, lineById);
 }
 

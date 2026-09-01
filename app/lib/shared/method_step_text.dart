@@ -44,6 +44,11 @@ class MethodStepText extends StatelessWidget {
             _chip(MethodChip(label: text, timer: true, textSize: textSize)),
           );
         case MethodChipSpan(:final label, :final amount, :final constituents):
+          // A collective with no label of its own IS its constituents.
+          if (label.isEmpty && constituents.isNotEmpty) {
+            children.addAll(_collectiveRun(constituents, amount));
+            break;
+          }
           // The portion/quantity rides on the label chip; the constituents
           // that follow are names only.
           children.add(
@@ -60,6 +65,30 @@ class MethodStepText extends StatelessWidget {
         style: miseSans(size: textSize, height: 1.5),
       ),
     );
+  }
+
+  /// A blank-labelled collective as the run it actually is — `Kale, Avocado,
+  /// Garlic` — full-size chips, no parentheses (there is no label to bracket),
+  /// any step-named portion riding on the first.
+  ///
+  /// The names used to be joined into ONE chip label, which the line breaker
+  /// could not split: a seven-ingredient catch-all ran straight off the screen
+  /// on the owner's phone (plan 0020 J1). Same mechanics as
+  /// [_constituentSpans] — one span per chip, real text between them.
+  Iterable<InlineSpan> _collectiveRun(
+    List<String> names,
+    String? amount,
+  ) sync* {
+    for (var i = 0; i < names.length; i++) {
+      if (i > 0) yield const TextSpan(text: ', ');
+      yield _chip(
+        MethodChip(
+          label: names[i],
+          amount: i == 0 ? amount : null,
+          textSize: textSize,
+        ),
+      );
+    }
   }
 
   /// A collective chip's constituents as `(a b c)`.

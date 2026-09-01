@@ -20,7 +20,25 @@ final _lines = {
   'celery': _li('celery', 'celery', qty: 2, unit: pieces),
   'pepper': _li('pepper', 'green bell pepper', qty: 1, unit: pieces),
   'butter': _li('butter', 'butter', qty: 50),
+  // The owner's real catch-all collective, off a cookbook photo (plan 0020 J1).
+  'kale': _li('kale', 'Kale', qty: 1, unit: cup),
+  'avocado': _li('avocado', 'Avocado', qty: 1, unit: pieces),
+  'garlic': _li('garlic', 'Garlic', qty: 2, unit: pieces),
+  'lemon': _li('lemon', 'Lemon Juice', qty: 2, unit: tbsp),
+  'yeast': _li('yeast', 'Nutritional Yeast', qty: 1, unit: tbsp),
+  'oil': _li('oil', 'Olive Oil', qty: 1, unit: tbsp),
+  'salt': _li('salt', 'Salt', qty: 1, unit: g),
 };
+
+const _blankCollectiveRefs = [
+  'kale',
+  'avocado',
+  'garlic',
+  'lemon',
+  'yeast',
+  'oil',
+  'salt',
+];
 
 Widget _host(MethodStep step) => MaterialApp(
   home: FTheme(
@@ -141,6 +159,85 @@ void main() {
 
     expect(_chipLabels(tester), ['onion mixture', 'onion', 'celery']);
     expect(find.text('ingredient'), findsNothing);
+  });
+
+  group('a blank-labelled collective renders as a run of chips (J1)', () {
+    testWidgets('seven refs wrap across lines at phone width, in order, with '
+        'no label chip and no parentheses', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      const step = MethodStep(
+        tokens: [
+          MethodText(s: 'Blend the '),
+          MethodRef(refs: _blankCollectiveRefs, label: ''),
+          MethodText(s: ' until smooth.'),
+        ],
+      );
+
+      await tester.pumpWidget(_host(step));
+
+      // The shipped bug: ONE chip labelled "Kale, Avocado, Garlic, …", atomic
+      // to the line breaker, running off the right of the screen.
+      expect(tester.takeException(), isNull);
+      expect(_chipLabels(tester), [
+        'Kale',
+        'Avocado',
+        'Garlic',
+        'Lemon Juice',
+        'Nutritional Yeast',
+        'Olive Oil',
+        'Salt',
+      ]);
+      // No label to bracket, so no parentheses either.
+      expect(find.textContaining('('), findsNothing);
+
+      // It wrapped, and every chip stayed inside the step.
+      final host = tester.getRect(find.byType(MethodStepText));
+      expect(host.height, greaterThan(16 * 1.5 * 1.5));
+      for (var i = 0; i < _blankCollectiveRefs.length; i++) {
+        expect(
+          tester.getRect(find.byType(MethodChip).at(i)).right,
+          lessThanOrEqualTo(host.right),
+        );
+      }
+    });
+
+    testWidgets('a step-named portion rides on the first chip of the run', (
+      tester,
+    ) async {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(
+            refs: ['onion', 'celery'],
+            label: '',
+            portion: StepPortion(qualifier: 'half'),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(_host(step));
+
+      final chips = tester.widgetList<MethodChip>(find.byType(MethodChip));
+      expect(chips.map((c) => c.label), ['onion', 'celery']);
+      expect(chips.first.amount, 'half');
+      expect(chips.last.amount, isNull);
+    });
+
+    testWidgets('a blank-labelled ref that resolves to nothing still says '
+        '"ingredient" — never a bare number', (tester) async {
+      const step = MethodStep(
+        tokens: [
+          MethodRef(refs: ['ghost', 'phantom'], label: ''),
+        ],
+      );
+
+      await tester.pumpWidget(_host(step));
+
+      expect(_chipLabels(tester), ['']);
+      expect(find.text('ingredient'), findsOneWidget);
+    });
   });
 
   testWidgets('a portion stays on the label chip, not the constituents', (

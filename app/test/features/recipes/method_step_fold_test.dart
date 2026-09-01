@@ -129,13 +129,15 @@ void main() {
       expect(labelsOf(step), ['flour']);
     });
 
-    test('a collective chip joins the names it can resolve', () {
+    test('a blank-labelled collective stays label-less — the names ride on '
+        'the constituents instead (J1)', () {
       const step = MethodStep(
         tokens: [
           MethodRef(refs: ['flour', 'eggs', 'ghost'], label: '   '),
         ],
       );
-      expect(labelsOf(step), ['flour, eggs']);
+      // Joining them made one un-wrappable mega-chip that overflowed the step.
+      expect(labelsOf(step), ['']);
     });
 
     test('an unresolvable blank-label chip stays empty, never invented', () {
@@ -174,13 +176,16 @@ void main() {
       expect(constituentsOf(step), [<String>[]]);
     });
 
-    test('a blank label has none — its label already joins the names', () {
+    test('a blank-labelled collective carries them too — they ARE its chips '
+        '(J1)', () {
       const step = MethodStep(
         tokens: [
           MethodRef(refs: ['flour', 'eggs'], label: ''),
         ],
       );
-      expect(constituentsOf(step), [<String>[]]);
+      expect(constituentsOf(step), [
+        ['flour', 'eggs'],
+      ]);
     });
 
     test('a dropped ref is skipped, never named', () {
