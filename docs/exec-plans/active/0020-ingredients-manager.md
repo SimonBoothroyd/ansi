@@ -712,3 +712,22 @@ Append-only.
   reproduce in the widget harness (the round-trip test is green pre-fix), so
   J4 closes the contradiction structurally and still wants a sim confirmation
   before scenario 5 is called green.
+- 2026-09-01 — **J3b (sim round 8): the category gate is about the OFFER, not
+  the source.** Scenario 4 regressed under J3 — its canned "a pinch of chilli
+  flakes" matches onto a freshly CREATED stub, which commits as a plain `g`
+  row with no category, so the gate earned it nothing and the line flagged
+  `unitNotAllowed`, locking the Save gate on a word that was never offered and
+  therefore could never be picked. Split: validation AND the offer admit the
+  line's own printed imprecise word whatever the category (that word only —
+  a printed pinch still buys kale no dash); everything else keeps J3's gate,
+  so "a dash of kale" stays unoffered; universal `to taste` unchanged. Threaded
+  as `parsedUnit` through the four import seams. The pass is for imprecise
+  words only — a printed "1 cup" on a density-less row still flags (D4c).
+  Consequence pinned as a property: **no imprecise unit can flag on the import
+  surface any more**, the only reachable states being printed (admitted) and
+  tapped (offered, therefore admitted); the gate still bites on the vocab
+  surface, which is where stored data lives. Scenario 5's
+  `app_test.dart:1288` failure (`hasLength(1)`, actual `[]`) was a pure
+  CASCADE: that row is the `import_stub` scenario 4's commit writes, and
+  scenario 4 never reached commit. Nothing in the J2 batched loader touches
+  it — it is read-only and feeds validation + sheet pre-selection alone.
