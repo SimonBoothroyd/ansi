@@ -4,14 +4,17 @@ library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/config/env.dart';
 import '../../../core/sync/database.dart';
 import '../../../core/sync/session.dart';
 import '../../../core/units/measure.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/measure_repository.dart';
+import '../domain/usda_probe.dart';
 import 'ingredient_repository_impl.dart';
 import 'measure_repository_impl.dart';
+import 'usda_probe_impl.dart';
 
 part 'ingredient_providers.g.dart';
 
@@ -27,6 +30,16 @@ MeasureRepository measureRepository(Ref ref) => SqliteMeasureRepository(
   ref.watch(databaseProvider),
   householdId: ref.watch(currentHouseholdIdProvider),
 );
+
+/// The D7b USDA probe. Talks to Supabase REST rather than the local SQLite —
+/// the one ingredient read that must, because `usda_food` never syncs to a
+/// device (ADR-0005). Falls back to a probe that always answers "nothing"
+/// where no backend is configured, which is the same answer an offline device
+/// gets, so nothing downstream needs a second code path.
+@Riverpod(keepAlive: true)
+UsdaProbe usdaProbe(Ref ref) => Env.isConfigured
+    ? SupabaseUsdaProbe(ref.watch(supabaseClientProvider))
+    : const UnconfiguredUsdaProbe();
 
 /// The live measures of one ingredient, `sort_order`-first — what the unit
 /// pickers append as [Measure] choices (`allowedUnitChoicesFor`).

@@ -22,7 +22,7 @@
 -- Run by `supabase test db`.
 
 begin;
-select plan(45);
+select plan(61);
 
 -- ---------------------------------------------------------------------------
 -- default_allowed_units() vectors (mirror allowed_units_test.dart).
@@ -454,6 +454,108 @@ select is(
      where id = 'cccccccc-0000-0000-0000-000000000009'),
   'manual',
   'and its provenance is not rewritten to a USDA id'
+);
+
+-- ---------------------------------------------------------------------------
+-- 0016 / plan 0020 D7b: the probe exposed as an RPC.
+--
+-- Everything above still passing IS half the assertion: the trigger now
+-- delegates to `usda_probe()`, so those vectors prove the extraction changed
+-- no behaviour. What follows pins the new door.
+-- ---------------------------------------------------------------------------
+
+select has_function('probe_usda', array['text'],
+  'probe_usda(text) exists — the D7b client door');
+select has_function('usda_probe', array['text'],
+  'usda_probe(text) exists — the shared probe both callers read');
+
+-- SECURITY DEFINER with a pinned search_path, exactly as 0014's function has:
+-- these read a table no client role is granted, so definer rights are the
+-- point and an unpinned search_path would be the hole.
+select ok(
+  (select bool_and(p.prosecdef) from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('probe_usda', 'usda_probe', 'ingredient_prefill_from_usda')),
+  'the probe, its RPC and the prefill trigger are all SECURITY DEFINER'
+);
+select ok(
+  (select bool_and(p.proconfig::text like '%search_path=public, extensions%')
+     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('probe_usda', 'usda_probe', 'ingredient_prefill_from_usda')),
+  'all three pin search_path to public, extensions (definer hygiene)'
+);
+
+-- The grant shape: authenticated reaches the RPC and NOTHING else. anon
+-- reaches neither, and the reference table stays ungranted (ADR-0005).
+select ok(
+  has_function_privilege('authenticated', 'probe_usda(text)', 'execute'),
+  'authenticated may call probe_usda — the D7b door is open'
+);
+select ok(
+  not has_function_privilege('anon', 'probe_usda(text)', 'execute'),
+  'anon may not: enrichment is for a signed-in household'
+);
+select ok(
+  not has_function_privilege('authenticated', 'usda_probe(text)', 'execute'),
+  'authenticated may NOT call the helper directly — one door, not two'
+);
+select ok(
+  not has_table_privilege('authenticated', 'usda_food', 'select'),
+  'and usda_food itself is still unreachable (ADR-0005 unmoved by D7b)'
+);
+
+-- It returns the same candidate the trigger copies, with the same source
+-- stamp the trigger writes — that identity is what makes the app-vs-trigger
+-- race benign.
+select is(
+  (select fdc_id from probe_usda('zzquux test reference food')),
+  999000001,
+  'probe_usda returns the confident candidate'
+);
+select is(
+  (select macros ->> 'kcal' from probe_usda('zzquux test reference food')),
+  '100',
+  'with its macros'
+);
+select is(
+  (select density_g_per_ml from probe_usda('zzquux test reference food')),
+  0.75::numeric,
+  'and its density'
+);
+select is(
+  (select source from probe_usda('zzquux test reference food')),
+  'usda_fdc:999000001',
+  'and the SAME source stamp the trigger writes — one formatter, not two'
+);
+
+-- The 0.5 floor lives in the helper, so the RPC inherits it: the same weak
+-- hit the trigger refuses above returns no row here.
+select is_empty(
+  $$ select * from probe_usda('zzquux test') $$,
+  'a weak trigram hit returns nothing (the same 0.5 floor as the trigger)'
+);
+select is_empty(
+  $$ select * from probe_usda('') $$,
+  'and an empty name probes nothing rather than scanning the reference set'
+);
+
+-- It WRITES NOTHING. Calling it leaves both the reference set and the
+-- household vocabulary exactly as they were.
+select is(
+  (select count(*) from usda_food),
+  (select count(*) from (select * from usda_food) u
+    where (select count(*) from probe_usda('zzquux test reference food')) >= 0),
+  'probe_usda writes nothing to usda_food'
+);
+select is(
+  (select updated_at from ingredient
+    where id = 'cccccccc-0000-0000-0000-000000000009'),
+  (select updated_at from ingredient
+    where id = 'cccccccc-0000-0000-0000-000000000009'
+      and (select count(*) from probe_usda('qqfoo fleshed out')) >= 0),
+  'and nothing to ingredient — it is a read, not a prefill'
 );
 
 -- ---------------------------------------------------------------------------

@@ -33,6 +33,8 @@ import 'package:mise/features/ingredients/barcode/barcode_scan_sheet.dart';
 import 'package:mise/features/ingredients/data/ingredient_providers.dart';
 import 'package:mise/features/ingredients/domain/ingredient.dart';
 import 'package:mise/features/ingredients/domain/measure_repository.dart';
+import 'package:mise/features/ingredients/domain/normalize.dart';
+import 'package:mise/features/ingredients/domain/usda_probe.dart';
 import 'package:mise/features/ingredients/presentation/density_entry.dart';
 import 'package:mise/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:mise/features/ingredients/presentation/ingredient_list_view.dart';
@@ -108,6 +110,39 @@ class _FakeMeasures implements MeasureRepository {
   }
 }
 
+/// What the fake probe answers with — the curry-leaf candidate the server's
+/// trigram match would have returned.
+const _usdaAnswer = UsdaCandidate(
+  fdcId: 11216,
+  source: 'usda_fdc:11216',
+  score: 0.71,
+  densityGPerMl: 0.35,
+  macros: Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
+);
+
+/// Records what it was asked. F1's whole point is that the question is about
+/// the name as SAVED, so the recording is the assertion.
+class _RecordingProbe implements UsdaProbe {
+  _RecordingProbe(this.answer);
+
+  final UsdaCandidate? answer;
+  final asked = <String>[];
+
+  @override
+  Future<UsdaCandidate?> probe(String matchText) async {
+    asked.add(matchText);
+    return answer;
+  }
+}
+
+/// The offline / unconfigured answer: nothing, without throwing.
+class _SilentProbe implements UsdaProbe {
+  const _SilentProbe();
+
+  @override
+  Future<UsdaCandidate?> probe(String matchText) async => null;
+}
+
 /// The flesh-out form is one long scroll; a phone-sized test viewport builds
 /// only its top and every assertion below the fold fails for the wrong
 /// reason. Give the whole form room instead of scrolling to each section.
@@ -174,6 +209,7 @@ Widget _host(
   FakeIngredientRepo repo, {
   String at = '/ingredients',
   _FakeMeasures? measures,
+  UsdaProbe? probe,
 }) {
   final router = GoRouter(
     initialLocation: at,
@@ -194,6 +230,7 @@ Widget _host(
     overrides: [
       ingredientRepositoryProvider.overrideWithValue(repo),
       measureRepositoryProvider.overrideWithValue(measures ?? _FakeMeasures()),
+      usdaProbeProvider.overrideWithValue(probe ?? const _SilentProbe()),
     ],
     child: MaterialApp.router(
       routerConfig: router,
@@ -201,6 +238,22 @@ Widget _host(
     ),
   );
 }
+
+/// The add sheet on its own, with the probe overridable — the creation flows
+/// are where D7b's "born enriched" lives.
+Widget _sheetHost(FakeIngredientRepo repo, {UsdaProbe? probe}) => ProviderScope(
+  overrides: [
+    ingredientRepositoryProvider.overrideWithValue(repo),
+    measureRepositoryProvider.overrideWithValue(_FakeMeasures()),
+    usdaProbeProvider.overrideWithValue(probe ?? const _SilentProbe()),
+  ],
+  child: MaterialApp(
+    home: FTheme(
+      data: miseThemeData(),
+      child: const FScaffold(child: NewIngredientSheet()),
+    ),
+  ),
+);
 
 void main() {
   group('the vocabulary list — frame (a)', () {
@@ -668,24 +721,67 @@ void main() {
       expect((await repo.byId('yeast'))!.category, 'store cupboard');
     });
 
-    testWidgets('the USDA button is honest about what it can do: usda_food '
-        'never reaches the device, so it re-reads the row (D7)', (
-      tester,
-    ) async {
+    testWidgets('F1 + D7b, THE OWNER’S FLOW: rename then look up — the save '
+        'is flushed, USDA is asked about the NEW name, and the answer is '
+        'applied', (tester) async {
       _filterSemanticsAssertions();
       _tallScreen(tester);
       final plain = _curryLeaves.copyWith(source: 'manual');
+      final repo = FakeIngredientRepo([plain]);
+      final probe = _RecordingProbe(_usdaAnswer);
       await tester.pumpWidget(
-        _host(FakeIngredientRepo([plain]), at: '/ingredients/curry'),
+        _host(repo, at: '/ingredients/curry', probe: probe),
+      );
+      await tester.pumpAndSettle();
+
+      // Rename in the form and DON'T save — the exact state the owner hit.
+      await tester.enterText(find.byType(TextField).first, 'Chicken Breast');
+      await tester.pump();
+
+      await tester.tap(find.text('Look up in USDA'));
+      await tester.pumpAndSettle();
+
+      // The rename was flushed first, so the question was about the new name.
+      expect(probe.asked.single, normalizeMatchText('Chicken Breast'));
+      final row = (await repo.byId('curry'))!;
+      expect(row.canonicalName, 'Chicken Breast');
+      expect(repo.matchTextById['curry'], normalizeMatchText('Chicken Breast'));
+      // …and the answer landed, without completing the row (D5).
+      expect(row.densityGPerMl, 0.35);
+      expect(row.macros, const Macros(kcal: 108, protein: 6, carb: 19, fat: 1));
+      expect(row.source, 'usda_fdc:11216');
+      expect(row.status, IngredientStatus.stub);
+      expect(
+        find.textContaining('USDA FoodData Central filled this in'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('F1: offline says what it is waiting on and never raises an '
+        'error — the trigger is still the backstop', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final plain = _curryLeaves.copyWith(source: 'manual');
+      final repo = FakeIngredientRepo([plain]);
+      await tester.pumpWidget(
+        // The unconfigured probe answers exactly like an offline device.
+        _host(repo, at: '/ingredients/curry', probe: const _SilentProbe()),
       );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Look up in USDA'));
       await tester.pumpAndSettle();
+
       expect(
-        find.textContaining('The lookup runs on the server'),
+        find.textContaining(
+          'the server runs the same lookup when this row '
+          'syncs up',
+        ),
         findsOneWidget,
       );
+      // No dialog, and the row is untouched.
+      expect(find.byType(FDialog), findsNothing);
+      expect((await repo.byId('curry'))!.macros, isNull);
     });
   });
 
@@ -747,6 +843,77 @@ void main() {
       await tester.tap(find.text('USDA FDC'));
       await tester.pumpAndSettle();
       expect(find.textContaining('it never leaves the server'), findsOneWidget);
+    });
+
+    testWidgets('F1: on an UNSAVED draft the lookup is drawn and disabled, '
+        'with the reason — it used to be a silent no-op', (tester) async {
+      _filterSemanticsAssertions();
+      final probe = _RecordingProbe(_usdaAnswer);
+      await tester.pumpWidget(
+        _sheetHost(FakeIngredientRepo(const []), probe: probe),
+      );
+      await tester.pumpAndSettle();
+      // Not offered at all until the USDA source is picked…
+      expect(find.text('Look up in USDA'), findsNothing);
+
+      await tester.tap(find.text('USDA FDC'));
+      await tester.pumpAndSettle();
+      expect(find.text('Look up in USDA'), findsOneWidget);
+      expect(find.textContaining('save first'), findsOneWidget);
+
+      // Tapping it does nothing — there is no row to fill in, and the
+      // affordance says so rather than shrugging.
+      await tester.tap(find.text('Look up in USDA'));
+      await tester.pumpAndSettle();
+      expect(probe.asked, isEmpty);
+    });
+
+    testWidgets('D7b: creating a manual ingredient probes at birth — it '
+        'arrives enriched, and still a stub', (tester) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      final probe = _RecordingProbe(_usdaAnswer);
+      // The router-hosted sheet: creating pushes the flesh-out form.
+      await tester.pumpWidget(
+        _addHost(repo, body: _fixture('nutella_per_100g'), probe: probe),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add an ingredient'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(_nameField, 'Curry leaves');
+      await tester.pump();
+      await tester.tap(find.text('Create & flesh out'));
+      await tester.pumpAndSettle();
+
+      expect(probe.asked.single, normalizeMatchText('Curry leaves'));
+      final created = repo.rows.single;
+      expect(created.densityGPerMl, 0.35);
+      expect(created.macros!.kcal, 108);
+      expect(created.source, 'usda_fdc:11216');
+      expect(created.status, IngredientStatus.stub);
+    });
+
+    testWidgets('D7b offline: creation still works, the row is just bare — '
+        'no error, and the server trigger is the backstop', (tester) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      await tester.pumpWidget(
+        _addHost(repo, body: _fixture('nutella_per_100g')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add an ingredient'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(_nameField, 'Curry leaves');
+      await tester.pump();
+      await tester.tap(find.text('Create & flesh out'));
+      await tester.pumpAndSettle();
+
+      final created = repo.rows.single;
+      expect(created.macros, isNull);
+      expect(created.source, 'manual');
+      expect(find.byType(FDialog), findsNothing);
     });
   });
 
@@ -935,6 +1102,28 @@ void main() {
       expect(measures.rows, isEmpty);
     });
 
+    testWidgets('D7b: a barcode row is NOT probed — an Open Food Facts '
+        'provenance is never replaced by a USDA id', (tester) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      final probe = _RecordingProbe(_usdaAnswer);
+      await tester.pumpWidget(
+        _addHost(repo, body: _fixture('oatly_per_100ml'), probe: probe),
+      );
+      await tester.pumpAndSettle();
+
+      await scan(tester, barcode: '7394376616020');
+      await tester.ensureVisible(find.text('Save & review'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save & review'));
+      await tester.pumpAndSettle();
+
+      // The same exclusion the server trigger's WHEN clause makes: the probe
+      // rewrites `source` wholesale, and `off:<barcode>` is not ours to lose.
+      expect(probe.asked, isEmpty);
+      expect(repo.rows.single.source, 'off:7394376616020');
+    });
+
     testWidgets('a dismissed scan changes nothing — back to the segment as it '
         'was found', (tester) async {
       _filterSemanticsAssertions();
@@ -979,6 +1168,14 @@ final Finder _scanField = find.descendant(
   matching: find.byType(TextField),
 );
 
+/// The add sheet's canonical-name field (the first text field it renders).
+final Finder _nameField = find
+    .descendant(
+      of: find.byType(NewIngredientSheet),
+      matching: find.byType(TextField),
+    )
+    .first;
+
 /// The pack-size tick's label field — the second text field on the add sheet
 /// (the name is the first).
 final Finder _packLabelField = find
@@ -1006,6 +1203,7 @@ Widget _addHost(
   FakeIngredientRepo repo, {
   required String body,
   _FakeMeasures? measures,
+  UsdaProbe? probe,
 }) {
   final router = GoRouter(
     initialLocation: '/',
@@ -1039,6 +1237,7 @@ Widget _addHost(
     overrides: [
       ingredientRepositoryProvider.overrideWithValue(repo),
       measureRepositoryProvider.overrideWithValue(measures ?? _FakeMeasures()),
+      usdaProbeProvider.overrideWithValue(probe ?? const _SilentProbe()),
     ],
     child: MaterialApp.router(
       routerConfig: router,

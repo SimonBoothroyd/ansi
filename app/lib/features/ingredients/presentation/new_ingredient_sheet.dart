@@ -35,6 +35,7 @@ import '../../../core/units/units.dart';
 import '../../recipes/presentation/format.dart';
 import '../barcode/barcode_add.dart';
 import '../data/ingredient_providers.dart';
+import '../data/usda_enrichment.dart';
 import 'density_entry.dart' show MiseModeChip;
 import 'ingredient_detail_view.dart';
 import 'macros_format.dart';
@@ -117,6 +118,24 @@ class NewIngredientSheet extends HookConsumerWidget {
                 label: packLabel.value.trim(),
                 amount: packAmount,
               );
+        }
+        // D7b: born enriched. The probe runs BEFORE the form opens, so a new
+        // ingredient arrives with whatever USDA had rather than acquiring it
+        // a few seconds later if you are still looking. Offline it answers
+        // null within its own short timeout and the 0014/0015 trigger picks
+        // the row up on upload — so this is a beat, never a stall, and never
+        // an error.
+        //
+        // Only a manual draft is probed. A barcode row carries Open Food
+        // Facts provenance (`off:<barcode>`) and the probe's source stamp
+        // would replace it with a USDA id — the same exclusion the server
+        // trigger's WHEN clause makes.
+        if (prefill?.source != DraftSource.barcode) {
+          await enrichFromUsda(
+            created,
+            probe: ref.read(usdaProbeProvider),
+            repository: ref.read(ingredientRepositoryProvider),
+          );
         }
         if (!context.mounted) return;
         Navigator.of(context).pop();
@@ -235,6 +254,34 @@ class NewIngredientSheet extends HookConsumerWidget {
                     'volunteer-entered, so whatever it has no answer for stays '
                     'blank — and nothing counts until you confirm it.',
             }, style: miseMono(size: 10, color: MiseColors.muted)),
+
+            // F1: the lookup is drawn on the USDA leg, and it is DISABLED —
+            // there is no row yet to fill in. It was a silent no-op on an
+            // unsaved draft, which taught the user nothing; a greyed button
+            // with the reason under it says what to do instead. Creating runs
+            // exactly this probe (D7b), so the affordance is honest about
+            // being the same action a moment later.
+            if (source.value == NewIngredientSource.usda) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  border: Border.all(color: MiseColors.line),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Look up in USDA',
+                  textAlign: TextAlign.center,
+                  style: miseMono(size: 12, color: MiseColors.muted),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'save first — a lookup fills in a row, and there isn’t one '
+                'yet. Creating it runs exactly this lookup.',
+                style: miseMono(size: 10, color: MiseColors.muted),
+              ),
+            ],
 
             if (prefill != null) ...[
               const SizedBox(height: 14),

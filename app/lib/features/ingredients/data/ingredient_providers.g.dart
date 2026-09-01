@@ -104,6 +104,64 @@ final class MeasureRepositoryProvider
 
 String _$measureRepositoryHash() => r'808d26e7592bdca5737829dc22181cadd9e2b349';
 
+/// The D7b USDA probe. Talks to Supabase REST rather than the local SQLite —
+/// the one ingredient read that must, because `usda_food` never syncs to a
+/// device (ADR-0005). Falls back to a probe that always answers "nothing"
+/// where no backend is configured, which is the same answer an offline device
+/// gets, so nothing downstream needs a second code path.
+
+@ProviderFor(usdaProbe)
+const usdaProbeProvider = UsdaProbeProvider._();
+
+/// The D7b USDA probe. Talks to Supabase REST rather than the local SQLite —
+/// the one ingredient read that must, because `usda_food` never syncs to a
+/// device (ADR-0005). Falls back to a probe that always answers "nothing"
+/// where no backend is configured, which is the same answer an offline device
+/// gets, so nothing downstream needs a second code path.
+
+final class UsdaProbeProvider
+    extends $FunctionalProvider<UsdaProbe, UsdaProbe, UsdaProbe>
+    with $Provider<UsdaProbe> {
+  /// The D7b USDA probe. Talks to Supabase REST rather than the local SQLite —
+  /// the one ingredient read that must, because `usda_food` never syncs to a
+  /// device (ADR-0005). Falls back to a probe that always answers "nothing"
+  /// where no backend is configured, which is the same answer an offline device
+  /// gets, so nothing downstream needs a second code path.
+  const UsdaProbeProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'usdaProbeProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$usdaProbeHash();
+
+  @$internal
+  @override
+  $ProviderElement<UsdaProbe> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  UsdaProbe create(Ref ref) {
+    return usdaProbe(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(UsdaProbe value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<UsdaProbe>(value),
+    );
+  }
+}
+
+String _$usdaProbeHash() => r'cc0ecc2959b7f0bbb92c22fab0e13f1a9f4ba96a';
+
 /// The live measures of one ingredient, `sort_order`-first — what the unit
 /// pickers append as [Measure] choices (`allowedUnitChoicesFor`).
 

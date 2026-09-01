@@ -25,6 +25,14 @@ mixin IngredientManagerStubs implements IngredientRepository {
       throw UnimplementedError();
 
   @override
+  Future<Ingredient?> applyUsdaProbe(
+    String ingredientId, {
+    required String source,
+    double? densityGPerMl,
+    Macros? macros,
+  }) => throw UnimplementedError();
+
+  @override
   Stream<List<Ingredient>> watchVocabulary() => const Stream.empty();
 
   @override
@@ -202,6 +210,32 @@ class FakeIngredientRepo implements IngredientRepository {
       allowedUnits: kept.toList(),
       measureCount: current.measureCount,
       source: current.source,
+    );
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<Ingredient?> applyUsdaProbe(
+    String ingredientId, {
+    required String source,
+    double? densityGPerMl,
+    Macros? macros,
+  }) async {
+    final current = _find(ingredientId);
+    if (current == null) return null;
+    // The same two guards the real repo re-checks inside its transaction
+    // (D7b): a bare stub only, so a machine's numbers never land on a row
+    // someone has filled in.
+    if (current.status != IngredientStatus.stub ||
+        current.densityGPerMl != null ||
+        current.macros != null) {
+      return null;
+    }
+    final updated = current.copyWith(
+      densityGPerMl: densityGPerMl,
+      macros: macros,
+      source: source,
     );
     _replace(updated);
     return updated;

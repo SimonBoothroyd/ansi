@@ -428,20 +428,30 @@ A → B → D → C → tail.
 - [ ] **List page:** the whole household vocab, searched with the same
       deterministic local search the picker uses; stub rows badged; honest
       capability hints per row (category · density · measure count).
-- [ ] **Detail / flesh-out form:** edits `canonical_name` (re-writing
-      `match_text`), aliases, category, default unit, macros + basis, density
-      both ways, and **`allowed_units`** — the ADR-0008 section that has never
-      existed. Reachable for `complete` rows, not just stubs.
+- [x] **Detail / flesh-out form:** edits `canonical_name` (re-writing
+      `match_text`), aliases, category (a **dropdown** of the household's own
+      categories since F3 — free text is gone), default unit, macros + basis,
+      density both ways, **measures** (the shared 7.7 editor, embedded since
+      F2), and **`allowed_units`** — the ADR-0008 section that has never
+      existed, with its cross-family half now density-derived per **D4b**.
+      Reachable for `complete` rows, not just stubs.
 - [ ] **Confirm a stub:** gated per D5; reversible; a recipe using that
       ingredient stops reading `incomplete` without further action.
 - [ ] **Barcode:** scan or type a barcode → OFF lookup → prefilled draft →
       confirm. No-permission and not-found states are designed, not crashes.
-- [ ] `default_allowed_units()` and `defaultAllowedUnitSet` agree on extended
+- [x] `default_allowed_units()` and `defaultAllowedUnitSet` agree on extended
       shared vectors **including** a piece-default-with-density row and an
       imprecise-gated row (the `handful` divergence).
-- [ ] A stub created in-app and a stub created by import land the **same**
-      `match_text` the server's normalizer would write (shared vectors).
-- [ ] A stub inserted server-side is USDA-prefilled and still reads `stub`.
+- [x] A stub created in-app and a stub created by import land the **same**
+      `match_text` the server's normalizer would write (shared vectors). The
+      last residual — import's commit still calling `normalizeSearchQuery` for
+      the stub row and the correction alias — is closed, with a repo test that
+      pins a case where the two normalizers genuinely differ.
+- [x] A stub inserted server-side is USDA-prefilled and still reads `stub`
+      (0014 insert leg + 0015 rename leg, pgTAP). **D7b** adds the client
+      leg: migration 0016 exposes the same probe as `probe_usda(name)`, a
+      security-definer read-only RPC, so a creation flow enriches at birth and
+      "Look up in USDA" is a real query — and the row still reads `stub`.
 - [ ] Tests cover the new logic: pure-Dart mapper + normalizer + admission
       vectors (unit), form and list (widget/repo over the real-schema harness),
       migration (pgTAP).
@@ -553,6 +563,31 @@ Append-only.
   need them); target is zero standing stubs. One-time chore added: drive the
   36 seed stubs to zero in the seed itself (FDC probe + hand curation/OFF
   for FDC-less rows).
+- 2026-08-31 — **Polish pass landed (D4b, F1, F2, F3, D7b).** Five owner-ruled
+  items, one commit each. **D4b**: `densityStrippedUnits` (derived, not
+  listed) + `clearDensity` make the cross-family admission density-derived
+  both ways; the basis family is always live; lines already saying a stripped
+  unit degrade to `unitNotAllowed` and are never rewritten. ADR-0009 gains a
+  refinement note drawing the boundary around its union-never-remove rule.
+  **F1**: "Look up in USDA" flushes pending edits before probing (the
+  rename-then-lookup flow), and the add sheet draws the button disabled with
+  "save first" instead of a silent no-op. **F2**: the 7.7 manage-measures
+  editor is extracted (as `DensityEntry` was) and embedded in the form; the
+  barcode draft's `packSize` stopped being discarded and earns frame (e)'s
+  opt-in tick, stored in the row's own basis and not offered at all where it
+  cannot be bridged. **F3**: the category is a live dropdown of the
+  household's own categories plus an add-new door. **D7b**: migration 0016
+  lifts the trigger's probe into `usda_probe()` and exposes it as
+  `probe_usda(name)` — security definer, read-only, granted to
+  `authenticated` only; creation flows enrich at birth, offline degrades to
+  the trigger path with honest copy, and the two writes are safe to race
+  because both fill nulls only on bare stubs from the same probe. Also closed
+  in passing: the import-commit `match_text` residual (D6), and a real
+  reconciliation bug the F1 test exposed — conditional children in the form's
+  `ListView` shifted their siblings onto the wrong elements, wiping hook
+  state (the lookup's own note vanished exactly when it succeeded); the
+  conditionals are stable slots now.
+
 - 2026-08-31 — **Seed-stub-zero chore DEFERRED (owner).** The 36 template
   stubs stay for now; the D7b probe + barcode + manager badge are the live
   paths for whittling them. Revisit as its own small slice when it itches —

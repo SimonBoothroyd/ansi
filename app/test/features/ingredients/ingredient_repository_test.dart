@@ -519,6 +519,79 @@ void main() {
     );
   });
 
+  group('applyUsdaProbe (D7b: the local half of the enrichment)', () {
+    test('fills a bare stub and extends allowed_units with what the density '
+        'unlocks — the same event, the same rule as setDensity', () async {
+      // id '3' is the seeded stub, default_unit 'g'.
+      final applied = await repo.applyUsdaProbe(
+        '3',
+        source: 'usda_fdc:11216',
+        densityGPerMl: 0.35,
+        macros: const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
+      );
+      expect(applied, isNotNull);
+      expect(applied!.densityGPerMl, 0.35);
+      expect(applied.macros!.kcal, 108);
+      expect(applied.source, 'usda_fdc:11216');
+      // Still a stub: confirming is a human act (D5).
+      expect(applied.status, IngredientStatus.stub);
+      expect(applied.allowedUnits!.map((u) => u.id).toSet(), {
+        'g',
+        'kg',
+        'tsp',
+        'tbsp',
+        'cup',
+        'ml',
+      });
+    });
+
+    test('REFUSES a row that already has numbers — the guard is re-checked '
+        'here, not just by the caller', () async {
+      await repo.setDensity('3', 0.9);
+      expect(
+        await repo.applyUsdaProbe('3', source: 'usda_fdc:1', densityGPerMl: 2),
+        isNull,
+      );
+      expect((await repo.byId('3'))!.densityGPerMl, 0.9);
+      expect((await repo.byId('3'))!.source, 'seed');
+    });
+
+    test('refuses a complete row, and an unknown id', () async {
+      // id '1' (Onion) is complete.
+      expect(
+        await repo.applyUsdaProbe('1', source: 'usda_fdc:1', densityGPerMl: 1),
+        isNull,
+      );
+      expect(
+        await repo.applyUsdaProbe(
+          'nope',
+          source: 'usda_fdc:1',
+          densityGPerMl: 1,
+        ),
+        isNull,
+      );
+    });
+
+    test('a candidate with nothing to copy writes nothing — the source is '
+        'not churned for a name match', () async {
+      expect(await repo.applyUsdaProbe('3', source: 'usda_fdc:1'), isNull);
+      expect((await repo.byId('3'))!.source, 'seed');
+    });
+
+    test('macros without a density leave the allowed list alone', () async {
+      final applied = await repo.applyUsdaProbe(
+        '3',
+        source: 'usda_fdc:2',
+        macros: const Macros(kcal: 1, protein: 2, carb: 3, fat: 4),
+      );
+      expect(applied!.macros!.kcal, 1);
+      expect(applied.densityGPerMl, isNull);
+      // Nothing unlocked, because nothing bridged: the row had no explicit
+      // list and still has none.
+      expect(applied.allowedUnits, isNull);
+    });
+  });
+
   // --- The manager's write half (step 8.5, plan 0020) ------------------------
 
   group('watchVocabulary / watchStubCount', () {

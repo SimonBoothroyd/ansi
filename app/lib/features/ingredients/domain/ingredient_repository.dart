@@ -145,6 +145,33 @@ abstract interface class IngredientRepository {
   /// no-op (returning the row unchanged) when there is no density to delete.
   Future<Ingredient?> clearDensity(String ingredientId);
 
+  /// Writes a USDA probe result into the row's NULL fields — plan 0020
+  /// **D7b**, the local half of "enrichment should not wait for sync".
+  ///
+  /// Two guards, both load-bearing, both mirroring the server trigger's WHEN
+  /// clause (migrations 0014/0015) so the two writes can race harmlessly:
+  /// - the row must still be a **`stub`**, and
+  /// - it must be **bare** — no density and no macros. A row someone has
+  ///   filled in is never overwritten by a trigram guess.
+  ///
+  /// Both re-checked inside the write, not just by the caller: the row may
+  /// have changed between the probe and the apply (another device, or the
+  /// server trigger landing first). Returns null when either guard fails, or
+  /// when the id doesn't resolve.
+  ///
+  /// A landing density also extends `allowed_units` with what it unlocks, in
+  /// the same write — the same rule [setDensity] follows, because it is the
+  /// same event (ADR-0009).
+  ///
+  /// The row stays `stub`: a machine's numbers never complete an ingredient
+  /// (D5, and the trigger's own contract).
+  Future<Ingredient?> applyUsdaProbe(
+    String ingredientId, {
+    required String source,
+    double? densityGPerMl,
+    Macros? macros,
+  });
+
   // --- The manager's write half (step 8.5) -----------------------------------
 
   /// The whole live vocabulary, canonical-name ordered, as a watched query —

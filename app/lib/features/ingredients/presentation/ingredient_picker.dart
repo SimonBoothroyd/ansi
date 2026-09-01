@@ -19,6 +19,7 @@ import '../../../core/theme/mise_tokens.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/picker_shell.dart';
 import '../data/ingredient_providers.dart';
+import '../data/usda_enrichment.dart';
 import '../domain/ingredient.dart';
 import 'ingredient_detail_view.dart' show ingredientDetailRoute;
 import 'macros_format.dart';
@@ -324,11 +325,26 @@ class AddNewIngredientRow extends HookConsumerWidget {
                 final made = await ref
                     .read(ingredientRepositoryProvider)
                     .createStub(name);
+                // D7b: born enriched. The same probe-and-apply the manager's
+                // add sheet runs — one answer to "what does creating an
+                // ingredient mean", not two. Offline it answers null within
+                // its own short timeout and the server trigger catches the
+                // row on upload, so this never blocks the picker for long
+                // and never surfaces an error.
+                final enriched = await enrichFromUsda(
+                  made,
+                  probe: ref.read(usdaProbeProvider),
+                  repository: ref.read(ingredientRepositoryProvider),
+                );
                 if (!context.mounted) return;
+                // The enriched row when the probe landed, the bare one
+                // otherwise — either way a `stub`, because confirming stays a
+                // human act (D5).
+                final row = enriched.row ?? made;
                 if (onFleshOut == null) {
-                  onCreated(made);
+                  onCreated(row);
                 } else {
-                  justCreated.value = made;
+                  justCreated.value = row;
                 }
               } finally {
                 if (context.mounted) creating.value = false;

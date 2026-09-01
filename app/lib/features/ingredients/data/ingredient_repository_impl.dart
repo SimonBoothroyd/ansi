@@ -333,6 +333,62 @@ class SqliteIngredientRepository implements IngredientRepository {
     return byId(ingredientId);
   }
 
+  @override
+  Future<Ingredient?> applyUsdaProbe(
+    String ingredientId, {
+    required String source,
+    double? densityGPerMl,
+    Macros? macros,
+  }) async {
+    if (densityGPerMl == null && macros == null) return null;
+    final now = DateTime.now().toUtc().toIso8601String();
+    final applied = await _db.writeTransaction((tx) async {
+      final row = await tx.getOptional(
+        'SELECT i.*, $_measureCount FROM ingredient i '
+        'WHERE i.id = ? AND i.deleted_at IS NULL',
+        [ingredientId],
+      );
+      if (row == null) return false;
+      final current = _toIngredient(row);
+      // The guards re-checked inside the transaction, not just by the caller:
+      // the row can change between the probe and this write (another device,
+      // or the server trigger landing first). Same shape as the 0014/0015
+      // trigger's WHEN clause, which is what makes the race benign.
+      if (current.status != IngredientStatus.stub ||
+          current.densityGPerMl != null ||
+          current.macros != null) {
+        return false;
+      }
+      // A landing density unlocks units, exactly as `setDensity` does — same
+      // event, same rule (ADR-0009). No density, no change to the list.
+      final units = densityGPerMl == null
+          ? current.allowedUnits
+          : [
+              ...{
+                ...current.allowedUnits ?? defaultAllowedUnitSet(current),
+                ...densityUnlockedUnits(current),
+              },
+            ];
+      await tx.execute(
+        'UPDATE ingredient SET density_g_per_ml = ?, macros = ?, '
+        'allowed_units = ?, source = ?, updated_at = ? WHERE id = ?',
+        [
+          densityGPerMl,
+          _macrosJson(macros),
+          if (units == null)
+            null
+          else
+            jsonEncode([for (final u in units) u.id]),
+          source,
+          now,
+          ingredientId,
+        ],
+      );
+      return true;
+    });
+    return applied ? byId(ingredientId) : null;
+  }
+
   // --- The manager's write half (step 8.5) -----------------------------------
 
   @override

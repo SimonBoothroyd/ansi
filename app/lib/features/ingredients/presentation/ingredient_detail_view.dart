@@ -29,6 +29,7 @@ import '../../../core/units/units.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../data/ingredient_providers.dart';
+import '../data/usda_enrichment.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
@@ -186,7 +187,16 @@ class _DetailForm extends HookConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 48),
       children: [
-        if (stub && isUsdaPrefilled(ing.source)) const _PrefillBanner(),
+        // A SLOT, not a conditional child. A lookup that succeeds turns this
+        // banner on, and an unkeyed insertion at the top of a ListView shifts
+        // every sibling by one — which reconciles each of them against the
+        // wrong element and silently resets its hook state, including the
+        // note the lookup just wrote. Keeping the position occupied keeps the
+        // rest of the form aligned.
+        if (stub && isUsdaPrefilled(ing.source))
+          const _PrefillBanner()
+        else
+          const SizedBox.shrink(),
 
         const _Label('CANONICAL NAME'),
         FTextField(
@@ -252,12 +262,7 @@ class _DetailForm extends HookConsumerWidget {
             ref.invalidate(ingredientByIdProvider(ing.id));
           },
         ),
-        if (ing.densityGPerMl == null)
-          _Note(
-            'no density — the ${_crossFamilyWord(ing)} chips below stay '
-            'locked; the ${_basisFamilyWord(ing)} ones never needed one. '
-            'That blocks nothing: macros are what a row needs to count.',
-          ),
+        _DensityGapNote(ingredient: ing),
 
         const _Label('ALLOWED UNITS — WHAT A LINE MAY SAY'),
         _AdmissionChips(
@@ -293,13 +298,12 @@ class _DetailForm extends HookConsumerWidget {
         const SizedBox(height: 20),
         _StatusLine(ingredient: ing),
 
-        if (message.value != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            message.value!,
-            style: miseMono(size: 11, color: MiseColors.muted),
-          ),
-        ],
+        // Also a slot, for the same reason the banner above is one: saving
+        // sets this message, and a spread that grows from zero children to
+        // two would shift everything below it — including the lookup
+        // section, whose note would vanish the moment it had something to
+        // say.
+        _FormMessage(text: message.value),
 
         const SizedBox(height: 12),
         FButton(onPress: busy.value ? null : save, child: const Text('Save')),
@@ -329,7 +333,16 @@ class _DetailForm extends HookConsumerWidget {
             },
           ),
 
-        if (stub) ...[const SizedBox(height: 12), _UsdaLookup(ingredient: ing)],
+        const SizedBox(height: 12),
+        // F1: the button flushes the form's pending edits before it probes,
+        // so a rename typed and not yet saved is the name USDA is asked
+        // about — the exact flow that failed on the owner's device. A slot
+        // again, so that landing a density (which retires the note above)
+        // cannot shift this section and wipe what it just said.
+        if (stub)
+          _UsdaLookup(ingredient: ing, flush: save)
+        else
+          const SizedBox.shrink(),
 
         const SizedBox(height: 24),
         _DeleteAction(ingredient: ing),
@@ -864,36 +877,83 @@ class _UnconfirmAction extends StatelessWidget {
   }
 }
 
-/// D7's manual half. `usda_food` never syncs to a device (ADR-0005), so this
-/// cannot run the lookup here: the trigram match runs server-side when the
-/// row uploads. What the button honestly does is **re-read the row** and say
-/// whether a prefill has come back down yet.
+/// D7's manual half, rebuilt for **D7b**: a real probe, not a re-read.
+///
+/// `usda_food` still never syncs to a device (ADR-0005), so the app cannot
+/// search it — but since migration 0016 it can *ask* the server for one
+/// candidate through a read-only RPC and apply the answer locally. The button
+/// used to re-read the row and report whether the sync round trip had
+/// finished, which is a truthful description of doing nothing.
+///
+/// **F1 — it flushes first.** The failing flow the owner found was
+/// rename-then-lookup on a saved stub: the rename sat unsaved in the form
+/// while the button probed the OLD name. So the button saves any pending
+/// edits, then probes under the name that is now stored. That is also why the
+/// helper copy names what the wait is — an RPC round trip, not a sync one.
 class _UsdaLookup extends HookConsumerWidget {
-  const _UsdaLookup({required this.ingredient});
+  const _UsdaLookup({required this.ingredient, required this.flush});
 
   final Ingredient ingredient;
+
+  /// Saves the form's pending edits and returns the stored row (null when the
+  /// save was refused or the row is gone). Called before every probe: a
+  /// lookup that reads a name the user has already changed is the F1 bug.
+  final Future<Ingredient?> Function() flush;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final note = useState<String?>(null);
+    final busy = useState(false);
+
+    Future<void> lookUp() async {
+      busy.value = true;
+      note.value = 'Saving, then asking USDA…';
+      try {
+        final saved = await flush();
+        if (!context.mounted) return;
+        if (saved == null) {
+          note.value =
+              'Save what is on this form first — the lookup asks '
+              'about the name that is stored.';
+          return;
+        }
+        final result = await enrichFromUsda(
+          saved,
+          probe: ref.read(usdaProbeProvider),
+          repository: ref.read(ingredientRepositoryProvider),
+        );
+        if (!context.mounted) return;
+        ref.invalidate(ingredientByIdProvider(ingredient.id));
+        note.value = switch (result.outcome) {
+          UsdaEnrichment.applied =>
+            'USDA FoodData Central filled this in — check the numbers, then '
+                'confirm. Nothing counts until you do.',
+          UsdaEnrichment.nothingToCopy =>
+            'USDA has a food by that name but no density and no panel for '
+                'it. Fill it in by hand.',
+          // Offline and "no confident match" are one state on purpose: the
+          // user cannot act differently on them, and the server trigger
+          // re-runs the same probe when this row uploads either way. Never a
+          // dialog for a network miss.
+          UsdaEnrichment.noAnswer =>
+            'Nothing came back for “${saved.canonicalName}”. If you are '
+                'offline the server runs the same lookup when this row syncs '
+                'up. Renaming it asks again.',
+          UsdaEnrichment.notBare =>
+            'Nothing to fill in — this row already has numbers. A lookup only '
+                'ever fills blanks, so it can’t overwrite what you entered.',
+        };
+      } finally {
+        if (context.mounted) busy.value = false;
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _GhostButton(
-          label: 'Look up in USDA',
-          onTap: () async {
-            final fresh = await ref
-                .read(ingredientRepositoryProvider)
-                .byId(ingredient.id);
-            if (!context.mounted) return;
-            ref.invalidate(ingredientByIdProvider(ingredient.id));
-            note.value = fresh != null && isUsdaPrefilled(fresh.source)
-                ? 'USDA FoodData Central filled this in — check the numbers, '
-                      'then confirm.'
-                : 'Nothing back from USDA yet. The lookup runs on the server '
-                      'when this row syncs up; a rename re-runs it. Fill it '
-                      'in by hand and it stops mattering.';
-          },
+          label: busy.value ? 'Looking up…' : 'Look up in USDA',
+          onTap: busy.value ? null : lookUp,
         ),
         if (note.value != null) _Note(note.value!),
       ],
@@ -969,10 +1029,15 @@ class _GhostButton extends StatelessWidget {
   const _GhostButton({required this.label, required this.onTap});
 
   final String label;
-  final Future<void> Function() onTap;
+
+  /// Null while the action is in flight or unavailable — the button greys
+  /// rather than accepting a tap it will drop (F1: "save first" is a state,
+  /// not a silent no-op).
+  final Future<void> Function()? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onTap != null;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -985,9 +1050,50 @@ class _GhostButton extends StatelessWidget {
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: miseMono(size: 12),
+          style: miseMono(
+            size: 12,
+            color: enabled ? MiseColors.ink : MiseColors.muted,
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// The advisory under the density entry. A slot rather than a conditional
+/// child: it retires the moment a density lands, and in a `ListView` a child
+/// that disappears shifts every sibling below it onto the wrong element —
+/// silently resetting their hook state, which is how the lookup's own note
+/// vanished exactly when it had good news.
+class _DensityGapNote extends StatelessWidget {
+  const _DensityGapNote({required this.ingredient});
+
+  final Ingredient ingredient;
+
+  @override
+  Widget build(BuildContext context) {
+    if (ingredient.densityGPerMl != null) return const SizedBox.shrink();
+    return _Note(
+      'no density — the ${_crossFamilyWord(ingredient)} chips below stay '
+      'locked; the ${_basisFamilyWord(ingredient)} ones never needed one. '
+      'That blocks nothing: macros are what a row needs to count.',
+    );
+  }
+}
+
+/// The form's save/confirm feedback line. Always in the tree so the children
+/// below it keep their positions (and their hook state) when it appears.
+class _FormMessage extends StatelessWidget {
+  const _FormMessage({required this.text});
+
+  final String? text;
+
+  @override
+  Widget build(BuildContext context) {
+    if (text == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text(text!, style: miseMono(size: 11, color: MiseColors.muted)),
     );
   }
 }
