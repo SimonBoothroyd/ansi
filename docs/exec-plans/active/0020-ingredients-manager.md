@@ -664,3 +664,19 @@ Append-only.
   so the sim path for scenario 5 is the TYPED barcode field (identical
   downstream handler), and **scan-from-photo ships in the on-device slice**
   alongside the camera-capture errands — not as a sim-only error state.
+- 2026-09-01 — **Batch 5 (owner's Pixel field test — real cookbook photo import
+  against cloud).** The extraction pipeline performed perfectly (every gold
+  convention manifested: notes routing, to-taste, garnish portions, the
+  catch-all collective); all failures are admission-layer or rendering. J1:
+  a BLANK-LABEL collective renders as one atomic mega-chip and overflows the
+  screen — must render as a wrappable run of chips. J2: unit-chip ranking
+  inverted — three imprecise words outrank the ingredient's own measures
+  (garlic's clove hidden behind "+1 more" while its printed unit); ALSO
+  investigate why "1 clove" flagged at all when the cloud row carries the
+  clove measure (review-path measure loading suspect). J3: imprecise
+  category gates too loose — pinch/dash offered on kale; ruled: pinch/dash
+  for spices/seasonings/oils only, handful stays for leafy. **D4d ruled:
+  KEEP D4C STRICT, FIX THE DATA** — a density-seeding pass for volume-default
+  rows lacking one (liquids: lemon juice-class; kale-class leafy produce),
+  then cloud push (0014-0016, still pending) + reseed + §2b rollout so the
+  owner's live household drains its stranded rows.
