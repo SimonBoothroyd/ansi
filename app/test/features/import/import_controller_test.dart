@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:ansi/features/import/data/canned_payload.dart';
+import 'package:ansi/features/import/data/import_providers.dart';
+import 'package:ansi/features/import/domain/commit_payload.dart';
+import 'package:ansi/features/import/domain/import_repository.dart';
+import 'package:ansi/features/import/domain/line_validation.dart';
+import 'package:ansi/features/import/domain/reconciliation_payload.dart';
+import 'package:ansi/features/import/presentation/import_view_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:mise/features/import/data/canned_payload.dart';
-import 'package:mise/features/import/data/import_providers.dart';
-import 'package:mise/features/import/domain/commit_payload.dart';
-import 'package:mise/features/import/domain/import_repository.dart';
-import 'package:mise/features/import/domain/line_validation.dart';
-import 'package:mise/features/import/domain/reconciliation_payload.dart';
-import 'package:mise/features/import/presentation/import_view_models.dart';
 
 /// A fake edge function + a commit that records the payload instead of writing.
 /// [gate], when set, holds `startImport` open so a second call can race it.

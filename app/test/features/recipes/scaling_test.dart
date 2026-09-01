@@ -1,7 +1,7 @@
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/domain/scaling.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/recipes/domain/recipe.dart';
-import 'package:mise/features/recipes/domain/scaling.dart';
 
 LineItem _line(String name, double? qty, Unit unit) => LineItem(
   id: name,

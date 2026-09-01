@@ -2,24 +2,24 @@
 // pattern connecting_view_test documents).
 // ignore_for_file: scoped_providers_should_specify_dependencies
 
+import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/features/books/data/book_providers.dart';
+import 'package:ansi/features/books/domain/book.dart';
+import 'package:ansi/features/books/domain/book_repository.dart';
+import 'package:ansi/features/planning/data/planning_providers.dart';
+import 'package:ansi/features/planning/domain/planning.dart';
+import 'package:ansi/features/planning/domain/planning_repository.dart';
+import 'package:ansi/features/planning/presentation/recipe_picker_sheet.dart';
+import 'package:ansi/features/recipes/data/recipe_providers.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/domain/recipe_macros.dart';
+import 'package:ansi/features/recipes/domain/recipe_repository.dart';
+import 'package:ansi/shared/incomplete_macros.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:mise/core/theme/mise_theme.dart';
-import 'package:mise/core/units/macros.dart';
-import 'package:mise/features/books/data/book_providers.dart';
-import 'package:mise/features/books/domain/book.dart';
-import 'package:mise/features/books/domain/book_repository.dart';
-import 'package:mise/features/planning/data/planning_providers.dart';
-import 'package:mise/features/planning/domain/planning.dart';
-import 'package:mise/features/planning/domain/planning_repository.dart';
-import 'package:mise/features/planning/presentation/recipe_picker_sheet.dart';
-import 'package:mise/features/recipes/data/recipe_providers.dart';
-import 'package:mise/features/recipes/domain/recipe.dart';
-import 'package:mise/features/recipes/domain/recipe_macros.dart';
-import 'package:mise/features/recipes/domain/recipe_repository.dart';
-import 'package:mise/shared/incomplete_macros.dart';
 
 /// The picker's read models, canned: two recipes — a favorite with complete
 /// per-serving macros planned 3 days ago, and an unplanned one whose macros
@@ -132,7 +132,7 @@ Widget _host({List<RecipeSummary> recipes = const [_curry, _salad]}) =>
       ],
       child: MaterialApp(
         home: FTheme(
-          data: miseThemeData(),
+          data: ansiThemeData(),
           child: FScaffold(
             child: Builder(
               builder: (context) => Center(

@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/data/ingredient_repository_impl.dart';
+import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
+import 'package:ansi/features/ingredients/domain/search_query.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/core/units/macros.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/ingredients/data/ingredient_repository_impl.dart';
-import 'package:mise/features/ingredients/domain/ingredient.dart';
-import 'package:mise/features/ingredients/domain/ingredient_repository.dart';
-import 'package:mise/features/ingredients/domain/search_query.dart';
 import 'package:powersync/powersync.dart';
 
 import '../../helpers/test_db.dart';

@@ -11,7 +11,7 @@ library;
 
 import 'package:flutter/widgets.dart';
 
-import '../core/theme/mise_theme.dart';
+import '../core/theme/ansi_theme.dart';
 import '../features/recipes/domain/recipe_macros.dart';
 
 /// Why a summary is incomplete, for the row note: `no ingredients yet`,
@@ -45,7 +45,7 @@ class IncompleteBadge extends StatelessWidget {
       ),
       child: Text(
         'incomplete',
-        style: miseMono(size: 9, color: const Color(0xFF7A5A16)),
+        style: ansiMono(size: 9, color: const Color(0xFF7A5A16)),
       ),
     );
   }

@@ -367,7 +367,7 @@ Deno.test("decodeSaved — an unknown provider is a hard error, not a silent zer
   let threw = false;
   try {
     decodeSaved({
-      schema: "mise.eval.extraction-response/1",
+      schema: "ansi.eval.extraction-response/1",
       case_id: "c",
       provider: "some-new-provider",
       model: "m",

@@ -28,15 +28,15 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/result/result.dart';
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import '../../recipes/presentation/format.dart';
 import '../barcode/barcode_add.dart';
 import '../data/ingredient_providers.dart';
 import '../data/usda_enrichment.dart';
-import 'density_entry.dart' show MiseModeChip;
+import 'density_entry.dart' show AnsiModeChip;
 import 'ingredient_detail_view.dart';
 import 'macros_format.dart';
 
@@ -183,9 +183,9 @@ class NewIngredientSheet extends HookConsumerWidget {
 
     return Container(
       decoration: const BoxDecoration(
-        color: MiseColors.paper,
+        color: AnsiColors.paper,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: MiseColors.line)),
+        border: Border(top: BorderSide(color: AnsiColors.line)),
       ),
       padding: EdgeInsets.only(
         left: 20,
@@ -212,30 +212,30 @@ class NewIngredientSheet extends HookConsumerWidget {
                   child: Text(
                     'New ingredient',
                     textAlign: TextAlign.center,
-                    style: miseSerif(size: 20),
+                    style: ansiSerif(size: 20),
                   ),
                 ),
                 const SizedBox(width: 22),
               ],
             ),
             const SizedBox(height: 16),
-            Text('SOURCE', style: miseLabel()),
+            Text('SOURCE', style: ansiLabel()),
             const SizedBox(height: 6),
             Row(
               children: [
-                MiseModeChip(
+                AnsiModeChip(
                   label: 'Manual',
                   selected: source.value == NewIngredientSource.manual,
                   onTap: () => source.value = NewIngredientSource.manual,
                 ),
                 const SizedBox(width: 6),
-                MiseModeChip(
+                AnsiModeChip(
                   label: 'USDA FDC',
                   selected: source.value == NewIngredientSource.usda,
                   onTap: () => source.value = NewIngredientSource.usda,
                 ),
                 const SizedBox(width: 6),
-                MiseModeChip(
+                AnsiModeChip(
                   label: 'Barcode',
                   selected: source.value == NewIngredientSource.barcode,
                   onTap: scan,
@@ -257,7 +257,7 @@ class NewIngredientSheet extends HookConsumerWidget {
                     'phone and prefills a draft. Open Food Facts is '
                     'volunteer-entered, so whatever it has no answer for stays '
                     'blank — and nothing counts until you confirm it.',
-            }, style: miseMono(size: 10, color: MiseColors.muted)),
+            }, style: ansiMono(size: 10, color: AnsiColors.muted)),
 
             // F1: the lookup is drawn on the USDA leg, and it is DISABLED —
             // there is no row yet to fill in. It was a silent no-op on an
@@ -270,20 +270,20 @@ class NewIngredientSheet extends HookConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  border: Border.all(color: MiseColors.line),
+                  border: Border.all(color: AnsiColors.line),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   'Look up in USDA',
                   textAlign: TextAlign.center,
-                  style: miseMono(size: 12, color: MiseColors.muted),
+                  style: ansiMono(size: 12, color: AnsiColors.muted),
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'save first — a lookup fills in a row, and there isn’t one '
                 'yet. Creating it runs exactly this lookup.',
-                style: miseMono(size: 10, color: MiseColors.muted),
+                style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ],
 
@@ -293,7 +293,7 @@ class NewIngredientSheet extends HookConsumerWidget {
             ],
 
             const SizedBox(height: 18),
-            Text('NAME', style: miseLabel()),
+            Text('NAME', style: ansiLabel()),
             const SizedBox(height: 6),
             FTextField(
               // Re-keyed per draft: `initial` seeds the field once, so a scan
@@ -311,11 +311,11 @@ class NewIngredientSheet extends HookConsumerWidget {
               Text(
                 'the product name is a starting point — yours is the name your '
                 'recipes will read',
-                style: miseMono(size: 10, color: MiseColors.muted),
+                style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
               if (_packAmountInBasis(prefill, prefill.macrosBasis) != null) ...[
                 const SizedBox(height: 14),
-                Text('ALSO ADD A MEASURE', style: miseLabel()),
+                Text('ALSO ADD A MEASURE', style: ansiLabel()),
                 const SizedBox(height: 6),
                 _PackSizeTick(
                   draft: prefill,
@@ -333,7 +333,7 @@ class NewIngredientSheet extends HookConsumerWidget {
               Text(
                 'Saves as a stub — confirm it on the next screen to make it '
                 'count.',
-                style: miseMono(size: 10, color: MiseColors.muted),
+                style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ],
             const SizedBox(height: 14),
@@ -414,9 +414,9 @@ class _PackSizeTick extends StatelessWidget {
                 height: 20,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: ticked ? MiseColors.herbSoft : MiseColors.surface,
+                  color: ticked ? AnsiColors.herbSoft : AnsiColors.surface,
                   border: Border.all(
-                    color: ticked ? MiseColors.herb : MiseColors.line,
+                    color: ticked ? AnsiColors.herb : AnsiColors.line,
                   ),
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -424,7 +424,7 @@ class _PackSizeTick extends StatelessWidget {
                     ? const Icon(
                         FLucideIcons.check,
                         size: 13,
-                        color: MiseColors.herbDeep,
+                        color: AnsiColors.herbDeep,
                       )
                     : null,
               ),
@@ -443,7 +443,7 @@ class _PackSizeTick extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               '= ${formatQuantity(amountInBasis)} $basisLabel',
-              style: miseMono(size: 12),
+              style: ansiMono(size: 12),
             ),
           ],
         ),
@@ -454,7 +454,7 @@ class _PackSizeTick extends StatelessWidget {
                     'into this row’s basis. Edit it on the next screen.'
               : 'not added — the pack size is only a suggestion, and it is '
                     'not part of what makes this row count.',
-          style: miseMono(size: 10, color: MiseColors.muted),
+          style: ansiMono(size: 10, color: AnsiColors.muted),
         ),
       ],
     );
@@ -479,7 +479,7 @@ class _DraftCard extends StatelessWidget {
       return Text(
         'Nothing came back for ${draft.barcode ?? 'that code'} — the name and '
         'the macros are all a barcode was going to fill in. Type them here.',
-        style: miseMono(size: 10, color: MiseColors.muted),
+        style: ansiMono(size: 10, color: AnsiColors.muted),
       );
     }
     final macros = draft.macros;
@@ -492,31 +492,31 @@ class _DraftCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: MiseColors.surface,
-        border: Border.all(color: MiseColors.line),
+        color: AnsiColors.surface,
+        border: Border.all(color: AnsiColors.line),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('FOUND · OPEN FOOD FACTS', style: miseLabel()),
+          Text('FOUND · OPEN FOOD FACTS', style: ansiLabel()),
           const SizedBox(height: 6),
           Text(
             draft.productName ?? draft.suggestedName,
-            style: miseSans(size: 14, weight: FontWeight.w500),
+            style: ansiSans(size: 14, weight: FontWeight.w500),
           ),
           const SizedBox(height: 2),
           // The ODbL credit sits on the provenance line the frame draws it
           // on — beside the brand and the code it came with.
-          Text(provenance, style: miseMono(size: 10, color: MiseColors.muted)),
+          Text(provenance, style: ansiMono(size: 10, color: AnsiColors.muted)),
           const SizedBox(height: 8),
           if (macros != null) ...[
-            Text(formatMacroLine(macros), style: miseMono(size: 12)),
+            Text(formatMacroLine(macros), style: ansiMono(size: 12)),
             const SizedBox(height: 2),
             Text(
               'panel read per 100 ${draft.macrosBasis.dbValue} — stored as '
               'the basis, not converted',
-              style: miseMono(size: 10, color: MiseColors.muted),
+              style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           ] else
             // Blank, with the reason. Never zeros: an absent panel is a fact
@@ -525,7 +525,7 @@ class _DraftCard extends StatelessWidget {
               draft.macrosGap.message ??
                   'No macros came with this product — fill them in on the '
                       'next screen.',
-              style: miseMono(size: 10, color: MiseColors.muted),
+              style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
         ],
       ),

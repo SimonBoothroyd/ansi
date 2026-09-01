@@ -476,7 +476,7 @@ async function main(): Promise<void> {
     try {
       const res = await fetch(url, {
         headers: {
-          "user-agent": "mise-seed-miner/0.1 (+household vocab seed)",
+          "user-agent": "ansi-seed-miner/0.1 (+household vocab seed)",
         },
       });
       if (!res.ok) {

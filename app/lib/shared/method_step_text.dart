@@ -11,8 +11,8 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
-import '../core/theme/mise_theme.dart';
-import '../core/theme/mise_tokens.dart';
+import '../core/theme/ansi_theme.dart';
+import '../core/theme/ansi_tokens.dart';
 import '../features/recipes/domain/method_step.dart';
 import '../features/recipes/domain/recipe.dart';
 
@@ -62,7 +62,7 @@ class MethodStepText extends StatelessWidget {
     return Text.rich(
       TextSpan(
         children: children,
-        style: miseSans(size: textSize, height: 1.5),
+        style: ansiSans(size: textSize, height: 1.5),
       ),
     );
   }
@@ -137,8 +137,8 @@ class MethodChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 1),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: timer ? MiseColors.paper : MiseColors.herbSoft,
-          border: timer ? Border.all(color: MiseColors.line) : null,
+          color: timer ? AnsiColors.paper : AnsiColors.herbSoft,
+          border: timer ? Border.all(color: AnsiColors.line) : null,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Padding(
@@ -150,17 +150,17 @@ class MethodChip extends StatelessWidget {
                 const Icon(
                   FLucideIcons.timer,
                   size: 12,
-                  color: MiseColors.muted,
+                  color: AnsiColors.muted,
                 ),
                 const SizedBox(width: 4),
               ],
               Text(
                 text,
                 style: timer
-                    ? miseMono(size: 12)
-                    : miseSans(
+                    ? ansiMono(size: 12)
+                    : ansiSans(
                         size: textSize - 1,
-                        color: MiseColors.herbDeep,
+                        color: AnsiColors.herbDeep,
                         weight: FontWeight.w600,
                       ),
               ),
@@ -168,7 +168,7 @@ class MethodChip extends StatelessWidget {
                 const SizedBox(width: 5),
                 Text(
                   amount!,
-                  style: miseMono(size: 12, color: MiseColors.herb),
+                  style: ansiMono(size: 12, color: AnsiColors.herb),
                 ),
               ],
             ],

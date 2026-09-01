@@ -1,14 +1,14 @@
+import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/features/books/data/book_providers.dart';
+import 'package:ansi/features/books/domain/book.dart';
+import 'package:ansi/features/books/domain/book_repository.dart';
+import 'package:ansi/features/books/presentation/library_view.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
-import 'package:mise/core/theme/mise_theme.dart';
-import 'package:mise/features/books/data/book_providers.dart';
-import 'package:mise/features/books/domain/book.dart';
-import 'package:mise/features/books/domain/book_repository.dart';
-import 'package:mise/features/books/presentation/library_view.dart';
-import 'package:mise/features/recipes/domain/recipe.dart';
 
 class _FakeBookRepo implements BookRepository {
   _FakeBookRepo(this.books);
@@ -64,7 +64,7 @@ const _library = [
 Widget _host(List<Override> overrides) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
-    home: FTheme(data: miseThemeData(), child: const LibraryView()),
+    home: FTheme(data: ansiThemeData(), child: const LibraryView()),
   ),
 );
 

@@ -12,7 +12,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:mise/features/import/domain/reconciliation_payload.dart';
+import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 
 /// Reads and decodes a gold file (host filesystem; tests run from `app/`).
 Map<String, Object?> loadGoldJson(String name) {

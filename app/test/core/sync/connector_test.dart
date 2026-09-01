@@ -1,18 +1,18 @@
 /// Tests for the PowerSync <-> Supabase connector.
 ///
 /// Covers the payload mapping (jsonb columns decoded from their local TEXT
-/// form, PUT always clears `deleted_at`), the full [MiseConnector.uploadData]
+/// form, PUT always clears `deleted_at`), the full [AnsiConnector.uploadData]
 /// drain against a real PowerSync queue with a fake PostgREST layer, the
 /// fatal-vs-transient error split (fatal drops are logged, never silent), and
-/// that [MiseConnector.fetchCredentials] declines to sync when signed out.
+/// that [AnsiConnector.fetchCredentials] declines to sync when signed out.
 library;
 
 import 'dart:async';
 import 'dart:io';
 
+import 'package:ansi/core/sync/connector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/core/sync/connector.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:powersync/powersync.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -204,12 +204,12 @@ void main() {
     late PowerSyncDatabase db;
     late Directory dir;
     late _FakePostgrest backend;
-    late MiseConnector connector;
+    late AnsiConnector connector;
 
     setUp(() async {
       (db, dir) = await openTestDb();
       backend = _FakePostgrest();
-      connector = MiseConnector(_FakeSupabase(backend));
+      connector = AnsiConnector(_FakeSupabase(backend));
     });
 
     tearDown(() => closeTestDb(db, dir));
@@ -317,7 +317,7 @@ void main() {
 
     test('returns null when there is no session (signed out)', () async {
       when(() => auth.currentSession).thenReturn(null);
-      final creds = await MiseConnector(supabase).fetchCredentials();
+      final creds = await AnsiConnector(supabase).fetchCredentials();
       expect(creds, isNull);
     });
   });

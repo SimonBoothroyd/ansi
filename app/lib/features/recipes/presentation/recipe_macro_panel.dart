@@ -19,8 +19,8 @@ library;
 
 import 'package:flutter/widgets.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../domain/recipe_macros.dart';
 
@@ -42,11 +42,11 @@ class RecipeMacroPanel extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: Text('PER SERVING', style: miseLabel()),
+          child: Text('PER SERVING', style: ansiLabel()),
         ),
         DecoratedBox(
           decoration: BoxDecoration(
-            border: Border.all(color: MiseColors.line),
+            border: Border.all(color: AnsiColors.line),
             borderRadius: BorderRadius.circular(12),
           ),
           child: summary.perServing == null
@@ -78,7 +78,7 @@ class _Cells extends StatelessWidget {
     return Row(
       children: [
         for (var i = 0; i < cells.length; i++) ...[
-          if (i > 0) Container(width: 1, height: 44, color: MiseColors.line),
+          if (i > 0) Container(width: 1, height: 44, color: AnsiColors.line),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
@@ -86,14 +86,14 @@ class _Cells extends StatelessWidget {
                 children: [
                   Text(
                     cells[i].$1,
-                    style: miseMono(size: 14, weight: FontWeight.w500),
+                    style: ansiMono(size: 14, weight: FontWeight.w500),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     cells[i].$2.toUpperCase(),
-                    style: miseMono(
+                    style: ansiMono(
                       size: 9.5,
-                      color: MiseColors.muted,
+                      color: AnsiColors.muted,
                       letterSpacing: 0.8,
                     ),
                   ),
@@ -127,7 +127,7 @@ class _Incomplete extends StatelessWidget {
               Flexible(
                 child: Text(
                   incompleteNote(summary),
-                  style: miseMono(size: 11, color: MiseColors.muted),
+                  style: ansiMono(size: 11, color: AnsiColors.muted),
                 ),
               ),
             ],
@@ -138,7 +138,7 @@ class _Incomplete extends StatelessWidget {
                 ? 'Macros arrive once this recipe has ingredients.'
                 : 'Left out of the total until every line resolves — '
                       'a partial number would not be this recipe.',
-            style: miseSans(size: 12, color: MiseColors.muted, height: 1.35),
+            style: ansiSans(size: 12, color: AnsiColors.muted, height: 1.35),
           ),
         ],
       ),

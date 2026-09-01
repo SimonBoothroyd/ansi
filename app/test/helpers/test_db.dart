@@ -16,7 +16,7 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 
-import 'package:mise/core/sync/schema.dart';
+import 'package:ansi/core/sync/schema.dart';
 import 'package:powersync/powersync.dart';
 import 'package:sqlite3/open.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteExtension, sqlite3;
@@ -86,7 +86,7 @@ class _TestOpenFactory extends PowerSyncOpenFactory {
 /// Opens a fresh database in a temp dir with the app's real [schema]. Never
 /// connects, so nothing reaches the network. Call [closeTestDb] to dispose.
 Future<(PowerSyncDatabase, Directory)> openTestDb() async {
-  final dir = Directory.systemTemp.createTempSync('mise_test');
+  final dir = Directory.systemTemp.createTempSync('ansi_test');
   final db = PowerSyncDatabase.withFactory(
     _TestOpenFactory(
       path: '${dir.path}/test.db',

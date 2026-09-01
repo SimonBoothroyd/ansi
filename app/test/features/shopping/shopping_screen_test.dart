@@ -1,17 +1,17 @@
+import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
+import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
+import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
+import 'package:ansi/features/shopping/data/shopping_providers.dart';
+import 'package:ansi/features/shopping/domain/shopping.dart';
+import 'package:ansi/features/shopping/domain/shopping_repository.dart';
+import 'package:ansi/features/shopping/presentation/shopping_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
-import 'package:mise/core/theme/mise_theme.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/cook_plan/data/cook_plan_providers.dart';
-import 'package:mise/features/cook_plan/domain/cook_plan.dart';
-import 'package:mise/features/cook_plan/domain/cook_plan_repository.dart';
-import 'package:mise/features/shopping/data/shopping_providers.dart';
-import 'package:mise/features/shopping/domain/shopping.dart';
-import 'package:mise/features/shopping/domain/shopping_repository.dart';
-import 'package:mise/features/shopping/presentation/shopping_view.dart';
 
 /// A canned cook plan for the empty-state branch test.
 class _FakeCookPlanRepo implements CookPlanRepository {
@@ -77,7 +77,7 @@ class _FakeShoppingRepo implements ShoppingRepository {
 Widget _host(List<Override> overrides) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
-    home: FTheme(data: miseThemeData(), child: const ShoppingView()),
+    home: FTheme(data: ansiThemeData(), child: const ShoppingView()),
   ),
 );
 

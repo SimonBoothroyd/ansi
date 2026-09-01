@@ -1,13 +1,13 @@
+import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
+import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
+import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
+import 'package:ansi/features/cook_plan/presentation/cook_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
-import 'package:mise/core/theme/mise_theme.dart';
-import 'package:mise/features/cook_plan/data/cook_plan_providers.dart';
-import 'package:mise/features/cook_plan/domain/cook_plan.dart';
-import 'package:mise/features/cook_plan/domain/cook_plan_repository.dart';
-import 'package:mise/features/cook_plan/presentation/cook_view.dart';
 
 /// A canned cook plan: emits a fixed plan built from [recipes].
 class _FakeCookPlanRepo implements CookPlanRepository {
@@ -23,7 +23,7 @@ class _FakeCookPlanRepo implements CookPlanRepository {
 Widget _host(List<Override> overrides) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
-    home: FTheme(data: miseThemeData(), child: const CookView()),
+    home: FTheme(data: ansiThemeData(), child: const CookView()),
   ),
 );
 

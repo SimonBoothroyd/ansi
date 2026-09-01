@@ -1,4 +1,4 @@
-# AGENTS.md — Mise
+# AGENTS.md — Ansi
 
 > A **map, not a manual.** This file is a table of contents that points at the
 > real sources of truth in `docs/`. Keep it ~100 lines. When a rule needs more
@@ -11,7 +11,7 @@
 
 ## What this is
 
-Mise — a shared, offline-first recipe + meal-planning app for a two-person
+Ansi — a shared, offline-first recipe + meal-planning app for a two-person
 household. You plan the week you *want to eat*; the app derives what to cook in
 batches (bounded by shelf life) and buys each thing once.
 

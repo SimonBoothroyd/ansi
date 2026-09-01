@@ -18,8 +18,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/picker_shell.dart';
@@ -133,7 +133,7 @@ class _DroppedLine extends StatelessWidget {
         line.raw.ingredientText;
     return Row(
       children: [
-        const Icon(FLucideIcons.trash2, size: 14, color: MiseColors.muted),
+        const Icon(FLucideIcons.trash2, size: 14, color: AnsiColors.muted),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -141,16 +141,16 @@ class _DroppedLine extends StatelessWidget {
             children: [
               Text(
                 name,
-                style: miseSans(
+                style: ansiSans(
                   size: 15,
-                  color: MiseColors.muted,
+                  color: AnsiColors.muted,
                 ).copyWith(decoration: TextDecoration.lineThrough),
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
               Text(
                 'removed — this line will not be saved',
-                style: miseMono(size: 10, color: MiseColors.muted),
+                style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ],
           ),
@@ -162,9 +162,9 @@ class _DroppedLine extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(FLucideIcons.undo2, size: 13, color: MiseColors.herb),
+              const Icon(FLucideIcons.undo2, size: 13, color: AnsiColors.herb),
               const SizedBox(width: 5),
-              Text('undo', style: miseMono(size: 11, color: MiseColors.herb)),
+              Text('undo', style: ansiMono(size: 11, color: AnsiColors.herb)),
             ],
           ),
         ),
@@ -231,7 +231,7 @@ class _Collapsed extends StatelessWidget {
                 width: 84,
                 child: Text(
                   amount.isEmpty ? '—' : amount,
-                  style: miseMono(size: 14, color: MiseColors.muted).copyWith(
+                  style: ansiMono(size: 14, color: AnsiColors.muted).copyWith(
                     fontStyle: imprecise ? FontStyle.italic : FontStyle.normal,
                   ),
                 ),
@@ -243,18 +243,18 @@ class _Collapsed extends StatelessWidget {
                     children: [
                       TextSpan(
                         text: name,
-                        style: miseSans(size: 15, weight: FontWeight.w600),
+                        style: ansiSans(size: 15, weight: FontWeight.w600),
                       ),
                       if (notes != null && notes.isNotEmpty) ...[
                         TextSpan(
                           text: '  ·  ',
-                          style: miseSans(size: 15, color: MiseColors.line),
+                          style: ansiSans(size: 15, color: AnsiColors.line),
                         ),
                         TextSpan(
                           text: notes,
-                          style: miseSans(
+                          style: ansiSans(
                             size: 14,
-                            color: MiseColors.muted,
+                            color: AnsiColors.muted,
                           ).copyWith(fontStyle: FontStyle.italic),
                         ),
                       ],
@@ -263,7 +263,7 @@ class _Collapsed extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(FLucideIcons.pencil, size: 14, color: MiseColors.herb),
+              const Icon(FLucideIcons.pencil, size: 14, color: AnsiColors.herb),
             ],
           ),
           if (label != null) ...[
@@ -327,7 +327,7 @@ class _Expanded extends ConsumerWidget {
             Expanded(
               child: Text(
                 line.raw.ingredientText,
-                style: miseSans(size: 15, weight: FontWeight.w600),
+                style: ansiSans(size: 15, weight: FontWeight.w600),
               ),
             ),
             const SizedBox(width: 8),
@@ -341,7 +341,7 @@ class _Expanded extends ConsumerWidget {
                 child: Icon(
                   FLucideIcons.trash2,
                   size: 16,
-                  color: MiseColors.muted,
+                  color: AnsiColors.muted,
                 ),
               ),
             ),
@@ -352,7 +352,7 @@ class _Expanded extends ConsumerWidget {
               child: const Icon(
                 FLucideIcons.chevronUp,
                 size: 18,
-                color: MiseColors.muted,
+                color: AnsiColors.muted,
               ),
             ),
           ],
@@ -364,7 +364,7 @@ class _Expanded extends ConsumerWidget {
             padding: const EdgeInsets.only(top: 2),
             child: Text(
               'from source:  $reference',
-              style: miseMono(size: 11, color: MiseColors.muted),
+              style: ansiMono(size: 11, color: AnsiColors.muted),
             ),
           ),
         _Flags(raw: line.raw),
@@ -385,7 +385,7 @@ class _Expanded extends ConsumerWidget {
         const SizedBox(height: 14),
         Row(
           children: [
-            SizedBox(width: 64, child: Text('AMOUNT', style: miseLabel())),
+            SizedBox(width: 64, child: Text('AMOUNT', style: ansiLabel())),
             const SizedBox(width: 8),
             if (matched)
               AmountEditor(lineIndex: _index)
@@ -408,7 +408,7 @@ class _Expanded extends ConsumerWidget {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               'Match an ingredient first — then the amount and notes unlock.',
-              style: miseMono(size: 10, color: MiseColors.muted),
+              style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           ),
       ],
@@ -427,15 +427,15 @@ class _DisabledChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: MiseColors.paper,
-        border: Border.all(color: MiseColors.line),
+        color: AnsiColors.paper,
+        border: Border.all(color: AnsiColors.line),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         child: Text(
           label.isEmpty ? '—' : label,
-          style: miseMono(size: 12, color: MiseColors.line),
+          style: ansiMono(size: 12, color: AnsiColors.line),
         ),
       ),
     );
@@ -489,7 +489,7 @@ class _UnitSuggestionsState extends State<_UnitSuggestions> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(width: 64, child: Text('UNIT', style: miseLabel())),
+        SizedBox(width: 64, child: Text('UNIT', style: ansiLabel())),
         const SizedBox(width: 8),
         Expanded(
           child: Wrap(
@@ -531,10 +531,10 @@ class _AttentionTag extends StatelessWidget {
         const Icon(
           FLucideIcons.triangleAlert,
           size: 12,
-          color: MiseColors.aging,
+          color: AnsiColors.aging,
         ),
         const SizedBox(width: 5),
-        Text(label, style: miseMono(size: 11, color: MiseColors.aging)),
+        Text(label, style: ansiMono(size: 11, color: AnsiColors.aging)),
       ],
     );
   }
@@ -557,7 +557,7 @@ class _NotesEditor extends ConsumerWidget {
     );
     return Row(
       children: [
-        SizedBox(width: 64, child: Text('NOTES', style: miseLabel())),
+        SizedBox(width: 64, child: Text('NOTES', style: ansiLabel())),
         const SizedBox(width: 8),
         Expanded(
           child: FTextField(
@@ -634,9 +634,9 @@ class _Card extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: dropped ? MiseColors.paper : MiseColors.surface,
+          color: dropped ? AnsiColors.paper : AnsiColors.surface,
           border: Border.all(
-            color: attention ? MiseColors.aging : MiseColors.line,
+            color: attention ? AnsiColors.aging : AnsiColors.line,
           ),
           borderRadius: BorderRadius.circular(12),
         ),
@@ -780,8 +780,8 @@ class AmountEditor extends ConsumerWidget {
       onTap: () => editLineAmount(context, ref, lineIndex),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: MiseColors.paper,
-          border: Border.all(color: MiseColors.line),
+          color: AnsiColors.paper,
+          border: Border.all(color: AnsiColors.line),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Padding(
@@ -795,14 +795,14 @@ class AmountEditor extends ConsumerWidget {
                     final label = amountLabel(resolution, raw);
                     return Text(
                       label.isEmpty ? 'set amount' : label,
-                      style: miseMono(size: 12, color: MiseColors.muted),
+                      style: ansiMono(size: 12, color: AnsiColors.muted),
                       overflow: TextOverflow.ellipsis,
                     );
                   },
                 ),
               ),
               const SizedBox(width: 5),
-              const Icon(FLucideIcons.pencil, size: 11, color: MiseColors.herb),
+              const Icon(FLucideIcons.pencil, size: 11, color: AnsiColors.herb),
             ],
           ),
         ),
@@ -847,7 +847,7 @@ class _MiniFlag extends StatelessWidget {
   Widget build(BuildContext context) {
     return FBadge(
       variant: FBadgeVariant.secondary,
-      child: Text(text, style: miseMono(size: 10, color: MiseColors.aging)),
+      child: Text(text, style: ansiMono(size: 10, color: AnsiColors.aging)),
     );
   }
 }
@@ -917,7 +917,7 @@ class Resolver extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (candidates.isNotEmpty) ...[
-          Text('Did you mean', style: miseLabel()),
+          Text('Did you mean', style: ansiLabel()),
           const SizedBox(height: 6),
           Wrap(
             spacing: 6,
@@ -970,8 +970,8 @@ class _Chosen extends StatelessWidget {
       onTap: onTap,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: MiseColors.paper,
-          border: Border.all(color: MiseColors.line),
+          color: AnsiColors.paper,
+          border: Border.all(color: AnsiColors.line),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Padding(
@@ -981,13 +981,13 @@ class _Chosen extends StatelessWidget {
               Icon(
                 isNew ? FLucideIcons.plus : FLucideIcons.check,
                 size: 15,
-                color: MiseColors.herb,
+                color: AnsiColors.herb,
               ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   label,
-                  style: miseSans(size: 14, weight: FontWeight.w600),
+                  style: ansiSans(size: 14, weight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -995,13 +995,13 @@ class _Chosen extends StatelessWidget {
               // the whole tap target, not a separate control.
               Text(
                 'tap to change',
-                style: miseMono(size: 10, color: MiseColors.muted),
+                style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
               const SizedBox(width: 4),
               const Icon(
                 FLucideIcons.chevronRight,
                 size: 14,
-                color: MiseColors.muted,
+                color: AnsiColors.muted,
               ),
             ],
           ),
@@ -1037,9 +1037,9 @@ class _Pill extends StatelessWidget {
       onTap: onTap,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: selected ? MiseColors.herbSoft : MiseColors.surface,
+          color: selected ? AnsiColors.herbSoft : AnsiColors.surface,
           border: Border.all(
-            color: selected ? MiseColors.herb : MiseColors.line,
+            color: selected ? AnsiColors.herb : AnsiColors.line,
           ),
           borderRadius: BorderRadius.circular(8),
         ),
@@ -1048,10 +1048,10 @@ class _Pill extends StatelessWidget {
           child: Text(
             label,
             style: quiet
-                ? miseMono(size: 11, color: MiseColors.muted)
-                : miseSans(
+                ? ansiMono(size: 11, color: AnsiColors.muted)
+                : ansiSans(
                     size: 13,
-                    color: selected ? MiseColors.herbDeep : MiseColors.ink,
+                    color: selected ? AnsiColors.herbDeep : AnsiColors.ink,
                   ),
           ),
         ),
@@ -1157,7 +1157,7 @@ class _SuggestedForLine extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('SUGGESTED FOR THIS LINE', style: miseLabel()),
+          Text('SUGGESTED FOR THIS LINE', style: ansiLabel()),
           const SizedBox(height: 4),
           for (final c in candidates)
             GestureDetector(
@@ -1170,13 +1170,13 @@ class _SuggestedForLine extends StatelessWidget {
                     Expanded(
                       child: Text(
                         c.canonicalName,
-                        style: miseSans(size: 15, weight: FontWeight.w600),
+                        style: ansiSans(size: 15, weight: FontWeight.w600),
                       ),
                     ),
                     const Icon(
                       FLucideIcons.plus,
                       size: 18,
-                      color: MiseColors.herb,
+                      color: AnsiColors.herb,
                     ),
                   ],
                 ),
@@ -1204,7 +1204,7 @@ class _CreateNewRow extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           border: Border.all(
-            color: enabled ? MiseColors.herb : MiseColors.line,
+            color: enabled ? AnsiColors.herb : AnsiColors.line,
           ),
           borderRadius: BorderRadius.circular(10),
         ),
@@ -1216,7 +1216,7 @@ class _CreateNewRow extends StatelessWidget {
               Icon(
                 FLucideIcons.plus,
                 size: 13,
-                color: enabled ? MiseColors.herb : MiseColors.muted,
+                color: enabled ? AnsiColors.herb : AnsiColors.muted,
               ),
               const SizedBox(width: 6),
               Flexible(
@@ -1225,9 +1225,9 @@ class _CreateNewRow extends StatelessWidget {
                       ? 'create "$trimmed" as a new ingredient'
                       : 'type a name to create it',
                   overflow: TextOverflow.ellipsis,
-                  style: miseMono(
+                  style: ansiMono(
                     size: 11,
-                    color: enabled ? MiseColors.herb : MiseColors.muted,
+                    color: enabled ? AnsiColors.herb : AnsiColors.muted,
                   ),
                 ),
               ),

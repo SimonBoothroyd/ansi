@@ -1,5 +1,5 @@
 # Minimal local config. `supabase init` will expand this; kept lean for the scaffold.
-project_id = "mise"
+project_id = "ansi"
 
 [db]
 port = 54322
@@ -15,8 +15,8 @@ sql_paths = ["./seed.sql", "./seed_usda.sql", "./seed_prefill.sql", "./seed_meas
 [auth]
 enable_signup = true
 # Deep-link back into the app after OAuth (Google) — the Flutter scheme.
-site_url = "io.mise.app://login-callback"
-additional_redirect_urls = ["io.mise.app://login-callback"]
+site_url = "io.ansi.app://login-callback"
+additional_redirect_urls = ["io.ansi.app://login-callback"]
 
 # Dev auth (step 7): local email/password with no mail server, so skip the
 # confirmation round-trip. Real deployments keep confirmations on.

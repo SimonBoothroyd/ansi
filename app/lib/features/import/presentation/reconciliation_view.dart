@@ -12,8 +12,8 @@ import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/method_step_text.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
@@ -62,9 +62,9 @@ class ReconciliationBody extends HookConsumerWidget {
             padding: const EdgeInsets.only(top: 16, bottom: 2),
             child: Text(
               group.name!,
-              style: miseSerif(
+              style: ansiSerif(
                 size: 18,
-                color: MiseColors.herbDeep,
+                color: AnsiColors.herbDeep,
               ).copyWith(fontStyle: FontStyle.italic),
             ),
           ),
@@ -100,7 +100,7 @@ class ReconciliationBody extends HookConsumerWidget {
       children: [
         Text(
           payload.title.isEmpty ? 'Untitled recipe' : payload.title,
-          style: miseSerif(size: 28, weight: FontWeight.w700),
+          style: ansiSerif(size: 28, weight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
         _SourceNotes(payload: payload),
@@ -119,7 +119,7 @@ class ReconciliationBody extends HookConsumerWidget {
         Text(
           'Method is read-only in v1 — chips render with live amounts; editing '
           'lands later via the recipe’s Edit route.',
-          style: miseMono(size: 11, color: MiseColors.muted),
+          style: ansiMono(size: 11, color: AnsiColors.muted),
         ),
         const SizedBox(height: 20),
         FButton(
@@ -176,8 +176,8 @@ class _SourceNotes extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: MiseColors.paper,
-          border: Border.all(color: MiseColors.aging),
+          color: AnsiColors.paper,
+          border: Border.all(color: AnsiColors.aging),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Padding(
@@ -190,12 +190,12 @@ class _SourceNotes extends StatelessWidget {
                   const Icon(
                     FLucideIcons.triangleAlert,
                     size: 12,
-                    color: MiseColors.aging,
+                    color: AnsiColors.aging,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     'WHAT WE COULD NOT READ',
-                    style: miseLabel(color: MiseColors.aging),
+                    style: ansiLabel(color: AnsiColors.aging),
                   ),
                 ],
               ),
@@ -204,7 +204,7 @@ class _SourceNotes extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     '· $note',
-                    style: miseMono(size: 11, color: MiseColors.muted),
+                    style: ansiMono(size: 11, color: AnsiColors.muted),
                   ),
                 ),
             ],
@@ -228,23 +228,23 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(top: 8, bottom: 6),
       child: Row(
         children: [
-          Text(label.toUpperCase(), style: miseLabel(color: MiseColors.ink)),
+          Text(label.toUpperCase(), style: ansiLabel(color: AnsiColors.ink)),
           const SizedBox(width: 8),
           DecoratedBox(
             decoration: BoxDecoration(
-              color: MiseColors.herb,
+              color: AnsiColors.herb,
               borderRadius: BorderRadius.circular(999),
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
               child: Text(
                 '$count',
-                style: miseMono(size: 10, color: MiseColors.surface),
+                style: ansiMono(size: 10, color: AnsiColors.surface),
               ),
             ),
           ),
           const SizedBox(width: 10),
-          Expanded(child: Container(height: 1, color: MiseColors.line)),
+          Expanded(child: Container(height: 1, color: AnsiColors.line)),
         ],
       ),
     );
@@ -262,12 +262,12 @@ class _ServingsRow extends StatelessWidget {
     final unclear = state.payload.servingsBase == null;
     return Row(
       children: [
-        Text('SERVES', style: miseLabel()),
+        Text('SERVES', style: ansiLabel()),
         if (unclear) ...[
           const SizedBox(width: 8),
           Text(
             'not printed — set it',
-            style: miseMono(size: 10, color: MiseColors.aging),
+            style: ansiMono(size: 10, color: AnsiColors.aging),
           ),
         ],
         const Spacer(),
@@ -281,7 +281,7 @@ class _ServingsRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Text(
             formatQuantity(state.servings),
-            style: miseSans(size: 17, weight: FontWeight.w700),
+            style: ansiSans(size: 17, weight: FontWeight.w700),
           ),
         ),
         FButton.icon(
@@ -312,7 +312,7 @@ class _MethodPreview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('METHOD', style: miseLabel()),
+        Text('METHOD', style: ansiLabel()),
         const SizedBox(height: 8),
         for (var i = 0; i < steps.length; i++)
           Padding(
@@ -322,7 +322,7 @@ class _MethodPreview extends StatelessWidget {
               children: [
                 Text(
                   '${i + 1}',
-                  style: miseMono(size: 13, weight: FontWeight.w700),
+                  style: ansiMono(size: 13, weight: FontWeight.w700),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

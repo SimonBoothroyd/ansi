@@ -16,11 +16,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/env.dart';
 import '../../../core/sync/session.dart';
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 
-/// The deep-link the OAuth provider returns to (registered in supabase/config.toml).
-const _oauthRedirect = 'io.mise.app://login-callback';
+/// The deep-link the OAuth provider returns to. Registered in FOUR places that
+/// must agree, or OAuth sign-in dead-ends on the redirect: `supabase/config.toml`
+/// (local), the iOS `Info.plist` CFBundleURLSchemes, the Android manifest's
+/// intent-filter, and — for cloud — the Supabase dashboard's Redirect URLs
+/// (docs/cloud-setup.md §1.6). Renamed from `io.mise.app` on 2026-09-01.
+const _oauthRedirect = 'io.ansi.app://login-callback';
 
 class SignInView extends HookConsumerWidget {
   const SignInView({super.key});
@@ -64,15 +68,15 @@ class SignInView extends HookConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Mise', style: miseSerif(size: 34)),
+                Text('Ansi', style: ansiSerif(size: 34)),
                 const SizedBox(height: 6),
                 Text(
                   'Plan the week you want to eat.',
-                  style: miseSans(size: 14, color: MiseColors.muted),
+                  style: ansiSans(size: 14, color: AnsiColors.muted),
                 ),
                 const SizedBox(height: 28),
 
-                Text('EMAIL', style: miseLabel()),
+                Text('EMAIL', style: ansiLabel()),
                 const SizedBox(height: 8),
                 FTextField(
                   hint: 'you@example.com',
@@ -84,7 +88,7 @@ class SignInView extends HookConsumerWidget {
                 ),
                 const SizedBox(height: 16),
 
-                Text('PASSWORD', style: miseLabel()),
+                Text('PASSWORD', style: ansiLabel()),
                 const SizedBox(height: 8),
                 FTextField(
                   hint: 'password',
@@ -98,7 +102,7 @@ class SignInView extends HookConsumerWidget {
                   const SizedBox(height: 14),
                   Text(
                     error.value!,
-                    style: miseSans(size: 12.5, color: MiseColors.gone),
+                    style: ansiSans(size: 12.5, color: AnsiColors.gone),
                   ),
                 ],
 
@@ -134,7 +138,7 @@ class SignInView extends HookConsumerWidget {
                     const Expanded(child: FDivider()),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text('or', style: miseLabel()),
+                      child: Text('or', style: ansiLabel()),
                     ),
                     const Expanded(child: FDivider()),
                   ],
@@ -152,7 +156,7 @@ class SignInView extends HookConsumerWidget {
                                 ? _oauthRedirect
                                 : null,
                             // The default in-app browser sheet does NOT
-                            // dismiss itself when the io.mise.app deep link
+                            // dismiss itself when the io.ansi.app deep link
                             // fires — the app signs in underneath while the
                             // sheet sits on "loading" forever (seen live,
                             // 2026-08-28 cloud verification). The external

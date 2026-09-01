@@ -16,7 +16,7 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.example.mise"
+    namespace = "io.ansi.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -27,8 +27,10 @@ android {
 
     defaultConfig {
         // The permanent Android identity (Play package name — "Ansi").
-        // Changing this orphans installed copies (updates won't apply). NB the
-        // io.mise.app:// OAuth deep-link scheme is a SEPARATE string and stays.
+        // Changing this orphans installed copies (updates won't apply). The
+        // io.ansi.app:// OAuth deep-link scheme is a separate string that now
+        // happens to match; they are still independent — changing one does not
+        // change the other, and the scheme also needs a Supabase dashboard edit.
         applicationId = "io.ansi.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.

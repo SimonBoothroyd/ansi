@@ -16,9 +16,9 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
-import '../../../shared/mise_bottom_nav.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_bottom_nav.dart';
 import '../../planning/presentation/week_format.dart';
 import '../domain/cook_plan.dart';
 import 'cook_format.dart';
@@ -32,9 +32,9 @@ class CookView extends ConsumerWidget {
     final plan = ref.watch(currentCookPlanProvider);
 
     return FScaffold(
-      footer: const MiseBottomNav(current: MiseTab.cook),
+      footer: const AnsiBottomNav(current: AnsiTab.cook),
       header: FHeader.nested(
-        title: Text('Batch cook plan', style: miseHeaderTitle()),
+        title: Text('Batch cook plan', style: ansiHeaderTitle()),
       ),
       child: plan.when(
         loading: () => const Center(child: FCircularProgress()),
@@ -44,7 +44,7 @@ class CookView extends ConsumerWidget {
             child: Text(
               'Could not work out the cook plan.',
               textAlign: TextAlign.center,
-              style: miseMono(size: 13, color: MiseColors.muted),
+              style: ansiMono(size: 13, color: AnsiColors.muted),
             ),
           );
         },
@@ -72,9 +72,9 @@ class _PlanCaption extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
       child: Text(
         'grouped by recipe · split by shelf life',
-        style: miseMono(
+        style: ansiMono(
           size: 10.5,
-          color: MiseColors.muted,
+          color: AnsiColors.muted,
           letterSpacing: 0.5,
         ),
       ),
@@ -95,20 +95,20 @@ class _RecipeCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
-        color: MiseColors.surface,
+        color: AnsiColors.surface,
         border: Border.all(
-          color: recipe.isSplit ? MiseColors.aging : MiseColors.line,
+          color: recipe.isSplit ? AnsiColors.aging : AnsiColors.line,
         ),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(recipe.title, style: miseSerif(size: 19)),
+          Text(recipe.title, style: ansiSerif(size: 19)),
           const SizedBox(height: 3),
           Text(
             recipeSummaryLine(recipe),
-            style: miseMono(size: 10.5, color: MiseColors.muted),
+            style: ansiMono(size: 10.5, color: AnsiColors.muted),
           ),
           const SizedBox(height: 10),
           for (final (i, session) in recipe.sessions.indexed) ...[
@@ -144,7 +144,7 @@ class _SessionTile extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
       decoration: BoxDecoration(
-        color: MiseColors.paper,
+        color: AnsiColors.paper,
         borderRadius: BorderRadius.circular(11),
       ),
       child: Column(
@@ -157,21 +157,21 @@ class _SessionTile extends ConsumerWidget {
               Expanded(
                 child: Text(
                   'Cook ${kWeekdayShort[session.cookDay]}',
-                  style: miseSans(size: 13, weight: FontWeight.w600),
+                  style: ansiSans(size: 13, weight: FontWeight.w600),
                 ),
               ),
               Text(
                 showWhole
                     ? '×${nudge.factor}'
                     : formatScale(session.scaleFactor),
-                style: miseMono(size: 12, color: MiseColors.herbDeep),
+                style: ansiMono(size: 12, color: AnsiColors.herbDeep),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             coversLine(session),
-            style: miseSans(size: 11, color: MiseColors.muted),
+            style: ansiSans(size: 11, color: AnsiColors.muted),
           ),
           if (nudge != null) ...[
             const SizedBox(height: 6),
@@ -189,7 +189,7 @@ class _SessionTile extends ConsumerWidget {
                           ? FLucideIcons.rotateCcw
                           : FLucideIcons.circleArrowUp,
                       size: 13,
-                      color: MiseColors.herbDeep,
+                      color: AnsiColors.herbDeep,
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -202,7 +202,7 @@ class _SessionTile extends ConsumerWidget {
                               nudge,
                               rawFactor: session.scaleFactor,
                             ),
-                      style: miseMono(size: 10.5, color: MiseColors.herbDeep),
+                      style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
                     ),
                   ),
                 ],
@@ -263,7 +263,7 @@ class _TrackPainter extends CustomPainter {
       const Radius.circular(4),
     );
     canvas
-      ..drawRRect(base, Paint()..color = MiseColors.line)
+      ..drawRRect(base, Paint()..color = AnsiColors.line)
       ..save()
       ..clipRRect(base);
 
@@ -290,26 +290,26 @@ class _TrackPainter extends CustomPainter {
         );
       }
     }
-    fill(spec.freshTo, spec.frozenTo, MiseColors.frozen);
-    fill(spec.cookDay, spec.freshTo, MiseColors.fresh);
+    fill(spec.freshTo, spec.frozenTo, AnsiColors.frozen);
+    fill(spec.cookDay, spec.freshTo, AnsiColors.fresh);
     canvas.restore();
 
     // Day markers: other eaten days as rings, the cook day as a solid pin.
     final ring = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2
-      ..color = MiseColors.herb;
+      ..color = AnsiColors.herb;
     for (final day in spec.coveredDays) {
       if (day == spec.cookDay) continue;
       final c = Offset(xOf(day), _barCy);
       canvas
-        ..drawCircle(c, 4.5, Paint()..color = MiseColors.paper)
+        ..drawCircle(c, 4.5, Paint()..color = AnsiColors.paper)
         ..drawCircle(c, 4.5, ring);
     }
     final cook = Offset(xOf(spec.cookDay), _barCy);
     canvas
-      ..drawCircle(cook, 6, Paint()..color = MiseColors.paper)
-      ..drawCircle(cook, 4.5, Paint()..color = MiseColors.herb);
+      ..drawCircle(cook, 6, Paint()..color = AnsiColors.paper)
+      ..drawCircle(cook, 4.5, Paint()..color = AnsiColors.herb);
 
     // The weekday ruler; eaten days are emphasised.
     final eaten = spec.coveredDays.toSet();
@@ -321,7 +321,7 @@ class _TrackPainter extends CustomPainter {
           style: TextStyle(
             fontFamily: 'IBM Plex Mono',
             fontSize: 9,
-            color: on ? MiseColors.herbDeep : MiseColors.muted,
+            color: on ? AnsiColors.herbDeep : AnsiColors.muted,
             fontWeight: on ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
@@ -391,7 +391,7 @@ class _Note extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(text, style: miseSans(size: 12, color: foreground)),
+            child: Text(text, style: ansiSans(size: 12, color: foreground)),
           ),
         ],
       ),
@@ -408,19 +408,19 @@ class _EmptyCookPlan extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 48, 24, 32),
       children: [
-        const Icon(FLucideIcons.cookingPot, size: 44, color: MiseColors.herb),
+        const Icon(FLucideIcons.cookingPot, size: 44, color: AnsiColors.herb),
         const SizedBox(height: 14),
         Text(
           'Nothing to cook yet',
           textAlign: TextAlign.center,
-          style: miseSerif(size: 24),
+          style: ansiSerif(size: 24),
         ),
         const SizedBox(height: 8),
         Text(
-          'Plan some meals on the Week and Mise works out the batches — '
+          'Plan some meals on the Week and Ansi works out the batches — '
           'what to cook, when, and how much.',
           textAlign: TextAlign.center,
-          style: miseMono(size: 12, color: MiseColors.muted),
+          style: ansiMono(size: 12, color: AnsiColors.muted),
         ),
         const SizedBox(height: 22),
         FButton(

@@ -1,8 +1,12 @@
-# Mise
+# Ansi
 
 A shared, offline-first recipe and meal-planning app for a two-person household.
-Plan the week you *want to eat*; Mise derives what to cook in batches (bounded by
+Plan the week you *want to eat*; Ansi derives what to cook in batches (bounded by
 each dish's shelf life) and builds a shopping list that buys each thing once.
+
+Ansi (né Mise; *mise-en-place* is still the soul). The old name survives only
+where changing it would break something live — see
+[`docs/exec-plans/tech-debt-tracker.md`](./docs/exec-plans/tech-debt-tracker.md).
 
 Flutter · Forui · Supabase (Postgres + Auth + Storage) · PowerSync (offline sync)
 

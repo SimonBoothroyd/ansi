@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Mise</string>
+	<string>Ansi</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>mise</string>
+	<string>Ansi</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -25,17 +25,17 @@
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<!-- Custom URL scheme for the Supabase/Google OAuth redirect
-	     (io.mise.app://login-callback). Lets the OS reopen the app after login. -->
+	     (io.ansi.app://login-callback). Lets the OS reopen the app after login. -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>io.mise.app</string>
+			<string>io.ansi.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>io.mise.app</string>
+				<string>io.ansi.app</string>
 			</array>
 		</dict>
 	</array>
@@ -85,13 +85,13 @@
 	     the user picks from the library or captures a page. The simulator has no
 	     camera, so the library grant is the one exercised on the sim. -->
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Mise needs access to your photos so you can import a recipe from a picture.</string>
+	<string>Ansi needs access to your photos so you can import a recipe from a picture.</string>
 	<!-- One camera key covers both users of the camera: image_picker's recipe
 	     capture and mobile_scanner's barcode scan (step 8.5 / plan 0020 D3 —
 	     widened, not duplicated; mobile_scanner needs no other iOS key or
 	     entitlement, and on iOS it is AVFoundation + Apple Vision, so no ML
 	     Kit binary rides along). -->
 	<key>NSCameraUsageDescription</key>
-	<string>Mise needs camera access so you can photograph a recipe to import it, and scan grocery barcodes.</string>
+	<string>Ansi needs camera access so you can photograph a recipe to import it, and scan grocery barcodes.</string>
 </dict>
 </plist>

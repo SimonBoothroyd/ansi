@@ -5,8 +5,8 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../domain/planning.dart';
 import 'week_widgets.dart';
 
@@ -47,7 +47,7 @@ class _EditEatersDialogState extends State<_EditEatersDialog> {
   Widget build(BuildContext context) {
     return FDialog(
       animation: widget.animation,
-      title: Text("Who's eating", style: miseSerif(size: 20)),
+      title: Text("Who's eating", style: ansiSerif(size: 20)),
       body: Padding(
         padding: const EdgeInsets.only(top: 8),
         child: Column(
@@ -75,11 +75,11 @@ class _EditEatersDialogState extends State<_EditEatersDialog> {
                       Expanded(
                         child: Text(
                           m.displayName,
-                          style: miseSerif(
+                          style: ansiSerif(
                             size: 16,
                             color: _selected.contains(m.id)
-                                ? MiseColors.ink
-                                : MiseColors.muted,
+                                ? AnsiColors.ink
+                                : AnsiColors.muted,
                           ),
                         ),
                       ),
@@ -87,7 +87,7 @@ class _EditEatersDialogState extends State<_EditEatersDialog> {
                         const Icon(
                           FLucideIcons.check,
                           size: 16,
-                          color: MiseColors.herb,
+                          color: AnsiColors.herb,
                         ),
                     ],
                   ),

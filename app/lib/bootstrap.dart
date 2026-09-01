@@ -31,11 +31,11 @@ void bootstrap() {
         // ignore: deprecated_member_use
         anonKey: Env.supabaseAnonKey,
       );
-      final db = await openMiseDatabase();
+      final db = await openAnsiDatabase();
       runApp(
         ProviderScope(
           overrides: [powerSyncDatabaseProvider.overrideWithValue(db)],
-          child: const MiseApp(),
+          child: const AnsiApp(),
         ),
       );
     },

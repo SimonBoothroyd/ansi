@@ -22,8 +22,8 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/dashed_border_box.dart';
@@ -55,7 +55,7 @@ class IngredientDetailView extends ConsumerWidget {
       header: FHeader.nested(
         title: Text(
           ingredient?.canonicalName ?? 'Ingredient',
-          style: miseHeaderTitle(),
+          style: ansiHeaderTitle(),
           overflow: TextOverflow.ellipsis,
         ),
         prefixes: [
@@ -94,7 +94,7 @@ class _Centered extends StatelessWidget {
       child: Text(
         message,
         textAlign: TextAlign.center,
-        style: miseMono(size: 12, color: MiseColors.muted),
+        style: ansiMono(size: 12, color: AnsiColors.muted),
       ),
     ),
   );
@@ -308,13 +308,13 @@ class _DetailForm extends HookConsumerWidget {
         const _Label('MACROS — ENTER THEM AS THE LABEL READS'),
         Row(
           children: [
-            MiseModeChip(
+            AnsiModeChip(
               label: 'per 100 g',
               selected: basis.value == MacrosBasis.perG,
               onTap: () => basis.value = MacrosBasis.perG,
             ),
             const SizedBox(width: 6),
-            MiseModeChip(
+            AnsiModeChip(
               label: 'per 100 ml',
               selected: basis.value == MacrosBasis.perMl,
               onTap: () => basis.value = MacrosBasis.perMl,
@@ -451,8 +451,8 @@ class _PrefillBanner extends StatelessWidget {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: MiseColors.paper,
-        border: Border.all(color: MiseColors.aging),
+        color: AnsiColors.paper,
+        border: Border.all(color: AnsiColors.aging),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -463,12 +463,12 @@ class _PrefillBanner extends StatelessWidget {
               const Icon(
                 FLucideIcons.triangleAlert,
                 size: 13,
-                color: MiseColors.aging,
+                color: AnsiColors.aging,
               ),
               const SizedBox(width: 6),
               Text(
                 'Filled in for you — check it',
-                style: miseSans(size: 13, weight: FontWeight.w600),
+                style: ansiSans(size: 13, weight: FontWeight.w600),
               ),
             ],
           ),
@@ -476,7 +476,7 @@ class _PrefillBanner extends StatelessWidget {
           Text(
             '· USDA FoodData Central matched this name on the server.\n'
             '· Nothing counts until you confirm.',
-            style: miseMono(size: 10, color: MiseColors.muted),
+            style: ansiMono(size: 10, color: AnsiColors.muted),
           ),
         ],
       ),
@@ -519,7 +519,7 @@ class _MacroFields extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 2),
-            Text(label, style: miseMono(size: 9, color: MiseColors.muted)),
+            Text(label, style: ansiMono(size: 9, color: AnsiColors.muted)),
           ],
         ),
       );
@@ -603,10 +603,10 @@ class _UnitChip extends StatelessWidget {
   Widget build(BuildContext context) {
     if (locked) {
       return DashedBorderBox(
-        color: MiseColors.line,
+        color: AnsiColors.line,
         child: Text(
           unit.label,
-          style: miseMono(size: 11, color: MiseColors.muted),
+          style: ansiMono(size: 11, color: AnsiColors.muted),
         ),
       );
     }
@@ -616,17 +616,17 @@ class _UnitChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
         decoration: BoxDecoration(
-          color: selected ? MiseColors.herbSoft : MiseColors.surface,
+          color: selected ? AnsiColors.herbSoft : AnsiColors.surface,
           border: Border.all(
-            color: selected ? MiseColors.herb : MiseColors.line,
+            color: selected ? AnsiColors.herb : AnsiColors.line,
           ),
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(
           unit.label,
-          style: miseMono(
+          style: ansiMono(
             size: 11,
-            color: selected ? MiseColors.herbDeep : MiseColors.muted,
+            color: selected ? AnsiColors.herbDeep : AnsiColors.muted,
           ),
         ),
       ),
@@ -727,7 +727,7 @@ class _UnitChoiceRow extends StatelessWidget {
         spacing: 6,
         children: [
           for (final u in kAllUnits)
-            MiseModeChip(
+            AnsiModeChip(
               label: u.label,
               selected: u == selected,
               // A stranded stored default still renders as the selection —
@@ -764,7 +764,7 @@ class _StrandedDefaultNote extends StatelessWidget {
           Text(
             '${ingredient.defaultUnit.label} needs a density on this row — '
             'enter one below, or:',
-            style: miseMono(size: 10, color: MiseColors.gone),
+            style: ansiMono(size: 10, color: AnsiColors.gone),
           ),
           const SizedBox(height: 6),
           Align(
@@ -838,19 +838,19 @@ class _AliasEditor extends HookConsumerWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: MiseColors.paper,
-                    border: Border.all(color: MiseColors.line),
+                    color: AnsiColors.paper,
+                    border: Border.all(color: AnsiColors.line),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(a.text, style: miseMono(size: 11)),
+                      Text(a.text, style: ansiMono(size: 11)),
                       const SizedBox(width: 5),
                       const Icon(
                         FLucideIcons.x,
                         size: 10,
-                        color: MiseColors.muted,
+                        color: AnsiColors.muted,
                       ),
                     ],
                   ),
@@ -867,12 +867,12 @@ class _AliasEditor extends HookConsumerWidget {
                       const Icon(
                         FLucideIcons.plus,
                         size: 11,
-                        color: MiseColors.herb,
+                        color: AnsiColors.herb,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         'alias',
-                        style: miseMono(size: 11, color: MiseColors.herb),
+                        style: ansiMono(size: 11, color: AnsiColors.herb),
                       ),
                     ],
                   ),
@@ -906,7 +906,7 @@ class _AliasEditor extends HookConsumerWidget {
             padding: const EdgeInsets.only(top: 6),
             child: Text(
               error.value!,
-              style: miseMono(size: 10, color: MiseColors.gone),
+              style: ansiMono(size: 10, color: AnsiColors.gone),
             ),
           ),
       ],
@@ -930,14 +930,14 @@ class _ImpreciseLine extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Imprecise units', style: miseMono(size: 11)),
+        Text('Imprecise units', style: ansiMono(size: 11)),
         // Flexible, never a Spacer: the word list grows and a Row cannot give
         // room it has not got (the G2 lesson).
         Flexible(
           child: Text(
             words.isEmpty ? 'none — category-gated' : words,
             textAlign: TextAlign.right,
-            style: miseMono(size: 10, color: MiseColors.muted),
+            style: ansiMono(size: 10, color: AnsiColors.muted),
           ),
         ),
       ],
@@ -961,7 +961,7 @@ class _StatusLine extends StatelessWidget {
           height: 8,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: stub ? MiseColors.muted : MiseColors.fresh,
+            color: stub ? AnsiColors.muted : AnsiColors.fresh,
           ),
         ),
         const SizedBox(width: 8),
@@ -970,7 +970,7 @@ class _StatusLine extends StatelessWidget {
             stub
                 ? 'Still a stub — left out of macro totals until confirmed.'
                 : 'Complete — counts in conversions and macro totals.',
-            style: miseMono(size: 11, color: MiseColors.muted),
+            style: ansiMono(size: 11, color: AnsiColors.muted),
           ),
         ),
       ],
@@ -1015,7 +1015,7 @@ class _UnconfirmAction extends StatelessWidget {
       onTap: onUnconfirm,
       child: Text(
         'return it to a stub',
-        style: miseMono(size: 11, color: MiseColors.muted),
+        style: ansiMono(size: 11, color: AnsiColors.muted),
       ),
     );
   }
@@ -1184,11 +1184,11 @@ class _DeleteAction extends HookConsumerWidget {
             }
           },
           child: DashedBorderBox(
-            color: MiseColors.gone,
+            color: AnsiColors.gone,
             child: Text(
               'Delete ingredient',
               textAlign: TextAlign.center,
-              style: miseMono(size: 12, color: MiseColors.gone),
+              style: ansiMono(size: 12, color: AnsiColors.gone),
             ),
           ),
         ),
@@ -1197,7 +1197,7 @@ class _DeleteAction extends HookConsumerWidget {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               refusal.value!,
-              style: miseMono(size: 11, color: MiseColors.gone),
+              style: ansiMono(size: 11, color: AnsiColors.gone),
             ),
           ),
       ],
@@ -1228,15 +1228,15 @@ class _GhostButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          border: Border.all(color: MiseColors.line),
+          border: Border.all(color: AnsiColors.line),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: miseMono(
+          style: ansiMono(
             size: 12,
-            color: enabled ? MiseColors.ink : MiseColors.muted,
+            color: enabled ? AnsiColors.ink : AnsiColors.muted,
           ),
         ),
       ),
@@ -1284,7 +1284,7 @@ class _FormMessage extends StatelessWidget {
     if (text == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 8),
-      child: Text(text!, style: miseMono(size: 11, color: MiseColors.muted)),
+      child: Text(text!, style: ansiMono(size: 11, color: AnsiColors.muted)),
     );
   }
 }
@@ -1297,7 +1297,7 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: 20, bottom: 6),
-    child: Text(text, style: miseLabel()),
+    child: Text(text, style: ansiLabel()),
   );
 }
 
@@ -1309,7 +1309,7 @@ class _Note extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: 6),
-    child: Text(text, style: miseMono(size: 10, color: MiseColors.muted)),
+    child: Text(text, style: ansiMono(size: 10, color: AnsiColors.muted)),
   );
 }
 

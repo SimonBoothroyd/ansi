@@ -8,14 +8,14 @@
 /// the three failure states, and what it resolves with.
 library;
 
+import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/features/ingredients/barcode/barcode_add.dart';
+import 'package:ansi/features/ingredients/barcode/barcode_scan_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:mise/core/theme/mise_theme.dart';
-import 'package:mise/features/ingredients/barcode/barcode_add.dart';
-import 'package:mise/features/ingredients/barcode/barcode_scan_sheet.dart';
 
 const _foundBody = '''
 {"code":"7394376616020","status":1,"product":{"code":"7394376616020",
@@ -80,7 +80,7 @@ Future<void> _pump(
   await tester.pumpWidget(
     MaterialApp(
       home: FTheme(
-        data: miseThemeData(),
+        data: ansiThemeData(),
         child: FScaffold(
           child: BarcodeScanSheet(
             lookup: lookup,
@@ -166,7 +166,7 @@ void main() {
         cameraPane: (_, _) => const CameraOffNotice(permissionDenied: true),
       );
 
-      expect(find.text("Mise can't open the camera"), findsOneWidget);
+      expect(find.text("Ansi can't open the camera"), findsOneWidget);
       expect(find.text('Open Settings'), findsOneWidget);
       expect(find.textContaining('both end in the same place'), findsOneWidget);
 

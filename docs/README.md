@@ -1,4 +1,4 @@
-# The Mise knowledge base
+# The Ansi knowledge base
 
 This `docs/` tree is the **system of record**. The guiding idea (from OpenAI's
 [harness engineering](https://openai.com/index/harness-engineering/)): a coding
@@ -51,7 +51,10 @@ docs/
    reversal is a new ADR that supersedes the old one.
 3. **Plans are checked in.** Non-trivial work gets an exec plan in `active/` with
    its intent and a decision log, moved to `completed/` when done. Trivial changes
-   don't need one.
+   don't need one. Plans in `completed/`, the ADRs in `decisions/`, and the
+   tracker's dated history predate the 2026-09-01 **Mise → Ansi** rename and
+   still say "Mise" throughout; that is deliberate — a finished record is not
+   rewritten to match a later name.
 4. **Generated docs are generated.** Anything in `generated/` is produced by
    `scripts/gen_docs.sh` (`make docs`) from a source of truth — today that is
    `db-schema.md`, parsed from `supabase/migrations/`. Never edit by hand;

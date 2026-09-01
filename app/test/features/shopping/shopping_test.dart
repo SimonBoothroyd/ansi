@@ -1,7 +1,7 @@
+import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/core/units/measure.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/shopping/domain/shopping.dart';
 
 const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 

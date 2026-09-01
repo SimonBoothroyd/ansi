@@ -6,7 +6,7 @@
 /// by the `add_household_claim` hook, migration 0007 — scopes what syncs down).
 ///
 /// `uploadData` applies each queued local change to Supabase via PostgREST.
-/// Mise never hard-deletes (deletes are soft tombstones, spec §3), so repos
+/// Ansi never hard-deletes (deletes are soft tombstones, spec §3), so repos
 /// only ever emit inserts and updates; a stray delete is mapped to a soft
 /// delete rather than a DELETE the RLS grants would reject anyway.
 library;
@@ -86,8 +86,8 @@ Map<String, dynamic> putPayload(CrudEntry op) => {
 Map<String, dynamic> patchPayload(CrudEntry op) =>
     _decodeJsonbColumns(op.table, op.opData ?? const {});
 
-class MiseConnector extends PowerSyncBackendConnector {
-  MiseConnector(this._supabase);
+class AnsiConnector extends PowerSyncBackendConnector {
+  AnsiConnector(this._supabase);
 
   final SupabaseClient _supabase;
 

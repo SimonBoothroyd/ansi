@@ -51,7 +51,7 @@ class _UnconfiguredImport implements ImportRepository {
   @override
   Future<ReconciliationPayload> startImport(ImportSource source) async {
     throw const ImportException(
-      'importing needs a connection to the Mise backend, and this build has '
+      'importing needs a connection to the Ansi backend, and this build has '
       'none configured — sign in against a configured backend to import',
     );
   }

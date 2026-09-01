@@ -4,13 +4,13 @@
 /// swap in prominence when the account is gone server-side.
 library;
 
+import 'package:ansi/core/sync/session.dart';
+import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/features/auth/presentation/connecting_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:mise/core/sync/session.dart';
-import 'package:mise/core/theme/mise_theme.dart';
-import 'package:mise/features/auth/presentation/connecting_view.dart';
 
 /// Call counts recorded by [_FakeSessionController] (kept outside the notifier
 /// so it exposes no public state beyond `state`).
@@ -47,7 +47,7 @@ Widget _host(SessionState initial, _Calls calls) => ProviderScope(
     ),
   ],
   child: MaterialApp(
-    home: FTheme(data: miseThemeData(), child: const ConnectingView()),
+    home: FTheme(data: ansiThemeData(), child: const ConnectingView()),
   ),
 );
 

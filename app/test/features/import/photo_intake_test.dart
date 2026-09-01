@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 
+import 'package:ansi/features/import/data/photo_intake.dart';
+import 'package:ansi/features/import/data/remote_import_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:mise/features/import/data/photo_intake.dart';
-import 'package:mise/features/import/data/remote_import_repository.dart';
 
 void main() {
   group('PhotoIntakeService.pickAndCrop', () {

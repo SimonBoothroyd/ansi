@@ -62,6 +62,24 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ansi/app.dart';
+import 'package:ansi/core/config/env.dart';
+import 'package:ansi/core/sync/database.dart';
+import 'package:ansi/core/sync/schema.dart';
+import 'package:ansi/core/sync/session.dart' show currentHouseholdIdProvider;
+import 'package:ansi/features/import/data/import_providers.dart';
+import 'package:ansi/features/import/data/import_repository_impl.dart';
+import 'package:ansi/features/import/presentation/recon_line_card.dart'
+    show AmountEditor;
+import 'package:ansi/features/ingredients/barcode/barcode_add.dart'
+    show OffLookup, offLookupProvider;
+import 'package:ansi/features/ingredients/barcode/barcode_scan_sheet.dart'
+    show BarcodeScanSheet;
+import 'package:ansi/features/ingredients/domain/normalize.dart'
+    show normalizeMatchText;
+import 'package:ansi/features/ingredients/presentation/quantity_unit_sheet.dart'
+    show QuantityUnitEditor, UnitChipRow;
+import 'package:ansi/features/planning/domain/planning.dart' show mondayOf;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -69,24 +87,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:mise/app.dart';
-import 'package:mise/core/config/env.dart';
-import 'package:mise/core/sync/database.dart';
-import 'package:mise/core/sync/schema.dart';
-import 'package:mise/core/sync/session.dart' show currentHouseholdIdProvider;
-import 'package:mise/features/import/data/import_providers.dart';
-import 'package:mise/features/import/data/import_repository_impl.dart';
-import 'package:mise/features/import/presentation/recon_line_card.dart'
-    show AmountEditor;
-import 'package:mise/features/ingredients/barcode/barcode_add.dart'
-    show OffLookup, offLookupProvider;
-import 'package:mise/features/ingredients/barcode/barcode_scan_sheet.dart'
-    show BarcodeScanSheet;
-import 'package:mise/features/ingredients/domain/normalize.dart'
-    show normalizeMatchText;
-import 'package:mise/features/ingredients/presentation/quantity_unit_sheet.dart'
-    show QuantityUnitEditor, UnitChipRow;
-import 'package:mise/features/planning/domain/planning.dart' show mondayOf;
 import 'package:powersync/powersync.dart' hide Column;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -127,7 +127,7 @@ void main() {
     );
     // A throwaway database rather than the app's own file, so a rerun starts
     // empty and everything asserted below arrived through this run's sync.
-    dir = Directory.systemTemp.createTempSync('mise_smoke');
+    dir = Directory.systemTemp.createTempSync('ansi_smoke');
     db = PowerSyncDatabase(schema: schema, path: '${dir.path}/smoke.db');
     await db.initialize();
   });
@@ -179,7 +179,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [powerSyncDatabaseProvider.overrideWithValue(db)],
-        child: const MiseApp(),
+        child: const AnsiApp(),
       ),
     );
     await tester.pump();
@@ -281,7 +281,7 @@ void main() {
             ),
           ),
         ],
-        child: const MiseApp(),
+        child: const AnsiApp(),
       ),
     );
     await tester.pump();
@@ -325,7 +325,7 @@ void main() {
             ),
           ),
         ],
-        child: const MiseApp(),
+        child: const AnsiApp(),
       ),
     );
     await tester.pump();
@@ -1448,7 +1448,7 @@ void main() {
 
     // The sheet's stable chrome. On the Simulator the plugin's start neither
     // succeeds nor ERRORS — no camera means it waits forever, so the designed
-    // "Mise can't open the camera" notice never renders (errorBuilder never
+    // "Ansi can't open the camera" notice never renders (errorBuilder never
     // fires; observed round 12). The notice's on-screen verification moves to
     // the physical-device slice with the rest of the camera legs; what this
     // scenario proves is that the TYPED field stays live regardless — the
@@ -1608,12 +1608,12 @@ Future<String> _provisionHousehold() async {
   for (var attempt = 0; attempt < 8; attempt++) {
     final stamp = DateTime.now().millisecondsSinceEpoch;
     // NOTE: example.com is on the cloud blocklist — use the app's own domain.
-    final email = 'smoke$stamp.ada@mise.app';
+    final email = 'smoke$stamp.ada@ansi.app';
     final token = await _signUp(email, fullName: 'Ada');
     final household = await _ensureOnboarded(token);
     if (await _memberCount(token, household) > 1) continue; // filled a stray
     final partnerToken = await _signUp(
-      'smoke$stamp.jun@mise.app',
+      'smoke$stamp.jun@ansi.app',
       fullName: 'Jun',
     );
     final partnerHousehold = await _ensureOnboarded(partnerToken);

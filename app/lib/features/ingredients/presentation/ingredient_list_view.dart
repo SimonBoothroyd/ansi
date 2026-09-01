@@ -20,8 +20,8 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/ingredient.dart';
 import 'ingredient_detail_view.dart';
@@ -72,7 +72,7 @@ class IngredientListView extends HookConsumerWidget {
     return FScaffold(
       childPad: false,
       header: FHeader.nested(
-        title: Text('Ingredients', style: miseHeaderTitle()),
+        title: Text('Ingredients', style: ansiHeaderTitle()),
         prefixes: [
           FHeaderAction.back(
             onPress: () => context.canPop() ? context.pop() : context.go('/'),
@@ -105,7 +105,7 @@ class IngredientListView extends HookConsumerWidget {
                   child: Text(
                     'Could not read the vocabulary — $error',
                     textAlign: TextAlign.center,
-                    style: miseMono(size: 12, color: MiseColors.muted),
+                    style: ansiMono(size: 12, color: AnsiColors.muted),
                   ),
                 ),
               ),
@@ -115,7 +115,7 @@ class IngredientListView extends HookConsumerWidget {
                   'No ingredients yet — the vocabulary arrives with your '
                   'household’s first sync.',
                   textAlign: TextAlign.center,
-                  style: miseMono(size: 12, color: MiseColors.muted),
+                  style: ansiMono(size: 12, color: AnsiColors.muted),
                 ),
               ),
               _ => ListView(
@@ -131,11 +131,11 @@ class IngredientListView extends HookConsumerWidget {
                       padding: const EdgeInsets.only(top: 16, bottom: 4),
                       child: Text(
                         'All ingredients · ${all.length}',
-                        style: miseLabel(),
+                        style: ansiLabel(),
                       ),
                     ),
                     for (final (i, ing) in all.indexed) ...[
-                      if (i > 0) Container(height: 1, color: MiseColors.line),
+                      if (i > 0) Container(height: 1, color: AnsiColors.line),
                       _ManagerRow(ingredient: ing, onOpen: open),
                     ],
                   ],
@@ -147,7 +147,7 @@ class IngredientListView extends HookConsumerWidget {
                       child: Text(
                         'add an ingredient — by hand, or scan a barcode',
                         textAlign: TextAlign.center,
-                        style: miseMono(size: 11, color: MiseColors.herb),
+                        style: ansiMono(size: 11, color: AnsiColors.herb),
                       ),
                     ),
                   ),
@@ -172,14 +172,14 @@ class IngredientListView extends HookConsumerWidget {
           child: Text(
             'No match for "$query".',
             textAlign: TextAlign.center,
-            style: miseMono(size: 12, color: MiseColors.muted),
+            style: ansiMono(size: 12, color: AnsiColors.muted),
           ),
         ),
       ];
     }
     return [
       for (final (i, ing) in results.indexed) ...[
-        if (i > 0) Container(height: 1, color: MiseColors.line),
+        if (i > 0) Container(height: 1, color: AnsiColors.line),
         _ManagerRow(ingredient: ing, onOpen: onOpen),
       ],
     ];
@@ -202,7 +202,7 @@ class _ManagerRow extends StatelessWidget {
     trailing: const Icon(
       FLucideIcons.chevronRight,
       size: 16,
-      color: MiseColors.muted,
+      color: AnsiColors.muted,
     ),
   );
 }
@@ -229,8 +229,8 @@ class _StubBand extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
       decoration: BoxDecoration(
-        color: MiseColors.paper,
-        border: Border.all(color: MiseColors.line),
+        color: AnsiColors.paper,
+        border: Border.all(color: AnsiColors.line),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -239,10 +239,10 @@ class _StubBand extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Needs fleshing out', style: miseSans(size: 13)),
+              Text('Needs fleshing out', style: ansiSans(size: 13)),
               Text(
                 '${stubs.length} ${stubs.length == 1 ? 'stub' : 'stubs'}',
-                style: miseMono(size: 10, color: MiseColors.muted),
+                style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ],
           ),
@@ -258,7 +258,7 @@ class _StubBand extends StatelessWidget {
                     Expanded(
                       child: Text(
                         s.canonicalName,
-                        style: miseSans(size: 13),
+                        style: ansiSans(size: 13),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -270,7 +270,7 @@ class _StubBand extends StatelessWidget {
                           'needs confirm',
                         if (isUsdaPrefilled(s.source)) 'usda prefilled',
                       ].join(' · '),
-                      style: miseMono(size: 10, color: MiseColors.muted),
+                      style: ansiMono(size: 10, color: AnsiColors.muted),
                     ),
                   ],
                 ),
@@ -279,7 +279,7 @@ class _StubBand extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'A stub stays out of macro totals until you confirm it.',
-            style: miseMono(size: 10, color: MiseColors.muted),
+            style: ansiMono(size: 10, color: AnsiColors.muted),
           ),
         ],
       ),

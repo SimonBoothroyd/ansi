@@ -100,8 +100,8 @@ class OffLookup {
   /// contact configured the app still names itself honestly — inventing an
   /// address would be worse than admitting there isn't one.
   static const defaultUserAgent = _offContact == ''
-      ? 'Mise/0.1.0 (offline-first household recipe app)'
-      : 'Mise/0.1.0 ($_offContact)';
+      ? 'Ansi/0.1.0 (offline-first household recipe app)'
+      : 'Ansi/0.1.0 ($_offContact)';
 
   /// The keys the mapper reads. Sent as `fields=` so OFF returns those
   /// rather than the whole product document.

@@ -9,8 +9,8 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../data/photo_intake.dart';
 import '../domain/import_repository.dart';
 import 'import_view_models.dart';
@@ -42,7 +42,7 @@ class ImportView extends HookConsumerWidget {
     return FScaffold(
       childPad: false,
       header: FHeader.nested(
-        title: Text(title, style: miseHeaderTitle()),
+        title: Text(title, style: ansiHeaderTitle()),
         prefixes: [
           FHeaderAction.back(
             onPress: () {
@@ -61,11 +61,11 @@ class ImportView extends HookConsumerWidget {
               child: Center(
                 child: Text(
                   reviewCount == 0 ? 'looks good' : '$reviewCount to review',
-                  style: miseMono(
+                  style: ansiMono(
                     size: 11,
                     color: reviewCount == 0
-                        ? MiseColors.herb
-                        : MiseColors.muted,
+                        ? AnsiColors.herb
+                        : AnsiColors.muted,
                   ),
                 ),
               ),
@@ -97,7 +97,7 @@ class _Busy extends StatelessWidget {
         children: [
           const FCircularProgress(),
           const SizedBox(height: 12),
-          Text(label, style: miseMono(size: 12, color: MiseColors.muted)),
+          Text(label, style: ansiMono(size: 12, color: AnsiColors.muted)),
         ],
       ),
     );
@@ -121,10 +121,10 @@ class _IntakeForm extends HookConsumerWidget {
           'Paste a recipe link, or import from photos. We read the '
           'ingredients and steps, then you confirm each match — nothing is '
           'guessed for you.',
-          style: miseSans(size: 14, color: MiseColors.muted, height: 1.4),
+          style: ansiSans(size: 14, color: AnsiColors.muted, height: 1.4),
         ),
         const SizedBox(height: 20),
-        Text('RECIPE URL', style: miseLabel()),
+        Text('RECIPE URL', style: ansiLabel()),
         const SizedBox(height: 6),
         FTextField(
           hint: 'https://…',
@@ -155,7 +155,7 @@ class _IntakeForm extends HookConsumerWidget {
         ),
         if (error != null) ...[
           const SizedBox(height: 20),
-          Text(error!, style: miseSans(size: 13, color: MiseColors.gone)),
+          Text(error!, style: ansiSans(size: 13, color: AnsiColors.gone)),
         ],
       ],
     );

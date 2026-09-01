@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="mise"
+        android:label="Ansi"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -25,13 +25,13 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
             <!-- Custom URL scheme for the Supabase/Google OAuth redirect
-                 (io.mise.app://login-callback). Routes the deep link back to
+                 (io.ansi.app://login-callback). Routes the deep link back to
                  the app after login. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="io.mise.app" android:host="login-callback"/>
+                <data android:scheme="io.ansi.app" android:host="login-callback"/>
             </intent-filter>
         </activity>
         <!-- image_cropper (recipe photo intake): its crop/rotate editor is a

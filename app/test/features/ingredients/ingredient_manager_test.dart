@@ -17,6 +17,23 @@ library;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/barcode/barcode_add.dart';
+import 'package:ansi/features/ingredients/barcode/barcode_scan_sheet.dart';
+import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
+import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/domain/measure_repository.dart';
+import 'package:ansi/features/ingredients/domain/normalize.dart';
+import 'package:ansi/features/ingredients/domain/usda_probe.dart';
+import 'package:ansi/features/ingredients/presentation/density_entry.dart';
+import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
+import 'package:ansi/features/ingredients/presentation/ingredient_list_view.dart';
+import 'package:ansi/features/ingredients/presentation/measures_editor.dart';
+import 'package:ansi/features/ingredients/presentation/new_ingredient_sheet.dart';
+import 'package:ansi/shared/dashed_border_box.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -24,23 +41,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:mise/core/theme/mise_theme.dart';
-import 'package:mise/core/units/macros.dart';
-import 'package:mise/core/units/measure.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/ingredients/barcode/barcode_add.dart';
-import 'package:mise/features/ingredients/barcode/barcode_scan_sheet.dart';
-import 'package:mise/features/ingredients/data/ingredient_providers.dart';
-import 'package:mise/features/ingredients/domain/ingredient.dart';
-import 'package:mise/features/ingredients/domain/measure_repository.dart';
-import 'package:mise/features/ingredients/domain/normalize.dart';
-import 'package:mise/features/ingredients/domain/usda_probe.dart';
-import 'package:mise/features/ingredients/presentation/density_entry.dart';
-import 'package:mise/features/ingredients/presentation/ingredient_detail_view.dart';
-import 'package:mise/features/ingredients/presentation/ingredient_list_view.dart';
-import 'package:mise/features/ingredients/presentation/measures_editor.dart';
-import 'package:mise/features/ingredients/presentation/new_ingredient_sheet.dart';
-import 'package:mise/shared/dashed_border_box.dart';
 
 import '../../helpers/fake_ingredient_repository.dart';
 
@@ -229,11 +229,11 @@ final Finder _measureLabelField = find
     .first;
 
 /// A default-unit chip by label, scoped to the D4c selector row.
-MiseModeChip _defaultUnitChip(WidgetTester tester, String label) =>
-    tester.widget<MiseModeChip>(
+AnsiModeChip _defaultUnitChip(WidgetTester tester, String label) =>
+    tester.widget<AnsiModeChip>(
       find.descendant(
         of: find.byKey(const ValueKey('default-unit-row')),
-        matching: find.widgetWithText(MiseModeChip, label),
+        matching: find.widgetWithText(AnsiModeChip, label),
       ),
     );
 
@@ -286,7 +286,7 @@ Widget _host(
     ],
     child: MaterialApp.router(
       routerConfig: router,
-      builder: (context, child) => FTheme(data: miseThemeData(), child: child!),
+      builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
     ),
   );
 }
@@ -301,7 +301,7 @@ Widget _densityHost(Ingredient ingredient) => ProviderScope(
   ],
   child: MaterialApp(
     home: FTheme(
-      data: miseThemeData(),
+      data: ansiThemeData(),
       child: FScaffold(
         childPad: false,
         child: Padding(
@@ -327,7 +327,7 @@ Widget _sheetHost(FakeIngredientRepo repo, {UsdaProbe? probe}) => ProviderScope(
   ],
   child: MaterialApp(
     home: FTheme(
-      data: miseThemeData(),
+      data: ansiThemeData(),
       child: const FScaffold(child: NewIngredientSheet()),
     ),
   ),
@@ -1151,7 +1151,7 @@ void main() {
           ],
           child: MaterialApp(
             home: FTheme(
-              data: miseThemeData(),
+              data: ansiThemeData(),
               child: const FScaffold(child: NewIngredientSheet()),
             ),
           ),
@@ -1165,10 +1165,10 @@ void main() {
       // The merge seam is gone: nothing on this sheet says the option is
       // waiting for another lane.
       expect(find.textContaining('wired at merge'), findsNothing);
-      final barcode = tester.widget<MiseModeChip>(
+      final barcode = tester.widget<AnsiModeChip>(
         find.ancestor(
           of: find.text('Barcode'),
-          matching: find.byType(MiseModeChip),
+          matching: find.byType(AnsiModeChip),
         ),
       );
       expect(barcode.enabled, isTrue);
@@ -1186,7 +1186,7 @@ void main() {
           ],
           child: MaterialApp(
             home: FTheme(
-              data: miseThemeData(),
+              data: ansiThemeData(),
               child: const FScaffold(child: NewIngredientSheet()),
             ),
           ),
@@ -1631,7 +1631,7 @@ Widget _addHost(
     ],
     child: MaterialApp.router(
       routerConfig: router,
-      builder: (context, child) => FTheme(data: miseThemeData(), child: child!),
+      builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
     ),
   );
 }

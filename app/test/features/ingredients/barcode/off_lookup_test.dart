@@ -7,11 +7,11 @@ library;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:ansi/features/ingredients/barcode/ingredient_draft.dart';
+import 'package:ansi/features/ingredients/barcode/off_lookup.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:mise/features/ingredients/barcode/ingredient_draft.dart';
-import 'package:mise/features/ingredients/barcode/off_lookup.dart';
 
 /// A found product, trimmed to the keys the mapper reads.
 const _found = '''
@@ -41,7 +41,7 @@ void main() {
         // OFF's docs ask for `AppName/Version (contact)` so the traffic is
         // distinguishable from a bot. No key, no account — that is the whole
         // reason this call is allowed to live on the device.
-        expect(seen.headers['User-Agent'], startsWith('Mise/0.1.0 ('));
+        expect(seen.headers['User-Agent'], startsWith('Ansi/0.1.0 ('));
         expect(seen.headers.containsKey('Authorization'), isFalse);
         expect(seen.url.host, 'world.openfoodfacts.org');
         expect(seen.url.path, '/api/v2/product/3017620422003.json');

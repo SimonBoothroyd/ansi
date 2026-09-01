@@ -33,7 +33,7 @@ if [ "$ok" -eq 1 ] && command -v flutter >/dev/null 2>&1; then
   ( cd app && flutter pub get ) || echo "  (pub get failed — resolve versions in app/pubspec.yaml)"
   echo
   echo "NOTE: the Flutter app has no platform folders yet. To create them, run:"
-  echo "      cd app && flutter create . --platforms=android,web --project-name mise"
+  echo "      cd app && flutter create . --platforms=android,web --project-name ansi"
 fi
 
 echo

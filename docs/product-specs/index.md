@@ -9,5 +9,5 @@ choices lives in `../decisions/`; the "what to build next" in
 - [`import-and-matching.md`](./import-and-matching.md) — the import + ingredient
   matching design: extraction, normalization, the match cascade, reconciliation,
   the stub lifecycle, and the offline/online split. Supersedes the spec's §5.
-- [`design-board.html`](./design-board.html) — the visual design board ("Mise"):
+- [`design-board.html`](./design-board.html) — the visual design board ("Ansi"):
   palette, type, and every screen. Open in a browser.

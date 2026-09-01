@@ -14,7 +14,7 @@ lib/
     result/          Result<Failure, T>
     router/          go_router config
     sync/            PowerSync schema, database, Supabase connector
-    theme/           Mise design tokens mapped to Forui
+    theme/           Ansi design tokens mapped to Forui
     units/           THE UNIT SYSTEM — pure Dart, build first (spec §4)
   features/<f>/
     domain/          entities + repo interfaces — PURE DART (no package:flutter)
@@ -118,6 +118,12 @@ install (not just command-line tools): `xcode-select -p` must point at
 The loop (agents drive it with the iOS Simulator tools; humans use `flutter run`):
 
 1. **Boot** a sim: `xcrun simctl boot "iPhone 17"` (any installed iPhone).
+   > One-time, after the 2026-09-01 rename: the bundle id moved
+   > `com.example.mise` → `io.ansi.app`, so any sim that ran an older build
+   > still has the old app installed under the old id. It is inert (nothing
+   > targets it) but it looks like a duplicate "Ansi" on the home screen —
+   > clear it once with
+   > `xcrun simctl uninstall booted com.example.mise || true`.
 2. **Attach** the live panel (agent tool `control{action:"attach"}`) so the
    change is watchable.
 3. **Build + launch.** iOS builds via **Swift Package Manager** (no CocoaPods /

@@ -13,8 +13,8 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../domain/line_display.dart';
 import '../domain/recipe.dart';
@@ -53,9 +53,9 @@ class RecipeIngredientLine extends StatelessWidget {
 
     final amountText = Text(
       amount,
-      style: miseMono(
+      style: ansiMono(
         size: 15,
-        color: MiseColors.muted,
+        color: AnsiColors.muted,
       ).copyWith(fontStyle: imprecise ? FontStyle.italic : FontStyle.normal),
     );
 
@@ -83,18 +83,18 @@ class RecipeIngredientLine extends StatelessWidget {
                     children: [
                       TextSpan(
                         text: uses.ingredientName,
-                        style: miseSans(size: 16, weight: FontWeight.w500),
+                        style: ansiSans(size: 16, weight: FontWeight.w500),
                       ),
                       if (notes.isNotEmpty) ...[
                         TextSpan(
                           text: '  ·  ',
-                          style: miseSans(size: 16, color: MiseColors.line),
+                          style: ansiSans(size: 16, color: AnsiColors.line),
                         ),
                         TextSpan(
                           text: notes,
-                          style: miseSans(
+                          style: ansiSans(
                             size: 16,
-                            color: MiseColors.muted,
+                            color: AnsiColors.muted,
                           ).copyWith(fontStyle: FontStyle.italic),
                         ),
                       ],
@@ -110,14 +110,14 @@ class RecipeIngredientLine extends StatelessWidget {
                   child: const Icon(
                     FLucideIcons.pencil,
                     size: 14,
-                    color: MiseColors.herb,
+                    color: AnsiColors.herb,
                   ),
                 ),
               ],
             ],
           ),
         ),
-        Container(height: 1, color: MiseColors.line),
+        Container(height: 1, color: AnsiColors.line),
       ],
     );
   }

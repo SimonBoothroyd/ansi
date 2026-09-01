@@ -1,13 +1,13 @@
+import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/shopping/data/shopping_providers.dart';
+import 'package:ansi/features/shopping/domain/shopping.dart';
+import 'package:ansi/features/shopping/domain/shopping_repository.dart';
+import 'package:ansi/features/shopping/presentation/edit_top_up_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:mise/core/theme/mise_theme.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/shopping/data/shopping_providers.dart';
-import 'package:mise/features/shopping/domain/shopping.dart';
-import 'package:mise/features/shopping/domain/shopping_repository.dart';
-import 'package:mise/features/shopping/presentation/edit_top_up_sheet.dart';
 
 /// Records the edit call so the test can assert what the sheet saved.
 class _RecordingShoppingRepo implements ShoppingRepository {
@@ -92,7 +92,7 @@ void main() {
         overrides: [shoppingRepositoryProvider.overrideWithValue(repo)],
         child: MaterialApp(
           home: FTheme(
-            data: miseThemeData(),
+            data: ansiThemeData(),
             child: Builder(
               builder: (context) => Center(
                 child: GestureDetector(

@@ -156,7 +156,7 @@ That runs four jobs:
 | Job | Runner | Does | Output |
 |-----|--------|------|--------|
 | `guard` | ubuntu | §2.4 checks only | pass/fail, plus the Play notice |
-| `android` | ubuntu | decode keystore → write `android/key.properties` → `flutter build apk --release` + `appbundle --release` with the three dart-defines | `mise-v0.1.0.apk` + `mise-v0.1.0.aab` on the **GitHub Release** for the tag, and an `android-release` artifact |
+| `android` | ubuntu | decode keystore → write `android/key.properties` → `flutter build apk --release` + `appbundle --release` with the three dart-defines | `ansi-v0.1.0.apk` + `ansi-v0.1.0.aab` on the **GitHub Release** for the tag, and an `android-release` artifact |
 | `play-internal` | ubuntu | uploads that same AAB to the Play **internal** track (§3a) | the Pixel updates from Play |
 | `ios` | macOS | `flutter build ios --release --no-codesign` | unsigned `Runner.app` **artifact** |
 
@@ -169,7 +169,7 @@ signal.
 — the binary on the Release and the binary on Play are byte-identical for a
 given tag.
 
-**Why iOS is a compile proof and nothing more.** Mise is a two-person household
+**Why iOS is a compile proof and nothing more.** Ansi is a two-person household
 app installed from Xcode, not from the App Store. Real iOS signing in CI means
 an Apple Developer account, a distribution certificate and provisioning profile
 in secrets, a temporary keychain, and an export-options plist — a pile of
@@ -212,7 +212,7 @@ take a day or two; nothing below works until it clears.
 
 | Field | Value |
 |---|---|
-| App name | `Mise` |
+| App name | `Ansi` |
 | Default language | your preference |
 | App or game | App |
 | Free or paid | Free |
@@ -269,7 +269,7 @@ release** → upload the `.aab` → **Next → Save and publish**.
 4. On that service account → **Keys → Add key → Create new key → JSON**. It
    downloads once. Treat it as a credential.
 5. Back in Play Console → **API access** → **Refresh service accounts**, find it,
-   → **Manage Play Console permissions** → grant **Release manager** on the Mise
+   → **Manage Play Console permissions** → grant **Release manager** on the Ansi
    app (app-level, not account-wide) → **Invite user**.
 6. Hand it to CI:
 

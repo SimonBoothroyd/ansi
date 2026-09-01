@@ -15,12 +15,12 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/barcode/ingredient_draft.dart';
+import 'package:ansi/features/ingredients/barcode/off_lookup.dart';
+import 'package:ansi/features/ingredients/barcode/off_mapper.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mise/core/units/macros.dart';
-import 'package:mise/core/units/units.dart';
-import 'package:mise/features/ingredients/barcode/ingredient_draft.dart';
-import 'package:mise/features/ingredients/barcode/off_lookup.dart';
-import 'package:mise/features/ingredients/barcode/off_mapper.dart';
 
 Map<String, Object?> loadFixture(String name) {
   final file = File('test/features/ingredients/barcode/fixtures/$name.json');

@@ -20,8 +20,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/ingredient_providers.dart';
@@ -125,18 +125,18 @@ class DensityEntry extends HookConsumerWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(headline, style: miseLabel()),
+                Text(headline, style: ansiLabel()),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
                     density == null
                         ? 'none yet — unlocks volume⇄weight'
                         : '${formatDensity(density)} g/ml',
-                    style: miseMono(
+                    style: ansiMono(
                       size: 10,
                       color: density == null
-                          ? MiseColors.muted
-                          : MiseColors.herbDeep,
+                          ? AnsiColors.muted
+                          : AnsiColors.herbDeep,
                     ),
                   ),
                 ),
@@ -145,13 +145,13 @@ class DensityEntry extends HookConsumerWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                MiseModeChip(
+                AnsiModeChip(
                   label: 'g/ml',
                   selected: !spoonMode.value,
                   onTap: () => spoonMode.value = false,
                 ),
                 const SizedBox(width: 6),
-                MiseModeChip(
+                AnsiModeChip(
                   label: 'a spoon weighs…',
                   selected: spoonMode.value,
                   onTap: () => spoonMode.value = true,
@@ -170,14 +170,14 @@ class DensityEntry extends HookConsumerWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
-              Text('1', style: miseMono(size: 13)),
+              Text('1', style: ansiMono(size: 13)),
               for (final u in _spoons)
-                MiseModeChip(
+                AnsiModeChip(
                   label: u.label,
                   selected: spoon.value == u,
                   onTap: () => spoon.value = u,
                 ),
-              Text('weighs', style: miseMono(size: 13)),
+              Text('weighs', style: ansiMono(size: 13)),
               SizedBox(
                 width: 72,
                 child: FTextField(
@@ -234,7 +234,7 @@ class DensityEntry extends HookConsumerWidget {
             padding: const EdgeInsets.only(top: 6),
             child: Text(
               error.value!,
-              style: miseMono(size: 10, color: MiseColors.gone),
+              style: ansiMono(size: 10, color: AnsiColors.gone),
             ),
           )
         else if (spoonMode.value && input.value != null)
@@ -245,7 +245,7 @@ class DensityEntry extends HookConsumerWidget {
               densityFromVolumeWeight(spoon.value, input.value!) == null
                   ? ''
                   : '= ${formatDensity(densityFromVolumeWeight(spoon.value, input.value!)!)} g/ml',
-              style: miseMono(size: 10, color: MiseColors.muted),
+              style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           ),
       ],
@@ -284,7 +284,7 @@ class _RemoveDensity extends StatelessWidget {
             padding: const EdgeInsets.only(top: 6),
             child: Text(
               'remove the density',
-              style: miseMono(size: 10, color: MiseColors.gone),
+              style: ansiMono(size: 10, color: AnsiColors.gone),
             ),
           ),
         ),
@@ -301,7 +301,7 @@ class _RemoveDensity extends StatelessWidget {
                 ? 'Remove it? Nothing about what a line may say changes.'
                 : 'Remove it? ${stripped.map((u) => u.label).join(' · ')} '
                       'lock again.',
-            style: miseMono(size: 10, color: MiseColors.muted),
+            style: ansiMono(size: 10, color: AnsiColors.muted),
           ),
           const SizedBox(height: 6),
           Row(
@@ -317,7 +317,7 @@ class _RemoveDensity extends StatelessWidget {
                 onTap: () => confirming.value = false,
                 child: Text(
                   'keep it',
-                  style: miseMono(size: 10, color: MiseColors.muted),
+                  style: ansiMono(size: 10, color: AnsiColors.muted),
                 ),
               ),
             ],
@@ -330,8 +330,8 @@ class _RemoveDensity extends StatelessWidget {
 
 /// The small pill that toggles one of a mutually exclusive pair/row — the
 /// density phrasings, the spoon choice, the form's basis and source segments.
-class MiseModeChip extends StatelessWidget {
-  const MiseModeChip({
+class AnsiModeChip extends StatelessWidget {
+  const AnsiModeChip({
     required this.label,
     required this.selected,
     required this.onTap,
@@ -351,22 +351,22 @@ class MiseModeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final border = !enabled
-        ? MiseColors.line
-        : (selected ? MiseColors.herb : MiseColors.line);
+        ? AnsiColors.line
+        : (selected ? AnsiColors.herb : AnsiColors.line);
     final text = !enabled
-        ? MiseColors.muted
-        : (selected ? MiseColors.herbDeep : MiseColors.muted);
+        ? AnsiColors.muted
+        : (selected ? AnsiColors.herbDeep : AnsiColors.muted);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: enabled ? onTap : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(
-          color: selected && enabled ? MiseColors.herbSoft : MiseColors.surface,
+          color: selected && enabled ? AnsiColors.herbSoft : AnsiColors.surface,
           border: Border.all(color: border),
           borderRadius: BorderRadius.circular(999),
         ),
-        child: Text(label, style: miseMono(size: 10, color: text)),
+        child: Text(label, style: ansiMono(size: 10, color: text)),
       ),
     );
   }

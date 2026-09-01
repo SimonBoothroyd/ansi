@@ -9,13 +9,13 @@ part of 'database.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// The open [PowerSyncDatabase]. Has no default — `bootstrap.dart` overrides it
-/// with the result of [openMiseDatabase]. Repo tests don't use it.
+/// with the result of [openAnsiDatabase]. Repo tests don't use it.
 
 @ProviderFor(powerSyncDatabase)
 const powerSyncDatabaseProvider = PowerSyncDatabaseProvider._();
 
 /// The open [PowerSyncDatabase]. Has no default — `bootstrap.dart` overrides it
-/// with the result of [openMiseDatabase]. Repo tests don't use it.
+/// with the result of [openAnsiDatabase]. Repo tests don't use it.
 
 final class PowerSyncDatabaseProvider
     extends
@@ -26,7 +26,7 @@ final class PowerSyncDatabaseProvider
         >
     with $Provider<PowerSyncDatabase> {
   /// The open [PowerSyncDatabase]. Has no default — `bootstrap.dart` overrides it
-  /// with the result of [openMiseDatabase]. Repo tests don't use it.
+  /// with the result of [openAnsiDatabase]. Repo tests don't use it.
   const PowerSyncDatabaseProvider._()
     : super(
         from: null,

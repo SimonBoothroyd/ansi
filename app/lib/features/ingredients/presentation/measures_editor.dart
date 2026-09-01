@@ -19,8 +19,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../recipes/presentation/format.dart';
@@ -130,7 +130,7 @@ class MeasuresEditor extends HookConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Text(
               'No measures yet — name one below.',
-              style: miseMono(size: 12, color: MiseColors.muted),
+              style: ansiMono(size: 12, color: AnsiColors.muted),
             ),
           )
         else
@@ -160,7 +160,7 @@ class MeasureRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 7),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: MiseColors.line)),
+        border: Border(bottom: BorderSide(color: AnsiColors.line)),
       ),
       child: Row(
         children: [
@@ -169,7 +169,7 @@ class MeasureRow extends StatelessWidget {
           Flexible(
             child: Text(
               measure.label,
-              style: miseSans(size: 14, weight: FontWeight.w500),
+              style: ansiSans(size: 14, weight: FontWeight.w500),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -177,12 +177,12 @@ class MeasureRow extends StatelessWidget {
           Text(
             '${formatQuantity(measure.amount)} '
             '${measure.basis.baseUnit.label}',
-            style: miseMono(size: 11, color: MiseColors.muted),
+            style: ansiMono(size: 11, color: AnsiColors.muted),
           ),
           const Spacer(),
           Text(
             measureSourceWord(measure.sourceKind),
-            style: miseMono(size: 9, color: MiseColors.muted),
+            style: ansiMono(size: 9, color: AnsiColors.muted),
           ),
           const SizedBox(width: 8),
           GestureDetector(
@@ -191,7 +191,7 @@ class MeasureRow extends StatelessWidget {
             child: const Icon(
               FLucideIcons.trash2,
               size: 15,
-              color: MiseColors.muted,
+              color: AnsiColors.muted,
             ),
           ),
         ],
@@ -229,9 +229,9 @@ class _AddMeasureForm extends StatelessWidget {
         // fonts — renders as tofu).
         Row(
           children: [
-            const Icon(FLucideIcons.plus, size: 12, color: MiseColors.herb),
+            const Icon(FLucideIcons.plus, size: 12, color: AnsiColors.herb),
             const SizedBox(width: 5),
-            Text('ADD MEASURE', style: miseLabel(color: MiseColors.herb)),
+            Text('ADD MEASURE', style: ansiLabel(color: AnsiColors.herb)),
           ],
         ),
         const SizedBox(height: 8),
@@ -270,7 +270,7 @@ class _AddMeasureForm extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         if (error != null)
-          Text(error!, style: miseMono(size: 10, color: MiseColors.gone))
+          Text(error!, style: ansiMono(size: 10, color: AnsiColors.gone))
         else
           Row(
             children: [
@@ -278,7 +278,7 @@ class _AddMeasureForm extends StatelessWidget {
               const SizedBox(width: 5),
               Text(
                 'saved as yours — synced & editable',
-                style: miseMono(size: 10, color: MiseColors.muted),
+                style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ],
           ),
@@ -310,11 +310,11 @@ class SourceDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (fill, ring) = switch (kind) {
-      MeasureSourceKind.usdaPortion => (MiseColors.herb, MiseColors.herb),
-      MeasureSourceKind.borrowed => (null, MiseColors.herb),
-      MeasureSourceKind.typical => (MiseColors.aging, MiseColors.aging),
-      MeasureSourceKind.manual => (MiseColors.ink, MiseColors.ink),
-      MeasureSourceKind.unknown => (null, MiseColors.line),
+      MeasureSourceKind.usdaPortion => (AnsiColors.herb, AnsiColors.herb),
+      MeasureSourceKind.borrowed => (null, AnsiColors.herb),
+      MeasureSourceKind.typical => (AnsiColors.aging, AnsiColors.aging),
+      MeasureSourceKind.manual => (AnsiColors.ink, AnsiColors.ink),
+      MeasureSourceKind.unknown => (null, AnsiColors.line),
     };
     return Container(
       width: 7,

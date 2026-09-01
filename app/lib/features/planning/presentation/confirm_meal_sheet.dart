@@ -17,8 +17,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../../cook_plan/domain/cook_plan.dart';
@@ -120,9 +120,9 @@ class _ConfirmMealSheet extends HookConsumerWidget {
 
     return Container(
       decoration: const BoxDecoration(
-        color: MiseColors.paper,
+        color: AnsiColors.paper,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: MiseColors.line)),
+        border: Border(top: BorderSide(color: AnsiColors.line)),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -135,7 +135,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Add to plan', style: miseSerif(size: 22)),
+            Text('Add to plan', style: ansiSerif(size: 22)),
             const SizedBox(height: 14),
             _RecipeCard(recipe: recipe),
             if (hint != null) ...[
@@ -201,7 +201,7 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text.toUpperCase(),
-    style: miseMono(size: 10, color: MiseColors.muted, letterSpacing: 1),
+    style: ansiMono(size: 10, color: AnsiColors.muted, letterSpacing: 1),
   );
 }
 
@@ -222,8 +222,8 @@ class _RecipeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: MiseColors.surface,
-        border: Border.all(color: MiseColors.line),
+        color: AnsiColors.surface,
+        border: Border.all(color: AnsiColors.line),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -232,13 +232,13 @@ class _RecipeCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: MiseColors.herbSoft,
+              color: AnsiColors.herbSoft,
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
               FLucideIcons.cookingPot,
               size: 20,
-              color: MiseColors.herb,
+              color: AnsiColors.herb,
             ),
           ),
           const SizedBox(width: 12),
@@ -248,14 +248,14 @@ class _RecipeCard extends StatelessWidget {
               children: [
                 Text(
                   recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
-                  style: miseSerif(size: 17),
+                  style: ansiSerif(size: 17),
                 ),
                 if (shelf.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
                       shelf,
-                      style: miseMono(size: 10, color: MiseColors.muted),
+                      style: ansiMono(size: 10, color: AnsiColors.muted),
                     ),
                   ),
                 // The honest per-serving line (v2): real numbers or the
@@ -269,11 +269,11 @@ class _RecipeCard extends StatelessWidget {
                             'serves ${formatQuantity(recipe.servingsBase)} · '
                             '~${perServing.kcal.round()} kcal · '
                             '${perServing.protein.round()}P',
-                        style: miseMono(size: 10, color: MiseColors.herbDeep),
+                        style: ansiMono(size: 10, color: AnsiColors.herbDeep),
                         children: [
                           TextSpan(
                             text: ' /serving',
-                            style: miseMono(size: 10, color: MiseColors.muted),
+                            style: ansiMono(size: 10, color: AnsiColors.muted),
                           ),
                         ],
                       ),
@@ -287,7 +287,7 @@ class _RecipeCard extends StatelessWidget {
                         const IncompleteBadge(),
                         Text(
                           ' ${incompleteNote(summary)}',
-                          style: miseMono(size: 10, color: MiseColors.muted),
+                          style: ansiMono(size: 10, color: AnsiColors.muted),
                         ),
                       ],
                     ),
@@ -337,8 +337,8 @@ class _BatchProseBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       decoration: BoxDecoration(
-        color: MiseColors.herbSoft,
-        border: Border.all(color: MiseColors.line),
+        color: AnsiColors.herbSoft,
+        border: Border.all(color: AnsiColors.line),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -349,14 +349,14 @@ class _BatchProseBanner extends StatelessWidget {
             child: Icon(
               hint.frozen ? FLucideIcons.snowflake : FLucideIcons.repeat,
               size: 14,
-              color: MiseColors.herbDeep,
+              color: AnsiColors.herbDeep,
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: miseSans(size: 12, color: MiseColors.herbDeep),
+              style: ansiSans(size: 12, color: AnsiColors.herbDeep),
             ),
           ),
         ],
@@ -459,11 +459,11 @@ class _EaterPicker extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     m.displayName,
-                    style: miseSans(
+                    style: ansiSans(
                       size: 13,
                       color: selected.contains(m.id)
-                          ? MiseColors.ink
-                          : MiseColors.muted,
+                          ? AnsiColors.ink
+                          : AnsiColors.muted,
                     ),
                   ),
                 ],
@@ -496,14 +496,14 @@ class _PortionsStepper extends StatelessWidget {
             children: [
               Text(
                 '$value ${value == 1 ? 'portion' : 'portions'}',
-                style: miseSans(size: 15, weight: FontWeight.w600),
+                style: ansiSans(size: 15, weight: FontWeight.w600),
               ),
               const SizedBox(height: 2),
               Text(
                 tracksEaters
                     ? 'defaults to eaters — bump up for big appetites'
                     : 'manual override',
-                style: miseMono(size: 10, color: MiseColors.muted),
+                style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ],
           ),
@@ -517,7 +517,7 @@ class _PortionsStepper extends StatelessWidget {
           child: Text(
             '$value',
             textAlign: TextAlign.center,
-            style: miseMono(size: 16, weight: FontWeight.w600),
+            style: ansiMono(size: 16, weight: FontWeight.w600),
           ),
         ),
         _StepButton(icon: FLucideIcons.plus, onTap: () => onChanged(value + 1)),
@@ -542,11 +542,11 @@ class _StepButton extends StatelessWidget {
         height: 40,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: MiseColors.surface,
-          border: Border.all(color: MiseColors.line),
+          color: AnsiColors.surface,
+          border: Border.all(color: AnsiColors.line),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, size: 16, color: MiseColors.herb),
+        child: Icon(icon, size: 16, color: AnsiColors.herb),
       ),
     );
   }

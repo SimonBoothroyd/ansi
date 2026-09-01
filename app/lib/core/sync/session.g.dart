@@ -181,7 +181,7 @@ final class SessionControllerProvider
   }
 }
 
-String _$sessionControllerHash() => r'6f90d70209a82a466d445a285b65d74a1e099117';
+String _$sessionControllerHash() => r'3a10832edc67ecf886fe7f5c5aa333041d3a3db2';
 
 abstract class _$SessionController extends $Notifier<SessionState> {
   SessionState build();

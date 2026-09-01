@@ -30,8 +30,8 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/result/result.dart';
-import '../../../core/theme/mise_theme.dart';
-import '../../../core/theme/mise_tokens.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../recipes/presentation/format.dart';
@@ -176,9 +176,9 @@ class QuantityUnitEditor extends HookConsumerWidget {
 
     return Container(
       decoration: const BoxDecoration(
-        color: MiseColors.paper,
+        color: AnsiColors.paper,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: MiseColors.line)),
+        border: Border(top: BorderSide(color: AnsiColors.line)),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -297,7 +297,7 @@ class _QuantitySurface extends StatelessWidget {
             Flexible(
               child: Text(
                 ingredient.canonicalName,
-                style: miseSerif(size: 22),
+                style: ansiSerif(size: 22),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -312,18 +312,18 @@ class _QuantitySurface extends StatelessWidget {
             child: Text.rich(
               TextSpan(
                 text: formatMacroLine(macros),
-                style: miseMono(size: 11, color: MiseColors.herbDeep),
+                style: ansiMono(size: 11, color: AnsiColors.herbDeep),
                 children: [
                   TextSpan(
                     text: ' ${macroBasisSuffix(ingredient.macrosBasis)}',
-                    style: miseMono(size: 11, color: MiseColors.muted),
+                    style: ansiMono(size: 11, color: AnsiColors.muted),
                   ),
                 ],
               ),
             ),
           ),
         const SizedBox(height: 16),
-        Text('QUANTITY', style: miseLabel()),
+        Text('QUANTITY', style: ansiLabel()),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -349,7 +349,7 @@ class _QuantitySurface extends StatelessWidget {
             Expanded(
               child: Text(
                 choice.value.label,
-                style: miseMono(size: 15, color: MiseColors.herbDeep),
+                style: ansiMono(size: 15, color: AnsiColors.herbDeep),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -360,7 +360,7 @@ class _QuantitySurface extends StatelessWidget {
             padding: const EdgeInsets.only(top: 6),
             child: Text(
               'measure pending sync — it stays unless you pick a unit',
-              style: miseMono(size: 10, color: MiseColors.muted),
+              style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           ),
         if (deletedNote != null)
@@ -368,7 +368,7 @@ class _QuantitySurface extends StatelessWidget {
             padding: const EdgeInsets.only(top: 6),
             child: Text(
               deletedNote!,
-              style: miseMono(size: 10, color: MiseColors.muted),
+              style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           ),
         const SizedBox(height: 18),
@@ -379,7 +379,7 @@ class _QuantitySurface extends StatelessWidget {
               : Text(
                   note,
                   textAlign: TextAlign.center,
-                  style: miseMono(size: 11, color: MiseColors.muted),
+                  style: ansiMono(size: 11, color: AnsiColors.muted),
                 ),
         ),
         const SizedBox(height: 8),
@@ -403,7 +403,7 @@ class _QuantitySurface extends StatelessWidget {
             onPress: onRemove,
             child: Text(
               'Remove top-up',
-              style: miseSans(size: 15, color: MiseColors.gone),
+              style: ansiSans(size: 15, color: AnsiColors.gone),
             ),
           ),
         ],
@@ -527,7 +527,7 @@ class _UnitChipRowState extends State<UnitChipRow> {
             width: 1,
             height: 18,
             margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-            color: MiseColors.line,
+            color: AnsiColors.line,
           ),
         );
       }
@@ -573,7 +573,7 @@ class _UnitChipRowState extends State<UnitChipRow> {
     // so the string form renders as tofu (the library_view rule).
     children.add(
       _Chip(
-        icon: const Icon(FLucideIcons.plus, size: 13, color: MiseColors.herb),
+        icon: const Icon(FLucideIcons.plus, size: 13, color: AnsiColors.herb),
         accent: true,
         onTap: widget.onManage,
       ),
@@ -620,12 +620,12 @@ class _Chip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = selected
-        ? MiseColors.surface
+        ? AnsiColors.surface
         : accent
-        ? MiseColors.herb
+        ? AnsiColors.herb
         : imprecise
-        ? MiseColors.muted
-        : MiseColors.ink;
+        ? AnsiColors.muted
+        : AnsiColors.ink;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -634,9 +634,9 @@ class _Chip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? MiseColors.herb : MiseColors.surface,
+          color: selected ? AnsiColors.herb : AnsiColors.surface,
           border: Border.all(
-            color: selected || accent ? MiseColors.herb : MiseColors.line,
+            color: selected || accent ? AnsiColors.herb : AnsiColors.line,
           ),
           borderRadius: BorderRadius.circular(999),
         ),
@@ -646,14 +646,14 @@ class _Chip extends StatelessWidget {
             if (dot != null) ...[dot!, const SizedBox(width: 5)],
             if (icon != null) icon!,
             if (label != null)
-              Text(label!, style: miseMono(size: 11.5, color: fg)),
+              Text(label!, style: ansiMono(size: 11.5, color: fg)),
             if (suffix != null) ...[
               const SizedBox(width: 5),
               Text(
                 suffix!,
-                style: miseMono(
+                style: ansiMono(
                   size: 9,
-                  color: selected ? MiseColors.surface : MiseColors.muted,
+                  color: selected ? AnsiColors.surface : AnsiColors.muted,
                 ),
               ),
             ],
@@ -710,7 +710,7 @@ class _MeasureManager extends HookConsumerWidget {
               child: Text(
                 'Measures',
                 textAlign: TextAlign.center,
-                style: miseSerif(size: 20),
+                style: ansiSerif(size: 20),
               ),
             ),
             const SizedBox(width: 22),
@@ -720,7 +720,7 @@ class _MeasureManager extends HookConsumerWidget {
         Text(
           ingredient.canonicalName,
           textAlign: TextAlign.center,
-          style: miseMono(size: 11, color: MiseColors.muted),
+          style: ansiMono(size: 11, color: AnsiColors.muted),
         ),
         const SizedBox(height: 14),
         MeasuresEditor(
