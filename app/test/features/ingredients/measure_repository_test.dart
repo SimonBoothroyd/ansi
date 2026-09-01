@@ -364,4 +364,76 @@ void main() {
       expect(measures.single.basis, MacrosBasis.perG);
     });
   });
+
+  group('measuresByIngredients — the batched read (J2)', () {
+    test('keys every asked-for ingredient that has measures, with the same '
+        'order and duplicate merge as the watch', () async {
+      await _seedMeasure(
+        db,
+        id: 'm-large',
+        ingredientId: 'potato',
+        label: 'potato, large',
+        amount: 299,
+        sortOrder: 1,
+      );
+      await _seedMeasure(
+        db,
+        id: 'm-medium',
+        ingredientId: 'potato',
+        label: 'potato, medium',
+        amount: 213,
+      );
+      await _seedMeasure(
+        db,
+        id: 'm-dupe',
+        ingredientId: 'potato',
+        label: 'potato, medium', // the offline duplicate: hidden, not deleted
+        amount: 200,
+        createdAt: '2026-02-01',
+      );
+      await _seedMeasure(
+        db,
+        id: 'm-dead',
+        ingredientId: 'potato',
+        label: 'retired',
+        amount: 1,
+        deletedAt: '2026-01-02',
+      );
+      await _seedMeasure(
+        db,
+        id: 'm-clove',
+        ingredientId: 'garlic',
+        label: 'clove',
+        amount: 3,
+      );
+
+      final batched = await repo.measuresByIngredients({
+        'potato',
+        'garlic',
+        'nothing-here',
+      });
+
+      expect(batched.keys.toSet(), {'potato', 'garlic'});
+      expect(batched['potato']!.map((m) => m.id), ['m-medium', 'm-large']);
+      expect(batched['garlic']!.single.label, 'clove');
+      // Byte-for-byte the watch's answer — one rule, two readers.
+      expect(batched['potato'], await repo.watchMeasures('potato').first);
+    });
+
+    test('an empty id set reads nothing at all', () async {
+      expect(await repo.measuresByIngredients(const {}), isEmpty);
+    });
+
+    test('a measure without a local vocab row still lists, per-g', () async {
+      await _seedMeasure(
+        db,
+        id: 'm-orphan',
+        ingredientId: 'not-synced-yet',
+        label: 'scoop',
+        amount: 30,
+      );
+      final batched = await repo.measuresByIngredients({'not-synced-yet'});
+      expect(batched['not-synced-yet']!.single.basis, MacrosBasis.perG);
+    });
+  });
 }

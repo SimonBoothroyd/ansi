@@ -694,9 +694,18 @@ Future<void> editLineAmount(
       loaded = null; // never leave the tap inert — fall back to a stand-in
     }
     try {
-      // Already resolved and cached: `importValidation` holds this same watch
-      // open for every matched line.
-      measures = await ref.read(ingredientMeasuresProvider(chosenId).future);
+      // Straight off the repository, NOT through the measures stream provider
+      // (plan 0020 **J2**). That read only ever worked because
+      // `importValidation` happened to be holding the same watch open: on its
+      // own it mints an autoDispose element with nothing listening, and a
+      // PowerSync watch does not emit before the element is collected — so the
+      // future completed with a `StateError`, the catch below turned it into
+      // "no measures", and the one-tap measure repair silently did nothing.
+      measures =
+          (await ref.read(measureRepositoryProvider).measuresByIngredients({
+            chosenId,
+          }))[chosenId] ??
+          const [];
     } on Object {
       measures = const []; // no measures reachable → simply no pre-selection
     }

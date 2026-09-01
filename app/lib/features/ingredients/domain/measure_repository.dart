@@ -23,6 +23,17 @@ abstract interface class MeasureRepository {
   /// labels are merged deterministically (see the library doc).
   Stream<List<Measure>> watchMeasures(String ingredientId);
 
+  /// The measures of MANY ingredients in one read, keyed by ingredient id —
+  /// same ordering and duplicate-merge rules as [watchMeasures]. An id with
+  /// no measures is absent from the map.
+  ///
+  /// The import review validates a whole recipe's lines at once and must not
+  /// fan out to a stream per line (plan 0020 **J2**): routing that through N
+  /// autoDispose stream providers is what let a measure-word unit —
+  /// "1 clove" of a garlic row that carries a `clove` measure — validate
+  /// against an EMPTY measure list and get flagged "Pick a supported unit".
+  Future<Map<String, List<Measure>>> measuresByIngredients(Set<String> ids);
+
   /// Authors a user measure of [ingredientId]: one [label] is [amount] of
   /// the ingredient's basis unit (g or ml — `macros_basis`, ADR-0008).
   /// Written with `source = 'manual'` after the ingredient's existing

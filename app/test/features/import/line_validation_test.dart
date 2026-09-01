@@ -240,6 +240,37 @@ void main() {
       expect(ranked.toSet(), chips.toSet());
       expect(ranked, hasLength(chips.length));
     });
+
+    test('the owner’s garlic, exactly as the cloud carries it: the printed '
+        '"clove" leads, measures beat generic, imprecise last (J2)', () {
+      // Piece default, an explicit [piece, g] list, a `clove` measure, no
+      // density — and a line that printed "1 clove". The Pixel screenshot read
+      // "g piece pinch dash handful (+1 more)", which is precisely this
+      // ranking run over an EMPTY measure list: the ordering never degraded,
+      // the measures never arrived (see import_validation_test.dart).
+      const garlic = Ingredient(
+        id: 'i-garlic',
+        canonicalName: 'Garlic',
+        defaultUnit: pieces,
+        category: 'produce',
+        status: IngredientStatus.complete,
+        allowedUnits: [pieces, g],
+      );
+      final garlicChips = acceptableUnitChips(garlic, const [_clove]);
+      final ranked = rankedUnitChips(
+        garlicChips,
+        parsedUnit: 'clove',
+      ).map((c) => c.token).toList();
+
+      expect(ranked.first, 'clove');
+      expect(ranked.indexOf('clove'), lessThan(ranked.indexOf('g')));
+      expect(ranked.indexOf('g'), lessThan(ranked.indexOf('handful')));
+      expect(ranked.last, 'to_taste');
+      // The line's own unit is never behind the fold.
+      expect(ranked.take(kVisibleUnitChips), contains('clove'));
+      // And the fold still hides nothing.
+      expect(ranked.toSet(), garlicChips.map((c) => c.token).toSet());
+    });
   });
 
   group('preselectedMeasure (one confirm tap, not a scroll-and-choose)', () {

@@ -235,11 +235,20 @@ String importValidationKey(Ref ref) {
 ///
 /// It is deliberately NOT recomputed on every controller change: it depends on
 /// [importValidationKey], so editing a note or the servings leaves the cached
-/// map alone. When it does recompute, the whole import's vocab is fetched in
-/// ONE query and the per-ingredient measure streams are all subscribed before
-/// the first await — never N sequential round-trips down the line list. Views
-/// must read it with `AsyncValue.value` (which keeps the last data across a
-/// refresh), never a data-only view that goes null mid-recompute.
+/// map alone. Views must read it with `AsyncValue.value` (which keeps the last
+/// data across a refresh), never a data-only view that goes null mid-recompute.
+///
+/// The whole import's vocab and the whole import's measures are each fetched in
+/// ONE repository query — never N round-trips down the line list, and (plan
+/// 0020 **J2**) never through the per-ingredient measure STREAM providers.
+/// Those are autoDispose, PowerSync's `watch` does not emit synchronously, and
+/// an element disposed before its first emission completes `.future` with a
+/// `StateError` — which this loader caught and turned into "no measures", so
+/// "1 clove" of a garlic row that carries a `clove` measure validated against
+/// an empty list and was flagged "Pick a supported unit". A plain read has no
+/// element to lose. Nothing is swallowed now either: a query that genuinely
+/// fails surfaces as the provider's error rather than as a screen full of
+/// wrongly-flagged lines.
 @riverpod
 Future<Map<int, LineValidation>> importValidation(Ref ref) async {
   ref.watch(importValidationKeyProvider);
@@ -250,22 +259,15 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
     for (final r in state.resolutions)
       if (r.chosenIngredientId != null) r.chosenIngredientId!,
   };
-  // Subscribe to every measure stream FIRST (synchronously, so the watches are
-  // registered before any await), then resolve them — they load concurrently.
-  final measureFutures = {
-    for (final id in matchedIds)
-      id: ref.watch(ingredientMeasuresProvider(id).future),
-  };
-  final vocab = await ref.read(ingredientRepositoryProvider).byIds(matchedIds);
-  final measuresById = <String, List<Measure>>{};
-  for (final entry in measureFutures.entries) {
-    try {
-      measuresById[entry.key] = await entry.value;
-    } on Object {
-      // Measures unavailable → check against the catalog set only.
-      measuresById[entry.key] = const [];
-    }
-  }
+  // BOTH repositories are resolved before the first await. They are keepAlive,
+  // but `Ref` is not: this provider is autoDispose and can be disposed while
+  // its own build is still in flight (the user backs out of the review, or a
+  // recompute lands), after which `ref.read` THROWS
+  // ([mise-riverpod-notifier-ref-after-async]).
+  final vocabRepo = ref.read(ingredientRepositoryProvider);
+  final measureRepo = ref.read(measureRepositoryProvider);
+  final vocab = await vocabRepo.byIds(matchedIds);
+  final measuresById = await measureRepo.measuresByIngredients(matchedIds);
 
   final result = <int, LineValidation>{};
   for (final r in state.resolutions) {

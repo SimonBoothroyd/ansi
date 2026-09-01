@@ -195,6 +195,13 @@ class _FakeMeasureRepo implements MeasureRepository {
       Stream.value(const [_clove]);
 
   @override
+  Future<Map<String, List<Measure>>> measuresByIngredients(
+    Set<String> ids,
+  ) async => {
+    for (final id in ids) id: const [_clove],
+  };
+
+  @override
   Future<Measure> addMeasure({
     required String ingredientId,
     required String label,
