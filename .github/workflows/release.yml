@@ -33,6 +33,11 @@ jobs:
   guard:
     name: guard (secrets + signing block)
     runs-on: ubuntu-latest
+    outputs:
+      # Consumed by the play-internal job's `if`. A job-level `if` cannot read
+      # the `secrets` context at all, so "is Play configured?" has to be
+      # answered here and passed down as a plain string output.
+      play_configured: ${{ steps.play.outputs.configured }}
     steps:
       - uses: actions/checkout@v4
 
@@ -73,9 +78,31 @@ jobs:
           fi
           echo "✓ 4 signing secrets + 3 config variables present"
 
+      # Play distribution is ADDITIVE: it is a second delivery channel layered
+      # on top of the GitHub Release, not a replacement for it. So an absent
+      # service-account key is a *notice*, never a failure — the tag still
+      # produces a signed APK + AAB on the Release. Only the phone-auto-update
+      # leg goes missing, and the notice says exactly how to turn it on.
+      - name: Play publishing configured? (advisory, never fatal)
+        id: play
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -n "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "✓ PLAY_SERVICE_ACCOUNT_JSON present — the AAB will go to the internal track"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Play upload SKIPPED — PLAY_SERVICE_ACCOUNT_JSON is not set."
+            echo "The GitHub Release still gets the signed APK + AAB; only the"
+            echo "internal-track auto-update to the Pixel is skipped. To enable it,"
+            echo "walk docs/release.md §3a (one-time Play Console setup) and finish with:"
+            echo "  gh secret set PLAY_SERVICE_ACCOUNT_JSON < play-service-account.json"
+          fi
+
   # ---------------------------------------------------------------------------
   # Android: the shippable artifacts. APK for sideloading onto our own phones,
-  # AAB because it is what any future Play upload needs.
+  # AAB because it is what Play's internal track takes.
   # ---------------------------------------------------------------------------
   android:
     name: android (apk + aab → release)
@@ -136,19 +163,57 @@ jobs:
       # the anon key — RLS is the real protection, see docs/SECURITY.md), and a
       # variable is readable in logs, which is what you want when debugging a
       # build that shipped pointing at the wrong project.
+      # --- versionCode: CI owns it, and the rule is one line -------------------
+      # Play permanently rejects a versionCode it has already seen, so the
+      # number must strictly increase forever. pubspec's `version: 0.1.0+1`
+      # can't do that: `flutter.versionCode` reads the `+N`, which is a
+      # hand-edited constant that nobody remembers to bump and that resets to
+      # whatever a branch happens to carry.
+      #
+      # RULE: versionCode = github.run_number of THIS workflow. It increments
+      # on every run, never repeats, and never goes backwards.
+      #
+      # The two things that rule implies, both documented in docs/release.md §3c:
+      #   * Never upload a locally built AAB to Play. A local `flutter build
+      #     appbundle` uses pubspec's `+N` (today: 1) and would burn a low
+      #     versionCode that CI then has to climb past. The first, manual
+      #     upload therefore uses the CI ARTIFACT, not a laptop build.
+      #   * Never rename this workflow file. run_number is per-file and would
+      #     restart at 1, and every subsequent upload would be rejected.
+      #
+      # versionName is cosmetic (Play shows it) so it tracks the tag: v0.1.0 →
+      # 0.1.0. On a dispatch rehearsal there is no tag, so pubspec's stands.
+      - name: Derive version
+        id: version
+        run: |
+          code="${GITHUB_RUN_NUMBER}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            name="${GITHUB_REF_NAME#v}"
+          else
+            name="$(grep -m1 '^version:' pubspec.yaml | sed 's/^version: *//; s/+.*//')"
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "versionName=$name  versionCode=$code"
+
       - name: Build APK + AAB (release, signed)
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
           POWERSYNC_URL: ${{ vars.POWERSYNC_URL }}
+          BUILD_NAME: ${{ steps.version.outputs.name }}
+          BUILD_NUMBER: ${{ steps.version.outputs.code }}
         run: |
-          defines=(
+          args=(
+            --release
+            --build-name="$BUILD_NAME"
+            --build-number="$BUILD_NUMBER"
             "--dart-define=SUPABASE_URL=$SUPABASE_URL"
             "--dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
             "--dart-define=POWERSYNC_URL=$POWERSYNC_URL"
           )
-          flutter build apk --release "${defines[@]}"
-          flutter build appbundle --release "${defines[@]}"
+          flutter build apk "${args[@]}"
+          flutter build appbundle "${args[@]}"
 
       - name: Name the artifacts for the tag
         id: stage
@@ -189,6 +254,76 @@ jobs:
           else
             gh release create "$tag" "$DIST"/* --title "$tag" --generate-notes
           fi
+
+  # ---------------------------------------------------------------------------
+  # Play internal track — the CD leg. Tag push → AAB on the internal track →
+  # the Pixel updates itself from Play. No sideloading.
+  #
+  # A SEPARATE job, not extra steps on `android`, for three reasons: a
+  # job-level `if` is the only way to skip the Play leg *wholesale* when the
+  # secret is absent (see guard.outputs.play_configured); a Play API hiccup
+  # then shows as its own red job instead of retroactively failing a build
+  # whose artifacts are fine and already on the Release; and re-running just
+  # this job after fixing Play Console permissions doesn't rebuild the app.
+  #
+  # ACTION CHOICE — r0adkll/upload-google-play over fastlane supply.
+  # fastlane means a Ruby toolchain, a Gemfile, an Appfile/Fastfile, and a
+  # lane to maintain: a whole second build system living in the repo to do one
+  # HTTP upload. This action is a thin wrapper over the official Play Developer
+  # API and adds no files here at all — which is the "boring, legible
+  # dependencies" rule in AGENTS.md. Health-checked before adopting (2026-09):
+  # not archived, ~1k stars, and the Node-20 EOL that would have broken it in
+  # June 2026 was resolved — action.yml is on `using: node24`.
+  # It is the one third-party action here that touches a publishing
+  # credential; the hardening step, if that ever matters, is pinning `@v1` to a
+  # commit SHA. The key it sees is scoped to Release Manager on this one app.
+  # ---------------------------------------------------------------------------
+  play-internal:
+    name: play internal track
+    needs: [guard, android]
+    # Skipped, not failed, when Play isn't configured — the guard emitted a
+    # notice saying so. Tag-only: there is no sensible Play release for a
+    # workflow_dispatch rehearsal.
+    if: >-
+      needs.guard.outputs.play_configured == 'true' &&
+      startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      # Reuse the exact binary the Release got — never rebuild for Play, or the
+      # two channels could diverge from the same tag.
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-release
+          path: dist
+
+      - name: Upload AAB to the internal track
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          # Must equal the Gradle applicationId. Play binds a package name to
+          # its signing identity permanently; a mismatch here is a new app.
+          packageName: io.mise.app
+          releaseFiles: dist/*.aab
+          # `tracks`/`releaseFiles` are the current plural inputs — the singular
+          # `track`/`releaseFile` still work but are deprecated upstream.
+          tracks: internal
+          # completed = live to internal testers immediately (vs `draft`, which
+          # would need a console click every release).
+          status: completed
+          releaseName: ${{ github.ref_name }}
+
+      - name: Summary
+        run: |
+          {
+            echo "### Pushed to Play — internal track"
+            echo
+            echo "\`io.mise.app\` · release **${GITHUB_REF_NAME}** · versionCode **${GITHUB_RUN_NUMBER}**"
+            echo
+            echo "Internal-track releases are available to testers in minutes"
+            echo "(usually no review). The Pixel updates via Play once the"
+            echo "tester account has opted in through the invite link — that"
+            echo "opt-in is one-time, see docs/release.md §3a step 5."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # ---------------------------------------------------------------------------
   # iOS: COMPILE PROOF ONLY, deliberately.
