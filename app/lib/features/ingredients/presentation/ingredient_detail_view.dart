@@ -27,6 +27,7 @@ import '../../../core/theme/mise_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/dashed_border_box.dart';
+import '../../books/presentation/text_prompt.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
@@ -196,12 +197,9 @@ class _DetailForm extends HookConsumerWidget {
         _AliasEditor(ingredientId: ing.id),
 
         const _Label('CATEGORY · DEFAULT UNIT'),
-        FTextField(
-          hint: 'e.g. produce',
-          control: FTextFieldControl.managed(
-            initial: TextEditingValue(text: ing.category ?? ''),
-            onChange: (v) => category.value = v.text,
-          ),
+        _CategoryPicker(
+          selected: category.value,
+          onPick: (c) => category.value = c,
         ),
         const SizedBox(height: 8),
         _UnitChoiceRow(
@@ -509,6 +507,72 @@ class _UnitChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The category field: a dropdown of the household's own categories, plus one
+/// door to coin a new one (plan 0020 **F3**).
+///
+/// Free text is gone. A typed category is only useful if it is the *same*
+/// string every other row uses — the imprecise-unit gate reads it by exact
+/// match (`kImpreciseGatedCategories`), and so does the list's grouping — and
+/// free text guaranteed "Produce", "produce" and "produce " would coexist.
+/// The options come from the vocabulary itself, so there is no second place
+/// that has an opinion about which categories exist.
+class _CategoryPicker extends ConsumerWidget {
+  const _CategoryPicker({required this.selected, required this.onPick});
+
+  /// The draft's category — the empty string for "none", which is a real and
+  /// honest answer (a row need not have one).
+  final String selected;
+  final ValueChanged<String> onPick;
+
+  /// A sentinel value: `FSelect` needs a non-null value per item, and the
+  /// empty string is a legitimate category-less row.
+  static const _none = ' none';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final known = ref.watch(ingredientCategoriesProvider).asData?.value ?? [];
+    // The row's own category is always offered even when nothing else carries
+    // it any more — the same rule the unit pickers follow for a stored
+    // selection: an existing value must never render as an orphan.
+    final options = {...known, if (selected.isNotEmpty) selected}.toList()
+      ..sort();
+
+    return Row(
+      children: [
+        Expanded(
+          child: FSelect<String>.rich(
+            format: (c) => c == _none ? 'no category' : c,
+            control: FSelectControl<String>.lifted(
+              value: selected.isEmpty ? _none : selected,
+              onChange: (c) => onPick(c == null || c == _none ? '' : c),
+            ),
+            children: [
+              const FSelectItem(title: Text('no category'), value: _none),
+              for (final c in options) FSelectItem(title: Text(c), value: c),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        FButton(
+          size: FButtonSizeVariant.sm,
+          variant: FButtonVariant.outline,
+          onPress: () async {
+            final coined = await promptForText(
+              context,
+              title: 'New category',
+              hint: 'e.g. produce',
+              confirm: 'Use it',
+            );
+            if (coined == null || coined.trim().isEmpty) return;
+            onPick(coined.trim());
+          },
+          child: const Text('New'),
+        ),
+      ],
     );
   }
 }

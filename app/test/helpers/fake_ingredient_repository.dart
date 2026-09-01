@@ -28,6 +28,9 @@ mixin IngredientManagerStubs implements IngredientRepository {
   Stream<List<Ingredient>> watchVocabulary() => const Stream.empty();
 
   @override
+  Stream<List<String>> watchCategories() => Stream.value(const []);
+
+  @override
   Stream<int> watchStubCount() => Stream.value(0);
 
   @override
@@ -109,6 +112,16 @@ class FakeIngredientRepo implements IngredientRepository {
     int count() => rows.where((r) => r.status == IngredientStatus.stub).length;
     yield count();
     yield* _changes.stream.map((_) => count());
+  }
+
+  @override
+  Stream<List<String>> watchCategories() async* {
+    List<String> categories() => {
+      for (final r in rows)
+        if ((r.category ?? '').trim().isNotEmpty) r.category!.trim(),
+    }.toList()..sort();
+    yield categories();
+    yield* _changes.stream.map((_) => categories());
   }
 
   @override

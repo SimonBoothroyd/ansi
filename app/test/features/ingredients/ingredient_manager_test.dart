@@ -119,6 +119,12 @@ Set<String> _dashedChipLabels(WidgetTester tester) {
   return labels;
 }
 
+/// The category dropdown. `FSelect.rich` builds a private subclass, so this
+/// is a predicate rather than `byType`.
+final Finder _categorySelect = find.byWidgetPredicate(
+  (w) => w is FSelect<String>,
+);
+
 /// The density entry's g/ml input (the only field it renders unless the
 /// spoon phrasing is picked).
 final Finder _densityField = find.descendant(
@@ -487,6 +493,65 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repo.matchTextById['curry'], 'curry leaf dried');
+    });
+
+    testWidgets('F3: the category is a dropdown of the household\'s own '
+        'categories — free text is gone', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo(const [_mango, _curryLeaves, _yeast]);
+      await tester.pumpWidget(_host(repo, at: '/ingredients/yeast'));
+      await tester.pumpAndSettle();
+
+      // The only free-text fields left on the form are the ones that MUST be
+      // free text — the name and the four macro inputs. The category is not
+      // among them.
+      expect(_categorySelect, findsOneWidget);
+      expect(find.widgetWithText(FTextField, 'e.g. produce'), findsNothing);
+
+      // Opening it offers what the vocabulary actually carries, plus the
+      // honest "none" — not a fixed taxonomy this app invented.
+      await tester.tap(_categorySelect);
+      await tester.pumpAndSettle();
+      expect(find.text('produce'), findsWidgets);
+      expect(find.text('pantry'), findsWidgets);
+      expect(find.text('no category'), findsWidgets);
+
+      await tester.tap(find.text('produce').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FButton, 'Save').last);
+      await tester.pumpAndSettle();
+
+      expect((await repo.byId('yeast'))!.category, 'produce');
+    });
+
+    testWidgets('F3: a category nothing else carries is still offered, and a '
+        'new one can be coined', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      // Its own category is unique to it — the dropdown must not orphan it.
+      const onlyOne = Ingredient(
+        id: 'yeast',
+        canonicalName: 'Nutritional yeast',
+        defaultUnit: tsp,
+        status: IngredientStatus.complete,
+        category: 'oddments',
+        macros: Macros(kcal: 385, protein: 50, carb: 36, fat: 5),
+      );
+      final repo = FakeIngredientRepo(const [_mango, onlyOne]);
+      await tester.pumpWidget(_host(repo, at: '/ingredients/yeast'));
+      await tester.pumpAndSettle();
+      expect(find.text('oddments'), findsWidgets);
+
+      await tester.tap(find.widgetWithText(FButton, 'New'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, 'store cupboard');
+      await tester.tap(find.widgetWithText(FButton, 'Use it'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FButton, 'Save').last);
+      await tester.pumpAndSettle();
+
+      expect((await repo.byId('yeast'))!.category, 'store cupboard');
     });
 
     testWidgets('the USDA button is honest about what it can do: usda_food '

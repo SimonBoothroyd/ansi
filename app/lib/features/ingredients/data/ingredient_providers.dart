@@ -52,6 +52,13 @@ Stream<List<Ingredient>> vocabulary(Ref ref) =>
 Stream<int> stubCount(Ref ref) =>
     ref.watch(ingredientRepositoryProvider).watchStubCount();
 
+/// The household's distinct live categories — the flesh-out form's category
+/// dropdown (F3). Watched: a category coined on one row is offered on the
+/// next without a refresh.
+@riverpod
+Stream<List<String>> ingredientCategories(Ref ref) =>
+    ref.watch(ingredientRepositoryProvider).watchCategories();
+
 /// One ingredient's live aliases — the form's "Also known as" chips.
 @riverpod
 Future<List<IngredientAlias>> ingredientAliases(Ref ref, String id) =>

@@ -548,6 +548,31 @@ void main() {
     );
   });
 
+  group('watchCategories (F3: the vocabulary IS the category list)', () {
+    test(
+      'distinct, trimmed, alphabetical — blanks are not a category',
+      () async {
+        await _seed(db, id: '10', name: 'Leek', category: 'vegetables');
+        await _seed(db, id: '11', name: 'Basil', category: ' herbs ');
+        await _seed(db, id: '12', name: 'Salt', category: '');
+        await _seed(db, id: '13', name: 'Sugar');
+
+        expect(await repo.watchCategories().first, ['herbs', 'vegetables']);
+      },
+    );
+
+    test('a tombstoned row stops contributing its category', () async {
+      await _seed(
+        db,
+        id: '10',
+        name: 'Ghost pepper',
+        category: 'chillies',
+        deletedAt: '2026-01-01',
+      );
+      expect(await repo.watchCategories().first, ['vegetables']);
+    });
+  });
+
   group('saveEdit', () {
     test('a RENAME rewrites match_text with the server phrase rules — the '
         'hazard plan 0020 D6 names', () async {

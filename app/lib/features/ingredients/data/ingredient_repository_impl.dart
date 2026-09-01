@@ -352,6 +352,16 @@ class SqliteIngredientRepository implements IngredientRepository {
       .map((rows) => (rows.first['n'] as int?) ?? 0);
 
   @override
+  Stream<List<String>> watchCategories() => _db
+      .watch(
+        'SELECT DISTINCT TRIM(category) AS c FROM ingredient '
+        'WHERE deleted_at IS NULL AND category IS NOT NULL '
+        "AND TRIM(category) <> '' "
+        'ORDER BY c',
+      )
+      .map((rows) => [for (final r in rows) r['c'] as String]);
+
+  @override
   Future<Ingredient?> saveEdit(String ingredientId, IngredientEdit edit) async {
     final name = edit.canonicalName.trim();
     if (name.isEmpty) {

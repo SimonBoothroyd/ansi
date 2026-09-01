@@ -156,6 +156,16 @@ abstract interface class IngredientRepository {
   /// so confirming one decrements it without a refresh.
   Stream<int> watchStubCount();
 
+  /// The household's distinct live categories, alphabetical — the flesh-out
+  /// form's category dropdown (plan 0020 **F3**).
+  ///
+  /// The vocabulary *is* the category list: there is no separate table, and
+  /// inventing one would leave two places to disagree about whether "produce"
+  /// exists. Watched, so a category typed on one row is offered on the next
+  /// without a refresh. Blank and whitespace-only values are excluded — they
+  /// are what free text left behind, and they are not a category.
+  Stream<List<String>> watchCategories();
+
   /// Applies [edit] to [ingredientId] in one write and returns the updated
   /// row (null when the id doesn't resolve).
   ///

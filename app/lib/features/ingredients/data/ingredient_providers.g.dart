@@ -371,6 +371,57 @@ final class StubCountProvider
 
 String _$stubCountHash() => r'3bd615a3ce89b74c3fee12845369124dd30463ca';
 
+/// The household's distinct live categories — the flesh-out form's category
+/// dropdown (F3). Watched: a category coined on one row is offered on the
+/// next without a refresh.
+
+@ProviderFor(ingredientCategories)
+const ingredientCategoriesProvider = IngredientCategoriesProvider._();
+
+/// The household's distinct live categories — the flesh-out form's category
+/// dropdown (F3). Watched: a category coined on one row is offered on the
+/// next without a refresh.
+
+final class IngredientCategoriesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<String>>,
+          List<String>,
+          Stream<List<String>>
+        >
+    with $FutureModifier<List<String>>, $StreamProvider<List<String>> {
+  /// The household's distinct live categories — the flesh-out form's category
+  /// dropdown (F3). Watched: a category coined on one row is offered on the
+  /// next without a refresh.
+  const IngredientCategoriesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'ingredientCategoriesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$ingredientCategoriesHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<String>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<String>> create(Ref ref) {
+    return ingredientCategories(ref);
+  }
+}
+
+String _$ingredientCategoriesHash() =>
+    r'd5fe37edf976c197070b3dbeaf98d15d85cf3edb';
+
 /// One ingredient's live aliases — the form's "Also known as" chips.
 
 @ProviderFor(ingredientAliases)
