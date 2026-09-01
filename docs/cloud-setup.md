@@ -121,6 +121,11 @@ harness — a human runs those, or use soft-delete (`update … set deleted_at`)
 
 ### 2b. Rolling reseeded `ingredient` columns onto existing households
 
+> **Not needed for migration-borne changes.** Migration `0014` (ADR-0009's
+> admission amendment) backfills `allowed_units` for **every** household at
+> `db push` time — §2b exists for *seed-borne* template changes only, which
+> never reach existing households on their own.
+
 A template reseed reaches **new** households only: `ensure_onboarded` clones
 the vocab exactly once, at household creation. An already-onboarded household
 keeps the copy it was born with — and wipe-and-re-onboard is not an option for
