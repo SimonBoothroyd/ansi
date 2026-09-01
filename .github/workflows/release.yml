@@ -317,7 +317,7 @@ jobs:
           {
             echo "### Pushed to Play — internal track"
             echo
-            echo "\`io.mise.app\` · release **${GITHUB_REF_NAME}** · versionCode **${GITHUB_RUN_NUMBER}**"
+            echo "\`io.ansi.app\` · release **${GITHUB_REF_NAME}** · versionCode **${GITHUB_RUN_NUMBER}**"
             echo
             echo "Internal-track releases are available to testers in minutes"
             echo "(usually no review). The Pixel updates via Play once the"

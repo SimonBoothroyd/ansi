@@ -46,9 +46,19 @@ the memory note referenced from the step-7 exec plan; this doc is cloud-only.
    "Testing" and add the household's Google accounts as test users — no
    verification needed for a private app.
 6. **Redirect URL:** **Authentication → URL Configuration →** add
-   `io.mise.app://login-callback` (Site URL + Redirect URLs). This is the app's
+   `io.ansi.app://login-callback` (Site URL + Redirect URLs). This is the app's
    deep-link scheme (registered natively in `ios/Runner/Info.plist` and
-   `android/app/src/main/AndroidManifest.xml`).
+   `android/app/src/main/AndroidManifest.xml`, and locally in
+   `supabase/config.toml`).
+
+   > **Scheme rename, 2026-09-01 (Mise → Ansi).** The scheme moved from
+   > `io.mise.app://login-callback` to `io.ansi.app://login-callback`. The repo
+   > side landed with the rename; **the cloud dashboard is a manual edit and is
+   > the one thing code cannot do for you.** Until Redirect URLs list the new
+   > value, Google sign-in against cloud dead-ends at the redirect on any build
+   > from this commit onward. Add the new URL *before* installing a new build;
+   > keep both listed through the cutover, and remove the `io.mise.app` entry
+   > once one sign-in has succeeded on a new build.
 7. **Dev convenience:** turn **Confirm email OFF** while testing email/password
    (Sign In / Providers → Email) — the free tier rate-limits confirmation emails
    hard. Turn it back on before anything real. (OAuth users are auto-confirmed.)
@@ -295,7 +305,7 @@ Endpoints come from `cloud.env` at the repo root.
 | # | Setting (where) | Expected value |
 |---|-----------------|----------------|
 | 1 | Auth hook (Supabase → Authentication → Auth Hooks → Custom Access Token) | **Enabled**, function `public.add_household_claim`. Load-bearing: no hook ⇒ no `household_id` claim ⇒ nothing syncs. |
-| 2 | Redirect URLs (Supabase → Authentication → URL Configuration) | Site URL + Redirect URLs include `io.mise.app://login-callback` |
+| 2 | Redirect URLs (Supabase → Authentication → URL Configuration) | Site URL + Redirect URLs include `io.ansi.app://login-callback` (renamed from `io.mise.app` on 2026-09-01 — §1.6; **unverified against cloud until someone walks a Google sign-in on a new build**). The old entry may stay listed until that first success, then be removed. |
 | 3 | Email confirmations (Supabase → Authentication → Sign In / Providers → Email) | OFF while testing email/password (free-tier rate limits); **turn back ON before anything real**. `cloud_verify.sh` warns while it's off. |
 | 4 | Google provider (same screen → Google) | Enabled, with the Web OAuth client id/secret (§1.5). `cloud_verify.sh` checks this one via `/auth/v1/settings`. |
 | 5 | PowerSync JWKS URI (PowerSync dashboard → instance → Client Auth) | "Use Supabase Auth" checked; JWKS URI = `<CLOUD_SUPABASE_URL>/auth/v1/.well-known/jwks.json` |

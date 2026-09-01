@@ -25,17 +25,17 @@
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<!-- Custom URL scheme for the Supabase/Google OAuth redirect
-	     (io.mise.app://login-callback). Lets the OS reopen the app after login. -->
+	     (io.ansi.app://login-callback). Lets the OS reopen the app after login. -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>io.mise.app</string>
+			<string>io.ansi.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>io.mise.app</string>
+				<string>io.ansi.app</string>
 			</array>
 		</dict>
 	</array>
