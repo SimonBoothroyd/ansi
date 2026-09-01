@@ -66,11 +66,16 @@ const kImpreciseGatedCategories = {'spices & seasoning', 'fats & oils'};
 /// list (legacy/unsynced rows, freshly typed local stubs), and as the rule
 /// the seed pipeline materializes:
 ///
-/// - the default unit's family, trimmed to kitchen magnitudes near the
-///   default ([_kitchenMates] — no `l` for a tsp-default ingredient);
 /// - the **basis family** ([Ingredient.macrosBasis]: /g → weights, /ml →
 ///   volumes) — the canonical dimension is always sayable, so yeast (tsp
-///   default, per-g macros) finally admits `g`;
+///   default, per-g macros) admits `g`;
+/// - the default unit's family, trimmed to kitchen magnitudes near the
+///   default ([_kitchenMates] — no `l` for a tsp-default ingredient), **but
+///   only when that family IS the basis family, or a density is stored**
+///   (plan 0020 **D4c**): being the unit a shop sells the thing in does not
+///   make a dimension convertible. A tsp-default per-100 g row with no
+///   density cannot honestly say "2 tsp" of anything a macro total reads, so
+///   it does not admit spoons until the number that bridges them exists;
 /// - the opposite mass/volume family **only** when the ingredient carries a
 ///   density ([densityUnlockedUnits] — without one, [convert] would fail
 ///   with `unit/no_density`); since the plan-0020 D4 amendment this fires
@@ -99,8 +104,13 @@ Set<Unit> _derivedSet(Ingredient ingredient, {required bool density}) {
 
   final units = <Unit>{};
   switch (d.family) {
+    // **D4c.** The default unit's family is not an admission source of its
+    // own: it rides on the basis family (which needs nothing) or on the
+    // density (which is the only honest bridge to the other one). Count and
+    // imprecise defaults are untouched — they sit outside the mass⇄volume
+    // duality entirely, so there is no bridge for them to be missing.
     case UnitFamily.mass || UnitFamily.volume:
-      units.addAll(_kitchenMates[d]!);
+      if (density || d.family == basisFamily) units.addAll(_kitchenMates[d]!);
     case UnitFamily.count:
       units.add(pieces);
     case UnitFamily.imprecise:
@@ -116,7 +126,7 @@ Set<Unit> _derivedSet(Ingredient ingredient, {required bool density}) {
   // Density leg: a stored density unlocks the other mass/volume family —
   // whatever the default unit's family (ADR-0008 as amended, plan 0020 D4).
   if (density) {
-    units.addAll(densityUnlockedUnits(ingredient));
+    units.addAll(_densityCrossLeg(ingredient));
   }
 
   // Imprecise leg: category-gated (imprecise-default rows keep the tail).
@@ -127,25 +137,21 @@ Set<Unit> _derivedSet(Ingredient ingredient, {required bool density}) {
   return units;
 }
 
-/// The units a stored density unlocks for [ingredient] — the ADR-0008
-/// density leg on its own (the other mass/volume family's kitchen
-/// workhorses). The density write path unions these into the EXPLICIT
-/// `allowed_units` list in the same write: the stored list is never
-/// silently recomputed, so the one event that changes what is sayable — a
-/// density arriving — extends it explicitly.
+/// The cross-family workhorses a density bridges to, by default unit — the
+/// raw ADR-0008 §2 leg, before [_derivedSet] folds it in.
 ///
 /// **ADR-0008 as amended (plan 0020 D4).** A density is a property of the
 /// substance, not of how the shop sells it: a mango is bought by the piece
-/// and still has a cup. So the unlock no longer depends on the default
-/// unit's family. A count- or imprecise-default row has no "other" family,
-/// so it unlocks BOTH families' workhorses — the big metric siblings staying
+/// and still has a cup. So the unlock does not depend on the default unit's
+/// family. A count- or imprecise-default row has no "other" family, so it
+/// bridges to BOTH families' workhorses — the big metric siblings staying
 /// behind the same `big` gate the mass/volume legs use, which is why Mango's
 /// `kg` chip stays locked on the board frame while `cup` opens.
 ///
-/// Before the amendment this returned `const {}` for count/imprecise, which
-/// was the same bug on the in-app density-write path that
-/// `seed_curation.sql` was patching by hand for 49 produce rows.
-Set<Unit> densityUnlockedUnits(Ingredient ingredient) {
+/// Not the public answer to "what does a density buy this row": that is
+/// [densityUnlockedUnits], which since D4c also counts the default unit's
+/// own family when the density is the only thing admitting it.
+Set<Unit> _densityCrossLeg(Ingredient ingredient) {
   final d = ingredient.defaultUnit;
   final big = d == cup || d == lb || d == l || d == kg;
   return switch (d.family) {
@@ -159,28 +165,69 @@ Set<Unit> densityUnlockedUnits(Ingredient ingredient) {
   };
 }
 
+/// What a stored density actually buys [ingredient]: the whole rule read with
+/// the density on, minus the whole rule read with it off.
+///
+/// Derived rather than listed (plan 0020 **D4c**), which is what keeps it
+/// honest in both directions — the density write path unions exactly this
+/// into the EXPLICIT `allowed_units` list, and [densityStrippedUnits] takes
+/// exactly this back. Before D4c this was the cross-family leg alone, and a
+/// density landing on a cup-default per-100 g row unioned `g` (already
+/// admitted) while leaving `cup` — the row's OWN default — unadmitted.
+///
+/// - Mango (piece default, per-g macros) → `tsp, tbsp, cup, ml`.
+/// - Flour (cup default, per-g macros) → `cup, tbsp, ml, l`: since D4c the
+///   volume family is the density's to give, default unit or not.
+/// - Milk (ml default, per-ml macros) → `g`.
+Set<Unit> densityUnlockedUnits(Ingredient ingredient) => _derivedSet(
+  ingredient,
+  density: true,
+).difference(_derivedSet(ingredient, density: false));
+
 /// The units an ingredient admits **only because a density is stored** — what
 /// deleting that density takes away again (plan 0020 **D4b**).
 ///
-/// It is [densityUnlockedUnits] minus what the row would admit with no
-/// density at all, so the subtraction is derived rather than listed: the
-/// **basis family** (per-100 g ⇒ mass, per-100 ml ⇒ volume) and the default
-/// unit's own family survive, because neither of them ever needed a density
-/// to be sayable. Only the cross-family leg goes.
-///
-/// - Mango (piece default, per-g macros, density) → `tsp, tbsp, cup, ml`
-///   goes; `piece` and `g` stay.
-/// - Flour (cup default, per-g macros, density) → **nothing** goes: mass is
-///   its basis family and was already admitted.
-/// - Milk (ml default, per-ml macros, density) → `g` goes.
+/// The same rule as [densityUnlockedUnits], read in the opposite direction:
+/// what a density adds is exactly what deleting it removes. The **basis
+/// family** (per-100 g ⇒ mass, per-100 ml ⇒ volume) always survives, because
+/// it never needed a density to be sayable.
 ///
 /// This is the one removal leg in the whole admission model. ADR-0009's
 /// union-never-remove rule still governs backfills and reseeds; a density
 /// **deletion** is different in kind, because that admission was *derived*
 /// from the number being deleted — see the ADR's D4b refinement note.
-Set<Unit> densityStrippedUnits(Ingredient ingredient) => densityUnlockedUnits(
-  ingredient,
-).difference(_derivedSet(ingredient, density: false));
+Set<Unit> densityStrippedUnits(Ingredient ingredient) =>
+    densityUnlockedUnits(ingredient);
+
+/// Whether [ingredient]'s stored default unit is one its own admission rules
+/// no longer support: a mass/volume default on the far side of the basis
+/// family, with no density to bridge it (plan 0020 **D4c** — the renamed-rice
+/// shape, `cup` default on a per-100 g row).
+///
+/// The form draws this as a flag with a one-tap fix ([basisDefaultUnitFix]).
+/// It is never repaired silently: a default unit is a statement about how the
+/// household buys the thing, and quietly rewriting it would lose that.
+bool defaultUnitNeedsDensity(Ingredient ingredient) =>
+    ingredient.densityGPerMl == null &&
+    !unitSayableAsDefault(ingredient, ingredient.defaultUnit);
+
+/// Whether [unit] may be *chosen* as [ingredient]'s default (**D4c**): the
+/// basis family, count and imprecise always; the other mass/volume family
+/// only while a density bridges it.
+bool unitSayableAsDefault(Ingredient ingredient, Unit unit) {
+  if (unit.family != UnitFamily.mass && unit.family != UnitFamily.volume) {
+    return true;
+  }
+  final basisFamily = ingredient.macrosBasis == MacrosBasis.perMl
+      ? UnitFamily.volume
+      : UnitFamily.mass;
+  return unit.family == basisFamily || ingredient.densityGPerMl != null;
+}
+
+/// The unit the one-tap D4c fix switches a stranded default to: the basis
+/// family's natural unit (`g` for a per-100 g row, `ml` for per-100 ml).
+Unit basisDefaultUnitFix(Ingredient ingredient) =>
+    ingredient.macrosBasis.baseUnit;
 
 /// Orders an allowed-unit set into ADR-0008 chip order: the default unit
 /// fronted, the rest of its family in kitchen order, count next, then the
@@ -233,11 +280,24 @@ List<Unit> _orderUnits(Iterable<Unit> unitsIn, Ingredient ingredient) {
 /// the flesh-out form owns it from creation on. A row without one (legacy,
 /// unsynced, a freshly typed local stub) falls back to the same ADR
 /// defaults the server materializes ([defaultAllowedUnitSet]).
+///
+/// **One thing an explicit list cannot do (D4b, widened by D4c): make a unit
+/// sayable that no density supports.** A list naming `cup` on a row with no
+/// density arrives from plenty of honest places — a server materialization
+/// written under the looser pre-D4c rule, an older client, a density deleted
+/// where the list did not follow — and offering it would hand the converter a
+/// pair it cannot resolve. The density-derived units are subtracted while the
+/// number is missing; the editor was already drawing exactly these chips
+/// locked, and a recipe line still saying one degrades to the standard
+/// `unitNotAllowed` flag rather than being rewritten.
 List<Unit> allowedUnitsFor(Ingredient ingredient) {
   final explicit = ingredient.allowedUnits;
   final set = explicit == null || explicit.isEmpty
       ? defaultAllowedUnitSet(ingredient)
-      : explicit;
+      : {...explicit};
+  if (ingredient.densityGPerMl == null) {
+    set.removeAll(densityStrippedUnits(ingredient));
+  }
   return _orderUnits(set, ingredient);
 }
 

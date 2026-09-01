@@ -25,10 +25,19 @@ Ingredient _ing(
 void main() {
   group('allowedUnitsFor — ADR-0008 derived defaults (mirrors the pgTAP '
       'default_allowed_units vectors)', () {
-    test('the yeast shape: tsp default /g — spoons + the basis base; no '
-        'litres, no ml·l fronted, no universal pinch', () {
+    test('THE YEAST SHAPE, under D4c: tsp default /g with NO density admits '
+        'the basis base and nothing else — being sold by the spoon does not '
+        'make spoons convertible', () {
       final units = allowedUnitsFor(_ing(tsp, category: 'baking'));
-      expect(units, [tsp, tbsp, g]);
+      expect(units, [g]);
+      // Before D4c this read [tsp, tbsp, g]: the default unit's own family
+      // was an admission source, so a row could offer a unit no number on it
+      // could resolve. A density is what buys the spoons back.
+      expect(allowedUnitsFor(_ing(tsp, density: 0.4, category: 'baking')), [
+        tsp,
+        tbsp,
+        g,
+      ]);
     });
 
     test('the flour shape: cup default /g with density — kitchen volume + '
@@ -52,10 +61,10 @@ void main() {
       expect(units, [pieces, g]);
     });
 
-    test('the salt shape: the seasoning category admits the imprecise '
-        'tail', () {
+    test('the salt shape: the seasoning category admits the imprecise tail — '
+        'which D4c leaves alone, being no part of the mass⇄volume duality', () {
       final units = allowedUnitsFor(_ing(tsp, category: 'spices & seasoning'));
-      expect(units, [tsp, tbsp, g, pinch, dash, handful, toTaste]);
+      expect(units, [g, pinch, dash, handful, toTaste]);
     });
 
     test('an imprecise default keeps its whole tail + the basis base', () {
@@ -120,8 +129,11 @@ void main() {
 
     test('mg and fl oz stay label-reading units: offered only as the '
         "default itself, never as anyone else's mate", () {
+      // `mg` is a mass unit on a per-100 g row: its own family, so D4c admits
+      // it bare. `fl oz` is volume, and needs the density like every other
+      // cross-family default.
       expect(allowedUnitsFor(_ing(mg)), contains(mg));
-      expect(allowedUnitsFor(_ing(flOz)), contains(flOz));
+      expect(allowedUnitsFor(_ing(flOz, density: 1)), contains(flOz));
       for (final d in kAllUnits.where((u) => u != mg && u != flOz)) {
         final units = allowedUnitsFor(_ing(d, density: 1));
         expect(units, isNot(contains(mg)), reason: 'mg via ${d.id}');
@@ -129,10 +141,40 @@ void main() {
       }
     });
 
-    test('always includes the default unit itself', () {
+    test('D4c: the default unit is admitted when its family is — and a row '
+        'whose default falls outside says so rather than smuggling it in', () {
       for (final u in kAllUnits) {
-        expect(allowedUnitsFor(_ing(u)), contains(u), reason: u.id);
+        final bare = _ing(u);
+        final bridged = _ing(u, density: 1);
+        // With a density every default unit is sayable, as before.
+        expect(
+          allowedUnitsFor(bridged),
+          contains(u),
+          reason: '${u.id} bridged',
+        );
+        expect(defaultUnitNeedsDensity(bridged), isFalse, reason: u.id);
+        // Without one, exactly the cross-family defaults are stranded — and
+        // stranded is a FLAGGED state, not a silent admission.
+        final stranded = u.family == UnitFamily.volume;
+        expect(defaultUnitNeedsDensity(bare), stranded, reason: u.id);
+        expect(allowedUnitsFor(bare).contains(u), !stranded, reason: u.id);
       }
+    });
+
+    test('D4c: what may be picked as a default mirrors the same rule, and the '
+        'one-tap fix is the basis family’s natural unit', () {
+      final perG = _ing(cup);
+      expect(unitSayableAsDefault(perG, g), isTrue);
+      expect(unitSayableAsDefault(perG, pieces), isTrue);
+      expect(unitSayableAsDefault(perG, pinch), isTrue);
+      expect(unitSayableAsDefault(perG, cup), isFalse);
+      expect(unitSayableAsDefault(_ing(cup, density: 0.59), cup), isTrue);
+      expect(basisDefaultUnitFix(perG), g);
+
+      final perMl = _ing(g, basis: MacrosBasis.perMl);
+      expect(unitSayableAsDefault(perMl, cup), isTrue);
+      expect(unitSayableAsDefault(perMl, g), isFalse);
+      expect(basisDefaultUnitFix(perMl), ml);
     });
   });
 
@@ -149,15 +191,29 @@ void main() {
     test('ordering fronts the default and demotes the other family, '
         'whatever order the list arrived in', () {
       final units = allowedUnitsFor(
-        _ing(tsp, allowed: const [kg, tbsp, g, tsp]),
+        _ing(tsp, density: 0.4, allowed: const [kg, tbsp, g, tsp]),
       );
       expect(units, [tsp, tbsp, g, kg]);
+    });
+
+    test('D4c: what an explicit list CANNOT do is admit a unit no density '
+        'supports — the number, not the list, says what is sayable', () {
+      // The shape a pre-D4c server materialization leaves behind (and an
+      // older client, and a deleted density the list did not follow).
+      final stale = _ing(tsp, allowed: const [kg, tbsp, g, tsp]);
+      expect(allowedUnitsFor(stale), [g, kg]);
+      // The list is not rewritten — only read strictly. Give the row its
+      // density and every unit it names is offered again.
+      expect(
+        allowedUnitsFor(_ing(tsp, density: 0.4, allowed: const [kg, tbsp, g])),
+        [tbsp, g, kg],
+      );
     });
 
     test('an empty explicit list falls back to the derived defaults '
         '(a row must never render zero chips)', () {
       final units = allowedUnitsFor(_ing(tsp, allowed: const []));
-      expect(units, [tsp, tbsp, g]);
+      expect(units, [g]);
     });
   });
 
@@ -394,10 +450,16 @@ void main() {
       expect(densityStrippedUnits(mango), isNot(contains(pieces)));
     });
 
-    test('the flour shape strips NOTHING: mass is its basis family, so it '
-        'was admitted with or without the density', () {
+    test('THE FLOUR SHAPE, under D4c: the volume family goes — including the '
+        'row’s own default unit, which the density was the only thing '
+        'admitting', () {
       final flour = _ing(cup, density: 0.59, category: 'baking');
-      expect(densityStrippedUnits(flour), isEmpty);
+      expect(densityStrippedUnits(flour), {cup, tbsp, ml, l});
+      // Mass is its basis family and survives, density or not.
+      expect(densityStrippedUnits(flour), isNot(contains(g)));
+      expect(densityStrippedUnits(flour), isNot(contains(kg)));
+      // Which is exactly the state D4c flags rather than repairing.
+      expect(defaultUnitNeedsDensity(_ing(cup, category: 'baking')), isTrue);
     });
 
     test('the milk shape: a per-ml row loses g, keeps every volume unit', () {

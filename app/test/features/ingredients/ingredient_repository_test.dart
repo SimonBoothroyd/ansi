@@ -497,16 +497,24 @@ void main() {
       },
     );
 
-    test('a row whose basis family IS the cross family loses nothing (the '
-        'flour shape)', () async {
+    test('THE FLOUR SHAPE under D4c: the density gives the volume family and '
+        'takes it back — the row’s own default unit included', () async {
       await db.execute(
         "UPDATE ingredient SET default_unit = 'cup' WHERE id = '5'",
       );
       final withDensity = await repo.setDensity('5', 0.59);
-      final before = withDensity!.allowedUnits!.map((u) => u.id).toSet();
+      // Before D4c the union added `g` (already admitted) and left `cup` —
+      // the row's OWN default — unadmitted. It now lands the whole family.
+      expect(
+        withDensity!.allowedUnits!.map((u) => u.id).toSet(),
+        containsAll(<String>['cup', 'tbsp', 'ml', 'l']),
+      );
       final cleared = await repo.clearDensity('5');
       expect(cleared!.densityGPerMl, isNull);
-      expect(cleared.allowedUnits!.map((u) => u.id).toSet(), before);
+      // Mass is its basis family and survives. The volume side goes, default
+      // unit and all — which is the state the form flags with a one-tap fix
+      // rather than rewriting the default behind the user's back.
+      expect(cleared.allowedUnits!.map((u) => u.id).toSet(), {'g', 'kg'});
     });
 
     test(

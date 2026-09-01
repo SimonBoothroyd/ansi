@@ -122,6 +122,38 @@ void main() {
       );
     });
 
+    test('D4c: a line saying a unit only the DEFAULT unit used to admit '
+        'degrades the same way — a stale allowed list does not make it '
+        'sayable', () {
+      // The renamed-rice shape: cup default, per-100 g macros, no density,
+      // and an `allowed_units` list materialized under the looser pre-D4c
+      // rule (the server still writes those, and this is what stops one from
+      // smuggling an unconvertible unit onto a line).
+      const rice = Ingredient(
+        id: 'i-rice',
+        canonicalName: 'Black rice',
+        defaultUnit: cup,
+        status: IngredientStatus.stub,
+        allowedUnits: [cup, tbsp, ml, l, g, kg],
+      );
+      expect(
+        lineIssues(
+          _res(chosenIngredientId: 'i-rice', quantity: 1, unit: 'cup'),
+          ingredient: rice,
+        ),
+        [LineIssue.unitNotAllowed],
+      );
+      // Flagged, never rewritten — and honest again the moment a density
+      // bridges the two families.
+      expect(
+        lineIssues(
+          _res(chosenIngredientId: 'i-rice', quantity: 1, unit: 'cup'),
+          ingredient: rice.copyWith(densityGPerMl: 0.75),
+        ),
+        isEmpty,
+      );
+    });
+
     test('a measure-label unit is allowed when the ingredient has it', () {
       final issues = lineIssues(
         _res(chosenIngredientId: 'i-garlic', quantity: 2, unit: 'clove'),
