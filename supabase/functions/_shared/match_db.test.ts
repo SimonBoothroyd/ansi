@@ -1,10 +1,5 @@
-import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import {
-  prefillStubFromUsda,
-  type SqlExecutor,
-  sqlVocabMatcher,
-  USDA_PREFILL_MIN,
-} from "./match_db.ts";
+import { assertEquals, assertStringIncludes } from "@std/assert";
+import { type SqlExecutor, sqlVocabMatcher } from "./match_db.ts";
 import { matchOne } from "./match.ts";
 
 // A fake SqlExecutor: routes on a substring of the query and records calls, so the
@@ -89,58 +84,4 @@ Deno.test("sqlVocabMatcher — drives the cascade end to end", async () => {
   const r = await matchOne("corn tortila", sqlVocabMatcher(exec, "hh"));
   assertEquals(r.band, "suggest");
   assertEquals(r.candidates[0].canonical_name, "Corn Tortilla");
-});
-
-Deno.test("prefillStubFromUsda — confident hit fills density/macros, stays stub", async () => {
-  const { exec, calls } = fakeExec((text) => {
-    if (text.includes("select match_text from ingredient")) {
-      return [{ match_text: "ras el hanout" }];
-    }
-    if (text.includes("from usda_food")) {
-      return [{
-        fdc_id: 4242,
-        density_g_per_ml: 0.5,
-        macros: { kcal: 300 },
-        score: 0.8,
-      }];
-    }
-    return []; // the update
-  });
-  const r = await prefillStubFromUsda(exec, "stub-1");
-  assertEquals(r, { prefilled: true, fdc_id: 4242, score: 0.8 });
-  const upd = calls.find((c) => c.text.includes("update ingredient"))!;
-  assertStringIncludes(upd.text, "status = 'stub'"); // guarded — never flips to complete
-  assertStringIncludes(upd.text, "'usda_fdc:' || $4"); // provenance recorded
-  assertEquals(upd.params, ["stub-1", 0.5, { kcal: 300 }, 4242]);
-});
-
-Deno.test("prefillStubFromUsda — weak hit does not prefill", async () => {
-  let updated = false;
-  const { exec } = fakeExec((text) => {
-    if (text.includes("select match_text from ingredient")) {
-      return [{ match_text: "obscure thing" }];
-    }
-    if (text.includes("from usda_food")) {
-      return [{
-        fdc_id: 1,
-        density_g_per_ml: 0.5,
-        macros: {},
-        score: USDA_PREFILL_MIN - 0.01,
-      }];
-    }
-    if (text.includes("update ingredient")) updated = true;
-    return [];
-  });
-  const r = await prefillStubFromUsda(exec, "stub-x");
-  assertEquals(r.prefilled, false);
-  assert(!updated, "a below-threshold USDA hit must not write");
-});
-
-Deno.test("prefillStubFromUsda — missing/complete stub is a no-op", async () => {
-  const { exec } = fakeExec(() => []); // stub lookup returns nothing
-  assertEquals(await prefillStubFromUsda(exec, "gone"), {
-    prefilled: false,
-    fdc_id: null,
-    score: 0,
-  });
 });

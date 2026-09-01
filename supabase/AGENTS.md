@@ -24,7 +24,11 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
   soft), `grant all … to service_role`, and grant server-only tables (`usda_food`)
   to no client role at all. See `migrations/0002_ingredients.sql` for the pattern.
 - **`usda_food` is server-side only** — never synced to the device, never matched
-  against at import (ADR-0005). Only resolved `ingredient` rows sync down.
+  against at import (ADR-0005). Only resolved `ingredient` rows sync down. It is
+  granted to no client role, so the one thing that reads it on a client's behalf
+  — the stub prefill trigger `ingredient_prefill_from_usda` (0014) — is
+  `security definer` by necessity, and copies out only the density/macros it
+  lands on the caller's own row.
 - **The extraction LLM never sees the vocabulary and never matches** — it only
   emits raw structured lines. Matching is deterministic and testable (see
   `evals/`). Design: `docs/product-specs/import-and-matching.md`.
@@ -36,6 +40,7 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
 supabase start            # local stack
 supabase db reset         # re-run migrations + seed
 supabase db lint
-supabase test db          # pgTAP tests (tests/ — RLS, onboarding, token hook)
+supabase test db          # pgTAP tests (tests/ — RLS, onboarding, token hook,
+                          #             unit admission)
 cd functions && deno test # edge-function tests
 ```

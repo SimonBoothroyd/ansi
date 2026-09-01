@@ -1,8 +1,18 @@
 # ADR-0008 — Units are admitted per ingredient via basis mapping; density is the only volume⇄mass fact
 
-- **Status:** accepted (2026-08-29, Simon + agent design session)
+- **Status:** accepted (2026-08-29, Simon + agent design session) — **amended
+  2026-08-31 by [ADR-0009](./0009-density-unlocks-both-families.md)**
 - **Supersedes / refines:** the 7.6 `allowedUnitsFor` gating (family + density +
   measures) and the 7.7 "no volume-named measures" rule.
+- **Amended 2026-08-31:** §Decision ¶2's second sentence ("Density … unlocks
+  the whole other family") is superseded by
+  [ADR-0009](./0009-density-unlocks-both-families.md). Both implementations
+  had read it as gated on the *default unit's* family, so a piece-default row
+  with a density admitted no volume unit at all. ADR-0009 states the rule
+  positively — a density unlocks the other mass/volume family whatever the
+  default unit's family, and **both** families for a count- or
+  imprecise-default row — and retires the seed-level produce patch that stood
+  in for it. Everything else below stands unchanged.
 
 ## Context
 
