@@ -16,7 +16,7 @@ concurrency:
 
 env:
   # Pinned to match app.yml — the SDK everything is verified against.
-  FLUTTER_VERSION: "3.47.x"
+  FLUTTER_VERSION: "3.47.1" # exact — matches app.yml and local
 
 jobs:
   # ---------------------------------------------------------------------------
