@@ -292,7 +292,9 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
       issues: lineIssues(r, ingredient: ingredient, measures: measures),
       unitChoices: ingredient == null
           ? const []
-          : acceptableUnitChips(ingredient, measures),
+          // The line's own printed unit rides along: a source-printed
+          // imprecise word is admissible whatever the category (J3b).
+          : acceptableUnitChips(ingredient, measures, parsedUnit: r.unit),
     );
   }
   return result;

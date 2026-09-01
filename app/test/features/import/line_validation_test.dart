@@ -4,6 +4,7 @@ import 'package:mise/core/units/units.dart';
 import 'package:mise/features/import/domain/line_resolution.dart';
 import 'package:mise/features/import/domain/line_validation.dart';
 import 'package:mise/features/import/domain/reconciliation_payload.dart';
+import 'package:mise/features/ingredients/domain/allowed_units.dart';
 import 'package:mise/features/ingredients/domain/ingredient.dart';
 
 const _garlic = Ingredient(
@@ -14,6 +15,17 @@ const _garlic = Ingredient(
 );
 
 const _clove = Measure(id: 'm-clove', label: 'clove', amount: 3);
+
+/// The owner's kale: `produce`, so J3 gives it `handful` and withholds
+/// `pinch`/`dash`.
+const _kale = Ingredient(
+  id: 'i-kale',
+  canonicalName: 'Kale',
+  defaultUnit: cup,
+  category: 'produce',
+  status: IngredientStatus.complete,
+  densityGPerMl: 0.2,
+);
 
 LineResolution _res({
   String? chosenIngredientId,
@@ -47,19 +59,90 @@ void main() {
 
     test('J3: pinch and dash are NOT unioned onto every match — the review '
         'offered "a dash of kale" because they were', () {
-      const kale = Ingredient(
-        id: 'i-kale',
-        canonicalName: 'Kale',
-        defaultUnit: cup,
-        category: 'produce',
-        status: IngredientStatus.complete,
-        densityGPerMl: 0.2,
-      );
-      final tokens = acceptableUnitTokens(kale, const []);
+      // A line that printed a real volume unit: nothing pulls an imprecise
+      // word in through the J3b printed leg.
+      final tokens = acceptableUnitTokens(_kale, const [], parsedUnit: 'cup');
       expect(tokens, isNot(contains('pinch')));
       expect(tokens, isNot(contains('dash')));
       // Real cooking language survives: a handful of greens, and to taste.
       expect(tokens, containsAll(<String>['handful', 'to_taste']));
+    });
+
+    test("J3b: a line's OWN printed imprecise word is admitted whatever the "
+        'category — never-invent cuts both ways', () {
+      // THE SCENARIO-4 SHAPE. A create-new stub commits as a plain `g` row
+      // with NO category, so it earns no imprecise word at all; the source
+      // printed "a pinch of chilli flakes". Under the bare J3 gate that line
+      // flagged `unitNotAllowed` and locked the Save gate on a unit nobody
+      // could ever have picked, because it was never offered.
+      const stub = Ingredient(
+        id: 'stub:4',
+        canonicalName: 'Chilli flakes',
+        defaultUnit: g,
+        status: IngredientStatus.stub,
+      );
+      expect(
+        acceptableUnitTokens(stub, const [], parsedUnit: 'pinch'),
+        contains('pinch'),
+      );
+      expect(
+        lineIssues(
+          _res(createStubName: 'Chilli flakes', unit: 'pinch'),
+          ingredient: stub,
+        ),
+        isEmpty,
+      );
+      // And it is OFFERED, so the amount sheet can render what the line says.
+      expect(
+        acceptableUnitChips(
+          stub,
+          const [],
+          parsedUnit: 'pinch',
+        ).map((c) => c.token),
+        contains('pinch'),
+      );
+    });
+
+    test('J3b admits exactly the printed word, not the rest of the tail', () {
+      // "A pinch of kale" would be honoured if a source really printed it —
+      // but it still buys kale no `dash`, which is the offer J3 closed.
+      final tokens = acceptableUnitTokens(_kale, const [], parsedUnit: 'pinch');
+      expect(tokens, contains('pinch'));
+      expect(tokens, isNot(contains('dash')));
+    });
+
+    test('J3b does NOT extend to mass/volume: a printed unit the converter '
+        'cannot resolve still flags (D4c)', () {
+      // The pass is for imprecise WORDS, which cost the converter nothing.
+      // "1 cup" of a density-less row is a different animal entirely.
+      expect(
+        lineIssues(
+          _res(chosenIngredientId: 'i-garlic', quantity: 1, unit: 'ml'),
+          ingredient: _garlic,
+        ),
+        [LineIssue.unitNotAllowed],
+      );
+    });
+
+    test('so no imprecise unit can flag on the import surface at all — the '
+        'only reachable states are printed (admitted by J3b) and tapped '
+        '(offered, therefore admitted)', () {
+      // Worth pinning as a property: the gate lives in what is OFFERED. A
+      // word the editor never shows is a word the user cannot pick, so a
+      // flag on one could only ever be unclearable.
+      for (final word in ['pinch', 'dash', 'handful', 'to_taste']) {
+        expect(
+          lineIssues(
+            _res(chosenIngredientId: 'i-kale', quantity: 1, unit: word),
+            ingredient: _kale,
+          ),
+          isEmpty,
+          reason: word,
+        );
+      }
+      // The vocab surface is where the gate still bites: the manager offers
+      // greens no pinch, whatever an import line once said.
+      expect(allowedUnitsFor(_kale), isNot(contains(pinch)));
     });
 
     test('J3: a seasoning still earns the whole tail', () {
@@ -273,14 +356,19 @@ void main() {
       expect(visible, contains('to_taste'));
     });
 
-    test('J3: a pinch line on a food that earns no pinch fronts the word it '
-        'DOES earn, rather than offering one it cannot honour', () {
-      final visible = rankedUnitChips(
-        chips,
+    test('J3b: a pinch line on a food that earns no pinch is still offered '
+        'its own printed word, and that word leads', () {
+      // Built the way the review screen builds it — WITH the line's unit.
+      // This supersedes the J3-only reading, where an ungated row dropped the
+      // printed word and fronted `to taste` instead: that left the line
+      // flagged for a unit the editor would not show, which is unclearable.
+      final ranked = rankedUnitChips(
+        acceptableUnitChips(_kale, const [], parsedUnit: 'pinch'),
         parsedUnit: 'pinch',
       ).map((c) => c.token).toList();
-      expect(visible, isNot(contains('pinch')));
-      expect(visible.first, 'to_taste');
+      expect(ranked.first, 'pinch');
+      // Its neighbours stay withheld — one word, not the tail.
+      expect(ranked, isNot(contains('dash')));
     });
 
     test('the fold hides nothing — every chip survives the ranking', () {

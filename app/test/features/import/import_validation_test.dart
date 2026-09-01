@@ -62,6 +62,16 @@ ReconciliationPayload _clovePayload() => const ReconciliationPayload(
             ),
           ],
         ),
+        // Scenario 4's shape: nothing matches, the user creates a stub, and
+        // the source printed an imprecise word (plan 0020 J3b).
+        ReconLine(
+          raw: RawLineItem(
+            ingredientText: 'chilli flakes',
+            unit: 'pinch',
+            rawAmount: 'a pinch of',
+          ),
+          band: MatchBand.none,
+        ),
       ],
     ),
   ],
@@ -170,5 +180,30 @@ void main() {
     final after = await container.read(importValidationProvider.future);
     expect(after[0]!.issues, isEmpty);
     expect(after[0]!.unitChoices.map((c) => c.token), contains('clove'));
+  });
+
+  test('J3b: a printed imprecise word on a freshly created stub validates — '
+      'the Save gate cannot lock on a unit the editor never offers', () async {
+    final container = await reviewing();
+    // The user taps "create new" on the no-match line, exactly as scenario 4
+    // does. The stub commits as a plain `g` row with NO category, so the J3
+    // category gate earns it no imprecise word at all.
+    container
+        .read(importControllerProvider.notifier)
+        .updateResolution(1, (r) => r.resolveToNewStub('Chilli flakes'));
+
+    final byLine = await container.read(importValidationProvider.future);
+    expect(
+      byLine[1]!.issues,
+      isEmpty,
+      reason: 'a source-printed "pinch" must stay admissible — never-invent',
+    );
+    // And the whole import is savable, which is what scenario 4 asserts.
+    expect(
+      allLinesValid({for (final e in byLine.entries) e.key: e.value.issues}),
+      isTrue,
+    );
+    // The word is offered too, so the amount sheet can render the line.
+    expect(byLine[1]!.unitChoices.map((c) => c.token), contains('pinch'));
   });
 }

@@ -736,7 +736,7 @@ Future<void> editLineAmount(
       : preselectedMeasure(loaded, measures, unit: resolution.unit);
   final result = await showQuantityUnitSheet(
     context,
-    ingredient: amountSheetIngredient(base),
+    ingredient: amountSheetIngredient(base, parsedUnit: resolution.unit),
     initialQuantity: initialQuantity,
     initialChoice: preselect != null
         ? MeasureOption(preselect)

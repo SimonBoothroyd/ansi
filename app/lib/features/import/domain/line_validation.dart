@@ -28,33 +28,58 @@ enum LineIssue {
   unitNotAllowed,
 }
 
-/// The imprecise units the import amount editor admits for [ingredient].
+/// The imprecise word a LINE actually printed, when it printed one — the
+/// source's own vocabulary, resolved to a catalog unit. Null for a mass,
+/// volume or count unit, a measure label, or no unit at all.
+Unit? printedImpreciseUnit(String? unit) {
+  if (unit == null || unit.isEmpty) return null;
+  final resolved = unitById(unit);
+  return resolved != null && resolved.family == UnitFamily.imprecise
+      ? resolved
+      : null;
+}
+
+/// The imprecise units the import surface admits for [ingredient] on a line
+/// whose source printed [parsedUnit]. Three legs:
 ///
-/// `to taste` unconditionally: a "plus more, to serve" use is legitimately
-/// imprecise whatever the food, and an import line is exactly where that
-/// phrasing arrives. Everything else is the ingredient's own category gate
-/// ([impreciseUnitsFor]).
+/// - `to taste` unconditionally: a "plus more, to serve" use is legitimately
+///   imprecise whatever the food, and an import line is exactly where that
+///   phrasing arrives;
+/// - the ingredient's own category gate ([impreciseUnitsFor]) — J3's ruling,
+///   which is what stops the editor OFFERING "a dash of kale";
+/// - **the line's own printed word** ([printedImpreciseUnit]), whatever the
+///   category, uncategorised rows included (plan 0020 **J3b**).
 ///
-/// This used to be a flat list of all four words unioned onto every match,
-/// which bypassed the vocab gate entirely — so the review offered "a dash of
-/// kale" (plan 0020 **J3**). Owner ruling: pinch and dash belong to the
-/// spice/seasoning/oil classes, handful to greens.
-Set<Unit> importImpreciseUnitsFor(Ingredient ingredient) => {
-  toTaste,
-  ...impreciseUnitsFor(ingredient),
-};
+/// That third leg is never-invent, read the other way round. J3 gated what the
+/// editor may SUGGEST; it must not gate what the source SAID. Without it a
+/// canned "a pinch of chilli flakes" landing on a freshly created stub — which
+/// has no category at all — validated as `unitNotAllowed` and locked the Save
+/// gate on a unit nobody could have picked, because it was never offered.
+/// Exactly one word is admitted: the one that was printed. A row still earns
+/// no other imprecise chip it has not earned.
+Set<Unit> importImpreciseUnitsFor(Ingredient ingredient, {String? parsedUnit}) {
+  final printed = printedImpreciseUnit(parsedUnit);
+  return {
+    toTaste,
+    ...impreciseUnitsFor(ingredient),
+    if (printed != null) printed,
+  };
+}
 
 /// The unit tokens acceptable for a matched line: the ingredient's allowed
-/// catalog units (by id) + its [measures] (by label) + the always-admitted
-/// imprecise units. Mirrors exactly what the amount sheet offers for this
-/// ingredient (see [amountSheetIngredient]), so a unit is "allowed" iff the
-/// picker could have produced it.
+/// catalog units (by id) + its [measures] (by label) + the imprecise words it
+/// earns, [parsedUnit]'s own printed word included (J3b). Mirrors exactly what
+/// the amount sheet offers for this line (see [amountSheetIngredient]), so a
+/// unit is "allowed" iff the picker could have produced it — which is why the
+/// line's printed unit has to be threaded through both: a word the editor
+/// never offers is a word the user can never clear the flag with.
 Set<String> acceptableUnitTokens(
   Ingredient ingredient,
-  List<Measure> measures,
-) {
+  List<Measure> measures, {
+  String? parsedUnit,
+}) {
   final offer = allowedUnitChoicesFor(
-    amountSheetIngredient(ingredient),
+    amountSheetIngredient(ingredient, parsedUnit: parsedUnit),
     measures,
   );
   return {
@@ -85,14 +110,16 @@ class UnitSuggestion {
 }
 
 /// A matched line's acceptable units as ordered suggestion chips — exactly the
-/// amount sheet's offer (allowed set + measures + imprecise), so tapping a chip
+/// amount sheet's offer for this line (allowed set + measures + the imprecise
+/// words it earns, including [parsedUnit]'s printed one), so tapping a chip
 /// always yields a valid unit.
 List<UnitSuggestion> acceptableUnitChips(
   Ingredient ingredient,
-  List<Measure> measures,
-) {
+  List<Measure> measures, {
+  String? parsedUnit,
+}) {
   final offer = allowedUnitChoicesFor(
-    amountSheetIngredient(ingredient),
+    amountSheetIngredient(ingredient, parsedUnit: parsedUnit),
     measures,
   );
   return [
@@ -169,7 +196,13 @@ Measure? preselectedMeasure(
   required String? unit,
 }) {
   if (unit == null || unit.isEmpty) return null;
-  if (acceptableUnitTokens(ingredient, measures).contains(unit)) return null;
+  if (acceptableUnitTokens(
+    ingredient,
+    measures,
+    parsedUnit: unit,
+  ).contains(unit)) {
+    return null;
+  }
   for (final m in measures) {
     if (!isVolumeUnitLabel(m.label)) return m;
   }
@@ -191,10 +224,17 @@ class LineValidation {
 /// about: the real ingredient with the imprecise units it earns
 /// ([importImpreciseUnitsFor]) unioned into its allowed set, so those chips are
 /// offered (and accepted) on a line without touching the stored vocab row.
-Ingredient amountSheetIngredient(Ingredient ingredient) {
+///
+/// [parsedUnit] is the line's own printed unit, so a source-printed imprecise
+/// word is admitted on this line alone (J3b) — the sheet must always be able
+/// to render the unit the line is already carrying.
+Ingredient amountSheetIngredient(Ingredient ingredient, {String? parsedUnit}) {
   final base = ingredient.allowedUnits ?? defaultAllowedUnitSet(ingredient);
   return ingredient.copyWith(
-    allowedUnits: {...base, ...importImpreciseUnitsFor(ingredient)}.toList(),
+    allowedUnits: {
+      ...base,
+      ...importImpreciseUnitsFor(ingredient, parsedUnit: parsedUnit),
+    }.toList(),
   );
 }
 
@@ -204,6 +244,12 @@ Ingredient amountSheetIngredient(Ingredient ingredient) {
 ///
 /// A DROPPED line has no issues by construction: it is leaving the recipe, so
 /// it can neither be flagged nor hold up Save (owner call).
+///
+/// The line's own unit is passed to [acceptableUnitTokens] as the parsed unit:
+/// a source-printed imprecise word validates whatever the ingredient's
+/// category (J3b). A printed mass/volume unit gets no such pass — D4c flags
+/// "1 cup" on a density-less row exactly as before, because that one the
+/// converter genuinely cannot resolve.
 List<LineIssue> lineIssues(
   LineResolution resolution, {
   Ingredient? ingredient,
@@ -221,7 +267,11 @@ List<LineIssue> lineIssues(
   }
   final unit = resolution.unit;
   if (ingredient != null && unit != null && unit.isNotEmpty) {
-    if (!acceptableUnitTokens(ingredient, measures).contains(unit)) {
+    if (!acceptableUnitTokens(
+      ingredient,
+      measures,
+      parsedUnit: unit,
+    ).contains(unit)) {
       issues.add(LineIssue.unitNotAllowed);
     }
   }
