@@ -4,8 +4,11 @@ A shared, offline-first recipe and meal-planning app for a two-person household.
 Plan the week you *want to eat*; Ansi derives what to cook in batches (bounded by
 each dish's shelf life) and builds a shopping list that buys each thing once.
 
-Ansi (né Mise; *mise-en-place* is still the soul). The old name survives only
-where changing it would break something live — see
+Ansi (né Mise; *mise-en-place* is still the soul). The rename shipped on
+2026-09-01 and reached everything that runs — package, identifiers, bundle ids,
+OAuth scheme. "Mise" survives only in finished records (completed plans, ADRs,
+captured eval runs) and in a couple of names outside version control; the
+inventory is in
 [`docs/exec-plans/tech-debt-tracker.md`](./docs/exec-plans/tech-debt-tracker.md).
 
 Flutter · Forui · Supabase (Postgres + Auth + Storage) · PowerSync (offline sync)
@@ -36,6 +39,12 @@ make run                      # launch the Flutter app
 
 Prerequisites: Flutter 3.44+, Dart 3.8+, the Supabase CLI, Deno, and Docker.
 `scripts/bootstrap.sh` checks these and tells you what's missing.
+
+Those are floors; **CI pins exact versions, and local should match them** —
+Flutter `3.47.1` (`.github/workflows/app.yml`; 3.47.2's Dart adds an analyze
+warning), Deno `2.9.5` and the Supabase CLI `2.115.0` (`backend.yml`), Postgres
+`17` (`supabase/config.toml`). Each pin is commented where it lives with the red
+run that bought it. Bump a pin and your local tool in the same commit.
 
 ## Testing
 
