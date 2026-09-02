@@ -10,6 +10,10 @@
 /// Portions default to the eater count and can be bumped for big appetites
 /// (spec §8); a null override means "track |eaters|". The sheet does the
 /// write itself and pops.
+///
+/// Its four controls now live in `meal_fields.dart`, because the week
+/// redesign's entry sheet (D7) is this sheet in its EDITING role and must not
+/// be allowed to drift from it. Behaviour here is unchanged by that move.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -20,16 +24,12 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
-import '../../../shared/incomplete_macros.dart';
-import '../../books/presentation/text_prompt.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../recipes/domain/recipe.dart';
-import '../../recipes/presentation/format.dart';
 import '../data/planning_providers.dart';
-import '../domain/planning.dart';
+import 'meal_fields.dart';
 import 'week_format.dart';
 import 'week_view_models.dart';
-import 'week_widgets.dart';
 
 /// Opens the confirm sheet for [recipe] on [dayOfWeek], pre-selecting [slot].
 Future<void> showConfirmMealSheet(
@@ -135,19 +135,19 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           children: [
             Text('Add to plan', style: ansiSerif(size: 22)),
             const SizedBox(height: 14),
-            _RecipeCard(recipe: recipe),
+            MealRecipeCard(recipe: recipe),
             if (hint != null) ...[
               const SizedBox(height: 10),
-              _BatchProseBanner(
+              MealBatchBanner(
                 hint: hint,
                 recipe: recipe,
                 newDay: dayState.value,
               ),
             ],
             const SizedBox(height: 18),
-            const _Label('Slot'),
+            const MealFieldLabel('Slot'),
             const SizedBox(height: 6),
-            _DaySlotPicker(
+            MealDaySlotPicker(
               day: dayState.value,
               slot: slotState.value,
               onChanged: (day, s) {
@@ -156,12 +156,12 @@ class _ConfirmMealSheet extends HookConsumerWidget {
               },
             ),
             const SizedBox(height: 18),
-            const _Label("Who's eating"),
+            const MealFieldLabel("Who's eating"),
             const SizedBox(height: 6),
             members.when(
               loading: () => const SizedBox.shrink(),
               error: (_, __) => const SizedBox.shrink(),
-              data: (list) => _EaterPicker(
+              data: (list) => MealEaterPicker(
                 members: list,
                 selected: eaters.value,
                 onToggle: (id) {
@@ -172,11 +172,12 @@ class _ConfirmMealSheet extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 18),
-            const _Label('Portions'),
+            const MealFieldLabel('Portions'),
             const SizedBox(height: 6),
-            _PortionsStepper(
+            MealPortionsStepper(
               value: portions,
               tracksEaters: portionsOverride.value == null,
+              eaters: eaters.value.length,
               onChanged: (v) => portionsOverride.value = v < 1 ? 1 : v,
             ),
             const SizedBox(height: 20),
@@ -186,365 +187,6 @@ class _ConfirmMealSheet extends HookConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _Label extends StatelessWidget {
-  const _Label(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text.toUpperCase(),
-    style: ansiMono(size: 10, color: AnsiColors.muted, letterSpacing: 1),
-  );
-}
-
-class _RecipeCard extends StatelessWidget {
-  const _RecipeCard({required this.recipe});
-
-  final RecipeSummary recipe;
-
-  @override
-  Widget build(BuildContext context) {
-    final keeps = recipe.keepsForDays;
-    final shelf = <String>[
-      if (keeps != null) 'keeps $keeps d',
-      if (recipe.freezable) 'freezable',
-    ].join(' · ');
-    final summary = recipe.macros;
-    final perServing = summary?.perServing;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AnsiColors.surface,
-        border: Border.all(color: AnsiColors.line),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AnsiColors.herbSoft,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              FLucideIcons.cookingPot,
-              size: 20,
-              color: AnsiColors.herb,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
-                  style: ansiSerif(size: 17),
-                ),
-                if (shelf.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      shelf,
-                      style: ansiMono(size: 10, color: AnsiColors.muted),
-                    ),
-                  ),
-                // The honest per-serving line (v2): real numbers or the
-                // incomplete badge — never zeros (invariant 3).
-                if (perServing != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: Text.rich(
-                      TextSpan(
-                        text:
-                            'serves ${formatQuantity(recipe.servingsBase)} · '
-                            '~${perServing.kcal.round()} kcal · '
-                            '${perServing.protein.round()}P',
-                        style: ansiMono(size: 10, color: AnsiColors.herbDeep),
-                        children: [
-                          TextSpan(
-                            text: ' /serving',
-                            style: ansiMono(size: 10, color: AnsiColors.muted),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else if (summary != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: Row(
-                      children: [
-                        const IncompleteBadge(),
-                        Text(
-                          ' ${incompleteNote(summary)}',
-                          style: ansiMono(size: 10, color: AnsiColors.muted),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The batch-awareness cue, in full prose (v2 — the app used to truncate
-/// this to a one-liner): names the dish, the day it already cooks, the
-/// shelf-life window that makes it one batch, and the freezer hop when
-/// that's how the meal is reached.
-class _BatchProseBanner extends StatelessWidget {
-  const _BatchProseBanner({
-    required this.hint,
-    required this.recipe,
-    required this.newDay,
-  });
-
-  final BatchHint hint;
-  final RecipeSummary recipe;
-  final int newDay;
-
-  @override
-  Widget build(BuildContext context) {
-    final title = recipe.title.isEmpty ? 'This dish' : recipe.title;
-    final day = kWeekdayFull[hint.withDay];
-    final target = kWeekdayFull[newDay];
-    final keeps = recipe.keepsForDays;
-    final text = hint.frozen
-        ? '$title already cooks $day; $target is past the fridge window'
-              '${keeps != null ? ' ($keeps days)' : ''}, but it freezes — '
-              'a share goes to the freezer, so it still joins $day’s batch '
-              'instead of a second cook.'
-        : hint.withDay == newDay
-        ? '$title already cooks $target — this meal joins that batch '
-              'instead of a second cook.'
-        : '$title already cooks $day'
-              '${keeps != null ? ' and keeps $keeps days' : ''} — $target is '
-              'inside that window, so this joins $day’s batch instead of a '
-              'second cook.';
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-      decoration: BoxDecoration(
-        color: AnsiColors.herbSoft,
-        border: Border.all(color: AnsiColors.line),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1),
-            child: Icon(
-              hint.frozen ? FLucideIcons.snowflake : FLucideIcons.repeat,
-              size: 14,
-              color: AnsiColors.herbDeep,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: ansiSans(size: 12, color: AnsiColors.herbDeep),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The combined "Day · Slot" dropdown (v2): one control carrying the pair,
-/// so a meal can still land on a different day from the confirm sheet. A
-/// non-default slot (a custom "Brunch") joins the menu for every day; the
-/// trailing + prompts a new custom slot, keeping the selected day.
-class _DaySlotPicker extends StatelessWidget {
-  const _DaySlotPicker({
-    required this.day,
-    required this.slot,
-    required this.onChanged,
-  });
-
-  final int day;
-  final String slot;
-  final void Function(int day, String slot) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final slots = [
-      ...kDefaultMealSlots,
-      if (!kDefaultMealSlots.contains(slot)) slot,
-    ];
-    return Row(
-      children: [
-        Expanded(
-          child: FSelect<(int, String)>.rich(
-            format: (v) => '${kWeekdayFull[v.$1]} · ${v.$2}',
-            control: FSelectControl<(int, String)>.lifted(
-              value: (day, slot),
-              onChange: (v) {
-                if (v != null) onChanged(v.$1, v.$2);
-              },
-            ),
-            children: [
-              for (var d = 0; d < 7; d++)
-                for (final s in slots)
-                  FSelectItem(
-                    title: Text('${kWeekdayFull[d]} · $s'),
-                    value: (d, s),
-                  ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        FButton.icon(
-          variant: FButtonVariant.secondary,
-          onPress: () async {
-            final custom = await promptForText(
-              context,
-              title: 'Custom meal',
-              hint: 'e.g. Brunch, Snack',
-              confirm: 'Use',
-            );
-            if (custom != null && custom.trim().isNotEmpty) {
-              onChanged(day, custom.trim());
-            }
-          },
-          child: const Icon(FLucideIcons.plus),
-        ),
-      ],
-    );
-  }
-}
-
-class _EaterPicker extends StatelessWidget {
-  const _EaterPicker({
-    required this.members,
-    required this.selected,
-    required this.onToggle,
-  });
-
-  final List<Member> members;
-  final Set<String> selected;
-  final ValueChanged<String> onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (final (i, m) in members.indexed)
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => onToggle(m.id),
-              child: Row(
-                children: [
-                  EaterAvatar(
-                    member: m,
-                    color: memberColor(i),
-                    dimmed: !selected.contains(m.id),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    m.displayName,
-                    style: ansiSans(
-                      size: 13,
-                      color: selected.contains(m.id)
-                          ? AnsiColors.ink
-                          : AnsiColors.muted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _PortionsStepper extends StatelessWidget {
-  const _PortionsStepper({
-    required this.value,
-    required this.tracksEaters,
-    required this.onChanged,
-  });
-
-  final int value;
-  final bool tracksEaters;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '$value ${value == 1 ? 'portion' : 'portions'}',
-                style: ansiSans(size: 15, weight: FontWeight.w600),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                tracksEaters
-                    ? 'defaults to eaters — bump up for big appetites'
-                    : 'manual override',
-                style: ansiMono(size: 10, color: AnsiColors.muted),
-              ),
-            ],
-          ),
-        ),
-        _StepButton(
-          icon: FLucideIcons.minus,
-          onTap: () => onChanged(value - 1),
-        ),
-        SizedBox(
-          width: 40,
-          child: Text(
-            '$value',
-            textAlign: TextAlign.center,
-            style: ansiMono(size: 16, weight: FontWeight.w600),
-          ),
-        ),
-        _StepButton(icon: FLucideIcons.plus, onTap: () => onChanged(value + 1)),
-      ],
-    );
-  }
-}
-
-class _StepButton extends StatelessWidget {
-  const _StepButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: AnsiColors.surface,
-          border: Border.all(color: AnsiColors.line),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, size: 16, color: AnsiColors.herb),
       ),
     );
   }

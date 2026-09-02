@@ -1,8 +1,122 @@
+import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   final today = DateTime.utc(2026, 8, 27);
+
+  group('the cook marker (D6) — a read of the cook plan', () {
+    /// One recipe planned on [days], all Dinner, 2 portions each.
+    CookPlan planFor(
+      List<int> days, {
+      int? keepsForDays = 4,
+      bool freezable = false,
+      int? freezerDays,
+    }) => buildCookPlan([
+      PlannedRecipe(
+        recipeId: 'r1',
+        title: 'Curry',
+        servingsBase: 2,
+        keepsForDays: keepsForDays,
+        freezable: freezable,
+        freezerDays: freezerDays,
+        meals: [
+          for (final d in days)
+            CoveredMeal(dayOfWeek: d, mealSlot: 'Dinner', portions: 2),
+        ],
+      ),
+    ]);
+
+    CookMarker? markerOn(CookPlan plan, int day) =>
+        cookMarkerFor(plan, recipeId: 'r1', dayOfWeek: day, mealSlot: 'Dinner');
+
+    test('a single-meal cook gets NO marker — the row stays one line', () {
+      expect(markerOn(planFor([0]), 0), isNull);
+    });
+
+    test('the cook day names the batch it is cooking', () {
+      final marker = markerOn(planFor([0, 2]), 0)!;
+      expect(marker.kind, CookMarkerKind.cooks);
+      expect(marker.cookDay, 0);
+      expect(marker.batchPortions, 4); // 2 + 2 across the session
+      expect(marker.position, 0);
+      expect(
+        cookMarkerLabel(marker, todayDayOfWeek: 0),
+        'cooks today · batch of 4',
+      );
+      // Another week is on screen, so "today" is not available.
+      expect(cookMarkerLabel(marker), 'cooks Mon · batch of 4');
+      // The current week, but a different day.
+      expect(
+        cookMarkerLabel(marker, todayDayOfWeek: 4),
+        'cooks Mon · batch of 4',
+      );
+    });
+
+    test('a covered day says where it came from, and how far through', () {
+      final marker = markerOn(planFor([0, 2]), 2)!;
+      expect(marker.kind, CookMarkerKind.fromBatch);
+      expect(marker.cookDay, 0);
+      expect(marker.position, 0.5); // day 2 of a 4-day window
+      expect(cookMarkerLabel(marker), 'from Monday\u2019s batch');
+    });
+
+    test('a day past the fridge window is a freezer share', () {
+      // Keeps 2 days, freezable: Thursday is out of the fridge window but the
+      // freezer reaches it, so it is ONE session with a frozen day.
+      final marker = markerOn(
+        planFor([0, 3], keepsForDays: 2, freezable: true),
+        3,
+      )!;
+      expect(marker.kind, CookMarkerKind.freezerShare);
+      expect(cookMarkerLabel(marker), 'Monday\u2019s freezer share');
+    });
+
+    test('a recipe with no shelf life has no window, so no position', () {
+      final marker = markerOn(planFor([0, 5], keepsForDays: null), 5)!;
+      expect(marker.kind, CookMarkerKind.fromBatch);
+      // An unknown window is not a full one — never a "gone" notch invented
+      // out of a missing fact.
+      expect(marker.position, 0);
+    });
+
+    test('a meal the plan does not cover has no marker', () {
+      expect(
+        cookMarkerFor(
+          planFor([0, 2]),
+          recipeId: 'other',
+          dayOfWeek: 0,
+          mealSlot: 'Dinner',
+        ),
+        isNull,
+      );
+      // Same recipe, same day, a slot the session does not cover.
+      expect(
+        cookMarkerFor(
+          planFor([0, 2]),
+          recipeId: 'r1',
+          dayOfWeek: 0,
+          mealSlot: 'Lunch',
+        ),
+        isNull,
+      );
+    });
+
+    test('two sessions: each meal reads off its OWN batch', () {
+      // Keeps 2 days, not freezable → Mon and Sat are separate cooks, and
+      // neither covers more than one meal, so neither says anything.
+      final plan = planFor([0, 5], keepsForDays: 2);
+      expect(markerOn(plan, 0), isNull);
+      expect(markerOn(plan, 5), isNull);
+
+      // Add a Tuesday: now Monday's session covers two meals and Saturday's
+      // still covers one.
+      final split = planFor([0, 1, 5], keepsForDays: 2);
+      expect(markerOn(split, 0)!.kind, CookMarkerKind.cooks);
+      expect(markerOn(split, 1)!.cookDay, 0);
+      expect(markerOn(split, 5), isNull);
+    });
+  });
 
   group('formatWeekTitle (D2 — the week is a position)', () {
     // today is Thursday 27 Aug 2026; this week's Monday is 24 Aug.

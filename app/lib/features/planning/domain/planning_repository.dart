@@ -44,6 +44,20 @@ abstract interface class PlanningRepository {
   /// Replaces the eaters on an entry (demand = |eaterIds|).
   Future<void> setEaters(String entryId, List<String> eaterIds);
 
+  /// Moves an entry to [dayOfWeek] / [mealSlot] within its own week — the
+  /// entry sheet's `Day · Slot` dropdown (week-redesign D7). Retargeting
+  /// across weeks is deliberately out: the sheet only ever edits a meal on
+  /// the week you are looking at.
+  Future<void> setDaySlot({
+    required String entryId,
+    required int dayOfWeek,
+    required String mealSlot,
+  });
+
+  /// Sets the portions override on an entry. Null tracks |eaters| again
+  /// (spec §8) — it is a real value, not "unset", so it is passed explicitly.
+  Future<void> setPortions(String entryId, int? portions);
+
   /// Soft-deletes a planned meal.
   Future<void> removeEntry(String entryId);
 

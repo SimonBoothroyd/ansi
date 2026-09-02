@@ -1,4 +1,7 @@
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
+import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
+import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/planning_repository.dart';
@@ -49,6 +52,16 @@ class _FakePlanningRepo implements PlanningRepository {
   Future<void> setEaters(String entryId, List<String> eaterIds) async {}
 
   @override
+  Future<void> setDaySlot({
+    required String entryId,
+    required int dayOfWeek,
+    required String mealSlot,
+  }) async {}
+
+  @override
+  Future<void> setPortions(String entryId, int? portions) async {}
+
+  @override
   Future<void> removeEntry(String entryId) async {}
 
   @override
@@ -59,6 +72,17 @@ class _FakePlanningRepo implements PlanningRepository {
 
   @override
   Stream<Map<String, DateTime>> watchLastPlanned() => Stream.value(const {});
+}
+
+/// A canned cook plan for the week's markers (D6). Empty by default.
+class _FakeCookPlanRepo implements CookPlanRepository {
+  _FakeCookPlanRepo([this.recipes = const []]);
+
+  final List<PlannedRecipe> recipes;
+
+  @override
+  Stream<CookPlan> watchCookPlan(DateTime weekStart) =>
+      Stream.value(buildCookPlan(recipes));
 }
 
 class _NoRecipesRepo implements RecipeRepository {
@@ -84,12 +108,20 @@ class _NoRecipesRepo implements RecipeRepository {
   }) async => false;
 }
 
-Widget _host(List<Override> overrides) => ProviderScope(
-  overrides: overrides,
-  child: MaterialApp(
-    home: FTheme(data: ansiThemeData(), child: const WeekView()),
-  ),
-);
+/// Every host wires a cook-plan repo, because the Week reads its markers back
+/// off the plan (D6) — no test should reach for a real database to draw a row.
+List<Override> _withCook(List<Override> extra, CookPlanRepository? cook) => [
+  cookPlanRepositoryProvider.overrideWithValue(cook ?? _FakeCookPlanRepo()),
+  ...extra,
+];
+
+Widget _host(List<Override> overrides, {CookPlanRepository? cook}) =>
+    ProviderScope(
+      overrides: _withCook(overrides, cook),
+      child: MaterialApp(
+        home: FTheme(data: ansiThemeData(), child: const WeekView()),
+      ),
+    );
 
 /// The same view inside a real router, so a tap's destination is observable.
 /// `expose` hands the router back for the test to read the location from.
@@ -108,7 +140,7 @@ Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
   addTearDown(router.dispose);
   expose(router);
   return ProviderScope(
-    overrides: overrides,
+    overrides: _withCook(overrides, null),
     child: MaterialApp.router(
       routerConfig: router,
       builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
@@ -116,13 +148,39 @@ Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
   );
 }
 
-WeekPlan _plannedWeek() => WeekPlan(
+WeekPlan _plannedWeek({int? portions}) => WeekPlan(
+  id: 'w',
+  weekStart: DateTime.utc(2026, 8, 24),
+  entries: [
+    PlanEntry(
+      id: 'e1',
+      dayOfWeek: 3,
+      mealSlot: 'Dinner',
+      recipeId: 'r1',
+      recipeTitle: 'Weeknight Chicken Curry',
+      eaterIds: const ['m1', 'm2'],
+      portions: portions,
+    ),
+  ],
+);
+
+/// The same recipe twice, inside one fridge window — the shape that gives a
+/// dish row something to say on its second line.
+WeekPlan _batchedWeek() => WeekPlan(
   id: 'w',
   weekStart: DateTime.utc(2026, 8, 24),
   entries: const [
     PlanEntry(
       id: 'e1',
-      dayOfWeek: 3,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'r1',
+      recipeTitle: 'Weeknight Chicken Curry',
+      eaterIds: ['m1', 'm2'],
+    ),
+    PlanEntry(
+      id: 'e2',
+      dayOfWeek: 2,
       mealSlot: 'Dinner',
       recipeId: 'r1',
       recipeTitle: 'Weeknight Chicken Curry',
@@ -130,6 +188,18 @@ WeekPlan _plannedWeek() => WeekPlan(
     ),
   ],
 );
+
+/// Forui's select trips a debug-only semantics assertion when a sheet opens.
+/// The sim suite filters the same family; the widget suite needs it wherever a
+/// sheet is driven.
+void ignoreForuiSemanticsAssertion() {
+  final reportError = FlutterError.onError!;
+  FlutterError.onError = (details) {
+    if ('${details.exception}'.contains('semantics.dart')) return;
+    reportError(details);
+  };
+  addTearDown(() => FlutterError.onError = reportError);
+}
 
 void main() {
   group('the week switcher (D2/D3)', () {
@@ -279,7 +349,7 @@ void main() {
     expect(find.text('Last week, for reference'), findsOneWidget);
   });
 
-  testWidgets('a planned week renders the day grid with the meal', (
+  testWidgets('presentation is the resting state — no add doors, no chevrons', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -290,17 +360,117 @@ void main() {
         recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
       ]),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('Thursday'), findsOneWidget);
     expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
-    // Every day still offers a dashed add-a-meal button.
-    expect(find.text('Add a meal'), findsWidgets);
-    // The Shared/Per-person lens is present on a populated week.
-    expect(find.text('Per-person'), findsOneWidget);
+    // The affordance layer is OFF: no dashed add rows anywhere.
+    expect(find.text('Add a meal'), findsNothing);
+    expect(find.text('Edit'), findsOneWidget);
+    // A day with nothing on it still says so, and that line is its add door.
+    expect(find.text('nothing planned'), findsWidgets);
   });
 
-  testWidgets('tapping a planned dish opens its recipe', (tester) async {
+  testWidgets('Edit puts the affordances back and Done takes them away', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host([
+        planningRepositoryProvider.overrideWithValue(
+          _FakePlanningRepo(week: _plannedWeek()),
+        ),
+        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+      ]),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Done'), findsOneWidget);
+    // One per day — the ListView only builds the ones on screen.
+    expect(find.text('Add a meal'), findsWidgets);
+    // The quiet line is a presentation-mode thing; edit has the real door.
+    expect(find.text('nothing planned'), findsNothing);
+
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('Add a meal'), findsNothing);
+  });
+
+  testWidgets('the portions chip appears only when portions differ from the '
+      'eater count', (tester) async {
+    await tester.pumpWidget(
+      _host([
+        planningRepositoryProvider.overrideWithValue(
+          _FakePlanningRepo(week: _plannedWeek()),
+        ),
+        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+      ]),
+    );
+    await tester.pumpAndSettle();
+    // _plannedWeek()'s entry has two eaters and no override.
+    expect(find.text('2 portions'), findsNothing);
+
+    await tester.pumpWidget(
+      _host([
+        planningRepositoryProvider.overrideWithValue(
+          _FakePlanningRepo(week: _plannedWeek(portions: 3)),
+        ),
+        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+      ]),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('3 portions'), findsOneWidget);
+  });
+
+  testWidgets('the cook marker is read off the cook plan, and a single-meal '
+      'cook gets none (D6)', (tester) async {
+    // One recipe, two meals two days apart, keeping 4 days → ONE session
+    // covering both: Monday cooks, Wednesday comes out of that batch.
+    final plan = _FakeCookPlanRepo([
+      const PlannedRecipe(
+        recipeId: 'r1',
+        title: 'Weeknight Chicken Curry',
+        servingsBase: 2,
+        keepsForDays: 4,
+        meals: [
+          CoveredMeal(dayOfWeek: 0, mealSlot: 'Dinner', portions: 2),
+          CoveredMeal(dayOfWeek: 2, mealSlot: 'Dinner', portions: 2),
+        ],
+      ),
+    ]);
+    await tester.pumpWidget(
+      _host([
+        planningRepositoryProvider.overrideWithValue(
+          _FakePlanningRepo(week: _batchedWeek()),
+        ),
+        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+      ], cook: plan),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('batch of 4'), findsOneWidget);
+    expect(find.text('from Monday\u2019s batch'), findsOneWidget);
+
+    // A week whose only meal cooks for itself says nothing — "cooks today" on
+    // every row would be noise.
+    await tester.pumpWidget(
+      _host([
+        planningRepositoryProvider.overrideWithValue(
+          _FakePlanningRepo(week: _plannedWeek()),
+        ),
+        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+      ]),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('batch of'), findsNothing);
+  });
+
+  testWidgets('the mode decides the tap: recipe in presentation, entry sheet '
+      'in edit (D7)', (tester) async {
+    ignoreForuiSemanticsAssertion();
     late GoRouter router;
     await tester.pumpWidget(
       _routedHost([
@@ -314,27 +484,22 @@ void main() {
 
     await tester.tap(find.text('Weeknight Chicken Curry'));
     await tester.pumpAndSettle();
-
     expect(router.state.uri.toString(), '/recipes/r1');
     expect(find.text('recipe r1'), findsOneWidget);
-  });
 
-  testWidgets('the dish menu still opens without navigating', (tester) async {
-    late GoRouter router;
-    await tester.pumpWidget(
-      _routedHost([
-        planningRepositoryProvider.overrideWithValue(
-          _FakePlanningRepo(week: _plannedWeek()),
-        ),
-        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
-      ], (r) => router = r),
-    );
+    router.go('/week');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Weeknight Chicken Curry'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Remove'), findsOneWidget);
+    // The sheet, not the recipe — and it carries what the retired `...` menu
+    // and the eaters dialog used to hold, in one place.
     expect(router.state.uri.toString(), '/week');
+    expect(find.text('This meal'), findsOneWidget);
+    expect(find.text('Remove from the week'), findsOneWidget);
+    expect(find.text("WHO'S EATING"), findsOneWidget);
+    expect(find.text('DAY \u00b7 SLOT'), findsOneWidget);
   });
 }

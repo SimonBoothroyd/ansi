@@ -15,10 +15,13 @@ planning/
                   mealSlotRank) + planning_repository.dart — PURE DART
   data/           SqlitePlanningRepository over the local PowerSync views;
                   providers
-  presentation/   WeekView (day-card grid + Shared/Per-person lens),
+  presentation/   WeekView (day-card grid; presentation + edit modes),
+                  week_header (the week switcher and its returns),
                   recipe_picker_sheet + confirm_meal_sheet (the two-step add
-                  flow), edit_eaters_dialog, week_widgets (Pill, EaterAvatar,
-                  EaterAvatarStack), week_format
+                  flow), entry_sheet (what a row opens in edit mode),
+                  meal_fields (the controls both sheets share),
+                  week_widgets (Pill, EaterAvatar, EaterAvatarStack,
+                  PortionsChip, CookMarkerLine), week_format
 ```
 
 ## The add flow (two steps)

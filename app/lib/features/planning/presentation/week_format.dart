@@ -1,9 +1,11 @@
-/// Display strings for the Week screen: weekday labels and the "Week of …"
-/// header. Kept apart from widgets so the labels are trivially testable.
+/// Display strings for the Week screen: weekday labels, the week's own name,
+/// and the per-dish cook marker. Kept apart from widgets so the labels — and,
+/// for the marker, the derivation behind them — are trivially testable.
 library;
 
 import 'dart:math' as math;
 
+import '../../cook_plan/domain/cook_plan.dart';
 import '../domain/planning.dart';
 
 /// Short weekday labels indexed 0=Monday..6=Sunday (grid order).
@@ -105,3 +107,96 @@ String formatLastPlanned(DateTime lastPlanned, DateTime today) {
   if (days < 28) return '${days ~/ 7}w ago';
   return '${math.max(1, days ~/ 30)}mo ago';
 }
+
+/// What a planned dish's second line says about how it gets cooked (D6).
+enum CookMarkerKind {
+  /// This day IS the batch's cook day.
+  cooks,
+
+  /// The batch was cooked earlier and this meal comes out of the fridge.
+  fromBatch,
+
+  /// The batch was cooked earlier, this day is past the fridge window, and
+  /// the freezer is what reaches it.
+  freezerShare,
+}
+
+/// The cook marker for one planned meal, or null when there is nothing worth
+/// saying (see [cookMarkerFor]).
+typedef CookMarker = ({
+  CookMarkerKind kind,
+  int cookDay,
+
+  /// Portions the whole batch cooks — the `batch of 4` on the cook day.
+  int batchPortions,
+
+  /// Where this day sits in the batch's fridge window, 0 (just cooked) to 1
+  /// (the end of it). Drives the mini fresh→gone bar. 0 when the recipe has
+  /// no shelf life set — an unknown window is not a full one.
+  double position,
+});
+
+/// Reads the cook marker for the meal on [dayOfWeek] / [mealSlot] back off the
+/// cook plan (D6) — a READ of the derivation the Cook tab already draws,
+/// turned around and printed on its input. No new batching logic lives here.
+///
+/// Null — no second line at all — when:
+///
+/// * nothing in the plan covers that meal (an unknown recipe, or a plan still
+///   loading), or
+/// * the session cooks for **one** meal only. "cooks today" on every row of a
+///   week with no batching in it is noise, and an absent second line collapses
+///   the row back to one line, which is the point of putting it there.
+CookMarker? cookMarkerFor(
+  CookPlan plan, {
+  required String recipeId,
+  required int dayOfWeek,
+  required String mealSlot,
+}) {
+  for (final recipe in plan.recipes) {
+    if (recipe.recipeId != recipeId) continue;
+    for (final session in recipe.mealSessions) {
+      final covers = session.covers.any(
+        (m) => m.dayOfWeek == dayOfWeek && m.mealSlot == mealSlot,
+      );
+      if (!covers) continue;
+      // One meal, one cook: there is no batch to talk about.
+      if (session.covers.length < 2) return null;
+
+      final keeps = session.keepsForDays;
+      final gap = dayOfWeek - session.cookDay;
+      final kind = gap == 0
+          ? CookMarkerKind.cooks
+          : session.frozenDays.contains(dayOfWeek)
+          ? CookMarkerKind.freezerShare
+          : CookMarkerKind.fromBatch;
+      return (
+        kind: kind,
+        cookDay: session.cookDay,
+        batchPortions: session.totalPortions,
+        position: keeps == null || keeps <= 0
+            ? 0
+            : math.min(1, math.max(0, gap / keeps)),
+      );
+    }
+  }
+  return null;
+}
+
+/// The marker's words. [todayDayOfWeek] is today's index (0=Mon..6=Sun) when
+/// the CURRENT week is on screen, and null otherwise — "cooks today" is only
+/// true of the week that contains today.
+String cookMarkerLabel(CookMarker marker, {int? todayDayOfWeek}) =>
+    switch (marker.kind) {
+      CookMarkerKind.cooks =>
+        todayDayOfWeek == marker.cookDay
+            ? 'cooks today · batch of ${marker.batchPortions}'
+            : 'cooks ${kWeekdayShort[marker.cookDay]} · '
+                  'batch of ${marker.batchPortions}',
+      CookMarkerKind.fromBatch =>
+        'from ${kWeekdayFull[marker.cookDay]}\u2019s batch',
+      // The snowflake is drawn as an icon beside this, never as a glyph — the
+      // bundled fonts have no \u2744 ([[mise-forui-icons-not-unicode-glyphs]]).
+      CookMarkerKind.freezerShare =>
+        '${kWeekdayFull[marker.cookDay]}\u2019s freezer share',
+    };

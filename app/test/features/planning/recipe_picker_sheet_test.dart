@@ -98,6 +98,17 @@ class _FakePlanningRepo implements PlanningRepository {
   }) async => 'e';
   @override
   Future<void> setEaters(String entryId, List<String> eaterIds) async {}
+
+  @override
+  Future<void> setDaySlot({
+    required String entryId,
+    required int dayOfWeek,
+    required String mealSlot,
+  }) async {}
+
+  @override
+  Future<void> setPortions(String entryId, int? portions) async {}
+
   @override
   Future<void> removeEntry(String entryId) async {}
   @override
