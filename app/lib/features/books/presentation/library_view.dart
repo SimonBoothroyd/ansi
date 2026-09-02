@@ -3,6 +3,8 @@
 /// sections, not presets").
 library;
 
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -37,18 +39,27 @@ class LibraryView extends ConsumerWidget {
         title: Text('Library', style: ansiHeaderTitle()),
         suffixes: [
           FPopoverMenu(
-            menu: [
+            // `menuBuilder`, not `menu`: the items need the controller so each
+            // can dismiss the menu before it navigates. Picking an item is
+            // always the end of the menu's business.
+            menuBuilder: (_, controller, _) => [
               FItemGroup(
                 children: [
                   FItem(
                     prefix: const Icon(FLucideIcons.cookingPot),
                     title: const Text('New recipe'),
-                    onPress: () => context.pushOnce('/recipes/new'),
+                    onPress: () {
+                      unawaited(controller.hide());
+                      context.pushOnce('/recipes/new');
+                    },
                   ),
                   FItem(
                     prefix: const Icon(FLucideIcons.download),
                     title: const Text('Import a recipe'),
-                    onPress: () => context.pushOnce('/import'),
+                    onPress: () {
+                      unawaited(controller.hide());
+                      context.pushOnce('/import');
+                    },
                   ),
                   // Beside "Import a recipe" — the `/import` precedent, plan
                   // 0020 D8. The badge is the second door: the fleshing-out
@@ -57,12 +68,16 @@ class LibraryView extends ConsumerWidget {
                     prefix: const Icon(FLucideIcons.carrot),
                     title: const Text('Ingredients'),
                     suffix: const _StubCountBadge(),
-                    onPress: () => context.pushOnce(kIngredientsRoute),
+                    onPress: () {
+                      unawaited(controller.hide());
+                      context.pushOnce(kIngredientsRoute);
+                    },
                   ),
                   FItem(
                     prefix: const Icon(FLucideIcons.bookPlus),
                     title: const Text('New book'),
                     onPress: () async {
+                      unawaited(controller.hide());
                       final name = await promptForText(
                         context,
                         title: 'New book',
@@ -82,6 +97,7 @@ class LibraryView extends ConsumerWidget {
                     prefix: const Icon(FLucideIcons.logOut),
                     title: const Text('Sign out'),
                     onPress: () async {
+                      unawaited(controller.hide());
                       if (await _confirmSignOut(context)) {
                         await ref
                             .read(sessionControllerProvider.notifier)
@@ -320,13 +336,14 @@ class _SectionMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.read(bookRepositoryProvider);
     return FPopoverMenu(
-      menu: [
+      menuBuilder: (_, controller, _) => [
         FItemGroup(
           children: [
             FItem(
               prefix: const Icon(FLucideIcons.pencil),
               title: const Text('Rename'),
               onPress: () async {
+                unawaited(controller.hide());
                 final name = await promptForText(
                   context,
                   title: 'Rename section',
@@ -342,17 +359,26 @@ class _SectionMenu extends ConsumerWidget {
             FItem(
               prefix: const Icon(FLucideIcons.arrowUp),
               title: const Text('Move up'),
-              onPress: () => _move(ref, -1),
+              onPress: () {
+                unawaited(controller.hide());
+                unawaited(_move(ref, -1));
+              },
             ),
             FItem(
               prefix: const Icon(FLucideIcons.arrowDown),
               title: const Text('Move down'),
-              onPress: () => _move(ref, 1),
+              onPress: () {
+                unawaited(controller.hide());
+                unawaited(_move(ref, 1));
+              },
             ),
             FItem(
               prefix: const Icon(FLucideIcons.trash2),
               title: const Text('Delete'),
-              onPress: () => repo.deleteSection(section.id),
+              onPress: () {
+                unawaited(controller.hide());
+                unawaited(repo.deleteSection(section.id));
+              },
             ),
           ],
         ),

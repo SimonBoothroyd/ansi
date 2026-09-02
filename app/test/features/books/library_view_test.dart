@@ -7,6 +7,7 @@ import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
@@ -72,6 +73,30 @@ List<Override> _repo(List<Book> books) => [
   bookRepositoryProvider.overrideWithValue(_FakeBookRepo(books)),
 ];
 
+/// The library inside a real router, so a menu item can push and the pushed
+/// route can be popped again.
+Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
+  final router = GoRouter(
+    initialLocation: '/',
+    routes: [
+      GoRoute(path: '/', builder: (_, _) => const LibraryView()),
+      GoRoute(
+        path: '/import',
+        builder: (_, _) => const FScaffold(child: Text('import screen')),
+      ),
+    ],
+  );
+  addTearDown(router.dispose);
+  expose(router);
+  return ProviderScope(
+    overrides: overrides,
+    child: MaterialApp.router(
+      routerConfig: router,
+      builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
+    ),
+  );
+}
+
 void main() {
   testWidgets('LibraryView renders the book, its sections and recipes', (
     tester,
@@ -116,5 +141,27 @@ void main() {
     // U+FF0B is missing from the bundled fonts and renders as tofu.
     expect(find.textContaining('＋'), findsNothing);
     expect(find.textContaining('new section'), findsOneWidget);
+  });
+
+  testWidgets('the + menu closes behind the page it opens', (tester) async {
+    late GoRouter router;
+    await tester.pumpWidget(_routedHost(_repo(_library), (r) => router = r));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(FLucideIcons.plus).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Import a recipe'), findsOneWidget);
+
+    await tester.tap(find.text('Import a recipe'));
+    await tester.pumpAndSettle();
+    expect(find.text('import screen'), findsOneWidget);
+
+    // Backing out of the pushed page must not reveal a menu left hanging open.
+    router.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Library'), findsOneWidget);
+    expect(find.text('Import a recipe'), findsNothing);
+    expect(find.text('Sign out'), findsNothing);
   });
 }

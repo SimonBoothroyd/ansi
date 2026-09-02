@@ -14,6 +14,8 @@
 /// refusal speaks — one query, two uses.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -119,7 +121,9 @@ class _RecipeBody extends HookConsumerWidget {
         ],
         suffixes: [
           FPopoverMenu(
-            menu: [
+            // `menuBuilder`, not `menu`: an item has to be able to dismiss the
+            // menu it was picked from before it navigates or opens a dialog.
+            menuBuilder: (_, controller, _) => [
               FItemGroup(
                 children: [
                   // The Favorites-tab marking affordance (7.7): a star
@@ -129,20 +133,30 @@ class _RecipeBody extends HookConsumerWidget {
                       favorite ? FLucideIcons.starOff : FLucideIcons.star,
                     ),
                     title: Text(favorite ? 'Unfavorite' : 'Favorite'),
-                    onPress: () => ref
-                        .read(recipeRepositoryProvider)
-                        .setFavorite(recipe.id, !favorite),
+                    onPress: () {
+                      unawaited(controller.hide());
+                      unawaited(
+                        ref
+                            .read(recipeRepositoryProvider)
+                            .setFavorite(recipe.id, !favorite),
+                      );
+                    },
                   ),
                   FItem(
                     prefix: const Icon(FLucideIcons.pencil),
                     title: const Text('Edit'),
-                    onPress: () =>
-                        context.pushOnce('/recipes/${recipe.id}/edit'),
+                    onPress: () {
+                      unawaited(controller.hide());
+                      context.pushOnce('/recipes/${recipe.id}/edit');
+                    },
                   ),
                   FItem(
                     prefix: const Icon(FLucideIcons.trash2),
                     title: const Text('Delete'),
-                    onPress: () => _confirmDelete(context, ref),
+                    onPress: () {
+                      unawaited(controller.hide());
+                      unawaited(_confirmDelete(context, ref));
+                    },
                   ),
                 ],
               ),

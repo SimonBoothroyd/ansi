@@ -8,6 +8,8 @@
 /// eat"). Planned weeks sync to the household like everything else (step 7).
 library;
 
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -71,13 +73,18 @@ class WeekView extends HookConsumerWidget {
         suffixes: [
           if (lastWeek != null)
             FPopoverMenu(
-              menu: [
+              // `menuBuilder`, not `menu`: an item has to be able to dismiss
+              // the menu it was picked from before it acts.
+              menuBuilder: (_, controller, _) => [
                 FItemGroup(
                   children: [
                     FItem(
                       prefix: const Icon(FLucideIcons.copy),
                       title: const Text('Copy last week'),
-                      onPress: () => repo.copyLastWeek(weekStart),
+                      onPress: () {
+                        unawaited(controller.hide());
+                        unawaited(repo.copyLastWeek(weekStart));
+                      },
                     ),
                   ],
                 ),
@@ -498,13 +505,14 @@ class _DishMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.read(planningRepositoryProvider);
     return FPopoverMenu(
-      menu: [
+      menuBuilder: (_, controller, _) => [
         FItemGroup(
           children: [
             FItem(
               prefix: const Icon(FLucideIcons.users),
               title: const Text("Edit who's eating"),
               onPress: () async {
+                unawaited(controller.hide());
                 final members = await ref.read(membersProvider.future);
                 if (!context.mounted) return;
                 final next = await showEditEatersDialog(
@@ -518,7 +526,10 @@ class _DishMenu extends ConsumerWidget {
             FItem(
               prefix: const Icon(FLucideIcons.trash2),
               title: const Text('Remove'),
-              onPress: () => repo.removeEntry(entry.id),
+              onPress: () {
+                unawaited(controller.hide());
+                unawaited(repo.removeEntry(entry.id));
+              },
             ),
           ],
         ),
