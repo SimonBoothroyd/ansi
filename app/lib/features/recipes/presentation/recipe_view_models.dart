@@ -15,6 +15,8 @@ import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../data/recipe_providers.dart';
+import '../domain/method_draft.dart';
+import '../domain/method_step.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_repository.dart';
 
@@ -74,7 +76,7 @@ class RecipeEditor extends _$RecipeEditor {
           .read(recipeRepositoryProvider)
           .watchRecipe(recipeId)
           .first;
-      if (existing != null) return existing;
+      if (existing != null) return _tokenized(existing);
     }
     // New recipe: file it into the default book (Unsectioned) so it surfaces in
     // the Library the moment it's saved.
@@ -85,11 +87,26 @@ class RecipeEditor extends _$RecipeEditor {
       servingsBase: 2,
       bookId: book.id,
       groups: [IngredientGroup(id: _uuid.v4())],
+      methodSteps: const [],
     );
   }
 
+  /// One method shape from here on (0022 D8): a recipe opened with the legacy
+  /// plain [Recipe.steps] becomes one text token per line, so the editor, the
+  /// recipe page and cook mode all read the same thing. Nothing is
+  /// re-tokenized, re-matched or re-fetched — a line of prose is a line of
+  /// prose.
+  Recipe _tokenized(Recipe recipe) => recipe.methodSteps != null
+      ? recipe
+      : recipe.copyWith(methodSteps: methodFromPlainSteps(recipe.steps));
+
   Recipe get _current => state.requireValue;
   void _set(Recipe r) => state = AsyncData(r);
+
+  /// Editor-session step ids, index-aligned with `methodSteps`. Minted on
+  /// load, carried through reorder, and never persisted — see
+  /// [stableStepKey] for why the wire format holds none.
+  List<String> _stepIds = const [];
 
   /// True while a [save] is in flight. A double-tapped Save would otherwise run
   /// the child-diff write twice concurrently.
@@ -274,11 +291,169 @@ class RecipeEditor extends _$RecipeEditor {
     ),
   );
 
-  /// Replaces the whole method from a single multiline field — one step per
-  /// line. Blank lines are kept here so the field round-trips; [save] drops
-  /// them on persist.
-  void setStepsText(String text) =>
-      _set(_current.copyWith(steps: text.split('\n')));
+  // --- the method (0022) ------------------------------------------------
+
+  /// Every line of this recipe by id — what the fold derives a chip's live
+  /// amount from, and what the line picker offers.
+  Map<String, LineItem> lineById() => {
+    for (final group in _current.groups)
+      for (final item in group.items) item.id: item,
+  };
+
+  /// The method as the editor holds it: one sentence per step, with the ranges
+  /// that are chips. Derived from the tokens, so there is one source of truth.
+  List<MethodDraftStep> methodDraft() {
+    final steps = _current.methodSteps ?? const <MethodStep>[];
+    if (_stepIds.length != steps.length) {
+      _stepIds = [
+        for (var i = 0; i < steps.length; i++)
+          if (i < _stepIds.length) _stepIds[i] else _uuid.v4(),
+      ];
+    }
+    final lines = lineById();
+    return [
+      for (final (i, step) in steps.indexed)
+        toDraft(step, id: _stepIds[i], lineById: lines),
+    ];
+  }
+
+  void _setMethod(List<MethodDraftStep> drafts) {
+    _stepIds = [for (final d in drafts) d.id];
+    _set(
+      _current.copyWith(methodSteps: [for (final d in drafts) toTokens(d)]),
+    );
+  }
+
+  void _mapStep(String stepId, MethodDraftStep Function(MethodDraftStep) f) {
+    final drafts = methodDraft();
+    final i = drafts.indexWhere((d) => d.id == stepId);
+    if (i < 0) return;
+    final next = f(drafts[i]);
+    // Forui registers its onChange as a plain controller listener, so a
+    // no-op edit must not re-enter state: it would round-trip forever.
+    if (next == drafts[i]) return;
+    _setMethod([...drafts]..[i] = next);
+  }
+
+  /// One keystroke in a step card. Span arithmetic (and chip demotion) lives
+  /// in [applyEdit]; this only re-seats the result.
+  void editStep(String stepId, String text) =>
+      _mapStep(stepId, (d) => applyEdit(d, text));
+
+  void addMethodStep() {
+    final drafts = addStep(methodDraft(), id: _uuid.v4());
+    _setMethod(drafts);
+  }
+
+  void removeMethodStep(String stepId) =>
+      _setMethod(removeStep(methodDraft(), stepId));
+
+  void moveMethodStep(String stepId, int by) =>
+      _setMethod(moveStep(methodDraft(), stepId, by));
+
+  /// Chips the range `[start, end)` of [stepId] — **changing no text**.
+  void chipRange(
+    String stepId, {
+    required int start,
+    required int end,
+    required List<String> refs,
+    ChipAmountRule? amountRule,
+  }) => _mapStep(
+    stepId,
+    (d) => annotate(
+      d,
+      RefSpan(
+        start: start,
+        end: end,
+        refs: refs,
+        amountRule:
+            amountRule ??
+            amountRuleFor(
+              methodDraft(),
+              lineId: refs.first,
+              stepId: stepId,
+              offset: start,
+            ),
+      ),
+    ),
+  );
+
+  /// Marks `[start, end)` of [stepId] as a timer, changing no text.
+  void timerRange(
+    String stepId, {
+    required int start,
+    required int end,
+    required int lowSeconds,
+    required int highSeconds,
+  }) => _mapStep(
+    stepId,
+    (d) => annotate(
+      d,
+      TimerSpan(
+        start: start,
+        end: end,
+        lowSeconds: lowSeconds,
+        highSeconds: highSeconds,
+      ),
+    ),
+  );
+
+  /// The no-selection door: splices [word] in at the caret and chips it.
+  void insertChip(
+    String stepId, {
+    required int offset,
+    required String word,
+    required List<String> refs,
+  }) => _mapStep(
+    stepId,
+    (d) => insertSpan(
+      d,
+      offset: offset,
+      word: word,
+      span: RefSpan(
+        start: 0,
+        end: 0,
+        refs: refs,
+        amountRule: amountRuleFor(
+          methodDraft(),
+          lineId: refs.first,
+          stepId: stepId,
+          offset: offset,
+        ),
+      ),
+    ),
+  );
+
+  /// The no-selection door for a timer: inserts [formatTimerRange]'s own
+  /// output, so the round-trip never re-parses the string it printed.
+  void insertTimer(
+    String stepId, {
+    required int offset,
+    required int lowSeconds,
+    required int highSeconds,
+  }) => _mapStep(
+    stepId,
+    (d) => insertSpan(
+      d,
+      offset: offset,
+      word: formatTimerRange(lowSeconds, highSeconds),
+      span: TimerSpan(
+        start: 0,
+        end: 0,
+        lowSeconds: lowSeconds,
+        highSeconds: highSeconds,
+      ),
+    ),
+  );
+
+  /// The group a chip's *new* line lands in — the first one, minted if this
+  /// recipe somehow has none.
+  String ensureGroupId() {
+    if (_current.groups.isNotEmpty) return _current.groups.first.id;
+    final id = _uuid.v4();
+    _set(_current.copyWith(groups: [IngredientGroup(id: id)]));
+    return id;
+  }
 
   /// Persists the recipe (dropping blank steps) and returns its id. A second
   /// call while the first is still writing is a no-op that returns the same id
@@ -291,12 +466,18 @@ class RecipeEditor extends _$RecipeEditor {
   /// fresh open always rebuilds from scratch — but only while this notifier is
   /// still alive: after an auto-dispose mid-write, touching `ref` throws.
   Future<String> save() async {
+    final kept = lineById().keys.toSet();
+    final method = [
+      for (final step in _current.methodSteps ?? const <MethodStep>[])
+        if (toDraft(step, id: '').text.trim().isNotEmpty) step,
+    ];
     final recipe = _current.copyWith(
       title: _current.title.trim(),
-      steps: _current.steps
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
-          .toList(),
+      // The plain shape is write-never, read-legacy from 0022 on (D8).
+      steps: const [],
+      // A dangling ref can never reach the database, however the editor got
+      // here — the invariant is enforced on the way out, not trusted.
+      methodSteps: pruneDanglingRefs(method, kept),
     );
     if (_saving) return recipe.id;
     _saving = true;
