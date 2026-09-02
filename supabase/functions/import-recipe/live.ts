@@ -25,7 +25,11 @@ import type { ExtractAdapter } from "../_shared/types.ts";
 import { ClaudeHaikuAdapter } from "../_shared/adapters/claude.ts";
 import { fetchRawBlob } from "../_shared/jsonld.ts";
 import { matchLines as matchCascade } from "../_shared/match.ts";
-import { type SqlExecutor, sqlVocabMatcher } from "../_shared/match_db.ts";
+import {
+  type SqlExecutor,
+  sqlRecipeTitleMatcher,
+  sqlVocabMatcher,
+} from "../_shared/match_db.ts";
 import { readCaller } from "./auth.ts";
 import { type ImportDeps, makeHandler } from "./index.ts";
 
@@ -77,10 +81,15 @@ function executor(): SqlExecutor {
 
 function buildDeps(householdId: string): ImportDeps {
   const adapter: ExtractAdapter = new ClaudeHaikuAdapter();
-  const matcher = sqlVocabMatcher(executor(), householdId);
+  const exec = executor();
+  const matcher = sqlVocabMatcher(exec, householdId);
+  // 8.6 / D6: the same household's live recipe TITLES, so a printed
+  // cross-reference ("Romesco Aioli (page 38)") can be OFFERED as a component
+  // link at review. Never auto-linked; a line with no hit is untouched.
+  const recipes = sqlRecipeTitleMatcher(exec, householdId);
   return {
     adapter,
-    matchLines: (lines) => matchCascade(lines, matcher),
+    matchLines: (lines) => matchCascade(lines, matcher, recipes),
     fetchBlob: fetchRawBlob,
   };
 }

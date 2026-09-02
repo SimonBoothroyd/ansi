@@ -41,6 +41,6 @@ supabase start            # local stack
 supabase db reset         # re-run migrations + seed
 supabase db lint
 supabase test db          # pgTAP tests (tests/ — RLS, onboarding, token hook,
-                          #             unit admission)
+                          #             unit admission, nested recipes)
 cd functions && deno test # edge-function tests
 ```

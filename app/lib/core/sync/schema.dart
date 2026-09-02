@@ -55,6 +55,14 @@ const schema = Schema([
       'section_id',
     ), // → book_section.id (nullable; null = Unsectioned)
     Column.integer('favorite'), // 0/1 — the picker's Favorites tab (step 7.7)
+    // What one batch MAKES (step 8.6 / 0017) — "makes 1 cup", "makes 8 piece".
+    // Nullable and independent of servings_base; the optional second pair
+    // states the same batch in a DIFFERENT unit family ("250 g · 16 tbsp"),
+    // which is the only mass↔volume bridge a recipe has.
+    Column.real('yield_qty'),
+    Column.text('yield_unit'),
+    Column.real('yield_qty_2'),
+    Column.text('yield_unit_2'),
     ..._audit,
   ]),
   Table('ingredient_group', [
@@ -68,6 +76,10 @@ const schema = Schema([
     Column.text('household_id'),
     Column.text('group_id'),
     Column.text('ingredient_id'),
+    // → recipe.id (nullable, step 8.6 / 0017). A line is an ingredient OR a
+    // sub-recipe component, never both and never neither (the server's XOR
+    // check); a component line never carries a measure_id.
+    Column.text('sub_recipe_id'),
     Column.real('quantity'),
     Column.text('unit'),
     Column.text('measure_id'), // → ingredient_measure.id (nullable, step 7.6)

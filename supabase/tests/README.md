@@ -26,6 +26,16 @@ assertions in `begin … rollback` so runs leave no residue.
   source of the fact, per ADR-0009); the density→`allowed_units` union
   trigger; and the USDA stub prefill trigger, including that a stub insert
   survives a prefill that throws.
+- `nested_recipes.sql` — a recipe as an ingredient (0017, exec plan 0021
+  D1/D2/D5): the line-item identity XOR (`ingredient_id` ⊻ `sub_recipe_id`)
+  and the "a component carries no `measure_id`" fence; the yield checks
+  (positivity, both-or-neither per denomination, no second without a first,
+  and the DIFFERENT-family rule) plus the `unit_family()` vectors that mirror
+  `UnitFamily` in `app/lib/core/units/units.dart`; and the cycle/household
+  guard trigger — self-link, two-step and three-step cycles, the UPDATE leg,
+  that a soft-deleted link doesn't count, and that a `sub_recipe_id` can
+  never reach another household's recipe (from `authenticated` AND from a
+  superuser write, where RLS isn't doing the work).
 - `access_token_hook.sql` — `add_household_claim()` (0007/0008): injects the
   `household_id` claim for an onboarded user (oldest live membership,
   agreeing with `current_household_id()`), passes a not-yet-onboarded user's

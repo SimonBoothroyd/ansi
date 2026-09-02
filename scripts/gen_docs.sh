@@ -75,11 +75,35 @@ for path in MIGRATIONS:
         # "details" cell. Non-`add column` clauses are ignored, not guessed at.
         m = re.match(r"alter table (\w+) (.*)$", stmt, re.I)
         if m and m.group(1) in tables:
+            t = tables[m.group(1)]
             for clause in split_top_level(m.group(2)):
                 c = re.match(r"add column (?:if not exists )?(.*)$", clause, re.I)
                 if c:
-                    tables[m.group(1)]["columns"].append(
-                        parse_column(c.group(1), path.name))
+                    t["columns"].append(parse_column(c.group(1), path.name))
+                    continue
+                # `alter column x drop/set not null` RELAXES or tightens a
+                # column that already exists (0017 relaxes
+                # recipe_line_item.ingredient_id). Without this the table
+                # renders the original `create table` nullability forever —
+                # a generated doc quietly lying about the live schema.
+                c = re.match(
+                    r"alter column (\w+) (drop|set) not null$", clause, re.I)
+                if c:
+                    for col in t["columns"]:
+                        if col["name"] != c.group(1):
+                            continue
+                        drop = c.group(2).lower() == "drop"
+                        col["nullable"] = "yes" if drop else "no"
+                        col["detail"] = (
+                            col["detail"].replace("not null", "").strip()
+                            if drop else (col["detail"] + " not null").strip())
+                        # A column added and tightened by the SAME migration
+                        # (0012's basis_amount) needs no second stamp.
+                        if col["added_in"] != path.name:
+                            col["detail"] = (
+                                (col["detail"] + " " if col["detail"] else "")
+                                + f"*({'nullable' if drop else 'not null'} "
+                                  f"since `{path.name}`)*")
             continue
         m = re.match(r"alter publication powersync add table (.*)$", stmt, re.I)
         if m:

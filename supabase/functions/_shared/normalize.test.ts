@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { normalize } from "./normalize.ts";
+import { normalize, stripParentheticals } from "./normalize.ts";
 
 Deno.test("normalize — spec §7 worked examples", () => {
   assertEquals(normalize("2 large Onions, diced"), "onion");
@@ -97,4 +97,53 @@ Deno.test("normalize — drops vague amount words", () => {
   );
   // "and"/"of" are filler: "1 head of garlic, peeled and chopped" → "garlic".
   assertEquals(normalize("garlic, peeled and chopped"), "garlic");
+});
+
+// --- stripParentheticals (8.6 / 0021 D6) -------------------------------------
+
+Deno.test("stripParentheticals — drops a printed cross-reference", () => {
+  assertEquals(
+    stripParentheticals("Romesco Aioli (page 38)"),
+    "Romesco Aioli",
+  );
+  assertEquals(
+    stripParentheticals("Pretzel Buns (see page 97)"),
+    "Pretzel Buns",
+  );
+  assertEquals(
+    stripParentheticals("Garlic Butter (p. 17), melted"),
+    "Garlic Butter, melted",
+  );
+});
+
+Deno.test("stripParentheticals — nested and mid-phrase asides", () => {
+  assertEquals(
+    stripParentheticals("Tortilla chips (to serve (optional))"),
+    "Tortilla chips",
+  );
+  assertEquals(
+    stripParentheticals("coconut milk (400 g) tin"),
+    "coconut milk tin",
+  );
+  assertEquals(stripParentheticals("(see below) aioli"), "aioli");
+});
+
+Deno.test("stripParentheticals — an unbalanced bracket is left alone", () => {
+  // Never truncate what the source printed on a guess: the tail survives.
+  assertEquals(
+    stripParentheticals("Romesco Aioli (page 38"),
+    "Romesco Aioli (page 38",
+  );
+});
+
+Deno.test("stripParentheticals — an all-aside line strips to nothing", () => {
+  // The caller (recipeMatchText) falls back to the unstripped text here.
+  assertEquals(stripParentheticals("(see the aioli recipe)"), "");
+});
+
+Deno.test("normalize — is unchanged by 8.6: parentheticals still reach it", () => {
+  // The ingredient cascade's behaviour must not move for a suggestion-only
+  // feature — gold and the benchmark are built on these exact strings.
+  assertEquals(normalize("coconut milk (400 g)"), "coconut milk");
+  assertEquals(normalize("romesco aioli (page 38)"), "romesco aioli page");
 });

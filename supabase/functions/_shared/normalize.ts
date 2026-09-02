@@ -251,6 +251,43 @@ const IRREGULAR_PLURALS: Record<string, string> = {
   chilies: "chili",
 };
 
+/**
+ * Drops parenthetical asides from a line's identity text, leaving the rest of
+ * the words untouched and single-spaced.
+ *
+ * This exists for the step-8.6 sub-recipe tier (exec plan 0021 D6): a printed
+ * component reads `"Romesco Aioli (page 38)"`, and the cross-reference is
+ * noise the household's recipe TITLE ("Romesco Aioli") will never carry. The
+ * client already treats a parenthetical as prose rather than identity — a raw
+ * amount's bracketed aside routes to the notes slot (`amount_text.dart`) — and
+ * this is the same judgement on the identity side.
+ *
+ * Deliberately NOT folded into {@link normalize}: the ingredient cascade's
+ * behaviour (and every gold/benchmark number built on it) must not move for a
+ * feature that only ever produces a *suggestion*. A `(400 g)` on an ingredient
+ * line still reaches `normalize` intact.
+ *
+ * Unbalanced brackets are left alone rather than guessed at, so a stray "(" in
+ * the middle of a name can't swallow the rest of the line.
+ */
+export function stripParentheticals(text: string): string {
+  // Collapse the whitespace an excised aside leaves behind, including the gap
+  // it opens before a comma ("Garlic Butter (p. 17), melted").
+  const tidy = (s: string) =>
+    s.replace(/\s+/g, " ").replace(/\s+([,;.])/g, "$1").trim();
+  let out = "";
+  let depth = 0;
+  for (const ch of text) {
+    if (ch === "(") depth++;
+    else if (ch === ")" && depth > 0) depth--;
+    else if (depth === 0) out += ch;
+  }
+  // An unbalanced "(" leaves `depth > 0` and would have eaten the tail: fall
+  // back to the original rather than truncating what the source printed.
+  if (depth !== 0) return tidy(text);
+  return tidy(out);
+}
+
 /** Normalizes a raw ingredient string to its `match_text` (see file header). */
 export function normalize(ingredientText: string): string {
   // Hyphens join compound descriptors ("all-purpose", "extra-virgin"); treat

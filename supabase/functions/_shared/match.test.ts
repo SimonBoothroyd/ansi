@@ -5,9 +5,17 @@ import {
   bandForScore,
   matchLines,
   matchOne,
+  matchRecipeTitles,
   noneDedupeKey,
+  recipeMatchText,
+  TOP_N,
 } from "./match.ts";
-import { inMemoryVocabMatcher, type VocabEntry } from "./match_trgm.ts";
+import {
+  inMemoryRecipeTitleMatcher,
+  inMemoryVocabMatcher,
+  type RecipeTitleEntry,
+  type VocabEntry,
+} from "./match_trgm.ts";
 import { normalize } from "./normalize.ts";
 import type { RawLineItem } from "./types.ts";
 
@@ -146,6 +154,113 @@ Deno.test("cascade — ambiguous exact (shared surface) → suggest, not auto", 
   const r = await matchOne("green onion", ambiguous);
   assertEquals(r.band, "suggest");
   assertEquals(r.candidates.length, 2);
+});
+
+// --- The sub-recipe tier (step 8.6 / exec plan 0021 D6) ----------------------
+// The household's own recipes, as the review card would offer them. Titles are
+// normalized by the matcher itself (a recipe has no stored match_text).
+
+const RECIPES: RecipeTitleEntry[] = [
+  { recipe_id: "r-aioli", title: "Romesco Aioli" },
+  { recipe_id: "r-buns", title: "Pretzel Buns" },
+  { recipe_id: "r-butter", title: "Garlic Butter" },
+];
+const recipes = inMemoryRecipeTitleMatcher(RECIPES);
+
+Deno.test("sub-recipe tier — the printed cross-reference is stripped before matching", () => {
+  // "(page 38)" is the whole reason a title hit needs its own match text: the
+  // ingredient cascade's normalizer keeps "page" as a noun.
+  assertEquals(recipeMatchText("Romesco Aioli (page 38)"), "romesco aioli");
+  assertEquals(normalize("Romesco Aioli (page 38)"), "romesco aioli page");
+  // An aside that IS the line falls back to the unstripped text rather than
+  // matching everything with an empty string.
+  assertEquals(recipeMatchText("(page 38)"), "page");
+});
+
+Deno.test("sub-recipe tier — an exact title hit is offered", async () => {
+  const hits = await matchRecipeTitles("Romesco Aioli (page 38)", recipes);
+  assertEquals(hits.length, 1);
+  assertEquals(hits[0].recipe_id, "r-aioli");
+  assertEquals(hits[0].title, "Romesco Aioli"); // the stored title, for the chip
+  assertEquals(hits[0].score, 1);
+});
+
+Deno.test("sub-recipe tier — the normalizer is symmetric on titles", async () => {
+  // "8 Pretzel Buns (page 97)" — plural on the line, singular nowhere: both
+  // sides go through the same §7 normalizer, so they meet.
+  const hits = await matchRecipeTitles("Pretzel Buns (page 97)", recipes);
+  assertEquals(hits.map((h) => h.recipe_id), ["r-buns"]);
+});
+
+Deno.test("sub-recipe tier — an ordinary ingredient line offers nothing", async () => {
+  assertEquals(await matchRecipeTitles("2 large onions, diced", recipes), []);
+  assertEquals(await matchRecipeTitles("", recipes), []);
+});
+
+Deno.test("sub-recipe tier — weak trigram noise is filtered out", async () => {
+  // Below BAND_SUGGEST_MIN nothing is offered: a stray "↪ your recipe" chip on
+  // a plain ingredient line is pure noise, and a missed one costs a tap.
+  const noisy = inMemoryRecipeTitleMatcher([
+    { recipe_id: "r-x", title: "Roast Aubergine and Butterbean Stew" },
+  ]);
+  assertEquals(await matchRecipeTitles("butter", noisy), []);
+  // …while a typo'd surface that still scores in-band IS offered.
+  const near = await matchRecipeTitles("garlick butter", recipes);
+  assertEquals(near.map((h) => h.recipe_id), ["r-butter"]);
+  assert(near[0].score >= BAND_SUGGEST_MIN && near[0].score < 1);
+});
+
+Deno.test("matchLines — recipe candidates are ADDITIVE and never auto-link", async () => {
+  const out = await matchLines(
+    [line("¼ cup Romesco Aioli (page 38)"), line("onion")],
+    hand,
+    recipes,
+  );
+  // The component line: no ingredient match, a recipe suggestion beside it.
+  assertEquals(out[0].band, "none");
+  assertEquals(out[0].candidates, []);
+  assertEquals(out[0].recipe_candidates?.map((c) => c.title), [
+    "Romesco Aioli",
+  ]);
+  // The ordinary line is untouched — same band, same candidates, no new key.
+  assertEquals(out[1].band, "auto");
+  assertEquals(out[1].candidates[0].canonical_name, "Onion");
+  assertEquals(out[1].recipe_candidates, undefined);
+});
+
+Deno.test("matchLines — the ingredient cascade is unaffected by the recipe tier", async () => {
+  // A line that hits BOTH: the band and candidates are exactly what the
+  // two-argument call produces; the suggestion rides alongside, and the human
+  // picks (D6 — matching offers, it never chooses).
+  const alsoARecipe = inMemoryRecipeTitleMatcher([
+    { recipe_id: "r-onion", title: "Onion" },
+  ]);
+  const lines = [line("2 large Onions, diced")];
+  const before = await matchLines(lines, hand);
+  const after = await matchLines(lines, hand, alsoARecipe);
+  assertEquals(after[0].band, before[0].band);
+  assertEquals(after[0].candidates, before[0].candidates);
+  assertEquals(after[0].recipe_candidates?.length, 1);
+  // No matcher ⇒ the key is absent entirely (the pre-8.6 wire shape).
+  assert(!("recipe_candidates" in before[0]));
+});
+
+Deno.test("sub-recipe tier — candidates are capped at TOP_N and deterministic", async () => {
+  const many = inMemoryRecipeTitleMatcher([
+    { recipe_id: "r-1", title: "Romesco Aioli" },
+    { recipe_id: "r-2", title: "Romesco Aioli Extra" },
+    { recipe_id: "r-3", title: "Romesco Aioli Verde" },
+    { recipe_id: "r-4", title: "Romesco Aioli Rojo" },
+  ]);
+  const hits = await matchRecipeTitles("romesco aioli", many);
+  assertEquals(hits.length, 1, "an exact title hit wins outright");
+  const fuzzy = await matchRecipeTitles("romesco aiolis extra verde", many);
+  assert(fuzzy.length <= TOP_N);
+  // Stable order: score desc, then title, then id — never row order.
+  assertEquals(
+    fuzzy,
+    await matchRecipeTitles("romesco aiolis extra verde", many),
+  );
 });
 
 // --- Calibration against the household vocab + lane-D eval set ----------------

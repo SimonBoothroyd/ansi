@@ -119,7 +119,19 @@ function assemble(
   for (const g of extraction.groups) {
     const lines: ReconLine[] = g.line_items.map(() => {
       const m = matched[cursor++];
-      return { raw: m.raw, band: m.band, candidates: m.candidates };
+      const line: ReconLine = {
+        raw: m.raw,
+        band: m.band,
+        candidates: m.candidates,
+      };
+      // 8.6 / D6: the sub-recipe suggestion rides along ONLY when there is
+      // one. No matcher wired, or no hit ⇒ the key is absent and the payload
+      // is byte-identical to the pre-8.6 contract (the golden fixture pins
+      // exactly that).
+      if (m.recipe_candidates && m.recipe_candidates.length > 0) {
+        line.recipe_candidates = m.recipe_candidates;
+      }
+      return line;
     });
     groups.push({ name: g.name, lines });
   }

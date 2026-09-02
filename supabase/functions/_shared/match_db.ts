@@ -17,8 +17,12 @@
 // Placeholders are $1,$2,… (Postgres positional) — the shape deno-postgres and
 // postgres.js `unsafe(text, params)` both accept.
 
-import type { MatchCandidate } from "./types.ts";
-import { TOP_N, type VocabMatcher } from "./match.ts";
+import type { MatchCandidate, RecipeCandidate } from "./types.ts";
+import { type RecipeTitleMatcher, TOP_N, type VocabMatcher } from "./match.ts";
+import {
+  inMemoryRecipeTitleMatcher,
+  type RecipeTitleEntry,
+} from "./match_trgm.ts";
 
 /** Minimal, driver-agnostic query seam: positional params in, rows out. */
 export type SqlExecutor = <T = Record<string, unknown>>(
@@ -108,6 +112,68 @@ export function sqlVocabMatcher(
         limit,
       ]);
       return rows.map(toCandidate);
+    },
+  };
+}
+
+// --- The sub-recipe tier: household recipe titles (8.6 / 0021 D6) ------------
+
+// Every LIVE recipe in the household, id + title. Deliberately the whole set in
+// one query rather than a per-line lookup:
+//
+//   * a recipe has no stored `match_text` column, and the comparison must run
+//     through the ONE shared normalizer (normalize.ts) — mirroring it in SQL
+//     would be a second, drifting copy of the rule the whole cascade rests on;
+//   * a household's recipe list is small (tens–hundreds of rows) next to the
+//     8k-row vocab, so one read per import beats N trigram queries;
+//   * scoring then reuses `trigramSimilarity`, which already mirrors pg_trgm
+//     for exactly this offline-scoring purpose (match_trgm.ts).
+//
+// Ordered so the load is deterministic, which keeps tie-breaking stable.
+const RECIPE_TITLES_SQL = `
+  select r.id::text as recipe_id, r.title
+  from recipe r
+  where r.household_id = $1 and r.deleted_at is null
+  order by r.title asc, r.id asc`;
+
+interface RecipeTitleRow {
+  recipe_id: string;
+  title: string;
+}
+
+/**
+ * A {@link RecipeTitleMatcher} backed by Postgres, bound to one household. The
+ * title list is loaded LAZILY and ONCE per instance (an import matches many
+ * lines against the same household), so a run with no lines costs no query.
+ */
+export function sqlRecipeTitleMatcher(
+  exec: SqlExecutor,
+  householdId: string,
+): RecipeTitleMatcher {
+  let loaded: Promise<RecipeTitleMatcher> | null = null;
+
+  const load = (): Promise<RecipeTitleMatcher> => {
+    loaded ??= exec<RecipeTitleRow>(RECIPE_TITLES_SQL, [householdId]).then(
+      (rows) =>
+        inMemoryRecipeTitleMatcher(
+          rows.map((r): RecipeTitleEntry => ({
+            recipe_id: r.recipe_id,
+            title: r.title,
+          })),
+        ),
+    );
+    return loaded;
+  };
+
+  return {
+    async exact(matchText: string): Promise<RecipeCandidate[]> {
+      return await (await load()).exact(matchText);
+    },
+    async trigram(
+      matchText: string,
+      limit = TOP_N,
+    ): Promise<RecipeCandidate[]> {
+      return await (await load()).trigram(matchText, limit);
     },
   };
 }

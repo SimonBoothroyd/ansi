@@ -443,6 +443,33 @@ merge gate — and note that a band is only the starting state: a line's *validi
 (matched · range picked · unit admitted) is recomputed independently, so an
 auto-matched line can still be flagged and still block Save (§8).
 
+### 6.1 The sub-recipe tier — offered, never chosen (step 8.6)
+
+A printed component line reads `"¼ cup Romesco Aioli (page 38)"`, and extraction
+has no idea it names a recipe rather than an ingredient — deliberately: the flag
+would add nothing matching can't see, and changing the contract would churn the
+gold set and the benchmark (exec plan 0021 D6; ADR-0004 intact).
+
+So matching does it. Alongside the vocab cascade, each line's `ingredient_text`
+runs through the **same §7 normalizer** against the household's **live recipe
+titles**, with parenthetical cross-references dropped first
+(`stripParentheticals` — `"(page 38)"` is noise no title carries). Titles have no
+stored `match_text` column, so the household's titles are read **once per import**
+and normalized in TypeScript: one normalizer, never a SQL mirror of it.
+
+The result is an **additive** field on the line, `recipe_candidates`
+(`{recipe_id, title, score}`), **omitted entirely when empty** — a client that
+predates 8.6 decodes exactly the bytes it did before, and the golden payload
+fixture pins that. It is independent of `band`/`candidates`: a line may match a
+vocab row *and* a recipe, and the review card offers **"↪ your recipe · Romesco
+Aioli"** as a chip beside the ingredient ones.
+
+Two fences. The tier is **stricter** than the ingredient cascade — only exact
+normalized-title hits, or trigram at or above `BAND_SUGGEST_MIN`, because a stray
+suggestion on a plain ingredient line is pure noise while a missed one costs one
+tap in the editor's picker. And it **never auto-links**: a human taps the chip,
+or the line stays plain text and commits exactly as it does today.
+
 ---
 
 ## 7. Normalization — where match quality actually lives

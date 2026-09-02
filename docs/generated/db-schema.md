@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (16 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (18 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -112,6 +112,10 @@ introduced in `0003_recipes.sql` · RLS enabled · in the `powersync` publicatio
 | `favorite` | `boolean` | no | not null default false *(added in `0011_picker_uplift.sql`)* |
 | `cook_time_seconds` | `int` | yes | check (cook_time_seconds is null or cook_time_seconds >= 0) *(added in `0013_recipe_times.sql`)* |
 | `total_time_seconds` | `int` | yes | check (total_time_seconds is null or total_time_seconds >= 0) *(added in `0013_recipe_times.sql`)* |
+| `yield_qty` | `numeric` | yes | check (yield_qty is null or yield_qty > 0) *(added in `0017_nested_recipes.sql`)* |
+| `yield_unit` | `text` | yes | *(added in `0017_nested_recipes.sql`)* |
+| `yield_qty_2` | `numeric` | yes | check (yield_qty_2 is null or yield_qty_2 > 0) *(added in `0017_nested_recipes.sql`)* |
+| `yield_unit_2` | `text` | yes | *(added in `0017_nested_recipes.sql`)* |
 
 ## `ingredient_group`
 
@@ -137,7 +141,7 @@ introduced in `0003_recipes.sql` · RLS enabled · in the `powersync` publicatio
 | `id` | `uuid` | no | primary key default gen_random_uuid() |
 | `household_id` | `uuid` | no | not null references household(id) |
 | `group_id` | `uuid` | no | not null references ingredient_group(id) on delete cascade |
-| `ingredient_id` | `uuid` | no | not null references ingredient(id) |
+| `ingredient_id` | `uuid` | yes | references ingredient(id) *(nullable since `0017_nested_recipes.sql`)* |
 | `quantity` | `numeric` | yes |  |
 | `unit` | `text` | no | not null |
 | `note` | `text` | yes |  |
@@ -146,6 +150,7 @@ introduced in `0003_recipes.sql` · RLS enabled · in the `powersync` publicatio
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |
 | `measure_id` | `uuid` | yes | references ingredient_measure(id) *(added in `0009_ingredient_measures.sql`)* |
+| `sub_recipe_id` | `uuid` | yes | references recipe(id) *(added in `0017_nested_recipes.sql`)* |
 
 ## `book`
 
@@ -265,4 +270,4 @@ introduced in `0009_ingredient_measures.sql` · RLS enabled · in the `powersync
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |
 | `source` | `text` | yes | *(added in `0010_measure_provenance.sql`)* |
-| `basis_amount` | `numeric` | yes | *(added in `0012_unit_admission.sql`)* |
+| `basis_amount` | `numeric` | no | not null *(added in `0012_unit_admission.sql`)* |

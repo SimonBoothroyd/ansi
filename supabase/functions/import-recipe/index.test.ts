@@ -191,6 +191,61 @@ Deno.test("importRecipe — re-groups matched lines to the right groups", async 
   );
 });
 
+Deno.test("importRecipe — a recipe suggestion rides through, and only when there is one", async () => {
+  // 8.6 / D6: the spine copies `recipe_candidates` onto the payload line when
+  // the matcher supplied one, and OMITS the key otherwise — a pre-8.6 client
+  // decodes the same bytes it always did.
+  const withSuggestion: ImportDeps["matchLines"] = (lines) =>
+    Promise.resolve(lines.map((raw) => ({
+      raw,
+      band: "none" as const,
+      candidates: [],
+      ...(raw.ingredient_text === "coconut milk"
+        ? {
+          recipe_candidates: [{
+            recipe_id: "r-coconut",
+            title: "Coconut Milk From Scratch",
+            score: 1,
+          }],
+        }
+        : {}),
+    })));
+  const payload = await importRecipe(
+    { url: "u" },
+    deps({ matchLines: withSuggestion }),
+  );
+  const flat = payload.groups.flatMap((g) => g.lines);
+  assertEquals(
+    flat.find((l) => l.raw.ingredient_text === "coconut milk")
+      ?.recipe_candidates,
+    [{ recipe_id: "r-coconut", title: "Coconut Milk From Scratch", score: 1 }],
+  );
+  // Every other line carries no such key at all (not an empty array).
+  for (const l of flat) {
+    if (l.raw.ingredient_text === "coconut milk") continue;
+    assertEquals("recipe_candidates" in l, false);
+  }
+});
+
+Deno.test("importRecipe — an empty recipe_candidates list is dropped, not emitted", async () => {
+  const emptyList: ImportDeps["matchLines"] = (lines) =>
+    Promise.resolve(lines.map((raw) => ({
+      raw,
+      band: "none" as const,
+      candidates: [],
+      recipe_candidates: [],
+    })));
+  const payload = await importRecipe(
+    { url: "u" },
+    deps({
+      matchLines: emptyList,
+    }),
+  );
+  for (const l of payload.groups.flatMap((g) => g.lines)) {
+    assertEquals("recipe_candidates" in l, false);
+  }
+});
+
 Deno.test("importRecipe — rejects both url and images", async () => {
   await assertRejects(
     () => importRecipe({ url: "u", images: [new Uint8Array()] }, deps()),

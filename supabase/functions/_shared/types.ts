@@ -199,10 +199,30 @@ export interface MatchCandidate {
   score: number;
 }
 
+/**
+ * A household RECIPE whose title the line's identity text matched (step 8.6,
+ * exec plan 0021 D6). Deliberately a separate shape from {@link MatchCandidate}:
+ * a recipe is not an ingredient, it never carries a band, and it is NEVER
+ * auto-linked — a human taps the suggestion or ignores it.
+ */
+export interface RecipeCandidate {
+  recipe_id: string;
+  title: string; // the recipe's title as stored (display text for the chip)
+  score: number; // 1 for an exact normalized-title hit, else trigram similarity
+}
+
 export interface MatchedLine {
   raw: RawLineItem;
   band: MatchBand;
   candidates: MatchCandidate[]; // top-N; empty for `none`
+  /**
+   * ADDITIVE (8.6): household recipes whose title this line might be naming.
+   * OMITTED entirely when there are none — and when no recipe-title matcher is
+   * wired at all — so a client that predates the field decodes exactly what it
+   * decoded before. Independent of `band`/`candidates`: a line can match an
+   * ingredient AND a recipe, and the human picks.
+   */
+  recipe_candidates?: RecipeCandidate[];
 }
 
 // --- Edge fn → app: ReconciliationPayload (lanes B, C) -----------------------
@@ -216,6 +236,8 @@ export interface ReconLine {
   raw: RawLineItem;
   band: MatchBand;
   candidates: MatchCandidate[];
+  /** See {@link MatchedLine.recipe_candidates} — present only when non-empty. */
+  recipe_candidates?: RecipeCandidate[];
 }
 
 export interface ReconGroup {

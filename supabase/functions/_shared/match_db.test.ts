@@ -1,6 +1,10 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
-import { type SqlExecutor, sqlVocabMatcher } from "./match_db.ts";
-import { matchOne } from "./match.ts";
+import {
+  type SqlExecutor,
+  sqlRecipeTitleMatcher,
+  sqlVocabMatcher,
+} from "./match_db.ts";
+import { matchOne, matchRecipeTitles } from "./match.ts";
 
 // A fake SqlExecutor: routes on a substring of the query and records calls, so the
 // SQL contracts are testable without Postgres. `deno test` stays hermetic; the
@@ -84,4 +88,57 @@ Deno.test("sqlVocabMatcher — drives the cascade end to end", async () => {
   const r = await matchOne("corn tortila", sqlVocabMatcher(exec, "hh"));
   assertEquals(r.band, "suggest");
   assertEquals(r.candidates[0].canonical_name, "Corn Tortilla");
+});
+
+// --- The sub-recipe tier's DB seam (8.6 / 0021 D6) ---------------------------
+
+Deno.test("sqlRecipeTitleMatcher — one household-scoped, live-only title read", async () => {
+  const { exec, calls } = fakeExec(() => [
+    { recipe_id: "r-aioli", title: "Romesco Aioli" },
+    { recipe_id: "r-buns", title: "Pretzel Buns" },
+  ]);
+  const m = sqlRecipeTitleMatcher(exec, "hh-1");
+
+  const hits = await m.exact("romesco aioli");
+  assertEquals(hits, [{
+    recipe_id: "r-aioli",
+    title: "Romesco Aioli",
+    score: 1,
+  }]);
+  assertEquals(calls[0].params, ["hh-1"]);
+  assertStringIncludes(calls[0].text, "from recipe r");
+  assertStringIncludes(calls[0].text, "r.household_id = $1");
+  assertStringIncludes(calls[0].text, "r.deleted_at is null"); // soft-delete aware
+
+  // Lazily loaded ONCE: an import matches many lines against one household.
+  await m.trigram("pretzle bun", 3);
+  await m.exact("pretzel bun");
+  assertEquals(calls.length, 1, "the title list is read once per matcher");
+});
+
+Deno.test("sqlRecipeTitleMatcher — no query at all until a line asks", () => {
+  const { exec, calls } = fakeExec(() => []);
+  sqlRecipeTitleMatcher(exec, "hh-1"); // constructed per request, in buildDeps
+  assertEquals(calls.length, 0, "constructing the matcher must not hit the DB");
+});
+
+Deno.test("sqlRecipeTitleMatcher — titles are normalized on read (no match_text column)", async () => {
+  const { exec } = fakeExec(() => [
+    { recipe_id: "r-buns", title: "Pretzel Buns" },
+  ]);
+  const m = sqlRecipeTitleMatcher(exec, "hh-1");
+  // Singularized by the SAME §7 normalizer the line's identity goes through.
+  assertEquals((await m.exact("pretzel bun")).length, 1);
+  assertEquals((await m.exact("Pretzel Buns")).length, 0);
+});
+
+Deno.test("sqlRecipeTitleMatcher — drives the sub-recipe tier end to end", async () => {
+  const { exec } = fakeExec(() => [
+    { recipe_id: "r-aioli", title: "Romesco Aioli" },
+  ]);
+  const hits = await matchRecipeTitles(
+    "¼ cup Romesco Aioli (page 38)",
+    sqlRecipeTitleMatcher(exec, "hh"),
+  );
+  assertEquals(hits.map((h) => h.recipe_id), ["r-aioli"]);
 });

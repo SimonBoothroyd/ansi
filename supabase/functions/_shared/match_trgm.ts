@@ -8,8 +8,14 @@
 // word with two leading spaces and one trailing space; take the set of 3-char
 // windows; similarity = |A ∩ B| / |A ∪ B| over the two trigram SETS.
 
-import type { MatchCandidate } from "./types.ts";
-import { TOP_N, TRIGRAM_FLOOR, type VocabMatcher } from "./match.ts";
+import type { MatchCandidate, RecipeCandidate } from "./types.ts";
+import {
+  type RecipeTitleMatcher,
+  TOP_N,
+  TRIGRAM_FLOOR,
+  type VocabMatcher,
+} from "./match.ts";
+import { normalize } from "./normalize.ts";
 
 /** The distinct trigram set of a string, pg_trgm style (word-padded windows). */
 export function trigrams(s: string): Set<string> {
@@ -80,6 +86,57 @@ export function inMemoryVocabMatcher(entries: VocabEntry[]): VocabMatcher {
         }
       }
       scored.sort((a, b) => b.score - a.score);
+      return Promise.resolve(scored.slice(0, limit));
+    },
+  };
+}
+
+// --- The sub-recipe tier's matcher (step 8.6 / 0021 D6) ----------------------
+
+/** One household recipe as the title tier sees it. */
+export interface RecipeTitleEntry {
+  recipe_id: string;
+  title: string;
+}
+
+/**
+ * A {@link RecipeTitleMatcher} over an in-memory list of household recipes.
+ *
+ * Unlike the ingredient vocab, a recipe has no stored `match_text` column — the
+ * title is normalized HERE, with the same shared normalizer the line's identity
+ * text goes through, which is what makes the comparison symmetric (§7). This is
+ * also the production path: `sqlRecipeTitleMatcher` loads the household's
+ * titles once and hands them straight to this function, because normalizing in
+ * TypeScript keeps ONE normalizer rather than a SQL mirror of it.
+ */
+export function inMemoryRecipeTitleMatcher(
+  entries: RecipeTitleEntry[],
+): RecipeTitleMatcher {
+  const rows = entries.map((e) => ({ ...e, match_text: normalize(e.title) }));
+  // Total ordering, for the same reason TRIGRAM_SQL sorts on three keys: ties
+  // are common in trigram space and a candidate list must not depend on row
+  // order.
+  const byScore = (a: RecipeCandidate, b: RecipeCandidate) =>
+    b.score - a.score || a.title.localeCompare(b.title) ||
+    a.recipe_id.localeCompare(b.recipe_id);
+
+  return {
+    exact(matchText: string): Promise<RecipeCandidate[]> {
+      const out = rows
+        .filter((r) => r.match_text === matchText && r.match_text !== "")
+        .map((r) => ({ recipe_id: r.recipe_id, title: r.title, score: 1 }));
+      out.sort(byScore);
+      return Promise.resolve(out);
+    },
+    trigram(matchText: string, limit = TOP_N): Promise<RecipeCandidate[]> {
+      const scored: RecipeCandidate[] = [];
+      for (const r of rows) {
+        const score = trigramSimilarity(r.match_text, matchText);
+        if (score >= TRIGRAM_FLOOR) {
+          scored.push({ recipe_id: r.recipe_id, title: r.title, score });
+        }
+      }
+      scored.sort(byScore);
       return Promise.resolve(scored.slice(0, limit));
     },
   };
