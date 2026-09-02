@@ -17,3 +17,27 @@ part 'book_view_models.g.dart';
 @riverpod
 Stream<List<Book>> library(Ref ref) =>
     ref.watch(bookRepositoryProvider).watchLibrary();
+
+/// Which books are folded shut on this device (D3).
+///
+/// Keep-alive, and not optional: the toggle lands after a frame, and every
+/// Library mutation beside it lands after an async dialog — a short-lived
+/// notifier would be disposed before its callback ran. Hydrated once from the
+/// store; each toggle writes through so the fold survives a relaunch.
+@Riverpod(keepAlive: true)
+class FoldedBooks extends _$FoldedBooks {
+  @override
+  Future<Set<String>> build() => ref.watch(bookCollapseStoreProvider).read();
+
+  /// Folds [bookId] shut, or opens it again. Optimistic: the set flips before
+  /// the write lands, because a chevron that waits on disk reads as broken.
+  Future<void> toggle(String bookId) async {
+    final next = {...state.asData?.value ?? const <String>{}};
+    final collapsed = !next.remove(bookId);
+    if (collapsed) next.add(bookId);
+    state = AsyncData(next);
+    await ref
+        .read(bookCollapseStoreProvider)
+        .write(bookId, collapsed: collapsed);
+  }
+}

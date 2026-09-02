@@ -41,6 +41,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/books/data/book_repository_impl.dart';
 import 'connector.dart';
 import 'database.dart';
+import 'device_prefs.dart';
 
 part 'session.g.dart';
 
@@ -136,13 +137,18 @@ abstract interface class HouseholdCache {
   /// Records [householdId] as [userId]'s household on this device.
   Future<void> write(String userId, String householdId);
 
-  /// Forgets every cached household (sign-out).
+  /// Forgets every device-local preference this app wrote — the cached
+  /// households and everything else in [DevicePrefs.sweptOnSignOut] (sign-out).
+  ///
+  /// Leaving one household's folded books behind for the device's next user is
+  /// untidy rather than unsafe, but sign-out is the one moment it costs nothing
+  /// to be tidy.
   Future<void> clear();
 }
 
 /// [HouseholdCache] over [SharedPreferences].
 class SharedPrefsHouseholdCache implements HouseholdCache {
-  static const _prefix = 'ansi.household_id.';
+  static const _prefix = DevicePrefs.householdIdPrefix;
 
   @override
   Future<String?> read(String userId) async {
@@ -159,7 +165,10 @@ class SharedPrefsHouseholdCache implements HouseholdCache {
   @override
   Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
-    for (final key in prefs.getKeys().where((k) => k.startsWith(_prefix))) {
+    final stale = prefs.getKeys().where(
+      (k) => DevicePrefs.sweptOnSignOut.any(k.startsWith),
+    );
+    for (final key in stale.toList()) {
       await prefs.remove(key);
     }
   }

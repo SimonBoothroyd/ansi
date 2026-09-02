@@ -1,6 +1,7 @@
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
+import 'package:ansi/features/books/domain/book_collapse_store.dart';
 import 'package:ansi/features/books/presentation/library_view.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
@@ -15,6 +16,22 @@ import '../../helpers/fake_book_repository.dart';
 
 class _FakeBookRepo extends FakeBookRepository {
   const _FakeBookRepo(super.books);
+}
+
+/// An in-memory [BookCollapseStore] — the fold without a `SharedPreferences`
+/// channel, so a widget test can assert what was persisted.
+class _FakeCollapseStore implements BookCollapseStore {
+  _FakeCollapseStore([Set<String>? initial]) : folded = {...?initial};
+
+  final Set<String> folded;
+
+  @override
+  Future<Set<String>> read() async => {...folded};
+
+  @override
+  Future<void> write(String bookId, {required bool collapsed}) async {
+    collapsed ? folded.add(bookId) : folded.remove(bookId);
+  }
 }
 
 /// Records the mutations a menu flow reaches for, so a test can assert on the
@@ -109,7 +126,7 @@ void main() {
 
     expect(find.text('Library'), findsOneWidget);
     expect(find.text('Our Cookbook'), findsOneWidget);
-    expect(find.text('2 recipes'), findsOneWidget);
+    expect(find.text('2 recipes · 1 section'), findsOneWidget);
     expect(find.text('Weeknight'), findsOneWidget);
     expect(find.text('Chicken Curry'), findsOneWidget);
     // The book-less recipe shows under the synthetic Unsectioned bucket.
@@ -226,6 +243,82 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.reordered, ['b2', 'b1']);
+  });
+
+  group('folding a book (D3)', () {
+    testWidgets('the chevron hides the contents and keeps the count', (
+      tester,
+    ) async {
+      final store = _FakeCollapseStore();
+      await tester.pumpWidget(
+        _host([
+          ..._repo(_library),
+          bookCollapseStoreProvider.overrideWithValue(store),
+        ]),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Chicken Curry'), findsOneWidget);
+
+      await tester.tap(find.byIcon(FLucideIcons.chevronDown));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chicken Curry'), findsNothing);
+      expect(find.text('Weeknight'), findsNothing);
+      // A fold that hides how much it hides is a fold you stop trusting.
+      expect(find.text('2 recipes · 1 section'), findsOneWidget);
+      // The dashed row goes with the card it belongs to.
+      expect(find.textContaining('new section'), findsNothing);
+      expect(store.folded, {'b1'});
+    });
+
+    testWidgets('a book folded on this device arrives folded', (tester) async {
+      await tester.pumpWidget(
+        _host([
+          ..._repo(_library),
+          bookCollapseStoreProvider.overrideWithValue(
+            _FakeCollapseStore({'b1'}),
+          ),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chicken Curry'), findsNothing);
+      expect(find.byIcon(FLucideIcons.chevronRight), findsOneWidget);
+    });
+
+    testWidgets('a book with nothing in it says so, never "0 recipes"', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(_repo(const [Book(id: 'b1', name: 'Our Cookbook')])),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('no recipes yet'), findsOneWidget);
+      expect(find.textContaining('0 recipes'), findsNothing);
+    });
+
+    testWidgets('an empty book with sections counts only what it has', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          _repo(const [
+            Book(
+              id: 'b1',
+              name: 'Baking',
+              sections: [
+                BookSection(id: 's1', name: 'Bread'),
+                BookSection(id: 's2', name: 'Cakes'),
+              ],
+            ),
+          ]),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('no recipes yet · 2 sections'), findsOneWidget);
+    });
   });
 
   testWidgets('the add-section affordance uses an icon, not a raw ＋ glyph', (

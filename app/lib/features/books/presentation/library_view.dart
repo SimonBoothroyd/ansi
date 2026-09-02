@@ -254,13 +254,11 @@ class _BookCard extends ConsumerWidget {
 
   final Book book;
 
-  int get _recipeCount =>
-      book.unsectioned.length +
-      book.sections.fold(0, (n, s) => n + s.recipes.length);
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.read(bookRepositoryProvider);
+    final folded = ref.watch(foldedBooksProvider).asData?.value ?? const {};
+    final expanded = !folded.contains(book.id);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
@@ -277,60 +275,105 @@ class _BookCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Herb header: book name + recipe count.
+                  // Herb header: name + the honest count line on the left, the
+                  // fold chevron on the right.
                   Container(
                     color: AnsiColors.herb,
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+                    child: Row(
                       children: [
-                        Text(
-                          book.name,
-                          style: ansiSerif(
-                            size: 19,
-                            color: AnsiColors.surface,
-                            weight: FontWeight.w500,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                book.name,
+                                style: ansiSerif(
+                                  size: 19,
+                                  color: AnsiColors.surface,
+                                  weight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                bookCountLine(book),
+                                style: ansiMono(
+                                  size: 10,
+                                  color: AnsiColors.surface,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$_recipeCount '
-                          '${_recipeCount == 1 ? 'recipe' : 'recipes'}',
-                          style: ansiMono(
-                            size: 10,
+                        FButton.icon(
+                          variant: FButtonVariant.ghost,
+                          onPress: () => unawaited(
+                            ref
+                                .read(foldedBooksProvider.notifier)
+                                .toggle(book.id),
+                          ),
+                          child: Icon(
+                            expanded
+                                ? FLucideIcons.chevronDown
+                                : FLucideIcons.chevronRight,
+                            size: 18,
                             color: AnsiColors.surface,
-                            letterSpacing: 0.8,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  for (final section in book.sections)
-                    _SectionBlock(book: book, section: section),
-                  if (book.unsectioned.isNotEmpty)
-                    _SectionBlock(book: book, unsectioned: book.unsectioned),
+                  if (expanded) ...[
+                    for (final section in book.sections)
+                      _SectionBlock(book: book, section: section),
+                    if (book.unsectioned.isNotEmpty)
+                      _SectionBlock(book: book, unsectioned: book.unsectioned),
+                  ],
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          _AddSectionButton(
-            onTap: () async {
-              final name = await promptForText(
-                context,
-                title: 'New section',
-                hint: 'Name it anything',
-                confirm: 'Add',
-              );
-              if (name != null && name.trim().isNotEmpty) {
-                await repo.createSection(book.id, name);
-              }
-            },
-          ),
+          if (expanded) ...[
+            const SizedBox(height: 12),
+            _AddSectionButton(
+              onTap: () async {
+                final name = await promptForText(
+                  context,
+                  title: 'New section',
+                  hint: 'Name it anything',
+                  confirm: 'Add',
+                );
+                if (name != null && name.trim().isNotEmpty) {
+                  await repo.createSection(book.id, name);
+                }
+              },
+            ),
+          ],
         ],
       ),
     );
   }
+}
+
+/// What a book says it holds — `42 recipes · 3 sections`.
+///
+/// A fold that hides how much it hides is a fold you stop trusting, so the
+/// line reads the same open or shut. An empty shelf says **"no recipes yet"**,
+/// never `0 recipes`, and a book with no sections omits that half entirely:
+/// the `_StubCountBadge` rule — a zero that renders looks like a bug.
+String bookCountLine(Book book) {
+  final recipes =
+      book.unsectioned.length +
+      book.sections.fold(0, (n, s) => n + s.recipes.length);
+  final sections = book.sections.length;
+  return [
+    if (recipes == 0)
+      'no recipes yet'
+    else
+      '$recipes ${recipes == 1 ? 'recipe' : 'recipes'}',
+    if (sections > 0) '$sections ${sections == 1 ? 'section' : 'sections'}',
+  ].join(' · ');
 }
 
 /// One section (or the synthetic Unsectioned bucket, when [section] is null)
