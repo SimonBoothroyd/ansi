@@ -43,6 +43,8 @@ import {
 } from "./fixtures.ts";
 import {
   type BenchmarkReport,
+  type CaseCall,
+  type Path,
   printCost,
   runBenchmark,
   type Stage,
@@ -107,6 +109,7 @@ interface Args {
   stages: Stage[];
   label: string;
   persist: boolean;
+  concurrency: number;
 }
 
 function parseArgs(): Args {
@@ -114,6 +117,10 @@ function parseArgs(): Args {
   let stages: Stage[] = ["D2", "D1", "D3"];
   let label = "compare";
   let persist = true;
+  // 4 in-flight calls per provider lane by default — the thinking-tier models
+  // take minutes per call, and 11 serial cases × 2 phases was an hour-shaped
+  // run. `--concurrency=1` restores the old serial behaviour.
+  let concurrency = 4;
   for (const arg of Deno.args) {
     if (arg.startsWith("--providers=")) {
       providers = arg.slice("--providers=".length).split(",") as ProviderName[];
@@ -123,9 +130,14 @@ function parseArgs(): Args {
       label = arg.slice("--label=".length);
     } else if (arg === "--no-persist") {
       persist = false;
+    } else if (arg.startsWith("--concurrency=")) {
+      concurrency = Math.max(
+        1,
+        Number(arg.slice("--concurrency=".length)) || 1,
+      );
     }
   }
-  return { providers, stages, label, persist };
+  return { providers, stages, label, persist, concurrency };
 }
 
 function printReport(r: BenchmarkReport): void {
@@ -142,32 +154,39 @@ function printReport(r: BenchmarkReport): void {
 }
 
 /**
- * Writes one report's captured calls into the run directory. Called per report
- * rather than at the end so a run that dies halfway still leaves the responses
- * it already paid for on disk.
+ * A per-case flush for `runBenchmark`'s `onCase` seam: writes the captured
+ * call the moment its case completes, so a run that dies mid-provider still
+ * keeps every response it already paid for — and a human `ls`-ing the run
+ * directory sees live progress instead of one batch per provider.
  */
-async function persistReport(dir: URL, r: BenchmarkReport): Promise<void> {
-  for (const c of r.calls) {
+function caseFlusher(
+  dir: URL,
+  meta: { provider: string; model: string; stage: Stage; path: Path },
+): (call: CaseCall) => Promise<void> {
+  return async (call) => {
     await writeCase(
       dir,
       await toSavedCase({
-        caseId: c.id,
-        stage: r.stage,
-        path: r.path,
-        inputText: c.input_text,
-        call: c.call,
-        provider: r.provider,
-        model: r.cost?.model ?? "unknown",
-        error: c.error,
+        caseId: call.id,
+        stage: meta.stage,
+        path: meta.path,
+        inputText: call.input_text,
+        call: call.call,
+        provider: meta.provider,
+        model: meta.model,
+        error: call.error,
       }),
     );
-  }
+  };
 }
 
 async function runD2PageText(
   provider: string,
   adapter: ExtractAdapter,
   cases: GoldCase[],
+  onCase?: (call: CaseCall) => Promise<void>,
+  concurrency = 1,
+  adapterFor?: () => ExtractAdapter,
 ): Promise<BenchmarkReport> {
   return await runBenchmark({
     provider,
@@ -176,6 +195,9 @@ async function runD2PageText(
     stage: "D2",
     path: "page_text",
     blobFor: goldToBlob,
+    onCase,
+    concurrency,
+    adapterFor,
   });
 }
 
@@ -188,22 +210,41 @@ async function runPhotoStage(
   adapter: ExtractAdapter,
   cases: GoldCase[],
   stage: Stage,
+  onCase?: (call: CaseCall) => Promise<void>,
+  concurrency = 1,
+  adapterFor?: () => ExtractAdapter,
 ): Promise<BenchmarkReport | null> {
   if (!adapter.transcribe) return null;
-  const withImages: { case: GoldCase; blob: RawBlob }[] = [];
-  for (const c of cases) {
-    const imgs = await loadImages(c.gold);
-    if (!imgs) continue;
-    try {
-      const blob = await adapter.transcribe(imgs);
-      withImages.push({ case: c, blob });
-    } catch (e) {
-      // One provider's transient failure must not crash the whole run.
-      console.error(
-        `  ! ${provider}/${c.id}: ${e instanceof Error ? e.message : e}`,
-      );
-    }
-  }
+  // Transcribe concurrently (worker pool, order kept by index): the vision
+  // calls are the slow half of D3, and no usage observer is attached at this
+  // point, so a shared adapter is already concurrency-safe here.
+  const blobs = new Array<RawBlob | null>(cases.length).fill(null);
+  let nextIdx = 0;
+  await Promise.all(
+    Array.from(
+      { length: Math.max(1, Math.min(concurrency, cases.length)) },
+      async () => {
+        while (true) {
+          const i = nextIdx++;
+          if (i >= cases.length) return;
+          const c = cases[i];
+          const imgs = await loadImages(c.gold);
+          if (!imgs) continue;
+          try {
+            blobs[i] = await adapter.transcribe!(imgs);
+          } catch (e) {
+            // One provider's transient failure must not crash the whole run.
+            console.error(
+              `  ! ${provider}/${c.id}: ${e instanceof Error ? e.message : e}`,
+            );
+          }
+        }
+      },
+    ),
+  );
+  const withImages = cases
+    .map((c, i) => ({ case: c, blob: blobs[i] }))
+    .filter((w): w is { case: GoldCase; blob: RawBlob } => w.blob !== null);
   if (withImages.length === 0) return null;
   const byId = new Map(withImages.map((w) => [w.case.id, w.blob]));
   return await runBenchmark({
@@ -219,11 +260,14 @@ async function runPhotoStage(
       if (!found) throw new Error("missing transcription blob");
       return found;
     },
+    onCase,
+    concurrency,
+    adapterFor,
   });
 }
 
 async function main(): Promise<void> {
-  const { providers, stages, label, persist } = parseArgs();
+  const { providers, stages, label, persist, concurrency } = parseArgs();
   const cases = await loadGold();
   const dir = runDir(label);
   console.log(
@@ -234,34 +278,63 @@ async function main(): Promise<void> {
   else console.log(`--no-persist: raw responses will NOT be saved`);
 
   const ran: { provider: string; model: string }[] = [];
-  for (const name of providers) {
+  // Provider lanes run CONCURRENTLY (each on its own adapter instances), with
+  // `concurrency` cases in flight inside each lane. Reports still print as
+  // whole blocks when a lane's stage completes.
+  await Promise.all(providers.map(async (name) => {
     let adapter: ExtractAdapter;
     try {
       adapter = buildProvider(name);
     } catch (e) {
       if (e instanceof MissingKeyError) {
         console.log(`\n## ${name} — SKIPPED: ${e.message}`);
-        continue;
+        return;
       }
       throw e;
     }
     ran.push({ provider: name, model: adapter.model ?? "unknown" });
+    const model = adapter.model ?? "unknown";
+    const adapterFor = () => buildProvider(name);
     if (stages.includes("D2")) {
-      const report = await runD2PageText(name, adapter, cases);
+      const report = await runD2PageText(
+        name,
+        adapter,
+        cases,
+        persist
+          ? caseFlusher(dir, {
+            provider: name,
+            model,
+            stage: "D2",
+            path: "page_text",
+          })
+          : undefined,
+        concurrency,
+        adapterFor,
+      );
       printReport(report);
-      if (persist) await persistReport(dir, report);
     }
     for (const stage of stages) {
       if (stage === "D2") continue;
-      const report = await runPhotoStage(name, adapter, cases, stage);
+      const report = await runPhotoStage(
+        name,
+        adapter,
+        cases,
+        stage,
+        persist
+          ? caseFlusher(dir, { provider: name, model, stage, path: "photo" })
+          : undefined,
+        concurrency,
+        adapterFor,
+      );
       if (report) {
         printReport(report);
-        if (persist) await persistReport(dir, report);
-      } else {console.log(
+      } else {
+        console.log(
           `\n## ${name} · ${stage} · photo — SKIPPED (no local images or no vision).`,
-        );}
+        );
+      }
     }
-  }
+  }));
   if (persist && ran.length > 0) {
     await writeManifest(
       dir,

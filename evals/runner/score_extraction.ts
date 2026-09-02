@@ -874,6 +874,27 @@ export interface BenchmarkOptions {
   /** Builds the RawBlob fed to sanitize for a case (default: gold source text). */
   blobFor?: (gold: GoldRecipe) => RawBlob;
   judge?: ProseJudge;
+  /**
+   * Awaited after each case completes (success or failure), with the captured
+   * call. A live run passes a flush-to-disk here so a paid response hits
+   * `evals/runs/` the moment it exists — a run that dies (or is watched
+   * mid-flight) keeps/reveals every case already bought, not just whole
+   * provider reports.
+   */
+  onCase?: (call: CaseCall) => void | Promise<void>;
+  /**
+   * Cases in flight at once (default 1 — the historical serial behaviour).
+   * Anything above 1 REQUIRES [adapterFor]: usage capture rides the adapter's
+   * single `onCall` observer, so two concurrent calls on one adapter would
+   * race the capture and attribute usage to the wrong case.
+   */
+  concurrency?: number;
+  /**
+   * Builds a fresh adapter per case — the seam that makes concurrency safe
+   * (each case gets its own observer). Serial runs may omit it and share
+   * [adapter], exactly as before.
+   */
+  adapterFor?: () => ExtractAdapter;
 }
 
 export interface BenchmarkReport {
@@ -897,55 +918,76 @@ export async function runBenchmark(
 ): Promise<BenchmarkReport> {
   const blobFor = opts.blobFor ?? goldToBlob;
   const judge = opts.judge ?? NOOP_PROSE_JUDGE;
-  const scores: CaseScore[] = [];
-  const prose: { id: string; verdict: ProseVerdict }[] = [];
-  const calls: CaseCall[] = [];
+  const n = opts.cases.length;
+  const scores = new Array<CaseScore>(n);
+  const proseByCase = new Array<{ id: string; verdict: ProseVerdict }>(n);
+  const calls = new Array<CaseCall>(n);
+  const concurrency = Math.max(1, Math.min(opts.concurrency ?? 1, n || 1));
+  if (concurrency > 1 && !opts.adapterFor) {
+    throw new Error(
+      "concurrency > 1 requires adapterFor — a shared adapter's onCall " +
+        "capture would race across concurrent cases",
+    );
+  }
 
-  // Attach the usage/raw observer for the length of this run only, and restore
-  // whatever was there — the adapter may be shared across several benchmarks.
-  const previousSink = opts.adapter.onCall;
-  let current: ProviderCall | null = null;
-  opts.adapter.onCall = (call) => {
-    current = call;
-    previousSink?.(call);
+  // One case, on its own (or the shared) adapter. The usage/raw observer is
+  // attached around just this call and restored after — with a per-case
+  // adapter that isolation is what makes concurrency safe; with the shared
+  // serial adapter it is equivalent to the old loop-wide attach.
+  const runCase = async (i: number, adapter: ExtractAdapter): Promise<void> => {
+    const c = opts.cases[i];
+    let got: ExtractionResult = EMPTY_RESULT;
+    let jsonValid = true;
+    let error: string | null = null;
+    let current: ProviderCall | null = null;
+    const previousSink = adapter.onCall;
+    adapter.onCall = (call) => {
+      current = call;
+      previousSink?.(call);
+    };
+    const blob = blobFor(c.gold);
+    try {
+      got = await adapter.sanitize(blob, UNIT_HINTS);
+    } catch (e) {
+      jsonValid = !(e instanceof ExtractionParseError);
+      // Any adapter error → an empty result scored as a total miss for this case.
+      got = EMPTY_RESULT;
+      error = e instanceof Error ? e.message : String(e);
+      if (!(e instanceof ExtractionParseError)) {
+        // Non-parse errors (e.g. missing key) are logged but still scored 0 so a
+        // partial provider outage shows as a failure, not a crash.
+        console.error(`  ! ${opts.provider}/${c.id}: ${error}`);
+      }
+    } finally {
+      adapter.onCall = previousSink;
+    }
+    // A failed call is still recorded. A run that saved only its successes
+    // could not be re-scored honestly — the failures ARE the json-valid rate.
+    const captured: CaseCall = {
+      id: c.id,
+      input_text: blob.text ?? "",
+      call: current,
+      error,
+    };
+    calls[i] = captured;
+    if (opts.onCase) await opts.onCase(captured);
+    scores[i] = scoreExtraction(c.id, c.gold, got, jsonValid);
+    if (judge !== NOOP_PROSE_JUDGE) {
+      proseByCase[i] = { id: c.id, verdict: await judge.judge(c.gold, got) };
+    }
   };
 
-  try {
-    for (const c of opts.cases) {
-      let got: ExtractionResult = EMPTY_RESULT;
-      let jsonValid = true;
-      let error: string | null = null;
-      current = null;
-      const blob = blobFor(c.gold);
-      try {
-        got = await opts.adapter.sanitize(blob, UNIT_HINTS);
-      } catch (e) {
-        jsonValid = !(e instanceof ExtractionParseError);
-        // Any adapter error → an empty result scored as a total miss for this case.
-        got = EMPTY_RESULT;
-        error = e instanceof Error ? e.message : String(e);
-        if (!(e instanceof ExtractionParseError)) {
-          // Non-parse errors (e.g. missing key) are logged but still scored 0 so a
-          // partial provider outage shows as a failure, not a crash.
-          console.error(`  ! ${opts.provider}/${c.id}: ${error}`);
-        }
+  let nextCase = 0;
+  await Promise.all(
+    Array.from({ length: concurrency }, async () => {
+      while (true) {
+        const i = nextCase++;
+        if (i >= n) return;
+        await runCase(i, opts.adapterFor ? opts.adapterFor() : opts.adapter);
       }
-      // A failed call is still recorded. A run that saved only its successes
-      // could not be re-scored honestly — the failures ARE the json-valid rate.
-      calls.push({
-        id: c.id,
-        input_text: blob.text ?? "",
-        call: current,
-        error,
-      });
-      scores.push(scoreExtraction(c.id, c.gold, got, jsonValid));
-      if (judge !== NOOP_PROSE_JUDGE) {
-        prose.push({ id: c.id, verdict: await judge.judge(c.gold, got) });
-      }
-    }
-  } finally {
-    opts.adapter.onCall = previousSink;
-  }
+    }),
+  );
+  const prose = proseByCase.filter((p) => p !== undefined);
 
   const model = calls.find((c) => c.call)?.call?.model ?? opts.adapter.model;
   return {

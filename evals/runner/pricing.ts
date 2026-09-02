@@ -54,6 +54,32 @@ export const PRICING: Record<string, PriceRow> = {
       "cache_write is the 5-minute rate (1.25x base input); the adapter marks " +
       "one ephemeral breakpoint on the sanitize system prompt.",
   },
+  "claude-sonnet-5": {
+    model: "claude-sonnet-5",
+    label: "Claude Sonnet 5",
+    usd_per_mtok_input: 2.0,
+    usd_per_mtok_output: 10.0,
+    usd_per_mtok_cache_read: 0.2,
+    usd_per_mtok_cache_write: 2.5,
+    source: "https://platform.claude.com/docs/en/about-claude/pricing",
+    retrieved: "2026-09-01",
+    note:
+      "benchmark alternate for the step-ref F1 gap; cache_write is the 5-minute " +
+      "rate (1.25x base input). Adaptive thinking bills as output tokens.",
+  },
+  "claude-opus-5": {
+    model: "claude-opus-5",
+    label: "Claude Opus 5",
+    usd_per_mtok_input: 5.0,
+    usd_per_mtok_output: 25.0,
+    usd_per_mtok_cache_read: 0.5,
+    usd_per_mtok_cache_write: 6.25,
+    source: "https://platform.claude.com/docs/en/about-claude/pricing",
+    retrieved: "2026-09-01",
+    note:
+      "benchmark alternate for the step-ref F1 gap; cache_write is the 5-minute " +
+      "rate (1.25x base input). Adaptive thinking bills as output tokens.",
+  },
   "gpt-5.6-luna": {
     model: "gpt-5.6-luna",
     label: "GPT-5.6 Luna",
