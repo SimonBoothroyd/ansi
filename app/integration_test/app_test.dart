@@ -915,8 +915,12 @@ void main() {
     // The NEW assertion, and the more valuable one: the screen does NOT
     // change. Removing the last meal used to teleport you off the grid
     // mid-edit, because the blank-week page fired on `entries.isEmpty` too.
-    await pumpUntilFound(tester, find.text('Add the first meal'));
+    // The first-meal bar sits at the TOP of the (lazy) list, and we are
+    // scrolled to Thursday — scroll back up rather than wait for a widget the
+    // viewport has not built.
     expect(find.text('Thursday'), findsOneWidget);
+    await scrollTo(tester, find.text('Add the first meal'), delta: -300);
+    expect(find.text('Add the first meal'), findsOneWidget);
     await waitForDb(
       tester,
       () async => (await currentEntries()).isEmpty,
