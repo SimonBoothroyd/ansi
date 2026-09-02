@@ -57,7 +57,7 @@ Future<Ingredient?> lineItemIngredient(
   final matches = await ref
       .watch(ingredientRepositoryProvider)
       .search(name, limit: 10);
-  for (final m in matches) {
+  for (final m in matches.rows) {
     if (m.id == ingredientId) return m;
   }
   return null;

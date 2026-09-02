@@ -64,8 +64,8 @@ class _FakeIngredientRepo
     with IngredientManagerStubs
     implements IngredientRepository {
   @override
-  Future<List<Ingredient>> search(String query, {int limit = 30}) async =>
-      const [];
+  Future<IngredientMatches> search(String query, {int limit = 30}) async =>
+      (rows: const <Ingredient>[], guessed: false);
 
   @override
   Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>

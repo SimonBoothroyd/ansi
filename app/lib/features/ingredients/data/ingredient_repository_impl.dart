@@ -1,14 +1,21 @@
 /// [IngredientRepository] over the local SQLite vocab (server-synced since
 /// step 7 — `ensure_onboarded` clones the household's starter vocab).
 ///
-/// Deterministic word-boundary search only — the phone never fuzzy-matches
-/// (ADR-0004). The query is normalized with the same character rules the
-/// server's normalizer builds `match_text` with ([normalizeSearchQuery], so
-/// "all-purpose" hits "all purpose flour"), then matched as a word prefix
-/// against the ingredient's own `match_text` and any alias — so "tofu" finds
-/// "extra firm tofu" without any fuzziness. Each token is tried raw AND
-/// singularized ([matchTextForms]), because `match_text` itself is
-/// singularized — that is what lets "almonds" find "Almonds".
+/// Search is `searchRank`'s three tiers, split across SQL and Dart because
+/// each half is better at one of them:
+///
+/// * **SQL selects, Dart ranks.** The word-boundary `LIKE` pass IS tiers 0 and
+///   1 expressed as SQL, and it is the index-friendly way to ask the question.
+///   What comes back is then ordered by [searchRank] alone, so the picker's
+///   ordering is the shared rule rather than a `length(canonical_name)` proxy
+///   that happened to approximate it. Each token is tried raw AND singularized
+///   ([matchTextForms]), because `match_text` itself is singularized — that is
+///   what lets "almonds" find "Almonds".
+/// * **Tier 2 is Dart's.** When the SQL pass finds nothing at all, every live
+///   row is scored in Dart and the guarded typo tier answers — or honestly
+///   returns nothing. That result is flagged `IngredientMatches.guessed` so
+///   the picker can label the band: the phone offers guesses to a human, it
+///   never resolves on one (ADR-0004).
 library;
 
 import 'dart:convert';
@@ -24,6 +31,7 @@ import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/normalize.dart';
 import '../domain/search_query.dart';
+import '../domain/search_rank.dart';
 
 const _uuid = Uuid();
 
@@ -48,6 +56,17 @@ final _measureCount =
     'WHERE m.ingredient_id = i.id AND m.deleted_at IS NULL '
     'AND LOWER(TRIM(m.label)) NOT IN ($_volumeLabelList)) AS measure_count';
 
+/// A row's live aliases' `match_text`, newline-separated so each stays a
+/// phrase of its own — the rule's tier 0 asks whether the query IS an alias,
+/// which a space-joined blob could never answer. `match_text` cannot contain a
+/// newline (the normalizer collapses all whitespace), so the split is exact.
+/// `char(10)`, not a quoted literal: SQLite reads `"x"` as an identifier first
+/// and only falls back to a string as a legacy quirk that `SQLITE_DQS=0`
+/// builds disable outright.
+const _aliasText =
+    '(SELECT GROUP_CONCAT(a.match_text, char(10)) FROM ingredient_alias a '
+    'WHERE a.ingredient_id = i.id AND a.deleted_at IS NULL) AS alias_text';
+
 /// The `macros` column's jsonb, or null when there are none — null (not `{}`,
 /// and never four zeros) is how an absent panel is stored, on the create path
 /// and the edit path alike (invariant 3).
@@ -70,10 +89,9 @@ class SqliteIngredientRepository implements IngredientRepository {
   final String _householdId;
 
   @override
-  Future<List<Ingredient>> search(String query, {int limit = 30}) async {
+  Future<IngredientMatches> search(String query, {int limit = 30}) async {
     // Normalization also strips `%`/`_`, so nothing user-typed can act as a
     // LIKE wildcard below.
-    final q = normalizeSearchQuery(query);
     final tokens = searchTokens(query);
 
     if (tokens.isEmpty) {
@@ -83,7 +101,7 @@ class SqliteIngredientRepository implements IngredientRepository {
         'ORDER BY i.canonical_name LIMIT ?',
         [limit],
       );
-      return rows.map(_toIngredient).toList();
+      return (rows: rows.map(_toIngredient).toList(), guessed: false);
     }
 
     // Token-subset match: EVERY query token must be a word-prefix of the
@@ -95,11 +113,12 @@ class SqliteIngredientRepository implements IngredientRepository {
     // `match_text` is written by the phrase normalizer, which singularizes
     // ("Almonds" → `almond`), while the query is deliberately only
     // character-normalized. Without the singular branch `'almond'.startsWith(
-    // 'almonds')` is false, so a one-word plural query hit nothing at all —
-    // the fuzzy fallback below is (correctly) gated to multi-word queries.
+    // 'almonds')` is false, so a one-word plural query would hit nothing here.
     // Both forms are still wildcard-free, so `%`/`_` stay inert.
     //
-    // Rank exact full-query hits first, then shorter names, then by name.
+    // This pass SELECTS; it does not rank. `searchRank` does the ordering
+    // below, over the same rows, so the picker and the two recipe pickers
+    // cannot drift apart on what "best match" means.
     final where = StringBuffer('i.deleted_at IS NULL');
     final params = <Object?>[];
     for (final tok in tokens) {
@@ -116,73 +135,96 @@ class SqliteIngredientRepository implements IngredientRepository {
       );
       params.addAll([...patterns, ...patterns]);
     }
-    // The rank boost compares whole strings, so it needs the same pair: the
-    // query as typed and its singularized form, or "almonds" would find
-    // Almonds but rank it below every longer row that also matched.
-    final qSingular = tokens.map(singularizeToken).join(' ');
     final rows = await _db.getAll(
-      'SELECT i.*, $_measureCount FROM ingredient i '
+      'SELECT i.*, $_measureCount, $_aliasText FROM ingredient i '
       'WHERE $where '
-      'ORDER BY (i.match_text = ? OR i.match_text = ?) DESC, '
-      'length(i.canonical_name), '
-      'i.canonical_name '
+      // A stable page, then ranked in Dart. `length(canonical_name)` is only
+      // the tie-break `searchRank` itself falls back on, so the page the LIMIT
+      // keeps and the order it ends up in agree.
+      'ORDER BY length(i.canonical_name), i.canonical_name '
       'LIMIT ?',
-      [...params, q, qSingular, limit],
+      [...params, limit],
     );
-    if (rows.isNotEmpty) return rows.map(_toIngredient).toList();
+    if (rows.isNotEmpty) {
+      return (rows: _rank(query, rows, limit: limit), guessed: false);
+    }
 
-    // Nothing matched the exact/prefix pass. For a MULTI-word query it is
-    // likely one token was mistyped ("chikn thigh") — fall back to a
-    // deterministic typo-tolerant scan over the live vocab (name + aliases),
-    // ranked by fuzzy score. A single-word query stays strict word-boundary
-    // (a lone "nion" must not fuzzy-hit "onion"): the extra tokens are what
-    // make a fuzzy match trustworthy. Deterministic, no fuzzy index
-    // (ADR-0004): a scored character comparison, in Dart.
-    if (tokens.length < 2) return const [];
-    return _fuzzySearch(query, limit: limit);
+    // Nothing was spelled right. Score every live row instead — the guarded
+    // typo tier, which may still answer with nothing, and that emptiness is an
+    // honest answer ("no match for 'tfu'"), not a bug.
+    return _typoSearch(query, limit: limit);
   }
 
-  /// The typo-tolerant fallback: scores every live ingredient's `match_text`
-  /// (with its aliases joined) against [query] and returns those that clear
-  /// the per-token floor, closest first. Runs only when the exact/prefix pass
-  /// finds nothing, so the common path never pays for it.
-  Future<List<Ingredient>> _fuzzySearch(
+  /// The tier-2 pass: scores every live ingredient with [searchRank] and
+  /// returns what clears the guards, best first. Runs only when the SQL pass
+  /// found nothing, so the common path never pays for it.
+  ///
+  /// A hit here is normally a guess, and the result says so. It is not always:
+  /// the SQL pass searches `match_text` only, and the phrase normalizer eats
+  /// any name word that happens to be a measure ("Jars", "Blocks"), while
+  /// [searchRank] also sees the row's raw name. A row rescued that way is a
+  /// genuine prefix hit, so the band is keyed on the best tier found rather
+  /// than on which pass produced it.
+  Future<IngredientMatches> _typoSearch(
     String query, {
     required int limit,
   }) async {
-    // The separator is a SINGLE-quoted string literal: SQLite reads `"x"` as an
-    // identifier first and only falls back to a string as a legacy quirk, which
-    // `SQLITE_DQS=0` builds disable outright. No LIMIT either — a cap would
-    // silently stop typo-tolerance working for whatever fell off the end as the
-    // household's vocab grew, and this pass only runs when the exact/prefix
-    // search already found nothing.
+    // No LIMIT: a cap would silently stop typo-tolerance working for whatever
+    // fell off the end as the household's vocab grew, and this pass only runs
+    // when the SQL search already found nothing. The stated bound (and it is a
+    // bound, not an accident): correct to roughly 2 000 rows on a phone; past
+    // that it needs an index, and that is a tracker row.
     final rows = await _db.getAll(
-      'SELECT i.*, $_measureCount, '
-      "(SELECT GROUP_CONCAT(a.match_text, ' ') FROM ingredient_alias a "
-      'WHERE a.ingredient_id = i.id AND a.deleted_at IS NULL) AS alias_text '
-      'FROM ingredient i WHERE i.deleted_at IS NULL '
-      'ORDER BY i.canonical_name',
+      'SELECT i.*, $_measureCount, $_aliasText FROM ingredient i '
+      'WHERE i.deleted_at IS NULL ORDER BY i.canonical_name',
     );
-    final scored = <({double score, int length, Ingredient ingredient})>[];
+    final ranked = _rankHits(query, rows);
+    if (ranked.isEmpty) return (rows: const <Ingredient>[], guessed: false);
+    return (
+      rows: [for (final r in ranked.take(limit)) r.ingredient],
+      guessed: ranked.first.hit.tier == SearchTier.typo,
+    );
+  }
+
+  /// [rows] in `searchRank` order, capped at [limit].
+  List<Ingredient> _rank(String query, List<Row> rows, {required int limit}) =>
+      [for (final r in _rankHits(query, rows).take(limit)) r.ingredient];
+
+  /// [rows] scored and ordered by the shared rule: the tier decides first (a
+  /// guess never outranks a spelling), then the score, then the shorter name,
+  /// then the name.
+  List<({SearchHit hit, Ingredient ingredient})> _rankHits(
+    String query,
+    List<Row> rows,
+  ) {
+    final scored = <({SearchHit hit, Ingredient ingredient})>[];
     for (final r in rows) {
-      final text = '${r['match_text'] ?? ''} ${r['alias_text'] ?? ''}'.trim();
-      final score = fuzzyQueryScore(query, text);
-      if (score < 0) continue;
-      scored.add((
-        score: score,
-        length: (r['canonical_name'] as String).length,
-        ingredient: _toIngredient(r),
-      ));
+      final hit = searchRank(query, _surfaces(r));
+      if (hit == null) continue;
+      scored.add((hit: hit, ingredient: _toIngredient(r)));
     }
     scored.sort((a, b) {
-      final byScore = b.score.compareTo(a.score);
+      final byTier = a.hit.tier.index.compareTo(b.hit.tier.index);
+      if (byTier != 0) return byTier;
+      final byScore = b.hit.score.compareTo(a.hit.score);
       if (byScore != 0) return byScore;
-      final byLength = a.length.compareTo(b.length);
+      final byLength = a.ingredient.canonicalName.length.compareTo(
+        b.ingredient.canonicalName.length,
+      );
       if (byLength != 0) return byLength;
       return a.ingredient.canonicalName.compareTo(b.ingredient.canonicalName);
     });
-    return [for (final s in scored.take(limit)) s.ingredient];
+    return scored;
   }
+
+  /// One row's searchable surface: its `match_text`, each live alias's
+  /// `match_text`, and the character-normalized raw name (which carries the
+  /// words the phrase normalizer strips).
+  List<String> _surfaces(Row r) => [
+    (r['match_text'] as String?) ?? '',
+    ...((r['alias_text'] as String?) ?? '').split('\n'),
+    normalizeSearchQuery(r['canonical_name'] as String),
+  ];
 
   @override
   Future<List<Ingredient>> recentlyUsed({int limit = 8}) async {

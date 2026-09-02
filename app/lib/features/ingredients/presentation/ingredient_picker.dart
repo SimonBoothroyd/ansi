@@ -4,8 +4,10 @@
 /// per-100 macro line for complete rows, a `stub` badge — never zeros), and
 /// the add-new affordance (creates a `manual` stub, invariant 3).
 ///
-/// Deterministic search only (ADR-0004): the step-7.4 normalizer + word-
-/// boundary matching, in the repository.
+/// Search is the shared `searchRank` rule, in the repository. When nothing was
+/// spelled right the guarded typo tier answers instead, and those rows arrive
+/// under a `DID YOU MEAN` header — the phone offers a guess for a human to
+/// pick, it never resolves on one (ADR-0004).
 library;
 
 import 'package:flutter/widgets.dart';
@@ -23,6 +25,8 @@ import '../../../shared/picker_shell.dart';
 import '../data/ingredient_providers.dart';
 import '../data/usda_enrichment.dart';
 import '../domain/ingredient.dart';
+import '../domain/search_query.dart';
+import '../domain/search_rank.dart';
 import 'ingredient_detail_view.dart' show ingredientDetailRoute;
 import 'macros_format.dart';
 
@@ -40,18 +44,20 @@ Future<Ingredient?> showIngredientPicker(
 }
 
 /// The search state both hosts share (the picker sheet and the shopping
-/// top-up embed): query text, results, and whether the results are the
-/// recents feed (empty query) or a search.
+/// top-up embed): query text, results, whether the results are the recents
+/// feed (empty query) or a search, and whether the search had to guess.
 ({
   String query,
   List<Ingredient> results,
   bool showingRecents,
+  bool guessed,
   Future<void> Function(String) run,
 })
 useIngredientSearch(WidgetRef ref, BuildContext context) {
   final query = useState('');
   final results = useState<List<Ingredient>>(const []);
   final showingRecents = useState(false);
+  final guessed = useState(false);
   // Monotonic ticket so a slow older search can never overwrite a newer
   // one's results (or touch state after the host is dismissed).
   final searchSeq = useRef(0);
@@ -64,13 +70,19 @@ useIngredientSearch(WidgetRef ref, BuildContext context) {
     // plain alphabetical list so the picker is never blank.
     var recents = false;
     var found = <Ingredient>[];
+    var guesses = false;
     if (q.trim().isEmpty) {
       found = await repo.recentlyUsed();
       recents = found.isNotEmpty;
     }
-    if (found.isEmpty) found = await repo.search(q);
+    if (found.isEmpty) {
+      final matches = await repo.search(q);
+      found = matches.rows;
+      guesses = matches.guessed;
+    }
     if (!context.mounted || ticket != searchSeq.value) return;
     showingRecents.value = recents;
+    guessed.value = guesses;
     results.value = found;
   }
 
@@ -83,6 +95,7 @@ useIngredientSearch(WidgetRef ref, BuildContext context) {
     query: query.value,
     results: results.value,
     showingRecents: showingRecents.value,
+    guessed: guessed.value,
     run: run,
   );
 }
@@ -105,6 +118,7 @@ class _IngredientPickerSheet extends HookConsumerWidget {
         results: search.results,
         query: search.query,
         showingRecents: search.showingRecents,
+        guessed: search.guessed,
         onPick: (ing) => Navigator.of(context).pop(ing),
       ),
       footer: AddNewIngredientRow(
@@ -138,6 +152,7 @@ class IngredientResultList extends StatelessWidget {
     required this.query,
     required this.showingRecents,
     required this.onPick,
+    this.guessed = false,
     this.trailing = const [],
     super.key,
   });
@@ -147,21 +162,17 @@ class IngredientResultList extends StatelessWidget {
   final bool showingRecents;
   final ValueChanged<Ingredient> onPick;
 
+  /// Whether [results] are the typo tier's guesses rather than spellings.
+  /// True only when nothing was spelled right, so the band is the whole list
+  /// or it is absent — a guess is never a tail under real hits.
+  final bool guessed;
+
   /// Extra sections below the ingredient rows.
   final List<Widget> trailing;
 
   @override
   Widget build(BuildContext context) {
-    if (results.isEmpty && trailing.isEmpty) {
-      return Center(
-        child: Text(
-          query.isEmpty
-              ? 'No ingredients yet.'
-              : 'No match for "$query" — add it below.',
-          style: ansiMono(size: 12, color: AnsiColors.muted),
-        ),
-      );
-    }
+    if (results.isEmpty && trailing.isEmpty) return _EmptyState(query: query);
     return ListView(
       children: [
         if (showingRecents)
@@ -169,6 +180,11 @@ class IngredientResultList extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 4),
             child: Text('RECENT', style: ansiLabel()),
           )
+        // Nothing was spelled right, so say so above the rows. The header is
+        // the whole reason a four-character floor is safe: it is the
+        // difference between "we found this" and "we guessed this".
+        else if (guessed && results.isNotEmpty)
+          const DidYouMeanHeader()
         // With a second section below, the ingredient rows need a name of
         // their own — the board's frame-c header. Without one they are the
         // whole list and labelling them would be noise.
@@ -183,6 +199,61 @@ class IngredientResultList extends StatelessWidget {
         ],
         ...trailing,
       ],
+    );
+  }
+}
+
+/// The `DID YOU MEAN` band header — the picker's own section-header idiom in
+/// the caution colour, so a guessed row can never be read as a found one.
+///
+/// Shared by all three pickers: whatever the corpus, a guess is labelled the
+/// same way.
+class DidYouMeanHeader extends StatelessWidget {
+  const DidYouMeanHeader({super.key});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Text('DID YOU MEAN', style: ansiLabel(color: AnsiColors.aging)),
+  );
+}
+
+/// An empty result list is an ANSWER, not a failure — "nothing here is a
+/// chicken thigh" is the honest reply from a vegan vocabulary. When the query
+/// was also too short for the rule to guess at, it says that too, so the
+/// silence is legible rather than mysterious.
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.query});
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = searchTokens(query);
+    final floor = tokens.length == 1
+        ? kMinFuzzTokenLenSingle
+        : kMinFuzzTokenLenMulti;
+    final tooShortToGuess =
+        tokens.isNotEmpty && tokens.every((t) => t.length < floor);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            query.isEmpty ? 'No ingredients yet.' : 'No match for "$query".',
+            textAlign: TextAlign.center,
+            style: ansiMono(size: 12, color: AnsiColors.muted),
+          ),
+          if (tooShortToGuess) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Too few letters to guess from — try spelling it out.',
+              textAlign: TextAlign.center,
+              style: ansiMono(size: 11, color: AnsiColors.muted),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

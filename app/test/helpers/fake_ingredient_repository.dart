@@ -146,9 +146,8 @@ class FakeIngredientRepo implements IngredientRepository {
   };
 
   @override
-  Future<List<Ingredient>> search(String query, {int limit = 30}) async => [
-    ...rows,
-  ];
+  Future<IngredientMatches> search(String query, {int limit = 30}) async =>
+      (rows: [...rows], guessed: false);
 
   @override
   Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];

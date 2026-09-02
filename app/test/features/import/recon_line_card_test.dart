@@ -273,8 +273,8 @@ class _FakeIngredientRepo
   };
 
   @override
-  Future<List<Ingredient>> search(String query, {int limit = 30}) async =>
-      const [];
+  Future<IngredientMatches> search(String query, {int limit = 30}) async =>
+      (rows: const <Ingredient>[], guessed: false);
 
   @override
   Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];

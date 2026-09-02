@@ -53,6 +53,14 @@ Future<void> _seed(
   }
 }
 
+/// The rows a search returned. The `guessed` flag it also carries is the
+/// subject of its own group below, not of every ordering assertion.
+Future<List<Ingredient>> _search(
+  IngredientRepository repo,
+  String query, {
+  int limit = 30,
+}) async => (await repo.search(query, limit: limit)).rows;
+
 void main() {
   late PowerSyncDatabase db;
   late Directory dir;
@@ -85,7 +93,7 @@ void main() {
   tearDown(() => closeTestDb(db, dir));
 
   test('empty query returns the head, alphabetical', () async {
-    final all = await repo.search('');
+    final all = await _search(repo, '');
     expect(all.map((i) => i.canonicalName), [
       'All-Purpose Flour',
       'Almonds',
@@ -102,50 +110,54 @@ void main() {
   });
 
   test('prefix matches the ingredient name', () async {
-    final r = await repo.search('oni');
+    final r = await _search(repo, 'oni');
     expect(r.map((i) => i.canonicalName), contains('Onion'));
     expect(r.map((i) => i.canonicalName), isNot(contains('Olive Oil')));
   });
 
   test('matches an alias (scallion → Spring Onion)', () async {
-    final r = await repo.search('scall');
+    final r = await _search(repo, 'scall');
     expect(r.single.canonicalName, 'Spring Onion');
   });
 
   test('exact name is ranked first', () async {
-    final r = await repo.search('onion');
+    final r = await _search(repo, 'onion');
     expect(r.first.canonicalName, 'Onion'); // exact beats "Spring Onion"
   });
 
   test('matches on any word boundary, not just the leading word', () async {
     // "tofu" must find "Extra Firm Tofu" — a strict prefix never could.
-    final r = await repo.search('tofu');
+    final r = await _search(repo, 'tofu');
     expect(r.map((i) => i.canonicalName), contains('Extra Firm Tofu'));
-    // Word-boundary only: "nion" is not a word start of "Onion".
-    expect(await repo.search('nion'), isEmpty);
+    // "nion" is not a word start of "Onion", so tiers 0 and 1 refuse it —
+    // which is exactly when the typo tier gets to answer. It offers Onion as
+    // a GUESS (owner ruling, 2026-09-02), never as a spelled hit.
+    final guess = await repo.search('nion');
+    expect(guess.rows.first.canonicalName, 'Onion');
+    expect(guess.guessed, isTrue);
   });
 
   test('normalizes the query like match_text ("all-purpose" hits)', () async {
-    final r = await repo.search('all-purpose');
+    final r = await _search(repo, 'all-purpose');
     expect(r.map((i) => i.canonicalName), contains('All-Purpose Flour'));
     // And the un-hyphenated spelling hits the same row.
-    final r2 = await repo.search('all purpose');
+    final r2 = await _search(repo, 'all purpose');
     expect(r2.map((i) => i.canonicalName), contains('All-Purpose Flour'));
   });
 
   group('token-subset search (order-independent, extra words fine)', () {
     test('"canned tomatoes" finds "Canned Whole Tomatoes"', () async {
-      final r = await repo.search('canned tomatoes');
+      final r = await _search(repo, 'canned tomatoes');
       expect(r.map((i) => i.canonicalName), contains('Canned Whole Tomatoes'));
     });
 
     test('"coconut milk" finds "Coconut milk, canned"', () async {
-      final r = await repo.search('coconut milk');
+      final r = await _search(repo, 'coconut milk');
       expect(r.map((i) => i.canonicalName), contains('Coconut milk, canned'));
     });
 
     test('word order does not matter', () async {
-      final r = await repo.search('tomatoes canned');
+      final r = await _search(repo, 'tomatoes canned');
       expect(r.map((i) => i.canonicalName), contains('Canned Whole Tomatoes'));
     });
 
@@ -154,49 +166,65 @@ void main() {
       () async {
         // "canned" alone hits both canned rows; adding "beans" (present in
         // neither) must drop them.
-        expect(await repo.search('canned beans'), isEmpty);
+        expect(await _search(repo, 'canned beans'), isEmpty);
       },
     );
 
-    test('a mistyped token in a multi-word query still finds it (fuzzy '
-        'fallback)', () async {
-      final r = await repo.search('chikn thigh');
-      expect(r.map((i) => i.canonicalName), contains('Chicken thigh'));
+    test('a mistyped token in a multi-word query still finds it', () async {
+      // "chiken" is one edit from "chicken", and a six-character token is
+      // allowed one. The correctly spelled "thigh" beside it is what a
+      // three-character token would need; this one stands on its own.
+      final r = await repo.search('chiken thigh');
+      expect(r.rows.map((i) => i.canonicalName), contains('Chicken thigh'));
+      expect(r.guessed, isTrue);
     });
 
-    test(
-      'a single mistyped word does NOT fuzzy-hit (strict word boundary)',
-      () async {
-        // The fuzzy fallback needs the corroboration of a second token.
-        expect(await repo.search('chikn'), isEmpty);
-      },
-    );
+    test('a single mistyped word IS guessed at, above the floor', () async {
+      // Four characters is where the phone starts guessing (owner ruling,
+      // 2026-09-02) — the corroboration of a second token is no longer the
+      // price of admission.
+      final r = await repo.search('chiken');
+      expect(r.rows.first.canonicalName, 'Chicken thigh');
+      expect(r.guessed, isTrue);
+    });
+
+    test('a typo beyond the edit budget stays silent, however many tokens '
+        'stand beside it', () async {
+      // "chikn" is TWO edits from "chicken" (an insertion for the 'c' and one
+      // for the 'e'), and a five-character token is allowed one. The
+      // corroborating "thigh" buys no extra budget: the guard is per TOKEN.
+      expect((await repo.search('chikn thigh')).rows, isEmpty);
+      expect((await repo.search('chikn')).rows, isEmpty);
+      // And three characters is where guessing stops altogether.
+      expect((await repo.search('tfu')).rows, isEmpty);
+    });
   });
 
   group('a plural query hits its singularized match_text', () {
     test('"almonds" finds Almonds, ranked first', () async {
       // The bug: match_text is 'almond' (the phrase normalizer singularizes)
       // while the query stays 'almonds', so `'almond' LIKE 'almonds%'` was
-      // false and the row was unreachable. A single-word query never reaches
-      // the fuzzy fallback (the "chikn" test above pins that), so this hit can
-      // only be the exact/prefix pass.
+      // false and the row was unreachable. It is a SPELLING, not a guess —
+      // the singular form is what the exact tier compares, so the result is
+      // never flagged as one.
       final r = await repo.search('almonds');
-      expect(r.first.canonicalName, 'Almonds');
+      expect(r.rows.first.canonicalName, 'Almonds');
+      expect(r.guessed, isFalse);
     });
 
     test('the singular spelling is unchanged', () async {
-      expect((await repo.search('almond')).first.canonicalName, 'Almonds');
+      expect((await _search(repo, 'almond')).first.canonicalName, 'Almonds');
     });
 
     test('a mid-typing prefix is unchanged', () async {
-      final r = await repo.search('almo');
+      final r = await _search(repo, 'almo');
       expect(r.map((i) => i.canonicalName), contains('Almonds'));
     });
 
     test('the raw form still matches what only IT prefixes', () async {
       // 'beans' → singular 'bean' reaches 'black bean'; the raw form is what
       // reaches 'beansprout'. Dropping either branch loses a row.
-      final r = await repo.search('beans');
+      final r = await _search(repo, 'beans');
       expect(
         r.map((i) => i.canonicalName),
         containsAll(<String>['Black Beans', 'Beansprouts']),
@@ -204,20 +232,65 @@ void main() {
     });
 
     test('a plural in a multi-word query hits too', () async {
-      final r = await repo.search('black beans');
+      final r = await _search(repo, 'black beans');
       expect(r.single.canonicalName, 'Black Beans');
     });
   });
 
   test('a LIKE wildcard in the query is stripped, not a pattern', () async {
     // If '_' leaked through as a single-char wildcard, 'on_on' would match
-    // "onion"; normalization strips it to 'onon' → no hits. (A bare '%'
-    // normalizes to the empty query and just browses the head.)
-    expect(await repo.search('on_on'), isEmpty);
+    // "onion" as a SPELLING. It does not: the character is stripped, so the
+    // query behaves exactly like the wildcard-free text it normalizes to, and
+    // tiers 0 and 1 find nothing at all. (A bare '%' normalizes to the empty
+    // query and just browses the head.)
+    final stripped = await repo.search('on_on');
+    expect(stripped.guessed, isTrue);
+    expect(
+      stripped.rows.map((i) => i.canonicalName),
+      (await _search(repo, 'onon')).map((i) => i.canonicalName),
+    );
     // The singular of a stripped token is still stripped — singularization
     // only ever trims the tail, so it cannot resurrect a wildcard: 'on_ons'
     // normalizes to 'onons', whose singular 'onon' is still not a pattern.
-    expect(await repo.search('on_ons'), isEmpty);
+    expect(
+      (await _search(repo, 'on_ons')).map((i) => i.canonicalName),
+      (await _search(repo, 'onons')).map((i) => i.canonicalName),
+    );
+  });
+
+  group('the "did you mean" band', () {
+    test('a spelling is never flagged as a guess', () async {
+      expect((await repo.search('onion')).guessed, isFalse);
+      expect((await repo.search('tofu')).guessed, isFalse);
+      expect((await repo.search('')).guessed, isFalse);
+    });
+
+    test('a guess is flagged, and it is the WHOLE list', () async {
+      // Tier 2 runs only when tiers 0 and 1 are empty, so a band is never a
+      // tail of weak rows under strong ones.
+      final guess = await repo.search('almnd');
+      expect(guess.rows.first.canonicalName, 'Almonds');
+      expect(guess.guessed, isTrue);
+    });
+
+    test('an empty answer is an ANSWER — nothing is invented', () async {
+      final none = await repo.search('xylophone');
+      expect(none.rows, isEmpty);
+      expect(none.guessed, isFalse);
+    });
+
+    test(
+      'a name word the phrase normalizer eats is still a spelling',
+      () async {
+        // "Jars" is in the measure strip set, so match_text loses it and the
+        // SQL pass cannot find it. searchRank also sees the raw name, so the
+        // row comes back through the fallback — as a PREFIX hit, not a guess.
+        await _seed(db, id: 'j1', name: 'Chickpea Jars');
+        final r = await repo.search('jars');
+        expect(r.rows.single.canonicalName, 'Chickpea Jars');
+        expect(r.guessed, isFalse);
+      },
+    );
   });
 
   test('tombstoned vocab is not searchable or listable', () async {
@@ -227,9 +300,9 @@ void main() {
       name: 'Onion Powder',
       deletedAt: '2026-01-01T00:00:00Z',
     );
-    final hits = await repo.search('onion');
+    final hits = await _search(repo, 'onion');
     expect(hits.map((i) => i.canonicalName), isNot(contains('Onion Powder')));
-    final all = await repo.search('');
+    final all = await _search(repo, '');
     expect(all.map((i) => i.canonicalName), isNot(contains('Onion Powder')));
   });
 
@@ -265,9 +338,9 @@ void main() {
   });
 
   test('maps status and category', () async {
-    final oil = (await repo.search('olive')).single;
+    final oil = (await _search(repo, 'olive')).single;
     expect(oil.status, IngredientStatus.stub);
-    final onion = (await repo.search('onion')).first;
+    final onion = (await _search(repo, 'onion')).first;
     expect(onion.category, 'vegetables');
   });
 
@@ -276,7 +349,7 @@ void main() {
       "UPDATE ingredient SET macros = ?, macros_basis = 'ml' WHERE id = '1'",
       ['{"kcal":40,"protein":1,"carb":9,"fat":0}'],
     );
-    final onion = (await repo.search('onion')).first;
+    final onion = (await _search(repo, 'onion')).first;
     expect(onion.macros, isNotNull);
     expect(onion.macros!.kcal, 40);
     expect(onion.macrosBasis, MacrosBasis.perMl);
@@ -296,7 +369,7 @@ void main() {
         [mid, 'h', '1', label, deleted],
       );
     }
-    final onion = (await repo.search('onion')).first;
+    final onion = (await _search(repo, 'onion')).first;
     expect(onion.measureCount, 2);
   });
 
@@ -317,7 +390,7 @@ void main() {
         [mid, 'h', '1', label],
       );
     }
-    final onion = (await repo.search('onion')).first;
+    final onion = (await _search(repo, 'onion')).first;
     expect(onion.measureCount, 1);
   });
 
@@ -368,7 +441,7 @@ void main() {
     expect(created.canonicalName, 'Curry Leaves');
     expect(created.status, IngredientStatus.stub);
 
-    final found = (await repo.search('curry')).single;
+    final found = (await _search(repo, 'curry')).single;
     expect(found.id, created.id);
     expect(found.status, IngredientStatus.stub);
     final row = await db.get(
@@ -789,8 +862,8 @@ void main() {
       // leaving 'onion' behind would be a silent matching regression.
       expect(row['match_text'], 'curry leaf');
       // …and the row is findable by the new name, not the old one.
-      expect((await repo.search('curry')).single.id, '1');
-      expect(await repo.search('onion'), isNot(contains('1')));
+      expect((await _search(repo, 'curry')).single.id, '1');
+      expect(await _search(repo, 'onion'), isNot(contains('1')));
     });
 
     test('writes the explicit allowed_units list verbatim — an editor that '
@@ -1013,7 +1086,7 @@ void main() {
           'yellow onion',
         ); // singularized, as the server
         expect(row['household_id'], 'h');
-        expect((await repo.search('yellow')).single.id, '1');
+        expect((await _search(repo, 'yellow')).single.id, '1');
       },
     );
 
@@ -1041,8 +1114,66 @@ void main() {
       final alias = await repo.addAlias('1', 'Yellow Onions');
       await repo.removeAlias(alias.id);
       expect(await repo.aliases('1'), isEmpty);
-      expect(await repo.search('yellow'), isEmpty);
+      expect(await _search(repo, 'yellow'), isEmpty);
     });
+  });
+
+  // The shared vectors, through REAL SQLite. `search_rank_test.dart` runs the
+  // same file against `searchRank` alone; this proves the SQL tier-0/1 pass
+  // and the Dart tier-2 pass land on the same answers, which is the thing that
+  // would otherwise drift.
+  group('shared vectors, over the real database', () {
+    late PowerSyncDatabase vdb;
+    late Directory vdir;
+    late SqliteIngredientRepository vrepo;
+    final vectors =
+        jsonDecode(
+              File(
+                'test/features/ingredients/search_vectors.json',
+              ).readAsStringSync(),
+            )
+            as Map<String, dynamic>;
+
+    setUp(() async {
+      (vdb, vdir) = await openTestDb();
+      vrepo = SqliteIngredientRepository(vdb, householdId: 'h');
+      var n = 0;
+      for (final row
+          in (vectors['vocab'] as List).cast<Map<String, dynamic>>()) {
+        await _seed(
+          vdb,
+          id: 'v${n++}',
+          name: row['name'] as String,
+          aliases: ((row['aliases'] as List<dynamic>?) ?? const [])
+              .cast<String>(),
+        );
+      }
+    });
+
+    tearDown(() => closeTestDb(vdb, vdir));
+
+    for (final v in (vectors['tiers'] as List).cast<Map<String, dynamic>>()) {
+      final query = v['q'] as String;
+      test('"$query" finds ${v['want']}', () async {
+        final got = await vrepo.search(query);
+        expect(got.rows.first.canonicalName, v['want']);
+        expect(got.guessed, v['tier'] == 'typo');
+      });
+    }
+
+    for (final query in (vectors['refusals'] as List).cast<String>()) {
+      test('"$query" returns nothing', () async {
+        expect((await vrepo.search(query)).rows, isEmpty);
+      });
+    }
+
+    for (final query in (vectors['tier1_answers'] as List).cast<String>()) {
+      test('"$query" is answered by a spelling, never a guess', () async {
+        final got = await vrepo.search(query);
+        expect(got.rows, isNotEmpty);
+        expect(got.guessed, isFalse);
+      });
+    }
   });
 }
 

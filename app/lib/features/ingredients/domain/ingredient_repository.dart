@@ -1,7 +1,10 @@
 /// Ingredient vocabulary lookup and editing — PURE DART (invariant 2).
 ///
-/// The picker searches the local synced vocab offline (exact/prefix, per
-/// ADR-0004: the phone never fuzzy-matches). Step 7.7 added the recents feed
+/// The picker searches the local synced vocab offline through `searchRank`'s
+/// three tiers — exact, word prefix, and a guarded typo tier that only ever
+/// *offers* rows to a human under a "did you mean" header. ADR-0004 still
+/// holds: no index, no model, no reference set on the device, and nothing
+/// resolved without someone looking. Step 7.7 added the recents feed
 /// and the add-new stub path; step 8.5 adds the write half the manager needs
 /// — rename (which rewrites `match_text`), the fact edits, the explicit
 /// `allowed_units` list, aliases, the D5 confirm/unconfirm pair, and the
@@ -68,11 +71,28 @@ class IngredientEdit {
   final Macros? macros;
 }
 
+/// What a vocab search found — and whether the phone had to **guess** to find
+/// it.
+///
+/// `guessed` is true only when nothing was spelled right: the exact and prefix
+/// tiers came back empty and the typo tier answered instead. The picker renders
+/// those rows under a `DID YOU MEAN` header, because tier 2 is retrieval for a
+/// human to pick, never a resolution. It is never true for a browse (empty
+/// query) and never true when a single spelled hit exists — a guess is the
+/// whole list or it is absent.
+typedef IngredientMatches = ({List<Ingredient> rows, bool guessed});
+
 abstract interface class IngredientRepository {
-  /// Ingredients whose name/aliases match [query] (exact then prefix),
-  /// canonical-name ordered, capped at [limit]. Empty [query] → the first
-  /// [limit] ingredients (so the picker has something to show unfiltered).
-  Future<List<Ingredient>> search(String query, {int limit = 30});
+  /// Ingredients whose name/aliases match [query], best first, capped at
+  /// [limit]. Empty [query] → the first [limit] ingredients (so the picker has
+  /// something to show unfiltered).
+  ///
+  /// Ordering is `searchRank`'s and nothing else's: the tier decides first (an
+  /// exact hit outranks a prefix hit outranks a guess, whatever the scores
+  /// say), then the score, then the shorter name. The typo tier runs only when
+  /// the other two find nothing at all, and says so through
+  /// [IngredientMatches]`.guessed`.
+  Future<IngredientMatches> search(String query, {int limit = 30});
 
   /// The ingredients most recently used in a recipe line or manual shopping
   /// top-up, newest first — the picker's "Recent" section (7.7). Empty when
