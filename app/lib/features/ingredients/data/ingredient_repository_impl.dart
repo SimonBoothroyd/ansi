@@ -6,7 +6,9 @@
 /// server's normalizer builds `match_text` with ([normalizeSearchQuery], so
 /// "all-purpose" hits "all purpose flour"), then matched as a word prefix
 /// against the ingredient's own `match_text` and any alias — so "tofu" finds
-/// "extra firm tofu" without any fuzziness.
+/// "extra firm tofu" without any fuzziness. Each token is tried raw AND
+/// singularized ([matchTextForms]), because `match_text` itself is
+/// singularized — that is what lets "almonds" find "Almonds".
 library;
 
 import 'dart:convert';
@@ -88,25 +90,44 @@ class SqliteIngredientRepository implements IngredientRepository {
     // ingredient's `match_text` OR one of its live aliases (order-independent,
     // so "canned tomatoes" finds "Canned Whole Tomatoes"). Each token is a
     // word-boundary LIKE (`tok%` = leading word, `% tok%` = any later word).
+    //
+    // A token matches in its RAW form or its SINGULAR one ([matchTextForms]):
+    // `match_text` is written by the phrase normalizer, which singularizes
+    // ("Almonds" → `almond`), while the query is deliberately only
+    // character-normalized. Without the singular branch `'almond'.startsWith(
+    // 'almonds')` is false, so a one-word plural query hit nothing at all —
+    // the fuzzy fallback below is (correctly) gated to multi-word queries.
+    // Both forms are still wildcard-free, so `%`/`_` stay inert.
+    //
     // Rank exact full-query hits first, then shorter names, then by name.
     final where = StringBuffer('i.deleted_at IS NULL');
     final params = <Object?>[];
     for (final tok in tokens) {
+      final patterns = [
+        for (final form in matchTextForms(tok)) ...['$form%', '% $form%'],
+      ];
+      final own = patterns.map((_) => 'i.match_text LIKE ?').join(' OR ');
+      final alias = patterns.map((_) => 'a.match_text LIKE ?').join(' OR ');
       where.write(
-        ' AND (i.match_text LIKE ? OR i.match_text LIKE ? '
+        ' AND ($own '
         'OR EXISTS (SELECT 1 FROM ingredient_alias a '
         'WHERE a.ingredient_id = i.id AND a.deleted_at IS NULL '
-        'AND (a.match_text LIKE ? OR a.match_text LIKE ?)))',
+        'AND ($alias)))',
       );
-      params.addAll(['$tok%', '% $tok%', '$tok%', '% $tok%']);
+      params.addAll([...patterns, ...patterns]);
     }
+    // The rank boost compares whole strings, so it needs the same pair: the
+    // query as typed and its singularized form, or "almonds" would find
+    // Almonds but rank it below every longer row that also matched.
+    final qSingular = tokens.map(singularizeToken).join(' ');
     final rows = await _db.getAll(
       'SELECT i.*, $_measureCount FROM ingredient i '
       'WHERE $where '
-      'ORDER BY (i.match_text = ?) DESC, length(i.canonical_name), '
+      'ORDER BY (i.match_text = ? OR i.match_text = ?) DESC, '
+      'length(i.canonical_name), '
       'i.canonical_name '
       'LIMIT ?',
-      [...params, q, limit],
+      [...params, q, qSingular, limit],
     );
     if (rows.isNotEmpty) return rows.map(_toIngredient).toList();
 

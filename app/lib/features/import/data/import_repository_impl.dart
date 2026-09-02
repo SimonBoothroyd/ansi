@@ -79,8 +79,8 @@ class SqliteImportRepository implements ImportRepository {
   }
 
   /// The live vocab row a candidate [name] resolves to: an exact canonical-name
-  /// hit, else the top token-subset match (every token of [name] a word-prefix
-  /// of the ingredient's `match_text`), else null.
+  /// hit, else the top token-subset match (every token of [name], raw or
+  /// singularized, a word-prefix of the ingredient's `match_text`), else null.
   Future<({String id, String canonicalName})?> _findVocabRow(
     String name,
   ) async {
@@ -101,8 +101,16 @@ class SqliteImportRepository implements ImportRepository {
     final where = StringBuffer('deleted_at IS NULL');
     final params = <Object?>[];
     for (final tok in tokens) {
-      where.write(' AND (match_text LIKE ? OR match_text LIKE ?)');
-      params.addAll(['$tok%', '% $tok%']);
+      // Raw form OR singular form, the same rule the picker's search uses:
+      // `match_text` is singularized by the phrase normalizer, so a candidate
+      // named "Almonds" must still resolve to the row holding `almond`.
+      final patterns = [
+        for (final form in matchTextForms(tok)) ...['$form%', '% $form%'],
+      ];
+      where.write(
+        ' AND (${patterns.map((_) => 'match_text LIKE ?').join(' OR ')})',
+      );
+      params.addAll(patterns);
     }
     final row = await _db.getOptional(
       'SELECT id, canonical_name FROM ingredient WHERE $where '

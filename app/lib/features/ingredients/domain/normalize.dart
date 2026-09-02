@@ -280,6 +280,31 @@ final _ies = RegExp(r'ies$');
 final _sibilantEs = RegExp(r'(ch|sh|x|z|s)es$');
 final _oes = RegExp(r'oes$');
 
+/// The normalizer's own singularization, exposed for the search seam.
+///
+/// `match_text` is singularized ("Almonds" → `almond`) while a search query
+/// deliberately is not ([normalizeSearchQuery] mirrors the character rules
+/// only, because a query is an in-flight prefix). A query token therefore has
+/// to be tried in this form too, or a plural query could never word-prefix the
+/// very row it names — see [matchTextForms].
+///
+/// A thin wrapper on purpose: [_singularize] is half of the shared-vector port
+/// of `normalize.ts` and its rules belong to that mirror, not to search.
+String singularizeToken(String word) => _singularize(word);
+
+/// The forms of an already-normalized query [token] that may legitimately
+/// word-prefix a phrase-normalized `match_text`: the token as typed, plus its
+/// singular when [singularizeToken] changes it.
+///
+/// Both forms derive from a [normalizeSearchQuery]-normalized token, and
+/// singularization only ever drops or rewrites trailing letters — so the
+/// `%`/`_`-stripping guarantee survives: neither form can carry a LIKE
+/// wildcard.
+List<String> matchTextForms(String token) {
+  final singular = singularizeToken(token);
+  return singular == token ? [token] : [token, singular];
+}
+
 /// English singularization, conservative enough to leave non-plurals alone.
 String _singularize(String word) {
   final irregular = _irregularPlurals[word];

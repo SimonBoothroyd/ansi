@@ -77,4 +77,41 @@ void main() {
       expect(normalizeMatchText('fresh ginger'), 'ginger fresh');
     });
   });
+
+  group('matchTextForms — the bridge over that gap', () {
+    test('a plural token carries its singular alongside the raw form', () {
+      // The two forms are what the vocab search LIKEs against: without the
+      // singular, "almonds" could never word-prefix the `almond` the
+      // normalizer wrote.
+      expect(matchTextForms('almonds'), ['almonds', 'almond']);
+      expect(matchTextForms('leaves'), ['leaves', 'leaf']);
+      expect(matchTextForms('tomatoes'), ['tomatoes', 'tomato']);
+    });
+
+    test('a token the singularizer leaves alone yields one form', () {
+      // No duplicate branch for the common case — including the words that
+      // only look plural.
+      expect(matchTextForms('almond'), ['almond']);
+      expect(matchTextForms('almo'), ['almo']); // mid-typing prefix
+      expect(matchTextForms('asparagus'), ['asparagus']);
+      expect(matchTextForms('boneless'), ['boneless']);
+    });
+
+    test('every form is still free of LIKE wildcards', () {
+      // Singularization only trims the tail, so a `%`/`_`-stripped token stays
+      // stripped — the search binds these straight into LIKE patterns.
+      for (final form in matchTextForms(normalizeSearchQuery('on_ons'))) {
+        expect(form, isNot(anyOf(contains('%'), contains('_'))));
+      }
+    });
+
+    test("singularizeToken is the normalizer's own rule, not a new one", () {
+      // Same function the phrase normalizer's last step uses: one word in,
+      // its singular out, with the irregulars honoured.
+      expect(singularizeToken('leaves'), 'leaf');
+      expect(singularizeToken('chillies'), 'chilli');
+      expect(singularizeToken('boneless'), 'boneless');
+      expect(normalizeMatchText('Almonds'), singularizeToken('almonds'));
+    });
+  });
 }

@@ -6,7 +6,7 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/ingredient_repository_impl.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
-import 'package:ansi/features/ingredients/domain/search_query.dart';
+import 'package:ansi/features/ingredients/domain/normalize.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
@@ -22,8 +22,11 @@ Future<void> _seed(
   List<String> aliases = const [],
   String? deletedAt,
 }) async {
-  // match_text mirrors the server normalizer's character rules — the same
-  // helper the repository normalizes queries with, so seed and query agree.
+  // match_text is written with the SERVER's phrase rules, exactly as every
+  // real row's is (`normalizeMatchText` — the plan-0020 D6 port). It is NOT
+  // the query normalizer: the two differ ("Almonds" is `almond` to the server,
+  // `almonds` to a search query), and seeding the query's own spelling would
+  // hide precisely the mismatch the search has to bridge.
   await db.execute(
     'INSERT INTO ingredient (id, household_id, canonical_name, category, '
     'default_unit, status, source, match_text, deleted_at) '
@@ -36,7 +39,7 @@ Future<void> _seed(
       unit,
       status,
       'seed',
-      normalizeSearchQuery(name),
+      normalizeMatchText(name),
       deletedAt,
     ],
   );
@@ -45,7 +48,7 @@ Future<void> _seed(
       'INSERT INTO ingredient_alias '
       '(id, ingredient_id, alias_text, match_text) '
       'VALUES (?, ?, ?, ?)',
-      ['$id-${a.hashCode}', id, a, normalizeSearchQuery(a)],
+      ['$id-${a.hashCode}', id, a, normalizeMatchText(a)],
     );
   }
 }
@@ -71,6 +74,12 @@ void main() {
     await _seed(db, id: '6', name: 'Canned Whole Tomatoes');
     await _seed(db, id: '7', name: 'Chicken thigh');
     await _seed(db, id: '8', name: 'Coconut milk, canned');
+    // Plural names, whose match_text the normalizer singularizes: 'almond',
+    // 'black bean', 'beansprout'.
+    // (Ids outside the numeric run — later tests seed '9'…'13' themselves.)
+    await _seed(db, id: 'p1', name: 'Almonds');
+    await _seed(db, id: 'p2', name: 'Black Beans');
+    await _seed(db, id: 'p3', name: 'Beansprouts');
   });
 
   tearDown(() => closeTestDb(db, dir));
@@ -79,6 +88,9 @@ void main() {
     final all = await repo.search('');
     expect(all.map((i) => i.canonicalName), [
       'All-Purpose Flour',
+      'Almonds',
+      'Beansprouts',
+      'Black Beans',
       'Canned Whole Tomatoes',
       'Chicken thigh',
       'Coconut milk, canned',
@@ -161,11 +173,51 @@ void main() {
     );
   });
 
+  group('a plural query hits its singularized match_text', () {
+    test('"almonds" finds Almonds, ranked first', () async {
+      // The bug: match_text is 'almond' (the phrase normalizer singularizes)
+      // while the query stays 'almonds', so `'almond' LIKE 'almonds%'` was
+      // false and the row was unreachable. A single-word query never reaches
+      // the fuzzy fallback (the "chikn" test above pins that), so this hit can
+      // only be the exact/prefix pass.
+      final r = await repo.search('almonds');
+      expect(r.first.canonicalName, 'Almonds');
+    });
+
+    test('the singular spelling is unchanged', () async {
+      expect((await repo.search('almond')).first.canonicalName, 'Almonds');
+    });
+
+    test('a mid-typing prefix is unchanged', () async {
+      final r = await repo.search('almo');
+      expect(r.map((i) => i.canonicalName), contains('Almonds'));
+    });
+
+    test('the raw form still matches what only IT prefixes', () async {
+      // 'beans' → singular 'bean' reaches 'black bean'; the raw form is what
+      // reaches 'beansprout'. Dropping either branch loses a row.
+      final r = await repo.search('beans');
+      expect(
+        r.map((i) => i.canonicalName),
+        containsAll(<String>['Black Beans', 'Beansprouts']),
+      );
+    });
+
+    test('a plural in a multi-word query hits too', () async {
+      final r = await repo.search('black beans');
+      expect(r.single.canonicalName, 'Black Beans');
+    });
+  });
+
   test('a LIKE wildcard in the query is stripped, not a pattern', () async {
     // If '_' leaked through as a single-char wildcard, 'on_on' would match
     // "onion"; normalization strips it to 'onon' → no hits. (A bare '%'
     // normalizes to the empty query and just browses the head.)
     expect(await repo.search('on_on'), isEmpty);
+    // The singular of a stripped token is still stripped — singularization
+    // only ever trims the tail, so it cannot resurrect a wildcard: 'on_ons'
+    // normalizes to 'onons', whose singular 'onon' is still not a pattern.
+    expect(await repo.search('on_ons'), isEmpty);
   });
 
   test('tombstoned vocab is not searchable or listable', () async {
@@ -607,7 +659,7 @@ void main() {
       'the whole live vocabulary, name-ordered, with measure counts',
       () async {
         final rows = await repo.watchVocabulary().first;
-        expect(rows.length, 8);
+        expect(rows.length, 11);
         expect(rows.first.canonicalName, 'All-Purpose Flour');
         expect(rows.map((r) => r.canonicalName), isNot(contains('Ghost')));
       },
@@ -623,7 +675,7 @@ void main() {
           status: 'stub',
           deletedAt: '2026-01-01',
         );
-        expect((await repo.watchVocabulary().first).length, 8);
+        expect((await repo.watchVocabulary().first).length, 11);
         expect(await repo.watchStubCount().first, 1); // only Olive Oil
       },
     );
