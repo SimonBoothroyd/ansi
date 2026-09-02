@@ -216,11 +216,13 @@ go. There is no re-chip — tokenization happens only inside the import call.
 
 ### Meal plan (week-based) — the INPUT
 - `week_plan: id · household_id · week_start_date · label`
-  - One active week; past weeks archived (cheap) → "copy last week" / reuse. Single-week grid UI, no calendar.
-- `plan_entry: id · week_plan_id · day_of_week · meal_slot (user-definable) · recipe_id · eaters[] (→ household_member ids)`
+  - `unique (household_id, week_start_date)` — **many weeks per household are legal**, one row per Monday, created lazily on a week's first meal. Nothing is written by *looking* at a week.
+  - **A week is a position, not a singleton** (week redesign, D2). The app holds a *viewed week*, defaulting to the one containing today; the header names it (`This week · 31 Aug` / `Next week · 7 Sep` / `Last week · 24 Aug` / `Week of 14 Sep`) and steps through it. Unbounded in both directions; a past week is **editable, not locked** — nothing downstream corrupts, and every rule about *when* a week would lock is wrong for someone catching up on a Tuesday. There is no calendar and no month view, and "archived" is prose, not a column.
+  - **Cook and Shop derive from the VIEWED week** (D3), not from the week containing today: you plan next week on a Sunday, so you must be able to cook and shop for it on a Sunday. Both name the week they are showing and offer one tap home.
+- `plan_entry: id · week_plan_id · day_of_week · meal_slot (user-definable) · recipe_id · eaters[] (→ household_member ids) · portions (nullable override)`
   - You just say *what you want to eat* per meal — no batch/leftover thinking here.
   - **Multiple entries per (day, slot) allowed** → different breakfasts, office-lunch-for-one, etc.
-  - Demand for an entry = `|eaters|` portions. (Optional refinement: per-entry `portions_override` for big/small appetites.)
+  - Demand for an entry = the `portions` override, else `|eaters|` (spec §8's big/small appetites, resolved).
 
 ### Batch cook plan (DERIVED) — the second view
 Groups the week's `plan_entry` rows **by recipe**, then splits each group into **cook sessions** bounded by shelf life:
@@ -239,7 +241,7 @@ Groups the week's `plan_entry` rows **by recipe**, then splits each group into *
 Persisted state is a **thin overlay**; the cook side of the list is derived, not
 stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
 
-- `shopping_list_entry: id · household_id · ingredient_id (nullable) · free_text (non-ingredients, e.g. "paper towels") · checked · unit`  ← one per ingredient the user has *touched* (checked off or topped up), plus free-text items; holds the check-off state
+- `shopping_list_entry: id · household_id · ingredient_id (nullable) · free_text (non-ingredients, e.g. "paper towels") · checked · unit · week_start_date (nullable)`  ← one per ingredient the user has *touched* (checked off or topped up) **per week**, plus free-text items; holds the check-off state
 - `shopping_list_contribution: id · entry_id · quantity · unit · note`  ← **manual top-ups only.** Cook contributions are never persisted — each device re-derives them live from the synced week + recipes (there is no `cook_session` table, so nothing stable to reference). The migration carries `source_type`/`source_cook_session_id` columns for forward-compat, but `source_type` is always `manual` and the session id stays null in v1.
 
 **Behavior:**
@@ -248,6 +250,7 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
 - **Whole-unit hint (step 7.6):** a count-family ingredient *with a measure* whose single total is fractional gets an honest round-up hint beside the total ("2.25 → buy 3", or "≈ 2.25 potato, large → buy 3" derived from a mass total via the primary measure) — a hint, never a replaced total.
 - **Top up** = persist a `manual` contribution against the entry (find-or-create).
 - **Check-off** = on the entry (rolled-up ingredient), not per contribution.
+- **Scoped to a week** (migration 0018, week redesign D3): an *ingredient* entry carries the Monday it was ticked or topped up against, so a tick made while looking at next week belongs to next week's list. A *free-text staple* carries no week and reads on every one — you are out of paper towels whichever week is on screen. A contribution rides its entry and stores no week of its own. There is still **no unique index** on an entry (0006's reasoning is unchanged: two offline devices must each be able to create one and converge later); convergence simply happens within a week.
 - **Storage rule:** only what cannot be re-derived is stored (check-off, manual top-ups, free-text items) → nothing to reconcile between devices when the week or a recipe changes. An ingredient entry is displayed only while it has at least one live contribution (derived or manual); when its last one vanishes it drops off the list, its checked row staying inert. (`supabase/migrations/0006_shopping.sql`.)
 - Batching is resolved in the cook plan, so each dish is bought once at its batch size (no double-buying, no manual leftover bookkeeping).
 
@@ -326,6 +329,60 @@ source-tab slot, footer slot):
   prose ("Chicken Curry already cooks Monday and keeps 4 days — Wednesday is
   inside that window, so this joins Monday's batch instead of a second
   cook").
+
+**The Week screen (week redesign, design board "Week · v2"):** one screen with
+**two modes**, because the mode changes what a tap means.
+
+- **Presentation is the resting state** and answers "what are we eating". A
+  dish row is two lines: the title with its eaters and — only when the override
+  differs from the eater count — a portions chip; beneath it the **cook
+  marker**, read back off `buildCookPlan` for the same week (`cooks today ·
+  batch of 4` with the mini fresh→gone bar · `from Monday's batch` · `Tuesday's
+  freezer share ❄`). A single-meal cook gets **no marker** — "cooks today" on
+  every row is noise, and an absent second line collapses the row back to one.
+  Tapping a row opens the recipe.
+- **Edit** puts the affordance layer back: a dashed `＋ Add a meal` under every
+  day and a `›` on every row. Tapping a row opens the **entry sheet** — the
+  confirm sheet in its editing role, same controls in the same order (day ·
+  slot, who's eating, portions, open recipe, remove from the week), so adding
+  and editing are one thing learned once. It replaces the per-row `⋯` menu and
+  the standalone eaters dialog, neither of which could hold all four.
+- **The lens** (`Everyone · Ada · Jun`) sits with the numbers and **dims** the
+  meals a person is not eating rather than removing them: a day somebody else
+  cooks for themselves is not an empty day.
+
+**Macros on a set of meals — the rule (invariant 3 at a new scope):**
+
+> A meal-set total shows the sum of the meals that **resolved**, is labelled
+> with its **own denominator** (`1 of 2 meals`), and **names every excluded
+> meal** in `incompleteNote`'s exact words. When **nothing** resolves, no
+> number is drawn at all — the `incomplete` badge and the reasons, exactly as
+> the recipe macro panel refuses. An **empty** set is a third state — `no
+> meals` — never `0 kcal`.
+
+This is not invariant 3 bending: on the recipe page the scope is fixed ("this
+recipe's macros") and a partial sum lies about it, whereas here the scope is a
+set of meals whose label states it and each meal is an independently honest
+unit — the shopping list's doctrine. The teeth: the denominator is mandatory,
+and an exclusion is *named*, not counted. Under **Everyone** an entry counts
+`portions ?? |eaters|` servings; under a **person's** lens it counts only if
+they are an eater, at an even split (the only figure `eaters` + `portions` can
+honestly state). An entry nobody is eating is excluded with a reason, never
+divided by zero. The week band is labelled **PLANNED** and says outright that
+it is the sum of what is planned, not a daily target — a week that only plans
+dinners averages a dinner.
+
+**House rule — a screen never swaps itself out for a data condition (D5b).**
+Chrome (header, switcher, tabs, mode, lens, primary doors) always renders.
+Emptiness is expressed *inside* the screen's own structure — a quiet line where
+the content would be, on the row, card or section that is empty — and every
+empty region carries the affordance that would fill it. A full-bleed
+illustrated state is reserved for a screen with genuinely **no** valid action;
+there are none in this app. Corollaries: an absence is written as an absence,
+not a zero; and the first tap after "empty" lands where the user pointed, not
+on a default. Applied to Week (the blank-week page is deleted; an empty week is
+seven empty day cards, one `＋ Add the first meal`, and `copy last week` while
+it has zero entries), to Cook and to Shop.
 
 ---
 
