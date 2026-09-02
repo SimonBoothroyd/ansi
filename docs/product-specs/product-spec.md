@@ -132,6 +132,16 @@ Single shared household dataset; both members full read/write; everything scoped
   (nullable FKs) quantify a line in a measure ("2 × potato, large"); the
   quantity surface offers an ingredient's live measures as chips beside its
   honest unit set (`allowedUnitChoicesFor`).
+- **`piece` is the fallback, and it is an admission fact**
+  ([ADR-0010](../decisions/0010-piece-is-an-admission-fact.md)): it means "a
+  whole one of these, and we have nothing better to call it", so where an
+  ingredient carries an appropriate piece-type measure `piece` is simply not in
+  its `allowed_units` and is never offered — nothing at runtime ever has to
+  guess whether a `piece` meant a clove or a medium one. Which rows those are
+  is **decided by hand, never derived**: by us for the seeded vocabulary
+  (`supabase/seed/curation_overrides.jsonl`, one reasoned line per row), and by
+  the household for their own rows, asked once in the measures editor the
+  moment they add a row's first measure.
 
 ### Recipe
 `id · title · book_id · section (user-defined label) · servings_base · favorite (step 7.7) · ingredient_groups[] · steps[]`

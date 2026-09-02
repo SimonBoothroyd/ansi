@@ -175,7 +175,7 @@ density source has run (the insert-time trigger fired before prefill) →
 produce volume leg → allowed-unit overrides. Every override's reason is
 emitted as a SQL comment so the generated file stays auditable on its own.
 
-**The `piece` pass (2026-09-02, plan 0022 / ADR-0010).**
+**The `piece` pass (2026-09-02, plan 0022 / [ADR-0010](../../docs/decisions/0010-piece-is-an-admission-fact.md)).**
 `piece` means "a whole one of these, and we have nothing better to call it".
 Where the vocabulary *does* have something better — a clove, an avocado, a
 medium potato — `piece` is not admitted at all, so nothing at runtime ever has
