@@ -202,6 +202,24 @@ const importedRecipe = Recipe(
   ],
 );
 
+/// A method whose chip points at a line the recipe does not have — the shape
+/// a delete + re-add used to leave behind.
+const danglingRecipe = Recipe(
+  id: '1',
+  title: 'Sliders',
+  servingsBase: 4,
+  groups: [IngredientGroup(id: 'g1')],
+  methodSteps: [
+    MethodStep(
+      tokens: [
+        MethodText(s: 'Brown the '),
+        MethodRef(refs: ['gone'], label: 'sausage'),
+        MethodText(s: ' well.'),
+      ],
+    ),
+  ],
+);
+
 /// The other shape the editor used to have: plain `steps`, no tokens.
 const legacyRecipe = Recipe(
   id: '1',

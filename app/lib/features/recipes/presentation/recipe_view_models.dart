@@ -282,14 +282,128 @@ class RecipeEditor extends _$RecipeEditor {
     (i) => i.copyWith(unit: pieces, measureId: measure.id, measure: measure),
   );
 
-  void removeLineItem(String itemId) => _set(
-    _current.copyWith(
-      groups: [
-        for (final g in _current.groups)
-          g.copyWith(items: g.items.where((i) => i.id != itemId).toList()),
-      ],
-    ),
-  );
+  /// Re-points a line at another ingredient, **keeping the line's id** (0022
+  /// D6).
+  ///
+  /// The id is the load-bearing part twice over. It makes `saveRecipe`'s child
+  /// diff issue an UPDATE rather than a soft-delete + INSERT — and it is what
+  /// keeps every chip that references this line pointing at it. Delete +
+  /// re-add, the only route the editor used to offer, minted a fresh
+  /// `line_item_id` and left every chip silently dangling.
+  ///
+  /// The measure goes with the old ingredient: "potato, medium = 213 g" says
+  /// nothing about a fennel bulb.
+  void setLineItemIngredient(String itemId, Ingredient ingredient) =>
+      _setIdentity(
+        itemId,
+        name: ingredient.canonicalName,
+        item: (i) => i.copyWith(
+          ingredientId: ingredient.id,
+          subRecipeId: null,
+          subRecipe: null,
+          ingredientName: ingredient.canonicalName,
+          measureId: null,
+          measure: null,
+          unit: i.unit.family == ingredient.defaultUnit.family
+              ? i.unit
+              : ingredient.defaultUnit,
+        ),
+      );
+
+  /// The component half of [setLineItemIngredient] — the line becomes a
+  /// sub-recipe reference, under the same identity XOR.
+  void setLineItemSubRecipe(String itemId, SubRecipeTarget target) =>
+      _setIdentity(
+        itemId,
+        name: target.title,
+        item: (i) => i.copyWith(
+          ingredientId: null,
+          subRecipeId: target.id,
+          subRecipe: target,
+          ingredientName: target.title,
+          measureId: null,
+          measure: null,
+          unit: i.unit.family == UnitFamily.batch ? i.unit : batches,
+        ),
+      );
+
+  void _setIdentity(
+    String itemId,
+    {
+    required String name,
+    required LineItem Function(LineItem) item,
+  }) {
+    final before = lineById()[itemId];
+    if (before == null) return;
+    _mapItem(itemId, item);
+    // D3 fires ONLY on an identity change — never on a quantity, unit,
+    // measure or note edit. Re-picking the same ingredient changes nothing.
+    if (before.ingredientName == name) return;
+    final relabelled = relabelRefs(methodDraft(), lineId: itemId, label: name);
+    if (relabelled.relabels.isEmpty) return;
+    _setMethod(relabelled.steps);
+    _relabels
+      ..removeWhere(
+        (r) => relabelled.relabels.any(
+          (n) => n.stepId == r.stepId && n.spanIndex == r.spanIndex,
+        ),
+      )
+      ..addAll(relabelled.relabels);
+    _substitution = (
+      oldName: before.ingredientName,
+      newName: name,
+      stepIds: {for (final r in relabelled.relabels) r.stepId},
+    );
+  }
+
+  /// The substitution being read through this sitting, or null. **Session
+  /// state, not a column** — the swap and the read-through happen in one
+  /// sitting, and a save clears it.
+  Substitution? substitution() => _substitution;
+  Substitution? _substitution;
+
+  /// What every relabelled chip used to say, so "keep the old word" is one
+  /// tap. Same session lifetime as [substitution].
+  List<ChipRelabel> relabels() => List.unmodifiable(_relabels);
+  final List<ChipRelabel> _relabels = [];
+
+  /// D3's revert: the chip keeps its ref and takes its printed word back.
+  /// Re-pointing "sausages" from Pork sausage to Italian sausage is the case
+  /// where the old word was right all along.
+  void keepOldWord(ChipRelabel relabel) {
+    renameChip(relabel.stepId, relabel.spanIndex, relabel.oldWord);
+    _relabels.remove(relabel);
+    if (_relabels.isEmpty) _substitution = null;
+  }
+
+  /// The step indexes whose chips point at [itemId] — the *"used in 2 steps"*
+  /// line, and the count the removal prompt speaks.
+  int stepsUsing(String itemId) =>
+      stepsMentioning(methodDraft(), itemId).length;
+
+  /// Removes a line. Chips pointing at it become plain words, so the sentence
+  /// survives and only the link dies — and `save`'s prune would do it anyway.
+  void removeLineItem(String itemId) {
+    var steps = methodDraft();
+    for (final index in stepsMentioning(steps, itemId)) {
+      final step = steps[index];
+      for (var i = step.spans.length - 1; i >= 0; i--) {
+        final span = step.spans[i];
+        if (span is RefSpan && span.refs.contains(itemId)) {
+          steps = [...steps]..[index] = removeSpan(steps[index], i);
+        }
+      }
+    }
+    _setMethod(steps);
+    _set(
+      _current.copyWith(
+        groups: [
+          for (final g in _current.groups)
+            g.copyWith(items: g.items.where((i) => i.id != itemId).toList()),
+        ],
+      ),
+    );
+  }
 
   // --- the method (0022) ------------------------------------------------
 
@@ -557,6 +671,9 @@ class RecipeEditor extends _$RecipeEditor {
     );
     if (_saving) return recipe.id;
     _saving = true;
+    // The substitution flag lives for one sitting; a save is the end of it.
+    _relabels.clear();
+    _substitution = null;
     try {
       await ref.read(recipeRepositoryProvider).saveRecipe(recipe);
     } finally {

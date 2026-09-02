@@ -243,6 +243,7 @@ class _GroupEditor extends StatelessWidget {
             _LineItemEditor(
               key: ValueKey(item.id),
               item: item,
+              recipeId: recipeId,
               notifier: notifier,
             ),
           const SizedBox(height: 4),
@@ -262,11 +263,16 @@ class _GroupEditor extends StatelessWidget {
 class _LineItemEditor extends ConsumerWidget {
   const _LineItemEditor({
     required this.item,
+    required this.recipeId,
     required this.notifier,
     super.key,
   });
 
   final LineItem item;
+
+  /// The recipe being edited — what the identity picker excludes from its
+  /// "Your recipes" section (a recipe cannot become its own component).
+  final String recipeId;
   final RecipeEditor notifier;
 
   /// The quantity control's label: quantity + measure/unit — an unresolved
@@ -288,7 +294,11 @@ class _LineItemEditor extends ConsumerWidget {
     // identity is the recipe chip, and its amount is edited against the
     // target's yields, not an ingredient's units.
     if (item.isComponent) {
-      return _ComponentLineEditor(item: item, notifier: notifier);
+      return _ComponentLineEditor(
+        item: item,
+        recipeId: recipeId,
+        notifier: notifier,
+      );
     }
 
     final ingredient = ref
@@ -346,7 +356,16 @@ class _LineItemEditor extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.ingredientName, style: ansiSans(size: 15)),
+                _IdentityCell(
+                  onTap: () => changeLineIdentity(
+                    context,
+                    recipeId: recipeId,
+                    item: item,
+                    notifier: notifier,
+                  ),
+                  child: Text(item.ingredientName, style: ansiSans(size: 15)),
+                ),
+                _UsedInSteps(count: notifier.stepsUsing(item.id)),
                 const SizedBox(height: 6),
                 _QuantityControl(label: _label, onTap: editQuantity),
               ],
@@ -355,13 +374,120 @@ class _LineItemEditor extends ConsumerWidget {
           const SizedBox(width: 4),
           FButton.icon(
             variant: FButtonVariant.ghost,
-            onPress: () => notifier.removeLineItem(item.id),
+            onPress: () => removeLineWithChips(context, item, notifier),
             child: const Icon(FLucideIcons.x),
           ),
         ],
       ),
     );
   }
+}
+
+/// The identity cell, tappable (0022 D6). The Review screen has had
+/// "tap to change" since step 8; the editor never has — which is why a swap
+/// meant delete + re-add, a fresh `line_item_id`, and every chip pointing at
+/// the old line going silently dangling.
+class _IdentityCell extends StatelessWidget {
+  const _IdentityCell({required this.child, required this.onTap});
+
+  final Widget child;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: onTap,
+    child: Row(
+      children: [
+        Flexible(child: child),
+        const SizedBox(width: 6),
+        const Icon(FLucideIcons.pencil, size: 12, color: AnsiColors.muted),
+      ],
+    ),
+  );
+}
+
+/// What depends on this line — the quiet count that makes the substitution
+/// notice and the removal prompt read as consequences rather than surprises.
+class _UsedInSteps extends StatelessWidget {
+  const _UsedInSteps({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    if (count == 0) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Text(
+        'used in $count ${count == 1 ? 'step' : 'steps'}',
+        style: ansiMono(size: 10, color: AnsiColors.muted),
+      ),
+    );
+  }
+}
+
+/// Tap the identity → the shipped picker → the line keeps its id and takes a
+/// new one. Chips survive by construction; D3 then relabels them.
+Future<void> changeLineIdentity(
+  BuildContext context, {
+  required String recipeId,
+  required LineItem item,
+  required RecipeEditor notifier,
+}) async {
+  final picked = await showLineTargetPicker(
+    context,
+    editingRecipeId: recipeId,
+    title: 'Change ${item.ingredientName} to',
+  );
+  if (picked == null) return;
+  switch (picked) {
+    case PickedIngredient(:final ingredient):
+      notifier.setLineItemIngredient(item.id, ingredient);
+    case PickedSubRecipe(:final target):
+      notifier.setLineItemSubRecipe(item.id, target);
+  }
+}
+
+/// Removing a referenced line asks first (D3's sibling). Confirming converts
+/// its chips to plain words — the sentences survive, only the links die.
+Future<void> removeLineWithChips(
+  BuildContext context,
+  LineItem item,
+  RecipeEditor notifier,
+) async {
+  final steps = notifier.stepsUsing(item.id);
+  if (steps == 0) {
+    notifier.removeLineItem(item.id);
+    return;
+  }
+  final confirmed = await showFDialog<bool>(
+    context: context,
+    builder: (dialogContext, style, animation) => FDialog(
+      title: Text(
+        '$steps ${steps == 1 ? 'step mentions' : 'steps mention'} '
+        '${item.ingredientName}.',
+        style: ansiSerif(size: 18),
+      ),
+      body: Text(
+        'Remove those chips too? Their words stay in the sentences — only '
+        'the links go.',
+        style: ansiSans(size: 14, color: AnsiColors.muted),
+      ),
+      actions: [
+        FButton(
+          variant: FButtonVariant.outline,
+          onPress: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FButton(
+          onPress: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Remove'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed ?? false) notifier.removeLineItem(item.id);
 }
 
 /// A component line in the editor (step 8.6 / D1, board frame a's identity
@@ -373,9 +499,14 @@ class _LineItemEditor extends ConsumerWidget {
 /// text and says so; the amount stays editable in batches, which needs no
 /// target at all.
 class _ComponentLineEditor extends StatelessWidget {
-  const _ComponentLineEditor({required this.item, required this.notifier});
+  const _ComponentLineEditor({
+    required this.item,
+    required this.recipeId,
+    required this.notifier,
+  });
 
   final LineItem item;
+  final String recipeId;
   final RecipeEditor notifier;
 
   @override
@@ -412,13 +543,21 @@ class _ComponentLineEditor extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (target != null)
-                  RecipeChip(title: target.title)
-                else
-                  Text(
-                    '${item.ingredientName} · linked recipe missing',
-                    style: ansiSans(size: 15, color: AnsiColors.muted),
+                _IdentityCell(
+                  onTap: () => changeLineIdentity(
+                    context,
+                    recipeId: recipeId,
+                    item: item,
+                    notifier: notifier,
                   ),
+                  child: target != null
+                      ? RecipeChip(title: target.title)
+                      : Text(
+                          '${item.ingredientName} · linked recipe missing',
+                          style: ansiSans(size: 15, color: AnsiColors.muted),
+                        ),
+                ),
+                _UsedInSteps(count: notifier.stepsUsing(item.id)),
                 const SizedBox(height: 6),
                 _QuantityControl(label: label, onTap: editQuantity),
               ],
@@ -427,7 +566,7 @@ class _ComponentLineEditor extends StatelessWidget {
           const SizedBox(width: 4),
           FButton.icon(
             variant: FButtonVariant.ghost,
-            onPress: () => notifier.removeLineItem(item.id),
+            onPress: () => removeLineWithChips(context, item, notifier),
             child: const Icon(FLucideIcons.x),
           ),
         ],

@@ -466,6 +466,14 @@ ChipAmountRule amountRuleFor(
 /// memory behind *was "sausage" · keep the old word*.
 typedef ChipRelabel = ({String stepId, int spanIndex, String oldWord});
 
+/// One line's identity change, as the editor reads it back for this sitting:
+/// what the chips used to name, what they name now, and which steps moved.
+typedef Substitution = ({
+  String oldName,
+  String newName,
+  Set<String> stepIds,
+});
+
 /// D3: every chip pointing at [lineId] takes [label] as its word.
 ///
 /// The invariant it upholds: **a chip never names something the recipe does

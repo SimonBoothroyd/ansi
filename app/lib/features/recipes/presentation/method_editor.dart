@@ -58,6 +58,8 @@ class MethodEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     final steps = notifier.methodDraft();
     final lines = notifier.lineById();
+    final substitution = notifier.substitution();
+    final relabels = notifier.relabels();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -74,6 +76,7 @@ class MethodEditor extends StatelessWidget {
             ],
           ),
         ),
+        if (substitution != null) _SubstitutionNotice(substitution),
         for (final (i, step) in steps.indexed)
           MethodStepCard(
             key: ValueKey(step.id),
@@ -83,6 +86,11 @@ class MethodEditor extends StatelessWidget {
             lineById: lines,
             recipe: recipe,
             notifier: notifier,
+            flagged: substitution?.stepIds.contains(step.id) ?? false,
+            relabels: [
+              for (final r in relabels)
+                if (r.stepId == step.id) r,
+            ],
           ),
         const SizedBox(height: 4),
         FButton(
@@ -106,6 +114,8 @@ class MethodStepCard extends HookConsumerWidget {
     required this.lineById,
     required this.recipe,
     required this.notifier,
+    this.flagged = false,
+    this.relabels = const [],
     super.key,
   });
 
@@ -115,6 +125,13 @@ class MethodStepCard extends HookConsumerWidget {
   final Map<String, LineItem> lineById;
   final Recipe recipe;
   final RecipeEditor notifier;
+
+  /// Whether a line's identity change moved one of this step's chips this
+  /// sitting — the amber *check* in the card's header (D3).
+  final bool flagged;
+
+  /// What each moved chip used to say, so "keep the old word" is one tap.
+  final List<ChipRelabel> relabels;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -143,7 +160,12 @@ class MethodStepCard extends HookConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: Text('Step ${index + 1}', style: ansiLabel()),
+                child: Text(
+                  flagged ? 'Step ${index + 1} · check' : 'Step ${index + 1}',
+                  style: ansiLabel(
+                    color: flagged ? AnsiColors.aging : AnsiColors.muted,
+                  ),
+                ),
               ),
               _CardAction(
                 icon: FLucideIcons.chevronUp,
@@ -185,6 +207,11 @@ class MethodStepCard extends HookConsumerWidget {
               onChange: (v) => notifier.editStep(step.id, v.text),
             ),
           ),
+          for (final relabel in relabels)
+            _KeepTheOldWord(
+              relabel: relabel,
+              onKeep: () => notifier.keepOldWord(relabel),
+            ),
           if (focused) ...[
             const SizedBox(height: 8),
             Row(
@@ -503,6 +530,96 @@ Future<String?> pickOrAddLine(
     if (!before.contains(id)) return id;
   }
   return null;
+}
+
+/// *"2 steps mentioned the sausage — their chips now read meatballs."*
+///
+/// The invariant behind it: **a chip never names something the recipe does not
+/// contain.** Prose is authored, but a chip's label is data about what it
+/// points at, so an identity change retires the printed word — visibly, and
+/// revertibly. The words AROUND the chip are yours: "casings removed" is
+/// flagged, never rewritten.
+class _SubstitutionNotice extends StatelessWidget {
+  const _SubstitutionNotice(this.substitution);
+
+  final Substitution substitution;
+
+  @override
+  Widget build(BuildContext context) {
+    final n = substitution.stepIds.length;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AnsiColors.paper,
+        border: Border.all(color: AnsiColors.aging),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            FLucideIcons.triangleAlert,
+            size: 14,
+            color: AnsiColors.aging,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$n ${n == 1 ? 'step mentioned' : 'steps mentioned'} '
+                  '${substitution.oldName}',
+                  style: ansiSans(size: 14, weight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Their chips now read ${substitution.newName}. The words '
+                  'around them may need a look — we don’t rewrite your '
+                  'sentences.',
+                  style: ansiMono(
+                    size: 11,
+                    color: AnsiColors.muted,
+                  ).copyWith(height: 1.5),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The one-tap revert, on the card whose chip moved. It calls the same
+/// [RecipeEditor.renameChip] the chip sheet's Word field calls — one place
+/// changes what a chip says.
+class _KeepTheOldWord extends StatelessWidget {
+  const _KeepTheOldWord({required this.relabel, required this.onKeep});
+
+  final ChipRelabel relabel;
+  final VoidCallback onKeep;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 6),
+    child: Row(
+      children: [
+        Text(
+          'was “${relabel.oldWord}”',
+          style: ansiMono(size: 11, color: AnsiColors.aging),
+        ),
+        const SizedBox(width: 8),
+        FButton(
+          variant: FButtonVariant.ghost,
+          size: FButtonSizeVariant.sm,
+          onPress: onKeep,
+          child: const Text('keep the old word'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _CardAction extends StatelessWidget {
