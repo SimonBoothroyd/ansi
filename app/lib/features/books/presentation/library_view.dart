@@ -239,7 +239,6 @@ class _OverflowMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.read(bookRepositoryProvider);
     final stubs = ref.watch(stubCountProvider).asData?.value ?? 0;
 
     return FPopoverMenu(
@@ -258,17 +257,9 @@ class _OverflowMenu extends ConsumerWidget {
             FItem(
               prefix: const Icon(FLucideIcons.bookPlus),
               title: const Text('New book'),
-              onPress: () async {
+              onPress: () {
                 unawaited(controller.hide());
-                final name = await promptForText(
-                  context,
-                  title: 'New book',
-                  hint: 'e.g. Our Cookbook',
-                  confirm: 'Create',
-                );
-                if (name != null && name.trim().isNotEmpty) {
-                  await repo.createBook(name);
-                }
+                unawaited(promptForNewBook(context, ref));
               },
             ),
             if (books.length >= 2)
@@ -913,7 +904,18 @@ class _SectionMenu extends ConsumerWidget {
   }
 }
 
-/// One recipe: title · serves N · ›.
+/// One recipe: title · (★ when favourited) · serves N · ›.
+///
+/// The star REPORTS ONLY (D6). `RecipeSummary.favorite` has existed since 0011
+/// and the picker has a Favorites tab, so a library that cannot show a star
+/// makes the recipe page's star feel like it went nowhere — but toggling stays
+/// on the recipe page, and this row keeps its single tap target. Absent when
+/// false, never a hollow outline on every line: the stub badge's rule.
+///
+/// Refused here on purpose: a "keeps 4 d" chip (shelf life is a *planning*
+/// fact, which is why the picker row carries it and a browsing row doesn't)
+/// and a macro badge (on honest numbers most rows would show a number nobody
+/// asked for, or an `incomplete` nag).
 ///
 /// [filing] is set only on a search result, where the tree that would have said
 /// where this lives is not on screen.
@@ -950,6 +952,10 @@ class _RecipeRow extends StatelessWidget {
                 ],
               ),
             ),
+            if (recipe.favorite) ...[
+              const Icon(FLucideIcons.star, size: 13, color: AnsiColors.aging),
+              const SizedBox(width: 6),
+            ],
             Text(
               'serves ${formatQuantity(recipe.servingsBase)}',
               style: ansiMono(size: 11, color: AnsiColors.muted),
@@ -982,26 +988,53 @@ class _AddSectionButton extends StatelessWidget {
   );
 }
 
-class _EmptyState extends StatelessWidget {
+/// No books at all (D7·1) — nearly unreachable, since `ensureDefaultBook()`
+/// runs at bootstrap, but it stays honest and points at something ON SCREEN.
+/// The old copy said "Add one with the ＋ above", which after D1 is no longer
+/// where books are made.
+class _EmptyState extends ConsumerWidget {
   const _EmptyState();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(FLucideIcons.library, size: 44, color: AnsiColors.herb),
-          const SizedBox(height: 14),
-          Text('No books yet', style: ansiSerif(size: 22)),
-          const SizedBox(height: 6),
-          Text(
-            'Add one with the + above.',
-            style: ansiMono(size: 12, color: AnsiColors.muted),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(FLucideIcons.library, size: 44, color: AnsiColors.herb),
+            const SizedBox(height: 14),
+            Text('No books yet', style: ansiSerif(size: 22)),
+            const SizedBox(height: 6),
+            Text(
+              'A book is a shelf — name it whatever you call it out loud.',
+              textAlign: TextAlign.center,
+              style: ansiMono(size: 12, color: AnsiColors.muted),
+            ),
+            const SizedBox(height: 18),
+            DashedAction(
+              icon: FLucideIcons.bookPlus,
+              label: 'new book',
+              onTap: () => unawaited(promptForNewBook(context, ref)),
+            ),
+          ],
+        ),
       ),
     );
+  }
+}
+
+/// Names and creates a book, from the `⋯` menu and the no-books state alike.
+Future<void> promptForNewBook(BuildContext context, WidgetRef ref) async {
+  final name = await promptForText(
+    context,
+    title: 'New book',
+    hint: 'e.g. Our Cookbook',
+    confirm: 'Create',
+  );
+  if (name != null && name.trim().isNotEmpty) {
+    await ref.read(bookRepositoryProvider).createBook(name);
   }
 }
 

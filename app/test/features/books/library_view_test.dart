@@ -606,6 +606,87 @@ void main() {
     });
   });
 
+  testWidgets('a favourited recipe reports a ★; the rest show none (D6)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        _repo(const [
+          Book(
+            id: 'b1',
+            name: 'Our Cookbook',
+            unsectioned: [
+              RecipeSummary(
+                id: 'r1',
+                title: 'Romesco Aioli',
+                servingsBase: 4,
+                favorite: true,
+              ),
+              RecipeSummary(id: 'r2', title: 'Toast', servingsBase: 1),
+            ],
+          ),
+        ]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Never a hollow outline on every line — absence renders as absence.
+    expect(find.byIcon(FLucideIcons.star), findsOneWidget);
+    // …and it reports only: the row keeps a single tap target.
+    expect(find.text('Romesco Aioli'), findsOneWidget);
+    // Refused on a browsing row (D6): no shelf-life chip, no macro badge.
+    expect(find.textContaining('keeps'), findsNothing);
+    expect(find.textContaining('kcal'), findsNothing);
+    expect(find.text('incomplete'), findsNothing);
+  });
+
+  testWidgets('the star survives into a search result row', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        _repo(const [
+          Book(
+            id: 'b1',
+            name: 'Our Cookbook',
+            unsectioned: [
+              RecipeSummary(
+                id: 'r1',
+                title: 'Romesco Aioli',
+                servingsBase: 4,
+                favorite: true,
+              ),
+            ],
+          ),
+        ]),
+      ),
+    );
+    await tester.pumpAndSettle();
+    filterForuiSemanticsAssertions();
+    await tester.enterText(find.byType(TextField).first, 'romesco');
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(FLucideIcons.star), findsOneWidget);
+    expect(find.text('Our Cookbook · Unsectioned'), findsOneWidget);
+  });
+
+  testWidgets('no books at all points at a door on screen (D7·1)', (
+    tester,
+  ) async {
+    final repo = _RecordingBookRepo(const []);
+    await tester.pumpWidget(
+      _host([bookRepositoryProvider.overrideWithValue(repo)]),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No books yet'), findsOneWidget);
+    expect(
+      find.text('A book is a shelf — name it whatever you call it out loud.'),
+      findsOneWidget,
+    );
+    // The old copy pointed at the ＋, which after D1 no longer makes books.
+    expect(find.textContaining('with the + above'), findsNothing);
+    expect(find.text('new book'), findsOneWidget);
+  });
+
   testWidgets('the add-section affordance uses an icon, not a raw ＋ glyph', (
     tester,
   ) async {
