@@ -28,6 +28,46 @@ your call.
 
 ---
 
+## Owner rulings — 2026-09-02
+
+Sections **A** and **B** (119 rows): **accepted as drafted** — `piece` comes out.
+
+**C — the four "keep" rows, all ruled:**
+
+| ingredient | ruling | what lands |
+|---|---|---|
+| `broccoli` | "bunch → piece" | `piece` comes out; the 608 g **bunch** is the whole broccoli. *Orchestrator's reading — relabel it `whole (608 g)` so "1 broccoli" reads as one; confirm.* |
+| `dill pickle` | spear | `piece` comes out; `spear` is the count |
+| `ginger` | "can we do 2 cm piece? or make more clear that slice 2.2 g is the 2 cm piece" | `piece` comes out; keep `slice`; **add a `piece, 2 cm` measure** — a 1"-diameter slice at 2.2 g is not a 2 cm piece, so the new row needs its own weight (≈ 10 g, `seed:typical`, flagged for the owner's confirmation rather than borrowed from the slice) |
+| `kombu` | strip | `piece` comes out; `strip` is the count |
+
+**D — the owner's calls:**
+
+| ingredient | ruling | what lands |
+|---|---|---|
+| `asparagus` | drop; spears are fine | out |
+| `basil` | "do we have some tsp-like measure? normally x tsp chopped or y g chopped" | out; the tsp/tbsp/cup ↔ g bridge is a **density**, not a measure — see the density note below |
+| `cauliflower` | drop | out |
+| `celery` | drop | out |
+| `cherry tomato` | "cherry is wrong… we measure these by cup or g so piece isn't needed; we need clean macros / density" | out; the `cherry 17 g` measure is **relabelled** (`tomato, 17 g`) — it is one cherry tomato from FDC 170457; density + macros checked below |
+| `iceberg lettuce` | drop | out |
+| `mint` | drop | out |
+| `multigrain bread` | drop | out |
+| `cabbage` | drop | out |
+| `rhubarb` | drop | out |
+
+**Applied by analogy** (not named by the owner; flag to overrule): `red cabbage`, `red leaf lettuce`, `romaine lettuce` → out (as cabbage / iceberg); `soft sandwich bread`, `sprouted multigrain bread`, `wheat bread whole`, `white bread` → out (as multigrain bread); `thai basil` → out (as basil); `spinach` → out (as mint: bunch/package are the counts).
+
+**Net:** `piece` stays on **no** seeded ingredient that carries a measure; the ~149 measure-less rows keep it.
+
+**Density note (basil, thai basil, cherry tomato).** The volume ↔ mass chips
+(tsp · tbsp · cup ↔ g) come from a density, which the USDA seed row carries
+when its portion text yielded one; the build lane verifies these three rows
+have a density and macros, and adds a curated one (with a source) where
+missing — never a guessed number.
+
+---
+
 ## A · Drop `piece` — the measure names the thing itself (72)
 
 An `apple, medium` is an apple. There is no question `piece` answers here that

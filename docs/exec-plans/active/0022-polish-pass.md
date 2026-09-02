@@ -169,8 +169,14 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
   in [0022-piece-curation.md](./0022-piece-curation.md): 142 seeded
   ingredients with measures, drafted 119 drop · 4 keep · 19 for the owner's
   call; lands as `curation_overrides.jsonl` lines → reseed, pinned by pgTAP,
-  never a backfill. **Awaiting the owner's ticks on that file and the
-  section.**
+  never a backfill. **Ticked 2026-09-02 — signed off.** A/B accepted as
+  drafted; C: broccoli's bunch is the whole (relabel), dill pickle → spear,
+  ginger gains a `piece, 2 cm` (weight `seed:typical`, awaiting the owner's
+  number), kombu → strip; D: everything dropped (asparagus, basil, cauliflower,
+  celery, cherry tomato — its `cherry` measure relabelled, density + macros
+  verified present — iceberg, mint, multigrain bread, cabbage, rhubarb), the
+  unnamed rows by analogy. Net: no seeded ingredient with a measure keeps
+  `piece`. Build lane started (worktree).
 - **Recipe editor — liked** (one card per step). Owner asks: tap a chip or a
   timer to edit it; select text → "To ingredient / To timer" in the selection
   menu, prefilled by a match over the recipe's own lines; the `@` is not
