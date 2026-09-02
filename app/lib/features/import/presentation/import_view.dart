@@ -24,10 +24,14 @@ class ImportView extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(importControllerProvider);
 
-    // A committed recipe lands on its page; replace the flow in history so back
-    // doesn't return to the (now spent) import screen.
+    // A committed recipe lands on its page, replacing the (now spent) import
+    // flow so back doesn't return to it. A replacement rather than `go`: `go`
+    // would flatten the stack to one page, and back from the new recipe would
+    // leave the app instead of returning to the tab the import started from.
     ref.listen(importControllerProvider, (_, next) {
-      if (next is ImportCommitted) context.go('/recipes/${next.recipeId}');
+      if (next is ImportCommitted) {
+        context.pushReplacement('/recipes/${next.recipeId}');
+      }
     });
 
     final title = switch (state) {

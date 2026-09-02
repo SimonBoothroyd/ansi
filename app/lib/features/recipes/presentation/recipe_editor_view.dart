@@ -56,7 +56,15 @@ class RecipeEditorView extends ConsumerWidget {
                 ? null
                 : () async {
                     final id = await notifier.save();
-                    if (context.mounted) context.go('/recipes/$id');
+                    // Replace the editor with the saved recipe, rather than
+                    // `go`: `go` would flatten the stack to one page, so back
+                    // would leave the app and the iOS edge-swipe would vanish
+                    // on a page that looks exactly like a pushed one. A
+                    // replacement swaps the top page and leaves whatever the
+                    // editor was opened from underneath it.
+                    if (context.mounted) {
+                      context.pushReplacement('/recipes/$id');
+                    }
                   },
             child: const Text('Save'),
           ),

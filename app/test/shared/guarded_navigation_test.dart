@@ -110,13 +110,20 @@ void main() {
     /// Navigations that are NOT tap-driven, where the guard would only add
     /// noise: each fires from a state change or a completed write, and the
     /// location it lands on is never the one already on top.
+    ///
+    /// All three are the post-action landings from the board's back table. Two
+    /// of them replace within the stack so the page below survives; the third
+    /// is the one place a stack-flattening `go` is the right answer.
     const exceptions = <String, String>{
       'lib/features/import/presentation/import_view.dart':
-          'the ImportCommitted hop is a ref.listen reaction, not a tap',
+          'the ImportCommitted hop is a ref.listen reaction, not a tap; it '
+          'replaces the spent import flow with the new recipe',
       'lib/features/recipes/presentation/recipe_view.dart':
-          'returns to the library after the recipe is deleted',
+          'returns to the Library branch after the recipe is deleted — the '
+          'shell is the bottom of the root stack, so `go` lands on it',
       'lib/features/recipes/presentation/recipe_editor_view.dart':
-          'post-save navigation to the recipe just written',
+          'post-save navigation, replacing the editor with the recipe just '
+          'written so back returns to where the editor was opened from',
     };
 
     /// Line comments blanked, so a doc comment naming `context.push(` cannot
@@ -147,7 +154,11 @@ void main() {
       ]..sort((a, b) => a.path.compareTo(b.path));
       expect(files, isNotEmpty, reason: 'no view sources found — broken glob?');
 
-      final bare = RegExp(r'\bcontext\.(push|go|pushNamed|goNamed)\s*\(');
+      // Every unguarded form, replacements included — a tap target can be hit
+      // twice whether the call pushes or replaces.
+      final bare = RegExp(
+        r'\bcontext\.(push|go|replace)(Replacement)?(Named)?\s*\(',
+      );
       final violations = <String>[];
       var guardedCalls = 0;
 
@@ -186,7 +197,7 @@ void main() {
         expect(file.existsSync(), isTrue, reason: '$path is gone — drop it');
         expect(
           RegExp(
-            r'\bcontext\.(push|go)\s*\(',
+            r'\bcontext\.(push|go|replace)(Replacement)?(Named)?\s*\(',
           ).hasMatch(stripComments(file.readAsStringSync())),
           isTrue,
           reason: '$path no longer navigates bare ($why) — drop the exception',

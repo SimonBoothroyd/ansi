@@ -260,6 +260,12 @@ class _RecipeBody extends HookConsumerWidget {
     );
     if ((ok ?? false) && context.mounted) {
       await repository.deleteRecipe(recipe.id);
+      // `go`, not a replacement — the one post-action navigation where it is
+      // right. This page is pushed ABOVE the whole tab shell, and the shell is
+      // the bottom of the root stack; `go('/')` lands on the Library branch
+      // exactly there, where back means "leave from home" (D3-b). A
+      // `pushReplacement('/')` would instead stack a SECOND shell page over
+      // the first.
       if (context.mounted) context.go('/');
     }
   }
