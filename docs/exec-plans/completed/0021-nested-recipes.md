@@ -1,11 +1,17 @@
 # Exec plan: Nested recipes — a recipe as an ingredient
 
-- **Status:** active — **signed off 2026-09-01, D1–D9 as drawn** (with the
-  three pre-sign-off owner refinements logged below: the two-denomination
-  yield, the editor MAKES row / frame (h), and the conditional "Used in"
-  tab). Build fanning out per the lane DAG. The kickoff rule stands for any
-  further UI: *no UI is written until the design board contains the design,
-  and no new design where the board already carries one.*
+- **Status:** done — 2026-09-02. Signed off 2026-09-01 ("D1–D9 as drawn",
+  after three pre-sign-off owner refinements: the two-denomination yield,
+  the editor MAKES row / frame (h), the conditional "Used in" tab); built
+  as four Opus lanes — S `adab7cf` (server) → D `2cbba11` (domain) →
+  U `d3daac2` (UI) → I `2d8f53b` (import) — plus the frame-(f) arbitration
+  fix `e51bf71` and two sim-pass bug fixes `1151041`/`d4837c3`.
+  **1021 host tests · 176 pgTAP · 153 deno · `make test-sim` 6/6** (new
+  scenario 6: yield → link → plan → cook gap → delete refusal, on live
+  sync). The sim pass also surfaced the **"almonds" plural-search bug**
+  (fixed `0a1bc02` + two tracker rows). Deferred honestly: the import
+  review leg is host-tested only; method-step recipe refs; cloud push of
+  `0017` (all → tracker / roadmap row).
 - **Owner:** Simon + Claude (design phase solo, before any fan-out)
 - **Roadmap step:** Step 8.6 — Nested recipes
 - **Created:** 2026-09-01
@@ -339,19 +345,26 @@ right.)
 
 ## Acceptance criteria
 
-- [ ] D1–D9 ruled by the owner; board section "Nested recipes · v1" frozen.
-- [ ] A component line links, renders, scales, and pushes to its target.
-- [ ] Planning a parent derives the component session with honest batch
-      scale; unresolved yield renders the named gap, never `1×`.
-- [ ] Shopping shows two-level provenance; unresolved contributes nothing.
-- [ ] Cycle write refused (app + SQL); delete refused with a count.
-- [ ] Import offers, never auto-links; unlinked commits byte-identical to
-      today.
-- [ ] Macros fold a resolvable component; the three incomplete surfaces name
-      the sub-recipe reasons from the shared helper.
-- [ ] Tests cover the new logic (host + pgTAP + a sim scenario).
-- [ ] Docs updated: roadmap, tracker, `import-and-matching.md` §degradation,
-      `db-schema.md`, gold `_review` pointer.
+- [x] D1–D9 ruled by the owner; board section "Nested recipes · v1" frozen.
+- [x] A component line links, renders, scales, and pushes to its target
+      (scaling is host-tested; the rest sim-verified, scenario 6).
+- [x] Planning a parent derives the component session with honest batch
+      scale; unresolved yield renders the named gap, never `1×` (scenario 6
+      asserts the absence of ×1 explicitly).
+- [x] Shopping shows two-level provenance; unresolved contributes nothing
+      (scenario 6).
+- [x] Cycle write refused (app + SQL — pgTAP covers self/2-step/3-step +
+      the UPDATE leg); delete refused with a count (sim-verified).
+- [x] Import offers, never auto-links; unlinked commits byte-identical to
+      today (host-tested incl. the gold byte-fidelity pin; not sim-driven —
+      tracker).
+- [x] Macros fold a resolvable component; the three incomplete surfaces name
+      the sub-recipe reasons from the shared helper (host-tested; one such
+      reason render is what scenario 6's overflow fix exercised on-device).
+- [x] Tests cover the new logic (host + pgTAP + a sim scenario).
+- [x] Docs updated: roadmap, tracker, `import-and-matching.md` §degradation
+      + §6.1, `db-schema.md` (regen), gold `_review` + `_SCHEMA.md`
+      resolution notes, QUALITY.md, app/AGENTS.md scenario count.
 
 ## Decision log
 
@@ -411,15 +424,21 @@ right.)
 The code landing is not the step landing. Tick these before setting Status to
 done and moving this file to `completed/`.
 
-- [ ] Roadmap row updated: status flipped, one line on what shipped and what
+- [x] Roadmap row updated: status flipped, one line on what shipped and what
       was deliberately deferred.
-- [ ] `docs/QUALITY.md` grade for every area touched matches reality.
-- [ ] `app/AGENTS.md` "Current focus" and command list still true.
-- [ ] Feature steps: `make test-sim` run on a booted simulator (the UI paths
-      CI can't reach), and the result recorded here.
-- [ ] Tech-debt rows **added** for corners knowingly cut, and **retired**
-      (or narrowed) for debt this step paid off.
-- [ ] New migrations or seed changes? Say in the roadmap row whether they
-      have reached **cloud** yet, and append a `docs/cloud-setup.md` ledger
-      entry when they do.
-- [ ] `make ci` green.
+- [x] `docs/QUALITY.md` grade for every area touched matches reality (five
+      rows annotated).
+- [x] `app/AGENTS.md` "Current focus" and command list still true (smoke
+      section now says six scenarios).
+- [x] Feature steps: `make test-sim` run on a booted simulator — **6/6, All
+      tests passed (3m30s, iPhone 17, live local stack)**, re-confirmed on
+      the committed tree; two real bugs found on-device and fixed
+      (`1151041`, `d4837c3`).
+- [x] Tech-debt rows **added** (import leg sim gap · method-step refs ·
+      scenario-2 flake · single-word fuzzy · singularizer divergence) and
+      **retired** (the 2026-08-31 "nested recipes are deferred" row).
+- [ ] New migrations or seed changes? **`0017` + the function's recipe
+      matcher have NOT reached cloud** — the deploy workflow is being
+      reworked in a parallel session; the roadmap row says so. Push + ledger
+      entry when it lands (the one open box on this list).
+- [x] `make ci` green (run at close-out, 2026-09-02).

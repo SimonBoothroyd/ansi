@@ -251,13 +251,17 @@ Token rules:
   300/300) — a timer token is "a duration the cook waits", not "a duration the heat is
   on". *(owner ruling)*
 - Text the model can't confidently link stays a plain `text` span (no chip). A
-  `"pinch of salt"` with no matching line, or a **sub-recipe reference**
-  (`"Romesco Aioli (p38)"`), stays plain text (nested recipes are deferred).
+  `"pinch of salt"` with no matching line, or a **sub-recipe reference in a
+  method step** (`"Romesco Aioli (p38)"`), stays plain text (the step-token
+  recipe-ref variant is future work — tech-debt tracker).
   A sub-recipe that the page *prints as an ingredient line* (`"1 Italian Sausage
   (page 45)"`) is transcribed as an ordinary line item — identity as printed, page
-  cross-reference included — and stays one until **roadmap 8.6 (nested recipes)**
-  gives it a real recipe↔recipe link; flag it in `_review` as an 8.6 candidate rather
-  than modelling it now. *(owner ruling 2026-08-31.)*
+  cross-reference included — **permanently**: roadmap 8.6 (nested recipes, shipped
+  2026-09-02) deliberately left extraction untouched. The recipe↔recipe link is a
+  *review-time offer* (matching returns `recipe_candidates`; a human links or
+  declines), so the gold label and the extraction contract never model it, and an
+  undeclined line commits byte-identical to this transcription. *(owner ruling
+  2026-08-31; resolution recorded at 8.6 close-out, exec plan 0021.)*
 - **A matching line is not enough — the use must be step-consumable.** A chip says the
   step spends some of *that line's* amount. Two mentions look linkable and are not:
   a **`"pinch of"`** taken while a line's own amount is already spoken for (the printed

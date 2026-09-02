@@ -138,10 +138,12 @@ against whichever simulator is booted (boot one first — step 1 above), driving
 the real UI over the real step-7 stack with **live sync**. It needs the **local
 stack running** (`make db-up`) and nothing else: the suite is **auth-aware and
 self-provisioning** (it creates a throwaway two-person household over HTTP,
-then signs in through the real gate). Three scenarios: auth → library
+then signs in through the real gate). Six scenarios: auth → library
 (create/edit a recipe incl. method steps, jsonb + child-diff round-trips) →
-week/cook/shop. It is deliberately *not* in CI (macOS runners are slow and
-expensive at hobby scale).
+week/cook/shop → import (reconcile → commit) → ingredients manager (stub
+band, rename, add-by-barcode) → nested recipes (yield + component line →
+plan → cook/shop → gap card + delete refusal). It is deliberately *not* in
+CI (macOS runners are slow and expensive at hobby scale).
 
 Notes:
 
