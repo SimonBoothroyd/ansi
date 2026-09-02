@@ -179,7 +179,17 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
   celery, cherry tomato — its `cherry` measure relabelled, density + macros
   verified present — iceberg, mint, multigrain bread, cabbage, rhubarb), the
   unnamed rows by analogy. Net: no seeded ingredient with a measure keeps
-  `piece`. Build lane started (worktree).
+  `piece`. **Landed on main 2026-09-02** (`4753a0c`…`6ffd425`, rebased over
+  8.6's sub-recipe macro reasons — the two reason sets now coexist in
+  `RecipeMacroSummary`/`incompleteNote`): 142 curation lines (66 no-ops kept
+  as the record), broccoli `whole`, cherry tomato's borrowed measure dropped,
+  ginger `piece, 1 inch` 12 g typical, the manager's stop-offering-piece
+  prompt, the import fall-through, the chip row, ADR-0010, 12 new pgTAP
+  assertions (146/146), 1053 app tests, 153 deno. Finding: every seeded
+  count-default row carries a measure, so the template admits `piece`
+  nowhere — the fallback exists only for household-created rows. **Cloud:**
+  needs the template-vocab reseed (`docs/release.md` §4 — `db push` does not
+  reseed). **Sim:** scenarios 4 and 5 to re-drive.
 - **Recipe editor — liked** (one card per step). Owner asks: tap a chip or a
   timer to edit it; select text → "To ingredient / To timer" in the selection
   menu, prefilled by a match over the recipe's own lines; the `@` is not

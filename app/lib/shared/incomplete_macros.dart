@@ -15,13 +15,9 @@ import '../core/theme/ansi_theme.dart';
 import '../features/recipes/domain/recipe_macros.dart';
 
 /// Why a summary is incomplete, for the row note: `no ingredients yet`,
-/// `1 stub line`, `2 stub lines · 1 unconvertible`,
+/// `1 stub line`, `2 stub lines · 1 line needs a weight · 1 unconvertible`,
 /// `1 sub-recipe unresolved` — never an empty string (a reasonless badge
 /// would leave a dangling separator).
-/// `1 stub line`, `2 stub lines · 1 line needs a weight · 1 unconvertible`,
-/// `1 sub-recipe unresolved` — never an empty string (a reasonless badge would
-/// leave a dangling
-/// separator).
 ///
 /// **"needs a weight" is its own reason** (plan 0022 **D6**), not part of
 /// "unconvertible". A bare count — "2 pieces", no measure behind it — is the
