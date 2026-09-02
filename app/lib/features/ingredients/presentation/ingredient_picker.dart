@@ -203,21 +203,6 @@ class IngredientResultList extends StatelessWidget {
   }
 }
 
-/// The `DID YOU MEAN` band header — the picker's own section-header idiom in
-/// the caution colour, so a guessed row can never be read as a found one.
-///
-/// Shared by all three pickers: whatever the corpus, a guess is labelled the
-/// same way.
-class DidYouMeanHeader extends StatelessWidget {
-  const DidYouMeanHeader({super.key});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 4),
-    child: Text('DID YOU MEAN', style: ansiLabel(color: AnsiColors.aging)),
-  );
-}
-
 /// An empty result list is an ANSWER, not a failure — "nothing here is a
 /// chicken thigh" is the honest reply from a vegan vocabulary. When the query
 /// was also too short for the rule to guess at, it says that too, so the

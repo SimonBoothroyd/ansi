@@ -12,6 +12,7 @@ import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/books/domain/book_repository.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/domain/search_rank.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_repository.dart';
@@ -172,17 +173,25 @@ Future<PickedLineTarget?> _open(
 }
 
 void main() {
-  group('recipeTitleMatches', () {
+  group('the title rule is the SHARED one now', () {
+    // `recipeTitleMatches` is gone; `recipeTitleHit` answers for both recipe
+    // pickers, and `cross_picker_search_test.dart` is what holds them
+    // together. What survives here is the behaviour this section owns.
     test('hits a title, or any word inside it', () {
-      expect(recipeTitleMatches('Romesco Aioli', 'rom'), isTrue);
-      expect(recipeTitleMatches('Romesco Aioli', 'aio'), isTrue);
-      expect(recipeTitleMatches('Romesco Aioli', 'ROMESCO A'), isTrue);
+      for (final q in ['rom', 'aio', 'ROMESCO A']) {
+        expect(recipeTitleHit('Romesco Aioli', q)?.tier, SearchTier.prefix);
+      }
     });
 
-    test('misses anything the title does not start a word with', () {
-      expect(recipeTitleMatches('Romesco Aioli', 'esco'), isFalse);
-      // No query, no section: the recipes list is not a browse surface.
-      expect(recipeTitleMatches('Romesco Aioli', '  '), isFalse);
+    test('a mid-word fragment is never a spelled hit', () {
+      expect(
+        recipeTitleHit('Romesco Aioli', 'esco')?.tier,
+        isNot(SearchTier.prefix),
+      );
+    });
+
+    test('no query, no section: this list is not a browse surface', () {
+      expect(recipeTitleHit('Romesco Aioli', '  '), isNull);
     });
   });
 

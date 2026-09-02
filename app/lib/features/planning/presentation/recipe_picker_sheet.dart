@@ -5,6 +5,10 @@
 /// · per-serving macros or an `incomplete` badge — never zeros), and the
 /// "Eating" footer naming the household the meal is planned for.
 ///
+/// Search is the shared `searchRank` rule over titles — the same call the
+/// editor's "Your recipes" section makes. When nothing was spelled right the
+/// typo tier answers and the list arrives under a `DID YOU MEAN` header.
+///
 /// Planning search stays recipes-only in v1 (decision, plan 0011);
 /// foods-as-ad-hoc-meals is revisited with step 8. Resolves to the chosen
 /// recipe, or null if dismissed; the caller then opens the confirm sheet.
@@ -24,7 +28,7 @@ import '../../../shared/incomplete_macros.dart';
 import '../../../shared/picker_shell.dart';
 import '../../books/domain/book.dart';
 import '../../books/presentation/book_view_models.dart';
-import '../../ingredients/domain/search_query.dart';
+import '../../ingredients/domain/search_rank.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
@@ -84,9 +88,23 @@ class _RecipePickerSheet extends HookConsumerWidget {
         const <String, DateTime>{};
     final filing = _filingByRecipe(library);
 
-    // The 7.4 normalizer + word-boundary matching, same as the ingredient
-    // picker ("all-purpose" conventions and no mid-word hits).
-    bool matches(String title) => matchesSearchQuery(title, query.value);
+    // The shared rule, over titles — the same call the editor's "Your
+    // recipes" section makes, so the two pickers cannot disagree about what
+    // hits (they used to, in opposite directions). An empty query still
+    // matches everything: this list is a browse surface as well as a search.
+    //
+    // Only the BEST tier is shown. If any title was spelled right, no guess is
+    // offered beside it; if none was, the whole list is a guess and says so.
+    final tier = bestTier([
+      for (final r in recipes) recipeTitleHit(r.title, query.value),
+    ]);
+    bool matches(String title) {
+      if (query.value.isEmpty) return true;
+      final hit = recipeTitleHit(title, query.value);
+      return hit != null && hit.tier == tier;
+    }
+
+    final guessing = tier == SearchTier.typo;
 
     // Distinct recipes already planned this week, with the earliest day.
     final alreadyThisWeek = <String, ({String title, int day})>{};
@@ -143,6 +161,12 @@ class _RecipePickerSheet extends HookConsumerWidget {
             index: tab.value,
             onChanged: (i) => tab.value = i,
           ),
+          // Nothing was spelled right, so the rows below are guesses and the
+          // list says so before the user reads one as a find.
+          if (guessing) ...[
+            const SizedBox(height: 12),
+            const DidYouMeanHeader(),
+          ],
           if (alreadyThisWeek.isNotEmpty && query.value.isEmpty) ...[
             const SizedBox(height: 12),
             _AlreadyThisWeek(

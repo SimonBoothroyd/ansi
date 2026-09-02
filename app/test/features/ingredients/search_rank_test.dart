@@ -155,6 +155,43 @@ void main() {
     });
   });
 
+  group('the word-boundary rule the in-memory matcher used to carry', () {
+    // Rewritten from `matchesSearchQuery`, which two pickers called and this
+    // replaces. The behaviours it pinned are still pinned; what changed is
+    // that a miss now falls through to the typo tier instead of stopping.
+    const curry = ['weeknight chicken curry'];
+
+    test('hits any word start, not just the leading word', () {
+      for (final q in ['chicken', 'week', 'cur']) {
+        expect(searchRank(q, curry)?.tier, SearchTier.prefix, reason: q);
+      }
+    });
+
+    test('never matches mid-word as a SPELLING', () {
+      // "hick" and "night" sit inside words, so tiers 0 and 1 refuse them.
+      // What they get instead is the typo tier's answer — a guess, labelled
+      // as one, or nothing at all. Either way, never a prefix hit.
+      for (final q in ['hick', 'night']) {
+        expect(searchRank(q, curry)?.tier, isNot(SearchTier.prefix), reason: q);
+        expect(searchRank(q, curry)?.tier, isNot(SearchTier.exact), reason: q);
+      }
+    });
+
+    test('normalizes both sides (hyphens, case, accents)', () {
+      const loaf = ['all purpose loaf'];
+      expect(searchRank('purpose', loaf)?.tier, SearchTier.prefix);
+      expect(searchRank('ALL PURPOSE', loaf)?.tier, SearchTier.prefix);
+      expect(recipeTitleHit('All-Purpose Loaf', 'all-purpose'), isNotNull);
+    });
+
+    test('an empty or punctuation-only query hits nothing at all', () {
+      // It used to answer "everything"; the callers now own that decision, so
+      // a browse is never confused with a search that matched the world.
+      expect(searchRank('', curry), isNull);
+      expect(searchRank('  --  ', curry), isNull);
+    });
+  });
+
   group('osaDistance — a transposition is one edit, not two', () {
     test('adjacent swaps', () {
       expect(osaDistance('suace', 'sauce'), 1);

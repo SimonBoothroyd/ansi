@@ -44,27 +44,4 @@ void main() {
       expect(normalizeSearchQuery('--'), '');
     });
   });
-
-  group('matchesSearchQuery (in-memory word-boundary match)', () {
-    test('hits any word start, not just the leading word', () {
-      expect(matchesSearchQuery('Weeknight Chicken Curry', 'chicken'), isTrue);
-      expect(matchesSearchQuery('Weeknight Chicken Curry', 'week'), isTrue);
-      expect(matchesSearchQuery('Weeknight Chicken Curry', 'cur'), isTrue);
-    });
-
-    test('never matches mid-word', () {
-      expect(matchesSearchQuery('Weeknight Chicken Curry', 'hick'), isFalse);
-      expect(matchesSearchQuery('Weeknight Chicken Curry', 'night'), isFalse);
-    });
-
-    test('normalizes both sides (hyphens, case)', () {
-      expect(matchesSearchQuery('All-Purpose Loaf', 'purpose'), isTrue);
-      expect(matchesSearchQuery('All-Purpose Loaf', 'ALL PURPOSE'), isTrue);
-    });
-
-    test('an empty or punctuation-only query matches everything', () {
-      expect(matchesSearchQuery('Anything', ''), isTrue);
-      expect(matchesSearchQuery('Anything', '  --  '), isTrue);
-    });
-  });
 }

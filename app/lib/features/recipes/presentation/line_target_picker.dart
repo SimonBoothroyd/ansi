@@ -9,6 +9,11 @@
 /// a separate "＋ sub-recipe" row would force the user to know, before
 /// searching, whether the thing they want is a recipe.
 ///
+/// The "Your recipes" search is the shared `searchRank` rule over titles — the
+/// same call the planning picker makes, pinned by a cross-picker test. When
+/// nothing was spelled right the section arrives under a `DID YOU MEAN`
+/// header; a link is still one human tap away, never a resolution.
+///
 /// **A cycle is never offered** (D5). The recipe being edited is excluded
 /// (a recipe cannot be its own component) and so is any recipe that already
 /// reaches it over live component links; the check runs again at pick time,
@@ -29,6 +34,7 @@ import '../../../shared/picker_shell.dart';
 import '../../books/domain/book.dart';
 import '../../books/presentation/book_view_models.dart';
 import '../../ingredients/domain/ingredient.dart';
+import '../../ingredients/domain/search_rank.dart';
 import '../../ingredients/presentation/ingredient_detail_view.dart'
     show ingredientDetailRoute;
 import '../../ingredients/presentation/ingredient_picker.dart';
@@ -75,20 +81,6 @@ Future<PickedLineTarget?> showLineTargetPicker(
   );
 }
 
-/// Whether [query] hits [title] the way the picker's search hits an ingredient
-/// name: a prefix of the whole title or of any word in it, case-insensitively.
-/// Deterministic only (ADR-0004) — no fuzzy matching on the device.
-bool recipeTitleMatches(String title, String query) {
-  final q = query.trim().toLowerCase();
-  if (q.isEmpty) return false;
-  final t = title.toLowerCase();
-  if (t.startsWith(q)) return true;
-  for (final word in t.split(RegExp('[^a-z0-9]+'))) {
-    if (word.startsWith(q)) return true;
-  }
-  return false;
-}
-
 /// Every recipe in the library, with its "Book · Section" filing, flattened
 /// out of the library tree in book order — the board's row subtitle.
 List<RecipeCandidate> recipeCandidates(List<Book> books) => [
@@ -115,12 +107,27 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
     final books = ref.watch(libraryProvider).asData?.value ?? const [];
     final refusal = useState<String?>(null);
 
-    final matches = [
+    // The shared rule, over titles — the same call the planning picker makes.
+    // This section used to carry a rule of its own (the WHOLE query had to
+    // prefix the title, and `[^a-z0-9]+` split words, so an accented letter
+    // was a word break); the two pickers disagreed one screen apart.
+    //
+    // Only the best tier is offered: if any title was spelled right, no guess
+    // is shown beside it.
+    final candidates = [
       for (final c in recipeCandidates(books))
-        if (c.recipe.id != editingRecipeId &&
-            recipeTitleMatches(c.recipe.title, search.query))
-          c,
+        if (c.recipe.id != editingRecipeId) c,
     ];
+    final tier = bestTier([
+      for (final c in candidates) recipeTitleHit(c.recipe.title, search.query),
+    ]);
+    final matches = tier == null
+        ? const <RecipeCandidate>[]
+        : [
+            for (final c in candidates)
+              if (recipeTitleHit(c.recipe.title, search.query)?.tier == tier) c,
+          ];
+    final guessing = tier == SearchTier.typo;
 
     // The cycle guard, over exactly the rows about to be offered. Until it
     // answers, nothing from this section is shown — an offer that has to be
@@ -193,11 +200,19 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
         results: search.results,
         query: search.query,
         showingRecents: search.showingRecents,
+        guessed: search.guessed,
         onPick: (ing) => Navigator.of(context).pop(PickedIngredient(ing)),
         trailing: [
           if (offered.isNotEmpty) ...[
+            // Each corpus carries its own band: the ingredient rows above may
+            // be spellings while these titles are guesses, or the reverse.
+            if (guessing)
+              const Padding(
+                padding: EdgeInsets.only(top: 14),
+                child: DidYouMeanHeader(),
+              ),
             Padding(
-              padding: const EdgeInsets.only(top: 14, bottom: 4),
+              padding: EdgeInsets.only(top: guessing ? 0 : 14, bottom: 4),
               child: Text('YOUR RECIPES', style: ansiLabel()),
             ),
             for (final (i, c) in offered.indexed) ...[

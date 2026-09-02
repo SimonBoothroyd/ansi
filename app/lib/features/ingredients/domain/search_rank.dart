@@ -251,3 +251,18 @@ List<String> nameSurfaces(String name) {
 /// section can never disagree again.
 SearchHit? recipeTitleHit(String title, String query) =>
     searchRank(query, nameSurfaces(title));
+
+/// The best tier anything in [hits] reached, or null when nothing hit.
+///
+/// A caller shows the rows at this tier and drops the rest. That is what makes
+/// the band honest across a whole corpus rather than just per row: a list is
+/// all spellings or all guesses, never a guess trailing under a spelling.
+SearchTier? bestTier(Iterable<SearchHit?> hits) {
+  SearchTier? best;
+  for (final hit in hits) {
+    if (hit == null) continue;
+    if (best == null || hit.tier.index < best.index) best = hit.tier;
+    if (best == SearchTier.exact) break;
+  }
+  return best;
+}

@@ -122,6 +122,22 @@ class PickerShell extends StatelessWidget {
   }
 }
 
+/// The `DID YOU MEAN` band header — the pickers' own section-header idiom, in
+/// the caution colour, so a guessed row can never be read as a found one.
+///
+/// One header for all three pickers: whatever the corpus, a guess is labelled
+/// the same way. It appears only when NOTHING was spelled right, so the band
+/// it opens is the whole list rather than a tail under real hits.
+class DidYouMeanHeader extends StatelessWidget {
+  const DidYouMeanHeader({super.key});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Text('DID YOU MEAN', style: ansiLabel(color: AnsiColors.aging)),
+  );
+}
+
 /// The pill tab row both pickers share (Recent / Books / Favorites…).
 class PickerTabs extends StatelessWidget {
   const PickerTabs({
