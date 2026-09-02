@@ -229,6 +229,49 @@ void main() {
     });
   });
 
+  group('the tabs you are not looking at', () {
+    testWidgets('are offstage — out of the visible tree, still mounted', (
+      tester,
+    ) async {
+      final router = _router();
+      await _pump(tester, router);
+
+      // Visit the Week once so its branch is materialised — go_router only
+      // builds a branch that has been reached.
+      await _tapTab(tester, FLucideIcons.calendarDays);
+      expect(find.text('week 0'), findsOneWidget);
+      expect(find.text('lib 0'), findsNothing);
+
+      await _tapTab(tester, FLucideIcons.library);
+      // Back on the Library, the Week answers for nothing: a default finder
+      // skips offstage subtrees, which is what keeps a test (and a hit test,
+      // and a screen reader) scoped to the tab on screen.
+      expect(find.text('lib 0'), findsOneWidget);
+      expect(find.text('week 0'), findsNothing);
+      // Mounted all the same — the same finder allowing offstage sees it.
+      expect(find.text('week 0', skipOffstage: false), findsOneWidget);
+    });
+
+    testWidgets('both branches stay on stage while the fade runs', (
+      tester,
+    ) async {
+      final router = _router();
+      await _pump(tester, router);
+
+      await tester.tap(find.byIcon(FLucideIcons.calendarDays));
+      await tester.pump();
+      await tester.pump(kTabFade ~/ 2);
+
+      // Mid cross-fade there is no "the" tab: the outgoing one is still
+      // painting, at a lower opacity.
+      expect(find.text('lib 0'), findsOneWidget);
+      expect(find.text('week 0'), findsOneWidget);
+
+      await tester.pumpAndSettle();
+      expect(find.text('lib 0'), findsNothing);
+    });
+  });
+
   group('state (D7)', () {
     testWidgets('a tab keeps its state across a switch', (tester) async {
       final router = _router();

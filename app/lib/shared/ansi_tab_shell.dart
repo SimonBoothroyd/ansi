@@ -99,6 +99,18 @@ class _CrossFadeBranchesState extends State<_CrossFadeBranches>
   ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
   @override
+  void initState() {
+    super.initState();
+    // The fade ending changes which branches are on stage (see [_onStage]),
+    // and an animation finishing does not rebuild anything on its own.
+    _controller.addStatusListener(_onFadeStatus);
+  }
+
+  void _onFadeStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed && mounted) setState(() {});
+  }
+
+  @override
   void didUpdateWidget(_CrossFadeBranches old) {
     super.didUpdateWidget(old);
     if (widget.index != old.index) {
@@ -109,7 +121,9 @@ class _CrossFadeBranchesState extends State<_CrossFadeBranches>
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller
+      ..removeStatusListener(_onFadeStatus)
+      ..dispose();
     super.dispose();
   }
 
@@ -121,16 +135,37 @@ class _CrossFadeBranchesState extends State<_CrossFadeBranches>
     return const AlwaysStoppedAnimation<double>(0);
   }
 
+  /// Whether a branch takes part in this frame: the one being shown, plus the
+  /// one fading out while the fade runs.
+  ///
+  /// Everything else goes [Offstage] — not to save work (an invisible branch
+  /// already paints nothing) but so it leaves the *visible* tree: an offstage
+  /// subtree is skipped by hit tests, by the semantics tree a screen reader
+  /// walks, and by the default `find.*` in a test. Without it the three tabs
+  /// you are not looking at answer for text on the one you are.
+  ///
+  /// It costs nothing in state: `RenderOffstage` still lays its child out with
+  /// the same constraints, so scroll offsets and every view state survive
+  /// (D7) — it only stops painting and hit-testing it.
+  bool _onStage(int index) =>
+      index == widget.index || (index == _outgoing && _controller.isAnimating);
+
   @override
   Widget build(BuildContext context) => Stack(
     fit: StackFit.expand,
     children: [
       for (final (index, child) in widget.children.indexed)
-        FadeTransition(
-          opacity: _opacityFor(index),
-          child: TickerMode(
-            enabled: index == widget.index,
-            child: IgnorePointer(ignoring: index != widget.index, child: child),
+        Offstage(
+          offstage: !_onStage(index),
+          child: FadeTransition(
+            opacity: _opacityFor(index),
+            child: TickerMode(
+              enabled: index == widget.index,
+              child: IgnorePointer(
+                ignoring: index != widget.index,
+                child: child,
+              ),
+            ),
           ),
         ),
     ],
