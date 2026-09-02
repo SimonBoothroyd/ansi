@@ -90,6 +90,20 @@ class _MethodLinePickerSheet extends HookWidget {
       subtitle: 'A chip can only point at a line this recipe already has.',
       searchHint: 'Search this recipe’s lines',
       onQueryChanged: (v) => query.value = v,
+      // Exactly one match is the two-tap case: the selection already found
+      // the line, so the sheet offers it by name instead of making the user
+      // hunt for the row it just highlighted.
+      aboveList: matched.length == 1 && q.isNotEmpty
+          ? Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: FButton(
+                onPress: () => Navigator.of(
+                  context,
+                ).pop(PickedRecipeLine(matched.single.id)),
+                child: Text('Chip as “${matched.single.ingredientName}”'),
+              ),
+            )
+          : null,
       body: ListView(
         padding: EdgeInsets.zero,
         children: [

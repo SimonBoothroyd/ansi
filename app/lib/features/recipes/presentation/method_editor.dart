@@ -17,6 +17,13 @@
 /// `line_item_id`s the import committed.
 library;
 
+import 'dart:async';
+
+import 'package:flutter/material.dart'
+    show
+        AdaptiveTextSelectionToolbar,
+        ContextMenuButtonItem,
+        ContextMenuButtonType;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -169,6 +176,10 @@ class MethodStepCard extends HookConsumerWidget {
             // onTapAlwaysCalled so a second tap on the same chip re-opens it.
             onTap: () => _openSpanSheet(context, controller),
             onTapAlwaysCalled: true,
+            // The CARD's context, not the toolbar's: the toolbar's is
+            // unmounted by `hideToolbar` before the sheet ever opens.
+            contextMenuBuilder: (_, state) =>
+                _selectionToolbar(context, state, controller),
             control: FTextFieldControl.managed(
               controller: controller,
               onChange: (v) => notifier.editStep(step.id, v.text),
@@ -206,6 +217,109 @@ class MethodStepCard extends HookConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+
+  /// **Select the text, then say what it is** (D2b) — the writing door.
+  ///
+  /// The platform's own toolbar gains two items, placed immediately after
+  /// **Copy**: iOS paginates after roughly four, and ours must not be the ones
+  /// behind the `▸`. This is the shipped path, not a Material intrusion —
+  /// Forui's own default builder is already
+  /// `AdaptiveTextSelectionToolbar.editableText`, and we hand it one more
+  /// `ContextMenuButtonItem` each.
+  Widget _selectionToolbar(
+    BuildContext context,
+    EditableTextState state,
+    MethodSpanController controller,
+  ) {
+    final items = [...state.contextMenuButtonItems];
+    // Captured BEFORE the toolbar hides and the field loses focus: the sheet
+    // that opens next would otherwise be handed an empty range.
+    final selection = controller.selection;
+    if (selection.isValid && !selection.isCollapsed) {
+      final copy = items.indexWhere(
+        (i) => i.type == ContextMenuButtonType.copy,
+      );
+      items.insertAll(copy < 0 ? 0 : copy + 1, [
+        ContextMenuButtonItem(
+          label: 'To ingredient',
+          onPressed: () {
+            state.hideToolbar();
+            unawaited(_selectionToIngredient(context, selection));
+          },
+        ),
+        ContextMenuButtonItem(
+          label: 'To timer',
+          onPressed: () {
+            state.hideToolbar();
+            unawaited(_selectionToTimer(context, selection));
+          },
+        ),
+      ]);
+    }
+    return AdaptiveTextSelectionToolbar.buttonItems(
+      anchors: state.contextMenuAnchors,
+      buttonItems: items,
+    );
+  }
+
+  /// The selected words become the chip's word **verbatim** — nothing is
+  /// inserted, deleted or rewritten. Selection → chip is a pure annotation of
+  /// text the user already wrote, which is the whole reason it reads as
+  /// obvious.
+  Future<void> _selectionToIngredient(
+    BuildContext context,
+    TextSelection selection,
+  ) async {
+    final word = step.text.substring(selection.start, selection.end);
+    final lineId = await pickOrAddLine(
+      context,
+      recipe: recipe,
+      notifier: notifier,
+      query: word,
+      alreadyInStep: {
+        for (final span in step.spans)
+          if (span is RefSpan) ...span.refs,
+      },
+    );
+    if (lineId == null) return;
+    notifier.chipRange(
+      step.id,
+      start: selection.start,
+      end: selection.end,
+      refs: [lineId],
+    );
+  }
+
+  /// Parses ONLY the selected substring, and seeds the stepper with it.
+  ///
+  /// This is not render-time matching (ADR-0004). Nothing scans prose on its
+  /// own: it runs once, at edit time, on a string the user deliberately
+  /// pointed at and asked us to read, and its output is shown in a stepper for
+  /// confirmation before a single token is written. A failure opens the
+  /// stepper EMPTY rather than guessing.
+  Future<void> _selectionToTimer(
+    BuildContext context,
+    TextSelection selection,
+  ) async {
+    final parsed = parseSelectedDuration(
+      step.text.substring(selection.start, selection.end),
+    );
+    final result = await showMethodTimerSheet(
+      context,
+      lowSeconds: parsed?.$1,
+      highSeconds: parsed?.$2,
+      prosePrefix: step.text.substring(0, selection.start),
+      proseSuffix: step.text.substring(selection.end),
+    );
+    if (result is! TimerSet) return;
+    notifier.timerRange(
+      step.id,
+      start: selection.start,
+      end: selection.end,
+      lowSeconds: result.lowSeconds,
+      highSeconds: result.highSeconds,
     );
   }
 

@@ -378,25 +378,36 @@ class RecipeEditor extends _$RecipeEditor {
     ),
   );
 
-  /// Marks `[start, end)` of [stepId] as a timer, changing no text.
+  /// Marks `[start, end)` of [stepId] as a timer.
+  ///
+  /// This is the ONE place a selection rewrites text, and it is deliberate: a
+  /// timer's words ARE [formatTimerRange]'s output, occupying a locked range
+  /// with the seconds in the span record, so the round-trip never re-parses
+  /// the string it printed. The timer sheet's "Goes in as" shows exactly what
+  /// will land before it lands.
   void timerRange(
     String stepId, {
     required int start,
     required int end,
     required int lowSeconds,
     required int highSeconds,
-  }) => _mapStep(
-    stepId,
-    (d) => annotate(
-      d,
-      TimerSpan(
-        start: start,
-        end: end,
-        lowSeconds: lowSeconds,
-        highSeconds: highSeconds,
-      ),
-    ),
-  );
+  }) => _mapStep(stepId, (d) {
+    final span = TimerSpan(
+      start: start,
+      end: end,
+      lowSeconds: lowSeconds,
+      highSeconds: highSeconds,
+    );
+    final marked = annotate(d, span);
+    final index = marked.spans.indexWhere((s) => s.start == start);
+    if (index < 0) return marked;
+    return respan(
+      marked,
+      index,
+      span: span,
+      word: formatTimerRange(lowSeconds, highSeconds),
+    );
+  });
 
   /// The no-selection door: splices [word] in at the caret and chips it.
   void insertChip(
