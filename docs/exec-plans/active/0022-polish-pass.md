@@ -128,6 +128,18 @@ Append-only.
   same-location dedupe, and a shared menu-item helper (D6) over the shipped
   per-item hide. Both are put to the owner as choices; the shipped forms are
   the floor either way.
+- 2026-09-02 — **Landing order and the seams it exposed.** Landed: piece →
+  nav shell → search → editor → week (each rebased onto main, gates re-run,
+  fast-forwarded). Every seam was caught by a test, none by luck: the nav
+  lane's structural modals test flagged the piece prompt and the editor's
+  five new sheets; the search lane's `IngredientMatches` broke the editor
+  harness fake; week's two new repository methods broke the search lane's
+  planning fake; two lanes both minted migration `0018` (week's became
+  `0019`); and the diacritics fold re-keyed `jalapeño` under the piece
+  pass's curation override — pgTAP's "no measured row admits piece" guard
+  caught the one survivor. Why record it: the parallel-lane model works
+  because the invariants are mechanical; each of these would have been a
+  silent bug under prose rules.
 - 2026-09-02 — The launcher-icon working-tree changes (`flutter_launcher_icons`,
   the mipmap/appiconset PNGs, `pubspec.yaml`) are untouched by every lane. Why:
   they predate this pass and belong to the owner; confirmed with the owner
