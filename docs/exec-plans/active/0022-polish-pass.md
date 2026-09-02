@@ -203,8 +203,20 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
   new **D9** states the amount rule in one sentence ("the first time a step
   calls for something, its chip shows the amount; after that it just names
   it") with a per-chip switch, and proposes renaming `StepMention` →
-  `ChipAmountRule`. D1 and D3 kept. **Signed off 2026-09-02 ("lgtm");
-  build lane started on the nav PoC base.**
+  `ChipAmountRule`. D1 and D3 kept. **Signed off 2026-09-02 ("lgtm").
+  Landed on main the same day** (`165eae8`…`b5e7d3c`): tokens ↔ text +
+  marked ranges round-trip (byte-equal, pinned on the sausage-sliders gold),
+  step cards with a chip-painting controller inside `FTextField.multiline`,
+  tap-to-edit chip and timer sheets, the platform selection toolbar gaining
+  To ingredient / To timer (no overlay pill needed), tappable identity +
+  the substitution relabel with `keep the old word`, dangling refs pruned on
+  save, convert-to-plain-text; the wire format unchanged (`StepMention` →
+  `ChipAmountRule` is Dart-only; step keys derived, no `id`). Seam fixes at
+  landing: five new modals through the shell wrappers, the harness fake on
+  `IngredientMatches`, smoke scenario 2 drives the step cards. 1261 app
+  tests. Deviations recorded by the lane: the in-field timer skin is a
+  stroked outline; To timer rewrites the selected words to the formatted
+  range. Sim scenario 2 to re-drive.
 - **Week · v2 — liked**, one change: the cook marker ("from Monday's batch",
   "cooks today") sits under the recipe name, not beside it. Lane revising.
 - **Navigation · v2 — liked**, pending a short live PoC on the simulator
@@ -239,7 +251,22 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
   marker sits on a second line under the dish title, not in a trailing
   column. Assumed unless overruled: D3 (Cook/Shop follow the viewed week, so
   `shopping_list_entry` gains `week_start_date`), D4 partial totals with a
-  stated denominator and named exclusions, D8 the lens dims.
+  stated denominator and named exclusions, D8 the lens dims. **Landed on
+  main 2026-09-02** (`d5d93e7`…`ee3f8fe`): the viewed-week provider with
+  Cook and Shop following it and naming the week (the switcher's chevrons
+  and title menu shipped too — ~40 lines over the provider, so "defer" was
+  not worth honouring); `0019_shopping_week.sql` (renumbered from the
+  lane's 0018 at landing — the diacritics fold took 0018) scoping
+  check-offs and top-ups to the week, 14 new pgTAP; presentation/edit
+  modes with the entry sheet retiring the dish menu and the eaters dialog;
+  `sumPlannedMacros` + the day line, week band (`PLANNED`, denominator,
+  named exclusions) and the three refusals; the empty week as a state of
+  the screen (Cook and Shop follow D5b); smoke scenario 3 rewritten. 1308
+  app tests. Lane's recorded deviations: the day macro line is
+  presentation-only (D1's table over frame b's caption); the marker reads
+  `cooks today · batch of 4` and `cooks Mon · …` off the current week; the
+  entry sheet gained a Close. **Cloud:** `0019` to push (sync rules
+  unchanged — both files `select *`).
 - **Search — signed off 2026-09-02 with the floor at 4** ("i'm fine matching
   nion... dropping to 4 is fine"; the "nion must stay silent" sentence was the
   tracker's, not the owner's, and is withdrawn). D1–D6 otherwise as
