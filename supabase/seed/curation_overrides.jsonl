@@ -368,7 +368,7 @@
 {"kind": "allowed_units", "match_text": "green olive", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (olive) — piece would be a guess"}
 {"kind": "allowed_units", "match_text": "hazelnut", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (nut) — piece would be a guess"}
 {"kind": "allowed_units", "match_text": "hot chili", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (chili) — piece would be a guess"}
-{"kind": "allowed_units", "match_text": "jalapeño", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (jalapeño) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "jalapeno", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (jalapeño) — piece would be a guess"}
 {"kind": "allowed_units", "match_text": "king oyster mushroom", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, medium) — piece would be a guess"}
 {"kind": "allowed_units", "match_text": "kiwi", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (kiwi, whole) — piece would be a guess"}
 {"kind": "allowed_units", "match_text": "leek", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (leek) — piece would be a guess"}

@@ -1458,11 +1458,11 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'piece')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'hot chili';
 
--- jalapeño: piece-curation A (owner 2026-09-02): the measure names the thing itself (jalapeño) — piece would be a guess
+-- jalapeno: piece-curation A (owner 2026-09-02): the measure names the thing itself (jalapeño) — piece would be a guess
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
    where e <> 'piece')
-where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'jalapeño';
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'jalapeno';
 
 -- king oyster mushroom: piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, medium) — piece would be a guess
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
