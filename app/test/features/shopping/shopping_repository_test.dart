@@ -186,14 +186,22 @@ void main() {
       eaterIds: ['a'],
     );
 
-    await repo.setIngredientChecked(ingredientId: 'onion', checked: true);
+    await repo.setIngredientChecked(
+      ingredientId: 'onion',
+      checked: true,
+      weekStart: _week,
+    );
     final onion =
         (await repo.watchShoppingList(_week).first).groups.single.items.single;
     expect(onion.checked, isTrue);
     expect(onion.entryId, isNotNull);
 
     // One entry only — a second check-off updates in place (find-or-create).
-    await repo.setIngredientChecked(ingredientId: 'onion', checked: false);
+    await repo.setIngredientChecked(
+      ingredientId: 'onion',
+      checked: false,
+      weekStart: _week,
+    );
     final count = await db.get(
       'SELECT count(*) AS c FROM shopping_list_entry WHERE deleted_at IS NULL',
     );
@@ -210,7 +218,12 @@ void main() {
       eaterIds: ['a', 'b'],
     );
 
-    await repo.addTopUp(ingredientId: 'flour', quantity: 50, unit: g);
+    await repo.addTopUp(
+      ingredientId: 'flour',
+      quantity: 50,
+      unit: g,
+      weekStart: _week,
+    );
     final flour =
         (await repo.watchShoppingList(_week).first).groups.single.items.single;
     expect(flour.totals.single.amount, 150); // 100 + 50
@@ -229,7 +242,12 @@ void main() {
       recipeId: 'cake',
       eaterIds: ['a', 'b'],
     );
-    await repo.addTopUp(ingredientId: 'flour', quantity: 50, unit: g);
+    await repo.addTopUp(
+      ingredientId: 'flour',
+      quantity: 50,
+      unit: g,
+      weekStart: _week,
+    );
 
     var item =
         (await repo.watchShoppingList(_week).first).groups.single.items.single;
@@ -292,11 +310,14 @@ void main() {
     );
     // Simulate the merged two-device state directly (each device did a
     // find-or-create while offline).
+    // Both devices stamp the same week (0018) — the convergence is WITHIN a
+    // week, which is exactly what a shared list needs.
     Future<void> insertEntry(String id, String createdAt, int checked) =>
         db.execute(
           'INSERT INTO shopping_list_entry (id, household_id, ingredient_id, '
-          'checked, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
-          [id, 'h', 'flour', checked, createdAt, createdAt],
+          'checked, week_start_date, created_at, updated_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [id, 'h', 'flour', checked, '2026-08-24', createdAt, createdAt],
         );
     Future<void> insertTopUp(String id, String entryId, double qty) =>
         db.execute(
@@ -330,7 +351,12 @@ void main() {
     // A write folds the duplicates into the canonical row (lossless: the
     // dupe's contributions are re-pointed, checked propagated, dupe
     // tombstoned) so every device converges on one entry.
-    await repo.addTopUp(ingredientId: 'flour', quantity: 10, unit: g);
+    await repo.addTopUp(
+      ingredientId: 'flour',
+      quantity: 10,
+      unit: g,
+      weekStart: _week,
+    );
     final live = await db.getAll(
       'SELECT id, checked FROM shopping_list_entry '
       "WHERE ingredient_id = 'flour' AND deleted_at IS NULL",
@@ -412,7 +438,11 @@ void main() {
       recipeId: 'curry',
       eaterIds: ['a'],
     );
-    await repo.setIngredientChecked(ingredientId: 'onion', checked: true);
+    await repo.setIngredientChecked(
+      ingredientId: 'onion',
+      checked: true,
+      weekStart: _week,
+    );
     expect((await repo.watchShoppingList(_week).first).groups, isNotEmpty);
 
     // Soft-delete the recipe: its cook contribution vanishes, and the checked
@@ -480,6 +510,7 @@ void main() {
       quantity: 2,
       unit: pieces,
       measureId: 'm-onion',
+      weekStart: _week,
     );
 
     final row = await db.get(
@@ -502,6 +533,7 @@ void main() {
       quantity: 2,
       unit: pieces,
       measureId: 'm-ghost',
+      weekStart: _week,
     );
     final list = await repo.watchShoppingList(_week).first;
     final onion = list.groups.single.items.single;
@@ -520,6 +552,7 @@ void main() {
       quantity: 2,
       unit: pieces,
       measureId: 'm-ghost',
+      weekStart: _week,
     );
     final list = await repo.watchShoppingList(_week).first;
     final line = list.groups.single.items.single.contributions.single;
@@ -768,6 +801,147 @@ void main() {
           .firstWhere((i) => i.ingredientId == 'almonds');
       // Two portions of a serves-1 recipe → ×2 → ½ batch of the aioli.
       expect(almonds.totals.single.amount, closeTo(120, 1e-9));
+    });
+  });
+
+  group('the overlay is scoped to a week (0018 / D3)', () {
+    final nextWeek = DateTime.utc(2026, 8, 31);
+
+    /// Plans one Curry meal on [week] so the ingredient is derived onto that
+    /// week's list and can be ticked.
+    Future<void> planCurryOn(DateTime week) async {
+      await planning.addEntry(
+        weekStart: week,
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'curry',
+        eaterIds: ['a', 'b'],
+      );
+    }
+
+    setUp(() async {
+      await _insertRecipe(
+        db,
+        'curry',
+        'Curry',
+        lines: [('onion', 2, pieces), ('flour', 100, g)],
+      );
+    });
+
+    bool checkedOn(ShoppingList list, String ingredientId) => list.groups
+        .expand((g) => g.items)
+        .firstWhere((i) => i.ingredientId == ingredientId)
+        .checked;
+
+    test('a check-off belongs to the week it was made on', () async {
+      await planCurryOn(_week);
+      await planCurryOn(nextWeek);
+
+      await repo.setIngredientChecked(
+        ingredientId: 'onion',
+        checked: true,
+        weekStart: _week,
+      );
+
+      expect(
+        checkedOn(await repo.watchShoppingList(_week).first, 'onion'),
+        isTrue,
+      );
+      // The same ingredient on the OTHER week is untouched — the whole point
+      // of the column.
+      expect(
+        checkedOn(await repo.watchShoppingList(nextWeek).first, 'onion'),
+        isFalse,
+      );
+
+      final row = await db.get(
+        'SELECT week_start_date FROM shopping_list_entry '
+        "WHERE ingredient_id = 'onion'",
+      );
+      expect(row['week_start_date'], '2026-08-24');
+    });
+
+    test('a top-up lands on one week only', () async {
+      await planCurryOn(_week);
+      await planCurryOn(nextWeek);
+      await repo.addTopUp(
+        ingredientId: 'flour',
+        quantity: 50,
+        unit: g,
+        weekStart: nextWeek,
+      );
+
+      double flourOn(ShoppingList list) => list.groups
+          .expand((g) => g.items)
+          .firstWhere((i) => i.ingredientId == 'flour')
+          .totals
+          .single
+          .amount;
+
+      // Two portions of a serves-2 recipe → x1 → 100 g derived on each week;
+      // only next week also carries the manual 50 g.
+      expect(flourOn(await repo.watchShoppingList(_week).first), 100);
+      expect(flourOn(await repo.watchShoppingList(nextWeek).first), 150);
+    });
+
+    test('two touches on the same week converge on one entry', () async {
+      await planCurryOn(_week);
+      await repo.setIngredientChecked(
+        ingredientId: 'onion',
+        checked: true,
+        weekStart: _week,
+      );
+      await repo.addTopUp(
+        ingredientId: 'onion',
+        quantity: 1,
+        unit: pieces,
+        weekStart: _week,
+      );
+      final rows = await db.getAll(
+        'SELECT id FROM shopping_list_entry '
+        "WHERE ingredient_id = 'onion' AND deleted_at IS NULL",
+      );
+      expect(rows, hasLength(1));
+    });
+
+    test('a free-text staple carries no week and reads on every one', () async {
+      await repo.addFreeTextItem(text: 'Paper towels');
+
+      final row = await db.get(
+        'SELECT week_start_date FROM shopping_list_entry '
+        "WHERE free_text = 'Paper towels'",
+      );
+      expect(row['week_start_date'], isNull);
+
+      for (final week in [_week, nextWeek]) {
+        final list = await repo.watchShoppingList(week).first;
+        expect(
+          list.groups.expand((g) => g.items).map((i) => i.name),
+          contains('Paper towels'),
+          reason: 'you are out of paper towels whichever week is on screen',
+        );
+      }
+    });
+
+    test('a free-text check-off is global, because its entry is', () async {
+      await repo.addFreeTextItem(text: 'Paper towels');
+      final entry = await db.get(
+        "SELECT id FROM shopping_list_entry WHERE free_text = 'Paper towels'",
+      );
+      await repo.setEntryChecked(
+        entryId: entry['id']! as String,
+        checked: true,
+      );
+      for (final week in [_week, nextWeek]) {
+        final list = await repo.watchShoppingList(week).first;
+        expect(
+          list.groups
+              .expand((g) => g.items)
+              .firstWhere((i) => i.name == 'Paper towels')
+              .checked,
+          isTrue,
+        );
+      }
     });
   });
 }

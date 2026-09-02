@@ -25,6 +25,7 @@ import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_picker.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
+import '../../planning/presentation/week_view_models.dart';
 import '../data/shopping_providers.dart';
 
 /// Opens the add/top-up sheet over the Shop screen.
@@ -214,6 +215,8 @@ class _TopUpBody extends HookConsumerWidget {
       final qty = result.quantity;
       if (qty == null) return;
       final repo = ref.read(shoppingRepositoryProvider);
+      // The top-up joins the list on screen (0018 / D3).
+      final weekStart = ref.read(viewedWeekStartProvider);
       // A measure top-up stores the honest count fallback unit (`pieces`)
       // beside the measure id — see [ShoppingRepository.addTopUp].
       await switch (result.choice) {
@@ -221,12 +224,14 @@ class _TopUpBody extends HookConsumerWidget {
           ingredientId: ing.id,
           quantity: qty,
           unit: unit,
+          weekStart: weekStart,
         ),
         MeasureOption(:final measure) => repo.addTopUp(
           ingredientId: ing.id,
           quantity: qty,
           unit: pieces,
           measureId: measure.id,
+          weekStart: weekStart,
         ),
       };
       if (context.mounted) Navigator.of(context).pop();

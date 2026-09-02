@@ -7,6 +7,14 @@
 /// free-text contributions (`setIngredientChecked` / `setEntryChecked` /
 /// `addTopUp` / `addFreeTextItem` / `removeEntry`). The read reacts to any
 /// change to the week, a covered recipe, or the overlay.
+///
+/// **The overlay is week-scoped** (migration 0018 / week-redesign D3). Since
+/// Cook and Shop follow the week you are LOOKING AT, a tick has to say which
+/// week's list it is on: `setIngredientChecked` and `addTopUp` therefore take
+/// the week, and the read only ever returns that week's ingredient entries.
+/// Free-text staples are the deliberate exception — `addFreeTextItem` writes no
+/// week and its rows read on every week, because you are out of paper towels
+/// whichever week is on screen.
 library;
 
 import '../../../core/units/units.dart';
@@ -18,11 +26,13 @@ abstract interface class ShoppingRepository {
   /// when nothing is planned and nothing has been added.
   Stream<ShoppingList> watchShoppingList(DateTime weekStart);
 
-  /// Checks/unchecks an ingredient line, lazily creating its entry (a purely
-  /// derived ingredient has no entry until it is first touched).
+  /// Checks/unchecks an ingredient line on the list for [weekStart], lazily
+  /// creating its entry (a purely derived ingredient has no entry until it is
+  /// first touched). The entry is stamped with that week.
   Future<void> setIngredientChecked({
     required String ingredientId,
     required bool checked,
+    required DateTime weekStart,
   });
 
   /// Checks/unchecks an existing entry (a free-text item always has one).
@@ -31,7 +41,8 @@ abstract interface class ShoppingRepository {
     required bool checked,
   });
 
-  /// Adds a manual top-up to an ingredient (find-or-create its entry).
+  /// Adds a manual top-up to an ingredient on the list for [weekStart]
+  /// (find-or-create its entry within that week).
   ///
   /// With [measureId], the top-up is counted in that named measure ("2 ×
   /// potato, large"); [unit] must then be the count unit the row stores as
@@ -40,6 +51,7 @@ abstract interface class ShoppingRepository {
     required String ingredientId,
     required double quantity,
     required Unit unit,
+    required DateTime weekStart,
     String? measureId,
   });
 
@@ -57,6 +69,10 @@ abstract interface class ShoppingRepository {
   Future<void> removeContribution({required String contributionId});
 
   /// Adds a free-text non-food item ("paper towels"). [category] is optional.
+  ///
+  /// Deliberately NOT week-scoped: a staple you are out of is a fact about the
+  /// cupboard, not about a week, so the row carries no `week_start_date` and
+  /// shows on every week's list.
   Future<void> addFreeTextItem({required String text, String? category});
 
   /// Soft-deletes an entry and its manual contributions (remove a free-text

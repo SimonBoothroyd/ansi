@@ -16,6 +16,13 @@
 ///
 /// Writes go through the local VIEWS, so no UPSERT (a view rejects
 /// `ON CONFLICT`): entry creation is a find-or-create with a plain INSERT.
+///
+/// **The overlay is week-scoped** (migration 0018 / D3). An ingredient entry
+/// carries the Monday it was ticked or topped up against, and the read only
+/// takes that week's; a free-text staple carries no week and reads on every
+/// one. So `_findOrCreateIngredientEntry` converges per WEEK, not per
+/// household — two devices ticking Flour on next week still meet on one row,
+/// and neither of them touches this week's.
 library;
 
 import 'dart:convert';
@@ -100,7 +107,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
 
   Future<ShoppingList> _load(String weekKey) async {
     final (cook, unresolved) = await _deriveCookContributions(weekKey);
-    final (entries, manual) = await _loadOverlay();
+    final (entries, manual) = await _loadOverlay(weekKey);
     final meta = await _loadIngredientMeta({
       ...cook.map((c) => c.ingredientId),
       ...entries.map((e) => e.ingredientId).whereType<String>(),
@@ -285,12 +292,19 @@ class SqliteShoppingRepository implements ShoppingRepository {
     );
   }
 
+  /// The week's overlay: THIS week's ingredient entries plus the global
+  /// free-text staples (0018 / D3). An ingredient row stamped with another
+  /// week — or, since there was no backfill, with no week at all — belongs to
+  /// a list this is not, so it is not read here.
   Future<(List<ShoppingEntryInput>, Map<String, List<ManualContributionInput>>)>
-  _loadOverlay() async {
+  _loadOverlay(String weekKey) async {
     final entryRows = await _db.getAll(
       'SELECT id, ingredient_id, free_text, category, checked, unit, '
       'created_at '
-      'FROM shopping_list_entry WHERE deleted_at IS NULL',
+      'FROM shopping_list_entry WHERE deleted_at IS NULL '
+      'AND (week_start_date = ? '
+      'OR (week_start_date IS NULL AND free_text IS NOT NULL))',
+      [weekKey],
     );
     final entries = [
       for (final r in entryRows)
@@ -314,8 +328,13 @@ class SqliteShoppingRepository implements ShoppingRepository {
       'LEFT JOIN ingredient_measure im '
       'ON im.id = sc.measure_id AND im.deleted_at IS NULL '
       'LEFT JOIN ingredient i2 ON i2.id = im.ingredient_id '
+      'JOIN shopping_list_entry se ON se.id = sc.entry_id '
+      'AND se.deleted_at IS NULL '
       "WHERE sc.deleted_at IS NULL AND sc.source_type = 'manual' "
+      'AND (se.week_start_date = ? '
+      'OR (se.week_start_date IS NULL AND se.free_text IS NOT NULL)) '
       'ORDER BY sc.created_at',
+      [weekKey],
     );
     final manual = <String, List<ManualContributionInput>>{};
     for (final r in contribRows) {
@@ -380,7 +399,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
 
   // --- Writes ----------------------------------------------------------------
 
-  /// Finds the live entry for [ingredientId] or creates one, returning its id.
+  /// Finds the live entry for [ingredientId] **on the week [weekKey]** or
+  /// creates one there, returning its id.
   ///
   /// Two offline devices can each create an entry for the same ingredient and
   /// merge later — no unique index guards this (one would make the offline
@@ -392,12 +412,13 @@ class SqliteShoppingRepository implements ShoppingRepository {
   Future<String> _findOrCreateIngredientEntry(
     SqliteWriteContext tx,
     String ingredientId,
+    String weekKey,
   ) async {
     final rows = await tx.getAll(
       'SELECT id, checked FROM shopping_list_entry '
-      'WHERE ingredient_id = ? AND deleted_at IS NULL '
+      'WHERE ingredient_id = ? AND week_start_date = ? AND deleted_at IS NULL '
       'ORDER BY created_at, id',
-      [ingredientId],
+      [ingredientId, weekKey],
     );
     if (rows.isNotEmpty) {
       final canonicalId = rows.first['id'] as String;
@@ -434,9 +455,9 @@ class SqliteShoppingRepository implements ShoppingRepository {
     final now = _now();
     await tx.execute(
       'INSERT INTO shopping_list_entry '
-      '(id, household_id, ingredient_id, checked, created_at, updated_at) '
-      'VALUES (?, ?, ?, 0, ?, ?)',
-      [id, _householdId, ingredientId, now, now],
+      '(id, household_id, ingredient_id, checked, week_start_date, '
+      'created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?)',
+      [id, _householdId, ingredientId, weekKey, now, now],
     );
     return id;
   }
@@ -445,10 +466,12 @@ class SqliteShoppingRepository implements ShoppingRepository {
   Future<void> setIngredientChecked({
     required String ingredientId,
     required bool checked,
+    required DateTime weekStart,
   }) async {
     final flag = checked ? 1 : 0;
+    final key = _weekKey(weekStart);
     await _db.writeTransaction((tx) async {
-      final entryId = await _findOrCreateIngredientEntry(tx, ingredientId);
+      final entryId = await _findOrCreateIngredientEntry(tx, ingredientId, key);
       await tx.execute(
         'UPDATE shopping_list_entry SET checked = ?, updated_at = ? '
         'WHERE id = ?',
@@ -474,10 +497,12 @@ class SqliteShoppingRepository implements ShoppingRepository {
     required String ingredientId,
     required double quantity,
     required Unit unit,
+    required DateTime weekStart,
     String? measureId,
   }) async {
+    final key = _weekKey(weekStart);
     await _db.writeTransaction((tx) async {
-      final entryId = await _findOrCreateIngredientEntry(tx, ingredientId);
+      final entryId = await _findOrCreateIngredientEntry(tx, ingredientId, key);
       final now = _now();
       await tx.execute(
         'INSERT INTO shopping_list_contribution '
@@ -524,6 +549,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
 
   @override
   Future<void> addFreeTextItem({required String text, String? category}) async {
+    // No `week_start_date`: a staple you are out of belongs to the cupboard,
+    // not to a week, so it reads on every week's list (0018).
     final now = _now();
     await _db.execute(
       'INSERT INTO shopping_list_entry '

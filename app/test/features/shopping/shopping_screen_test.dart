@@ -37,6 +37,7 @@ class _FakeShoppingRepo implements ShoppingRepository {
   Future<void> setIngredientChecked({
     required String ingredientId,
     required bool checked,
+    required DateTime weekStart,
   }) async {}
 
   @override
@@ -50,6 +51,7 @@ class _FakeShoppingRepo implements ShoppingRepository {
     required String ingredientId,
     required double quantity,
     required Unit unit,
+    required DateTime weekStart,
     String? measureId,
   }) async {}
 

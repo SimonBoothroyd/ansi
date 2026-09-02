@@ -193,9 +193,12 @@ class _ItemRow extends ConsumerWidget {
     if (entryId != null) {
       await repo.setEntryChecked(entryId: entryId, checked: !item.checked);
     } else {
+      // The tick belongs to the week on screen (0018 / D3) — checking Flour
+      // while looking at next week must not tick this week's Flour.
       await repo.setIngredientChecked(
         ingredientId: item.ingredientId!,
         checked: !item.checked,
+        weekStart: ref.read(viewedWeekStartProvider),
       );
     }
   }
