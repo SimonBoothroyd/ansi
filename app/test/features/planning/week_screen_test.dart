@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
@@ -75,6 +77,30 @@ class _FakePlanningRepo implements PlanningRepository {
 
   @override
   Stream<Map<String, DateTime>> watchLastPlanned() => Stream.value(const {});
+}
+
+/// A planner whose removal is REAL to the stream: `removeEntry` re-emits the
+/// week without the entry, which is what makes the entry sheet's own
+/// auto-dismiss fire on top of its explicit pop.
+class _LivePlanningRepo extends _FakePlanningRepo {
+  _LivePlanningRepo(WeekPlan week) : _week = week, super(week: week);
+
+  WeekPlan _week;
+  final _ctrl = StreamController<WeekPlan?>.broadcast();
+
+  @override
+  Stream<WeekPlan?> watchWeek(DateTime weekStart) async* {
+    yield _week;
+    yield* _ctrl.stream;
+  }
+
+  @override
+  Future<void> removeEntry(String entryId) async {
+    _week = _week.copyWith(
+      entries: [..._week.entries.where((e) => e.id != entryId)],
+    );
+    _ctrl.add(_week);
+  }
 }
 
 /// A canned cook plan for the week's markers (D6). Empty by default.
@@ -748,5 +774,38 @@ void main() {
     expect(find.text('Remove from the week'), findsOneWidget);
     expect(find.text("WHO'S EATING"), findsOneWidget);
     expect(find.text('DAY \u00b7 SLOT'), findsOneWidget);
+  });
+
+  testWidgets('removing the last meal from the sheet pops it exactly once', (
+    tester,
+  ) async {
+    ignoreForuiSemanticsAssertion();
+    late GoRouter router;
+    await tester.pumpWidget(
+      _routedHost([
+        planningRepositoryProvider.overrideWithValue(
+          _LivePlanningRepo(_plannedWeek()),
+        ),
+        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+      ], (r) => router = r),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Weeknight Chicken Curry'));
+    await tester.pumpAndSettle();
+    expect(find.text('Remove from the week'), findsOneWidget);
+
+    // The explicit pop and the "entry is gone" auto-dismiss must not stack:
+    // a second pop on the root navigator would take the page under the sheet
+    // with it (go_router asserts "popped the last page off the stack"), which
+    // pumpAndSettle would surface here as an uncaught error.
+    await tester.tap(find.text('Remove from the week'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('This meal'), findsNothing);
+    expect(find.text('Weeknight Chicken Curry'), findsNothing);
+    expect(router.state.uri.toString(), '/week');
+    expect(find.text('Add the first meal'), findsOneWidget);
   });
 }

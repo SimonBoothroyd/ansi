@@ -62,11 +62,17 @@ class _EntrySheet extends HookConsumerWidget {
     final repo = ref.read(planningRepositoryProvider);
 
     // The entry is gone (removed here, or by the other device). Close rather
-    // than draw a sheet about nothing.
+    // than draw a sheet about nothing — but only while this sheet is still the
+    // route on top: "Remove from the week" pops explicitly and the removal
+    // then re-fires this effect, and a second pop on the root navigator takes
+    // the tab shell's page with it (go_router: "popped the last page off").
     useEffect(() {
       if (week != null && entry == null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) Navigator.of(context).pop();
+          if (!context.mounted) return;
+          if (ModalRoute.of(context)?.isCurrent ?? false) {
+            Navigator.of(context).pop();
+          }
         });
       }
       return null;
