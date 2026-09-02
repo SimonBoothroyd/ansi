@@ -219,6 +219,32 @@ Future<void> scrollToMethod(WidgetTester tester) => tester.scrollUntilVisible(
   scrollable: find.byType(Scrollable).first,
 );
 
+/// Gives the test a surface tall enough to hold the whole editor form, so a
+/// suite can tap anything without scrolling. (Scrolling the form disposes
+/// Forui's `FSelect` items mid-frame, which throws from inside the package.)
+void tallSurface(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1200, 4400);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+}
+
+/// Scrolls back to Save and taps it, so a suite can assert on what the
+/// notifier actually wrote.
+Future<void> saveEditor(WidgetTester tester) async {
+  await tester.scrollUntilVisible(
+    find.text('Save'),
+    -240,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tapSave(tester);
+}
+
+/// Taps Save on a surface where it is already visible.
+Future<void> tapSave(WidgetTester tester) async {
+  await tester.tap(find.text('Save'));
+  await tester.pumpAndSettle();
+}
+
 /// Every step card's editable, in card order — told apart from the form's
 /// other fields by the controller that paints the chips.
 Finder methodFields() => find.byWidgetPredicate(

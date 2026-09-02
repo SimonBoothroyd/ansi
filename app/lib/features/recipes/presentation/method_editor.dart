@@ -27,9 +27,11 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/method_step_text.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../domain/method_draft.dart';
+import '../domain/method_step.dart';
 import '../domain/recipe.dart';
 import 'component_quantity_sheet.dart';
 import 'line_target_picker.dart';
+import 'method_chip_sheet.dart';
 import 'method_line_picker.dart';
 import 'method_span_controller.dart';
 import 'method_timer_sheet.dart';
@@ -162,6 +164,11 @@ class MethodStepCard extends HookConsumerWidget {
             hint: 'What happens in this step?',
             focusNode: focusNode,
             minLines: 1,
+            // onTap fires AFTER the tap has set the selection, so the span
+            // lookup is exact and needs no hit-testing of its own;
+            // onTapAlwaysCalled so a second tap on the same chip re-opens it.
+            onTap: () => _openSpanSheet(context, controller),
+            onTapAlwaysCalled: true,
             control: FTextFieldControl.managed(
               controller: controller,
               onChange: (v) => notifier.editStep(step.id, v.text),
@@ -200,6 +207,80 @@ class MethodStepCard extends HookConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// A tap inside a chip opens its sheet; a tap anywhere else is an ordinary
+  /// caret placement. A drag-select is not a tap.
+  Future<void> _openSpanSheet(
+    BuildContext context,
+    MethodSpanController controller,
+  ) async {
+    final selection = controller.selection;
+    if (!selection.isCollapsed) return;
+    final index = spanAt(step, selection.baseOffset);
+    if (index == null) return;
+    switch (step.spans[index]) {
+      case RefSpan(:final refs, :final amountRule):
+        await showMethodChipSheet(
+          context,
+          initial: (
+            refs: refs,
+            word: spanWord(step, index),
+            amountRule: amountRule,
+          ),
+          describe: _describeRefs,
+          pickLine: () => pickOrAddLine(
+            context,
+            recipe: recipe,
+            notifier: notifier,
+            query: spanWord(step, index),
+          ),
+          onChanged: (edit) => notifier
+            ..repointChip(step.id, index, edit.refs)
+            ..renameChip(step.id, index, edit.word)
+            ..setChipAmountRule(step.id, index, edit.amountRule),
+          onRemove: () => notifier.removeChip(step.id, index),
+        );
+      case TimerSpan(:final lowSeconds, :final highSeconds):
+        final span = step.spans[index];
+        final result = await showMethodTimerSheet(
+          context,
+          lowSeconds: lowSeconds,
+          highSeconds: highSeconds,
+          removable: true,
+          prosePrefix: step.text.substring(0, span.start),
+          proseSuffix: step.text.substring(span.end),
+        );
+        switch (result) {
+          case TimerSet(:final lowSeconds, :final highSeconds):
+            notifier.setTimerSpan(step.id, index, lowSeconds, highSeconds);
+          case TimerRemoved():
+            notifier.removeChip(step.id, index);
+          case null:
+            break;
+        }
+    }
+  }
+
+  /// How the lines behind a chip read in its sheet — the name and the live
+  /// amount, or the honest note when the ref no longer resolves.
+  String _describeRefs(List<String> refs) {
+    final names = [
+      for (final ref in refs)
+        if (lineById[ref] case final line?)
+          _lineSummary(line)
+        else
+          'a line this recipe no longer has',
+    ];
+    return names.isEmpty ? 'nothing yet' : names.join(' · ');
+  }
+
+  String _lineSummary(LineItem line) {
+    final amount = line.quantity == null
+        ? line.unit.label
+        : '${formatNumber(line.quantity!)} '
+              '${line.measure?.label ?? line.unit.label}';
+    return '${line.ingredientName} · $amount';
   }
 
   /// The no-selection door: pick a line, and its name goes in at the caret as
@@ -252,6 +333,7 @@ class MethodStepCard extends HookConsumerWidget {
     final offset = controller.selection.baseOffset;
     return offset < 0 ? step.text.length : offset.clamp(0, step.text.length);
   }
+
 }
 
 /// Opens the line picker over this recipe's own lines and returns the id of

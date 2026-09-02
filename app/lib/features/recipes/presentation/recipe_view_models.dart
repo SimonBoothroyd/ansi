@@ -446,6 +446,71 @@ class RecipeEditor extends _$RecipeEditor {
     ),
   );
 
+  /// Re-points the chip at [index] of [stepId] — **this chip only**, and
+  /// without touching the sentence. The line's identity picker is what moves
+  /// every chip at once (D3).
+  void repointChip(String stepId, int index, List<String> refs) => _mapStep(
+    stepId,
+    (d) => switch (d.spans.elementAtOrNull(index)) {
+      final RefSpan span => respan(
+        d,
+        index,
+        span: span.copyWith(refs: refs),
+        word: spanWord(d, index),
+      ),
+      _ => d,
+    },
+  );
+
+  /// Renames the chip's word. The one place that changes what a chip says —
+  /// the sheet's Word field and D3's "keep the old word" call it alike.
+  void renameChip(String stepId, int index, String word) => _mapStep(
+    stepId,
+    (d) => index < d.spans.length
+        ? respan(d, index, span: d.spans[index], word: word)
+        : d,
+  );
+
+  /// The D9 override: display only. No quantity is invented, moved or summed
+  /// by flipping it.
+  void setChipAmountRule(String stepId, int index, ChipAmountRule rule) =>
+      _mapStep(
+        stepId,
+        (d) => switch (d.spans.elementAtOrNull(index)) {
+          final RefSpan span => respan(
+            d,
+            index,
+            span: span.copyWith(amountRule: rule),
+            word: spanWord(d, index),
+          ),
+          _ => d,
+        },
+      );
+
+  /// Re-times a timer. Its text becomes [formatTimerRange]'s output again, so
+  /// the round-trip still never re-parses the string it printed.
+  void setTimerSpan(String stepId, int index, int low, int high) => _mapStep(
+    stepId,
+    (d) => index < d.spans.length
+        ? respan(
+            d,
+            index,
+            span: TimerSpan(
+              start: 0,
+              end: 0,
+              lowSeconds: low,
+              highSeconds: high,
+            ),
+            word: formatTimerRange(low, high),
+          )
+        : d,
+  );
+
+  /// Drops a chip or timer, **keeping its word**: the sentence survives and
+  /// only the link dies.
+  void removeChip(String stepId, int index) =>
+      _mapStep(stepId, (d) => removeSpan(d, index));
+
   /// The group a chip's *new* line lands in — the first one, minted if this
   /// recipe somehow has none.
   String ensureGroupId() {
