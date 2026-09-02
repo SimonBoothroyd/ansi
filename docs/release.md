@@ -39,10 +39,11 @@ mutate live household data stays a human act.
 | iOS build | `release.yml` → unsigned `.app` **artifact** (compile proof only, see §3) | same tag push |
 | Migrations (`supabase/migrations/`) | `deploy-supabase.yml` → `supabase db push` | Actions → Run workflow |
 | `import-recipe` edge function | `deploy-supabase.yml` → `supabase functions deploy` | same run |
+| PowerSync sync streams ([`docker/powersync-cloud.streams.yaml`](../docker/powersync-cloud.streams.yaml)) | `deploy-supabase.yml` → `powersync deploy sync-config` | same run — also re-run after any cloud `db reset` |
 | Function secrets (`ANTHROPIC_API_KEY`, `IMPORT_ALLOWED_HOUSEHOLDS`) | `supabase secrets set` | **human**, [cloud-setup §3b](./cloud-setup.md) |
 | Template vocab reseed | SQL block, run by hand | **human**, [cloud-setup §2](./cloud-setup.md) |
 | Rolling a reseed onto existing households | [`supabase/rollout_ingredient_refresh.sql`](../supabase/rollout_ingredient_refresh.sql), preview then run | **human**, [cloud-setup §2b](./cloud-setup.md) |
-| Dashboard settings (auth hook, JWT audience, sync streams) | Dashboards | **human**, cloud-setup's checklist |
+| Dashboard settings (auth hook, JWT audience, public sign-up) | Dashboards | **human**, cloud-setup's checklist |
 
 **Order matters.** `db push` runs before an app build that writes new columns
 reaches a device — a client writing a column the cloud schema lacks gets
@@ -358,6 +359,13 @@ gh secret set SUPABASE_DB_PASSWORD
 
 # Project ref — the <ref> in https://<ref>.supabase.co
 gh variable set SUPABASE_PROJECT_REF --body '<ref>'
+
+# PowerSync personal access token — powersync.com dashboard → account → tokens
+gh secret set POWERSYNC_ADMIN_TOKEN
+
+# PowerSync instance id — the <id> in https://<id>.powersync.journeyapps.com
+# (the CLOUD_POWERSYNC_URL in cloud.env)
+gh variable set POWERSYNC_INSTANCE_ID --body '<id>'
 ```
 
 ### 4.2 Run it
@@ -367,6 +375,14 @@ Actions → **deploy-supabase** → Run workflow. One job, in order:
 1. **link** — `supabase link --project-ref $SUPABASE_PROJECT_REF`
 2. **db push** — applies migrations the project has not seen (idempotent)
 3. **functions deploy** — ships `import-recipe`
+4. **sync streams** — validates then deploys
+   `docker/powersync-cloud.streams.yaml` to the PowerSync instance
+   (`powersync deploy sync-config`, CLI pinned). This leg exists because of
+   the 2026-09-01 outage: a cloud rebuild left the dashboard streams frozen at
+   step 7.5, so `ingredient_measure` synced to no device while every
+   repo-side check stayed green. Streams now ride the same button as the
+   schema they must match — run this workflow after ANY cloud `db reset`,
+   even one with no migration changes.
 
 Then it prints a step summary naming the legs it deliberately did not do.
 
@@ -398,8 +414,9 @@ less repeatable. If the repo ever goes public, revoke the token first.
 - **Set function secrets.** `ANTHROPIC_API_KEY` and `IMPORT_ALLOWED_HOUSEHOLDS`
   are `supabase secrets set` only ([cloud-setup §3b](./cloud-setup.md)). CI has
   no business holding them, and `supabase secrets list` shows names, not values.
-- **Touch dashboard-only settings.** Auth hook, JWT audience, sync streams,
-  public sign-up — cloud-setup's checklist, walked by a human.
+- **Touch dashboard-only settings.** Auth hook, JWT audience, public sign-up —
+  cloud-setup's checklist, walked by a human. (Sync streams left this list on
+  2026-09-01: the workflow's step 4 deploys them via the PowerSync CLI.)
 
 After a deploy, run [`scripts/cloud_verify.sh`](../scripts/cloud_verify.sh) and
 record the run in cloud-setup's ledger.

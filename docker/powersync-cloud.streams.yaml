@@ -1,8 +1,11 @@
 # PowerSync Cloud — Sync Streams (edition 3). SOURCE OF TRUTH for the cloud
-# instance's sync rules: paste this file into the PowerSync dashboard (Sync
-# Streams editor) → Validate → Deploy whenever it changes. The dashboard has no
-# API to read config back, so the repo copy is the record and the dashboard is
-# a deploy target — treat any manual dashboard edit as drift.
+# instance's sync rules. Deployed by the deploy-supabase workflow (PowerSync
+# CLI: `powersync deploy sync-config`) — run that workflow whenever this file
+# changes, and after any cloud `db reset` (the 2026-09-01 lesson: a rebuilt DB
+# with stale streams silently starves devices of any table added since the
+# last deploy). The dashboard's Sync Streams editor is the manual fallback
+# (paste → Validate → Deploy); `powersync pull instance` reads back what is
+# actually deployed. Treat any manual dashboard edit as drift.
 #
 # MUST mirror docker/powersync.yaml's sync_rules table-for-table (the local
 # Open Edition uses legacy bucket_definitions; cloud uses edition-3 streams —

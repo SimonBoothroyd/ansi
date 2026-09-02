@@ -224,11 +224,18 @@ Dashboard at powersync.com → create an instance (free tier). Then:
    `auth.parameter('household_id')`; a stream bundles multiple tables via a
    `queries:` list and `auto_subscribe: true`. **The committed
    [`docker/powersync-cloud.streams.yaml`](../docker/powersync-cloud.streams.yaml)
-   is the source of truth**: paste that file into the Sync Streams editor →
-   Validate → Deploy whenever it changes (the dashboard has no config API, so
-   the repo copy is the record and the dashboard is a deploy target).
-   `scripts/check_stream_drift.sh` (in `make docs-check`) keeps it
-   table-for-table in lockstep with the local `docker/powersync.yaml`.
+   is the source of truth**, and the **deploy-supabase workflow deploys it**
+   (release.md §4) via the PowerSync CLI — run that workflow whenever the file
+   changes, and **after any cloud `db reset`**. The manual fallback is the
+   dashboard's Sync Streams editor: paste → Validate → Deploy.
+   `powersync pull instance --instance-id <id>` (with a `PS_ADMIN_TOKEN`) reads
+   back what is actually deployed when drift is suspected.
+   `scripts/check_stream_drift.sh` (in `make docs-check`) keeps the repo copy
+   table-for-table in lockstep with the local `docker/powersync.yaml` — but it
+   compares the two *repo* files only; it cannot see the deployed instance,
+   which is exactly how the 2026-09-01 measures outage stayed invisible: the
+   deployed streams predated `ingredient_measure`, so the vocab synced and the
+   measures never left the server, on every device, with every check green.
    Copy the instance URL (`https://<id>.powersync.journeyapps.com`) into
    `cloud.env` at the repo root.
 
@@ -323,7 +330,7 @@ Endpoints come from `cloud.env` at the repo root.
 | 4 | Google provider (same screen → Google) | Enabled, with the Web OAuth client id/secret (§1.5). `cloud_verify.sh` checks this one via `/auth/v1/settings`. |
 | 5 | PowerSync JWKS URI (PowerSync dashboard → instance → Client Auth) | "Use Supabase Auth" checked; JWKS URI = `<CLOUD_SUPABASE_URL>/auth/v1/.well-known/jwks.json` |
 | 6 | PowerSync JWT audience (same screen) | Includes `authenticated` — without it every token 401s with `PSYNC_S2105` (§3.2). |
-| 7 | Sync Streams (PowerSync dashboard → instance → Sync Streams) | Exact paste of [`docker/powersync-cloud.streams.yaml`](../docker/powersync-cloud.streams.yaml) → Validate → **Deploy**. Any manual dashboard edit is drift. |
+| 7 | Sync Streams — deployed config matches [`docker/powersync-cloud.streams.yaml`](../docker/powersync-cloud.streams.yaml) | Deployed by the **deploy-supabase workflow** (release.md §4); dashboard paste is the fallback. Verify with `powersync pull instance` when in doubt — this is the one row no repo-side check can see, and stale streams starve devices silently (2026-09-01). Any manual dashboard edit is drift. |
 | 8 | **Public sign-up** (Supabase → Authentication → Sign In / Providers → "Allow new users to sign up") | **OFF** (§3c). The anon key is public by design, so an open sign-up lets a stranger provision a household. `cloud_verify.sh` checks this and fails if it's open. Turn it on only for the length of a `smoke_auth.sh` run, then off again. |
 | 9 | **Edge-function secrets** (`supabase secrets list`) | `ANTHROPIC_API_KEY` and `IMPORT_ALLOWED_HOUSEHOLDS` both present, and `import-recipe` deployed (§3b). Values are never readable — the listing shows names only, which is all this row checks. |
 

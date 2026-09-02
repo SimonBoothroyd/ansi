@@ -1,6 +1,7 @@
 name: deploy-supabase
 
-# Push migrations + the import edge function to Supabase Cloud.
+# Push migrations + the import edge function to Supabase Cloud, then deploy
+# the PowerSync sync streams to the cloud instance.
 #
 # MANUAL ONLY, by design. This repo's posture (docs/cloud-setup.md,
 # supabase/AGENTS.md) is that touching cloud is a deliberate human act: a
@@ -10,14 +11,22 @@ name: deploy-supabase
 #
 # Run it: Actions → deploy-supabase → Run workflow. Setup: docs/release.md §4.
 #
+# The sync-streams leg exists because of a real outage (2026-09-01): the cloud
+# DB was rebuilt, the streams were never re-pasted into the dashboard, and every
+# device silently synced a table list frozen at step 7.5 — `ingredient_measure`
+# never reached a single phone, and nothing in CI or cloud_verify could see it.
+# The PowerSync CLI deploys the committed YAML, so the streams now ride the
+# same button as the schema they must match.
+#
 # NOT in this pipeline, on purpose:
 #   * Template reseeds (cloud-setup §2) and the household rollout (§2b) —
 #     they mutate live household data and stay human-run.
 #   * Function secrets — ANTHROPIC_API_KEY and IMPORT_ALLOWED_HOUSEHOLDS are
 #     managed with `supabase secrets set` (cloud-setup §3b), never from here.
 #     Values live only in the Supabase project; CI has no business holding them.
-#   * Dashboard-only settings (auth hook, JWT audience, sync streams) — see the
-#     checklist in cloud-setup.md.
+#   * Dashboard-only settings (auth hook, JWT audience, public sign-up) — see
+#     the checklist in cloud-setup.md. (Sync streams graduated out of that
+#     list: the CLI deploys them here.)
 on:
   workflow_dispatch:
 
@@ -35,6 +44,11 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      # PowerSync CLI auth + target (docs/release.md §4.1). The token is a
+      # PowerSync personal access token (dashboard → account → tokens); the
+      # instance id is the leading segment of CLOUD_POWERSYNC_URL in cloud.env.
+      PS_ADMIN_TOKEN: ${{ secrets.POWERSYNC_ADMIN_TOKEN }}
+      POWERSYNC_INSTANCE_ID: ${{ vars.POWERSYNC_INSTANCE_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,9 +61,11 @@ jobs:
       - name: Guard — deploy credentials are configured
         run: |
           missing=()
-          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing+=("  gh secret set SUPABASE_ACCESS_TOKEN")
-          [ -n "$SUPABASE_DB_PASSWORD" ]  || missing+=("  gh secret set SUPABASE_DB_PASSWORD")
-          [ -n "$PROJECT_REF" ]           || missing+=("  gh variable set SUPABASE_PROJECT_REF")
+          [ -n "$SUPABASE_ACCESS_TOKEN" ]  || missing+=("  gh secret set SUPABASE_ACCESS_TOKEN")
+          [ -n "$SUPABASE_DB_PASSWORD" ]   || missing+=("  gh secret set SUPABASE_DB_PASSWORD")
+          [ -n "$PROJECT_REF" ]            || missing+=("  gh variable set SUPABASE_PROJECT_REF")
+          [ -n "$PS_ADMIN_TOKEN" ]         || missing+=("  gh secret set POWERSYNC_ADMIN_TOKEN")
+          [ -n "$POWERSYNC_INSTANCE_ID" ]  || missing+=("  gh variable set POWERSYNC_INSTANCE_ID")
           if [ ${#missing[@]} -gt 0 ]; then
             echo "::error::deploy is not configured — ${#missing[@]} item(s) missing."
             echo "Configure exactly these, then re-run (see docs/release.md §4):"
@@ -73,6 +89,20 @@ jobs:
       - name: 3 · Deploy the import-recipe edge function
         run: supabase functions deploy import-recipe
 
+      # The committed streams YAML is the source of truth for what devices are
+      # allowed to sync; a schema deploy without a matching streams deploy is
+      # how a table silently never reaches a phone (the 2026-09-01 outage in
+      # the header). Validate first so a shape mismatch fails the run before
+      # anything is touched. Pinned, not latest: local and CI move together.
+      - name: 4 · Deploy PowerSync sync streams
+        run: |
+          npx --yes powersync@0.10.0 validate \
+            --instance-id "$POWERSYNC_INSTANCE_ID" \
+            --sync-config-file-path docker/powersync-cloud.streams.yaml
+          npx --yes powersync@0.10.0 deploy sync-config \
+            --instance-id "$POWERSYNC_INSTANCE_ID" \
+            --sync-config-file-path docker/powersync-cloud.streams.yaml
+
       # The deploy is only half the story whenever a change also altered the
       # curated vocabulary. Nothing here can safely do that leg, so it ends by
       # saying so out loud instead of leaving cloud half-migrated in silence.
@@ -81,8 +111,9 @@ jobs:
           {
             echo "### deploy-supabase finished"
             echo
-            echo "Applied to \`$PROJECT_REF\`: **migrations** (\`db push\`) and the"
-            echo "**import-recipe** function."
+            echo "Applied to \`$PROJECT_REF\`: **migrations** (\`db push\`), the"
+            echo "**import-recipe** function, and the **PowerSync sync streams**"
+            echo "(\`docker/powersync-cloud.streams.yaml\` → instance \`$POWERSYNC_INSTANCE_ID\`)."
             echo
             echo "**Not applied — do these by hand if this deploy included"
             echo "seed-affecting changes:**"
