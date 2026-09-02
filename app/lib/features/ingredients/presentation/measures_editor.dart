@@ -30,6 +30,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/allowed_units.dart';
@@ -197,7 +198,7 @@ Future<bool?> _askStopOfferingPiece(
 ) {
   final amount =
       '${formatQuantity(added.amount)} ${added.basis.baseUnit.label}';
-  return showFDialog<bool>(
+  return showAnsiDialog<bool>(
     context: context,
     builder: (context, style, animation) => FDialog(
       title: Text(
