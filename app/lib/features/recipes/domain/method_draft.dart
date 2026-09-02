@@ -174,9 +174,9 @@ class MethodDraftStep {
       other.id == id &&
       other.text == text &&
       other.spans.length == spans.length &&
-      Iterable<int>.generate(spans.length).every(
-        (i) => other.spans[i] == spans[i],
-      );
+      Iterable<int>.generate(
+        spans.length,
+      ).every((i) => other.spans[i] == spans[i]);
 
   @override
   int get hashCode => Object.hash(id, text, spans.length);
@@ -278,10 +278,7 @@ MethodStep toTokens(MethodDraftStep draft) {
         );
       case TimerSpan(:final lowSeconds, :final highSeconds):
         tokens.add(
-          MethodToken.timer(
-            lowSeconds: lowSeconds,
-            highSeconds: highSeconds,
-          ),
+          MethodToken.timer(lowSeconds: lowSeconds, highSeconds: highSeconds),
         );
     }
     cursor = span.end;
@@ -468,11 +465,7 @@ typedef ChipRelabel = ({String stepId, int spanIndex, String oldWord});
 
 /// One line's identity change, as the editor reads it back for this sitting:
 /// what the chips used to name, what they name now, and which steps moved.
-typedef Substitution = ({
-  String oldName,
-  String newName,
-  Set<String> stepIds,
-});
+typedef Substitution = ({String oldName, String newName, Set<String> stepIds});
 
 /// D3: every chip pointing at [lineId] takes [label] as its word.
 ///
@@ -592,11 +585,7 @@ List<MethodDraftStep> removeStep(List<MethodDraftStep> steps, String id) => [
 
 /// Moves the step [id] by [by] places (−1 up, +1 down). Out-of-range is a
 /// no-op, so the card's ▲ on the first step simply does nothing.
-List<MethodDraftStep> moveStep(
-  List<MethodDraftStep> steps,
-  String id,
-  int by,
-) {
+List<MethodDraftStep> moveStep(List<MethodDraftStep> steps, String id, int by) {
   final from = steps.indexWhere((s) => s.id == id);
   if (from < 0) return steps;
   final to = from + by;
@@ -687,9 +676,8 @@ List<LineItem> prematchLines(List<LineItem> lines, String query) {
   ];
 }
 
-bool _matchesAll(List<String> words, List<String> tokens) => tokens.every(
-  (token) => words.any((word) => word.startsWith(token)),
-);
+bool _matchesAll(List<String> words, List<String> tokens) =>
+    tokens.every((token) => words.any((word) => word.startsWith(token)));
 
 List<String> _words(String text) => [
   for (final word in text.toLowerCase().split(

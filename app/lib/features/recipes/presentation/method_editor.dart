@@ -45,11 +45,7 @@ import 'method_timer_sheet.dart';
 import 'recipe_view_models.dart';
 
 class MethodEditor extends StatelessWidget {
-  const MethodEditor({
-    required this.recipe,
-    required this.notifier,
-    super.key,
-  });
+  const MethodEditor({required this.recipe, required this.notifier, super.key});
 
   final Recipe recipe;
   final RecipeEditor notifier;
@@ -468,12 +464,7 @@ class MethodStepCard extends HookConsumerWidget {
     if (lineId == null) return;
     final word = notifier.lineById()[lineId]?.ingredientName ?? '';
     if (word.isEmpty) return;
-    notifier.insertChip(
-      step.id,
-      offset: offset,
-      word: word,
-      refs: [lineId],
-    );
+    notifier.insertChip(step.id, offset: offset, word: word, refs: [lineId]);
   }
 
   Future<void> _insertTimer(
@@ -499,7 +490,6 @@ class MethodStepCard extends HookConsumerWidget {
     final offset = controller.selection.baseOffset;
     return offset < 0 ? step.text.length : offset.clamp(0, step.text.length);
   }
-
 }
 
 /// Opens the line picker over this recipe's own lines and returns the id of

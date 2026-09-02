@@ -30,10 +30,7 @@ void main() {
     await scrollToMethod(tester);
 
     // The read-only notice is gone; the sentence is in an editable field.
-    expect(
-      find.textContaining('imported as ingredient chips'),
-      findsNothing,
-    );
+    expect(find.textContaining('imported as ingredient chips'), findsNothing);
     expect(find.text('Step 1'), findsOneWidget);
     expect(find.text('Step 2'), findsOneWidget);
     expect(

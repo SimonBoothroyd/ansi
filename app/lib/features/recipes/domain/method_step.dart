@@ -83,6 +83,7 @@ sealed class MethodToken with _$MethodToken {
   const factory MethodToken.ref({
     required List<String> refs,
     required String label,
+
     /// Whether this chip shows its line's amount. The JSON key stays
     /// `mention` (§4.6's frozen contract); only the Dart name is plain
     /// language.

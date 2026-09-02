@@ -496,9 +496,7 @@ void main() {
 
   group('pruneDanglingRefs — no saved step refs an absent line', () {
     test('a removed line leaves its word as plain text', () {
-      final steps = [
-        toTokens(_draft()),
-      ];
+      final steps = [toTokens(_draft())];
       final pruned = pruneDanglingRefs(steps, {'b'});
       expect(pruned.single.tokens.whereType<MethodRef>(), hasLength(1));
       // The sentence is byte-identical to what the card was showing.
@@ -539,10 +537,7 @@ void main() {
       final gold = _gold();
       final flat = flattenMethod(gold.steps, lineById: gold.lineById);
       for (final (i, step) in gold.steps.indexed) {
-        expect(
-          flat[i],
-          toDraft(step, id: 's$i', lineById: gold.lineById).text,
-        );
+        expect(flat[i], toDraft(step, id: 's$i', lineById: gold.lineById).text);
       }
       expect(flat[0], 'Preheat the oven to 375°F.');
     });

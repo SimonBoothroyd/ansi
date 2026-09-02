@@ -272,7 +272,8 @@ Finder methodFields() => find.byWidgetPredicate(
 );
 
 /// The text the step card at [index] is showing.
-String methodFieldText(WidgetTester tester, int index) =>
-    tester.widgetList<EditableText>(methodFields()).elementAt(index)
-        .controller
-        .text;
+String methodFieldText(WidgetTester tester, int index) => tester
+    .widgetList<EditableText>(methodFields())
+    .elementAt(index)
+    .controller
+    .text;

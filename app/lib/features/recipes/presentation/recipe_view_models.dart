@@ -328,8 +328,7 @@ class RecipeEditor extends _$RecipeEditor {
       );
 
   void _setIdentity(
-    String itemId,
-    {
+    String itemId, {
     required String name,
     required LineItem Function(LineItem) item,
   }) {
@@ -433,9 +432,7 @@ class RecipeEditor extends _$RecipeEditor {
 
   void _setMethod(List<MethodDraftStep> drafts) {
     _stepIds = [for (final d in drafts) d.id];
-    _set(
-      _current.copyWith(methodSteps: [for (final d in drafts) toTokens(d)]),
-    );
+    _set(_current.copyWith(methodSteps: [for (final d in drafts) toTokens(d)]));
   }
 
   void _mapStep(String stepId, MethodDraftStep Function(MethodDraftStep) f) {
