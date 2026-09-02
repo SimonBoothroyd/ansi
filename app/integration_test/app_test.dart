@@ -206,13 +206,24 @@ void main() {
     await tester.pump();
   }
 
+  /// Taps a bottom-nav tab.
+  ///
+  /// `.last`: under the shell the bar is the FScaffold's footer, so it is the
+  /// last match in the tree — and two of its icons are drawn elsewhere too
+  /// (the Library's ＋ menu uses `cookingPot` for "New recipe"). A bare finder
+  /// is ambiguous the moment one of those is on screen.
+  Future<void> tapTab(WidgetTester tester, IconData icon) =>
+      tester.tap(find.byIcon(icon).last);
+
   /// Pumps until [finder] matches, then settles. `pumpAndSettle` alone can't
   /// cross the network waits here (the /connecting spinner animates forever),
   /// so poll real time first. The settle matters: a widget is findable the
-  /// moment it is *built*, which can be mid route transition — a tap taken
-  /// then lands beside the still-sliding target (observed: the Week page's
-  /// row menu at x=439 on a 402pt screen). A perpetual animation on the found
-  /// screen just times the settle out; that's fine, proceed.
+  /// moment it is *built*, which can be mid transition — a tap taken then
+  /// lands beside the still-moving target (observed: the Week page's row menu
+  /// at x=439 on a 402pt screen). A tab switch no longer moves anything (it is
+  /// a cross-fade in place under one fixed bar), but a pushed page's slide and
+  /// a sheet's rise still do. A perpetual animation on the found screen just
+  /// times the settle out; that's fine, proceed.
   Future<void> pumpUntilFound(
     WidgetTester tester,
     Finder finder, {
@@ -737,9 +748,10 @@ void main() {
     await pumpUntilFound(tester, find.text('OUR COOKBOOK · WEEKNIGHT'));
 
     // Ingredients survive the edit's server round-trip: rendered and live in
-    // the local db, with the one tweaked quantity. (Back to the Ingredients
-    // tab first — `context.go` after save keeps the same route element, so
-    // the Method tab chosen above is still selected.)
+    // the local db, with the one tweaked quantity. (The Ingredients tab first:
+    // the save replaces the editor with a FRESH recipe page, so the in-page
+    // tab starts at Ingredients rather than carrying the Method tab chosen
+    // above — the tap is a no-op either way and pins where we are.)
     await waitForSyncRoundTrip(tester);
     await tester.tap(find.text('Ingredients'));
     await tester.pumpAndSettle();
@@ -825,7 +837,7 @@ void main() {
     );
 
     // Week tab → blank current week, with the copy affordance.
-    await tester.tap(find.byIcon(FLucideIcons.calendarDays));
+    await tapTab(tester, FLucideIcons.calendarDays);
     await pumpUntilFound(tester, find.text('A blank week'));
     await pumpUntilFound(tester, find.text('Copy last week'));
     expect(find.text('Last week, for reference'), findsOneWidget);
@@ -952,6 +964,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Chicken Curry'), findsOneWidget); // Wed filtered out
     expect(find.text('shared'), findsOneWidget); // Monday is a shared meal
+
+    // D7 — the lens is a filter the user CHOSE, and the shell keeps it: a round
+    // trip through Cook comes back to Jun, not reset to Shared. This is the
+    // whole reason the four tabs are branches of one shell.
+    await tapTab(tester, FLucideIcons.cookingPot);
+    await pumpUntilFound(tester, find.text('Batch cook plan'));
+    await tapTab(tester, FLucideIcons.calendarDays);
+    await pumpUntilFound(tester, find.text('Per-person'));
+    expect(
+      find.text('Chicken Curry'),
+      findsOneWidget,
+      reason: 'the Per-person lens on Jun survived the tab switch',
+    );
+
     await tester.tap(find.text('Shared'));
     await tester.pumpAndSettle();
     expect(find.text('Chicken Curry'), findsNWidgets(2));
@@ -961,7 +987,7 @@ void main() {
     // far-apart meals → two session cards).
     // ------------------------------------------------------------------------
     // Mon + Wed sit inside the 2-day window → ONE session covers both.
-    await tester.tap(find.byIcon(FLucideIcons.cookingPot));
+    await tapTab(tester, FLucideIcons.cookingPot);
     await pumpUntilFound(tester, find.text('Batch cook plan'));
     await pumpUntilFound(tester, find.text('Cook Mon'));
     expect(find.textContaining('Cook '), findsOneWidget);
@@ -970,12 +996,12 @@ void main() {
     expect(find.text('4 portions across the week · keeps 2 d'), findsOneWidget);
 
     // Plan a third meal on Saturday — beyond the fridge window from Monday.
-    await tester.tap(find.byIcon(FLucideIcons.calendarDays));
+    await tapTab(tester, FLucideIcons.calendarDays);
     await pumpUntilFound(tester, find.text('Shared'));
     await addMealOn(tester, 'Saturday', 'Chicken Curry');
 
     // The cook plan re-derives: two sessions, flagged as a split.
-    await tester.tap(find.byIcon(FLucideIcons.cookingPot));
+    await tapTab(tester, FLucideIcons.cookingPot);
     await pumpUntilFound(tester, find.text('Cook Sat'));
     expect(find.text('Cook Mon'), findsOneWidget);
     expect(find.textContaining('Cook '), findsNWidgets(2));
@@ -992,7 +1018,7 @@ void main() {
     // ------------------------------------------------------------------------
     // 3c · SHOP — provenance roll-up, a manual top-up, and check-off.
     // ------------------------------------------------------------------------
-    await tester.tap(find.byIcon(FLucideIcons.shoppingBasket));
+    await tapTab(tester, FLucideIcons.shoppingBasket);
     await pumpUntilFound(tester, find.text('Shopping list'));
     await pumpUntilFound(tester, find.text('Garlic'));
     expect(find.text('Onion'), findsOneWidget);
@@ -1308,9 +1334,9 @@ void main() {
     await waitForSyncRoundTrip(tester);
 
     // …and it is visible in the Library, filed under a book. The recipe page
-    // sits OUTSIDE the tab shell (no bottom nav here); its header back action
-    // pops — or, after the commit's `context.go`, falls back to `/` — either
-    // way landing on the Library.
+    // sits OUTSIDE the tab shell (no bottom nav here); the commit REPLACED the
+    // spent import flow with it, so the Library tab is still underneath and
+    // the header's back action pops straight onto it.
     await tester.tap(find.byType(FHeaderAction).first);
     await pumpUntilFound(tester, find.text('Our Cookbook'));
     await tester.pumpAndSettle();
@@ -1744,24 +1770,36 @@ void main() {
   }
 
   /// The recipe editor's Save, then the saved recipe's page.
+  ///
+  /// The save REPLACES the editor rather than flattening the stack, so the
+  /// recipe lands with whatever the editor was opened from still under it —
+  /// which is why [backFromRecipe] below is a real pop now.
   Future<void> saveRecipe(WidgetTester tester) async {
     await tester.tap(find.text('Save'));
     await pumpUntilFound(tester, find.text('OUR COOKBOOK'));
     await tester.pumpAndSettle();
   }
 
-  /// Back out of a pushed recipe page. After a save `context.go` replaced the
-  /// stack, so the header's back action falls back to the Library.
+  /// Back out of a pushed page, one step: the header's back action pops to the
+  /// page underneath. (It used to be a fallback to the Library on a page a save
+  /// had landed on, because the save's `context.go` had flattened the stack.)
   Future<void> backFromRecipe(WidgetTester tester) async {
     await tester.tap(find.byType(FHeaderAction).first);
     await tester.pumpAndSettle();
   }
 
-  /// Backs out of pushed recipe pages until the tab shell is under us again.
-  /// A page reached by `push` pops to its parent; the page a save landed on has
-  /// nothing to pop and its back action falls back to the Library.
+  /// Backs out of pushed pages until the tab shell is under us again.
+  ///
+  /// The predicate is "the nav bar is in the tree". It holds because pushed
+  /// pages are siblings of the shell and cover it (D2-a), and a route under an
+  /// opaque one is offstage — which the default finder skips. The moment a
+  /// pushed page sat INSIDE a branch instead, this would silently pass on the
+  /// first check and stop backing out at all.
+  ///
+  /// Six steps, not four: a save now leaves the page it was opened from on the
+  /// stack, so the real depths are one or two greater than they used to be.
   Future<void> backToShell(WidgetTester tester) async {
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i < 6; i++) {
       if (find.byIcon(FLucideIcons.library).evaluate().isNotEmpty) return;
       await backFromRecipe(tester);
     }
@@ -1963,11 +2001,11 @@ void main() {
     //      ingredients flow into the list with two-level provenance (D3 · D4).
     // ------------------------------------------------------------------------
     await backToShell(tester);
-    await tester.tap(find.byIcon(FLucideIcons.calendarDays));
+    await tapTab(tester, FLucideIcons.calendarDays);
     await pumpUntilFound(tester, find.text('Shared'));
     await addMealOn(tester, 'Friday', 'Sausage Sliders');
 
-    await tester.tap(find.byIcon(FLucideIcons.cookingPot));
+    await tapTab(tester, FLucideIcons.cookingPot);
     await pumpUntilFound(
       tester,
       find.text('Romesco Aioli · for Sausage Sliders'),
@@ -1990,7 +2028,7 @@ void main() {
       reason: 'a fractional batch says so out loud (an 8.6 non-goal)',
     );
 
-    await tester.tap(find.byIcon(FLucideIcons.shoppingBasket));
+    await tapTab(tester, FLucideIcons.shoppingBasket);
     await pumpUntilFound(tester, find.text('Shopping list'));
     // The component LINE never becomes an item (you buy almonds, not aioli) —
     // the aioli's own lines do, through the derived session.
@@ -2023,7 +2061,7 @@ void main() {
     // 6e · THE HONEST GAP — un-state the yield and the derived numbers go away
     //      rather than turning into a ×1 (D2 · D3 · D4).
     // ------------------------------------------------------------------------
-    await tester.tap(find.byIcon(FLucideIcons.library));
+    await tapTab(tester, FLucideIcons.library);
     await pumpUntilFound(tester, find.text('Our Cookbook'));
     await scrollTo(tester, find.text('Romesco Aioli'));
     await tester.tap(find.text('Romesco Aioli'));
@@ -2058,7 +2096,7 @@ void main() {
     // The Cook tab: the session becomes a NAMED GAP. Never a ×1 — assuming one
     // batch is exactly the invented number this app refuses.
     await backToShell(tester);
-    await tester.tap(find.byIcon(FLucideIcons.cookingPot));
+    await tapTab(tester, FLucideIcons.cookingPot);
     await pumpUntilFound(
       tester,
       find.text('Romesco Aioli doesn’t say how much it makes'),
@@ -2084,7 +2122,7 @@ void main() {
 
     // The Shop tab: the unresolved component contributes NOTHING, and the
     // parent says so rather than leaving the list quietly short (D4).
-    await tester.tap(find.byIcon(FLucideIcons.shoppingBasket));
+    await tapTab(tester, FLucideIcons.shoppingBasket);
     await pumpUntilFound(tester, find.text('Shopping list'));
     await scrollTo(tester, find.text('1 component unresolved — see Cook'));
     expect(find.text('SAUSAGE SLIDERS'), findsOneWidget);
