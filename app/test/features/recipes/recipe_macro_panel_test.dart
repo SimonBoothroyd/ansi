@@ -115,6 +115,17 @@ void main() {
     expect(find.textContaining('0 g'), findsNothing);
   });
 
+  testWidgets('D6: a bare count reads "needs a weight" on the panel too — the '
+      'one incomplete reason that names its own fix', (tester) async {
+    const summary = RecipeMacroSummary(countLinesWithoutMeasure: 1);
+    await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
+
+    expect(find.byType(IncompleteBadge), findsOneWidget);
+    expect(find.text(incompleteNote(summary)), findsOneWidget);
+    expect(find.text('1 line needs a weight'), findsOneWidget);
+    expect(find.textContaining('unconvertible'), findsNothing);
+  });
+
   testWidgets('a recipe with no lines says so rather than showing zeros', (
     tester,
   ) async {

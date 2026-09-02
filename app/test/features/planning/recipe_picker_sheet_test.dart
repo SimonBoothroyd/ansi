@@ -189,6 +189,27 @@ void main() {
     expect(find.textContaining('Ada & Jun'), findsOneWidget);
   });
 
+  testWidgets('D6: the picker row prints the bare-count reason in the shared '
+      'words — the same sentence the panel and the confirm sheet render', (
+    tester,
+  ) async {
+    await _open(
+      tester,
+      recipes: const [
+        RecipeSummary(
+          id: 'r4',
+          title: 'Roast Potatoes',
+          servingsBase: 2,
+          macros: RecipeMacroSummary(countLinesWithoutMeasure: 2),
+        ),
+      ],
+    );
+
+    expect(find.text('incomplete'), findsOneWidget);
+    expect(find.textContaining('2 lines need a weight'), findsOneWidget);
+    expect(find.textContaining('unconvertible'), findsNothing);
+  });
+
   testWidgets('a line-less recipe reads "no ingredients yet", never ~0 kcal', (
     tester,
   ) async {
@@ -235,6 +256,30 @@ void main() {
         const RecipeMacroSummary(stubLines: 1, subRecipesIncomplete: 3),
       ),
       '1 stub line · 3 sub-recipes incomplete',
+    );
+  });
+
+  test('D6: a bare count reads "needs a weight", never "unconvertible"', () {
+    // The one incomplete cause a household can fix in two taps, said in
+    // words that name the fix rather than the failure (plan 0022).
+    expect(
+      incompleteNote(const RecipeMacroSummary(countLinesWithoutMeasure: 1)),
+      '1 line needs a weight',
+    );
+    expect(
+      incompleteNote(const RecipeMacroSummary(countLinesWithoutMeasure: 3)),
+      '3 lines need a weight',
+    );
+    // Beside the other reasons, in one sentence, unfolded from them.
+    expect(
+      incompleteNote(
+        const RecipeMacroSummary(
+          stubLines: 2,
+          countLinesWithoutMeasure: 1,
+          unconvertibleLines: 1,
+        ),
+      ),
+      '2 stub lines · 1 line needs a weight · 1 unconvertible',
     );
   });
 

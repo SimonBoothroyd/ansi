@@ -49,13 +49,21 @@ typedef IngredientNutrition = ({
 /// is [incomplete] and carries why — [noLines] for a recipe with no line
 /// items at all (nothing was summed, so "~0 kcal" would be fabricated, not
 /// computed — invariant 3), [stubLines] lines of stub/unknown ingredients,
-/// [unconvertibleLines] lines the unit system cannot bridge (count
-/// without a measure, imprecise-only, cross-basis without density, no
-/// quantity), and the two sub-recipe reasons (step 8.6 / D8).
+/// [countLinesWithoutMeasure] bare counts ("2 pieces") with no weight behind
+/// them, [unconvertibleLines] everything else the unit system cannot bridge
+/// (imprecise-only, cross-basis without density, no quantity), and the two
+/// sub-recipe reasons (step 8.6 / D8).
 ///
 /// The reason WORDING lives in one place — `shared/incomplete_macros.dart`'s
 /// `incompleteNote` — so the picker row, the macro panel and the review card
 /// cannot drift apart.
+///
+/// The bare-count reason is split out because it is the ONE incomplete cause
+/// a household can fix in two taps — pick a measure on that line — and under
+/// plan 0022's admission model those taps are unambiguous: the row's chip row
+/// holds its measures and (mostly) not `piece`. Folding it into
+/// "unconvertible" told them a conversion had failed, which is not what
+/// happened: nothing was ever weighed.
 @immutable
 class RecipeMacroSummary {
   const RecipeMacroSummary({
@@ -64,6 +72,7 @@ class RecipeMacroSummary {
     this.unconvertibleLines = 0,
     this.subRecipesUnresolved = 0,
     this.subRecipesIncomplete = 0,
+    this.countLinesWithoutMeasure = 0,
     this.noLines = false,
   });
 
@@ -79,6 +88,9 @@ class RecipeMacroSummary {
   /// Component lines whose batch math resolved but whose TARGET's own summary
   /// is incomplete — the share is knowable, the macros behind it are not.
   final int subRecipesIncomplete;
+  /// Lines saying a bare count ("2 pieces") with no measure linked, so there
+  /// is no weight to sum — plan 0022 **D6**.
+  final int countLinesWithoutMeasure;
 
   /// The recipe has no line items yet — incomplete by absence, not by any
   /// per-line failure.
@@ -94,6 +106,7 @@ class RecipeMacroSummary {
       other.unconvertibleLines == unconvertibleLines &&
       other.subRecipesUnresolved == subRecipesUnresolved &&
       other.subRecipesIncomplete == subRecipesIncomplete &&
+      other.countLinesWithoutMeasure == countLinesWithoutMeasure &&
       other.noLines == noLines;
 
   @override
@@ -103,6 +116,7 @@ class RecipeMacroSummary {
     unconvertibleLines,
     subRecipesUnresolved,
     subRecipesIncomplete,
+    countLinesWithoutMeasure,
     noLines,
   );
 
@@ -110,6 +124,7 @@ class RecipeMacroSummary {
   String toString() => incomplete
       ? 'RecipeMacroSummary(incomplete: '
             '${noLines ? 'no lines' : '$stubLines stub, '
+                      '$countLinesWithoutMeasure bare count, '
                       '$unconvertibleLines unconvertible, '
                       '$subRecipesUnresolved sub unresolved, '
                       '$subRecipesIncomplete sub incomplete'})'
@@ -168,6 +183,7 @@ RecipeMacroSummary _summarize({
   var unconvertible = 0;
   var subUnresolved = 0;
   var subIncomplete = 0;
+  var bareCounts = 0;
   var lineCount = 0;
 
   for (final line in lines) {
@@ -201,7 +217,11 @@ RecipeMacroSummary _summarize({
     }
     final per100 = _amountInBasis(line, nutrition);
     if (per100 == null) {
-      unconvertible++;
+      if (_isBareCount(line)) {
+        bareCounts++;
+      } else {
+        unconvertible++;
+      }
       continue;
     }
     total += macros.scaledBy(per100 / 100);
@@ -216,6 +236,7 @@ RecipeMacroSummary _summarize({
       unconvertible > 0 ||
       subUnresolved > 0 ||
       subIncomplete > 0 ||
+      bareCounts > 0 ||
       !(servingsBase > 0);
   return RecipeMacroSummary(
     perServing: incomplete ? null : total.scaledBy(1 / servingsBase),
@@ -223,6 +244,7 @@ RecipeMacroSummary _summarize({
     unconvertibleLines: unconvertible,
     subRecipesUnresolved: subUnresolved,
     subRecipesIncomplete: subIncomplete,
+    countLinesWithoutMeasure: bareCounts,
     noLines: noLines,
   );
 }
@@ -286,6 +308,15 @@ _ComponentResult _componentMacros({
     perServing.scaledBy(node.servingsBase * amount.batches),
   );
 }
+/// Whether [line] is a bare count with a number and nothing weighing it — the
+/// D6 reason. A line pointing at a measure that has not synced in yet is NOT
+/// one: something does weigh it, this device just cannot see it, and telling
+/// the household to add a weight would send them to fix what is not broken.
+bool _isBareCount(LineItem line) =>
+    line.quantity != null &&
+    line.unit.family == UnitFamily.count &&
+    line.measure == null &&
+    line.measureId == null;
 
 /// The line's amount expressed in the ingredient's basis unit (g or ml), or
 /// null when the unit system cannot bridge it honestly. Delegates to

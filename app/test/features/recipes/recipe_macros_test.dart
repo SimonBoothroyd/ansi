@@ -127,12 +127,26 @@ void main() {
       expect(summary.stubLines, 1);
     });
 
-    test('a count line without a measure cannot join', () {
+    test('a count line without a measure cannot join — and says so in its '
+        'own words, not as a failed conversion (D6)', () {
       final summary = summarizeRecipeMacros(
         servingsBase: 1,
         lines: [_line('x', quantity: 3, unit: pieces)],
         nutritionOf: _vocab(),
       );
+      expect(summary.incomplete, isTrue);
+      expect(summary.countLinesWithoutMeasure, 1);
+      expect(summary.unconvertibleLines, 0);
+    });
+
+    test('a line pointing at a measure that has not synced in is NOT "needs '
+        'a weight" — something weighs it, this device just cannot see it', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 3, unit: pieces, measureId: 'm-unsynced')],
+        nutritionOf: _vocab(),
+      );
+      expect(summary.countLinesWithoutMeasure, 0);
       expect(summary.unconvertibleLines, 1);
     });
 

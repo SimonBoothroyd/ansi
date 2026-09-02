@@ -276,7 +276,10 @@ void main() {
     var summary = (await repo.watchRecipes().first).single.macros!;
     expect(summary.incomplete, isTrue);
     expect(summary.stubLines, 1); // Salt: complete status, no macros
-    expect(summary.unconvertibleLines, 1); // Onion: count without a measure
+    // Onion: a bare count with no measure — its own D6 reason, not a
+    // failed conversion.
+    expect(summary.countLinesWithoutMeasure, 1);
+    expect(summary.unconvertibleLines, 0);
 
     // A recipe whose every line joins computes per-serving numbers: 150 g of
     // rice across 2 servings.
@@ -392,7 +395,8 @@ void main() {
     final incomplete = (await repo.watchRecipe('r1').first)!.macros!;
     expect(incomplete.incomplete, isTrue);
     expect(incomplete.stubLines, 1); // Salt: complete status, no macros
-    expect(incomplete.unconvertibleLines, 1); // Onion: count, no measure
+    expect(incomplete.countLinesWithoutMeasure, 1); // Onion: count, no measure
+    expect(incomplete.unconvertibleLines, 0);
   });
 
   test('a recipe page with no lines is incomplete, never ~0 kcal', () async {

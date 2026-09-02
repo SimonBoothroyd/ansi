@@ -338,6 +338,61 @@ void main() {
       expect(choices.whereType<MeasureOption>(), hasLength(1));
     });
 
+    group('plan 0022 / ADR-0010: piece is an admission, so the chip row '
+        'simply never offers it where the list refuses it', () {
+      test('the avocado shape: a curated list without `piece` gives a chip '
+          'row with the measure and no `piece` anywhere', () {
+        const avocadoMeasure = Measure(
+          id: 'm-avo',
+          label: 'avocado',
+          amount: 201,
+        );
+        final offer = allowedUnitChoicesFor(
+          _ing(
+            pieces,
+            density: 0.634,
+            category: 'produce',
+            allowed: const [g, tsp, tbsp, cup, ml],
+          ),
+          const [avocadoMeasure],
+        );
+        expect(offer.choices.map((c) => c.label), isNot(contains('piece')));
+        expect(offer.choices.first, const MeasureOption(avocadoMeasure));
+      });
+
+      test('a measure-less count row keeps `piece`, and it leads — there is '
+          'nothing clearer to say', () {
+        // The derived default is deliberately untouched by the curation
+        // pass: this is the fallback the whole rule exists to protect.
+        final offer = allowedUnitChoicesFor(_ing(pieces), const []);
+        expect(offer.choices.first.label, 'piece');
+      });
+
+      test('a line already SAVED as a bare `piece` on a now-measured row is '
+          'still offered, flagged "not in filter" — degrade, never '
+          'destroy', () {
+        const avocadoMeasure = Measure(
+          id: 'm-avo',
+          label: 'avocado',
+          amount: 201,
+        );
+        final offer = allowedUnitChoicesFor(
+          _ing(pieces, density: 0.634, allowed: const [g, cup, ml]),
+          const [avocadoMeasure],
+          current: const UnitOption(pieces),
+        );
+        // The same rule ADR-0009 applied to a `cup` line whose density was
+        // deleted: the stored value stays selectable and is never rewritten.
+        expect(offer.offFilter, const UnitOption(pieces));
+        expect(offer.choices.last, const UnitOption(pieces));
+        // …and it does not sneak back into the honest offer ahead of it.
+        expect(
+          offer.choices.sublist(0, offer.choices.length - 1),
+          isNot(contains(const UnitOption(pieces))),
+        );
+      });
+    });
+
     test('no measures → exactly the unit set as choices', () {
       final choices = allowedUnitChoicesFor(_ing(g), const []).choices;
       expect(choices.whereType<MeasureOption>(), isEmpty);

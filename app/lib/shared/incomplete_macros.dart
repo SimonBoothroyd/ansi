@@ -18,14 +18,27 @@ import '../features/recipes/domain/recipe_macros.dart';
 /// `1 stub line`, `2 stub lines · 1 unconvertible`,
 /// `1 sub-recipe unresolved` — never an empty string (a reasonless badge
 /// would leave a dangling separator).
+/// `1 stub line`, `2 stub lines · 1 line needs a weight · 1 unconvertible`,
+/// `1 sub-recipe unresolved` — never an empty string (a reasonless badge would leave a dangling
+/// separator).
+///
+/// **"needs a weight" is its own reason** (plan 0022 **D6**), not part of
+/// "unconvertible". A bare count — "2 pieces", no measure behind it — is the
+/// one incomplete cause a household can fix in two taps, and calling it a
+/// failed conversion described the wrong problem: nothing was ever weighed.
+/// Under the ADR-0010 admission model those taps are unambiguous, because the
+/// row's chip row holds its measures and (mostly) not `piece`.
 String incompleteNote(RecipeMacroSummary summary) {
   if (summary.noLines) return 'no ingredients yet';
   final stubs = summary.stubLines;
+  final counts = summary.countLinesWithoutMeasure;
   final unresolved = summary.subRecipesUnresolved;
   final subIncomplete = summary.subRecipesIncomplete;
   final parts = [
     if (stubs == 1) '1 stub line',
     if (stubs > 1) '$stubs stub lines',
+    if (counts == 1) '1 line needs a weight',
+    if (counts > 1) '$counts lines need a weight',
     if (summary.unconvertibleLines > 0)
       '${summary.unconvertibleLines} unconvertible',
     // Step 8.6 / D8 — the two sub-recipe reasons, in the same voice as the
