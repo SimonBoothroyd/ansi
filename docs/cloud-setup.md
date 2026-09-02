@@ -51,14 +51,25 @@ the memory note referenced from the step-7 exec plan; this doc is cloud-only.
    `android/app/src/main/AndroidManifest.xml`, and locally in
    `supabase/config.toml`).
 
-   > **Scheme rename, 2026-09-01 (Mise → Ansi).** The scheme moved from
-   > `io.mise.app://login-callback` to `io.ansi.app://login-callback`. The repo
-   > side landed with the rename; **the cloud dashboard is a manual edit and is
-   > the one thing code cannot do for you.** Until Redirect URLs list the new
-   > value, Google sign-in against cloud dead-ends at the redirect on any build
-   > from this commit onward. Add the new URL *before* installing a new build;
-   > keep both listed through the cutover, and remove the `io.mise.app` entry
-   > once one sign-in has succeeded on a new build.
+   > **Scheme rename, 2026-09-01 (Mise → Ansi) — cutover half done.** The
+   > scheme moved from `io.mise.app://login-callback` to
+   > `io.ansi.app://login-callback`. Where it stands:
+   >
+   > - **Repo side: done.** Every registration (`ios/Runner/Info.plist`,
+   >   `android/app/src/main/AndroidManifest.xml`, `supabase/config.toml`) and
+   >   the code that builds the redirect now say `io.ansi.app`.
+   > - **Dashboard: both URLs listed.** Redirect URLs carry `io.ansi.app://…`
+   >   **and** the old `io.mise.app://…`, deliberately — a build from either
+   >   side of the rename can complete a redirect while the cutover is open.
+   > - **Not yet verified: nobody has signed in on a new-scheme build.** The
+   >   new URL is listed, not exercised. Until one Google sign-in succeeds
+   >   end to end on an `io.ansi.app` build, treat the new entry as untested.
+   >
+   > **Closing the cutover** is one act, in this order: walk a Google sign-in
+   > on a new build → confirm it lands (session + `household_id` claim) →
+   > *then* remove the `io.mise.app` entry from Redirect URLs and tick
+   > checklist row 2. Removing it earlier strands any build still on the old
+   > scheme; leaving it forever keeps a dead redirect target listed.
 7. **Dev convenience:** turn **Confirm email OFF** while testing email/password
    (Sign In / Providers → Email) — the free tier rate-limits confirmation emails
    hard. Turn it back on before anything real. (OAuth users are auto-confirmed.)
@@ -74,7 +85,9 @@ supabase db query --linked -f supabase/seed.sql
 ```
 
 This creates the "Home" **template** household (`00000000-…-aa`, `is_template
-= true` since migration 0008) + 291 ingredients + 88 aliases. Onboarding users
+= true` since migration 0008) + 308 ingredients + 112 aliases (counts as of
+2026-09-01; `supabase/seed/vocab.jsonl` is the source they are generated from).
+Onboarding users
 never join a template: `ensure_onboarded` **clones** its vocab (minus
 `manual`/`import_correction` rows) into each fresh household. Run the other
 two seeds as well so the cloud vocab carries macros — without them every cloud
@@ -305,7 +318,7 @@ Endpoints come from `cloud.env` at the repo root.
 | # | Setting (where) | Expected value |
 |---|-----------------|----------------|
 | 1 | Auth hook (Supabase → Authentication → Auth Hooks → Custom Access Token) | **Enabled**, function `public.add_household_claim`. Load-bearing: no hook ⇒ no `household_id` claim ⇒ nothing syncs. |
-| 2 | Redirect URLs (Supabase → Authentication → URL Configuration) | Site URL + Redirect URLs include `io.ansi.app://login-callback` (renamed from `io.mise.app` on 2026-09-01 — §1.6; **unverified against cloud until someone walks a Google sign-in on a new build**). The old entry may stay listed until that first success, then be removed. |
+| 2 | Redirect URLs (Supabase → Authentication → URL Configuration) | **Cutover open (§1.6).** Both `io.ansi.app://login-callback` (the current scheme) and `io.mise.app://login-callback` (the pre-rename one) are listed — confirmed on the dashboard 2026-09-01. **Not verified:** no Google sign-in has been walked on an `io.ansi.app` build, so the new entry is listed but untested. Do that sign-in, then remove the `io.mise.app` entry and mark this row verified — not before. |
 | 3 | Email confirmations (Supabase → Authentication → Sign In / Providers → Email) | OFF while testing email/password (free-tier rate limits); **turn back ON before anything real**. `cloud_verify.sh` warns while it's off. |
 | 4 | Google provider (same screen → Google) | Enabled, with the Web OAuth client id/secret (§1.5). `cloud_verify.sh` checks this one via `/auth/v1/settings`. |
 | 5 | PowerSync JWKS URI (PowerSync dashboard → instance → Client Auth) | "Use Supabase Auth" checked; JWKS URI = `<CLOUD_SUPABASE_URL>/auth/v1/.well-known/jwks.json` |
@@ -359,6 +372,52 @@ A ✓ means the dashboard hook is correctly wired (the JWT carries `household_id
 Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
+
+### 2026-09-01 — full cloud reset and rebuild
+
+Human steps done (Simon): **`supabase db reset --linked`** — the cloud database
+dropped and rebuilt from every migration `0000`–`0016` (17 files) and all five
+seeds in `config.toml`'s order (`seed.sql` → `seed_usda.sql` →
+`seed_prefill.sql` → `seed_measures.sql` → `seed_curation.sql`) — then
+`supabase functions deploy import-recipe`.
+
+What this settles:
+
+- **`0014`–`0016` are on cloud.** ADR-0009 admission, the never-fail USDA
+  prefill trigger, the density-change trigger, prefill-on-rename, and
+  `probe_usda()` all landed with the rebuild. The step-8.5 deferral ("not yet
+  pushed to cloud") is retired — the roadmap row was trued up in the same pass
+  as this entry.
+- **The template vocab is current.** The rebuilt seeds carry the FAO/INFOODS
+  fills *and* step 8.5's **D4d** hand pass, plus Canned Diced Tomatoes: **308
+  ingredients · 112 aliases · 297 with a density · 270 measures over 142
+  ingredients** (measured against a local `db reset` off the same committed
+  seeds).
+- **§2b's rollout was not needed this cycle.** `rollout_ingredient_refresh.sql`
+  exists to carry a *reseeded template* onto households that were onboarded
+  earlier. A reset is a rebuild, not a patch — there is no older clone left to
+  carry forward, so the script has nothing to do until the next seed-borne
+  change lands on a standing database.
+
+Left open, in order of bite:
+
+- **`cloud_verify.sh` has not been re-run since the rebuild.** The last clean
+  run (9 ok · 0 warn · 0 fail) predates it. Run it before trusting any row
+  below.
+- **A rebuild takes the database back to the seeds' state.** Households,
+  recipes, and anything else the DB held are gone — dev data is throwaway by
+  standing rule. Note the interaction with **§3c**: public sign-up is OFF, so
+  if the reset also cleared `auth.users`, the first sign-in needs sign-up
+  flipped on for that one run (then off again) or a dashboard invite. Confirm
+  which at the next sign-in rather than assuming.
+- **Dashboard-only settings live outside the database** and a reset does not
+  touch them — but checklist row 1's target, `public.add_household_claim`, was
+  dropped and recreated by the rebuild. The hook resolves the function by
+  name, so it should still bind; the next sign-in carrying a `household_id`
+  claim is the proof.
+- **The OAuth scheme cutover is still open** (§1.6, checklist row 2): both
+  redirect URLs are listed, and no sign-in has been walked on an `io.ansi.app`
+  build. That one sign-in closes three of these bullets at once.
 
 ### 2026-08-31 — step-8 hardening rollout
 
