@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
+import '../../../shared/ansi_modals.dart';
 
 Future<String?> promptForText(
   BuildContext context, {
@@ -14,11 +15,8 @@ Future<String?> promptForText(
   required String confirm,
   String initial = '',
 }) {
-  return showFDialog<String>(
+  return showAnsiDialog<String>(
     context: context,
-    // The root navigator, not the tab shell's branch navigator: a dialog that
-    // stops at the branch bounds leaves the nav bar lit and tappable beside it.
-    useRootNavigator: true,
     builder: (context, style, animation) => _TextPromptDialog(
       title: title,
       hint: hint,

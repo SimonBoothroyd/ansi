@@ -32,6 +32,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/picker_shell.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
@@ -1399,11 +1400,8 @@ Future<ReconcilePick?> showReconcileIngredientSheet(
   required String seedName,
   List<MatchCandidate> candidates = const [],
 }) {
-  return showFSheet<ReconcilePick>(
+  return showAnsiSheet<ReconcilePick>(
     context: context,
-    side: FLayout.btt,
-    mainAxisMaxRatio: null,
-    useSafeArea: true,
     builder: (_) => _ReconcileSheet(seedName: seedName, candidates: candidates),
   );
 }

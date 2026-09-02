@@ -31,6 +31,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../recipes/presentation/format.dart';
 import '../barcode/barcode_add.dart';
@@ -52,11 +53,8 @@ Future<void> showNewIngredientSheet(
   BuildContext context, {
   OffLookup? lookup,
   BarcodeCameraPane? cameraPane,
-}) => showFSheet<void>(
+}) => showAnsiSheet<void>(
   context: context,
-  side: FLayout.btt,
-  mainAxisMaxRatio: null,
-  useSafeArea: true,
   builder: (_) => NewIngredientSheet(lookup: lookup, cameraPane: cameraPane),
 );
 

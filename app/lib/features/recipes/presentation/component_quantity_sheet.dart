@@ -35,6 +35,7 @@ import 'package:forui/forui.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart' show UnitChip;
 import '../domain/component_math.dart';
 import '../domain/component_units.dart';
@@ -58,11 +59,8 @@ Future<ComponentQuantity?> showComponentQuantitySheet(
   Unit? initialUnit,
   VoidCallback? onSetYield,
 }) {
-  return showFSheet<ComponentQuantity>(
+  return showAnsiSheet<ComponentQuantity>(
     context: context,
-    side: FLayout.btt,
-    mainAxisMaxRatio: null,
-    useSafeArea: true,
     builder: (sheetContext) => ComponentQuantityEditor(
       target: target,
       initialQuantity: initialQuantity,

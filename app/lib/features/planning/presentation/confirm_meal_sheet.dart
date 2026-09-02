@@ -19,6 +19,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../../cook_plan/domain/cook_plan.dart';
@@ -38,13 +39,8 @@ Future<void> showConfirmMealSheet(
   required String slot,
   required RecipeSummary recipe,
 }) {
-  return showFSheet<void>(
+  return showAnsiSheet<void>(
     context: context,
-    // The root navigator, not the branch's — see showRecipePickerSheet.
-    useRootNavigator: true,
-    side: FLayout.btt,
-    mainAxisMaxRatio: null,
-    useSafeArea: true,
     builder: (_) => _ConfirmMealSheet(
       weekStart: weekStart,
       dayOfWeek: dayOfWeek,

@@ -38,8 +38,8 @@
 library;
 
 import 'package:flutter/widgets.dart';
-import 'package:forui/forui.dart';
 
+import '../../../shared/ansi_modals.dart';
 import 'barcode_scan_sheet.dart';
 import 'ingredient_draft.dart';
 import 'off_lookup.dart';
@@ -65,11 +65,8 @@ Future<IngredientDraft?> scanBarcodeForDraft(
   OffLookup? lookup,
   BarcodeCameraPane? cameraPane,
 }) {
-  return showFSheet<IngredientDraft>(
+  return showAnsiSheet<IngredientDraft>(
     context: context,
-    side: FLayout.btt,
-    mainAxisMaxRatio: null,
-    useSafeArea: true,
     builder: (sheetContext) => BarcodeScanSheet(
       lookup: lookup,
       cameraPane: cameraPane,

@@ -20,6 +20,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_picker.dart';
@@ -28,11 +29,8 @@ import '../data/shopping_providers.dart';
 
 /// Opens the add/top-up sheet over the Shop screen.
 Future<void> showAddShoppingItemSheet(BuildContext context) {
-  return showFSheet<void>(
+  return showAnsiSheet<void>(
     context: context,
-    side: FLayout.btt,
-    mainAxisMaxRatio: null,
-    useSafeArea: true,
     builder: (_) => const _AddShoppingItemSheet(),
   );
 }

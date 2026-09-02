@@ -12,6 +12,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/sync/session.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../ingredients/data/ingredient_providers.dart';
@@ -139,7 +140,7 @@ class LibraryView extends ConsumerWidget {
 /// Asks before signing out: sign-out disconnects sync and clears this device's
 /// local copy of the household data (it stays on the server).
 Future<bool> _confirmSignOut(BuildContext context) async {
-  final confirmed = await showFDialog<bool>(
+  final confirmed = await showAnsiDialog<bool>(
     context: context,
     builder: (context, style, animation) => FDialog(
       animation: animation,

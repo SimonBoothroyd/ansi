@@ -7,6 +7,7 @@ import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../domain/planning.dart';
 import 'week_widgets.dart';
 
@@ -15,10 +16,8 @@ Future<Set<String>?> showEditEatersDialog(
   required List<Member> members,
   required Set<String> selected,
 }) {
-  return showFDialog<Set<String>>(
+  return showAnsiDialog<Set<String>>(
     context: context,
-    // The root navigator, not the branch's — see showRecipePickerSheet.
-    useRootNavigator: true,
     builder: (context, style, animation) => _EditEatersDialog(
       members: members,
       initial: selected,

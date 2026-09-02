@@ -24,6 +24,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/method_step_text.dart';
 import '../data/recipe_providers.dart';
@@ -214,7 +215,7 @@ class _RecipeBody extends HookConsumerWidget {
     final uses = await repository.usedIn(recipe.id);
     if (!context.mounted) return;
     if (uses.isNotEmpty) {
-      await showFDialog<void>(
+      await showAnsiDialog<void>(
         context: context,
         builder: (context, style, animation) => FDialog(
           animation: animation,
@@ -237,7 +238,7 @@ class _RecipeBody extends HookConsumerWidget {
       return;
     }
 
-    final ok = await showFDialog<bool>(
+    final ok = await showAnsiDialog<bool>(
       context: context,
       builder: (context, style, animation) => FDialog(
         animation: animation,

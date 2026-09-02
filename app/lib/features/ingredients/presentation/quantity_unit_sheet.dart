@@ -34,6 +34,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/allowed_units.dart';
@@ -80,11 +81,8 @@ Future<QuantitySheetResult?> showQuantityUnitSheet(
   String confirmLabel = 'Done',
   bool showRemove = false,
 }) {
-  return showFSheet<QuantitySheetResult>(
+  return showAnsiSheet<QuantitySheetResult>(
     context: context,
-    side: FLayout.btt,
-    mainAxisMaxRatio: null,
-    useSafeArea: true,
     builder: (sheetContext) => QuantityUnitEditor(
       ingredient: ingredient,
       initialQuantity: initialQuantity,

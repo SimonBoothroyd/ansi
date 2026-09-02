@@ -16,10 +16,10 @@
 library;
 
 import 'package:flutter/widgets.dart';
-import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
@@ -37,11 +37,8 @@ Future<void> showEditTopUpSheet(
   required ShoppingContribution contribution,
 }) {
   if (contribution.contributionId == null) return Future.value();
-  return showFSheet<void>(
+  return showAnsiSheet<void>(
     context: context,
-    side: FLayout.btt,
-    mainAxisMaxRatio: null,
-    useSafeArea: true,
     builder: (_) => _EditTopUpSheet(
       itemName: itemName,
       ingredientId: ingredientId,

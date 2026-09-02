@@ -23,6 +23,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/picker_shell.dart';
 import '../../books/domain/book.dart';
@@ -67,11 +68,8 @@ Future<PickedLineTarget?> showLineTargetPicker(
   required String editingRecipeId,
   String title = 'Add an ingredient',
 }) {
-  return showFSheet<PickedLineTarget>(
+  return showAnsiSheet<PickedLineTarget>(
     context: context,
-    side: FLayout.btt,
-    mainAxisMaxRatio: null,
-    useSafeArea: true,
     builder: (_) =>
         _LineTargetPickerSheet(title: title, editingRecipeId: editingRecipeId),
   );

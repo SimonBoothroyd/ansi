@@ -16,6 +16,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/picker_shell.dart';
@@ -32,11 +33,8 @@ Future<Ingredient?> showIngredientPicker(
   BuildContext context, {
   String title = 'Add an ingredient',
 }) {
-  return showFSheet<Ingredient>(
+  return showAnsiSheet<Ingredient>(
     context: context,
-    side: FLayout.btt,
-    mainAxisMaxRatio: null,
-    useSafeArea: true,
     builder: (_) => _IngredientPickerSheet(title: title),
   );
 }

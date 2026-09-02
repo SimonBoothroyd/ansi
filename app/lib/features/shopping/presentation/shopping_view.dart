@@ -14,6 +14,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
@@ -521,7 +522,7 @@ Future<void> _confirmRemove(
   // would then throw on a disposed ref.
   final repo = ref.read(shoppingRepositoryProvider);
   final entryId = item.entryId;
-  final remove = await showFDialog<bool>(
+  final remove = await showAnsiDialog<bool>(
     context: context,
     builder: (context, style, animation) => FDialog(
       title: Text('Remove ${item.name}?', style: ansiSerif(size: 18)),

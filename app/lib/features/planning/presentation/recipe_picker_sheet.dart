@@ -17,6 +17,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/incomplete_macros.dart';
@@ -39,15 +40,8 @@ Future<RecipeSummary?> showRecipePickerSheet(
   required int dayOfWeek,
   required String slot,
 }) {
-  return showFSheet<RecipeSummary>(
+  return showAnsiSheet<RecipeSummary>(
     context: context,
-    // Under the tab shell `Navigator.of(context)` is the BRANCH navigator, so
-    // without this the sheet and its barrier stop at the branch's bounds and
-    // the nav bar stays lit and tappable beside a modal.
-    useRootNavigator: true,
-    side: FLayout.btt,
-    mainAxisMaxRatio: null,
-    useSafeArea: true,
     builder: (_) => _RecipePickerSheet(dayOfWeek: dayOfWeek, slot: slot),
   );
 }
