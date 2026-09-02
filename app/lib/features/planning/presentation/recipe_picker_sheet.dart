@@ -613,9 +613,15 @@ class _MacroLine extends StatelessWidget {
             style: ansiMono(size: 10, color: AnsiColors.muted),
           ),
           const IncompleteBadge(),
-          Text(
-            ' ${incompleteNote(summary)}',
-            style: ansiMono(size: 10, color: AnsiColors.muted),
+          // The reason WRAPS rather than running off the row: 8.6's nested
+          // reasons ("1 unconvertible · 1 sub-recipe incomplete") are longer
+          // than any before them, and a clipped reason is worse than a tall
+          // row — the note exists to be read.
+          Expanded(
+            child: Text(
+              ' ${incompleteNote(summary)}',
+              style: ansiMono(size: 10, color: AnsiColors.muted),
+            ),
           ),
         ],
       ),
