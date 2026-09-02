@@ -52,6 +52,7 @@ import/
     line_resolution.dart         one line's decision + buildCommit()
     line_validation.dart         per-line issues + the Save gate
     preview_recipe.dart          payload → the Recipe the method fold renders
+    yield_prefill.dart           yield_raw → the MAKES row's prefill (8.6)
     import_repository.dart       ImportRepository + ImportSource
   data/
     import_repository_impl.dart  SqliteImportRepository — the REAL commit
@@ -95,6 +96,25 @@ import/
   it in the ingredients manager. One gap left: this commit still writes
   `match_text` with the character-level normalizer rather than the phrase
   normalizer the ingredients feature ported (tracker).
+- **A recipe is OFFERED, never auto-linked** (8.6 / D6, board frame e). The
+  server may attach `recipe_candidates` to a line — household recipes whose
+  *title* the line seems to name. The card renders them in the existing
+  did-you-mean row ("↪ your recipe · Romesco Aioli"), **beside** the ingredient
+  candidates, and nothing links itself at any score. Tapping makes the line a
+  **component** line: `sub_recipe_id` set, no ingredient, no `measure_id`
+  (migration 0017's XOR + measure fence). Its Save gate is its amount alone —
+  no ingredient match, and **no `allowed_units` admission**, because admission
+  is an ingredient concept; the unit meets the target's yield family later, at
+  derive time (D2), which is why "¼ cup of a yield-less aioli" surfaces on the
+  cook plan rather than here. Unlink (or match an ingredient) puts the line
+  back; a line nobody taps commits byte-identically to before the field
+  existed, which `line_resolution_test` pins against the gold specimens.
+- **The MAKES row is attempt-then-flag** (8.6 / D9, board frame h). Extraction
+  captures `yield_raw` and commit used to drop it. The review now shows the
+  source line and prefills the fields **only** from a plain amount + unit
+  (`parseYieldRaw`: "MAKES: 8 SLIDERS" → `8 piece`); anything fancier leaves
+  them empty over the visible text. The yield never gates Save, and the
+  optional second denomination belongs to the recipe editor.
 - **Writes are view-safe**: local PowerSync tables are SQLite views, so every
   statement is a plain INSERT — never UPSERT ([[mise-powersync-views-no-upsert]]).
 - **Filing into the default book is load-bearing.** The Library renders books and
@@ -121,7 +141,8 @@ backend.
 
 ## Tests
 
-- Domain: `line_resolution_test`, `line_validation_test`, `preview_recipe_test`.
+- Domain: `line_resolution_test`, `line_validation_test`, `preview_recipe_test`,
+  `yield_prefill_test` (the parser's whole table — the refusals especially).
 - VM: `import_controller_test` (state machine, resolution edits, commit gate).
 - Repo: `import_repository_test` on a **real `PowerSyncDatabase`** — the
   `line_index` → `line_item_id` remap, stub coalescing, `measure_id` resolution,
@@ -129,4 +150,6 @@ backend.
 - Contract: `golden_payload_contract_test` parses the *server's* committed
   fixture (`supabase/functions/import-recipe/__fixtures__/…golden.json`), so a
   TS-side shape change fails on the Dart side too.
-- Widget: `recon_line_card_test`. Intake seams: `photo_intake_test`.
+- Widget: `recon_line_card_test` (incl. the 8.6 offer → link → unlink path and
+  the component quantity sheet), `review_makes_row_test`. Intake seams:
+  `photo_intake_test`.

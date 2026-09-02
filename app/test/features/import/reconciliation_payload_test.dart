@@ -66,6 +66,77 @@ void main() {
     );
   });
 
+  group('recipe_candidates — the additive 8.6 field (D6)', () {
+    // The server OMITS the field entirely when a line hits no recipe title,
+    // and when no recipe-title matcher is wired at all. An absent field must
+    // therefore decode exactly as it did before the field existed.
+    test('an ABSENT field decodes as no offers — byte-identical behaviour', () {
+      final line = ReconLine.fromJson(const {
+        'raw': {'ingredient_text': 'spaghetti'},
+        'band': 'auto',
+        'candidates': [
+          {'ingredient_id': 'v-spag', 'canonical_name': 'Spaghetti'},
+        ],
+      });
+      expect(line.recipeCandidates, isEmpty);
+      expect(line.candidates.single.ingredientId, 'v-spag');
+    });
+
+    test('the canned payload and every gold file still parse offer-free', () {
+      final canned = ReconciliationPayload.fromJson(
+        jsonDecode(cannedReconciliationPayloadJson) as Map<String, Object?>,
+      );
+      expect(canned.flatLines.every((l) => l.recipeCandidates.isEmpty), isTrue);
+      for (final name in ['sausage-sliders', 'mint-pea-soup']) {
+        final gold = goldPayload(name);
+        expect(
+          gold.flatLines.every((l) => l.recipeCandidates.isEmpty),
+          isTrue,
+          reason: '$name must not grow offers from a field it never carried',
+        );
+      }
+    });
+
+    test('a PRESENT field decodes id, title and score — no defaults', () {
+      final line = ReconLine.fromJson(const {
+        'raw': {'ingredient_text': 'Romesco Aioli (page 38)'},
+        'band': 'none',
+        'candidates': <Object?>[],
+        'recipe_candidates': [
+          {'recipe_id': 'r-aioli', 'title': 'Romesco Aioli', 'score': 1},
+          {'recipe_id': 'r-toast', 'title': 'Romesco Toasts', 'score': 0.62},
+        ],
+      });
+      expect(line.recipeCandidates, hasLength(2));
+      expect(line.recipeCandidates.first.recipeId, 'r-aioli');
+      expect(line.recipeCandidates.first.title, 'Romesco Aioli');
+      expect(line.recipeCandidates.first.score, 1); // not the @Default(0)
+      expect(line.recipeCandidates.last.score, closeTo(0.62, 1e-9));
+      // Independent of the ingredient cascade: a line can carry both.
+      expect(line.candidates, isEmpty);
+      expect(line.band, MatchBand.none);
+    });
+
+    test('offers ride ALONGSIDE ingredient candidates on the same line', () {
+      final line = ReconLine.fromJson(const {
+        'raw': {'ingredient_text': 'aioli'},
+        'band': 'suggest',
+        'candidates': [
+          {
+            'ingredient_id': 'v-aioli',
+            'canonical_name': 'Aioli, jarred',
+            'score': 0.7,
+          },
+        ],
+        'recipe_candidates': [
+          {'recipe_id': 'r-aioli', 'title': 'Romesco Aioli', 'score': 0.9},
+        ],
+      });
+      expect(line.candidates, hasLength(1));
+      expect(line.recipeCandidates, hasLength(1));
+    });
+  });
+
   group('ReconciliationPayload from a blessed gold file', () {
     test('mint-pea-soup parses with fraction portions and multi-timers', () {
       final payload = goldPayload('mint-pea-soup');

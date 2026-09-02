@@ -58,6 +58,20 @@ Map<String, dynamic> _$MatchCandidateToJson(_MatchCandidate instance) =>
       'score': instance.score,
     };
 
+_RecipeCandidate _$RecipeCandidateFromJson(Map<String, dynamic> json) =>
+    _RecipeCandidate(
+      recipeId: json['recipe_id'] as String,
+      title: json['title'] as String,
+      score: (json['score'] as num?)?.toDouble() ?? 0,
+    );
+
+Map<String, dynamic> _$RecipeCandidateToJson(_RecipeCandidate instance) =>
+    <String, dynamic>{
+      'recipe_id': instance.recipeId,
+      'title': instance.title,
+      'score': instance.score,
+    };
+
 _RefPortion _$RefPortionFromJson(Map<String, dynamic> json) => _RefPortion(
   qty: (json['qty'] as num?)?.toDouble(),
   qtyLow: (json['qty_low'] as num?)?.toDouble(),
@@ -142,6 +156,11 @@ _ReconLine _$ReconLineFromJson(Map<String, dynamic> json) => _ReconLine(
           ?.map((e) => MatchCandidate.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const <MatchCandidate>[],
+  recipeCandidates:
+      (json['recipe_candidates'] as List<dynamic>?)
+          ?.map((e) => RecipeCandidate.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <RecipeCandidate>[],
 );
 
 Map<String, dynamic> _$ReconLineToJson(_ReconLine instance) =>
@@ -149,6 +168,7 @@ Map<String, dynamic> _$ReconLineToJson(_ReconLine instance) =>
       'raw': instance.raw,
       'band': _$MatchBandEnumMap[instance.band]!,
       'candidates': instance.candidates,
+      'recipe_candidates': instance.recipeCandidates,
     };
 
 const _$MatchBandEnumMap = {

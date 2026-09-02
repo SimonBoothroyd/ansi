@@ -2,9 +2,11 @@
 /// user resolves every reconciliation line; handed to the import repository
 /// which writes it through PowerSync.
 ///
-/// **`recipe_line_item.ingredient_id` is NOT NULL** (0014): every `CommitLine`
-/// carries either an existing `ingredientId` or a `stubKey` pointing at a
-/// `CommitStub` the commit creates — there is no dangling line.
+/// **Every line has exactly one identity** (migration 0017's
+/// `line_item_identity_xor`): either an ingredient — an existing `ingredientId`
+/// or a `stubKey` pointing at a `CommitStub` the commit creates, so there is no
+/// dangling line — or a `subRecipeId`, the household recipe a review-linked
+/// line points at (step 8.6 / D1 · D6).
 ///
 /// Step refs are still by **line index** here (`steps`); the repository assigns
 /// `line_item_id`s in the flattened line order and remaps the refs on write
@@ -15,6 +17,7 @@ library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../core/units/units.dart';
 import 'reconciliation_payload.dart';
 
 part 'commit_payload.freezed.dart';
@@ -28,7 +31,8 @@ abstract class CommitStub with _$CommitStub {
       _CommitStub;
 }
 
-/// A resolved line. Exactly one of [ingredientId] / [stubKey] is set.
+/// A resolved line. Exactly one identity is set: [ingredientId], [stubKey], or
+/// [subRecipeId].
 @freezed
 abstract class CommitLine with _$CommitLine {
   const factory CommitLine({
@@ -37,6 +41,12 @@ abstract class CommitLine with _$CommitLine {
     required int lineIndex,
     String? ingredientId,
     String? stubKey,
+
+    /// The household recipe this line was LINKED to at review (8.6 / D6). When
+    /// it is set the line is a COMPONENT line and the other two identities are
+    /// null; the repository writes no `measure_id` for it either (measures are
+    /// an ingredient concept, and migration 0017 pins both rules).
+    String? subRecipeId,
     double? quantity,
     String? unit,
     String? note,
@@ -67,6 +77,14 @@ abstract class CommitPayload with _$CommitPayload {
     required String title,
     required double servingsBase,
     String? servingsRaw,
+
+    /// What one batch MAKES, as the review's MAKES row states it (8.6 / D2 ·
+    /// D9, board frame h) — prefilled from `yield_raw` only when that was a
+    /// plain amount + unit, and otherwise whatever the human typed, or
+    /// nothing. Both halves or neither: a half-stated yield is half a fact.
+    /// The optional SECOND denomination is added in the editor afterwards.
+    double? yieldQty,
+    Unit? yieldUnit,
     int? cookTimeSeconds,
     int? totalTimeSeconds,
     @Default(<CommitGroup>[]) List<CommitGroup> groups,

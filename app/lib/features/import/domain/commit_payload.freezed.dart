@@ -276,7 +276,11 @@ mixin _$CommitLine {
 
 /// The flattened line index — its position in the commit's line order and
 /// the value step tokens ref before the remap.
- int get lineIndex; String? get ingredientId; String? get stubKey; double? get quantity; String? get unit; String? get note;
+ int get lineIndex; String? get ingredientId; String? get stubKey;/// The household recipe this line was LINKED to at review (8.6 / D6). When
+/// it is set the line is a COMPONENT line and the other two identities are
+/// null; the repository writes no `measure_id` for it either (measures are
+/// an ingredient concept, and migration 0017 pins both rules).
+ String? get subRecipeId; double? get quantity; String? get unit; String? get note;
 /// Create a copy of CommitLine
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -287,16 +291,16 @@ $CommitLineCopyWith<CommitLine> get copyWith => _$CommitLineCopyWithImpl<CommitL
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CommitLine&&(identical(other.lineIndex, lineIndex) || other.lineIndex == lineIndex)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.stubKey, stubKey) || other.stubKey == stubKey)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.note, note) || other.note == note));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CommitLine&&(identical(other.lineIndex, lineIndex) || other.lineIndex == lineIndex)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.stubKey, stubKey) || other.stubKey == stubKey)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.note, note) || other.note == note));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,lineIndex,ingredientId,stubKey,quantity,unit,note);
+int get hashCode => Object.hash(runtimeType,lineIndex,ingredientId,stubKey,subRecipeId,quantity,unit,note);
 
 @override
 String toString() {
-  return 'CommitLine(lineIndex: $lineIndex, ingredientId: $ingredientId, stubKey: $stubKey, quantity: $quantity, unit: $unit, note: $note)';
+  return 'CommitLine(lineIndex: $lineIndex, ingredientId: $ingredientId, stubKey: $stubKey, subRecipeId: $subRecipeId, quantity: $quantity, unit: $unit, note: $note)';
 }
 
 
@@ -307,7 +311,7 @@ abstract mixin class $CommitLineCopyWith<$Res>  {
   factory $CommitLineCopyWith(CommitLine value, $Res Function(CommitLine) _then) = _$CommitLineCopyWithImpl;
 @useResult
 $Res call({
- int lineIndex, String? ingredientId, String? stubKey, double? quantity, String? unit, String? note
+ int lineIndex, String? ingredientId, String? stubKey, String? subRecipeId, double? quantity, String? unit, String? note
 });
 
 
@@ -324,11 +328,12 @@ class _$CommitLineCopyWithImpl<$Res>
 
 /// Create a copy of CommitLine
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? lineIndex = null,Object? ingredientId = freezed,Object? stubKey = freezed,Object? quantity = freezed,Object? unit = freezed,Object? note = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? lineIndex = null,Object? ingredientId = freezed,Object? stubKey = freezed,Object? subRecipeId = freezed,Object? quantity = freezed,Object? unit = freezed,Object? note = freezed,}) {
   return _then(_self.copyWith(
 lineIndex: null == lineIndex ? _self.lineIndex : lineIndex // ignore: cast_nullable_to_non_nullable
 as int,ingredientId: freezed == ingredientId ? _self.ingredientId : ingredientId // ignore: cast_nullable_to_non_nullable
 as String?,stubKey: freezed == stubKey ? _self.stubKey : stubKey // ignore: cast_nullable_to_non_nullable
+as String?,subRecipeId: freezed == subRecipeId ? _self.subRecipeId : subRecipeId // ignore: cast_nullable_to_non_nullable
 as String?,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as double?,unit: freezed == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
 as String?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
@@ -417,10 +422,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int lineIndex,  String? ingredientId,  String? stubKey,  double? quantity,  String? unit,  String? note)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int lineIndex,  String? ingredientId,  String? stubKey,  String? subRecipeId,  double? quantity,  String? unit,  String? note)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CommitLine() when $default != null:
-return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.quantity,_that.unit,_that.note);case _:
+return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.subRecipeId,_that.quantity,_that.unit,_that.note);case _:
   return orElse();
 
 }
@@ -438,10 +443,10 @@ return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.quantity,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int lineIndex,  String? ingredientId,  String? stubKey,  double? quantity,  String? unit,  String? note)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int lineIndex,  String? ingredientId,  String? stubKey,  String? subRecipeId,  double? quantity,  String? unit,  String? note)  $default,) {final _that = this;
 switch (_that) {
 case _CommitLine():
-return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.quantity,_that.unit,_that.note);case _:
+return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.subRecipeId,_that.quantity,_that.unit,_that.note);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -458,10 +463,10 @@ return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.quantity,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int lineIndex,  String? ingredientId,  String? stubKey,  double? quantity,  String? unit,  String? note)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int lineIndex,  String? ingredientId,  String? stubKey,  String? subRecipeId,  double? quantity,  String? unit,  String? note)?  $default,) {final _that = this;
 switch (_that) {
 case _CommitLine() when $default != null:
-return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.quantity,_that.unit,_that.note);case _:
+return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.subRecipeId,_that.quantity,_that.unit,_that.note);case _:
   return null;
 
 }
@@ -473,7 +478,7 @@ return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.quantity,
 
 
 class _CommitLine implements CommitLine {
-  const _CommitLine({required this.lineIndex, this.ingredientId, this.stubKey, this.quantity, this.unit, this.note});
+  const _CommitLine({required this.lineIndex, this.ingredientId, this.stubKey, this.subRecipeId, this.quantity, this.unit, this.note});
   
 
 /// The flattened line index — its position in the commit's line order and
@@ -481,6 +486,11 @@ class _CommitLine implements CommitLine {
 @override final  int lineIndex;
 @override final  String? ingredientId;
 @override final  String? stubKey;
+/// The household recipe this line was LINKED to at review (8.6 / D6). When
+/// it is set the line is a COMPONENT line and the other two identities are
+/// null; the repository writes no `measure_id` for it either (measures are
+/// an ingredient concept, and migration 0017 pins both rules).
+@override final  String? subRecipeId;
 @override final  double? quantity;
 @override final  String? unit;
 @override final  String? note;
@@ -495,16 +505,16 @@ _$CommitLineCopyWith<_CommitLine> get copyWith => __$CommitLineCopyWithImpl<_Com
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CommitLine&&(identical(other.lineIndex, lineIndex) || other.lineIndex == lineIndex)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.stubKey, stubKey) || other.stubKey == stubKey)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.note, note) || other.note == note));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CommitLine&&(identical(other.lineIndex, lineIndex) || other.lineIndex == lineIndex)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.stubKey, stubKey) || other.stubKey == stubKey)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.note, note) || other.note == note));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,lineIndex,ingredientId,stubKey,quantity,unit,note);
+int get hashCode => Object.hash(runtimeType,lineIndex,ingredientId,stubKey,subRecipeId,quantity,unit,note);
 
 @override
 String toString() {
-  return 'CommitLine(lineIndex: $lineIndex, ingredientId: $ingredientId, stubKey: $stubKey, quantity: $quantity, unit: $unit, note: $note)';
+  return 'CommitLine(lineIndex: $lineIndex, ingredientId: $ingredientId, stubKey: $stubKey, subRecipeId: $subRecipeId, quantity: $quantity, unit: $unit, note: $note)';
 }
 
 
@@ -515,7 +525,7 @@ abstract mixin class _$CommitLineCopyWith<$Res> implements $CommitLineCopyWith<$
   factory _$CommitLineCopyWith(_CommitLine value, $Res Function(_CommitLine) _then) = __$CommitLineCopyWithImpl;
 @override @useResult
 $Res call({
- int lineIndex, String? ingredientId, String? stubKey, double? quantity, String? unit, String? note
+ int lineIndex, String? ingredientId, String? stubKey, String? subRecipeId, double? quantity, String? unit, String? note
 });
 
 
@@ -532,11 +542,12 @@ class __$CommitLineCopyWithImpl<$Res>
 
 /// Create a copy of CommitLine
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? lineIndex = null,Object? ingredientId = freezed,Object? stubKey = freezed,Object? quantity = freezed,Object? unit = freezed,Object? note = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? lineIndex = null,Object? ingredientId = freezed,Object? stubKey = freezed,Object? subRecipeId = freezed,Object? quantity = freezed,Object? unit = freezed,Object? note = freezed,}) {
   return _then(_CommitLine(
 lineIndex: null == lineIndex ? _self.lineIndex : lineIndex // ignore: cast_nullable_to_non_nullable
 as int,ingredientId: freezed == ingredientId ? _self.ingredientId : ingredientId // ignore: cast_nullable_to_non_nullable
 as String?,stubKey: freezed == stubKey ? _self.stubKey : stubKey // ignore: cast_nullable_to_non_nullable
+as String?,subRecipeId: freezed == subRecipeId ? _self.subRecipeId : subRecipeId // ignore: cast_nullable_to_non_nullable
 as String?,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as double?,unit: freezed == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
 as String?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
@@ -1076,7 +1087,12 @@ as String,
 /// @nodoc
 mixin _$CommitPayload {
 
- String get title; double get servingsBase; String? get servingsRaw; int? get cookTimeSeconds; int? get totalTimeSeconds; List<CommitGroup> get groups; List<CommitStub> get stubs; List<Step> get steps; List<CommitCorrection> get corrections;
+ String get title; double get servingsBase; String? get servingsRaw;/// What one batch MAKES, as the review's MAKES row states it (8.6 / D2 ·
+/// D9, board frame h) — prefilled from `yield_raw` only when that was a
+/// plain amount + unit, and otherwise whatever the human typed, or
+/// nothing. Both halves or neither: a half-stated yield is half a fact.
+/// The optional SECOND denomination is added in the editor afterwards.
+ double? get yieldQty; Unit? get yieldUnit; int? get cookTimeSeconds; int? get totalTimeSeconds; List<CommitGroup> get groups; List<CommitStub> get stubs; List<Step> get steps; List<CommitCorrection> get corrections;
 /// Create a copy of CommitPayload
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1087,16 +1103,16 @@ $CommitPayloadCopyWith<CommitPayload> get copyWith => _$CommitPayloadCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CommitPayload&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.servingsRaw, servingsRaw) || other.servingsRaw == servingsRaw)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.stubs, stubs)&&const DeepCollectionEquality().equals(other.steps, steps)&&const DeepCollectionEquality().equals(other.corrections, corrections));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CommitPayload&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.servingsRaw, servingsRaw) || other.servingsRaw == servingsRaw)&&(identical(other.yieldQty, yieldQty) || other.yieldQty == yieldQty)&&(identical(other.yieldUnit, yieldUnit) || other.yieldUnit == yieldUnit)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.stubs, stubs)&&const DeepCollectionEquality().equals(other.steps, steps)&&const DeepCollectionEquality().equals(other.corrections, corrections));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,title,servingsBase,servingsRaw,cookTimeSeconds,totalTimeSeconds,const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(stubs),const DeepCollectionEquality().hash(steps),const DeepCollectionEquality().hash(corrections));
+int get hashCode => Object.hash(runtimeType,title,servingsBase,servingsRaw,yieldQty,yieldUnit,cookTimeSeconds,totalTimeSeconds,const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(stubs),const DeepCollectionEquality().hash(steps),const DeepCollectionEquality().hash(corrections));
 
 @override
 String toString() {
-  return 'CommitPayload(title: $title, servingsBase: $servingsBase, servingsRaw: $servingsRaw, cookTimeSeconds: $cookTimeSeconds, totalTimeSeconds: $totalTimeSeconds, groups: $groups, stubs: $stubs, steps: $steps, corrections: $corrections)';
+  return 'CommitPayload(title: $title, servingsBase: $servingsBase, servingsRaw: $servingsRaw, yieldQty: $yieldQty, yieldUnit: $yieldUnit, cookTimeSeconds: $cookTimeSeconds, totalTimeSeconds: $totalTimeSeconds, groups: $groups, stubs: $stubs, steps: $steps, corrections: $corrections)';
 }
 
 
@@ -1107,7 +1123,7 @@ abstract mixin class $CommitPayloadCopyWith<$Res>  {
   factory $CommitPayloadCopyWith(CommitPayload value, $Res Function(CommitPayload) _then) = _$CommitPayloadCopyWithImpl;
 @useResult
 $Res call({
- String title, double servingsBase, String? servingsRaw, int? cookTimeSeconds, int? totalTimeSeconds, List<CommitGroup> groups, List<CommitStub> stubs, List<Step> steps, List<CommitCorrection> corrections
+ String title, double servingsBase, String? servingsRaw, double? yieldQty, Unit? yieldUnit, int? cookTimeSeconds, int? totalTimeSeconds, List<CommitGroup> groups, List<CommitStub> stubs, List<Step> steps, List<CommitCorrection> corrections
 });
 
 
@@ -1124,12 +1140,14 @@ class _$CommitPayloadCopyWithImpl<$Res>
 
 /// Create a copy of CommitPayload
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? servingsBase = null,Object? servingsRaw = freezed,Object? cookTimeSeconds = freezed,Object? totalTimeSeconds = freezed,Object? groups = null,Object? stubs = null,Object? steps = null,Object? corrections = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? servingsBase = null,Object? servingsRaw = freezed,Object? yieldQty = freezed,Object? yieldUnit = freezed,Object? cookTimeSeconds = freezed,Object? totalTimeSeconds = freezed,Object? groups = null,Object? stubs = null,Object? steps = null,Object? corrections = null,}) {
   return _then(_self.copyWith(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,servingsBase: null == servingsBase ? _self.servingsBase : servingsBase // ignore: cast_nullable_to_non_nullable
 as double,servingsRaw: freezed == servingsRaw ? _self.servingsRaw : servingsRaw // ignore: cast_nullable_to_non_nullable
-as String?,cookTimeSeconds: freezed == cookTimeSeconds ? _self.cookTimeSeconds : cookTimeSeconds // ignore: cast_nullable_to_non_nullable
+as String?,yieldQty: freezed == yieldQty ? _self.yieldQty : yieldQty // ignore: cast_nullable_to_non_nullable
+as double?,yieldUnit: freezed == yieldUnit ? _self.yieldUnit : yieldUnit // ignore: cast_nullable_to_non_nullable
+as Unit?,cookTimeSeconds: freezed == cookTimeSeconds ? _self.cookTimeSeconds : cookTimeSeconds // ignore: cast_nullable_to_non_nullable
 as int?,totalTimeSeconds: freezed == totalTimeSeconds ? _self.totalTimeSeconds : totalTimeSeconds // ignore: cast_nullable_to_non_nullable
 as int?,groups: null == groups ? _self.groups : groups // ignore: cast_nullable_to_non_nullable
 as List<CommitGroup>,stubs: null == stubs ? _self.stubs : stubs // ignore: cast_nullable_to_non_nullable
@@ -1220,10 +1238,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  double servingsBase,  String? servingsRaw,  int? cookTimeSeconds,  int? totalTimeSeconds,  List<CommitGroup> groups,  List<CommitStub> stubs,  List<Step> steps,  List<CommitCorrection> corrections)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  double servingsBase,  String? servingsRaw,  double? yieldQty,  Unit? yieldUnit,  int? cookTimeSeconds,  int? totalTimeSeconds,  List<CommitGroup> groups,  List<CommitStub> stubs,  List<Step> steps,  List<CommitCorrection> corrections)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CommitPayload() when $default != null:
-return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.cookTimeSeconds,_that.totalTimeSeconds,_that.groups,_that.stubs,_that.steps,_that.corrections);case _:
+return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldQty,_that.yieldUnit,_that.cookTimeSeconds,_that.totalTimeSeconds,_that.groups,_that.stubs,_that.steps,_that.corrections);case _:
   return orElse();
 
 }
@@ -1241,10 +1259,10 @@ return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.cookTimeS
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  double servingsBase,  String? servingsRaw,  int? cookTimeSeconds,  int? totalTimeSeconds,  List<CommitGroup> groups,  List<CommitStub> stubs,  List<Step> steps,  List<CommitCorrection> corrections)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  double servingsBase,  String? servingsRaw,  double? yieldQty,  Unit? yieldUnit,  int? cookTimeSeconds,  int? totalTimeSeconds,  List<CommitGroup> groups,  List<CommitStub> stubs,  List<Step> steps,  List<CommitCorrection> corrections)  $default,) {final _that = this;
 switch (_that) {
 case _CommitPayload():
-return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.cookTimeSeconds,_that.totalTimeSeconds,_that.groups,_that.stubs,_that.steps,_that.corrections);case _:
+return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldQty,_that.yieldUnit,_that.cookTimeSeconds,_that.totalTimeSeconds,_that.groups,_that.stubs,_that.steps,_that.corrections);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1261,10 +1279,10 @@ return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.cookTimeS
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  double servingsBase,  String? servingsRaw,  int? cookTimeSeconds,  int? totalTimeSeconds,  List<CommitGroup> groups,  List<CommitStub> stubs,  List<Step> steps,  List<CommitCorrection> corrections)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  double servingsBase,  String? servingsRaw,  double? yieldQty,  Unit? yieldUnit,  int? cookTimeSeconds,  int? totalTimeSeconds,  List<CommitGroup> groups,  List<CommitStub> stubs,  List<Step> steps,  List<CommitCorrection> corrections)?  $default,) {final _that = this;
 switch (_that) {
 case _CommitPayload() when $default != null:
-return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.cookTimeSeconds,_that.totalTimeSeconds,_that.groups,_that.stubs,_that.steps,_that.corrections);case _:
+return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldQty,_that.yieldUnit,_that.cookTimeSeconds,_that.totalTimeSeconds,_that.groups,_that.stubs,_that.steps,_that.corrections);case _:
   return null;
 
 }
@@ -1276,12 +1294,19 @@ return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.cookTimeS
 
 
 class _CommitPayload implements CommitPayload {
-  const _CommitPayload({required this.title, required this.servingsBase, this.servingsRaw, this.cookTimeSeconds, this.totalTimeSeconds, final  List<CommitGroup> groups = const <CommitGroup>[], final  List<CommitStub> stubs = const <CommitStub>[], final  List<Step> steps = const <Step>[], final  List<CommitCorrection> corrections = const <CommitCorrection>[]}): _groups = groups,_stubs = stubs,_steps = steps,_corrections = corrections;
+  const _CommitPayload({required this.title, required this.servingsBase, this.servingsRaw, this.yieldQty, this.yieldUnit, this.cookTimeSeconds, this.totalTimeSeconds, final  List<CommitGroup> groups = const <CommitGroup>[], final  List<CommitStub> stubs = const <CommitStub>[], final  List<Step> steps = const <Step>[], final  List<CommitCorrection> corrections = const <CommitCorrection>[]}): _groups = groups,_stubs = stubs,_steps = steps,_corrections = corrections;
   
 
 @override final  String title;
 @override final  double servingsBase;
 @override final  String? servingsRaw;
+/// What one batch MAKES, as the review's MAKES row states it (8.6 / D2 ·
+/// D9, board frame h) — prefilled from `yield_raw` only when that was a
+/// plain amount + unit, and otherwise whatever the human typed, or
+/// nothing. Both halves or neither: a half-stated yield is half a fact.
+/// The optional SECOND denomination is added in the editor afterwards.
+@override final  double? yieldQty;
+@override final  Unit? yieldUnit;
 @override final  int? cookTimeSeconds;
 @override final  int? totalTimeSeconds;
  final  List<CommitGroup> _groups;
@@ -1323,16 +1348,16 @@ _$CommitPayloadCopyWith<_CommitPayload> get copyWith => __$CommitPayloadCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CommitPayload&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.servingsRaw, servingsRaw) || other.servingsRaw == servingsRaw)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._stubs, _stubs)&&const DeepCollectionEquality().equals(other._steps, _steps)&&const DeepCollectionEquality().equals(other._corrections, _corrections));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CommitPayload&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.servingsRaw, servingsRaw) || other.servingsRaw == servingsRaw)&&(identical(other.yieldQty, yieldQty) || other.yieldQty == yieldQty)&&(identical(other.yieldUnit, yieldUnit) || other.yieldUnit == yieldUnit)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._stubs, _stubs)&&const DeepCollectionEquality().equals(other._steps, _steps)&&const DeepCollectionEquality().equals(other._corrections, _corrections));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,title,servingsBase,servingsRaw,cookTimeSeconds,totalTimeSeconds,const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_stubs),const DeepCollectionEquality().hash(_steps),const DeepCollectionEquality().hash(_corrections));
+int get hashCode => Object.hash(runtimeType,title,servingsBase,servingsRaw,yieldQty,yieldUnit,cookTimeSeconds,totalTimeSeconds,const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_stubs),const DeepCollectionEquality().hash(_steps),const DeepCollectionEquality().hash(_corrections));
 
 @override
 String toString() {
-  return 'CommitPayload(title: $title, servingsBase: $servingsBase, servingsRaw: $servingsRaw, cookTimeSeconds: $cookTimeSeconds, totalTimeSeconds: $totalTimeSeconds, groups: $groups, stubs: $stubs, steps: $steps, corrections: $corrections)';
+  return 'CommitPayload(title: $title, servingsBase: $servingsBase, servingsRaw: $servingsRaw, yieldQty: $yieldQty, yieldUnit: $yieldUnit, cookTimeSeconds: $cookTimeSeconds, totalTimeSeconds: $totalTimeSeconds, groups: $groups, stubs: $stubs, steps: $steps, corrections: $corrections)';
 }
 
 
@@ -1343,7 +1368,7 @@ abstract mixin class _$CommitPayloadCopyWith<$Res> implements $CommitPayloadCopy
   factory _$CommitPayloadCopyWith(_CommitPayload value, $Res Function(_CommitPayload) _then) = __$CommitPayloadCopyWithImpl;
 @override @useResult
 $Res call({
- String title, double servingsBase, String? servingsRaw, int? cookTimeSeconds, int? totalTimeSeconds, List<CommitGroup> groups, List<CommitStub> stubs, List<Step> steps, List<CommitCorrection> corrections
+ String title, double servingsBase, String? servingsRaw, double? yieldQty, Unit? yieldUnit, int? cookTimeSeconds, int? totalTimeSeconds, List<CommitGroup> groups, List<CommitStub> stubs, List<Step> steps, List<CommitCorrection> corrections
 });
 
 
@@ -1360,12 +1385,14 @@ class __$CommitPayloadCopyWithImpl<$Res>
 
 /// Create a copy of CommitPayload
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? servingsBase = null,Object? servingsRaw = freezed,Object? cookTimeSeconds = freezed,Object? totalTimeSeconds = freezed,Object? groups = null,Object? stubs = null,Object? steps = null,Object? corrections = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? servingsBase = null,Object? servingsRaw = freezed,Object? yieldQty = freezed,Object? yieldUnit = freezed,Object? cookTimeSeconds = freezed,Object? totalTimeSeconds = freezed,Object? groups = null,Object? stubs = null,Object? steps = null,Object? corrections = null,}) {
   return _then(_CommitPayload(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,servingsBase: null == servingsBase ? _self.servingsBase : servingsBase // ignore: cast_nullable_to_non_nullable
 as double,servingsRaw: freezed == servingsRaw ? _self.servingsRaw : servingsRaw // ignore: cast_nullable_to_non_nullable
-as String?,cookTimeSeconds: freezed == cookTimeSeconds ? _self.cookTimeSeconds : cookTimeSeconds // ignore: cast_nullable_to_non_nullable
+as String?,yieldQty: freezed == yieldQty ? _self.yieldQty : yieldQty // ignore: cast_nullable_to_non_nullable
+as double?,yieldUnit: freezed == yieldUnit ? _self.yieldUnit : yieldUnit // ignore: cast_nullable_to_non_nullable
+as Unit?,cookTimeSeconds: freezed == cookTimeSeconds ? _self.cookTimeSeconds : cookTimeSeconds // ignore: cast_nullable_to_non_nullable
 as int?,totalTimeSeconds: freezed == totalTimeSeconds ? _self.totalTimeSeconds : totalTimeSeconds // ignore: cast_nullable_to_non_nullable
 as int?,groups: null == groups ? _self._groups : groups // ignore: cast_nullable_to_non_nullable
 as List<CommitGroup>,stubs: null == stubs ? _self._stubs : stubs // ignore: cast_nullable_to_non_nullable

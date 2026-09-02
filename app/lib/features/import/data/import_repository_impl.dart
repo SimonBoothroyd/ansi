@@ -167,11 +167,20 @@ class SqliteImportRepository implements ImportRepository {
       // (`RecipeEditor.build` → `ensureDefaultBook`): the Library renders books
       // and skips book-less recipes, so a null `book_id` here saves the recipe
       // into a place nothing shows it.
+      //
+      // It also carries what one batch MAKES when the review stated it (8.6 /
+      // D2): prefilled from `yield_raw` where that was a plain amount + unit,
+      // else whatever the human typed, else nothing at all. `buildCommit`
+      // guarantees both halves or neither, so the `recipe_yield_pair` CHECK
+      // cannot be hit here. The optional SECOND denomination is an editor
+      // affordance — the review states one, and a yield-less recipe is a
+      // perfectly good save.
       final bookId = await _defaultBookId(tx, now);
       await tx.execute(
         'INSERT INTO recipe (id, household_id, title, servings_base, steps, '
-        'cook_time_seconds, total_time_seconds, book_id, created_at, '
-        'updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'cook_time_seconds, total_time_seconds, yield_qty, yield_unit, '
+        'book_id, created_at, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           recipeId,
           _householdId,
@@ -180,14 +189,17 @@ class SqliteImportRepository implements ImportRepository {
           stepsJson,
           payload.cookTimeSeconds,
           payload.totalTimeSeconds,
+          payload.yieldQty,
+          payload.yieldUnit?.id,
           bookId,
           now,
           now,
         ],
       );
 
-      // 3. Groups, then line items in flattened order. Every line resolves to a
-      // real or just-created ingredient — ingredient_id is NOT NULL (0014).
+      // 3. Groups, then line items in flattened order. Every line carries
+      // exactly one identity: an ingredient (real or just-created) or, for a
+      // line the reviewer LINKED, a sub-recipe (0017's XOR).
       var sortInGroup = 0;
       for (var gi = 0; gi < payload.groups.length; gi++) {
         final group = payload.groups[gi];
@@ -199,28 +211,39 @@ class SqliteImportRepository implements ImportRepository {
         );
         sortInGroup = 0;
         for (final line in group.lines) {
-          final ingredientId = line.ingredientId ?? stubIdByKey[line.stubKey];
-          if (ingredientId == null) {
-            throw StateError('line ${line.lineIndex} has no ingredient');
+          // Exactly one identity (migration 0017's `line_item_identity_xor`):
+          // a review-LINKED line is a component — `sub_recipe_id` set,
+          // `ingredient_id` null — and everything else resolves to a real or
+          // just-created ingredient.
+          final subRecipeId = line.subRecipeId;
+          final ingredientId = subRecipeId != null
+              ? null
+              : (line.ingredientId ?? stubIdByKey[line.stubKey]);
+          if (subRecipeId == null && ingredientId == null) {
+            throw StateError('line ${line.lineIndex} has no identity');
           }
           // A resolved measure (the user picked "can", "clove"…) persists as a
           // `measure_id` FK with `unit='piece'` (migration 0009) so the count↔
           // basis bridge survives commit, instead of degrading to a bare
           // "piece". Only an existing vocab row can carry measures — a
           // freshly-created stub never does — and a measure that has since
-          // vanished still degrades to an honest count via [_unitId].
-          final measureId = line.ingredientId == null
+          // vanished still degrades to an honest count via [_unitId]. A
+          // COMPONENT line never carries one at all — a measure is an
+          // ingredient concept, and 0017 fences that with its own CHECK.
+          final measureId = (subRecipeId != null || line.ingredientId == null)
               ? null
               : await _measureIdFor(tx, line.ingredientId!, line.unit);
           await tx.execute(
             'INSERT INTO recipe_line_item (id, household_id, group_id, '
-            'ingredient_id, quantity, unit, measure_id, note, sort_order, '
-            'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'ingredient_id, sub_recipe_id, quantity, unit, measure_id, note, '
+            'sort_order, created_at, updated_at) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
               lineIds[line.lineIndex],
               _householdId,
               groupId,
               ingredientId,
+              subRecipeId,
               line.quantity,
               if (measureId != null) pieces.id else _unitId(line),
               measureId,

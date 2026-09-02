@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/import/data/import_repository_impl.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
 import 'package:ansi/features/import/domain/line_resolution.dart';
@@ -8,6 +9,7 @@ import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:ansi/features/ingredients/domain/normalize.dart';
 import 'package:ansi/features/ingredients/domain/search_query.dart';
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
+import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
@@ -466,6 +468,155 @@ void main() {
     );
     expect(parm.band, MatchBand.suggest);
     expect(parm.candidates.single.ingredientId, 'ing-parm');
+  });
+
+  // --- Step 8.6 / D6: a review-linked line persists as a component ----------
+
+  group('a linked line commits as a component (8.6 / D1 · D6)', () {
+    /// One aioli line offered a household recipe, plus one plain line beside
+    /// it so the ordinary path is asserted in the same write.
+    const linkedPayload = ReconciliationPayload(
+      title: 'Sausage Sliders',
+      servingsBase: 8,
+      yieldRaw: 'MAKES: 8 SLIDERS',
+      groups: [
+        ReconGroup(
+          lines: [
+            ReconLine(
+              raw: RawLineItem(
+                ingredientText: 'Romesco Aioli (page 38)',
+                qty: 0.25,
+                unit: 'cup',
+                rawAmount: '¼ cup',
+                notes: 'to finish',
+              ),
+              band: MatchBand.none,
+              recipeCandidates: [
+                RecipeCandidate(
+                  recipeId: 'r-aioli',
+                  title: 'Romesco Aioli',
+                  score: 1,
+                ),
+              ],
+            ),
+            ReconLine(
+              raw: RawLineItem(
+                ingredientText: 'onion, diced',
+                qty: 1,
+                unit: 'piece',
+              ),
+              band: MatchBand.auto,
+              candidates: [
+                MatchCandidate(
+                  ingredientId: 'ing-onion',
+                  canonicalName: 'Onion',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    Future<String> commitLinked({double? yieldQty, Unit? yieldUnit}) {
+      const p = linkedPayload;
+      final resolutions = [
+        initialResolution(
+          0,
+          p.flatLines[0],
+        ).linkToRecipe('r-aioli', 'Romesco Aioli'),
+        initialResolution(1, p.flatLines[1]),
+      ];
+      return repo.commit(
+        buildCommit(
+          p,
+          resolutions,
+          servingsBase: 8,
+          issuesByLine: null,
+          yieldQty: yieldQty,
+          yieldUnit: yieldUnit,
+        ),
+      );
+    }
+
+    test('sub_recipe_id set, ingredient_id null, measure_id null — the 0017 '
+        'XOR and its measure fence', () async {
+      final recipeId = await commitLinked();
+      final lines = await db.getAll(
+        'SELECT li.* FROM recipe_line_item li '
+        'JOIN ingredient_group g ON g.id = li.group_id '
+        'WHERE g.recipe_id = ? ORDER BY li.sort_order',
+        [recipeId],
+      );
+      expect(lines, hasLength(2));
+
+      final component = lines.first;
+      expect(component['sub_recipe_id'], 'r-aioli');
+      expect(component['ingredient_id'], isNull);
+      expect(component['measure_id'], isNull);
+      // The printed amount is kept as printed — "¼ cup", not a batch guess.
+      expect((component['quantity'] as num).toDouble(), 0.25);
+      expect(component['unit'], 'cup');
+      expect(component['note'], 'to finish');
+
+      // The ordinary line beside it is untouched by any of this.
+      final plain = lines.last;
+      expect(plain['ingredient_id'], 'ing-onion');
+      expect(plain['sub_recipe_id'], isNull);
+    });
+
+    test('the review MAKES row lands on the recipe row', () async {
+      final recipeId = await commitLinked(yieldQty: 8, yieldUnit: pieces);
+      final recipe = await db.get('SELECT * FROM recipe WHERE id = ?', [
+        recipeId,
+      ]);
+      expect((recipe['yield_qty'] as num).toDouble(), 8);
+      expect(recipe['yield_unit'], 'piece');
+      // The review states ONE denomination; the second is the editor's.
+      expect(recipe['yield_qty_2'], isNull);
+      expect(recipe['yield_unit_2'], isNull);
+    });
+
+    test(
+      'an unstated yield writes nulls — a yield-less recipe still saves',
+      () {
+        return commitLinked().then((recipeId) async {
+          final recipe = await db.get('SELECT * FROM recipe WHERE id = ?', [
+            recipeId,
+          ]);
+          expect(recipe['yield_qty'], isNull);
+          expect(recipe['yield_unit'], isNull);
+        });
+      },
+    );
+
+    test('the committed component reloads as a component line', () async {
+      // Seeded so the join resolves: the target is an ordinary household
+      // recipe, which is the only thing a link may ever point at.
+      await db.execute(
+        'INSERT INTO recipe (id, household_id, title, servings_base, '
+        'yield_qty, yield_unit, created_at, updated_at) '
+        "VALUES ('r-aioli', 'h', 'Romesco Aioli', 4, 1, 'cup', ?, ?)",
+        [
+          DateTime.now().toUtc().toIso8601String(),
+          DateTime.now().toUtc().toIso8601String(),
+        ],
+      );
+      final recipeId = await commitLinked();
+      final recipe = await SqliteRecipeRepository(
+        db,
+        householdId: 'h',
+      ).watchRecipe(recipeId).first;
+      final line = recipe!.groups.single.items.first;
+      expect(line.isComponent, isTrue);
+      expect(line.subRecipe?.title, 'Romesco Aioli');
+      // And the batch math the whole step exists for now answers: ¼ cup of a
+      // recipe that makes 1 cup is a quarter of a batch.
+      expect(
+        line.componentAmount,
+        const ResolvedComponentAmount(0.25, against: (qty: 1, unit: cup)),
+      );
+    });
   });
 }
 

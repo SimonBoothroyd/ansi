@@ -852,6 +852,279 @@ as double,
 
 
 /// @nodoc
+mixin _$RecipeCandidate {
+
+ String get recipeId;/// The recipe's title as stored — the chip's display text.
+ String get title;/// 1 for an exact normalized-title hit, else trigram similarity.
+ double get score;
+/// Create a copy of RecipeCandidate
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$RecipeCandidateCopyWith<RecipeCandidate> get copyWith => _$RecipeCandidateCopyWithImpl<RecipeCandidate>(this as RecipeCandidate, _$identity);
+
+  /// Serializes this RecipeCandidate to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RecipeCandidate&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.title, title) || other.title == title)&&(identical(other.score, score) || other.score == score));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,recipeId,title,score);
+
+@override
+String toString() {
+  return 'RecipeCandidate(recipeId: $recipeId, title: $title, score: $score)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $RecipeCandidateCopyWith<$Res>  {
+  factory $RecipeCandidateCopyWith(RecipeCandidate value, $Res Function(RecipeCandidate) _then) = _$RecipeCandidateCopyWithImpl;
+@useResult
+$Res call({
+ String recipeId, String title, double score
+});
+
+
+
+
+}
+/// @nodoc
+class _$RecipeCandidateCopyWithImpl<$Res>
+    implements $RecipeCandidateCopyWith<$Res> {
+  _$RecipeCandidateCopyWithImpl(this._self, this._then);
+
+  final RecipeCandidate _self;
+  final $Res Function(RecipeCandidate) _then;
+
+/// Create a copy of RecipeCandidate
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? recipeId = null,Object? title = null,Object? score = null,}) {
+  return _then(_self.copyWith(
+recipeId: null == recipeId ? _self.recipeId : recipeId // ignore: cast_nullable_to_non_nullable
+as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String,score: null == score ? _self.score : score // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [RecipeCandidate].
+extension RecipeCandidatePatterns on RecipeCandidate {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _RecipeCandidate value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _RecipeCandidate() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _RecipeCandidate value)  $default,){
+final _that = this;
+switch (_that) {
+case _RecipeCandidate():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _RecipeCandidate value)?  $default,){
+final _that = this;
+switch (_that) {
+case _RecipeCandidate() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String recipeId,  String title,  double score)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _RecipeCandidate() when $default != null:
+return $default(_that.recipeId,_that.title,_that.score);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String recipeId,  String title,  double score)  $default,) {final _that = this;
+switch (_that) {
+case _RecipeCandidate():
+return $default(_that.recipeId,_that.title,_that.score);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String recipeId,  String title,  double score)?  $default,) {final _that = this;
+switch (_that) {
+case _RecipeCandidate() when $default != null:
+return $default(_that.recipeId,_that.title,_that.score);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _RecipeCandidate implements RecipeCandidate {
+  const _RecipeCandidate({required this.recipeId, required this.title, this.score = 0});
+  factory _RecipeCandidate.fromJson(Map<String, dynamic> json) => _$RecipeCandidateFromJson(json);
+
+@override final  String recipeId;
+/// The recipe's title as stored — the chip's display text.
+@override final  String title;
+/// 1 for an exact normalized-title hit, else trigram similarity.
+@override@JsonKey() final  double score;
+
+/// Create a copy of RecipeCandidate
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$RecipeCandidateCopyWith<_RecipeCandidate> get copyWith => __$RecipeCandidateCopyWithImpl<_RecipeCandidate>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$RecipeCandidateToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RecipeCandidate&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.title, title) || other.title == title)&&(identical(other.score, score) || other.score == score));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,recipeId,title,score);
+
+@override
+String toString() {
+  return 'RecipeCandidate(recipeId: $recipeId, title: $title, score: $score)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$RecipeCandidateCopyWith<$Res> implements $RecipeCandidateCopyWith<$Res> {
+  factory _$RecipeCandidateCopyWith(_RecipeCandidate value, $Res Function(_RecipeCandidate) _then) = __$RecipeCandidateCopyWithImpl;
+@override @useResult
+$Res call({
+ String recipeId, String title, double score
+});
+
+
+
+
+}
+/// @nodoc
+class __$RecipeCandidateCopyWithImpl<$Res>
+    implements _$RecipeCandidateCopyWith<$Res> {
+  __$RecipeCandidateCopyWithImpl(this._self, this._then);
+
+  final _RecipeCandidate _self;
+  final $Res Function(_RecipeCandidate) _then;
+
+/// Create a copy of RecipeCandidate
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? recipeId = null,Object? title = null,Object? score = null,}) {
+  return _then(_RecipeCandidate(
+recipeId: null == recipeId ? _self.recipeId : recipeId // ignore: cast_nullable_to_non_nullable
+as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String,score: null == score ? _self.score : score // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$RefPortion {
 
  double? get qty; double? get qtyLow; double? get qtyHigh; String? get unit;/// A relative word ("the rest" | "half" | "for garnish") with no number.
@@ -1841,7 +2114,11 @@ as List<StepToken>,
 /// @nodoc
 mixin _$ReconLine {
 
- RawLineItem get raw; MatchBand get band; List<MatchCandidate> get candidates;
+ RawLineItem get raw; MatchBand get band; List<MatchCandidate> get candidates;/// The D6 recipe offers. The server OMITS the field entirely when there
+/// are none — and when no recipe-title matcher is wired at all — so an
+/// absent field must decode to exactly what it decoded before this
+/// existed: the empty list, no chip, and a byte-identical commit.
+ List<RecipeCandidate> get recipeCandidates;
 /// Create a copy of ReconLine
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1854,16 +2131,16 @@ $ReconLineCopyWith<ReconLine> get copyWith => _$ReconLineCopyWithImpl<ReconLine>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReconLine&&(identical(other.raw, raw) || other.raw == raw)&&(identical(other.band, band) || other.band == band)&&const DeepCollectionEquality().equals(other.candidates, candidates));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReconLine&&(identical(other.raw, raw) || other.raw == raw)&&(identical(other.band, band) || other.band == band)&&const DeepCollectionEquality().equals(other.candidates, candidates)&&const DeepCollectionEquality().equals(other.recipeCandidates, recipeCandidates));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,raw,band,const DeepCollectionEquality().hash(candidates));
+int get hashCode => Object.hash(runtimeType,raw,band,const DeepCollectionEquality().hash(candidates),const DeepCollectionEquality().hash(recipeCandidates));
 
 @override
 String toString() {
-  return 'ReconLine(raw: $raw, band: $band, candidates: $candidates)';
+  return 'ReconLine(raw: $raw, band: $band, candidates: $candidates, recipeCandidates: $recipeCandidates)';
 }
 
 
@@ -1874,7 +2151,7 @@ abstract mixin class $ReconLineCopyWith<$Res>  {
   factory $ReconLineCopyWith(ReconLine value, $Res Function(ReconLine) _then) = _$ReconLineCopyWithImpl;
 @useResult
 $Res call({
- RawLineItem raw, MatchBand band, List<MatchCandidate> candidates
+ RawLineItem raw, MatchBand band, List<MatchCandidate> candidates, List<RecipeCandidate> recipeCandidates
 });
 
 
@@ -1891,12 +2168,13 @@ class _$ReconLineCopyWithImpl<$Res>
 
 /// Create a copy of ReconLine
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? raw = null,Object? band = null,Object? candidates = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? raw = null,Object? band = null,Object? candidates = null,Object? recipeCandidates = null,}) {
   return _then(_self.copyWith(
 raw: null == raw ? _self.raw : raw // ignore: cast_nullable_to_non_nullable
 as RawLineItem,band: null == band ? _self.band : band // ignore: cast_nullable_to_non_nullable
 as MatchBand,candidates: null == candidates ? _self.candidates : candidates // ignore: cast_nullable_to_non_nullable
-as List<MatchCandidate>,
+as List<MatchCandidate>,recipeCandidates: null == recipeCandidates ? _self.recipeCandidates : recipeCandidates // ignore: cast_nullable_to_non_nullable
+as List<RecipeCandidate>,
   ));
 }
 /// Create a copy of ReconLine
@@ -1990,10 +2268,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( RawLineItem raw,  MatchBand band,  List<MatchCandidate> candidates)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( RawLineItem raw,  MatchBand band,  List<MatchCandidate> candidates,  List<RecipeCandidate> recipeCandidates)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReconLine() when $default != null:
-return $default(_that.raw,_that.band,_that.candidates);case _:
+return $default(_that.raw,_that.band,_that.candidates,_that.recipeCandidates);case _:
   return orElse();
 
 }
@@ -2011,10 +2289,10 @@ return $default(_that.raw,_that.band,_that.candidates);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( RawLineItem raw,  MatchBand band,  List<MatchCandidate> candidates)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( RawLineItem raw,  MatchBand band,  List<MatchCandidate> candidates,  List<RecipeCandidate> recipeCandidates)  $default,) {final _that = this;
 switch (_that) {
 case _ReconLine():
-return $default(_that.raw,_that.band,_that.candidates);case _:
+return $default(_that.raw,_that.band,_that.candidates,_that.recipeCandidates);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2031,10 +2309,10 @@ return $default(_that.raw,_that.band,_that.candidates);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( RawLineItem raw,  MatchBand band,  List<MatchCandidate> candidates)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( RawLineItem raw,  MatchBand band,  List<MatchCandidate> candidates,  List<RecipeCandidate> recipeCandidates)?  $default,) {final _that = this;
 switch (_that) {
 case _ReconLine() when $default != null:
-return $default(_that.raw,_that.band,_that.candidates);case _:
+return $default(_that.raw,_that.band,_that.candidates,_that.recipeCandidates);case _:
   return null;
 
 }
@@ -2046,7 +2324,7 @@ return $default(_that.raw,_that.band,_that.candidates);case _:
 @JsonSerializable()
 
 class _ReconLine implements ReconLine {
-  const _ReconLine({required this.raw, required this.band, final  List<MatchCandidate> candidates = const <MatchCandidate>[]}): _candidates = candidates;
+  const _ReconLine({required this.raw, required this.band, final  List<MatchCandidate> candidates = const <MatchCandidate>[], final  List<RecipeCandidate> recipeCandidates = const <RecipeCandidate>[]}): _candidates = candidates,_recipeCandidates = recipeCandidates;
   factory _ReconLine.fromJson(Map<String, dynamic> json) => _$ReconLineFromJson(json);
 
 @override final  RawLineItem raw;
@@ -2056,6 +2334,21 @@ class _ReconLine implements ReconLine {
   if (_candidates is EqualUnmodifiableListView) return _candidates;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_candidates);
+}
+
+/// The D6 recipe offers. The server OMITS the field entirely when there
+/// are none — and when no recipe-title matcher is wired at all — so an
+/// absent field must decode to exactly what it decoded before this
+/// existed: the empty list, no chip, and a byte-identical commit.
+ final  List<RecipeCandidate> _recipeCandidates;
+/// The D6 recipe offers. The server OMITS the field entirely when there
+/// are none — and when no recipe-title matcher is wired at all — so an
+/// absent field must decode to exactly what it decoded before this
+/// existed: the empty list, no chip, and a byte-identical commit.
+@override@JsonKey() List<RecipeCandidate> get recipeCandidates {
+  if (_recipeCandidates is EqualUnmodifiableListView) return _recipeCandidates;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_recipeCandidates);
 }
 
 
@@ -2072,16 +2365,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReconLine&&(identical(other.raw, raw) || other.raw == raw)&&(identical(other.band, band) || other.band == band)&&const DeepCollectionEquality().equals(other._candidates, _candidates));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReconLine&&(identical(other.raw, raw) || other.raw == raw)&&(identical(other.band, band) || other.band == band)&&const DeepCollectionEquality().equals(other._candidates, _candidates)&&const DeepCollectionEquality().equals(other._recipeCandidates, _recipeCandidates));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,raw,band,const DeepCollectionEquality().hash(_candidates));
+int get hashCode => Object.hash(runtimeType,raw,band,const DeepCollectionEquality().hash(_candidates),const DeepCollectionEquality().hash(_recipeCandidates));
 
 @override
 String toString() {
-  return 'ReconLine(raw: $raw, band: $band, candidates: $candidates)';
+  return 'ReconLine(raw: $raw, band: $band, candidates: $candidates, recipeCandidates: $recipeCandidates)';
 }
 
 
@@ -2092,7 +2385,7 @@ abstract mixin class _$ReconLineCopyWith<$Res> implements $ReconLineCopyWith<$Re
   factory _$ReconLineCopyWith(_ReconLine value, $Res Function(_ReconLine) _then) = __$ReconLineCopyWithImpl;
 @override @useResult
 $Res call({
- RawLineItem raw, MatchBand band, List<MatchCandidate> candidates
+ RawLineItem raw, MatchBand band, List<MatchCandidate> candidates, List<RecipeCandidate> recipeCandidates
 });
 
 
@@ -2109,12 +2402,13 @@ class __$ReconLineCopyWithImpl<$Res>
 
 /// Create a copy of ReconLine
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? raw = null,Object? band = null,Object? candidates = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? raw = null,Object? band = null,Object? candidates = null,Object? recipeCandidates = null,}) {
   return _then(_ReconLine(
 raw: null == raw ? _self.raw : raw // ignore: cast_nullable_to_non_nullable
 as RawLineItem,band: null == band ? _self.band : band // ignore: cast_nullable_to_non_nullable
 as MatchBand,candidates: null == candidates ? _self._candidates : candidates // ignore: cast_nullable_to_non_nullable
-as List<MatchCandidate>,
+as List<MatchCandidate>,recipeCandidates: null == recipeCandidates ? _self._recipeCandidates : recipeCandidates // ignore: cast_nullable_to_non_nullable
+as List<RecipeCandidate>,
   ));
 }
 

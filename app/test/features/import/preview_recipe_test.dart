@@ -133,4 +133,32 @@ void main() {
     final items = recipe.groups.single.items;
     expect(items[0].ingredientId, items[1].ingredientId);
   });
+
+  test('a LINKED line previews as the component it is about to be (8.6)', () {
+    final payload = ReconciliationPayload(
+      title: 'Sausage Sliders',
+      servingsBase: 8,
+      groups: [
+        ReconGroup(
+          lines: [_line('Romesco Aioli (page 38)', qty: 0.25, unit: 'cup')],
+        ),
+      ],
+    );
+    final recipe = buildPreviewRecipe(payload, [
+      initialResolution(
+        0,
+        payload.flatLines[0],
+      ).linkToRecipe('r-aioli', 'Romesco Aioli'),
+    ], servingsBase: 8);
+    final item = recipe.groups.single.items.single;
+    // Exactly one identity, as the saved row will have: the preview shows
+    // what a save would write, not a plausible-looking ingredient line.
+    expect(item.isComponent, isTrue);
+    expect(item.subRecipeId, 'r-aioli');
+    expect(item.ingredientId, isNull);
+    expect(item.ingredientName, 'Romesco Aioli');
+    expect(item.subRecipe?.title, 'Romesco Aioli');
+    expect(item.quantity, 0.25);
+    expect(item.unit, cup);
+  });
 }

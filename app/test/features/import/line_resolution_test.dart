@@ -4,7 +4,10 @@ import 'package:ansi/features/import/domain/line_resolution.dart';
 import 'package:ansi/features/import/domain/line_validation.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
+import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'gold_fixture.dart';
 
 ReconLine _line(
   String text, {
@@ -567,6 +570,353 @@ void main() {
         1,
         2,
       ]);
+    });
+  });
+
+  // --- Step 8.6 / D6: a recipe is OFFERED at review, never auto-linked ------
+
+  group('linking a line to a household recipe (D6)', () {
+    ReconciliationPayload aioliPayload() => _payload([
+      const ReconLine(
+        raw: RawLineItem(
+          ingredientText: 'Romesco Aioli (page 38)',
+          qty: 0.25,
+          unit: 'cup',
+          rawAmount: '¼ cup',
+        ),
+        band: MatchBand.suggest,
+        candidates: [
+          MatchCandidate(ingredientId: 'v-aioli', canonicalName: 'Aioli'),
+        ],
+        recipeCandidates: [
+          RecipeCandidate(
+            recipeId: 'r-aioli',
+            title: 'Romesco Aioli',
+            score: 1,
+          ),
+        ],
+      ),
+    ]);
+
+    test(
+      'a recipe candidate is NEVER adopted on arrival — even at score 1',
+      () {
+        final r = initialResolution(0, aioliPayload().flatLines[0]);
+        expect(r.linkedRecipeId, isNull);
+        expect(r.isComponent, isFalse);
+        // And it is not silently matched to the ingredient candidate either:
+        // `suggest` still waits for a human (the round-3 rule, unchanged).
+        expect(r.chosenIngredientId, isNull);
+        expect(r.isResolved, isFalse);
+      },
+    );
+
+    test('linking clears any ingredient match — one identity, D1s XOR', () {
+      final linked = initialResolution(0, aioliPayload().flatLines[0])
+          .resolveToIngredient('v-aioli', 'Aioli', correction: true)
+          .linkToRecipe('r-aioli', 'Romesco Aioli');
+      expect(linked.isComponent, isTrue);
+      expect(linked.linkedRecipeTitle, 'Romesco Aioli');
+      expect(linked.chosenIngredientId, isNull);
+      expect(linked.chosenName, isNull);
+      // A link is not an ingredient correction: there is no alias to write.
+      expect(linked.isCorrection, isFalse);
+      // The printed amount survives — "¼ cup" is what the page said.
+      expect(linked.quantity, 0.25);
+      expect(linked.unit, 'cup');
+    });
+
+    test(
+      'a link is reversible before Save — unlink, or match an ingredient',
+      () {
+        final linked = initialResolution(
+          0,
+          aioliPayload().flatLines[0],
+        ).linkToRecipe('r-aioli', 'Romesco Aioli');
+
+        final unlinked = linked.unlink();
+        expect(unlinked.isComponent, isFalse);
+        expect(unlinked.linkedRecipeTitle, isNull);
+        expect(unlinked.quantity, 0.25); // the amount it had is not disturbed
+
+        // Re-matching an ingredient is the other way back (D7's "re-pick").
+        final rematched = linked.resolveToIngredient('v-aioli', 'Aioli');
+        expect(rematched.isComponent, isFalse);
+        expect(rematched.chosenIngredientId, 'v-aioli');
+        // As is creating a stub.
+        expect(linked.resolveToNewStub('Aioli').isComponent, isFalse);
+      },
+    );
+
+    group('the save-gate arithmetic', () {
+      test('a linked line is valid the moment its amount is set — no '
+          'ingredient match, no allowed-units gate', () {
+        final withAmount = initialResolution(
+          0,
+          aioliPayload().flatLines[0],
+        ).linkToRecipe('r-aioli', 'Romesco Aioli');
+        expect(withAmount.isResolved, isTrue);
+        expect(lineIssues(withAmount), isEmpty);
+        expect(allResolved([withAmount]), isTrue);
+
+        // Even with an ingredient handed in, the admission check does not run:
+        // admission is an ingredient concept, and this line has none. The unit
+        // meets the target's yield family later, at derive time (D2).
+        expect(
+          lineIssues(
+            withAmount.setAmount(quantity: 0.25, unit: 'cup'),
+            ingredient: const Ingredient(
+              id: 'v-garlic',
+              canonicalName: 'Garlic',
+              defaultUnit: g,
+              status: IngredientStatus.complete,
+            ),
+          ),
+          isEmpty,
+        );
+      });
+
+      test('a linked line with NO amount is the one thing that blocks it', () {
+        final noAmount = initialResolution(
+          0,
+          aioliPayload().flatLines[0],
+        ).linkToRecipe('r-aioli', 'Romesco Aioli').setAmount();
+        expect(noAmount.quantity, isNull);
+        expect(noAmount.isResolved, isFalse);
+        expect(lineIssues(noAmount), [LineIssue.amountMissing]);
+        expect(allResolved([noAmount]), isFalse);
+      });
+
+      test('a dropped linked line is excluded, like any other', () {
+        final dropped = initialResolution(
+          0,
+          aioliPayload().flatLines[0],
+        ).linkToRecipe('r-aioli', 'Romesco Aioli').setAmount().drop();
+        expect(lineIssues(dropped), isEmpty);
+        expect(allResolved([dropped]), isTrue);
+      });
+    });
+
+    group('buildCommit — the same rule, re-asserted at the seam', () {
+      test('a linked line commits as a component: sub_recipe_id set, no '
+          'ingredient, no stub', () {
+        final payload = aioliPayload();
+        final commit = buildCommit(
+          payload,
+          [
+            initialResolution(
+              0,
+              payload.flatLines[0],
+            ).linkToRecipe('r-aioli', 'Romesco Aioli'),
+          ],
+          servingsBase: 2,
+          issuesByLine: const {0: <LineIssue>[]},
+        );
+        final line = commit.groups.single.lines.single;
+        expect(line.subRecipeId, 'r-aioli');
+        expect(line.ingredientId, isNull);
+        expect(line.stubKey, isNull);
+        expect(line.quantity, 0.25);
+        expect(line.unit, 'cup');
+        expect(commit.stubs, isEmpty);
+        expect(commit.corrections, isEmpty);
+      });
+
+      test('an amount-less linked line is refused at the seam, not hoped '
+          'about in the view', () {
+        final payload = aioliPayload();
+        final resolutions = [
+          initialResolution(
+            0,
+            payload.flatLines[0],
+          ).linkToRecipe('r-aioli', 'Romesco Aioli').setAmount(),
+        ];
+        expect(
+          () => buildCommit(
+            payload,
+            resolutions,
+            servingsBase: 2,
+            // Even with a LYING issue map, the structural gate holds.
+            issuesByLine: const {0: <LineIssue>[]},
+          ),
+          throwsStateError,
+        );
+      });
+
+      test('a resolution carrying both identities is refused', () {
+        final payload = aioliPayload();
+        // Constructed by hand: no mutator can produce this, and that is
+        // exactly why the seam asserts it rather than trusting the caller.
+        const both = LineResolution(
+          lineIndex: 0,
+          band: MatchBand.suggest,
+          ingredientText: 'Romesco Aioli (page 38)',
+          isRange: false,
+          unit: 'cup',
+          quantity: 0.25,
+          chosenIngredientId: 'v-aioli',
+          chosenName: 'Aioli',
+          linkedRecipeId: 'r-aioli',
+          linkedRecipeTitle: 'Romesco Aioli',
+        );
+        expect(
+          () => buildCommit(
+            payload,
+            [both],
+            servingsBase: 2,
+            issuesByLine: const {0: <LineIssue>[]},
+          ),
+          throwsStateError,
+        );
+      });
+
+      test('the review yield rides the commit — both halves or neither', () {
+        final payload = aioliPayload();
+        final resolutions = [
+          initialResolution(
+            0,
+            payload.flatLines[0],
+          ).linkToRecipe('r-aioli', 'Romesco Aioli'),
+        ];
+        final stated = buildCommit(
+          payload,
+          resolutions,
+          servingsBase: 2,
+          issuesByLine: null,
+          yieldQty: 8,
+          yieldUnit: pieces,
+        );
+        expect(stated.yieldQty, 8);
+        expect(stated.yieldUnit, pieces);
+
+        // Half a yield is half a fact — and the migration's CHECK says so too.
+        final halfStated = buildCommit(
+          payload,
+          resolutions,
+          servingsBase: 2,
+          issuesByLine: null,
+          yieldQty: 8,
+        );
+        expect(halfStated.yieldQty, isNull);
+        expect(halfStated.yieldUnit, isNull);
+
+        // And nothing stated is a perfectly good save: the yield never gates.
+        final none = buildCommit(
+          payload,
+          resolutions,
+          servingsBase: 2,
+          issuesByLine: null,
+        );
+        expect(none.yieldQty, isNull);
+      });
+    });
+
+    group('offered and declined — the gold specimens commit unchanged', () {
+      /// The blessed sausage-sliders extraction, with the D6 offers the server
+      /// would now attach to its six sub-recipe references.
+      ReconciliationPayload slidersWithOffers() {
+        final gold = goldPayload('sausage-sliders');
+        var n = 0;
+        return gold.copyWith(
+          groups: [
+            for (final group in gold.groups)
+              group.copyWith(
+                lines: [
+                  for (final line in group.lines)
+                    if (line.raw.ingredientText.contains('(page'))
+                      line.copyWith(
+                        recipeCandidates: [
+                          RecipeCandidate(
+                            recipeId: 'r-${n++}',
+                            title: line.raw.ingredientText,
+                            score: 1,
+                          ),
+                        ],
+                      )
+                    else
+                      line,
+                ],
+              ),
+          ],
+        );
+      }
+
+      List<LineResolution> resolveEveryLine(ReconciliationPayload payload) => [
+        for (var i = 0; i < payload.flatLines.length; i++)
+          initialResolution(
+            i,
+            payload.flatLines[i],
+          ).resolveToNewStub(payload.flatLines[i].raw.ingredientText),
+      ];
+
+      test('nobody taps ⇒ the commit is IDENTICAL to the offer-free one', () {
+        final withOffers = slidersWithOffers();
+        final without = goldPayload('sausage-sliders');
+        // The specimen really does carry the offers we are ignoring.
+        expect(
+          withOffers.flatLines.where((l) => l.recipeCandidates.isNotEmpty),
+          hasLength(6),
+        );
+
+        final offered = buildCommit(
+          withOffers,
+          resolveEveryLine(withOffers),
+          servingsBase: 8,
+          issuesByLine: null,
+        );
+        final plain = buildCommit(
+          without,
+          resolveEveryLine(without),
+          servingsBase: 8,
+          issuesByLine: null,
+        );
+        // Freezed equality is deep: groups, lines, stubs, steps, corrections.
+        expect(offered, plain);
+        expect(
+          offered.groups
+              .expand((g) => g.lines)
+              .every((l) => l.subRecipeId == null),
+          isTrue,
+          reason: 'an offer nobody took writes no component line',
+        );
+      });
+
+      test('tapping ONE offer changes that line and nothing else', () {
+        final payload = slidersWithOffers();
+        final aioliIndex = payload.flatLines.indexWhere(
+          (l) => l.raw.ingredientText.toLowerCase().contains('romesco aioli'),
+        );
+        expect(aioliIndex, isNot(-1));
+
+        final resolutions = [
+          for (final r in resolveEveryLine(payload))
+            if (r.lineIndex == aioliIndex)
+              r.linkToRecipe('r-aioli', 'Romesco Aioli')
+            else
+              r,
+        ];
+        final commit = buildCommit(
+          payload,
+          resolutions,
+          servingsBase: 8,
+          issuesByLine: null,
+        );
+        final lines = commit.groups.expand((g) => g.lines).toList();
+        final linked = lines.firstWhere((l) => l.lineIndex == aioliIndex);
+        expect(linked.subRecipeId, 'r-aioli');
+        expect(linked.ingredientId, isNull);
+        expect(linked.stubKey, isNull);
+        // Every other line is untouched, and the linked line's stub is gone
+        // from the vocabulary write (nothing mints an ingredient for it).
+        expect(lines.where((l) => l.subRecipeId != null), hasLength(1));
+        expect(
+          commit.stubs.length,
+          resolveEveryLine(
+                payload,
+              ).map((r) => r.createStubName!.toLowerCase()).toSet().length -
+              1,
+        );
+      });
     });
   });
 }

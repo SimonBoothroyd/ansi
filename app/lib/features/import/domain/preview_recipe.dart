@@ -54,7 +54,16 @@ Recipe buildPreviewRecipe(
       items.add(
         LineItem(
           id: previewLineId(flatIndex),
-          ingredientId: _identityId(r),
+          // Exactly one identity, as the saved row will have (8.6 / D1): a
+          // review-LINKED line previews as the component it is about to be.
+          ingredientId: r.isComponent ? null : _identityId(r),
+          subRecipeId: r.linkedRecipeId,
+          subRecipe: r.isComponent
+              ? SubRecipeTarget(
+                  id: r.linkedRecipeId!,
+                  title: r.linkedRecipeTitle ?? r.ingredientText,
+                )
+              : null,
           ingredientName: _displayName(r),
           unit: _unitOf(r),
           quantity: r.quantity,
@@ -93,7 +102,7 @@ String _identityId(LineResolution r) {
 }
 
 String _displayName(LineResolution r) =>
-    r.chosenName ?? r.createStubName ?? r.ingredientText;
+    r.linkedRecipeTitle ?? r.chosenName ?? r.createStubName ?? r.ingredientText;
 
 /// The line's unit: the mapped catalog unit, else an honest degrade — count
 /// for a numbered line, "to taste" for a numberless one (invariant 3, never a

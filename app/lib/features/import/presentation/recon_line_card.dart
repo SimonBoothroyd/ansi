@@ -11,6 +11,16 @@
 /// greys into an "as deleted" state that says so and offers undo, and the line
 /// stops being anyone's problem — no flag, no Save gate — until Save makes the
 /// removal real (see [LineResolution.isDropped]).
+///
+/// And a line can be LINKED to a household recipe (step 8.6 / D6, design board
+/// frame e): when the server offers a recipe-title candidate it rides the
+/// existing did-you-mean chip row as "↪ your recipe · Romesco Aioli", ALONGSIDE
+/// the ingredient candidates. Nothing links itself — the chip is an offer, at
+/// any score. Tapping it turns the line into a component line: the identity
+/// cell becomes the recipe chip, no ingredient match is wanted, no
+/// allowed-units gate applies (admission is an ingredient concept), and the
+/// line is valid for Save the moment its amount is set. Ignoring it leaves the
+/// line exactly as it is today, and it commits byte-identically.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -28,8 +38,12 @@ import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_picker.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
+import '../../recipes/data/recipe_providers.dart';
 import '../../recipes/domain/line_display.dart';
+import '../../recipes/domain/recipe.dart';
+import '../../recipes/presentation/component_quantity_sheet.dart';
 import '../../recipes/presentation/format.dart';
+import '../../recipes/presentation/recipe_chip.dart';
 import '../domain/amount_text.dart';
 import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
@@ -67,9 +81,12 @@ class ReviewLineCard extends HookConsumerWidget {
         ? const LineValidation(issues: [])
         : (validation ?? LineValidation(issues: lineIssues(resolution)));
     final attention = effective.issues.isNotEmpty;
+    // A LINKED line counts as resolved for the card's purposes: it has an
+    // identity, so the amount and notes unlock exactly as a matched line's do.
     final matched =
         resolution.chosenIngredientId != null ||
-        resolution.createStubName != null;
+        resolution.createStubName != null ||
+        resolution.isComponent;
     // Read the notifier at CALL time, never captured (the file's rule).
     void setDropped({required bool value}) => ref
         .read(importControllerProvider.notifier)
@@ -175,11 +192,22 @@ class _DroppedLine extends StatelessWidget {
 
 /// The short, human "why this line needs you" — a clear label, not a bare dot
 /// (round-2 #4). Null when the line is done.
-String? attentionLabel(List<LineIssue> issues) {
+///
+/// [hasRecipeOffer] widens the unmatched label to name the other door the card
+/// is showing (board frame e): a line the server thinks names one of your own
+/// recipes can be answered either way, and the tag should say so.
+String? attentionLabel(List<LineIssue> issues, {bool hasRecipeOffer = false}) {
   if (issues.isEmpty) return null;
-  if (issues.contains(LineIssue.unmatched)) return 'Match an ingredient';
+  if (issues.contains(LineIssue.unmatched)) {
+    return hasRecipeOffer
+        ? 'Match an ingredient — or link your recipe'
+        : 'Match an ingredient';
+  }
   if (issues.contains(LineIssue.unitNotAllowed)) return 'Pick a supported unit';
-  if (issues.contains(LineIssue.rangeUnpicked)) return 'Set the amount';
+  if (issues.contains(LineIssue.rangeUnpicked) ||
+      issues.contains(LineIssue.amountMissing)) {
+    return 'Set the amount';
+  }
   return 'Needs a look';
 }
 
@@ -190,6 +218,21 @@ String? attentionLabel(List<LineIssue> issues) {
 /// rather than stuttering it ("2–3 cloves garlic cloves, sliced").
 String rawLineText(RawLineItem raw) =>
     joinSourceLine(raw.rawAmount, raw.ingredientText);
+
+/// The printed CROSS-REFERENCE a line carries — `"(page 38)"` — or null.
+///
+/// The board's frame (e) shows it as one more honest-import flag: the server
+/// strips it before matching (the way parentheticals already are), so saying
+/// so on the card is what keeps the stripping from looking like a
+/// misreading — the identity text still says "(page 38)" and the chip below
+/// says which recipe that turned out to be.
+String? crossReferenceFlag(String ingredientText) {
+  final match = RegExp(
+    r'\((?:see\s+)?p(?:age|g)?\.?\s*\d+\)',
+    caseSensitive: false,
+  ).firstMatch(ingredientText);
+  return match?.group(0);
+}
 
 /// The compact three-part row: amount · ingredient · notes, a pencil, and (when
 /// still open) a clear "needs you" label. Tapping anywhere expands it.
@@ -216,7 +259,10 @@ class _Collapsed extends StatelessWidget {
         raw.ingredientText;
     final notes = resolution.notes?.trim();
     final amount = amountLabel(resolution, raw);
-    final label = attentionLabel(issues);
+    final label = attentionLabel(
+      issues,
+      hasRecipeOffer: line.recipeCandidates.isNotEmpty,
+    );
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -237,31 +283,61 @@ class _Collapsed extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
+              // The identity cell is the ONLY part of the v3 line that changes
+              // for a component (board frames a · e): the amount column and the
+              // note modifier stay exactly as they are.
+              if (resolution.isComponent)
+                Expanded(
+                  child: Row(
                     children: [
-                      TextSpan(
-                        text: name,
-                        style: ansiSans(size: 15, weight: FontWeight.w600),
+                      Flexible(
+                        child: RecipeChip(
+                          title: resolution.linkedRecipeTitle ?? name,
+                          size: 14,
+                        ),
                       ),
                       if (notes != null && notes.isNotEmpty) ...[
-                        TextSpan(
-                          text: '  ·  ',
-                          style: ansiSans(size: 15, color: AnsiColors.line),
-                        ),
-                        TextSpan(
-                          text: notes,
-                          style: ansiSans(
-                            size: 14,
-                            color: AnsiColors.muted,
-                          ).copyWith(fontStyle: FontStyle.italic),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            notes,
+                            overflow: TextOverflow.ellipsis,
+                            style: ansiSans(
+                              size: 14,
+                              color: AnsiColors.muted,
+                            ).copyWith(fontStyle: FontStyle.italic),
+                          ),
                         ),
                       ],
                     ],
                   ),
+                )
+              else
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: name,
+                          style: ansiSans(size: 15, weight: FontWeight.w600),
+                        ),
+                        if (notes != null && notes.isNotEmpty) ...[
+                          TextSpan(
+                            text: '  ·  ',
+                            style: ansiSans(size: 15, color: AnsiColors.line),
+                          ),
+                          TextSpan(
+                            text: notes,
+                            style: ansiSans(
+                              size: 14,
+                              color: AnsiColors.muted,
+                            ).copyWith(fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
               const SizedBox(width: 8),
               const Icon(FLucideIcons.pencil, size: 14, color: AnsiColors.herb),
             ],
@@ -309,7 +385,11 @@ class _Expanded extends ConsumerWidget {
     void update(LineResolution Function(LineResolution) f) =>
         ref.read(importControllerProvider.notifier).updateResolution(_index, f);
     final issues = validation.issues;
-    final label = attentionLabel(issues);
+    final linked = resolution.isComponent;
+    final label = attentionLabel(
+      issues,
+      hasRecipeOffer: line.recipeCandidates.isNotEmpty,
+    );
     final reference = rawLineText(line.raw);
     // Offer inline unit chips only when the current unit actually needs a fix
     // — an ambiguous/unmapped unit (round-3 #2), parallel to the ingredient
@@ -373,14 +453,20 @@ class _Expanded extends ConsumerWidget {
           _AttentionTag(label: label),
         ],
         const SizedBox(height: 10),
-        // The ingredient match — tap the ingredient itself to re-match.
+        // The ingredient match — tap the ingredient itself to re-match. A
+        // recipe offer rides the same chip row, and a LINKED line renders its
+        // recipe chip here with the unlink beside it (reversible until Save).
         Resolver(
           candidates: line.candidates,
+          recipeCandidates: line.recipeCandidates,
           resolution: resolution,
           onResolveExisting: (id, name, {required correction}) => update(
             (r) => r.resolveToIngredient(id, name, correction: correction),
           ),
           onResolveStub: (name) => update((r) => r.resolveToNewStub(name)),
+          onLinkRecipe: (c) =>
+              update((r) => r.linkToRecipe(c.recipeId, c.title)),
+          onUnlink: () => update((r) => r.unlink()),
         ),
         const SizedBox(height: 14),
         Row(
@@ -408,6 +494,17 @@ class _Expanded extends ConsumerWidget {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               'Match an ingredient first — then the amount and notes unlock.',
+              style: ansiMono(size: 10, color: AnsiColors.muted),
+            ),
+          ),
+        // The two rules a linked line lives by, said on the card (board frame
+        // e) rather than left for the user to infer from what is missing.
+        if (linked)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'linked — no ingredient match needed, no allowed-units gate. '
+              'Valid for Save the moment its amount is set.',
               style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           ),
@@ -679,6 +776,12 @@ Future<void> editLineAmount(
   final resolution = state.resolutions.firstWhere(
     (r) => r.lineIndex == lineIndex,
   );
+  // A LINKED line is quantified against a RECIPE, not an ingredient: lane U's
+  // component sheet, whose chips are `batch` ∪ the target's yield families.
+  if (resolution.isComponent) {
+    await editComponentAmount(context, ref, lineIndex);
+    return;
+  }
   final matched =
       resolution.chosenIngredientId != null ||
       resolution.createStubName != null;
@@ -759,6 +862,75 @@ Future<void> editLineAmount(
   });
 }
 
+/// Opens lane U's COMPONENT quantity sheet for a linked line (8.6 / D2 · D6)
+/// and writes the picked amount back onto its resolution.
+///
+/// The target's yields come off the local repository — the link points at a
+/// household recipe, which is a row this device already has — read STRAIGHT
+/// from the keepAlive repository provider rather than through a stream
+/// provider (plan 0020 **J2**: an autoDispose element with nothing listening
+/// completes into an empty default, and "no yields" would silently become "no
+/// yield set" on the sheet). A read that cannot answer degrades the same
+/// honest way the sheet's own no-yield state does: `batch` only, said out
+/// loud, never a guessed conversion.
+Future<void> editComponentAmount(
+  BuildContext context,
+  WidgetRef ref,
+  int lineIndex,
+) async {
+  final state = ref.read(importControllerProvider);
+  if (state is! ImportReconciling) return;
+  final resolution = state.resolutions.firstWhere(
+    (r) => r.lineIndex == lineIndex,
+  );
+  final recipeId = resolution.linkedRecipeId;
+  if (recipeId == null) return;
+  final title = resolution.linkedRecipeTitle ?? resolution.ingredientText;
+
+  var target = SubRecipeTarget(id: recipeId, title: title);
+  try {
+    final recipes = await ref
+        .read(recipeRepositoryProvider)
+        .watchRecipes()
+        .first
+        .timeout(const Duration(seconds: 5));
+    for (final r in recipes) {
+      if (r.id != recipeId) continue;
+      target = SubRecipeTarget(
+        id: r.id,
+        title: r.title,
+        yieldQty: r.yieldQty,
+        yieldUnit: r.yieldUnit,
+        yieldQty2: r.yieldQty2,
+        yieldUnit2: r.yieldUnit2,
+      );
+      break;
+    }
+  } on Object {
+    // Never leave the tap inert — the sheet opens on the batch denomination,
+    // which needs no yield at all.
+  }
+  if (!context.mounted) return;
+
+  final stored = resolution.unit == null ? null : unitById(resolution.unit!);
+  final result = await showComponentQuantitySheet(
+    context,
+    target: target,
+    initialQuantity: resolution.quantity,
+    // The 7.7 stored-selection rule: the line's printed unit is admissible on
+    // this line whatever the sheet would otherwise offer.
+    initialUnit: stored,
+  );
+  if (result == null) return;
+  // Read AFTER the awaited sheet, never captured before it.
+  ref
+      .read(importControllerProvider.notifier)
+      .updateResolution(
+        lineIndex,
+        (r) => r.setAmount(quantity: result.quantity, unit: result.unit.id),
+      );
+}
+
 /// The tap-to-edit amount chip (decision 6). Shows the resolved amount, else
 /// the printed raw amount, else a prompt; tapping opens the amount sheet.
 class AmountEditor extends ConsumerWidget {
@@ -819,7 +991,9 @@ class _Flags extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final crossReference = crossReferenceFlag(raw.ingredientText);
     final flags = <String>[
+      if (crossReference != null) 'cross-reference “$crossReference”',
       if (raw.optional) 'optional',
       if (raw.confidence < kLowConfidenceFloor)
         'low confidence ${(raw.confidence * 100).round()}%',
@@ -861,14 +1035,29 @@ class Resolver extends StatelessWidget {
     required this.resolution,
     required this.onResolveExisting,
     required this.onResolveStub,
+    this.recipeCandidates = const [],
+    this.onLinkRecipe,
+    this.onUnlink,
     super.key,
   });
 
   final List<MatchCandidate> candidates;
+
+  /// The household recipes the server thinks this line names (8.6 / D6).
+  /// Rendered as chips in the SAME did-you-mean row, never instead of the
+  /// ingredient ones — a line can be either, and the human says which.
+  final List<RecipeCandidate> recipeCandidates;
+
   final LineResolution resolution;
   final void Function(String id, String name, {required bool correction})
   onResolveExisting;
   final ValueChanged<String> onResolveStub;
+
+  /// Links the line to the tapped recipe. Null where linking is not offered.
+  final ValueChanged<RecipeCandidate>? onLinkRecipe;
+
+  /// Un-links a linked line, back to the plain text it arrived as.
+  final VoidCallback? onUnlink;
 
   Future<void> _openSearch(BuildContext context) async {
     final pick = await showReconcileIngredientSheet(
@@ -898,6 +1087,17 @@ class Resolver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // LINKED: the identity cell is the recipe chip, with the same
+    // tap-the-row-to-re-match affordance a chosen ingredient has (picking an
+    // ingredient un-links it, D1's XOR) and an explicit unlink beside it, so
+    // the decision is reversible right up to Save.
+    if (resolution.isComponent) {
+      return _LinkedRecipe(
+        title: resolution.linkedRecipeTitle ?? resolution.ingredientText,
+        onTap: () => _openSearch(context),
+        onUnlink: onUnlink,
+      );
+    }
     if (resolution.chosenIngredientId != null) {
       return _Chosen(
         label: resolution.chosenName ?? 'Matched',
@@ -913,16 +1113,28 @@ class Resolver extends StatelessWidget {
       );
     }
 
+    final offers = onLinkRecipe == null
+        ? const <RecipeCandidate>[]
+        : recipeCandidates;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (candidates.isNotEmpty) ...[
+        if (candidates.isNotEmpty || offers.isNotEmpty) ...[
           Text('Did you mean', style: ansiLabel()),
           const SizedBox(height: 6),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [
+              // The recipe offers lead the row — a line that names one of your
+              // own recipes usually means it — but they never replace the
+              // ingredient candidates beside them.
+              for (final c in offers)
+                _Pill(
+                  icon: kSubRecipeIcon,
+                  label: 'your recipe · ${c.title}',
+                  onTap: () => onLinkRecipe!(c),
+                ),
               for (final c in candidates)
                 _Pill(
                   label: c.canonicalName,
@@ -942,7 +1154,9 @@ class Resolver extends StatelessWidget {
           prefix: const Icon(FLucideIcons.search),
           onPress: () => _openSearch(context),
           child: Text(
-            candidates.isEmpty ? 'Find or create ingredient' : 'Something else',
+            candidates.isEmpty && offers.isEmpty
+                ? 'Find or create ingredient'
+                : 'Something else',
           ),
         ),
       ],
@@ -1011,15 +1225,93 @@ class _Chosen extends StatelessWidget {
   }
 }
 
+/// A LINKED line's identity cell: lane U's recipe chip, the whole row a
+/// re-match target (picking an ingredient un-links it — one identity, D1), and
+/// an explicit unlink so the offer can be taken back without hunting for the
+/// ingredient the line never had.
+class _LinkedRecipe extends StatelessWidget {
+  const _LinkedRecipe({
+    required this.title,
+    required this.onTap,
+    this.onUnlink,
+  });
+
+  final String title;
+  final VoidCallback onTap;
+  final VoidCallback? onUnlink;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AnsiColors.paper,
+        border: Border.all(color: AnsiColors.line),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onTap,
+                child: Row(
+                  children: [
+                    Flexible(child: RecipeChip(title: title, size: 14)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'tap to change',
+                      style: ansiMono(size: 10, color: AnsiColors.muted),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (onUnlink != null)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onUnlink,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        FLucideIcons.undo2,
+                        size: 13,
+                        color: AnsiColors.herb,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'unlink',
+                        style: ansiMono(size: 11, color: AnsiColors.herb),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _Pill extends StatelessWidget {
   const _Pill({
     required this.label,
     required this.onTap,
+    this.icon,
     this.selected = false,
     this.quiet = false,
   });
 
   final String label;
+
+  /// A leading glyph — the sub-recipe mark on a recipe offer, so the chip
+  /// reads as a different KIND of answer, not another ingredient.
+  final IconData? icon;
 
   /// The chip carries the line's current value — filled, so a selection stays
   /// visible when the fold reorders the row around it.
@@ -1045,14 +1337,28 @@ class _Pill extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: Text(
-            label,
-            style: quiet
-                ? ansiMono(size: 11, color: AnsiColors.muted)
-                : ansiSans(
-                    size: 13,
-                    color: selected ? AnsiColors.herbDeep : AnsiColors.ink,
-                  ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 12, color: AnsiColors.herb),
+                const SizedBox(width: 5),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: quiet
+                      ? ansiMono(size: 11, color: AnsiColors.muted)
+                      : ansiSans(
+                          size: 13,
+                          color: selected
+                              ? AnsiColors.herbDeep
+                              : AnsiColors.ink,
+                        ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

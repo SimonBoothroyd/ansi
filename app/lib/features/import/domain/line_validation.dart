@@ -26,6 +26,10 @@ enum LineIssue {
 
   /// The line's unit isn't one the matched ingredient can carry.
   unitNotAllowed,
+
+  /// A line LINKED to a household recipe (8.6 / D6) carries no amount. That is
+  /// its only gate: it wants no ingredient match and faces no admission check.
+  amountMissing,
 }
 
 /// The imprecise word a LINE actually printed, when it printed one — the
@@ -277,6 +281,17 @@ List<LineIssue> lineIssues(
   List<Measure> measures = const [],
 }) {
   if (resolution.isDropped) return const [];
+  // A LINKED line answers to D6's rule alone: valid when its amount is set.
+  // No ingredient match is wanted (it has the other identity), and no
+  // `allowed_units` gate applies — admission is an ingredient concept, and
+  // this unit meets the target recipe's yield family later, at derive time
+  // (D2). Which is why "¼ cup of a yield-less aioli" surfaces on the cook
+  // plan, not here.
+  if (resolution.isComponent) {
+    return resolution.quantity == null
+        ? const [LineIssue.amountMissing]
+        : const [];
+  }
   final matched =
       resolution.chosenIngredientId != null ||
       resolution.createStubName != null;

@@ -14,6 +14,7 @@ import '../domain/import_repository.dart';
 import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
 import '../domain/reconciliation_payload.dart';
+import '../domain/yield_prefill.dart';
 
 part 'import_view_models.g.dart';
 
@@ -40,6 +41,8 @@ class ImportReconciling extends ImportState {
     required this.payload,
     required this.resolutions,
     required this.servings,
+    this.yieldQty,
+    this.yieldUnit,
   });
 
   final ReconciliationPayload payload;
@@ -48,6 +51,15 @@ class ImportReconciling extends ImportState {
   /// The serving count the recipe commits with — seeded from the payload
   /// (defaulting to 1 when the source was unclear, which the UI flags).
   final double servings;
+
+  /// What one batch MAKES (8.6 / D2 · D9, board frame h): prefilled from the
+  /// payload's `yield_raw` when that was a plain amount + unit, and otherwise
+  /// left empty over the still-visible source line for a human to set.
+  ///
+  /// It NEVER gates Save. A yield-less recipe saves, links and scales; only
+  /// the derived numbers wait.
+  final double? yieldQty;
+  final Unit? yieldUnit;
 
   /// Every kept line resolved, and at least one line kept — the structural half
   /// of the commit gate. Unit validity is the other half and needs the vocab,
@@ -78,7 +90,13 @@ class ImportReconciling extends ImportState {
         ..write('|')
         ..write(r.createStubName ?? '')
         ..write('|')
+        ..write(r.linkedRecipeId ?? '')
+        ..write('|')
         ..write(r.unit ?? '')
+        ..write('|')
+        // A linked line's validity turns on its amount alone (D6), so the
+        // amount has to be part of the fingerprint for it.
+        ..write(r.isComponent && r.quantity == null)
         ..write('|')
         ..write(r.isRange && r.quantity == null)
         ..write('|')
@@ -91,10 +109,15 @@ class ImportReconciling extends ImportState {
   ImportReconciling copyWith({
     List<LineResolution>? resolutions,
     double? servings,
+    double? yieldQty,
+    Unit? yieldUnit,
+    bool clearYield = false,
   }) => ImportReconciling(
     payload: payload,
     resolutions: resolutions ?? this.resolutions,
     servings: servings ?? this.servings,
+    yieldQty: clearYield ? null : (yieldQty ?? this.yieldQty),
+    yieldUnit: clearYield ? null : (yieldUnit ?? this.yieldUnit),
   );
 }
 
@@ -145,10 +168,16 @@ class ImportController extends _$ImportController {
           .read(importRepositoryProvider)
           .startImport(source);
       if (!ref.mounted) return;
+      // The MAKES row opens on whatever `yield_raw` PLAINLY said, and empty
+      // otherwise — 0014's attempt-then-flag, the same pattern servings uses
+      // on this screen. Nothing is guessed from a fancier phrase.
+      final prefill = parseYieldRaw(payload.yieldRaw);
       state = ImportReconciling(
         payload: payload,
         resolutions: initialResolutions(payload),
         servings: (payload.servingsBase ?? 1).toDouble(),
+        yieldQty: prefill?.qty,
+        yieldUnit: prefill?.unit,
       );
     } on Object catch (e) {
       if (!ref.mounted) return;
@@ -181,6 +210,18 @@ class ImportController extends _$ImportController {
     state = s.copyWith(servings: servings < 1 ? 1 : servings);
   }
 
+  /// Sets what one batch MAKES (8.6 / D9, board frame h). Both halves or
+  /// neither — the migration's `recipe_yield_pair` CHECK says so, and half a
+  /// yield is half a fact. Clearing the amount clears the row.
+  void setYield(double? qty, Unit? unit) {
+    final s = state;
+    if (s is! ImportReconciling) return;
+    final stated = qty != null && qty > 0 && unit != null;
+    state = stated
+        ? s.copyWith(yieldQty: qty, yieldUnit: unit)
+        : s.copyWith(clearYield: true);
+  }
+
   /// Builds the commit payload and writes it. Returns the new recipe id, or
   /// null if the flow wasn't ready / a write failed.
   ///
@@ -197,6 +238,8 @@ class ImportController extends _$ImportController {
       s.resolutions,
       servingsBase: s.servings,
       issuesByLine: issuesByLine,
+      yieldQty: s.yieldQty,
+      yieldUnit: s.yieldUnit,
     );
     state = const ImportCommitting();
     try {

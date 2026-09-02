@@ -136,6 +136,30 @@ abstract class MatchCandidate with _$MatchCandidate {
       _$MatchCandidateFromJson(json);
 }
 
+/// A server-scored candidate **household recipe** for a line (step 8.6 / D6):
+/// the matcher ran this line's `ingredient_text` — cross-reference
+/// parentheticals stripped ("(page 38)") — through the shared normalizer
+/// against recipe TITLES as well as the vocabulary.
+///
+/// It is an OFFER, never a link: the review card renders it as one more
+/// did-you-mean chip and a human taps it (the D6 non-goal — auto-linking,
+/// ever). A line can carry both ingredient [MatchCandidate]s and these.
+@freezed
+abstract class RecipeCandidate with _$RecipeCandidate {
+  const factory RecipeCandidate({
+    required String recipeId,
+
+    /// The recipe's title as stored — the chip's display text.
+    required String title,
+
+    /// 1 for an exact normalized-title hit, else trigram similarity.
+    @Default(0) double score,
+  }) = _RecipeCandidate;
+
+  factory RecipeCandidate.fromJson(Map<String, Object?> json) =>
+      _$RecipeCandidateFromJson(json);
+}
+
 /// A sub-amount named IN A STEP for one reference (§4.6). Source-derived — a
 /// number transcribed from the prose, or a relative [qualifier], never
 /// invented.
@@ -189,14 +213,21 @@ abstract class Step with _$Step {
   factory Step.fromJson(Map<String, Object?> json) => _$StepFromJson(json);
 }
 
-/// One reconciliation line: the raw extraction, its match [band], and the
-/// server's [candidates] (empty for `none`).
+/// One reconciliation line: the raw extraction, its match [band], the server's
+/// ingredient [candidates] (empty for `none`), and — additively (8.6) — any
+/// household recipes whose title this line might be naming.
 @freezed
 abstract class ReconLine with _$ReconLine {
   const factory ReconLine({
     required RawLineItem raw,
     required MatchBand band,
     @Default(<MatchCandidate>[]) List<MatchCandidate> candidates,
+
+    /// The D6 recipe offers. The server OMITS the field entirely when there
+    /// are none — and when no recipe-title matcher is wired at all — so an
+    /// absent field must decode to exactly what it decoded before this
+    /// existed: the empty list, no chip, and a byte-identical commit.
+    @Default(<RecipeCandidate>[]) List<RecipeCandidate> recipeCandidates,
   }) = _ReconLine;
 
   factory ReconLine.fromJson(Map<String, Object?> json) =>

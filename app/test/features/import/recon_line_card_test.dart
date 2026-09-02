@@ -17,6 +17,10 @@ import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/ingredients/domain/measure_repository.dart';
+import 'package:ansi/features/recipes/data/recipe_providers.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/domain/recipe_repository.dart';
+import 'package:ansi/features/recipes/presentation/recipe_chip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -149,6 +153,42 @@ ReconciliationPayload _unitMismatchPayload() => const ReconciliationPayload(
   ],
 );
 
+/// The board's frame-(e) line: a printed cross-reference the server matched
+/// against a household recipe TITLE, offered beside an ingredient candidate.
+ReconciliationPayload _recipeOfferPayload() => const ReconciliationPayload(
+  title: 'Sausage Sliders',
+  servingsBase: 8,
+  groups: [
+    ReconGroup(
+      lines: [
+        ReconLine(
+          raw: RawLineItem(
+            ingredientText: 'Romesco Aioli (page 38)',
+            qty: 0.25,
+            unit: 'cup',
+            rawAmount: '¼ cup',
+          ),
+          band: MatchBand.suggest,
+          candidates: [
+            MatchCandidate(
+              ingredientId: 'ing-aioli',
+              canonicalName: 'Aioli, jarred',
+              score: 0.7,
+            ),
+          ],
+          recipeCandidates: [
+            RecipeCandidate(
+              recipeId: 'r-aioli',
+              title: 'Romesco Aioli',
+              score: 1,
+            ),
+          ],
+        ),
+      ],
+    ),
+  ],
+);
+
 const _garlic = Ingredient(
   id: 'ing-garlic',
   canonicalName: 'Garlic',
@@ -210,6 +250,42 @@ class _FakeMeasureRepo implements MeasureRepository {
 
   @override
   Future<void> softDeleteMeasure(String measureId) async {}
+}
+
+/// The household's recipes, as the component sheet reads them: one aioli that
+/// says what a batch makes.
+class _FakeRecipeRepo implements RecipeRepository {
+  @override
+  Stream<List<RecipeSummary>> watchRecipes() => Stream.value(const [
+    RecipeSummary(
+      id: 'r-aioli',
+      title: 'Romesco Aioli',
+      servingsBase: 4,
+      yieldQty: 1,
+      yieldUnit: cup,
+    ),
+  ]);
+
+  @override
+  Stream<Recipe?> watchRecipe(String id) => Stream.value(null);
+
+  @override
+  Future<void> saveRecipe(Recipe recipe) async {}
+
+  @override
+  Future<void> deleteRecipe(String id) async {}
+
+  @override
+  Future<void> setFavorite(String id, bool favorite) async {}
+
+  @override
+  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
+
+  @override
+  Future<bool> componentLinkWouldCycle({
+    required String recipeId,
+    required String subRecipeId,
+  }) async => false;
 }
 
 Widget _host(ProviderContainer container, {LineValidation? validation}) =>
@@ -637,6 +713,189 @@ void main() {
     expect(back.resolutions.single.isDropped, isFalse);
     expect(back.resolutions.single.chosenName, 'Spaghetti');
     expect(find.text('200 g'), findsOneWidget);
+  });
+
+  // --- Step 8.6 / D6 · board frame (e) -------------------------------------
+
+  group('a recipe offered at review, never auto-linked', () {
+    Future<ProviderContainer> reviewing() async {
+      final container = ProviderContainer(
+        overrides: [
+          importRepositoryProvider.overrideWithValue(
+            _FakeRepo(_recipeOfferPayload()),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container
+          .read(importControllerProvider.notifier)
+          .startImport(const ImportFromUrl('x'));
+      return container;
+    }
+
+    testWidgets('the offer rides the did-you-mean row BESIDE the ingredient '
+        'candidates — and nothing is linked until it is tapped', (
+      tester,
+    ) async {
+      final container = await reviewing();
+      await tester.pumpWidget(_host(container));
+      await tester.pumpAndSettle();
+
+      // Arrival: unlinked, and the tag names both doors.
+      final arrived =
+          container.read(importControllerProvider) as ImportReconciling;
+      expect(arrived.resolutions.single.isComponent, isFalse);
+      expect(
+        find.text('Match an ingredient — or link your recipe'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byIcon(FLucideIcons.pencil));
+      await tester.pumpAndSettle();
+
+      // One chip row, both kinds of answer in it.
+      expect(find.text('Did you mean'), findsOneWidget);
+      expect(find.text('your recipe · Romesco Aioli'), findsOneWidget);
+      expect(find.text('Aioli, jarred'), findsOneWidget);
+      expect(find.byIcon(kSubRecipeIcon), findsOneWidget);
+      // Still nothing linked by rendering it.
+      expect(
+        (container.read(importControllerProvider) as ImportReconciling)
+            .resolutions
+            .single
+            .isComponent,
+        isFalse,
+      );
+    });
+
+    testWidgets('tapping the chip links the line: recipe chip, no ingredient, '
+        'no allowed-units gate, valid for Save', (tester) async {
+      final container = await reviewing();
+      await tester.pumpWidget(_host(container));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.pencil));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('your recipe · Romesco Aioli'));
+      await tester.pumpAndSettle();
+
+      final linked =
+          (container.read(importControllerProvider) as ImportReconciling)
+              .resolutions
+              .single;
+      expect(linked.linkedRecipeId, 'r-aioli');
+      expect(linked.chosenIngredientId, isNull);
+      // Its amount was already printed, so it is valid the moment it links.
+      expect(linked.isResolved, isTrue);
+      expect(lineIssues(linked), isEmpty);
+
+      // The card says the two rules a linked line lives by…
+      expect(find.textContaining('no ingredient match needed'), findsOneWidget);
+      // …and the identity cell is lane U's recipe chip, with the unlink beside
+      // it. (Two: the expanded card's cell — the collapsed row is not built.)
+      expect(find.text('Romesco Aioli'), findsWidgets);
+      expect(find.text('unlink'), findsOneWidget);
+      // No ingredient prompt survives.
+      expect(find.text('Match an ingredient'), findsNothing);
+      expect(
+        find.text('Match an ingredient — or link your recipe'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the link is reversible before Save — unlink puts the line '
+        'back exactly as it arrived', (tester) async {
+      final container = await reviewing();
+      await tester.pumpWidget(_host(container));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.pencil));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('your recipe · Romesco Aioli'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('unlink'));
+      await tester.pumpAndSettle();
+
+      final back =
+          (container.read(importControllerProvider) as ImportReconciling)
+              .resolutions
+              .single;
+      expect(back.isComponent, isFalse);
+      expect(back.quantity, 0.25); // the printed amount is not disturbed
+      // The offer is on the card again, unanswered.
+      expect(find.text('your recipe · Romesco Aioli'), findsOneWidget);
+      expect(
+        find.text('Match an ingredient — or link your recipe'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a linked line with no amount is flagged "Set the amount" — '
+        'its only gate', (tester) async {
+      final container = await reviewing();
+      await tester.pumpWidget(_host(container));
+      await tester.pumpAndSettle();
+      container
+          .read(importControllerProvider.notifier)
+          .updateResolution(
+            0,
+            (r) => r.linkToRecipe('r-aioli', 'Romesco Aioli').setAmount(),
+          );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Set the amount'), findsWidgets);
+      expect(
+        (container.read(importControllerProvider) as ImportReconciling)
+            .canCommit,
+        isFalse,
+      );
+    });
+
+    testWidgets('editing a linked amount opens the COMPONENT sheet — batch '
+        'chips against the target’s yield, not an ingredient’s units', (
+      tester,
+    ) async {
+      _filterSemanticsAssertions();
+      final container = await reviewing();
+      await tester.pumpWidget(_host(container));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.pencil));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('your recipe · Romesco Aioli'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(AmountEditor));
+      await tester.pumpAndSettle();
+
+      // Lane U's sheet, reading the target's yields off the local repository.
+      expect(find.text('makes 1 cup · your recipe'), findsOneWidget);
+      expect(find.textContaining('0.25 of a batch'), findsOneWidget);
+      expect(find.text('batch'), findsOneWidget);
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      final saved =
+          (container.read(importControllerProvider) as ImportReconciling)
+              .resolutions
+              .single;
+      expect(saved.quantity, 0.25);
+      expect(saved.unit, 'cup');
+    });
+  });
+
+  group('crossReferenceFlag (board frame e)', () {
+    test('a printed page reference is surfaced, in its own words', () {
+      expect(crossReferenceFlag('Romesco Aioli (page 38)'), '(page 38)');
+      expect(crossReferenceFlag('Garlic Butter (p. 17)'), '(p. 17)');
+      expect(crossReferenceFlag('Pretzel Buns (see page 97)'), '(see page 97)');
+    });
+
+    test('an ordinary parenthetical is NOT a cross-reference', () {
+      expect(crossReferenceFlag('tomatoes (400 g tin)'), isNull);
+      expect(crossReferenceFlag('parsley (optional)'), isNull);
+      expect(crossReferenceFlag('onion'), isNull);
+    });
   });
 
   group('amountLabel (round-3 #1a)', () {
