@@ -339,8 +339,11 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
       editor / search / errors).
 - [ ] `docs/QUALITY.md` grades for every area touched.
 - [ ] `app/AGENTS.md` "Current focus" still true.
-- [x] `make test-sim` 6/6 on main 2026-09-02 (nav shell · piece · search); re-run
-      pending after Library / Week / editor / errors.
+- [x] `make test-sim` 6/6 on main 2026-09-02, twice: after nav shell · piece ·
+      search, and again after editor · week · library (scenarios 2 and 3
+      rewritten for the step cards and the week redesign; the second run
+      found the entry-sheet double pop). Final re-run pending the errors
+      landing.
 - [ ] Tech-debt rows added and retired.
 - [ ] **Cloud, still to push** (one sitting, `docs/release.md`): migrations
       `0018_fold_diacritics.sql` (folds stored `match_text`; one row today)
