@@ -251,13 +251,26 @@ abstract class RecipeCookPlan with _$RecipeCookPlan {
 }
 
 /// Who demanded a component the plan could not derive — the planned recipe at
-/// the top of the walk, and the day it is cooked.
+/// the top of the walk, the day it is cooked, and what its line printed.
+///
+/// [quantity]/[unit] are the demanding line's stored values **as printed**,
+/// NOT multiplied by the parent session's scale: the gap card quotes what the
+/// page says ("the line asks for ¼ cup"), because a scaled number would be
+/// arithmetic done against a yield that is exactly what is missing. [quantity]
+/// is null on a numberless line, and the card drops the clause rather than
+/// filling it.
+///
+/// One source per demanding parent: when a parent lists the same target more
+/// than once, the first line's amount is the one quoted (the gap is keyed by
+/// target + reason, so the two lines are one gap).
 @freezed
 abstract class ComponentDemandSource with _$ComponentDemandSource {
   const factory ComponentDemandSource({
     required String recipeId,
     required String title,
     required int cookDay,
+    required Unit unit,
+    double? quantity,
   }) = _ComponentDemandSource;
 }
 
@@ -605,6 +618,12 @@ CookPlan buildCookPlan(
   return CookPlan(recipes: plans, gaps: gaps);
 }
 
+/// The planned recipe a walk descends from — the identity every demand and gap
+/// on that branch is attributed to. Kept separate from [ComponentDemandSource]
+/// because that carries the per-LINE printed amount, while this is fixed for
+/// the whole branch.
+typedef _PlannedRoot = ({String recipeId, String title, int cookDay});
+
 /// Walks every planned session's component lines depth-first, returning the
 /// [ComponentDemand]s per sub-recipe and the [ComponentGap]s for the ones that
 /// could not be resolved (step 8.6 / D3).
@@ -630,7 +649,7 @@ CookPlan buildCookPlan(
   void walk({
     required String recipeId,
     required double factor,
-    required ComponentDemandSource root,
+    required _PlannedRoot root,
     required String? via,
     required Set<String> visited,
   }) {
@@ -651,9 +670,23 @@ CookPlan buildCookPlan(
               title: target.title,
               reason: reason,
             );
+        // The source carries the DEMANDING LINE's printed amount, unscaled —
+        // frame (f)'s "the line asks for ¼ cup" quotes the page, not
+        // arithmetic against the yield that is missing.
         gaps[key] = gap.demandedBy.any((s) => s.recipeId == root.recipeId)
             ? gap
-            : gap.copyWith(demandedBy: [...gap.demandedBy, root]);
+            : gap.copyWith(
+                demandedBy: [
+                  ...gap.demandedBy,
+                  ComponentDemandSource(
+                    recipeId: root.recipeId,
+                    title: root.title,
+                    cookDay: root.cookDay,
+                    quantity: line.quantity,
+                    unit: line.unit,
+                  ),
+                ],
+              );
       }
 
       if (visited.contains(line.subRecipeId)) {
@@ -694,7 +727,7 @@ CookPlan buildCookPlan(
       walk(
         recipeId: plan.recipeId,
         factor: session.scaleFactor,
-        root: ComponentDemandSource(
+        root: (
           recipeId: plan.recipeId,
           title: plan.title,
           cookDay: session.cookDay,

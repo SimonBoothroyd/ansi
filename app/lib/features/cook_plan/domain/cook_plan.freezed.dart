@@ -1427,7 +1427,7 @@ as List<CookSession>,
 /// @nodoc
 mixin _$ComponentDemandSource {
 
- String get recipeId; String get title; int get cookDay;
+ String get recipeId; String get title; int get cookDay; Unit get unit; double? get quantity;
 /// Create a copy of ComponentDemandSource
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1438,16 +1438,16 @@ $ComponentDemandSourceCopyWith<ComponentDemandSource> get copyWith => _$Componen
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComponentDemandSource&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.title, title) || other.title == title)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComponentDemandSource&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.title, title) || other.title == title)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.quantity, quantity) || other.quantity == quantity));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,recipeId,title,cookDay);
+int get hashCode => Object.hash(runtimeType,recipeId,title,cookDay,unit,quantity);
 
 @override
 String toString() {
-  return 'ComponentDemandSource(recipeId: $recipeId, title: $title, cookDay: $cookDay)';
+  return 'ComponentDemandSource(recipeId: $recipeId, title: $title, cookDay: $cookDay, unit: $unit, quantity: $quantity)';
 }
 
 
@@ -1458,7 +1458,7 @@ abstract mixin class $ComponentDemandSourceCopyWith<$Res>  {
   factory $ComponentDemandSourceCopyWith(ComponentDemandSource value, $Res Function(ComponentDemandSource) _then) = _$ComponentDemandSourceCopyWithImpl;
 @useResult
 $Res call({
- String recipeId, String title, int cookDay
+ String recipeId, String title, int cookDay, Unit unit, double? quantity
 });
 
 
@@ -1475,12 +1475,14 @@ class _$ComponentDemandSourceCopyWithImpl<$Res>
 
 /// Create a copy of ComponentDemandSource
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? recipeId = null,Object? title = null,Object? cookDay = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? recipeId = null,Object? title = null,Object? cookDay = null,Object? unit = null,Object? quantity = freezed,}) {
   return _then(_self.copyWith(
 recipeId: null == recipeId ? _self.recipeId : recipeId // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,cookDay: null == cookDay ? _self.cookDay : cookDay // ignore: cast_nullable_to_non_nullable
-as int,
+as int,unit: null == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
+as Unit,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 
@@ -1565,10 +1567,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String recipeId,  String title,  int cookDay)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String recipeId,  String title,  int cookDay,  Unit unit,  double? quantity)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ComponentDemandSource() when $default != null:
-return $default(_that.recipeId,_that.title,_that.cookDay);case _:
+return $default(_that.recipeId,_that.title,_that.cookDay,_that.unit,_that.quantity);case _:
   return orElse();
 
 }
@@ -1586,10 +1588,10 @@ return $default(_that.recipeId,_that.title,_that.cookDay);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String recipeId,  String title,  int cookDay)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String recipeId,  String title,  int cookDay,  Unit unit,  double? quantity)  $default,) {final _that = this;
 switch (_that) {
 case _ComponentDemandSource():
-return $default(_that.recipeId,_that.title,_that.cookDay);case _:
+return $default(_that.recipeId,_that.title,_that.cookDay,_that.unit,_that.quantity);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1606,10 +1608,10 @@ return $default(_that.recipeId,_that.title,_that.cookDay);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String recipeId,  String title,  int cookDay)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String recipeId,  String title,  int cookDay,  Unit unit,  double? quantity)?  $default,) {final _that = this;
 switch (_that) {
 case _ComponentDemandSource() when $default != null:
-return $default(_that.recipeId,_that.title,_that.cookDay);case _:
+return $default(_that.recipeId,_that.title,_that.cookDay,_that.unit,_that.quantity);case _:
   return null;
 
 }
@@ -1621,12 +1623,14 @@ return $default(_that.recipeId,_that.title,_that.cookDay);case _:
 
 
 class _ComponentDemandSource implements ComponentDemandSource {
-  const _ComponentDemandSource({required this.recipeId, required this.title, required this.cookDay});
+  const _ComponentDemandSource({required this.recipeId, required this.title, required this.cookDay, required this.unit, this.quantity});
   
 
 @override final  String recipeId;
 @override final  String title;
 @override final  int cookDay;
+@override final  Unit unit;
+@override final  double? quantity;
 
 /// Create a copy of ComponentDemandSource
 /// with the given fields replaced by the non-null parameter values.
@@ -1638,16 +1642,16 @@ _$ComponentDemandSourceCopyWith<_ComponentDemandSource> get copyWith => __$Compo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComponentDemandSource&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.title, title) || other.title == title)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComponentDemandSource&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.title, title) || other.title == title)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.quantity, quantity) || other.quantity == quantity));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,recipeId,title,cookDay);
+int get hashCode => Object.hash(runtimeType,recipeId,title,cookDay,unit,quantity);
 
 @override
 String toString() {
-  return 'ComponentDemandSource(recipeId: $recipeId, title: $title, cookDay: $cookDay)';
+  return 'ComponentDemandSource(recipeId: $recipeId, title: $title, cookDay: $cookDay, unit: $unit, quantity: $quantity)';
 }
 
 
@@ -1658,7 +1662,7 @@ abstract mixin class _$ComponentDemandSourceCopyWith<$Res> implements $Component
   factory _$ComponentDemandSourceCopyWith(_ComponentDemandSource value, $Res Function(_ComponentDemandSource) _then) = __$ComponentDemandSourceCopyWithImpl;
 @override @useResult
 $Res call({
- String recipeId, String title, int cookDay
+ String recipeId, String title, int cookDay, Unit unit, double? quantity
 });
 
 
@@ -1675,12 +1679,14 @@ class __$ComponentDemandSourceCopyWithImpl<$Res>
 
 /// Create a copy of ComponentDemandSource
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? recipeId = null,Object? title = null,Object? cookDay = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? recipeId = null,Object? title = null,Object? cookDay = null,Object? unit = null,Object? quantity = freezed,}) {
   return _then(_ComponentDemandSource(
 recipeId: null == recipeId ? _self.recipeId : recipeId // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,cookDay: null == cookDay ? _self.cookDay : cookDay // ignore: cast_nullable_to_non_nullable
-as int,
+as int,unit: null == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
+as Unit,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 

@@ -292,15 +292,21 @@ void main() {
   });
 
   group('the gap card (step 8.6 / D3)', () {
-    ComponentGap gap(UnresolvedComponentAmount reason) => ComponentGap(
+    ComponentGap gap(
+      UnresolvedComponentAmount reason, {
+      double? quantity = 0.25,
+      Unit unit = cup,
+    }) => ComponentGap(
       recipeId: 'aioli',
       title: 'Romesco Aioli',
       reason: reason,
-      demandedBy: const [
+      demandedBy: [
         ComponentDemandSource(
           recipeId: 'sliders',
           title: 'Sausage Sliders',
           cookDay: 5,
+          quantity: quantity,
+          unit: unit,
         ),
       ],
     );
@@ -317,7 +323,65 @@ void main() {
       );
       expect(gapBody(missing), startsWith('Set its yield'));
       expect(gapOffersYieldFix(missing), isTrue);
-      expect(gapCoversLine(missing), 'covers Sausage Sliders · cook Sat');
+      // Frame (f) verbatim: the one number a gap CAN state is what the line
+      // printed.
+      expect(
+        gapCoversLine(missing),
+        'covers Sausage Sliders · cook Sat — the line asks for 0.25 cup',
+      );
+    });
+
+    test('the quoted amount is the printed one, in the line’s own unit', () {
+      expect(
+        gapCoversLine(
+          gap(const ComponentYieldMissing(), quantity: 8, unit: pieces),
+        ),
+        // A count prints bare, the way the recipe page says it.
+        'covers Sausage Sliders · cook Sat — the line asks for 8',
+      );
+      expect(
+        gapCoversLine(
+          gap(const ComponentYieldMissing(), quantity: 2, unit: tbsp),
+        ),
+        'covers Sausage Sliders · cook Sat — the line asks for 2 tbsp',
+      );
+    });
+
+    test('a numberless line drops the clause rather than filling it', () {
+      expect(
+        gapCoversLine(gap(const ComponentAmountMissing(), quantity: null)),
+        'covers Sausage Sliders · cook Sat',
+      );
+    });
+
+    test('two demanding parents each name their own ask — "the line" would be '
+        'ambiguous', () {
+      const shared = ComponentGap(
+        recipeId: 'aioli',
+        title: 'Romesco Aioli',
+        reason: ComponentYieldMissing(),
+        demandedBy: [
+          ComponentDemandSource(
+            recipeId: 'sliders',
+            title: 'Sausage Sliders',
+            cookDay: 5,
+            quantity: 0.25,
+            unit: cup,
+          ),
+          ComponentDemandSource(
+            recipeId: 'toasts',
+            title: 'Romesco Toasts',
+            cookDay: 6,
+            quantity: 1,
+            unit: batches,
+          ),
+        ],
+      );
+      expect(
+        gapCoversLine(shared),
+        'covers Sausage Sliders + Romesco Toasts · cook Sat + Sun — '
+        'Sausage Sliders asks for 0.25 cup · Romesco Toasts asks for 1 batch',
+      );
     });
 
     test('a family mismatch names both sides and the fix that closes it', () {

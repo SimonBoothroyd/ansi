@@ -646,7 +646,51 @@ void main() {
       expect(gap.reason, const ComponentYieldMissing());
       expect(gap.demandedBy.single.title, 'Sausage Sliders');
       expect(gap.demandedBy.single.cookDay, 5);
+      // Frame (f) quotes what the PAGE printed, so the source carries the
+      // demanding line's own amount — unscaled, un-converted.
+      expect(gap.demandedBy.single.quantity, 0.25);
+      expect(gap.demandedBy.single.unit, cup);
       expect(plan.unresolvedComponentsByParent, {'sliders': 1});
+    });
+
+    test('the gap source quotes the printed amount, NOT the parent-scaled one '
+        '— the scaling is exactly what cannot be done here', () {
+      final plan = buildCookPlan(
+        [
+          // 16 sliders of a serves-8 recipe: the parent session is ×2.
+          _recipe(
+            {5: 16},
+            id: 'sliders',
+            title: 'Sausage Sliders',
+            servings: 8,
+          ),
+        ],
+        components: {
+          'sliders': sliders(components: const [quarterCup]),
+          'aioli': aioli(yields: const []),
+        },
+      );
+      expect(plan.gaps.single.demandedBy.single.quantity, 0.25);
+    });
+
+    test('a numberless component line carries no amount to quote', () {
+      final plan = buildCookPlan(
+        [
+          _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+        ],
+        components: {
+          'sliders': sliders(
+            components: const [
+              (subRecipeId: 'aioli', quantity: null, unit: cup),
+            ],
+          ),
+          'aioli': aioli(),
+        },
+      );
+      final source = plan.gaps.single.demandedBy.single;
+      expect(plan.gaps.single.reason, const ComponentAmountMissing());
+      expect(source.quantity, isNull);
+      expect(source.unit, cup);
     });
 
     test('a family mismatch is its own gap, carrying both families', () {
@@ -696,6 +740,11 @@ void main() {
       expect(plan.gaps.single.demandedBy.map((s) => s.title), [
         'Sausage Sliders',
         'Romesco Toasts',
+      ]);
+      // Each source carries its OWN line's printed amount.
+      expect(plan.gaps.single.demandedBy.map((s) => (s.quantity, s.unit)), [
+        (0.25, cup),
+        (0.25, cup),
       ]);
       expect(plan.unresolvedComponentsByParent, {'sliders': 1, 'toasts': 1});
     });

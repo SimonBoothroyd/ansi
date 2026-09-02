@@ -173,14 +173,41 @@ String gapReasonShort(UnresolvedComponentAmount reason) => switch (reason) {
   ComponentCycle() => 'used inside itself',
 };
 
-/// The gap card's "covers …" line. It quotes the same shape a resolved
-/// session's does, minus every number it cannot honestly state.
+/// The gap card's "covers …" line — *"covers Sausage Sliders · cook Sat — the
+/// line asks for 0.25 cup"* (board frame f).
+///
+/// It quotes the same shape a resolved session's does, minus every number it
+/// cannot honestly state. The closing clause is the one number a gap CAN
+/// state: what the demanding line printed. It is deliberately unscaled and
+/// un-converted — the whole reason this card exists is that the arithmetic
+/// against the yield cannot be done.
+///
+/// A numberless line ([ComponentAmountMissing]) has no amount to quote, so the
+/// clause is dropped rather than filled. With more than one demanding parent
+/// each clause names its own, since "the line" would then be ambiguous.
 String gapCoversLine(ComponentGap gap) {
   final days = (gap.demandedBy.map((d) => d.cookDay).toSet().toList()..sort())
       .map((d) => kWeekdayShort[d])
       .join(' + ');
   final parents = gap.demandedBy.map((d) => d.title).toSet().join(' + ');
-  return 'covers $parents · cook $days';
+  final head = 'covers $parents · cook $days';
+
+  final asks = [
+    for (final d in gap.demandedBy)
+      if (d.quantity != null) d,
+  ];
+  if (asks.isEmpty) return head;
+  if (gap.demandedBy.length == 1) {
+    final ask = asks.single;
+    return '$head — the line asks for '
+        '${componentAmountText(ask.quantity, ask.unit)}';
+  }
+  final clauses = asks
+      .map(
+        (d) => '${d.title} asks for ${componentAmountText(d.quantity, d.unit)}',
+      )
+      .join(' · ');
+  return '$head — $clauses';
 }
 
 /// The warn state's headline — *"Romesco Aioli doesn't say how much it
