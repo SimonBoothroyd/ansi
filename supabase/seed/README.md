@@ -149,6 +149,17 @@ The generated SQL is idempotent (a `where not exists` guard per live label)
 and ends with a check that every seeded match_text still resolves to a live
 vocab ingredient.
 
+> **Regenerating without the CSV bundles.** `gen-measures` needs the ~40 MB
+> FDC bundles, which are deliberately not committed. The plan-0022 measure
+> edits (broccoli `bunch` → `whole`, cherry tomato's borrowed `cherry`
+> dropped, ginger's `piece, 1 inch`) were therefore recorded as
+> `drop_measure`/`add_measure` overrides — the real source of truth — and the
+> identical transformation was applied to the committed `seed_measures.sql`
+> by hand. Any run of `gen-measures` against the bundles reproduces it
+> verbatim: drops are label-exact, and an added row lands by its
+> `sort_order`. If a future edit is bigger than a handful of rows, fetch the
+> bundles and re-run the generator rather than extending the hand pass.
+
 ## Curation overrides (`curation_overrides.jsonl`) & `seed_curation.sql`
 
 `curation_overrides.jsonl` (committed, one JSON object per line, every entry
@@ -163,6 +174,28 @@ re-materialize `allowed_units` via `default_allowed_units()` now that every
 density source has run (the insert-time trigger fired before prefill) →
 produce volume leg → allowed-unit overrides. Every override's reason is
 emitted as a SQL comment so the generated file stays auditable on its own.
+
+**The `piece` pass (2026-09-02, plan 0022 / ADR-0010).**
+`piece` means "a whole one of these, and we have nothing better to call it".
+Where the vocabulary *does* have something better — a clove, an avocado, a
+medium potato — `piece` is not admitted at all, so nothing at runtime ever has
+to guess which measure a `piece` meant. That is an **admission fact** in the
+explicit `allowed_units` list, not a derived rule: deriving it would put
+`piece` back on broccoli and take it off ginger. All **142** seeded rows that
+carry a measure were read and ruled on by hand (the tables in
+`docs/exec-plans/active/0022-piece-curation.md`), and each landed here as one
+`{"kind": "allowed_units", …, "remove": ["piece"]}` line with its reason. 66
+of those removals are no-ops today — those rows are mass- or volume-default
+and never got `piece` from the rule — and are written anyway, because the file
+is the decision record and the ruling must outlive a change of default unit.
+`default_allowed_units()` and its Dart mirror are deliberately **unchanged**: a
+measure-less count row must still get `piece`. In the seeded template that case
+turns out never to arise — all 76 count-default rows carry a measure — so after
+the pass **no seeded row admits `piece` at all**; the fallback is there for the
+ingredients a household creates itself. Rollout is a **reseed**, never a
+migration (ADR-0009 rule 3 forbids a backfill that removes from a list the
+household owns). The safety net is a pgTAP assertion in
+`../tests/unit_admission.sql`, not a second stored copy of the rule.
 
 **Produce volume leg.** ADR-0008's density leg fires only for mass/volume
 defaults — a count default gets nothing from a density, because "a density

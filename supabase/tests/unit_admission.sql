@@ -19,10 +19,16 @@
 -- USDA stub prefill trigger (0014's insert leg AND 0015's rename leg), the
 -- basis_amount rename + positivity check, and that `grams` is gone.
 --
+-- Plan 0022 / ADR-0010 adds the `piece` curation guard: no seeded ingredient
+-- that carries a measure admits `piece`, while every measure-less count row
+-- still does. That pass is DATA (curation_overrides.jsonl), not a rule — so
+-- the assertion here is the only thing standing between a regenerated seed
+-- and a silently restored `piece`.
+--
 -- Run by `supabase test db`.
 
 begin;
-select plan(61);
+select plan(73);
 
 -- ---------------------------------------------------------------------------
 -- default_allowed_units() vectors (mirror allowed_units_test.dart).
@@ -260,6 +266,146 @@ select ok(
      where household_id = '00000000-0000-0000-0000-0000000000aa'
        and match_text = 'olive oil'),
   'a curated REMOVAL survives (nobody pinches olive oil)'
+);
+
+-- ---------------------------------------------------------------------------
+-- Plan 0022 / ADR-0010: `piece` is an admission fact, curated by hand.
+--
+-- The owner's ruling (2026-09-02): `piece` is the fallback for when no
+-- appropriate measure exists. Where a piece-type measure names the thing — a
+-- clove, an avocado, a medium potato — `piece` is not admitted at all, so
+-- nothing at runtime ever has to guess which measure a `piece` meant. The
+-- decision is DATA (one curated line per row in seed/curation_overrides.jsonl),
+-- never a derived rule: deriving it would put `piece` back on broccoli and
+-- take it off ginger. These assertions are the safety net that stops a reseed
+-- or an unrelated generator change from quietly putting `piece` back.
+-- ---------------------------------------------------------------------------
+
+-- The canary. The guard below is vacuous if this set is empty, and a row that
+-- has GAINED a measure since the pass is a row that needs its own ruling in
+-- curation_overrides.jsonl — so pin the count rather than only the property.
+select is(
+  (select count(distinct i.id)::int
+     from ingredient i
+     join ingredient_measure m on m.ingredient_id = i.id
+    where i.household_id = '00000000-0000-0000-0000-0000000000aa'
+      and i.deleted_at is null and m.deleted_at is null),
+  141,
+  'the template has 141 measure-carrying ingredients (the curated set)'
+);
+
+-- The rule itself, named row by row so a failure says WHICH row regressed.
+select is(
+  (select coalesce(string_agg(distinct i.match_text, ', '), '')
+     from ingredient i
+     join ingredient_measure m on m.ingredient_id = i.id
+    where i.household_id = '00000000-0000-0000-0000-0000000000aa'
+      and i.deleted_at is null and m.deleted_at is null
+      and i.allowed_units ? 'piece'),
+  '',
+  'no seeded ingredient carrying a measure admits `piece` (plan 0022)'
+);
+
+-- The other half of the ruling, and the reason `default_allowed_units()` and
+-- its Dart mirror are deliberately NOT touched: a measure-less count row must
+-- still get `piece`, because there is nothing clearer to say. That is the
+-- fallback a household's own new ingredient gets, asked about only when they
+-- add a measure to it.
+select ok(
+  default_allowed_units('piece', 'g', null, 'produce') ? 'piece',
+  'a measure-less count row still gets `piece` (the derived rule is untouched)'
+);
+
+-- As it happens EVERY seeded count-default row carries a measure, so after the
+-- pass the template admits `piece` nowhere. That is the ruling landing, not an
+-- accident — but pin it, because the number moving is how a reseed announces
+-- that a row gained or lost its measures.
+select is(
+  (select count(*)::int from ingredient
+    where household_id = '00000000-0000-0000-0000-0000000000aa'
+      and deleted_at is null and allowed_units ? 'piece'),
+  0,
+  'no seeded row admits `piece`: all 76 count-default rows carry a measure'
+);
+
+-- The board's two import frames, pinned at the data end. Avocado is the
+-- single-measure row (one chip, preselected); gold potato is the pick-one row
+-- (three chips, nothing preselected).
+select is(
+  (select count(*)::int from ingredient_measure m
+     join ingredient i on i.id = m.ingredient_id
+    where i.household_id = '00000000-0000-0000-0000-0000000000aa'
+      and i.match_text = 'avocado' and m.deleted_at is null),
+  1,
+  'avocado carries exactly one measure (the preselect frame)'
+);
+select is(
+  (select count(*)::int from ingredient_measure m
+     join ingredient i on i.id = m.ingredient_id
+    where i.household_id = '00000000-0000-0000-0000-0000000000aa'
+      and i.match_text = 'gold potato' and m.deleted_at is null),
+  3,
+  'gold potato carries three measures (the small/medium/large pick-one frame)'
+);
+
+-- The three measure edits the owner ruled in the same pass.
+select is(
+  (select m.basis_amount::numeric from ingredient_measure m
+     join ingredient i on i.id = m.ingredient_id
+    where i.household_id = '00000000-0000-0000-0000-0000000000aa'
+      and i.match_text = 'broccoli' and m.label = 'whole'
+      and m.deleted_at is null),
+  608::numeric,
+  'broccoli''s 608 g bunch is relabelled `whole` — a whole broccoli'
+);
+select ok(
+  (select m.source like 'usda_fdc:170379%' from ingredient_measure m
+     join ingredient i on i.id = m.ingredient_id
+    where i.household_id = '00000000-0000-0000-0000-0000000000aa'
+      and i.match_text = 'broccoli' and m.label = 'whole'
+      and m.deleted_at is null),
+  'the relabel keeps the USDA provenance of the row it replaces'
+);
+select is_empty(
+  $$select 1 from ingredient_measure m
+      join ingredient i on i.id = m.ingredient_id
+     where i.match_text = 'cherry tomato' and m.deleted_at is null$$,
+  'cherry tomato carries no measure at all (the borrowed `cherry` is gone)'
+);
+-- …and it cannot acquire `piece` by the back door either: it is cup-default,
+-- and the derived rule admits `piece` only for a count default.
+select is(
+  default_allowed_units('cup', 'g', 0.6298, 'produce') ? 'piece',
+  false,
+  'a volume-default row is never admitted `piece` by the rule'
+);
+select results_eq(
+  $$select m.label, m.basis_amount::numeric, m.source
+      from ingredient_measure m
+      join ingredient i on i.id = m.ingredient_id
+     where i.household_id = '00000000-0000-0000-0000-0000000000aa'
+       and i.match_text = 'ginger' and m.deleted_at is null
+     order by m.sort_order$$,
+  $$values ('slice', 2.2::numeric, 'usda_fdc:169231 (5 slices (1" dia))'),
+           ('piece, 1 inch', 12::numeric, 'seed:typical')$$,
+  'ginger keeps `slice` and gains the owner-asked `piece, 1 inch` (12 g)'
+);
+
+-- The density note attached to the same ruling: basil, thai basil and cherry
+-- tomato are measured by the spoon and the cup, so the tsp↔g chips have to
+-- exist. Those chips are a DENSITY, not a measure (ADR-0008 §2) — assert the
+-- USDA rows carry one, and macros, rather than curating a guessed number.
+select results_eq(
+  $$select match_text, density_g_per_ml::numeric, status,
+           (macros is not null)
+      from ingredient
+     where household_id = '00000000-0000-0000-0000-0000000000aa'
+       and match_text in ('basil', 'thai basil', 'cherry tomato')
+     order by match_text$$,
+  $$values ('basil', 0.1014::numeric, 'complete', true),
+           ('cherry tomato', 0.6298::numeric, 'complete', true),
+           ('thai basil', 0.1014::numeric, 'complete', true)$$,
+  'basil / thai basil / cherry tomato carry a USDA density AND macros'
 );
 
 -- ---------------------------------------------------------------------------

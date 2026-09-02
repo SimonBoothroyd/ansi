@@ -1266,6 +1266,858 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'to_taste')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cinnamon stick';
 
+-- almond: piece-curation A (owner 2026-09-02): the measure names the thing itself (almond) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'almond';
+
+-- apple: piece-curation A (owner 2026-09-02): the measure names the thing itself (apple, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'apple';
+
+-- apricot: piece-curation A (owner 2026-09-02): the measure names the thing itself (apricot) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'apricot';
+
+-- avocado: piece-curation A (owner 2026-09-02): the measure names the thing itself (avocado) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'avocado';
+
+-- banana: piece-curation A (owner 2026-09-02): the measure names the thing itself (banana, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'banana';
+
+-- bay leaf: piece-curation A (owner 2026-09-02): the measure names the thing itself (leaf) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'bay leaf';
+
+-- beet: piece-curation A (owner 2026-09-02): the measure names the thing itself (beet) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'beet';
+
+-- blueberry: piece-curation A (owner 2026-09-02): the measure names the thing itself (berry) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'blueberry';
+
+-- brussel sprout: piece-curation A (owner 2026-09-02): the measure names the thing itself (sprout) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'brussel sprout';
+
+-- burger bun: piece-curation A (owner 2026-09-02): the measure names the thing itself (bun) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'burger bun';
+
+-- butternut squash: piece-curation A (owner 2026-09-02): the measure names the thing itself (squash, whole) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'butternut squash';
+
+-- carrot: piece-curation A (owner 2026-09-02): the measure names the thing itself (carrot, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'carrot';
+
+-- cherry: piece-curation A (owner 2026-09-02): the measure names the thing itself (cherry) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cherry';
+
+-- cinnamon stick: piece-curation A (owner 2026-09-02): the measure names the thing itself (stick) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cinnamon stick';
+
+-- corn tortilla: piece-curation A (owner 2026-09-02): the measure names the thing itself (tortilla) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'corn tortilla';
+
+-- cremini mushroom: piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, whole) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cremini mushroom';
+
+-- cucumber: piece-curation A (owner 2026-09-02): the measure names the thing itself (cucumber) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cucumber';
+
+-- date: piece-curation A (owner 2026-09-02): the measure names the thing itself (date, pitted) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'date';
+
+-- eggplant: piece-curation A (owner 2026-09-02): the measure names the thing itself (eggplant, peeled) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'eggplant';
+
+-- english muffin: piece-curation A (owner 2026-09-02): the measure names the thing itself (muffin) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'english muffin';
+
+-- enoki mushroom: piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'enoki mushroom';
+
+-- flour tortilla: piece-curation A (owner 2026-09-02): the measure names the thing itself (package) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'flour tortilla';
+
+-- gala apple: piece-curation A (owner 2026-09-02): the measure names the thing itself (apple, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'gala apple';
+
+-- gold potato: piece-curation A (owner 2026-09-02): the measure names the thing itself (potato, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'gold potato';
+
+-- granny smith apple: piece-curation A (owner 2026-09-02): the measure names the thing itself (apple, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'granny smith apple';
+
+-- grapefruit: piece-curation A (owner 2026-09-02): the measure names the thing itself (grapefruit, whole) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'grapefruit';
+
+-- green bean: piece-curation A (owner 2026-09-02): the measure names the thing itself (bean) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'green bean';
+
+-- green bell pepper: piece-curation A (owner 2026-09-02): the measure names the thing itself (pepper, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'green bell pepper';
+
+-- green grape: piece-curation A (owner 2026-09-02): the measure names the thing itself (grape) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'green grape';
+
+-- green olive: piece-curation A (owner 2026-09-02): the measure names the thing itself (olive) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'green olive';
+
+-- hazelnut: piece-curation A (owner 2026-09-02): the measure names the thing itself (nut) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'hazelnut';
+
+-- hot chili: piece-curation A (owner 2026-09-02): the measure names the thing itself (chili) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'hot chili';
+
+-- jalapeño: piece-curation A (owner 2026-09-02): the measure names the thing itself (jalapeño) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'jalapeño';
+
+-- king oyster mushroom: piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'king oyster mushroom';
+
+-- kiwi: piece-curation A (owner 2026-09-02): the measure names the thing itself (kiwi, whole) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'kiwi';
+
+-- leek: piece-curation A (owner 2026-09-02): the measure names the thing itself (leek) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'leek';
+
+-- lemon: piece-curation A (owner 2026-09-02): the measure names the thing itself (lemon, whole) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'lemon';
+
+-- lime: piece-curation A (owner 2026-09-02): the measure names the thing itself (lime, whole) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'lime';
+
+-- mango: piece-curation A (owner 2026-09-02): the measure names the thing itself (mango, whole) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'mango';
+
+-- nectarine: piece-curation A (owner 2026-09-02): the measure names the thing itself (nectarine, whole) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'nectarine';
+
+-- onion: piece-curation A (owner 2026-09-02): the measure names the thing itself (onion, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'onion';
+
+-- orange: piece-curation A (owner 2026-09-02): the measure names the thing itself (orange, whole) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'orange';
+
+-- orange bell pepper: piece-curation A (owner 2026-09-02): the measure names the thing itself (pepper, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'orange bell pepper';
+
+-- oyster mushroom: piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'oyster mushroom';
+
+-- parsnip: piece-curation A (owner 2026-09-02): the measure names the thing itself (parsnip, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'parsnip';
+
+-- peach: piece-curation A (owner 2026-09-02): the measure names the thing itself (peach, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'peach';
+
+-- pineapple: piece-curation A (owner 2026-09-02): the measure names the thing itself (pineapple, whole) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pineapple';
+
+-- plantain: piece-curation A (owner 2026-09-02): the measure names the thing itself (plantain) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'plantain';
+
+-- poblano pepper: piece-curation A (owner 2026-09-02): the measure names the thing itself (pepper) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'poblano pepper';
+
+-- portobello mushroom: piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, whole) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'portobello mushroom';
+
+-- radish: piece-curation A (owner 2026-09-02): the measure names the thing itself (radish, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'radish';
+
+-- raspberry: piece-curation A (owner 2026-09-02): the measure names the thing itself (raspberry) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'raspberry';
+
+-- red bell pepper: piece-curation A (owner 2026-09-02): the measure names the thing itself (pepper, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'red bell pepper';
+
+-- red delicious apple: piece-curation A (owner 2026-09-02): the measure names the thing itself (apple, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'red delicious apple';
+
+-- red grape: piece-curation A (owner 2026-09-02): the measure names the thing itself (grape) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'red grape';
+
+-- red onion: piece-curation A (owner 2026-09-02): the measure names the thing itself (onion, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'red onion';
+
+-- red potato: piece-curation A (owner 2026-09-02): the measure names the thing itself (potato, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'red potato';
+
+-- russet potato: piece-curation A (owner 2026-09-02): the measure names the thing itself (potato, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'russet potato';
+
+-- scallion: piece-curation A (owner 2026-09-02): the measure names the thing itself (scallion, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'scallion';
+
+-- serrano pepper: piece-curation A (owner 2026-09-02): the measure names the thing itself (pepper) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'serrano pepper';
+
+-- shallot: piece-curation A (owner 2026-09-02): the measure names the thing itself (shallot, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'shallot';
+
+-- shiitake mushroom: piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, whole) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'shiitake mushroom';
+
+-- strawberry: piece-curation A (owner 2026-09-02): the measure names the thing itself (strawberry, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'strawberry';
+
+-- sweet potato: piece-curation A (owner 2026-09-02): the measure names the thing itself (sweet potato) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sweet potato';
+
+-- tomato: piece-curation A (owner 2026-09-02): the measure names the thing itself (tomato, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tomato';
+
+-- tostada shell: piece-curation A (owner 2026-09-02): the measure names the thing itself (shell) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tostada shell';
+
+-- turnip: piece-curation A (owner 2026-09-02): the measure names the thing itself (turnip, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'turnip';
+
+-- watermelon: piece-curation A (owner 2026-09-02): the measure names the thing itself (melon) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'watermelon';
+
+-- white mushroom: piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'white mushroom';
+
+-- yellow bell pepper: piece-curation A (owner 2026-09-02): the measure names the thing itself (pepper, large) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'yellow bell pepper';
+
+-- yellow squash: piece-curation A (owner 2026-09-02): the measure names the thing itself (squash, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'yellow squash';
+
+-- zucchini: piece-curation A (owner 2026-09-02): the measure names the thing itself (zucchini, medium) — piece would be a guess
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'zucchini';
+
+-- active yeast dry: piece-curation B (owner 2026-09-02): the natural count is sachet — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'active yeast dry';
+
+-- baked bean: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'baked bean';
+
+-- black bean canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'black bean canned';
+
+-- black eyed pea canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'black eyed pea canned';
+
+-- brazil nut: piece-curation B (owner 2026-09-02): the natural count is kernel — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'brazil nut';
+
+-- cannellini bean canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cannellini bean canned';
+
+-- cantaloupe: piece-curation B (owner 2026-09-02): the natural count is melon — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cantaloupe';
+
+-- chickpea canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'chickpea canned';
+
+-- cilantro: piece-curation B (owner 2026-09-02): the natural count is sprig — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cilantro';
+
+-- coconut milk: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut milk';
+
+-- corn: piece-curation B (owner 2026-09-02): the natural count is ear — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'corn';
+
+-- dark red kidney bean canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'dark red kidney bean canned';
+
+-- dill: piece-curation B (owner 2026-09-02): the natural count is sprig — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'dill';
+
+-- edamame frozen: piece-curation B (owner 2026-09-02): the natural count is package — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'edamame frozen';
+
+-- extra firm tofu: piece-curation B (owner 2026-09-02): the natural count is block — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'extra firm tofu';
+
+-- fennel: piece-curation B (owner 2026-09-02): the natural count is bulb — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'fennel';
+
+-- fig dried: piece-curation B (owner 2026-09-02): the natural count is fig, whole — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'fig dried';
+
+-- fire tomato canned roasted: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'fire tomato canned roasted';
+
+-- garlic: piece-curation B (owner 2026-09-02): the natural count is clove — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'garlic';
+
+-- great northern bean canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'great northern bean canned';
+
+-- green bean canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'green bean canned';
+
+-- instant yeast: piece-curation B (owner 2026-09-02): the natural count is sachet — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'instant yeast';
+
+-- lemon juice: piece-curation B (owner 2026-09-02): the natural count is lemon — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'lemon juice';
+
+-- light red kidney bean canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'light red kidney bean canned';
+
+-- lime juice: piece-curation B (owner 2026-09-02): the natural count is lime — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'lime juice';
+
+-- napa cabbage: piece-curation B (owner 2026-09-02): the natural count is head — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'napa cabbage';
+
+-- navy bean canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'navy bean canned';
+
+-- nori: piece-curation B (owner 2026-09-02): the natural count is sheet — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'nori';
+
+-- okra: piece-curation B (owner 2026-09-02): the natural count is pod — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'okra';
+
+-- orange juice: piece-curation B (owner 2026-09-02): the natural count is orange, juiced — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'orange juice';
+
+-- parsley: piece-curation B (owner 2026-09-02): the natural count is sprig — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'parsley';
+
+-- pea frozen: piece-curation B (owner 2026-09-02): the natural count is package — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pea frozen';
+
+-- pinto bean canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pinto bean canned';
+
+-- pistachio: piece-curation B (owner 2026-09-02): the natural count is kernel — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pistachio';
+
+-- shiitake bacon: piece-curation B (owner 2026-09-02): the natural count is slice — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'shiitake bacon';
+
+-- silken tofu: piece-curation B (owner 2026-09-02): the natural count is block — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'silken tofu';
+
+-- star anise: piece-curation B (owner 2026-09-02): the natural count is pod — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'star anise';
+
+-- tatsoi: piece-curation B (owner 2026-09-02): the natural count is head — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tatsoi';
+
+-- tempeh: piece-curation B (owner 2026-09-02): the natural count is package — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tempeh';
+
+-- tofu bacon: piece-curation B (owner 2026-09-02): the natural count is slice — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tofu bacon';
+
+-- tomato canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tomato canned';
+
+-- tomato canned whole: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tomato canned whole';
+
+-- tomato paste: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tomato paste';
+
+-- tomato puree canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tomato puree canned';
+
+-- tomato sauce canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tomato sauce canned';
+
+-- vegan sausage: piece-curation B (owner 2026-09-02): the natural count is link — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegan sausage';
+
+-- vegetable broth: piece-curation B (owner 2026-09-02): the natural count is can / carton — piece is only a worse way of saying it
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegetable broth';
+
+-- broccoli: piece-curation C (owner 2026-09-02): "bunch → piece" — the 608 g bunch IS the whole broccoli and is relabelled `whole`, so piece has nothing left to say
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'broccoli';
+
+-- dill pickle: piece-curation C (owner 2026-09-02): `spear` is the count the owner ruled for
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'dill pickle';
+
+-- ginger: piece-curation C (owner 2026-09-02): the owner asked for a countable piece; `piece, 1 inch` is added as a measure, so a bare piece is no longer the fallback
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'ginger';
+
+-- kombu: piece-curation C (owner 2026-09-02): `strip` is the count the owner ruled for
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'kombu';
+
+-- asparagus: piece-curation D (owner 2026-09-02): the owner's call: spears are fine
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'asparagus';
+
+-- basil: piece-curation D (owner 2026-09-02): the owner's call: basil is measured by the tsp/cup or by weight — the volume↔mass bridge is its density, not a piece
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'basil';
+
+-- cabbage: piece-curation D (owner 2026-09-02): the owner's call: a head is the whole and it is seeded
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cabbage';
+
+-- cauliflower: piece-curation D (owner 2026-09-02): the owner's call: a head is the whole and it is seeded
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cauliflower';
+
+-- celery: piece-curation D (owner 2026-09-02): the owner's call: a stalk is the count
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'celery';
+
+-- cherry tomato: piece-curation D (owner 2026-09-02): the owner's call: measured by the cup or by weight; the misleading `cherry` measure is dropped and the row's cup default never admitted piece anyway
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cherry tomato';
+
+-- iceberg lettuce: piece-curation D (owner 2026-09-02): the owner's call: a head is the whole and it is seeded
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'iceberg lettuce';
+
+-- mint: piece-curation D (owner 2026-09-02): the owner's call: sprig and bunch are the counts
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'mint';
+
+-- multigrain bread: piece-curation D (owner 2026-09-02): the owner's call: a slice is the count
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'multigrain bread';
+
+-- red cabbage: piece-curation D (owner 2026-09-02): applied by analogy to cabbage (owner: sgtm)
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'red cabbage';
+
+-- red leaf lettuce: piece-curation D (owner 2026-09-02): applied by analogy to iceberg lettuce (owner: sgtm)
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'red leaf lettuce';
+
+-- rhubarb: piece-curation D (owner 2026-09-02): the owner's call: a stalk is the count
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'rhubarb';
+
+-- romaine lettuce: piece-curation D (owner 2026-09-02): applied by analogy to iceberg lettuce (owner: sgtm)
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'romaine lettuce';
+
+-- soft sandwich bread: piece-curation D (owner 2026-09-02): applied by analogy to multigrain bread (owner: sgtm)
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'soft sandwich bread';
+
+-- spinach: piece-curation D (owner 2026-09-02): applied by analogy to mint — bunch and package are the counts (owner: sgtm)
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'spinach';
+
+-- sprouted multigrain bread: piece-curation D (owner 2026-09-02): applied by analogy to multigrain bread (owner: sgtm)
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sprouted multigrain bread';
+
+-- thai basil: piece-curation D (owner 2026-09-02): applied by analogy to basil (owner: sgtm)
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'thai basil';
+
+-- wheat bread whole: piece-curation D (owner 2026-09-02): applied by analogy to multigrain bread (owner: sgtm)
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'wheat bread whole';
+
+-- white bread: piece-curation D (owner 2026-09-02): applied by analogy to multigrain bread (owner: sgtm)
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'white bread';
+
 -- R1 invariant (Simon, 2026-08-29): a volume default_unit REQUIRES a
 -- density — a volume line on a density-less per-g ingredient can never
 -- compute macros, so the class must not silently return. Fill an honest
@@ -1304,7 +2156,7 @@ begin
       violators;
   end if;
 
-  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 78 density + 55 allowed-unit overrides + 12 FAO density fills; R1 (volume default => density) and R2 (kitchen density band) hold';
+  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 78 density + 197 allowed-unit overrides + 12 FAO density fills; R1 (volume default => density) and R2 (kitchen density band) hold';
 end $$;
 
 commit;

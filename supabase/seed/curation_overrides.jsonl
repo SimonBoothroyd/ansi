@@ -308,3 +308,173 @@
 {"kind": "density", "match_text": "lion mane mushroom", "value": 0.3, "source": "typical:fdc raw-mushroom family bracket", "reason": "D4d: FDC has no lion's mane record; borrowed from the raw-mushroom family exactly as shiitake mushroom 0.30 already is — maitake 0.2959, white 0.2959, enoki 0.2705, oyster and portabella 0.3635 bracket 0.30 for the torn-cup entry"}
 {"kind": "density", "match_text": "sourdough starter", "value": 0.96, "source": "label:King Arthur ingredient weight chart (1 cup = 227 g)", "reason": "D4d: FDC has no starter record and FAO's dry yeast is a different substance; King Arthur publishes 1 cup stirred-down starter = 227 g -> 0.96, which is what a 100%-hydration flour-water batter must weigh. '1 cup starter' is the standard printed line, so the g default alone strands the row"}
 {"kind": "density", "match_text": "crispy onion", "value": 0.237, "source": "label:French's Crispy Fried Onions (2 tbsp = 7 g)", "reason": "D4d: FDC's only fried-onion record is 170415 breaded rings (0.2029), a different geometry; French's prints 2 tbsp = 7 g -> 0.237, matched independently by FDC 170002 dehydrated onion flakes (0.2367). Deliberately BELOW the curated crispy shallot 0.34 — oil-fried shallot bits are denser than these dry slivers"}
+
+// --- The `piece` curation pass (2026-09-02, owner-ruled; plan 0022) ---------
+// `piece` means "a whole one of these, and we have nothing better to call it".
+// Where the vocabulary DOES have something better — a clove, an avocado, a
+// medium potato — `piece` is not offered at all, so nobody (human or machine)
+// ever has to guess which one a `piece` meant. That is an ADMISSION fact in
+// the explicit `allowed_units` list (ADR-0008 §4, ADR-0010): no new column, no
+// runtime cascade, no size-word guessing.
+//
+// The ruling is NOT rule-based and is not derived: every one of the 142 seeded
+// ingredients that carries a measure was read by hand and ruled on by the
+// owner (docs/exec-plans/active/0022-piece-curation.md, "Owner rulings —
+// 2026-09-02"). Sections A and B were accepted as drafted; C and D were ruled
+// row by row; the analogies are marked as such. Net: `piece` stays on NO
+// seeded ingredient that carries a measure. The ~149 measure-less rows are
+// untouched — they keep `piece`, because there is nothing clearer to say, and
+// `default_allowed_units()` (and its Dart mirror) is deliberately NOT changed.
+//
+// 66 of the 142 removals are already no-ops today: those rows are mass- or
+// volume-default, and `default_allowed_units()` never admits `piece` for them.
+// They are written anyway — the file is the decision record, and the ruling
+// must survive a vocab row later flipping its default unit to `piece`.
+//
+// Three measure edits the owner ruled in the same pass ride along below.
+{"kind": "drop_measure", "match_text": "broccoli", "label": "bunch", "reason": "owner 2026-09-02 (\"bunch -> piece\"): the 608 g bunch is what a recipe means by \"1 broccoli\" — relabelled `whole` below so the whole reads as one, which is what lets `piece` come out of the list"}
+{"kind": "add_measure", "match_text": "broccoli", "label": "whole", "basis_amount": 608, "sort_order": 0, "source": "usda_fdc:170379 (1 bunch)", "reason": "owner 2026-09-02: the same USDA 1-bunch portion under the name a recipe uses — a whole broccoli. Provenance kept verbatim from the row it replaces; only the label changed"}
+{"kind": "drop_measure", "match_text": "cherry tomato", "label": "cherry", "reason": "owner 2026-09-02 (\"cherry is wrong... drop piece / cherry / tomato altogether\"): cherry tomatoes are measured by the cup or by weight, and the borrowed generic-tomato `1 cherry` portion only invited a count nobody writes"}
+{"kind": "add_measure", "match_text": "ginger", "label": "piece, 1 inch", "basis_amount": 12, "sort_order": 1, "source": "seed:typical", "reason": "owner 2026-09-02 asked for a countable piece of ginger; recipes count a 1-inch / thumb-sized piece. USDA's 2.2 g slice is a thin 1\"-diameter round, NOT a 1-inch piece, so this carries its own typical weight (10-15 g band) and AWAITS THE OWNER'S CONFIRMATION — tracked in docs/exec-plans/tech-debt-tracker.md. `slice` stays"}
+{"kind": "allowed_units", "match_text": "almond", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (almond) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "apple", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (apple, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "apricot", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (apricot) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "avocado", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (avocado) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "banana", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (banana, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "bay leaf", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (leaf) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "beet", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (beet) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "blueberry", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (berry) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "brussel sprout", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (sprout) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "burger bun", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (bun) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "butternut squash", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (squash, whole) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "carrot", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (carrot, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "cherry", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (cherry) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "cinnamon stick", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (stick) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "corn tortilla", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (tortilla) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "cremini mushroom", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, whole) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "cucumber", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (cucumber) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "date", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (date, pitted) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "eggplant", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (eggplant, peeled) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "english muffin", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (muffin) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "enoki mushroom", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "flour tortilla", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (package) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "gala apple", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (apple, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "gold potato", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (potato, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "granny smith apple", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (apple, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "grapefruit", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (grapefruit, whole) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "green bean", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (bean) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "green bell pepper", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (pepper, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "green grape", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (grape) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "green olive", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (olive) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "hazelnut", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (nut) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "hot chili", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (chili) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "jalapeño", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (jalapeño) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "king oyster mushroom", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "kiwi", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (kiwi, whole) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "leek", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (leek) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "lemon", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (lemon, whole) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "lime", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (lime, whole) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "mango", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (mango, whole) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "nectarine", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (nectarine, whole) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "onion", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (onion, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "orange", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (orange, whole) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "orange bell pepper", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (pepper, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "oyster mushroom", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "parsnip", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (parsnip, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "peach", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (peach, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "pineapple", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (pineapple, whole) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "plantain", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (plantain) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "poblano pepper", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (pepper) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "portobello mushroom", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, whole) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "radish", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (radish, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "raspberry", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (raspberry) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "red bell pepper", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (pepper, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "red delicious apple", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (apple, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "red grape", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (grape) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "red onion", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (onion, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "red potato", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (potato, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "russet potato", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (potato, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "scallion", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (scallion, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "serrano pepper", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (pepper) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "shallot", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (shallot, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "shiitake mushroom", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, whole) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "strawberry", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (strawberry, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "sweet potato", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (sweet potato) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "tomato", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (tomato, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "tostada shell", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (shell) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "turnip", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (turnip, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "watermelon", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (melon) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "white mushroom", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "yellow bell pepper", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (pepper, large) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "yellow squash", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (squash, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "zucchini", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (zucchini, medium) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "active yeast dry", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is sachet — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "baked bean", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "black bean canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "black eyed pea canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "brazil nut", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is kernel — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "cannellini bean canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "cantaloupe", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is melon — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "chickpea canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "cilantro", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is sprig — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "coconut milk", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "corn", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is ear — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "dark red kidney bean canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "dill", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is sprig — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "edamame frozen", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is package — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "extra firm tofu", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is block — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "fennel", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is bulb — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "fig dried", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is fig, whole — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "fire tomato canned roasted", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "garlic", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is clove — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "great northern bean canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "green bean canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "instant yeast", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is sachet — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "lemon juice", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is lemon — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "light red kidney bean canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "lime juice", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is lime — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "napa cabbage", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is head — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "navy bean canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "nori", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is sheet — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "okra", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is pod — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "orange juice", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is orange, juiced — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "parsley", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is sprig — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "pea frozen", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is package — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "pinto bean canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "pistachio", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is kernel — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "shiitake bacon", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is slice — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "silken tofu", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is block — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "star anise", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is pod — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "tatsoi", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is head — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "tempeh", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is package — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "tofu bacon", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is slice — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "tomato canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "tomato canned whole", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "tomato paste", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "tomato puree canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "tomato sauce canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "vegan sausage", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is link — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "vegetable broth", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can / carton — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "broccoli", "remove": ["piece"], "reason": "piece-curation C (owner 2026-09-02): \"bunch → piece\" — the 608 g bunch IS the whole broccoli and is relabelled `whole`, so piece has nothing left to say"}
+{"kind": "allowed_units", "match_text": "dill pickle", "remove": ["piece"], "reason": "piece-curation C (owner 2026-09-02): `spear` is the count the owner ruled for"}
+{"kind": "allowed_units", "match_text": "ginger", "remove": ["piece"], "reason": "piece-curation C (owner 2026-09-02): the owner asked for a countable piece; `piece, 1 inch` is added as a measure, so a bare piece is no longer the fallback"}
+{"kind": "allowed_units", "match_text": "kombu", "remove": ["piece"], "reason": "piece-curation C (owner 2026-09-02): `strip` is the count the owner ruled for"}
+{"kind": "allowed_units", "match_text": "asparagus", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): the owner's call: spears are fine"}
+{"kind": "allowed_units", "match_text": "basil", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): the owner's call: basil is measured by the tsp/cup or by weight — the volume↔mass bridge is its density, not a piece"}
+{"kind": "allowed_units", "match_text": "cabbage", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): the owner's call: a head is the whole and it is seeded"}
+{"kind": "allowed_units", "match_text": "cauliflower", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): the owner's call: a head is the whole and it is seeded"}
+{"kind": "allowed_units", "match_text": "celery", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): the owner's call: a stalk is the count"}
+{"kind": "allowed_units", "match_text": "cherry tomato", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): the owner's call: measured by the cup or by weight; the misleading `cherry` measure is dropped and the row's cup default never admitted piece anyway"}
+{"kind": "allowed_units", "match_text": "iceberg lettuce", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): the owner's call: a head is the whole and it is seeded"}
+{"kind": "allowed_units", "match_text": "mint", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): the owner's call: sprig and bunch are the counts"}
+{"kind": "allowed_units", "match_text": "multigrain bread", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): the owner's call: a slice is the count"}
+{"kind": "allowed_units", "match_text": "red cabbage", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): applied by analogy to cabbage (owner: sgtm)"}
+{"kind": "allowed_units", "match_text": "red leaf lettuce", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): applied by analogy to iceberg lettuce (owner: sgtm)"}
+{"kind": "allowed_units", "match_text": "rhubarb", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): the owner's call: a stalk is the count"}
+{"kind": "allowed_units", "match_text": "romaine lettuce", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): applied by analogy to iceberg lettuce (owner: sgtm)"}
+{"kind": "allowed_units", "match_text": "soft sandwich bread", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): applied by analogy to multigrain bread (owner: sgtm)"}
+{"kind": "allowed_units", "match_text": "spinach", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): applied by analogy to mint — bunch and package are the counts (owner: sgtm)"}
+{"kind": "allowed_units", "match_text": "sprouted multigrain bread", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): applied by analogy to multigrain bread (owner: sgtm)"}
+{"kind": "allowed_units", "match_text": "thai basil", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): applied by analogy to basil (owner: sgtm)"}
+{"kind": "allowed_units", "match_text": "wheat bread whole", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): applied by analogy to multigrain bread (owner: sgtm)"}
+{"kind": "allowed_units", "match_text": "white bread", "remove": ["piece"], "reason": "piece-curation D (owner 2026-09-02): applied by analogy to multigrain bread (owner: sgtm)"}
