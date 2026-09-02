@@ -36,9 +36,9 @@ Sections **A** and **B** (119 rows): **accepted as drafted** — `piece` comes o
 
 | ingredient | ruling | what lands |
 |---|---|---|
-| `broccoli` | "bunch → piece" | `piece` comes out; the 608 g **bunch** is the whole broccoli. *Orchestrator's reading — relabel it `whole (608 g)` so "1 broccoli" reads as one; confirm.* |
+| `broccoli` | "bunch → piece" (confirmed: the bunch is the whole) | `piece` comes out; the 608 g **bunch** is relabelled `whole` so "1 broccoli" reads as one |
 | `dill pickle` | spear | `piece` comes out; `spear` is the count |
-| `ginger` | "can we do 2 cm piece? or make more clear that slice 2.2 g is the 2 cm piece" | `piece` comes out; keep `slice`; **add a `piece, 2 cm` measure** — a 1"-diameter slice at 2.2 g is not a 2 cm piece, so the new row needs its own weight (≈ 10 g, `seed:typical`, flagged for the owner's confirmation rather than borrowed from the slice) |
+| `ginger` | "can we do 2 cm piece? or make more clear that slice 2.2 g is the 2 cm piece" → asked what recipes say; they count "a 1-inch / thumb-sized piece" or "1 tbsp grated" | `piece` comes out; keep `slice`; **add `piece, 1 inch` at 12 g** (`seed:typical`, 10–15 g is the usual range; the tbsp form rides ginger's density). Label open to "2 cm" if the owner prefers |
 | `kombu` | strip | `piece` comes out; `strip` is the count |
 
 **D — the owner's calls:**
@@ -49,14 +49,14 @@ Sections **A** and **B** (119 rows): **accepted as drafted** — `piece` comes o
 | `basil` | "do we have some tsp-like measure? normally x tsp chopped or y g chopped" | out; the tsp/tbsp/cup ↔ g bridge is a **density**, not a measure — see the density note below |
 | `cauliflower` | drop | out |
 | `celery` | drop | out |
-| `cherry tomato` | "cherry is wrong… we measure these by cup or g so piece isn't needed; we need clean macros / density" | out; the `cherry 17 g` measure is **relabelled** (`tomato, 17 g`) — it is one cherry tomato from FDC 170457; density + macros checked below |
+| `cherry tomato` | "cherry is wrong… we measure these by cup or g so piece isn't needed; we need clean macros / density" → "drop piece / cherry / tomato altogether" | out; the `cherry 17 g` measure (USDA, borrowed from the generic tomato row) is **dropped entirely**; the row's default is cup so it never carries `piece`; density 0.63 g/ml + macros verified present |
 | `iceberg lettuce` | drop | out |
 | `mint` | drop | out |
 | `multigrain bread` | drop | out |
 | `cabbage` | drop | out |
 | `rhubarb` | drop | out |
 
-**Applied by analogy** (not named by the owner; flag to overrule): `red cabbage`, `red leaf lettuce`, `romaine lettuce` → out (as cabbage / iceberg); `soft sandwich bread`, `sprouted multigrain bread`, `wheat bread whole`, `white bread` → out (as multigrain bread); `thai basil` → out (as basil); `spinach` → out (as mint: bunch/package are the counts).
+**Applied by analogy** (confirmed by the owner, "sgtm"): `red cabbage`, `red leaf lettuce`, `romaine lettuce` → out (as cabbage / iceberg); `soft sandwich bread`, `sprouted multigrain bread`, `wheat bread whole`, `white bread` → out (as multigrain bread); `thai basil` → out (as basil); `spinach` → out (as mint: bunch/package are the counts).
 
 **Net:** `piece` stays on **no** seeded ingredient that carries a measure; the ~149 measure-less rows keep it.
 
