@@ -22,6 +22,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/ingredient.dart';
 import 'ingredient_detail_view.dart';
@@ -67,7 +68,7 @@ class IngredientListView extends HookConsumerWidget {
         if (i.status == IngredientStatus.stub) i,
     ];
 
-    void open(Ingredient i) => context.push(ingredientDetailRoute(i.id));
+    void open(Ingredient i) => context.pushOnce(ingredientDetailRoute(i.id));
 
     return FScaffold(
       childPad: false,
@@ -75,7 +76,8 @@ class IngredientListView extends HookConsumerWidget {
         title: Text('Ingredients', style: ansiHeaderTitle()),
         prefixes: [
           FHeaderAction.back(
-            onPress: () => context.canPop() ? context.pop() : context.go('/'),
+            onPress: () =>
+                context.canPop() ? context.pop() : context.goOnce('/'),
           ),
         ],
         suffixes: [

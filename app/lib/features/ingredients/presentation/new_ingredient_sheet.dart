@@ -24,7 +24,6 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/result/result.dart';
@@ -32,6 +31,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../../recipes/presentation/format.dart';
 import '../barcode/barcode_add.dart';
 import '../data/ingredient_providers.dart';
@@ -140,7 +140,7 @@ class NewIngredientSheet extends HookConsumerWidget {
         if (!context.mounted) return;
         Navigator.of(context).pop();
         // The push outlives this sheet; nothing here waits on the form.
-        unawaited(context.push(ingredientDetailRoute(created.id)));
+        context.pushOnce(ingredientDetailRoute(created.id));
       } finally {
         if (context.mounted) creating.value = false;
       }

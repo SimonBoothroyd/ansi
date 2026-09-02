@@ -13,12 +13,12 @@ library;
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_bottom_nav.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
@@ -111,7 +111,7 @@ class _RecipeCard extends StatelessWidget {
       accent: split,
       title: recipe.title,
       subtitle: recipeSummaryLine(recipe),
-      onTitleTap: () => context.push('/recipes/${recipe.recipeId}'),
+      onTitleTap: () => context.pushOnce('/recipes/${recipe.recipeId}'),
       children: [
         for (final (i, session) in meals.indexed) ...[
           if (i > 0) const SizedBox(height: 8),
@@ -153,7 +153,7 @@ class _ComponentCard extends ConsumerWidget {
     return _Card(
       title: componentCardTitle(recipe.title, parents),
       subtitle: componentSummaryLine(recipe),
-      onTitleTap: () => context.push('/recipes/${recipe.recipeId}'),
+      onTitleTap: () => context.pushOnce('/recipes/${recipe.recipeId}'),
       children: [
         for (final (i, session) in sessions.indexed) ...[
           if (i > 0) const SizedBox(height: 8),
@@ -280,7 +280,7 @@ class _GapWarning extends StatelessWidget {
             const SizedBox(height: 10),
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => context.push('/recipes/${gap.recipeId}/edit'),
+              onTap: () => context.pushOnce('/recipes/${gap.recipeId}/edit'),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 9),
                 decoration: BoxDecoration(
@@ -671,7 +671,7 @@ class _EmptyCookPlan extends StatelessWidget {
         ),
         const SizedBox(height: 22),
         FButton(
-          onPress: () => context.go('/week'),
+          onPress: () => context.goOnce('/week'),
           child: const Text('Plan the week'),
         ),
       ],

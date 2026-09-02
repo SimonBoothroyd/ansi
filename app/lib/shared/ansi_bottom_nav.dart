@@ -1,15 +1,15 @@
 /// The app's bottom nav bar (design board: Library · Week · Cook · Shop).
 ///
 /// Library, Week, Cook and Shop are all live tabs. Switching tabs uses
-/// `context.go` so the tab roots replace rather than stack.
+/// `goOnce` so the tab roots replace rather than stack.
 library;
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 
 import '../core/theme/ansi_theme.dart';
 import '../core/theme/ansi_tokens.dart';
+import 'guarded_navigation.dart';
 
 /// The tab a screen occupies, and its index in the bar.
 enum AnsiTab { library, week, cook, shop }
@@ -28,13 +28,13 @@ class AnsiBottomNav extends StatelessWidget {
         if (tab == current) return;
         switch (tab) {
           case AnsiTab.library:
-            context.go('/');
+            context.goOnce('/');
           case AnsiTab.week:
-            context.go('/week');
+            context.goOnce('/week');
           case AnsiTab.cook:
-            context.go('/cook');
+            context.goOnce('/cook');
           case AnsiTab.shop:
-            context.go('/shop');
+            context.goOnce('/shop');
         }
       },
       children: const [

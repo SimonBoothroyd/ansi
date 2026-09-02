@@ -13,12 +13,12 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/dashed_border_box.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../../shared/picker_shell.dart';
 import '../../books/domain/book.dart';
@@ -172,7 +172,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
             behavior: HitTestBehavior.opaque,
             onTap: () {
               Navigator.of(context).pop();
-              context.push('/recipes/new');
+              context.pushOnce('/recipes/new');
             },
             child: DashedBorderBox(
               child: Row(

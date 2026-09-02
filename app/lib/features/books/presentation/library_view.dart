@@ -5,7 +5,6 @@ library;
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/sync/session.dart';
@@ -13,6 +12,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_bottom_nav.dart';
 import '../../../shared/dashed_border_box.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/presentation/ingredient_list_view.dart'
     show kIngredientsRoute;
@@ -43,12 +43,12 @@ class LibraryView extends ConsumerWidget {
                   FItem(
                     prefix: const Icon(FLucideIcons.cookingPot),
                     title: const Text('New recipe'),
-                    onPress: () => context.push('/recipes/new'),
+                    onPress: () => context.pushOnce('/recipes/new'),
                   ),
                   FItem(
                     prefix: const Icon(FLucideIcons.download),
                     title: const Text('Import a recipe'),
-                    onPress: () => context.push('/import'),
+                    onPress: () => context.pushOnce('/import'),
                   ),
                   // Beside "Import a recipe" — the `/import` precedent, plan
                   // 0020 D8. The badge is the second door: the fleshing-out
@@ -57,7 +57,7 @@ class LibraryView extends ConsumerWidget {
                     prefix: const Icon(FLucideIcons.carrot),
                     title: const Text('Ingredients'),
                     suffix: const _StubCountBadge(),
-                    onPress: () => context.push(kIngredientsRoute),
+                    onPress: () => context.pushOnce(kIngredientsRoute),
                   ),
                   FItem(
                     prefix: const Icon(FLucideIcons.bookPlus),
@@ -375,7 +375,7 @@ class _RecipeRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => context.push('/recipes/${recipe.id}'),
+      onTap: () => context.pushOnce('/recipes/${recipe.id}'),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(

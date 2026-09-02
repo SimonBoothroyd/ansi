@@ -22,6 +22,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../../../shared/method_step_text.dart';
 import '../data/recipe_providers.dart';
 import '../domain/line_display.dart';
@@ -112,7 +113,8 @@ class _RecipeBody extends HookConsumerWidget {
           FHeaderAction.back(
             // After Save's `context.go`, the stack is replaced and there is
             // nothing to pop, so fall back to the list.
-            onPress: () => context.canPop() ? context.pop() : context.go('/'),
+            onPress: () =>
+                context.canPop() ? context.pop() : context.goOnce('/'),
           ),
         ],
         suffixes: [
@@ -134,7 +136,8 @@ class _RecipeBody extends HookConsumerWidget {
                   FItem(
                     prefix: const Icon(FLucideIcons.pencil),
                     title: const Text('Edit'),
-                    onPress: () => context.push('/recipes/${recipe.id}/edit'),
+                    onPress: () =>
+                        context.pushOnce('/recipes/${recipe.id}/edit'),
                   ),
                   FItem(
                     prefix: const Icon(FLucideIcons.trash2),

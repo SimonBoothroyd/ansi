@@ -10,13 +10,13 @@ library;
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_bottom_nav.dart';
 import '../../../shared/dashed_border_box.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../data/shopping_providers.dart';
 import '../domain/shopping.dart';
@@ -500,7 +500,8 @@ class _EmptyShoppingList extends ConsumerWidget {
         const SizedBox(height: 10),
         Builder(
           builder: (context) => FButton(
-            onPress: () => context.go(plannedButNoIngredients ? '/' : '/week'),
+            onPress: () =>
+                context.goOnce(plannedButNoIngredients ? '/' : '/week'),
             child: Text(
               plannedButNoIngredients ? 'Open the library' : 'Plan the week',
             ),

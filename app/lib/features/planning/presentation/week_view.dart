@@ -11,13 +11,13 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_bottom_nav.dart';
 import '../../../shared/dashed_border_box.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'confirm_meal_sheet.dart';
@@ -446,7 +446,7 @@ class _DishRow extends ConsumerWidget {
               behavior: HitTestBehavior.opaque,
               onTap: entry.recipeTitle == null
                   ? null
-                  : () => context.push('/recipes/${entry.recipeId}'),
+                  : () => context.pushOnce('/recipes/${entry.recipeId}'),
               child: Text(
                 entry.recipeTitle ?? '(deleted recipe)',
                 style: entry.recipeTitle == null

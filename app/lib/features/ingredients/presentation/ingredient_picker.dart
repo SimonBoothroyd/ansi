@@ -17,6 +17,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/dashed_border_box.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../../../shared/picker_shell.dart';
 import '../data/ingredient_providers.dart';
 import '../data/usda_enrichment.dart';
@@ -119,7 +120,7 @@ class _IngredientPickerSheet extends HookConsumerWidget {
             ? null
             : (ing) {
                 Navigator.of(context).pop(ing);
-                context.push(ingredientDetailRoute(ing.id));
+                context.pushOnce(ingredientDetailRoute(ing.id));
               },
       ),
     );

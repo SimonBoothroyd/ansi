@@ -11,6 +11,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../data/photo_intake.dart';
 import '../domain/import_repository.dart';
 import 'import_view_models.dart';
@@ -49,7 +50,7 @@ class ImportView extends HookConsumerWidget {
               if (context.canPop()) {
                 context.pop();
               } else {
-                context.go('/');
+                context.goOnce('/');
               }
             },
           ),

@@ -27,6 +27,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/dashed_border_box.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../data/ingredient_providers.dart';
 import '../data/usda_enrichment.dart';
@@ -60,8 +61,9 @@ class IngredientDetailView extends ConsumerWidget {
         ),
         prefixes: [
           FHeaderAction.back(
-            onPress: () =>
-                context.canPop() ? context.pop() : context.go('/ingredients'),
+            onPress: () => context.canPop()
+                ? context.pop()
+                : context.goOnce('/ingredients'),
           ),
         ],
       ),
@@ -1171,7 +1173,9 @@ class _DeleteAction extends HookConsumerWidget {
               case Deleted():
                 ref.invalidate(ingredientByIdProvider(ingredient.id));
                 if (context.mounted) {
-                  context.canPop() ? context.pop() : context.go('/ingredients');
+                  context.canPop()
+                      ? context.pop()
+                      : context.goOnce('/ingredients');
                 }
               case DeleteRefused(:final recipeCount, :final lineCount):
                 refusal.value =
