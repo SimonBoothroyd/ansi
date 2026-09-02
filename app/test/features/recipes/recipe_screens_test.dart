@@ -362,7 +362,7 @@ void main() {
       _routedHost(router, [
         recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(_recipe)),
         ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
-        bookRepositoryProvider.overrideWithValue(_FakeBookRepo()),
+        bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
       ]),
     );
     await _pumpUntil(tester, find.text('the library'));

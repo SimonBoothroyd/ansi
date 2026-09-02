@@ -57,13 +57,11 @@ void main() {
     expect(_titles('curry chicken'), ['Weeknight Chicken Curry']);
   });
 
-  test('a plural query does NOT reach a singular title — the carried gap', () {
-    // `matchesSearchQuery` never tries a token's singular: `matchTextForms`
-    // does that against `match_text`, which is singularized server-side, and a
-    // recipe title is not. Pinned so the day the shared predicate closes it,
-    // this test says so rather than silently passing. The no-hits screen is
-    // what keeps it survivable.
-    expect(_titles('almonds'), isEmpty);
+  test('a plural query reaches a singular title through the shared rank', () {
+    // Search & matching v1: recipe titles go through `searchRank`, whose
+    // tier 0/1 tries every token raw OR singular — the "almonds" fix the
+    // ingredient picker shipped in 8.6, now one rule for titles too.
+    expect(_titles('almonds'), ['Toasted Almond Cake']);
     expect(_titles('almond'), ['Toasted Almond Cake']);
   });
 

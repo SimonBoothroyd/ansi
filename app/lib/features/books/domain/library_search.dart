@@ -14,6 +14,7 @@
 library;
 
 import '../../ingredients/domain/search_query.dart';
+import '../../ingredients/domain/search_rank.dart';
 import '../../recipes/domain/recipe.dart' show RecipeSummary;
 import 'book.dart';
 
@@ -43,26 +44,22 @@ Map<String, Filing> filingByRecipe(List<Book> library) {
   return map;
 }
 
-/// Whether [title] answers [query].
+/// Whether a Library search is showing guesses rather than spellings.
 ///
-/// The ONE seam between the Library's search and the app's matcher, so that
-/// adopting a shared ranked search function is a one-line change here rather
-/// than a rewrite. Today it is `matchesSearchQuery` verbatim — the shipped 7.4
-/// normalizer and order-independent word-prefix predicate that the ingredient
-/// picker, the recipe picker and the import review all already use. No second
-/// matcher: a divergent copy is how the Dart/TS singularizer drift started.
-///
-/// Two gaps ride along, both inherited rather than introduced, and both
-/// survivable only because of the no-hits screen's two doors:
-/// - the fuzzy fallback is gated to ≥ 2 tokens, so a one-word typo ("chiken")
-///   finds nothing (tracker, `ingredients/search`);
-/// - `matchesSearchQuery` does not try a token's singular. `matchTextForms`
-///   exists for exactly that, but the vocab search applies it against
-///   `match_text`, which is singularized server-side — a recipe TITLE is not,
-///   so "almonds" misses "Toasted Almond Cake" here. Fixing it belongs in the
-///   shared predicate, where the picker gets it too.
-bool _titleMatches(String title, String query) =>
-    matchesSearchQuery(title, query);
+/// [searchLibrary] keeps only the rows at the best tier the corpus reached
+/// (search & matching v1, D2/D3): a list is all spellings or all guesses,
+/// never a guess trailing under a spelling. When the best tier is
+/// [SearchTier.typo] the caller labels the list "did you mean".
+bool librarySearchIsGuess(List<Book> books, String query) =>
+    _bestTier(books, query) == SearchTier.typo;
+
+SearchTier? _bestTier(List<Book> books, String query) => bestTier([
+  for (final b in books) ...[
+    for (final s in b.sections)
+      for (final r in s.recipes) recipeTitleHit(r.title, query),
+    for (final r in b.unsectioned) recipeTitleHit(r.title, query),
+  ],
+]);
 
 /// Every recipe in [books] whose title answers [query], flattened, each
 /// carrying its filing.
@@ -78,6 +75,8 @@ List<FiledRecipe> searchLibrary(List<Book> books, String query) {
   final tokens = searchTokens(query);
   if (tokens.isEmpty) return const [];
 
+  final tier = _bestTier(books, query);
+  if (tier == null) return const [];
   final filing = filingByRecipe(books);
   final leading = <FiledRecipe>[];
   final rest = <FiledRecipe>[];
@@ -88,7 +87,8 @@ List<FiledRecipe> searchLibrary(List<Book> books, String query) {
       ...book.unsectioned,
     ];
     for (final recipe in inTreeOrder) {
-      if (!_titleMatches(recipe.title, query)) continue;
+      final hit = recipeTitleHit(recipe.title, query);
+      if (hit == null || hit.tier != tier) continue;
       final row = (
         recipe: recipe,
         filing: filing[recipe.id] ?? (book: book.name, section: null),

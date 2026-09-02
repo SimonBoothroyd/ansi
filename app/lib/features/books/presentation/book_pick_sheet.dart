@@ -12,6 +12,7 @@ import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../domain/book.dart';
 
 /// Offers [candidates] as the new home for [moving] recipes currently in
@@ -22,14 +23,10 @@ Future<Book?> showBookPickSheet(
   required Book from,
   required List<Book> candidates,
 }) {
-  return showFSheet<Book>(
+  return showAnsiSheet<Book>(
     context: context,
     // The root navigator, not the tab shell's branch navigator: a sheet that
     // stops at the branch bounds leaves the nav bar lit and tappable beside it.
-    useRootNavigator: true,
-    side: FLayout.btt,
-    mainAxisMaxRatio: null,
-    useSafeArea: true,
     builder: (_) =>
         _BookPickSheet(moving: moving, from: from, candidates: candidates),
   );

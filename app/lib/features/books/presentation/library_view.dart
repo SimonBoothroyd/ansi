@@ -111,6 +111,9 @@ class _SearchResults extends StatelessWidget {
   Widget build(BuildContext context) {
     final hits = searchLibrary(books, query);
     if (hits.isEmpty) return _NoHits(query: query.trim());
+    // Guesses are labelled, never mixed in (search & matching v1, D2): the
+    // list is either all spellings or all guesses.
+    final guessed = librarySearchIsGuess(books, query);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
@@ -118,7 +121,9 @@ class _SearchResults extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: 4),
           child: Text(
-            '${hits.length} ${hits.length == 1 ? 'recipe' : 'recipes'}',
+            guessed
+                ? 'DID YOU MEAN'
+                : '${hits.length} ${hits.length == 1 ? 'recipe' : 'recipes'}',
             style: ansiLabel(),
           ),
         ),
@@ -132,9 +137,8 @@ class _SearchResults extends StatelessWidget {
 /// Nothing matched — and the most common reason a recipe search misses is that
 /// you haven't written it down yet (D7·5).
 ///
-/// The query is echoed AS TYPED, never "did you mean romesco?": there is no
-/// single-token fuzzy matcher to back that promise yet (tracker,
-/// `ingredients/search`). A dead end with two doors is not a dead end.
+/// The query is echoed AS TYPED: when even the typo tier is silent there is
+/// nothing honest to suggest. A dead end with two doors is not a dead end.
 class _NoHits extends StatelessWidget {
   const _NoHits({required this.query});
 
@@ -322,7 +326,6 @@ class _OverflowMenu extends ConsumerWidget {
 Future<bool> _confirmSignOut(BuildContext context) async {
   final confirmed = await showAnsiDialog<bool>(
     context: context,
-    useRootNavigator: true,
     builder: (context, style, animation) => FDialog(
       animation: animation,
       title: Text('Sign out?', style: ansiSerif(size: 20)),
@@ -635,9 +638,8 @@ Future<void> confirmDeleteBook(
   }
 
   if (!context.mounted) return;
-  final confirmed = await showFDialog<bool>(
+  final confirmed = await showAnsiDialog<bool>(
     context: context,
-    useRootNavigator: true,
     builder: (context, style, animation) => FDialog(
       animation: animation,
       title: Text('Delete “${book.name}”?', style: ansiSerif(size: 20)),
@@ -672,9 +674,8 @@ Future<bool> _refuse(
   required String body,
   String? door,
 }) async {
-  final took = await showFDialog<bool>(
+  final took = await showAnsiDialog<bool>(
     context: context,
-    useRootNavigator: true,
     builder: (context, style, animation) => FDialog(
       animation: animation,
       title: Text(title, style: ansiSerif(size: 20)),

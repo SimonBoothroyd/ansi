@@ -90,6 +90,8 @@ import 'package:ansi/core/sync/schema.dart';
 import 'package:ansi/core/sync/session.dart' show currentHouseholdIdProvider;
 import 'package:ansi/features/import/data/import_providers.dart';
 import 'package:ansi/features/import/data/import_repository_impl.dart';
+import 'package:ansi/features/import/presentation/import_view.dart'
+    show ImportView;
 import 'package:ansi/features/import/presentation/recon_line_card.dart'
     show AmountEditor;
 import 'package:ansi/features/ingredients/barcode/barcode_add.dart'
@@ -98,6 +100,8 @@ import 'package:ansi/features/ingredients/barcode/barcode_scan_sheet.dart'
     show BarcodeScanSheet;
 import 'package:ansi/features/ingredients/domain/normalize.dart'
     show normalizeMatchText;
+import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart'
+    show IngredientDetailView;
 import 'package:ansi/features/ingredients/presentation/quantity_unit_sheet.dart'
     show QuantityUnitEditor, UnitChipRow;
 import 'package:ansi/features/planning/domain/planning.dart' show mondayOf;
@@ -105,6 +109,8 @@ import 'package:ansi/features/recipes/presentation/component_quantity_sheet.dart
     show ComponentQuantityEditor;
 import 'package:ansi/features/recipes/presentation/recipe_chip.dart'
     show RecipeChip;
+import 'package:ansi/features/recipes/presentation/recipe_editor_view.dart'
+    show RecipeEditorView;
 import 'package:ansi/shared/picker_shell.dart' show PickerShell;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -121,6 +127,12 @@ import 'off_fixture.dart';
 
 const _password = 'smoke-password-123';
 const _uuid = Uuid();
+
+/// The first text field INSIDE [of]. Since Library v2 a pinned search field
+/// is the first `EditableText` in the tree on every screen the Library branch
+/// sits under, so a bare `.first` would type into it.
+Finder fieldIn(Finder of) =>
+    find.descendant(of: of, matching: find.byType(EditableText)).first;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -567,7 +579,7 @@ void main() {
 
     await tester.tap(find.textContaining('new section'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(EditableText).first, 'Weeknight');
+    await tester.enterText(fieldIn(find.byType(FDialog)), 'Weeknight');
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
     expect(find.text('Weeknight'), findsOneWidget);
@@ -584,7 +596,10 @@ void main() {
     await tester.tap(find.text('New recipe'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(EditableText).first, 'Chicken Curry');
+    await tester.enterText(
+      fieldIn(find.byType(RecipeEditorView)),
+      'Chicken Curry',
+    );
     await tester.pump();
 
     // Shelf life: keeps 2 days in the fridge — scenario 4 relies on this to
@@ -1254,7 +1269,7 @@ void main() {
 
     expect(find.text('Import a recipe'), findsWidgets); // the header
     await tester.enterText(
-      find.byType(EditableText).first,
+      fieldIn(find.byType(ImportView)),
       'https://example.com/weeknight-tomato-pasta',
     );
     await tester.pumpAndSettle();
@@ -1437,11 +1452,12 @@ void main() {
     await openLibraryWithOffFixture(tester);
 
     // --- Library ▸ ＋ ▸ Ingredients -------------------------------------------
+    // Library v2 (D1/D8): Ingredients moved from ＋ to the ⋯ beside it.
     await tester.tap(
       find
           .descendant(
             of: find.byType(FHeaderAction),
-            matching: find.byIcon(FLucideIcons.plus),
+            matching: find.byIcon(FLucideIcons.ellipsis),
           )
           .first,
     );
@@ -1485,7 +1501,7 @@ void main() {
     // together, or the next import's cascade searches for a name nothing
     // carries. The canonical-name field is the form's first text field.
     const renamed = 'Gochugaru flakes';
-    await tester.enterText(find.byType(EditableText).first, renamed);
+    await tester.enterText(fieldIn(find.byType(IngredientDetailView)), renamed);
     await tester.pumpAndSettle();
 
     // Scroll to the form's own Save. `.last`: the density and measures
@@ -1881,7 +1897,7 @@ void main() {
     await tester.tap(find.text('New recipe'));
     await pumpUntilFound(tester, find.text('New recipe'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(EditableText).first, title);
+    await tester.enterText(fieldIn(find.byType(RecipeEditorView)), title);
     await tester.pumpAndSettle();
   }
 

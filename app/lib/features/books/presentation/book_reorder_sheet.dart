@@ -13,18 +13,15 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../data/book_providers.dart';
 import 'book_view_models.dart';
 
 Future<void> showBookReorderSheet(BuildContext context) {
-  return showFSheet<void>(
+  return showAnsiSheet<void>(
     context: context,
     // The root navigator, not the tab shell's branch navigator: a sheet that
     // stops at the branch bounds leaves the nav bar lit and tappable beside it.
-    useRootNavigator: true,
-    side: FLayout.btt,
-    mainAxisMaxRatio: null,
-    useSafeArea: true,
     builder: (_) => const _BookReorderSheet(),
   );
 }

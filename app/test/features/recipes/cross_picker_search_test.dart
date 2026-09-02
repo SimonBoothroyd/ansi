@@ -111,6 +111,29 @@ class _FakeBookRepo implements BookRepository {
     required String bookId,
     String? sectionId,
   }) async {}
+
+  @override
+  Future<int> countBooks() => throw UnimplementedError();
+
+  @override
+  Future<int> countRecipesIn(String bookId) => throw UnimplementedError();
+
+  @override
+  Future<void> deleteBook(String bookId) => throw UnimplementedError();
+
+  @override
+  Future<void> moveBookContents({
+    required String fromBookId,
+    required String toBookId,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<void> renameBook(String bookId, String name) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> reorderBooks(List<String> orderedBookIds) =>
+      throw UnimplementedError();
 }
 
 class _FakePlanningRepo implements PlanningRepository {
