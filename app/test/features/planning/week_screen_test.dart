@@ -1,4 +1,5 @@
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
@@ -9,6 +10,7 @@ import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:ansi/features/planning/presentation/week_view.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -85,6 +87,40 @@ class _FakeCookPlanRepo implements CookPlanRepository {
       Stream.value(buildCookPlan(recipes));
 }
 
+/// A library of one recipe, with whatever macro summary the test needs — the
+/// week reads `RecipeSummary.macros`, the same figure the picker rows show.
+class _RecipesRepo implements RecipeRepository {
+  _RecipesRepo(this.macros);
+
+  final RecipeMacroSummary? macros;
+
+  @override
+  Stream<List<RecipeSummary>> watchRecipes() => Stream.value([
+    RecipeSummary(
+      id: 'r1',
+      title: 'Weeknight Chicken Curry',
+      servingsBase: 2,
+      macros: macros,
+    ),
+  ]);
+
+  @override
+  Stream<Recipe?> watchRecipe(String id) => Stream.value(null);
+  @override
+  Future<void> saveRecipe(Recipe recipe) async {}
+  @override
+  Future<void> deleteRecipe(String id) async {}
+  @override
+  Future<void> setFavorite(String id, bool favorite) async {}
+  @override
+  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
+  @override
+  Future<bool> componentLinkWouldCycle({
+    required String recipeId,
+    required String subRecipeId,
+  }) async => false;
+}
+
 class _NoRecipesRepo implements RecipeRepository {
   @override
   Stream<List<RecipeSummary>> watchRecipes() => Stream.value(const []);
@@ -158,7 +194,7 @@ WeekPlan _plannedWeek({int? portions}) => WeekPlan(
       mealSlot: 'Dinner',
       recipeId: 'r1',
       recipeTitle: 'Weeknight Chicken Curry',
-      eaterIds: const ['m1', 'm2'],
+      eaterIds: const ['m1'],
       portions: portions,
     ),
   ],
@@ -347,6 +383,134 @@ void main() {
 
     expect(find.text('Copy last week'), findsOneWidget);
     expect(find.text('Last week, for reference'), findsOneWidget);
+  });
+
+  group('honest macros (D4)', () {
+    const complete = RecipeMacroSummary(
+      perServing: Macros(kcal: 500, protein: 30, carb: 40, fat: 20),
+    );
+    const incomplete = RecipeMacroSummary(stubLines: 1);
+
+    testWidgets('a resolved day shows its cells AND its denominator', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(week: _plannedWeek()),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(complete)),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      // One eater × 500 kcal/serving.
+      expect(find.text('500 kcal'), findsWidgets);
+      // The denominator is mandatory — a bare number is never drawn.
+      expect(find.text('1 meal'), findsWidgets);
+      // A day with nothing on it shows its quiet add door instead of a macro
+      // line — and NEVER a zero.
+      expect(find.text('nothing planned'), findsWidgets);
+      expect(find.text('0 kcal'), findsNothing);
+    });
+
+    testWidgets('a day whose only meal is incomplete draws NO number', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(week: _plannedWeek()),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(incomplete)),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      // The badge and the reason, in incompleteNote's exact words.
+      expect(find.text('incomplete'), findsWidgets);
+      expect(
+        find.textContaining('Weeknight Chicken Curry \u00b7 1 stub line'),
+        findsWidgets,
+      );
+      // …and not one kcal figure anywhere on the screen (the week is that one
+      // meal, so the band refuses too).
+      expect(find.textContaining('kcal'), findsNothing);
+    });
+
+    testWidgets('the week band is labelled PLANNED and refuses a target '
+        'reading', (tester) async {
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(week: _plannedWeek()),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(complete)),
+        ]),
+      );
+      await tester.pumpAndSettle();
+      await tester.dragUntilVisible(
+        find.text('PLANNED \u00b7 WEEK \u00b7 EVERYONE'),
+        find.byType(Scrollable).first,
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 of 7 days'), findsOneWidget);
+      expect(
+        find.textContaining('over the 1 day that counted'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('not a daily target'), findsOneWidget);
+    });
+
+    testWidgets('an empty week says so rather than adding up to zero', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(week: _plannedWeek()),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(complete)),
+        ]),
+      );
+      await tester.pumpAndSettle();
+      // The lens picks a member who eats nothing on this week.
+      await tester.tap(find.text('Jun'));
+      await tester.pumpAndSettle();
+      expect(find.text('no meals for Jun'), findsWidgets);
+      expect(find.textContaining('kcal'), findsNothing);
+    });
+
+    testWidgets('the lens DIMS rather than removes (D8)', (tester) async {
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(week: _plannedWeek()),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(complete)),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Everyone'), findsOneWidget); // was "Shared"
+      await tester.tap(find.text('Jun'));
+      await tester.pumpAndSettle();
+
+      // Ada-and-Jun's meal is not Jun's… but it is STILL on screen, dimmed —
+      // a day somebody else cooks for themselves is not an empty day.
+      expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
+      final opacity = tester.widget<Opacity>(
+        find
+            .ancestor(
+              of: find.text('Weeknight Chicken Curry'),
+              matching: find.byType(Opacity),
+            )
+            .first,
+      );
+      expect(opacity.opacity, lessThan(1));
+    });
   });
 
   testWidgets('presentation is the resting state — no add doors, no chevrons', (

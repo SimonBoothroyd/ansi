@@ -16,8 +16,12 @@ library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../recipes/domain/recipe.dart';
+import '../../recipes/domain/recipe_macros.dart';
+import '../../recipes/presentation/recipe_view_models.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
+import '../domain/week_macros.dart';
 
 part 'week_view_models.g.dart';
 
@@ -71,3 +75,43 @@ Future<WeekPlan?> lastWeek(Ref ref) => ref
 @riverpod
 Stream<Map<String, DateTime>> lastPlannedByRecipe(Ref ref) =>
     ref.watch(planningRepositoryProvider).watchLastPlanned();
+
+/// Per-recipe macro summaries, indexed by recipe id.
+///
+/// `watchRecipes()` already carries `macros` on every `RecipeSummary`, so the
+/// week needs NO new repository method and no second summation — it reads the
+/// same figure the picker rows and the recipe panel show.
+@riverpod
+Map<String, RecipeMacroSummary> recipeMacrosById(Ref ref) {
+  final recipes =
+      ref.watch(recipeListProvider).asData?.value ?? const <RecipeSummary>[];
+  return {
+    for (final r in recipes)
+      if (r.macros != null) r.id: r.macros!,
+  };
+}
+
+/// The viewed week's macros under [lens] (null = Everyone) — D4.
+@riverpod
+MealSetMacros weekMacros(Ref ref, String? lens) {
+  final plan = ref.watch(viewedWeekProvider).asData?.value;
+  final macros = ref.watch(recipeMacrosByIdProvider);
+  return sumPlannedMacros(
+    plan?.entries ?? const [],
+    summaryFor: (id) => macros[id],
+    lensMemberId: lens,
+  );
+}
+
+/// One day's macros under [lens] — the SAME function over a narrower set, so
+/// the week is never a sum of rounded day totals.
+@riverpod
+MealSetMacros dayMacros(Ref ref, int dayOfWeek, String? lens) {
+  final plan = ref.watch(viewedWeekProvider).asData?.value;
+  final macros = ref.watch(recipeMacrosByIdProvider);
+  return sumPlannedMacros(
+    plan?.entriesForDay(dayOfWeek) ?? const [],
+    summaryFor: (id) => macros[id],
+    lensMemberId: lens,
+  );
+}

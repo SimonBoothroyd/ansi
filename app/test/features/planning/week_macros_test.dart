@@ -1,0 +1,187 @@
+/// D4, one rule at every scope: sum what resolved, state the denominator,
+/// name every exclusion — and refuse rather than invent.
+///
+/// Mirrors `recipe_macros_test.dart`'s shape: one test per rule, and the
+/// invariant-3 cases (nothing resolved, nothing in scope, nobody to divide by)
+/// get their own.
+library;
+
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/features/planning/domain/planning.dart';
+import 'package:ansi/features/planning/domain/week_macros.dart';
+import 'package:ansi/features/recipes/domain/recipe_macros.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+/// 100 kcal / 10 P / 20 C / 5 F per serving.
+const _hundred = RecipeMacroSummary(
+  perServing: Macros(kcal: 100, protein: 10, carb: 20, fat: 5),
+);
+
+/// A recipe whose own summary refuses — one stub line.
+const _stub = RecipeMacroSummary(stubLines: 1);
+
+PlanEntry _entry({
+  required String id,
+  String recipeId = 'ok',
+  String? title = 'Curry',
+  int day = 0,
+  List<String> eaters = const ['ada', 'jun'],
+  int? portions,
+}) => PlanEntry(
+  id: id,
+  dayOfWeek: day,
+  mealSlot: 'Dinner',
+  recipeId: recipeId,
+  recipeTitle: title,
+  eaterIds: eaters,
+  portions: portions,
+);
+
+RecipeMacroSummary? _summaries(String id) => switch (id) {
+  'ok' => _hundred,
+  'stub' => _stub,
+  _ => null,
+};
+
+MealSetMacros _sum(List<PlanEntry> entries, {String? lens}) =>
+    sumPlannedMacros(entries, summaryFor: _summaries, lensMemberId: lens);
+
+void main() {
+  test('every meal complete: the total is whole and nothing is excluded', () {
+    final macros = _sum([_entry(id: 'a'), _entry(id: 'b', day: 1)]);
+    // Two meals × two eaters × 100 kcal/serving.
+    expect(macros.total!.kcal, 400);
+    expect(macros.counted, 2);
+    expect(macros.considered, 2);
+    expect(macros.excluded, isEmpty);
+    expect(macros.isPartial, isFalse);
+    expect(macros.daysContributing, 2);
+  });
+
+  test('one incomplete meal: the rest still sums, and the excluded meal '
+      'carries its own summary so the UI prints incompleteNote', () {
+    final macros = _sum([
+      _entry(id: 'a'),
+      _entry(id: 'b', recipeId: 'stub', title: 'Sausage Sliders'),
+    ]);
+    expect(macros.total!.kcal, 200);
+    expect(macros.counted, 1);
+    expect(macros.considered, 2); // the denominator the label must state
+    expect(macros.isPartial, isTrue);
+    final left = macros.excluded.single;
+    expect(left.label, 'Sausage Sliders');
+    expect(left.reason, MealExclusion.incomplete);
+    // The reason WORDS are not invented here — the summary rides along.
+    expect(left.summary, _stub);
+  });
+
+  test('nothing resolves: no total at all, and every reason is named', () {
+    final macros = _sum([
+      _entry(id: 'a', recipeId: 'stub', title: 'Sausage Sliders'),
+      _entry(id: 'b', recipeId: 'stub', title: 'Pancakes'),
+    ]);
+    expect(macros.total, isNull, reason: 'never a partial standing in');
+    expect(macros.isRefused, isTrue);
+    expect(macros.isEmpty, isFalse);
+    expect(macros.excluded.map((e) => e.label), [
+      'Sausage Sliders',
+      'Pancakes',
+    ]);
+  });
+
+  test('no meals at all is a THIRD state — never 0 kcal', () {
+    final macros = _sum(const []);
+    expect(macros.isEmpty, isTrue);
+    expect(macros.isRefused, isFalse);
+    expect(macros.total, isNull);
+    expect(macros.considered, 0);
+  });
+
+  test('a lens under which this person eats nothing is empty, not refused '
+      'and not zero', () {
+    final macros = _sum([
+      _entry(id: 'a', eaters: ['jun']),
+    ], lens: 'ada');
+    expect(macros.isEmpty, isTrue);
+    expect(macros.total, isNull);
+    // Jun's meal was never Ada's to count, so it is not an "exclusion" either.
+    expect(macros.excluded, isEmpty);
+  });
+
+  test('a person gets an even split; a portions override IS eating more', () {
+    final entries = [_entry(id: 'a', portions: 3)];
+    // Everyone: the household figure, 3 servings.
+    expect(_sum(entries).total!.kcal, 300);
+    // Ada: 3 portions between 2 eaters is 1.5 each — the only figure `eaters`
+    // + `portions` can honestly state.
+    expect(_sum(entries, lens: 'ada').total!.kcal, 150);
+  });
+
+  test('an entry with no eaters is excluded, never divided by zero', () {
+    final macros = _sum([_entry(id: 'a', eaters: const [])], lens: 'ada');
+    expect(macros.considered, 1, reason: 'it might be theirs — still in scope');
+    expect(macros.total, isNull);
+    expect(macros.excluded.single.reason, MealExclusion.noEaters);
+  });
+
+  test('an entry with no eaters and no override has no demand under Everyone '
+      'either', () {
+    final macros = _sum([_entry(id: 'a', eaters: const [])]);
+    expect(macros.total, isNull);
+    expect(macros.excluded.single.reason, MealExclusion.noEaters);
+    // …but an explicit override is a real demand, eaters or not.
+    final withOverride = _sum([_entry(id: 'a', eaters: const [], portions: 2)]);
+    expect(withOverride.total!.kcal, 200);
+  });
+
+  test('a deleted recipe is excluded, never counted as zero', () {
+    final macros = _sum([
+      _entry(id: 'a'),
+      _entry(id: 'b', title: null, recipeId: 'gone'),
+    ]);
+    expect(macros.total!.kcal, 200);
+    expect(macros.excluded.single.reason, MealExclusion.recipeMissing);
+    expect(macros.excluded.single.label, '(deleted recipe)');
+  });
+
+  test('the week is the same function over a wider set, never a sum of '
+      'rounded days', () {
+    final week = [
+      _entry(id: 'a'),
+      _entry(id: 'b', day: 1, portions: 3),
+      _entry(id: 'c', day: 1),
+    ];
+    final whole = _sum(week);
+    var byDay = 0.0;
+    for (var d = 0; d < 7; d++) {
+      final day = _sum(week.where((e) => e.dayOfWeek == d).toList());
+      byDay += day.total?.kcal ?? 0;
+    }
+    expect(whole.total!.kcal, byDay);
+  });
+
+  test('daysContributing counts only the days that put something in', () {
+    final macros = _sum([
+      _entry(id: 'a'),
+      _entry(id: 'b', day: 1, recipeId: 'stub', title: 'Sliders'),
+      _entry(id: 'c', day: 2),
+      _entry(id: 'd', day: 2),
+    ]);
+    // Monday and Wednesday counted; Tuesday's only meal was excluded.
+    expect(macros.daysContributing, 2);
+    expect(macros.counted, 3);
+    expect(macros.considered, 4);
+  });
+
+  test('the per-day average divides by the days that counted, not by 7', () {
+    final macros = _sum([_entry(id: 'a'), _entry(id: 'b', day: 3)]);
+    expect(macros.total!.kcal, 400);
+    expect(macros.daysContributing, 2);
+    expect(macros.perDayAverage!.kcal, 200);
+  });
+
+  test('there is no average without a total', () {
+    expect(_sum(const []).perDayAverage, isNull);
+    expect(_sum([_entry(id: 'a', recipeId: 'stub')]).perDayAverage, isNull);
+  });
+}

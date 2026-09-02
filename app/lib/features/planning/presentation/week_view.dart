@@ -12,6 +12,12 @@
 /// That is the whole justification — one widget tree, one macro path, a
 /// density switch rather than a second screen.
 ///
+/// **The numbers are honest** (D4). Each day card foots with its own macro
+/// line and that line's denominator; the list foots with the week band. The
+/// lens above the cards rescopes both — and DIMS the meals a person is not
+/// eating rather than deleting them (D8), because a day somebody else cooks
+/// for themselves is not an empty day.
+///
 /// The week itself is a position, not a singleton — see `week_header.dart`
 /// (D2) and `week_view_models.dart` (D3).
 library;
@@ -34,6 +40,7 @@ import 'entry_sheet.dart';
 import 'recipe_picker_sheet.dart';
 import 'week_format.dart';
 import 'week_header.dart';
+import 'week_macro_widgets.dart';
 import 'week_view_models.dart';
 import 'week_widgets.dart';
 
@@ -77,9 +84,6 @@ class WeekView extends HookConsumerWidget {
     final weekStart = ref.watch(viewedWeekStartProvider);
     final week = ref.watch(viewedWeekProvider);
     final roster = ref.watch(membersProvider).asData?.value ?? const <Member>[];
-    final lastWeek = ref.watch(lastWeekProvider).asData?.value;
-    final repo = ref.read(planningRepositoryProvider);
-
     // The cook markers are a READ of the derivation the Cook tab draws, for
     // this same week (D6). Null while it loads — a row simply has no second
     // line until it arrives.
@@ -89,9 +93,16 @@ class WeekView extends HookConsumerWidget {
     final isThisWeek = weekStart == ref.watch(currentWeekStartProvider);
     final todayDayOfWeek = isThisWeek ? DateTime.now().weekday - 1 : null;
 
-    // null = Shared; a member id = the Per-person lens on that eater.
+    // null = Everyone; a member id = that person's lens (D8: it dims, it does
+    // not remove).
     final lens = useState<String?>(null);
     final mode = useState(WeekMode.presentation);
+    final scope =
+        roster
+            .where((m) => m.id == lens.value)
+            .map((m) => m.displayName)
+            .firstOrNull ??
+        'Everyone';
 
     return FScaffold(
       // "Copy last week" used to live in a header `⋯`, a lens-bar chip AND the
@@ -126,12 +137,7 @@ class WeekView extends HookConsumerWidget {
                 padding: const EdgeInsets.only(top: 8, bottom: 24),
                 children: [
                   const ViewedWeekBanner(),
-                  _LensBar(
-                    lens: lens,
-                    roster: roster,
-                    hasLastWeek: lastWeek != null,
-                    onCopyLastWeek: () => repo.copyLastWeek(weekStart),
-                  ),
+                  _LensRow(lens: lens, roster: roster),
                   for (var d = 0; d < 7; d++)
                     _DayCard(
                       weekStart: weekStart,
@@ -139,10 +145,15 @@ class WeekView extends HookConsumerWidget {
                       entries: plan.entriesForDay(d),
                       roster: roster,
                       lens: lens.value,
+                      scope: scope,
                       mode: mode.value,
                       cookPlan: cookPlan,
                       todayDayOfWeek: todayDayOfWeek,
                     ),
+                  WeekMacroBand(
+                    macros: ref.watch(weekMacrosProvider(lens.value)),
+                    scope: scope,
+                  ),
                 ],
               ),
       ),
@@ -180,149 +191,92 @@ class _ModeAction extends StatelessWidget {
   }
 }
 
-/// The Shared/Per-person toggle, the "copy last week" chip, and (in per-person
-/// mode) the eater selector.
-class _LensBar extends StatelessWidget {
-  const _LensBar({
-    required this.lens,
-    required this.roster,
-    required this.hasLastWeek,
-    required this.onCopyLastWeek,
-  });
+/// The lens (D8): `Everyone · Ada · Jun`, sitting immediately above the first
+/// day card — beside the numbers, because whose numbers you are reading is now
+/// its only real consequence.
+///
+/// Selecting a person DIMS the meals they are not eating rather than removing
+/// them. The old hard filter made a day the other person cooks for themselves
+/// render as an empty day, which is false; and dimming makes the old `⇄
+/// shared` tag redundant, because both avatars are right there.
+///
+/// `Shared` became `Everyone` because "shared" used to name both this lens and
+/// a per-entry tag, and one of them had to give.
+class _LensRow extends StatelessWidget {
+  const _LensRow({required this.lens, required this.roster});
 
   final ValueNotifier<String?> lens;
   final List<Member> roster;
-  final bool hasLastWeek;
-  final VoidCallback onCopyLastWeek;
 
   @override
   Widget build(BuildContext context) {
-    final perPerson = lens.value != null;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: Row(
         children: [
-          Row(
-            children: [
-              _SegToggle(
-                perPerson: perPerson,
-                onShared: () => lens.value = null,
-                onPerPerson: () =>
-                    lens.value = roster.isEmpty ? null : roster.first.id,
-              ),
-              const Spacer(),
-              if (hasLastWeek)
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onCopyLastWeek,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AnsiColors.herbSoft,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      'copy last week',
-                      style: ansiMono(size: 11, color: AnsiColors.herbDeep),
-                    ),
-                  ),
-                ),
-            ],
+          Text('for', style: ansiMono(size: 10, color: AnsiColors.muted)),
+          const SizedBox(width: 8),
+          _LensChip(
+            label: 'Everyone',
+            selected: lens.value == null,
+            onTap: () => lens.value = null,
           ),
-          if (perPerson) ...[
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                for (final (i, m) in roster.indexed)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => lens.value = m.id,
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(6, 5, 12, 5),
-                        decoration: BoxDecoration(
-                          color: lens.value == m.id
-                              ? AnsiColors.herbSoft
-                              : AnsiColors.surface,
-                          border: Border.all(
-                            color: lens.value == m.id
-                                ? AnsiColors.herb
-                                : AnsiColors.line,
-                          ),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            EaterAvatar(member: m, color: memberColor(i)),
-                            const SizedBox(width: 6),
-                            Text(m.displayName, style: ansiSans(size: 13)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+          for (final (i, m) in roster.indexed)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: _LensChip(
+                label: m.displayName,
+                selected: lens.value == m.id,
+                avatar: EaterAvatar(member: m, color: memberColor(i)),
+                onTap: () => lens.value = m.id,
+              ),
             ),
-          ],
         ],
       ),
     );
   }
 }
 
-class _SegToggle extends StatelessWidget {
-  const _SegToggle({
-    required this.perPerson,
-    required this.onShared,
-    required this.onPerPerson,
+class _LensChip extends StatelessWidget {
+  const _LensChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.avatar,
   });
 
-  final bool perPerson;
-  final VoidCallback onShared;
-  final VoidCallback onPerPerson;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Widget? avatar;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: AnsiColors.paper,
-        border: Border.all(color: AnsiColors.line),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _seg('Shared', !perPerson, onShared),
-          _seg('Per-person', perPerson, onPerPerson),
-        ],
-      ),
-    );
-  }
-
-  Widget _seg(String label, bool selected, VoidCallback onTap) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: EdgeInsets.fromLTRB(avatar == null ? 12 : 5, 5, 12, 5),
         decoration: BoxDecoration(
-          color: selected ? AnsiColors.surface : AnsiColors.paper,
+          color: selected ? AnsiColors.herbSoft : AnsiColors.surface,
+          border: Border.all(
+            color: selected ? AnsiColors.herb : AnsiColors.line,
+          ),
           borderRadius: BorderRadius.circular(999),
         ),
-        child: Text(
-          label,
-          style: ansiSans(
-            size: 13,
-            color: selected ? AnsiColors.ink : AnsiColors.muted,
-            weight: selected ? FontWeight.w600 : FontWeight.w400,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (avatar != null) ...[avatar!, const SizedBox(width: 6)],
+            Text(
+              label,
+              style: ansiSans(
+                size: 13,
+                color: selected ? AnsiColors.ink : AnsiColors.muted,
+                weight: selected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -330,14 +284,16 @@ class _SegToggle extends StatelessWidget {
 }
 
 /// One day of the week as a card: its name and date, its meals grouped by
-/// slot, and — in edit mode — the dashed add-meal door.
-class _DayCard extends StatelessWidget {
+/// slot, and — in presentation the day's macro line, in edit the dashed
+/// add-meal door (D1's density switch).
+class _DayCard extends ConsumerWidget {
   const _DayCard({
     required this.weekStart,
     required this.dayOfWeek,
     required this.entries,
     required this.roster,
     required this.lens,
+    required this.scope,
     required this.mode,
     required this.cookPlan,
     required this.todayDayOfWeek,
@@ -348,16 +304,17 @@ class _DayCard extends StatelessWidget {
   final List<PlanEntry> entries;
   final List<Member> roster;
   final String? lens;
+  final String scope;
   final WeekMode mode;
   final CookPlan? cookPlan;
   final int? todayDayOfWeek;
 
   @override
-  Widget build(BuildContext context) {
-    // Per-person lens: keep only entries the selected eater is part of.
-    final visible = lens == null
-        ? entries
-        : entries.where((e) => e.eaterIds.contains(lens)).toList();
+  Widget build(BuildContext context, WidgetRef ref) {
+    // D8: the lens DIMS, it does not remove. Every meal on the day still
+    // renders, so a day the other person cooks for themselves is not
+    // mistaken for an empty one.
+    final visible = entries;
 
     // entriesForDay is already slot-ordered, so same-slot entries are
     // contiguous — group consecutive runs under one slot label.
@@ -382,7 +339,7 @@ class _DayCard extends StatelessWidget {
             border: Border.all(color: AnsiColors.line),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: _body(context, groups, visible, isToday),
+          child: _body(context, ref, groups, visible, isToday),
         ),
         // The herb left rule pins today (D2). It is PAINTED over the card's
         // edge rather than being a thicker left border, because a rounded box
@@ -406,6 +363,7 @@ class _DayCard extends StatelessWidget {
 
   Widget _body(
     BuildContext context,
+    WidgetRef ref,
     List<List<PlanEntry>> groups,
     List<PlanEntry> visible,
     bool isToday,
@@ -500,6 +458,12 @@ class _DayCard extends StatelessWidget {
               weekStart: weekStart,
               dayOfWeek: dayOfWeek,
             ),
+          )
+        else
+          // The day's own honest total, with its denominator (D4).
+          DayMacroLine(
+            macros: ref.watch(dayMacrosProvider(dayOfWeek, lens)),
+            scope: scope,
           ),
       ],
     );
@@ -556,6 +520,8 @@ class _SlotGroup extends StatelessWidget {
                   _DishRow(
                     entry: e,
                     roster: roster,
+                    // D8: a meal this person is not eating is dimmed, not gone.
+                    dimmed: lens != null && !e.eaterIds.contains(lens),
                     mode: mode,
                     cookPlan: cookPlan,
                     todayDayOfWeek: todayDayOfWeek,
@@ -582,6 +548,7 @@ class _DishRow extends StatelessWidget {
   const _DishRow({
     required this.entry,
     required this.roster,
+    required this.dimmed,
     required this.mode,
     required this.cookPlan,
     required this.todayDayOfWeek,
@@ -589,6 +556,7 @@ class _DishRow extends StatelessWidget {
 
   final PlanEntry entry;
   final List<Member> roster;
+  final bool dimmed;
   final WeekMode mode;
   final CookPlan? cookPlan;
   final int? todayDayOfWeek;
@@ -620,53 +588,56 @@ class _DishRow extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: (deleted && !editing) ? null : onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    entry.recipeTitle ?? '(deleted recipe)',
-                    style: deleted
-                        ? ansiSans(size: 15, color: AnsiColors.muted)
-                        : ansiSans(
-                            size: 15,
-                            color: AnsiColors.herbDeep,
-                            weight: FontWeight.w600,
-                          ),
+      child: Opacity(
+        opacity: dimmed ? 0.38 : 1,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      entry.recipeTitle ?? '(deleted recipe)',
+                      style: deleted
+                          ? ansiSans(size: 15, color: AnsiColors.muted)
+                          : ansiSans(
+                              size: 15,
+                              color: AnsiColors.herbDeep,
+                              weight: FontWeight.w600,
+                            ),
+                    ),
                   ),
-                ),
-                if (showPortions) ...[
+                  if (showPortions) ...[
+                    const SizedBox(width: 8),
+                    PortionsChip(portions: entry.portionsOrDefault),
+                  ],
                   const SizedBox(width: 8),
-                  PortionsChip(portions: entry.portionsOrDefault),
-                ],
-                const SizedBox(width: 8),
-                EaterAvatarStack(
-                  roster: roster,
-                  eaterIds: entry.eaterIds.toSet(),
-                ),
-                if (editing) ...[
-                  const SizedBox(width: 6),
-                  const Icon(
-                    FLucideIcons.chevronRight,
-                    size: 15,
-                    color: AnsiColors.muted,
+                  EaterAvatarStack(
+                    roster: roster,
+                    eaterIds: entry.eaterIds.toSet(),
                   ),
+                  if (editing) ...[
+                    const SizedBox(width: 6),
+                    const Icon(
+                      FLucideIcons.chevronRight,
+                      size: 15,
+                      color: AnsiColors.muted,
+                    ),
+                  ],
                 ],
-              ],
-            ),
-            if (marker != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 3),
-                child: CookMarkerLine(
-                  marker: marker,
-                  todayDayOfWeek: todayDayOfWeek,
-                ),
               ),
-          ],
+              if (marker != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: CookMarkerLine(
+                    marker: marker,
+                    todayDayOfWeek: todayDayOfWeek,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
