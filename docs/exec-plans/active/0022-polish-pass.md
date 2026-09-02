@@ -149,9 +149,80 @@ Owner answers, 2026-09-02 (the first consult):
   touches them.
 - Build order agreed: navigation shell first, then the rest.
 
-Still open (answered by the lanes' decision sets, then ruled by the owner):
+Owner rulings, 2026-09-02 (the second consult, on the merged board):
 
-- Item 6: toast vs persistent banner for stuck states (sync stalled).
+- **Library · v2 — signed off** ("looks awesome"); D1–D8 as recommended
+  (`⋯` beside `＋`, no `/account` yet; titles-only search; per-device fold;
+  book `⋯` with the refused delete + "Move them to…"; the reporting ★).
+  Board tag flipped to signed off; build waits on the nav shell.
+- **Piece → measure — rejected as drawn.** Owner: piece is the fallback when
+  no appropriate measure exists; where one does (clove, medium…) piece must
+  not be offered at all, otherwise we are guessing what a piece means. Not
+  rule-based: the seeded vocab is curated by hand, and the user decides for
+  new ingredients. **Redrawn** as an *admission* fact: `piece` lives in the
+  existing explicit `allowed_units` list and is absent wherever a piece-type
+  measure exists; no new column, no runtime cascade, no `inferred` mark.
+  Import falls through the shipped not-allowed-unit chips (one measure ⇒
+  preselected, several ⇒ the user picks; Save gated as today). New
+  ingredients keep `piece` until the user adds a measure, when the manager
+  asks whether to keep offering it (default no). The seed is curated by hand
+  in [0022-piece-curation.md](./0022-piece-curation.md): 142 seeded
+  ingredients with measures, drafted 119 drop · 4 keep · 19 for the owner's
+  call; lands as `curation_overrides.jsonl` lines → reseed, pinned by pgTAP,
+  never a backfill. **Awaiting the owner's ticks on that file and the
+  section.**
+- **Recipe editor — liked** (one card per step). Owner asks: tap a chip or a
+  timer to edit it; select text → "To ingredient / To timer" in the selection
+  menu, prefilled by a match over the recipe's own lines; the `@` is not
+  understood (dropped); the first-mention amount rule needs explaining or
+  simplifying. **Revised:** tap-to-edit is the primary interaction (a chip
+  sheet with Points at · Word · Show the amount here · Remove chip, keeps the
+  word; a seeded timer sheet with Remove timer); selection → "To ingredient /
+  To timer" in the platform selection toolbar (Forui's `FTextField.multiline`
+  exposes `contextMenuBuilder`; an overlay pill is the fallback), prefilled
+  by a word-prefix match over the recipe's own lines; the `@` is dropped;
+  new **D9** states the amount rule in one sentence ("the first time a step
+  calls for something, its chip shows the amount; after that it just names
+  it") with a per-chip switch, and proposes renaming `StepMention` →
+  `ChipAmountRule`. D1 and D3 kept. **Awaiting the owner's look at the
+  revised frames (c, d, e).**
+- **Week · v2 — liked**, one change: the cook marker ("from Monday's batch",
+  "cooks today") sits under the recipe name, not beside it. Lane revising.
+- **Navigation · v2 — liked**, pending a short live PoC on the simulator
+  before committing. A PoC lane is building the shell + cross-fade on a
+  branch (not merged) and will leave it running on the sim.
+- **Errors — signed off** as recommended, plus **D9** (owner): the Shopping
+  list carries its own sync status line under the header — `Synced · just
+  now` / `Sending…` / `2 ticks waiting` / amber `Ticks aren't reaching the
+  other phone · since 14:02` with *Try now* — off the same sync-health
+  provider as the Library `⋯` line, so the two cannot disagree; no per-item
+  pending marks. Assumed unless overruled: the 5-minute stall threshold,
+  structural test only (no custom_lint package yet), the four named
+  load-bearing providers.
+- **Week — signed off** as recommended with the owner's change: the cook
+  marker sits on a second line under the dish title, not in a trailing
+  column. Assumed unless overruled: D3 (Cook/Shop follow the viewed week, so
+  `shopping_list_entry` gains `week_start_date`), D4 partial totals with a
+  stated denominator and named exclusions, D8 the lens dims.
+- **Search — signed off 2026-09-02 with the floor at 4** ("i'm fine matching
+  nion... dropping to 4 is fine"; the "nion must stay silent" sentence was the
+  tracker's, not the owner's, and is withdrawn). D1–D6 otherwise as
+  recommended. Re-measured at floor 4 on the real 308-row vocab: 29/30 hand
+  typos at rank 1, 93% right-family@1 systematically (80% at floor 5), 0%
+  silent (was 16%), 7% near-sibling wrong-family@1 with the intended row at
+  rank 2–3; `aoli` → Romesco Aioli 0.80. Accepted cost, owned by the band's
+  header: `nion`→Onion, `pear`→Peach, `beef`→Beets, `pork`→Portobello,
+  `lamb`→Burger Buns. Three-letter mistypes (`rce`, `oyl`) stay silent. Two
+  existing tests flip (`ingredient_repository_test.dart:124` and `:168`).
+  Board section marked signed off.
+- Earlier note, kept for the record: the owner wanted to "vibe" first. Probed the owner's own case with
+  the lane's scripts against the real vocab and a title list: `aoli` is four
+  letters, so under the proposed floor of 5 it is NOT guessed; at a floor of
+  4 it finds *Romesco Aioli* (0.80) among titles — and `nion` finds *Onion*
+  (0.80), which the earlier ruling wanted silent. With guesses confined to a
+  labelled "did you mean" band, a floor of 4 is the recall-leaning choice put
+  to the owner. Also clarified for the owner: this is the phone's search
+  boxes (ingredient picker, recipe pickers), not the server's import matcher.
 
 ## Step-done checklist
 
