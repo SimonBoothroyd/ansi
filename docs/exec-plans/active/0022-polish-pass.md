@@ -220,6 +220,13 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
   in as a throwaway local household provisioned by `scripts/smoke_auth.sh`.
   **Owner tried it: "nice!" — signed off 2026-09-02.** Full build starts from
   the PoC branch; the Library and Week builds branch off the same base.
+  **Landed on main 2026-09-02** (`9802d66`…`cb36db4` + `4dc8532`): the root-
+  navigator sweep behind `showAnsiSheet`/`showAnsiDialog` (17 sites, a
+  structural test holds it — it caught the piece lane's new dialog at the
+  seam), D3-b back rule + `enableOnBackInvokedCallback`, post-action
+  navigations replace instead of flattening, offstage branches once the fade
+  settles (so finders and hit tests see one tab), smoke edits, and
+  `docs/design-docs/navigation.md`. 1066 app tests. Android untested (tracker).
 - **Errors — signed off** as recommended, plus **D9** (owner): the Shopping
   list carries its own sync status line under the header — `Synced · just
   now` / `Sending…` / `2 ticks waiting` / amber `Ticks aren't reaching the
@@ -243,7 +250,19 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
   header: `nion`→Onion, `pear`→Peach, `beef`→Beets, `pork`→Portobello,
   `lamb`→Burger Buns. Three-letter mistypes (`rce`, `oyl`) stay silent. Two
   existing tests flip (`ingredient_repository_test.dart:124` and `:168`).
-  Board section marked signed off.
+  Board section marked signed off. **Landed on main 2026-09-02**
+  (`1f2ca22`…`e7a6124`, rebased clean): `searchRank` with the three tiers,
+  the picker's "did you mean" band + honest empty state, both recipe-title
+  pickers on the same function (`recipeTitleMatches` deleted, cross-picker
+  equality test), the import re-match seam sees aliases and shares the
+  server's dedupe key, diacritics folded in both normalizers with
+  `0018_fold_diacritics.sql` folding stored `match_text` in place (one row
+  today), `docs/design-docs/search-and-matching.md`. 1186 app tests, 153
+  deno. Contract deviations recorded by the lane: `almonds` is tier *exact*
+  (§2 governs the vector); `chikn` (2 edits in 5 letters) stays silent while
+  `chiken` hits. **Cloud:** `0018` to push. **Sim note:** the first smoke on
+  main failed scenario 6 only because the local DB had been reset from a
+  pre-`0017` worktree (schema at 0016); reset from main and re-run.
 - Earlier note, kept for the record: the owner wanted to "vibe" first. Probed the owner's own case with
   the lane's scripts against the real vocab and a title list: `aoli` is four
   letters, so under the proposed floor of 5 it is NOT guessed; at a floor of
