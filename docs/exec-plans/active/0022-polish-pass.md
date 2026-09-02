@@ -190,8 +190,8 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
   new **D9** states the amount rule in one sentence ("the first time a step
   calls for something, its chip shows the amount; after that it just names
   it") with a per-chip switch, and proposes renaming `StepMention` →
-  `ChipAmountRule`. D1 and D3 kept. **Awaiting the owner's look at the
-  revised frames (c, d, e).**
+  `ChipAmountRule`. D1 and D3 kept. **Signed off 2026-09-02 ("lgtm");
+  build lane started on the nav PoC base.**
 - **Week · v2 — liked**, one change: the cook marker ("from Monday's batch",
   "cooks today") sits under the recipe name, not beside it. Lane revising.
 - **Navigation · v2 — liked**, pending a short live PoC on the simulator
