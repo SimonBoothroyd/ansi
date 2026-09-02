@@ -211,8 +211,17 @@ the one-way exit: each step keeps its own prose byte-identically, only the links
 go. There is no re-chip — tokenization happens only inside the import call.
 
 ### Recipe book & sections
-`book: id · name` · `section: user-defined label` (NOT a fixed preset enum).
+`book: id · name · sort_order · deleted_at` · `section: user-defined label`
+(NOT a fixed preset enum).
 - v1 assumption: a recipe lives in one book. (Multi-book many-to-many = open question, low priority.)
+- Books are renameable, reorderable and soft-deletable off those columns —
+  Library v2 needed no migration. **A book is a shelf, not a container:**
+  deleting one never cascades to its recipes.
+- Which books are **folded shut is deliberately not a column.** It is a viewing
+  preference, kept per device in `SharedPreferences`
+  (`ansi.book_collapsed.<id>`, swept on sign-out with the other device-local
+  keys). Syncing it would mean one member's tap folding the other's screen
+  mid-scroll under last-write-wins.
 
 ### Meal plan (week-based) — the INPUT
 - `week_plan: id · household_id · week_start_date · label`
@@ -287,6 +296,44 @@ rename re-runs it; a barcode scan prefills the same way from Open Food Facts.
 Prefilling is never promotion: **macros gate `complete`, density does not, and
 confirming is an explicit human act** in the flesh-out form (reversible —
 a `complete` row can be un-confirmed).
+
+**The Library (design board "Library · v2", shipped):** the app's home screen —
+books, their user-named sections, and the recipes filed under each.
+
+- **The header is two actions.** `＋` is the two doors that make a recipe (New
+  recipe · Import a recipe) and nothing else. `⋯`, to its left, changes the
+  shape of the library: Ingredients (with its stub badge) · New book · Reorder
+  books (only with ≥ 2 books) · ── · Sign out, which keeps its confirm. While
+  the vocabulary holds stubs a small herb **dot** rides `⋯`, so the
+  fleshing-out queue advertises itself without the menu being opened — absent,
+  never grey, at zero.
+- **Search is a field pinned under the header**, not a sheet or a route. A live
+  query REPLACES the tree with flat rows carrying a `Book · Section` filing
+  line (without it, two recipes called "Ragù" in two books are the same row
+  twice); clearing it restores the tree exactly, folds included. Titles only in
+  v1 — an ingredient-level search ("recipes with almonds") is a different query
+  shape and needs a row that explains its own hit. Matching is the shared
+  deterministic predicate (ADR-0004), never a second matcher.
+- **Books fold** from a chevron on the header, default open, remembered per
+  device. A folded book keeps its honest count line (`42 recipes · 3
+  sections`), because a fold that hides how much it hides is a fold you stop
+  trusting. Sections do not fold.
+- **A book's `⋯`** offers Rename · New section · Move up / Move down · Delete
+  book. **Delete is refused when the book holds recipes**, naming the count read
+  at the moment of the tap, and the refusal is a door: "Move them to…" re-files
+  every recipe into another book **unsectioned** (a section belongs to the book
+  it was named in) and says so before it acts. Deleting the household's only
+  book is refused separately — `ensureDefaultBook()` would re-mint one, and a
+  book that reappears is worse than a refusal.
+- **A recipe row is title · ★ (only when favourited) · serves N · ›.** The star
+  reports; toggling stays on the recipe page. No shelf-life chip and no macro
+  badge: shelf life is a planning fact, and on honest numbers a macro badge is
+  a number nobody asked for or an `incomplete` nag on most rows.
+- **Empty states are honest.** A count of zero reads "no recipes yet", never
+  `0 recipes`. An empty shelf offers the two doors in place. A search with no
+  hits echoes the query as typed — never "did you mean", which no matcher backs
+  yet — over `＋ new recipe called "…"`, which carries the query into the
+  editor as the title (`/recipes/new?title=`), and `⤓ import a recipe instead`.
 
 **Pickers (step 7.7 — design board "Pickers v2", shipped):** one selection
 anatomy, two contents. Both pickers share a sheet shell (top-anchored search,
