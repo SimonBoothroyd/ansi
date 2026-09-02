@@ -1,7 +1,6 @@
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
-import 'package:ansi/features/books/domain/book_repository.dart';
 import 'package:ansi/features/books/presentation/library_view.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter/material.dart';
@@ -11,38 +10,10 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
-class _FakeBookRepo implements BookRepository {
-  _FakeBookRepo(this.books);
+import '../../helpers/fake_book_repository.dart';
 
-  final List<Book> books;
-
-  @override
-  Stream<List<Book>> watchLibrary() => Stream.value(books);
-
-  @override
-  Future<Book> ensureDefaultBook() async => books.first;
-
-  @override
-  Future<String> createBook(String name) async => 'new-book';
-
-  @override
-  Future<String> createSection(String bookId, String name) async => 'new-sec';
-
-  @override
-  Future<void> renameSection(String sectionId, String name) async {}
-
-  @override
-  Future<void> reorderSections(String b, List<String> ids) async {}
-
-  @override
-  Future<void> deleteSection(String sectionId) async {}
-
-  @override
-  Future<void> assignRecipe(
-    String recipeId, {
-    required String bookId,
-    String? sectionId,
-  }) async {}
+class _FakeBookRepo extends FakeBookRepository {
+  const _FakeBookRepo(super.books);
 }
 
 const _library = [

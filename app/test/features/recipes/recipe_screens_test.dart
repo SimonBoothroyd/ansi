@@ -5,7 +5,6 @@ import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
-import 'package:ansi/features/books/domain/book_repository.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
@@ -21,6 +20,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
+import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 
 class _FakeRecipeRepo implements RecipeRepository {
@@ -95,36 +95,8 @@ class _FakeIngredientRepo
 }
 
 /// The editor defaults new recipes into a book and renders a section picker.
-class _FakeBookRepo implements BookRepository {
-  static const _book = Book(id: 'b1', name: 'Our Cookbook');
-
-  @override
-  Stream<List<Book>> watchLibrary() => Stream.value(const [_book]);
-
-  @override
-  Future<Book> ensureDefaultBook() async => _book;
-
-  @override
-  Future<String> createBook(String name) async => 'b';
-
-  @override
-  Future<String> createSection(String bookId, String name) async => 's';
-
-  @override
-  Future<void> renameSection(String sectionId, String name) async {}
-
-  @override
-  Future<void> reorderSections(String b, List<String> ids) async {}
-
-  @override
-  Future<void> deleteSection(String sectionId) async {}
-
-  @override
-  Future<void> assignRecipe(
-    String recipeId, {
-    required String bookId,
-    String? sectionId,
-  }) async {}
+class _FakeBookRepo extends FakeBookRepository {
+  const _FakeBookRepo() : super(const [Book(id: 'b1', name: 'Our Cookbook')]);
 }
 
 Widget _host(Widget child, List<Override> overrides) => ProviderScope(
@@ -291,7 +263,7 @@ void main() {
       _host(const RecipeEditorView(), [
         recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(null)),
         ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
-        bookRepositoryProvider.overrideWithValue(_FakeBookRepo()),
+        bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
       ]),
     );
     await tester.pump();
@@ -340,7 +312,7 @@ void main() {
       _host(const RecipeEditorView(recipeId: '1'), [
         recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(butter)),
         ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
-        bookRepositoryProvider.overrideWithValue(_FakeBookRepo()),
+        bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
       ]),
     );
     await tester.pumpAndSettle();

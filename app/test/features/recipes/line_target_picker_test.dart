@@ -9,7 +9,6 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
-import 'package:ansi/features/books/domain/book_repository.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/search_rank.dart';
@@ -22,6 +21,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 
 const _romaTomato = Ingredient(
@@ -57,34 +57,8 @@ const _library = [
   ),
 ];
 
-class _FakeBookRepo implements BookRepository {
-  @override
-  Stream<List<Book>> watchLibrary() => Stream.value(_library);
-
-  @override
-  Future<Book> ensureDefaultBook() async => _library.first;
-
-  @override
-  Future<String> createBook(String name) async => 'b';
-
-  @override
-  Future<String> createSection(String bookId, String name) async => 's';
-
-  @override
-  Future<void> renameSection(String sectionId, String name) async {}
-
-  @override
-  Future<void> reorderSections(String b, List<String> ids) async {}
-
-  @override
-  Future<void> deleteSection(String sectionId) async {}
-
-  @override
-  Future<void> assignRecipe(
-    String recipeId, {
-    required String bookId,
-    String? sectionId,
-  }) async {}
+class _FakeBookRepo extends FakeBookRepository {
+  const _FakeBookRepo() : super(_library);
 }
 
 /// A repository whose cycle guard refuses exactly [cycles].
@@ -144,7 +118,7 @@ Future<PickedLineTarget?> _open(
         ingredientRepositoryProvider.overrideWithValue(
           FakeIngredientRepo(vocabulary),
         ),
-        bookRepositoryProvider.overrideWithValue(_FakeBookRepo()),
+        bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
         recipeRepositoryProvider.overrideWithValue(
           _FakeRecipeRepo(cycles: cycles),
         ),
@@ -254,7 +228,7 @@ void main() {
           ingredientRepositoryProvider.overrideWithValue(
             FakeIngredientRepo(const [_romaTomato]),
           ),
-          bookRepositoryProvider.overrideWithValue(_FakeBookRepo()),
+          bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
           recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
         ],
         child: MaterialApp(
@@ -299,7 +273,7 @@ void main() {
           ingredientRepositoryProvider.overrideWithValue(
             FakeIngredientRepo(const [_romaTomato]),
           ),
-          bookRepositoryProvider.overrideWithValue(_FakeBookRepo()),
+          bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
           recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
         ],
         child: MaterialApp(

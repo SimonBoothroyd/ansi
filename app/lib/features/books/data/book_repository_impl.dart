@@ -57,10 +57,12 @@ class SqliteBookRepository implements BookRepository {
     // offers its "Your recipes" rows straight off this tree, and a row that
     // cannot see the yield says "no yield yet" about a recipe that states one
     // — and hands the quantity sheet a target with no yield to do batch math
-    // against.
+    // against. `favorite` rides along for the same reason (Library v2 / D6):
+    // the row shows a ★, and a tree that drops the column makes every recipe
+    // read as unstarred however the recipe page was tapped.
     final recipeRows = await _db.getAll(
-      'SELECT id, title, servings_base, book_id, section_id, yield_qty, '
-      'yield_unit, yield_qty_2, yield_unit_2 FROM recipe '
+      'SELECT id, title, servings_base, book_id, section_id, favorite, '
+      'yield_qty, yield_unit, yield_qty_2, yield_unit_2 FROM recipe '
       'WHERE deleted_at IS NULL ORDER BY created_at DESC',
     );
 
@@ -85,6 +87,7 @@ class SqliteBookRepository implements BookRepository {
         id: r['id'] as String,
         title: r['title'] as String,
         servingsBase: (r['servings_base'] as num).toDouble(),
+        favorite: (r['favorite'] as int? ?? 0) == 1,
         yieldQty: (r['yield_qty'] as num?)?.toDouble(),
         yieldUnit: unitById(r['yield_unit'] as String? ?? ''),
         yieldQty2: (r['yield_qty_2'] as num?)?.toDouble(),
@@ -158,6 +161,78 @@ class SqliteBookRepository implements BookRepository {
       [id, _householdId, name.trim(), order, now, now],
     );
     return id;
+  }
+
+  @override
+  Future<void> renameBook(String bookId, String name) async {
+    await _db.execute('UPDATE book SET name = ?, updated_at = ? WHERE id = ?', [
+      name.trim(),
+      _now(),
+      bookId,
+    ]);
+  }
+
+  @override
+  Future<void> reorderBooks(List<String> orderedBookIds) async {
+    final now = _now();
+    await _db.writeTransaction((tx) async {
+      for (var i = 0; i < orderedBookIds.length; i++) {
+        await tx.execute(
+          'UPDATE book SET sort_order = ?, updated_at = ? WHERE id = ?',
+          [i, now, orderedBookIds[i]],
+        );
+      }
+    });
+  }
+
+  @override
+  Future<int> countRecipesIn(String bookId) async {
+    final row = await _db.get(
+      'SELECT COUNT(*) AS n FROM recipe '
+      'WHERE book_id = ? AND deleted_at IS NULL',
+      [bookId],
+    );
+    return row['n'] as int;
+  }
+
+  @override
+  Future<int> countBooks() async {
+    final row = await _db.get(
+      'SELECT COUNT(*) AS n FROM book WHERE deleted_at IS NULL',
+    );
+    return row['n'] as int;
+  }
+
+  @override
+  Future<void> moveBookContents({
+    required String fromBookId,
+    required String toBookId,
+  }) async {
+    // One statement, one transaction: the move and the un-filing are the same
+    // fact. `section_id` is nulled because a section belongs to the book it was
+    // named in — a recipe that kept it would point at another shelf's label.
+    await _db.execute(
+      'UPDATE recipe SET book_id = ?, section_id = NULL, updated_at = ? '
+      'WHERE book_id = ? AND deleted_at IS NULL',
+      [toBookId, _now(), fromBookId],
+    );
+  }
+
+  @override
+  Future<void> deleteBook(String bookId) async {
+    final now = _now();
+    await _db.writeTransaction((tx) async {
+      await tx.execute(
+        'UPDATE book_section SET deleted_at = ?, updated_at = ? '
+        'WHERE book_id = ? AND deleted_at IS NULL',
+        [now, now, bookId],
+      );
+      await tx.execute(
+        'UPDATE book SET deleted_at = ?, updated_at = ? '
+        'WHERE id = ? AND deleted_at IS NULL',
+        [now, now, bookId],
+      );
+    });
   }
 
   @override

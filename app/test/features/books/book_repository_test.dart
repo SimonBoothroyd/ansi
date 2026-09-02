@@ -169,4 +169,140 @@ void main() {
     sections = (await repo.watchLibrary().first).single.sections;
     expect(sections.map((s) => s.name), ['B', 'A']);
   });
+
+  test('renameBook persists and the library re-fires with the name', () async {
+    final book = await repo.ensureDefaultBook();
+
+    final library = StreamIterator(repo.watchLibrary());
+    addTearDown(library.cancel);
+    expect(await library.moveNext(), isTrue);
+    expect(library.current.single.name, 'Our Cookbook');
+
+    await repo.renameBook(book.id, '  Weeknights  ');
+    expect(await library.moveNext(), isTrue);
+    // Trimmed on the way in, the same as createBook/createSection.
+    expect(library.current.single.name, 'Weeknights');
+  });
+
+  test('reorderBooks writes contiguous orders the library reads', () async {
+    final a = await repo.createBook('Baking');
+    final b = await repo.createBook('Our Cookbook');
+
+    expect((await repo.watchLibrary().first).map((x) => x.name), [
+      'Baking',
+      'Our Cookbook',
+    ]);
+
+    await repo.reorderBooks([b, a]);
+
+    expect((await repo.watchLibrary().first).map((x) => x.name), [
+      'Our Cookbook',
+      'Baking',
+    ]);
+    final orders = await db.getAll('SELECT id, sort_order FROM book');
+    expect(
+      {for (final r in orders) r['id'] as String: r['sort_order']},
+      {b: 0, a: 1},
+    );
+  });
+
+  test('countRecipesIn counts live rows in that book only', () async {
+    final book = await repo.ensureDefaultBook();
+    final other = await repo.createBook('Baking');
+    await _insertRecipe(db, 'r1', 'Curry', bookId: book.id);
+    await _insertRecipe(db, 'r2', 'Toast', bookId: book.id);
+    await _insertRecipe(db, 'r3', 'Scones', bookId: other);
+    // A tombstoned recipe must not inflate the delete refusal's count.
+    await db.execute('UPDATE recipe SET deleted_at = ? WHERE id = ?', [
+      DateTime.now().toUtc().toIso8601String(),
+      'r2',
+    ]);
+
+    expect(await repo.countRecipesIn(book.id), 1);
+    expect(await repo.countRecipesIn(other), 1);
+    expect(await repo.countBooks(), 2);
+  });
+
+  test('deleteBook soft-deletes the book and its sections', () async {
+    final book = await repo.ensureDefaultBook();
+    final keep = await repo.createBook('Baking');
+    final section = await repo.createSection(book.id, 'Weeknight');
+
+    await repo.deleteBook(book.id);
+
+    expect((await repo.watchLibrary().first).map((b) => b.id), [keep]);
+    final row = await db.get(
+      'SELECT deleted_at FROM book_section WHERE id = ?',
+      [section],
+    );
+    expect(row['deleted_at'], isNotNull);
+
+    // A second delete is a harmless no-op — the tombstone is already there.
+    await repo.deleteBook(book.id);
+    expect(await repo.countBooks(), 1);
+  });
+
+  test(
+    'moveBookContents re-parents live recipes and unsections them',
+    () async {
+      final from = await repo.ensureDefaultBook();
+      final to = await repo.createBook('Baking');
+      final section = await repo.createSection(from.id, 'Weeknight');
+      await _insertRecipe(
+        db,
+        'r1',
+        'Curry',
+        bookId: from.id,
+        sectionId: section,
+      );
+      await _insertRecipe(db, 'r2', 'Toast', bookId: from.id);
+      await _insertRecipe(db, 'r3', 'Scones', bookId: to);
+
+      await repo.moveBookContents(fromBookId: from.id, toBookId: to);
+
+      final library = await repo.watchLibrary().first;
+      final source = library.firstWhere((b) => b.id == from.id);
+      expect(source.unsectioned, isEmpty);
+      expect(source.sections.single.recipes, isEmpty);
+
+      final target = library.firstWhere((b) => b.id == to);
+      // Sections belong to the book they were named in, so everything lands
+      // unsectioned — never pointing at the old shelf's label.
+      expect(
+        target.unsectioned.map((r) => r.title),
+        containsAll(<String>['Curry', 'Toast', 'Scones']),
+      );
+      final moved = await db.get('SELECT section_id FROM recipe WHERE id = ?', [
+        'r1',
+      ]);
+      expect(moved['section_id'], isNull);
+    },
+  );
+
+  test('the library tree reports a favourited recipe (D6)', () async {
+    final book = await repo.ensureDefaultBook();
+    await _insertRecipe(db, 'r1', 'Romesco Aioli', bookId: book.id);
+    await _insertRecipe(db, 'r2', 'Toast', bookId: book.id);
+    await db.execute('UPDATE recipe SET favorite = 1 WHERE id = ?', ['r1']);
+
+    final rows = (await repo.watchLibrary().first).single.unsectioned;
+
+    // The yield-column bug class, one column over: a tree that drops
+    // `favorite` renders every Library row unstarred whatever the recipe page
+    // says. Pin it at the tree, not only at the recipe list.
+    expect(
+      {for (final r in rows) r.title: r.favorite},
+      {'Romesco Aioli': true, 'Toast': false},
+    );
+  });
+
+  test('createBook after deleting the only book still yields one', () async {
+    final first = await repo.ensureDefaultBook();
+    await repo.deleteBook(first.id);
+
+    final second = await repo.ensureDefaultBook();
+
+    expect(second.id, isNot(first.id));
+    expect(await repo.countBooks(), 1);
+  });
 }

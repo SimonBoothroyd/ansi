@@ -7,13 +7,14 @@ library;
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
-import 'package:ansi/features/books/domain/book_repository.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+import '../../helpers/fake_book_repository.dart';
 
 class _FakeRecipeRepo implements RecipeRepository {
   final saved = <Recipe>[];
@@ -43,36 +44,8 @@ class _FakeRecipeRepo implements RecipeRepository {
   }) async => false;
 }
 
-class _FakeBookRepo implements BookRepository {
-  static const _book = Book(id: 'b1', name: 'Our Cookbook');
-
-  @override
-  Stream<List<Book>> watchLibrary() => Stream.value(const [_book]);
-
-  @override
-  Future<Book> ensureDefaultBook() async => _book;
-
-  @override
-  Future<String> createBook(String name) async => 'b';
-
-  @override
-  Future<String> createSection(String bookId, String name) async => 's';
-
-  @override
-  Future<void> renameSection(String sectionId, String name) async {}
-
-  @override
-  Future<void> reorderSections(String b, List<String> ids) async {}
-
-  @override
-  Future<void> deleteSection(String sectionId) async {}
-
-  @override
-  Future<void> assignRecipe(
-    String recipeId, {
-    required String bookId,
-    String? sectionId,
-  }) async {}
+class _FakeBookRepo extends FakeBookRepository {
+  const _FakeBookRepo() : super(const [Book(id: 'b1', name: 'Our Cookbook')]);
 }
 
 void main() {
@@ -81,7 +54,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         recipeRepositoryProvider.overrideWithValue(repo),
-        bookRepositoryProvider.overrideWithValue(_FakeBookRepo()),
+        bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
       ],
     );
     addTearDown(container.dispose);
@@ -119,7 +92,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
-          bookRepositoryProvider.overrideWithValue(_FakeBookRepo()),
+          bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
         ],
       );
       addTearDown(container.dispose);

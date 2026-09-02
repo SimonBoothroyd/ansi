@@ -6,7 +6,6 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
-import 'package:ansi/features/books/domain/book_repository.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/planning_repository.dart';
@@ -20,6 +19,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+import '../../helpers/fake_book_repository.dart';
 
 /// The picker's read models, canned: two recipes — a favorite with complete
 /// per-serving macros planned 3 days ago, and an unplanned one whose macros
@@ -115,31 +116,8 @@ class _FakePlanningRepo implements PlanningRepository {
   Future<int> copyLastWeek(DateTime weekStart) async => 0;
 }
 
-class _FakeBookRepo implements BookRepository {
-  static const _book = Book(id: 'b1', name: 'Our Cookbook');
-  @override
-  Stream<List<Book>> watchLibrary() => Stream.value(const [_book]);
-  @override
-  Future<Book> ensureDefaultBook() async => _book;
-  @override
-  Future<String> createBook(String name) async => 'b';
-  @override
-  Future<String> createSection(String bookId, String name) async => 's';
-  @override
-  Future<void> renameSection(String sectionId, String name) async {}
-  @override
-  Future<void> reorderSections(
-    String bookId,
-    List<String> orderedSectionIds,
-  ) async {}
-  @override
-  Future<void> deleteSection(String sectionId) async {}
-  @override
-  Future<void> assignRecipe(
-    String recipeId, {
-    required String bookId,
-    String? sectionId,
-  }) async {}
+class _FakeBookRepo extends FakeBookRepository {
+  const _FakeBookRepo() : super(const [Book(id: 'b1', name: 'Our Cookbook')]);
 }
 
 /// A host whose button opens the picker sheet for Wednesday dinner.
@@ -148,7 +126,7 @@ Widget _host({List<RecipeSummary> recipes = const [_curry, _salad]}) =>
       overrides: [
         recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(recipes)),
         planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
-        bookRepositoryProvider.overrideWithValue(_FakeBookRepo()),
+        bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
       ],
       child: MaterialApp(
         home: FTheme(
