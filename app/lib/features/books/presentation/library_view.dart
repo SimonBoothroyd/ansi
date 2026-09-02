@@ -6,6 +6,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -13,6 +14,7 @@ import '../../../core/sync/session.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_search_field.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../ingredients/data/ingredient_providers.dart';
@@ -22,19 +24,28 @@ import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/book_providers.dart';
 import '../domain/book.dart';
+import '../domain/library_search.dart';
 import 'book_pick_sheet.dart';
 import 'book_reorder_sheet.dart';
 import 'book_view_models.dart';
 import 'text_prompt.dart';
 
-class LibraryView extends ConsumerWidget {
+class LibraryView extends HookConsumerWidget {
   const LibraryView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final library = ref.watch(libraryProvider);
+    // The field owns its controller (a hook, so it survives every rebuild) and
+    // the body branches on WHAT THE FIELD SAYS, never on a query stored
+    // elsewhere that could outlive the text that produced it — plan 0020 J4,
+    // and the ingredients manager is the working example.
+    final field = useTextEditingController();
+    final typed = useValueListenable(field).text;
+    final searching = typed.trim().isNotEmpty;
 
     return FScaffold(
+      childPad: false,
       header: FHeader.nested(
         title: Text('Library', style: ansiHeaderTitle()),
         // D1: `⋯` then `＋`. The plus keeps the rightmost, thumb-reachable
@@ -45,27 +56,123 @@ class LibraryView extends ConsumerWidget {
           const _AddMenu(),
         ],
       ),
-      child: library.when(
-        loading: () => const Center(child: FCircularProgress()),
-        error: (e, _) {
-          debugPrint('library load failed: $e');
-          return Center(
-            child: Text(
-              'Could not load the library.',
-              textAlign: TextAlign.center,
-              style: ansiMono(size: 13, color: AnsiColors.muted),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Pinned under the header, not a sheet: the Library is where you
+          // already are (D2).
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+            child: AnsiSearchField(hint: 'Search recipes', controller: field),
+          ),
+          Expanded(
+            child: library.when(
+              loading: () => const Center(child: FCircularProgress()),
+              error: (e, _) {
+                debugPrint('library load failed: $e');
+                return Center(
+                  child: Text(
+                    'Could not load the library.',
+                    textAlign: TextAlign.center,
+                    style: ansiMono(size: 13, color: AnsiColors.muted),
+                  ),
+                );
+              },
+              // While a query is live the tree is gone, so the fold state is
+              // ignored: there is nothing to fold. Clearing the field restores
+              // it exactly as it was, folds included.
+              data: (books) => switch (books) {
+                _ when searching => _SearchResults(books: books, query: typed),
+                [] => const _EmptyState(),
+                _ => ListView(
+                  padding: const EdgeInsets.only(top: 4, bottom: 28),
+                  children: [
+                    for (final b in books) _BookCard(book: b, books: books),
+                  ],
+                ),
+              },
             ),
-          );
-        },
-        data: (books) => books.isEmpty
-            ? const _EmptyState()
-            : ListView(
-                padding: const EdgeInsets.only(top: 4, bottom: 28),
-                children: [
-                  for (final b in books) _BookCard(book: b, books: books),
-                ],
-              ),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+/// A live query replaces the tree with flat rows that say where each recipe
+/// lives (D2) — and, when nothing matches, with two doors (D7·5).
+class _SearchResults extends StatelessWidget {
+  const _SearchResults({required this.books, required this.query});
+
+  final List<Book> books;
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    final hits = searchLibrary(books, query);
+    if (hits.isEmpty) return _NoHits(query: query.trim());
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            '${hits.length} ${hits.length == 1 ? 'recipe' : 'recipes'}',
+            style: ansiLabel(),
+          ),
+        ),
+        for (final hit in hits)
+          _RecipeRow(recipe: hit.recipe, filing: hit.filing),
+      ],
+    );
+  }
+}
+
+/// Nothing matched — and the most common reason a recipe search misses is that
+/// you haven't written it down yet (D7·5).
+///
+/// The query is echoed AS TYPED, never "did you mean romesco?": there is no
+/// single-token fuzzy matcher to back that promise yet (tracker,
+/// `ingredients/search`). A dead end with two doors is not a dead end.
+class _NoHits extends StatelessWidget {
+  const _NoHits({required this.query});
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 40, 20, 28),
+      children: [
+        const Icon(FLucideIcons.search, size: 32, color: AnsiColors.muted),
+        const SizedBox(height: 14),
+        Text(
+          'Nothing matches “$query”',
+          textAlign: TextAlign.center,
+          style: ansiSerif(size: 20),
+        ),
+        const SizedBox(height: 18),
+        DashedAction(
+          icon: FLucideIcons.plus,
+          label: 'new recipe called “$query”',
+          // The typed query becomes the new recipe's title — the ingredient
+          // picker's "can't find it? add a new ingredient" move, which mints
+          // from the query rather than dropping you on an empty form.
+          onTap: () => context.pushOnce(
+            Uri(
+              path: '/recipes/new',
+              queryParameters: {'title': query},
+            ).toString(),
+          ),
+        ),
+        const SizedBox(height: 8),
+        DashedAction(
+          icon: FLucideIcons.download,
+          label: 'import a recipe instead',
+          onTap: () => context.pushOnce('/import'),
+        ),
+      ],
     );
   }
 }
@@ -806,24 +913,41 @@ class _SectionMenu extends ConsumerWidget {
   }
 }
 
+/// One recipe: title · serves N · ›.
+///
+/// [filing] is set only on a search result, where the tree that would have said
+/// where this lives is not on screen.
 class _RecipeRow extends StatelessWidget {
-  const _RecipeRow({required this.recipe});
+  const _RecipeRow({required this.recipe, this.filing});
 
   final RecipeSummary recipe;
+  final Filing? filing;
 
   @override
   Widget build(BuildContext context) {
+    final filing = this.filing;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => context.pushOnce('/recipes/${recipe.id}'),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Text(
-                recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
-                style: ansiSerif(size: 17),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
+                    style: ansiSerif(size: 17),
+                  ),
+                  if (filing != null)
+                    Text(
+                      '${filing.book} · ${filing.section ?? 'Unsectioned'}',
+                      style: ansiMono(size: 10, color: AnsiColors.muted),
+                    ),
+                ],
               ),
             ),
             Text(

@@ -150,10 +150,14 @@ GoRouter router(Ref ref) {
         builder: (context, state) =>
             IngredientDetailView(ingredientId: state.pathParameters['id']!),
       ),
+      // `?title=` prefills the draft — what the Library's "nothing matches"
+      // state hands over, so a search for a recipe you were about to write
+      // becomes the recipe (Library v2 / D7·5).
       GoRoute(
         path: '/recipes/new',
         name: 'recipe-new',
-        builder: (context, state) => const RecipeEditorView(),
+        builder: (context, state) =>
+            RecipeEditorView(initialTitle: state.uri.queryParameters['title']),
       ),
       GoRoute(
         path: '/recipes/:id',

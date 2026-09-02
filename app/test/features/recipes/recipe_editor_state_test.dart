@@ -82,6 +82,32 @@ void main() {
     expect(next.groups.single.items, isEmpty);
   });
 
+  test(
+    'a draft opened with a title starts from it (Library v2 / D7)',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
+          bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // What `/recipes/new?title=romes` carries over from the Library's
+      // "nothing matches" state: you searched for a recipe you were about to
+      // write, so the editor opens on it rather than on an empty form.
+      final seeded = await container.read(
+        recipeEditorProvider(null, initialTitle: '  Romesco Aioli  ').future,
+      );
+      expect(seeded.title, 'Romesco Aioli');
+
+      // A plain "New recipe" is still blank, and is a different draft.
+      final blank = await container.read(recipeEditorProvider(null).future);
+      expect(blank.title, isEmpty);
+      expect(blank.id, isNot(seeded.id));
+    },
+  );
+
   group('the MAKES row (step 8.6 / D2 · D9, board frame h)', () {
     Future<RecipeEditor> editor(ProviderContainer container) async {
       await container.read(recipeEditorProvider(null).future);

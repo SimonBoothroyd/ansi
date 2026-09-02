@@ -12,6 +12,7 @@ import 'package:forui/forui.dart';
 
 import '../core/theme/ansi_theme.dart';
 import '../core/theme/ansi_tokens.dart';
+import 'ansi_search_field.dart';
 
 class PickerShell extends StatelessWidget {
   const PickerShell({
@@ -102,14 +103,10 @@ class PickerShell extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 12),
-            FTextField(
+            AnsiSearchField(
               autofocus: searchAutofocus,
               hint: searchHint,
-              control: FTextFieldControl.managed(
-                onChange: (v) => onQueryChanged(v.text),
-              ),
-              prefixBuilder: (context, style, _) =>
-                  const Icon(FLucideIcons.search),
+              onChanged: onQueryChanged,
             ),
             if (aboveList != null) ...[const SizedBox(height: 12), aboveList!],
             const SizedBox(height: 12),

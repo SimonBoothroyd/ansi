@@ -27,6 +27,7 @@ import '../../../shared/guarded_navigation.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../../shared/picker_shell.dart';
 import '../../books/domain/book.dart';
+import '../../books/domain/library_search.dart';
 import '../../books/presentation/book_view_models.dart';
 import '../../ingredients/domain/search_rank.dart';
 import '../../recipes/domain/recipe.dart';
@@ -50,24 +51,6 @@ Future<RecipeSummary?> showRecipePickerSheet(
   );
 }
 
-/// Filing context (book · section) for a recipe, for the row subtitle.
-typedef _Filing = ({String book, String? section});
-
-Map<String, _Filing> _filingByRecipe(List<Book> library) {
-  final map = <String, _Filing>{};
-  for (final b in library) {
-    for (final s in b.sections) {
-      for (final r in s.recipes) {
-        map[r.id] = (book: b.name, section: s.name);
-      }
-    }
-    for (final r in b.unsectioned) {
-      map[r.id] = (book: b.name, section: null);
-    }
-  }
-  return map;
-}
-
 class _RecipePickerSheet extends HookConsumerWidget {
   const _RecipePickerSheet({required this.dayOfWeek, required this.slot});
 
@@ -86,7 +69,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
     final lastPlanned =
         ref.watch(lastPlannedByRecipeProvider).asData?.value ??
         const <String, DateTime>{};
-    final filing = _filingByRecipe(library);
+    final filing = filingByRecipe(library);
 
     // The shared rule, over titles — the same call the editor's "Your
     // recipes" section makes, so the two pickers cannot disagree about what
@@ -118,7 +101,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
 
     void pick(RecipeSummary r) => Navigator.of(context).pop(r);
 
-    Widget row(RecipeSummary r, {_Filing? explicitFiling}) => _RecipeRow(
+    Widget row(RecipeSummary r, {Filing? explicitFiling}) => _RecipeRow(
       recipe: r,
       filing: explicitFiling ?? filing[r.id],
       lastPlanned: lastPlanned[r.id],
@@ -366,7 +349,7 @@ class _RecentList extends StatelessWidget {
   const _RecentList({required this.recipes, required this.row});
 
   final List<RecipeSummary> recipes;
-  final Widget Function(RecipeSummary r, {_Filing? explicitFiling}) row;
+  final Widget Function(RecipeSummary r, {Filing? explicitFiling}) row;
 
   @override
   Widget build(BuildContext context) {
@@ -386,7 +369,7 @@ class _FavoritesList extends StatelessWidget {
   const _FavoritesList({required this.recipes, required this.row});
 
   final List<RecipeSummary> recipes;
-  final Widget Function(RecipeSummary r, {_Filing? explicitFiling}) row;
+  final Widget Function(RecipeSummary r, {Filing? explicitFiling}) row;
 
   @override
   Widget build(BuildContext context) {
@@ -413,7 +396,7 @@ class _BooksList extends StatelessWidget {
   final List<Book> library;
   final List<RecipeSummary> recipes;
   final bool Function(String title) matches;
-  final Widget Function(RecipeSummary r, {_Filing? explicitFiling}) row;
+  final Widget Function(RecipeSummary r, {Filing? explicitFiling}) row;
 
   @override
   Widget build(BuildContext context) {
@@ -452,7 +435,7 @@ class _RecipeRow extends StatelessWidget {
   });
 
   final RecipeSummary recipe;
-  final _Filing? filing;
+  final Filing? filing;
   final DateTime? lastPlanned;
   final ValueChanged<RecipeSummary> onPick;
 

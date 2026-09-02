@@ -32,14 +32,20 @@ import 'recipe_chip.dart';
 import 'recipe_view_models.dart';
 
 class RecipeEditorView extends ConsumerWidget {
-  const RecipeEditorView({this.recipeId, super.key});
+  const RecipeEditorView({this.recipeId, this.initialTitle, super.key});
 
   final String? recipeId;
 
+  /// Seeds a NEW recipe's title (`/recipes/new?title=…`) — the query the
+  /// Library's "nothing matches" state was searched for. Ignored when
+  /// [recipeId] is set: an existing recipe already has a title.
+  final String? initialTitle;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(recipeEditorProvider(recipeId));
-    final notifier = ref.read(recipeEditorProvider(recipeId).notifier);
+    final editor = recipeEditorProvider(recipeId, initialTitle: initialTitle);
+    final async = ref.watch(editor);
+    final notifier = ref.read(editor.notifier);
 
     return FScaffold(
       childPad: false,

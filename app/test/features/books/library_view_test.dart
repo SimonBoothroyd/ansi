@@ -105,6 +105,10 @@ Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
         path: '/import',
         builder: (_, _) => const FScaffold(child: Text('import screen')),
       ),
+      GoRoute(
+        path: '/recipes/new',
+        builder: (_, _) => const FScaffold(child: Text('editor screen')),
+      ),
     ],
   );
   addTearDown(router.dispose);
@@ -345,7 +349,8 @@ void main() {
       // The prompt arrives seeded with the current name — renameSection's
       // idiom, one level up.
       expect(find.text('Rename book'), findsOneWidget);
-      await tester.enterText(find.byType(TextField).first, 'Weeknights');
+      // `.last`: the dialog's field, in the overlay above the pinned search.
+      await tester.enterText(find.byType(TextField).last, 'Weeknights');
       await tester.tap(find.text('Rename'));
       await tester.pumpAndSettle();
 
@@ -511,6 +516,94 @@ void main() {
     expect(find.text('Nothing on this shelf yet'), findsOneWidget);
     expect(find.text('new recipe'), findsOneWidget);
     expect(find.text('import one'), findsOneWidget);
+  });
+
+  group('pinned search (D2)', () {
+    Future<void> type(WidgetTester tester, String query) async {
+      filterForuiSemanticsAssertions();
+      await tester.enterText(find.byType(TextField).first, query);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a live query replaces the tree with filed rows', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_host(_repo(_library)));
+      await tester.pumpAndSettle();
+
+      await type(tester, 'chicken');
+
+      // The tree is gone — no herb card, no section label, no dashed row.
+      expect(find.text('Our Cookbook'), findsNothing);
+      expect(find.text('Weeknight'), findsNothing);
+      expect(find.textContaining('new section'), findsNothing);
+      // The filing line is the whole reason the list is flat.
+      expect(find.text('Chicken Curry'), findsOneWidget);
+      expect(find.text('Our Cookbook · Weeknight'), findsOneWidget);
+      expect(find.text('1 recipe'), findsOneWidget);
+    });
+
+    testWidgets('an unsectioned hit still says where it lives', (tester) async {
+      await tester.pumpWidget(_host(_repo(_library)));
+      await tester.pumpAndSettle();
+
+      await type(tester, 'toast');
+
+      expect(find.text('Our Cookbook · Unsectioned'), findsOneWidget);
+    });
+
+    testWidgets('clearing the field restores the tree, folds intact', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host([
+          ..._repo(_library),
+          bookCollapseStoreProvider.overrideWithValue(
+            _FakeCollapseStore({'b1'}),
+          ),
+        ]),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Chicken Curry'), findsNothing, reason: 'folded');
+
+      // A live query ignores the fold — there is no tree to fold.
+      await type(tester, 'chicken');
+      expect(find.text('Chicken Curry'), findsOneWidget);
+
+      await type(tester, '');
+      expect(find.text('Our Cookbook'), findsOneWidget);
+      expect(find.text('Chicken Curry'), findsNothing, reason: 'still folded');
+    });
+
+    testWidgets('no hits echoes the query as typed and offers two doors', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_host(_repo(_library)));
+      await tester.pumpAndSettle();
+
+      await type(tester, 'romes');
+
+      expect(find.text('Nothing matches “romes”'), findsOneWidget);
+      expect(find.text('new recipe called “romes”'), findsOneWidget);
+      expect(find.text('import a recipe instead'), findsOneWidget);
+      // Honest about the query, not clever about it: there is no single-token
+      // fuzzy matcher to back a "did you mean".
+      expect(find.textContaining('did you mean'), findsNothing);
+    });
+
+    testWidgets('the no-hits door hands the typed query to the editor', (
+      tester,
+    ) async {
+      late GoRouter router;
+      await tester.pumpWidget(_routedHost(_repo(_library), (r) => router = r));
+      await tester.pumpAndSettle();
+
+      await type(tester, 'romes');
+      await tester.tap(find.text('new recipe called “romes”'));
+      await tester.pumpAndSettle();
+
+      expect(router.state.uri.toString(), '/recipes/new?title=romes');
+    });
   });
 
   testWidgets('the add-section affordance uses an icon, not a raw ＋ glyph', (

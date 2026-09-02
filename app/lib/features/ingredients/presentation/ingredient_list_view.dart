@@ -22,6 +22,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_search_field.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/ingredient.dart';
@@ -92,11 +93,9 @@ class IngredientListView extends HookConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-            child: FTextField(
+            child: AnsiSearchField(
               hint: 'Search your vocabulary',
-              control: FTextFieldControl.managed(controller: field),
-              prefixBuilder: (context, style, _) =>
-                  const Icon(FLucideIcons.search),
+              controller: field,
             ),
           ),
           Expanded(

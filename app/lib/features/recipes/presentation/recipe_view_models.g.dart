@@ -356,19 +356,37 @@ final class LineItemIngredientFamily extends $Family
 
 /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
 /// blank one with a fresh id and a single empty group (create).
+///
+/// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
+/// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
+/// so a search for a recipe you were about to write becomes that recipe rather
+/// than an empty form. It is part of the family key, so arriving with a
+/// different title is a different draft.
 
 @ProviderFor(RecipeEditor)
 const recipeEditorProvider = RecipeEditorFamily._();
 
 /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
 /// blank one with a fresh id and a single empty group (create).
+///
+/// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
+/// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
+/// so a search for a recipe you were about to write becomes that recipe rather
+/// than an empty form. It is part of the family key, so arriving with a
+/// different title is a different draft.
 final class RecipeEditorProvider
     extends $AsyncNotifierProvider<RecipeEditor, Recipe> {
   /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
   /// blank one with a fresh id and a single empty group (create).
+  ///
+  /// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
+  /// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
+  /// so a search for a recipe you were about to write becomes that recipe rather
+  /// than an empty form. It is part of the family key, so arriving with a
+  /// different title is a different draft.
   const RecipeEditorProvider._({
     required RecipeEditorFamily super.from,
-    required String? super.argument,
+    required (String?, {String? initialTitle}) super.argument,
   }) : super(
          retry: null,
          name: r'recipeEditorProvider',
@@ -384,7 +402,7 @@ final class RecipeEditorProvider
   String toString() {
     return r'recipeEditorProvider'
         ''
-        '($argument)';
+        '$argument';
   }
 
   @$internal
@@ -402,10 +420,16 @@ final class RecipeEditorProvider
   }
 }
 
-String _$recipeEditorHash() => r'72be3a9154ce85a9fe7888104885a0ca5d8e77df';
+String _$recipeEditorHash() => r'16b3c1b4e52c4b35538c4a8b611fdbd7e873897f';
 
 /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
 /// blank one with a fresh id and a single empty group (create).
+///
+/// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
+/// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
+/// so a search for a recipe you were about to write becomes that recipe rather
+/// than an empty form. It is part of the family key, so arriving with a
+/// different title is a different draft.
 
 final class RecipeEditorFamily extends $Family
     with
@@ -414,7 +438,7 @@ final class RecipeEditorFamily extends $Family
           AsyncValue<Recipe>,
           Recipe,
           FutureOr<Recipe>,
-          String?
+          (String?, {String? initialTitle})
         > {
   const RecipeEditorFamily._()
     : super(
@@ -427,9 +451,18 @@ final class RecipeEditorFamily extends $Family
 
   /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
   /// blank one with a fresh id and a single empty group (create).
+  ///
+  /// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
+  /// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
+  /// so a search for a recipe you were about to write becomes that recipe rather
+  /// than an empty form. It is part of the family key, so arriving with a
+  /// different title is a different draft.
 
-  RecipeEditorProvider call(String? recipeId) =>
-      RecipeEditorProvider._(argument: recipeId, from: this);
+  RecipeEditorProvider call(String? recipeId, {String? initialTitle}) =>
+      RecipeEditorProvider._(
+        argument: (recipeId, initialTitle: initialTitle),
+        from: this,
+      );
 
   @override
   String toString() => r'recipeEditorProvider';
@@ -437,16 +470,23 @@ final class RecipeEditorFamily extends $Family
 
 /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
 /// blank one with a fresh id and a single empty group (create).
+///
+/// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
+/// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
+/// so a search for a recipe you were about to write becomes that recipe rather
+/// than an empty form. It is part of the family key, so arriving with a
+/// different title is a different draft.
 
 abstract class _$RecipeEditor extends $AsyncNotifier<Recipe> {
-  late final _$args = ref.$arg as String?;
-  String? get recipeId => _$args;
+  late final _$args = ref.$arg as (String?, {String? initialTitle});
+  String? get recipeId => _$args.$1;
+  String? get initialTitle => _$args.initialTitle;
 
-  FutureOr<Recipe> build(String? recipeId);
+  FutureOr<Recipe> build(String? recipeId, {String? initialTitle});
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build(_$args);
+    final created = build(_$args.$1, initialTitle: _$args.initialTitle);
     final ref = this.ref as $Ref<AsyncValue<Recipe>, Recipe>;
     final element =
         ref.element

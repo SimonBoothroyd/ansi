@@ -67,10 +67,16 @@ Future<Ingredient?> lineItemIngredient(
 
 /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
 /// blank one with a fresh id and a single empty group (create).
+///
+/// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
+/// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
+/// so a search for a recipe you were about to write becomes that recipe rather
+/// than an empty form. It is part of the family key, so arriving with a
+/// different title is a different draft.
 @riverpod
 class RecipeEditor extends _$RecipeEditor {
   @override
-  Future<Recipe> build(String? recipeId) async {
+  Future<Recipe> build(String? recipeId, {String? initialTitle}) async {
     if (recipeId != null) {
       final existing = await ref
           .read(recipeRepositoryProvider)
@@ -83,7 +89,7 @@ class RecipeEditor extends _$RecipeEditor {
     final book = await ref.read(bookRepositoryProvider).ensureDefaultBook();
     return Recipe(
       id: _uuid.v4(),
-      title: '',
+      title: initialTitle?.trim() ?? '',
       servingsBase: 2,
       bookId: book.id,
       groups: [IngredientGroup(id: _uuid.v4())],
