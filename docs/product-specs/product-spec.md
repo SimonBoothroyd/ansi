@@ -208,6 +208,18 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
 
 ## 5. Feature specs
 
+**Navigation (design board "Navigation · v2", shipped):** four tabs — **Library ·
+Week · Cook · Shop** — are the loop, under **one** bottom bar that never moves.
+The tabs are branches of a single shell, so a switch is a 120 ms opacity-only
+cross-fade of the content with the bar held still, and each tab keeps its own
+scroll and its own view state (the Week's per-person lens survives a trip
+through Cook). Everything else — a recipe, the editor, import, the ingredients
+manager — is **pushed over** the shell and covers the bar, keeping each
+platform's native push and back gesture. Back on a non-Library tab returns to
+the Library and a second back leaves the app. Sheets and dialogs open above the
+whole shell. The mechanics, the full back table and the rules that are
+structurally enforced: [`../design-docs/navigation.md`](../design-docs/navigation.md).
+
 **Import (webpage):** parse schema.org/Recipe JSON-LD first (no AI). LLM fallback for messy pages.
 **Import (photo):** vision model → structured lines. Both feed one reconciliation screen.
 **Reconciliation screen (matching, not free text):**

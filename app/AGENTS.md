@@ -23,6 +23,16 @@ lib/
   shared/            reusable widgets
 ```
 
+`shared/ansi_tab_shell.dart` is the app's navigation spine: the four tabs are
+branches of one `StatefulShellRoute` and the bottom bar lives there, **once**.
+Two rules follow, and both are held by structural tests rather than by this
+paragraph — a tab screen never draws its own footer, and a sheet or dialog opens
+through `showAnsiSheet`/`showAnsiDialog` (`shared/ansi_modals.dart`), because
+Forui's own functions default to the *branch* navigator and leave the bar
+tappable beside the barrier. Tap-driven navigation goes through
+`context.pushOnce`/`goOnce`. The whole picture, including what back does on each
+screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md).
+
 ## Rules specific to the app
 
 - **No `package:flutter` in `core/units` or any `domain/`.** CI greps for this.
