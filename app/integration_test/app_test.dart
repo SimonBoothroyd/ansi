@@ -57,6 +57,22 @@
 ///                 compile time, and there is no camera to point at a pack, so
 ///                 the typed field is the Simulator's path to the identical
 ///                 downstream handler (plan 0020 D3 + the option-A ruling).
+///   6 nested     a recipe as an ingredient (step 8.6): a sub-recipe with a
+///                 two-denomination yield set through the editor's MAKES row →
+///                 a component line taken from the picker's "Your recipes"
+///                 section and quantified in the batch-math sheet → the
+///                 parent's recipe chip, the target's "Used in · N" tab and the
+///                 delete refusal that speaks the same count → planned, so the
+///                 Cook tab derives the component session and the Shop tab
+///                 picks up its ingredients with two-level provenance → then
+///                 the yield is un-stated and every derived number becomes the
+///                 named gap, never a `×1`.
+///
+///                 The IMPORT leg of 8.6 (the "↪ your recipe" suggestion chip
+///                 on a review card) is not driven here: the canned payload
+///                 scenario 4 replays deliberately carries no recipe
+///                 candidates, and reaching the real matcher would mean the
+///                 edge function and an LLM. It is host-tested instead.
 library;
 
 import 'dart:convert';
@@ -80,6 +96,11 @@ import 'package:ansi/features/ingredients/domain/normalize.dart'
 import 'package:ansi/features/ingredients/presentation/quantity_unit_sheet.dart'
     show QuantityUnitEditor, UnitChipRow;
 import 'package:ansi/features/planning/domain/planning.dart' show mondayOf;
+import 'package:ansi/features/recipes/presentation/component_quantity_sheet.dart'
+    show ComponentQuantityEditor;
+import 'package:ansi/features/recipes/presentation/recipe_chip.dart'
+    show RecipeChip;
+import 'package:ansi/shared/picker_shell.dart' show PickerShell;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -1586,6 +1607,493 @@ void main() {
       ),
       findsNothing,
     );
+  });
+
+  // ---------------------------------------------------------------------------
+  // 6 · NESTED RECIPES — a recipe as an ingredient, end to end over live sync.
+  // ---------------------------------------------------------------------------
+
+  /// One MAKES slot's row in the editor (board frame h): `yield-1`/`yield-2`.
+  Finder yieldSlot(String slot) => find.byKey(ValueKey(slot));
+
+  /// Types [amount] into a MAKES slot's amount field. An empty string clears
+  /// the slot — which is how the yield is un-stated (D2).
+  Future<void> enterYieldAmount(
+    WidgetTester tester,
+    String slot,
+    String amount,
+  ) async {
+    await scrollTo(tester, yieldSlot(slot));
+    // `.first`: the row's OTHER editable is the unit `FSelect`'s own (forui
+    // builds the select on a read-only text field), and it trails the amount.
+    await tester.enterText(
+      find
+          .descendant(of: yieldSlot(slot), matching: find.byType(EditableText))
+          .first,
+      amount,
+    );
+    await tester.pumpAndSettle();
+  }
+
+  /// Opens a MAKES slot's unit select and leaves it open for inspection. The
+  /// popover builds every item eagerly (forui's select content is a
+  /// `SingleChildScrollView`, not a lazy list), so an item below its fold is
+  /// findable — it just has to be scrolled to before it can be tapped.
+  Future<void> openYieldUnits(WidgetTester tester, String slot) async {
+    await scrollTo(tester, yieldSlot(slot));
+    // `byWidgetPredicate`, not `byType`: forui's `FSelect.rich` builds a
+    // private subclass, which an exact runtime-type finder never matches.
+    await tester.tap(
+      find.descendant(
+        of: yieldSlot(slot),
+        matching: find.byWidgetPredicate((w) => w is FSelect<String>),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  /// Picks [label] in a MAKES slot's unit select. `.last`: the popover's item
+  /// is later in the tree than the closed select showing its current value.
+  Future<void> pickYieldUnit(
+    WidgetTester tester,
+    String slot,
+    String label,
+  ) async {
+    await openYieldUnits(tester, slot);
+    final item = find.text(label).last;
+    await tester.ensureVisible(item);
+    await tester.pumpAndSettle();
+    await tester.tap(item);
+    await tester.pumpAndSettle();
+  }
+
+  /// [addIngredient]'s shape, on anchors rather than settles, and with the
+  /// search [query] stated apart from the row's rendered [name].
+  ///
+  /// The picker matches a query token as a word PREFIX of a vocab row's
+  /// `match_text`, and the seed singularizes: the row rendered "Almonds"
+  /// normalizes to `almond`, so "almonds" finds NOTHING while "almond" finds
+  /// it. Every line this scenario adds therefore names both halves, and a miss
+  /// fails loudly with the query rather than staring at a spinner.
+  Future<void> addVocabLine(
+    WidgetTester tester,
+    String query,
+    String name,
+    String qty,
+  ) async {
+    await scrollTo(tester, find.text('Add ingredient'));
+    await tester.tap(find.text('Add ingredient'));
+    await pumpUntilFound(tester, find.text('Add an ingredient'));
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(PickerShell),
+        matching: find.byType(EditableText),
+      ),
+      query,
+    );
+    try {
+      await pumpUntilFound(
+        tester,
+        find.text(name),
+        timeout: const Duration(seconds: 15),
+      );
+      // `TestFailure` is an Error, and catching this one is the point: it
+      // carries only the finder, and the QUERY is what a reader needs.
+      // ignore: avoid_catching_errors
+    } on TestFailure {
+      fail(
+        'the picker never surfaced "$name" for the query "$query" — the '
+        'seeded vocab row (or its match_text) moved. The search matches each '
+        'query token as a word PREFIX of match_text, so a plural query for '
+        'a singularized row finds nothing.',
+      );
+    }
+    await tester.tap(find.text(name).last);
+    await pumpUntilFound(tester, find.byType(QuantityUnitEditor));
+    await tester.enterText(find.byType(EditableText).last, qty);
+    await tester.pump();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+  }
+
+  /// Opens the editor's picker, searches [query], and takes the "Your recipes"
+  /// row for [title] — the one door D7 gives both kinds of line.
+  Future<void> addComponentLine(
+    WidgetTester tester,
+    String query,
+    String title, {
+    required String hint,
+  }) async {
+    await scrollTo(tester, find.text('Add ingredient'));
+    await tester.tap(find.text('Add ingredient'));
+    await pumpUntilFound(tester, find.text('Add an ingredient'));
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(PickerShell),
+        matching: find.byType(EditableText),
+      ),
+      query,
+    );
+    await pumpUntilFound(tester, find.text('YOUR RECIPES'));
+    // The row's hint is the target's own yield. It reads off the library tree,
+    // so a summary that dropped the yield columns says "no yield yet" here —
+    // and hands the sheet below a target with no batch math to do.
+    expect(find.text(hint), findsOneWidget, reason: "the row's yield hint");
+    await tester.tap(find.text(title).last);
+    await pumpUntilFound(tester, find.byType(ComponentQuantityEditor));
+  }
+
+  /// The recipe editor's Save, then the saved recipe's page.
+  Future<void> saveRecipe(WidgetTester tester) async {
+    await tester.tap(find.text('Save'));
+    await pumpUntilFound(tester, find.text('OUR COOKBOOK'));
+    await tester.pumpAndSettle();
+  }
+
+  /// Back out of a pushed recipe page. After a save `context.go` replaced the
+  /// stack, so the header's back action falls back to the Library.
+  Future<void> backFromRecipe(WidgetTester tester) async {
+    await tester.tap(find.byType(FHeaderAction).first);
+    await tester.pumpAndSettle();
+  }
+
+  /// Backs out of pushed recipe pages until the tab shell is under us again.
+  /// A page reached by `push` pops to its parent; the page a save landed on has
+  /// nothing to pop and its back action falls back to the Library.
+  Future<void> backToShell(WidgetTester tester) async {
+    for (var i = 0; i < 4; i++) {
+      if (find.byIcon(FLucideIcons.library).evaluate().isNotEmpty) return;
+      await backFromRecipe(tester);
+    }
+    fail('never got back to the tab shell — the nav bar never rendered');
+  }
+
+  /// Opens the Library ▸ ＋ ▸ New recipe editor with [title] typed in.
+  Future<void> startRecipe(WidgetTester tester, String title) async {
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byType(FHeaderAction),
+            matching: find.byIcon(FLucideIcons.plus),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New recipe'));
+    await pumpUntilFound(tester, find.text('New recipe'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(EditableText).first, title);
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('6 nested recipes: yield → component line → plan → cook + shop', (
+    tester,
+  ) async {
+    ignoreForuiSemanticsAssertion();
+    await openLibrary(tester);
+
+    // ------------------------------------------------------------------------
+    // 6a · THE SUB-RECIPE — what one batch makes, in two denominations.
+    // ------------------------------------------------------------------------
+    await startRecipe(tester, 'Romesco Aioli');
+
+    // The MAKES row (board frame h): "makes 1 cup". The unit select starts on
+    // `g`, so the amount and the unit are both set by hand — which is exactly
+    // what an import leaves for a human when `yield_raw` isn't a plain
+    // amount + unit (D9).
+    await enterYieldAmount(tester, 'yield-1', '1');
+    await pickYieldUnit(tester, 'yield-1', 'cup');
+
+    // The second denomination, and the other-family lock on its selector: two
+    // ways of saying ONE batch, never two numbers in one family (D2).
+    await scrollTo(tester, find.text('Another denomination'));
+    await tester.tap(find.text('Another denomination'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('never two numbers in one family'),
+      findsOneWidget,
+    );
+    await openYieldUnits(tester, 'yield-2');
+    expect(
+      find.text('ml'),
+      findsNothing,
+      reason: 'the first slot is a volume — the second must not offer volumes',
+    );
+    expect(find.text('tbsp'), findsNothing);
+    expect(
+      find.text('kg'),
+      findsWidgets,
+      reason: 'the other families are open',
+    );
+    await tester.tap(find.text('g').last); // keep `g`, close the popover
+    await tester.pumpAndSettle();
+    await enterYieldAmount(tester, 'yield-2', '250');
+
+    // A few real lines off the synced vocab. Olive Oil is deliberately shared
+    // with the parent below: one shopping item, two levels of provenance.
+    await addVocabLine(tester, 'almond', 'Almonds', '100');
+    await addVocabLine(tester, 'red bell', 'Red Bell Pepper', '2');
+    await addVocabLine(tester, 'olive oil', 'Olive Oil', '60');
+
+    await saveRecipe(tester);
+    // The hero meta row reads as one sentence in two pills (board frame b).
+    expect(find.text('makes 1 cup'), findsOneWidget);
+    expect(find.text('· 250 g'), findsOneWidget);
+
+    // Both denominations survive the server round-trip — the migration's
+    // "different family" CHECK accepts the pair, so the upload queue drains.
+    await waitForSyncRoundTrip(tester);
+    final aioli = await db.get(
+      'SELECT id, yield_qty, yield_unit, yield_qty_2, yield_unit_2 '
+      "FROM recipe WHERE title = 'Romesco Aioli' AND deleted_at IS NULL",
+    );
+    expect(aioli['yield_qty'], 1);
+    expect(aioli['yield_unit'], 'cup');
+    expect(aioli['yield_qty_2'], 250);
+    expect(aioli['yield_unit_2'], 'g');
+
+    // ------------------------------------------------------------------------
+    // 6b · THE PARENT — a component line through the picker's "Your recipes".
+    // ------------------------------------------------------------------------
+    await backFromRecipe(tester);
+    await startRecipe(tester, 'Sausage Sliders');
+    await addVocabLine(tester, 'olive oil', 'Olive Oil', '2');
+
+    await addComponentLine(
+      tester,
+      'romesco',
+      'Romesco Aioli',
+      hint: 'makes 1 cup',
+    );
+    // The picker row carried the yield as its hint, and the sheet that opened
+    // is the batch-math one: the target's chip, its yields, and the live
+    // conversion line (board frame d).
+    expect(find.textContaining('your recipe'), findsOneWidget);
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(ComponentQuantityEditor),
+        matching: find.byType(EditableText),
+      ),
+      '0.25',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('0.25 cup = 0.25 of a batch · makes 1 cup'),
+      findsOneWidget,
+      reason: 'the conversion line must read the batch math, live',
+    );
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    await saveRecipe(tester);
+
+    // The saved line is a component in the D1 sense: the sub-recipe identity,
+    // no ingredient, no measure — and it stays that way after the round trip
+    // (the server's XOR + measure CHECKs accepted the write).
+    final sliders = await db.get(
+      "SELECT id FROM recipe WHERE title = 'Sausage Sliders' "
+      'AND deleted_at IS NULL',
+    );
+    await waitForSyncRoundTrip(tester);
+    final component = await db.get(
+      'SELECT li.quantity, li.unit, li.ingredient_id, li.sub_recipe_id, '
+      'li.measure_id FROM recipe_line_item li '
+      'JOIN ingredient_group g ON g.id = li.group_id '
+      'WHERE g.recipe_id = ? AND li.sub_recipe_id IS NOT NULL '
+      'AND li.deleted_at IS NULL',
+      [sliders['id']],
+    );
+    expect(component['sub_recipe_id'], aioli['id']);
+    expect(component['ingredient_id'], isNull);
+    expect(component['measure_id'], isNull, reason: 'measures are ingredients');
+    expect(component['quantity'], 0.25);
+    expect(component['unit'], 'cup');
+
+    // ------------------------------------------------------------------------
+    // 6c · THE TWO FACES — the parent's chip, the target's "Used in" tab, and
+    //      the delete refusal that speaks the same count (D5 · D7 · D9).
+    // ------------------------------------------------------------------------
+    // The v3 grammar is untouched; only the identity cell changed.
+    expect(find.text('0.25 cup'), findsOneWidget);
+    expect(find.byType(RecipeChip), findsOneWidget);
+    await tester.tap(find.byType(RecipeChip));
+    await pumpUntilFound(tester, find.text('makes 1 cup'));
+
+    // The aioli's own page, with the conditional third tab carrying its count.
+    await tester.tap(find.text('Used in · 1'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sausage Sliders'), findsOneWidget);
+    expect(
+      find.text('0.25 cup · 0.25 of a batch'),
+      findsOneWidget,
+      reason: 'a "used in" row states the printed amount AND its share',
+    );
+    // The rows are real: this one pushes the parent.
+    await tester.tap(find.text('Sausage Sliders'));
+    await pumpUntilFound(tester, find.byType(RecipeChip));
+    await backFromRecipe(tester);
+    await pumpUntilFound(tester, find.text('makes 1 cup'));
+
+    // Deleting a recipe something points at is refused, with the count (D5).
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FHeaderAction),
+        matching: find.byIcon(FLucideIcons.ellipsis),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await pumpUntilFound(tester, find.text('Can’t delete this recipe'));
+    expect(
+      find.text('Used in 1 recipe (1 line). Change those lines first.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(40, 300)); // dismiss the popover
+    await tester.pumpAndSettle();
+    final stillThere = await db.get(
+      'SELECT deleted_at FROM recipe WHERE id = ?',
+      [aioli['id']],
+    );
+    expect(stillThere['deleted_at'], isNull, reason: 'the refusal must hold');
+
+    // ------------------------------------------------------------------------
+    // 6d · THE PLAN — a component is a real derived session, and its
+    //      ingredients flow into the list with two-level provenance (D3 · D4).
+    // ------------------------------------------------------------------------
+    await backToShell(tester);
+    await tester.tap(find.byIcon(FLucideIcons.calendarDays));
+    await pumpUntilFound(tester, find.text('Shared'));
+    await addMealOn(tester, 'Friday', 'Sausage Sliders');
+
+    await tester.tap(find.byIcon(FLucideIcons.cookingPot));
+    await pumpUntilFound(
+      tester,
+      find.text('Romesco Aioli · for Sausage Sliders'),
+    );
+    await scrollTo(tester, find.text('Romesco Aioli · for Sausage Sliders'));
+    expect(find.text('derived from a component line'), findsOneWidget);
+    // Ready BY the demanding parent's cook day, denominated in batches.
+    expect(find.text('Cook by Fri'), findsOneWidget);
+    expect(find.text('×0.25 batch'), findsOneWidget);
+    expect(
+      find.text(
+        'covers Sausage Sliders · cook Fri — makes 1 cup, you need '
+        '0.25',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Nothing here tracks the leftover'),
+      findsOneWidget,
+      reason: 'a fractional batch says so out loud (an 8.6 non-goal)',
+    );
+
+    await tester.tap(find.byIcon(FLucideIcons.shoppingBasket));
+    await pumpUntilFound(tester, find.text('Shopping list'));
+    // The component LINE never becomes an item (you buy almonds, not aioli) —
+    // the aioli's own lines do, through the derived session.
+    await scrollTo(tester, find.text('Almonds'));
+    expect(find.text('Romesco Aioli'), findsNothing);
+    expect(
+      find.text('Romesco Aioli · for Sausage Sliders · cook Fri'),
+      findsWidgets,
+      reason: 'the nested contribution names both levels',
+    );
+    // Olive Oil is on both levels, so its breakdown carries both segments.
+    await scrollTo(tester, find.text('Olive Oil'));
+    final oilRow = find
+        .ancestor(of: find.text('Olive Oil'), matching: find.byType(Column))
+        .first;
+    expect(
+      find.descendant(of: oilRow, matching: find.text('Sausage Sliders')),
+      findsOneWidget,
+      reason: "the parent's own line reads as it always has",
+    );
+    expect(
+      find.descendant(
+        of: oilRow,
+        matching: find.text('Romesco Aioli · for Sausage Sliders · cook Fri'),
+      ),
+      findsOneWidget,
+    );
+
+    // ------------------------------------------------------------------------
+    // 6e · THE HONEST GAP — un-state the yield and the derived numbers go away
+    //      rather than turning into a ×1 (D2 · D3 · D4).
+    // ------------------------------------------------------------------------
+    await tester.tap(find.byIcon(FLucideIcons.library));
+    await pumpUntilFound(tester, find.text('Our Cookbook'));
+    await scrollTo(tester, find.text('Romesco Aioli'));
+    await tester.tap(find.text('Romesco Aioli'));
+    await pumpUntilFound(tester, find.text('makes 1 cup'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FHeaderAction),
+        matching: find.byIcon(FLucideIcons.ellipsis),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await pumpUntilFound(tester, find.text('Edit recipe'));
+    await enterYieldAmount(tester, 'yield-1', '');
+    await saveRecipe(tester);
+
+    // Clearing the first denomination drops the second with it — the pair the
+    // migration's CHECK pins can never be half-stated.
+    expect(find.text('makes 1 cup'), findsNothing);
+    expect(find.text('· 250 g'), findsNothing);
+    await waitForSyncRoundTrip(tester);
+    final cleared = await db.get(
+      'SELECT yield_qty, yield_unit, yield_qty_2, yield_unit_2 FROM recipe '
+      'WHERE id = ?',
+      [aioli['id']],
+    );
+    expect(cleared['yield_qty'], isNull);
+    expect(cleared['yield_unit'], isNull);
+    expect(cleared['yield_qty_2'], isNull);
+    expect(cleared['yield_unit_2'], isNull);
+
+    // The Cook tab: the session becomes a NAMED GAP. Never a ×1 — assuming one
+    // batch is exactly the invented number this app refuses.
+    await backToShell(tester);
+    await tester.tap(find.byIcon(FLucideIcons.cookingPot));
+    await pumpUntilFound(
+      tester,
+      find.text('Romesco Aioli doesn’t say how much it makes'),
+    );
+    await scrollTo(tester, find.text('Romesco Aioli · for Sausage Sliders'));
+    expect(
+      find.text('derived from a component line · yield not set'),
+      findsOneWidget,
+    );
+    expect(find.text('no scale'), findsOneWidget);
+    expect(find.text('Set the yield'), findsOneWidget);
+    // The one number a gap CAN state is what the demanding line printed —
+    // unscaled, unconverted, quoted from the page (frame f).
+    expect(
+      find.text(
+        'covers Sausage Sliders · cook Fri — the line asks for '
+        '0.25 cup',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('×0.25 batch'), findsNothing);
+    expect(find.text('×1 batch'), findsNothing);
+
+    // The Shop tab: the unresolved component contributes NOTHING, and the
+    // parent says so rather than leaving the list quietly short (D4).
+    await tester.tap(find.byIcon(FLucideIcons.shoppingBasket));
+    await pumpUntilFound(tester, find.text('Shopping list'));
+    await scrollTo(tester, find.text('1 component unresolved — see Cook'));
+    expect(find.text('SAUSAGE SLIDERS'), findsOneWidget);
+    expect(
+      find.text('Romesco Aioli · for Sausage Sliders · cook Fri'),
+      findsNothing,
+      reason: 'an unresolved component contributes nothing — never a guess',
+    );
+    expect(find.text('Almonds'), findsNothing);
   });
 }
 
