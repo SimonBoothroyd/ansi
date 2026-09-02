@@ -31,6 +31,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/method_step_text.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../domain/method_draft.dart';
@@ -560,7 +561,7 @@ Future<void> _confirmFlatten(
 ) async {
   final counts = notifier.methodLinkCounts();
   if (counts.chips == 0 && counts.timers == 0) return;
-  final confirmed = await showFDialog<bool>(
+  final confirmed = await showAnsiDialog<bool>(
     context: context,
     builder: (dialogContext, style, animation) => FDialog(
       title: Text(

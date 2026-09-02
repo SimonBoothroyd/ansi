@@ -22,6 +22,7 @@ import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../domain/method_step.dart';
 
 /// What the sheet resolved to: a span, or the request to unmake one.
@@ -52,12 +53,8 @@ Future<TimerSheetResult?> showMethodTimerSheet(
   bool removable = false,
   String prosePrefix = '',
   String proseSuffix = '',
-}) => showFSheet<TimerSheetResult>(
+}) => showAnsiSheet<TimerSheetResult>(
   context: context,
-  side: FLayout.btt,
-  mainAxisMaxRatio: null,
-  useSafeArea: true,
-  useRootNavigator: true,
   builder: (sheetContext) => _TimerSheet(
     lowSeconds: lowSeconds,
     highSeconds: highSeconds,

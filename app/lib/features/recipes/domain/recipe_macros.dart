@@ -88,6 +88,7 @@ class RecipeMacroSummary {
   /// Component lines whose batch math resolved but whose TARGET's own summary
   /// is incomplete — the share is knowable, the macros behind it are not.
   final int subRecipesIncomplete;
+
   /// Lines saying a bare count ("2 pieces") with no measure linked, so there
   /// is no weight to sum — plan 0022 **D6**.
   final int countLinesWithoutMeasure;
@@ -308,6 +309,7 @@ _ComponentResult _componentMacros({
     perServing.scaledBy(node.servingsBase * amount.batches),
   );
 }
+
 /// Whether [line] is a bare count with a number and nothing weighing it — the
 /// D6 reason. A line pointing at a measure that has not synced in yet is NOT
 /// one: something does weigh it, this device just cannot see it, and telling

@@ -20,6 +20,7 @@ import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/picker_shell.dart';
 import '../domain/method_draft.dart';
 import '../domain/recipe.dart';
@@ -50,12 +51,8 @@ Future<MethodLinePick?> showMethodLinePicker(
   required List<LineItem> lines,
   String query = '',
   Set<String> alreadyInStep = const {},
-}) => showFSheet<MethodLinePick>(
+}) => showAnsiSheet<MethodLinePick>(
   context: context,
-  side: FLayout.btt,
-  mainAxisMaxRatio: null,
-  useSafeArea: true,
-  useRootNavigator: true,
   builder: (_) => _MethodLinePickerSheet(
     lines: lines,
     initialQuery: query,

@@ -58,15 +58,18 @@ class FakeIngredientRepo
     with IngredientManagerStubs
     implements IngredientRepository {
   @override
-  Future<List<Ingredient>> search(String query, {int limit = 30}) async => [
-    if (query.isNotEmpty)
-      const Ingredient(
-        id: 'ing-new',
-        canonicalName: 'Pork sausage',
-        defaultUnit: g,
-        status: IngredientStatus.complete,
-      ),
-  ];
+  Future<IngredientMatches> search(String query, {int limit = 30}) async => (
+    rows: [
+      if (query.isNotEmpty)
+        const Ingredient(
+          id: 'ing-new',
+          canonicalName: 'Pork sausage',
+          defaultUnit: g,
+          status: IngredientStatus.complete,
+        ),
+    ],
+    guessed: false,
+  );
 
   @override
   Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>

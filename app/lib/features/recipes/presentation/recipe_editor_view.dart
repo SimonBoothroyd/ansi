@@ -14,6 +14,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../books/data/book_providers.dart';
 import '../../books/presentation/book_view_models.dart';
@@ -461,7 +462,7 @@ Future<void> removeLineWithChips(
     notifier.removeLineItem(item.id);
     return;
   }
-  final confirmed = await showFDialog<bool>(
+  final confirmed = await showAnsiDialog<bool>(
     context: context,
     builder: (dialogContext, style, animation) => FDialog(
       title: Text(

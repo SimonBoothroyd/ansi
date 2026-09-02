@@ -24,6 +24,7 @@ import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../domain/method_step.dart';
 
 /// What the sheet is showing at any moment: where the chip points, what it
@@ -47,12 +48,8 @@ Future<void> showMethodChipSheet(
   required Future<String?> Function() pickLine,
   required ValueChanged<ChipEdit> onChanged,
   required VoidCallback onRemove,
-}) => showFSheet<void>(
+}) => showAnsiSheet<void>(
   context: context,
-  side: FLayout.btt,
-  mainAxisMaxRatio: null,
-  useSafeArea: true,
-  useRootNavigator: true,
   builder: (sheetContext) => _ChipSheet(
     initial: initial,
     describe: describe,

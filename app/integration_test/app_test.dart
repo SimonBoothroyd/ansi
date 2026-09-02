@@ -648,12 +648,16 @@ void main() {
     // Two method steps — `recipe.steps` is a jsonb column, so these must
     // survive the upload round-trip as a real array (the sweep's connector
     // fix; the old double-encoding crashed the recipe view within a second).
+    // The v2 editor (plan 0022) is one card per step: a fresh recipe has no
+    // step field until "Add a step" makes one, and each card is its own field.
     await scrollTo(tester, find.text('METHOD'));
-    await tester.enterText(
-      find.byType(EditableText).last,
-      'Brown the aromatics.\nSimmer until thick.',
-    );
-    await tester.pump();
+    for (final step in ['Brown the aromatics.', 'Simmer until thick.']) {
+      await scrollTo(tester, find.text('Add a step'), delta: -150);
+      await tester.tap(find.text('Add a step'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(EditableText).last, step);
+      await tester.pump();
+    }
 
     await scrollTo(tester, find.text('Save'), delta: -150);
     await tester.tap(find.text('Save'));
@@ -697,11 +701,23 @@ void main() {
                   as String,
             )
             as List<dynamic>;
-    expect(steps, ['Brown the aromatics.', 'Simmer until thick.']);
+    // The v2 editor writes the tokenized shape for every recipe — a chip-less
+    // step is one text token — so assert the prose survived inside it rather
+    // than pinning the token keys here (the domain tests own the shape).
+    expect(steps, hasLength(2));
+    expect(jsonEncode(steps.first), contains('Brown the aromatics.'));
+    expect(jsonEncode(steps.last), contains('Simmer until thick.'));
     await tester.tap(find.text('Method'));
     await tester.pumpAndSettle();
-    expect(find.text('Brown the aromatics.'), findsOneWidget);
-    expect(find.text('Simmer until thick.'), findsOneWidget);
+    // Rendered through MethodStepText (rich text), so plain find.text misses.
+    expect(
+      find.textContaining('Brown the aromatics.', findRichText: true),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Simmer until thick.', findRichText: true),
+      findsOneWidget,
+    );
 
     // Favorite the recipe from its header menu (the 7.7 Favorites
     // affordance) — the picker's Favorites tab reads this flag in scenario 3.
