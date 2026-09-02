@@ -25,6 +25,7 @@ import 'confirm_meal_sheet.dart';
 import 'edit_eaters_dialog.dart';
 import 'recipe_picker_sheet.dart';
 import 'week_format.dart';
+import 'week_header.dart';
 import 'week_view_models.dart';
 import 'week_widgets.dart';
 
@@ -56,8 +57,8 @@ class WeekView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final weekStart = ref.watch(currentWeekStartProvider);
-    final week = ref.watch(currentWeekProvider);
+    final weekStart = ref.watch(viewedWeekStartProvider);
+    final week = ref.watch(viewedWeekProvider);
     final roster = ref.watch(membersProvider).asData?.value ?? const <Member>[];
     final lastWeek = ref.watch(lastWeekProvider).asData?.value;
     final repo = ref.read(planningRepositoryProvider);
@@ -66,34 +67,10 @@ class WeekView extends HookConsumerWidget {
     final lens = useState<String?>(null);
 
     return FScaffold(
-      header: FHeader.nested(
-        title: Text(formatWeekOf(weekStart), style: ansiHeaderTitle()),
-        suffixes: [
-          if (lastWeek != null)
-            FPopoverMenu(
-              // `menuBuilder`, not `menu`: an item has to be able to dismiss
-              // the menu it was picked from before it acts.
-              menuBuilder: (_, controller, _) => [
-                FItemGroup(
-                  children: [
-                    FItem(
-                      prefix: const Icon(FLucideIcons.copy),
-                      title: const Text('Copy last week'),
-                      onPress: () {
-                        unawaited(controller.hide());
-                        unawaited(repo.copyLastWeek(weekStart));
-                      },
-                    ),
-                  ],
-                ),
-              ],
-              builder: (context, controller, _) => FHeaderAction(
-                icon: const Icon(FLucideIcons.ellipsis),
-                onPress: controller.toggle,
-              ),
-            ),
-        ],
-      ),
+      // "Copy last week" used to live in a header `⋯`, a lens-bar chip AND the
+      // empty-state button. It now has ONE permanent home — the switcher menu
+      // (D2) — plus the empty-week chip below.
+      header: const FHeader.nested(title: WeekSwitcher()),
       child: week.when(
         loading: () => const Center(child: FCircularProgress()),
         error: (e, _) {
@@ -111,6 +88,7 @@ class WeekView extends HookConsumerWidget {
             : ListView(
                 padding: const EdgeInsets.only(top: 8, bottom: 24),
                 children: [
+                  const ViewedWeekBanner(),
                   _LensBar(
                     lens: lens,
                     roster: roster,

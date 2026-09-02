@@ -1,7 +1,9 @@
 /// Riverpod ViewModels for the Cook screen.
 ///
-/// [currentCookPlan] streams the derived cook plan for the active week (the
-/// same Monday the Week screen uses). It's read-only — the plan is derived, so
+/// [currentCookPlan] streams the derived cook plan for the **viewed** week —
+/// the same Monday the Week screen is showing (D3: Cook and Shop follow the
+/// week you are looking at, not the week containing today). It's read-only —
+/// the plan is derived, so
 /// the only state here is [WholeBatchDisplay], the per-session whole-batch
 /// display toggle (step 7.6): flipping it shows the nudged ×N on the tile
 /// without persisting anything (a deliberate display-level call — see the
@@ -16,11 +18,11 @@ import '../domain/cook_plan.dart';
 
 part 'cook_view_models.g.dart';
 
-/// The derived cook plan for the active week, reacting to plan/recipe changes.
+/// The derived cook plan for the viewed week, reacting to plan/recipe changes.
 @riverpod
 Stream<CookPlan> currentCookPlan(Ref ref) => ref
     .watch(cookPlanRepositoryProvider)
-    .watchCookPlan(ref.watch(currentWeekStartProvider));
+    .watchCookPlan(ref.watch(viewedWeekStartProvider));
 
 /// The stable per-session key the display toggle is filed under (a session
 /// has no persisted id — the plan is derived).

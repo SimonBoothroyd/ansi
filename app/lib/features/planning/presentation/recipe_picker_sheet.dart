@@ -81,7 +81,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
 
     final recipes = ref.watch(recipeListProvider).asData?.value ?? const [];
     final library = ref.watch(libraryProvider).asData?.value ?? const [];
-    final week = ref.watch(currentWeekProvider).asData?.value;
+    final week = ref.watch(viewedWeekProvider).asData?.value;
     final members = ref.watch(membersProvider).asData?.value ?? const [];
     final lastPlanned =
         ref.watch(lastPlannedByRecipeProvider).asData?.value ??

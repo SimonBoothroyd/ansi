@@ -2,6 +2,7 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/planning_repository.dart';
+import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:ansi/features/planning/presentation/week_view.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
@@ -16,10 +17,11 @@ import 'package:hooks_riverpod/misc.dart' show Override;
 /// A canned planner: emits [week] for the current week and [last] as the
 /// reference week, with two members. Mutations are inert.
 class _FakePlanningRepo implements PlanningRepository {
-  _FakePlanningRepo({this.week, this.last});
+  _FakePlanningRepo({this.week, this.last, this.onCopy});
 
   final WeekPlan? week;
   final WeekPlan? last;
+  final void Function(DateTime weekStart)? onCopy;
 
   @override
   Stream<WeekPlan?> watchWeek(DateTime weekStart) => Stream.value(week);
@@ -50,7 +52,10 @@ class _FakePlanningRepo implements PlanningRepository {
   Future<void> removeEntry(String entryId) async {}
 
   @override
-  Future<int> copyLastWeek(DateTime weekStart) async => 0;
+  Future<int> copyLastWeek(DateTime weekStart) async {
+    onCopy?.call(weekStart);
+    return 0;
+  }
 
   @override
   Stream<Map<String, DateTime>> watchLastPlanned() => Stream.value(const {});
@@ -127,6 +132,107 @@ WeekPlan _plannedWeek() => WeekPlan(
 );
 
 void main() {
+  group('the week switcher (D2/D3)', () {
+    final monday = mondayOf(DateTime.now());
+    String titleFor(int weeksAhead) {
+      final t = formatWeekTitle(
+        monday.add(Duration(days: 7 * weeksAhead)),
+        monday,
+      );
+      return t.date == null ? t.label : '${t.label} · ${t.date}';
+    }
+
+    testWidgets('names this week, and the chevrons step off it', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(week: _plannedWeek()),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(titleFor(0)), findsOneWidget);
+      // No banner and no return pill while the current week is on screen.
+      expect(find.text('this week'), findsNothing);
+
+      await tester.tap(find.byIcon(FLucideIcons.chevronRight).first);
+      await tester.pumpAndSettle();
+      expect(find.text(titleFor(1)), findsOneWidget);
+
+      await tester.tap(find.byIcon(FLucideIcons.chevronLeft).first);
+      await tester.tap(find.byIcon(FLucideIcons.chevronLeft).first);
+      await tester.pumpAndSettle();
+      expect(find.text(titleFor(-1)), findsOneWidget);
+    });
+
+    testWidgets('another week announces that Cook and Shop came too, and '
+        'offers one tap home', (tester) async {
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(week: _plannedWeek()),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(FLucideIcons.chevronRight).first);
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Cook and Shop follow it too'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('this week'));
+      await tester.pumpAndSettle();
+      expect(find.text(titleFor(0)), findsOneWidget);
+      expect(find.textContaining('Cook and Shop follow it too'), findsNothing);
+    });
+
+    testWidgets('the title menu jumps weeks and owns "copy last week"', (
+      tester,
+    ) async {
+      final copied = <DateTime>[];
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(
+              week: _plannedWeek(),
+              last: _plannedWeek(),
+              onCopy: copied.add,
+            ),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(titleFor(0)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Last week'));
+      await tester.pumpAndSettle();
+      expect(find.text(titleFor(-1)), findsOneWidget);
+
+      await tester.tap(find.text(titleFor(-1)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Copy last week into this one'));
+      await tester.pumpAndSettle();
+      // It copies into the week you are STANDING on, not into today's.
+      expect(copied, [monday.subtract(const Duration(days: 7))]);
+
+      await tester.tap(find.text(titleFor(-1)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Jump to today'));
+      await tester.pumpAndSettle();
+      expect(find.text(titleFor(0)), findsOneWidget);
+    });
+  });
+
   testWidgets('empty week shows the blank-week CTA', (tester) async {
     await tester.pumpWidget(
       _host([

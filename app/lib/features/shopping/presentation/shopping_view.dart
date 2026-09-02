@@ -18,6 +18,9 @@ import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
+import '../../planning/presentation/week_format.dart';
+import '../../planning/presentation/week_header.dart';
+import '../../planning/presentation/week_view_models.dart';
 import '../data/shopping_providers.dart';
 import '../domain/shopping.dart';
 import 'add_shopping_item_sheet.dart';
@@ -31,10 +34,21 @@ class ShoppingView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref.watch(currentShoppingListProvider);
+    // D3: the list derives from the VIEWED week (and since 0018 its check-offs
+    // and top-ups belong to that week), so the header names it.
+    final weekSuffix = formatDerivedWeekSuffix(
+      ref.watch(viewedWeekStartProvider),
+      ref.watch(currentWeekStartProvider),
+    );
 
     return FScaffold(
       header: FHeader.nested(
-        title: Text('Shopping list', style: ansiHeaderTitle()),
+        title: Text(
+          weekSuffix == null ? 'Shopping list' : 'Shopping list · $weekSuffix',
+          overflow: TextOverflow.ellipsis,
+          style: ansiHeaderTitle(),
+        ),
+        suffixes: const [BackToThisWeekPill()],
       ),
       child: list.when(
         loading: () => const Center(child: FCircularProgress()),

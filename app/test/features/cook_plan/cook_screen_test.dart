@@ -4,6 +4,7 @@ import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_view.dart';
+import 'package:ansi/features/planning/presentation/week_view_models.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
@@ -119,6 +120,36 @@ PlannedRecipe _recipe(
 );
 
 void main() {
+  testWidgets('the header names the viewed week and offers the way home (D3)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host([
+        cookPlanRepositoryProvider.overrideWithValue(
+          _FakeCookPlanRepo(const []),
+        ),
+      ]),
+    );
+    await tester.pumpAndSettle();
+
+    // On the current week the header is just the screen's name.
+    expect(find.text('Batch cook plan'), findsOneWidget);
+    expect(find.text('this week'), findsNothing);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(CookView)),
+    );
+    container.read(viewedWeekStartProvider.notifier).step(1);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Batch cook plan · next week'), findsOneWidget);
+    expect(find.text('this week'), findsOneWidget);
+
+    await tester.tap(find.text('this week'));
+    await tester.pumpAndSettle();
+    expect(find.text('Batch cook plan'), findsOneWidget);
+  });
+
   testWidgets('an empty plan shows the blank state', (tester) async {
     await tester.pumpWidget(
       _host([

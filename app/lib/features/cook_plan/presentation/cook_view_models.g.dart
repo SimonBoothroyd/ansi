@@ -8,18 +8,18 @@ part of 'cook_view_models.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The derived cook plan for the active week, reacting to plan/recipe changes.
+/// The derived cook plan for the viewed week, reacting to plan/recipe changes.
 
 @ProviderFor(currentCookPlan)
 const currentCookPlanProvider = CurrentCookPlanProvider._();
 
-/// The derived cook plan for the active week, reacting to plan/recipe changes.
+/// The derived cook plan for the viewed week, reacting to plan/recipe changes.
 
 final class CurrentCookPlanProvider
     extends
         $FunctionalProvider<AsyncValue<CookPlan>, CookPlan, Stream<CookPlan>>
     with $FutureModifier<CookPlan>, $StreamProvider<CookPlan> {
-  /// The derived cook plan for the active week, reacting to plan/recipe changes.
+  /// The derived cook plan for the viewed week, reacting to plan/recipe changes.
   const CurrentCookPlanProvider._()
     : super(
         from: null,
@@ -45,7 +45,7 @@ final class CurrentCookPlanProvider
   }
 }
 
-String _$currentCookPlanHash() => r'362c1380367a0163c728b826e0f3d2d4130ec029';
+String _$currentCookPlanHash() => r'096c0fdd63465de1374ef5724f5d87306e691ac1';
 
 /// Whether a session tile shows the whole-batch view (×N + leftover line)
 /// instead of the honest raw factor. Display-only and ephemeral by design.

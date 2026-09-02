@@ -8,17 +8,26 @@ part of 'week_view_models.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The Monday of the active week (the week containing today).
+/// The Monday of the week containing today.
+///
+/// Known wart, pre-existing: `DateTime.now()` in a provider doesn't re-fire at
+/// midnight, so "today" is stale until the next rebuild (tracker debt).
 
 @ProviderFor(currentWeekStart)
 const currentWeekStartProvider = CurrentWeekStartProvider._();
 
-/// The Monday of the active week (the week containing today).
+/// The Monday of the week containing today.
+///
+/// Known wart, pre-existing: `DateTime.now()` in a provider doesn't re-fire at
+/// midnight, so "today" is stale until the next rebuild (tracker debt).
 
 final class CurrentWeekStartProvider
     extends $FunctionalProvider<DateTime, DateTime, DateTime>
     with $Provider<DateTime> {
-  /// The Monday of the active week (the week containing today).
+  /// The Monday of the week containing today.
+  ///
+  /// Known wart, pre-existing: `DateTime.now()` in a provider doesn't re-fire at
+  /// midnight, so "today" is stale until the next rebuild (tracker debt).
   const CurrentWeekStartProvider._()
     : super(
         from: null,
@@ -54,31 +63,97 @@ final class CurrentWeekStartProvider
 
 String _$currentWeekStartHash() => r'fdfd04e6f844526dc22fbdfdeaa0ef12609dfe24';
 
-/// The active week with its meals, or null until its first meal (empty state).
+/// The Monday of the week on screen. Defaults to the week containing today;
+/// the header switcher moves it and Cook/Shop derive from it (D3).
 
-@ProviderFor(currentWeek)
-const currentWeekProvider = CurrentWeekProvider._();
+@ProviderFor(ViewedWeekStart)
+const viewedWeekStartProvider = ViewedWeekStartProvider._();
 
-/// The active week with its meals, or null until its first meal (empty state).
-
-final class CurrentWeekProvider
-    extends
-        $FunctionalProvider<AsyncValue<WeekPlan?>, WeekPlan?, Stream<WeekPlan?>>
-    with $FutureModifier<WeekPlan?>, $StreamProvider<WeekPlan?> {
-  /// The active week with its meals, or null until its first meal (empty state).
-  const CurrentWeekProvider._()
+/// The Monday of the week on screen. Defaults to the week containing today;
+/// the header switcher moves it and Cook/Shop derive from it (D3).
+final class ViewedWeekStartProvider
+    extends $NotifierProvider<ViewedWeekStart, DateTime> {
+  /// The Monday of the week on screen. Defaults to the week containing today;
+  /// the header switcher moves it and Cook/Shop derive from it (D3).
+  const ViewedWeekStartProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'currentWeekProvider',
+        name: r'viewedWeekStartProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$viewedWeekStartHash();
+
+  @$internal
+  @override
+  ViewedWeekStart create() => ViewedWeekStart();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DateTime value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DateTime>(value),
+    );
+  }
+}
+
+String _$viewedWeekStartHash() => r'027189b49e1eaf402dce1c0eb5d5aaacd6cbe125';
+
+/// The Monday of the week on screen. Defaults to the week containing today;
+/// the header switcher moves it and Cook/Shop derive from it (D3).
+
+abstract class _$ViewedWeekStart extends $Notifier<DateTime> {
+  DateTime build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<DateTime, DateTime>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<DateTime, DateTime>,
+              DateTime,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
+/// The viewed week with its meals, or null while it has no row yet — which
+/// means "seven empty days", not "a different screen" (D5).
+
+@ProviderFor(viewedWeek)
+const viewedWeekProvider = ViewedWeekProvider._();
+
+/// The viewed week with its meals, or null while it has no row yet — which
+/// means "seven empty days", not "a different screen" (D5).
+
+final class ViewedWeekProvider
+    extends
+        $FunctionalProvider<AsyncValue<WeekPlan?>, WeekPlan?, Stream<WeekPlan?>>
+    with $FutureModifier<WeekPlan?>, $StreamProvider<WeekPlan?> {
+  /// The viewed week with its meals, or null while it has no row yet — which
+  /// means "seven empty days", not "a different screen" (D5).
+  const ViewedWeekProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'viewedWeekProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$currentWeekHash();
+  String debugGetCreateSourceHash() => _$viewedWeekHash();
 
   @$internal
   @override
@@ -87,11 +162,11 @@ final class CurrentWeekProvider
 
   @override
   Stream<WeekPlan?> create(Ref ref) {
-    return currentWeek(ref);
+    return viewedWeek(ref);
   }
 }
 
-String _$currentWeekHash() => r'dc5cac2ec3ac2e9ef85857c294212d196cf95fa0';
+String _$viewedWeekHash() => r'50ef21a8dbfa2471f53e93b9489410ae325561d8';
 
 /// The household eater roster.
 
@@ -137,14 +212,14 @@ final class MembersProvider
 
 String _$membersHash() => r'3a22c0d4097b2b89991990cc72bdac5780eb4baf';
 
-/// The most recent earlier week with meals, for the empty-week reference list
-/// and the "copy last week" affordance.
+/// The most recent planned week before the VIEWED one — what "copy last week"
+/// would copy, so it is relative to the week you are standing on.
 
 @ProviderFor(lastWeek)
 const lastWeekProvider = LastWeekProvider._();
 
-/// The most recent earlier week with meals, for the empty-week reference list
-/// and the "copy last week" affordance.
+/// The most recent planned week before the VIEWED one — what "copy last week"
+/// would copy, so it is relative to the week you are standing on.
 
 final class LastWeekProvider
     extends
@@ -154,8 +229,8 @@ final class LastWeekProvider
           FutureOr<WeekPlan?>
         >
     with $FutureModifier<WeekPlan?>, $FutureProvider<WeekPlan?> {
-  /// The most recent earlier week with meals, for the empty-week reference list
-  /// and the "copy last week" affordance.
+  /// The most recent planned week before the VIEWED one — what "copy last week"
+  /// would copy, so it is relative to the week you are standing on.
   const LastWeekProvider._()
     : super(
         from: null,
@@ -181,7 +256,7 @@ final class LastWeekProvider
   }
 }
 
-String _$lastWeekHash() => r'0200b9013085db4bb45918d92a6d02b909e0b6d3';
+String _$lastWeekHash() => r'479d2029464fa14268bc41325cff5c8127ec3e3f';
 
 /// Most recent planned date per recipe, across every week — the picker
 /// rows' "last planned" recency (7.7).

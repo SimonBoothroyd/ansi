@@ -19,6 +19,8 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../planning/presentation/week_format.dart';
+import '../../planning/presentation/week_header.dart';
+import '../../planning/presentation/week_view_models.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/cook_plan.dart';
@@ -31,10 +33,23 @@ class CookView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final plan = ref.watch(currentCookPlanProvider);
+    // D3: the plan derives from the VIEWED week, so the header names it and
+    // offers the one tap home when it isn't the current one.
+    final weekSuffix = formatDerivedWeekSuffix(
+      ref.watch(viewedWeekStartProvider),
+      ref.watch(currentWeekStartProvider),
+    );
 
     return FScaffold(
       header: FHeader.nested(
-        title: Text('Batch cook plan', style: ansiHeaderTitle()),
+        title: Text(
+          weekSuffix == null
+              ? 'Batch cook plan'
+              : 'Batch cook plan · $weekSuffix',
+          overflow: TextOverflow.ellipsis,
+          style: ansiHeaderTitle(),
+        ),
+        suffixes: const [BackToThisWeekPill()],
       ),
       child: plan.when(
         loading: () => const Center(child: FCircularProgress()),

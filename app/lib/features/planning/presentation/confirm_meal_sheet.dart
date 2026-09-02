@@ -76,7 +76,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     // Days this recipe is already planned this week → the batch cue, live
     // against the currently selected day.
     final plannedDays = ref
-        .watch(currentWeekProvider)
+        .watch(viewedWeekProvider)
         .asData
         ?.value
         ?.entries

@@ -4,6 +4,90 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   final today = DateTime.utc(2026, 8, 27);
 
+  group('formatWeekTitle (D2 — the week is a position)', () {
+    // today is Thursday 27 Aug 2026; this week's Monday is 24 Aug.
+    test('names the three weeks around today, with the date', () {
+      expect(formatWeekTitle(DateTime.utc(2026, 8, 24), today), (
+        label: 'This week',
+        date: '24 Aug',
+        isThisWeek: true,
+      ));
+      expect(formatWeekTitle(DateTime.utc(2026, 8, 31), today), (
+        label: 'Next week',
+        date: '31 Aug',
+        isThisWeek: false,
+      ));
+      expect(formatWeekTitle(DateTime.utc(2026, 8, 17), today), (
+        label: 'Last week',
+        date: '17 Aug',
+        isThisWeek: false,
+      ));
+    });
+
+    test('falls back to "Week of <date>" beyond the named three', () {
+      expect(formatWeekTitle(DateTime.utc(2026, 9, 14), today), (
+        label: 'Week of 14 Sep',
+        date: null,
+        isThisWeek: false,
+      ));
+      expect(formatWeekTitle(DateTime.utc(2026, 8, 10), today), (
+        label: 'Week of 10 Aug',
+        date: null,
+        isThisWeek: false,
+      ));
+    });
+
+    test('any day of a week names that week — only the Monday matters', () {
+      for (final d in [24, 25, 26, 27, 28, 29, 30]) {
+        expect(
+          formatWeekTitle(DateTime.utc(2026, 8, d), today).label,
+          'This week',
+        );
+      }
+    });
+
+    test('only this week carries the herb dot', () {
+      expect(
+        formatWeekTitle(DateTime.utc(2026, 8, 24), today).isThisWeek,
+        isTrue,
+      );
+      expect(
+        formatWeekTitle(DateTime.utc(2026, 8, 31), today).isThisWeek,
+        isFalse,
+      );
+    });
+  });
+
+  group('formatDerivedWeekSuffix (D3 — Cook and Shop say which week)', () {
+    test('is null on the current week — the header stays the screen name', () {
+      expect(formatDerivedWeekSuffix(DateTime.utc(2026, 8, 24), today), isNull);
+    });
+
+    test('lowers only the leading word', () {
+      expect(
+        formatDerivedWeekSuffix(DateTime.utc(2026, 8, 31), today),
+        'next week',
+      );
+      expect(
+        formatDerivedWeekSuffix(DateTime.utc(2026, 8, 17), today),
+        'last week',
+      );
+      expect(
+        formatDerivedWeekSuffix(DateTime.utc(2026, 9, 14), today),
+        'week of 14 Sep',
+      );
+    });
+  });
+
+  group('formatDayDate', () {
+    test('walks the week from its Monday', () {
+      final monday = DateTime.utc(2026, 8, 31);
+      expect(formatDayDate(monday, 0), '31 Aug');
+      expect(formatDayDate(monday, 2), '2 Sep');
+      expect(formatDayDate(monday, 6), '6 Sep');
+    });
+  });
+
   group('formatLastPlanned (7.7 picker recency)', () {
     test('same day is today', () {
       expect(formatLastPlanned(DateTime.utc(2026, 8, 27), today), 'today');
