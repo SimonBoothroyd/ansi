@@ -1,42 +1,29 @@
 /// The app's bottom nav bar (design board: Library · Week · Cook · Shop).
 ///
-/// Library, Week, Cook and Shop are all live tabs. Switching tabs uses
-/// `goOnce` so the tab roots replace rather than stack.
+/// One instance, owned by the tab shell — not one per tab screen. It reads and
+/// drives the [StatefulNavigationShell], so a tap changes a branch index and
+/// nothing about the bar itself moves or rebuilds.
 library;
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 
 import '../core/theme/ansi_theme.dart';
-import '../core/theme/ansi_tokens.dart';
-import 'guarded_navigation.dart';
-
-/// The tab a screen occupies, and its index in the bar.
-enum AnsiTab { library, week, cook, shop }
 
 class AnsiBottomNav extends StatelessWidget {
-  const AnsiBottomNav({required this.current, super.key});
+  const AnsiBottomNav({required this.shell, super.key});
 
-  final AnsiTab current;
+  final StatefulNavigationShell shell;
 
   @override
   Widget build(BuildContext context) {
     return FBottomNavigationBar(
-      index: current.index,
-      onChange: (i) {
-        final tab = AnsiTab.values[i];
-        if (tab == current) return;
-        switch (tab) {
-          case AnsiTab.library:
-            context.goOnce('/');
-          case AnsiTab.week:
-            context.goOnce('/week');
-          case AnsiTab.cook:
-            context.goOnce('/cook');
-          case AnsiTab.shop:
-            context.goOnce('/shop');
-        }
-      },
+      index: shell.currentIndex,
+      // Re-tapping the selected tab sends that branch back to its root — the
+      // iOS "tap the tab you are on to go to the top" convention.
+      onChange: (i) =>
+          shell.goBranch(i, initialLocation: i == shell.currentIndex),
       children: const [
         _NavItem(icon: FLucideIcons.library, label: 'Library'),
         _NavItem(icon: FLucideIcons.calendarDays, label: 'Week'),
@@ -59,7 +46,11 @@ class _NavItem extends StatelessWidget {
       icon: Icon(icon),
       label: Text(
         label.toUpperCase(),
-        style: ansiMono(size: 10, color: AnsiColors.muted, letterSpacing: 0.5),
+        // Colour and weight are deliberately absent: Forui resolves the
+        // selected variant (muted → primary, 400 → 700) into an ancestor
+        // DefaultTextStyle, and a Text's own value would win over it — which
+        // is why the selected label used to stay grey while its icon greened.
+        style: ansiMonoInherit(size: 10, letterSpacing: 0.5),
       ),
     );
   }

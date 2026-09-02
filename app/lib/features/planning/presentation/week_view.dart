@@ -17,7 +17,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../shared/ansi_bottom_nav.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../data/planning_providers.dart';
@@ -67,7 +66,6 @@ class WeekView extends HookConsumerWidget {
     final lens = useState<String?>(null);
 
     return FScaffold(
-      footer: const AnsiBottomNav(current: AnsiTab.week),
       header: FHeader.nested(
         title: Text(formatWeekOf(weekStart), style: ansiHeaderTitle()),
         suffixes: [

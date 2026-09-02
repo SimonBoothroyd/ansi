@@ -40,6 +40,8 @@ Future<void> showConfirmMealSheet(
 }) {
   return showFSheet<void>(
     context: context,
+    // The root navigator, not the branch's — see showRecipePickerSheet.
+    useRootNavigator: true,
     side: FLayout.btt,
     mainAxisMaxRatio: null,
     useSafeArea: true,

@@ -16,6 +16,9 @@ Future<String?> promptForText(
 }) {
   return showFDialog<String>(
     context: context,
+    // The root navigator, not the tab shell's branch navigator: a dialog that
+    // stops at the branch bounds leaves the nav bar lit and tappable beside it.
+    useRootNavigator: true,
     builder: (context, style, animation) => _TextPromptDialog(
       title: title,
       hint: hint,

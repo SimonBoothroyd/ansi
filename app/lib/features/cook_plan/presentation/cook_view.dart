@@ -17,7 +17,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../shared/ansi_bottom_nav.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../recipes/domain/component_math.dart';
@@ -34,7 +33,6 @@ class CookView extends ConsumerWidget {
     final plan = ref.watch(currentCookPlanProvider);
 
     return FScaffold(
-      footer: const AnsiBottomNav(current: AnsiTab.cook),
       header: FHeader.nested(
         title: Text('Batch cook plan', style: ansiHeaderTitle()),
       ),

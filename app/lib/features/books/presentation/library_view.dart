@@ -12,7 +12,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/sync/session.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../shared/ansi_bottom_nav.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../ingredients/data/ingredient_providers.dart';
@@ -34,7 +33,6 @@ class LibraryView extends ConsumerWidget {
     final repo = ref.read(bookRepositoryProvider);
 
     return FScaffold(
-      footer: const AnsiBottomNav(current: AnsiTab.library),
       header: FHeader.nested(
         title: Text('Library', style: ansiHeaderTitle()),
         suffixes: [

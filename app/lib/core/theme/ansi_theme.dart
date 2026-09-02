@@ -91,14 +91,24 @@ TextStyle ansiMono({
   Color color = AnsiColors.ink,
   FontWeight weight = FontWeight.w400,
   double letterSpacing = 0,
-}) => TextStyle(
-  fontFamily: 'IBM Plex Mono',
-  fontFamilyFallback: _monoStack,
-  fontSize: size,
-  color: color,
-  fontWeight: weight,
+}) => ansiMonoInherit(
+  size: size,
   letterSpacing: letterSpacing,
-);
+).copyWith(color: color, fontWeight: weight);
+
+/// [ansiMono] with no colour and no weight of its own, so both are inherited
+/// from an ancestor [DefaultTextStyle].
+///
+/// A [Text]'s own style wins over the inherited one field by field, so a widget
+/// whose selected/unselected colouring is driven from above — a Forui bottom
+/// nav item, say — must leave those two fields unset or it opts itself out.
+TextStyle ansiMonoInherit({required double size, double letterSpacing = 0}) =>
+    TextStyle(
+      fontFamily: 'IBM Plex Mono',
+      fontFamilyFallback: _monoStack,
+      fontSize: size,
+      letterSpacing: letterSpacing,
+    );
 
 /// The letter-spaced uppercase micro-label ("FIND AN INGREDIENT", "SERVES").
 TextStyle ansiLabel({Color color = AnsiColors.muted}) => ansiMono(

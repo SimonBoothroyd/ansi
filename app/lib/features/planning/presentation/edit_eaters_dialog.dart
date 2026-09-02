@@ -17,6 +17,8 @@ Future<Set<String>?> showEditEatersDialog(
 }) {
   return showFDialog<Set<String>>(
     context: context,
+    // The root navigator, not the branch's — see showRecipePickerSheet.
+    useRootNavigator: true,
     builder: (context, style, animation) => _EditEatersDialog(
       members: members,
       initial: selected,

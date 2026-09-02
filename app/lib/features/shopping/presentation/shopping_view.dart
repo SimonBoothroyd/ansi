@@ -14,7 +14,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../shared/ansi_bottom_nav.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
@@ -33,7 +32,6 @@ class ShoppingView extends ConsumerWidget {
     final list = ref.watch(currentShoppingListProvider);
 
     return FScaffold(
-      footer: const AnsiBottomNav(current: AnsiTab.shop),
       header: FHeader.nested(
         title: Text('Shopping list', style: ansiHeaderTitle()),
       ),

@@ -41,6 +41,10 @@ Future<RecipeSummary?> showRecipePickerSheet(
 }) {
   return showFSheet<RecipeSummary>(
     context: context,
+    // Under the tab shell `Navigator.of(context)` is the BRANCH navigator, so
+    // without this the sheet and its barrier stop at the branch's bounds and
+    // the nav bar stays lit and tappable beside a modal.
+    useRootNavigator: true,
     side: FLayout.btt,
     mainAxisMaxRatio: null,
     useSafeArea: true,

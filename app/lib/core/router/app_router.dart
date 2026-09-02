@@ -31,6 +31,7 @@ import '../../features/planning/presentation/week_view.dart';
 import '../../features/recipes/presentation/recipe_editor_view.dart';
 import '../../features/recipes/presentation/recipe_view.dart';
 import '../../features/shopping/presentation/shopping_view.dart';
+import '../../shared/ansi_tab_shell.dart';
 import '../sync/session.dart';
 
 part 'app_router.g.dart';
@@ -80,26 +81,56 @@ GoRouter router(Ref ref) {
         name: 'connecting',
         builder: (context, state) => const ConnectingView(),
       ),
-      GoRoute(
-        path: '/',
-        name: 'library',
-        builder: (context, state) => const LibraryView(),
+      // The four tabs are branches of one shell, so switching a tab changes an
+      // index inside a single unchanged root page: the bar never moves, and
+      // each tab keeps its own Navigator and its own state (board: Navigation
+      // v2, D1/D7). Not `.indexedStack` — that convenience constructor
+      // hard-wires its container and leaves no hook for the cross-fade.
+      StatefulShellRoute(
+        builder: (context, state, shell) => AnsiTabShell(shell: shell),
+        navigatorContainerBuilder: crossFadeBranchContainer,
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/',
+                name: 'library',
+                builder: (context, state) => const LibraryView(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/week',
+                name: 'week',
+                builder: (context, state) => const WeekView(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/cook',
+                name: 'cook',
+                builder: (context, state) => const CookView(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/shop',
+                name: 'shop',
+                builder: (context, state) => const ShoppingView(),
+              ),
+            ],
+          ),
+        ],
       ),
-      GoRoute(
-        path: '/week',
-        name: 'week',
-        builder: (context, state) => const WeekView(),
-      ),
-      GoRoute(
-        path: '/cook',
-        name: 'cook',
-        builder: (context, state) => const CookView(),
-      ),
-      GoRoute(
-        path: '/shop',
-        name: 'shop',
-        builder: (context, state) => const ShoppingView(),
-      ),
+      // Everything below stays a top-level sibling of the shell: pushed on the
+      // root Navigator, so it covers the bar and keeps the platform's own push
+      // transition and back gesture (D2).
       GoRoute(
         path: '/import',
         name: 'import',
