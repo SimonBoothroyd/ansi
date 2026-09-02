@@ -278,7 +278,8 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
       editor / search / errors).
 - [ ] `docs/QUALITY.md` grades for every area touched.
 - [ ] `app/AGENTS.md` "Current focus" still true.
-- [ ] `make test-sim` re-driven on a booted simulator; result recorded here.
+- [x] `make test-sim` 6/6 on main 2026-09-02 (nav shell · piece · search); re-run
+      pending after Library / Week / editor / errors.
 - [ ] Tech-debt rows added and retired.
 - [ ] No new migrations expected; if one appears, the cloud ledger gets an entry.
 - [ ] `make ci` green.
