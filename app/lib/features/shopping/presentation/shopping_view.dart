@@ -56,6 +56,14 @@ class ShoppingView extends ConsumerWidget {
                 children: [
                   const _ListCaption(),
                   for (final group in data.groups) _Group(group: group),
+                  // What the list is short by, and why it is silent about it
+                  // (step 8.6 / D4): an unresolved component contributes
+                  // nothing — never an invented quantity — so the parent it
+                  // belongs to says so and points at the surface that fixes
+                  // it. A list that is quietly short is worse than one that
+                  // says what it left out.
+                  for (final note in data.unresolvedComponents)
+                    _UnresolvedEcho(note: note),
                   const _AddItemButton(),
                 ],
               ),
@@ -106,6 +114,50 @@ class _Group extends StatelessWidget {
         ),
         for (final item in group.items) _ItemRow(item: item),
       ],
+    );
+  }
+}
+
+/// A parent recipe's "N components unresolved — see Cook" echo, drawn in the
+/// group-header voice (board frame g) because that is what it is: a heading
+/// for the items that are NOT below it.
+class _UnresolvedEcho extends StatelessWidget {
+  const _UnresolvedEcho({required this.note});
+
+  final UnresolvedComponentNote note;
+
+  static const _foreground = Color(0xFF7A5A16);
+
+  @override
+  Widget build(BuildContext context) {
+    final count = note.count;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+      child: Row(
+        children: [
+          Flexible(
+            child: Text(
+              note.recipeTitle.toUpperCase(),
+              overflow: TextOverflow.ellipsis,
+              style: ansiMono(
+                size: 10,
+                color: AnsiColors.muted,
+                letterSpacing: 1.4,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(FLucideIcons.flag, size: 11, color: _foreground),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              '$count component${count == 1 ? '' : 's'} unresolved — see Cook',
+              overflow: TextOverflow.ellipsis,
+              style: ansiMono(size: 10.5, color: _foreground),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

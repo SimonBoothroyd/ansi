@@ -8,6 +8,12 @@
 /// multi-use identity joins each use's amount with " + " and its notes in
 /// parallel — never summed (invariant 3). Shared by the recipe page and the
 /// import preview so the preview reads exactly as the saved recipe will.
+///
+/// **A component line is an ordinary line** (step 8.6 / D1, design board frame
+/// a): same amount column, same note modifier — only the identity cell
+/// changes, to a [RecipeChip] that pushes the target's page. A component whose
+/// target is missing (a sync race, D5) degrades to the plain text it stored,
+/// muted, and says so; nothing derived, nothing invented.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -19,11 +25,13 @@ import '../../../core/units/units.dart';
 import '../domain/line_display.dart';
 import '../domain/recipe.dart';
 import 'format.dart';
+import 'recipe_chip.dart';
 
 class RecipeIngredientLine extends StatelessWidget {
   const RecipeIngredientLine({
     required this.uses,
     this.onEditAmount,
+    this.onOpenSubRecipe,
     super.key,
   });
 
@@ -33,6 +41,11 @@ class RecipeIngredientLine extends StatelessWidget {
   /// is tappable — the editable preview's tap-to-edit-amount gesture. Null on
   /// the read-only recipe page.
   final VoidCallback? onEditAmount;
+
+  /// Pushes a component row's target recipe (step 8.6). Null where navigating
+  /// away would be wrong — the import review preview, where the recipe does
+  /// not exist yet.
+  final ValueChanged<String>? onOpenSubRecipe;
 
   /// The amount column width (design board `.l3` grid): wide enough for
   /// "400 g" or "2 tin", narrow enough that a long joined amount wraps.
@@ -78,28 +91,10 @@ class RecipeIngredientLine extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: uses.ingredientName,
-                        style: ansiSans(size: 16, weight: FontWeight.w500),
-                      ),
-                      if (notes.isNotEmpty) ...[
-                        TextSpan(
-                          text: '  ·  ',
-                          style: ansiSans(size: 16, color: AnsiColors.line),
-                        ),
-                        TextSpan(
-                          text: notes,
-                          style: ansiSans(
-                            size: 16,
-                            color: AnsiColors.muted,
-                          ).copyWith(fontStyle: FontStyle.italic),
-                        ),
-                      ],
-                    ],
-                  ),
+                child: _Identity(
+                  uses: uses,
+                  notes: notes,
+                  onOpen: onOpenSubRecipe,
                 ),
               ),
               if (onEditAmount != null) ...[
@@ -119,6 +114,69 @@ class RecipeIngredientLine extends StatelessWidget {
         ),
         Container(height: 1, color: AnsiColors.line),
       ],
+    );
+  }
+}
+
+/// The identity cell: an ingredient's name, or a component's recipe chip —
+/// with the notes as the same muted-italic modifier either way.
+class _Identity extends StatelessWidget {
+  const _Identity({required this.uses, required this.notes, this.onOpen});
+
+  final LineUses uses;
+  final String notes;
+  final ValueChanged<String>? onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final target = uses.uses.first.subRecipe;
+    final noteStyle = ansiSans(
+      size: 16,
+      color: AnsiColors.muted,
+    ).copyWith(fontStyle: FontStyle.italic);
+
+    // A component whose target resolved: the chip IS the identity, with the
+    // note beside it exactly as an ingredient's would be.
+    if (uses.isComponent && target != null) {
+      final id = target.id;
+      return Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 10,
+        runSpacing: 4,
+        children: [
+          RecipeChip(
+            title: target.title,
+            onTap: onOpen == null ? null : () => onOpen!(id),
+          ),
+          if (notes.isNotEmpty) Text(notes, style: noteStyle),
+        ],
+      );
+    }
+
+    // A dangling link (D5) reads as the plain text it stored, muted, and says
+    // why there is no chip. An ingredient row is the first branch's `else`.
+    final dangling = uses.isComponent;
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: uses.ingredientName,
+            style: dangling
+                ? ansiSans(size: 16, color: AnsiColors.muted)
+                : ansiSans(size: 16, weight: FontWeight.w500),
+          ),
+          for (final part in [
+            if (notes.isNotEmpty) notes,
+            if (dangling) 'linked recipe missing',
+          ]) ...[
+            TextSpan(
+              text: '  ·  ',
+              style: ansiSans(size: 16, color: AnsiColors.line),
+            ),
+            TextSpan(text: part, style: noteStyle),
+          ],
+        ],
+      ),
     );
   }
 }

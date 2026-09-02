@@ -228,6 +228,17 @@ void main() {
   });
 
   testWidgets('RecipeEditorView builds a blank create form', (tester) async {
+    // Scrolling a Forui FSelect out of view with the semantics tree live trips
+    // a framework assertion (tracker row `app/ui`) — the MAKES row (8.6) put a
+    // third one in this form. Filter exactly that, as the quantity-sheet and
+    // edit-top-up tests do.
+    final reportError = FlutterError.onError!;
+    FlutterError.onError = (details) {
+      if ('${details.exception}'.contains('semantics.dart')) return;
+      reportError(details);
+    };
+    addTearDown(() => FlutterError.onError = reportError);
+
     await tester.pumpWidget(
       _host(const RecipeEditorView(), [
         recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(null)),
@@ -239,6 +250,12 @@ void main() {
 
     expect(find.text('New recipe'), findsOneWidget);
     expect(find.text('TITLE'), findsOneWidget);
+    // What a batch MAKES sits under SERVES, optional (8.6, board frame h) —
+    // and the second denomination is only addable once the first is stated.
+    expect(find.text('SERVES'), findsOneWidget);
+    expect(find.text('MAKES'), findsOneWidget);
+    expect(find.text('· optional'), findsOneWidget);
+    expect(find.text('Another denomination'), findsNothing);
     expect(find.text('SHELF LIFE'), findsOneWidget);
     expect(find.text('Keeps in the fridge'), findsOneWidget);
     // METHOD and the group controls sit below the fold now the shelf-life
@@ -251,5 +268,45 @@ void main() {
     expect(find.text('METHOD'), findsOneWidget);
     expect(find.text('Add group'), findsOneWidget);
     expect(find.text('Add ingredient'), findsOneWidget);
+  });
+
+  testWidgets('the editor draws the second MAKES denomination, with the ✕ that '
+      'drops it (8.6, board frame h)', (tester) async {
+    final reportError = FlutterError.onError!;
+    FlutterError.onError = (details) {
+      if ('${details.exception}'.contains('semantics.dart')) return;
+      reportError(details);
+    };
+    addTearDown(() => FlutterError.onError = reportError);
+
+    const butter = Recipe(
+      id: '1',
+      title: 'Garlic Butter',
+      servingsBase: 4,
+      yieldQty: 250,
+      yieldUnit: g,
+      yieldQty2: 16,
+      yieldUnit2: tbsp,
+    );
+    await tester.pumpWidget(
+      _host(const RecipeEditorView(recipeId: '1'), [
+        recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(butter)),
+        ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
+        bookRepositoryProvider.overrideWithValue(_FakeBookRepo()),
+      ]),
+    );
+    await tester.pumpAndSettle();
+
+    // Both denominations, and the note that pins the family rule.
+    expect(find.text('250'), findsOneWidget);
+    expect(find.text('16'), findsOneWidget);
+    expect(
+      find.textContaining('only offers the other families'),
+      findsOneWidget,
+    );
+    // The second slot's remove affordance is the only ✕ in the numbers block.
+    expect(find.byIcon(FLucideIcons.x), findsWidgets);
+    // With a second denomination already stated, nothing offers to add one.
+    expect(find.text('Another denomination'), findsNothing);
   });
 }

@@ -132,6 +132,110 @@ final class RecipeByIdFamily extends $Family
   String toString() => r'recipeByIdProvider';
 }
 
+/// The recipes that list [id] as a component — the "Used in · N" tab's rows
+/// (step 8.6 / D9), and the same count D5's delete refusal speaks.
+///
+/// It re-reads whenever the recipe itself changes, which is what a link
+/// written on this device (or synced in from the other one) moves.
+
+@ProviderFor(recipeUsedIn)
+const recipeUsedInProvider = RecipeUsedInFamily._();
+
+/// The recipes that list [id] as a component — the "Used in · N" tab's rows
+/// (step 8.6 / D9), and the same count D5's delete refusal speaks.
+///
+/// It re-reads whenever the recipe itself changes, which is what a link
+/// written on this device (or synced in from the other one) moves.
+
+final class RecipeUsedInProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<RecipeUse>>,
+          List<RecipeUse>,
+          FutureOr<List<RecipeUse>>
+        >
+    with $FutureModifier<List<RecipeUse>>, $FutureProvider<List<RecipeUse>> {
+  /// The recipes that list [id] as a component — the "Used in · N" tab's rows
+  /// (step 8.6 / D9), and the same count D5's delete refusal speaks.
+  ///
+  /// It re-reads whenever the recipe itself changes, which is what a link
+  /// written on this device (or synced in from the other one) moves.
+  const RecipeUsedInProvider._({
+    required RecipeUsedInFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'recipeUsedInProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$recipeUsedInHash();
+
+  @override
+  String toString() {
+    return r'recipeUsedInProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<RecipeUse>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<RecipeUse>> create(Ref ref) {
+    final argument = this.argument as String;
+    return recipeUsedIn(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is RecipeUsedInProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$recipeUsedInHash() => r'3e015b6121d06751810194bbdf33fffb54d48d5c';
+
+/// The recipes that list [id] as a component — the "Used in · N" tab's rows
+/// (step 8.6 / D9), and the same count D5's delete refusal speaks.
+///
+/// It re-reads whenever the recipe itself changes, which is what a link
+/// written on this device (or synced in from the other one) moves.
+
+final class RecipeUsedInFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<RecipeUse>>, String> {
+  const RecipeUsedInFamily._()
+    : super(
+        retry: null,
+        name: r'recipeUsedInProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The recipes that list [id] as a component — the "Used in · N" tab's rows
+  /// (step 8.6 / D9), and the same count D5's delete refusal speaks.
+  ///
+  /// It re-reads whenever the recipe itself changes, which is what a link
+  /// written on this device (or synced in from the other one) moves.
+
+  RecipeUsedInProvider call(String id) =>
+      RecipeUsedInProvider._(argument: id, from: this);
+
+  @override
+  String toString() => r'recipeUsedInProvider';
+}
+
 /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
 /// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
 /// search (ADR-0004), so this searches by the denormalised name and matches on
@@ -298,7 +402,7 @@ final class RecipeEditorProvider
   }
 }
 
-String _$recipeEditorHash() => r'f574b31fff7d6e92623870141d9e4941a9108900';
+String _$recipeEditorHash() => r'72be3a9154ce85a9fe7888104885a0ca5d8e77df';
 
 /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
 /// blank one with a fresh id and a single empty group (create).

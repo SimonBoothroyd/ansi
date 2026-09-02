@@ -20,6 +20,8 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_bottom_nav.dart';
 import '../../planning/presentation/week_format.dart';
+import '../../recipes/domain/component_math.dart';
+import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/cook_plan.dart';
 import 'cook_format.dart';
 import 'cook_view_models.dart';
@@ -54,8 +56,18 @@ class CookView extends ConsumerWidget {
                 padding: const EdgeInsets.only(top: 6, bottom: 24),
                 children: [
                   const _PlanCaption(),
-                  for (final recipe in data.recipes)
-                    _RecipeCard(recipe: recipe),
+                  for (final recipe in data.recipes) ...[
+                    // Two denominations, two cards (D3): a recipe that is both
+                    // planned and demanded as a component shows its portions
+                    // and its batches side by side, never summed.
+                    if (recipe.mealSessions.isNotEmpty)
+                      _RecipeCard(recipe: recipe),
+                    if (recipe.componentSessions.isNotEmpty)
+                      _ComponentCard(recipe: recipe),
+                  ],
+                  // Components the plan could not derive: a named gap, never
+                  // a ×1 (D3).
+                  for (final gap in data.gaps) _GapCard(gap: gap),
                 ],
               ),
       ),
@@ -91,33 +103,237 @@ class _RecipeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A recipe that is also somebody's component has its component sessions on
+    // their own card, so "split" here counts only the meal ones.
+    final meals = recipe.mealSessions;
+    final split = meals.length > 1;
+    return _Card(
+      accent: split,
+      title: recipe.title,
+      subtitle: recipeSummaryLine(recipe),
+      children: [
+        for (final (i, session) in meals.indexed) ...[
+          if (i > 0) const SizedBox(height: 8),
+          _SessionTile(session: session),
+          if (session.hasFreezerRescue)
+            _Note.freezer(freezerNoteFor(recipe.title, session)),
+        ],
+        if (split) _Note.split(splitNoteFor(recipe)),
+      ],
+    );
+  }
+}
+
+/// A sub-recipe's derived batches (step 8.6 / D3, board frame f): the same
+/// card anatomy, denominated in batches and titled by the plans it answers.
+///
+/// The yield it quotes ("makes 1 cup, you need 0.25") comes off the recipe
+/// list, which carries it since 8.6 — a session that resolved was resolved
+/// *against* that yield, so naming it is stating the fact the math used, not
+/// fetching a new one.
+class _ComponentCard extends ConsumerWidget {
+  const _ComponentCard({required this.recipe});
+
+  final RecipeCookPlan recipe;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final denomination = ref
+        .watch(recipeListProvider)
+        .asData
+        ?.value
+        .where((r) => r.id == recipe.recipeId)
+        .firstOrNull
+        ?.yields
+        .firstOrNull;
+    final sessions = recipe.componentSessions;
+    final parents = {for (final s in sessions) ...s.demandedBy}.toList();
+
+    return _Card(
+      title: componentCardTitle(recipe.title, parents),
+      subtitle: componentSummaryLine(recipe),
+      children: [
+        for (final (i, session) in sessions.indexed) ...[
+          if (i > 0) const SizedBox(height: 8),
+          _SessionTile(session: session, denomination: denomination),
+          if (session.hasFreezerRescue)
+            _Note.freezer(freezerNoteFor(recipe.title, session)),
+          if (componentLeftoverNote(session, denomination: denomination)
+              case final note?)
+            _Note.split(note),
+        ],
+      ],
+    );
+  }
+}
+
+/// A component the plan could NOT derive (D3): the named gap, in the session
+/// card's shape so it reads as the session it would have been. It never shows
+/// a scale — assuming one batch is exactly the invented number this app
+/// refuses — and it carries the one-tap fix where there is one.
+class _GapCard extends StatelessWidget {
+  const _GapCard({required this.gap});
+
+  final ComponentGap gap;
+
+  @override
+  Widget build(BuildContext context) {
+    final parents = gap.demandedBy.map((d) => d.title).toSet().toList();
+    return _Card(
+      accent: true,
+      title: componentCardTitle(gap.title, parents),
+      subtitle: gapSummaryLine(gap),
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
+          decoration: BoxDecoration(
+            color: AnsiColors.paper,
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      componentWhenLabel(gap.demandedBy.map((d) => d.cookDay)),
+                      style: ansiSans(size: 13, weight: FontWeight.w600),
+                    ),
+                  ),
+                  Text(
+                    'no scale',
+                    style: ansiMono(size: 12, color: AnsiColors.aging),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                gapCoversLine(gap),
+                style: ansiSans(size: 11, color: AnsiColors.muted),
+              ),
+              const SizedBox(height: 10),
+              _GapWarning(gap: gap),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The warn block inside a gap card: what is missing, what setting it buys,
+/// and (where the fix lives on the target) one tap to go set it.
+class _GapWarning extends StatelessWidget {
+  const _GapWarning({required this.gap});
+
+  final ComponentGap gap;
+
+  static const _foreground = Color(0xFF7A5A16);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBF3E3),
+        border: Border.all(color: const Color(0xFFF0DCB0)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 1),
+                child: Icon(FLucideIcons.flag, size: 14, color: _foreground),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  gapHeadline(gap),
+                  style: ansiSans(
+                    size: 12.5,
+                    color: _foreground,
+                    weight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(left: 22),
+            child: Text(
+              gapBody(gap),
+              style: ansiMono(
+                size: 11,
+                color: _foreground,
+              ).copyWith(height: 1.5),
+            ),
+          ),
+          if (gapOffersYieldFix(gap)) ...[
+            const SizedBox(height: 10),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => context.push('/recipes/${gap.recipeId}/edit'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFF0DCB0)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Set the yield',
+                  textAlign: TextAlign.center,
+                  style: ansiMono(size: 12, color: _foreground),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The card shell every plan card shares: paper tile, title, summary line, and
+/// whatever sessions or states sit under it.
+class _Card extends StatelessWidget {
+  const _Card({
+    required this.title,
+    required this.subtitle,
+    required this.children,
+    this.accent = false,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<Widget> children;
+
+  /// Takes the amber border — a split recipe, or an underivable component.
+  final bool accent;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
         color: AnsiColors.surface,
-        border: Border.all(
-          color: recipe.isSplit ? AnsiColors.aging : AnsiColors.line,
-        ),
+        border: Border.all(color: accent ? AnsiColors.aging : AnsiColors.line),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(recipe.title, style: ansiSerif(size: 19)),
+          Text(title, style: ansiSerif(size: 19)),
           const SizedBox(height: 3),
-          Text(
-            recipeSummaryLine(recipe),
-            style: ansiMono(size: 10.5, color: AnsiColors.muted),
-          ),
+          Text(subtitle, style: ansiMono(size: 10.5, color: AnsiColors.muted)),
           const SizedBox(height: 10),
-          for (final (i, session) in recipe.sessions.indexed) ...[
-            if (i > 0) const SizedBox(height: 8),
-            _SessionTile(session: session),
-            if (session.hasFreezerRescue)
-              _Note.freezer(freezerNoteFor(recipe.title, session)),
-          ],
-          if (recipe.isSplit) _Note.split(splitNoteFor(recipe)),
+          ...children,
         ],
       ),
     );
@@ -130,16 +346,25 @@ class _RecipeCard extends StatelessWidget {
 /// and the nudged whole batch — nothing is persisted, and the shopping list
 /// keeps scaling by the raw factor either way (invariant 3).
 class _SessionTile extends ConsumerWidget {
-  const _SessionTile({required this.session});
+  const _SessionTile({required this.session, this.denomination});
 
   final CookSession session;
 
+  /// The target's first stated yield, for a COMPONENT session's arithmetic
+  /// ("makes 1 cup, you need 0.25"). Null for a meal session, and for a
+  /// component whose recipe states no yield — the clause is dropped, never
+  /// guessed.
+  final YieldDenomination? denomination;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // A component session is never nudged to a whole batch: batches ARE its
+    // denomination (the domain returns null for it).
     final nudge = wholeBatchNudgeFor(session);
     final key = cookSessionKey(session);
     final showWhole =
         nudge != null && ref.watch(wholeBatchDisplayProvider(key));
+    final component = session.isComponent;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
@@ -156,12 +381,20 @@ class _SessionTile extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Cook ${kWeekdayShort[session.cookDay]}',
+                  component
+                      // A component batch has to be ready BY its parents' cook
+                      // day, not on one of its own (D3).
+                      ? componentWhenLabel(
+                          session.demands.map((d) => d.cookDay),
+                        )
+                      : 'Cook ${kWeekdayShort[session.cookDay]}',
                   style: ansiSans(size: 13, weight: FontWeight.w600),
                 ),
               ),
               Text(
-                showWhole
+                component
+                    ? componentScaleLabel(session)
+                    : showWhole
                     ? '×${nudge.factor}'
                     : formatScale(session.scaleFactor),
                 style: ansiMono(size: 12, color: AnsiColors.herbDeep),
@@ -170,7 +403,9 @@ class _SessionTile extends ConsumerWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            coversLine(session),
+            component
+                ? componentCoversLine(session, denomination: denomination)
+                : coversLine(session),
             style: ansiSans(size: 11, color: AnsiColors.muted),
           ),
           if (nudge != null) ...[

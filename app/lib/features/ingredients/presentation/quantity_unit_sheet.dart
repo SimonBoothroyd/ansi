@@ -532,7 +532,7 @@ class _UnitChipRowState extends State<UnitChipRow> {
         );
       }
       children.add(
-        _Chip(
+        UnitChip(
           key: widget.selected == c ? _selectedKey : null,
           // A measure chip carries the bare label; its weight shows in the
           // selected-choice line, not on every chip.
@@ -551,7 +551,7 @@ class _UnitChipRowState extends State<UnitChipRow> {
     }
     if (offFilter != null) {
       children.add(
-        _Chip(
+        UnitChip(
           key: widget.selected == offFilter ? _selectedKey : null,
           label: switch (offFilter) {
             MeasureOption(:final measure) => measure.label,
@@ -572,7 +572,7 @@ class _UnitChipRowState extends State<UnitChipRow> {
     // A real icon, not a "＋" glyph — the bundled fonts lack U+FF0B,
     // so the string form renders as tofu (the library_view rule).
     children.add(
-      _Chip(
+      UnitChip(
         icon: const Icon(FLucideIcons.plus, size: 13, color: AnsiColors.herb),
         accent: true,
         onTap: widget.onManage,
@@ -592,8 +592,12 @@ class _UnitChipRowState extends State<UnitChipRow> {
   }
 }
 
-class _Chip extends StatelessWidget {
-  const _Chip({
+/// One chip of the row. Public because the **component** quantity sheet
+/// (step 8.6 / D2) rides the same dock with a different offer — batch math
+/// instead of measures — and the two must be the same object, not two skins
+/// that drift.
+class UnitChip extends StatelessWidget {
+  const UnitChip({
     required this.onTap,
     this.label,
     this.icon,

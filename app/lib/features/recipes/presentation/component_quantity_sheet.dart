@@ -1,0 +1,255 @@
+/// The quantity + unit-chip sheet for a **component** line (step 8.6 / D2,
+/// design board frame d) — the 7.7 sheet's anatomy with batch math on the
+/// chips.
+///
+/// Same dock, same [UnitChip]s, same live conversion line. Three things
+/// differ, and each is a consequence of a component being a recipe rather than
+/// an ingredient:
+///
+/// - the chips are **`batch` ∪ the yields' families**, kitchen-trimmed
+///   ([componentUnitChips]) — `batch` is always sayable, and a family opens
+///   only because the recipe states a yield in it. There is no density for a
+///   recipe, so a family nobody stated is not offered; the fix is the yield's
+///   optional second denomination, not a guess;
+/// - the conversion line reads in batches ("0.25 cup = 0.25 of a batch ·
+///   makes 1 cup"), and a recipe with no yield gets the *not-an-error* state:
+///   the `batch` chip alone, the honest note, and one tap to go set the yield.
+///   The link, the page and scaling all work meanwhile — only derived numbers
+///   wait;
+/// - there is **no `+` manage-measures chip**: a measure is an ingredient
+///   concept ("potato, medium = 213 g" says nothing about a recipe), which is
+///   the same reason a component line never carries a `measure_id`.
+///
+/// The 7.7 **stored-selection rule carries over**: an imported line's printed
+/// unit is an admissible chip even when this sheet would not offer it, marked
+/// as outside the filter and rendered with the honest unresolved line — never
+/// silently rewritten.
+library;
+
+import 'dart:math' as math;
+
+import 'package:flutter/widgets.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:forui/forui.dart';
+
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/units.dart';
+import '../../ingredients/presentation/quantity_unit_sheet.dart' show UnitChip;
+import '../domain/component_math.dart';
+import '../domain/component_units.dart';
+import '../domain/recipe.dart';
+import 'component_format.dart';
+import 'format.dart';
+import 'recipe_chip.dart';
+
+/// What the component sheet resolved to: the amount and the unit it counts.
+typedef ComponentQuantity = ({double? quantity, Unit unit});
+
+/// Opens the component quantity sheet for [target]; resolves to the chosen
+/// amount, or null if dismissed.
+///
+/// [onSetYield] is the deep link the no-yield state offers ("Set the yield").
+/// Null where there is nowhere to send the user (a host with no router).
+Future<ComponentQuantity?> showComponentQuantitySheet(
+  BuildContext context, {
+  required SubRecipeTarget target,
+  double? initialQuantity,
+  Unit? initialUnit,
+  VoidCallback? onSetYield,
+}) {
+  return showFSheet<ComponentQuantity>(
+    context: context,
+    side: FLayout.btt,
+    mainAxisMaxRatio: null,
+    useSafeArea: true,
+    builder: (sheetContext) => ComponentQuantityEditor(
+      target: target,
+      initialQuantity: initialQuantity,
+      initialUnit: initialUnit,
+      onSetYield: onSetYield == null
+          ? null
+          : () {
+              Navigator.of(sheetContext).pop();
+              onSetYield();
+            },
+      onDone: (result) => Navigator.of(sheetContext).pop(result),
+    ),
+  );
+}
+
+class ComponentQuantityEditor extends HookWidget {
+  const ComponentQuantityEditor({
+    required this.target,
+    required this.onDone,
+    this.initialQuantity,
+    this.initialUnit,
+    this.onSetYield,
+    super.key,
+  });
+
+  final SubRecipeTarget target;
+  final double? initialQuantity;
+
+  /// The line's stored unit — always an admissible chip (the 7.7 rule).
+  final Unit? initialUnit;
+
+  final ValueChanged<ComponentQuantity> onDone;
+  final VoidCallback? onSetYield;
+
+  @override
+  Widget build(BuildContext context) {
+    final yields = target.yields;
+    final quantity = useState<double?>(initialQuantity);
+    final unit = useState<Unit>(initialUnit ?? _defaultUnit(yields));
+    final offer = componentUnitChips(yields: yields, stored: initialUnit);
+
+    final note = componentConversionLine(
+      quantity: quantity.value,
+      unit: unit.value,
+      yields: yields,
+    );
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AnsiColors.paper,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        border: Border(top: BorderSide(color: AnsiColors.line)),
+      ),
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 12,
+          bottom:
+              math.max(
+                MediaQuery.viewInsetsOf(context).bottom,
+                MediaQuery.paddingOf(context).bottom,
+              ) +
+              12,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.of(context).pop(),
+                  child: const Icon(FLucideIcons.x, size: 22),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: RecipeChip(title: target.title, size: 16),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              yields.isEmpty
+                  ? 'no yield set · your recipe'
+                  : '${yields.map(yieldText).join(' · ')} · your recipe',
+              style: ansiMono(size: 11, color: AnsiColors.muted),
+            ),
+            const SizedBox(height: 16),
+            Text('QUANTITY', style: ansiLabel()),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                SizedBox(
+                  width: 132,
+                  child: FTextField(
+                    autofocus: true,
+                    hint: 'qty',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    control: FTextFieldControl.managed(
+                      initial: TextEditingValue(
+                        text: formatQuantity(quantity.value),
+                      ),
+                      onChange: (v) => quantity.value = v.text.trim().isEmpty
+                          ? null
+                          : double.tryParse(v.text.trim()),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    unit.value.label,
+                    style: ansiMono(size: 15, color: AnsiColors.herbDeep),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Text(
+              note ??
+                  (yields.isEmpty
+                      ? 'no yield set — amounts in batches only'
+                      : ''),
+              textAlign: TextAlign.center,
+              style: ansiMono(size: 11, color: AnsiColors.muted),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 34,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final u in offer.chips)
+                      UnitChip(
+                        label: u.label,
+                        suffix: u == offer.offFilter ? 'not in filter' : null,
+                        selected: unit.value == u,
+                        onTap: () => unit.value = u,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            // The no-yield state is not an error state: the link, the page and
+            // scaling all work: only the derived numbers wait, one tap away.
+            if (yields.isEmpty && onSetYield != null) ...[
+              const SizedBox(height: 10),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onSetYield,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AnsiColors.line),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Set the yield',
+                    textAlign: TextAlign.center,
+                    style: ansiMono(size: 12),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 14),
+            FButton(
+              onPress: () =>
+                  onDone((quantity: quantity.value, unit: unit.value)),
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// What a fresh component line counts before anyone picks a chip: the
+  /// yield's own unit when the recipe states one ("¼ cup" of a `makes 1 cup`
+  /// aioli is the line a page prints), and `batch` otherwise — the one
+  /// denomination that never needs a yield.
+  static Unit _defaultUnit(List<YieldDenomination> yields) =>
+      yields.isEmpty ? batches : yields.first.unit;
+}

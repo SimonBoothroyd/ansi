@@ -1,5 +1,7 @@
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_format.dart';
+import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 CookSession _session({
@@ -211,5 +213,143 @@ void main() {
       ],
     );
     expect(coversLine(session), 'covers Sausage Sliders');
+  });
+
+  group('the component card (step 8.6 / D3, board frame f)', () {
+    const session = CookSession(
+      recipeId: 'aioli',
+      recipeTitle: 'Romesco Aioli',
+      servingsBase: 4,
+      cookDay: 5,
+      keepsForDays: 5,
+      demands: [
+        ComponentDemand(
+          parentRecipeId: 'sliders',
+          parentTitle: 'Sausage Sliders',
+          cookDay: 5,
+          batches: 0.25,
+        ),
+      ],
+    );
+
+    test('the title names the plans it answers', () {
+      expect(
+        componentCardTitle('Romesco Aioli', const ['Sausage Sliders']),
+        'Romesco Aioli · for Sausage Sliders',
+      );
+    });
+
+    test('the scale is in batches, never portions', () {
+      expect(componentScaleLabel(session), '×0.25 batch');
+    });
+
+    test('it is cooked BY the demanding day, not on one of its own', () {
+      expect(componentWhenLabel(const [5]), 'Cook by Sat');
+      expect(componentWhenLabel(const [5, 2, 5]), 'Cook by Wed + Sat');
+    });
+
+    test('the covers line closes with the batch arithmetic', () {
+      expect(
+        componentCoversLine(session, denomination: (qty: 1, unit: cup)),
+        'covers Sausage Sliders · cook Sat — makes 1 cup, you need 0.25',
+      );
+    });
+
+    test('with no yield to quote, the clause is dropped, not guessed', () {
+      expect(componentCoversLine(session), 'covers Sausage Sliders · cook Sat');
+    });
+
+    test('a part-batch demand says what is left over, and what is not '
+        'tracked', () {
+      expect(
+        componentLeftoverNote(session, denomination: (qty: 1, unit: cup)),
+        'A batch makes 1 cup and Saturday needs 0.25 — the rest is yours. '
+        'Nothing here tracks the leftover.',
+      );
+    });
+
+    test('a whole-batch demand leaves nothing over, so it says nothing', () {
+      const whole = CookSession(
+        recipeId: 'aioli',
+        recipeTitle: 'Romesco Aioli',
+        servingsBase: 4,
+        cookDay: 5,
+        demands: [
+          ComponentDemand(
+            parentRecipeId: 'sliders',
+            parentTitle: 'Sausage Sliders',
+            cookDay: 5,
+            batches: 2,
+          ),
+        ],
+      );
+      expect(
+        componentLeftoverNote(whole, denomination: (qty: 1, unit: cup)),
+        isNull,
+      );
+      expect(componentLeftoverNote(session), isNull);
+    });
+  });
+
+  group('the gap card (step 8.6 / D3)', () {
+    ComponentGap gap(UnresolvedComponentAmount reason) => ComponentGap(
+      recipeId: 'aioli',
+      title: 'Romesco Aioli',
+      reason: reason,
+      demandedBy: const [
+        ComponentDemandSource(
+          recipeId: 'sliders',
+          title: 'Sausage Sliders',
+          cookDay: 5,
+        ),
+      ],
+    );
+
+    test('a missing yield is named, and offers the one-tap fix', () {
+      final missing = gap(const ComponentYieldMissing());
+      expect(
+        gapSummaryLine(missing),
+        'derived from a component line · yield not set',
+      );
+      expect(
+        gapHeadline(missing),
+        'Romesco Aioli doesn’t say how much it makes',
+      );
+      expect(gapBody(missing), startsWith('Set its yield'));
+      expect(gapOffersYieldFix(missing), isTrue);
+      expect(gapCoversLine(missing), 'covers Sausage Sliders · cook Sat');
+    });
+
+    test('a family mismatch names both sides and the fix that closes it', () {
+      final mismatch = gap(
+        const ComponentFamilyMismatch(
+          lineFamily: UnitFamily.volume,
+          yieldFamilies: [UnitFamily.mass],
+        ),
+      );
+      expect(gapBody(mismatch), contains('The line is in volume'));
+      expect(gapBody(mismatch), contains('second denomination'));
+      expect(gapOffersYieldFix(mismatch), isTrue);
+    });
+
+    test('an amount or a cycle is fixed on the parent, so no yield button', () {
+      expect(gapOffersYieldFix(gap(const ComponentAmountMissing())), isFalse);
+      expect(gapOffersYieldFix(gap(const ComponentCycle())), isFalse);
+      expect(
+        gapHeadline(gap(const ComponentCycle())),
+        'Romesco Aioli is used inside itself',
+      );
+    });
+
+    test('no gap copy ever offers a scale', () {
+      for (final reason in const <UnresolvedComponentAmount>[
+        ComponentAmountMissing(),
+        ComponentYieldMissing(),
+        ComponentCycle(),
+      ]) {
+        expect(gapBody(gap(reason)), isNot(contains('×')));
+        expect(gapHeadline(gap(reason)), isNot(contains('×')));
+      }
+    });
   });
 }

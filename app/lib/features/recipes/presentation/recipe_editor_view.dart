@@ -6,6 +6,7 @@
 library;
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -18,10 +19,13 @@ import '../../books/presentation/book_view_models.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
-import '../../ingredients/presentation/ingredient_picker.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../domain/recipe.dart';
+import 'component_format.dart';
+import 'component_quantity_sheet.dart';
 import 'format.dart';
+import 'line_target_picker.dart';
+import 'recipe_chip.dart';
 import 'recipe_view_models.dart';
 
 class RecipeEditorView extends ConsumerWidget {
@@ -100,6 +104,9 @@ class _EditorForm extends StatelessWidget {
           onChanged: notifier.setServings,
         ),
         const SizedBox(height: 20),
+        const _MakesLabel(),
+        _MakesSection(recipe: recipe, notifier: notifier),
+        const SizedBox(height: 20),
         const _Label('SHELF LIFE'),
         _ShelfLifeSection(recipe: recipe, notifier: notifier),
         const SizedBox(height: 20),
@@ -110,6 +117,7 @@ class _EditorForm extends StatelessWidget {
           _GroupEditor(
             key: ValueKey(group.id),
             group: group,
+            recipeId: recipe.id,
             notifier: notifier,
             removable: recipe.groups.length > 1,
           ),
@@ -184,14 +192,61 @@ class _TokenizedMethodNotice extends StatelessWidget {
 class _GroupEditor extends StatelessWidget {
   const _GroupEditor({
     required this.group,
+    required this.recipeId,
     required this.notifier,
     required this.removable,
     super.key,
   });
 
   final IngredientGroup group;
+
+  /// The recipe being edited — what the picker excludes from its "Your
+  /// recipes" section, and what the cycle guard is asked about (D5).
+  final String recipeId;
   final RecipeEditor notifier;
   final bool removable;
+
+  /// The 7.7 two-step chain, with one more door at the first step (D7): the
+  /// picker (board frame c) → the quantity sheet (frame b for an ingredient,
+  /// frame d for a component) → the line lands fully quantified. Backing out
+  /// of the quantity sheet still adds the line in its default unit — the
+  /// quantity control re-opens the sheet.
+  Future<void> _addLine(BuildContext context) async {
+    final name = group.name;
+    final picked = await showLineTargetPicker(
+      context,
+      editingRecipeId: recipeId,
+      title: name == null || name.isEmpty
+          ? 'Add an ingredient'
+          : 'Add to “$name”',
+    );
+    if (picked == null || !context.mounted) return;
+    switch (picked) {
+      case PickedIngredient(:final ingredient):
+        final result = await showQuantityUnitSheet(
+          context,
+          ingredient: ingredient,
+        );
+        notifier.addLineItem(
+          group.id,
+          ingredient,
+          quantity: result is QuantitySaved ? result.quantity : null,
+          choice: result is QuantitySaved ? result.choice : null,
+        );
+      case PickedSubRecipe(:final target):
+        final result = await showComponentQuantitySheet(
+          context,
+          target: target,
+          onSetYield: () => context.push('/recipes/${target.id}/edit'),
+        );
+        notifier.addComponentLineItem(
+          group.id,
+          target,
+          quantity: result?.quantity,
+          unit: result?.unit,
+        );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -239,30 +294,7 @@ class _GroupEditor extends StatelessWidget {
             variant: FButtonVariant.secondary,
             size: FButtonSizeVariant.sm,
             prefix: const Icon(FLucideIcons.plus),
-            onPress: () async {
-              // The 7.7 two-step chain: picker (frame a) → quantity + unit
-              // chips (frame b) → the line lands fully quantified. Backing
-              // out of the quantity sheet still adds the ingredient in its
-              // default unit — the quantity control re-opens the sheet.
-              final name = group.name;
-              final ingredient = await showIngredientPicker(
-                context,
-                title: name == null || name.isEmpty
-                    ? 'Add an ingredient'
-                    : 'Add to “$name”',
-              );
-              if (ingredient == null || !context.mounted) return;
-              final result = await showQuantityUnitSheet(
-                context,
-                ingredient: ingredient,
-              );
-              notifier.addLineItem(
-                group.id,
-                ingredient,
-                quantity: result is QuantitySaved ? result.quantity : null,
-                choice: result is QuantitySaved ? result.choice : null,
-              );
-            },
+            onPress: () => _addLine(context),
             child: const Text('Add ingredient'),
           ),
         ],
@@ -296,10 +328,13 @@ class _LineItemEditor extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // A component line (step 8.6 / D1) has no ingredient to look up — the
-    // empty id resolves to nothing and the row falls through to the same
-    // stub-shaped stand-in an unsynced vocab row gets. Lane U replaces this
-    // identity cell with the recipe chip the board draws.
+    // A component line (step 8.6 / D1) has no ingredient to look up: its
+    // identity is the recipe chip, and its amount is edited against the
+    // target's yields, not an ingredient's units.
+    if (item.isComponent) {
+      return _ComponentLineEditor(item: item, notifier: notifier);
+    }
+
     final ingredient = ref
         .watch(
           lineItemIngredientProvider(
@@ -357,39 +392,7 @@ class _LineItemEditor extends ConsumerWidget {
               children: [
                 Text(item.ingredientName, style: ansiSans(size: 15)),
                 const SizedBox(height: 6),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: editQuantity,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AnsiColors.surface,
-                      border: Border.all(color: AnsiColors.line),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            _label,
-                            style: ansiMono(size: 13),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Icon(
-                          FLucideIcons.pencil,
-                          size: 12,
-                          color: AnsiColors.muted,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                _QuantityControl(label: _label, onTap: editQuantity),
               ],
             ),
           ),
@@ -401,6 +404,297 @@ class _LineItemEditor extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A component line in the editor (step 8.6 / D1, board frame a's identity
+/// cell on an editor row): the recipe chip where the ingredient name sits, and
+/// the same quantity control — opening the batch-math sheet instead of the
+/// ingredient one.
+///
+/// A component whose target has not synced (or was deleted) keeps its stored
+/// text and says so; the amount stays editable in batches, which needs no
+/// target at all.
+class _ComponentLineEditor extends StatelessWidget {
+  const _ComponentLineEditor({required this.item, required this.notifier});
+
+  final LineItem item;
+  final RecipeEditor notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    final target = item.subRecipe;
+    final label = componentAmountText(item.quantity, item.unit);
+
+    Future<void> editQuantity() async {
+      final result = await showComponentQuantitySheet(
+        context,
+        target:
+            target ??
+            SubRecipeTarget(
+              id: item.subRecipeId ?? '',
+              title: item.ingredientName,
+            ),
+        initialQuantity: item.quantity,
+        initialUnit: item.unit,
+        onSetYield: target == null
+            ? null
+            : () => context.push('/recipes/${target.id}/edit'),
+      );
+      if (result == null) return;
+      notifier
+        ..setLineItemQuantity(item.id, result.quantity)
+        ..setLineItemUnit(item.id, result.unit);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (target != null)
+                  RecipeChip(title: target.title)
+                else
+                  Text(
+                    '${item.ingredientName} · linked recipe missing',
+                    style: ansiSans(size: 15, color: AnsiColors.muted),
+                  ),
+                const SizedBox(height: 6),
+                _QuantityControl(label: label, onTap: editQuantity),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+          FButton.icon(
+            variant: FButtonVariant.ghost,
+            onPress: () => notifier.removeLineItem(item.id),
+            child: const Icon(FLucideIcons.x),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The tap-to-edit amount pill both line-editor rows wear.
+class _QuantityControl extends StatelessWidget {
+  const _QuantityControl({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AnsiColors.surface,
+          border: Border.all(color: AnsiColors.line),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                style: ansiMono(size: 13),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(FLucideIcons.pencil, size: 12, color: AnsiColors.muted),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "MAKES · optional" — the label the board's frame h draws, with the optional
+/// half in sentence case beside the eyebrow.
+class _MakesLabel extends StatelessWidget {
+  const _MakesLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Text('MAKES', style: ansiLabel()),
+          const SizedBox(width: 6),
+          Text(
+            '· optional',
+            style: ansiMono(size: 11, color: AnsiColors.muted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The MAKES numbers block (step 8.6 / D2 · D9, design board frame h): what
+/// one batch yields, in up to TWO denominations.
+///
+/// Serves and makes are two independent facts — serves is how the recipe
+/// portions, makes is how much comes out — and neither derives from the other.
+/// The second denomination's selector offers only the OTHER families: two ways
+/// of saying one batch ("makes 250 g · 16 tbsp"), never two numbers in one
+/// family. It can only be added once the first is stated, which is what the
+/// migration's CHECK says too — a save must not be able to bounce off it.
+class _MakesSection extends HookWidget {
+  const _MakesSection({required this.recipe, required this.notifier});
+
+  final Recipe recipe;
+  final RecipeEditor notifier;
+
+  /// The units a yield may be stated in: everything an ingredient line can say
+  /// except the imprecise words — "makes a pinch" is not a yield, and `batch`
+  /// is what a yield is measured *against*, never in.
+  static final List<Unit> _units = [
+    for (final u in kIngredientUnits)
+      if (u.family != UnitFamily.imprecise) u,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final unit = useState<Unit>(recipe.yieldUnit ?? g);
+    final unit2 = useState<Unit?>(recipe.yieldUnit2);
+    final hasFirst = recipe.yieldQty != null && recipe.yieldUnit != null;
+    final showSecond = recipe.yieldQty2 != null || unit2.value != null;
+
+    // The second slot's offer: the other families only.
+    final otherFamilies = [
+      for (final u in _units)
+        if (u.family != unit.value.family) u,
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _YieldRow(
+          key: const ValueKey('yield-1'),
+          quantity: recipe.yieldQty,
+          unit: unit.value,
+          units: _units,
+          onChanged: (qty, u) {
+            unit.value = u;
+            notifier.setYield(qty, u);
+          },
+        ),
+        if (hasFirst && showSecond) ...[
+          const SizedBox(height: 8),
+          _YieldRow(
+            key: const ValueKey('yield-2'),
+            quantity: recipe.yieldQty2,
+            unit: unit2.value ?? otherFamilies.first,
+            units: otherFamilies,
+            onRemove: () {
+              unit2.value = null;
+              notifier.setSecondYield(null, null);
+            },
+            onChanged: (qty, u) {
+              unit2.value = u;
+              notifier.setSecondYield(qty, u);
+            },
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'the second slot only offers the other families — two ways of '
+              'saying one batch, never two numbers in one family',
+              style: ansiMono(size: 11, color: AnsiColors.muted),
+            ),
+          ),
+        ] else if (hasFirst) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FButton(
+              variant: FButtonVariant.ghost,
+              size: FButtonSizeVariant.sm,
+              prefix: const Icon(FLucideIcons.plus),
+              onPress: () => unit2.value = otherFamilies.first,
+              child: const Text('Another denomination'),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// One "amount + unit" yield row, with the second slot's remove affordance.
+class _YieldRow extends StatelessWidget {
+  const _YieldRow({
+    required this.quantity,
+    required this.unit,
+    required this.units,
+    required this.onChanged,
+    this.onRemove,
+    super.key,
+  });
+
+  final double? quantity;
+  final Unit unit;
+  final List<Unit> units;
+  final void Function(double? quantity, Unit unit) onChanged;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 110,
+          child: FTextField(
+            hint: 'amount',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            control: FTextFieldControl.managed(
+              initial: TextEditingValue(text: formatQuantity(quantity)),
+              onChange: (v) => onChanged(
+                v.text.trim().isEmpty ? null : double.tryParse(v.text.trim()),
+                unit,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: FSelect<String>.rich(
+            format: (id) => unitById(id)?.label ?? '—',
+            control: FSelectControl<String>.lifted(
+              value: unit.id,
+              onChange: (id) {
+                final picked = id == null ? null : unitById(id);
+                if (picked != null) onChanged(quantity, picked);
+              },
+            ),
+            children: [
+              for (final u in units)
+                FSelectItem(title: Text(u.label), value: u.id),
+            ],
+          ),
+        ),
+        if (onRemove != null) ...[
+          const SizedBox(width: 4),
+          FButton.icon(
+            variant: FButtonVariant.ghost,
+            onPress: onRemove,
+            child: const Icon(FLucideIcons.x),
+          ),
+        ],
+      ],
     );
   }
 }

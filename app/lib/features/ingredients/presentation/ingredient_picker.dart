@@ -128,12 +128,18 @@ class _IngredientPickerSheet extends HookConsumerWidget {
 
 /// The scrolling results — frame-a rows, with the Recent header before any
 /// query.
+///
+/// [trailing] is the one extension point (step 8.6 / D7, board frame c): a
+/// section rendered UNDER the ingredient rows in the same scroll view — the
+/// "Your recipes" section the line picker adds. Nothing else about the list
+/// moves; when it is empty this is the shipped 7.7 list exactly.
 class IngredientResultList extends StatelessWidget {
   const IngredientResultList({
     required this.results,
     required this.query,
     required this.showingRecents,
     required this.onPick,
+    this.trailing = const [],
     super.key,
   });
 
@@ -142,9 +148,12 @@ class IngredientResultList extends StatelessWidget {
   final bool showingRecents;
   final ValueChanged<Ingredient> onPick;
 
+  /// Extra sections below the ingredient rows.
+  final List<Widget> trailing;
+
   @override
   Widget build(BuildContext context) {
-    if (results.isEmpty) {
+    if (results.isEmpty && trailing.isEmpty) {
       return Center(
         child: Text(
           query.isEmpty
@@ -160,11 +169,20 @@ class IngredientResultList extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Text('RECENT', style: ansiLabel()),
+          )
+        // With a second section below, the ingredient rows need a name of
+        // their own — the board's frame-c header. Without one they are the
+        // whole list and labelling them would be noise.
+        else if (trailing.isNotEmpty && results.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text('INGREDIENTS', style: ansiLabel()),
           ),
         for (final (i, ing) in results.indexed) ...[
           if (i > 0) Container(height: 1, color: AnsiColors.line),
           IngredientRow(ingredient: ing, onPick: onPick),
         ],
+        ...trailing,
       ],
     );
   }

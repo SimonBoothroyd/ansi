@@ -188,4 +188,85 @@ void main() {
     expect(find.text('—'), findsOneWidget);
     expect(find.textContaining('add item or top up'), findsOneWidget);
   });
+
+  testWidgets('a nested contribution names both levels (step 8.6 / D4)', (
+    tester,
+  ) async {
+    // The provenance segment the domain builds for a component session: the
+    // sub-recipe's own line, then the plan it is cooked for.
+    final list = ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Pantry',
+          items: [
+            ShoppingItem(
+              name: 'Olive oil',
+              ingredientId: 'oil',
+              totals: [Quantity(60, ml)],
+              contributions: const [
+                ShoppingContribution(
+                  source: ContributionSource.cookSession,
+                  label: 'Sausage Sliders · cook Sat',
+                  quantity: 30,
+                  unit: ml,
+                  cookDay: 5,
+                ),
+                ShoppingContribution(
+                  source: ContributionSource.cookSession,
+                  label: 'Romesco Aioli · for Sliders · cook Sat',
+                  quantity: 30,
+                  unit: ml,
+                  cookDay: 5,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _host([
+        shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(list)),
+      ]),
+    );
+    await tester.pump();
+
+    expect(find.text('Sausage Sliders · cook Sat'), findsOneWidget);
+    expect(find.text('Romesco Aioli · for Sliders · cook Sat'), findsOneWidget);
+    // Summed once, bought once.
+    expect(find.text('60 ml'), findsOneWidget);
+  });
+
+  testWidgets('an unresolved component makes the list’s silence legible (D4)', (
+    tester,
+  ) async {
+    final list = ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Pantry',
+          items: [
+            ShoppingItem(
+              name: 'Olive oil',
+              ingredientId: 'oil',
+              totals: [Quantity(30, ml)],
+            ),
+          ],
+        ),
+      ],
+      unresolvedComponents: const [
+        (recipeId: 'sliders', recipeTitle: 'Sausage Sliders', count: 1),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _host([
+        shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(list)),
+      ]),
+    );
+    await tester.pump();
+
+    expect(find.text('SAUSAGE SLIDERS'), findsOneWidget);
+    expect(find.text('1 component unresolved — see Cook'), findsOneWidget);
+  });
 }

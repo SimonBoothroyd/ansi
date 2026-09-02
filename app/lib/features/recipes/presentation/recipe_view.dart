@@ -4,6 +4,14 @@
 /// The Ingredients tab closes with the per-serving macro panel (step 9,
 /// [RecipeMacroPanel]) — the only number on this page the servings scaler
 /// does not move.
+///
+/// **As a sub-recipe** (step 8.6 / D9, design board frame b) the page gains
+/// two facts: a *"makes 1 cup"* pill beside serves (a second pill when the
+/// yield states two denominations), and a THIRD tab — "Used in · N" — holding
+/// the recipes that list this one as a component. The tab is conditional: it
+/// renders only while the count is non-zero, so a recipe used in nothing keeps
+/// the two-tab page it has always had. That same count is what D5's delete
+/// refusal speaks — one query, two uses.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -18,9 +26,12 @@ import '../../../shared/method_step_text.dart';
 import '../data/recipe_providers.dart';
 import '../domain/line_display.dart';
 import '../domain/recipe.dart';
+import '../domain/recipe_repository.dart';
 import '../domain/scaling.dart';
+import 'component_format.dart';
 import 'format.dart';
 import 'ingredient_line.dart';
+import 'recipe_chip.dart';
 import 'recipe_macro_panel.dart';
 import 'recipe_view_models.dart';
 
@@ -67,6 +78,21 @@ class _RecipeBody extends HookConsumerWidget {
     final servings = useState(recipe.servingsBase);
     final tab = useState(0);
     final title = recipe.title.isEmpty ? 'Untitled recipe' : recipe.title;
+    // The back-links: the tab exists only while something points here (D9),
+    // and the same rows carry the count D5's delete refusal speaks. A
+    // still-loading query reads as "nothing points here yet" — two tabs, the
+    // page it has always had — never as a third empty pane.
+    final uses =
+        ref.watch(recipeUsedInProvider(recipe.id)).asData?.value ??
+        const <RecipeUse>[];
+    final tabs = [
+      'Ingredients',
+      'Method',
+      if (uses.isNotEmpty) usedInTabLabel(uses.length),
+    ];
+    // The last back-link can go while the tab is open; fall back rather than
+    // stare at a pane that no longer exists.
+    final index = tab.value < tabs.length ? tab.value : 0;
     // The favorite flag lives on the list summary (the planner's Favorites
     // tab reads the same row), not the aggregate — resolve it from there.
     final favorite =
@@ -134,16 +160,18 @@ class _RecipeBody extends HookConsumerWidget {
           const SizedBox(height: 12),
           _Chips(recipe: recipe),
           const SizedBox(height: 20),
-          _TabBar(index: tab.value, onChanged: (i) => tab.value = i),
+          _TabBar(labels: tabs, index: index, onChanged: (i) => tab.value = i),
           const SizedBox(height: 4),
-          if (tab.value == 0)
+          if (index == 0)
             _IngredientsTab(
               recipe: recipe,
               servings: servings.value,
               onServings: (v) => servings.value = v,
             )
+          else if (index == 1)
+            _MethodTab(recipe: recipe, servings: servings.value)
           else
-            _MethodTab(recipe: recipe, servings: servings.value),
+            _UsedInTab(uses: uses),
         ],
       ),
     );
@@ -160,6 +188,38 @@ class _RecipeBody extends HookConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    // D5, the 8.5 ingredient-delete ruling verbatim: a recipe something points
+    // at is not deleted, and the refusal names the count — "used in 2 recipes"
+    // is something a person can act on, "failed" is not. Read the repository
+    // (keepAlive) rather than the tab's cached rows: the answer must be the
+    // one that is true at the moment of the tap.
+    final repository = ref.read(recipeRepositoryProvider);
+    final uses = await repository.usedIn(recipe.id);
+    if (!context.mounted) return;
+    if (uses.isNotEmpty) {
+      await showFDialog<void>(
+        context: context,
+        builder: (context, style, animation) => FDialog(
+          animation: animation,
+          title: Text('Can’t delete this recipe', style: ansiSerif(size: 20)),
+          body: Text(
+            deleteRefusalText(
+              recipes: uses.map((u) => u.recipeId).toSet().length,
+              lines: uses.length,
+            ),
+          ),
+          actions: [
+            FButton(
+              variant: FButtonVariant.outline,
+              onPress: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final ok = await showFDialog<bool>(
       context: context,
       builder: (context, style, animation) => FDialog(
@@ -181,7 +241,7 @@ class _RecipeBody extends HookConsumerWidget {
       ),
     );
     if ((ok ?? false) && context.mounted) {
-      await ref.read(recipeRepositoryProvider).deleteRecipe(recipe.id);
+      await repository.deleteRecipe(recipe.id);
       if (context.mounted) context.go('/');
     }
   }
@@ -190,12 +250,16 @@ class _RecipeBody extends HookConsumerWidget {
 /// A plain-text tab bar with an underline under the active tab (no filled
 /// segmented pill), matching the design board.
 class _TabBar extends StatelessWidget {
-  const _TabBar({required this.index, required this.onChanged});
+  const _TabBar({
+    required this.labels,
+    required this.index,
+    required this.onChanged,
+  });
 
+  /// Two tabs, or three while something points at this recipe (D9).
+  final List<String> labels;
   final int index;
   final ValueChanged<int> onChanged;
-
-  static const _labels = ['Ingredients', 'Method'];
 
   @override
   Widget build(BuildContext context) {
@@ -205,9 +269,9 @@ class _TabBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          for (var i = 0; i < _labels.length; i++) ...[
+          for (var i = 0; i < labels.length; i++) ...[
             _TabButton(
-              label: _labels[i],
+              label: labels[i],
               selected: index == i,
               onTap: () => onChanged(i),
             ),
@@ -287,6 +351,12 @@ class _Chips extends StatelessWidget {
         if (recipe.freezable)
           _Chip(freezer == null ? 'freezable' : 'freezable · $freezer d'),
         _Chip('serves ${formatQuantity(recipe.servingsBase)}'),
+        // What one batch MAKES (D2/D9) — a second pill continues the sentence
+        // when the yield states two denominations ("makes 250 g" then
+        // "· 16 tbsp").
+        // Serves and makes are two independent facts; neither derives from
+        // the other, so both sit here.
+        for (final label in yieldPillLabels(recipe.yields)) _Chip(label),
       ],
     );
   }
@@ -323,6 +393,66 @@ class _Chip extends StatelessWidget {
           Text(text, style: ansiMono(size: 11, color: AnsiColors.herbDeep)),
         ],
       ),
+    );
+  }
+}
+
+/// The "Used in · N" tab (D9): one row per referencing LINE — the parent
+/// recipe, what its line asks for, and that amount as a share of a batch —
+/// each pushing the parent. An amount that does not resolve says why rather
+/// than guessing a share (D2).
+class _UsedInTab extends StatelessWidget {
+  const _UsedInTab({required this.uses});
+
+  final List<RecipeUse> uses;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 10),
+        for (final use in uses)
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => context.push('/recipes/${use.recipeId}'),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                children: [
+                  const Icon(kSubRecipeIcon, size: 15, color: AnsiColors.herb),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          use.title,
+                          style: ansiSans(size: 15, weight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          usedInAmountLine(
+                            quantity: use.quantity,
+                            unit: use.unit,
+                            amount: use.amount,
+                          ),
+                          style: ansiMono(size: 10.5, color: AnsiColors.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    FLucideIcons.chevronRight,
+                    size: 14,
+                    color: AnsiColors.muted,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -371,7 +501,11 @@ class _IngredientsTab extends StatelessWidget {
             const _Hairline(),
           ],
           for (final uses in groupLineUses(group.items))
-            RecipeIngredientLine(uses: uses),
+            RecipeIngredientLine(
+              uses: uses,
+              // A component's chip pushes its target's page (D7).
+              onOpenSubRecipe: (id) => context.push('/recipes/$id'),
+            ),
         ],
         // Below the list, as the design board's Recipe frame drew it: the
         // strip reads as the sum of the lines above it, and it stays clear of

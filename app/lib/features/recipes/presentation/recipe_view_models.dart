@@ -16,6 +16,7 @@ import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../data/recipe_providers.dart';
 import '../domain/recipe.dart';
+import '../domain/recipe_repository.dart';
 
 part 'recipe_view_models.g.dart';
 
@@ -30,6 +31,17 @@ Stream<List<RecipeSummary>> recipeList(Ref ref) =>
 @riverpod
 Stream<Recipe?> recipeById(Ref ref, String id) =>
     ref.watch(recipeRepositoryProvider).watchRecipe(id);
+
+/// The recipes that list [id] as a component — the "Used in · N" tab's rows
+/// (step 8.6 / D9), and the same count D5's delete refusal speaks.
+///
+/// It re-reads whenever the recipe itself changes, which is what a link
+/// written on this device (or synced in from the other one) moves.
+@riverpod
+Future<List<RecipeUse>> recipeUsedIn(Ref ref, String id) {
+  ref.watch(recipeByIdProvider(id));
+  return ref.watch(recipeRepositoryProvider).usedIn(id);
+}
 
 /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
 /// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
@@ -87,6 +99,40 @@ class RecipeEditor extends _$RecipeEditor {
 
   void setServings(double servings) =>
       _set(_current.copyWith(servingsBase: servings <= 0 ? 1 : servings));
+
+  /// Sets what one batch MAKES — the first denomination (step 8.6 / D2, board
+  /// frame h). Both halves are set or neither is, and clearing the first also
+  /// drops the second: the migration pins "a second denomination only when the
+  /// first is stated", and a save that bounces off a CHECK is not a state the
+  /// editor should be able to reach.
+  void setYield(double? qty, Unit? unit) {
+    final stated = qty != null && qty > 0 && unit != null;
+    _set(
+      _current.copyWith(
+        yieldQty: stated ? qty : null,
+        yieldUnit: stated ? unit : null,
+        yieldQty2: stated ? _current.yieldQty2 : null,
+        yieldUnit2: stated ? _current.yieldUnit2 : null,
+      ),
+    );
+  }
+
+  /// Sets (or clears, with nulls) the optional SECOND denomination — "makes
+  /// 250 g · 16 tbsp". Ignored while no first denomination is stated, and a
+  /// unit in the first's own family is refused: the pair exists to bridge two
+  /// families, and two numbers in one family would be a second fact about the
+  /// same one.
+  void setSecondYield(double? qty, Unit? unit) {
+    if (_current.yieldQty == null || _current.yieldUnit == null) return;
+    final stated = qty != null && qty > 0 && unit != null;
+    if (stated && unit.family == _current.yieldUnit!.family) return;
+    _set(
+      _current.copyWith(
+        yieldQty2: stated ? qty : null,
+        yieldUnit2: stated ? unit : null,
+      ),
+    );
+  }
 
   /// Sets the fridge shelf life in days; null (or a non-positive value) leaves
   /// it unset — the cook plan then never splits this recipe.
@@ -172,6 +218,32 @@ class RecipeEditor extends _$RecipeEditor {
             MeasureOption(:final measure) => measure,
             _ => null,
           },
+        ),
+      ],
+    ),
+  );
+
+  /// Appends a **component** line pointing at [target] (step 8.6 / D1). It is
+  /// an ordinary line with the other identity: no ingredient id, no measure
+  /// (measures are an ingredient concept), and a `batch` default so a line
+  /// backed out of the quantity sheet still means something honest.
+  void addComponentLineItem(
+    String groupId,
+    SubRecipeTarget target, {
+    double? quantity,
+    Unit? unit,
+  }) => _mapGroup(
+    groupId,
+    (g) => g.copyWith(
+      items: [
+        ...g.items,
+        LineItem(
+          id: _uuid.v4(),
+          subRecipeId: target.id,
+          subRecipe: target,
+          ingredientName: target.title,
+          quantity: quantity,
+          unit: unit ?? batches,
         ),
       ],
     ),
