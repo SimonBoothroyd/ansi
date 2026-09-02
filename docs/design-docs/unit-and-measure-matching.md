@@ -297,9 +297,9 @@ honest unit to round to).
 | **Unit of a line** | step-7.7 quantity sheet (`quantity_unit_sheet.dart`) — recipe editor, shopping add sheet, edit-top-up sheet | `UnitChipRow` → picks a `UnitOption` from `allowedUnitChoicesFor` |
 | **Measure of a line** | same sheet | picks a `MeasureOption`; writes `measure_id`, `unit='piece'` |
 | **Amount / quantity** | same sheet | the quantity field (nullable — "to taste" is allowed) |
-| **Add / delete a measure** | manage state of the sheet (`_MeasureManager`) | `addMeasure` (saved `manual`), `softDeleteMeasure` |
-| **Density** | manage state (`_DensityEntry`) | g/ml or "a spoon weighs N g"; unlocks the other family live |
-| **Which units are _admitted_** (`allowed_units`) | **nowhere yet** — the flesh-out form ADR-0008 §Consequences promised was deferred to step 8 and step 8 didn't build it ([tracker](../exec-plans/tech-debt-tracker.md)) | explicit jsonb list on `ingredient`, materialized at creation; the only in-app write that extends it is a density save (`densityUnlockedUnits`) |
+| **Add / delete a measure** | manage state of the sheet (`_MeasureManager`), **and the ingredients manager's flesh-out form**, which embeds that same editor (8.5/F2) | `addMeasure` (saved `manual`), `softDeleteMeasure` |
+| **Density** | manage state (`_DensityEntry`) — again shared verbatim by the flesh-out form | g/ml or "a spoon weighs N g"; unlocks the other family live |
+| **Which units are _admitted_** (`allowed_units`) | the **ingredients manager**'s flesh-out form, `/ingredients/:id` (step 8.5) — the form ADR-0008 §Consequences promised, deferred to step 8, and finally built one step later | explicit jsonb list on `ingredient`, materialized at creation, now **directly editable as chips** on that form; a density save still extends it on its own (`densityUnlockedUnits`), and deleting the density strips that half back (D4b) |
 
 The picker itself is honest by construction: `allowedUnitChoicesFor` offers
 only the ingredient's admitted units + its live measures, in ADR-0008 chip order

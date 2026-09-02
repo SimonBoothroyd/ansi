@@ -17,6 +17,10 @@ Immutable records of significant choices and their rationale.
 - [ADR-0003](../decisions/0003-riverpod-feature-first-mvvm.md) — Riverpod 3 + go_router + feature-first MVVM
 - [ADR-0004](../decisions/0004-matching-is-online-only.md) — Matching is online-only
 - [ADR-0005](../decisions/0005-two-tier-vocabulary.md) — Two-tier ingredient vocabulary
+- [ADR-0006](../decisions/0006-sync-auth-and-onboarding.md) — Sync auth, the household JWT claim, and onboarding
+- [ADR-0007](../decisions/0007-shopping-list-thin-overlay.md) — Shopping list persists a thin overlay; cook contributions are derived
+- [ADR-0008](../decisions/0008-unit-admission-model.md) — Units are admitted per ingredient via basis mapping; density is the only volume⇄mass fact
+- [ADR-0009](../decisions/0009-density-unlocks-both-families.md) — A density unlocks the other mass/volume family whatever the default unit's family (amends ADR-0008)
 
 ## Deep design
 

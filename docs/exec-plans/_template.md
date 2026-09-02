@@ -45,4 +45,8 @@ done and moving this file to `completed/`.
       can't reach), and the result recorded here.
 - [ ] Tech-debt rows **added** for corners knowingly cut, and **retired** (or
       narrowed) for debt this step paid off.
+- [ ] New migrations or seed changes? Say in the roadmap row whether they have
+      reached **cloud** yet, and append a `docs/cloud-setup.md` ledger entry
+      when they do. A "pending cloud push" note nobody clears becomes a false
+      claim the moment the push happens.
 - [ ] `make ci` green.
