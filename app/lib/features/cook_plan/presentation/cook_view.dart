@@ -111,6 +111,7 @@ class _RecipeCard extends StatelessWidget {
       accent: split,
       title: recipe.title,
       subtitle: recipeSummaryLine(recipe),
+      onTitleTap: () => context.push('/recipes/${recipe.recipeId}'),
       children: [
         for (final (i, session) in meals.indexed) ...[
           if (i > 0) const SizedBox(height: 8),
@@ -152,6 +153,7 @@ class _ComponentCard extends ConsumerWidget {
     return _Card(
       title: componentCardTitle(recipe.title, parents),
       subtitle: componentSummaryLine(recipe),
+      onTitleTap: () => context.push('/recipes/${recipe.recipeId}'),
       children: [
         for (final (i, session) in sessions.indexed) ...[
           if (i > 0) const SizedBox(height: 8),
@@ -307,11 +309,15 @@ class _Card extends StatelessWidget {
     required this.subtitle,
     required this.children,
     this.accent = false,
+    this.onTitleTap,
   });
 
   final String title;
   final String subtitle;
   final List<Widget> children;
+
+  /// Opens the recipe the card derives from; null leaves the title inert.
+  final VoidCallback? onTitleTap;
 
   /// Takes the amber border — a split recipe, or an underivable component.
   final bool accent;
@@ -329,7 +335,13 @@ class _Card extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(title, style: ansiSerif(size: 19)),
+          // The card's title is the way back to the recipe it derives from —
+          // the Cook screen is read-only, so this is the only door here.
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTitleTap,
+            child: Text(title, style: ansiSerif(size: 19)),
+          ),
           const SizedBox(height: 3),
           Text(subtitle, style: ansiMono(size: 10.5, color: AnsiColors.muted)),
           const SizedBox(height: 10),

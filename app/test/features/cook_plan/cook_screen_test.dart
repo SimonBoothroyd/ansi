@@ -11,6 +11,7 @@ import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
@@ -75,13 +76,38 @@ Widget _host(List<Override> overrides) => ProviderScope(
   ),
 );
 
+/// The same view inside a real router, so a tap's destination is observable.
+Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
+  final router = GoRouter(
+    initialLocation: '/cook',
+    routes: [
+      GoRoute(path: '/cook', builder: (_, _) => const CookView()),
+      GoRoute(
+        path: '/recipes/:id',
+        builder: (_, state) =>
+            FScaffold(child: Text('recipe ${state.pathParameters['id']}')),
+      ),
+    ],
+  );
+  addTearDown(router.dispose);
+  expose(router);
+  return ProviderScope(
+    overrides: overrides,
+    child: MaterialApp.router(
+      routerConfig: router,
+      builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
+    ),
+  );
+}
+
 PlannedRecipe _recipe(
   String title,
   Map<int, int> days, {
+  String? id,
   int? keeps,
   bool freezable = false,
 }) => PlannedRecipe(
-  recipeId: title,
+  recipeId: id ?? title,
   title: title,
   servingsBase: 2,
   keepsForDays: keeps,
@@ -211,6 +237,28 @@ void main() {
       expect(find.text('×1'), findsOneWidget);
       expect(find.text('×1 batch'), findsNothing);
     });
+  });
+
+  testWidgets("tapping a card's title opens the recipe it derives from", (
+    tester,
+  ) async {
+    late GoRouter router;
+    await tester.pumpWidget(
+      _routedHost([
+        cookPlanRepositoryProvider.overrideWithValue(
+          _FakeCookPlanRepo([
+            _recipe('Chicken Curry', {0: 2}, id: 'r1'),
+          ]),
+        ),
+      ], (r) => router = r),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Chicken Curry'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.toString(), '/recipes/r1');
+    expect(find.text('recipe r1'), findsOneWidget);
   });
 }
 
