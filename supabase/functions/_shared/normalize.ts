@@ -11,7 +11,9 @@
 // always returns the same match_text.
 //
 // What it does, in order:
-//   1. lowercase.
+//   1. lowercase, and fold Latin diacritics onto their base letter
+//      ("Jalapeño" -> "jalapeno"), so a line printed without its accents still
+//      matches the row that has them (plan 0023 D5).
 //   2. split the trailing comma modifier(s) off the head.
 //   3. drop non-identity words: quantities (2, ½, 2–3), articles/filler (a, of),
 //      measures/containers (can, handful, clove), sizes (large), prep adverbs
@@ -288,11 +290,26 @@ export function stripParentheticals(text: string): string {
   return tidy(out);
 }
 
+/**
+ * Folds Latin diacritics onto their base letter ("jalapeño" -> "jalapeno").
+ *
+ * Canonical decomposition splits an accented letter into "base + combining
+ * mark"; dropping the marks leaves the base. Letters with no canonical
+ * decomposition (æ ø ð þ ß đ ł œ) are letters in their own right and
+ * survive untouched. The Dart mirror tables the same set explicitly, because
+ * Dart has no Unicode normalizer in its core library — see
+ * `foldDiacritics` in `app/lib/features/ingredients/domain/search_query.dart`.
+ */
+export function foldDiacritics(text: string): string {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/gu, "");
+}
+
 /** Normalizes a raw ingredient string to its `match_text` (see file header). */
 export function normalize(ingredientText: string): string {
   // Hyphens join compound descriptors ("all-purpose", "extra-virgin"); treat
   // them as word breaks so the parts tokenize rather than fusing ("allpurpose").
-  const cleaned = ingredientText.toLowerCase().replace(/[-–—]/g, " ");
+  const cleaned = foldDiacritics(ingredientText.toLowerCase())
+    .replace(/[-–—]/g, " ");
   // "clove" is both a garlic measure ("2 cloves garlic") and a spice ("ground
   // cloves"). Drop it as a measure only when an allium shares the phrase; else
   // it is the spice and must survive as the noun.
@@ -329,8 +346,9 @@ function classify(
   cannedPresent: boolean,
 ): void {
   for (const raw of segment.split(/\s+/)) {
-    // Keep any unicode letter/number (so "jalapeño" survives, not "jalapeo");
-    // strip only punctuation. Fraction glyphs are kept for the QUANTITY test.
+    // Keep any unicode letter/number — a non-Latin script survives whole, and
+    // Latin accents were already folded onto their base letter above. Strip
+    // only punctuation; fraction glyphs are kept for the QUANTITY test.
     const word = raw.replace(/[^\p{L}\p{N}/¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞]/gu, "");
     if (!word) continue;
     if (QUANTITY.test(word)) continue;

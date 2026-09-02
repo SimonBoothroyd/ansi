@@ -70,7 +70,7 @@ values
   ('00000000-0000-0000-0000-0000000000aa', 'Avocado', 'produce', 'piece', 'stub', 'seed', 'avocado'),
   ('00000000-0000-0000-0000-0000000000aa', 'Blueberries', 'produce', 'cup', 'stub', 'seed', 'blueberry'),
   ('00000000-0000-0000-0000-0000000000aa', 'Dates', 'produce', 'piece', 'stub', 'seed', 'date'),
-  ('00000000-0000-0000-0000-0000000000aa', 'Jalapeño', 'produce', 'piece', 'stub', 'seed', 'jalapeño'),
+  ('00000000-0000-0000-0000-0000000000aa', 'Jalapeño', 'produce', 'piece', 'stub', 'seed', 'jalapeno'),
   ('00000000-0000-0000-0000-0000000000aa', 'Serrano Pepper', 'produce', 'piece', 'stub', 'seed', 'serrano pepper'),
   ('00000000-0000-0000-0000-0000000000aa', 'Hot Chili', 'produce', 'piece', 'stub', 'seed', 'hot chili'),
   ('00000000-0000-0000-0000-0000000000aa', 'Cilantro', 'produce', 'cup', 'stub', 'seed', 'cilantro'),

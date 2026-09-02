@@ -34,9 +34,15 @@ Deno.test("normalize — singularization edge cases", () => {
   assertEquals(normalize("bay leaves"), "bay leaf"); // genuine -ves→-f (irregular)
 });
 
-Deno.test("normalize — preserves unicode letters", () => {
-  assertEquals(normalize("jalapeño"), "jalapeño"); // not "jalapeo"
-  assertEquals(normalize("2 jalapeños, diced"), "jalapeño");
+Deno.test("normalize — folds diacritics onto the base letter", () => {
+  // The letter survives (never "jalapeo"), but its accent does not: a line
+  // printed without the tilde has to reach the row that has it (0023 D5).
+  assertEquals(normalize("jalapeño"), "jalapeno");
+  assertEquals(normalize("Jalapeño"), "jalapeno");
+  assertEquals(normalize("jalapeno"), "jalapeno");
+  assertEquals(normalize("2 jalapeños, diced"), "jalapeno");
+  assertEquals(normalize("crème fraîche"), "creme fraiche");
+  assertEquals(normalize("piment d'Espelette"), "piment despelette");
 });
 
 Deno.test("normalize — clove is a measure only next to an allium", () => {

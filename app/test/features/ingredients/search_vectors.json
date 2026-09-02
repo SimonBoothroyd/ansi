@@ -1,0 +1,119 @@
+{
+  "_doc": [
+    "SHARED VECTORS for searchRank — the one tiered rule every phone-side search",
+    "uses (docs/design-docs/search-and-matching.md).",
+    "",
+    "The corpus rows and titles below are REAL rows of supabase/seed/vocab.jsonl",
+    "and of the extraction gold set, so every expectation here was measured",
+    "against the shipped 308-row vocabulary before it was written down. Three",
+    "test groups read this file: searchRank alone (search_rank_test.dart), the",
+    "same queries through real SQLite (ingredient_repository_test.dart), and the",
+    "cross-picker equality test that asserts the planning picker and the editor's",
+    "'Your recipes' section return identical sets (line_target_picker_test.dart).",
+    "",
+    "`refusals` is the guard's spine: every entry MUST return nothing. Three",
+    "characters is where the phone stops guessing. `tier1_answers` is its mirror:",
+    "these are exact word prefixes, so tier 2 must never run for them at all."
+  ],
+
+  "vocab": [
+    { "name": "Onion" },
+    { "name": "Red Onion" },
+    { "name": "Crispy Onion" },
+    { "name": "Onion Powder" },
+    { "name": "Spring Onion", "aliases": ["scallion", "green onion"] },
+    { "name": "Almonds" },
+    { "name": "Almond Milk" },
+    { "name": "Almond Flour" },
+    { "name": "Almond Butter" },
+    { "name": "Soy Sauce" },
+    { "name": "Coconut Milk" },
+    { "name": "Parsley" },
+    { "name": "Jalapeño" },
+    { "name": "Broccoli" },
+    { "name": "Iceberg Lettuce" },
+    { "name": "Romaine Lettuce" },
+    { "name": "Breaded Vegan Chicken Nugget" },
+    { "name": "Eggplant" },
+    { "name": "Corn Oil" },
+    { "name": "Olive Oil" },
+    { "name": "Oat Milk" },
+    { "name": "Sea Salt" },
+    { "name": "Tomato" },
+    { "name": "Tomato Paste" },
+    { "name": "Cherry Tomatoes" },
+    { "name": "White Basmati Rice" },
+    { "name": "All-Purpose Flour" }
+  ],
+
+  "titles": [
+    "Romesco Aioli",
+    "Green Goddess Chickpea Jars",
+    "Weeknight Tomato Pasta",
+    "Almond Cake",
+    "Grilled Jalapeño Poppers",
+    "Nutty Broccoli Crunch Salad",
+    "Smoky Black Bean Sliders"
+  ],
+
+  "surface": [
+    {
+      "_why": "The phrase normalizer drops measure words, so a title indexed through it ALONE loses any name word that happens to be a measure. 'Jars' is in the strip set. The raw character-normalized spelling is what saves it.",
+      "name": "Green Goddess Chickpea Jars",
+      "match_text": "green goddess chickpea",
+      "must_find": ["jars", "goddess", "chickpeas"]
+    }
+  ],
+
+  "tiers": [
+    { "q": "onion", "want": "Onion", "tier": "exact" },
+    { "q": "almonds", "want": "Almonds", "tier": "exact" },
+    { "q": "tomatos", "want": "Tomato", "tier": "exact" },
+    { "q": "jalapeno", "want": "Jalapeño", "tier": "exact" },
+    { "q": "scallion", "want": "Spring Onion", "tier": "exact" },
+    { "q": "all-purpose", "want": "All-Purpose Flour", "tier": "prefix" },
+    { "q": "almo", "want": "Almonds", "tier": "prefix" },
+    { "q": "almnd", "want": "Almonds", "tier": "typo" },
+    { "q": "nion", "want": "Onion", "tier": "typo" },
+    { "q": "parsely", "want": "Parsley", "tier": "typo" },
+    { "q": "brocolli", "want": "Broccoli", "tier": "typo" },
+    { "q": "letuce", "want": "Iceberg Lettuce", "tier": "typo" },
+    { "q": "chiken", "want": "Breaded Vegan Chicken Nugget", "tier": "typo" },
+    { "q": "soy suace", "want": "Soy Sauce", "tier": "typo" },
+    { "q": "coconut mlk", "want": "Coconut Milk", "tier": "typo" }
+  ],
+
+  "title_tiers": [
+    { "q": "aoli", "want": "Romesco Aioli", "tier": "typo" },
+    { "q": "romsco", "want": "Romesco Aioli", "tier": "typo" },
+    { "q": "wekenight", "want": "Weeknight Tomato Pasta", "tier": "typo" },
+    { "q": "brocoli", "want": "Nutty Broccoli Crunch Salad", "tier": "typo" },
+    { "q": "pasta tomato", "want": "Weeknight Tomato Pasta", "tier": "prefix" },
+    { "q": "tomato pasta", "want": "Weeknight Tomato Pasta", "tier": "prefix" },
+    { "q": "almonds", "want": "Almond Cake", "tier": "prefix" },
+    { "q": "jalapeno", "want": "Grilled Jalapeño Poppers", "tier": "prefix" },
+    { "q": "jars", "want": "Green Goddess Chickpea Jars", "tier": "prefix" },
+    {
+      "q": "chickpea goddess",
+      "want": "Green Goddess Chickpea Jars",
+      "tier": "prefix"
+    }
+  ],
+
+  "refusals": [
+    "rce",
+    "oyl",
+    "tfu",
+    "mlk",
+    "crn",
+    "wtr",
+    "chikn thigh",
+    "qqqq",
+    "xylophone",
+    "stapler",
+    "honey",
+    "cream"
+  ],
+
+  "tier1_answers": ["egg", "oil", "oat", "ol", "ric", "sal", "tom"]
+}

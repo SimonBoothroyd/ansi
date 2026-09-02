@@ -33,8 +33,12 @@
     { "from": "singularization edge cases", "in": "olives", "out": "olive" },
     { "from": "singularization edge cases", "in": "bay leaves", "out": "bay leaf" },
 
-    { "from": "preserves unicode letters", "in": "jalapeño", "out": "jalapeño" },
-    { "from": "preserves unicode letters", "in": "2 jalapeños, diced", "out": "jalapeño" },
+    { "from": "folds diacritics, keeps the letter", "in": "jalapeño", "out": "jalapeno" },
+    { "from": "folds diacritics, keeps the letter", "in": "Jalapeño", "out": "jalapeno" },
+    { "from": "folds diacritics, keeps the letter", "in": "jalapeno", "out": "jalapeno" },
+    { "from": "folds diacritics, keeps the letter", "in": "2 jalapeños, diced", "out": "jalapeno" },
+    { "from": "folds diacritics, keeps the letter", "in": "crème fraîche", "out": "creme fraiche" },
+    { "from": "folds diacritics, keeps the letter", "in": "piment d'Espelette", "out": "piment despelette" },
 
     { "from": "clove is a measure only next to an allium", "in": "2 cloves garlic, minced", "out": "garlic" },
     { "from": "clove is a measure only next to an allium", "in": "3 garlic cloves", "out": "garlic" },

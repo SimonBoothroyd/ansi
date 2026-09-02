@@ -135,7 +135,7 @@ from (values
   ('iceberg lettuce', 169248),
   ('instant yeast', 175043),
   ('italian herb', 171328),
-  ('jalapeño', 168576),
+  ('jalapeno', 168576),
   ('kala namak', 173468),
   ('kale', 168421),
   ('ketchup', 747693),

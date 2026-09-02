@@ -16,7 +16,22 @@ void main() {
 
     test('strips punctuation within words, keeps unicode letters', () {
       expect(normalizeSearchQuery("won't"), 'wont');
-      expect(normalizeSearchQuery('jalapeño'), 'jalapeño');
+      // The letter survives — folded to its base, never deleted.
+      expect(normalizeSearchQuery('jalapeño'), 'jalapeno');
+    });
+
+    test('folds Latin diacritics so an unaccented query still hits', () {
+      // The stored match_text is folded by the same rule (normalize.dart and
+      // its TypeScript mirror), so the two sides meet on 'jalapeno'.
+      expect(normalizeSearchQuery('Jalapeño'), 'jalapeno');
+      expect(normalizeSearchQuery('jalapeno'), 'jalapeno');
+      expect(normalizeSearchQuery('crème fraîche'), 'creme fraiche');
+      expect(normalizeSearchQuery('AÇAÍ'), 'acai');
+      // Already-decomposed input folds too (the combining mark is dropped).
+      expect(normalizeSearchQuery('jalapen\u0303o'), 'jalapeno');
+      // Letters that are not accented ones keep their identity, exactly as
+      // the server's NFD does.
+      expect(normalizeSearchQuery('Smørrebrød'), 'smørrebrød');
     });
 
     test('strips LIKE wildcards so they cannot act as patterns', () {

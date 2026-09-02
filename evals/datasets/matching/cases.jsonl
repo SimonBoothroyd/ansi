@@ -96,7 +96,7 @@
 {"raw":"1 tablespoon fresh rosemary (minced)","expect_normalized":"rosemary fresh","expect_band":"auto","expect_match":"Rosemary"}
 {"raw":"1 tablespoon fresh thyme* (optional)","expect_normalized":"thyme fresh","expect_band":"auto","expect_match":"Fresh Thyme"}
 {"raw":"1 tablespoon garlic powder","expect_normalized":"garlic powder","expect_band":"auto","expect_match":"Garlic Powder"}
-{"raw":"1 tablespoon jalapeño (minced (about ½ a small jalapeño))","expect_normalized":"jalapeño","expect_band":"auto","expect_match":"Jalapeño"}
+{"raw":"1 tablespoon jalapeño (minced (about ½ a small jalapeño))","expect_normalized":"jalapeno","expect_band":"auto","expect_match":"Jalapeño"}
 {"raw":"1 tablespoon lemon juice","expect_normalized":"lemon juice","expect_band":"auto","expect_match":"Lemon Juice"}
 {"raw":"1 tablespoon lemon zest","expect_normalized":"lemon zest","expect_band":"auto","expect_match":"Lemon Zest"}
 {"raw":"1 tablespoon nutritional yeast","expect_normalized":"nutritional yeast","expect_band":"auto","expect_match":"Nutritional Yeast"}

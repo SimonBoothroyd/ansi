@@ -15,7 +15,9 @@
 /// one, change both, and extend the vectors.
 ///
 /// What it does, in order (unchanged from the TS):
-/// 1. lowercase, hyphens/dashes → word breaks;
+/// 1. lowercase, hyphens/dashes → word breaks, Latin diacritics folded onto
+///    their base letter ("Jalapeño" → `jalapeno`, so a line printed without
+///    the tilde still matches — plan 0023 D5);
 /// 2. split trailing comma modifier(s) off the head;
 /// 3. drop non-identity words — quantities, filler, measures/containers,
 ///    sizes, prep adverbs and prep verbs;
@@ -28,7 +30,7 @@
 /// move a word into a strip set to make one match work.
 library;
 
-import 'search_query.dart' show normalizeSearchQuery;
+import 'search_query.dart' show foldDiacritics, normalizeSearchQuery;
 
 /// Articles and filler words carrying no identity.
 const _filler = {'a', 'an', 'the', 'of', 'or', 'and', 'desired'};
@@ -196,8 +198,12 @@ final _canned = RegExp(r'\b(canned|tinned)\b');
 /// *search* prefix, which must not be singularized or reordered.
 String normalizeMatchText(String ingredientText) {
   // Hyphens join compound descriptors ("all-purpose"); treat them as word
-  // breaks so the parts tokenize rather than fusing ("allpurpose").
-  final cleaned = ingredientText.toLowerCase().replaceAll(_dashes, ' ');
+  // breaks so the parts tokenize rather than fusing ("allpurpose"). Diacritics
+  // fold here rather than in [_classify] so every downstream test — the
+  // allium/cinnamon/canned probes below — sees the folded spelling too.
+  final cleaned = foldDiacritics(
+    ingredientText.toLowerCase(),
+  ).replaceAll(_dashes, ' ');
   // "clove" is both a garlic measure ("2 cloves garlic") and a spice ("ground
   // cloves"). Drop it as a measure only when an allium shares the phrase.
   final alliumPresent = _allium.hasMatch(cleaned);
