@@ -194,4 +194,22 @@ void main() {
       );
     });
   });
+
+  test('a component session covers plans, not portions (step 8.6 / D3)', () {
+    const session = CookSession(
+      recipeId: 'aioli',
+      recipeTitle: 'Romesco Aioli',
+      servingsBase: 4,
+      cookDay: 5,
+      demands: [
+        ComponentDemand(
+          parentRecipeId: 'sliders',
+          parentTitle: 'Sausage Sliders',
+          cookDay: 5,
+          batches: 0.25,
+        ),
+      ],
+    );
+    expect(coversLine(session), 'covers Sausage Sliders');
+  });
 }

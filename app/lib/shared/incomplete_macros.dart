@@ -15,16 +15,25 @@ import '../core/theme/ansi_theme.dart';
 import '../features/recipes/domain/recipe_macros.dart';
 
 /// Why a summary is incomplete, for the row note: `no ingredients yet`,
-/// `1 stub line`, `2 stub lines · 1 unconvertible` — never an empty string
-/// (a reasonless badge would leave a dangling separator).
+/// `1 stub line`, `2 stub lines · 1 unconvertible`,
+/// `1 sub-recipe unresolved` — never an empty string (a reasonless badge
+/// would leave a dangling separator).
 String incompleteNote(RecipeMacroSummary summary) {
   if (summary.noLines) return 'no ingredients yet';
   final stubs = summary.stubLines;
+  final unresolved = summary.subRecipesUnresolved;
+  final subIncomplete = summary.subRecipesIncomplete;
   final parts = [
     if (stubs == 1) '1 stub line',
     if (stubs > 1) '$stubs stub lines',
     if (summary.unconvertibleLines > 0)
       '${summary.unconvertibleLines} unconvertible',
+    // Step 8.6 / D8 — the two sub-recipe reasons, in the same voice as the
+    // rest so no surface has to invent its own words for a nested refusal.
+    if (unresolved > 0)
+      '$unresolved sub-recipe${unresolved == 1 ? '' : 's'} unresolved',
+    if (subIncomplete > 0)
+      '$subIncomplete sub-recipe${subIncomplete == 1 ? '' : 's'} incomplete',
   ];
   // Every line joined and there are lines — the only remaining cause is a
   // non-positive serving count (the DB check makes this near-unreachable).

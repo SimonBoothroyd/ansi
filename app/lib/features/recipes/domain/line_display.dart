@@ -10,10 +10,12 @@
 /// summed** (invariant 3 — a count of cloves is not a mass to add up; the two
 /// uses are two distinct call-outs in the method).
 ///
-/// Grouping is by [LineItem.ingredientId] and scoped to a single
-/// [IngredientGroup]: two mentions of garlic under "for the sauce" fold; garlic
-/// in a separate "to serve" group stays its own row. First-occurrence order is
-/// preserved, so the folded row sits where the ingredient first appears.
+/// Grouping is by the line's IDENTITY — its [LineItem.ingredientId], or its
+/// [LineItem.subRecipeId] for a sub-recipe component (step 8.6 / D1) — and
+/// scoped to a single [IngredientGroup]: two mentions of garlic under "for the
+/// sauce" fold; garlic in a separate "to serve" group stays its own row.
+/// First-occurrence order is preserved, so the folded row sits where the
+/// ingredient first appears.
 library;
 
 import 'recipe.dart';
@@ -26,14 +28,22 @@ import 'recipe.dart';
 /// joining the non-empty notes — an empty note drops its slot rather than
 /// leaving a dangling "+".
 class LineUses {
-  const LineUses({required this.ingredientId, required this.uses})
+  const LineUses({required this.uses, this.ingredientId, this.subRecipeId})
     : assert(uses.length > 0, 'a display row needs at least one use');
 
-  final String ingredientId;
+  /// The ingredient this row names, or null when the row is a sub-recipe
+  /// component — exactly one of the two is set, mirroring [LineItem]'s XOR.
+  final String? ingredientId;
+
+  /// The sub-recipe this row names (step 8.6), or null for an ingredient row.
+  final String? subRecipeId;
 
   /// The sibling line items, in source order. The first carries the display
-  /// name ([ingredientName]); every sibling shares the same [ingredientId].
+  /// name ([ingredientName]); every sibling shares the same identity.
   final List<LineItem> uses;
+
+  /// Whether this row names a sub-recipe rather than an ingredient.
+  bool get isComponent => subRecipeId != null;
 
   /// The ingredient's display name — taken from the first use.
   String get ingredientName => uses.first.ingredientName;
@@ -115,19 +125,32 @@ bool _containsRun(List<String> words, List<String> run) {
   return false;
 }
 
-/// Folds [items] into inline display rows, one per ingredient identity, in
-/// first-occurrence order. Items with the same [LineItem.ingredientId] coalesce
-/// into one [LineUses]; every other item is its own single-use row.
+/// Folds [items] into inline display rows, one per identity, in
+/// first-occurrence order. Items sharing an identity — the same
+/// [LineItem.ingredientId], or the same [LineItem.subRecipeId] for a component
+/// — coalesce into one [LineUses]; every other item is its own single-use row.
+///
+/// A line with neither identity cannot exist (the DB's XOR check) but would
+/// arrive from foreign data; it gets its own row keyed by the line id rather
+/// than being folded with every other such line.
 List<LineUses> groupLineUses(List<LineItem> items) {
   final order = <String>[];
-  final byId = <String, List<LineItem>>{};
+  final byKey = <String, List<LineItem>>{};
   for (final item in items) {
-    byId
-        .putIfAbsent(item.ingredientId, () {
-          order.add(item.ingredientId);
+    final key = item.ingredientId ?? 'sub:${item.subRecipeId ?? item.id}';
+    byKey
+        .putIfAbsent(key, () {
+          order.add(key);
           return <LineItem>[];
         })
         .add(item);
   }
-  return [for (final id in order) LineUses(ingredientId: id, uses: byId[id]!)];
+  return [
+    for (final key in order)
+      LineUses(
+        ingredientId: byKey[key]!.first.ingredientId,
+        subRecipeId: byKey[key]!.first.subRecipeId,
+        uses: byKey[key]!,
+      ),
+  ];
 }

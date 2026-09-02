@@ -249,6 +249,10 @@ String? _formatLineAmount(LineItem line, double factor) {
       return line.unit.label;
     case UnitFamily.mass:
     case UnitFamily.volume:
+    // A component line's `batch` reads like any other unit here ("0.25
+    // batch") — the batch↔yield arithmetic belongs to the cook plan, not to
+    // a method chip.
+    case UnitFamily.batch:
       return '${formatNumber(scaled.amount)} ${line.unit.label}';
   }
 }

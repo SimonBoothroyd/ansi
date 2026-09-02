@@ -10,7 +10,59 @@
 /// for new recipes/groups/items before saving.
 library;
 
+import 'package:meta/meta.dart';
+
+import '../../../core/units/units.dart';
+import 'component_math.dart';
 import 'recipe.dart';
+
+/// One back-link to a recipe that lists this one as a component — a row of the
+/// "Used in · N" tab (step 8.6 / D9): *target · amount · share of a batch*.
+///
+/// [amount] is the resolved share ([ResolvedComponentAmount]) or the honest
+/// reason it cannot be stated; the tab renders that, never a guessed `1×`.
+@immutable
+class RecipeUse {
+  const RecipeUse({
+    required this.lineId,
+    required this.recipeId,
+    required this.title,
+    required this.unit,
+    required this.amount,
+    this.quantity,
+  });
+
+  /// The referencing line's id, so a tap can scroll to it.
+  final String lineId;
+
+  /// The referencing (parent) recipe.
+  final String recipeId;
+  final String title;
+
+  /// What the parent's line asks for, as printed ("¼ cup").
+  final double? quantity;
+  final Unit unit;
+
+  /// That amount as a share of a batch, or why it cannot be said.
+  final ComponentAmount amount;
+
+  @override
+  bool operator ==(Object other) =>
+      other is RecipeUse &&
+      other.lineId == lineId &&
+      other.recipeId == recipeId &&
+      other.title == title &&
+      other.quantity == quantity &&
+      other.unit == unit &&
+      other.amount == amount;
+
+  @override
+  int get hashCode =>
+      Object.hash(lineId, recipeId, title, quantity, unit, amount);
+
+  @override
+  String toString() => 'RecipeUse($title, $quantity ${unit.id}, $amount)';
+}
 
 abstract interface class RecipeRepository {
   /// The recipe list, newest first, reacting to local writes.
@@ -29,4 +81,18 @@ abstract interface class RecipeRepository {
   /// Sets the household-shared favorite flag (the picker's Favorites tab).
   // ignore: avoid_positional_boolean_parameters — a set-flag pair reads fine.
   Future<void> setFavorite(String id, bool favorite);
+
+  /// The live recipes that list [recipeId] as a component, one row per
+  /// referencing LINE (step 8.6 / D9). Its length is the count the "Used in ·
+  /// N" tab shows *and* the count the delete refusal speaks — one query, two
+  /// uses.
+  Future<List<RecipeUse>> usedIn(String recipeId);
+
+  /// Whether making [subRecipeId] a component of [recipeId] would close a
+  /// cycle (step 8.6 / D5) — checked on device at link time over synced rows,
+  /// mirroring migration 0017's trigger. Linking a recipe to itself counts.
+  Future<bool> componentLinkWouldCycle({
+    required String recipeId,
+    required String subRecipeId,
+  });
 }

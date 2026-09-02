@@ -67,6 +67,15 @@ class _NoRecipesRepo implements RecipeRepository {
 
   @override
   Future<void> setFavorite(String id, bool favorite) async {}
+
+  @override
+  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
+
+  @override
+  Future<bool> componentLinkWouldCycle({
+    required String recipeId,
+    required String subRecipeId,
+  }) async => false;
 }
 
 Widget _host(List<Override> overrides) => ProviderScope(

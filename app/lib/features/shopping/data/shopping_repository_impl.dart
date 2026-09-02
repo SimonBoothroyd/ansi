@@ -27,6 +27,8 @@ import 'package:uuid/uuid.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../cook_plan/data/cook_plan_repository_impl.dart'
+    show loadComponentGraph;
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../planning/domain/planning.dart' show mondayOf;
 import '../domain/shopping.dart';
@@ -97,7 +99,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
   }
 
   Future<ShoppingList> _load(String weekKey) async {
-    final cook = await _deriveCookContributions(weekKey);
+    final (cook, unresolved) = await _deriveCookContributions(weekKey);
     final (entries, manual) = await _loadOverlay();
     final meta = await _loadIngredientMeta({
       ...cook.map((c) => c.ingredientId),
@@ -109,14 +111,23 @@ class SqliteShoppingRepository implements ShoppingRepository {
       manual: manual,
       meta: meta,
       weekdayShort: _weekdayShort,
+      unresolvedComponents: unresolved,
     );
   }
 
   /// Runs the cook plan for the week, then expands each session's recipe line
   /// items scaled by the session's factor into per-ingredient contributions.
-  Future<List<CookContributionInput>> _deriveCookContributions(
-    String weekKey,
-  ) async {
+  ///
+  /// Since 8.6 the plan also carries **component** sessions (D3/D4): a
+  /// component session is a cook session, so the sub-recipe's own ingredient
+  /// lines flow through this same pipeline, scaled by its batch factor, and
+  /// carry one extra provenance segment naming the plan they serve. The
+  /// component LINE itself never becomes an item — `_loadLineItems` skips any
+  /// row without an `ingredient_id`, which is exactly the component rows (you
+  /// buy almonds, not aioli). The second return value is the per-parent
+  /// "N components unresolved" echo built from the plan's gaps.
+  Future<(List<CookContributionInput>, List<UnresolvedComponentNote>)>
+  _deriveCookContributions(String weekKey) async {
     final rows = await _db.getAll(
       'SELECT pe.day_of_week, pe.meal_slot, pe.eaters, pe.portions, '
       'r.id AS recipe_id, r.title, r.servings_base, r.keeps_for_days, '
@@ -128,7 +139,12 @@ class SqliteShoppingRepository implements ShoppingRepository {
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [weekKey],
     );
-    if (rows.isEmpty) return const [];
+    if (rows.isEmpty) {
+      return (
+        const <CookContributionInput>[],
+        const <UnresolvedComponentNote>[],
+      );
+    }
 
     final byRecipe = <String, PlannedRecipe>{};
     final meals = <String, List<CoveredMeal>>{};
@@ -155,10 +171,14 @@ class SqliteShoppingRepository implements ShoppingRepository {
     final plan = buildCookPlan([
       for (final e in byRecipe.entries)
         e.value.copyWith(meals: meals[e.key] ?? const []),
-    ]);
+    ], components: await loadComponentGraph(_db));
 
-    // Line items per recipe, read once.
-    final lineItems = await _loadLineItems(byRecipe.keys.toSet());
+    // Line items per recipe, read once — for every recipe the plan cooks,
+    // which since 8.6 includes the sub-recipes it derived component sessions
+    // for as well as the ones somebody planned.
+    final lineItems = await _loadLineItems({
+      for (final r in plan.recipes) r.recipeId,
+    });
 
     final contributions = <CookContributionInput>[];
     for (final recipe in plan.recipes) {
@@ -188,11 +208,23 @@ class SqliteShoppingRepository implements ShoppingRepository {
             recipeTitle: recipe.title,
             cookDay: session.cookDay,
             batched: batched,
+            // The extra provenance segment, deepest-first: this recipe's own
+            // line, then the plan(s) it is being cooked for (D4). Empty for a
+            // meal session, which reads exactly as it always has.
+            forParents: session.demandedBy,
           ));
         }
       }
     }
-    return contributions;
+
+    // The parents whose lists are short because a component could not be
+    // derived — the echo that keeps the silence legible (D4).
+    final titles = {for (final r in plan.recipes) r.recipeId: r.title};
+    final unresolved = <UnresolvedComponentNote>[
+      for (final e in plan.unresolvedComponentsByParent.entries)
+        (recipeId: e.key, recipeTitle: titles[e.key] ?? '', count: e.value),
+    ]..sort((a, b) => a.recipeTitle.compareTo(b.recipeTitle));
+    return (contributions, unresolved);
   }
 
   Future<Map<String, List<_LineItem>>> _loadLineItems(

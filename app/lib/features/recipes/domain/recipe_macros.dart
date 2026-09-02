@@ -10,6 +10,12 @@
 /// - a cross-basis line bridges via the ingredient's density when present;
 /// - a measure line converts through its gram weight, then needs basis 'g'
 ///   or a density to reach a per-100 ml basis;
+/// - a **sub-recipe component** line (step 8.6 / D8) contributes the target
+///   recipe's WHOLE-recipe macros × the batches it asks for — but only when
+///   both halves are honest: the batch math resolves (D2) *and* the target's
+///   own summary is complete. Anything else is a named reason on the parent
+///   ([RecipeMacroSummary.subRecipesUnresolved] /
+///   [RecipeMacroSummary.subRecipesIncomplete]), never a dropped line;
 /// - anything else — a stub ingredient, a count line without a measure, an
 ///   imprecise-only line, a numberless line, a missing density — makes the
 ///   whole summary honestly **incomplete**: no partial total is ever shown
@@ -25,6 +31,7 @@ import '../../../core/result/result.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import 'component_math.dart';
 import 'recipe.dart';
 
 /// What the summation needs to know about one vocab ingredient. `macros` is
@@ -42,21 +49,36 @@ typedef IngredientNutrition = ({
 /// is [incomplete] and carries why — [noLines] for a recipe with no line
 /// items at all (nothing was summed, so "~0 kcal" would be fabricated, not
 /// computed — invariant 3), [stubLines] lines of stub/unknown ingredients,
-/// and [unconvertibleLines] lines the unit system cannot bridge (count
+/// [unconvertibleLines] lines the unit system cannot bridge (count
 /// without a measure, imprecise-only, cross-basis without density, no
-/// quantity).
+/// quantity), and the two sub-recipe reasons (step 8.6 / D8).
+///
+/// The reason WORDING lives in one place — `shared/incomplete_macros.dart`'s
+/// `incompleteNote` — so the picker row, the macro panel and the review card
+/// cannot drift apart.
 @immutable
 class RecipeMacroSummary {
   const RecipeMacroSummary({
     this.perServing,
     this.stubLines = 0,
     this.unconvertibleLines = 0,
+    this.subRecipesUnresolved = 0,
+    this.subRecipesIncomplete = 0,
     this.noLines = false,
   });
 
   final Macros? perServing;
   final int stubLines;
   final int unconvertibleLines;
+
+  /// Component lines whose batch math does not resolve (step 8.6 / D8): no
+  /// yield on the target, a unit in no yield's family, no amount, or a cycle.
+  /// The share cannot be computed at all, so nothing is assumed for it.
+  final int subRecipesUnresolved;
+
+  /// Component lines whose batch math resolved but whose TARGET's own summary
+  /// is incomplete — the share is knowable, the macros behind it are not.
+  final int subRecipesIncomplete;
 
   /// The recipe has no line items yet — incomplete by absence, not by any
   /// per-line failure.
@@ -70,24 +92,53 @@ class RecipeMacroSummary {
       other.perServing == perServing &&
       other.stubLines == stubLines &&
       other.unconvertibleLines == unconvertibleLines &&
+      other.subRecipesUnresolved == subRecipesUnresolved &&
+      other.subRecipesIncomplete == subRecipesIncomplete &&
       other.noLines == noLines;
 
   @override
-  int get hashCode =>
-      Object.hash(perServing, stubLines, unconvertibleLines, noLines);
+  int get hashCode => Object.hash(
+    perServing,
+    stubLines,
+    unconvertibleLines,
+    subRecipesUnresolved,
+    subRecipesIncomplete,
+    noLines,
+  );
 
   @override
   String toString() => incomplete
       ? 'RecipeMacroSummary(incomplete: '
             '${noLines ? 'no lines' : '$stubLines stub, '
-                      '$unconvertibleLines unconvertible'})'
+                      '$unconvertibleLines unconvertible, '
+                      '$subRecipesUnresolved sub unresolved, '
+                      '$subRecipesIncomplete sub incomplete'})'
       : 'RecipeMacroSummary($perServing /serving)';
 }
+
+/// What the summation needs about one sub-recipe it walks into (step 8.6 /
+/// D8): its own lines and serving count, plus the yields the component line's
+/// amount is resolved against.
+///
+/// The caller supplies these by id; the walk is depth-first with a visited
+/// set, so a cycle raced past both guards renders the parent incomplete
+/// instead of recursing forever.
+typedef SubRecipeNode = ({
+  double servingsBase,
+  List<LineItem> lines,
+  List<YieldDenomination> yields,
+});
 
 /// Sums [lines] (a recipe's items across all groups) into a per-serving
 /// [RecipeMacroSummary]. [nutritionOf] resolves a line's ingredient id to its
 /// vocab nutrition, or null when the row is unknown locally (treated as a
 /// stub — an unknown ingredient must never silently drop out of the total).
+///
+/// [subRecipeOf] resolves a component line's target (step 8.6 / D8); leaving
+/// it null means components cannot be walked at all, and every component line
+/// counts as unresolved. A component whose target is *missing* (a dangling
+/// link, D5) is likewise unresolved — nothing is derived from a link whose
+/// other end isn't there.
 ///
 /// [servingsBase] at or below zero yields an incomplete summary rather than
 /// an Infinity per-serving figure (the DB check makes this unreachable from
@@ -96,15 +147,53 @@ RecipeMacroSummary summarizeRecipeMacros({
   required double servingsBase,
   required Iterable<LineItem> lines,
   required IngredientNutrition? Function(String ingredientId) nutritionOf,
+  SubRecipeNode? Function(String subRecipeId)? subRecipeOf,
+}) => _summarize(
+  servingsBase: servingsBase,
+  lines: lines,
+  nutritionOf: nutritionOf,
+  subRecipeOf: subRecipeOf,
+  visited: const <String>{},
+);
+
+RecipeMacroSummary _summarize({
+  required double servingsBase,
+  required Iterable<LineItem> lines,
+  required IngredientNutrition? Function(String ingredientId) nutritionOf,
+  required SubRecipeNode? Function(String subRecipeId)? subRecipeOf,
+  required Set<String> visited,
 }) {
   var total = const Macros(kcal: 0, protein: 0, carb: 0, fat: 0);
   var stubs = 0;
   var unconvertible = 0;
+  var subUnresolved = 0;
+  var subIncomplete = 0;
   var lineCount = 0;
 
   for (final line in lines) {
     lineCount++;
-    final nutrition = nutritionOf(line.ingredientId);
+    final subRecipeId = line.subRecipeId;
+    if (subRecipeId != null) {
+      switch (_componentMacros(
+        subRecipeId: subRecipeId,
+        line: line,
+        nutritionOf: nutritionOf,
+        subRecipeOf: subRecipeOf,
+        visited: visited,
+      )) {
+        case _ComponentUnresolved():
+          subUnresolved++;
+        case _ComponentIncomplete():
+          subIncomplete++;
+        case _ComponentMacros(:final macros):
+          total += macros;
+      }
+      continue;
+    }
+    final ingredientId = line.ingredientId;
+    // Neither identity set is foreign data (the DB's XOR check forbids it) —
+    // it reads as a stub, the same as an ingredient the vocab doesn't know.
+    final nutrition = ingredientId == null ? null : nutritionOf(ingredientId);
     final macros = nutrition?.macros;
     if (nutrition == null || macros == null) {
       stubs++;
@@ -122,12 +211,79 @@ RecipeMacroSummary summarizeRecipeMacros({
   // present an absence as a computed number (invariant 3, never zeros).
   final noLines = lineCount == 0;
   final incomplete =
-      noLines || stubs > 0 || unconvertible > 0 || !(servingsBase > 0);
+      noLines ||
+      stubs > 0 ||
+      unconvertible > 0 ||
+      subUnresolved > 0 ||
+      subIncomplete > 0 ||
+      !(servingsBase > 0);
   return RecipeMacroSummary(
     perServing: incomplete ? null : total.scaledBy(1 / servingsBase),
     stubLines: stubs,
     unconvertibleLines: unconvertible,
+    subRecipesUnresolved: subUnresolved,
+    subRecipesIncomplete: subIncomplete,
     noLines: noLines,
+  );
+}
+
+/// What one component line contributes, or which reason it costs.
+sealed class _ComponentResult {
+  const _ComponentResult();
+}
+
+final class _ComponentMacros extends _ComponentResult {
+  const _ComponentMacros(this.macros);
+  final Macros macros;
+}
+
+/// The batch math didn't resolve (no yield, wrong family, no amount, a cycle,
+/// or a target that isn't there).
+final class _ComponentUnresolved extends _ComponentResult {
+  const _ComponentUnresolved();
+}
+
+/// The share is known; the target's own macros are not.
+final class _ComponentIncomplete extends _ComponentResult {
+  const _ComponentIncomplete();
+}
+
+/// The target's WHOLE-recipe macros × the batches this line asks for.
+///
+/// Whole-recipe, not per-serving: a component takes a share of the *batch*,
+/// and the target's summary is per-serving, so it is multiplied back up by the
+/// target's own serving count before the share is taken.
+_ComponentResult _componentMacros({
+  required String subRecipeId,
+  required LineItem line,
+  required IngredientNutrition? Function(String ingredientId) nutritionOf,
+  required SubRecipeNode? Function(String subRecipeId)? subRecipeOf,
+  required Set<String> visited,
+}) {
+  // A cycle stops the walk here rather than recursing (D3's guard, D8's
+  // "renders incomplete, never loops").
+  if (visited.contains(subRecipeId)) return const _ComponentUnresolved();
+  final node = subRecipeOf?.call(subRecipeId);
+  if (node == null) return const _ComponentUnresolved();
+
+  final amount = resolveComponentAmount(
+    quantity: line.quantity,
+    unit: line.unit,
+    yields: node.yields,
+  );
+  if (amount is! ResolvedComponentAmount) return const _ComponentUnresolved();
+
+  final summary = _summarize(
+    servingsBase: node.servingsBase,
+    lines: node.lines,
+    nutritionOf: nutritionOf,
+    subRecipeOf: subRecipeOf,
+    visited: {...visited, subRecipeId},
+  );
+  final perServing = summary.perServing;
+  if (perServing == null) return const _ComponentIncomplete();
+  return _ComponentMacros(
+    perServing.scaledBy(node.servingsBase * amount.batches),
   );
 }
 

@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_repository_impl.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
+import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
@@ -32,6 +34,54 @@ Future<void> _insertRecipe(
       keepsForDays,
       freezableFlag,
       freezerDays,
+      now,
+      now,
+    ],
+  );
+}
+
+/// Gives [id] a stated yield ("makes 1 cup") — the fact that turns a component
+/// line's printed amount into batches (step 8.6 / D2).
+Future<void> _setYield(
+  PowerSyncDatabase db,
+  String id,
+  double qty,
+  Unit unit,
+) => db.execute(
+  'UPDATE recipe SET yield_qty = ?, yield_unit = ? WHERE id = ?',
+  [qty, unit.id, id],
+);
+
+/// Adds a component line ("¼ cup of [subRecipeId]") to [recipeId], creating
+/// its group. Written with plain INSERTs because PowerSync's local tables are
+/// VIEWS — no UPSERT anywhere.
+Future<void> _addComponentLine(
+  PowerSyncDatabase db,
+  String recipeId,
+  String subRecipeId, {
+  double? quantity = 0.25,
+  Unit unit = cup,
+  String suffix = '',
+}) async {
+  final now = DateTime.now().toUtc().toIso8601String();
+  final groupId = 'g-$recipeId$suffix';
+  await db.execute(
+    'INSERT INTO ingredient_group (id, household_id, recipe_id, sort_order, '
+    'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [groupId, 'h', recipeId, 0, now, now],
+  );
+  await db.execute(
+    'INSERT INTO recipe_line_item (id, household_id, group_id, sub_recipe_id, '
+    'quantity, unit, sort_order, created_at, updated_at) '
+    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
+      'li-$recipeId-$subRecipeId$suffix',
+      'h',
+      groupId,
+      subRecipeId,
+      quantity,
+      unit.id,
+      0,
       now,
       now,
     ],
@@ -173,5 +223,131 @@ void main() {
     expect(await stream.moveNext(), isTrue);
     expect(stream.current.recipes.single.isSplit, isTrue);
     expect(stream.current.recipes.single.sessions, hasLength(2));
+  });
+
+  group('nested recipes (step 8.6 / D3)', () {
+    Future<void> planSliders({
+      int day = 5,
+      List<String> eaters = const ['a'],
+    }) => planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: day,
+      mealSlot: 'Dinner',
+      recipeId: 'sliders',
+      eaterIds: eaters,
+    );
+
+    test(
+      'planning a parent derives the component session, in batches',
+      () async {
+        await _insertRecipe(db, 'sliders', 'Sausage Sliders', servings: 1);
+        await _insertRecipe(
+          db,
+          'aioli',
+          'Romesco Aioli',
+          servings: 4,
+          keepsForDays: 5,
+        );
+        await _setYield(db, 'aioli', 1, cup);
+        await _addComponentLine(db, 'sliders', 'aioli');
+        await planSliders();
+
+        final plan = await repo.watchCookPlan(_week).first;
+        final derived = plan.recipes.firstWhere((r) => r.recipeId == 'aioli');
+        final session = derived.sessions.single;
+        expect(session.isComponent, isTrue);
+        expect(session.batchesToCook, closeTo(0.25, 1e-12));
+        expect(session.cookDay, 5);
+        expect(session.demandedBy, ['Sausage Sliders']);
+        expect(plan.gaps, isEmpty);
+      },
+    );
+
+    test('no yield ⇒ a named gap on the plan, and no session at all', () async {
+      await _insertRecipe(db, 'sliders', 'Sausage Sliders', servings: 1);
+      await _insertRecipe(db, 'aioli', 'Romesco Aioli', servings: 4);
+      await _addComponentLine(db, 'sliders', 'aioli');
+      await planSliders();
+
+      final plan = await repo.watchCookPlan(_week).first;
+      expect(plan.recipes.any((r) => r.recipeId == 'aioli'), isFalse);
+      final gap = plan.gaps.single;
+      expect(gap.title, 'Romesco Aioli');
+      expect(gap.reason, const ComponentYieldMissing());
+      expect(gap.demandedBy.single.title, 'Sausage Sliders');
+      expect(plan.unresolvedComponentsByParent, {'sliders': 1});
+    });
+
+    test(
+      'setting the yield re-fires the watch and the gap becomes a session',
+      () async {
+        await _insertRecipe(db, 'sliders', 'Sausage Sliders', servings: 1);
+        await _insertRecipe(
+          db,
+          'aioli',
+          'Romesco Aioli',
+          servings: 4,
+          keepsForDays: 5,
+        );
+        await _addComponentLine(db, 'sliders', 'aioli');
+        await planSliders();
+
+        final stream = StreamIterator(repo.watchCookPlan(_week));
+        addTearDown(stream.cancel);
+        expect(await stream.moveNext(), isTrue);
+        expect(stream.current.gaps, hasLength(1));
+
+        await _setYield(db, 'aioli', 1, cup);
+        expect(await stream.moveNext(), isTrue);
+        expect(stream.current.gaps, isEmpty);
+        expect(
+          stream.current.recipes
+              .firstWhere((r) => r.recipeId == 'aioli')
+              .sessions
+              .single
+              .batchesToCook,
+          closeTo(0.25, 1e-12),
+        );
+      },
+    );
+
+    test('adding a component line re-fires the watch (the line-item tables '
+        'are watch triggers since 8.6)', () async {
+      await _insertRecipe(db, 'sliders', 'Sausage Sliders', servings: 1);
+      await _insertRecipe(
+        db,
+        'aioli',
+        'Romesco Aioli',
+        servings: 4,
+        keepsForDays: 5,
+      );
+      await _setYield(db, 'aioli', 1, cup);
+      await planSliders();
+
+      final stream = StreamIterator(repo.watchCookPlan(_week));
+      addTearDown(stream.cancel);
+      expect(await stream.moveNext(), isTrue);
+      expect(stream.current.recipes, hasLength(1));
+
+      await _addComponentLine(db, 'sliders', 'aioli');
+      expect(await stream.moveNext(), isTrue);
+      expect(stream.current.recipes, hasLength(2));
+    });
+
+    test('a deleted target derives nothing and flags nothing (D5)', () async {
+      await _insertRecipe(db, 'sliders', 'Sausage Sliders', servings: 1);
+      await _insertRecipe(db, 'aioli', 'Romesco Aioli', servings: 4);
+      await _setYield(db, 'aioli', 1, cup);
+      await _addComponentLine(db, 'sliders', 'aioli');
+      await planSliders();
+      await db.execute('UPDATE recipe SET deleted_at = ? WHERE id = ?', [
+        DateTime.now().toUtc().toIso8601String(),
+        'aioli',
+      ]);
+
+      final plan = await repo.watchCookPlan(_week).first;
+      expect(plan.recipes, hasLength(1));
+      expect(plan.gaps, isEmpty);
+    });
   });
 }

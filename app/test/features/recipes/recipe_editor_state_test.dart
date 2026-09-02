@@ -31,6 +31,15 @@ class _FakeRecipeRepo implements RecipeRepository {
 
   @override
   Future<void> setFavorite(String id, bool favorite) async {}
+
+  @override
+  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
+
+  @override
+  Future<bool> componentLinkWouldCycle({
+    required String recipeId,
+    required String subRecipeId,
+  }) async => false;
 }
 
 class _FakeBookRepo implements BookRepository {

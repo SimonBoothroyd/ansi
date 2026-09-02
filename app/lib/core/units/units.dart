@@ -23,13 +23,19 @@ import 'package:meta/meta.dart';
 
 import '../result/result.dart';
 
-/// The four kinds of unit. Conversion rules differ per family:
+/// The five kinds of unit. Conversion rules differ per family:
 ///
 /// - [mass] and [volume] convert within-family by a fixed ratio, and across to
 ///   each other only when a density is supplied.
 /// - [count] (e.g. "3 eggs") has no ratio; it converts only to itself.
 /// - [imprecise] ("pinch", "dash", "to taste") never converts and never scales.
-enum UnitFamily { mass, volume, count, imprecise }
+/// - [batch] is the sub-recipe denomination (step 8.6 / D2) — "1 batch of the
+///   aioli". It is a family of one ([batches]) and converts to nothing: a
+///   batch reaches grams or cups only through the target recipe's stated
+///   *yield*, which is `features/recipes/domain/component_math.dart`'s job,
+///   not [convert]'s. Keeping it its own family is what makes
+///   `1 batch == 1 piece` impossible to write by accident.
+enum UnitFamily { mass, volume, count, imprecise, batch }
 
 /// A unit of measure. Construct via the catalog constants ([g], [ml], …) or
 /// look one up by id with [unitById]; the private constructor keeps the set
@@ -104,13 +110,30 @@ const dash = Unit._('dash', 'dash', UnitFamily.imprecise, null);
 const handful = Unit._('handful', 'handful', UnitFamily.imprecise, null);
 const toTaste = Unit._('to_taste', 'to taste', UnitFamily.imprecise, null);
 
-/// Every unit the system knows, in a stable order.
-const kAllUnits = <Unit>[
+/// Batch — the sub-recipe denomination (step 8.6 / D2), for **component lines
+/// only**. Never offered for an ingredient line: the admission rules in
+/// `features/ingredients/domain/allowed_units.dart` are built from the
+/// mass/volume/count/imprecise catalogues, so nothing reaches an ingredient
+/// picker with this in it.
+///
+/// The database's `unit_family()` mirror (migration 0017) does not know the id
+/// and therefore treats it as its own singleton family — which is exactly what
+/// this declaration says, so the yield CHECK and this table still agree.
+const batches = Unit._('batch', 'batch', UnitFamily.batch, null);
+
+/// The units an **ingredient** line may be denominated in, in a stable order —
+/// everything except [batches], which belongs to component lines alone
+/// (step 8.6 / D2 non-goal). Ingredient admission rules and pickers read this.
+const kIngredientUnits = <Unit>[
   g, kg, mg, oz, lb, //
   ml, l, tsp, tbsp, flOz, cup, //
   pieces, //
   pinch, dash, handful, toTaste,
 ];
+
+/// Every unit the system knows, in a stable order — [kIngredientUnits] plus
+/// the component-line-only [batches].
+const kAllUnits = <Unit>[...kIngredientUnits, batches];
 
 final Map<String, Unit> _byId = {for (final u in kAllUnits) u.id: u};
 

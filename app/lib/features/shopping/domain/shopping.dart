@@ -53,6 +53,10 @@ enum ContributionSource { cookSession, manual }
 /// subtotal. A line whose stored `measure_id` no longer resolves arrives with
 /// `measure` null and its stored count unit intact, so it degrades to an
 /// honest count rather than invented grams.
+/// `forParents` carries the planned recipes a **component** session is cooked
+/// for (step 8.6 / D4) — the one extra provenance segment a nested
+/// contribution gains ("Romesco Aioli · for Sliders · cook Sat"). Empty for an
+/// ordinary meal contribution, which reads exactly as it did before.
 typedef CookContributionInput = ({
   String ingredientId,
   double? quantity,
@@ -62,6 +66,19 @@ typedef CookContributionInput = ({
   String recipeTitle,
   int cookDay,
   bool batched,
+  List<String> forParents,
+});
+
+/// One planned recipe's "N components unresolved" echo (step 8.6 / D4).
+///
+/// An unresolved component contributes NOTHING to the list — never an invented
+/// quantity — which would otherwise be an invisible hole in a list somebody
+/// shops from. This is what makes the silence legible; the Cook tab's gap card
+/// is the surface that fixes it.
+typedef UnresolvedComponentNote = ({
+  String recipeId,
+  String recipeTitle,
+  int count,
 });
 
 /// A persisted shopping entry row (the check-off + free-text anchor).
@@ -201,13 +218,16 @@ abstract class ShoppingGroup with _$ShoppingGroup {
   }) = _ShoppingGroup;
 }
 
-/// The whole shopping list, grouped by aisle.
+/// The whole shopping list, grouped by aisle, plus the per-parent
+/// [unresolvedComponents] echo (step 8.6 / D4).
 @freezed
 abstract class ShoppingList with _$ShoppingList {
   const ShoppingList._();
 
   const factory ShoppingList({
     @Default(<ShoppingGroup>[]) List<ShoppingGroup> groups,
+    @Default(<UnresolvedComponentNote>[])
+    List<UnresolvedComponentNote> unresolvedComponents,
   }) = _ShoppingList;
 
   bool get isEmpty => groups.isEmpty;
@@ -251,6 +271,12 @@ List<Quantity> aggregateQuantities(
       case UnitFamily.volume:
         volume.add(q);
       case UnitFamily.count:
+        counts.update(q.unit.id, (v) => v + q.amount, ifAbsent: () => q.amount);
+      case UnitFamily.batch:
+        // A component line never becomes a shopping item (D4 — you buy
+        // almonds, not aioli), so nothing should reach here. If foreign data
+        // ever does, it sums per unit like a count rather than vanishing: a
+        // visible odd total beats a silent hole.
         counts.update(q.unit.id, (v) => v + q.amount, ifAbsent: () => q.amount);
       case UnitFamily.imprecise:
         // Collapse identical imprecise units: amounts on them carry no meaning
@@ -436,10 +462,19 @@ String _titleCase(String s) => s
 /// The provenance label for a cook contribution: the recipe title, plus its
 /// cook day when the recipe is batched into more than one session (so the
 /// breakdown disambiguates which cook it came from).
-String cookLabel(CookContributionInput c, List<String> weekdayShort) =>
-    c.batched
-    ? '${c.recipeTitle} · cook ${weekdayShort[c.cookDay]}'
-    : c.recipeTitle;
+///
+/// A **component** contribution (step 8.6 / D4) gains one segment naming the
+/// planned recipe it is cooked for, and always carries its cook day: "Romesco
+/// Aioli · for Sliders · cook Sat". Two levels, deepest first — the recipe
+/// whose line this actually is, then the plan it serves.
+String cookLabel(CookContributionInput c, List<String> weekdayShort) {
+  final forParents = c.forParents;
+  return [
+    c.recipeTitle,
+    if (forParents.isNotEmpty) 'for ${forParents.join(' + ')}',
+    if (c.batched || forParents.isNotEmpty) 'cook ${weekdayShort[c.cookDay]}',
+  ].join(' · ');
+}
 
 /// Assembles the derived shopping list from its parts (spec §4).
 ///
@@ -458,12 +493,15 @@ String cookLabel(CookContributionInput c, List<String> weekdayShort) =>
 /// deterministically here: manual contributions are unioned, checked is
 /// any-checked, and the oldest row (created_at, id) is the canonical entry —
 /// so no device silently drops the other's top-ups or check-off.
+/// [unresolvedComponents] is carried through to the built list untouched — the
+/// cook plan's gaps, counted per planned recipe (step 8.6 / D4).
 ShoppingList buildShoppingList({
   required List<CookContributionInput> cook,
   required List<ShoppingEntryInput> entries,
   required Map<String, List<ManualContributionInput>> manual,
   required Map<String, IngredientMetaInput> meta,
   required List<String> weekdayShort,
+  List<UnresolvedComponentNote> unresolvedComponents = const [],
 }) {
   // Index persisted entries by their ingredient (free-text ones stay by id),
   // keeping every duplicate so it can be merged rather than dropped.
@@ -726,7 +764,10 @@ ShoppingList buildShoppingList({
     );
   }
 
-  return ShoppingList(groups: groups);
+  return ShoppingList(
+    groups: groups,
+    unresolvedComponents: unresolvedComponents,
+  );
 }
 
 const _uncategorised = ' other';

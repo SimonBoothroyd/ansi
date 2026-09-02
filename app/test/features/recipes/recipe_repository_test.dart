@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
+import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -671,5 +672,546 @@ void main() {
       'r1',
     ]);
     expect(row['deleted_at'], isNotNull);
+  });
+
+  group('nested recipes (step 8.6)', () {
+    /// The Romesco Aioli: serves 4, makes 1 cup, keeps 5 days, one line.
+    Future<void> seedAioli({
+      double? yieldQty = 1,
+      Unit? yieldUnit = cup,
+      double? yieldQty2,
+      Unit? yieldUnit2,
+    }) => repo.saveRecipe(
+      Recipe(
+        id: 'aioli',
+        title: 'Romesco Aioli',
+        servingsBase: 4,
+        keepsForDays: 5,
+        yieldQty: yieldQty,
+        yieldUnit: yieldUnit,
+        yieldQty2: yieldQty2,
+        yieldUnit2: yieldUnit2,
+        groups: const [
+          IngredientGroup(
+            id: 'ag',
+            items: [
+              LineItem(
+                id: 'ai1',
+                ingredientId: 'ing-rice',
+                ingredientName: 'Rice',
+                unit: g,
+                quantity: 240,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    /// A parent whose second line is a component of the aioli.
+    Recipe parent({double? quantity = 0.25, Unit unit = cup}) => Recipe(
+      id: 'sliders',
+      title: 'Sausage Sliders',
+      servingsBase: 8,
+      groups: [
+        IngredientGroup(
+          id: 'sg',
+          items: [
+            const LineItem(
+              id: 'si1',
+              ingredientId: 'ing-onion',
+              ingredientName: 'Onion',
+              unit: pieces,
+              quantity: 2,
+            ),
+            LineItem(
+              id: 'si2',
+              subRecipeId: 'aioli',
+              ingredientName: 'Romesco Aioli',
+              unit: unit,
+              quantity: quantity,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    test(
+      'saveRecipe persists the XOR: sub_recipe_id set, ingredient_id null',
+      () async {
+        await seedAioli();
+        await repo.saveRecipe(parent());
+
+        final row = await db.get(
+          'SELECT ingredient_id, sub_recipe_id, measure_id, unit, quantity '
+          'FROM recipe_line_item WHERE id = ?',
+          ['si2'],
+        );
+        expect(row['ingredient_id'], isNull);
+        expect(row['sub_recipe_id'], 'aioli');
+        expect(row['measure_id'], isNull);
+        expect(row['unit'], 'cup');
+        expect(row['quantity'], 0.25);
+
+        // The sibling ingredient line keeps the other half of the XOR.
+        final sibling = await db.get(
+          'SELECT ingredient_id, sub_recipe_id FROM recipe_line_item '
+          'WHERE id = ?',
+          ['si1'],
+        );
+        expect(sibling['ingredient_id'], 'ing-onion');
+        expect(sibling['sub_recipe_id'], isNull);
+      },
+    );
+
+    test(
+      'a component line never carries a measure, even if one is passed',
+      () async {
+        await seedAioli();
+        await repo.saveRecipe(
+          parent().copyWith(
+            groups: [
+              const IngredientGroup(
+                id: 'sg',
+                items: [
+                  LineItem(
+                    id: 'si2',
+                    subRecipeId: 'aioli',
+                    measureId: 'm-stray',
+                    ingredientName: 'Romesco Aioli',
+                    unit: cup,
+                    quantity: 0.25,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+        final row = await db.get(
+          'SELECT measure_id FROM recipe_line_item WHERE id = ?',
+          ['si2'],
+        );
+        expect(row['measure_id'], isNull);
+      },
+    );
+
+    test(
+      'an UPDATE converts an ingredient line into a component and back',
+      () async {
+        await seedAioli();
+        // First saved as an ingredient line…
+        await repo.saveRecipe(
+          const Recipe(
+            id: 'sliders',
+            title: 'Sausage Sliders',
+            servingsBase: 8,
+            groups: [
+              IngredientGroup(
+                id: 'sg',
+                items: [
+                  LineItem(
+                    id: 'si2',
+                    ingredientId: 'ing-onion',
+                    ingredientName: 'Onion',
+                    unit: pieces,
+                    quantity: 1,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+        // …then re-picked as a component (D7: re-picking IS the conversion).
+        await repo.saveRecipe(
+          parent().copyWith(
+            groups: [
+              const IngredientGroup(
+                id: 'sg',
+                items: [
+                  LineItem(
+                    id: 'si2',
+                    subRecipeId: 'aioli',
+                    ingredientName: 'Romesco Aioli',
+                    unit: cup,
+                    quantity: 0.25,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+        var row = await db.get(
+          'SELECT ingredient_id, sub_recipe_id FROM recipe_line_item '
+          'WHERE id = ?',
+          ['si2'],
+        );
+        expect(row['ingredient_id'], isNull);
+        expect(row['sub_recipe_id'], 'aioli');
+
+        // …and back again — neither id is ever left set alongside the other.
+        await repo.saveRecipe(
+          const Recipe(
+            id: 'sliders',
+            title: 'Sausage Sliders',
+            servingsBase: 8,
+            groups: [
+              IngredientGroup(
+                id: 'sg',
+                items: [
+                  LineItem(
+                    id: 'si2',
+                    ingredientId: 'ing-onion',
+                    ingredientName: 'Onion',
+                    unit: pieces,
+                    quantity: 1,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+        row = await db.get(
+          'SELECT ingredient_id, sub_recipe_id FROM recipe_line_item '
+          'WHERE id = ?',
+          ['si2'],
+        );
+        expect(row['ingredient_id'], 'ing-onion');
+        expect(row['sub_recipe_id'], isNull);
+      },
+    );
+
+    test('saveRecipe round-trips both yield denominations', () async {
+      await seedAioli(
+        yieldQty: 250,
+        yieldUnit: g,
+        yieldQty2: 16,
+        yieldUnit2: tbsp,
+      );
+      final loaded = (await repo.watchRecipe('aioli').first)!;
+      expect(loaded.yieldQty, 250);
+      expect(loaded.yieldUnit, g);
+      expect(loaded.yieldQty2, 16);
+      expect(loaded.yieldUnit2, tbsp);
+      expect(loaded.yields, [(qty: 250.0, unit: g), (qty: 16.0, unit: tbsp)]);
+    });
+
+    test('a yield-less recipe still saves and loads', () async {
+      await seedAioli(yieldQty: null, yieldUnit: null);
+      final loaded = (await repo.watchRecipe('aioli').first)!;
+      expect(loaded.yieldQty, isNull);
+      expect(loaded.yields, isEmpty);
+    });
+
+    test('watchRecipe joins the target title AND its yields, so the batch '
+        'math resolves on the loaded line', () async {
+      await seedAioli();
+      await repo.saveRecipe(parent());
+
+      final loaded = (await repo.watchRecipe('sliders').first)!;
+      final line = loaded.groups.single.items[1];
+      expect(line.isComponent, isTrue);
+      expect(line.subRecipeId, 'aioli');
+      expect(line.ingredientName, 'Romesco Aioli');
+      expect(line.subRecipe!.title, 'Romesco Aioli');
+      expect(line.subRecipe!.yields, [(qty: 1.0, unit: cup)]);
+      expect(
+        (line.componentAmount! as ResolvedComponentAmount).batches,
+        closeTo(0.25, 1e-12),
+      );
+    });
+
+    test(
+      'renaming the target re-fires the parent’s watch with the new title',
+      () async {
+        await seedAioli();
+        await repo.saveRecipe(parent());
+
+        // The target's title and yields arrive through a join, so the watched
+        // query has to name — and SELECT a column from — the `recipe sub`
+        // alias, or a rename leaves the parent's page stale.
+        final recipes = StreamIterator(repo.watchRecipe('sliders'));
+        addTearDown(recipes.cancel);
+
+        expect(await recipes.moveNext(), isTrue);
+        expect(
+          recipes.current?.groups.single.items[1].subRecipe?.title,
+          'Romesco Aioli',
+        );
+
+        await db.execute('UPDATE recipe SET title = ? WHERE id = ?', [
+          'Romesco Aioli (new)',
+          'aioli',
+        ]);
+        expect(await recipes.moveNext(), isTrue);
+        expect(
+          recipes.current?.groups.single.items[1].subRecipe?.title,
+          'Romesco Aioli (new)',
+        );
+
+        // A yield edit on the TARGET moves the parent's batch math too.
+        await db.execute('UPDATE recipe SET yield_qty = ? WHERE id = ?', [
+          2,
+          'aioli',
+        ]);
+        expect(await recipes.moveNext(), isTrue);
+        final line = recipes.current!.groups.single.items[1];
+        expect(
+          (line.componentAmount! as ResolvedComponentAmount).batches,
+          closeTo(0.125, 1e-12),
+        );
+      },
+    );
+
+    test(
+      'a dangling link degrades to plain text and derives nothing (D5)',
+      () async {
+        await seedAioli();
+        await repo.saveRecipe(parent());
+        await repo.deleteRecipe('aioli');
+
+        final loaded = (await repo.watchRecipe('sliders').first)!;
+        final line = loaded.groups.single.items[1];
+        expect(line.subRecipeId, 'aioli'); // the stored id is kept verbatim
+        expect(line.subRecipe, isNull);
+        expect(
+          line.componentAmount,
+          isNull,
+        ); // nothing derived, nothing invented
+      },
+    );
+
+    test(
+      'the macro panel folds a resolvable component across recipes',
+      () async {
+        // Rice: 100 kcal/100 g. The aioli is 240 g of it (240 kcal over 4
+        // servings); ¼ batch is 60 kcal, plus 2 onions the parent also has.
+        await db.execute(
+          'UPDATE ingredient SET macros = ?, macros_basis = ? WHERE id = ?',
+          ['{"kcal":100,"protein":0,"carb":0,"fat":0}', 'per_100g', 'ing-rice'],
+        );
+        await db.execute(
+          'UPDATE ingredient SET macros = ?, macros_basis = ?, '
+          'default_unit = ? WHERE id = ?',
+          [
+            '{"kcal":40,"protein":0,"carb":0,"fat":0}',
+            'per_100g',
+            'g',
+            'ing-onion',
+          ],
+        );
+        await seedAioli();
+        // The parent's onion line in grams, so it bridges honestly.
+        await repo.saveRecipe(
+          parent().copyWith(
+            groups: [
+              const IngredientGroup(
+                id: 'sg',
+                items: [
+                  LineItem(
+                    id: 'si1',
+                    ingredientId: 'ing-onion',
+                    ingredientName: 'Onion',
+                    unit: g,
+                    quantity: 100,
+                  ),
+                  LineItem(
+                    id: 'si2',
+                    subRecipeId: 'aioli',
+                    ingredientName: 'Romesco Aioli',
+                    unit: cup,
+                    quantity: 0.25,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+
+        final loaded = (await repo.watchRecipe('sliders').first)!;
+        expect(loaded.macros!.incomplete, isFalse);
+        // (40 kcal onion + 60 kcal aioli share) / 8 servings.
+        expect(loaded.macros!.perServing!.kcal, closeTo(12.5, 1e-9));
+      },
+    );
+
+    test('a component of a yield-less recipe makes the parent incomplete with '
+        'the sub-recipe reason, never a 1× total', () async {
+      await db.execute(
+        'UPDATE ingredient SET macros = ?, macros_basis = ? WHERE id = ?',
+        ['{"kcal":100,"protein":0,"carb":0,"fat":0}', 'per_100g', 'ing-rice'],
+      );
+      await seedAioli(yieldQty: null, yieldUnit: null);
+      await repo.saveRecipe(
+        parent().copyWith(
+          groups: [
+            const IngredientGroup(
+              id: 'sg',
+              items: [
+                LineItem(
+                  id: 'si2',
+                  subRecipeId: 'aioli',
+                  ingredientName: 'Romesco Aioli',
+                  unit: cup,
+                  quantity: 0.25,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      final loaded = (await repo.watchRecipe('sliders').first)!;
+      expect(loaded.macros!.incomplete, isTrue);
+      expect(loaded.macros!.subRecipesUnresolved, 1);
+      expect(loaded.macros!.perServing, isNull);
+    });
+
+    test('watchRecipes carries the yields onto the summary row', () async {
+      await seedAioli();
+      final summaries = await repo.watchRecipes().first;
+      final aioli = summaries.firstWhere((s) => s.id == 'aioli');
+      expect(aioli.yieldQty, 1);
+      expect(aioli.yieldUnit, cup);
+      expect(aioli.yields, [(qty: 1.0, unit: cup)]);
+    });
+
+    group('usedIn (D9 — the tab rows and the delete refusal, one query)', () {
+      test('is empty for a recipe nothing points at', () async {
+        await seedAioli();
+        expect(await repo.usedIn('aioli'), isEmpty);
+      });
+
+      test(
+        'names each referencing recipe with its amount and batch share',
+        () async {
+          await seedAioli();
+          await repo.saveRecipe(parent());
+          await repo.saveRecipe(
+            const Recipe(
+              id: 'toasts',
+              title: 'Romesco Toasts',
+              servingsBase: 2,
+              groups: [
+                IngredientGroup(
+                  id: 'tg',
+                  items: [
+                    LineItem(
+                      id: 'ti1',
+                      subRecipeId: 'aioli',
+                      ingredientName: 'Romesco Aioli',
+                      unit: batches,
+                      quantity: 1,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+
+          final uses = await repo.usedIn('aioli');
+          expect(
+            uses,
+            hasLength(2),
+          ); // the delete refusal's "used in 2 recipes"
+          // Ordered by parent title.
+          expect(uses.map((u) => u.title), [
+            'Romesco Toasts',
+            'Sausage Sliders',
+          ]);
+          final sliders = uses.firstWhere((u) => u.recipeId == 'sliders');
+          expect(sliders.quantity, 0.25);
+          expect(sliders.unit, cup);
+          expect(
+            (sliders.amount as ResolvedComponentAmount).batches,
+            closeTo(0.25, 1e-12),
+          );
+          expect(sliders.lineId, 'si2');
+          final toasts = uses.firstWhere((u) => u.recipeId == 'toasts');
+          expect((toasts.amount as ResolvedComponentAmount).batches, 1);
+        },
+      );
+
+      test(
+        'a yield-less target still lists its uses, honestly unresolved',
+        () async {
+          await seedAioli(yieldQty: null, yieldUnit: null);
+          await repo.saveRecipe(parent());
+          final use = (await repo.usedIn('aioli')).single;
+          expect(use.amount, const ComponentYieldMissing());
+        },
+      );
+
+      test('a deleted parent drops off the count', () async {
+        await seedAioli();
+        await repo.saveRecipe(parent());
+        expect(await repo.usedIn('aioli'), hasLength(1));
+        await repo.deleteRecipe('sliders');
+        expect(await repo.usedIn('aioli'), isEmpty);
+      });
+
+      test('a removed component line drops off the count', () async {
+        await seedAioli();
+        await repo.saveRecipe(parent());
+        await repo.saveRecipe(
+          parent().copyWith(groups: const [IngredientGroup(id: 'sg')]),
+        );
+        expect(await repo.usedIn('aioli'), isEmpty);
+      });
+    });
+
+    group('componentLinkWouldCycle (D5, the client half)', () {
+      test('a fresh link is allowed', () async {
+        await seedAioli();
+        await repo.saveRecipe(parent());
+        expect(
+          await repo.componentLinkWouldCycle(
+            recipeId: 'aioli',
+            subRecipeId: 'unrelated',
+          ),
+          isFalse,
+        );
+      });
+
+      test('a self-link is refused', () async {
+        await seedAioli();
+        expect(
+          await repo.componentLinkWouldCycle(
+            recipeId: 'aioli',
+            subRecipeId: 'aioli',
+          ),
+          isTrue,
+        );
+      });
+
+      test(
+        'a link the target already reaches back through is refused',
+        () async {
+          await seedAioli();
+          await repo.saveRecipe(parent()); // sliders → aioli
+          // Linking the aioli to the sliders would close the loop.
+          expect(
+            await repo.componentLinkWouldCycle(
+              recipeId: 'aioli',
+              subRecipeId: 'sliders',
+            ),
+            isTrue,
+          );
+        },
+      );
+
+      test('a soft-deleted link is not an edge', () async {
+        await seedAioli();
+        await repo.saveRecipe(parent());
+        await repo.saveRecipe(
+          parent().copyWith(groups: const [IngredientGroup(id: 'sg')]),
+        );
+        expect(
+          await repo.componentLinkWouldCycle(
+            recipeId: 'aioli',
+            subRecipeId: 'sliders',
+          ),
+          isFalse,
+        );
+      });
+    });
   });
 }

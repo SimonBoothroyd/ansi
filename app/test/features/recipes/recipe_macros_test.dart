@@ -1,6 +1,7 @@
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -256,6 +257,178 @@ void main() {
       );
       expect(summary.noLines, isFalse);
       expect(summary.incomplete, isFalse);
+    });
+  });
+
+  group('sub-recipe components (step 8.6 / D8)', () {
+    /// A component line asking for [quantity] [unit] of [subRecipeId].
+    LineItem component(
+      String subRecipeId, {
+      double? quantity = 0.25,
+      Unit unit = cup,
+    }) => LineItem(
+      id: 'li-$subRecipeId',
+      subRecipeId: subRecipeId,
+      ingredientName: subRecipeId,
+      unit: unit,
+      quantity: quantity,
+    );
+
+    /// The aioli: serves 4, makes 1 cup, one 200 g ingredient line.
+    SubRecipeNode aioli({
+      List<YieldDenomination> yields = const [(qty: 1.0, unit: cup)],
+      List<LineItem> lines = const [],
+    }) => (
+      servingsBase: 4,
+      lines: lines.isEmpty ? [_line('x', quantity: 200)] : lines,
+      yields: yields,
+    );
+
+    test('a resolvable component contributes target TOTAL × batches', () {
+      // The aioli totals 200 kcal; ¼ of a batch is 50 kcal, over 2 servings.
+      final summary = summarizeRecipeMacros(
+        servingsBase: 2,
+        lines: [component('aioli')],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) => id == 'aioli' ? aioli() : null,
+      );
+      expect(summary.incomplete, isFalse);
+      expect(summary.perServing!.kcal, 25);
+    });
+
+    test('it sums alongside the parent’s own ingredient lines', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 100), component('aioli')],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) => id == 'aioli' ? aioli() : null,
+      );
+      expect(summary.perServing!.kcal, 150); // 100 + 50
+    });
+
+    test('a `batch` line takes the whole target, no yield needed', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [component('aioli', quantity: 2, unit: batches)],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) => id == 'aioli' ? aioli(yields: const []) : null,
+      );
+      expect(summary.perServing!.kcal, 400);
+    });
+
+    test('no yield ⇒ "1 sub-recipe unresolved", never a 1× assumption', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 2,
+        lines: [component('aioli')],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) => id == 'aioli' ? aioli(yields: const []) : null,
+      );
+      expect(summary.incomplete, isTrue);
+      expect(summary.perServing, isNull);
+      expect(summary.subRecipesUnresolved, 1);
+      expect(summary.subRecipesIncomplete, 0);
+      expect(summary.stubLines, 0);
+    });
+
+    test('a family mismatch is unresolved too', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 2,
+        lines: [component('aioli', quantity: 2, unit: pieces)],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) => id == 'aioli' ? aioli() : null,
+      );
+      expect(summary.subRecipesUnresolved, 1);
+    });
+
+    test('a target whose own summary refuses ⇒ "1 sub-recipe incomplete" — '
+        'the share is known, the macros behind it are not', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 2,
+        lines: [component('aioli')],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) => id == 'aioli'
+            ? aioli(lines: [_line('missing', quantity: 100)])
+            : null,
+      );
+      expect(summary.incomplete, isTrue);
+      expect(summary.subRecipesIncomplete, 1);
+      expect(summary.subRecipesUnresolved, 0);
+    });
+
+    test('a dangling link is unresolved — nothing derives from a link whose '
+        'other end is gone (D5)', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 2,
+        lines: [component('ghost')],
+        nutritionOf: _vocab(),
+        subRecipeOf: (_) => null,
+      );
+      expect(summary.subRecipesUnresolved, 1);
+    });
+
+    test('without a resolver every component line is unresolved', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 2,
+        lines: [component('aioli')],
+        nutritionOf: _vocab(),
+      );
+      expect(summary.subRecipesUnresolved, 1);
+    });
+
+    test('recursion folds a component of a component', () {
+      // top → 1 batch of mid → ½ cup of a 1-cup aioli (200 kcal) + its own
+      // 100 g line = 200 kcal for mid, over 1 serving of top.
+      final nodes = <String, SubRecipeNode>{
+        'mid': (
+          servingsBase: 2,
+          lines: [_line('x', quantity: 100), component('aioli', quantity: 0.5)],
+          yields: const [(qty: 1.0, unit: cup)],
+        ),
+        'aioli': aioli(),
+      };
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [component('mid', quantity: 1, unit: batches)],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) => nodes[id],
+      );
+      expect(summary.incomplete, isFalse);
+      expect(summary.perServing!.kcal, 200);
+    });
+
+    test('a cycle renders incomplete and never loops', () {
+      final nodes = <String, SubRecipeNode>{
+        'a': (
+          servingsBase: 1,
+          lines: [component('b', quantity: 1, unit: batches)],
+          yields: const [(qty: 1.0, unit: cup)],
+        ),
+        'b': (
+          servingsBase: 1,
+          lines: [component('a', quantity: 1, unit: batches)],
+          yields: const [(qty: 1.0, unit: cup)],
+        ),
+      };
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [component('a', quantity: 1, unit: batches)],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) => nodes[id],
+      );
+      expect(summary.incomplete, isTrue);
+      // a's own summary refuses (b's does, because of the visited guard), so
+      // the parent reads "1 sub-recipe incomplete".
+      expect(summary.subRecipesIncomplete, 1);
+    });
+
+    test('two unresolved components count as two', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 2,
+        lines: [component('a'), component('b')],
+        nutritionOf: _vocab(),
+        subRecipeOf: (_) => null,
+      );
+      expect(summary.subRecipesUnresolved, 2);
     });
   });
 }

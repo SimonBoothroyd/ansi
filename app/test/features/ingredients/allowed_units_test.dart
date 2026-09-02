@@ -142,7 +142,7 @@ void main() {
       // cross-family default.
       expect(allowedUnitsFor(_ing(mg)), contains(mg));
       expect(allowedUnitsFor(_ing(flOz, density: 1)), contains(flOz));
-      for (final d in kAllUnits.where((u) => u != mg && u != flOz)) {
+      for (final d in kIngredientUnits.where((u) => u != mg && u != flOz)) {
         final units = allowedUnitsFor(_ing(d, density: 1));
         expect(units, isNot(contains(mg)), reason: 'mg via ${d.id}');
         expect(units, isNot(contains(flOz)), reason: 'fl_oz via ${d.id}');
@@ -151,7 +151,10 @@ void main() {
 
     test('D4c: the default unit is admitted when its family is — and a row '
         'whose default falls outside says so rather than smuggling it in', () {
-      for (final u in kAllUnits) {
+      // `batch` is deliberately absent: it is a sub-recipe denomination,
+      // never an ingredient's unit (step 8.6 / D2) — hence
+      // [kIngredientUnits] rather than [kAllUnits].
+      for (final u in kIngredientUnits) {
         final bare = _ing(u);
         final bridged = _ing(u, density: 1);
         // With a density every default unit is sayable, as before.

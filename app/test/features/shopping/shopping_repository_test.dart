@@ -60,6 +60,50 @@ Future<void> _insertRecipe(
   }
 }
 
+/// Adds a component line ("¼ cup of [subRecipeId]") to [recipeId] in its own
+/// group — plain INSERTs, because the local tables are VIEWS (no UPSERT).
+Future<void> _insertComponentLine(
+  PowerSyncDatabase db,
+  String recipeId,
+  String subRecipeId, {
+  double? quantity = 0.25,
+  Unit unit = cup,
+}) async {
+  final now = DateTime.now().toUtc().toIso8601String();
+  final groupId = '$recipeId-cg-$subRecipeId';
+  await db.execute(
+    'INSERT INTO ingredient_group (id, household_id, recipe_id, sort_order, '
+    'created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)',
+    [groupId, 'h', recipeId, now, now],
+  );
+  await db.execute(
+    'INSERT INTO recipe_line_item (id, household_id, group_id, sub_recipe_id, '
+    'quantity, unit, sort_order, created_at, updated_at) '
+    'VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)',
+    [
+      '$recipeId-cli-$subRecipeId',
+      'h',
+      groupId,
+      subRecipeId,
+      quantity,
+      unit.id,
+      now,
+      now,
+    ],
+  );
+}
+
+/// "makes [qty] [unit]" on [id].
+Future<void> _setYield(
+  PowerSyncDatabase db,
+  String id,
+  double qty,
+  Unit unit,
+) => db.execute(
+  'UPDATE recipe SET yield_qty = ?, yield_unit = ? WHERE id = ?',
+  [qty, unit.id, id],
+);
+
 void main() {
   late PowerSyncDatabase db;
   late Directory dir;
@@ -597,5 +641,133 @@ void main() {
     final labels = item.contributions.map((c) => c.label).join('\n');
     expect(labels, contains('measure beside non-count unit "g"'));
     expect(labels, contains('measure beside non-count unit "to taste"'));
+  });
+
+  group('nested recipes (step 8.6 / D4)', () {
+    /// Sliders (serves 1) with 500 g flour and ¼ cup of the aioli; the aioli
+    /// (makes 1 cup) is 240 g of almonds.
+    Future<void> seed({bool withYield = true}) async {
+      await _insertIngredient(db, 'almonds', 'Almonds', 'pantry', 'g');
+      await _insertRecipe(
+        db,
+        'sliders',
+        'Sausage Sliders',
+        servings: 1,
+        lines: [('flour', 500, g)],
+      );
+      await _insertRecipe(
+        db,
+        'aioli',
+        'Romesco Aioli',
+        servings: 4,
+        keepsForDays: 5,
+        lines: [('almonds', 240, g)],
+      );
+      if (withYield) await _setYield(db, 'aioli', 1, cup);
+      await _insertComponentLine(db, 'sliders', 'aioli');
+      await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 5,
+        mealSlot: 'Dinner',
+        recipeId: 'sliders',
+        eaterIds: ['a'],
+      );
+    }
+
+    test("the sub-recipe's ingredients contribute, scaled by the batch factor, "
+        'with provenance naming both levels', () async {
+      await seed();
+      final list = await repo.watchShoppingList(_week).first;
+      final almonds = list.groups
+          .expand((g) => g.items)
+          .firstWhere((i) => i.ingredientId == 'almonds');
+      // 240 g × ¼ batch.
+      expect(almonds.totals.single.amount, closeTo(60, 1e-9));
+      expect(
+        almonds.contributions.single.label,
+        'Romesco Aioli · for Sausage Sliders · cook Sat',
+      );
+    });
+
+    test('the component LINE itself never becomes an item — you buy almonds, '
+        'not aioli', () async {
+      await seed();
+      final list = await repo.watchShoppingList(_week).first;
+      final names = list.groups.expand((g) => g.items).map((i) => i.name);
+      expect(names, isNot(contains('Romesco Aioli')));
+      expect(names, containsAll(['Flour', 'Almonds']));
+    });
+
+    test('an unresolved component contributes NOTHING, and the echo names the '
+        'parent that is short', () async {
+      await seed(withYield: false);
+      final list = await repo.watchShoppingList(_week).first;
+      expect(list.groups.expand((g) => g.items).map((i) => i.ingredientId), [
+        'flour',
+      ]);
+      expect(list.unresolvedComponents, [
+        (recipeId: 'sliders', recipeTitle: 'Sausage Sliders', count: 1),
+      ]);
+    });
+
+    test('a resolved week carries no echo', () async {
+      await seed();
+      expect(
+        (await repo.watchShoppingList(_week).first).unresolvedComponents,
+        isEmpty,
+      );
+    });
+
+    test('an ingredient used at both levels sums into one line', () async {
+      await _insertRecipe(
+        db,
+        'sliders',
+        'Sausage Sliders',
+        servings: 1,
+        lines: [('flour', 100, g)],
+      );
+      await _insertRecipe(
+        db,
+        'aioli',
+        'Romesco Aioli',
+        servings: 4,
+        keepsForDays: 5,
+        lines: [('flour', 200, g)],
+      );
+      await _setYield(db, 'aioli', 1, cup);
+      await _insertComponentLine(db, 'sliders', 'aioli', quantity: 0.5);
+      await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 5,
+        mealSlot: 'Dinner',
+        recipeId: 'sliders',
+        eaterIds: ['a'],
+      );
+
+      final list = await repo.watchShoppingList(_week).first;
+      final flour = list.groups
+          .expand((g) => g.items)
+          .firstWhere((i) => i.ingredientId == 'flour');
+      // 100 g direct + 200 g × ½ batch.
+      expect(flour.totals.single.amount, closeTo(200, 1e-9));
+      expect(flour.contributions, hasLength(2));
+    });
+
+    test('scaling the parent scales the nested contribution too', () async {
+      await seed();
+      await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 5,
+        mealSlot: 'Lunch',
+        recipeId: 'sliders',
+        eaterIds: ['a'],
+      );
+      final list = await repo.watchShoppingList(_week).first;
+      final almonds = list.groups
+          .expand((g) => g.items)
+          .firstWhere((i) => i.ingredientId == 'almonds');
+      // Two portions of a serves-1 recipe → ×2 → ½ batch of the aioli.
+      expect(almonds.totals.single.amount, closeTo(120, 1e-9));
+    });
   });
 }

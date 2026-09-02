@@ -17,6 +17,7 @@ CookContributionInput _cook(
   String recipe = 'Recipe',
   int cookDay = 0,
   bool batched = false,
+  List<String> forParents = const [],
 }) => (
   ingredientId: ingredientId,
   quantity: qty,
@@ -26,6 +27,7 @@ CookContributionInput _cook(
   recipeTitle: recipe,
   cookDay: cookDay,
   batched: batched,
+  forParents: forParents,
 );
 
 ManualContributionInput _manual(
@@ -337,6 +339,50 @@ void main() {
         'Curry · cook Mon',
       );
     });
+
+    test('a component contribution gains one segment — deepest recipe first, '
+        'then the plan it serves (step 8.6 / D4)', () {
+      expect(
+        cookLabel(
+          _cook(
+            'x',
+            1,
+            g,
+            recipe: 'Romesco Aioli',
+            cookDay: 5,
+            forParents: const ['Sliders'],
+          ),
+          _weekdays,
+        ),
+        'Romesco Aioli · for Sliders · cook Sat',
+      );
+    });
+
+    test('two parents sharing one component batch are both named', () {
+      expect(
+        cookLabel(
+          _cook(
+            'x',
+            1,
+            g,
+            recipe: 'Romesco Aioli',
+            cookDay: 5,
+            forParents: const ['Sliders', 'Toasts'],
+          ),
+          _weekdays,
+        ),
+        'Romesco Aioli · for Sliders + Toasts · cook Sat',
+      );
+    });
+
+    test('a component contribution keeps its day even unbatched — the day is '
+        'the actionable fact for a derived cook', () {
+      final label = cookLabel(
+        _cook('x', 1, g, recipe: 'Aioli', forParents: const ['Sliders']),
+        _weekdays,
+      );
+      expect(label, contains('cook Mon'));
+    });
   });
 
   group('buildShoppingList', () {
@@ -345,12 +391,14 @@ void main() {
       List<ShoppingEntryInput> entries = const [],
       Map<String, List<ManualContributionInput>> manual = const {},
       Map<String, IngredientMetaInput> meta = const {},
+      List<UnresolvedComponentNote> unresolvedComponents = const [],
     }) => buildShoppingList(
       cook: cook,
       entries: entries,
       manual: manual,
       meta: meta,
       weekdayShort: _weekdays,
+      unresolvedComponents: unresolvedComponents,
     );
 
     IngredientMetaInput metaFor(
@@ -764,6 +812,82 @@ void main() {
       expect(manualLine.quantity, 2);
       expect(manualLine.unit, pieces); // honest count fallback
       expect(item.totals.single.amount, 3); // counts sum honestly
+    });
+
+    test('a component contributes through the pipeline, provenance naming '
+        'both levels (step 8.6 / D4)', () {
+      // 240 g of almonds in a 1-cup aioli, at ¼ batch for Saturday's sliders.
+      final list = build(
+        cook: [
+          _cook(
+            'almonds',
+            60,
+            g,
+            recipe: 'Romesco Aioli',
+            cookDay: 5,
+            forParents: const ['Sliders'],
+          ),
+        ],
+        meta: {'almonds': metaFor('Almonds, blanched', 'pantry')},
+      );
+      final item = list.groups.single.items.single;
+      expect(item.totals.single, Quantity(60, g));
+      expect(
+        item.contributions.single.label,
+        'Romesco Aioli · for Sliders · cook Sat',
+      );
+    });
+
+    test(
+      'an ingredient used at BOTH levels sums into one line you buy once',
+      () {
+        final list = build(
+          cook: [
+            _cook('oil', 30, ml, recipe: 'Sausage Sliders', cookDay: 5),
+            _cook(
+              'oil',
+              30,
+              ml,
+              recipe: 'Romesco Aioli',
+              cookDay: 5,
+              forParents: const ['Sliders'],
+            ),
+          ],
+          meta: {'oil': metaFor('Olive oil', 'fats & oils', unit: ml)},
+        );
+        final item = list.groups.single.items.single;
+        expect(item.totals.single, Quantity(60, ml));
+        expect(item.contributions.map((c) => c.label), [
+          'Sausage Sliders',
+          'Romesco Aioli · for Sliders · cook Sat',
+        ]);
+      },
+    );
+
+    test('an unresolved component contributes NOTHING, and the echo says so '
+        'rather than leaving the list quietly short', () {
+      final list = build(
+        cook: [_cook('pork', 500, g, recipe: 'Sausage Sliders', cookDay: 5)],
+        meta: {'pork': metaFor('Pork mince', 'meat')},
+        unresolvedComponents: const [
+          (recipeId: 'sliders', recipeTitle: 'Sausage Sliders', count: 1),
+        ],
+      );
+      // Nothing from the aioli is on the list — no invented quantity anywhere.
+      expect(list.groups.expand((g) => g.items).map((i) => i.ingredientId), [
+        'pork',
+      ]);
+      expect(list.unresolvedComponents, [
+        (recipeId: 'sliders', recipeTitle: 'Sausage Sliders', count: 1),
+      ]);
+    });
+
+    test('no unresolved components means no echo at all', () {
+      final list = build(
+        cook: [_cook('flour', 100, g)],
+        meta: {'flour': metaFor('Flour', 'baking')},
+      );
+      expect(list.unresolvedComponents, isEmpty);
     });
   });
 }

@@ -13,6 +13,17 @@
 /// day is the earliest covered day (display-only this step). Scale factor is
 /// the raw `total_portions / servings_base` — honest, not nudged to a whole
 /// batch.
+///
+/// **Nested recipes (step 8.6 / D3).** A planned recipe's *component* lines
+/// derive sessions of their own: each parent session demands `parent scale ×
+/// batches-per-parent-batch` of the sub-recipe ([ComponentDemand]), every
+/// demand on the same sub-recipe clusters into that recipe's own sessions
+/// through the machinery above, and the resulting session's scale reads in
+/// BATCHES ([CookSession.batchesToCook]) because portions are the wrong
+/// denomination for a sauce. The walk is depth-first with a visited-set guard,
+/// so a cycle raced in by two devices stops and flags ([ComponentCycle])
+/// instead of looping. A component whose batch math does not resolve becomes a
+/// first-class [ComponentGap] on the plan — never a `1×` assumption.
 library;
 
 // Freezed needs each class's private `._` constructor before the factory (for
@@ -21,6 +32,9 @@ library;
 import 'dart:math' show max, min;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
+
+import '../../../core/units/units.dart';
+import '../../recipes/domain/component_math.dart';
 
 part 'cook_plan.freezed.dart';
 
@@ -56,7 +70,46 @@ abstract class PlannedRecipe with _$PlannedRecipe {
   }) = _PlannedRecipe;
 }
 
-/// A derived cook session: one batch to cook on [cookDay], covering [covers].
+/// One parent cook session's demand on a sub-recipe (step 8.6 / D3): the
+/// [batches] of it that session needs, and who needs them.
+///
+/// [parentRecipeId]/[parentTitle] name the **planned** recipe at the top of the
+/// walk — the one a person put on the week and will recognise ("for Sausage
+/// Sliders"), which is also what the shopping breakdown's extra provenance
+/// segment says. [via] names the intermediate recipe when the demand came
+/// through one (an aioli inside a sauce inside the sliders); it is null at
+/// depth one, which is every demand a printed page has yet produced.
+@freezed
+abstract class ComponentDemand with _$ComponentDemand {
+  const factory ComponentDemand({
+    required String parentRecipeId,
+    required String parentTitle,
+
+    /// The demanding parent session's cook day (0=Mon..6=Sun) — the day this
+    /// batch has to be ready *by*.
+    required int cookDay,
+
+    /// Batches of the sub-recipe, already multiplied through the parent
+    /// session's own scale factor.
+    required double batches,
+    String? via,
+  }) = _ComponentDemand;
+}
+
+/// A derived cook session: one batch to cook on [cookDay], covering [covers]
+/// and/or answering [demands].
+///
+/// Two flavours, and a session is exactly one of them (step 8.6 / D3):
+///
+/// - a **meal session** covers planned meals and scales in PORTIONS
+///   ([totalPortions] / [scaleFactor] = portions ÷ servings_base);
+/// - a **component session** answers other recipes' component lines and scales
+///   in BATCHES ([batchesToCook], and [scaleFactor] *is* that number).
+///
+/// They are never merged into one session even for the same recipe on the same
+/// day: "4 portions + ¼ batch" is two denominations, and summing them would
+/// need a number nobody stated. The two cards sit side by side instead.
+///
 /// Everything past the stored fields is a pure getter over them.
 @freezed
 abstract class CookSession with _$CookSession {
@@ -74,24 +127,62 @@ abstract class CookSession with _$CookSession {
     /// The meals this batch covers, ascending by day (may include repeats on a
     /// day — e.g. a lunch and a dinner of the same dish).
     @Default(<CoveredMeal>[]) List<CoveredMeal> covers,
+
+    /// The component demands this batch answers (step 8.6). Non-empty exactly
+    /// for a component session.
+    @Default(<ComponentDemand>[]) List<ComponentDemand> demands,
   }) = _CookSession;
 
-  /// Distinct covered days, ascending.
+  /// Whether this session exists to feed another recipe's component line
+  /// rather than a planned meal — the card that reads "×¼ batch", not
+  /// "×2 — covers 8 portions".
+  bool get isComponent => demands.isNotEmpty;
+
+  /// Batches to cook, or null for a meal session. The sum of every demand this
+  /// session answers.
+  double? get batchesToCook =>
+      isComponent ? demands.fold<double>(0, (s, d) => s + d.batches) : null;
+
+  /// The distinct titles of the recipes demanding this component batch, in
+  /// first-seen order — the card's "for Sausage Sliders" (and, when two
+  /// parents share a batch, both of them).
+  List<String> get demandedBy {
+    final seen = <String>{};
+    return [
+      for (final d in demands)
+        if (seen.add(d.parentTitle)) d.parentTitle,
+    ];
+  }
+
+  /// Distinct days this batch is used, ascending — covered meal days for a
+  /// meal session, demanding parents' cook days for a component one.
   List<int> get coveredDays {
-    final set = {for (final m in covers) m.dayOfWeek};
+    final set = {
+      for (final m in covers) m.dayOfWeek,
+      for (final d in demands) d.cookDay,
+    };
     return set.toList()..sort();
   }
 
   /// The last day this batch is eaten.
   int get lastCoveredDay => coveredDays.isEmpty ? cookDay : coveredDays.last;
 
-  /// Portions to cook: the sum of every covered meal's demand.
+  /// Portions to cook: the sum of every covered meal's demand. Zero on a
+  /// component session — portions are not its denomination ([batchesToCook]
+  /// is).
   int get totalPortions => covers.fold(0, (s, m) => s + m.portions);
 
-  /// The raw batch multiplier — `total_portions / servings_base`. Honest, not
-  /// rounded to a whole recipe (whole-ingredient scaling is deferred).
-  double get scaleFactor =>
-      servingsBase == 0 ? 0 : totalPortions / servingsBase;
+  /// The multiplier everything downstream scales the recipe's lines by.
+  ///
+  /// A meal session's is the raw `total_portions / servings_base` — honest,
+  /// not rounded to a whole recipe (whole-ingredient scaling is deferred). A
+  /// component session's is its batch count directly: one batch means the
+  /// recipe as written, so ×batches is exactly right and needs no servings.
+  double get scaleFactor {
+    final batches = batchesToCook;
+    if (batches != null) return batches;
+    return servingsBase == 0 ? 0 : totalPortions / servingsBase;
+  }
 
   /// Covered days that fall past the fridge window and are therefore served
   /// from the freezer (only meaningful for a [freezable] recipe with a known
@@ -124,7 +215,21 @@ abstract class RecipeCookPlan with _$RecipeCookPlan {
     @Default(<CookSession>[]) List<CookSession> sessions,
   }) = _RecipeCookPlan;
 
+  /// The sessions cooked for planned meals (portion-denominated).
+  List<CookSession> get mealSessions => [
+    for (final s in sessions)
+      if (!s.isComponent) s,
+  ];
+
+  /// The sessions cooked because another recipe lists this one as a component
+  /// (batch-denominated, step 8.6).
+  List<CookSession> get componentSessions => [
+    for (final s in sessions)
+      if (s.isComponent) s,
+  ];
+
   /// Total portions of this recipe cooked across the week (all sessions).
+  /// Component sessions contribute nothing — they are counted in batches.
   int get totalPortions => sessions.fold(0, (s, x) => s + x.totalPortions);
 
   /// Distinct days this recipe is eaten across the week, ascending.
@@ -145,17 +250,62 @@ abstract class RecipeCookPlan with _$RecipeCookPlan {
   bool get usesFreezer => sessions.any((s) => s.hasFreezerRescue);
 }
 
+/// Who demanded a component the plan could not derive — the planned recipe at
+/// the top of the walk, and the day it is cooked.
+@freezed
+abstract class ComponentDemandSource with _$ComponentDemandSource {
+  const factory ComponentDemandSource({
+    required String recipeId,
+    required String title,
+    required int cookDay,
+  }) = _ComponentDemandSource;
+}
+
+/// A component the plan could NOT derive a session for (step 8.6 / D3) — the
+/// named gap the cook card renders in place of a scale.
+///
+/// This is a first-class value, not a fallback: the alternative to a gap is
+/// assuming one batch, which is precisely the invented number this app
+/// refuses. [reason] says which honest refusal it is (no yield, a unit in no
+/// yield's family, no amount, a cycle), and [demandedBy] says whose plan is
+/// short because of it.
+@freezed
+abstract class ComponentGap with _$ComponentGap {
+  const factory ComponentGap({
+    /// The sub-recipe that cannot be derived.
+    required String recipeId,
+    required String title,
+    required UnresolvedComponentAmount reason,
+    @Default(<ComponentDemandSource>[]) List<ComponentDemandSource> demandedBy,
+  }) = _ComponentGap;
+}
+
 /// The whole derived cook plan: one [RecipeCookPlan] per recipe on the week,
-/// ordered by earliest cook day then title.
+/// ordered by earliest cook day then title, plus the component [gaps] that
+/// could not be turned into sessions.
 @freezed
 abstract class CookPlan with _$CookPlan {
   const CookPlan._();
 
   const factory CookPlan({
     @Default(<RecipeCookPlan>[]) List<RecipeCookPlan> recipes,
+    @Default(<ComponentGap>[]) List<ComponentGap> gaps,
   }) = _CookPlan;
 
-  bool get isEmpty => recipes.isEmpty;
+  bool get isEmpty => recipes.isEmpty && gaps.isEmpty;
+
+  /// How many components each PLANNED recipe is short by — the shopping
+  /// list's per-parent echo line ("1 component unresolved"), keyed by the
+  /// planned recipe's id.
+  Map<String, int> get unresolvedComponentsByParent {
+    final counts = <String, int>{};
+    for (final gap in gaps) {
+      for (final source in gap.demandedBy) {
+        counts.update(source.recipeId, (v) => v + 1, ifAbsent: () => 1);
+      }
+    }
+    return counts;
+  }
 }
 
 /// Greedy shelf-life clustering for one recipe (spec §4): sort the days the
@@ -171,53 +321,107 @@ abstract class CookPlan with _$CookPlan {
 /// to 0 ("eat the day you cook") rather than trusted — a negative window would
 /// split even same-day meals into separate cooks.
 List<CookSession> clusterSessions(PlannedRecipe recipe) {
-  if (recipe.meals.isEmpty) return const [];
+  final keeps = _clampWindow(recipe.keepsForDays);
+  final freezerDays = _clampWindow(recipe.freezerDays);
+  return [
+    for (final cluster in _clusterByDay<CoveredMeal>(
+      recipe.meals,
+      dayOf: (m) => m.dayOfWeek,
+      keepsForDays: keeps,
+      freezable: recipe.freezable,
+      freezerDays: freezerDays,
+    ))
+      CookSession(
+        recipeId: recipe.recipeId,
+        recipeTitle: recipe.title,
+        servingsBase: recipe.servingsBase,
+        cookDay: cluster.first.dayOfWeek,
+        keepsForDays: keeps,
+        freezable: recipe.freezable,
+        freezerDays: freezerDays,
+        covers: List.unmodifiable(cluster),
+      ),
+  ];
+}
 
-  // Stable ascending sort by day so same-day meals keep their input order.
-  final meals = [...recipe.meals]
-    ..sort((a, b) => a.dayOfWeek.compareTo(b.dayOfWeek));
+/// The same greedy shelf-life clustering [clusterSessions] runs, over the
+/// component demands on one sub-recipe (step 8.6 / D3): each cluster becomes
+/// one **batch-denominated** session cooked on its earliest demanding parent's
+/// cook day, and bounded by the sub-recipe's OWN keeps/freezer facts — a sauce
+/// that keeps three days is cooked twice for parents six days apart, exactly
+/// as a planned meal would be.
+List<CookSession> clusterComponentSessions({
+  required String recipeId,
+  required String title,
+  required double servingsBase,
+  required List<ComponentDemand> demands,
+  int? keepsForDays,
+  bool freezable = false,
+  int? freezerDays,
+}) {
+  final keeps = _clampWindow(keepsForDays);
+  final freezer = _clampWindow(freezerDays);
+  return [
+    for (final cluster in _clusterByDay<ComponentDemand>(
+      demands,
+      dayOf: (d) => d.cookDay,
+      keepsForDays: keeps,
+      freezable: freezable,
+      freezerDays: freezer,
+    ))
+      CookSession(
+        recipeId: recipeId,
+        recipeTitle: title,
+        servingsBase: servingsBase,
+        // On or before the earliest demanding parent's cook day (D3).
+        cookDay: cluster.first.cookDay,
+        keepsForDays: keeps,
+        freezable: freezable,
+        freezerDays: freezer,
+        demands: List.unmodifiable(cluster),
+      ),
+  ];
+}
 
-  // Clamp negative windows to 0 once, and carry the clamped values onto the
-  // sessions so [CookSession.frozenDays] agrees with the clustering below.
-  final rawKeeps = recipe.keepsForDays;
-  final keeps = rawKeeps == null ? null : max(0, rawKeeps);
-  final rawFreezer = recipe.freezerDays;
-  final freezerDays = rawFreezer == null ? null : max(0, rawFreezer);
+/// A negative shelf-life window (bad data) clamped to 0 — "eat the day you
+/// cook". Trusting it would split even same-day meals into separate cooks.
+int? _clampWindow(int? days) => days == null ? null : max(0, days);
 
-  CookSession sessionFrom(int cookDay, List<CoveredMeal> covers) => CookSession(
-    recipeId: recipe.recipeId,
-    recipeTitle: recipe.title,
-    servingsBase: recipe.servingsBase,
-    cookDay: cookDay,
-    keepsForDays: keeps,
-    freezable: recipe.freezable,
-    freezerDays: freezerDays,
-    covers: List.unmodifiable(covers),
-  );
+/// The greedy walk both clusterings share: sort by day, start a cluster at the
+/// first item, fold each later one in while it stays within the fridge window
+/// (or is rescued by the freezer), else open a new cluster. O(n log n).
+///
+/// An unknown [keepsForDays] never splits — one cluster covering everything,
+/// because inventing a window would be inventing a number.
+List<List<T>> _clusterByDay<T>(
+  List<T> items, {
+  required int Function(T) dayOf,
+  required int? keepsForDays,
+  required bool freezable,
+  required int? freezerDays,
+}) {
+  if (items.isEmpty) return const [];
+  // Stable ascending sort by day so same-day items keep their input order.
+  final sorted = [...items]..sort((a, b) => dayOf(a).compareTo(dayOf(b)));
+  if (keepsForDays == null) return [sorted];
 
-  // Unknown shelf life: one session, no splitting (never invent a window).
-  if (keeps == null) {
-    return [sessionFrom(meals.first.dayOfWeek, meals)];
-  }
-
-  final sessions = <CookSession>[];
-  var start = meals.first.dayOfWeek;
-  var current = <CoveredMeal>[meals.first];
-
-  for (final meal in meals.skip(1)) {
-    final gap = meal.dayOfWeek - start;
+  final clusters = <List<T>>[];
+  var start = dayOf(sorted.first);
+  var current = <T>[sorted.first];
+  for (final item in sorted.skip(1)) {
+    final gap = dayOf(item) - start;
     final freezerReaches =
-        recipe.freezable && (freezerDays == null || gap <= freezerDays);
-    if (gap <= keeps || freezerReaches) {
-      current.add(meal);
+        freezable && (freezerDays == null || gap <= freezerDays);
+    if (gap <= keepsForDays || freezerReaches) {
+      current.add(item);
     } else {
-      sessions.add(sessionFrom(start, current));
-      start = meal.dayOfWeek;
-      current = [meal];
+      clusters.add(current);
+      start = dayOf(item);
+      current = [item];
     }
   }
-  sessions.add(sessionFrom(start, current));
-  return sessions;
+  clusters.add(current);
+  return clusters;
 }
 
 /// The whole-batch nudge for a session cooking a fractional batch (step 7.6):
@@ -232,13 +436,17 @@ typedef WholeBatchNudge = ({
 });
 
 /// The nudge for [session], or null when there is nothing to nudge:
-/// the raw factor is already a whole number (within float noise), or the
-/// session's inputs are degenerate (`servings_base` ≤ 0, nothing covered).
+/// the raw factor is already a whole number (within float noise), the session
+/// is a batch-denominated component one (step 8.6 — its scale is already in
+/// batches, and "cook ×1, 3 portions left over" is the wrong sentence for a
+/// sauce), or the session's inputs are degenerate (`servings_base` ≤ 0,
+/// nothing covered).
 ///
 /// The nudge is display-level advice ("cook ×1 — covers 4 portions · 1 left
 /// over"); the honest raw factor stays the number everything else — the
 /// shopping list included — scales by (invariant 3).
 WholeBatchNudge? wholeBatchNudgeFor(CookSession session) {
+  if (session.isComponent) return null;
   final raw = session.scaleFactor;
   if (session.servingsBase <= 0 || raw <= 0) return null;
   if ((raw - raw.round()).abs() < 1e-9) return null; // already whole
@@ -303,9 +511,39 @@ BatchHint? batchHintFor({
   return null;
 }
 
+/// One component line of a recipe, as the expansion needs it (step 8.6).
+/// `quantity` is null on a line that carries no number, which is legal to
+/// store and derives nothing.
+typedef ComponentLine = ({String subRecipeId, double? quantity, Unit unit});
+
+/// A recipe as the component walk sees it: the shelf-life facts a derived
+/// session inherits, the yields its own component references are resolved
+/// against, and the component lines it is built from.
+///
+/// The repository supplies one of these per LIVE recipe in the household, so
+/// the walk can reach a component of a component without another query. A
+/// sub-recipe id the map does not hold is a dangling link: nothing is derived
+/// and no gap is raised — the line degrades to the plain text it stored (D5).
+typedef ComponentRecipe = ({
+  String title,
+  double servingsBase,
+  int? keepsForDays,
+  bool freezable,
+  int? freezerDays,
+  List<YieldDenomination> yields,
+  List<ComponentLine> components,
+});
+
 /// Builds the whole derived cook plan from the week's [recipes], ordering the
 /// cards by earliest cook day then title.
-CookPlan buildCookPlan(List<PlannedRecipe> recipes) {
+///
+/// [components] is the household's component graph (step 8.6 / D3). Passing
+/// none — the default — derives exactly what it did before nested recipes
+/// existed: meal sessions and nothing else.
+CookPlan buildCookPlan(
+  List<PlannedRecipe> recipes, {
+  Map<String, ComponentRecipe> components = const {},
+}) {
   final plans = <RecipeCookPlan>[];
   for (final r in recipes) {
     final sessions = clusterSessions(r);
@@ -322,9 +560,149 @@ CookPlan buildCookPlan(List<PlannedRecipe> recipes) {
       ),
     );
   }
+
+  final (demands, gaps) = expandComponentDemands(plans, components);
+  for (final entry in demands.entries) {
+    final recipe = components[entry.key];
+    if (recipe == null) continue;
+    final sessions = clusterComponentSessions(
+      recipeId: entry.key,
+      title: recipe.title,
+      servingsBase: recipe.servingsBase,
+      keepsForDays: recipe.keepsForDays,
+      freezable: recipe.freezable,
+      freezerDays: recipe.freezerDays,
+      demands: entry.value,
+    );
+    if (sessions.isEmpty) continue;
+    // A sub-recipe that is ALSO on the week keeps one card: its meal sessions
+    // and its component sessions sit side by side, in two denominations that
+    // are never summed.
+    final existing = plans.indexWhere((p) => p.recipeId == entry.key);
+    if (existing >= 0) {
+      plans[existing] = plans[existing].copyWith(
+        sessions: [...plans[existing].sessions, ...sessions],
+      );
+    } else {
+      plans.add(
+        RecipeCookPlan(
+          recipeId: entry.key,
+          title: recipe.title,
+          servingsBase: recipe.servingsBase,
+          keepsForDays: recipe.keepsForDays,
+          freezable: recipe.freezable,
+          freezerDays: recipe.freezerDays,
+          sessions: sessions,
+        ),
+      );
+    }
+  }
+
   plans.sort((a, b) {
     final c = a.firstCookDay.compareTo(b.firstCookDay);
     return c != 0 ? c : a.title.toLowerCase().compareTo(b.title.toLowerCase());
   });
-  return CookPlan(recipes: plans);
+  return CookPlan(recipes: plans, gaps: gaps);
+}
+
+/// Walks every planned session's component lines depth-first, returning the
+/// [ComponentDemand]s per sub-recipe and the [ComponentGap]s for the ones that
+/// could not be resolved (step 8.6 / D3).
+///
+/// A parent session demanding `f` batches of a sub-recipe whose own line asks
+/// for `b` batches of a third recipe demands `f × b` of that third one — the
+/// multiplication is the whole recursion.
+///
+/// The walk carries a **visited set** down each branch. A cycle cannot normally
+/// be written (the server trigger and [closesComponentCycle] both refuse
+/// one), but two devices racing can outrun the trigger, and a derivation that
+/// looped would hang the Cook tab rather than merely be wrong. It stops at the
+/// repeat and raises a [ComponentCycle] gap instead.
+(Map<String, List<ComponentDemand>>, List<ComponentGap>) expandComponentDemands(
+  List<RecipeCookPlan> plans,
+  Map<String, ComponentRecipe> components,
+) {
+  final demands = <String, List<ComponentDemand>>{};
+  // Keyed so the same recipe failing the same way for two parents is ONE gap
+  // with two demanding sources, not two cards saying the same thing.
+  final gaps = <String, ComponentGap>{};
+
+  void walk({
+    required String recipeId,
+    required double factor,
+    required ComponentDemandSource root,
+    required String? via,
+    required Set<String> visited,
+  }) {
+    final recipe = components[recipeId];
+    if (recipe == null) return;
+    for (final line in recipe.components) {
+      final target = components[line.subRecipeId];
+      // A dangling link derives nothing and flags nothing: the line renders
+      // the text it stored, with plain-text semantics (D5).
+      if (target == null) continue;
+
+      void raise(UnresolvedComponentAmount reason) {
+        final key = '${line.subRecipeId}/$reason';
+        final gap =
+            gaps[key] ??
+            ComponentGap(
+              recipeId: line.subRecipeId,
+              title: target.title,
+              reason: reason,
+            );
+        gaps[key] = gap.demandedBy.any((s) => s.recipeId == root.recipeId)
+            ? gap
+            : gap.copyWith(demandedBy: [...gap.demandedBy, root]);
+      }
+
+      if (visited.contains(line.subRecipeId)) {
+        raise(const ComponentCycle());
+        continue;
+      }
+      final amount = resolveComponentAmount(
+        quantity: line.quantity,
+        unit: line.unit,
+        yields: target.yields,
+      );
+      if (amount is! ResolvedComponentAmount) {
+        raise(amount as UnresolvedComponentAmount);
+        continue;
+      }
+      final batches = factor * amount.batches;
+      (demands[line.subRecipeId] ??= []).add(
+        ComponentDemand(
+          parentRecipeId: root.recipeId,
+          parentTitle: root.title,
+          cookDay: root.cookDay,
+          batches: batches,
+          via: via,
+        ),
+      );
+      walk(
+        recipeId: line.subRecipeId,
+        factor: batches,
+        root: root,
+        via: target.title,
+        visited: {...visited, line.subRecipeId},
+      );
+    }
+  }
+
+  for (final plan in plans) {
+    for (final session in plan.mealSessions) {
+      walk(
+        recipeId: plan.recipeId,
+        factor: session.scaleFactor,
+        root: ComponentDemandSource(
+          recipeId: plan.recipeId,
+          title: plan.title,
+          cookDay: session.cookDay,
+        ),
+        via: null,
+        visited: {plan.recipeId},
+      );
+    }
+  }
+  return (demands, gaps.values.toList());
 }

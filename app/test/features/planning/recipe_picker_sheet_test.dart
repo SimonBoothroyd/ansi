@@ -63,6 +63,15 @@ class _FakeRecipeRepo implements RecipeRepository {
   Future<void> deleteRecipe(String id) async {}
   @override
   Future<void> setFavorite(String id, bool favorite) async {}
+
+  @override
+  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
+
+  @override
+  Future<bool> componentLinkWouldCycle({
+    required String recipeId,
+    required String subRecipeId,
+  }) async => false;
 }
 
 class _FakePlanningRepo implements PlanningRepository {
@@ -206,6 +215,26 @@ void main() {
     expect(
       incompleteNote(const RecipeMacroSummary(stubLines: 2)),
       '2 stub lines',
+    );
+    // Step 8.6 / D8 — the two sub-recipe reasons, in the one helper so all
+    // three surfaces refuse in the same words.
+    expect(
+      incompleteNote(const RecipeMacroSummary(subRecipesUnresolved: 1)),
+      '1 sub-recipe unresolved',
+    );
+    expect(
+      incompleteNote(const RecipeMacroSummary(subRecipesUnresolved: 2)),
+      '2 sub-recipes unresolved',
+    );
+    expect(
+      incompleteNote(const RecipeMacroSummary(subRecipesIncomplete: 1)),
+      '1 sub-recipe incomplete',
+    );
+    expect(
+      incompleteNote(
+        const RecipeMacroSummary(stubLines: 1, subRecipesIncomplete: 3),
+      ),
+      '1 stub line · 3 sub-recipes incomplete',
     );
   });
 

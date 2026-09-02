@@ -125,4 +125,56 @@ void main() {
     // Only the present note survives — no empty second slot.
     expect(rows[0].notes, ['toasted']);
   });
+
+  test('a component line is its own row, keyed by its target (step 8.6)', () {
+    final rows = groupLineUses([
+      _item('a', 'garlic', 'Garlic', quantity: 2, unit: pieces),
+      const LineItem(
+        id: 'b',
+        subRecipeId: 'aioli',
+        ingredientName: 'Romesco Aioli',
+        unit: cup,
+        quantity: 0.25,
+      ),
+    ]);
+
+    expect(rows, hasLength(2));
+    expect(rows[1].isComponent, isTrue);
+    expect(rows[1].subRecipeId, 'aioli');
+    expect(rows[1].ingredientId, isNull);
+    expect(rows[1].ingredientName, 'Romesco Aioli');
+  });
+
+  test(
+    'two references to the same sub-recipe fold like one ingredient does',
+    () {
+      LineItem component(String id, double qty, String? note) => LineItem(
+        id: id,
+        subRecipeId: 'aioli',
+        ingredientName: 'Romesco Aioli',
+        unit: cup,
+        quantity: qty,
+        note: note,
+      );
+      final rows = groupLineUses([
+        component('a', 0.25, 'in the mix'),
+        _item('b', 'tomato', 'Chopped tomatoes', quantity: 400),
+        component('c', 0.5, 'to serve'),
+      ]);
+
+      expect(rows, hasLength(2));
+      expect(rows[0].isMultiUse, isTrue);
+      expect(rows[0].subRecipeId, 'aioli');
+      expect(rows[0].notes, ['in the mix', 'to serve']);
+    },
+  );
+
+  test('an ingredient row keeps a null subRecipeId — the XOR, mirrored', () {
+    final rows = groupLineUses([
+      _item('a', 'garlic', 'Garlic', quantity: 2, unit: pieces),
+    ]);
+    expect(rows.single.subRecipeId, isNull);
+    expect(rows.single.isComponent, isFalse);
+    expect(rows.single.ingredientId, 'garlic');
+  });
 }

@@ -151,6 +151,8 @@ Set<Unit> _derivedSet(Ingredient ingredient, {required bool density}) {
       units.add(pieces);
     case UnitFamily.imprecise:
       break; // joins the imprecise tail below
+    case UnitFamily.batch:
+      break; // sub-recipe denomination — never an ingredient's unit (D2)
   }
 
   // Basis leg: entry in the canonical dimension is always honest.
@@ -196,6 +198,9 @@ Set<Unit> _densityCrossLeg(Ingredient ingredient) {
       g,
       if (big) kg,
     },
+    // A batch is a sub-recipe denomination, never an ingredient's default
+    // unit; a density buys it nothing (D2 — only a yield bridges a batch).
+    UnitFamily.batch => const <Unit>{},
   };
 }
 

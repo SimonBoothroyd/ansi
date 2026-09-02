@@ -1,4 +1,6 @@
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
+import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A recipe with [days] as (dayOfWeek → portions) meals, all on Dinner.
@@ -352,6 +354,410 @@ void main() {
         cookDay: 0,
       );
       expect(wholeBatchNudgeFor(noPortions), isNull);
+    });
+  });
+
+  group('component expansion (step 8.6 / D3)', () {
+    // Sausage Sliders (serves 8) with "¼ cup Romesco Aioli"; the aioli makes
+    // 1 cup and keeps 5 days. The exec plan's own worked example.
+    ComponentRecipe sliders({List<ComponentLine> components = const []}) => (
+      title: 'Sausage Sliders',
+      servingsBase: 8,
+      keepsForDays: 3,
+      freezable: false,
+      freezerDays: null,
+      yields: const <YieldDenomination>[],
+      components: components,
+    );
+    ComponentRecipe aioli({
+      List<YieldDenomination> yields = const [(qty: 1.0, unit: cup)],
+      int? keeps = 5,
+      bool freezable = false,
+      int? freezerDays,
+      List<ComponentLine> components = const [],
+    }) => (
+      title: 'Romesco Aioli',
+      servingsBase: 4,
+      keepsForDays: keeps,
+      freezable: freezable,
+      freezerDays: freezerDays,
+      yields: yields,
+      components: components,
+    );
+
+    const quarterCup = (subRecipeId: 'aioli', quantity: 0.25, unit: cup);
+
+    test('a planned parent derives a batch-denominated component session', () {
+      final plan = buildCookPlan(
+        [
+          _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+        ],
+        components: {
+          'sliders': sliders(components: const [quarterCup]),
+          'aioli': aioli(),
+        },
+      );
+
+      final derived = plan.recipes.firstWhere((r) => r.recipeId == 'aioli');
+      final session = derived.sessions.single;
+      expect(session.isComponent, isTrue);
+      // Parent scale ×1 (8 portions of a serves-8 recipe) × ¼ batch.
+      expect(session.batchesToCook, closeTo(0.25, 1e-12));
+      expect(session.scaleFactor, closeTo(0.25, 1e-12));
+      // Cook on or before the demanding parent's cook day.
+      expect(session.cookDay, 5);
+      expect(session.demandedBy, ['Sausage Sliders']);
+      // Portions are not its denomination.
+      expect(session.totalPortions, 0);
+      expect(plan.gaps, isEmpty);
+    });
+
+    test(
+      'the parent session scale multiplies through: 16 sliders wants ½ cup',
+      () {
+        final plan = buildCookPlan(
+          [
+            _recipe(
+              {5: 16},
+              id: 'sliders',
+              title: 'Sausage Sliders',
+              servings: 8,
+            ),
+          ],
+          components: {
+            'sliders': sliders(components: const [quarterCup]),
+            'aioli': aioli(),
+          },
+        );
+        expect(
+          plan.recipes
+              .firstWhere((r) => r.recipeId == 'aioli')
+              .sessions
+              .single
+              .batchesToCook,
+          closeTo(0.5, 1e-12),
+        );
+      },
+    );
+
+    test(
+      'demands from TWO parents cluster into one batch, labelled with both',
+      () {
+        final plan = buildCookPlan(
+          [
+            _recipe(
+              {5: 8},
+              id: 'sliders',
+              title: 'Sausage Sliders',
+              servings: 8,
+            ),
+            _recipe({6: 2}, id: 'toasts', title: 'Romesco Toasts'),
+          ],
+          components: {
+            'sliders': sliders(components: const [quarterCup]),
+            'toasts': (
+              title: 'Romesco Toasts',
+              servingsBase: 2,
+              keepsForDays: null,
+              freezable: false,
+              freezerDays: null,
+              yields: const <YieldDenomination>[],
+              components: const [
+                (subRecipeId: 'aioli', quantity: 1.0, unit: batches),
+              ],
+            ),
+            'aioli': aioli(),
+          },
+        );
+
+        final derived = plan.recipes.firstWhere((r) => r.recipeId == 'aioli');
+        // One cook: Saturday and Sunday are inside the aioli's 5-day window.
+        expect(derived.sessions, hasLength(1));
+        final session = derived.sessions.single;
+        expect(session.batchesToCook, closeTo(1.25, 1e-12));
+        expect(session.cookDay, 5);
+        expect(session.demandedBy, ['Sausage Sliders', 'Romesco Toasts']);
+        expect(session.coveredDays, [5, 6]);
+      },
+    );
+
+    test("the sub-recipe's OWN shelf life splits the component sessions", () {
+      final plan = buildCookPlan(
+        [
+          _recipe({0: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+          _recipe({6: 2}, id: 'toasts', title: 'Romesco Toasts'),
+        ],
+        components: {
+          'sliders': sliders(components: const [quarterCup]),
+          'toasts': (
+            title: 'Romesco Toasts',
+            servingsBase: 2,
+            keepsForDays: null,
+            freezable: false,
+            freezerDays: null,
+            yields: const <YieldDenomination>[],
+            components: const [
+              (subRecipeId: 'aioli', quantity: 1.0, unit: batches),
+            ],
+          ),
+          'aioli': aioli(),
+        },
+      );
+      final derived = plan.recipes.firstWhere((r) => r.recipeId == 'aioli');
+      // Mon → Sun is 6 days, past the aioli's 5-day fridge window.
+      expect(derived.sessions, hasLength(2));
+      expect(derived.sessions.map((s) => s.cookDay), [0, 6]);
+    });
+
+    test('a freezable sub-recipe folds the far demand into one batch', () {
+      final plan = buildCookPlan(
+        [
+          _recipe({0: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+          _recipe({6: 2}, id: 'toasts', title: 'Romesco Toasts'),
+        ],
+        components: {
+          'sliders': sliders(components: const [quarterCup]),
+          'toasts': (
+            title: 'Romesco Toasts',
+            servingsBase: 2,
+            keepsForDays: null,
+            freezable: false,
+            freezerDays: null,
+            yields: const <YieldDenomination>[],
+            components: const [
+              (subRecipeId: 'aioli', quantity: 1.0, unit: batches),
+            ],
+          ),
+          'aioli': aioli(freezable: true, freezerDays: 30),
+        },
+      );
+      final session = plan.recipes
+          .firstWhere((r) => r.recipeId == 'aioli')
+          .sessions
+          .single;
+      expect(session.batchesToCook, closeTo(1.25, 1e-12));
+      expect(session.hasFreezerRescue, isTrue);
+      expect(session.frozenDays, [6]);
+    });
+
+    test('recursion multiplies through a component of a component', () {
+      final plan = buildCookPlan(
+        [
+          _recipe({3: 4}, id: 'top', title: 'Top', servings: 4),
+        ],
+        components: {
+          'top': (
+            title: 'Top',
+            servingsBase: 4,
+            keepsForDays: null,
+            freezable: false,
+            freezerDays: null,
+            yields: const <YieldDenomination>[],
+            components: const [
+              (subRecipeId: 'mid', quantity: 2.0, unit: batches),
+            ],
+          ),
+          'mid': (
+            title: 'Middle Sauce',
+            servingsBase: 2,
+            keepsForDays: null,
+            freezable: false,
+            freezerDays: null,
+            yields: const [(qty: 1.0, unit: cup)],
+            components: const [
+              (subRecipeId: 'aioli', quantity: 0.5, unit: cup),
+            ],
+          ),
+          'aioli': aioli(),
+        },
+      );
+      final deep = plan.recipes
+          .firstWhere((r) => r.recipeId == 'aioli')
+          .sessions
+          .single;
+      // 2 batches of the sauce × ½ cup of a 1-cup aioli = 1 batch.
+      expect(deep.batchesToCook, closeTo(1, 1e-12));
+      // Labelled with the PLANNED parent (what a person recognises), with the
+      // intermediate carried alongside.
+      expect(deep.demandedBy, ['Top']);
+      expect(deep.demands.single.via, 'Middle Sauce');
+    });
+
+    test('a cycle stops and flags instead of looping', () {
+      final plan = buildCookPlan(
+        [
+          _recipe({0: 4}, id: 'a', title: 'A', servings: 4),
+        ],
+        components: {
+          'a': (
+            title: 'A',
+            servingsBase: 4,
+            keepsForDays: null,
+            freezable: false,
+            freezerDays: null,
+            yields: const [(qty: 1.0, unit: cup)],
+            components: const [
+              (subRecipeId: 'b', quantity: 1.0, unit: batches),
+            ],
+          ),
+          'b': (
+            title: 'B',
+            servingsBase: 4,
+            keepsForDays: null,
+            freezable: false,
+            freezerDays: null,
+            yields: const [(qty: 1.0, unit: cup)],
+            components: const [
+              (subRecipeId: 'a', quantity: 1.0, unit: batches),
+            ],
+          ),
+        },
+      );
+      final gap = plan.gaps.single;
+      expect(gap.recipeId, 'a');
+      expect(gap.reason, const ComponentCycle());
+      expect(gap.demandedBy.single.recipeId, 'a');
+      // B still got its (one, non-looping) session.
+      expect(
+        plan.recipes
+            .firstWhere((r) => r.recipeId == 'b')
+            .sessions
+            .single
+            .batchesToCook,
+        1,
+      );
+    });
+
+    test('an unresolved yield is a named GAP, never a ×1 assumption', () {
+      final plan = buildCookPlan(
+        [
+          _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+        ],
+        components: {
+          'sliders': sliders(components: const [quarterCup]),
+          'aioli': aioli(yields: const []),
+        },
+      );
+      // No session at all for the aioli — nothing was invented to make one.
+      expect(plan.recipes.any((r) => r.recipeId == 'aioli'), isFalse);
+      final gap = plan.gaps.single;
+      expect(gap.recipeId, 'aioli');
+      expect(gap.title, 'Romesco Aioli');
+      expect(gap.reason, const ComponentYieldMissing());
+      expect(gap.demandedBy.single.title, 'Sausage Sliders');
+      expect(gap.demandedBy.single.cookDay, 5);
+      expect(plan.unresolvedComponentsByParent, {'sliders': 1});
+    });
+
+    test('a family mismatch is its own gap, carrying both families', () {
+      final plan = buildCookPlan(
+        [
+          _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+        ],
+        components: {
+          'sliders': sliders(
+            components: const [
+              (subRecipeId: 'aioli', quantity: 2.0, unit: tbsp),
+            ],
+          ),
+          'aioli': aioli(yields: const [(qty: 250.0, unit: g)]),
+        },
+      );
+      expect(
+        plan.gaps.single.reason,
+        const ComponentFamilyMismatch(
+          lineFamily: UnitFamily.volume,
+          yieldFamilies: [UnitFamily.mass],
+        ),
+      );
+    });
+
+    test('one gap, two demanding parents — not two cards saying the same', () {
+      final plan = buildCookPlan(
+        [
+          _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+          _recipe({6: 2}, id: 'toasts', title: 'Romesco Toasts'),
+        ],
+        components: {
+          'sliders': sliders(components: const [quarterCup]),
+          'toasts': (
+            title: 'Romesco Toasts',
+            servingsBase: 2,
+            keepsForDays: null,
+            freezable: false,
+            freezerDays: null,
+            yields: const <YieldDenomination>[],
+            components: const [quarterCup],
+          ),
+          'aioli': aioli(yields: const []),
+        },
+      );
+      expect(plan.gaps, hasLength(1));
+      expect(plan.gaps.single.demandedBy.map((s) => s.title), [
+        'Sausage Sliders',
+        'Romesco Toasts',
+      ]);
+      expect(plan.unresolvedComponentsByParent, {'sliders': 1, 'toasts': 1});
+    });
+
+    test('a dangling link derives nothing AND flags nothing (D5)', () {
+      final plan = buildCookPlan(
+        [
+          _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+        ],
+        components: {
+          'sliders': sliders(components: const [quarterCup]),
+        },
+      );
+      expect(plan.gaps, isEmpty);
+      expect(plan.recipes, hasLength(1));
+    });
+
+    test('a sub-recipe that is ALSO planned keeps both session flavours on one '
+        'card, never summed into one number', () {
+      final plan = buildCookPlan(
+        [
+          _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+          _recipe({5: 4}, id: 'aioli', title: 'Romesco Aioli', servings: 4),
+        ],
+        components: {
+          'sliders': sliders(components: const [quarterCup]),
+          'aioli': aioli(),
+        },
+      );
+      final card = plan.recipes.firstWhere((r) => r.recipeId == 'aioli');
+      expect(card.mealSessions, hasLength(1));
+      expect(card.componentSessions, hasLength(1));
+      expect(card.mealSessions.single.scaleFactor, 1);
+      expect(card.componentSessions.single.scaleFactor, closeTo(0.25, 1e-12));
+      // Portions stay the meal sessions' denomination alone.
+      expect(card.totalPortions, 4);
+    });
+
+    test('passing no component graph derives exactly what it always did', () {
+      final plan = buildCookPlan([
+        _recipe({0: 4, 2: 4}, keeps: 3),
+      ]);
+      expect(plan.recipes.single.sessions.single.covers, hasLength(2));
+      expect(plan.gaps, isEmpty);
+    });
+
+    test('a component session gets no whole-batch nudge — its scale is already '
+        'in batches', () {
+      final plan = buildCookPlan(
+        [
+          _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+        ],
+        components: {
+          'sliders': sliders(components: const [quarterCup]),
+          'aioli': aioli(),
+        },
+      );
+      final session = plan.recipes
+          .firstWhere((r) => r.recipeId == 'aioli')
+          .sessions
+          .single;
+      expect(wholeBatchNudgeFor(session), isNull);
     });
   });
 }

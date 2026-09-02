@@ -296,10 +296,14 @@ class _LineItemEditor extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // A component line (step 8.6 / D1) has no ingredient to look up — the
+    // empty id resolves to nothing and the row falls through to the same
+    // stub-shaped stand-in an unsynced vocab row gets. Lane U replaces this
+    // identity cell with the recipe chip the board draws.
     final ingredient = ref
         .watch(
           lineItemIngredientProvider(
-            ingredientId: item.ingredientId,
+            ingredientId: item.ingredientId ?? '',
             name: item.ingredientName,
           ),
         )
@@ -313,7 +317,7 @@ class _LineItemEditor extends ConsumerWidget {
       final sheetIngredient =
           ingredient ??
           Ingredient(
-            id: item.ingredientId,
+            id: item.ingredientId ?? '',
             canonicalName: item.ingredientName,
             defaultUnit: item.measure != null ? pieces : item.unit,
             status: IngredientStatus.stub,

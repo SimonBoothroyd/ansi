@@ -62,6 +62,12 @@ String recipeSummaryLine(RecipeCookPlan recipe) {
 /// shares one ("Tue + Sat dinner"); otherwise spells each out ("Mon dinner +
 /// Thu lunch"). Ends with the portion count.
 String coversLine(CookSession session) {
+  // A component session covers no meals — it answers other recipes' component
+  // lines, in batches (step 8.6 / D3). Portions are the wrong denomination for
+  // it, so the line names the plans it serves instead. The full card face
+  // (the batch scale, "makes 1 cup, you need ¼") is the board's frame (f).
+  if (session.isComponent) return 'covers ${session.demandedBy.join(' + ')}';
+
   final covers = session.covers;
   final slots = {for (final m in covers) m.mealSlot.toLowerCase()};
   final portions = formatPortions(session.totalPortions);
