@@ -198,15 +198,78 @@ const _garlic = Ingredient(
 
 const _clove = Measure(id: 'm-clove', label: 'clove', amount: 3);
 
+/// A `piece` line on a row whose measure names the thing — the board's frame
+/// (a). Post-curation (plan 0022) `piece` is not in the row's `allowed_units`,
+/// so the shipped `unitNotAllowed` machinery finally reaches this line.
+ReconciliationPayload _piecePayload(String name, String ingredientId) =>
+    ReconciliationPayload(
+      title: 'T',
+      servingsBase: 2,
+      groups: [
+        ReconGroup(
+          lines: [
+            ReconLine(
+              raw: RawLineItem(
+                ingredientText: '1 large ripe $name',
+                qty: 1,
+                unit: 'piece',
+                rawAmount: '1 large',
+              ),
+              band: MatchBand.auto,
+              candidates: [
+                MatchCandidate(
+                  ingredientId: ingredientId,
+                  canonicalName: name,
+                  score: 0.97,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+/// Frame (a) left: one measure, so the sheet opens pre-selected on it.
+const _avocado = Ingredient(
+  id: 'ing-avocado',
+  canonicalName: 'Avocado',
+  defaultUnit: pieces,
+  category: 'produce',
+  status: IngredientStatus.complete,
+  densityGPerMl: 0.634,
+  allowedUnits: [g, tsp, tbsp, cup, ml, handful],
+);
+const _avocadoMeasure = Measure(id: 'm-avo', label: 'avocado', amount: 201);
+
+/// Frame (a) right: three sizes, so nothing is pre-selected and the user picks.
+const _potato = Ingredient(
+  id: 'ing-potato',
+  canonicalName: 'Gold Potato',
+  defaultUnit: pieces,
+  category: 'produce',
+  status: IngredientStatus.complete,
+  densityGPerMl: 0.59,
+  allowedUnits: [g, tsp, tbsp, cup, ml, handful],
+);
+const _potatoSizes = [
+  Measure(id: 'm-p-med', label: 'potato, medium', amount: 213),
+  Measure(id: 'm-p-lrg', label: 'potato, large', amount: 369),
+  Measure(id: 'm-p-sml', label: 'potato, small', amount: 170),
+];
+
 class _FakeIngredientRepo
     with IngredientManagerStubs
     implements IngredientRepository {
+  _FakeIngredientRepo([this.row = _garlic]);
+
+  final Ingredient row;
+
   @override
-  Future<Ingredient?> byId(String id) async => _garlic;
+  Future<Ingredient?> byId(String id) async => row;
 
   @override
   Future<Map<String, Ingredient>> byIds(Set<String> ids) async => {
-    for (final id in ids) id: _garlic,
+    for (final id in ids) id: row,
   };
 
   @override
@@ -222,7 +285,7 @@ class _FakeIngredientRepo
     String source = 'manual',
     Macros? macros,
     MacrosBasis macrosBasis = MacrosBasis.perG,
-  }) async => _garlic;
+  }) async => row;
 
   @override
   Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>
@@ -230,23 +293,25 @@ class _FakeIngredientRepo
 }
 
 class _FakeMeasureRepo implements MeasureRepository {
+  _FakeMeasureRepo([this.rows = const [_clove]]);
+
+  final List<Measure> rows;
+
   @override
   Stream<List<Measure>> watchMeasures(String ingredientId) =>
-      Stream.value(const [_clove]);
+      Stream.value(rows);
 
   @override
   Future<Map<String, List<Measure>>> measuresByIngredients(
     Set<String> ids,
-  ) async => {
-    for (final id in ids) id: const [_clove],
-  };
+  ) async => {for (final id in ids) id: rows};
 
   @override
   Future<Measure> addMeasure({
     required String ingredientId,
     required String label,
     required double amount,
-  }) async => _clove;
+  }) async => rows.first;
 
   @override
   Future<void> softDeleteMeasure(String measureId) async {}
@@ -675,6 +740,127 @@ void main() {
     expect(updated.resolutions.single.unit, 'clove');
     expect(updated.resolutions.single.quantity, 2);
     // And the flag clears now that the unit is one the ingredient carries.
+    expect(find.text('Pick a supported unit'), findsNothing);
+  });
+
+  // --- plan 0022 / ADR-0010 · the board's frame (a) -------------------------
+  //
+  // "1 large ripe avocado" extracts as unit="piece" and used to commit as a
+  // bare count that the macro engine honestly excluded — while the vocab held
+  // avocado = 201 g. Nothing new is built for it: taking `piece` out of the
+  // row's admission list is what finally switches the shipped machinery on.
+
+  Future<void> pumpPieceLine(
+    WidgetTester tester,
+    ProviderContainer container,
+  ) async {
+    await container
+        .read(importControllerProvider.notifier)
+        .startImport(const ImportFromUrl('x'));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: FTheme(
+            data: ansiThemeData(),
+            child: const FScaffold(child: _LiveBody()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('a `piece` line on a single-measure row flags, keeps the raw '
+      'line visible, offers the measure and no `piece`, and resolves in one '
+      'confirm tap', (tester) async {
+    _filterSemanticsAssertions();
+    final container = ProviderContainer(
+      overrides: [
+        importRepositoryProvider.overrideWithValue(
+          _FakeRepo(_piecePayload('Avocado', _avocado.id)),
+        ),
+        ingredientRepositoryProvider.overrideWithValue(
+          _FakeIngredientRepo(_avocado),
+        ),
+        measureRepositoryProvider.overrideWithValue(
+          _FakeMeasureRepo(const [_avocadoMeasure]),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    await pumpPieceLine(tester, container);
+
+    // The flag it should always have been in.
+    expect(find.text('Pick a supported unit'), findsWidgets);
+
+    await tester.tap(find.byIcon(FLucideIcons.pencil));
+    await tester.pumpAndSettle();
+
+    // The source line stays visible — nothing is rewritten behind the user.
+    expect(find.textContaining('ripe Avocado'), findsWidgets);
+
+    // The chips are the offer, and the offer refuses `piece`.
+    expect(find.text('UNIT'), findsOneWidget);
+    expect(find.text('avocado'), findsOneWidget);
+    expect(find.text('piece'), findsNothing);
+
+    // One measure ⇒ the sheet opens on it; Done adopts it with no chip hunt.
+    await tester.tap(find.byType(AmountEditor));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    final updated =
+        container.read(importControllerProvider) as ImportReconciling;
+    expect(updated.resolutions.single.unit, 'avocado');
+    expect(find.text('Pick a supported unit'), findsNothing);
+  });
+
+  testWidgets('three measures pre-select nothing — Save stays gated until the '
+      'user picks a size, and then it clears', (tester) async {
+    _filterSemanticsAssertions();
+    final container = ProviderContainer(
+      overrides: [
+        importRepositoryProvider.overrideWithValue(
+          _FakeRepo(_piecePayload('Gold Potato', _potato.id)),
+        ),
+        ingredientRepositoryProvider.overrideWithValue(
+          _FakeIngredientRepo(_potato),
+        ),
+        measureRepositoryProvider.overrideWithValue(
+          _FakeMeasureRepo(_potatoSizes),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    await pumpPieceLine(tester, container);
+
+    expect(find.text('Pick a supported unit'), findsWidgets);
+    await tester.tap(find.byIcon(FLucideIcons.pencil));
+    await tester.pumpAndSettle();
+
+    // All three sizes in front of the fold, `piece` nowhere.
+    for (final m in _potatoSizes) {
+      expect(find.text(m.label), findsOneWidget);
+    }
+    expect(find.text('piece'), findsNothing);
+
+    // Confirming the sheet without picking resolves NOTHING: no medium
+    // tie-break, no first-in-sort_order guess.
+    await tester.tap(find.byType(AmountEditor));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    var state = container.read(importControllerProvider) as ImportReconciling;
+    expect(state.resolutions.single.unit, 'piece');
+    expect(find.text('Pick a supported unit'), findsWidgets);
+
+    // The user picks. That is the whole interaction.
+    await tester.tap(find.text('potato, large'));
+    await tester.pumpAndSettle();
+    state = container.read(importControllerProvider) as ImportReconciling;
+    expect(state.resolutions.single.unit, 'potato, large');
     expect(find.text('Pick a supported unit'), findsNothing);
   });
 

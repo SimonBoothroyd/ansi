@@ -177,6 +177,14 @@ const kVisibleUnitChips = 5;
 ///
 /// The sort is stable within each rank, so the ADR-0008 chip order the caller
 /// built survives inside every group.
+///
+/// **A parsed `piece` the row refuses ranks nothing** (plan 0022 / ADR-0010).
+/// The chips come from the offer, so a refused `piece` is not among them and
+/// cannot take rank 0; and `piece` is the whole count family, so the
+/// same-family leg has nothing to lift either. What is left in front is the
+/// row's measures at rank 2 — a clove, an avocado, three potato sizes — which
+/// is exactly the offer the user has to choose from. Nothing here reads the
+/// line's words to guess which measure it meant.
 List<UnitSuggestion> rankedUnitChips(
   List<UnitSuggestion> chips, {
   required String? parsedUnit,
@@ -207,10 +215,17 @@ List<UnitSuggestion> rankedUnitChips(
 
 /// The measure a line should open PRE-SELECTED on in the amount editor: when
 /// the source's [unit] is one the matched [ingredient] cannot carry
-/// ([LineIssue.unitNotAllowed]) and the ingredient names its own measures, the
-/// most likely of them ("clove", "can") is almost always what the line meant.
-/// Pre-selecting it turns resolving into one confirm tap instead of a
-/// scroll-and-choose — the flag stays up until the user actually confirms.
+/// ([LineIssue.unitNotAllowed]) and the ingredient names **exactly one**
+/// measure, that measure is what the line meant — there is nothing else it
+/// could have meant. Pre-selecting it turns resolving into one confirm tap
+/// instead of a scroll-and-choose; the flag stays up until the user actually
+/// confirms.
+///
+/// **Two or more measures pre-select nothing** (plan 0022 / ADR-0010, owner).
+/// A potato line arriving as `piece` could be small, medium or large, and
+/// picking the first in `sort_order` — or reading "large" out of the raw text,
+/// or defaulting to medium — is the machine deciding what a piece meant. The
+/// chips are right there; the user picks, and Save stays gated until they do.
 ///
 /// Null when the unit is already fine, when the line printed none, or when the
 /// ingredient has no measure to offer. Volume-labelled measures are skipped for
@@ -228,10 +243,8 @@ Measure? preselectedMeasure(
   ).contains(unit)) {
     return null;
   }
-  for (final m in measures) {
-    if (!isVolumeUnitLabel(m.label)) return m;
-  }
-  return null;
+  final offered = measures.where((m) => !isVolumeUnitLabel(m.label));
+  return offered.length == 1 ? offered.first : null;
 }
 
 /// One line's review state: its outstanding [issues] and, for a matched line,

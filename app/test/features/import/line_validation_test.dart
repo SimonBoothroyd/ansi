@@ -16,6 +16,39 @@ const _garlic = Ingredient(
 
 const _clove = Measure(id: 'm-clove', label: 'clove', amount: 3);
 
+/// The board's frame-(a) row, post-curation (plan 0022): a count-default
+/// produce ingredient whose ONE measure names the thing, so `piece` is not in
+/// its explicit admission list.
+const _avocado = Ingredient(
+  id: 'i-avocado',
+  canonicalName: 'Avocado',
+  defaultUnit: pieces,
+  category: 'produce',
+  status: IngredientStatus.complete,
+  densityGPerMl: 0.634,
+  allowedUnits: [g, tsp, tbsp, cup, ml, handful],
+);
+
+const _avocadoMeasure = Measure(id: 'm-avo', label: 'avocado', amount: 201);
+
+/// The same shape with THREE sizes — the pick-one frame. Which one "1 potato"
+/// meant is exactly what nothing here is allowed to guess.
+const _potato = Ingredient(
+  id: 'i-potato',
+  canonicalName: 'Gold Potato',
+  defaultUnit: pieces,
+  category: 'produce',
+  status: IngredientStatus.complete,
+  densityGPerMl: 0.59,
+  allowedUnits: [g, tsp, tbsp, cup, ml, handful],
+);
+
+const _potatoSizes = [
+  Measure(id: 'm-p-med', label: 'potato, medium', amount: 213),
+  Measure(id: 'm-p-lrg', label: 'potato, large', amount: 369),
+  Measure(id: 'm-p-sml', label: 'potato, small', amount: 170),
+];
+
 /// The owner's kale: `produce`, so J3 gives it `handful` and withholds
 /// `pinch`/`dash`.
 const _kale = Ingredient(
@@ -522,8 +555,7 @@ void main() {
   });
 
   group('preselectedMeasure (one confirm tap, not a scroll-and-choose)', () {
-    test('an inadmissible unit on a measured ingredient pre-picks the first '
-        'measure', () {
+    test('an inadmissible unit on a row with ONE measure pre-picks it', () {
       final picked = preselectedMeasure(
         _garlic,
         const [_clove],
@@ -552,6 +584,84 @@ void main() {
         ], unit: 'ml'),
         isNull,
       );
+    });
+
+    test('plan 0022: THREE measures pre-select nothing — which size a '
+        '`piece` meant is not the machine’s to decide', () {
+      expect(preselectedMeasure(_potato, _potatoSizes, unit: 'piece'), isNull);
+      // …while the same shape with ONE measure still fires: there is nothing
+      // else the line could have meant.
+      expect(
+        preselectedMeasure(_avocado, const [_avocadoMeasure], unit: 'piece'),
+        _avocadoMeasure,
+      );
+    });
+  });
+
+  group('plan 0022 / ADR-0010: a `piece` line on a measured row', () {
+    LineResolution pieceLine(String ingredientId) => LineResolution(
+      lineIndex: 0,
+      band: MatchBand.auto,
+      ingredientText: 'ripe avocado',
+      isRange: false,
+      unit: 'piece',
+      quantity: 1,
+      chosenIngredientId: ingredientId,
+    );
+
+    test('is flagged unitNotAllowed — the state the review screen has always '
+        'known how to handle', () {
+      expect(
+        lineIssues(
+          pieceLine(_avocado.id),
+          ingredient: _avocado,
+          measures: const [_avocadoMeasure],
+        ),
+        [LineIssue.unitNotAllowed],
+      );
+      // …and the Save gate holds because of it.
+      expect(
+        allLinesValid({
+          0: const [LineIssue.unitNotAllowed],
+        }),
+        isFalse,
+      );
+    });
+
+    test('is offered the row’s measures and NOT `piece` — the chips are the '
+        'offer, and the offer refuses the word', () {
+      final chips = acceptableUnitChips(_avocado, const [
+        _avocadoMeasure,
+      ], parsedUnit: 'piece');
+      expect(chips.map((c) => c.token), contains('avocado'));
+      expect(chips.map((c) => c.token), isNot(contains('piece')));
+    });
+
+    test('ranks the measures in front: a refused `piece` takes no rank at '
+        'all, and its family has nobody else to lift', () {
+      final ranked = rankedUnitChips(
+        acceptableUnitChips(_potato, _potatoSizes, parsedUnit: 'piece'),
+        parsedUnit: 'piece',
+      );
+      final tokens = ranked.map((c) => c.token).toList();
+      expect(tokens, isNot(contains('piece')));
+      expect(tokens.take(3), _potatoSizes.map((m) => m.label));
+      // All three sizes are in front of the fold, so the pick is one tap.
+      expect(
+        tokens.take(kVisibleUnitChips),
+        containsAll(_potatoSizes.map((m) => m.label)),
+      );
+    });
+
+    test('a measure-less count row still says `piece` happily — the fallback '
+        'the whole rule exists to protect', () {
+      const tin = Ingredient(
+        id: 'i-tin',
+        canonicalName: 'Tinned Butter Bean',
+        defaultUnit: pieces,
+        status: IngredientStatus.complete,
+      );
+      expect(lineIssues(pieceLine(tin.id), ingredient: tin), isEmpty);
     });
   });
 
