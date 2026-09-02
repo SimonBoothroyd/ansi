@@ -6,6 +6,7 @@ import 'package:ansi/features/import/data/import_repository_impl.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
 import 'package:ansi/features/import/domain/line_resolution.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
+import 'package:ansi/features/ingredients/data/ingredient_repository_impl.dart';
 import 'package:ansi/features/ingredients/domain/normalize.dart';
 import 'package:ansi/features/ingredients/domain/search_query.dart';
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
@@ -24,6 +25,16 @@ Future<void> _seedIngredient(
   'INSERT INTO ingredient (id, household_id, canonical_name, default_unit, '
   "status, source, match_text) VALUES (?, 'h', ?, 'g', 'complete', 'seed', ?)",
   [id, name, name.toLowerCase()],
+);
+
+Future<void> _seedAlias(
+  PowerSyncDatabase db,
+  String ingredientId,
+  String text,
+) => db.execute(
+  'INSERT INTO ingredient_alias (id, household_id, ingredient_id, alias_text, '
+  "match_text, source) VALUES (?, 'h', ?, ?, ?, 'import_correction')",
+  ['alias-$text', ingredientId, text, normalizeMatchText(text)],
 );
 
 void main() {
@@ -468,6 +479,113 @@ void main() {
     );
     expect(parm.band, MatchBand.suggest);
     expect(parm.candidates.single.ingredientId, 'ing-parm');
+  });
+
+  group('the unattended re-match seam (D6)', () {
+    test('it sees ALIASES, not just the ingredient name', () async {
+      // The learning loop absorbs a household's own phrasing as an alias. Until
+      // now this seam searched `ingredient.match_text` alone, so everything it
+      // taught us was invisible to the one caller that resolves without a
+      // human. The vocab row here shares NO word with the candidate: only the
+      // alias can bridge them.
+      await _seedIngredient(db, 'ing-allium', 'Allium Sativum');
+      await _seedAlias(db, 'ing-allium', 'garlic');
+
+      final result = await repo.startImport(const ImportFromUrl('x'));
+      final garlic = result.flatLines.firstWhere(
+        (l) => l.raw.ingredientText == 'garlic cloves, sliced',
+      );
+      expect(garlic.candidates.single.ingredientId, 'ing-allium');
+      // The RESOLVED row's own name replaces the canned one, so the chip the
+      // user taps says what it will actually write.
+      expect(garlic.candidates.single.canonicalName, 'Allium Sativum');
+    });
+
+    test('it never guesses, even where the picker would', () async {
+      // "Parmezan cheese" is ONE edit from the canned candidate "Parmesan", so
+      // the picker offers it under a "did you mean" header. This seam commits
+      // without a human looking, so it must refuse — ADR-0004 and the
+      // never-invent invariant. Tier 2 is retrieval for a human to pick, never
+      // a resolution.
+      await _seedIngredient(db, 'ing-parmz', 'Parmezan cheese');
+
+      final result = await repo.startImport(const ImportFromUrl('x'));
+      final parm = result.flatLines.firstWhere(
+        (l) => l.raw.ingredientText == 'Parmesan, grated',
+      );
+      expect(parm.band, MatchBand.none);
+      expect(parm.candidates, isEmpty);
+
+      // The same query, through the picker, DOES offer it — flagged a guess.
+      final picker = SqliteIngredientRepository(db, householdId: 'h');
+      final offered = await picker.search('Parmesan');
+      expect(offered.rows.single.canonicalName, 'Parmezan cheese');
+      expect(offered.guessed, isTrue);
+    });
+
+    test("the stub coalescing key IS the server's dedupe key", () async {
+      // `noneDedupeKey` on the server is `normalize(ingredient_text)` — the
+      // phrase rules. The client keyed on the character-level query normalizer
+      // instead, so two no-match lines reading "Almonds" and "almond" made ONE
+      // stub server-side and TWO here. They now agree: one row, both lines.
+      const twoSpellings = ReconciliationPayload(
+        title: 'Two Spellings',
+        servingsBase: 2,
+        groups: [
+          ReconGroup(
+            lines: [
+              ReconLine(
+                raw: RawLineItem(
+                  ingredientText: 'Almonds',
+                  qty: 100,
+                  unit: 'g',
+                ),
+                band: MatchBand.none,
+              ),
+              ReconLine(
+                raw: RawLineItem(ingredientText: 'almond', qty: 50, unit: 'g'),
+                band: MatchBand.none,
+              ),
+            ],
+          ),
+        ],
+      );
+      final resolutions = [
+        initialResolution(
+          0,
+          twoSpellings.flatLines[0],
+        ).resolveToNewStub('Almonds'),
+        initialResolution(
+          1,
+          twoSpellings.flatLines[1],
+        ).resolveToNewStub('almond'),
+      ];
+      final recipeId = await repo.commit(
+        buildCommit(
+          twoSpellings,
+          resolutions,
+          servingsBase: 2,
+          issuesByLine: null,
+        ),
+      );
+
+      final stubs = await db.getAll(
+        "SELECT id, match_text FROM ingredient WHERE source = 'import_stub'",
+      );
+      expect(stubs, hasLength(1));
+      expect(stubs.single['match_text'], normalizeMatchText('Almonds'));
+
+      final lines = await db.getAll(
+        'SELECT li.ingredient_id FROM recipe_line_item li '
+        'JOIN ingredient_group g ON g.id = li.group_id '
+        'WHERE g.recipe_id = ? ORDER BY li.sort_order',
+        [recipeId],
+      );
+      expect(
+        lines.map((r) => r['ingredient_id']),
+        everyElement(stubs.single['id']),
+      );
+    });
   });
 
   // --- Step 8.6 / D6: a review-linked line persists as a component ----------

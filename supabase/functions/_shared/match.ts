@@ -220,6 +220,13 @@ export function matchLines(
  * just-created stub. It is exactly the normalized `match_text`, so it is symmetric
  * with the `match_text` the client writes on a new stub row and the cascade
  * looks up (match_db.ts EXACT_SQL).
+ *
+ * That symmetry is now real on both sides: the client coalesces on
+ * `normalizeMatchText`, this function's Dart twin (buildCommit in
+ * `line_resolution.dart`). It used to key on the character-level query
+ * normalizer instead, so "Almonds" and "almond" made ONE stub here and TWO
+ * there. Change one side and change the other, or the sentence above becomes
+ * a lie again.
  */
 export function noneDedupeKey(line: RawLineItem): string {
   return normalize(line.ingredient_text);

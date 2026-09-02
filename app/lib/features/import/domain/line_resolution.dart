@@ -20,7 +20,7 @@ library;
 
 import '../../../core/units/units.dart';
 import '../../ingredients/domain/allowed_units.dart';
-import '../../ingredients/domain/search_query.dart';
+import '../../ingredients/domain/normalize.dart';
 import 'amount_text.dart';
 import 'commit_payload.dart';
 import 'line_validation.dart';
@@ -378,7 +378,12 @@ CommitPayload buildCommit(
   }
   final byIndex = {for (final r in kept) r.lineIndex: r};
 
-  // Coalesce stubs: normalized name → the display name of its first occurrence.
+  // Coalesce stubs: normalized name → the display name of its first
+  // occurrence. The key is `normalizeMatchText`, which IS the server's
+  // `noneDedupeKey` — the same phrase rules, on both sides of the seam. It
+  // used to be the character-level query normalizer, so two no-match lines
+  // reading "Almonds" and "almond" coalesced to one stub on the server and to
+  // TWO on the client, and a comment claimed a symmetry that did not exist.
   final stubKeyByIndex = <int, String>{};
   final stubs = <String, CommitStub>{};
   for (final r in kept) {
@@ -392,7 +397,7 @@ CommitPayload buildCommit(
         'line ${r.lineIndex} is linked to a recipe and cannot also make a stub',
       );
     }
-    final key = normalizeSearchQuery(name);
+    final key = normalizeMatchText(name);
     stubs.putIfAbsent(key, () => CommitStub(key: key, name: name));
     stubKeyByIndex[r.lineIndex] = key;
   }

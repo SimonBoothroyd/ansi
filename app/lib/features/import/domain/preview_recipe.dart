@@ -10,6 +10,7 @@
 library;
 
 import '../../../core/units/units.dart';
+import '../../ingredients/domain/normalize.dart';
 import '../../ingredients/domain/search_query.dart';
 import '../../recipes/domain/method_step.dart';
 import '../../recipes/domain/recipe.dart';
@@ -92,11 +93,17 @@ Recipe buildPreviewRecipe(
 
 /// The stable identity id for the preview line — a matched ingredient's id, or
 /// a `stub:` handle keyed by the coalescing name so identical no-match uses
-/// fold onto one inline row (the same coalescing [buildCommit] does).
+/// fold onto one inline row.
+///
+/// The `stub:` key must be the one [buildCommit] coalesces on, or the preview
+/// shows two rows for what commit writes as one row: `normalizeMatchText`,
+/// which is also the server's `noneDedupeKey`. The `raw:` handle names a line
+/// that has no identity at all, so the looser character normalization is the
+/// right one there — two differently phrased unresolved lines are two lines.
 String _identityId(LineResolution r) {
   if (r.chosenIngredientId != null) return r.chosenIngredientId!;
   if (r.createStubName != null) {
-    return 'stub:${normalizeSearchQuery(r.createStubName!)}';
+    return 'stub:${normalizeMatchText(r.createStubName!)}';
   }
   return 'raw:${normalizeSearchQuery(r.ingredientText)}';
 }

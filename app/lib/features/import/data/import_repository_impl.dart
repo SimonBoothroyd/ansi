@@ -78,9 +78,26 @@ class SqliteImportRepository implements ImportRepository {
     return line.copyWith(candidates: resolved);
   }
 
-  /// The live vocab row a candidate [name] resolves to: an exact canonical-name
-  /// hit, else the top token-subset match (every token of [name], raw or
-  /// singularized, a word-prefix of the ingredient's `match_text`), else null.
+  /// The live vocab row a candidate [name] resolves to: an exact
+  /// canonical-name hit, else the top word-prefix match over the ingredient's
+  /// `match_text` **or any of its live aliases** (every token of [name], raw
+  /// or singularized), else null.
+  ///
+  /// **Tiers 0 and 1 only — never the typo tier**, and that asymmetry is a
+  /// rule, not an omission. This is the one search seam with no human in the
+  /// loop: it picks `LIMIT 1` at commit time and writes the answer into a
+  /// saved recipe. A guess here is a wrong ingredient on a line nobody
+  /// reviewed, which is what ADR-0004 exiles and what the never-invent
+  /// invariant refuses. **Tier 2 is retrieval for a human to pick, never a
+  /// resolution** — the pickers may guess because someone is looking at the
+  /// list; this may not, and must not "have the job finished" for it by a
+  /// later unification pass.
+  ///
+  /// Aliases matter here for the same reason they matter in the picker: the
+  /// learning loop's absorbed phrasing ("coco milk" → Coconut Milk) is a
+  /// SPELLING the household taught us, not a guess. Searching only
+  /// `ingredient.match_text` made that knowledge invisible to the one caller
+  /// that most needed it.
   Future<({String id, String canonicalName})?> _findVocabRow(
     String name,
   ) async {
@@ -98,7 +115,7 @@ class SqliteImportRepository implements ImportRepository {
 
     final tokens = searchTokens(name);
     if (tokens.isEmpty) return null;
-    final where = StringBuffer('deleted_at IS NULL');
+    final where = StringBuffer('i.deleted_at IS NULL');
     final params = <Object?>[];
     for (final tok in tokens) {
       // Raw form OR singular form, the same rule the picker's search uses:
@@ -107,14 +124,19 @@ class SqliteImportRepository implements ImportRepository {
       final patterns = [
         for (final form in matchTextForms(tok)) ...['$form%', '% $form%'],
       ];
+      final own = patterns.map((_) => 'i.match_text LIKE ?').join(' OR ');
+      final alias = patterns.map((_) => 'a.match_text LIKE ?').join(' OR ');
       where.write(
-        ' AND (${patterns.map((_) => 'match_text LIKE ?').join(' OR ')})',
+        ' AND ($own '
+        'OR EXISTS (SELECT 1 FROM ingredient_alias a '
+        'WHERE a.ingredient_id = i.id AND a.deleted_at IS NULL '
+        'AND ($alias)))',
       );
-      params.addAll(patterns);
+      params.addAll([...patterns, ...patterns]);
     }
     final row = await _db.getOptional(
-      'SELECT id, canonical_name FROM ingredient WHERE $where '
-      'ORDER BY length(canonical_name), canonical_name LIMIT 1',
+      'SELECT i.id, i.canonical_name FROM ingredient i WHERE $where '
+      'ORDER BY length(i.canonical_name), i.canonical_name LIMIT 1',
       params,
     );
     if (row == null) return null;
