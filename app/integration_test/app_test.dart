@@ -23,10 +23,15 @@
 ///                 favorite via the header menu; then re-open and edit the
 ///                 saved recipe and assert its children survive the server
 ///                 round-trip (the connector jsonb + diffing-save fixes)
-///   3 week→cook→shop  copy-last-week, remove, the two-step add flow
+///   3 week→cook→shop  the redesigned week: an empty week is a STATE of the
+///                 screen (never the retired blank-week page), copy-last-week
+///                 from its inline chip, Edit/Done's two modes, removal and
+///                 edit-eaters through the entry sheet (the per-row `⋯` and
+///                 the eaters dialog are both retired), the two-step add flow
 ///                 (recipe picker v2 — Favorites tab included → confirm v2
-///                 with the full batch prose → portions), edit-eaters,
-///                 per-person lens; one cook session covering two close
+///                 with the full batch prose → portions), and the `Everyone`
+///                 lens DIMMING rather than removing; one cook session
+///                 covering two close
 ///                 meals and a split for a far one; the rolled-up shopping
 ///                 list with provenance, a manual top-up through the shared
 ///                 quantity sheet, and check-off. Runs with LIVE sync —
@@ -442,9 +447,28 @@ void main() {
   Finder dayCard(String day) =>
       find.ancestor(of: find.text(day), matching: find.byType(Column)).first;
 
+  /// The Week rests in PRESENTATION mode since the redesign (D1), and its add
+  /// doors only exist in edit mode. Idempotent: a no-op when already editing
+  /// (the header then reads `Done`, not `Edit`).
+  Future<void> enterWeekEditMode(WidgetTester tester) async {
+    final edit = find.text('Edit');
+    if (edit.evaluate().isEmpty) return;
+    await tester.tap(edit);
+    await tester.pumpAndSettle();
+  }
+
+  /// Back to the resting state.
+  Future<void> leaveWeekEditMode(WidgetTester tester) async {
+    final done = find.text('Done');
+    if (done.evaluate().isEmpty) return;
+    await tester.tap(done);
+    await tester.pumpAndSettle();
+  }
+
   /// Opens the recipe picker from [day]'s card and places [recipe] on it
   /// through the two-step flow, leaving the confirm sheet's defaults alone.
   Future<void> addMealOn(WidgetTester tester, String day, String recipe) async {
+    await enterWeekEditMode(tester);
     await scrollTo(tester, find.text(day));
     final add = find.descendant(
       of: dayCard(day),
@@ -852,12 +876,19 @@ void main() {
       ],
     );
 
-    // Week tab → blank current week, with the copy affordance.
+    // Week tab → the current week with nothing in it. Since the redesign
+    // that is a STATE of this screen, not a page of its own (D5): the
+    // switcher, the mode action, the lens and all seven day cards are present,
+    // and `copy last week` is a chip beside the one primary door.
     await tapTab(tester, FLucideIcons.calendarDays);
-    await pumpUntilFound(tester, find.text('A blank week'));
-    await pumpUntilFound(tester, find.text('Copy last week'));
-    expect(find.text('Last week, for reference'), findsOneWidget);
-    await tester.tap(find.text('Copy last week'));
+    await pumpUntilFound(tester, find.text('Add the first meal'));
+    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('Everyone'), findsOneWidget); // was "Shared" (D8)
+    expect(find.text('Monday'), findsOneWidget);
+    expect(find.text('nothing planned'), findsWidgets);
+    expect(find.text('A blank week'), findsNothing); // the page is gone (D5)
+    await pumpUntilFound(tester, find.text('copy last week'));
+    await tester.tap(find.text('copy last week'));
     await pumpUntilFound(tester, find.text('Chicken Curry'));
     await pumpUntilFound(tester, find.text('DINNER'));
     await waitForDb(
@@ -866,27 +897,37 @@ void main() {
       'the copied entry in the current week',
     );
 
-    // Remove the copied meal through its row menu → back to the blank week.
-    // (The seeded entry sits on Thursday; target that card's menu — a bare
-    // `.last` on the icon can hit a closed popover's off-screen portal copy.)
+    // Remove the copied meal through the ENTRY SHEET — the per-row `⋯` and
+    // the standalone eaters dialog are both retired into it (D7). The seeded
+    // entry sits on Thursday.
+    await enterWeekEditMode(tester);
     await scrollTo(tester, find.text('Thursday'));
     await tester.tap(
       find.descendant(
         of: dayCard('Thursday'),
-        matching: find.byIcon(FLucideIcons.ellipsis),
+        matching: find.text('Chicken Curry'),
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Remove'));
-    await pumpUntilFound(tester, find.text('Plan a meal'));
+    expect(find.text('This meal'), findsOneWidget);
+    await tester.tap(find.text('Remove from the week'));
+    await tester.pumpAndSettle();
+    // The NEW assertion, and the more valuable one: the screen does NOT
+    // change. Removing the last meal used to teleport you off the grid
+    // mid-edit, because the blank-week page fired on `entries.isEmpty` too.
+    await pumpUntilFound(tester, find.text('Add the first meal'));
+    expect(find.text('Thursday'), findsOneWidget);
     await waitForDb(
       tester,
       () async => (await currentEntries()).isEmpty,
       'the copied entry to be tombstoned',
     );
 
-    // Two-step add flow (Monday): picker → confirm → portions override.
-    await tester.tap(find.text('Plan a meal'));
+    // Two-step add flow (Monday): picker → confirm → portions override. Back
+    // to the resting state first, so the picker's own "Add a meal" header is
+    // the only one on screen.
+    await leaveWeekEditMode(tester);
+    await tester.tap(find.text('Add the first meal'));
     await tester.pumpAndSettle();
     expect(find.text('Add a meal'), findsOneWidget); // picker header
     expect(find.textContaining('Monday, Dinner'), findsOneWidget); // context
@@ -911,6 +952,7 @@ void main() {
 
     // Second meal on Wednesday — within the 2-day fridge window, so the
     // confirm sheet cues that it cooks in Monday's batch.
+    await enterWeekEditMode(tester);
     await scrollTo(tester, find.text('Wednesday'));
     final add = find.descendant(
       of: dayCard('Wednesday'),
@@ -941,19 +983,22 @@ void main() {
           rows.last['portions'] == null;
     }, 'both planned entries with the portions override');
 
-    // Edit who's eating on the Wednesday meal: drop Jun.
+    // Edit who's eating on the Wednesday meal: drop Jun. It lives in the
+    // entry sheet now (D7) — and the sheet writes through on the tap, so
+    // there is nothing to save, only a dismissal.
+    await enterWeekEditMode(tester);
+    await scrollTo(tester, find.text('Wednesday'));
     await tester.tap(
       find.descendant(
         of: dayCard('Wednesday'),
-        matching: find.byIcon(FLucideIcons.ellipsis),
+        matching: find.text('Chicken Curry'),
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text("Edit who's eating"));
-    await tester.pumpAndSettle();
+    expect(find.text("WHO'S EATING"), findsOneWidget);
     await tester.tap(find.text('Jun'));
-    await tester.pump();
-    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
     await waitForDb(tester, () async {
       final rows = await currentEntries();
@@ -971,30 +1016,24 @@ void main() {
       adaId,
     ], reason: 'plan_entry.eaters must survive live sync as a real JSON array');
 
-    // Per-person lens: under Jun only the shared Monday meal remains.
-    await scrollTo(tester, find.text('Shared'), delta: -150);
-    await tester.tap(find.text('Per-person'));
-    await tester.pumpAndSettle();
-    expect(find.text('Chicken Curry'), findsNWidgets(2)); // Ada eats both
+    // The lens DIMS, it no longer removes (D8) — and `Shared` is `Everyone`.
+    await leaveWeekEditMode(tester);
+    await scrollTo(tester, find.text('Everyone'), delta: -150);
     await tester.tap(find.text('Jun'));
     await tester.pumpAndSettle();
-    expect(find.text('Chicken Curry'), findsOneWidget); // Wed filtered out
-    expect(find.text('shared'), findsOneWidget); // Monday is a shared meal
+    // Wednesday is Ada's alone after the edit above. Under Jun's lens it is
+    // dimmed but STILL THERE: a day somebody else cooks for themselves is not
+    // an empty day, which is exactly what the old hard filter implied.
+    expect(find.text('Chicken Curry'), findsNWidgets(2));
 
-    // D7 — the lens is a filter the user CHOSE, and the shell keeps it: a round
-    // trip through Cook comes back to Jun, not reset to Shared. This is the
-    // whole reason the four tabs are branches of one shell.
+    // D7 (nav) — the lens is a filter the user CHOSE, and the shell keeps it:
+    // a round trip through Cook comes back under Jun, not reset to Everyone.
     await tapTab(tester, FLucideIcons.cookingPot);
     await pumpUntilFound(tester, find.text('Batch cook plan'));
     await tapTab(tester, FLucideIcons.calendarDays);
-    await pumpUntilFound(tester, find.text('Per-person'));
-    expect(
-      find.text('Chicken Curry'),
-      findsOneWidget,
-      reason: 'the Per-person lens on Jun survived the tab switch',
-    );
-
-    await tester.tap(find.text('Shared'));
+    await pumpUntilFound(tester, find.text('Everyone'));
+    expect(find.text('Chicken Curry'), findsNWidgets(2));
+    await tester.tap(find.text('Everyone'));
     await tester.pumpAndSettle();
     expect(find.text('Chicken Curry'), findsNWidgets(2));
 
@@ -1013,7 +1052,7 @@ void main() {
 
     // Plan a third meal on Saturday — beyond the fridge window from Monday.
     await tapTab(tester, FLucideIcons.calendarDays);
-    await pumpUntilFound(tester, find.text('Shared'));
+    await pumpUntilFound(tester, find.text('Everyone'));
     await addMealOn(tester, 'Saturday', 'Chicken Curry');
 
     // The cook plan re-derives: two sessions, flagged as a split.
@@ -2020,7 +2059,9 @@ void main() {
     // ------------------------------------------------------------------------
     await backToShell(tester);
     await tapTab(tester, FLucideIcons.calendarDays);
-    await pumpUntilFound(tester, find.text('Shared'));
+    // The lens's `Shared` became `Everyone` (D8); `addMealOn` puts the Week
+    // into edit mode itself, because the add doors only exist there (D1).
+    await pumpUntilFound(tester, find.text('Everyone'));
     await addMealOn(tester, 'Friday', 'Sausage Sliders');
 
     await tapTab(tester, FLucideIcons.cookingPot);

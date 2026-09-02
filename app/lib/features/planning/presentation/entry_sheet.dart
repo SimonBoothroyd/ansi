@@ -16,7 +16,7 @@
 ///
 /// Every control writes through on change; there is no Save. The sheet is a
 /// view of a row, not a form over one — the same call the `⋯` menu made, minus
-/// the ceremony.
+/// the ceremony. `Close` is therefore a dismissal, not a commit.
 library;
 
 import 'dart:async';
@@ -118,7 +118,29 @@ class _EntrySheet extends HookConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('This meal', style: ansiSerif(size: 22)),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('This meal', style: ansiSerif(size: 22)),
+                  ),
+                  // Every control writes through, so there is nothing to save
+                  // — but a sheet still needs a visible way out.
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 4,
+                      ),
+                      child: Text(
+                        'Close',
+                        style: ansiSans(size: 14, color: AnsiColors.herbDeep),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 14),
               if (recipe != null)
                 MealRecipeCard(recipe: recipe)
