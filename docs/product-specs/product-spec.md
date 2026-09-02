@@ -104,7 +104,9 @@ Single shared household dataset; both members full read/write; everything scoped
   `incomplete`. USDA prefill rows are per-100 g.
 - Seed from USDA FoodData Central **Foundation Foods + SR Legacy** (CC0).
   Density from FDC volume food portions parsed out of the full portion text
-  (7.8 — coverage 211/291), fallback FAO/INFOODS Density DB v2.0 (tracker).
+  (7.8 took coverage to 211/291), fallback FAO/INFOODS Density DB v2.0, then
+  step 8.5's D4d hand pass — **297/308 today**; the 11-row tail is audited and
+  tracked, not accidental (tracker).
 
 ### Ingredient measure (steps 7.6–7.8)
 `ingredient_measure: id · household_id · ingredient_id · label · basis_amount (> 0, in the ingredient's macros_basis unit — 0012) · sort_order · source`
@@ -144,10 +146,12 @@ Single shared household dataset; both members full read/write; everything scoped
   imprecise-only line — and a recipe with no lines at all — renders the
   whole summary honestly `incomplete` — no partial total ever shows as the
   recipe's macros, and an empty sum never shows as ~0 kcal. Feeds the
-  picker rows; the recipe-page macro panel remains step 9. *Reality check:*
-  with today's density coverage (7/291 vocab rows) most real recipes read
-  `incomplete`; the summation is done, the density data (7.8's
-  FDC-spoons→density work) is what turns it into visible numbers.
+  picker rows **and the recipe page's per-serving macro panel** — step 9
+  shipped that panel off this same summation, so the two surfaces cannot
+  disagree. *Reality check, resolved:* this read `incomplete` on most real
+  recipes when density coverage was 7/291; 7.8's FDC-spoons→density work, the
+  FAO fallback and 8.5's D4d pass took it to **297/308**, so most recipes now
+  read as numbers and the residual `incomplete` is the honest 11-row tail.
 
 ### Recipe book & sections
 `book: id · name` · `section: user-defined label` (NOT a fixed preset enum).
