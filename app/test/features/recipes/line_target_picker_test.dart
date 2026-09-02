@@ -23,6 +23,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/forui_semantics.dart';
 
 const _romaTomato = Ingredient(
   id: 'i-roma',
@@ -93,24 +94,13 @@ class _FakeRecipeRepo implements RecipeRepository {
   }) async => cycles.contains(subRecipeId);
 }
 
-/// Opening a Forui sheet with the semantics tree live trips a framework
-/// assertion (tracker row `app/ui`); filter exactly that.
-void _filterSemanticsAssertions() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
-}
-
 Future<PickedLineTarget?> _open(
   WidgetTester tester, {
   required String editingRecipeId,
   Set<String> cycles = const {},
   List<Ingredient> vocabulary = const [_romaTomato],
 }) async {
-  _filterSemanticsAssertions();
+  filterForuiSemanticsAssertions();
   PickedLineTarget? picked;
   await tester.pumpWidget(
     ProviderScope(
@@ -221,7 +211,7 @@ void main() {
     tester,
   ) async {
     PickedLineTarget? picked;
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -266,7 +256,7 @@ void main() {
     tester,
   ) async {
     PickedLineTarget? picked;
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

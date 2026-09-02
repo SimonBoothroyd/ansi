@@ -13,6 +13,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/fake_book_repository.dart';
+import '../../helpers/forui_semantics.dart';
 
 class _FakeBookRepo extends FakeBookRepository {
   const _FakeBookRepo(super.books);
@@ -319,6 +320,197 @@ void main() {
 
       expect(find.text('no recipes yet · 2 sections'), findsOneWidget);
     });
+  });
+
+  group('the book ⋯ (D4)', () {
+    /// Opens the FIRST book card's overflow: `⋯` #0 is the screen header's,
+    /// #1 is this book's, and anything after belongs to its sections.
+    Future<void> openBookMenu(WidgetTester tester) async {
+      filterForuiSemanticsAssertions();
+      await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(1));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('renaming a book writes the new name', (tester) async {
+      final repo = _RecordingBookRepo(_library);
+      await tester.pumpWidget(
+        _host([bookRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      await openBookMenu(tester);
+      await tester.tap(find.text('Rename'));
+      await tester.pumpAndSettle();
+
+      // The prompt arrives seeded with the current name — renameSection's
+      // idiom, one level up.
+      expect(find.text('Rename book'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, 'Weeknights');
+      await tester.tap(find.text('Rename'));
+      await tester.pumpAndSettle();
+
+      expect(repo.renamedTo, 'Weeknights');
+    });
+
+    testWidgets('deleting a book that holds recipes is refused with the '
+        'count and a door', (tester) async {
+      final repo = _RecordingBookRepo(const [
+        ..._library,
+        Book(id: 'b2', name: 'Baking'),
+      ])..recipesInBook = 42;
+      await tester.pumpWidget(
+        _host([bookRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      await openBookMenu(tester);
+      await tester.tap(find.text('Delete book'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Can’t delete “Our Cookbook” yet'), findsOneWidget);
+      expect(
+        find.textContaining('It holds 42 recipes.'),
+        findsOneWidget,
+        reason: 'a count is actionable; "failed" is not',
+      );
+      expect(find.text('Move them to…'), findsOneWidget);
+      // A book is a shelf, not a container: nothing was deleted.
+      expect(repo.deleted, isNull);
+    });
+
+    testWidgets('the refusal’s door moves the contents, unsectioned', (
+      tester,
+    ) async {
+      final repo = _RecordingBookRepo(const [
+        ..._library,
+        Book(id: 'b2', name: 'Baking'),
+      ])..recipesInBook = 42;
+      await tester.pumpWidget(
+        _host([bookRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      await openBookMenu(tester);
+      await tester.tap(find.text('Delete book'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Move them to…'));
+      await tester.pumpAndSettle();
+
+      // The sheet offers the OTHER books, never the one being emptied — one
+      // row here, plus the card still painted behind the sheet.
+      expect(find.text('Our Cookbook'), findsOneWidget);
+      expect(find.text('Baking'), findsNWidgets(2));
+      await tester.tap(find.text('Baking').last);
+      await tester.pumpAndSettle();
+
+      // It says what it will do before it does it.
+      expect(
+        find.text('42 recipes will move to “Baking”, unsectioned.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Move'));
+      await tester.pumpAndSettle();
+
+      expect(repo.moved, (from: 'b1', to: 'b2'));
+    });
+
+    testWidgets('the only book is refused separately, and never deleted', (
+      tester,
+    ) async {
+      final repo = _RecordingBookRepo(_library);
+      await tester.pumpWidget(
+        _host([bookRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      await openBookMenu(tester);
+      await tester.tap(find.text('Delete book'));
+      await tester.pumpAndSettle();
+
+      // ensureDefaultBook() would re-mint one on the next launch, and a book
+      // that reappears is worse than being told no.
+      expect(
+        find.text('This is your only book — every recipe needs a shelf.'),
+        findsOneWidget,
+      );
+      expect(find.text('Move them to…'), findsNothing);
+      expect(repo.deleted, isNull);
+    });
+
+    testWidgets('an empty, non-last book deletes behind a plain confirm', (
+      tester,
+    ) async {
+      final repo = _RecordingBookRepo(const [
+        Book(id: 'b1', name: 'Our Cookbook'),
+        Book(id: 'b2', name: 'Baking'),
+      ]);
+      await tester.pumpWidget(
+        _host([bookRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      await openBookMenu(tester);
+      await tester.tap(find.text('Delete book'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Delete “Our Cookbook”?'), findsOneWidget);
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(repo.deleted, 'b1');
+    });
+
+    testWidgets('Move down reorders the whole list, not a swap', (
+      tester,
+    ) async {
+      final repo = _RecordingBookRepo(const [
+        ..._library,
+        Book(id: 'b2', name: 'Baking'),
+      ]);
+      await tester.pumpWidget(
+        _host([bookRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(1));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Move down'));
+      await tester.pumpAndSettle();
+
+      expect(repo.reordered, ['b2', 'b1']);
+    });
+  });
+
+  testWidgets('the dashed new-section row lives INSIDE the card (D5)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_host(_repo(_library)));
+    await tester.pumpAndSettle();
+
+    // It is a descendant of the book card, not a sibling floating in the gap.
+    expect(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text('Our Cookbook'),
+          matching: find.byType(ClipRRect),
+        ),
+        matching: find.textContaining('new section'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('an empty shelf offers the two doors in place (D7)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(_repo(const [Book(id: 'b1', name: 'Our Cookbook')])),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nothing on this shelf yet'), findsOneWidget);
+    expect(find.text('new recipe'), findsOneWidget);
+    expect(find.text('import one'), findsOneWidget);
   });
 
   testWidgets('the add-section affordance uses an icon, not a raw ＋ glyph', (

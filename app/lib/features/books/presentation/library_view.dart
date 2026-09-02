@@ -22,6 +22,7 @@ import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/book_providers.dart';
 import '../domain/book.dart';
+import 'book_pick_sheet.dart';
 import 'book_reorder_sheet.dart';
 import 'book_view_models.dart';
 import 'text_prompt.dart';
@@ -60,7 +61,9 @@ class LibraryView extends ConsumerWidget {
             ? const _EmptyState()
             : ListView(
                 padding: const EdgeInsets.only(top: 4, bottom: 28),
-                children: [for (final b in books) _BookCard(book: b)],
+                children: [
+                  for (final b in books) _BookCard(book: b, books: books),
+                ],
               ),
       ),
     );
@@ -250,13 +253,16 @@ Future<bool> _confirmSignOut(BuildContext context) async {
 }
 
 class _BookCard extends ConsumerWidget {
-  const _BookCard({required this.book});
+  const _BookCard({required this.book, required this.books});
 
   final Book book;
 
+  /// The whole library — what "Move up / Move down" reorders against, and what
+  /// the last-book delete refusal counts.
+  final List<Book> books;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.read(bookRepositoryProvider);
     final folded = ref.watch(foldedBooksProvider).asData?.value ?? const {};
     final expanded = !folded.contains(book.id);
 
@@ -321,6 +327,7 @@ class _BookCard extends ConsumerWidget {
                             color: AnsiColors.surface,
                           ),
                         ),
+                        _BookMenu(book: book, books: books),
                       ],
                     ),
                   ),
@@ -329,27 +336,312 @@ class _BookCard extends ConsumerWidget {
                       _SectionBlock(book: book, section: section),
                     if (book.unsectioned.isNotEmpty)
                       _SectionBlock(book: book, unsectioned: book.unsectioned),
+                    if (_isEmpty) _EmptyShelf(book: book),
+                    // D5: the dashed row is the LAST ROW OF THE CARD, not a
+                    // button floating in the gap under every book. It now reads
+                    // as part of *this* book, and the noise scales with what is
+                    // open rather than with how many books exist.
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+                      child: _AddSectionButton(
+                        onTap: () => unawaited(
+                          promptForNewSection(context, ref, book.id),
+                        ),
+                      ),
+                    ),
                   ],
                 ],
               ),
             ),
           ),
-          if (expanded) ...[
-            const SizedBox(height: 12),
-            _AddSectionButton(
-              onTap: () async {
+        ],
+      ),
+    );
+  }
+
+  bool get _isEmpty => book.sections.isEmpty && book.unsectioned.isEmpty;
+}
+
+/// "＋ new section — name it anything", from the card's dashed row and from the
+/// book `⋯` alike (D5's deliberate redundancy — the ingredients manager offers
+/// add-new from both its header and its footer for the same reason).
+Future<void> promptForNewSection(
+  BuildContext context,
+  WidgetRef ref,
+  String bookId,
+) async {
+  final name = await promptForText(
+    context,
+    title: 'New section',
+    hint: 'Name it anything',
+    confirm: 'Add',
+  );
+  if (name != null && name.trim().isNotEmpty) {
+    await ref.read(bookRepositoryProvider).createSection(bookId, name);
+  }
+}
+
+/// The book header's `⋯` — [_SectionMenu]'s menu one level up (D4).
+///
+/// Same `FPopoverMenu`, same items in the same order, so nothing new is
+/// learned. Reorder is deliberately the sections' clunky Move up / Move down:
+/// books do not get drag-and-drop while sections still lack it.
+class _BookMenu extends ConsumerWidget {
+  const _BookMenu({required this.book, required this.books});
+
+  final Book book;
+  final List<Book> books;
+
+  Future<void> _move(WidgetRef ref, int delta) {
+    final ids = books.map((b) => b.id).toList();
+    final from = ids.indexOf(book.id);
+    final to = from + delta;
+    if (from < 0 || to < 0 || to >= ids.length) return Future.value();
+    ids
+      ..removeAt(from)
+      ..insert(to, book.id);
+    return ref.read(bookRepositoryProvider).reorderBooks(ids);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repo = ref.read(bookRepositoryProvider);
+    return FPopoverMenu(
+      menuBuilder: (_, controller, _) => [
+        FItemGroup(
+          children: [
+            FItem(
+              prefix: const Icon(FLucideIcons.pencil),
+              title: const Text('Rename'),
+              onPress: () async {
+                unawaited(controller.hide());
                 final name = await promptForText(
                   context,
-                  title: 'New section',
-                  hint: 'Name it anything',
-                  confirm: 'Add',
+                  title: 'Rename book',
+                  hint: 'Book name',
+                  initial: book.name,
+                  confirm: 'Rename',
                 );
                 if (name != null && name.trim().isNotEmpty) {
-                  await repo.createSection(book.id, name);
+                  await repo.renameBook(book.id, name);
                 }
               },
             ),
+            FItem(
+              prefix: const Icon(FLucideIcons.plus),
+              title: const Text('New section'),
+              onPress: () {
+                unawaited(controller.hide());
+                unawaited(promptForNewSection(context, ref, book.id));
+              },
+            ),
+            FItem(
+              prefix: const Icon(FLucideIcons.arrowUp),
+              title: const Text('Move up'),
+              onPress: () {
+                unawaited(controller.hide());
+                unawaited(_move(ref, -1));
+              },
+            ),
+            FItem(
+              prefix: const Icon(FLucideIcons.arrowDown),
+              title: const Text('Move down'),
+              onPress: () {
+                unawaited(controller.hide());
+                unawaited(_move(ref, 1));
+              },
+            ),
           ],
+        ),
+        FItemGroup(
+          children: [
+            FItem(
+              prefix: const Icon(FLucideIcons.trash2),
+              title: const Text('Delete book'),
+              onPress: () {
+                unawaited(controller.hide());
+                unawaited(confirmDeleteBook(context, ref, book, books));
+              },
+            ),
+          ],
+        ),
+      ],
+      builder: (context, controller, _) => FButton.icon(
+        variant: FButtonVariant.ghost,
+        onPress: controller.toggle,
+        child: const Icon(
+          FLucideIcons.ellipsis,
+          size: 18,
+          color: AnsiColors.surface,
+        ),
+      ),
+    );
+  }
+}
+
+/// Deleting a book: refuse with a count and a door, or confirm (D4).
+///
+/// The 8.5/8.6 ruling verbatim — "it holds 42 recipes" is something a person
+/// can act on, "failed" is not. A book is a shelf, not a container, so this
+/// never cascades to the recipes; and the count is read from the REPOSITORY at
+/// the moment of the tap, like `usedIn`, never from the cached tree.
+Future<void> confirmDeleteBook(
+  BuildContext context,
+  WidgetRef ref,
+  Book book,
+  List<Book> books,
+) async {
+  // Keep-alive, read before the first await: every branch below crosses a
+  // dialog, and a throwaway notifier would be disposed before its callback ran.
+  final repo = ref.read(bookRepositoryProvider);
+
+  if (books.length <= 1) {
+    // Separate on purpose: `ensureDefaultBook()` would re-mint a book on the
+    // next launch, and a book that reappears after you delete it is worse than
+    // being told no.
+    if (!context.mounted) return;
+    await _refuse(
+      context,
+      title: 'Can’t delete “${book.name}”',
+      body: 'This is your only book — every recipe needs a shelf.',
+    );
+    return;
+  }
+
+  final held = await repo.countRecipesIn(book.id);
+  if (!context.mounted) return;
+
+  if (held > 0) {
+    final move = await _refuse(
+      context,
+      title: 'Can’t delete “${book.name}” yet',
+      body:
+          'It holds $held ${held == 1 ? 'recipe' : 'recipes'}. Move '
+          '${held == 1 ? 'it' : 'them'} to another book first, or delete '
+          '${held == 1 ? 'it' : 'them'}.',
+      door: 'Move them to…',
+    );
+    if (!move || !context.mounted) return;
+    final target = await showBookPickSheet(
+      context,
+      moving: held,
+      from: book,
+      candidates: [
+        for (final b in books)
+          if (b.id != book.id) b,
+      ],
+    );
+    if (target == null) return;
+    await repo.moveBookContents(fromBookId: book.id, toBookId: target.id);
+    return;
+  }
+
+  if (!context.mounted) return;
+  final confirmed = await showFDialog<bool>(
+    context: context,
+    useRootNavigator: true,
+    builder: (context, style, animation) => FDialog(
+      animation: animation,
+      title: Text('Delete “${book.name}”?', style: ansiSerif(size: 20)),
+      body: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(
+          'The shelf is empty, so nothing goes with it.',
+          style: ansiSans(size: 13, color: AnsiColors.muted),
+        ),
+      ),
+      actions: [
+        FButton(
+          onPress: () => Navigator.of(context).pop(true),
+          child: const Text('Delete'),
+        ),
+        FButton(
+          variant: FButtonVariant.outline,
+          onPress: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed ?? false) await repo.deleteBook(book.id);
+}
+
+/// A refusal that names why. Returns true when the reader took the [door] —
+/// a refusal without one is a wall in front of the one action that clears it.
+Future<bool> _refuse(
+  BuildContext context, {
+  required String title,
+  required String body,
+  String? door,
+}) async {
+  final took = await showFDialog<bool>(
+    context: context,
+    useRootNavigator: true,
+    builder: (context, style, animation) => FDialog(
+      animation: animation,
+      title: Text(title, style: ansiSerif(size: 20)),
+      body: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(body, style: ansiSans(size: 13, color: AnsiColors.muted)),
+      ),
+      actions: [
+        if (door != null)
+          FButton(
+            onPress: () => Navigator.of(context).pop(true),
+            child: Text(door),
+          ),
+        FButton(
+          variant: FButtonVariant.outline,
+          onPress: () => Navigator.of(context).pop(false),
+          child: Text(door == null ? 'OK' : 'Cancel'),
+        ),
+      ],
+    ),
+  );
+  return took ?? false;
+}
+
+/// The first-run shelf (D7·2): the app opens on this, so it offers the two
+/// doors in place rather than sending you to find a menu.
+class _EmptyShelf extends StatelessWidget {
+  const _EmptyShelf({required this.book});
+
+  final Book book;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: AnsiColors.line)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Nothing on this shelf yet',
+            style: ansiSerif(size: 15, color: AnsiColors.muted),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: DashedAction(
+                  icon: FLucideIcons.plus,
+                  label: 'new recipe',
+                  onTap: () => context.pushOnce('/recipes/new'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: DashedAction(
+                  icon: FLucideIcons.download,
+                  label: 'import one',
+                  onTap: () => context.pushOnce('/import'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -551,37 +843,19 @@ class _RecipeRow extends StatelessWidget {
   }
 }
 
+/// "Not presets" — the promise the original board frame was built to make, and
+/// the reason the copy is an invitation rather than a label.
 class _AddSectionButton extends StatelessWidget {
   const _AddSectionButton({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: DashedBorderBox(
-        // A real icon, not a "＋" glyph — the bundled fonts lack U+FF0B, so
-        // the string form renders as tofu.
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(FLucideIcons.plus, size: 12, color: AnsiColors.herb),
-            const SizedBox(width: 5),
-            Text(
-              'new section — name it anything',
-              style: ansiMono(
-                size: 11,
-                color: AnsiColors.herb,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => DashedAction(
+    icon: FLucideIcons.plus,
+    label: 'new section — name it anything',
+    onTap: onTap,
+  );
 }
 
 class _EmptyState extends StatelessWidget {
