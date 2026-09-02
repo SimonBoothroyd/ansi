@@ -636,6 +636,39 @@ class RecipeEditor extends _$RecipeEditor {
   void removeChip(String stepId, int index) =>
       _mapStep(stepId, (d) => removeSpan(d, index));
 
+  /// What a convert-to-plain-text would cost, for the confirm to count (D5).
+  ({int chips, int timers}) methodLinkCounts() {
+    var chips = 0;
+    var timers = 0;
+    for (final step in methodDraft()) {
+      for (final span in step.spans) {
+        if (span is RefSpan) chips++;
+        if (span is TimerSpan) timers++;
+      }
+    }
+    return (chips: chips, timers: timers);
+  }
+
+  /// D5, the one lossy act in the editor: every chip and timer becomes
+  /// ordinary words. Each step keeps its OWN prose, byte-identical to what its
+  /// card was showing — no sentence changes, only the links go.
+  ///
+  /// **There is no reverse, and the copy says why.** Tokenization happens only
+  /// inside the import call, which grounds each ref by index into the same
+  /// extraction it just read (§4.6). There is no endpoint that takes free text
+  /// and returns tokens, and building one would ship user prose to a model
+  /// over a route ADR-0004 never opened.
+  void convertMethodToPlainText() {
+    final prose = flattenMethod(
+      _current.methodSteps ?? const [],
+      lineById: lineById(),
+    );
+    _relabels.clear();
+    _substitution = null;
+    _stepIds = const [];
+    _set(_current.copyWith(methodSteps: methodFromPlainSteps(prose)));
+  }
+
   /// The group a chip's *new* line lands in — the first one, minted if this
   /// recipe somehow has none.
   String ensureGroupId() {

@@ -73,6 +73,31 @@ class MethodEditor extends StatelessWidget {
                 '${steps.length}',
                 style: ansiMono(size: 11, color: AnsiColors.muted),
               ),
+              const Spacer(),
+              FPopoverMenu(
+                // `menuBuilder`, not `menu`: the item has to dismiss its own
+                // menu before the confirm opens over it.
+                menuBuilder: (_, controller, _) => [
+                  FItemGroup(
+                    children: [
+                      FItem(
+                        prefix: const Icon(FLucideIcons.type),
+                        title: const Text('Convert to plain text'),
+                        onPress: () {
+                          unawaited(controller.hide());
+                          unawaited(_confirmFlatten(context, notifier));
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+                builder: (_, controller, _) => FButton.icon(
+                  variant: FButtonVariant.ghost,
+                  size: FButtonSizeVariant.sm,
+                  onPress: controller.toggle,
+                  child: const Icon(FLucideIcons.ellipsis, size: 16),
+                ),
+              ),
             ],
           ),
         ),
@@ -530,6 +555,68 @@ Future<String?> pickOrAddLine(
     if (!before.contains(id)) return id;
   }
   return null;
+}
+
+/// D5's confirm (design board frame g). It counts what dies and promises what
+/// does not: `flattenMethod` emits each step's own prose, byte-identical to
+/// what the card was already showing, so **no sentence changes**.
+///
+/// It lives in the METHOD header's ⋯, not behind a red button: converting is
+/// a legitimate choice for a badly-tokenized import, not a mistake to be
+/// guarded against.
+Future<void> _confirmFlatten(
+  BuildContext context,
+  RecipeEditor notifier,
+) async {
+  final counts = notifier.methodLinkCounts();
+  if (counts.chips == 0 && counts.timers == 0) return;
+  final confirmed = await showFDialog<bool>(
+    context: context,
+    builder: (dialogContext, style, animation) => FDialog(
+      title: Text(
+        'Convert the method to plain text?',
+        style: ansiSerif(size: 18),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${counts.chips} ingredient '
+            '${counts.chips == 1 ? 'chip' : 'chips'} and '
+            '${counts.timers} ${counts.timers == 1 ? 'timer' : 'timers'} '
+            'become ordinary words. Every sentence reads exactly the same — '
+            'only the links go.',
+            style: ansiSans(size: 14, color: AnsiColors.muted),
+          ),
+          const SizedBox(height: 12),
+          Text('This can’t be undone here', style: ansiLabel()),
+          const SizedBox(height: 4),
+          Text(
+            'Chips are written at import, or added one at a time from a '
+            'selection. Nothing on the phone can re-chip a method — matching '
+            'is online-only, and only at import.',
+            style: ansiMono(
+              size: 11,
+              color: AnsiColors.muted,
+            ).copyWith(height: 1.5),
+          ),
+        ],
+      ),
+      actions: [
+        FButton(
+          variant: FButtonVariant.outline,
+          onPress: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FButton(
+          onPress: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Convert to plain text'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed ?? false) notifier.convertMethodToPlainText();
 }
 
 /// *"2 steps mentioned the sausage — their chips now read meatballs."*
