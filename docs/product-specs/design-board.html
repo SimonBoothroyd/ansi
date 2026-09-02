@@ -1509,10 +1509,245 @@
         </div>
     </div>
 
+    <!-- ===== NESTED RECIPES V1 (PROPOSED — drawn from exec plan 0021, 2026-09-01) ===== -->
+    <div class="section-head"><span class="ey">Nested recipes · v1</span><span class="proposed-tag">signed off 2026-09-01 · D1–D9 as drawn — building (exec plan 0021)</span><span class="rule"></span><span class="sub">A recipe as an ingredient — one line, one yield, and everything that derives from it</span></div>
+
+    <div class="locknote prop">
+        <p class="lk-h">Signed off — “D1–D9 as drawn”, 2026-09-01 (after three owner refinements: the two-denomination yield · the editor MAKES row · the conditional “Used in” tab)</p>
+        <p>“<b>¼ cup Romesco Aioli (page 38)</b>” stops being text and becomes a recipe↔recipe link. These frames <b>extend locked frames and redraw none of them</b>: the amount column, the note, the review card anatomy, the picker’s search-first rows, the chip-over-keypad sheet, the session card and the provenance breakdown are all the shipped ones. Only the <b>identity cell</b> changes, and one honest fact — a <b>yield</b> — is added to the recipe.</p>
+        <div class="ledger">
+            <span class="k">extends</span><span><b>Recipe view v3</b> → (a) component lines, (b) the sub-recipe’s hero · <b>the shipped step-2 editor</b> (never drawn before — its first frame) → (h) the SERVES · MAKES numbers block, reused on the Review screen · <b>Ingredient picker v2</b> → (c) a “Your recipes” section · <b>Quantity + unit chips (7.7)</b> → (d) batch math on the chips · <b>Review recipe / Expanded edit card</b> → (e) a suggestion in the existing did-you-mean idiom · <b>Batch cook plan</b> → (f) a component session · <b>Shopping list</b> → (g) one more provenance segment.</span>
+            <span class="k ch">decides</span><span><b>D1</b> the component rides <span style="font-family:'IBM Plex Mono',monospace">recipe_line_item.sub_recipe_id</span> under a XOR check, not a second table · <b>D2</b> the amount counts the printed unit, resolved against a <b>yield of up to two denominations</b> in different families — “makes 250 g · 16 tbsp” bridges mass↔volume as two stated facts, no density (owner amendment 2026-09-01) — chips are <span style="font-family:'IBM Plex Mono',monospace">batch</span> ∪ the yields’ families · <b>D3</b> a component is a real derived session · <b>D4</b> contributions flow through, provenance names both levels · <b>D5</b> no cycles, delete refused with a count · <b>D6</b> import suggests, never auto-links · <b>D7</b> the picker is the one door · <b>D8</b> the share counts or the total says why not · <b>D9</b> the target’s page shows <i>makes</i> and <i>used in</i>.</span>
+            <span class="k ch">refuses</span><span>No invented number anywhere. <b>No yield ⇒ no scale</b>: the cook card renders the named gap and the shopping list contributes nothing, with the parent’s header saying so. Never <span style="font-family:'IBM Plex Mono',monospace">×1</span> as a stand-in, never a minted stub recipe, never an auto-link.</span>
+        </div>
+        <p class="src">Exec plan + the nine decisions: <b>docs/exec-plans/active/0021-nested-recipes.md</b>. Specimens are the sausage-sliders gold (<b>evals/datasets/extraction/gold/sausage-sliders.json</b>) — the printed lines, unedited. Alternatives that lost are annotated on the frame that would have drawn them.</p>
+    </div>
+
+    <div class="board">
+
+        <div class="frame">
+            <p class="frame-name"><b>Recipe view · component lines</b> · extends <i>Recipe view v3</i> — same amount · identity · notes grammar; only the identity cell changes</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+                <div class="r-hero">
+                    <span class="r-book">Our Cookbook · Small plates</span>
+                    <h2 class="r-title">Sausage Sliders</h2>
+                    <div class="meta-row"><span class="pill">serves 8</span><span class="pill">makes 8 sliders</span></div>
+                </div>
+                <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
+                <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">8 servings ·1×</span><span class="step">+</span></div></div>
+                <div class="grp">
+                    <div class="l3"><span class="l3-amt">8</span><span class="l3-body"><span class="ichip">↪ Pretzel Buns</span></span></div>
+                    <div class="l3"><span class="l3-amt">2 tbsp</span><span class="l3-body"><span class="ichip">↪ Garlic Butter</span><span class="l3-note">melted</span></span></div>
+                    <div class="l3"><span class="l3-amt">2 tbsp</span><span class="l3-body"><span class="l3-id">Olive oil</span></span></div>
+                    <div class="l3"><span class="l3-amt">3 tbsp</span><span class="l3-body"><span class="l3-id" style="font-weight:400;color:var(--muted)">Everything Spice (page 34)</span><span class="l3-note">not linked — plain text, exactly as today</span></span></div>
+                    <div class="l3"><span class="l3-amt">¼ cup</span><span class="l3-body"><span class="ichip">↪ Romesco Aioli</span></span></div>
+                    <div class="l3"><span class="l3-amt">1</span><span class="l3-body"><span class="ichip">↪ Italian Sausage</span></span></div>
+                </div>
+                <p class="conv-note">a chip pushes its page · the printed cross-reference <b>“(page 97)”</b> is stripped the way parentheticals already are</p>
+            </div></div>
+            <p class="rc-note"><b style="color:var(--ink)">D1 — a component is an ordinary line.</b> <code>recipe_line_item</code> gains <code>sub_recipe_id</code> and relaxes <code>ingredient_id</code> to nullable under a XOR check, so group membership, sort order, amount, note, soft delete and sync all come for free — and the printed interleaving survives (buns · butter · oil · spice · aioli · sausage, one list). <span style="color:var(--muted)">Rejected: a separate <code>recipe_component</code> table — every surface would have to zip two row sets back into one printed order, and the editor would grow a second CRUD path.</span> <b style="color:var(--ink)">Scaling is not special (D1/D7)</b>: at ×2 the aioli line reads ½ cup like every other line, and the session that cooks it doubles with it — one scaler, one rule. <b style="color:var(--ink)">Everything Spice stays plain</b>: page 34 is not in the library, and we never mint a stub <i>recipe</i> to make a link possible. Servings and <i>makes</i> are two independent facts (D2) — this page happens to print both.</p>
+        </div>
+
+        <div class="flow"><span>tap a chip</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Sub-recipe page · makes + a “Used in” tab</b> · extends <i>Recipe view v3</i> — the hero gains one pill; the back-links get a tab of their own (owner-ruled 2026-09-01), appearing only when the count is non-zero</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+                <div class="r-hero">
+                    <span class="r-book">Our Cookbook · Sauces</span>
+                    <h2 class="r-title">Romesco Aioli</h2>
+                    <div class="meta-row"><span class="pill keeps"><span class="mini-fresh"></span>keeps 5 d</span><span class="pill">serves 4</span><span class="pill">makes 1 cup</span></div>
+                </div>
+                <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx">Method</span><span class="tabx on">Used in · 2</span></div>
+                <div class="res-row" style="margin-top:10px">
+                    <div class="rthumb" style="width:26px;height:26px;border-radius:8px;font-size:13px">↪</div>
+                    <div style="flex:1;min-width:0"><div class="res-nm">Sausage Sliders</div>
+                        <span class="res-cat">¼ cup · ¼ of a batch</span></div>
+                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                <div class="res-row">
+                    <div class="rthumb" style="width:26px;height:26px;border-radius:8px;font-size:13px">↪</div>
+                    <div style="flex:1;min-width:0"><div class="res-nm">Romesco Toasts</div>
+                        <span class="res-cat">1 batch</span></div>
+                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                <p class="conv-note" style="margin-top:8px">the tab exists only while something points here — a recipe used in nothing shows two tabs, as today</p>
+                <p class="conv-note"><b>makes 1 cup</b> is edited beside servings in the editor — the same field import prefills from <span style="font-family:'IBM Plex Mono',monospace">yield_raw</span>. A second denomination in another family is optional: Garlic Butter can say <b>makes 250 g · 16 tbsp</b>, and both are pills here</p>
+            </div></div>
+            <p class="rc-note"><b style="color:var(--ink)">D9 — the yield and the back-links, both in v1.</b> <code>yield_qty</code> + <code>yield_unit</code> are what make “¼ cup” mean “¼ of a batch” (D2); <code>servings_base</code> stays the portioning truth and the two never merge. <b style="color:var(--ink)">The yield takes up to two denominations</b> (owner amendment, 2026-09-01), pinned to different families — “makes 250 g · 16 tbsp” is two stated facts that bridge mass↔volume for <i>this recipe only</i>, the way an <code>ingredient_measure</code> bridges count↔mass, without giving recipes a density. Capped at two. <b style="color:var(--ink)">One query, two uses</b>: this count is the count <b>D5</b>’s delete refusal speaks — deleting a recipe something points at is refused with “used in 2 recipes”, the 8.5 ingredient-delete ruling verbatim. <b style="color:var(--ink)">The back-links are a tab, not a hero row</b> (owner-ruled 2026-09-01): the hero was carrying keeps · serves · makes already, and a tab gives the links room to be real rows — target, amount, share of a batch. It is <b>conditional</b>: the tab renders only while the count is non-zero, carrying the count in its label, so a recipe used in nothing keeps today’s two-tab page and no one stares at a permanently empty pane. <span style="color:var(--muted)">Alternatives: an unfolding hero row (the first draft — cramped, and it buried the rows); an always-present tab (an empty pane on most mains); or ship the yield only and defer “used in” to the tracker — rejected, the refusal already needs the count, and a refusal naming recipes you cannot reach from here is a dead end.</span> A link that would make B reach A is refused at link time, so this list can never close a loop.</p>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Editor · what it makes</b> · the shipped step-2 editor’s numbers block, drawn for the first time — SERVES gains a MAKES neighbour, and the import Review screen reuses the same row</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Edit recipe</span><span class="dots"></span></div>
+                <p class="flabel">Serves</p>
+                <div class="qtyrow" style="margin:6px 20px 4px"><div class="stepper"><span class="s">–</span><span class="qv">8</span><span class="s">+</span></div></div>
+                <p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
+                <div class="qtyrow" style="margin:6px 20px 4px"><div class="stepper"><span class="s"></span><span class="qv">250</span><span class="s"></span></div><div class="unitsel"><span>g</span><span style="color:var(--muted)">▾</span></div></div>
+                <div class="qtyrow" style="margin:8px 20px 4px"><div class="stepper"><span class="s"></span><span class="qv">16</span><span class="s"></span></div><div class="unitsel"><span>tbsp</span><span style="color:var(--muted)">▾</span></div><span style="align-self:center;color:var(--muted);font-size:13px">✕</span></div>
+                <p class="conv-note" style="margin-top:4px">the second slot only offers the <b>other</b> families — two ways of saying one batch, never two numbers in one family</p>
+                <p class="flabel" style="margin-top:16px">The same row on the import Review screen</p>
+                <div class="frow"><div class="srcline" style="margin:0 0 6px">from source:  MAKES: 8 SLIDERS</div>
+                    <div style="display:flex;gap:10px"><div class="fin" style="flex:1;font-family:'IBM Plex Mono',monospace">8</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace">piece ▾</div></div></div>
+                <div class="frow" style="margin-top:10px"><div class="srcline" style="margin:0 0 6px">from source:  MAKES ENOUGH FOR A CROWD</div>
+                    <div style="display:flex;gap:10px"><div class="fin" style="flex:1;font-family:'IBM Plex Mono',monospace;color:var(--muted)">—</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">— ▾</div></div>
+                    <div class="lockhint">the page didn’t say a number — set one, or leave it unset. Nothing is invented, and a yield-less recipe still saves, links and scales; only the derived numbers wait (D2).</div></div>
+            </div></div>
+            <p class="rc-note"><b style="color:var(--ink)">The frame the board was missing.</b> The recipe editor shipped in step 2, before the board discipline hardened, so it has never had a drawn face — this frame draws <b>only the region 8.6 touches</b> (the numbers block under TITLE; shelf life, filing, groups and method stay exactly as shipped, deliberately not re-drawn). <b style="color:var(--ink)">Serves and makes sit side by side as two independent facts</b> (D2/D9): serves is how it portions, makes is how much comes out, and neither derives from the other. <b style="color:var(--ink)">On import the amount is usually user-set</b>: commit prefills only a plain <span style="font-family:'IBM Plex Mono',monospace">amount + known unit</span> parsed from <span style="font-family:'IBM Plex Mono',monospace">yield_raw</span> (“MAKES: 8 SLIDERS” → 8 piece); anything fancier keeps its source line visible and waits for a human — the same attempt-then-flag pattern 0014 ruled for servings, on the same screen. <span style="color:var(--muted)">Alternative: parse harder (“enough for a crowd”, bare fractions). Rejected — a wrong yield silently poisons every derived batch, session and shopping number downstream; an empty field is honest and one tap from right.</span></p>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Editor · “Your recipes” in the picker</b> · extends <i>Ingredient picker v2</i> — one section under the ingredient results, nothing else moves</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Add to “for the sliders”</span><span class="dots"></span></div>
+                <p class="flabel">Find an ingredient</p>
+                <div class="field"><div class="search"><span class="mag">⌕</span><span>rom</span><span class="care"></span></div></div>
+                <p class="list-h">Ingredients</p>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Roma tomato</div>
+                        <span class="res-cat">Produce · has density · 2 measures</span>
+                        <div class="mline">18 kcal · 1P 0F 4C <span class="per">/100 g</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Romano beans <span class="res-badge">stub</span></div>
+                        <span class="res-cat">Produce · needs macros — no zeros shown</span></div>
+                    <span class="rplus">＋</span></div>
+                <p class="list-h">Your recipes</p>
+                <div class="res-row">
+                    <div class="rthumb" style="width:26px;height:26px;border-radius:8px;font-size:13px">↪</div>
+                    <div style="flex:1;min-width:0"><div class="res-nm">Romesco Aioli</div>
+                        <span class="res-cat">Our Cookbook · Sauces</span>
+                        <div class="mline">makes 1 cup</div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="res-row">
+                    <div class="rthumb" style="width:26px;height:26px;border-radius:8px;font-size:13px">↪</div>
+                    <div style="flex:1;min-width:0"><div class="res-nm">Romesco Toasts</div>
+                        <span class="res-cat">Our Cookbook · Small plates</span>
+                        <div class="mline" style="color:var(--muted)">no yield yet</div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="addnew">＋ can’t find it? add a new ingredient</div>
+            </div></div>
+            <p class="rc-note"><b style="color:var(--ink)">D7 — the line is the affordance.</b> The picker is <b>not redrawn</b>: same top search, same honest rows, one more section that appears only when the query hits a household recipe title. A recipe row carries a <b>distinct glyph</b> and its <i>makes …</i> as the hint; a <b>yield-less recipe still links</b> — the row says so, and its amounts will read in batches (D2). Converting a plain line to a component, or back, is re-picking from this same picker. <span style="color:var(--muted)">Alternative annotated per the plan: a separate “＋ sub-recipe” add-row beside “＋ add ingredient”. Rejected — the intake screen’s “one form, two doors” rule cuts the other way here: adding a line is <b>one act</b>, so it gets <b>one door</b>. A second row would also force the user to know, before searching, whether the thing they want is a recipe.</span></p>
+        </div>
+
+        <div class="flow"><span>pick a recipe</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Component quantity · batch math on the chips</b> · extends the <i>Quantity</i> sheet — same chips over the same keypad, the conversion line now reads batches</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Add to “for the sliders”</span><span class="dots"></span></div>
+                <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle"><span class="ichip">↪ Romesco Aioli</span></div>
+                    <div class="mline">makes 1 cup <span class="per">· your recipe</span></div></div></div>
+                <p class="flabel" style="margin-top:14px">Quantity</p>
+                <div class="field"><div class="qty-big"><span class="qn">¼</span><span class="care"></span><span class="qu">cup</span></div></div>
+                <div class="dock">
+                    <p class="conv-note" style="margin:0 0 9px"><b>¼ cup</b> = ¼ of a batch · makes 1 cup</p>
+                    <div class="uchips"><span class="uchip">batch</span><span class="uchip-sep"></span><span class="uchip on">cup</span><span class="uchip">tbsp</span><span class="uchip">tsp</span><span class="uchip">ml</span></div>
+                    <div class="kbd numpad">
+                        <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
+                        <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
+                        <div class="kbd-row"><span class="key">.</span><span class="key">0</span><span class="key">⌫</span></div>
+                        <div class="kbd-row"><span class="key done">Done</span></div>
+                    </div>
+                </div>
+                <p class="flabel" style="margin-top:16px">The same sheet · a recipe with no yield</p>
+                <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">batch</span></div></div>
+                <div class="dock">
+                    <p class="conv-note" style="margin:0 0 9px">no yield set — amounts in batches only</p>
+                    <div class="uchips"><span class="uchip on">batch</span></div>
+                    <div class="ghostbtn" style="margin-top:2px">Set the aioli’s yield</div>
+                </div>
+            </div></div>
+            <p class="rc-note"><b style="color:var(--ink)">D2 — what the amount counts.</b> Chips are <b><code>batch</code> ∪ the yields’ families, kitchen-trimmed</b>: <code>batch</code> is always sayable (one whole run of the recipe), and <code>cup · tbsp · tsp · ml</code> are offered only because this yield reads <b>1 cup</b> and <code>core/units</code> can compare them — <b>same family only</b>. There is no density for a recipe, so <code>2 tbsp</code> against a yield that only says <code>250 g</code> is unresolved, and says so rather than guessing a bridge — the fix is the yield’s <b>optional second denomination</b> (owner amendment): state <b>makes 250 g · 16 tbsp</b> and both families’ chips light up, two stated facts instead of one invented bridge. And the 7.7 <b>stored-selection rule carries over</b>: an imported line’s printed unit is always an admissible chip even when this sheet wouldn’t offer it, rendered with the honest unresolved line, never silently rewritten. The second state is <b>not an error state</b>: the link, the page and scaling all work with no yield — only the derived numbers wait, behind one tap. <span style="color:var(--muted)">Alternatives: denominate components in <i>servings</i> of the sub-recipe — clean math, but “¼ cup” stops being what the page printed, which breaks the review screen’s source-line honesty; or give recipes density and measures like ingredients — machinery nothing needs yet.</span> The sausage answer falls out: a yield of <b>8 piece</b> on page 45 makes “1 Italian Sausage” ⅛ of a batch — the <code>1</code> counts pieces of the yield.</p>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Import review · a recipe offered, never auto-linked</b> · extends the <i>Review recipe</i> line card and the <i>Expanded edit card</i> — the did-you-mean chip idiom, one new chip in it</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">2 to review</span></div>
+                <div class="lcard attn">
+                    <div class="chead"><span class="cn">Romesco Aioli</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                    <div class="srcline">from source:  ¼ cup Romesco Aioli (page 38)</div>
+                    <div class="lflags"><span class="lflag">cross-reference “(page 38)”</span></div>
+                    <div class="attn-tag"><span>⚠</span><span>Match an ingredient — or link your recipe</span></div>
+                    <p class="flabel" style="margin:9px 0 6px">Did you mean</p>
+                    <div class="suggests" style="margin-top:0"><span class="sug pick">↪ your recipe · Romesco Aioli</span><span class="sug">Aioli, jarred</span></div>
+                    <div class="ghostbtn">⌕ Something else</div>
+                    <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip off">¼ cup</span></span></div>
+                    <div class="lockhint">Nothing links itself — the chip is an offer. Ignore it and this line commits as plain text, exactly as today.</div>
+                </div>
+                <p class="flabel" style="margin:14px 20px 6px">The same card, once you tap the chip</p>
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">¼ cup</span><span class="l3-body"><span class="ichip">↪ Romesco Aioli</span></span><span class="l3-pen">✎</span></div>
+                    <div class="lockhint">linked — no ingredient match needed, no allowed-units gate. Valid for Save the moment its amount is set.</div>
+                </div>
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id" style="font-weight:400;color:var(--muted)">Italian Sausage (page 45)</span></span><span class="l3-pen">✎</span></div>
+                    <div class="lockhint">offered, declined — commits byte-identical to today’s plain line</div>
+                </div>
+                <div class="savebtn">Save recipe</div>
+            </div></div>
+            <p class="rc-note"><b style="color:var(--ink)">D6 — suggest at review, deterministically; extraction never moves.</b> The server matcher runs each line’s <code>ingredient_text</code> through the <b>shared <code>match_text</code> normalizer</b> (8.5) against <b>household recipe titles</b> as well as the vocabulary, with “(page 38)” stripped the way parentheticals already are; a title hit comes back as one more candidate and the card renders it in the <b>chip idiom it already has</b>. <span style="color:var(--muted)">Rejected: teaching extraction to flag sub-recipe candidates — a contract change, gold re-labels and benchmark re-runs, for a flag matching can already see. ADR-0004 stays intact and the gold specimens still commit unchanged when nobody taps.</span> Two rules for a linked line, both consequences of D1/D2: <b>admission is an ingredient concept</b>, so no <code>allowed_units</code> gate applies here — the unit is checked against the target’s yield family later, at derive time — and <b>Save’s all-valid gate counts a linked line as valid when its amount is set</b>. That is why the cook plan, not this screen, is where “¼ cup of a yield-less aioli” surfaces.</p>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Cook plan · the component session</b> · extends the <i>Batch cook plan</i> session card — same when · scale · covers · timeline, denominated in batches</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Batch cook plan</span><span class="dots">⋯</span></div>
+                <div class="cook">
+                    <div class="cook-title">Romesco Aioli · for Sausage Sliders</div>
+                    <div class="cook-sub">derived from a component line · keeps 5 d</div>
+                    <div class="session"><div class="ses-top"><span class="ses-when">Cook by Sat</span><span class="ses-scale">×¼ batch</span></div>
+                        <div class="ses-covers">covers Sausage Sliders · cook Sat — makes 1 cup, you need ¼</div>
+                        <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:5"></span><span class="tl-gone" style="flex:2"></span></div><div class="tl-days"><span>Sat</span><span>Wed</span><span>Thu</span></div></div></div>
+                    <div class="split-note"><span class="ic">⚑</span><span>A batch makes 1 cup and Saturday needs ¼ — the rest is yours. Nothing here tracks the leftover.</span></div>
+                </div>
+                <p class="flabel" style="margin:16px 20px 6px">The same card, before the aioli has a yield</p>
+                <div class="cook split">
+                    <div class="cook-title">Romesco Aioli · for Sausage Sliders</div>
+                    <div class="cook-sub">derived from a component line · yield not set</div>
+                    <div class="session"><div class="ses-top"><span class="ses-when">Cook by Sat</span><span class="ses-scale" style="color:var(--aging)">no scale</span></div>
+                        <div class="ses-covers">covers Sausage Sliders · cook Sat — the line asks for ¼ cup</div>
+                        <div class="state warn" style="margin:10px 0 0">
+                            <div class="sh"><span>⚑</span><span>Romesco Aioli doesn’t say how much it makes</span></div>
+                            <div class="sb">Set its yield and this session gets a scale. Until then there is no honest number to put here.</div>
+                            <div class="ghostbtn" style="margin-top:10px">Set the yield</div>
+                        </div></div>
+                </div>
+            </div></div>
+            <p class="rc-note"><b style="color:var(--ink)">D3 — a component is a real derived session.</b> Each parent session demands <b>parent scale × batches-per-parent-batch</b> of the sub-recipe; every demand on the same recipe clusters into that recipe’s own sessions through the machinery that already exists — one new demand flavour, no new tables. The cook day is <b>on or before the earliest demanding parent’s</b>, bounded by the sub-recipe’s own keeps/freezer facts, and the scale reads <b>in batches</b> because portions are the wrong denomination for a sauce. <span style="color:var(--muted)">Rejected: a note on the parent card only — shopping would then need its own expansion path and “cook the aioli first” never gets a day; and flattening the component silently into the parent, which loses the aioli’s method entirely.</span> <b style="color:var(--ink)">The gap card is a first-class state, not a fallback.</b> It never reads <code>×1</code>: assuming one batch is exactly the invented number this app refuses. The “¼ cup” it quotes is legitimate — a review-linked line keeps what the page printed (D6), and <b>this</b> is where the unit meets the yield family (D2). Recursion walks depth-first with a visited-set guard, so a cycle raced in by two devices stops and flags instead of looping.</p>
+        </div>
+
+        <div class="flow"><span>derives</span><span class="arrow">→</span></div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Shopping · provenance through two levels</b> · extends the <i>Shopping list</i> item — the breakdown row gains one segment, nothing else changes</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Shopping list</span><span class="dots">⋯</span></div>
+                <div class="sl-group">Pantry</div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Almonds, blanched</span><span class="item-total">60 g</span></div>
+                    <div class="prov"><div class="prov-line"><span class="src">Romesco Aioli · for Sliders · cook Sat</span><span>60 g</span></div></div>
+                </div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Olive oil</span><span class="item-total">60 ml</span></div>
+                    <div class="prov"><div class="prov-line"><span class="src">Sausage Sliders · cook Sat</span><span>30 ml</span></div><div class="prov-line"><span class="src">Romesco Aioli · for Sliders · cook Sat</span><span>30 ml</span></div></div>
+                </div>
+                <div class="sl-group">Produce</div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Garlic</span><span class="item-total">1 clove</span></div>
+                    <div class="prov"><div class="prov-line"><span class="src">Romesco Aioli · for Sliders · cook Sat</span><span>1 clove</span></div></div>
+                </div>
+                <div class="sl-group">Sausage Sliders · <span style="color:#7A5A16;letter-spacing:0;text-transform:none">⚑ 1 component unresolved — see Cook</span></div>
+                <p class="conv-note" style="margin-top:0">nothing from that component is in this list — and nothing was invented to put it there</p>
+                <div class="topup">＋ add item or top up an ingredient</div>
+            </div></div>
+            <p class="rc-note"><b style="color:var(--ink)">D4 — it falls out of D3.</b> A component session <i>is</i> a cook session, so the aioli’s own lines contribute through the existing pipeline, scaled by its batch factor: 240 g of almonds at ×¼ is the <b>60 g</b> above, and the oil sums across both levels into one line you buy once. The breakdown row gains <b>one segment</b> — <code>Romesco Aioli · for Sliders · cook Sat</code> — and the component line itself <b>never becomes an item</b>: you do not buy aioli, you buy almonds. An <b>unresolved component contributes nothing</b>, which would otherwise be an invisible hole in a list you shop from; the parent’s header says so in one line and points at the surface that can fix it. <span style="color:var(--muted)">Alternative: silence — let the missing ingredients simply not appear. Rejected; a list that is quietly short is worse than a list that says what it left out.</span></p>
+        </div>
+    </div>
+
     <footer class="footer">
         <span><b>Ansi</b> — complete board</span>
         <span>Flutter · Forui · Supabase · PowerSync</span>
-        <span>29 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8) · import + recipe-view v3 (locked — re-traced from shipped code 2026-08-31) · macro panel (step 9) · ingredients manager v1 (locked — re-traced from shipped code + owner rulings 2026-08-31; shipped 8.5, sim-covered by scenario 5)</span>
+        <span>37 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8) · import + recipe-view v3 (locked — re-traced from shipped code 2026-08-31) · macro panel (step 9) · ingredients manager v1 (locked — re-traced from shipped code + owner rulings 2026-08-31; shipped 8.5, sim-covered by scenario 5) · nested recipes v1 (signed off 2026-09-01, D1–D9 as drawn — in build, exec plan 0021)</span>
     </footer>
 
 </div>
