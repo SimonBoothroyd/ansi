@@ -14,6 +14,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/write.dart';
 import '../data/book_providers.dart';
 import 'book_view_models.dart';
 
@@ -35,13 +36,17 @@ class _BookReorderSheet extends ConsumerWidget {
 
     // Persist the whole order rather than a swap: `reorderBooks` writes
     // contiguous positions, so a list that arrived with gaps comes out clean.
-    Future<void> move(int from, int delta) {
+    Future<void> move(int from, int delta) async {
       final to = from + delta;
-      if (to < 0 || to >= books.length) return Future.value();
+      if (to < 0 || to >= books.length) return;
       final ids = books.map((b) => b.id).toList();
       final id = ids.removeAt(from);
       ids.insert(to, id);
-      return ref.read(bookRepositoryProvider).reorderBooks(ids);
+      await ref.write(
+        context,
+        'reorder the books',
+        () => ref.read(bookRepositoryProvider).reorderBooks(ids),
+      );
     }
 
     return Container(

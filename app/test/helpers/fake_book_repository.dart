@@ -68,3 +68,66 @@ class FakeBookRepository implements BookRepository {
     String? sectionId,
   }) async {}
 }
+
+/// A [FakeBookRepository] whose writes refuse the first [failures] calls.
+///
+/// The `ref.write` door (`lib/shared/write.dart`) only shows itself when a
+/// write throws, so every test of the toast and its Retry needs a repository
+/// that fails on purpose — and one that then succeeds, so Retry has something
+/// to prove.
+class RefusingBookRepository extends FakeBookRepository {
+  RefusingBookRepository(super.books, {this.failures = 1});
+
+  /// How many calls throw before one is let through.
+  final int failures;
+
+  /// Every write this fake has been asked for, in order — so a test can assert
+  /// that Retry really re-ran the action rather than re-showing the toast.
+  final calls = <String>[];
+
+  Future<void> _attempt(String name) async {
+    calls.add(name);
+    if (calls.where((c) => c == name).length <= failures) {
+      throw StateError('RLS denied');
+    }
+  }
+
+  @override
+  Future<void> deleteSection(String sectionId) => _attempt('deleteSection');
+
+  @override
+  Future<void> renameSection(String sectionId, String name) =>
+      _attempt('renameSection');
+
+  @override
+  Future<void> reorderSections(String bookId, List<String> orderedSectionIds) =>
+      _attempt('reorderSections');
+
+  @override
+  Future<void> renameBook(String bookId, String name) => _attempt('renameBook');
+
+  @override
+  Future<void> reorderBooks(List<String> orderedBookIds) =>
+      _attempt('reorderBooks');
+
+  @override
+  Future<void> deleteBook(String bookId) => _attempt('deleteBook');
+
+  @override
+  Future<void> moveBookContents({
+    required String fromBookId,
+    required String toBookId,
+  }) => _attempt('moveBookContents');
+
+  @override
+  Future<String> createBook(String name) async {
+    await _attempt('createBook');
+    return 'new-book';
+  }
+
+  @override
+  Future<String> createSection(String bookId, String name) async {
+    await _attempt('createSection');
+    return 'new-sec';
+  }
+}

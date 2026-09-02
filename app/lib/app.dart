@@ -23,7 +23,13 @@ class AnsiApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: ansiHostTheme(),
       routerConfig: ref.watch(routerProvider),
-      builder: (context, child) => FTheme(data: theme, child: child!),
+      // One [FToaster] for the whole app, beside the theme: `showFToast` walks
+      // up for it, so every toast the app raises — from any route, sheet or
+      // dialog — lands in this one stack instead of a per-screen overlay.
+      builder: (context, child) => FTheme(
+        data: theme,
+        child: FToaster(child: child!),
+      ),
     );
   }
 }

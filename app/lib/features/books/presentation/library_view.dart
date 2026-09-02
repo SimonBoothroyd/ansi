@@ -17,6 +17,7 @@ import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_search_field.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/write.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/presentation/ingredient_list_view.dart'
     show kIngredientsRoute;
@@ -477,9 +478,12 @@ Future<void> promptForNewSection(
     hint: 'Name it anything',
     confirm: 'Add',
   );
-  if (name != null && name.trim().isNotEmpty) {
-    await ref.read(bookRepositoryProvider).createSection(bookId, name);
-  }
+  if (name == null || name.trim().isEmpty || !context.mounted) return;
+  await ref.write(
+    context,
+    'add that section',
+    () => ref.read(bookRepositoryProvider).createSection(bookId, name),
+  );
 }
 
 /// The book header's `⋯` — [_SectionMenu]'s menu one level up (D4).
@@ -493,15 +497,19 @@ class _BookMenu extends ConsumerWidget {
   final Book book;
   final List<Book> books;
 
-  Future<void> _move(WidgetRef ref, int delta) {
+  Future<void> _move(BuildContext context, WidgetRef ref, int delta) async {
     final ids = books.map((b) => b.id).toList();
     final from = ids.indexOf(book.id);
     final to = from + delta;
-    if (from < 0 || to < 0 || to >= ids.length) return Future.value();
+    if (from < 0 || to < 0 || to >= ids.length) return;
     ids
       ..removeAt(from)
       ..insert(to, book.id);
-    return ref.read(bookRepositoryProvider).reorderBooks(ids);
+    await ref.write(
+      context,
+      'reorder the books',
+      () => ref.read(bookRepositoryProvider).reorderBooks(ids),
+    );
   }
 
   @override
@@ -523,9 +531,14 @@ class _BookMenu extends ConsumerWidget {
                   initial: book.name,
                   confirm: 'Rename',
                 );
-                if (name != null && name.trim().isNotEmpty) {
-                  await repo.renameBook(book.id, name);
+                if (name == null || name.trim().isEmpty || !context.mounted) {
+                  return;
                 }
+                await ref.write(
+                  context,
+                  'rename that book',
+                  () => repo.renameBook(book.id, name),
+                );
               },
             ),
             FItem(
@@ -541,7 +554,7 @@ class _BookMenu extends ConsumerWidget {
               title: const Text('Move up'),
               onPress: () {
                 unawaited(controller.hide());
-                unawaited(_move(ref, -1));
+                unawaited(_move(context, ref, -1));
               },
             ),
             FItem(
@@ -549,7 +562,7 @@ class _BookMenu extends ConsumerWidget {
               title: const Text('Move down'),
               onPress: () {
                 unawaited(controller.hide());
-                unawaited(_move(ref, 1));
+                unawaited(_move(context, ref, 1));
               },
             ),
           ],
@@ -632,8 +645,12 @@ Future<void> confirmDeleteBook(
           if (b.id != book.id) b,
       ],
     );
-    if (target == null) return;
-    await repo.moveBookContents(fromBookId: book.id, toBookId: target.id);
+    if (target == null || !context.mounted) return;
+    await ref.write(
+      context,
+      'move those recipes',
+      () => repo.moveBookContents(fromBookId: book.id, toBookId: target.id),
+    );
     return;
   }
 
@@ -663,7 +680,12 @@ Future<void> confirmDeleteBook(
       ],
     ),
   );
-  if (confirmed ?? false) await repo.deleteBook(book.id);
+  if (!(confirmed ?? false) || !context.mounted) return;
+  await ref.write(
+    context,
+    'delete “${book.name}”',
+    () => repo.deleteBook(book.id),
+  );
 }
 
 /// A refusal that names why. Returns true when the reader took the [door] —
@@ -834,15 +856,19 @@ class _SectionMenu extends ConsumerWidget {
   final BookSection section;
 
   /// Moves [section] by [delta] positions within [book] and persists the order.
-  Future<void> _move(WidgetRef ref, int delta) {
+  Future<void> _move(BuildContext context, WidgetRef ref, int delta) async {
     final ids = book.sections.map((s) => s.id).toList();
     final from = ids.indexOf(section.id);
     final to = from + delta;
-    if (from < 0 || to < 0 || to >= ids.length) return Future.value();
+    if (from < 0 || to < 0 || to >= ids.length) return;
     ids
       ..removeAt(from)
       ..insert(to, section.id);
-    return ref.read(bookRepositoryProvider).reorderSections(book.id, ids);
+    await ref.write(
+      context,
+      'reorder the sections',
+      () => ref.read(bookRepositoryProvider).reorderSections(book.id, ids),
+    );
   }
 
   @override
@@ -864,9 +890,14 @@ class _SectionMenu extends ConsumerWidget {
                   initial: section.name,
                   confirm: 'Rename',
                 );
-                if (name != null && name.trim().isNotEmpty) {
-                  await repo.renameSection(section.id, name);
+                if (name == null || name.trim().isEmpty || !context.mounted) {
+                  return;
                 }
+                await ref.write(
+                  context,
+                  'rename that section',
+                  () => repo.renameSection(section.id, name),
+                );
               },
             ),
             FItem(
@@ -874,7 +905,7 @@ class _SectionMenu extends ConsumerWidget {
               title: const Text('Move up'),
               onPress: () {
                 unawaited(controller.hide());
-                unawaited(_move(ref, -1));
+                unawaited(_move(context, ref, -1));
               },
             ),
             FItem(
@@ -882,7 +913,7 @@ class _SectionMenu extends ConsumerWidget {
               title: const Text('Move down'),
               onPress: () {
                 unawaited(controller.hide());
-                unawaited(_move(ref, 1));
+                unawaited(_move(context, ref, 1));
               },
             ),
             FItem(
@@ -890,7 +921,13 @@ class _SectionMenu extends ConsumerWidget {
               title: const Text('Delete'),
               onPress: () {
                 unawaited(controller.hide());
-                unawaited(repo.deleteSection(section.id));
+                unawaited(
+                  ref.write(
+                    context,
+                    'delete that section',
+                    () => repo.deleteSection(section.id),
+                  ),
+                );
               },
             ),
           ],
@@ -1034,9 +1071,12 @@ Future<void> promptForNewBook(BuildContext context, WidgetRef ref) async {
     hint: 'e.g. Our Cookbook',
     confirm: 'Create',
   );
-  if (name != null && name.trim().isNotEmpty) {
-    await ref.read(bookRepositoryProvider).createBook(name);
-  }
+  if (name == null || name.trim().isEmpty || !context.mounted) return;
+  await ref.write(
+    context,
+    'create that book',
+    () => ref.read(bookRepositoryProvider).createBook(name),
+  );
 }
 
 /// How many vocab rows still read `stub`, on the Library menu's Ingredients

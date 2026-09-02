@@ -1,0 +1,64 @@
+/// The app's toasts — the transient half of the error posture.
+///
+/// **A toast reports an act. A banner reports a state.** If the user did
+/// something and it didn't happen, it is a toast, with a way to try again. If
+/// something is *currently* wrong and stays wrong until acted on, it is the
+/// sync banner, not this.
+///
+/// A toast sits **bottom-centre**, above the tab bar, so it never covers a
+/// header action; it needs an `FToaster` ancestor, which `app.dart` installs
+/// once beside `FTheme`. A widget test that pumps a bare screen must use
+/// `pumpAnsiApp` (`test/helpers/pump_app.dart`) or `showFToast` throws.
+///
+/// The words are the design's, not a developer's: never "Error", never
+/// "Failed", never an exception's `toString()`. See
+/// `docs/design-docs/errors-and-sync-health.md`.
+library;
+
+import 'package:flutter/widgets.dart';
+import 'package:forui/forui.dart';
+
+import '../core/theme/ansi_theme.dart';
+
+/// Long enough to read a sentence and reach for Retry; short enough that a
+/// failure the user has already moved past does not follow them around.
+const _toastDuration = Duration(seconds: 6);
+
+/// Reports that one thing the user asked for did not happen.
+///
+/// [what] is a lowercase verb phrase in the user's own noun completing
+/// "Couldn't ___." — "save the recipe", "add Tuesday's dinner", "delete that
+/// section". Never a table name, never a method name.
+///
+/// [onRetry] runs the same write again. It is offered by default because a
+/// local write that threw once usually succeeds on a second attempt; pass null
+/// only where re-running would be wrong.
+void showAnsiFailureToast(
+  BuildContext context, {
+  required String what,
+  String? reassurance,
+  VoidCallback? onRetry,
+}) {
+  showFToast(
+    context: context,
+    variant: FToastVariant.destructive,
+    alignment: FToastAlignment.bottomCenter,
+    duration: _toastDuration,
+    icon: const Icon(FLucideIcons.circleAlert),
+    title: Text('Couldn’t $what.'),
+    description: reassurance == null
+        ? null
+        : Text(reassurance, style: ansiMonoInherit(size: 11)),
+    suffixBuilder: onRetry == null
+        ? null
+        : (context, entry) => FButton(
+            variant: FButtonVariant.outline,
+            size: FButtonSizeVariant.sm,
+            onPress: () {
+              entry.dismiss();
+              onRetry();
+            },
+            child: const Text('Retry'),
+          ),
+  );
+}

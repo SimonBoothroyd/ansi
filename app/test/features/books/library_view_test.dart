@@ -83,10 +83,15 @@ const _library = [
   ),
 ];
 
+/// The Library as the app hosts it — including the single [FToaster], without
+/// which any screen that calls `ref.write` throws instead of reporting.
 Widget _host(List<Override> overrides) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
-    home: FTheme(data: ansiThemeData(), child: const LibraryView()),
+    home: FTheme(
+      data: ansiThemeData(),
+      child: const FToaster(child: LibraryView()),
+    ),
   ),
 );
 
@@ -696,6 +701,106 @@ void main() {
     // U+FF0B is missing from the bundled fonts and renders as tofu.
     expect(find.textContaining('＋'), findsNothing);
     expect(find.textContaining('new section'), findsOneWidget);
+  });
+
+  group('a write that does not land (the ref.write door)', () {
+    /// `⋯` #0 is the screen header's, #1 the first book's, #2 its section's.
+    Future<void> openSectionMenu(WidgetTester tester) async {
+      filterForuiSemanticsAssertions();
+      await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(2));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a section delete that fails says so, and Retry re-runs it', (
+      tester,
+    ) async {
+      // The audit's worst fire-and-forget: one menu tap into an unawaited
+      // write, where a refusal left the section on screen and the user
+      // uninformed.
+      final repo = RefusingBookRepository(_library);
+      await tester.pumpWidget(
+        _host([bookRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      await openSectionMenu(tester);
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(repo.calls, ['deleteSection']);
+      expect(find.text('Couldn’t delete that section.'), findsOneWidget);
+
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+
+      // Retry re-ran the action — a future can only be awaited again.
+      expect(repo.calls, ['deleteSection', 'deleteSection']);
+      expect(find.text('Couldn’t delete that section.'), findsNothing);
+    });
+
+    testWidgets('a book rename that fails names the book’s own act', (
+      tester,
+    ) async {
+      final repo = RefusingBookRepository(_library);
+      await tester.pumpWidget(
+        _host([bookRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      filterForuiSemanticsAssertions();
+      await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(1));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rename'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, 'Weeknights');
+      await tester.tap(find.text('Rename'));
+      await tester.pumpAndSettle();
+
+      expect(repo.calls, ['renameBook']);
+      expect(find.text('Couldn’t rename that book.'), findsOneWidget);
+    });
+
+    testWidgets('a book delete that fails leaves the book and says why', (
+      tester,
+    ) async {
+      final repo = RefusingBookRepository(const [
+        Book(id: 'b1', name: 'Our Cookbook'),
+        Book(id: 'b2', name: 'Baking'),
+      ]);
+      await tester.pumpWidget(
+        _host([bookRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      filterForuiSemanticsAssertions();
+      await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(1));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete book'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(repo.calls, ['deleteBook']);
+      expect(find.text('Couldn’t delete “Our Cookbook”.'), findsOneWidget);
+      // The refusal is about the write, not about the shelf: the book is still
+      // there, and the library still renders.
+      expect(find.text('Our Cookbook'), findsWidgets);
+    });
+
+    testWidgets('a write that lands says nothing at all', (tester) async {
+      final repo = RefusingBookRepository(_library, failures: 0);
+      await tester.pumpWidget(
+        _host([bookRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      await openSectionMenu(tester);
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(repo.calls, ['deleteSection']);
+      expect(find.textContaining('Couldn’t'), findsNothing);
+    });
   });
 
   testWidgets('the + menu closes behind the page it opens', (tester) async {
