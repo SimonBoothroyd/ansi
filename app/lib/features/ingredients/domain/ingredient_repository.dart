@@ -145,6 +145,28 @@ abstract interface class IngredientRepository {
   /// no-op (returning the row unchanged) when there is no density to delete.
   Future<Ingredient?> clearDensity(String ingredientId);
 
+  /// Removes `piece` from the row's explicit admission list — the answer to
+  /// the measures editor's "you added a measure, still offer piece?" question
+  /// (plan 0022 / ADR-0010).
+  ///
+  /// `piece` means "a whole one of these, and we have nothing better to call
+  /// it". Once a measure names the thing, offering both makes a saved line
+  /// ambiguous — was `1 piece` a clove or a bulb? — and nothing downstream can
+  /// honestly resolve it. So the admission comes out, which is a **removal**
+  /// from a list the household owns and therefore only ever happens because
+  /// they were asked (the second removal leg in the model, beside
+  /// [clearDensity]; ADR-0009 rule 3 still forbids a *backfill* from removing).
+  ///
+  /// A row still on the derived fallback is materialized first, so there is an
+  /// explicit list to remove from. Idempotent: a row that does not admit
+  /// `piece` comes back unchanged. Returns null when [ingredientId] doesn't
+  /// resolve.
+  ///
+  /// Never automatic in reverse: deleting the last measure does **not** put
+  /// `piece` back. It becomes an unselected chip in the flesh-out form's
+  /// admission section again, one tap from returning.
+  Future<Ingredient?> stopOfferingPiece(String ingredientId);
+
   /// Writes a USDA probe result into the row's NULL fields — plan 0020
   /// **D7b**, the local half of "enrichment should not wait for sync".
   ///

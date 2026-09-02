@@ -12,6 +12,13 @@
 /// spoon back through [MeasuresEditor.onVolumeLabel], leaving the host to
 /// point its own density entry at it. Two hosts, one door, and no second
 /// density widget.
+///
+/// It also owns the one question in the `piece` model (plan 0022 / ADR-0010).
+/// `piece` is the fallback for when no measure names the thing; the moment a
+/// row's FIRST piece-type measure lands, that stops being true, and the
+/// household — never a rule — decides whether `piece` stays sayable. Asked
+/// once, with a default, and revisable forever in the flesh-out form's
+/// admission chips.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -35,6 +42,7 @@ class MeasuresEditor extends HookConsumerWidget {
     required this.onDelete,
     required this.onAdded,
     required this.onVolumeLabel,
+    required this.onIngredientChanged,
     this.autofocus = false,
     super.key,
   });
@@ -56,6 +64,13 @@ class MeasuresEditor extends HookConsumerWidget {
   /// A volume-named label was refused and resolved to that catalog unit —
   /// the host points its density entry at it (the "volume-label redirect").
   final ValueChanged<Unit> onVolumeLabel;
+
+  /// The row's `allowed_units` changed under the host — `piece` was dropped
+  /// because the user answered the first-measure question with "no, the
+  /// measure says it better". Hosts that hold their own copy of the row (the
+  /// quantity sheet's `live`) or of the admission set (the flesh-out form's
+  /// chips) reconcile here, so neither writes `piece` back on its next save.
+  final ValueChanged<Ingredient> onIngredientChanged;
 
   /// The quantity sheet opens straight into this state with the keyboard up;
   /// the flesh-out form must not steal focus from a screen the user is
@@ -119,6 +134,26 @@ class MeasuresEditor extends HookConsumerWidget {
       // The host can be dismissed while the write is in flight — touching
       // its state after that throws (every sibling path guards).
       if (!context.mounted) return;
+      // Plan 0022 / ADR-0010 — the one question in the `piece` model, asked at
+      // the only moment its answer is obvious. `piece` means "a whole one of
+      // these, and we have nothing better to call it"; `listed` being empty a
+      // moment ago is exactly what said that, and this measure is what stops
+      // it being true. Adding a SECOND measure asks nothing: the row has
+      // already answered, whichever way.
+      if (listed.isEmpty && allowedUnitsFor(ingredient).contains(pieces)) {
+        // Resolved before the dialog's await, not after: the host can be
+        // dismissed while the question is open, and a `ref.read` on a
+        // disposed ref throws.
+        final ingredients = ref.read(ingredientRepositoryProvider);
+        final stop = await _askStopOfferingPiece(context, ingredient, added);
+        // No answer (barrier tap, back) keeps `piece`: an admission is the
+        // household's, and silence is not consent to remove one.
+        if (stop ?? false) {
+          final changed = await ingredients.stopOfferingPiece(ingredient.id);
+          if (changed != null) onIngredientChanged(changed);
+        }
+        if (!context.mounted) return;
+      }
       onAdded(added);
     }
 
@@ -147,6 +182,49 @@ class MeasuresEditor extends HookConsumerWidget {
       ],
     );
   }
+}
+
+/// The board's frame (c): "you added a measure — stop offering piece?".
+///
+/// Returns true when the user says the measure says it better (`piece` comes
+/// out), false when they keep both, and null when they dismiss — which keeps
+/// `piece`, because an admission is the household's and silence is not
+/// consent to take one away (the D3 refusal of the silent write).
+Future<bool?> _askStopOfferingPiece(
+  BuildContext context,
+  Ingredient ingredient,
+  Measure added,
+) {
+  final amount =
+      '${formatQuantity(added.amount)} ${added.basis.baseUnit.label}';
+  return showFDialog<bool>(
+    context: context,
+    builder: (context, style, animation) => FDialog(
+      title: Text(
+        'You added “${added.label}”. Still offer “piece” for '
+        '${ingredient.canonicalName}?',
+        style: ansiSerif(size: 18),
+      ),
+      body: Text(
+        'A line can say 1 ${added.label} ($amount, so it counts toward macros '
+        'and the shopping total) or 1 piece (an honest count with no weight). '
+        'Offering both means a line can be either, and later nobody can tell '
+        'which was meant.',
+        style: ansiSans(size: 14, color: AnsiColors.muted),
+      ),
+      actions: [
+        FButton(
+          onPress: () => Navigator.of(context).pop(true),
+          child: Text('No — “${added.label}” says it'),
+        ),
+        FButton(
+          variant: FButtonVariant.outline,
+          onPress: () => Navigator.of(context).pop(false),
+          child: const Text('Keep both'),
+        ),
+      ],
+    ),
+  );
 }
 
 class MeasureRow extends StatelessWidget {

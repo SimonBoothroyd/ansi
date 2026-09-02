@@ -25,6 +25,10 @@ mixin IngredientManagerStubs implements IngredientRepository {
       throw UnimplementedError();
 
   @override
+  Future<Ingredient?> stopOfferingPiece(String ingredientId) =>
+      throw UnimplementedError();
+
+  @override
   Future<Ingredient?> applyUsdaProbe(
     String ingredientId, {
     required String source,
@@ -184,6 +188,17 @@ class FakeIngredientRepo implements IngredientRepository {
         },
       ],
     );
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<Ingredient?> stopOfferingPiece(String ingredientId) async {
+    final current = _find(ingredientId);
+    if (current == null) return null;
+    final kept = {...current.allowedUnits ?? allowedUnitsFor(current)};
+    if (!kept.remove(pieces)) return current;
+    final updated = current.copyWith(allowedUnits: kept.toList());
     _replace(updated);
     return updated;
   }

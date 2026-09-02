@@ -733,6 +733,10 @@ class _MeasureManager extends HookConsumerWidget {
           onDelete: onDelete,
           onAdded: onAdded,
           onVolumeLabel: (u) => redirected.value = u,
+          // The piece question's "no" answer changed `allowed_units` under
+          // us; the sheet's chip row reads the row it holds, so it takes the
+          // updated one by the same door a density write uses.
+          onIngredientChanged: onIngredientChanged,
           autofocus: true,
         ),
         const SizedBox(height: 14),

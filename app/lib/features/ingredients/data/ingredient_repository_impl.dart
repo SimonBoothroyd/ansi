@@ -355,6 +355,35 @@ class SqliteIngredientRepository implements IngredientRepository {
   }
 
   @override
+  Future<Ingredient?> stopOfferingPiece(String ingredientId) async {
+    // Read-modify-write for the same reason the density pair is: the list
+    // written back is derived from the row as it is read.
+    final now = DateTime.now().toUtc().toIso8601String();
+    final updated = await _db.writeTransaction((tx) async {
+      final row = await tx.getOptional(
+        'SELECT i.*, $_measureCount FROM ingredient i '
+        'WHERE i.id = ? AND i.deleted_at IS NULL',
+        [ingredientId],
+      );
+      if (row == null) return false;
+      final current = _toIngredient(row);
+      final kept = {...current.allowedUnits ?? defaultAllowedUnitSet(current)};
+      if (!kept.remove(pieces)) return true; // nothing to take away
+      await tx.execute(
+        'UPDATE ingredient SET allowed_units = ?, updated_at = ? WHERE id = ?',
+        [
+          jsonEncode([for (final u in kept) u.id]),
+          now,
+          ingredientId,
+        ],
+      );
+      return true;
+    });
+    if (!updated) return null;
+    return byId(ingredientId);
+  }
+
+  @override
   Future<Ingredient?> applyUsdaProbe(
     String ingredientId, {
     required String source,

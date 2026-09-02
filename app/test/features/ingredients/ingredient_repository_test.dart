@@ -579,6 +579,76 @@ void main() {
     );
   });
 
+  group('stopOfferingPiece (plan 0022 / ADR-0010: `piece` is an admission)', () {
+    setUp(() async {
+      // The garlic shape: a count row whose measure (a clove) names the thing.
+      await db.execute(
+        "UPDATE ingredient SET default_unit = 'piece' WHERE id = '1'",
+      );
+    });
+
+    test('`piece` comes out of a row still on the derived fallback — the '
+        'list is materialized first, so there is something to remove '
+        'from', () async {
+      final row = await db.get(
+        "SELECT allowed_units FROM ingredient WHERE id = '1'",
+      );
+      expect(row['allowed_units'], isNull, reason: 'derived fallback');
+
+      final updated = await repo.stopOfferingPiece('1');
+      expect(updated!.allowedUnits!.map((u) => u.id), isNot(contains('piece')));
+      // The basis family is untouched: it never needed `piece` to be sayable.
+      expect(updated.allowedUnits!.map((u) => u.id), contains('g'));
+
+      final after = await db.get(
+        "SELECT allowed_units FROM ingredient WHERE id = '1'",
+      );
+      expect(
+        jsonDecode(after['allowed_units'] as String) as List,
+        isNot(contains('piece')),
+      );
+    });
+
+    test('every other admission the row carries survives — this takes one '
+        'word away, not the curation around it', () async {
+      await db.execute('UPDATE ingredient SET allowed_units = ? WHERE id = ?', [
+        jsonEncode(['piece', 'g', 'cup', 'to_taste']),
+        '1',
+      ]);
+      final updated = await repo.stopOfferingPiece('1');
+      // Exactly one word out of the stored list. `cup` stays stored even
+      // though this row has no density to make it sayable — the strip that
+      // hides it is `allowedUnitsFor`'s to do at read time, and this write
+      // has no business quietly re-curating a list the household owns.
+      expect(updated!.allowedUnits!.map((u) => u.id).toSet(), {
+        'g',
+        'cup',
+        'to_taste',
+      });
+    });
+
+    test('idempotent, and null for an unknown id', () async {
+      await repo.stopOfferingPiece('1');
+      final again = await repo.stopOfferingPiece('1');
+      expect(again!.allowedUnits!.map((u) => u.id), isNot(contains('piece')));
+      expect(await repo.stopOfferingPiece('nope'), isNull);
+    });
+
+    test('a row that never admitted `piece` is left exactly as it was — no '
+        'materialization, no write', () async {
+      final before = await db.get(
+        "SELECT allowed_units, updated_at FROM ingredient WHERE id = '5'",
+      );
+      final same = await repo.stopOfferingPiece('5');
+      expect(same, isNotNull);
+      final after = await db.get(
+        "SELECT allowed_units, updated_at FROM ingredient WHERE id = '5'",
+      );
+      expect(after['allowed_units'], before['allowed_units']);
+      expect(after['updated_at'], before['updated_at']);
+    });
+  });
+
   group('applyUsdaProbe (D7b: the local half of the enrichment)', () {
     test('fills a bare stub and extends allowed_units with what the density '
         'unlocks — the same event, the same rule as setDensity', () async {

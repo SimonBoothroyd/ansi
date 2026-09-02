@@ -371,6 +371,14 @@ class _DetailForm extends HookConsumerWidget {
           // editor refuses it and the density section above pre-picks that
           // spoon, which is the whole point of sharing one widget.
           onVolumeLabel: (u) => redirectedSpoon.value = u,
+          // The piece question wrote `allowed_units` straight through the
+          // repository, so the chips above must follow in the same breath —
+          // otherwise this form's next Save would put `piece` back from a
+          // draft made before the question was asked.
+          onIngredientChanged: (updated) {
+            allowed.value = allowedUnitsFor(updated).toSet();
+            ref.invalidate(ingredientByIdProvider(ing.id));
+          },
         ),
 
         const _Label('IMPRECISE UNITS'),
