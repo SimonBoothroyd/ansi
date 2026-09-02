@@ -122,6 +122,13 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+          cache: gradle # the single biggest release-build cost when cold
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('app/pubspec.lock') }}
+          restore-keys: pub-${{ runner.os }}-
 
       - uses: subosito/flutter-action@v2
         with:
