@@ -432,7 +432,7 @@ class _UsedInTab extends StatelessWidget {
         for (final use in uses)
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => context.push('/recipes/${use.recipeId}'),
+            onTap: () => context.pushOnce('/recipes/${use.recipeId}'),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Row(
@@ -521,7 +521,7 @@ class _IngredientsTab extends StatelessWidget {
             RecipeIngredientLine(
               uses: uses,
               // A component's chip pushes its target's page (D7).
-              onOpenSubRecipe: (id) => context.push('/recipes/$id'),
+              onOpenSubRecipe: (id) => context.pushOnce('/recipes/$id'),
             ),
         ],
         // Below the list, as the design board's Recipe frame drew it: the

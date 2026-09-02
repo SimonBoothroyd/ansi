@@ -23,6 +23,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../../../shared/picker_shell.dart';
 import '../../books/domain/book.dart';
 import '../../books/presentation/book_view_models.dart';
@@ -223,7 +224,7 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
             ? null
             : (ing) {
                 Navigator.of(context).pop(PickedIngredient(ing));
-                context.push(ingredientDetailRoute(ing.id));
+                context.pushOnce(ingredientDetailRoute(ing.id));
               },
       ),
     );

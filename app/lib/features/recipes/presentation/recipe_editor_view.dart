@@ -14,6 +14,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../../books/data/book_providers.dart';
 import '../../books/presentation/book_view_models.dart';
 import '../../books/presentation/text_prompt.dart';
@@ -237,7 +238,7 @@ class _GroupEditor extends StatelessWidget {
         final result = await showComponentQuantitySheet(
           context,
           target: target,
-          onSetYield: () => context.push('/recipes/${target.id}/edit'),
+          onSetYield: () => context.pushOnce('/recipes/${target.id}/edit'),
         );
         notifier.addComponentLineItem(
           group.id,
@@ -440,7 +441,7 @@ class _ComponentLineEditor extends StatelessWidget {
         initialUnit: item.unit,
         onSetYield: target == null
             ? null
-            : () => context.push('/recipes/${target.id}/edit'),
+            : () => context.pushOnce('/recipes/${target.id}/edit'),
       );
       if (result == null) return;
       notifier
