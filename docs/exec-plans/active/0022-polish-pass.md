@@ -141,6 +141,17 @@ Append-only.
   caught the one survivor. Why record it: the parallel-lane model works
   because the invariants are mechanical; each of these would have been a
   silent bug under prose rules.
+- 2026-09-02 — **The smoke earned its keep twice on Week v2.** First a
+  test-side miss (the first-meal bar sits at the top of a lazy list; the
+  scenario was scrolled to Thursday). Then a real bug: "Remove from the
+  week" popped the entry sheet explicitly AND its "entry is gone"
+  auto-dismiss re-fired, so the root navigator popped twice and took the
+  tab shell's page with it (go_router's "popped the last page off the
+  stack"). Fixed `89fd0d6` — the auto-dismiss only fires while the sheet is
+  the current route — with a widget test that fails on the unguarded code.
+  Why record it: under the shell a double pop is no longer a harmless
+  no-op, and every sheet that closes itself on a data change needs the same
+  guard; the nav design doc gains that rule.
 - 2026-09-02 — The launcher-icon working-tree changes (`flutter_launcher_icons`,
   the mipmap/appiconset PNGs, `pubspec.yaml`) are untouched by every lane. Why:
   they predate this pass and belong to the owner; confirmed with the owner

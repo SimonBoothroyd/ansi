@@ -134,6 +134,25 @@ asked for anyway (bottom-up, no height cap, safe-area padded).
 `Navigator.of(context).pop(result)` from inside a modal still dismisses the
 modal: it is the nearest route either way. Only the owning Navigator changed.
 
+
+### A sheet that closes itself pops once
+
+A modal on the root navigator sits directly above the shell's one page, so a
+second pop is no longer a harmless no-op: it takes the shell with it, and
+go_router asserts *"popped the last page off the stack"*. The trap is a sheet
+that closes itself when its data disappears (the Week entry sheet: the entry is
+removed, so the sheet has nothing to show) **and** also pops explicitly from
+the action that removed it. Rule: an auto-dismiss fires only while the sheet is
+still the current route —
+
+```dart
+if (ModalRoute.of(context)?.isCurrent ?? false) Navigator.of(context).pop();
+```
+
+— and the explicit pop stays. `entry_sheet.dart` is the reference; a widget
+test with a live removal (`week_screen_test.dart`, "pops it exactly once")
+fails on the unguarded code.
+
 ## 5. One tap, one page
 
 Tap-driven navigation goes through `context.pushOnce` / `context.goOnce`
