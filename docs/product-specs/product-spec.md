@@ -163,6 +163,53 @@ Single shared household dataset; both members full read/write; everything scoped
   FAO fallback and 8.5's D4d pass took it to **297/308**, so most recipes now
   read as numbers and the residual `incomplete` is the honest 11-row tail.
 
+#### The method (step 8 tokens · the 0022 editor)
+
+**One shape.** A step is an ordered list of tokens — plain text, `ref` chips
+pointing at line items by id, and `timer`s ([import spec §4.6](./import-and-matching.md)
+is the frozen contract). Since 0022 the editor **writes that shape for every
+recipe**, a chip-less step being one text token; the plain `steps: List<String>`
+is write-never, read-legacy. The recipe page, the import review screen, the
+editor's preview and cook mode therefore all read one method model through one
+renderer (`method_step_text.dart`) and one fold (`foldMethod`).
+
+**The editor's document is text plus ranges.** A ref's `label` already *is* the
+word standing at that position, so a token stream flattens to exactly the
+sentence a human would type with one range marked: `toDraft`/`toTokens`
+(`recipes/domain/method_draft.dart`) are inverses, byte-identical over the
+sausage-sliders gold. A chip is a styled range, never a widget in the field, so
+caret, selection, IME and backspace behave normally — and **typing inside a chip
+demotes it**: the word stays, the link goes.
+
+**A chip is made by selecting text and saying what it is.** Highlight a run,
+and the selection toolbar offers *To ingredient* (the line picker, over this
+recipe's own lines) and *To timer* (a stepper, seeded by parsing only the
+selected substring). The selected words become the chip's word verbatim.
+**Nothing scans prose on its own** — auto-chipping typed text would be
+ADR-0004's render-time matching in a different hat.
+
+**When a chip shows its amount:** *the first time a step calls for something,
+its chip shows the amount; after that it's the same stuff, so the chip just
+names it* — with a switch on any chip to override. The rule is computed for a
+hand-made chip and taken from the extractor for an imported one (§4.6 records
+the positional heuristic as brittle for imports); a step-named portion always
+shows regardless, because that number is transcribed from the page. The switch
+changes **display only**: no quantity is invented, moved or summed by flipping
+it.
+
+**The substitution invariant:** *a chip never names something the recipe does
+not contain.* Tapping a line's identity re-points it while **keeping the line's
+id**, so the chips survive; every chip referencing it then takes the new name,
+the affected steps are flagged for that sitting, and `was "sausage" · keep the
+old word` is one tap. Prose is authored and is never rewritten — only labels
+are, and only visibly. Removing a referenced line asks first and leaves each
+chip's word as plain text, and `save()` prunes dangling refs regardless: **a
+saved method never refs a line the recipe does not have.**
+
+**Convert to plain text** (the METHOD header's `⋯`) is the one lossy act and
+the one-way exit: each step keeps its own prose byte-identically, only the links
+go. There is no re-chip — tokenization happens only inside the import call.
+
 ### Recipe book & sections
 `book: id · name` · `section: user-defined label` (NOT a fixed preset enum).
 - v1 assumption: a recipe lives in one book. (Multi-book many-to-many = open question, low priority.)
