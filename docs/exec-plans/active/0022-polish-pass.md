@@ -169,7 +169,17 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
 - **Library · v2 — signed off** ("looks awesome"); D1–D8 as recommended
   (`⋯` beside `＋`, no `/account` yet; titles-only search; per-device fold;
   book `⋯` with the refused delete + "Move them to…"; the reporting ★).
-  Board tag flipped to signed off; build waits on the nav shell.
+  Board tag flipped to signed off; build waits on the nav shell. **Landed on
+  main 2026-09-02** (`378c9e1`…`1e381d6`): book rename/reorder/delete-with-
+  refusal + "Move them to…", the `＋`/`⋯` header split with the stub dot,
+  per-device folds, the book `⋯` menu and the in-card new-section row, the
+  pinned search over the shared `searchRank` (best tier only, `DID YOU MEAN`
+  when guessed — the plural gap the lane had pinned is paid), the reporting
+  ★, the five empty states, `/recipes/new?title=`. Zero migrations. 1353
+  app tests. Seam fixes at landing: modals through the shell wrappers, the
+  editor/cross-picker fakes grow the six book methods, the smoke scopes its
+  text-field finders to their screens (a pinned search field is now first
+  in the Library tree) and taps `⋯` for Ingredients.
 - **Piece → measure — rejected as drawn.** Owner: piece is the fallback when
   no appropriate measure exists; where one does (clove, medium…) piece must
   not be offered at all, otherwise we are guessing what a piece means. Not
