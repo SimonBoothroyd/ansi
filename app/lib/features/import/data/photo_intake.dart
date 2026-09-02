@@ -70,7 +70,11 @@ PhotoIntakeService photoIntake(Ref ref) {
         sourcePath: sourcePath,
         uiSettings: [
           IOSUiSettings(title: 'Crop'),
-          AndroidUiSettings(toolbarTitle: 'Crop'),
+          // uCrop ships with freestyle (freely resizable) crop OFF, and the
+          // plugin only turns it on when lockAspectRatio is explicitly false —
+          // omit it and Android is stuck with a fixed-ratio box while iOS is
+          // freeform.
+          AndroidUiSettings(toolbarTitle: 'Crop', lockAspectRatio: false),
         ],
       );
       return result?.path;
