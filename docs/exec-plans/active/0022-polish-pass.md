@@ -195,8 +195,18 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
 - **Week · v2 — liked**, one change: the cook marker ("from Monday's batch",
   "cooks today") sits under the recipe name, not beside it. Lane revising.
 - **Navigation · v2 — liked**, pending a short live PoC on the simulator
-  before committing. A PoC lane is building the shell + cross-fade on a
-  branch (not merged) and will leave it running on the sim.
+  before committing. **PoC built** on a worktree branch (commit `d499a94`,
+  not merged): `StatefulShellRoute` with one persistent bar in a new
+  `shared/ansi_tab_shell.dart`, a 120 ms opacity-only content cross-fade
+  (`kTabFade`, set to zero for the hard-cut comparison), the label-highlight
+  bug fixed, pushed pages full-screen over the bar with the native push and
+  edge-swipe-back. Analyze clean, 1031 tests. Left for the full build: the
+  sheet/dialog root-navigator sweep (only the Week add-meal sheets and the
+  Library prompt done), the Android predictive-back manifest flag, D3's back
+  rule, `make test-sim`. Running on the iPhone 17 sim for the owner, signed
+  in as a throwaway local household provisioned by `scripts/smoke_auth.sh`.
+  **Owner tried it: "nice!" — signed off 2026-09-02.** Full build starts from
+  the PoC branch; the Library and Week builds branch off the same base.
 - **Errors — signed off** as recommended, plus **D9** (owner): the Shopping
   list carries its own sync status line under the header — `Synced · just
   now` / `Sending…` / `2 ticks waiting` / amber `Ticks aren't reaching the

@@ -2353,9 +2353,9 @@
 
 
 <!-- ===== NAVIGATION V2 (PROPOSED — nav lane, polish pass 0022, 2026-09-02) ===== -->
-<div class="section-head"><span class="ey">Navigation · v2</span><span class="proposed-tag">proposed 2026-09-02 — nav lane (plan 0022, fronts 3 · 4-part · 7) · one ruling open: D3</span><span class="rule"></span><span class="sub">One bar that never moves, one place a tap can go, one rule for back</span></div>
+<div class="section-head"><span class="ey">Navigation · v2</span><span class="proposed-tag">signed off 2026-09-02 — felt on the simulator PoC (“nice!”); D1–D8 as recommended: D3-b back on a non-Library tab goes home first; the shipped same-location guard and per-item popover hide stand as the floor</span><span class="rule"></span><span class="sub">One bar that never moves, one place a tap can go, one rule for back</span></div>
 
-<div class="locknote prop">
+<div class="locknote">
     <p class="lk-h">Proposed — the tab bar stops being part of the page</p>
     <p>Today <b>every tab screen builds its own copy of the bar</b> as its <span style="font-family:'IBM Plex Mono',monospace">FScaffold.footer</span>, and a tab switch is a <span style="font-family:'IBM Plex Mono',monospace">context.go</span> that replaces the whole page. So a switch runs a full page transition — two bars crossing, always in the “forward” direction whichever way you moved along the bar. Owner, on the standard this has to meet: <i>“some kind of animation is nice, but it needs to feel super clean, as if Apple had native-designed it: not many copies of the nav bar, not pages always transitioning the same direction.”</i> These frames <b>redraw no screen</b>. The four tab screens keep their headers, their content and their URLs; what changes is <b>who owns the bar</b>, what a tap is allowed to do twice, and what back means.</p>
     <div class="ledger">
