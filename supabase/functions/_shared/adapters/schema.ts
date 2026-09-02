@@ -50,6 +50,7 @@ const lineItemSchema = {
   type: "object",
   additionalProperties: false,
   required: [
+    "key",
     "qty",
     "qty_low",
     "qty_high",
@@ -62,6 +63,11 @@ const lineItemSchema = {
     "confidence",
   ],
   properties: {
+    // The line's model-minted reference slug: step refs COPY these instead of
+    // counting flattened positions (LLMs echo strings reliably and mis-count
+    // arrays — the off-by-one chips observed live). Resolved to a flattened
+    // index at coerce time; never leaves the adapter.
+    key: { type: "string" },
     qty: { type: ["number", "null"] },
     qty_low: { type: ["number", "null"] },
     qty_high: { type: ["number", "null"] },
@@ -96,8 +102,10 @@ const tokenSchema = {
     t: { type: "string", enum: ["text", "ref", "timer"] },
     // text
     s: { type: "string" },
-    // ref
-    refs: { type: "array", items: { type: "integer" } },
+    // ref — entries are line KEYS (the slugs minted on line_items). Integers
+    // are the legacy positional form, still accepted by coercion so committed
+    // runs replay, but the schema steers new output to keys only.
+    refs: { type: "array", items: { type: "string" } },
     label: { type: "string" },
     mention: { type: "string", enum: ["new", "rementioned", "fraction"] },
     portion: portionSchema,
@@ -156,6 +164,21 @@ export const EXTRACTION_JSON_SCHEMA = {
         },
       },
     },
+  },
+} as const;
+
+/**
+ * The phase-2 schema of the two-phase sanitize: steps only. The line list is
+ * INPUT to that call (already extracted by phase 1), so the response carries
+ * nothing but the tokenized method — same step/token shapes as the one-shot
+ * schema, refs by line key.
+ */
+export const STEPS_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["steps"],
+  properties: {
+    steps: EXTRACTION_JSON_SCHEMA.properties.steps,
   },
 } as const;
 
@@ -257,6 +280,37 @@ function coerceLineItem(v: unknown): RawLineItem {
   };
 }
 
+/**
+ * A leading determiner on a chip label ("the kale") belongs to the sentence,
+ * not the food's name — but it must never be DELETED, or the step loses a
+ * word. Relocate it: append it to the preceding text token (inserting one when
+ * the ref opens the step), and keep the label as the bare name. The prompt
+ * asks for this split up front; this guard makes the sentence read back intact
+ * whenever the model includes the article anyway.
+ */
+const LEADING_DETERMINER = /^(?:the|a|an|some)\s+/i;
+
+function relocateLeadingDeterminers(tokens: StepToken[]): StepToken[] {
+  const out: StepToken[] = [];
+  for (const tok of tokens) {
+    if (tok.t === "ref") {
+      const m = tok.label.match(LEADING_DETERMINER);
+      if (m) {
+        const prev = out[out.length - 1];
+        if (prev && prev.t === "text") {
+          out[out.length - 1] = { t: "text", s: prev.s + m[0] };
+        } else {
+          out.push({ t: "text", s: m[0] });
+        }
+        out.push({ ...tok, label: tok.label.slice(m[0].length) });
+        continue;
+      }
+    }
+    out.push(tok);
+  }
+  return out;
+}
+
 function coerceMention(v: unknown): MentionKind {
   return v === "rementioned" || v === "fraction" ? v : "new";
 }
@@ -273,7 +327,17 @@ function coercePortion(v: unknown): RefPortion | null {
   };
 }
 
-function coerceToken(v: unknown): StepToken | null {
+/**
+ * One ref entry → a flattened line index. A number is the legacy positional
+ * form (committed runs replay through here) and passes straight through; a
+ * string is a line KEY, resolved via the minted-key map — an unknown key
+ * resolves to -1 ON PURPOSE, which the existing out-of-range machinery then
+ * reports (`ref_out_of_range`) and demotes (`dropOutOfRangeRefs`), so a bad
+ * key degrades exactly like a bad index always has.
+ */
+type RefResolver = (r: unknown) => number | null;
+
+function coerceToken(v: unknown, resolveRef: RefResolver): StepToken | null {
   const o = asRecord(v);
   const t = o.t;
   if (t === "text") {
@@ -286,12 +350,17 @@ function coerceToken(v: unknown): StepToken | null {
   }
   if (t === "ref") {
     const refs = Array.isArray(o.refs)
-      ? o.refs.map((r) => numOrNull(r)).filter((n): n is number => n !== null)
+      ? o.refs.map((r) => resolveRef(r)).filter((n): n is number => n !== null)
       : [];
     return {
       t: "ref",
       refs,
-      label: cap(String(o.label ?? ""), CAPS.label),
+      // The chip words. `label` is the documented field, but the token schema
+      // is one loose shape for all three kinds, and models reliably put the
+      // words in `s` (the text-token field) instead — observed across runs;
+      // reading only `label` blanked every chip and the UI fell back to
+      // canonical names. Accept either; both are the model's own words.
+      label: cap(String(o.label ?? o.s ?? ""), CAPS.label),
       mention: coerceMention(o.mention),
       portion: coercePortion(o.portion),
     };
@@ -308,24 +377,39 @@ function coerceToken(v: unknown): StepToken | null {
  */
 export function coerceExtractionResult(raw: unknown): ExtractionResult {
   const o = asRecord(raw);
+  // Line keys are read alongside the coercion and resolved to FLATTENED
+  // indices here — the key never leaves the adapter, so the payload contract
+  // (positional refs) is unchanged. First occurrence wins on a duplicate key.
+  const keyToIndex = new Map<string, number>();
+  let flat = 0;
   const groups: RawGroup[] = Array.isArray(o.groups)
     ? o.groups.map((g) => {
       const gr = asRecord(g);
+      const rawItems = Array.isArray(gr.line_items) ? gr.line_items : [];
+      for (const li of rawItems) {
+        const key = String(asRecord(li).key ?? "").trim();
+        if (key !== "" && !keyToIndex.has(key)) keyToIndex.set(key, flat);
+        flat++;
+      }
       return {
         name: strOrNull(gr.name, CAPS.group_name),
-        line_items: Array.isArray(gr.line_items)
-          ? gr.line_items.map(coerceLineItem)
-          : [],
+        line_items: rawItems.map(coerceLineItem),
       };
     })
     : [];
+  const resolveRef: RefResolver = (r) => {
+    if (typeof r === "string") return keyToIndex.get(r.trim()) ?? -1;
+    return numOrNull(r);
+  };
   const steps: Step[] = Array.isArray(o.steps)
     ? o.steps.map((s) => {
       const st = asRecord(s);
       const tokens = Array.isArray(st.tokens)
-        ? st.tokens.map(coerceToken).filter((x): x is StepToken => x !== null)
+        ? st.tokens.map((t) => coerceToken(t, resolveRef)).filter((
+          x,
+        ): x is StepToken => x !== null)
         : [];
-      return { tokens };
+      return { tokens: relocateLeadingDeterminers(tokens) };
     })
     : [];
   const servings = numOrNull(o.servings_base);

@@ -166,7 +166,12 @@ export class GeminiFlashAdapter implements ExtractAdapter {
       provider: "Gemini",
       body: {
         contents: [{ role: "user", parts }],
-        generationConfig: { maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS },
+        // temperature 0: transcription is deterministic work (the Claude
+        // adapter's pin, mirrored — unpinned sampling gave run-to-run variance).
+        generationConfig: {
+          maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS,
+          temperature: 0,
+        },
       },
     });
     this.#emit("transcribe", res, startedAt);
@@ -194,6 +199,8 @@ export class GeminiFlashAdapter implements ExtractAdapter {
           responseMimeType: "application/json",
           responseSchema: toGeminiSchema(),
           maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS,
+          // Same pin as transcribe: extraction is deterministic work.
+          temperature: 0,
         },
       },
     });

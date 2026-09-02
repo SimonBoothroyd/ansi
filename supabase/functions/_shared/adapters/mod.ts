@@ -13,6 +13,8 @@ export {
 export type { MockAdapterOptions } from "./mock.ts";
 export {
   CLAUDE_HAIKU_MODEL,
+  CLAUDE_OPUS_MODEL,
+  CLAUDE_SONNET_MODEL,
   ClaudeHaikuAdapter,
   decodeClaudeSanitize,
   decodeClaudeTranscribe,
@@ -48,7 +50,12 @@ export {
 export { MissingKeyError, ProviderHttpError } from "./http.ts";
 
 import type { ExtractAdapter, ExtractionResult } from "../types.ts";
-import { CLAUDE_HAIKU_MODEL, ClaudeHaikuAdapter } from "./claude.ts";
+import {
+  CLAUDE_HAIKU_MODEL,
+  CLAUDE_OPUS_MODEL,
+  CLAUDE_SONNET_MODEL,
+  ClaudeHaikuAdapter,
+} from "./claude.ts";
 import { GEMINI_FLASH_MODEL, GeminiFlashAdapter } from "./gemini.ts";
 import { GPT_MINI_MODEL, GptMiniAdapter } from "./gpt.ts";
 import { decodeClaudeSanitize } from "./claude.ts";
@@ -56,13 +63,34 @@ import { decodeGeminiSanitize } from "./gemini.ts";
 import { decodeGptSanitize } from "./gpt.ts";
 
 /** The provider adapters lane D benchmarks (the mock is constructed separately). */
-export type ProviderName = "claude-haiku" | "gemini-flash" | "gpt-5-mini";
+export type ProviderName =
+  | "claude-haiku"
+  | "claude-sonnet"
+  | "claude-sonnet-low"
+  | "claude-opus"
+  | "claude-opus-low"
+  | "gemini-flash"
+  | "gpt-5-mini";
 
 export const PROVIDER_NAMES: ProviderName[] = [
   "claude-haiku",
+  "claude-sonnet",
+  "claude-sonnet-low",
+  "claude-opus",
+  "claude-opus-low",
   "gemini-flash",
   "gpt-5-mini",
 ];
+
+/**
+ * HTTP budgets for the adaptive-thinking benchmark lanes. `postJson`'s 45s/60s
+ * defaults serve the edge function's spinner and abort a Sonnet/Opus call that
+ * is legitimately still thinking (observed: every claude-sonnet transcribe in
+ * the first ref-recall run died "signal has been aborted"). Benchmarks have no
+ * user waiting, so give each attempt four minutes and the whole call ten.
+ * Production stays on the defaults — Haiku answers well inside them.
+ */
+const BENCH_BUDGETS = { timeoutMs: 240_000, deadlineMs: 600_000 };
 
 /**
  * Builds a live provider adapter by name. Throws `MissingKeyError` when the
@@ -73,6 +101,32 @@ export function buildProvider(name: ProviderName): ExtractAdapter {
   switch (name) {
     case "claude-haiku":
       return new ClaudeHaikuAdapter();
+    case "claude-sonnet":
+      return new ClaudeHaikuAdapter({
+        model: CLAUDE_SONNET_MODEL,
+        name,
+        ...BENCH_BUDGETS,
+      });
+    case "claude-sonnet-low":
+      return new ClaudeHaikuAdapter({
+        model: CLAUDE_SONNET_MODEL,
+        name,
+        effort: "low",
+        ...BENCH_BUDGETS,
+      });
+    case "claude-opus":
+      return new ClaudeHaikuAdapter({
+        model: CLAUDE_OPUS_MODEL,
+        name,
+        ...BENCH_BUDGETS,
+      });
+    case "claude-opus-low":
+      return new ClaudeHaikuAdapter({
+        model: CLAUDE_OPUS_MODEL,
+        name,
+        effort: "low",
+        ...BENCH_BUDGETS,
+      });
     case "gemini-flash":
       return new GeminiFlashAdapter();
     case "gpt-5-mini":
@@ -83,6 +137,10 @@ export function buildProvider(name: ProviderName): ExtractAdapter {
 /** The pinned model id each provider name sends — no key or network needed. */
 export const PROVIDER_MODELS: Record<ProviderName, string> = {
   "claude-haiku": CLAUDE_HAIKU_MODEL,
+  "claude-sonnet": CLAUDE_SONNET_MODEL,
+  "claude-sonnet-low": CLAUDE_SONNET_MODEL,
+  "claude-opus": CLAUDE_OPUS_MODEL,
+  "claude-opus-low": CLAUDE_OPUS_MODEL,
   "gemini-flash": GEMINI_FLASH_MODEL,
   "gpt-5-mini": GPT_MINI_MODEL,
 };
@@ -98,6 +156,10 @@ export const RESPONSE_DECODERS: Record<
   (raw: unknown) => ExtractionResult
 > = {
   "claude-haiku": decodeClaudeSanitize,
+  "claude-sonnet": decodeClaudeSanitize,
+  "claude-sonnet-low": decodeClaudeSanitize,
+  "claude-opus": decodeClaudeSanitize,
+  "claude-opus-low": decodeClaudeSanitize,
   "gemini-flash": decodeGeminiSanitize,
   "gpt-5-mini": decodeGptSanitize,
 };

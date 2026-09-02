@@ -248,7 +248,7 @@
       "tokens": [
         {
           "t": "text",
-          "s": "Finish with "
+          "s": "Finish with the "
         },
         {
           "t": "ref",
@@ -256,7 +256,7 @@
             3,
             4
           ],
-          "label": "the parsley and parmesan",
+          "label": "parsley and parmesan",
           "mention": "fraction",
           "portion": {
             "qty": null,

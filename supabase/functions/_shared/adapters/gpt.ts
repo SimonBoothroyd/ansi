@@ -152,6 +152,8 @@ export class GptMiniAdapter implements ExtractAdapter {
       body: {
         model: this.model,
         max_completion_tokens: this.#maxTokens,
+        // No temperature pin here, unlike claude.ts/gemini.ts: GPT-5-family
+        // models reject the parameter (only the default is supported).
         messages: [{ role: "user", content }],
       },
     });

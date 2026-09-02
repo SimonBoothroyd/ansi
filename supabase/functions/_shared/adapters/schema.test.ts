@@ -180,12 +180,14 @@ Deno.test("coerceExtractionResult — an unknown token kind is dropped", () => {
   });
 });
 
-Deno.test("coerceExtractionResult — non-numeric refs are filtered out", () => {
+Deno.test("coerceExtractionResult — null refs filtered; a string is a key (unknown ⇒ -1)", () => {
+  // Strings are line keys now, not junk: an unknown one resolves to -1 so the
+  // out-of-range machinery reports and demotes it, same as a bad index.
   const r = coerceExtractionResult({
     ...MINIMAL,
     steps: [{ tokens: [{ t: "ref", refs: [0, "x", null, 2], label: "L" }] }],
   });
-  assertEquals((r.steps[0].tokens[0] as RefToken).refs, [0, 2]);
+  assertEquals((r.steps[0].tokens[0] as RefToken).refs, [0, -1, 2]);
 });
 
 Deno.test("coerceExtractionResult — every string field is capped", () => {
@@ -389,7 +391,10 @@ Deno.test("validateExtractionResult — a wholly-invalid ref demotes to its labe
     }]),
   );
   assertEquals(r.steps[0].tokens.map((t) => t.t), ["text", "text"]);
-  assertEquals((r.steps[0].tokens[1] as TextToken).s, "the sauce");
+  // The leading determiner relocates into the preceding text token BEFORE the
+  // demotion, so the sentence still reads "add the sauce" across the two spans.
+  assertEquals((r.steps[0].tokens[0] as TextToken).s, "add the ");
+  assertEquals((r.steps[0].tokens[1] as TextToken).s, "sauce");
 });
 
 Deno.test("validateExtractionResult — an unlabelled invalid ref is removed entirely", () => {
@@ -435,4 +440,181 @@ Deno.test("validateExtractionResult — existing warnings are preserved", () => 
   );
   assertEquals(r.parse_warnings[0], "light grey type");
   assertEquals(r.parse_warnings.length, 2);
+});
+
+Deno.test("coerce — string refs resolve through minted line keys", () => {
+  const r = coerceExtractionResult({
+    groups: [
+      { name: "sauce", line_items: [{ key: "kale", ingredient_text: "kale" }] },
+      {
+        name: null,
+        line_items: [
+          { key: "salt", ingredient_text: "sea salt" },
+          { key: "salt-2", ingredient_text: "smoked salt" },
+        ],
+      },
+    ],
+    steps: [{
+      tokens: [{
+        t: "ref",
+        refs: ["salt-2", "kale"],
+        label: "smoked salt",
+        mention: "new",
+        portion: null,
+      }],
+    }],
+  });
+  const tok = r.steps[0].tokens[0] as RefToken;
+  // keys resolve to FLATTENED indices across groups, in printed order
+  assertEquals(tok.refs, [2, 0]);
+});
+
+Deno.test("coerce — integer refs still resolve (legacy replay)", () => {
+  const r = coerceExtractionResult({
+    groups: [{
+      name: null,
+      line_items: [{ ingredient_text: "onion" }, { ingredient_text: "kale" }],
+    }],
+    steps: [{
+      tokens: [
+        { t: "ref", refs: [1], label: "kale", mention: "new", portion: null },
+      ],
+    }],
+  });
+  assertEquals((r.steps[0].tokens[0] as RefToken).refs, [1]);
+});
+
+Deno.test("coerce+validate — an unknown key degrades exactly like a bad index", () => {
+  const r = validateExtractionResult(coerceExtractionResult({
+    groups: [{
+      name: null,
+      line_items: [{ key: "kale", ingredient_text: "kale" }],
+    }],
+    steps: [{
+      tokens: [{
+        t: "ref",
+        refs: ["no-such-key"],
+        label: "basil",
+        mention: "new",
+        portion: null,
+      }],
+    }],
+  }));
+  // demoted to its label as plain text (dropOutOfRangeRefs) + warned
+  assertEquals(r.steps[0].tokens, [{ t: "text", s: "basil" }]);
+  assert(r.parse_warnings.some((w) => w.includes("ref_out_of_range")));
+});
+
+Deno.test("coerce — a leading determiner relocates into the preceding text token", () => {
+  const r = coerceExtractionResult({
+    groups: [{
+      name: null,
+      line_items: [{ key: "kale", ingredient_text: "kale" }],
+    }],
+    steps: [{
+      tokens: [
+        { t: "text", s: "Add " },
+        {
+          t: "ref",
+          refs: ["kale"],
+          label: "the kale",
+          mention: "new",
+          portion: null,
+        },
+      ],
+    }],
+  });
+  assertEquals(r.steps[0].tokens, [
+    { t: "text", s: "Add the " },
+    { t: "ref", refs: [0], label: "kale", mention: "new", portion: null },
+  ]);
+});
+
+Deno.test("coerce — a determiner opening a step gets its own text token", () => {
+  const r = coerceExtractionResult({
+    groups: [{
+      name: null,
+      line_items: [{ key: "kale", ingredient_text: "kale" }],
+    }],
+    steps: [{
+      tokens: [
+        {
+          t: "ref",
+          refs: ["kale"],
+          label: "The kale",
+          mention: "new",
+          portion: null,
+        },
+        { t: "text", s: " goes in last." },
+      ],
+    }],
+  });
+  assertEquals(r.steps[0].tokens, [
+    { t: "text", s: "The " },
+    { t: "ref", refs: [0], label: "kale", mention: "new", portion: null },
+    { t: "text", s: " goes in last." },
+  ]);
+});
+
+Deno.test("coerce — name-internal grammar is NOT relocated (cream of tartar)", () => {
+  const r = coerceExtractionResult({
+    groups: [{
+      name: null,
+      line_items: [{ key: "cot", ingredient_text: "cream of tartar" }],
+    }],
+    steps: [{
+      tokens: [
+        { t: "text", s: "Whisk in the " },
+        {
+          t: "ref",
+          refs: ["cot"],
+          label: "cream of tartar",
+          mention: "new",
+          portion: null,
+        },
+      ],
+    }],
+  });
+  assertEquals((r.steps[0].tokens[1] as RefToken).label, "cream of tartar");
+});
+
+Deno.test("decodeClaudeSanitize — a two-phase wrapper merges lines and steps", async () => {
+  const { decodeClaudeSanitize } = await import("./claude.ts");
+  const asResponse = (obj: unknown) => ({
+    content: [{ type: "text", text: JSON.stringify(obj) }],
+    stop_reason: "end_turn",
+  });
+  const r = decodeClaudeSanitize({
+    two_phase: true,
+    lines: asResponse({
+      title: "Two Phase Stew",
+      groups: [{
+        name: null,
+        line_items: [
+          { key: "kale", ingredient_text: "kale" },
+          { key: "salt", ingredient_text: "sea salt" },
+        ],
+      }],
+      steps: [], // phase 1 emits none
+    }),
+    steps: asResponse({
+      steps: [{
+        tokens: [
+          { t: "text", s: "Massage the " },
+          {
+            t: "ref",
+            refs: ["kale"],
+            label: "kale",
+            mention: "new",
+            portion: null,
+          },
+        ],
+      }],
+    }),
+  });
+  assertEquals(r.title, "Two Phase Stew");
+  assertEquals(r.groups[0].line_items.length, 2);
+  assertEquals(r.steps.length, 1);
+  const tok = r.steps[0].tokens[1] as RefToken;
+  assertEquals(tok.refs, [0]); // "kale" key resolved against the phase-1 lines
 });

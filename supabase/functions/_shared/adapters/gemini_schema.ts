@@ -33,6 +33,7 @@ const gTime: GSchema = {
 const gLineItem: GSchema = {
   type: "OBJECT",
   properties: {
+    key: { type: "STRING" },
     qty: { type: "NUMBER", nullable: true },
     qty_low: { type: "NUMBER", nullable: true },
     qty_high: { type: "NUMBER", nullable: true },
@@ -45,6 +46,7 @@ const gLineItem: GSchema = {
     confidence: { type: "NUMBER" },
   },
   required: [
+    "key",
     "qty",
     "qty_low",
     "qty_high",
@@ -57,6 +59,7 @@ const gLineItem: GSchema = {
     "confidence",
   ],
   propertyOrdering: [
+    "key",
     "qty",
     "qty_low",
     "qty_high",
@@ -88,7 +91,7 @@ const gToken: GSchema = {
   properties: {
     t: { type: "STRING", enum: ["text", "ref", "timer"] },
     s: { type: "STRING", nullable: true },
-    refs: { type: "ARRAY", nullable: true, items: { type: "INTEGER" } },
+    refs: { type: "ARRAY", nullable: true, items: { type: "STRING" } },
     label: { type: "STRING", nullable: true },
     mention: {
       type: "STRING",

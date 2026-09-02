@@ -63,7 +63,11 @@ function unitHintsBlock(h: UnitHints): string {
   ].join(" ");
 }
 
-export function sanitizeSystemPrompt(hints: UnitHints): string {
+const CLOSING =
+  "Return ONLY the JSON object matching the provided schema. No prose, no markdown.";
+
+/** Everything up to (not including) the STEPS rules — the line-extraction half. */
+function headRules(hints: UnitHints): string {
   return `You convert one recipe's raw text into a strict JSON structure. You are
 INGREDIENT-VOCAB-BLIND (you do not know our ingredient catalogue and must not
 guess canonical ingredient names) but UNIT-AWARE.
@@ -101,6 +105,10 @@ UNITS. ${unitHintsBlock(hints)}
   the qty/unit stay null unless a real number is printed.
 
 LINE ITEMS — source-derived conventions:
+- key: mint a short slug on EVERY line that names its food ("kale", "sea-salt",
+  "garlic"), unique across the whole recipe (a repeated food gets a suffix:
+  "sea-salt-2"). Step refs point at lines by COPYING these keys exactly — the
+  key is the line's handle, so pick one you can re-type without thinking.
 - RANGE ("4 to 6", "2–3 tbsp"): set qty=null and fill qty_low/qty_high from the
   printed range; keep the phrase in raw_amount.
 - CANS / TINS: a SINGLE "400 g tin" / "one 400 g can" / "One 14.5-ounce can" →
@@ -110,16 +118,20 @@ LINE ITEMS — source-derived conventions:
   "can" (British/American synonym). Keep any printed drained weight in raw_amount
   and add a parse_warning.
 - COMPOUND INGREDIENT LINE ("Sea salt and freshly cracked black pepper"): SPLIT
-  into two line items. This shifts every later flattened line index — you must
-  renumber every step ref accordingly.
+  into two line items, each with its own key.
 - COMPOUND AMOUNT, ONE INGREDIENT ("2 tbsp + ½ cup parsley", both volume): sum
   within the family for the line total; represent the per-step split via a ref
   portion (below). If the two amounts are different families and cannot bridge,
   keep raw_amount, set qty=null, and add a parse_warning.
-- COUNT-ON-PRODUCE-WITH-A-TRANSFORM ("Juice of 1 lemon"): qty=1, unit="piece",
-  ingredient_text="lemon", notes="juiced" (match the produce). If the page gives a
-  volume ("about 3 tbsp"), use qty=3, unit="tbsp" and keep the lemon count in
-  raw_amount.
+- COUNT-ON-PRODUCE-WITH-A-TRANSFORM ("Juice of 1 lemon"): the identity follows
+  WHAT THE COOK WOULD BUY (owner ruling). When the recipe uses ONLY the juice of
+  that fruit, the ingredient IS the juice — ingredient_text="lemon juice" /
+  "lime juice", a bottled product: qty/unit from a printed volume when given
+  ("about 3 tbsp" → qty=3, unit="tbsp"), else qty=null, unit=null,
+  unit_mappable=false with the printed phrase kept in raw_amount. When the
+  recipe ALSO uses the zest or the fruit itself (any line or step does), the
+  fruit is what's bought — ingredient_text="lemon", qty=1, unit="piece", and
+  the transforms in notes ("juiced", "zested").
 - COUNT PRODUCE ("1 red bell pepper"): unit="piece".
 - NOTES — split cook-prep out of the identity. ingredient_text is what you BUY and
   match against; notes holds an action YOU perform on that base ingredient (and any
@@ -150,16 +162,60 @@ SERVINGS / YIELD / TIMES:
   time → both equal; a printed range → low/high). No banner → null. Never derive
   a time from the steps.
 - image_quality: your honest legibility read (ok | degraded | poor).
-- truncated=true ONLY when the source is deliberately cut off (a missing page).
+- truncated=true ONLY when the source is deliberately cut off (a missing page).`;
+}
 
-STEPS — token arrays (§4.6). A step is an ORDERED list of tokens; chop the prose
+/** The step-tokenization rules, shared by the one-shot and two-phase prompts. */
+const STEPS_RULES =
+  `STEPS — token arrays (§4.6). A step is an ORDERED list of tokens; chop the prose
 at label boundaries. Rendering walks the array — there is NO text matching later.
+- STEP SEGMENTATION is source-determined, never a style choice: one printed
+  step = one step, exactly. The source's own separations (numbers, bullets,
+  paragraph breaks) are the ONLY step boundaries. An unbroken method paragraph
+  is ONE step, however many sentences it holds — never split it, and never
+  merge separately printed steps.
 - "text" token: a plain prose span { "t":"text", "s":"…" }.
-- "ref" token: the chip words for an ingredient. refs is a list of FLATTENED line
-  indices (index into all line_items across all groups, in printed order). A set
-  of indices → a collective chip ("all the remaining ingredients"). mention is
+- "ref" token: { "t":"ref", "refs":["<line key>",…], "label":"<the food's
+  name>", "mention":…, "portion":… }. The chip words go in "label" — NEVER in
+  "s" ("s" belongs to text tokens only) — and "label" is the complete noun
+  phrase that NAMES the food, exactly as printed — every word that belongs to
+  the name stays, whatever it is ("canned chopped tomatoes", "cream of
+  tartar", "extra-firm tofu"). Only a leading determiner ("the", "a", "an",
+  "some") is not part of the name: it stays in the text token BEFORE the chip,
+  never inside the label and never dropped — "Add the kale" → text "Add the "
+  + label "kale". Prep that the prose hangs off the name ("kale, shredded")
+  likewise stays in text tokens. The name's words appear ONLY in the label,
+  never duplicated in a text token. refs is a list of line KEYS — copy each
+  key exactly as you minted it on the line; never invent, abbreviate, or
+  re-spell a key. mention is
   "new" | "rementioned" | "fraction" (meaningful only on a single-line ref).
   NEVER put a quantity on a ref — the chip inherits its number from the line.
+- REF RECALL IS THE JOB: every time step prose names an ingredient that appears
+  in the line list, that mention MUST be a ref token — first use and every
+  re-mention alike ("the kale", "reserved marinade", "remaining butter"). Before
+  emitting a step, re-read its prose against the full line list and convert
+  every match you can resolve; a mention left as plain text is a MISS, exactly
+  as wrong as a fabricated line. A mention counts even when it shortens or
+  renames the line: "salt" for "sea salt", "quinoa" for "cooked tricolour
+  quinoa", "the sausage" for "Italian sausage links", and a derived rename —
+  "the broth" for the water line it was made from — are all refs. So are
+  garnish/serving re-mentions ("more parmesan, for serving" → ref with a
+  relative portion). Only genuinely unresolvable prose stays text (the rule
+  below). The inverse also holds: pronouns and implied subjects ("them", "it",
+  "everything", an unstated subject) are NOT refs — chip only words that name
+  the food.
+- A multi-line ref is ONLY for an explicit collective phrase — "all of the
+  ingredients", "the remaining sauce ingredients", "the onion mixture": ONE ref
+  token whose label is the printed phrase and whose refs list every line it
+  covers, never one chip per ingredient, and never plain text when the covered
+  lines are unambiguous ("the remaining X" = every line of the named group not
+  already used by earlier steps). A plain conjunction of separately listed
+  foods ("salt and pepper", "oregano, thyme") is NOT a collective — emit one
+  single-line ref per food, with the connecting words as text tokens between
+  them.
+- KEY ACCURACY: before finishing each step, confirm every ref's keys name
+  exactly the lines you mean — a wrong key chips the wrong food onto the
+  sentence.
 - ref.portion: present ONLY when the STEP names a sub-amount for that reference.
   A number transcribed from the step text (qty, or qty_low/qty_high for a step
   range) + unit; OR a relative qualifier ("the rest", "half", "for garnish") with
@@ -174,9 +230,62 @@ at label boundaries. Rendering walks the array — there is NO text matching lat
   a "pinch of salt" with no matching line, or a sub-recipe reference
   ("Romesco Aioli (p38)") — nested recipes are out of scope, keep them as text.
 - A step with zero refs is fine. An ingredient never named in a step gets no
-  chip; that is normal, not an error.
+  chip; that is normal, not an error.`;
 
-Return ONLY the JSON object matching the provided schema. No prose, no markdown.`;
+/** The one-shot sanitize prompt (lines + steps in one call) — the gemini/gpt
+ * benchmark adapters still use this; the Claude adapter now runs two-phase. */
+export function sanitizeSystemPrompt(hints: UnitHints): string {
+  return [headRules(hints), STEPS_RULES, CLOSING].join("\n\n");
+}
+
+/**
+ * Phase 1 of the two-phase sanitize: LINES ONLY. Same rules as the one-shot
+ * prompt minus step tokenization — steps are emitted as an empty array and a
+ * second call writes them against the finished, keyed line list (the split
+ * exists because step refs and collective membership need the WHOLE line list
+ * in view, not a list still being written).
+ */
+export function linesSystemPrompt(hints: UnitHints): string {
+  return [
+    headRules(hints),
+    "STEPS: emit an empty steps array ([]). The method is tokenized in a " +
+    "second pass against your finished line list — your job here is the " +
+    "lines, their keys, and the recipe fields.",
+    CLOSING,
+  ].join("\n\n");
+}
+
+/**
+ * Phase 2 of the two-phase sanitize: STEPS ONLY, with the finished line list
+ * (keys included) in the input. Emits { "steps": [...] } and nothing else.
+ */
+export function stepsSystemPrompt(): string {
+  return [
+    `You tokenize one recipe's METHOD into step token arrays. The recipe's
+ingredient lines have already been extracted and are FINAL — they are given to
+you with their keys. You never re-extract, add, or renumber lines; you write
+steps that reference them by key.
+
+THE ONE INVARIANT — NEVER INVENT. Do not fabricate a step, timer, or
+ingredient reference that is not in the source prose. This is scored and
+disqualifying.`,
+    STEPS_RULES,
+    `TWO-PHASE CONVENTIONS (the line list is in your input):
+- refs: copy keys EXACTLY from the provided line list — never a key that is
+  not on the list.
+- label = the words AS PRINTED in the step prose, even when the line's name is
+  longer: prose "garlic" stays label "garlic" though its line says "garlic
+  cloves". The key does the matching; the label does the reading. A form-word
+  the prose appends to the name ("kale leaves" for the kale line) may stay in
+  the label only if printed that way.
+- CHIP EACH USE: chip the mention where the food enters the action, and chip
+  re-uses in LATER steps (mention "rementioned"). An immediate repeat of the
+  same food within the same passage stays text — chip the FIRST naming.
+- COLLECTIVES: "all the remaining ingredients" and kin are ONE ref token —
+  walk the PROVIDED line list, work out exactly which lines remain unused, and
+  list every one of their keys. The list is in front of you; enumerate it.`,
+    CLOSING,
+  ].join("\n\n");
 }
 
 /**
@@ -192,6 +301,59 @@ export const MAX_SOURCE_TEXT_CHARS = 120_000;
 
 function cap(s: string, max: number): string {
   return s.length <= max ? s : `${s.slice(0, max)}\n…[source truncated]`;
+}
+
+/**
+ * Phase-2 reference table: the finished line list rendered for the steps call.
+ * Reads the RAW phase-1 JSON (uncoerced — tolerant of missing fields) so the
+ * table shows exactly the keys the model minted.
+ */
+export function lineTableBlock(linesJson: unknown): string {
+  const o = (linesJson ?? {}) as Record<string, unknown>;
+  const rows: string[] = [];
+  const groups = Array.isArray(o.groups) ? o.groups : [];
+  for (const g of groups) {
+    const gr = (g ?? {}) as Record<string, unknown>;
+    if (typeof gr.name === "string" && gr.name.trim() !== "") {
+      rows.push(`[group: ${gr.name}]`);
+    }
+    const items = Array.isArray(gr.line_items) ? gr.line_items : [];
+    for (const li of items) {
+      const l = (li ?? {}) as Record<string, unknown>;
+      const amount = typeof l.raw_amount === "string" && l.raw_amount !== ""
+        ? l.raw_amount
+        : [l.qty, l.unit].filter((x) => x !== null && x !== undefined).join(
+          " ",
+        );
+      rows.push(
+        `- key=${String(l.key ?? "?")} | ${amount || "—"} | ${
+          String(l.ingredient_text ?? "?")
+        }`,
+      );
+    }
+  }
+  return rows.join("\n");
+}
+
+/** The user turn for phase 2: the keyed line table + the source method text. */
+export function stepsUserPrompt(blob: RawBlob, linesJson: unknown): string {
+  const label = blob.source === "transcription"
+    ? "a transcription of a photographed recipe page"
+    : blob.source === "jsonld"
+    ? "a schema.org/Recipe JSON-LD extraction"
+    : "the extracted text of a recipe web page";
+  const source = blob.source === "jsonld" && blob.jsonld
+    ? cap(JSON.stringify(blob.jsonld, null, 2), MAX_JSONLD_CHARS)
+    : cap(blob.text ?? "", MAX_SOURCE_TEXT_CHARS);
+  return [
+    `Tokenize this recipe's method into steps. The source is ${label}.`,
+    "",
+    "FINAL LINE LIST (refs use these keys, verbatim):",
+    lineTableBlock(linesJson),
+    "",
+    "SOURCE:",
+    source,
+  ].join("\n");
 }
 
 /** Renders the user turn for ① from a RawBlob (jsonld / page_text / transcription). */
