@@ -8,6 +8,11 @@
 ///
 /// The branch children keep their slot in a [Stack] and are never reordered,
 /// so each tab holds its own Navigator, scroll offsets and view state (D7).
+///
+/// Back on a non-Library tab returns to the Library tab, and a second back
+/// leaves the app (D3-b — the Android convention, one step, cannot loop). The
+/// rule is stated here rather than inherited from whatever `context.go` left on
+/// the stack.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -15,6 +20,9 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 
 import 'ansi_bottom_nav.dart';
+
+/// The branch the app treats as home: back from anywhere else lands here first.
+const kHomeBranch = 0;
 
 /// How long the content cross-fade takes.
 ///
@@ -28,12 +36,23 @@ class AnsiTabShell extends StatelessWidget {
   final StatefulNavigationShell shell;
 
   @override
-  Widget build(BuildContext context) => FScaffold(
-    // Each tab screen has its own FScaffold inside the branch, which applies
-    // the page padding already; leaving it on here would double it.
-    childPad: false,
-    footer: AnsiBottomNav(shell: shell),
-    child: shell,
+  Widget build(BuildContext context) => PopScope(
+    // Only the home tab lets a back out of the app. Everywhere else the pop is
+    // intercepted and spent on returning here, so leaving takes two backs from
+    // any tab and never more. `canPop: false` still lets Android start its
+    // predictive animation — Flutter routes it through PredictiveBackRoute —
+    // so the gesture keeps its preview.
+    canPop: shell.currentIndex == kHomeBranch,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop) shell.goBranch(kHomeBranch);
+    },
+    child: FScaffold(
+      // Each tab screen has its own FScaffold inside the branch, which applies
+      // the page padding already; leaving it on here would double it.
+      childPad: false,
+      footer: AnsiBottomNav(shell: shell),
+      child: shell,
+    ),
   );
 }
 

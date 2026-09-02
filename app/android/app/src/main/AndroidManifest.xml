@@ -1,8 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- enableOnBackInvokedCallback: Flutter's PredictiveBackPageTransitionsBuilder
+         needs this opt-in (it is absent from Flutter's own app template), and
+         without it every back falls through to the FadeForwards fallback. With
+         it, popping a pushed page runs the real Android-U predictive animation
+         and a back at the Library tab previews the launcher. Ignored below
+         API 33. -->
     <application
         android:label="Ansi"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
