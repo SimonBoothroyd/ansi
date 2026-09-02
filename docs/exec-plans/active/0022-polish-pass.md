@@ -44,11 +44,12 @@ structural test; C: popovers close before pushing).
 
 ## Acceptance criteria
 
-- [ ] Every design front has a board section, owner-ruled (D-numbers recorded
-      below), and locked before its build lane starts.
-- [ ] Search: one tiered contract shared by the ingredient picker, the recipe
+- [x] Every design front has a board section, owner-ruled (D-numbers recorded
+      below), and locked before its build lane starts. (All seven, 2026-09-02.)
+- [x] Search: one tiered contract shared by the ingredient picker, the recipe
       picker and the line-target picker; guard values chosen against the real
-      vocab with numbers, not opinions; shared vectors pin Dart and TS.
+      vocab with numbers, not opinions; shared vectors pin Dart and TS. (The
+      Library's title search joined it at landing.)
 - [ ] Every code change lands with a test; `make ci` green; `make test-sim`
       re-driven for the tab shell, the Library, the Week screen.
 - [ ] Docs updated in the same PRs: product-spec §5, roadmap rows, tracker rows
@@ -330,5 +331,11 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
 - [x] `make test-sim` 6/6 on main 2026-09-02 (nav shell · piece · search); re-run
       pending after Library / Week / editor / errors.
 - [ ] Tech-debt rows added and retired.
-- [ ] No new migrations expected; if one appears, the cloud ledger gets an entry.
+- [ ] **Cloud, still to push** (one sitting, `docs/release.md`): migrations
+      `0018_fold_diacritics.sql` (folds stored `match_text`; one row today)
+      and `0019_shopping_week.sql` (week-scoped check-offs; sync rules
+      unchanged); the **template-vocab reseed** for the piece curation and the
+      folded seed (`db push` does not reseed — the `rollout_ingredient_refresh`
+      path); `functions deploy import-recipe` for the shared normalizer's
+      diacritic fold. Then a `cloud-setup.md` ledger entry.
 - [ ] `make ci` green.
