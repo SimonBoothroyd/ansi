@@ -7,6 +7,7 @@ import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/planning_repository.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
+import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/planning/presentation/week_view.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
@@ -339,24 +340,7 @@ void main() {
     });
   });
 
-  testWidgets('empty week shows the blank-week CTA', (tester) async {
-    await tester.pumpWidget(
-      _host([
-        planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
-        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
-      ]),
-    );
-    await tester.pump();
-
-    expect(find.text('A blank week'), findsOneWidget);
-    expect(find.text('Plan a meal'), findsOneWidget);
-    // With no earlier week, the copy affordance is absent.
-    expect(find.text('Copy last week'), findsNothing);
-  });
-
-  testWidgets('empty week with an earlier week offers "copy last week"', (
-    tester,
-  ) async {
+  group('the empty week is a state of this screen, not a page (D5)', () {
     final last = WeekPlan(
       id: 'w0',
       weekStart: DateTime.utc(2026, 8, 17),
@@ -371,18 +355,117 @@ void main() {
         ),
       ],
     );
-    await tester.pumpWidget(
-      _host([
-        planningRepositoryProvider.overrideWithValue(
-          _FakePlanningRepo(last: last),
-        ),
-        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
-      ]),
-    );
-    await tester.pump();
 
-    expect(find.text('Copy last week'), findsOneWidget);
-    expect(find.text('Last week, for reference'), findsOneWidget);
+    testWidgets('everything a full week has still renders, with nothing in '
+        'it', (tester) async {
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
+          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      // The blank-week PAGE is gone, and with it the widget doing a
+      // navigation's job.
+      expect(find.text('A blank week'), findsNothing);
+      expect(find.text('Last week, for reference'), findsNothing);
+
+      // The chrome the old page hid — above all the switcher, the one control
+      // that gets you OUT of an empty week.
+      expect(find.byType(WeekSwitcher), findsOneWidget);
+      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Everyone'), findsOneWidget);
+
+      // Seven day cards, each with its own quiet add door, plus the one
+      // primary at the top.
+      expect(find.text('Monday'), findsOneWidget);
+      expect(find.text('nothing planned'), findsWidgets);
+      expect(find.text('Add the first meal'), findsOneWidget);
+
+      // With no earlier week, the copy affordance is absent.
+      expect(find.text('copy last week'), findsNothing);
+    });
+
+    testWidgets('the week band says so rather than adding up to zero', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
+          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        ]),
+      );
+      await tester.pumpAndSettle();
+      await tester.dragUntilVisible(
+        find.text('no meals yet — nothing to add up'),
+        find.byType(Scrollable).first,
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('no meals yet — nothing to add up'), findsOneWidget);
+      expect(find.textContaining('kcal'), findsNothing);
+    });
+
+    testWidgets('"copy last week" is offered inline ONLY while the week is '
+        'empty', (tester) async {
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(last: last),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        ]),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('copy last week'), findsOneWidget);
+
+      // The same week with a meal on it: the chip is gone, and the switcher
+      // menu is its permanent home.
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(week: _plannedWeek(), last: last),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        ]),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('copy last week'), findsNothing);
+      expect(find.text('Add the first meal'), findsNothing);
+    });
+
+    testWidgets('removing the last meal does NOT change what screen you are '
+        'on', (tester) async {
+      // The old branch fired on entries.isEmpty too, so one removal teleported
+      // you off the grid mid-edit. Now the day card is still there and simply
+      // shows its quiet line.
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(week: _plannedWeek()),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        ]),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Thursday'), findsOneWidget);
+
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(
+              week: WeekPlan(id: 'w', weekStart: DateTime.utc(2026, 8, 24)),
+            ),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        ]),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Thursday'), findsOneWidget);
+      expect(find.text('nothing planned'), findsWidgets);
+    });
   });
 
   group('honest macros (D4)', () {

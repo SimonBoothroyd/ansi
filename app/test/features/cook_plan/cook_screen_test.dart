@@ -150,7 +150,9 @@ void main() {
     expect(find.text('Batch cook plan'), findsOneWidget);
   });
 
-  testWidgets('an empty plan shows the blank state', (tester) async {
+  testWidgets('an empty plan is a quiet line INSIDE the screen (D5b)', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _host([
         cookPlanRepositoryProvider.overrideWithValue(
@@ -160,8 +162,18 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Nothing to cook yet'), findsOneWidget);
-    expect(find.text('Plan the week'), findsOneWidget);
+    // The chrome stays put — header and caption — and the empty body carries
+    // the door that would fill it, instead of a full-bleed page with one exit.
+    expect(find.text('Batch cook plan'), findsOneWidget);
+    expect(
+      find.text('grouped by recipe · split by shelf life'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('nothing planned for this week yet'),
+      findsOneWidget,
+    );
+    expect(find.text('plan a meal'), findsOneWidget);
   });
 
   testWidgets('a split recipe renders its sessions and split note', (

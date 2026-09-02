@@ -84,7 +84,9 @@ Widget _host(List<Override> overrides) => ProviderScope(
 );
 
 void main() {
-  testWidgets('an empty list shows the blank state', (tester) async {
+  testWidgets('an empty list is a quiet line INSIDE the list chrome (D5b)', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _host([
         shoppingRepositoryProvider.overrideWithValue(
@@ -94,8 +96,14 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Nothing to buy yet'), findsOneWidget);
-    expect(find.text('Add an item'), findsOneWidget);
+    expect(find.text('Shopping list'), findsOneWidget); // the chrome stays
+    expect(
+      find.textContaining('nothing to buy for this week yet'),
+      findsOneWidget,
+    );
+    expect(find.text('plan a meal'), findsOneWidget);
+    // The add-item door works with no plan at all, so it is never swapped away.
+    expect(find.textContaining('add item or top up'), findsOneWidget);
   });
 
   testWidgets('an empty list but a live plan explains the missing '
@@ -133,9 +141,16 @@ void main() {
     await tester.pump(); // shopping list stream
     await tester.pump(); // cook plan stream
 
-    expect(find.text('Nothing to sum yet'), findsOneWidget);
-    expect(find.textContaining("don't list any ingredients"), findsOneWidget);
-    expect(find.text('Open the library'), findsOneWidget);
+    // The two causes are still told apart — and now inside the list chrome,
+    // with `Add an item` still on screen (D5b/D5c).
+    expect(find.textContaining('nothing to sum yet'), findsOneWidget);
+    expect(find.textContaining('list no ingredients'), findsOneWidget);
+    expect(find.text('add ingredients to a recipe'), findsOneWidget);
+    expect(
+      find.textContaining('add item or top up'),
+      findsOneWidget,
+      reason: 'a staple works with no plan at all — never take that away',
+    );
   });
 
   testWidgets('renders grouped items, totals and provenance', (tester) async {

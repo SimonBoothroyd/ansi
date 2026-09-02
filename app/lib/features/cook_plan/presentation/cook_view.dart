@@ -63,26 +63,24 @@ class CookView extends ConsumerWidget {
             ),
           );
         },
-        data: (data) => data.isEmpty
-            ? const _EmptyCookPlan()
-            : ListView(
-                padding: const EdgeInsets.only(top: 6, bottom: 24),
-                children: [
-                  const _PlanCaption(),
-                  for (final recipe in data.recipes) ...[
-                    // Two denominations, two cards (D3): a recipe that is both
-                    // planned and demanded as a component shows its portions
-                    // and its batches side by side, never summed.
-                    if (recipe.mealSessions.isNotEmpty)
-                      _RecipeCard(recipe: recipe),
-                    if (recipe.componentSessions.isNotEmpty)
-                      _ComponentCard(recipe: recipe),
-                  ],
-                  // Components the plan could not derive: a named gap, never
-                  // a ×1 (D3).
-                  for (final gap in data.gaps) _GapCard(gap: gap),
-                ],
-              ),
+        data: (data) => ListView(
+          padding: const EdgeInsets.only(top: 6, bottom: 24),
+          children: [
+            const _PlanCaption(),
+            if (data.isEmpty) const _NothingToCookLine(),
+            for (final recipe in data.recipes) ...[
+              // Two denominations, two cards (D3): a recipe that is both
+              // planned and demanded as a component shows its portions
+              // and its batches side by side, never summed.
+              if (recipe.mealSessions.isNotEmpty) _RecipeCard(recipe: recipe),
+              if (recipe.componentSessions.isNotEmpty)
+                _ComponentCard(recipe: recipe),
+            ],
+            // Components the plan could not derive: a named gap, never
+            // a ×1 (D3).
+            for (final gap in data.gaps) _GapCard(gap: gap),
+          ],
+        ),
       ),
     );
   }
@@ -659,35 +657,56 @@ class _Note extends StatelessWidget {
   }
 }
 
-/// The blank state: no meals planned, so nothing to cook. Points at the Week.
-class _EmptyCookPlan extends StatelessWidget {
-  const _EmptyCookPlan();
+/// Nothing planned, said INSIDE the screen (week redesign D5b/D5c).
+///
+/// This replaces a full-bleed page with a cooking-pot icon and one button — a
+/// dead end with a single exit, on a screen whose header (and week switcher)
+/// it hid. The house rule now is that a screen never swaps itself out for a
+/// data condition: the chrome stays, and the empty region carries the
+/// affordance that would fill it.
+class _NothingToCookLine extends ConsumerWidget {
+  const _NothingToCookLine();
 
   @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 48, 24, 32),
-      children: [
-        const Icon(FLucideIcons.cookingPot, size: 44, color: AnsiColors.herb),
-        const SizedBox(height: 14),
-        Text(
-          'Nothing to cook yet',
-          textAlign: TextAlign.center,
-          style: ansiSerif(size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Plan some meals on the Week and Ansi works out the batches — '
-          'what to cook, when, and how much.',
-          textAlign: TextAlign.center,
-          style: ansiMono(size: 12, color: AnsiColors.muted),
-        ),
-        const SizedBox(height: 22),
-        FButton(
-          onPress: () => context.goOnce('/week'),
-          child: const Text('Plan the week'),
-        ),
-      ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final suffix = formatDerivedWeekSuffix(
+      ref.watch(viewedWeekStartProvider),
+      ref.watch(currentWeekStartProvider),
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'nothing planned for ${suffix ?? 'this week'} yet — the batches '
+            'are worked out from the meals you put on the week',
+            style: ansiMono(size: 11.5, color: AnsiColors.muted),
+          ),
+          const SizedBox(height: 10),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => context.goOnce('/week'),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(FLucideIcons.plus, size: 12, color: AnsiColors.herb),
+                const SizedBox(width: 5),
+                Text(
+                  'plan a meal',
+                  style: ansiMono(size: 11.5, color: AnsiColors.herbDeep),
+                ),
+                const SizedBox(width: 3),
+                const Icon(
+                  FLucideIcons.chevronRight,
+                  size: 12,
+                  color: AnsiColors.herbDeep,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

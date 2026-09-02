@@ -62,24 +62,27 @@ class ShoppingView extends ConsumerWidget {
             ),
           );
         },
-        data: (data) => data.isEmpty
-            ? const _EmptyShoppingList()
-            : ListView(
-                padding: const EdgeInsets.only(top: 6, bottom: 24),
-                children: [
-                  const _ListCaption(),
-                  for (final group in data.groups) _Group(group: group),
-                  // What the list is short by, and why it is silent about it
-                  // (step 8.6 / D4): an unresolved component contributes
-                  // nothing — never an invented quantity — so the parent it
-                  // belongs to says so and points at the surface that fixes
-                  // it. A list that is quietly short is worse than one that
-                  // says what it left out.
-                  for (final note in data.unresolvedComponents)
-                    _UnresolvedEcho(note: note),
-                  const _AddItemButton(),
-                ],
-              ),
+        // D5b: the screen never swaps itself out for a data condition. An
+        // empty list is a quiet line INSIDE the list chrome, keeping both of
+        // this screen's affordances — the add-item door works with no plan at
+        // all, which is exactly why it must not be taken away.
+        data: (data) => ListView(
+          padding: const EdgeInsets.only(top: 6, bottom: 24),
+          children: [
+            const _ListCaption(),
+            if (data.isEmpty) const _NothingToBuyLine(),
+            for (final group in data.groups) _Group(group: group),
+            // What the list is short by, and why it is silent about it
+            // (step 8.6 / D4): an unresolved component contributes
+            // nothing — never an invented quantity — so the parent it
+            // belongs to says so and points at the surface that fixes
+            // it. A list that is quietly short is worse than one that
+            // says what it left out.
+            for (final note in data.unresolvedComponents)
+              _UnresolvedEcho(note: note),
+            const _AddItemButton(),
+          ],
+        ),
       ),
     );
   }
@@ -468,62 +471,66 @@ class _AddItemButton extends StatelessWidget {
   }
 }
 
-class _EmptyShoppingList extends ConsumerWidget {
-  const _EmptyShoppingList();
+/// Nothing to buy, said inside the list chrome (D5b/D5c).
+///
+/// Shop was already closest to the house rule — it tells its two causes apart
+/// and keeps `Add an item`, which works with no plan at all. All that changed
+/// is that it stopped replacing the screen; the `_AddItemButton` below is now
+/// permanently on screen rather than being swapped away with everything else.
+class _NothingToBuyLine extends ConsumerWidget {
+  const _NothingToBuyLine();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // The list can be empty for two very different reasons — tell them apart so
-    // the copy isn't misleading. If the week already has planned recipes but
-    // nothing summed, those recipes simply have no ingredients yet.
+    // Two causes, told apart: nothing planned at all, versus meals planned
+    // whose recipes have no ingredients to sum.
     final plannedButNoIngredients = ref
         .watch(currentCookPlanProvider)
         .maybeWhen(data: (plan) => !plan.isEmpty, orElse: () => false);
+    final suffix = formatDerivedWeekSuffix(
+      ref.watch(viewedWeekStartProvider),
+      ref.watch(currentWeekStartProvider),
+    );
+    final week = suffix ?? 'this week';
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 48, 24, 32),
-      children: [
-        const Icon(
-          FLucideIcons.shoppingBasket,
-          size: 44,
-          color: AnsiColors.herb,
-        ),
-        const SizedBox(height: 14),
-        Text(
-          plannedButNoIngredients ? 'Nothing to sum yet' : 'Nothing to buy yet',
-          textAlign: TextAlign.center,
-          style: ansiSerif(size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          plannedButNoIngredients
-              ? "You've planned meals, but their recipes don't list any "
-                    'ingredients yet — add ingredients to a recipe and Ansi '
-                    'sums them here.'
-              : 'Plan meals on the Week and Ansi sums the shopping from the '
-                    "cook plan — or add a non-food staple you're out of.",
-          textAlign: TextAlign.center,
-          style: ansiMono(size: 12, color: AnsiColors.muted),
-        ),
-        const SizedBox(height: 22),
-        Builder(
-          builder: (context) => FButton(
-            onPress: () => showAddShoppingItemSheet(context),
-            variant: FButtonVariant.outline,
-            child: const Text('Add an item'),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            plannedButNoIngredients
+                ? 'nothing to sum yet — $week has meals, but their recipes '
+                      'list no ingredients'
+                : 'nothing to buy for $week yet — the list is summed from the '
+                      'cook plan',
+            style: ansiMono(size: 11.5, color: AnsiColors.muted),
           ),
-        ),
-        const SizedBox(height: 10),
-        Builder(
-          builder: (context) => FButton(
-            onPress: () =>
+          const SizedBox(height: 10),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () =>
                 context.goOnce(plannedButNoIngredients ? '/' : '/week'),
-            child: Text(
-              plannedButNoIngredients ? 'Open the library' : 'Plan the week',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  plannedButNoIngredients
+                      ? 'add ingredients to a recipe'
+                      : 'plan a meal',
+                  style: ansiMono(size: 11.5, color: AnsiColors.herbDeep),
+                ),
+                const SizedBox(width: 3),
+                const Icon(
+                  FLucideIcons.chevronRight,
+                  size: 12,
+                  color: AnsiColors.herbDeep,
+                ),
+              ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -18,6 +18,14 @@
 /// eating rather than deleting them (D8), because a day somebody else cooks
 /// for themselves is not an empty day.
 ///
+/// **There is no blank-week page** (D5). A week with nothing in it is this
+/// same screen with nothing in it: header, switcher, mode action, lens row,
+/// seven day cards and the week band all render, exactly as they do for a full
+/// week. The old `_EmptyWeek` hid the switcher — the one control that gets you
+/// OUT of an empty week — swapped the screen out on a data condition, and
+/// fired on `entries.isEmpty` too, so removing your last meal teleported you
+/// off the grid mid-edit.
+///
 /// The week itself is a position, not a singleton — see `week_header.dart`
 /// (D2) and `week_view_models.dart` (D3).
 library;
@@ -93,6 +101,9 @@ class WeekView extends HookConsumerWidget {
     final isThisWeek = weekStart == ref.watch(currentWeekStartProvider);
     final todayDayOfWeek = isThisWeek ? DateTime.now().weekday - 1 : null;
 
+    final lastWeek = ref.watch(lastWeekProvider).asData?.value;
+    final repo = ref.read(planningRepositoryProvider);
+
     // null = Everyone; a member id = that person's lens (D8: it dims, it does
     // not remove).
     final lens = useState<String?>(null);
@@ -131,31 +142,40 @@ class WeekView extends HookConsumerWidget {
             ),
           );
         },
-        data: (plan) => (plan == null || plan.entries.isEmpty)
-            ? _EmptyWeek(weekStart: weekStart)
-            : ListView(
-                padding: const EdgeInsets.only(top: 8, bottom: 24),
-                children: [
-                  const ViewedWeekBanner(),
-                  _LensRow(lens: lens, roster: roster),
-                  for (var d = 0; d < 7; d++)
-                    _DayCard(
-                      weekStart: weekStart,
-                      dayOfWeek: d,
-                      entries: plan.entriesForDay(d),
-                      roster: roster,
-                      lens: lens.value,
-                      scope: scope,
-                      mode: mode.value,
-                      cookPlan: cookPlan,
-                      todayDayOfWeek: todayDayOfWeek,
-                    ),
-                  WeekMacroBand(
-                    macros: ref.watch(weekMacrosProvider(lens.value)),
-                    scope: scope,
-                  ),
-                ],
+        // `watchWeek` emitting null stops meaning "show a different screen"
+        // and starts meaning "seven empty days" (D5).
+        data: (plan) {
+          final empty = plan == null || plan.entries.isEmpty;
+          return ListView(
+            padding: const EdgeInsets.only(top: 8, bottom: 24),
+            children: [
+              const ViewedWeekBanner(),
+              if (empty)
+                _FirstMealBar(
+                  weekStart: weekStart,
+                  hasLastWeek: lastWeek != null,
+                  onCopyLastWeek: () => repo.copyLastWeek(weekStart),
+                ),
+              _LensRow(lens: lens, roster: roster),
+              for (var d = 0; d < 7; d++)
+                _DayCard(
+                  weekStart: weekStart,
+                  dayOfWeek: d,
+                  entries: plan?.entriesForDay(d) ?? const [],
+                  roster: roster,
+                  lens: lens.value,
+                  scope: scope,
+                  mode: mode.value,
+                  cookPlan: cookPlan,
+                  todayDayOfWeek: todayDayOfWeek,
+                ),
+              WeekMacroBand(
+                macros: ref.watch(weekMacrosProvider(lens.value)),
+                scope: scope,
               ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -677,100 +697,65 @@ class NothingPlannedLine extends StatelessWidget {
   }
 }
 
-/// The blank-week state: a CTA to plan the first meal or copy last week, with a
-/// small reference list of last week's meals (design board "New week").
-class _EmptyWeek extends ConsumerWidget {
-  const _EmptyWeek({required this.weekStart});
+/// The empty week's one obvious door, at the top of the list.
+///
+/// Seven identical quiet lines have no focal point, so the primary lives here;
+/// each day's own `nothing planned` line is still its add door, which is what
+/// makes the first meal land on the day you MEANT (the old CTA always added to
+/// Monday, `dayOfWeek: 0`).
+///
+/// `copy last week` sits beside it only while the week has zero entries. Its
+/// permanent home is the switcher menu (D2).
+class _FirstMealBar extends StatelessWidget {
+  const _FirstMealBar({
+    required this.weekStart,
+    required this.hasLastWeek,
+    required this.onCopyLastWeek,
+  });
 
   final DateTime weekStart;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.read(planningRepositoryProvider);
-    final lastWeek = ref.watch(lastWeekProvider);
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
-      children: [
-        const Icon(FLucideIcons.calendarDays, size: 44, color: AnsiColors.herb),
-        const SizedBox(height: 14),
-        Text(
-          'A blank week',
-          textAlign: TextAlign.center,
-          style: ansiSerif(size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Add what you feel like eating — Ansi works out the cooking and '
-          'shopping.',
-          textAlign: TextAlign.center,
-          style: ansiMono(size: 12, color: AnsiColors.muted),
-        ),
-        const SizedBox(height: 22),
-        FButton(
-          onPress: () =>
-              _addMealFlow(context, weekStart: weekStart, dayOfWeek: 0),
-          child: const Text('Plan a meal'),
-        ),
-        const SizedBox(height: 10),
-        lastWeek.when(
-          loading: () => const SizedBox.shrink(),
-          error: (_, _) => const SizedBox.shrink(),
-          data: (last) => last == null
-              ? const SizedBox.shrink()
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    FButton(
-                      variant: FButtonVariant.outline,
-                      onPress: () => repo.copyLastWeek(weekStart),
-                      child: const Text('Copy last week'),
-                    ),
-                    const SizedBox(height: 26),
-                    _LastWeekReference(week: last),
-                  ],
-                ),
-        ),
-      ],
-    );
-  }
-}
-
-class _LastWeekReference extends StatelessWidget {
-  const _LastWeekReference({required this.week});
-
-  final WeekPlan week;
+  final bool hasLastWeek;
+  final VoidCallback onCopyLastWeek;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Last week, for reference',
-          style: ansiMono(size: 10, color: AnsiColors.muted, letterSpacing: 1),
-        ),
-        const SizedBox(height: 8),
-        for (final e in week.entries)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${kWeekdayShort[e.dayOfWeek]} · '
-                    '${e.recipeTitle ?? '(deleted recipe)'}',
-                    style: ansiMono(size: 12),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FButton(
+            prefix: const Icon(FLucideIcons.plus),
+            onPress: () =>
+                _addMealFlow(context, weekStart: weekStart, dayOfWeek: 0),
+            child: const Text('Add the first meal'),
+          ),
+          if (hasLastWeek)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Align(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onCopyLastWeek,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AnsiColors.herbSoft,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      'copy last week',
+                      style: ansiMono(size: 11, color: AnsiColors.herbDeep),
+                    ),
                   ),
                 ),
-                Text(
-                  '${e.portionsOrDefault}',
-                  style: ansiMono(size: 12, color: AnsiColors.muted),
-                ),
-              ],
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
