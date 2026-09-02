@@ -12,7 +12,7 @@
 ///
 /// - a step-named [StepPortion] wins (its number is transcribed from the prose);
 /// - else the line's scaled quantity shows on the **first** mention
-///   (`mention == StepMention.isNew`);
+///   (`amountRule == ChipAmountRule.showAmount`);
 /// - else the chip is quantity-less;
 /// - a **collective** chip (more than one ref) never shows a number.
 ///
@@ -35,15 +35,26 @@ import 'recipe.dart';
 part 'method_step.freezed.dart';
 part 'method_step.g.dart';
 
-/// How a reference renders its number (§4.6). Mirrors the payload's
-/// `MentionKind`; only `isNew` (the JSON `"new"`) carries the line quantity.
-enum StepMention {
+/// Whether a chip carries its line's amount — the plain-language name for what
+/// §4.6 calls `mention` (0022 D9). The rule, said the way the UI says it: *the
+/// first time a step calls for something the chip shows the amount; after that
+/// it just names it.*
+///
+/// The **wire format is untouched** — every value keeps its `@JsonValue`, so
+/// the `steps` jsonb and the import payload read and write exactly what they
+/// did before the rename.
+///
+/// [partial] (the JSON `"fraction"`) behaves identically to [hideAmount] in
+/// [foldMethod]: such a ref almost always carries a [StepPortion], which wins
+/// over the line quantity anyway. The name says "a part of the line" rather
+/// than implying a third rendering that does not exist.
+enum ChipAmountRule {
   @JsonValue('new')
-  isNew,
+  showAmount,
   @JsonValue('rementioned')
-  rementioned,
+  hideAmount,
   @JsonValue('fraction')
-  fraction,
+  partial,
 }
 
 /// A sub-amount named in a step for one chip. A number (transcribed from the
@@ -72,7 +83,12 @@ sealed class MethodToken with _$MethodToken {
   const factory MethodToken.ref({
     required List<String> refs,
     required String label,
-    @Default(StepMention.isNew) StepMention mention,
+    /// Whether this chip shows its line's amount. The JSON key stays
+    /// `mention` (§4.6's frozen contract); only the Dart name is plain
+    /// language.
+    @JsonKey(name: 'mention')
+    @Default(ChipAmountRule.showAmount)
+    ChipAmountRule amountRule,
     StepPortion? portion,
   }) = MethodRef;
 
@@ -154,11 +170,16 @@ List<MethodSpan> foldMethod(
         spans.add(MethodTextSpan(s));
       case MethodTimer(:final lowSeconds, :final highSeconds):
         spans.add(MethodTimerSpan(formatTimerRange(lowSeconds, highSeconds)));
-      case MethodRef(:final refs, :final label, :final mention, :final portion):
+      case MethodRef(
+        :final refs,
+        :final label,
+        :final amountRule,
+        :final portion,
+      ):
         spans.add(
           MethodChipSpan(
             label: _chipLabel(label, refs, lineById),
-            amount: _chipAmount(refs, mention, portion, lineById, factor),
+            amount: _chipAmount(refs, amountRule, portion, lineById, factor),
             constituents: _constituents(refs, lineById),
           ),
         );
@@ -214,7 +235,7 @@ List<String> _resolvedNames(List<String> refs, Map<String, LineItem> lineById) {
 /// The number a chip renders, or null when it is quantity-less.
 String? _chipAmount(
   List<String> refs,
-  StepMention mention,
+  ChipAmountRule amountRule,
   StepPortion? portion,
   Map<String, LineItem> lineById,
   double factor,
@@ -224,7 +245,7 @@ String? _chipAmount(
   // A collective chip ("the remaining ingredients") never shows a number.
   if (refs.length != 1) return null;
   // Otherwise the line's own quantity, but only on the first mention.
-  if (mention != StepMention.isNew) return null;
+  if (amountRule != ChipAmountRule.showAmount) return null;
   final line = lineById[refs.single];
   if (line == null) return null;
   return _formatLineAmount(line, factor);

@@ -49,7 +49,7 @@ void main() {
           MethodRef(
             refs: ['flour'],
             label: 'flour',
-            mention: StepMention.rementioned,
+            amountRule: ChipAmountRule.hideAmount,
           ),
         ],
       );
@@ -81,7 +81,7 @@ void main() {
           MethodRef(
             refs: ['stock'],
             label: 'stock',
-            mention: StepMention.fraction,
+            amountRule: ChipAmountRule.partial,
             portion: StepPortion(qty: 1, unit: 'cup'),
           ),
         ],

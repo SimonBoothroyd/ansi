@@ -138,7 +138,7 @@ void main() {
     final refToken = tokens.whereType<MethodRef>().single;
     expect(refToken.refs, ['i1']);
     expect(refToken.label, 'onion');
-    expect(refToken.mention, StepMention.isNew);
+    expect(refToken.amountRule, ChipAmountRule.showAmount);
     final timer = tokens.whereType<MethodTimer>().single;
     expect(timer.lowSeconds, 300);
     expect(timer.highSeconds, 480);

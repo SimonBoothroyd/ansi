@@ -142,7 +142,7 @@ MethodStep _methodStep(Step step, Set<int> keptIndexes) => MethodStep(
                       if (keptIndexes.contains(i)) previewLineId(i),
                   ],
                   label: label,
-                  mention: _mention(mention),
+                  amountRule: _amountRule(mention),
                   portion: portion == null ? null : _portion(portion),
                 )
               : MethodToken.text(s: label),
@@ -150,10 +150,10 @@ MethodStep _methodStep(Step step, Set<int> keptIndexes) => MethodStep(
   ],
 );
 
-StepMention _mention(MentionKind kind) => switch (kind) {
-  MentionKind.isNew => StepMention.isNew,
-  MentionKind.rementioned => StepMention.rementioned,
-  MentionKind.fraction => StepMention.fraction,
+ChipAmountRule _amountRule(MentionKind kind) => switch (kind) {
+  MentionKind.isNew => ChipAmountRule.showAmount,
+  MentionKind.rementioned => ChipAmountRule.hideAmount,
+  MentionKind.fraction => ChipAmountRule.partial,
 };
 
 StepPortion _portion(RefPortion p) => StepPortion(

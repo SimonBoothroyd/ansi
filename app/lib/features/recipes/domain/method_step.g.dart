@@ -32,9 +32,9 @@ Map<String, dynamic> _$MethodTextToJson(MethodText instance) =>
 MethodRef _$MethodRefFromJson(Map<String, dynamic> json) => MethodRef(
   refs: (json['refs'] as List<dynamic>).map((e) => e as String).toList(),
   label: json['label'] as String,
-  mention:
-      $enumDecodeNullable(_$StepMentionEnumMap, json['mention']) ??
-      StepMention.isNew,
+  amountRule:
+      $enumDecodeNullable(_$ChipAmountRuleEnumMap, json['mention']) ??
+      ChipAmountRule.showAmount,
   portion: json['portion'] == null
       ? null
       : StepPortion.fromJson(json['portion'] as Map<String, dynamic>),
@@ -44,15 +44,15 @@ MethodRef _$MethodRefFromJson(Map<String, dynamic> json) => MethodRef(
 Map<String, dynamic> _$MethodRefToJson(MethodRef instance) => <String, dynamic>{
   'refs': instance.refs,
   'label': instance.label,
-  'mention': _$StepMentionEnumMap[instance.mention]!,
+  'mention': _$ChipAmountRuleEnumMap[instance.amountRule]!,
   'portion': instance.portion,
   't': instance.$type,
 };
 
-const _$StepMentionEnumMap = {
-  StepMention.isNew: 'new',
-  StepMention.rementioned: 'rementioned',
-  StepMention.fraction: 'fraction',
+const _$ChipAmountRuleEnumMap = {
+  ChipAmountRule.showAmount: 'new',
+  ChipAmountRule.hideAmount: 'rementioned',
+  ChipAmountRule.partial: 'fraction',
 };
 
 MethodTimer _$MethodTimerFromJson(Map<String, dynamic> json) => MethodTimer(

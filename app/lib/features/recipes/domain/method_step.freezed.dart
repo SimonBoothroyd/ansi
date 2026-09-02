@@ -427,11 +427,11 @@ return timer(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String s)?  text,TResult Function( List<String> refs,  String label,  StepMention mention,  StepPortion? portion)?  ref,TResult Function( int lowSeconds,  int highSeconds)?  timer,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String s)?  text,TResult Function( List<String> refs,  String label, @JsonKey(name: 'mention')  ChipAmountRule amountRule,  StepPortion? portion)?  ref,TResult Function( int lowSeconds,  int highSeconds)?  timer,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case MethodText() when text != null:
 return text(_that.s);case MethodRef() when ref != null:
-return ref(_that.refs,_that.label,_that.mention,_that.portion);case MethodTimer() when timer != null:
+return ref(_that.refs,_that.label,_that.amountRule,_that.portion);case MethodTimer() when timer != null:
 return timer(_that.lowSeconds,_that.highSeconds);case _:
   return orElse();
 
@@ -450,11 +450,11 @@ return timer(_that.lowSeconds,_that.highSeconds);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String s)  text,required TResult Function( List<String> refs,  String label,  StepMention mention,  StepPortion? portion)  ref,required TResult Function( int lowSeconds,  int highSeconds)  timer,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String s)  text,required TResult Function( List<String> refs,  String label, @JsonKey(name: 'mention')  ChipAmountRule amountRule,  StepPortion? portion)  ref,required TResult Function( int lowSeconds,  int highSeconds)  timer,}) {final _that = this;
 switch (_that) {
 case MethodText():
 return text(_that.s);case MethodRef():
-return ref(_that.refs,_that.label,_that.mention,_that.portion);case MethodTimer():
+return ref(_that.refs,_that.label,_that.amountRule,_that.portion);case MethodTimer():
 return timer(_that.lowSeconds,_that.highSeconds);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -469,11 +469,11 @@ return timer(_that.lowSeconds,_that.highSeconds);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String s)?  text,TResult? Function( List<String> refs,  String label,  StepMention mention,  StepPortion? portion)?  ref,TResult? Function( int lowSeconds,  int highSeconds)?  timer,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String s)?  text,TResult? Function( List<String> refs,  String label, @JsonKey(name: 'mention')  ChipAmountRule amountRule,  StepPortion? portion)?  ref,TResult? Function( int lowSeconds,  int highSeconds)?  timer,}) {final _that = this;
 switch (_that) {
 case MethodText() when text != null:
 return text(_that.s);case MethodRef() when ref != null:
-return ref(_that.refs,_that.label,_that.mention,_that.portion);case MethodTimer() when timer != null:
+return ref(_that.refs,_that.label,_that.amountRule,_that.portion);case MethodTimer() when timer != null:
 return timer(_that.lowSeconds,_that.highSeconds);case _:
   return null;
 
@@ -559,7 +559,7 @@ as String,
 @JsonSerializable()
 
 class MethodRef implements MethodToken {
-  const MethodRef({required final  List<String> refs, required this.label, this.mention = StepMention.isNew, this.portion, final  String? $type}): _refs = refs,$type = $type ?? 'ref';
+  const MethodRef({required final  List<String> refs, required this.label, @JsonKey(name: 'mention') this.amountRule = ChipAmountRule.showAmount, this.portion, final  String? $type}): _refs = refs,$type = $type ?? 'ref';
   factory MethodRef.fromJson(Map<String, dynamic> json) => _$MethodRefFromJson(json);
 
  final  List<String> _refs;
@@ -570,7 +570,10 @@ class MethodRef implements MethodToken {
 }
 
  final  String label;
-@JsonKey() final  StepMention mention;
+/// Whether this chip shows its line's amount. The JSON key stays
+/// `mention` (§4.6's frozen contract); only the Dart name is plain
+/// language.
+@JsonKey(name: 'mention') final  ChipAmountRule amountRule;
  final  StepPortion? portion;
 
 @JsonKey(name: 't')
@@ -590,16 +593,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MethodRef&&const DeepCollectionEquality().equals(other._refs, _refs)&&(identical(other.label, label) || other.label == label)&&(identical(other.mention, mention) || other.mention == mention)&&(identical(other.portion, portion) || other.portion == portion));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MethodRef&&const DeepCollectionEquality().equals(other._refs, _refs)&&(identical(other.label, label) || other.label == label)&&(identical(other.amountRule, amountRule) || other.amountRule == amountRule)&&(identical(other.portion, portion) || other.portion == portion));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_refs),label,mention,portion);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_refs),label,amountRule,portion);
 
 @override
 String toString() {
-  return 'MethodToken.ref(refs: $refs, label: $label, mention: $mention, portion: $portion)';
+  return 'MethodToken.ref(refs: $refs, label: $label, amountRule: $amountRule, portion: $portion)';
 }
 
 
@@ -610,7 +613,7 @@ abstract mixin class $MethodRefCopyWith<$Res> implements $MethodTokenCopyWith<$R
   factory $MethodRefCopyWith(MethodRef value, $Res Function(MethodRef) _then) = _$MethodRefCopyWithImpl;
 @useResult
 $Res call({
- List<String> refs, String label, StepMention mention, StepPortion? portion
+ List<String> refs, String label,@JsonKey(name: 'mention') ChipAmountRule amountRule, StepPortion? portion
 });
 
 
@@ -627,12 +630,12 @@ class _$MethodRefCopyWithImpl<$Res>
 
 /// Create a copy of MethodToken
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? refs = null,Object? label = null,Object? mention = null,Object? portion = freezed,}) {
+@pragma('vm:prefer-inline') $Res call({Object? refs = null,Object? label = null,Object? amountRule = null,Object? portion = freezed,}) {
   return _then(MethodRef(
 refs: null == refs ? _self._refs : refs // ignore: cast_nullable_to_non_nullable
 as List<String>,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
-as String,mention: null == mention ? _self.mention : mention // ignore: cast_nullable_to_non_nullable
-as StepMention,portion: freezed == portion ? _self.portion : portion // ignore: cast_nullable_to_non_nullable
+as String,amountRule: null == amountRule ? _self.amountRule : amountRule // ignore: cast_nullable_to_non_nullable
+as ChipAmountRule,portion: freezed == portion ? _self.portion : portion // ignore: cast_nullable_to_non_nullable
 as StepPortion?,
   ));
 }
