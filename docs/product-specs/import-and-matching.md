@@ -655,7 +655,7 @@ The dividing line is **not fuzzy vs. exact** — both sides tolerate typos. It's
 |---|---|---|
 | **When** | Manual recipe editing | Import reconciliation |
 | **Online?** | Works offline | Always online |
-| **Approx. matching?** | Yes — typo-tolerant retrieval | Yes — full ranked cascade |
+| **Approx. matching?** | Yes — the shared `searchRank` typo tier, guarded per token and run only when exact/prefix find nothing | Yes — full ranked cascade |
 | **Acts unattended?** | No — human picks from a list | Starts a line resolved above the `auto` threshold, but a human still confirms every import |
 | **Corpus** | The ~150–300 synced household `ingredient` + `ingredient_alias` rows | The same household vocab, server-side (`usda_food` is never a match target — ADR-0005) |
 | **Where** | `features/ingredients` picker, over local SQLite | `_shared/match.ts` + `match_db.ts`, over Postgres `pg_trgm` |
@@ -663,6 +663,15 @@ The dividing line is **not fuzzy vs. exact** — both sides tolerate typos. It's
 The shipped `none` path shortens the distance between the two columns: an
 unmatched import line drops the user into the *same* vocab search the manual
 picker uses, seeded with the raw text. One retrieval idea, two calibrations.
+
+**The line that governs the phone's half** — three tiers, the guard values, and
+why the server's cascade is deliberately unchanged — is
+[`../design-docs/search-and-matching.md`](../design-docs/search-and-matching.md).
+Its most important sentence belongs here too: **tier 2 is retrieval for a human
+to pick, never a resolution.** The import's own re-match seam
+(`_findVocabRow`, which re-resolves a candidate name at commit time with nobody
+looking) therefore gets the exact and prefix tiers and never the typo tier —
+the one caller of the shared rule that is deliberately given less of it.
 
 ---
 

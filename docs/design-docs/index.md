@@ -30,6 +30,10 @@ against the code. (Vendored snapshots of *other people's* docs live in
 
 - [Import & ingredient matching](../product-specs/import-and-matching.md) — the
   full pipeline: extraction → normalize → match cascade → reconcile → commit.
+- [`search-and-matching.md`](./search-and-matching.md) — the one rule every
+  phone-side search uses: three tiers (exact · word prefix · guarded typo), why
+  each guard is the number it is, the "did you mean" band, and the seam that
+  deliberately never guesses because nobody is watching it.
 - [`unit-and-measure-matching.md`](./unit-and-measure-matching.md) — how an
   amount is interpreted end to end: the unit catalog vs the per-ingredient
   measure system, how "1 × 400 g tin" becomes both *400 g used* and *1 tin

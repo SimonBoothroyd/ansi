@@ -1696,11 +1696,13 @@ void main() {
   /// [addIngredient]'s shape, on anchors rather than settles, and with the
   /// search [query] stated apart from the row's rendered [name].
   ///
-  /// The picker matches a query token as a word PREFIX of a vocab row's
-  /// `match_text`, and the seed singularizes: the row rendered "Almonds"
-  /// normalizes to `almond`, so "almonds" finds NOTHING while "almond" finds
-  /// it. Every line this scenario adds therefore names both halves, and a miss
-  /// fails loudly with the query rather than staring at a spinner.
+  /// The picker matches each query token as a word PREFIX of a vocab row's
+  /// `match_text`, raw OR singularized — the seed singularizes ("Almonds" is
+  /// stored as `almond`), so both spellings find the row. Naming the query and
+  /// the rendered row separately is still what makes a miss fail loudly with
+  /// the query rather than staring at a spinner. These queries are all spelled
+  /// right on purpose: the typo tier runs only when nothing is, and a scenario
+  /// should exercise the ordinary path, not the band.
   Future<void> addVocabLine(
     WidgetTester tester,
     String query,

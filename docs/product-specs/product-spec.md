@@ -246,8 +246,13 @@ source-tab slot, footer slot):
   (recently used in lines/top-ups) before any query; dense information-honest
   rows — category, capability hints ("has density", "3 measures"), a per-100
   macro line for complete rows, a `stub` badge (never zeros); an add-new
-  affordance creating a `manual` stub from the typed query. Deterministic
-  search only (ADR-0004; the step-7.4 normalizer + word-boundary matching).
+  affordance creating a `manual` stub from the typed query. Search is the
+  shared three-tier rule (exact · every-token word prefix · a guarded
+  typo tier that runs only when the first two find nothing, rendered under a
+  `DID YOU MEAN` header) — see
+  [`search-and-matching.md`](../design-docs/search-and-matching.md). Still
+  deterministic and still ADR-0004: no index, no model, and nothing resolved
+  without a human picking it.
 - **Quantity + unit chips** (replaces every unit dropdown): tapping a
   quantity opens a sheet — ingredient card (name + macro line), quantity
   input, a live honest conversion line ("≈ 610 g · via density
@@ -265,7 +270,9 @@ source-tab slot, footer slot):
 - **Recipe picker** (planning): Recent · Books · Favorites tabs; day-tagged
   "already this week" quick picks; rows carry filing, last-planned recency,
   shelf-life chips, and per-serving macros or the `incomplete` badge with
-  its reason; an "Eating: Ada & Jun · shared" footer. Planning search is
+  its reason; an "Eating: Ada & Jun · shared" footer. Title search is the same
+  three-tier rule the ingredient picker uses — as is the editor's "Your
+  recipes" section, pinned by a cross-picker test. Planning search is
   recipes-only in v1 (foods-as-ad-hoc-meals revisited with step 8).
 - **Confirm & place:** picked card with the honest macro line, one combined
   "Day · Slot" dropdown (day changeable at confirm), and the full batch
