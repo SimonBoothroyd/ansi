@@ -12,6 +12,21 @@ Two workflows do the mechanical parts:
 - [`.github/workflows/deploy-supabase.yml`](../.github/workflows/deploy-supabase.yml)
   — migrations + edge function, triggered by a manual button.
 
+> **Where this stands (2026-09-01).** The one-time setup below is **done**, and
+> this file is a runbook, not a status page — read the setup sections to
+> understand a mechanism or to rebuild it, not as a to-do list.
+>
+> - Repo: `github.com/SimonBoothroyd/ansi`. All four signing secrets, both
+>   Supabase deploy secrets, `PLAY_SERVICE_ACCOUNT_JSON`, and the three build
+>   variables (§2.3, §4.1) are set.
+> - The Gradle signing block is committed (§1).
+> - Play Console: the account exists, the **Ansi** app is created under the
+>   permanent package `io.ansi.app`, the internal track and its tester list are
+>   configured, and §3a's one-time walk is complete. **Do not walk §3a again** —
+>   a second app under a different package can never update the installed one.
+> - The first tag, `v0.1.0`, has been pushed; its `release` run was still in
+>   flight when this note was written, so nothing here claims a shipped build.
+
 ## What syncs how
 
 Not everything is automated, and the split is deliberate: anything that can
@@ -37,13 +52,14 @@ first, tag the app second.
 
 ---
 
-## 1. Prerequisite — commit the Gradle signing block
+## 1. Prerequisite — the Gradle signing block
 
-**`app/android/app/build.gradle.kts` currently does NOT have the release
-signing block committed.** It is modified-but-uncommitted in the working tree.
-Until it lands on `main`, `release.yml` will fail its first guard step, on
-purpose — because without it a `--release` build is silently signed with the
-debug key, which installs fine and can then never update a real install.
+**Done.** `app/android/app/build.gradle.kts` carries the release signing block
+on `main` (landed in `ee768e6`, "release signing + the permanent Play identity
+io.ansi.app"), so `release.yml`'s first guard step passes. Keep it there: the
+guard fails on purpose without it, because a `--release` build missing the
+block is silently signed with the **debug** key — it installs fine and can then
+never update a real install.
 
 The block the pipeline is written against reads `android/key.properties` and
 falls back to debug when it is absent:
@@ -196,8 +212,9 @@ sideloading. This is a **one-time console walk**. Budget half an hour.
 
 **Before you start, two things must be true:**
 
-- **The Gradle signing block is committed** (§1). Still the hard prerequisite —
-  Play binds your app to a signing identity on first upload.
+- **The Gradle signing block is committed** (§1 — satisfied since `ee768e6`).
+  Still the hard prerequisite: Play binds your app to a signing identity on
+  first upload.
 - **The first AAB must be uploaded by hand.** The Play Developer API refuses to
   create a release for an app that has never had a binary in the console. So the
   API-driven pipeline cannot bootstrap itself; step 6 below does that once.
