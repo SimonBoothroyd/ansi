@@ -1,4 +1,4 @@
--- pgTAP: the shopping overlay's week scope (migration 0018, week-redesign D3).
+-- pgTAP: the shopping overlay's week scope (migration 0019, week-redesign D3).
 --
 -- What is defended here:
 --   * the SHAPE — `shopping_list_entry.week_start_date` exists, is a `date`,
@@ -48,7 +48,7 @@ insert into ingredient (id, household_id, canonical_name, default_unit, match_te
 -- ---------------------------------------------------------------------------
 
 select has_column('shopping_list_entry', 'week_start_date',
-  'the overlay entry carries the week it was touched on (0018 / D3)');
+  'the overlay entry carries the week it was touched on (0019 / D3)');
 
 select col_type_is('shopping_list_entry', 'week_start_date', 'date',
   'it is a date — the same key week_plan.week_start_date is addressed by');

@@ -28,6 +28,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
@@ -38,13 +39,9 @@ import 'week_view_models.dart';
 
 /// Opens the entry sheet for [entry].
 Future<void> showEntrySheet(BuildContext context, {required PlanEntry entry}) {
-  return showFSheet<void>(
+  return showAnsiSheet<void>(
     context: context,
     // The root navigator, not the branch's — see showRecipePickerSheet.
-    useRootNavigator: true,
-    side: FLayout.btt,
-    mainAxisMaxRatio: null,
-    useSafeArea: true,
     builder: (_) => _EntrySheet(entryId: entry.id),
   );
 }

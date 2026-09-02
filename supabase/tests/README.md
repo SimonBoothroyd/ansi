@@ -42,7 +42,7 @@ assertions in `begin … rollback` so runs leave no residue.
   that a soft-deleted link doesn't count, and that a `sub_recipe_id` can
   never reach another household's recipe (from `authenticated` AND from a
   superuser write, where RLS isn't doing the work).
-- `shopping_week.sql` — the shopping overlay's week scope (0018, week-redesign
+- `shopping_week.sql` — the shopping overlay's week scope (0019, week-redesign
   D3): `shopping_list_entry.week_start_date` exists, is a nullable `date` (null
   = the global free-text staple), and carries the household+week index the list
   read runs on; that `shopping_list_contribution` gained NOTHING (a top-up

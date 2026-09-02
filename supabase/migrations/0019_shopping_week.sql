@@ -1,4 +1,4 @@
--- 0018_shopping_week.sql — the shopping overlay gains a week (week redesign D3).
+-- 0019_shopping_week.sql — the shopping overlay gains a week (week redesign D3).
 --
 -- Cook and Shop now derive from the week you are LOOKING AT, not the week
 -- containing today (design board "Week · v2", D3 = B): you plan next week on a
