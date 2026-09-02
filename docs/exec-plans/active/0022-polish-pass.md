@@ -1,6 +1,9 @@
 # Exec plan: Polish pass — ten owner-raised fronts, run as parallel lanes
 
-- **Status:** active — design phase. Nothing here is signed off yet.
+- **Status:** active — build phase (2026-09-02). All seven board sections
+  signed off; six build lanes running in worktrees (search · piece · nav
+  shell · library · week · editor); errors staged after library/week land.
+  Quickfix lane already on main.
 - **Owner:** Simon (design partner, rules on every decision) + Claude (orchestrator; lanes are sub-agents)
 - **Roadmap step:** post-8.6 polish; absorbs row 8.7 (piece↔measure) and adds rows for the rest
 - **Created:** 2026-09-02
