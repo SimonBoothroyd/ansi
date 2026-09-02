@@ -2,6 +2,7 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/books/presentation/library_view.dart';
+import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +15,37 @@ import '../../helpers/fake_book_repository.dart';
 
 class _FakeBookRepo extends FakeBookRepository {
   const _FakeBookRepo(super.books);
+}
+
+/// Records the mutations a menu flow reaches for, so a test can assert on the
+/// call rather than on a re-render the fake never produces.
+class _RecordingBookRepo extends FakeBookRepository {
+  _RecordingBookRepo(super.books);
+
+  List<String>? reordered;
+  String? renamedTo;
+  String? deleted;
+  ({String from, String to})? moved;
+  int recipesInBook = 0;
+
+  @override
+  Future<void> reorderBooks(List<String> orderedBookIds) async =>
+      reordered = orderedBookIds;
+
+  @override
+  Future<void> renameBook(String bookId, String name) async => renamedTo = name;
+
+  @override
+  Future<void> deleteBook(String bookId) async => deleted = bookId;
+
+  @override
+  Future<int> countRecipesIn(String bookId) async => recipesInBook;
+
+  @override
+  Future<void> moveBookContents({
+    required String fromBookId,
+    required String toBookId,
+  }) async => moved = (from: fromBookId, to: toBookId);
 }
 
 const _library = [
@@ -92,7 +124,9 @@ void main() {
     expect(find.text('No books yet'), findsOneWidget);
   });
 
-  testWidgets('the + menu offers Sign out', (tester) async {
+  testWidgets('the + menu is the two doors that make a recipe, and no more', (
+    tester,
+  ) async {
     await tester.pumpWidget(_host(_repo(_library)));
     await tester.pump();
 
@@ -100,7 +134,98 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('New recipe'), findsOneWidget);
+    expect(find.text('Import a recipe'), findsOneWidget);
+    // D1: creation only. Navigation and the account action moved to `⋯`.
+    expect(find.text('Ingredients'), findsNothing);
+    expect(find.text('New book'), findsNothing);
+    expect(find.text('Sign out'), findsNothing);
+  });
+
+  testWidgets('the ⋯ menu changes the shape of the library', (tester) async {
+    await tester.pumpWidget(_host(_repo(_library)));
+    await tester.pump();
+
+    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ingredients'), findsOneWidget);
+    expect(find.text('New book'), findsOneWidget);
     expect(find.text('Sign out'), findsOneWidget);
+    expect(find.text('New recipe'), findsNothing);
+  });
+
+  testWidgets('Reorder books is absent on a one-book library', (tester) async {
+    await tester.pumpWidget(_host(_repo(_library)));
+    await tester.pump();
+    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Reorder books'), findsNothing);
+  });
+
+  testWidgets('Reorder books appears once there is an order', (tester) async {
+    await tester.pumpWidget(
+      _host(_repo(const [..._library, Book(id: 'b2', name: 'Baking')])),
+    );
+    await tester.pump();
+    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Reorder books'), findsOneWidget);
+  });
+
+  testWidgets('a stub dot rides ⋯ while the vocabulary needs work (D8)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host([
+        ..._repo(_library),
+        stubCountProvider.overrideWith((ref) => Stream.value(3)),
+      ]),
+    );
+    await tester.pump();
+
+    expect(find.byKey(kStubDotKey), findsOneWidget);
+
+    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
+    await tester.pumpAndSettle();
+    expect(find.text('3 stubs'), findsOneWidget);
+  });
+
+  testWidgets('the dot is absent — not grey — at zero stubs', (tester) async {
+    await tester.pumpWidget(
+      _host([
+        ..._repo(_library),
+        stubCountProvider.overrideWith((ref) => Stream.value(0)),
+      ]),
+    );
+    await tester.pump();
+
+    expect(find.byKey(kStubDotKey), findsNothing);
+  });
+
+  testWidgets('the reorder sheet moves a book with the sections’ idiom', (
+    tester,
+  ) async {
+    final repo = _RecordingBookRepo(const [
+      ..._library,
+      Book(id: 'b2', name: 'Baking'),
+    ]);
+    await tester.pumpWidget(
+      _host([bookRepositoryProvider.overrideWithValue(repo)]),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reorder books'));
+    await tester.pumpAndSettle();
+
+    // Move "Baking" up: the second row's up-arrow.
+    await tester.tap(find.byIcon(FLucideIcons.arrowUp).last);
+    await tester.pumpAndSettle();
+
+    expect(repo.reordered, ['b2', 'b1']);
   });
 
   testWidgets('the add-section affordance uses an icon, not a raw ＋ glyph', (

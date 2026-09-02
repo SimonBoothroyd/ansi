@@ -22,6 +22,7 @@ import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/book_providers.dart';
 import '../domain/book.dart';
+import 'book_reorder_sheet.dart';
 import 'book_view_models.dart';
 import 'text_prompt.dart';
 
@@ -31,87 +32,16 @@ class LibraryView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final library = ref.watch(libraryProvider);
-    final repo = ref.read(bookRepositoryProvider);
 
     return FScaffold(
       header: FHeader.nested(
         title: Text('Library', style: ansiHeaderTitle()),
+        // D1: `⋯` then `＋`. The plus keeps the rightmost, thumb-reachable
+        // slot it already owns, so the muscle memory that exists ("plus, top
+        // right, new recipe") gets shorter rather than relocated.
         suffixes: [
-          FPopoverMenu(
-            // `menuBuilder`, not `menu`: the items need the controller so each
-            // can dismiss the menu before it navigates. Picking an item is
-            // always the end of the menu's business.
-            menuBuilder: (_, controller, _) => [
-              FItemGroup(
-                children: [
-                  FItem(
-                    prefix: const Icon(FLucideIcons.cookingPot),
-                    title: const Text('New recipe'),
-                    onPress: () {
-                      unawaited(controller.hide());
-                      context.pushOnce('/recipes/new');
-                    },
-                  ),
-                  FItem(
-                    prefix: const Icon(FLucideIcons.download),
-                    title: const Text('Import a recipe'),
-                    onPress: () {
-                      unawaited(controller.hide());
-                      context.pushOnce('/import');
-                    },
-                  ),
-                  // Beside "Import a recipe" — the `/import` precedent, plan
-                  // 0020 D8. The badge is the second door: the fleshing-out
-                  // queue is discoverable without hunting for it.
-                  FItem(
-                    prefix: const Icon(FLucideIcons.carrot),
-                    title: const Text('Ingredients'),
-                    suffix: const _StubCountBadge(),
-                    onPress: () {
-                      unawaited(controller.hide());
-                      context.pushOnce(kIngredientsRoute);
-                    },
-                  ),
-                  FItem(
-                    prefix: const Icon(FLucideIcons.bookPlus),
-                    title: const Text('New book'),
-                    onPress: () async {
-                      unawaited(controller.hide());
-                      final name = await promptForText(
-                        context,
-                        title: 'New book',
-                        hint: 'e.g. Our Cookbook',
-                        confirm: 'Create',
-                      );
-                      if (name != null && name.trim().isNotEmpty) {
-                        await repo.createBook(name);
-                      }
-                    },
-                  ),
-                ],
-              ),
-              FItemGroup(
-                children: [
-                  FItem(
-                    prefix: const Icon(FLucideIcons.logOut),
-                    title: const Text('Sign out'),
-                    onPress: () async {
-                      unawaited(controller.hide());
-                      if (await _confirmSignOut(context)) {
-                        await ref
-                            .read(sessionControllerProvider.notifier)
-                            .signOut();
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ],
-            builder: (context, controller, _) => FHeaderAction(
-              icon: const Icon(FLucideIcons.plus),
-              onPress: controller.toggle,
-            ),
-          ),
+          _OverflowMenu(books: library.asData?.value ?? const []),
+          const _AddMenu(),
         ],
       ),
       child: library.when(
@@ -137,11 +67,161 @@ class LibraryView extends ConsumerWidget {
   }
 }
 
+/// The herb dot on `⋯` while the vocabulary holds stubs (D8). A shape, not a
+/// string, so tests name it rather than hunting for a `DecoratedBox`.
+const kStubDotKey = Key('library-stub-dot');
+
+/// `＋` — the two doors that make a recipe, and nothing else (D1).
+///
+/// A plus on a library of recipes promises exactly one thing: type it, or
+/// import it. Everything that changes the *shape* of the library lives in
+/// [_OverflowMenu] next door.
+class _AddMenu extends StatelessWidget {
+  const _AddMenu();
+
+  @override
+  Widget build(BuildContext context) {
+    return FPopoverMenu(
+      // `menuBuilder`, not `menu`: the items need the controller so each can
+      // dismiss the menu before it navigates. Picking an item is always the
+      // end of the menu's business.
+      menuBuilder: (_, controller, _) => [
+        FItemGroup(
+          children: [
+            FItem(
+              prefix: const Icon(FLucideIcons.cookingPot),
+              title: const Text('New recipe'),
+              onPress: () {
+                unawaited(controller.hide());
+                context.pushOnce('/recipes/new');
+              },
+            ),
+            FItem(
+              prefix: const Icon(FLucideIcons.download),
+              title: const Text('Import a recipe'),
+              onPress: () {
+                unawaited(controller.hide());
+                context.pushOnce('/import');
+              },
+            ),
+          ],
+        ),
+      ],
+      builder: (context, controller, _) => FHeaderAction(
+        icon: const Icon(FLucideIcons.plus),
+        onPress: controller.toggle,
+      ),
+    );
+  }
+}
+
+/// `⋯` — change the shape of the library, plus the one account action (D1).
+///
+/// Ingredients sits at the top with its stub badge: that is where the shipped
+/// "Ingredients manager · v1" board frame always said the door was, and the
+/// code only ever put it under `＋` because `＋` was the only menu there was.
+class _OverflowMenu extends ConsumerWidget {
+  const _OverflowMenu({required this.books});
+
+  /// The library as currently loaded — "Reorder books" is offered only when
+  /// there is an order to change.
+  final List<Book> books;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repo = ref.read(bookRepositoryProvider);
+    final stubs = ref.watch(stubCountProvider).asData?.value ?? 0;
+
+    return FPopoverMenu(
+      menuBuilder: (_, controller, _) => [
+        FItemGroup(
+          children: [
+            FItem(
+              prefix: const Icon(FLucideIcons.carrot),
+              title: const Text('Ingredients'),
+              suffix: const _StubCountBadge(),
+              onPress: () {
+                unawaited(controller.hide());
+                context.pushOnce(kIngredientsRoute);
+              },
+            ),
+            FItem(
+              prefix: const Icon(FLucideIcons.bookPlus),
+              title: const Text('New book'),
+              onPress: () async {
+                unawaited(controller.hide());
+                final name = await promptForText(
+                  context,
+                  title: 'New book',
+                  hint: 'e.g. Our Cookbook',
+                  confirm: 'Create',
+                );
+                if (name != null && name.trim().isNotEmpty) {
+                  await repo.createBook(name);
+                }
+              },
+            ),
+            if (books.length >= 2)
+              FItem(
+                prefix: const Icon(FLucideIcons.arrowUpDown),
+                title: const Text('Reorder books'),
+                onPress: () {
+                  unawaited(controller.hide());
+                  unawaited(showBookReorderSheet(context));
+                },
+              ),
+          ],
+        ),
+        FItemGroup(
+          children: [
+            FItem(
+              prefix: const Icon(FLucideIcons.logOut),
+              title: const Text('Sign out'),
+              onPress: () async {
+                unawaited(controller.hide());
+                if (await _confirmSignOut(context)) {
+                  await ref.read(sessionControllerProvider.notifier).signOut();
+                }
+              },
+            ),
+          ],
+        ),
+      ],
+      builder: (context, controller, _) => Stack(
+        clipBehavior: Clip.none,
+        children: [
+          FHeaderAction(
+            icon: const Icon(FLucideIcons.ellipsis),
+            onPress: controller.toggle,
+          ),
+          // D8: the badge climbs one level, so the door advertises itself
+          // without being opened. Absent — not grey — at zero, the same rule
+          // the badge inside the menu already documents.
+          if (stubs > 0)
+            const Positioned(
+              key: kStubDotKey,
+              top: 2,
+              right: 2,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AnsiColors.herb,
+                  shape: BoxShape.circle,
+                ),
+                child: SizedBox.square(dimension: 6),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Asks before signing out: sign-out disconnects sync and clears this device's
 /// local copy of the household data (it stays on the server).
 Future<bool> _confirmSignOut(BuildContext context) async {
   final confirmed = await showAnsiDialog<bool>(
     context: context,
+    useRootNavigator: true,
     builder: (context, style, animation) => FDialog(
       animation: animation,
       title: Text('Sign out?', style: ansiSerif(size: 20)),
