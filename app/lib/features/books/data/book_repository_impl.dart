@@ -10,6 +10,7 @@ library;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/units/units.dart' show unitById;
 import '../../recipes/domain/recipe.dart' show RecipeSummary;
 import '../domain/book.dart';
 import '../domain/book_repository.dart';
@@ -52,8 +53,14 @@ class SqliteBookRepository implements BookRepository {
       'SELECT id, book_id, name FROM book_section WHERE deleted_at IS NULL '
       'ORDER BY sort_order, created_at',
     );
+    // The yield columns ride along (step 8.6 / D2): the editor's line picker
+    // offers its "Your recipes" rows straight off this tree, and a row that
+    // cannot see the yield says "no yield yet" about a recipe that states one
+    // — and hands the quantity sheet a target with no yield to do batch math
+    // against.
     final recipeRows = await _db.getAll(
-      'SELECT id, title, servings_base, book_id, section_id FROM recipe '
+      'SELECT id, title, servings_base, book_id, section_id, yield_qty, '
+      'yield_unit, yield_qty_2, yield_unit_2 FROM recipe '
       'WHERE deleted_at IS NULL ORDER BY created_at DESC',
     );
 
@@ -78,6 +85,10 @@ class SqliteBookRepository implements BookRepository {
         id: r['id'] as String,
         title: r['title'] as String,
         servingsBase: (r['servings_base'] as num).toDouble(),
+        yieldQty: (r['yield_qty'] as num?)?.toDouble(),
+        yieldUnit: unitById(r['yield_unit'] as String? ?? ''),
+        yieldQty2: (r['yield_qty_2'] as num?)?.toDouble(),
+        yieldUnit2: unitById(r['yield_unit_2'] as String? ?? ''),
       );
       final sectionId = r['section_id'] as String?;
       // A live section in the *same* book claims the recipe; otherwise (no

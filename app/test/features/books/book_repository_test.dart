@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_repository_impl.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
@@ -135,6 +136,26 @@ void main() {
     expect(b.sections, isEmpty);
     expect(b.unsectioned.map((r) => r.title), ['Cookies']);
   });
+
+  test(
+    'the library summary carries what a batch makes (step 8.6 / D2)',
+    () async {
+      final book = await repo.ensureDefaultBook();
+      await _insertRecipe(db, 'r1', 'Romesco Aioli', bookId: book.id);
+      await db.execute(
+        'UPDATE recipe SET yield_qty = 1, yield_unit = ?, yield_qty_2 = 250, '
+        'yield_unit_2 = ? WHERE id = ?',
+        ['cup', 'g', 'r1'],
+      );
+
+      final aioli = (await repo.watchLibrary().first).single.unsectioned.single;
+
+      // The editor's line picker offers its "Your recipes" rows off this tree
+      // and hands the pick straight to the batch-math sheet, so a summary
+      // without the yield makes a recipe that states one read "no yield yet".
+      expect(aioli.yields, [(qty: 1.0, unit: cup), (qty: 250.0, unit: g)]);
+    },
+  );
 
   test('createSection appends and reorderSections reorders', () async {
     final book = await repo.ensureDefaultBook();
