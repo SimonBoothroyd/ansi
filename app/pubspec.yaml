@@ -69,6 +69,7 @@ dev_dependencies:
 
   # Test helpers
   mocktail: ^1.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true

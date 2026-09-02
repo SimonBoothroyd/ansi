@@ -1,0 +1,15 @@
+# App icon config — regenerate with: dart run flutter_launcher_icons
+# Source: assets/icon/bowl.svg (Simon's illustration), composed into the three
+# app_icon*.svg files alongside the PNGs in assets/icon/ (render via headless
+# Chrome: --headless --screenshot --window-size=1024,1024
+# --default-background-color=00000000).
+flutter_launcher_icons:
+  image_path: "assets/icon/app_icon.png"
+  ios: true
+  remove_alpha_ios: true
+  android: true
+  adaptive_icon_background: "assets/icon/app_icon_background.png"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  web:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
