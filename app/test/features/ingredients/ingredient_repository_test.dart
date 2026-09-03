@@ -946,6 +946,39 @@ void main() {
       expect(await _search(repo, 'onion'), isNot(contains('1')));
     });
 
+    test(
+      'provenance is patch-shaped: null keeps the stored stamp, a value '
+      'writes it in the same statement as the macros (plan 0025 #8)',
+      () async {
+        final before = (await db.get(
+          "SELECT source FROM ingredient WHERE id = '1'",
+        ))['source'];
+        await repo.saveEdit('1', _edit(name: 'Onion'));
+        expect(
+          (await db.get(
+            "SELECT source FROM ingredient WHERE id = '1'",
+          ))['source'],
+          before,
+          reason: 'an ordinary save must not touch provenance',
+        );
+
+        const panel = Macros(kcal: 539, protein: 6.3, carb: 57.5, fat: 30.9);
+        final stamped = await repo.saveEdit(
+          '1',
+          _edit(name: 'Onion', macros: panel, source: 'off:3017620422003'),
+        );
+        expect(stamped!.source, 'off:3017620422003');
+        expect(stamped.macros, panel);
+
+        // …and the next plain save leaves the stamp where it is.
+        final again = await repo.saveEdit(
+          '1',
+          _edit(name: 'Onion', macros: panel),
+        );
+        expect(again!.source, 'off:3017620422003');
+      },
+    );
+
     test('writes the explicit allowed_units list verbatim — an editor that '
         'recomputed it would silently discard a curated set', () async {
       final saved = await repo.saveEdit(
@@ -1267,6 +1300,7 @@ IngredientEdit _edit({
   Macros? macros,
   MacrosBasis basis = MacrosBasis.perG,
   Set<Unit> allowed = const {g},
+  String? source,
 }) => IngredientEdit(
   canonicalName: name,
   defaultUnit: unit,
@@ -1274,4 +1308,5 @@ IngredientEdit _edit({
   allowedUnits: allowed,
   category: category,
   macros: macros,
+  source: source,
 );

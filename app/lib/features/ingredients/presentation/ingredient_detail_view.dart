@@ -14,6 +14,14 @@
 ///   human act; a USDA or barcode prefill fills fields and stops.
 /// - **Delete is refused while a live recipe line points here**, with the
 ///   count — a line's ingredient is never allowed to dangle.
+///
+/// Since plan 0025 #8 the form scans a barcode into itself: the same
+/// `scanBarcodeForDraft` door the add sheet uses, landed through the same
+/// `applyDraft` rule — fields that are EMPTY fill, a value the human already
+/// typed stays (and the card says which), provenance becomes `off:<barcode>`
+/// only where the row had none, and nothing confirms the row. Since the form
+/// and the add sheet are one form, a row created by name and then scanned
+/// ends up exactly where a row created by scan would.
 library;
 
 import 'dart:async';
@@ -35,22 +43,37 @@ import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../../recipes/presentation/format.dart';
+import '../barcode/barcode_add.dart';
 import '../data/ingredient_providers.dart';
 import '../data/usda_enrichment.dart';
 import '../domain/allowed_units.dart';
+import '../domain/apply_draft.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/normalize.dart';
 import 'density_entry.dart';
+import 'draft_card.dart';
 import 'measures_editor.dart';
 
 /// The pushed route for one vocab row.
 String ingredientDetailRoute(String id) => '/ingredients/$id';
 
 class IngredientDetailView extends ConsumerWidget {
-  const IngredientDetailView({required this.ingredientId, super.key});
+  const IngredientDetailView({
+    required this.ingredientId,
+    this.lookup,
+    this.cameraPane,
+    super.key,
+  });
 
   final String ingredientId;
+
+  /// Forwarded to the form's barcode scan. Both exist for tests and are null
+  /// in app code — the router builds this page with neither, and the scan
+  /// then takes the real Open Food Facts client from its provider and the
+  /// real camera preview, exactly as the add sheet does.
+  final OffLookup? lookup;
+  final BarcodeCameraPane? cameraPane;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -84,6 +107,8 @@ class IngredientDetailView extends ConsumerWidget {
           // state instead of inheriting the previous row's typed values.
           key: ValueKey(ingredientId),
           ingredient: ingredient,
+          lookup: lookup,
+          cameraPane: cameraPane,
         ),
       },
     );
@@ -109,9 +134,16 @@ class _Centered extends StatelessWidget {
 }
 
 class _DetailForm extends HookConsumerWidget {
-  const _DetailForm({required this.ingredient, super.key});
+  const _DetailForm({
+    required this.ingredient,
+    this.lookup,
+    this.cameraPane,
+    super.key,
+  });
 
   final Ingredient ingredient;
+  final OffLookup? lookup;
+  final BarcodeCameraPane? cameraPane;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -139,6 +171,15 @@ class _DetailForm extends HookConsumerWidget {
     // back the resolved spoon — the density entry pre-picks it (F2: one
     // shared editor, so the redirect works here exactly as in the sheet).
     final redirectedSpoon = useState<Unit?>(null);
+    // The last barcode scan (plan 0025 #8): the draft the card shows, what
+    // `applyDraft` decided about it, and whether its pack offer was taken.
+    final scanned = useState<IngredientDraft?>(null);
+    final scanApplied = useState<DraftApplication?>(null);
+    final packAdded = useState(false);
+    // A provenance the scan stamped and the next Save writes — held with the
+    // macros it explains rather than written on its own, so backing out of
+    // the form leaves the row exactly as it was found.
+    final pendingSource = useState<String?>(null);
     final measuresAsync = ref.watch(ingredientMeasuresProvider(ing.id));
 
     // The row as the FORM currently reads it: the stored facts with the two
@@ -253,18 +294,54 @@ class _DetailForm extends HookConsumerWidget {
                         ? null
                         : category.value.trim(),
                     macros: draftMacros,
+                    source: pendingSource.value,
                   ),
                 ),
           ),
         );
         if (outcome == null || !context.mounted) return null;
         final saved = outcome.row;
+        pendingSource.value = null; // stamped now, or the row is gone
         ref.invalidate(ingredientByIdProvider(ing.id));
         message.value = saved == null ? 'It is no longer here.' : 'Saved.';
         return saved;
       } finally {
         if (context.mounted) busy.value = false;
       }
+    }
+
+    // Item 8: the barcode door, from the form. What lands is decided by the
+    // shared rule, against the form's OWN draft — a panel typed and not yet
+    // saved is as much the human's as a saved one.
+    Future<void> scan() async {
+      final draft = await scanBarcodeForDraft(
+        context,
+        // An explicit parameter wins (tests); otherwise the app's own client,
+        // by provider — the seam `make test-sim` overrides.
+        lookup: lookup ?? ref.read(offLookupProvider),
+        cameraPane: cameraPane,
+      );
+      if (draft == null || !context.mounted) return;
+      final applied = applyDraft(
+        draft,
+        target: DraftTarget(
+          name: name.value,
+          hasMacros: !macros.value._allBlank,
+          macrosBasis: basis.value,
+          source: pendingSource.value ?? ing.source,
+        ),
+      );
+      scanned.value = draft;
+      scanApplied.value = applied;
+      packAdded.value = false;
+      if (applied.macros != null) {
+        basis.value = applied.macrosBasis!;
+        // Into the fields, not just the state: re-keying the inputs is how
+        // the controllers pick the new text up (G1's mechanism).
+        macros.value = _MacroDraft.from(applied.macros);
+        macroSeed.value++;
+      }
+      if (applied.source != null) pendingSource.value = applied.source;
     }
 
     return ListView(
@@ -278,6 +355,45 @@ class _DetailForm extends HookConsumerWidget {
         // rest of the form aligned.
         if (stub && isUsdaPrefilled(ing.source))
           const _PrefillBanner()
+        else
+          const SizedBox.shrink(),
+
+        // Two more slots, for the same reason: the scan door, and the card
+        // its draft lands on. Offered on a stub only — a confirmed row has
+        // nothing empty for a label to fill, and its numbers are a human's.
+        if (stub)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: _GhostButton(
+              label: 'Scan a barcode to fill this in',
+              onTap: busy.value ? null : scan,
+            ),
+          )
+        else
+          const SizedBox.shrink(),
+        if (scanned.value != null && scanApplied.value != null)
+          _ScanResult(
+            draft: scanned.value!,
+            applied: scanApplied.value!,
+            packAdded: packAdded.value,
+            onAddPack: () async {
+              final pack = scanApplied.value!.packMeasure!;
+              final added = await ref.writeOk(
+                context,
+                'add that measure',
+                () => ref
+                    .read(measureRepositoryProvider)
+                    .addMeasure(
+                      ingredientId: ing.id,
+                      label: 'pack',
+                      amount: pack.amountInBasis,
+                    ),
+              );
+              if (!added || !context.mounted) return;
+              packAdded.value = true;
+              ref.invalidate(ingredientMeasuresProvider(ing.id));
+            },
+          )
         else
           const SizedBox.shrink(),
 
@@ -349,7 +465,6 @@ class _DetailForm extends HookConsumerWidget {
           key: ValueKey('macro-fields-${macroSeed.value}'),
           draft: macros.value,
           onChanged: (d) => macros.value = d,
-          initial: ing.macros,
         ),
 
         const _Label('DENSITY — OPTIONAL, EITHER WAY, ONE STORED FACT'),
@@ -550,20 +665,18 @@ class _PrefillBanner extends StatelessWidget {
 /// The four macro inputs. All four or none — a partial panel would compute
 /// totals out of numbers nobody supplied (invariant 3).
 class _MacroFields extends StatelessWidget {
-  const _MacroFields({
-    required this.draft,
-    required this.onChanged,
-    required this.initial,
-    super.key,
-  });
+  const _MacroFields({required this.draft, required this.onChanged, super.key});
 
+  /// Seeds the four controllers when this widget is (re)built under a new
+  /// key — so it is the DRAFT, not the row: the form re-keys exactly when it
+  /// has put something new in the draft, whether that came from the row (G1)
+  /// or from a barcode scan (plan 0025 #8).
   final _MacroDraft draft;
   final ValueChanged<_MacroDraft> onChanged;
-  final Macros? initial;
 
   @override
   Widget build(BuildContext context) {
-    Widget field(String label, String? seed, _MacroDraft Function(String) put) {
+    Widget field(String label, String seed, _MacroDraft Function(String) put) {
       return Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -577,7 +690,7 @@ class _MacroFields extends StatelessWidget {
                 decimal: true,
               ),
               control: FTextFieldControl.managed(
-                initial: TextEditingValue(text: seed ?? ''),
+                initial: TextEditingValue(text: seed),
                 onChange: (v) => onChanged(put(v.text)),
               ),
             ),
@@ -588,19 +701,66 @@ class _MacroFields extends StatelessWidget {
       );
     }
 
-    String? seed(double? v) => v == null ? null : _trimZeros(v);
     return Row(
       spacing: 6,
       children: [
-        field('kcal', seed(initial?.kcal), (t) => draft.copyWith(kcal: t)),
-        field(
-          'protein',
-          seed(initial?.protein),
-          (t) => draft.copyWith(protein: t),
-        ),
-        field('carb', seed(initial?.carb), (t) => draft.copyWith(carb: t)),
-        field('fat', seed(initial?.fat), (t) => draft.copyWith(fat: t)),
+        field('kcal', draft.kcal, (t) => draft.copyWith(kcal: t)),
+        field('protein', draft.protein, (t) => draft.copyWith(protein: t)),
+        field('carb', draft.carb, (t) => draft.copyWith(carb: t)),
+        field('fat', draft.fat, (t) => draft.copyWith(fat: t)),
       ],
+    );
+  }
+}
+
+/// What the form's own scan landed (plan 0025 #8): the shared result card,
+/// naming what it left alone, then what it did NOT do — nothing here saves
+/// or confirms — and the pack-size offer as a one-tap measure.
+class _ScanResult extends StatelessWidget {
+  const _ScanResult({
+    required this.draft,
+    required this.applied,
+    required this.packAdded,
+    required this.onAddPack,
+  });
+
+  final IngredientDraft draft;
+  final DraftApplication applied;
+  final bool packAdded;
+  final Future<void> Function() onAddPack;
+
+  @override
+  Widget build(BuildContext context) {
+    final pack = applied.packMeasure;
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DraftCard(draft: draft, skipped: applied.skipped),
+          _Note(
+            applied.fillsSomething
+                ? 'filled in, not saved — Save keeps it, and nothing counts '
+                      'until you confirm.'
+                : 'nothing to fill in — every field it could answer already '
+                      'had an answer.',
+          ),
+          // The pack size is an OFFER (F2's ruling, kept on the form): a
+          // measure lands only because it was tapped.
+          if (pack != null && !packAdded)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: _GhostButton(
+                label:
+                    '＋ add “pack” = ${formatQuantity(pack.amountInBasis)} '
+                    '${pack.basis.baseUnit.label} as a measure',
+                onTap: onAddPack,
+              ),
+            )
+          else if (pack != null)
+            const _Note('pack added below — rename it or bin it there.'),
+        ],
+      ),
     );
   }
 }

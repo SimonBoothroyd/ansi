@@ -5,6 +5,7 @@ library;
 
 import 'dart:io';
 
+import 'package:ansi/shared/ansi_modals.dart';
 import 'package:ansi/shared/guarded_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,11 +14,18 @@ import 'package:go_router/go_router.dart';
 /// A three-route app that hands the most recently built page's [BuildContext]
 /// back to the test, so a call can be made exactly where a widget would make
 /// it — from the page the user is looking at.
+///
+/// The recipe page pops itself with its id when tapped, so a returning push
+/// has something to hand back.
 ({GoRouter router, BuildContext Function() top}) _app() {
   late BuildContext top;
-  Widget page(BuildContext context, String label) {
+  Widget page(BuildContext context, String label, {String? pops}) {
     top = context;
-    return Scaffold(body: Text(label));
+    return Scaffold(
+      body: pops == null
+          ? Text(label)
+          : TextButton(onPressed: () => context.pop(pops), child: Text(label)),
+    );
   }
 
   final router = GoRouter(
@@ -26,7 +34,11 @@ import 'package:go_router/go_router.dart';
       GoRoute(path: '/', builder: (c, _) => page(c, 'home')),
       GoRoute(
         path: '/recipes/:id',
-        builder: (c, s) => page(c, 'recipe ${s.pathParameters['id']}'),
+        builder: (c, s) => page(
+          c,
+          'recipe ${s.pathParameters['id']}',
+          pops: s.pathParameters['id'],
+        ),
       ),
       GoRoute(path: '/week', builder: (c, _) => page(c, 'week')),
     ],
@@ -81,6 +93,100 @@ void main() {
 
       expect(_stackDepth(app.router), 3);
       expect(app.router.state.uri.toString(), '/recipes/r2');
+    });
+  });
+
+  group('pushOnceFor', () {
+    testWidgets('resolves with what the pushed page pops', (tester) async {
+      final app = _app();
+      await tester.pumpWidget(MaterialApp.router(routerConfig: app.router));
+      await tester.pumpAndSettle();
+
+      final result = app.top().pushOnceFor<String>('/recipes/r1');
+      await tester.pumpAndSettle();
+      expect(find.text('recipe r1'), findsOneWidget);
+
+      await tester.tap(find.text('recipe r1'));
+      await tester.pumpAndSettle();
+      expect(await result, 'r1');
+      expect(find.text('home'), findsOneWidget);
+    });
+
+    testWidgets('the second of two taps pushes nothing and resolves null at '
+        'once — the first is the one awaiting the real pop', (tester) async {
+      final app = _app();
+      await tester.pumpWidget(MaterialApp.router(routerConfig: app.router));
+      await tester.pumpAndSettle();
+
+      final first = app.top().pushOnceFor<String>('/recipes/r1');
+      final second = app.top().pushOnceFor<String>('/recipes/r1');
+      expect(await second, isNull);
+      await tester.pumpAndSettle();
+      expect(_stackDepth(app.router), 2);
+
+      await tester.tap(find.text('recipe r1'));
+      await tester.pumpAndSettle();
+      expect(await first, 'r1');
+    });
+
+    testWidgets('from inside a root-navigator sheet, the page lands ABOVE the '
+        'sheet and pops back to it, still open', (tester) async {
+      // The add-new chain stands on this (plan 0025 D3): a picker sheet
+      // pushes the flesh-out form, waits for back, and resolves afterwards —
+      // which only works if the sheet is what the form returns to. go_router
+      // keeps a pageless route above the page it was pushed over and inserts
+      // a new page on top of both; this pins that the shape holds.
+      late BuildContext inSheet;
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (c, _) => Scaffold(
+              body: Builder(
+                builder: (ctx) => TextButton(
+                  onPressed: () => showAnsiSheet<void>(
+                    context: ctx,
+                    builder: (sheetContext) {
+                      inSheet = sheetContext;
+                      return const SizedBox(height: 120, child: Text('sheet'));
+                    },
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/form',
+            builder: (c, _) => Scaffold(
+              body: TextButton(
+                onPressed: () => c.pop('done'),
+                child: const Text('form'),
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(find.text('sheet'), findsOneWidget);
+
+      final result = inSheet.pushOnceFor<String>('/form');
+      await tester.pumpAndSettle();
+      // The form covers the sheet: it is what the user sees and can tap.
+      expect(find.text('form'), findsOneWidget);
+      expect(find.text('sheet'), findsNothing);
+
+      await tester.tap(find.text('form'));
+      await tester.pumpAndSettle();
+      expect(await result, 'done');
+      // And the sheet is exactly where it was left.
+      expect(find.text('sheet'), findsOneWidget);
+      expect(router.state.uri.toString(), '/');
     });
   });
 
@@ -166,7 +272,7 @@ void main() {
       for (final file in files) {
         final source = stripComments(file.readAsStringSync());
         guardedCalls += RegExp(
-          r'\bcontext\.(pushOnce|goOnce)\s*\(',
+          r'\bcontext\.(pushOnce(For)?(<[^>]*>)?|goOnce)\s*\(',
         ).allMatches(source).length;
         if (exceptions.containsKey(file.path)) continue;
         for (final m in bare.allMatches(source)) {

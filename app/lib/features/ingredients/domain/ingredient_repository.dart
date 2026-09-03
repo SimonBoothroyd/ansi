@@ -49,6 +49,7 @@ final class DeleteMissing extends DeleteOutcome {
 /// in a single write. Every field is a replacement, not a patch: the form
 /// always holds the whole row, and a null [macros] is a deliberate clear
 /// (which sends a `complete` row back to `stub` — D5's reversibility).
+/// [source] is the one exception, and says why.
 class IngredientEdit {
   const IngredientEdit({
     required this.canonicalName,
@@ -57,6 +58,7 @@ class IngredientEdit {
     required this.allowedUnits,
     this.category,
     this.macros,
+    this.source,
   });
 
   final String canonicalName;
@@ -69,6 +71,15 @@ class IngredientEdit {
 
   final String? category;
   final Macros? macros;
+
+  /// A provenance to stamp (`off:<barcode>`), or null to keep the stored one.
+  ///
+  /// Patch-shaped where every other field replaces, because provenance is
+  /// never *cleared* by a form: it records where numbers came from, and the
+  /// only writer is a barcode scan on the form landing on a row that had no
+  /// source yet (plan 0025 #8, `applyDraft`). Written in the same statement as
+  /// the macros it explains, so a row never carries one without the other.
+  final String? source;
 }
 
 /// What a vocab search found — and whether the phone had to **guess** to find

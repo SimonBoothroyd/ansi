@@ -2,18 +2,25 @@
 /// top-anchored search over the synced vocab, a Recent section before any
 /// query, information-honest result rows (category · capability hints · a
 /// per-100 macro line for complete rows, a `stub` badge — never zeros), and
-/// the add-new affordance (creates a `manual` stub, invariant 3).
+/// the add-new affordance.
 ///
 /// Search is the shared `searchRank` rule, in the repository. When nothing was
 /// spelled right the guarded typo tier answers instead, and those rows arrive
 /// under a `DID YOU MEAN` header — the phone offers a guess for a human to
 /// pick, it never resolves on one (ADR-0004).
+///
+/// **Add-new is one chain, everywhere** (plan 0025 D3, board frames c1–c4):
+/// the footer opens the New-ingredient sheet with the query prefilled, the
+/// sheet creates the row, the footer pushes the flesh-out form over the
+/// picker and *waits for back*, re-reads the row, and only then hands it to
+/// the host — so the quantity sheet that follows offers the units the form
+/// just set. No path mints a stub as a side effect of something else; the
+/// form is on the way, not a detour.
 library;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
@@ -22,18 +29,18 @@ import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/picker_shell.dart';
-import '../../../shared/write.dart';
 import '../data/ingredient_providers.dart';
-import '../data/usda_enrichment.dart';
 import '../domain/ingredient.dart';
 import '../domain/search_query.dart';
 import '../domain/search_rank.dart';
 import 'ingredient_detail_view.dart' show ingredientDetailRoute;
 import 'macros_format.dart';
+import 'new_ingredient_sheet.dart';
 
-/// Opens the picker as a bottom sheet; resolves to the chosen ingredient
-/// (possibly a just-created stub), or null if dismissed. [title] carries the
-/// destination context ('Add to "for the curry"').
+/// Opens the picker as a bottom sheet; resolves to the chosen ingredient — an
+/// existing row, or one the add-new chain just created and fleshed out — or
+/// null if dismissed. [title] carries the destination context ('Add to "for
+/// the curry"').
 Future<Ingredient?> showIngredientPicker(
   BuildContext context, {
   String title = 'Add an ingredient',
@@ -125,16 +132,6 @@ class _IngredientPickerSheet extends HookConsumerWidget {
       footer: AddNewIngredientRow(
         query: search.query,
         onCreated: (ing) => Navigator.of(context).pop(ing),
-        // The deep-link seam (D8): the line still gets its ingredient, and
-        // the flesh-out form opens on top of wherever the picker was hosted.
-        // Only offered where a router is actually in scope — the shopping
-        // top-up embeds this row without one.
-        onFleshOut: GoRouter.maybeOf(context) == null
-            ? null
-            : (ing) {
-                Navigator.of(context).pop(ing);
-                context.pushOnce(ingredientDetailRoute(ing.id));
-              },
       ),
     );
   }
@@ -350,83 +347,78 @@ class IngredientRow extends StatelessWidget {
   }
 }
 
-/// "＋ can't find it? add a new ingredient" — creates a manual stub named
-/// after the query (or prompts nothing when the query is blank: the row is
-/// disabled until something is typed).
+/// "＋ can't find it? add a new ingredient" — the add-new chain's front door
+/// in every picker (plan 0025 D3, board frame c1). Disabled until something
+/// is typed.
 ///
-/// When [onFleshOut] is supplied the row does not close over the creation:
-/// the stub is authored, and a two-action strip offers "use it" (the old
-/// behaviour) beside "flesh out now →", which deep-links into the step-8.5
-/// detail form. One flesh-out surface, not a second inline one (D8).
+/// Tapping it writes nothing here. It opens the New-ingredient sheet with the
+/// query prefilled; when the sheet comes back with a created row, the row is
+/// pushed onto the flesh-out form and the chain WAITS for back — the only
+/// exit — then re-reads the row (the form may have set units, measures, a
+/// density) and hands that to [onCreated]. Backing out of the form without
+/// confirming still hands the row over: it exists, badged as a stub, and a
+/// line on it reads honestly incomplete. What is gone is the stub minted
+/// before anyone had said anything, and the "use it" door that skipped the
+/// form.
+///
+/// Needs a router in scope — every host that embeds it is under one.
 class AddNewIngredientRow extends HookConsumerWidget {
   const AddNewIngredientRow({
     required this.query,
     required this.onCreated,
-    this.onFleshOut,
+    this.label,
     super.key,
   });
 
   final String query;
+
+  /// Receives the row as the form left it. Not called when the row was
+  /// deleted on the form — there is nothing to hand back, and the host is
+  /// simply back where it was.
   final ValueChanged<Ingredient> onCreated;
-  final ValueChanged<Ingredient>? onFleshOut;
+
+  /// The row's wording for a name, when the host's voice differs from the
+  /// picker footer's default ("can’t find it? add "X" as a new ingredient").
+  final String Function(String name)? label;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final name = query.trim();
-    // Creating a stub is a write with no idempotency key, so a double tap
-    // during the round-trip would author two identical vocab rows. The row
-    // goes inert for the duration instead.
-    final creating = useState(false);
-    final justCreated = useState<Ingredient?>(null);
-    final enabled = name.isNotEmpty && !creating.value;
+    // The chain is modal end to end, but two taps in one frame would open
+    // two sheets. The row goes inert for the duration instead.
+    final busy = useState(false);
+    final enabled = name.isNotEmpty && !busy.value;
 
-    final created = justCreated.value;
-    if (created != null) {
-      return _JustCreatedStrip(
-        created: created,
-        onUse: () => onCreated(created),
-        onFleshOut: () => onFleshOut!(created),
-      );
+    Future<void> addNew() async {
+      busy.value = true;
+      try {
+        final created = await showNewIngredientSheet(
+          context,
+          initialName: name,
+        );
+        if (created == null || !context.mounted) return;
+        // The form lands ABOVE this picker's sheet and pops back to it; the
+        // guarded push returns when it does. The picker is still open
+        // underneath the whole time, which is what lets it resolve after.
+        await context.pushOnceFor<void>(ingredientDetailRoute(created.id));
+        if (!context.mounted) return;
+        // Re-read rather than reuse: the form's edits — allowed units,
+        // measures, a density, the macros — are what the quantity sheet
+        // opening next must see, and the row the sheet handed over predates
+        // all of them. The keepAlive repo provider is safe across the await.
+        final row = await ref
+            .read(ingredientRepositoryProvider)
+            .byId(created.id);
+        if (!context.mounted || row == null) return;
+        onCreated(row);
+      } finally {
+        if (context.mounted) busy.value = false;
+      }
     }
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: !enabled
-          ? null
-          : () async {
-              creating.value = true;
-              try {
-                final made = await ref.write(
-                  context,
-                  'add $name',
-                  () => ref.read(ingredientRepositoryProvider).createStub(name),
-                );
-                if (made == null || !context.mounted) return;
-                // D7b: born enriched. The same probe-and-apply the manager's
-                // add sheet runs — one answer to "what does creating an
-                // ingredient mean", not two. Offline it answers null within
-                // its own short timeout and the server trigger catches the
-                // row on upload, so this never blocks the picker for long
-                // and never surfaces an error.
-                final enriched = await enrichFromUsda(
-                  made,
-                  probe: ref.read(usdaProbeProvider),
-                  repository: ref.read(ingredientRepositoryProvider),
-                );
-                if (!context.mounted) return;
-                // The enriched row when the probe landed, the bare one
-                // otherwise — either way a `stub`, because confirming stays a
-                // human act (D5).
-                final row = enriched.row ?? made;
-                if (onFleshOut == null) {
-                  onCreated(row);
-                } else {
-                  justCreated.value = row;
-                }
-              } finally {
-                if (context.mounted) creating.value = false;
-              }
-            },
+      onTap: enabled ? addNew : null,
       child: DashedBorderBox(
         color: enabled ? AnsiColors.herb : AnsiColors.line,
         child: Row(
@@ -441,7 +433,8 @@ class AddNewIngredientRow extends HookConsumerWidget {
             Flexible(
               child: Text(
                 enabled
-                    ? 'can’t find it? add "$name" as a new ingredient'
+                    ? (label?.call(name) ??
+                          'can’t find it? add "$name" as a new ingredient')
                     : 'can’t find it? type a name to add it',
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
@@ -454,72 +447,6 @@ class AddNewIngredientRow extends HookConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// What the add-new row becomes once the stub exists: it is already saved
-/// (and already usable), so the two actions are "take it back to the line I
-/// was editing" and "go fill it in now".
-class _JustCreatedStrip extends StatelessWidget {
-  const _JustCreatedStrip({
-    required this.created,
-    required this.onUse,
-    required this.onFleshOut,
-  });
-
-  final Ingredient created;
-  final VoidCallback onUse;
-  final VoidCallback onFleshOut;
-
-  @override
-  Widget build(BuildContext context) {
-    return DashedBorderBox(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'added “${created.canonicalName}” as a stub',
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-            style: ansiMono(size: 11, color: AnsiColors.muted),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onUse,
-                child: Text(
-                  'use it',
-                  style: ansiMono(size: 12, color: AnsiColors.herbDeep),
-                ),
-              ),
-              const SizedBox(width: 16),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onFleshOut,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'flesh out now',
-                      style: ansiMono(size: 12, color: AnsiColors.herbDeep),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(
-                      FLucideIcons.arrowRight,
-                      size: 12,
-                      color: AnsiColors.herbDeep,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

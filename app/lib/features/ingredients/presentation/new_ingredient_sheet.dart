@@ -1,6 +1,9 @@
 /// "New ingredient" — the add flow's front door (design board "Ingredients
 /// manager · v1" frame (d)'s **Source** segment, and frame (e)'s barcode
-/// result).
+/// result), and since plan 0025 D3 the ONLY door: every add-new in the app —
+/// the manager's ＋, the editor picker's footer, the shopping top-up, the
+/// import review's create-new — opens this sheet, so there is one answer to
+/// "what does creating an ingredient mean" (plan 0020 D7b).
 ///
 /// Three sources, drawn as one segment because that is where the board put
 /// the barcode entry point:
@@ -12,55 +15,77 @@
 ///   rather than implying a catalogue we deliberately don't ship.
 /// - **Barcode** — opens the scan surface (`scanBarcodeForDraft`, the barcode
 ///   module's one public door) and comes back with an [IngredientDraft]. The
-///   draft **prefills and never completes** (D1): the name is a starting
-///   point, the macros arrive in the basis the label read them in, a product
-///   with no panel leaves them blank with the reason under them, and the row
-///   still saves as a `stub` for a human to confirm (D5). Its provenance
-///   (`off:<barcode>`) and the ODbL credit ride along.
+///   draft **prefills and never completes** (D1): it lands through
+///   [applyDraft] — the rule the flesh-out form's own scan shares — so a name
+///   already typed here stays, the macros arrive in the basis the label read
+///   them in, a product with no panel leaves them blank with the reason under
+///   them, and the row still saves as a `stub` for a human to confirm (D5).
+///   Its provenance (`off:<barcode>`) and the ODbL credit ride along.
+///
+/// **The sheet hands the row back; the host decides where to go.** It pops
+/// with the created [Ingredient] and pushes nothing. The manager's list pushes
+/// the flesh-out form and moves on; a picker pushes the same form, *awaits*
+/// its pop, and only then resolves — so the quantity sheet that follows opens
+/// on the units the form just set. What no host may do is skip the form: the
+/// row is a stub until a human confirms it, and the form is on the way, not a
+/// detour.
 library;
-
-import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/result/result.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
-import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
-import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
 import '../../recipes/presentation/format.dart';
 import '../barcode/barcode_add.dart';
 import '../data/ingredient_providers.dart';
 import '../data/usda_enrichment.dart';
+import '../domain/apply_draft.dart';
+import '../domain/ingredient.dart';
 import 'density_entry.dart' show AnsiModeChip;
-import 'ingredient_detail_view.dart';
-import 'macros_format.dart';
+import 'draft_card.dart';
 
 /// The add sources of frame (d).
 enum NewIngredientSource { manual, usda, barcode }
 
-/// Opens the add sheet. Resolves when it closes; on a create it has already
-/// pushed the flesh-out form.
+/// Opens the add sheet. Resolves with the created row, or null when the sheet
+/// was closed without one. It pushes nothing: the caller lands the row on the
+/// flesh-out form (see the library doc).
+///
+/// [initialName] prefills the name field — a picker passes what was typed
+/// into its search, so "curry leaves" becomes the row without retyping.
 ///
 /// [lookup] and [cameraPane] are forwarded to the barcode surface and exist
 /// for tests only — app callers pass neither.
-Future<void> showNewIngredientSheet(
+Future<Ingredient?> showNewIngredientSheet(
   BuildContext context, {
+  String initialName = '',
   OffLookup? lookup,
   BarcodeCameraPane? cameraPane,
-}) => showAnsiSheet<void>(
+}) => showAnsiSheet<Ingredient>(
   context: context,
-  builder: (_) => NewIngredientSheet(lookup: lookup, cameraPane: cameraPane),
+  builder: (_) => NewIngredientSheet(
+    initialName: initialName,
+    lookup: lookup,
+    cameraPane: cameraPane,
+  ),
 );
 
 class NewIngredientSheet extends HookConsumerWidget {
-  const NewIngredientSheet({this.lookup, this.cameraPane, super.key});
+  const NewIngredientSheet({
+    this.initialName = '',
+    this.lookup,
+    this.cameraPane,
+    super.key,
+  });
+
+  /// What the name field opens with. Yours to change before it becomes a row.
+  final String initialName;
 
   /// Forwarded to [scanBarcodeForDraft]. Both exist for tests and are null in
   /// app code, where the defaults are a real Open Food Facts client and the
@@ -71,8 +96,16 @@ class NewIngredientSheet extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final source = useState(NewIngredientSource.manual);
-    final name = useState('');
+    final name = useState(initialName.trim());
     final draft = useState<IngredientDraft?>(null);
+    // What the last scan decided — the values [create] writes, and the list
+    // of fields it left alone that the card names.
+    final applied = useState<DraftApplication?>(null);
+    // The name the last scan put in the field. A field still reading exactly
+    // that is the draft's, not the person's, so the next scan may replace it
+    // — the same "untouched is measured against what was seeded" rule the
+    // form's macro fields keep (G1).
+    final seededName = useRef<String?>(null);
     final creating = useState(false);
     final scanning = useState(false);
     // The pack-size measure the board's frame (e) draws as a tick. Pre-ticked
@@ -87,7 +120,7 @@ class NewIngredientSheet extends HookConsumerWidget {
       creating.value = true;
       try {
         final prefill = draft.value;
-        final basis = prefill?.macrosBasis ?? MacrosBasis.perG;
+        final landing = applied.value;
         // One guard over the whole creation: the row, its opt-in pack measure
         // and the enrichment are one act to the person who tapped Create, so
         // they get one honest answer if any of it fails.
@@ -102,28 +135,28 @@ class NewIngredientSheet extends HookConsumerWidget {
                   // The draft's own provenance value — `off:<barcode>` for a
                   // found product, `manual` for anything else, including the
                   // not-found exit (which kept the code but learnt nothing).
-                  source: prefill?.sourceValue ?? 'manual',
+                  source: landing?.source ?? 'manual',
                   // Absent macros stay absent: a missing panel writes no
                   // numbers (D1/invariant 3), and present ones keep the basis
                   // the label read them in rather than being converted (7.7).
-                  macros: prefill?.macros,
-                  macrosBasis: basis,
+                  macros: landing?.macros,
+                  macrosBasis: landing?.macrosBasis ?? MacrosBasis.perG,
                 );
             // The opt-in half of frame (e): the pack size becomes a real
             // measure row only because the tick is on. It rides the shared
             // editor's repository, so it is an ordinary `manual` measure from
             // here — the flesh-out form can rename it by deleting and
             // re-adding, or bin it.
-            final packAmount = _packAmountInBasis(prefill, basis);
+            final pack = landing?.packMeasure;
             if (addPackMeasure.value &&
-                packAmount != null &&
+                pack != null &&
                 packLabel.value.trim().isNotEmpty) {
               await ref
                   .read(measureRepositoryProvider)
                   .addMeasure(
                     ingredientId: row.id,
                     label: packLabel.value.trim(),
-                    amount: packAmount,
+                    amount: pack.amountInBasis,
                   );
             }
             // D7b: born enriched. The probe runs BEFORE the form opens, so a
@@ -138,19 +171,21 @@ class NewIngredientSheet extends HookConsumerWidget {
             // would replace it with a USDA id — the same exclusion the server
             // trigger's WHEN clause makes.
             if (prefill?.source != DraftSource.barcode) {
-              await enrichFromUsda(
+              final enriched = await enrichFromUsda(
                 row,
                 probe: ref.read(usdaProbeProvider),
                 repository: ref.read(ingredientRepositoryProvider),
               );
+              return enriched.row ?? row;
             }
             return row;
           },
         );
         if (created == null || !context.mounted) return;
-        Navigator.of(context).pop();
-        // The push outlives this sheet; nothing here waits on the form.
-        context.pushOnce(ingredientDetailRoute(created.id));
+        // The host lands it on the form. Nothing here waits, and nothing
+        // here navigates — a sheet that pushed would put the page under a
+        // picker still open beneath it.
+        Navigator.of(context).pop(created);
       } finally {
         if (context.mounted) creating.value = false;
       }
@@ -180,16 +215,29 @@ class NewIngredientSheet extends HookConsumerWidget {
           source.value = previous;
           return;
         }
+        final landing = applyDraft(
+          scanned,
+          // A field the last scan seeded is free again; a name the person
+          // typed (or the picker carried in) is theirs.
+          target: DraftTarget(
+            name: name.value == seededName.value ? '' : name.value,
+          ),
+        );
         draft.value = scanned;
+        applied.value = landing;
         // A starting point, not a decision — the field below stays editable,
         // and the board is explicit that yours is the name your recipes read.
-        name.value = scanned.suggestedName;
+        if (landing.name != null) {
+          name.value = landing.name!;
+          seededName.value = landing.name;
+        }
       } finally {
         if (context.mounted) scanning.value = false;
       }
     }
 
     final prefill = draft.value;
+    final pack = applied.value?.packMeasure;
 
     return Container(
       decoration: const BoxDecoration(
@@ -299,7 +347,10 @@ class NewIngredientSheet extends HookConsumerWidget {
 
             if (prefill != null) ...[
               const SizedBox(height: 14),
-              _DraftCard(draft: prefill),
+              DraftCard(
+                draft: prefill,
+                skipped: applied.value?.skipped ?? const [],
+              ),
             ],
 
             const SizedBox(height: 18),
@@ -323,16 +374,13 @@ class NewIngredientSheet extends HookConsumerWidget {
                 'recipes will read',
                 style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
-              if (_packAmountInBasis(prefill, prefill.macrosBasis) != null) ...[
+              if (pack != null) ...[
                 const SizedBox(height: 14),
                 Text('ALSO ADD A MEASURE', style: ansiLabel()),
                 const SizedBox(height: 6),
                 _PackSizeTick(
-                  draft: prefill,
-                  amountInBasis: _packAmountInBasis(
-                    prefill,
-                    prefill.macrosBasis,
-                  )!,
+                  amountInBasis: pack.amountInBasis,
+                  basisLabel: pack.basis.baseUnit.label,
                   ticked: addPackMeasure.value,
                   label: packLabel.value,
                   onToggle: () => addPackMeasure.value = !addPackMeasure.value,
@@ -360,29 +408,6 @@ class NewIngredientSheet extends HookConsumerWidget {
   }
 }
 
-/// The pack size expressed in the row's own basis unit, or null when there
-/// is no pack size or it cannot be bridged honestly.
-///
-/// Open Food Facts' free-text `quantity` ("400 ml", "1 kg") is a ready-made
-/// measure — but a measure stores its amount in the ingredient's **basis**
-/// unit (ADR-0008), and a barcode carries no density. So "400 ml" on a
-/// per-100 ml row converts, "1 kg" on a per-100 g row converts, and "400 ml"
-/// on a per-100 g row does **not** — the tick is simply not offered rather
-/// than being offered and writing a guess.
-double? _packAmountInBasis(IngredientDraft? draft, MacrosBasis basis) {
-  final pack = draft?.packSize;
-  if (pack == null) return null;
-  final inBasis = convert(
-    Quantity(pack.amount, pack.unit),
-    to: basis.baseUnit,
-    densityGPerMl: draft?.densityGPerMl,
-  );
-  return switch (inBasis) {
-    Ok(:final value) when value.amount > 0 => value.amount,
-    Ok() || Err() => null,
-  };
-}
-
 /// Frame (e)'s "Also add a measure" row: `can = 400 ml`, with a tick.
 ///
 /// The plan's own note asks for exactly this shape — "offering it as an
@@ -393,16 +418,16 @@ double? _packAmountInBasis(IngredientDraft? draft, MacrosBasis basis) {
 /// "pack" rather than to a guess.
 class _PackSizeTick extends StatelessWidget {
   const _PackSizeTick({
-    required this.draft,
     required this.amountInBasis,
+    required this.basisLabel,
     required this.ticked,
     required this.label,
     required this.onToggle,
     required this.onLabel,
   });
 
-  final IngredientDraft draft;
   final double amountInBasis;
+  final String basisLabel;
   final bool ticked;
   final String label;
   final VoidCallback onToggle;
@@ -410,7 +435,6 @@ class _PackSizeTick extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final basisLabel = draft.macrosBasis.baseUnit.label;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -467,78 +491,6 @@ class _PackSizeTick extends StatelessWidget {
           style: ansiMono(size: 10, color: AnsiColors.muted),
         ),
       ],
-    );
-  }
-}
-
-/// Frame (e)'s result card: what Open Food Facts actually said, with its
-/// credit, above the name field the user still owns.
-///
-/// A draft that came back from the not-found exit ([DraftSource.manual] with
-/// a code) has nothing to show but the code — it renders as the honest empty
-/// answer rather than an empty card.
-class _DraftCard extends StatelessWidget {
-  const _DraftCard({required this.draft});
-
-  final IngredientDraft draft;
-
-  @override
-  Widget build(BuildContext context) {
-    final attribution = draft.attribution;
-    if (attribution == null) {
-      return Text(
-        'Nothing came back for ${draft.barcode ?? 'that code'} — the name and '
-        'the macros are all a barcode was going to fill in. Type them here.',
-        style: ansiMono(size: 10, color: AnsiColors.muted),
-      );
-    }
-    final macros = draft.macros;
-    final provenance = [
-      if (draft.brand != null) draft.brand!,
-      if (draft.barcode != null) 'barcode ${draft.barcode}',
-      attribution,
-    ].join(' · ');
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AnsiColors.surface,
-        border: Border.all(color: AnsiColors.line),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('FOUND · OPEN FOOD FACTS', style: ansiLabel()),
-          const SizedBox(height: 6),
-          Text(
-            draft.productName ?? draft.suggestedName,
-            style: ansiSans(size: 14, weight: FontWeight.w500),
-          ),
-          const SizedBox(height: 2),
-          // The ODbL credit sits on the provenance line the frame draws it
-          // on — beside the brand and the code it came with.
-          Text(provenance, style: ansiMono(size: 10, color: AnsiColors.muted)),
-          const SizedBox(height: 8),
-          if (macros != null) ...[
-            Text(formatMacroLine(macros), style: ansiMono(size: 12)),
-            const SizedBox(height: 2),
-            Text(
-              'panel read per 100 ${draft.macrosBasis.dbValue} — stored as '
-              'the basis, not converted',
-              style: ansiMono(size: 10, color: AnsiColors.muted),
-            ),
-          ] else
-            // Blank, with the reason. Never zeros: an absent panel is a fact
-            // about Open Food Facts, not a nutrition figure (D1).
-            Text(
-              draft.macrosGap.message ??
-                  'No macros came with this product — fill them in on the '
-                      'next screen.',
-              style: ansiMono(size: 10, color: AnsiColors.muted),
-            ),
-        ],
-      ),
     );
   }
 }

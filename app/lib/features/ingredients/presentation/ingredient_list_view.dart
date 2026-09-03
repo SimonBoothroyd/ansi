@@ -74,6 +74,14 @@ class IngredientListView extends HookConsumerWidget {
 
     void open(Ingredient i) => context.pushOnce(ingredientDetailRoute(i.id));
 
+    // The sheet hands the row back and pushes nothing (plan 0025 D3); this
+    // list is the host that lands it on the form and moves on — nothing here
+    // waits on the form, unlike a picker with a line waiting.
+    Future<void> addNew() async {
+      final created = await showNewIngredientSheet(context);
+      if (created != null && context.mounted) open(created);
+    }
+
     return FScaffold(
       childPad: false,
       header: FHeader.nested(
@@ -85,10 +93,7 @@ class IngredientListView extends HookConsumerWidget {
           ),
         ],
         suffixes: [
-          FHeaderAction(
-            icon: const Icon(FLucideIcons.plus),
-            onPress: () => showNewIngredientSheet(context),
-          ),
+          FHeaderAction(icon: const Icon(FLucideIcons.plus), onPress: addNew),
         ],
       ),
       child: Column(
@@ -146,7 +151,7 @@ class IngredientListView extends HookConsumerWidget {
                   const SizedBox(height: 16),
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => showNewIngredientSheet(context),
+                    onTap: addNew,
                     child: FCard(
                       child: Text(
                         'add an ingredient — by hand, or scan a barcode',

@@ -23,6 +23,13 @@
 /// last route pushed or gone to, with path parameters already substituted
 /// (`/recipes/7`, not `/recipes/:id`).
 ///
+/// [GuardedNavigation.pushOnceFor] is the one push that hands the pushed
+/// page's pop value back. It exists for a flow that genuinely continues after
+/// the page — a picker that has just created an ingredient pushes the
+/// flesh-out form, waits for back, and only then resolves (plan 0025 D3) —
+/// and it keeps the same top-location guard, so a double tap still opens one
+/// form.
+///
 /// A structural test (`test/shared/guarded_navigation_test.dart`) fails the
 /// build if a view under `lib/features/**/presentation` or `lib/shared` calls
 /// bare `context.push` again.
@@ -36,12 +43,30 @@ import 'package:go_router/go_router.dart';
 extension GuardedNavigation on BuildContext {
   /// Pushes [location] unless the router is already showing it.
   ///
-  /// The push itself is fire-and-forget: nothing at a tap site waits on the
-  /// pushed page's result.
+  /// The push itself is fire-and-forget, and stays void on purpose: a tap
+  /// site that only opens a page has nothing to wait for, and an awaited push
+  /// there would hold the handler open across a whole page visit for no
+  /// reader's benefit. A flow that really does continue after the page uses
+  /// [pushOnceFor].
   void pushOnce(String location) {
     final router = GoRouter.of(this);
     if (_isTop(router, location)) return;
     unawaited(router.push<void>(location));
+  }
+
+  /// Pushes [location] and resolves with what the pushed page pops — unless
+  /// the router is already showing it, in which case nothing is pushed and
+  /// this resolves null at once. The first of two taps is the one awaiting
+  /// the real pop; the second has nothing to wait for.
+  ///
+  /// Safe to call from inside a sheet on the root navigator: the page lands
+  /// above the sheet, and popping it returns to the sheet, still open — the
+  /// contract test pins this, because the whole create → flesh out → resolve
+  /// chain stands on it.
+  Future<T?> pushOnceFor<T extends Object?>(String location) {
+    final router = GoRouter.of(this);
+    if (_isTop(router, location)) return Future<T?>.value();
+    return router.push<T>(location);
   }
 
   /// Navigates to [location], replacing the stack, unless the router is already

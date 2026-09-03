@@ -269,6 +269,11 @@ class _TopUpBody extends HookConsumerWidget {
           ),
         ),
         const SizedBox(height: 8),
+        // The add-new chain (plan 0025 D3): the New-ingredient sheet, then the
+        // flesh-out form pushed over THIS sheet, then back — and only then
+        // does the row arrive here, re-read, so the quantity sheet that
+        // [pick] opens offers the units the form just set. The router this
+        // needs is the app's own; the sheet sits under it like every modal.
         AddNewIngredientRow(query: search.query, onCreated: pick),
       ],
     );

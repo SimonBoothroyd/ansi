@@ -307,7 +307,8 @@ class FakeIngredientRepo implements IngredientRepository {
       macrosBasis: edit.macrosBasis,
       allowedUnits: edit.allowedUnits.toList(),
       measureCount: current.measureCount,
-      source: current.source,
+      // Patch-shaped, like the real write: a null keeps the stored stamp.
+      source: edit.source ?? current.source,
     );
     _replace(updated);
     return updated;

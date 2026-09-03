@@ -18,19 +18,35 @@ Open Food Facts read — an exact-key fetch by product code, not matching.
 
 ```
 /ingredients            ingredient_list_view.dart    the whole vocab, stub band on top
-   └── /ingredients/:id ingredient_detail_view.dart  the flesh-out form (edit + confirm)
-        └── add sheet   new_ingredient_sheet.dart    manual · USDA · barcode
+   └── /ingredients/:id ingredient_detail_view.dart  the flesh-out form (edit + confirm),
+                                                     which also scans a barcode into itself
+showNewIngredientSheet  new_ingredient_sheet.dart    manual · USDA · barcode — THE add door;
+                                                     hands the row back, pushes nothing
 
 showIngredientPicker    ingredient_picker.dart       recipe editor, shopping top-up
+   └── AddNewIngredientRow: sheet → form → back → resolves with the re-read row
 showQuantityUnitSheet   quantity_unit_sheet.dart     every quantity+unit in the app
         └── manage measures + DensityEntry (density_entry.dart)
 
 scanBarcodeForDraft     barcode/barcode_add.dart     the barcode module's one door
+applyDraft              domain/apply_draft.dart      how a draft lands — sheet and form alike
 ```
 
 `/ingredients` is a **pushed** route reached from Library ▸ ⋯ ▸ Ingredients, not
 a fifth bottom-nav tab (plan 0020 D8): the four tabs are the cooking loop, and a
 vocabulary is reference data.
+
+**No path creates an ingredient without landing on the flesh-out form** (plan
+0025 D3, owner-ruled: "move away from allowing stubs; ideally only the seeded
+rows are stubs"). Every add-new — the manager's ＋, the editor picker's footer,
+the shopping top-up, the import review's create-new — opens the same sheet; the
+sheet creates the row and hands it back; the host pushes the form. A picker
+pushes it *over its own sheet* through `context.pushOnceFor` and awaits the
+pop, then re-reads the row, so the quantity sheet that follows offers the
+units the form just set. Backing out unconfirmed still hands the row over — it
+exists, badged `stub` — because D3 forbids minting a stub *as a side effect*,
+not a human leaving a form early. The seed's stubs are the one exception, and
+they are curation debt, not a path.
 
 ## Layout
 
@@ -44,6 +60,9 @@ ingredients/
     normalize.dart           the PHRASE normalizer — Dart twin of normalize.ts
     search_query.dart        the character-level normalizer (search + matching)
     measure_repository.dart  named per-ingredient measures
+    apply_draft.dart         the one rule for landing a barcode draft on a row:
+                             fill what is empty, keep what a human typed, stamp
+                             `off:<barcode>` only where there was no source
   data/
     ingredient_repository_impl.dart  SqliteIngredientRepository — read + write
     measure_repository_impl.dart     measures, with merge-on-read for dup labels
@@ -52,7 +71,8 @@ ingredients/
     ingredient_list_view.dart   the manager list
     ingredient_detail_view.dart the flesh-out form
     new_ingredient_sheet.dart   the add flow's three sources
-    ingredient_picker.dart      picker v2 (7.7)
+    ingredient_picker.dart      picker v2 (7.7) + the add-new chain's row
+    draft_card.dart             the barcode result card, drawn by sheet and form
     quantity_unit_sheet.dart    quantity + unit chips (7.7), manage measures
     density_entry.dart          g/ml ⇄ "1 tbsp weighs N g" (7.8), shared
     macros_format.dart          the per-100 macro line

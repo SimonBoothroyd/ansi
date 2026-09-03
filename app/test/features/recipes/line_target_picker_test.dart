@@ -19,11 +19,14 @@ import 'package:ansi/features/recipes/presentation/line_target_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/forui_semantics.dart';
+import '../../helpers/silent_usda_probe.dart';
 
 const _romaTomato = Ingredient(
   id: 'i-roma',
@@ -291,5 +294,86 @@ void main() {
 
     expect(picked, isA<PickedIngredient>());
     expect((picked! as PickedIngredient).ingredient.id, 'i-roma');
+  });
+
+  testWidgets('add-new is the one chain (plan 0025 D3): sheet → form → back, '
+      'and the editor gets an ingredient carrying the units the form set', (
+    tester,
+  ) async {
+    // The editor's `_addLine` awaits this picker and then opens the quantity
+    // sheet on whatever comes back — so the picker must not resolve until
+    // the form has popped, and must resolve with the re-read row.
+    filterForuiSemanticsAssertions();
+    final repo = FakeIngredientRepo(const [_romaTomato]);
+    final picked = <PickedLineTarget?>[];
+    final router = GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, _) => FScaffold(
+            child: Builder(
+              builder: (context) => FButton(
+                onPress: () async => picked.add(
+                  await showLineTargetPicker(
+                    context,
+                    editingRecipeId: 'sliders',
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/ingredients/:id',
+          builder: (context, state) => FScaffold(
+            child: FButton(
+              onPress: () => context.pop(),
+              child: Text('form ${state.pathParameters['id']}'),
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          ingredientRepositoryProvider.overrideWithValue(repo),
+          measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
+          usdaProbeProvider.overrideWithValue(const SilentUsdaProbe()),
+          bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
+          recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          builder: (context, child) =>
+              FTheme(data: ansiThemeData(), child: child!),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'curry leaves');
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('add "curry leaves"'));
+    await tester.pumpAndSettle();
+    expect(find.text('New ingredient'), findsOneWidget);
+
+    await tester.tap(find.text('Create & flesh out'));
+    await tester.pumpAndSettle();
+    final created = repo.rows.last;
+    expect(find.text('form ${created.id}'), findsOneWidget);
+    expect(picked, isEmpty, reason: 'nothing resolves before the form pops');
+
+    repo.rows[repo.rows.length - 1] = created.copyWith(allowedUnits: [g, kg]);
+    await tester.tap(find.text('form ${created.id}'));
+    await tester.pumpAndSettle();
+
+    expect(picked.single, isA<PickedIngredient>());
+    final ingredient = (picked.single! as PickedIngredient).ingredient;
+    expect(ingredient.id, created.id);
+    expect(ingredient.allowedUnits, [g, kg]);
   });
 }

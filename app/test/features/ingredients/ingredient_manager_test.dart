@@ -263,6 +263,7 @@ Widget _host(
   String at = '/ingredients',
   _FakeMeasures? measures,
   UsdaProbe? probe,
+  OffLookup? lookup,
 }) {
   final router = GoRouter(
     initialLocation: at,
@@ -273,8 +274,13 @@ Widget _host(
       ),
       GoRoute(
         path: '/ingredients/:id',
-        builder: (_, state) =>
-            IngredientDetailView(ingredientId: state.pathParameters['id']!),
+        builder: (_, state) => IngredientDetailView(
+          ingredientId: state.pathParameters['id']!,
+          // The form's own scan (plan 0025 #8): a test hands in the client
+          // and a camera-less pane the way the add sheet's tests do.
+          lookup: lookup,
+          cameraPane: lookup == null ? null : (_, _) => const SizedBox.shrink(),
+        ),
       ),
     ],
   );
@@ -1499,6 +1505,178 @@ void main() {
     });
   });
 
+  group('the form scans a barcode into itself (plan 0025 #8)', () {
+    /// A bare stub created by name — no numbers, `manual` provenance: the
+    /// row the picker's add-new chain lands on the form.
+    const bare = Ingredient(
+      id: 'bare',
+      canonicalName: 'Hazelnut spread',
+      defaultUnit: g,
+      status: IngredientStatus.stub,
+      source: 'manual',
+    );
+
+    OffLookup lookupAnswering(String fixture) => OffLookup(
+      client: MockClient((_) async => http.Response(_fixture(fixture), 200)),
+    );
+
+    /// Opens the form's scan surface and types [barcode] in.
+    Future<void> scanOnForm(WidgetTester tester, String barcode) async {
+      await tester.tap(find.text('Scan a barcode to fill this in'));
+      await tester.pumpAndSettle();
+      await tester.enterText(_scanField, barcode);
+      await tester.pump();
+      await tester.tap(find.text('Look up'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('fills the EMPTY macro fields, keeps the name and a USDA '
+        'provenance — and writes nothing until Save', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo(const [_curryLeaves]);
+      await tester.pumpWidget(
+        _host(
+          repo,
+          at: '/ingredients/curry',
+          lookup: lookupAnswering('nutella_per_100g'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await scanOnForm(tester, '3017620422003');
+
+      // The card, with what it left alone named on it.
+      expect(find.text('FOUND · OPEN FOOD FACTS'), findsOneWidget);
+      expect(
+        find.textContaining('kept: the name — yours stays'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('the provenance — this row already names a source'),
+        findsOneWidget,
+      );
+      // The panel reached the FIELDS (the G1 lesson), the name did not move.
+      expect(_macroFieldText(tester, 'kcal'), '539');
+      expect(_macroFieldText(tester, 'fat'), '30.9');
+      expect(
+        tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+        'Curry leaves, fresh',
+      );
+      // Nothing has been written.
+      expect((await repo.byId('curry'))!.macros, isNull);
+      expect(find.textContaining('filled in, not saved'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FButton, 'Save').last);
+      await tester.pumpAndSettle();
+      final saved = (await repo.byId('curry'))!;
+      expect(saved.macros!.kcal, 539);
+      expect(saved.macrosBasis, MacrosBasis.perG);
+      expect(saved.source, 'usda_fdc:11216', reason: 'a source stays');
+      // A scan prefills and never completes (D1/D5).
+      expect(saved.status, IngredientStatus.stub);
+    });
+
+    testWidgets('on a row with no source, Save stamps off:<barcode> in the '
+        'same write as the macros', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo(const [bare]);
+      await tester.pumpWidget(
+        _host(
+          repo,
+          at: '/ingredients/bare',
+          lookup: lookupAnswering('nutella_per_100g'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await scanOnForm(tester, '3017620422003');
+      expect(find.textContaining('the provenance'), findsNothing);
+      expect((await repo.byId('bare'))!.source, 'manual');
+
+      await tester.tap(find.widgetWithText(FButton, 'Save').last);
+      await tester.pumpAndSettle();
+      final saved = (await repo.byId('bare'))!;
+      expect(saved.source, 'off:3017620422003');
+      expect(saved.macros!.kcal, 539);
+      expect(saved.status, IngredientStatus.stub);
+    });
+
+    testWidgets('a panel already typed is not overwritten, and the card says '
+        'so', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo(const [bare]);
+      await tester.pumpWidget(
+        _host(
+          repo,
+          at: '/ingredients/bare',
+          lookup: lookupAnswering('nutella_per_100g'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(_macroField('kcal'), '100');
+      await tester.pump();
+
+      await scanOnForm(tester, '3017620422003');
+
+      expect(_macroFieldText(tester, 'kcal'), '100');
+      expect(
+        find.textContaining('the macros — the ones already entered stay'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the pack size is an offer: tapped, it becomes a measure in '
+        'the row’s basis', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo(const [bare]);
+      final measures = _FakeMeasures();
+      await tester.pumpWidget(
+        _host(
+          repo,
+          at: '/ingredients/bare',
+          measures: measures,
+          lookup: lookupAnswering('nesquik_no_panel'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await scanOnForm(tester, '3033710065967');
+      // No panel: the fields stay blank with the reason, never zeros.
+      expect(_macroFieldText(tester, 'kcal'), isEmpty);
+      expect(
+        find.text('Open Food Facts has no nutrition panel for this product.'),
+        findsOneWidget,
+      );
+      // "1 kg" on a per-100 g row is offered as 1000 g — and only offered.
+      final offer = find.text('＋ add “pack” = 1000 g as a measure');
+      expect(offer, findsOneWidget);
+      expect(measures.rows, isEmpty);
+
+      await tester.tap(offer);
+      await tester.pumpAndSettle();
+      expect(measures.rows.single.label, 'pack');
+      expect(measures.rows.single.amount, 1000);
+      expect(offer, findsNothing);
+      expect(find.textContaining('pack added below'), findsOneWidget);
+    });
+
+    testWidgets('a confirmed row offers no scan — nothing on it is empty', (
+      tester,
+    ) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      await tester.pumpWidget(
+        _host(FakeIngredientRepo(const [_mango]), at: '/ingredients/mango'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Scan a barcode to fill this in'), findsNothing);
+    });
+  });
+
   group('the add flow ▸ barcode — frame (e)', () {
     /// Walks the sheet to a resolved scan of [barcode] against [body].
     Future<void> scan(
@@ -1807,8 +1985,9 @@ String _nameFieldText(WidgetTester tester) => tester
     .controller!
     .text;
 
-/// The add sheet as the list screen opens it, over a router that can receive
-/// the push a create makes. [body] is what Open Food Facts answers with.
+/// The add sheet as the list screen opens it — the sheet hands the row back
+/// and the host pushes the form (plan 0025 D3) — over a router that can
+/// receive that push. [body] is what Open Food Facts answers with.
 ///
 /// [viaProvider] chooses WHICH seam delivers that client. False (the default)
 /// passes it as a parameter, the way a widget test reaches in. True passes
@@ -1833,11 +2012,17 @@ Widget _addHost(
         builder: (_, _) => FScaffold(
           child: Builder(
             builder: (context) => FButton(
-              onPress: () => showNewIngredientSheet(
-                context,
-                lookup: viaProvider ? null : buildLookup(),
-                cameraPane: (_, _) => const SizedBox.shrink(),
-              ),
+              onPress: () async {
+                final created = await showNewIngredientSheet(
+                  context,
+                  lookup: viaProvider ? null : buildLookup(),
+                  cameraPane: (_, _) => const SizedBox.shrink(),
+                );
+                // What `ingredient_list_view` does with the row it is handed.
+                if (created != null && context.mounted) {
+                  await context.push('/ingredients/${created.id}');
+                }
+              },
               child: const Text('Add an ingredient'),
             ),
           ),

@@ -182,6 +182,15 @@ router's top location is dropped, so a row hit twice before the first transition
 paints opens one page. The dedupe is deliberately narrow — **same location
 only** — so no tap that leads somewhere else is ever swallowed.
 
+`pushOnce` is fire-and-forget on purpose: a tap that opens a page has nothing
+to wait for. The one flow that genuinely continues after a page uses
+`context.pushOnceFor<T>` — same guard, but it resolves with what the page pops.
+That flow is the add-new chain (plan 0025 D3): a picker sheet has just created
+an ingredient, pushes the flesh-out form *over its own sheet*, awaits back, and
+only then resolves with the re-read row. It works because go_router inserts a
+new page above a pageless sheet and returns to that sheet on pop — pinned by
+the contract test — so the sheet is still there to resolve.
+
 A menu item inside an `FPopoverMenu` **hides its popover before it navigates**.
 Forui's `FItem` does not do this on its own and the menu content sits inside the
 popover's own `TapRegion` group, so choosing an item is not an "outside tap".

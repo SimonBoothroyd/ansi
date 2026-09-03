@@ -577,7 +577,11 @@ class SqliteIngredientRepository implements IngredientRepository {
       await tx.execute(
         'UPDATE ingredient SET canonical_name = ?, match_text = ?, '
         'category = ?, default_unit = ?, macros = ?, macros_basis = ?, '
-        'allowed_units = ?, status = ?, updated_at = ? WHERE id = ?',
+        'allowed_units = ?, status = ?, '
+        // Provenance is patch-shaped (see [IngredientEdit.source]): a null
+        // keeps what is stored, a value stamps it in the same statement as
+        // the macros it explains.
+        'source = COALESCE(?, source), updated_at = ? WHERE id = ?',
         [
           name,
           // The rename hazard (D6): the stored name and its match_text are
@@ -590,6 +594,7 @@ class SqliteIngredientRepository implements IngredientRepository {
           edit.macrosBasis.dbValue,
           jsonEncode([for (final u in edit.allowedUnits) u.id]),
           status,
+          edit.source,
           now,
           ingredientId,
         ],

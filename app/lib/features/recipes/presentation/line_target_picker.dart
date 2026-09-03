@@ -23,20 +23,16 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
-import '../../../shared/guarded_navigation.dart';
 import '../../../shared/picker_shell.dart';
 import '../../books/domain/book.dart';
 import '../../books/presentation/book_view_models.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/domain/search_rank.dart';
-import '../../ingredients/presentation/ingredient_detail_view.dart'
-    show ingredientDetailRoute;
 import '../../ingredients/presentation/ingredient_picker.dart';
 import '../data/recipe_providers.dart';
 import '../domain/recipe.dart';
@@ -232,15 +228,13 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
             ),
         ],
       ),
+      // The add-new chain (plan 0025 D3): sheet → flesh-out form → back, and
+      // only then does this sheet resolve — so the editor's `_addLine`
+      // continues into the quantity sheet AFTER the form, on the units the
+      // form set. The row handed over is the re-read one.
       footer: AddNewIngredientRow(
         query: search.query,
         onCreated: (ing) => Navigator.of(context).pop(PickedIngredient(ing)),
-        onFleshOut: GoRouter.maybeOf(context) == null
-            ? null
-            : (ing) {
-                Navigator.of(context).pop(PickedIngredient(ing));
-                context.pushOnce(ingredientDetailRoute(ing.id));
-              },
       ),
     );
   }
