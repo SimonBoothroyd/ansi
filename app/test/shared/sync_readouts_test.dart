@@ -33,7 +33,10 @@ DroppedWrite _drop() => DroppedWrite(
 /// Both readouts at once, over ONE overridden provider — so an override that
 /// changes what the Library says must change what Shop says in the same pump.
 Widget _bothReadouts(SyncHealth health) => ProviderScope(
-  overrides: [syncHealthProvider.overrideWith((ref) => Stream.value(health))],
+  overrides: [
+    // ignore: scoped_providers_should_specify_dependencies, root test scope
+    syncHealthProvider.overrideWith((ref) => Stream.value(health)),
+  ],
   child: MaterialApp(
     home: FTheme(
       data: ansiThemeData(),
