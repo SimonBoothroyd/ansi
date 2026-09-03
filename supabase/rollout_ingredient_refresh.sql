@@ -176,8 +176,10 @@ commit;
 --     plus the template's row — recorded here rather than smeared across
 --     307 rows of somebody else's `source` column.
 --   * `ingredient_alias`, `ingredient_measure`. Measures have their own,
---     separate retrofit — the run-once `backfilled_at` clone inside
---     `ensure_onboarded()` (migration 0011). The two mechanisms are
---     independent and safe to run in either order: this one never touches
---     `ingredient_measure` or `household.backfilled_at`.
+--     separate rollout — `rollout_measure_refresh.sql`, insert-missing by
+--     (match_text, label). The two scripts are independent and safe to run
+--     in either order: this one never touches `ingredient_measure` or
+--     `household.backfilled_at`. (The run-once `backfilled_at` clone inside
+--     `ensure_onboarded()`, migration 0011, still exists but needs ZERO live
+--     measures — it is not a rollout path for a household with real data.)
 -- ---------------------------------------------------------------------------

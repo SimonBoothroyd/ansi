@@ -133,19 +133,18 @@ households:
   `ensure_onboarded` opportunistically), then is stamped. The old
   zero-live-measures gate is gone: a household that deliberately deleted its
   measures stays deleted (the 7.7 editor ships deletion).
-- To **roll a reseeded template out to existing households** (dev data is
-  throwaway): a human soft-deletes their measure rows —
-  `update ingredient_measure set deleted_at = now(), updated_at = now()` (add
-  a `where` to keep the template's fresh rows if it was reseeded first) —
-  **and clears the run-once marker**
-  (`update household set backfilled_at = null where not is_template`); the
-  backfill then re-clones on each household's next sign-in. One honest
-  nuance: the clone leg still requires **zero live measures**, so a
-  household that keeps any live row (its own `manual` measures included) is
-  merely re-stamped without cloning — this rollout only works by wiping a
-  household's user-authored measures along with the seeded ones — which was
-  acceptable only while dev data was throwaway. **Since 2026-09-03 (§2c) it
-  is not**: do not run this leg against a household with real measures.
+- To **roll a reseeded template's measures out to existing households**,
+  run
+  [`supabase/rollout_measure_refresh.sql`](../supabase/rollout_measure_refresh.sql)
+  (§2b): insert-missing by (ingredient `match_text`, measure `label`), never
+  an update or a delete, idempotent. The older path — soft-delete a
+  household's measure rows and clear `backfilled_at` so the clone re-runs on
+  the next sign-in — only works by wiping the household's user-authored
+  measures along with the seeded ones (the clone leg needs **zero live
+  measures**; a household that keeps any live row is merely re-stamped
+  without cloning), which was acceptable only while dev data was throwaway.
+  **Since 2026-09-03 (§2c) it is not**: do not run that leg against a
+  household with real measures.
 
 Note migration 0009 also touched the **sync streams** — redeploy
 `docker/powersync-cloud.streams.yaml` (step 3 below) so `ingredient_measure`
@@ -210,14 +209,52 @@ rollout that has to move a *different* ingredient column is this script with
 another monotone leg — keep the fill-only/union-only shape, or a household's
 own edits get clobbered.
 
-**Interplay with the measures backfill: none — they are separate mechanisms.**
-`ingredient_measure` retrofits through the run-once `backfilled_at` clone
-inside `ensure_onboarded` (0011, described above); this script never reads or
-writes `ingredient_measure` or `household.backfilled_at`, and never
-resurrects a soft-deleted row. Run them in either order. The measures path
-still costs a household its user-authored measures (it needs zero live rows to
-clone) — this one costs nothing, which is exactly why `ingredient` gets a
-script instead of a marker reset.
+**Measures have their own leg, the same shape:**
+[`supabase/rollout_measure_refresh.sql`](../supabase/rollout_measure_refresh.sql).
+A regenerated `seed_measures.sql` lands new measures on the template only;
+this script joins each non-template household's live `ingredient` rows to
+the template's by **`match_text`**, then for every live template measure on
+that ingredient **inserts** it where the household's ingredient has no row
+with that **`label`** — live or tombstoned. (`match_text` + `label` is the
+key `ensure_onboarded` re-associates measures by, and the only identity a
+measure has.) It copies exactly what the clone copies — `label`,
+`basis_amount`, `sort_order`, `source` — and the fresh row's `updated_at` is
+what PowerSync replicates. It never updates or deletes a measure: a live row
+keeps its own weight even where the template's now differs, a label the
+household soft-deleted stays deleted, the household's own (`manual`,
+no-counterpart) measures are untouched, measures of `manual` template
+ingredients and of soft-deleted template rows never cross, and a household
+ingredient whose `macros_basis` disagrees with the template's is skipped
+(`basis_mismatch_skipped` in its preview) rather than handed a number in the
+wrong unit. It neither reads nor resets `household.backfilled_at`.
+Re-running it is a no-op. It is a separate file on purpose: the `ingredient`
+script's contract is fill-only/union-only on two columns, this one's is
+insert-missing rows — one file each keeps both contracts legible.
+
+Human-run sequence for the measures leg — after the steps above, or alone
+(the two scripts are independent):
+
+```bash
+# 5. PREVIEW (read-only): per-household `to_insert`, `already_present_untouched`,
+#    `tombstoned_kept_dead`, `basis_mismatch_skipped`, `own_measures_untouched`.
+supabase db query --linked "$(sed -n '/^-- with tpl_household as/,/^-- order by h.name, h.id;/p' \
+  supabase/rollout_measure_refresh.sql | sed 's/^-- //; s/^--$//')"
+
+# 6. run the rollout (idempotent; reports INSERT 0 <rows added>)
+supabase db query --linked -f supabase/rollout_measure_refresh.sql
+
+# 7. re-run the preview: `to_insert` should now read 0 for every household.
+```
+
+**Interplay between the two scripts: none — each owns one table.** The
+`ingredient` script never reads or writes `ingredient_measure`; the measures
+script never writes `ingredient`; neither touches `household.backfilled_at`.
+Run them in either order. The run-once `backfilled_at` clone inside
+`ensure_onboarded` (0011, described in §2) still exists for the pre-0009
+heal, but it is **not** a rollout path any more: it needs zero live measures,
+so reaching a household through it costs that household its user-authored
+measures. Since 2026-09-03 (§2c) that price is not payable — the measures
+script above costs nothing, which is why measures now get a script too.
 
 ### 2c. The posture: data is durable now (owner ruling, 2026-09-03)
 
@@ -237,8 +274,10 @@ Two rulings landed the same evening, in this order, and the second governs:
      the owner, not a migration.
    - The §2 rollout notes that say "acceptable because dev data is throwaway"
      (the measures wipe-and-re-clone) are **no longer acceptable**; a reseed
-     reaches existing households only through `rollout_ingredient_refresh.sql`
-     (§2b), which is monotonic by construction.
+     reaches existing households only through the §2b rollout scripts —
+     `rollout_ingredient_refresh.sql` for `ingredient` columns,
+     `rollout_measure_refresh.sql` for measures — both monotone by
+     construction.
 
 The app's own memory said "data is ephemeral through the roadmap" since
 2026-08-26; that era ended here.

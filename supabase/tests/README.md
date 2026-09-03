@@ -50,6 +50,18 @@ assertions in `begin … rollback` so runs leave no residue.
   ingredient can sit on two weeks AND still twice on one week — the offline
   duplicate 0006 deliberately allows; and that the identity XOR, the
   contribution cascade and household RLS are all unchanged by it.
+- `measure_rollout.sql` — the monotone `ingredient_measure` rollout
+  ([`../rollout_measure_refresh.sql`](../rollout_measure_refresh.sql), plan
+  0023 lane B): a template measure the household's matching ingredient lacks
+  is inserted (keyed on ingredient `match_text` + measure `label`; columns
+  verbatim; fresh `updated_at`); an existing live measure keeps its own
+  weight; the household's own measures are untouched; a soft-deleted label
+  is never resurrected; a tombstoned template measure, a `manual` template
+  ingredient's measure and a basis-mismatched one never cross; soft-deleted
+  households/ingredients and the template itself gain nothing; a second run
+  is a no-op. pgTAP cannot include a file outside `tests/`, so the script's
+  statement is mirrored verbatim between `>>>`/`<<<` markers inside a temp
+  function — `make db-lint` diffs the two blocks.
 - `access_token_hook.sql` — `add_household_claim()` (0007/0008): injects the
   `household_id` claim for an onboarded user (oldest live membership,
   agreeing with `current_household_id()`), passes a not-yet-onboarded user's

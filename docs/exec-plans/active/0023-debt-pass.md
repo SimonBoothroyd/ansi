@@ -49,6 +49,29 @@ assigned here, not minted: **0021 = lane C, 0022 = lane D**.
   pill read `DateTime.now().weekday` inside `build`, which only ever
   re-rendered when the *Monday* changed, so it now watches `todayProvider` —
   a provider-read swap, not a UI path change. The tracker row is retired.
+- 2026-09-03 — Lane B: the measures rollout is a **separate file**,
+  `supabase/rollout_measure_refresh.sql`, not a third leg of
+  `rollout_ingredient_refresh.sql`. That script is an UPDATE of two
+  `ingredient` columns whose contract is fill-only/union-only and whose
+  footer promises it never touches `ingredient_measure`; the measures leg is
+  an INSERT of whole rows into another table (insert-missing). One file each
+  keeps both contracts legible. Join key: (ingredient `match_text`, measure
+  `label`) — the key `ensure_onboarded` re-associates measures by (0012) and
+  the only identity a measure has (the seed guards on it; 0011's read-side
+  duplicate merge uses it); label comparison is exact. Copied columns are the
+  clone's: `label`, `basis_amount`, `sort_order`, `source`. Two calls made
+  conservatively, both open to an owner ruling: (1) the `not exists` guard
+  counts tombstoned rows, so a label the household soft-deleted is never
+  resurrected (0011's doctrine) — the cost is that a household can never
+  regain a seed measure it once deleted except by hand; (2) a household
+  ingredient whose `macros_basis` differs from the template's is skipped
+  (`basis_mismatch_skipped` in the preview) rather than handed a per-g
+  amount on a per-ml row — invariant 3 over coverage; `ensure_onboarded`'s
+  clone does not check this. Testing: pgTAP cannot `\i` a file outside
+  `tests/`, so `tests/measure_rollout.sql` mirrors the script's statement
+  verbatim between `>>>`/`<<<` markers inside a temp function, and
+  `make db-lint` diffs the two blocks. The lane could not run the pgTAP
+  suite (shared stack is off-limits); the orchestrator's landing gates do.
 
 ## Notes / open questions
 

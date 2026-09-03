@@ -49,7 +49,7 @@ mutate live household data stays a human act.
 | PowerSync sync streams ([`docker/powersync-cloud.streams.yaml`](../docker/powersync-cloud.streams.yaml)) | `deploy-supabase.yml` → `powersync deploy sync-config` | same run — also re-run after any cloud `db reset` |
 | Function secrets (`ANTHROPIC_API_KEY`, `IMPORT_ALLOWED_HOUSEHOLDS`) | `supabase secrets set` | **human**, [cloud-setup §3b](./cloud-setup.md) |
 | Template vocab reseed | `deploy-supabase.yml` → the five seed files, in order | Actions → Run workflow with **`reseed_template`** ticked (since 2026-09-03 / `0020`) |
-| Rolling a reseed onto existing households | [`supabase/rollout_ingredient_refresh.sql`](../supabase/rollout_ingredient_refresh.sql), preview then run | **human**, [cloud-setup §2b](./cloud-setup.md) |
+| Rolling a reseed onto existing households | [`supabase/rollout_ingredient_refresh.sql`](../supabase/rollout_ingredient_refresh.sql) (`ingredient` columns) + [`supabase/rollout_measure_refresh.sql`](../supabase/rollout_measure_refresh.sql) (measures), preview then run | **human**, [cloud-setup §2b](./cloud-setup.md) |
 | Dashboard settings (auth hook, JWT audience, public sign-up) | Dashboards | **human**, cloud-setup's checklist |
 
 **Order matters.** `db push` runs before an app build that writes new columns
@@ -426,8 +426,10 @@ less repeatable. If the repo ever goes public, revoke the token first.
 - **Roll a reseed onto existing households**
   ([cloud-setup §2b](./cloud-setup.md)). A reseed updates the *template*
   household; households already onboarded keep their old clone until the §2b
-  rollout runs. Preview first — it reports the per-household blast radius — then
-  run it, then re-run the preview: every leg should read 0.
+  rollouts run — `rollout_ingredient_refresh.sql` for `ingredient` columns,
+  `rollout_measure_refresh.sql` for measures. Preview first — each reports the
+  per-household blast radius — then run it, then re-run the preview: every
+  leg should read 0.
 - **Set function secrets.** `ANTHROPIC_API_KEY` and `IMPORT_ALLOWED_HOUSEHOLDS`
   are `supabase secrets set` only ([cloud-setup §3b](./cloud-setup.md)). CI has
   no business holding them, and `supabase secrets list` shows names, not values.

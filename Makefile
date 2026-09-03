@@ -99,8 +99,12 @@ db-down: ## Stop local backend
 db-reset: ## Reset local DB, re-run migrations + seed
 	supabase db reset
 
-db-lint: ## Sanity-check migrations
+db-lint: ## Sanity-check migrations (+ the rollout script ↔ pgTAP mirror)
 	supabase db lint || true
+	@diff <(sed -n '/^-- >>> rollout_measure_refresh/,/^-- <<< rollout_measure_refresh/p' supabase/rollout_measure_refresh.sql) \
+	      <(sed -n '/^-- >>> rollout_measure_refresh/,/^-- <<< rollout_measure_refresh/p' supabase/tests/measure_rollout.sql) \
+	  && echo "rollout mirror: supabase/rollout_measure_refresh.sql == tests/measure_rollout.sql" \
+	  || { echo "rollout mirror DRIFTED: edit the marked block in both files"; exit 1; }
 
 # --- evals ---
 .PHONY: evals
