@@ -910,6 +910,47 @@
     .tierbox.t2 b{color:#7A5A16;}
 </style>
 <!-- lane-style:search:end -->
+<!-- lane-style:seam:start -->
+<style data-lane="seam"> block below carries every NEW rule;     -->
+<!--  move it into the board's head <style> when the section is merged.    -->
+<!--  It depends on the editor lane's .mstep / .echip / .mstep-* rules     -->
+<!--  (already on the board) and on the piece lane's .chip-note / .askrow. -->
+<!-- ===================================================================== -->
+<!-- lane-style:seam:start -->
+<style data-lane="seam">
+    /* a line that arrived on its curated default: the fact, said on the card
+       at the moment it is spent — never behind the user's back */
+    .dflt{display:flex;align-items:center;gap:6px;margin-top:7px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--herb-deep);}
+    .dflt .tap{color:var(--muted);margin-left:auto;}
+    .dflt .gm{color:var(--muted);}
+    /* the "Counts as" picker — one row, the manager's flesh-out form */
+    .cntas{display:flex;align-items:center;gap:9px;margin:0 20px 12px;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:10px 12px;}
+    .cntas .cl{flex:1;font-size:13.5px;font-weight:500;}
+    .cntas .cv{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--herb-deep);}
+    .cntas .cg{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
+    .cntas .caret{color:var(--muted);}
+    .cntas.none .cv{color:var(--muted);}
+    /* an imprecise chip in the review card's suggestion row (the dock has .uchip.impr; the card's row is .sug) */
+    .sug.impr{color:var(--muted);border-style:dotted;}
+    /* an ingredient row that is why a number is missing — the same amber the
+       review card uses for the same claim */
+    .rowmark{display:inline-flex;align-items:center;gap:5px;margin-left:8px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--aging);white-space:nowrap;}
+    .rowmark .rd{width:6px;height:6px;border-radius:50%;background:var(--aging);flex:none;}
+    .l3.marked .l3-body{display:flex;align-items:baseline;flex-wrap:wrap;}
+    /* the panel's named reasons, under the badge */
+    .mi-lines{margin-top:8px;display:flex;flex-direction:column;gap:5px;}
+    .mi-line{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink);}
+    .mi-line .rd{width:6px;height:6px;border-radius:50%;background:var(--aging);flex:none;}
+    .mi-line .why{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-left:auto;}
+    .mi-line .go{color:var(--herb);font-size:12px;flex:none;}
+    /* excluded BY RULE, named under a real total (D6) */
+    .notcounted{margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);line-height:1.45;}
+    .notcounted b{color:var(--ink);font-weight:500;}
+    .notcounted .nk{color:var(--herb-deep);}
+    /* a superseded frame's pointer back to the section it replaces */
+    .supersedes{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;background:var(--herb-soft);color:var(--herb-deep);border-radius:6px;padding:2px 7px;margin-left:6px;}
+</style>
+<!-- lane-style:seam:end -->
 </head>
 <body>
 <div class="wrap">
@@ -3454,6 +3495,206 @@
 
 </div>
 <!-- lane:search:end -->
+
+<!-- lane:seam:start -->
+<!-- ===================================================================== -->
+<!--  SEAM LANE — paste between <!== lane:search:end ==> and the footer.   -->
+<!--  The 
+<!-- lane-style:seam:end -->
+
+<!-- lane:seam:start -->
+<!-- ===== IMPORT & MACROS SEAM (PROPOSED — owner field test 2026-09-03) ===== -->
+<div class="section-head"><span class="ey">Import &amp; macros seam · v2</span><span class="proposed-tag">proposed — drawn 2026-09-03 from the owner’s first real import; direction accepted, D1 curation + the 21 flagged rows await the ruling</span><span class="rule"></span><span class="sub">The default is a fact somebody stated, said out loud at the moment it is spent — and a refusal that names the line it is waiting on</span></div>
+
+<div class="locknote prop">
+    <p class="lk-h">Owner field test, 2026-09-03 (Pixel) — three gaps, one direction</p>
+    <p>“<i>now piece isn’t an option most things like onion, pepper, etc <b>require users to select a unit on import</b></i>” · “<i>importing the recipe — <b>the steps weren’t editable</b> and it was mentioning it’s still v1?!</i>” · “<i>this message [<span style="font-family:'IBM Plex Mono',monospace">incomplete · 2 unconvertible</span>] makes it <b>impossible to know what ingredients need fixing</b></i>” · “<i>things that are <b>to taste, or imprecise</b> should[n’t] be required or show up in macros</i>”.</p>
+    <p><b>ADR-0010 is not reopened.</b> <span style="font-family:'IBM Plex Mono',monospace">piece</span> stays an admission fact; no size word is read out of <span style="font-family:'IBM Plex Mono',monospace">raw_amount</span>, no rule resolves a line at runtime, no stored line is rewritten. What lands is a <b>second stated fact</b> per row — <span style="font-family:'IBM Plex Mono',monospace">default_measure_id</span>, curated by hand like the <span style="font-family:'IBM Plex Mono',monospace">piece</span> removals, <b>nullable, and null is a real answer</b>. A curated fact is a decision somebody made and can see; a cascade is a guess made fresh every time.</p>
+    <div class="ledger">
+        <span class="k">supersedes</span><span><b>Piece is the fallback · 8.7 → frame (a) “Review recipe · counted produce, flagged at last”</b> — frames (a) and (b) below replace it. Its avocado card (“<i>one measure — opened on it, one tap to confirm</i>”) becomes a card with <b>no flag at all</b>, drawn here as cucumber; its potato card (“<i>three sizes — you pick</i>”) becomes a defaulted card, drawn here as pepper; and its broccoli card is <b>unchanged</b>, redrawn in (b) to prove the null case survives intact. That section’s <b>frame (b)</b> (the chip dock) still stands as drawn — the admission list is untouched; its <b>frame (c)</b> (the ask-once prompt) is <b>extended</b>, not replaced, by the <i>Counts as</i> row in (f). · <b>Import &amp; recipe view · v3 → “Review recipe”</b> (the read-only method fold + the “v1” notice) is replaced by (c) · <b>→ “Recipe view v3”</b> gains the row markers in (d) · <b>→ “Macro panel · incomplete”</b> is replaced by (d), and (e) is a state that panel could not previously reach.</span>
+        <span class="k ch">decides</span><span><b>D1</b> <span style="font-family:'IBM Plex Mono',monospace">ingredient.default_measure_id</span> (nullable FK, <span style="font-family:'IBM Plex Mono',monospace">on delete set null</span>), hand-curated: the <b>medium</b> where a sized family exists, the <b>sole</b> count measure where there is one, <b>none</b> for fragment sets — 141 seeded rows, 132 defaults, 9 nones, 21 for your call · <b>D2</b> import <b>preselects</b> it: chip selected, <b>line not flagged</b>, Save not gated, raw line still visible, one tap to change; the editor and top-up sheets open on it too · <b>D3</b> the sole-measure preselect never fired because <span style="font-family:'IBM Plex Mono',monospace">preselectedMeasure</span> is read only when the SHEET opens, never by <span style="font-family:'IBM Plex Mono',monospace">lineIssues</span> — the flag was always going to stand · <b>D4</b> the review screen edits the method with the shipped <b>editor v2 step cards</b>; chips key on review LINE INDEXES and convert back at commit · <b>D5</b> the macro panel <b>names the lines</b>, and each named line is marked in place and tappable · <b>D6</b> <b>imprecise never gates the total</b> — excluded by rule, total shown, exclusion named beneath.</span>
+        <span class="k ch">refuses</span><span><b>The default never overrules a printed word.</b> It answers a line that named a number and no thing (no unit, or a refused <span style="font-family:'IBM Plex Mono',monospace">piece</span>); a line that printed <i>bunch</i>, <i>head</i> or <i>can</i> keeps today’s flag — replacing the source’s own word with our default is the guess ADR-0010 forbids. <b>No <i>inferred</i> mark, no revert, no provenance on the stored line</b>: a default that is displayed where it is applied needs none of a guess’s apparatus. <b>No invented gram</b>: every weight drawn here is a seeded <span style="font-family:'IBM Plex Mono',monospace">ingredient_measure</span> row. <b>No total that hides what it left out</b>, and a recipe whose lines are ALL imprecise still refuses (nothing was weighed).</span>
+    </div>
+    <p class="src">Options, trade-offs and the full 141-row curation table: <b>seam-decisions.md</b> · migration, seam plumbing and tests: <b>seam-impl.md</b>. Weights are the seeded rows (<b>supabase/seed_measures.sql</b>): onion medium 110 g · pepper medium 119 g · cucumber 301 g · garlic clove 3 g · broccoli whole 608 · spear 31 · crown 150 g · parsley sprig 1 g. Alternatives that lost are annotated on the frame that would have drawn them.</p>
+</div>
+
+<div class="board">
+
+    <div class="frame">
+        <p class="frame-name"><b>a · Review · the default, spent in the open</b> <span class="supersedes">supersedes piece 8.7 (a)</span> — the line is <b>not</b> flagged, and the fact is on the card</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount ok">1 to review</span></div>
+            <div class="r-hero"><h2 class="r-title" style="font-size:26px;margin-top:2px">Charred Pepper Traybake</h2></div>
+            <div class="tsec" style="margin-top:6px"><span class="tl">Ingredients</span><span class="tc">6</span><span class="rule"></span></div>
+
+            <div class="lcard">
+                <div class="chead"><span class="cn">red peppers</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from source:  2 red peppers, deseeded</div>
+                <div class="chosen"><span class="ck">✓</span><span class="cnm">Red bell pepper</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                <div class="dflt"><span>counts as <b>pepper, medium</b></span><span class="gm">· 119 g</span><span class="tap">tap a chip to change</span></div>
+                <div class="suggests" style="margin-top:7px"><span class="sug pick"><span class="srcdot usda"></span>pepper, medium</span><span class="sug"><span class="srcdot usda"></span>pepper, large</span><span class="sug"><span class="srcdot usda"></span>pepper, small</span><span class="sug">g</span><span class="sug">cup</span></div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 pepper, medium <span class="gm">· 238 g</span> <span class="pen">✎</span></span></span></div>
+                <div class="lockhint">no amber, no “pick a supported unit”, nothing held up. The chips stay <b>visible</b>: the choice made for you is on screen beside the ones you could make instead.</div>
+            </div>
+
+            <div class="lcard">
+                <div class="l3 edit"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from source:  3 onions, thinly sliced</div>
+                <div class="lockhint">collapsed, clean — 110 g each. Under 8.7 this line read “Pick a supported unit”.</div>
+            </div>
+
+            <div class="lcard">
+                <div class="l3 edit"><span class="l3-amt">1 cucumber</span><span class="l3-body"><span class="l3-id">Cucumber</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from source:  1 cucumber</div>
+                <div class="lockhint"><b>D3</b> — the row has exactly one measure, and 8.7 said that “pre-selects”. It pre-selected the <i>sheet</i>, never the line, so this card stayed amber until somebody opened and confirmed it. Now it never opens.</div>
+            </div>
+
+            <div class="lcard attn">
+                <div class="chead"><span class="cn">bunch of cilantro</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from source:  1 bunch cilantro, chopped</div>
+                <div class="lflags"><span class="lflag">unit “bunch” needs a look</span></div>
+                <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
+                <div class="chosen"><span class="ck">✓</span><span class="cnm">Cilantro</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                <p class="chip-note">the source named a thing we don’t carry — the default does not answer this</p>
+                <div class="suggests" style="margin-top:0"><span class="sug"><span class="srcdot usda"></span>sprig</span><span class="sug">g</span><span class="sug">cup</span><span class="sug">tbsp</span><span class="sug impr">handful</span></div>
+                <div class="lockhint">cilantro’s default IS <b>sprig</b> (1 measure, 2.22 g) — and it is deliberately <b>not</b> applied: a bunch is ~25 sprigs. The scope rule is <b>the default answers a line that named a number and no thing; it never overrules a line that named a thing.</b></div>
+            </div>
+
+            <div class="savebtn off">1 line(s) need you</div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D2 — the fact is spent where it can be seen.</b> The preselect writes the measure’s <b>label</b> onto the resolution — the same token a tapped chip writes — so <code>lineIssues</code> finds an acceptable unit and the card is clean <i>for the ordinary reason</i>. No new <code>LineIssue</code>, no “flagged but allowed” state, no second rule to keep in sync; the commit path is byte-for-byte what a tapped chip produces. <span style="color:var(--muted)">Alternatives that lost. <b>Preselect on ANY refused unit</b> (the brief’s literal reading) — it turns the cilantro card above into a silent 25× error and is the rejected cascade with extra steps. <b>Preselect but keep the flag</b> (“confirm the default”) — that is exactly what shipped in 8.7, and it is the thing the owner is complaining about: a question whose answer is already known, asked once per line. <b>Hide the chips on a defaulted line</b> — tidier, and it makes the tap-to-change invisible; a stated fact that cannot be seen is a silent one. <b>Mark the line <i>inferred</i> with a revert</b> — a guess’s apparatus, and this is not a guess: it is displayed at the point of use and changed in one tap.</span> <b style="color:var(--ink)">Extraction is unchanged</b> — ① still emits <code>piece</code>; only the phone knows the measures (ADR-0004).</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>b · Review · no default, still flagged</b> <span class="supersedes">supersedes piece 8.7 (a)</span> — a fragment set has no honest answer, so the app does not invent one</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">1 to review</span></div>
+            <div class="lcard attn">
+                <div class="chead"><span class="cn">broccoli</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from source:  1 broccoli, cut into florets</div>
+                <div class="lflags"><span class="lflag">unit “piece” needs a look</span></div>
+                <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
+                <div class="chosen"><span class="ck">✓</span><span class="cnm">Broccoli</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                <p class="chip-note">three different things — <b>you</b> pick; we don’t</p>
+                <div class="suggests" style="margin-top:0"><span class="sug"><span class="srcdot usda"></span>whole</span><span class="sug"><span class="srcdot usda"></span>spear</span><span class="sug"><span class="srcdot typ"></span>crown</span><span class="sug">g</span><span class="sug">cup</span></div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip off">1 — <span class="pen">✎</span></span></span></div>
+                <div class="lockhint">608 g · 31 g · 150 g. <b>default_measure_id is null on this row, and null is a real answer</b> — the model can say “I don’t know”, which a rule never can.</div>
+            </div>
+            <div class="lcard">
+                <div class="l3 edit"><span class="l3-amt">1 head</span><span class="l3-body"><span class="l3-id">Napa cabbage</span><span class="l3-note">shredded</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from source:  1 napa cabbage, shredded</div>
+                <div class="lockhint">the counter-case, one row down: napa cabbage carries a <b>single</b> measure (<b>head</b>, 950 g) so it <i>does</i> get a default — while plain <b>cabbage</b> (head vs leaf) gets none. Same food, two answers, because the vocabulary differs. That is the argument for a curated fact over a rule.</div>
+            </div>
+            <div class="savebtn off">1 line(s) need you</div>
+            <p class="conv-note" style="text-align:center;margin-top:8px">9 of the 141 seeded rows land here — and they are the rows that should</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D1 — the shape of the curation, in three sentences.</b> <b>Sized family → the medium</b> (onion, pepper, potato, apple, tomato): “2 onions” means two medium ones, and a recipe says <i>large</i> out loud when it matters — at which point the printed word wins and the default stands aside. <b>Sole count measure → that one</b> (cucumber, avocado, garlic → <code>clove</code>, the retail can/block/package rows): there is nothing else the line could mean, which is ADR-0010 consequence 4’s own sentence finally acted on. <b>Fragment set → none</b> (broccoli, cabbage and the lettuces, mint, spinach, vegetable broth): two or more <i>kinds</i> of countable thing with no dominant one. <span style="color:var(--muted)">Alternatives that lost. <b>Derive it at seed time</b> (“the <code>, medium</code> row, else the sole measure”) — the rejected cascade wearing a seed-time hat: it re-decides the whole list on every generator run, and it is wrong on the rows that matter. <b>Reuse <code>sort_order = 0</code></b> — free and a 20× error: ginger would default to <code>slice</code> (2.2 g) rather than <code>piece, 1 inch</code> (12 g), and flour tortilla to the 484 g <b>package</b> rather than the 49 g <b>tortilla</b>. <b>An <code>is_default</code> boolean on the measure</b> — the same fact stored N times, needing a partial-unique index to stay true. <b>Fold it into <code>allowed_units</code></b> — that list is a SET (ADR-0008 §4); an ordering smuggled into it is a fact nobody can see.</span></p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>c · Review · the method, as step cards</b> <span class="supersedes">supersedes import v3 “Review recipe”</span> — the shipped editor v2 card, on the review screen</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount ok">looks good</span></div>
+            <div class="tsec" style="margin-top:6px"><span class="tl">Method</span><span class="tc">4</span><span class="rule"></span><span class="ci" style="color:var(--muted);font-size:12px">⋯</span></div>
+            <div class="mstep">
+                <div class="mstep-h"><span class="n">Step 1</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
+                <div class="mstep-in">Heat the oven to 220°C. Toss the <span class="echip">red peppers</span> and <span class="echip">onions</span> with the <span class="echip">olive oil</span> on a large tray.</div>
+            </div>
+            <div class="mstep on">
+                <div class="mstep-h"><span class="n">Step 2</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
+                <div class="mstep-in">Roast for <span class="echip tmr">25–30 min</span>, turning once, until the edges are properly <span class="sel">charred</span>.</div>
+                <div class="seltb"><span>Cut</span><span>Copy</span><span class="k">To ingredient</span><span class="k">To timer</span><span>▸</span></div>
+                <div class="mstep-tools"><span class="mtool k">＋ ingredient</span><span class="mtool">⏱ timer</span></div>
+                <div class="mstep-pv"><span class="pvl">Reads as</span>Roast for <span class="ichip tmr">⏱ 25–30 min</span>, turning once, until the edges are properly charred.</div>
+            </div>
+            <div class="mstep">
+                <div class="mstep-h"><span class="n">Step 3</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
+                <div class="mstep-in">Scatter over the <span class="echip">cilantro</span> and serve.</div>
+            </div>
+            <div class="addstep">＋ Add a step</div>
+            <p class="conv-note">the same card, the same controller, the same “Reads as” fold — the recipe editor’s, unchanged</p>
+            <div class="savebtn">Save recipe</div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D4 — the stale notice goes, and so does the read-only fold.</b> <code>reconciliation_view.dart:121–125</code> still says “<i>Method is read-only in v1 — editing lands later via the recipe’s Edit route</i>”; the editor v2 step cards shipped on <b>2026-09-02</b>, so the notice has been false for a day and the screen most likely to need a method fix is the only one that cannot make it. <b style="color:var(--ink)">How the refs key.</b> A payload <code>StepToken.ref</code> carries <code>refs: List&lt;int&gt;</code> — flattened <b>line indexes</b>. The review already mints <code>previewLineId(i) == "line-&lt;i&gt;"</code> and remaps onto it, so the editor’s draft spans key on those synthetic ids and <code>MethodStepText</code> renders live amounts with no extra plumbing. At commit the seam parses <code>"line-&lt;i&gt;"</code> back to <code>i</code>; a ref whose line was <b>dropped</b> is left out and a chip with no surviving refs demotes to plain prose — the never-dangling-line rule <code>buildCommit</code> already enforces. The repository is untouched: it still mints one uuid per surviving index and rewrites index → <code>line_item_id</code>. Two invariants to pin: <b>indexes never renumber during review</b>, and <b>steps → drafts → tokens → steps is byte-identical when nothing is edited</b>. <span style="color:var(--muted)">Alternatives that lost. <b>Route to the recipe editor after Save</b> — free, and refuses what was asked. <b>A second step card for the review screen</b> — two cards drift, which is the whole reason <code>MethodStepText</code> is shared. <b>Hoist both editors onto a new shared draft controller</b> — cleaner on paper, and it re-plumbs a surface that shipped yesterday and is under sim coverage; the small move is an interface the shipped notifier already satisfies.</span> <b style="color:var(--ink)">Scope cut:</b> at review the line picker offers <i>this import’s lines only</i> — <code>＋ Add an ingredient to this recipe</code> is disabled with its reason, because a brand-new line would need a flat index <code>buildCommit</code> does not walk.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>d · Recipe · the panel names the lines</b> <span class="supersedes">supersedes import v3 “Macro panel · incomplete”</span> — and each named line is marked where it lives</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
+            <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
+            <div class="grp">
+                <div class="l3"><span class="l3-amt">2 pepper, medium</span><span class="l3-body"><span class="l3-id">Red bell pepper</span></span></div>
+                <div class="l3 marked"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Cucumber</span><span class="rowmark"><span class="rd"></span>needs a weight</span></span></div>
+                <div class="l3 marked"><span class="l3-amt">200 g</span><span class="l3-body"><span class="l3-id">Tofu</span><span class="rowmark"><span class="rd"></span>stub ingredient</span></span></div>
+                <div class="l3"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span></div>
+            </div>
+            <p class="macro-lab">Per serving</p>
+            <div class="macro-inc">
+                <div class="mi-h"><span class="badge-inc">incomplete</span><span class="mi-n">1 line needs a weight · 1 stub line</span></div>
+                <div class="mi-b">Left out of the total until every line resolves — a partial number would not be this recipe.</div>
+                <div class="mi-lines">
+                    <div class="mi-line"><span class="rd"></span><span>Cucumber</span><span class="why">needs a weight</span><span class="go">›</span></div>
+                    <div class="mi-line"><span class="rd"></span><span>Tofu</span><span class="why">stub ingredient</span><span class="go">›</span></div>
+                </div>
+            </div>
+            <p class="conv-note">tap <b>Cucumber</b> → its amount sheet, opened on <b>cucumber</b> (301 g) · tap <b>Tofu</b> → its flesh-out form</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D5 — the count stays, the names arrive.</b> The owner’s sentence was “<i>impossible to know what ingredients need fixing</i>”, and the badge line (<code>1 line needs a weight · 1 stub line</code>) is kept <b>verbatim</b> above the list: the picker rows and the confirm sheet print that same string, and <code>incomplete_macros.dart</code> exists so those three surfaces cannot drift into three different failures. The per-line words come from <b>one new helper in the same file</b> (<code>incompleteLineNote</code>), so the panel’s list, the row marker and the tooltip are one vocabulary too. <b style="color:var(--ink)">Marked in place, and the marker is a door</b> — the amber is the review card’s amber because it is the same claim: <i>this line is why a number is missing</i>. Tapping opens the fix that reason implies: an amount sheet for a bare count, the flesh-out form for a stub or a missing density, the sub-recipe for the two nested reasons. <span style="color:var(--muted)">Alternatives that lost. <b>Panel lists, rows unchanged</b> — on a long recipe the panel is below the fold, so you read a name and then hunt for it. <b>Rows marked, panel keeps the counts</b> — you can see <i>that</i> rows are marked but never what the total is waiting on. <b>A separate “what’s missing” screen</b> — a fourth surface rendering the same summary, which is exactly the drift the shared helper exists to prevent.</span> <b style="color:var(--ink)">Capped at four</b> named lines with <code>+N more</code>; the count above it is the honest fallback for a thoroughly broken recipe.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>e · Recipe · a total, and what it left out</b> <span class="supersedes">new state</span> — imprecise lines are excluded <b>by rule</b>, and named</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
+            <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
+            <div class="grp">
+                <div class="l3"><span class="l3-amt">2 pepper, medium</span><span class="l3-body"><span class="l3-id">Red bell pepper</span></span></div>
+                <div class="l3"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span></div>
+                <div class="l3"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Chickpea canned</span><span class="l3-note">drained</span></span></div>
+                <div class="l3"><span class="l3-amt impr">handful</span><span class="l3-body"><span class="l3-id">Parsley</span><span class="l3-note">chopped</span></span></div>
+                <div class="l3"><span class="l3-amt impr">to taste</span><span class="l3-body"><span class="l3-id">Sesame seeds</span></span></div>
+            </div>
+            <p class="macro-lab">Per serving</p>
+            <div class="macro tight"><div class="m"><div class="mv">418</div><div class="ml">kcal</div></div><div class="m"><div class="mv">16 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">54 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">13 g</div><div class="ml">fat</div></div></div>
+            <p class="notcounted"><span class="nk">not counted:</span> <b>Parsley</b> · handful, <b>Sesame seeds</b> · to taste<br>a pinch has no weight to count — these are excluded by rule, not by failure</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D6 — invariant 3, argued rather than assumed.</b> The invariant says <i>never invent a value to make math work</i> and <i>never silently drop an unknown</i>. Both hold, and the second is the one that matters here: <b>nothing is silent</b> — the exclusion is printed under the number, by name, every time, so a reader can see exactly what the figure covers. Nothing is invented either: a handful of parsley contributes zero because <b>zero grams of it were claimed</b>, not because a number was guessed and rounded down. And the imprecise family is <b>already</b> excluded everywhere else on purpose — <code>convert</code> refuses it (<code>unit/imprecise</code>) and <code>scale</code> leaves it untouched (“a pinch doubled is still a pinch”); the macro engine treating the same word as a <i>fixable defect</i> was the outlier. Today’s behaviour fails the invariant in the other direction: “<i>a recipe with a pinch of salt is unknowable</i>” is not honesty, it is a refusal to report a number that is knowable to within a pinch of salt — which is how a true statement becomes a useless one. <b style="color:var(--ink)">handful goes with <i>to taste</i>, excluded</b> — it is <code>UnitFamily.imprecise</code> in the catalog, so splitting it would leave the codebase holding two opinions about one word; and “fixable” implies a fix that does not exist, because no measure or density turns a handful into grams. <span style="color:var(--muted)">The door that stays open: if a household wants a handful weighed, the right move is a <b>measure</b> on that row (<code>handful ≈ 25 g</code>, <code>seed:typical</code>, with provenance) — an ordinary measure line, no engine special case. Rejected: a per-line “count it as ~0” toggle (a stored opinion about a word); rejected: excluding imprecise <i>silently</i> (the exclusion is the honesty).</span> <b style="color:var(--ink)">The one guard:</b> a recipe whose lines are <i>all</i> imprecise summed nothing, so it still refuses — <code>0 kcal</code> there would be a fabrication, the same shape as today’s <code>no ingredients yet</code>.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>f · Manager · “Counts as”</b> <span class="supersedes">extends piece 8.7 (c)</span> — the household owns its own default, and can clear it</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Onion</span><span class="dots">⋯</span></div>
+            <p class="flabel" style="margin-top:6px">Measures — count-like, in the basis</p>
+            <div class="field" style="margin-bottom:6px">
+                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">onion, medium</span><span class="mg">110 g</span><span class="msrc">usda_fdc:170000</span></div>
+                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">onion, large</span><span class="mg">150 g</span><span class="msrc">usda_fdc:170000</span></div>
+                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">onion, small</span><span class="mg">70 g</span><span class="msrc">usda_fdc:170000</span></div>
+                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">slice, medium</span><span class="mg">14 g</span><span class="msrc">usda_fdc:170000</span></div>
+            </div>
+            <p class="flabel">Counts as — what “2 onions” means</p>
+            <div class="cntas"><span class="cl">One onion is</span><span class="cv">onion, medium</span><span class="cg">· 110 g</span><span class="caret">▾</span></div>
+            <p class="conv-note" style="margin-top:0">used when a line says a number and no unit. A line that <b>names</b> something — “2 large onions” — always wins.</p>
+
+            <p class="flabel" style="margin-top:18px">The same row on Broccoli</p>
+            <div class="cntas none"><span class="cl">One broccoli is</span><span class="cv">— not set</span><span class="caret">▾</span></div>
+            <p class="conv-note" style="margin-top:0">the picker’s first entry is <b>“Ask me each time”</b>, and it is the honest state for a row whose measures are <b>whole</b> · <b>spear</b> · <b>crown</b>. Clearing a default is one tap and never destroys a measure.</p>
+            <div class="askrow" style="margin-top:16px">
+                <div class="ask-h">You added “tomato, medium”. Still offer “piece” for Heirloom tomato?</div>
+                <div class="ask-b">Answering <b>No</b> also sets <b>Counts as: tomato, medium</b> — the measure you just named becomes what a bare “1 tomato” means. Both are one tap from changing, here.</div>
+                <div class="askbtns"><span class="askbtn on">No — “tomato, medium” says it<small>+ counts as</small></span><span class="askbtn">Keep both<small>no default set</small></span></div>
+            </div>
+            <p class="conv-note">8.7’s question, unchanged — with the second half of the answer it always implied</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D1 — a household decides its own rows, exactly as it decides its admissions.</b> <code>default_measure_id</code> is a nullable FK with <code>on delete set null</code>, so deleting a measure clears the default rather than leaving a dangling one, and the seeded value is a starting point a household owns from the moment it is cloned. A brand-new ingredient has no measures and therefore no default — nothing to ask, nothing to set. <b style="color:var(--ink)">The ask-once prompt gains one sentence</b>, because the two questions were always one: the moment a household says “<i>‘tomato, medium’ says it better than piece</i>”, they have also said what a bare “1 tomato” means. Answering <i>Keep both</i> leaves the default unset, which is the honest reading of “both words are sayable here”. <span style="color:var(--muted)">Alternatives that lost. <b>A second, separate prompt</b> (“…and what should ‘1 tomato’ mean?”) — two modal questions on one act, for a fact the first answer already implies. <b>Default silently to the measure just added</b> — right direction, wrong manners, and the same objection ADR-0010 makes to silently removing an admission. <b>No manager UI at all</b> (curation only) — leaves a household unable to fix a default that is wrong for their kitchen, on rows they own.</span> <b style="color:var(--ink)">Data is durable now</b> (owner, 2026-09-03), so this ships as an <b>additive column + a backfill from the curation table</b>, keyed per household by measure <i>label</i> since every household holds its own cloned measure rows — not the reseed ADR-0010’s rollout used.</p>
+    </div>
+
+</div>
+<!-- lane:seam:end -->
+<!-- lane:seam:end -->
 
     <footer class="footer">
         <span><b>Ansi</b> — complete board</span>
