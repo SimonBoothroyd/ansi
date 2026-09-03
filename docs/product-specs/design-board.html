@@ -3698,6 +3698,454 @@
 <!-- lane:seam:end -->
 <!-- lane:seam:end -->
 
+<!-- lane:round3:start -->
+<!-- ===================================================================== -->
+<!--  ROUND-THREE LANE — paste between <!== lane:seam:end ==> and the footer -->
+<!--  (exec plan 0025). The <style data-lane="round3"> block carries every  -->
+<!--  NEW rule; move it into the board's head <style> when merged. Every    -->
+<!--  other class is the board's own: .wkhdr/.wkmenu/.wkmi (week lane),    -->
+<!--  .crow/.fsw (editor lane), .er-no/.er-shopsync (errors lane),         -->
+<!--  .nv-anat/.nv-bar/.nv-i/.nv-call/.nv-tok (nav lane), .notcounted      -->
+<!--  (seam lane), and the shipped .portion/.pstepper/.qtyrow/.stepper/    -->
+<!--  .unitsel/.fin/.frow/.flabel/.lcard/.l3/.srcnotes/.hdrcount/.tsec/    -->
+<!--  .uchips/.dock/.kbd/.macro/.item/.prov/.sl-group/.cook/.session.      -->
+<!-- ===================================================================== -->
+<!-- lane-style:round3:start -->
+<style data-lane="round3">
+    /* round three (0025) — four rules, all scoped under .r3:
+       1. every bottom bar in this section is drawn as D7d PROPOSES — the
+          selected item steps herb → herb-deep; frame (i) is the measurement. */
+    .r3 .nav .ni.on{color:var(--herb-deep);font-weight:500;}
+    /* 2. frame (i): the nav lane's bar anatomy, with the proposed selected
+          colour on the second bar. */
+    .r3 .nv-bar.deep .nv-i.on .g,.r3 .nv-bar.deep .nv-i.on .l{color:var(--herb-deep);}
+    .r3 .r3-two{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;}
+    .r3 .r3-two .nv-anat{flex:1 1 300px;min-width:0;}
+    /* 3. the `optional` tag on a recipe line — the stub badge's voice
+          (StubBadge = FBadge.secondary: herb-soft ground, muted mono), so a
+          reader who knows one knows the other. */
+    .r3 .r3-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);background:var(--herb-soft);border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:middle;white-space:nowrap;}
+    /* 4. an unset value inside a stepper reads muted and smaller — the shipped
+          _StepperRow's "not set" / "no limit" text (mono 13 muted). */
+    .r3 .pstepper .qv.unset{font-size:12px;color:var(--muted);font-weight:400;}
+</style>
+<!-- lane-style:round3:end -->
+
+<div class="r3">
+<!-- ===== FIELD TEST · ROUND THREE (PROPOSED — owner field test 2026-09-03, v0.3.0) ===== -->
+<div class="section-head"><span class="ey">Field test · round three</span><span class="proposed-tag">proposed — 2026-09-03 · rulings D2–D7d drawn, awaiting sign-off</span><span class="rule"></span><span class="sub">One header under two hosts, no path that mints a stub, an optional line that says where it went, and a switcher that is the only title</span></div>
+
+<div class="locknote">
+    <p class="lk-h">Owner field test, 2026-09-03 (Pixel, v0.3.0) — seven fronts, every decision ruled the same day</p>
+    <p>“<i>if I add an ingredient when creating a recipe I expected to be taken to <b>the new ingredient modal</b>, instead it just created a placeholder and obviously I couldn’t select the right units</i>” · “<i>on import recipe review <b>I can’t enter fridge life / freezes</b></i>” · “<i>I don’t think there’s a way in the UI to <b>flag / unflag an ingredient as optional</b></i>” · “<i>cook and shop follow the same week as week — it would probably be better to <b>show the same picker instead</b></i>”. Items 1 (save-then-back), 2 (quart) and 5 (the “piece” chip at review) are bugs and a catalogue gap with no frame to draw; they ride the same slice.</p>
+    <div class="ledger">
+        <span class="k">extends</span><span><b>Nested recipes v1 (h) “Editor · what it makes”</b> → frame (a) is the whole header that frame drew a slice of, with TIMES added · <b>Import &amp; recipe view v3 “Review recipe”</b> + <b>seam v2 (a)</b> → frame (b) puts that same header on the review, and keeps the srcnotes strip, the from-source line and the “N to review” count where they were · <b>Ingredients manager v1 “Add · scan a barcode”</b> → its <i>Source</i> segment is the front door in (c) · <b>Pickers v2 “Quantity”</b> → the sheet in (c4) and (e), one switch row added · <b>Seam v2 (e) “a total, and what it left out”</b> → the <code>not counted</code> line in (e2) gains a second reason · <b>Shopping list</b> + <b>nested (g)</b> → the per-recipe echo row in (f) · <b>Week v2 (c) “Week switcher”</b> → the <code>.wkhdr</code> markup, verbatim, on Cook and Shop · <b>Navigation v2</b> → the bar anatomy, re-measured in (i).</span>
+        <span class="k ch">decides</span><span><b>D3</b> (owner: “<i>move away from allowing stubs; ideally only the seeded rows are stubs</i>”) — the picker’s add-new opens the manager’s <b>New ingredient sheet</b> with the name prefilled → the flesh-out form → back → the quantity sheet on the units the form set; the same chain on the shopping top-up and on the review’s create-new; <code>CommitStub</code> retires · <b>D4</b> (“<i>same as recipe editor</i>”) — one <code>RecipeHeaderForm</code> with SIX sections (TITLE · SERVES · MAKES · TIMES · SHELF LIFE · FILE UNDER) under two hosts; <b>D4+</b> cook and total time “<i>should be included on both while we’re at it</i>” — the <code>Recipe</code> entity gains them · <b>D6a</b> the Optional switch lives in the quantity/unit sheet · <b>D6b</b> optional lines are <b>excluded and named</b> in macros and shopping; cook plan unaffected; a per-week override is designed for through one <code>effectiveLines</code> seam, not built · <b>D7a</b> one shared viewed week · <b>D7b</b> “Copy last week” hidden on Cook/Shop · <b>D7c</b> (A) “<i>the switcher only / nav bar is the right indicator</i>” · <b>D7d</b> the bar’s selected item steps to <code>herbDeep</code>; the lane measured it.</span>
+        <span class="k ch">refuses</span><span><b>No path creates an ingredient without landing on the flesh-out form</b> — the form is on the way, not a detour; the seed’s stubs stay (curation debt, tracked) and <code>status</code> stays the honest fact about a row’s macros. <b>No silent drop</b>: an optional line that leaves a total or a list is named where it left. <b>No second header</b> — the review does not grow a third copy of a section; a structural test asserts both hosts render every section the form declares. <b>No screen name in the header</b> on Cook or Shop: the lit tab says where you are, which is why (i) exists. <b>No per-week override table this wave.</b></span>
+        <span class="k ch">asks</span><span><b>nothing</b>: every decision is ruled; this section asks only for sign-off on the drawing. The details the drawing had to settle that the plan did not are listed in <b>round3-decisions.md</b> under “Details the drawing decided — flag for the owner”.</span>
+    </div>
+    <p class="src">Exec plan: <b>docs/exec-plans/active/0025-field-test-round-three.md</b> (root causes, blast radius, the decision log). Companion: <b>round3-decisions.md</b>. Frames are traced from <b>recipe_editor_view.dart</b>, <b>reconciliation_view.dart</b>, <b>ingredient_picker.dart</b>, <b>new_ingredient_sheet.dart</b>, <b>quantity_unit_sheet.dart</b>, <b>ingredient_line.dart</b>, <b>recipe_macro_panel.dart</b>, <b>shopping_view.dart</b>, <b>week_header.dart</b>, <b>ansi_bottom_nav.dart</b> / <b>ansi_theme.dart</b>. Content is the board’s own: Weeknight Chicken Curry, avocado, lime, coriander, Vegetable Broth.</p>
+</div>
+
+<div class="board">
+
+    <!-- (a) RECIPE EDITOR · HEADER -->
+    <div class="frame">
+        <p class="frame-name"><b>a · Recipe editor · header</b> · the six sections, in order — five shipped, TIMES new; this whole block becomes <code>RecipeHeaderForm</code></p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Edit recipe</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
+            <p class="flabel">Title</p>
+            <div class="frow"><div class="fin big">Weeknight Chicken Curry</div></div>
+            <p class="flabel">Serves</p>
+            <div class="qtyrow" style="margin:0 20px 12px"><div class="stepper"><span class="s">–</span><span class="qv">4</span><span class="s">+</span></div></div>
+            <p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
+            <div class="qtyrow" style="margin:0 20px 6px"><div class="stepper"><span class="s"></span><span class="qv">1.8</span><span class="s"></span></div><div class="unitsel"><span>kg</span><span style="color:var(--muted)">▾</span></div></div>
+            <div class="frow"><span class="ghostbtn" style="margin-top:0;color:var(--herb);border-style:dashed">＋ Another denomination</span></div>
+            <p class="flabel">Times</p>
+            <div class="portion" style="margin-bottom:8px"><div class="pl">Cook<small>hands-on and on the heat</small></div><div class="pstepper"><span class="s">–</span><span class="qv">35 min</span><span class="s">+</span></div></div>
+            <div class="portion" style="margin-bottom:12px"><div class="pl">Total<small>start to plate</small></div><div class="pstepper"><span class="s" style="color:var(--line)">–</span><span class="qv unset">not set</span><span class="s">+</span></div></div>
+            <p class="flabel">Shelf life</p>
+            <div class="portion" style="margin-bottom:6px"><div class="pl">Keeps in the fridge</div><div class="pstepper"><span class="s">–</span><span class="qv">4 days</span><span class="s">+</span></div></div>
+            <p class="conv-note" style="margin:0 20px 10px">Drives the batch cook plan — how far apart the same dish can be planned before it becomes two things to cook.</p>
+            <div class="crow" style="margin-bottom:8px"><span class="cl">Freezes</span><span class="fsw"></span></div>
+            <div class="portion" style="margin-bottom:12px"><div class="pl">Keeps in the freezer</div><div class="pstepper"><span class="s" style="color:var(--line)">–</span><span class="qv unset">no limit</span><span class="s">+</span></div></div>
+            <p class="flabel">File under</p>
+            <div class="frow" style="margin-bottom:8px"><div class="fin">Our Cookbook <span style="color:var(--muted);float:right">▾</span></div></div>
+            <div class="frow" style="display:flex;gap:8px"><div class="fin" style="flex:1">Weeknight <span style="color:var(--muted);float:right">▾</span></div><div class="fin" style="width:44px;text-align:center;color:var(--herb)">＋</div></div>
+            <div class="tsec" style="margin-top:4px"><span class="tl">for the curry</span><span class="tc">9</span><span class="rule"></span></div>
+            <p class="conv-note" style="margin-top:0">groups, lines and the method follow — unchanged, not re-drawn</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D4 — one header, two hosts.</b> The five sections above are the shipped editor, in the shipped order (<code>_EditorForm</code>: TITLE · SERVES · MAKES · SHELF LIFE · FILE UNDER); the only new thing on this frame is <b>TIMES</b>, and it sits after MAKES because the three numbers-about-the-dish read together before the two facts-about-keeping-it. The block lifts into <code>features/recipes/presentation/recipe_header_form.dart</code>, bound to a small <code>RecipeHeaderHost</code> — the current values as a <code>Recipe</code>, plus the setters the editor notifier already has and two new ones (<code>setCookTime</code>, <code>setTotalTime</code>). <b style="color:var(--ink)">D4+ — TIMES is a minute stepper, unset allowed.</b> <code>cook_time_seconds</code> / <code>total_time_seconds</code> exist in the schema and the import INSERT and nowhere else; today an editor save would not even preserve what import wrote. The entity gains them, the repo reads and writes them, the recipe page shows them in its header meta line. Unset reads <b>not set</b> in the same muted mono as the fridge stepper’s own unset — nothing is invented, and a time-less recipe still saves. <span style="color:var(--muted)">The stepper is the shelf-life <code>_StepperRow</code> with minutes instead of days; a total below the cook time is not refused here (it is a fact somebody typed), it is simply two numbers.</span> <b style="color:var(--ink)">The test that makes this real:</b> the form declares its section list once, and a structural test asserts <i>both</i> hosts render every entry — the next section added to the editor cannot silently miss the review.</p>
+    </div>
+
+    <!-- (b) IMPORT REVIEW · THE SAME HEADER -->
+    <div class="frame">
+        <p class="frame-name"><b>b · Import review · the same header</b> · the identical six sections, title now editable — and what stays import-specific around them</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">2 to review</span></div>
+            <div class="srcnotes" style="margin-top:2px">
+                <div class="sn-h"><span>⚠</span><span>What we could not read</span></div>
+                <div class="sn">· No amount printed for the coriander.</div>
+                <div class="sn">· Serves was not printed.</div>
+            </div>
+            <p class="flabel">Title</p>
+            <div class="frow"><div class="fin big">Weeknight Chicken Curry <span class="l3-pen" style="float:right;font-size:12px">✎</span></div></div>
+            <p class="flabel">Serves <span style="color:var(--aging);text-transform:none;letter-spacing:0;font-size:10px">not printed — set it</span></p>
+            <div class="qtyrow" style="margin:0 20px 12px"><div class="stepper"><span class="s">–</span><span class="qv">4</span><span class="s">+</span></div></div>
+            <p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
+            <div class="frow" style="margin-bottom:6px"><div class="srcline" style="margin:0">from source:  SERVES 4 · MAKES ABOUT 1.8 KG</div></div>
+            <div class="qtyrow" style="margin:0 20px 6px"><div class="stepper"><span class="s"></span><span class="qv">1.8</span><span class="s"></span></div><div class="unitsel"><span>kg</span><span style="color:var(--muted)">▾</span></div></div>
+            <div class="frow"><span class="ghostbtn" style="margin-top:0;color:var(--herb);border-style:dashed">＋ Another denomination</span></div>
+            <p class="flabel">Times</p>
+            <div class="portion" style="margin-bottom:8px"><div class="pl">Cook</div><div class="pstepper"><span class="s">–</span><span class="qv">35 min</span><span class="s">+</span></div></div>
+            <div class="portion" style="margin-bottom:12px"><div class="pl">Total</div><div class="pstepper"><span class="s">–</span><span class="qv">50 min</span><span class="s">+</span></div></div>
+            <p class="flabel">Shelf life</p>
+            <div class="portion" style="margin-bottom:8px"><div class="pl">Keeps in the fridge</div><div class="pstepper"><span class="s" style="color:var(--line)">–</span><span class="qv unset">not set</span><span class="s">+</span></div></div>
+            <div class="crow" style="margin-bottom:12px"><span class="cl">Freezes</span><span class="fsw off"></span></div>
+            <p class="flabel">File under</p>
+            <div class="frow" style="margin-bottom:8px"><div class="fin">Our Cookbook <span style="color:var(--muted);float:right">▾</span></div></div>
+            <div class="frow" style="display:flex;gap:8px"><div class="fin" style="flex:1;color:var(--muted)">Unsectioned <span style="float:right">▾</span></div><div class="fin" style="width:44px;text-align:center;color:var(--herb)">＋</div></div>
+            <div class="tsec" style="margin-top:4px"><span class="tl">Ingredients</span><span class="tc">9</span><span class="rule"></span></div>
+            <div class="lcard">
+                <div class="l3 edit"><span class="l3-amt">1 avocado</span><span class="l3-body"><span class="l3-id">Avocado</span><span class="l3-note">sliced, to serve</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from source:  1 avocado, sliced, to serve</div>
+            </div>
+            <div class="lcard attn">
+                <div class="chead"><span class="cn">coriander</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from source:  coriander, to serve (optional)</div>
+                <div class="lflags"><span class="lflag">no amount</span><span class="lflag">optional</span></div>
+                <div class="attn-tag"><span>⚠</span><span>Set an amount</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:2px">the cards, the never-invent flags, the Save gate and the method step cards — exactly as shipped (seam v2 a–c)</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">Same widget, second host.</b> The review stops carrying its own <code>_ServingsRow</code> / <code>_MakesRow</code> and holds a <b>header draft <code>Recipe</code></b> instead — the preview recipe is already a <code>Recipe</code>; this is the same object, earlier. The import controller implements <code>RecipeHeaderHost</code>; <code>buildCommit</code> reads the header off the draft; the INSERT writes every header column the editor’s save writes — so the owner’s “<i>can’t enter fridge life / freezes</i>” closes as a consequence, not a patch, and so do the three other gaps the side-by-side found: an editable <b>title</b>, the <b>second yield denomination</b>, and <b>File under</b> (today commit files into the default book silently). <b style="color:var(--ink)">What stays import-specific is drawn around the form, not inside a copy of it:</b> the <code>srcnotes</code> strip above, the amber <i>not printed — set it</i> beside SERVES, the <i>from source:</i> line under MAKES (the review’s honesty over <code>yield_raw</code>), the “N to review” count, the cards and the Save gate. The form takes those two annotations as <b>per-section host notes</b> — a slot, not a fork. <b style="color:var(--ink)">TIMES prefilled from the page</b> where the extractor read one (the INSERT already wrote these columns; now a human sees them before they land); SHELF LIFE and FILE UNDER start unset, because no page prints them — the same attempt-then-flag pattern servings uses. <b style="color:var(--ink)">Item 5 rides here:</b> the avocado card’s chip sheet prints <b>avocado</b>, not “piece”, because <code>buildPreviewRecipe</code> now writes the resolved measure onto the preview line exactly as commit will.</p>
+    </div>
+
+    <!-- (c1) EDITOR PICKER · ADD-NEW -->
+    <div class="frame">
+        <p class="frame-name"><b>c1 · Editor picker · add-new</b> · the line-target picker’s footer — the row is the same words; what it does next is not</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <div class="c-h">Add an ingredient</div>
+            <div class="field" style="margin-top:8px"><div class="search"><span class="mag">⌕</span><span>curry leaves</span><span class="care"></span></div></div>
+            <p class="list-h">Ingredients</p>
+            <div class="res-row">
+                <div style="flex:1;min-width:0"><div class="res-nm">Curry powder</div>
+                    <span class="res-cat">Spices · has density</span>
+                    <div class="mline">325 kcal · 14P 14F 58C <span class="per">/100 g</span></div></div>
+                <span class="rplus">＋</span></div>
+            <div class="res-row">
+                <div style="flex:1;min-width:0"><div class="res-nm">Curry paste, Thai red</div>
+                    <span class="res-cat">Pantry · 2 measures</span>
+                    <div class="mline">120 kcal · 3P 6F 14C <span class="per">/100 g</span></div></div>
+                <span class="rplus">＋</span></div>
+            <div class="addnew">＋ can’t find it? add “curry leaves” as a new ingredient</div>
+            <div class="er-no"><b>retired:</b> the two-line strip this row used to become — <i>added “curry leaves” as a stub · use it · flesh out now →</i> — and the stub it wrote before you had said anything. Tapping the row now opens (c2); nothing is written yet.</div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D3 — the front door the manager already has.</b> Today the row writes a <code>stub</code> (USDA-enriched when online) and then offers two links; “use it” hands a row with <b>no curated units</b> to the quantity sheet, which is exactly what the owner hit, and “flesh out now” pops the picker <i>with</i> the ingredient so the editor’s <code>_addLine</code> resumes and opens the quantity sheet <b>over</b> the form. The strip is easy to miss; the path that isn’t is the wrong one. <span style="color:var(--muted)">Alternative that lost: keep the strip and make “flesh out now” the default action — still mints a row before the form, and still two doors to explain. Another: an inline mini-form inside the picker — a second flesh-out surface, which plan 0020 D8 refused.</span></p>
+    </div>
+
+    <div class="flow"><span>tap</span><span class="arrow">→</span></div>
+
+    <!-- (c2) THE NEW INGREDIENT SHEET, PREFILLED -->
+    <div class="frame">
+        <p class="frame-name"><b>c2 · New ingredient · name prefilled</b> · the manager’s sheet (0020 D7b), opened by the picker with the query in the field</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <div class="abar" style="padding-top:0"><span class="back">✕</span><span class="ttl">New ingredient</span><span class="dots"></span></div>
+            <p class="flabel">Source</p>
+            <div class="frow"><div class="seg"><span class="segopt on">Manual</span><span class="segopt">USDA FDC</span><span class="segopt">Barcode</span></div></div>
+            <p class="conv-note" style="margin:-6px 20px 14px">Type the name your recipes will read. It saves as a stub — fill in the macros and confirm it to make it count.</p>
+            <p class="flabel">Name</p>
+            <div class="frow"><div class="fin big">Curry leaves<span class="care" style="width:1.5px;height:18px;background:var(--herb);display:inline-block;margin-left:2px;vertical-align:middle"></span></div></div>
+            <p class="conv-note" style="margin:-6px 20px 14px">prefilled from what you typed in the picker — yours to change before it becomes a row</p>
+            <div class="savebtn">Create &amp; flesh out</div>
+            <p class="conv-note" style="text-align:center;margin-top:8px">one answer to “what does creating an ingredient mean” — manual · USDA · barcode, from every host</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">The sheet hands the row back; the host decides where to go.</b> Today <code>showNewIngredientSheet</code> pops itself <i>and</i> pushes the detail form, which is right for the manager’s list and wrong for a picker that has a line waiting. The change is one seam: the sheet <b>resolves with the created ingredient</b> and pushes nothing; the manager keeps its behaviour (create → form) through that hook, and the picker does the same push but <b>awaits the pop</b>. <b style="color:var(--ink)">USDA and barcode legs are unchanged</b> — a barcode draft here lands the same “Save &amp; review” form the manager draws (manager v1, “Barcode result”), and D7b’s born-enriched probe fires on create as before. <span style="color:var(--muted)">Mechanics for the lane: <code>pushOnce</code> is fire-and-forget by design (<code>guarded_navigation.dart</code>); this needs a <code>push&lt;T&gt;</code> that returns the pop result, added beside it with the same top-location guard — a bare <code>context.push</code> would trip the structural test.</span></p>
+    </div>
+
+    <div class="flow"><span>create</span><span class="arrow">→</span></div>
+
+    <!-- (c3) THE FLESH-OUT FORM -->
+    <div class="frame">
+        <p class="frame-name"><b>c3 · The flesh-out form</b> · on the way, not a detour — the same screen the manager opens; back returns to the picker’s caller</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Curry leaves</span><span class="dots">⋯</span></div>
+            <div class="srcnotes">
+                <div class="sn-h"><span>⚠</span><span>Filled in for you — check it</span></div>
+                <div class="sn">· USDA FoodData Central matched this name on the server.</div>
+                <div class="sn">· Nothing counts until you confirm.</div>
+            </div>
+            <p class="flabel" style="margin-top:12px">Canonical name</p>
+            <div class="frow"><div class="fin big">Curry leaves</div></div>
+            <p class="flabel">Category · default unit</p>
+            <div class="frow" style="display:flex;gap:10px"><div class="fin" style="flex:1">Produce ▾</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace">g ▾</div></div>
+            <p class="flabel">Macros — enter them as the label reads</p>
+            <div class="frow"><div class="seg"><span class="segopt on">per 100 g</span><span class="segopt">per 100 ml</span></div></div>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv">108</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">6 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">19 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">1 g</div><div class="mil">fat</div></div></div></div>
+            <p class="flabel">Allowed units — what a line may say</p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
+                <span class="uchip on">g</span><span class="uchip on">kg</span>
+                <span class="uchip" style="color:var(--muted);border-style:dashed">tsp</span><span class="uchip" style="color:var(--muted);border-style:dashed">tbsp</span><span class="uchip" style="color:var(--muted);border-style:dashed">cup</span>
+            </div></div>
+            <p class="flabel">Measures — count-like, in the basis</p>
+            <div class="frow"><div class="fin"><span class="srcdot you"></span> sprig <span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">1 g · yours</span></div></div>
+            <div class="status-line"><span class="sdot"></span><span>Still a <b style="color:var(--ink)">stub</b> — left out of macro totals until confirmed.</span></div>
+            <div class="savebtn">Confirm — it counts from here</div>
+            <p class="conv-note" style="text-align:center">‹ back — confirmed or not — returns to the editor, and the quantity sheet opens next</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">The form is the manager’s (v1 “Flesh out a stub”), untouched.</b> What changes is only <i>when</i> it is met: before the line, never after. The row is a <code>stub</code> until someone taps Confirm — <b>that does not change</b> (plan 0020 D5: confirming is a human act) — so a user who backs out without confirming still lands a line on a stub, honestly badged, and the recipe reads <span class="badge-inc">incomplete</span> with the line named (seam D5). What is gone is the stub minted <i>as a side effect of something else</i>. <b style="color:var(--ink)">Back is the only exit,</b> and it is the same pop the picker is awaiting: no second “done” button, no “use it”.</p>
+    </div>
+
+    <div class="flow"><span>‹ back</span><span class="arrow">→</span></div>
+
+    <!-- (c4) THE QUANTITY SHEET, ON THE SET-UP UNITS -->
+    <div class="frame">
+        <p class="frame-name"><b>c4 · Quantity sheet · the units the form just set</b> · the picker resolves <i>after</i> the pop, so <code>_addLine</code> opens this on a row that has chips</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <div class="abar" style="padding-top:0"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
+            <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Curry leaves</div>
+                <div class="mline">108 kcal · 6P 1F 19C <span class="per">/100 g</span></div></div></div>
+            <p class="flabel" style="margin-top:14px">Quantity</p>
+            <div class="field"><div class="qty-big"><span class="qn">6</span><span class="care"></span><span class="qu">sprig</span></div></div>
+            <div class="dock">
+                <p class="conv-note" style="margin:0 0 9px">= <b>6 g</b> · via your measure</p>
+                <div class="uchips"><span class="uchip on"><span class="srcdot you" style="background:#fff"></span>sprig (1 g)</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip-sep"></span><span class="uchip addm">＋</span></div>
+                <div class="kbd numpad">
+                    <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
+                    <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
+                    <div class="kbd-row"><span class="key">7</span><span class="key">8</span><span class="key">9</span></div>
+                    <div class="kbd-row"><span class="key">.</span><span class="key">0</span><span class="key">⌫</span></div>
+                    <div class="kbd-row"><span class="key done">Done</span></div>
+                </div>
+            </div>
+            <p class="conv-note" style="text-align:center;margin-top:10px">exactly the chips the form admitted — nothing curated is missing, because the form came first</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">This is the frame the owner asked for</b>: “<i>I couldn’t select the right units because the ingredient wasn’t set up yet</i>”. The sheet is the shipped Pickers v2 quantity surface with no change; it simply opens on a row whose <code>allowed_units</code> and measures were written a moment ago. <b style="color:var(--ink)">Every path that used to mint a stub takes this chain</b> — the editor picker (<code>line_target_picker.dart</code>), the shopping top-up host (<code>ingredient_picker.dart</code>, which gets the router in scope), and the review’s create-new (frame d). <b style="color:var(--ink)">The seed is the one exception</b> and it is not a path: its stubs stay as curation debt, tracked, and the manager’s band still queues them.</p>
+    </div>
+
+    <!-- (d) IMPORT REVIEW · CREATE NEW -->
+    <div class="frame">
+        <p class="frame-name"><b>d · Import review · create new</b> · the card’s create-new is the same sheet → form → back — one card before, the same card after</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">1 to review</span></div>
+            <p class="list-h" style="margin-top:6px">before · nothing in your vocabulary</p>
+            <div class="lcard attn">
+                <div class="chead"><span class="cn">curry leaves</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from source:  6 fresh curry leaves</div>
+                <div class="attn-tag"><span>⚠</span><span>Match an ingredient</span></div>
+                <p class="flabel" style="margin:9px 0 6px">Did you mean</p>
+                <div class="suggests" style="margin-top:0"><span class="sug">Curry powder</span><span class="sug">Bay leaves</span></div>
+                <div class="addnew" style="margin:10px 0 0">＋ create “curry leaves” as a new ingredient</div>
+                <div class="er-no" style="margin:8px 0 0"><b>retired:</b> <span class="addnew-stub" style="display:inline-block;margin:0;padding:3px 7px">add as stub</span> — the line carried a stub key and commit minted a row per unmatched name, coalesced. <code>CreateNewStub</code>, <code>CommitStub</code> and the coalescing leg go once no line can carry one.</div>
+            </div>
+            <p class="list-h" style="margin-top:14px">after the form pops · the line is resolved</p>
+            <div class="lcard">
+                <div class="chead"><span class="cn">curry leaves</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from source:  6 fresh curry leaves</div>
+                <div class="chosen"><span class="ck">✓</span><span class="cnm">Curry leaves</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                <div class="suggests" style="margin-top:7px"><span class="sug pick"><span class="srcdot you"></span>sprig</span><span class="sug">g</span><span class="sug">kg</span></div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">6 sprig <span class="gm">· 6 g</span> <span class="pen">✎</span></span></span></div>
+                <div class="lockhint">the chips are the units the form set — a line that used to say <i>Pick a supported unit</i> over an empty admission list now has something to pick</div>
+            </div>
+            <div class="savebtn">Save recipe</div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">Same chain, third host.</b> The card’s create-new opens the New ingredient sheet (c2) with the raw name prefilled, the sheet resolves with the row, the review pushes the flesh-out form and awaits its pop, and the line is resolved to the new row on return — the ordinary <i>matched</i> state, no special case. The review’s line-card sheet already runs on the root navigator over the review page, so “sheet → form → back to the card” is the same push-and-await as the editor’s. <b style="color:var(--ink)">What retires:</b> <code>CreateNewStub</code> as a resolution, <code>CommitStub</code>, and the commit-time coalescing of duplicate stub names — a line can no longer carry a stub key, so there is nothing to coalesce. <b style="color:var(--ink)">Honesty preserved:</b> a row confirmed on the form counts; one backed out of is a stub the macro panel names, as today.</p>
+    </div>
+
+    <!-- (e1) QUANTITY SHEET · OPTIONAL -->
+    <div class="frame">
+        <p class="frame-name"><b>e1 · Quantity sheet · Optional</b> · one switch row under the chips (D6a) — the sheet is already “everything about this line’s amount”</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <div class="abar" style="padding-top:0"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
+            <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Lime</div>
+                <div class="mline">30 kcal · 1P 0F 11C <span class="per">/100 g</span></div></div></div>
+            <p class="flabel" style="margin-top:14px">Quantity</p>
+            <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">lime</span></div></div>
+            <div class="dock">
+                <p class="conv-note" style="margin:0 0 9px">= <b>67 g</b> · lime, usda portion</p>
+                <div class="uchips"><span class="uchip on"><span class="srcdot usda" style="background:#fff"></span>lime (67 g)</span><span class="uchip">g</span><span class="uchip">ml</span><span class="uchip-sep"></span><span class="uchip impr">squeeze</span><span class="uchip addm">＋</span></div>
+                <div class="crow" style="margin:0 0 10px;background:var(--frame)"><span class="cl">Optional<small>left out of macros and the shop list — and named where it left</small></span><span class="fsw"></span></div>
+                <div class="kbd numpad">
+                    <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
+                    <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
+                    <div class="kbd-row"><span class="key">7</span><span class="key">8</span><span class="key">9</span></div>
+                    <div class="kbd-row"><span class="key">.</span><span class="key">0</span><span class="key">⌫</span></div>
+                    <div class="kbd-row"><span class="key done">Done</span></div>
+                </div>
+            </div>
+            <p class="conv-note" style="text-align:center;margin-top:10px">the same sheet at review, so the import card gets the toggle for free — seeded from the extractor’s <b>optional</b> flag</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D6a — the switch lives in the sheet.</b> It is one tap away on every line, in the surface that already holds quantity · unit · measure, and it is <b>reused at review</b> (the line card opens the same <code>QuantityUnitEditor</code>), so both hosts get it without a second control. <b>Optional</b> becomes a first-class line fact end to end: migration <code>0025_optional_line.sql</code> adds <code>recipe_line_item.optional boolean not null default false</code> (additive; the cloud stream already selects <code>*</code>); <code>schema.dart</code>, <code>LineItem.optional</code>, the repo read and the child-diff write; <code>LineResolution.optional</code> seeded from the raw flag the extractor already emits and the review already shows as a raw tag; <code>CommitLine.optional</code>; the INSERT; the preview carries it. Today the flag stops at the card — commit drops it and nothing downstream has ever heard of it. <span style="color:var(--muted)">Alternative that lost: a per-line <code>⋯</code> menu in the editor — the editor has none today (a line has a remove button only) and this would be its only item. The sheet’s <code>QuantitySaved</code> gains one field; the Optional row is the sheet’s second switch after the timer sheet’s pattern.</span></p>
+    </div>
+
+    <div class="flow"><span>Done</span><span class="arrow">→</span></div>
+
+    <!-- (e2) THE RECIPE PAGE · THE LINE, AND THE PANEL -->
+    <div class="frame">
+        <p class="frame-name"><b>e2 · Recipe page · the line, and what the total says</b> · a muted <code>optional</code> tag after the note; the panel names both lines under a real total (D6b)</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
+            <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
+            <div class="grp">
+                <div class="grp-h">for the curry</div>
+                <div class="l3 seam"><span class="l3-amt">600 g</span><span class="l3-body"><span class="l3-id">Chicken thigh, boneless</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">2 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">400 ml</span><span class="l3-body"><span class="l3-id">Coconut milk, canned</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">250 ml</span><span class="l3-body"><span class="l3-id">Vegetable Broth</span></span></div>
+            </div>
+            <div class="grp">
+                <div class="grp-h">to serve</div>
+                <div class="l3 seam"><span class="l3-amt">1 avocado</span><span class="l3-body"><span class="l3-id">Avocado</span><span class="l3-note">sliced</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">1 lime</span><span class="l3-body"><span class="l3-id">Lime</span><span class="l3-note">to serve</span><span class="r3-tag">optional</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">15 g</span><span class="l3-body"><span class="l3-id">Coriander</span><span class="l3-note">leaves</span><span class="r3-tag">optional</span></span></div>
+            </div>
+            <p class="macro-lab">Per serving</p>
+            <div class="macro tight"><div class="m"><div class="mv">520</div><div class="ml">kcal</div></div><div class="m"><div class="mv">34 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">48 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">19 g</div><div class="ml">fat</div></div></div>
+            <p class="notcounted"><span class="nk">not counted</span> · <b>2 optional lines:</b> Lime, Coriander<br>optional lines are left out by rule, not by failure — untick <b>Optional</b> on a line to count it</p>
+            <p class="conv-note" style="margin-top:10px">the tag reads in the stub badge’s voice — the same small mono, the same soft ground — after the note, never in the amount column</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D6b — exclude, and name.</b> Owner-ruled: <i>exclude optional lines, for now</i>. Macros leave them out and say so under the total through 0024’s D6 “not counted” mechanism — the same <code>notCountedNote</code> line that already prints <i>Parsley · handful</i>, one reason wider. Nothing is invented (zero grams claimed) and nothing is silent (the line is printed by name, every time). A recipe whose <i>only</i> lines are optional summed nothing and still refuses, as an all-imprecise one does. <b style="color:var(--ink)">The tag is the stub badge’s voice</b> because it is the same kind of claim — a fact about the line that changes what a total covers — and it sits after the note so the amount column stays honest (“1 lime” is still what the recipe says). <b style="color:var(--ink)">One seam for the rule:</b> cook-plan and shopping derivation already run over a recipe’s lines per entry; this wave routes both through <code>effectiveLines(recipe, entry)</code>, whose only rule today is “drop <code>optional</code>”. The cook plan is unaffected — a batch is a batch whether the lime comes.</p>
+    </div>
+
+    <!-- (f) SHOP · OPTIONAL DOWNSTREAM -->
+    <div class="frame">
+        <p class="frame-name"><b>f · Shop · what the list left out</b> · the recipe’s own echo row says <i>2 optional lines not listed</i> — never a silent drop (D6b)</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span></div>
+            <div class="er-shopsync"><span class="sy"></span><span class="st">all ticks synced</span><span class="sm">· 14:02</span></div>
+            <p class="conv-note" style="margin:6px 20px 0;letter-spacing:.04em">summed from the cook plan · with provenance</p>
+            <div class="sl-group">Produce</div>
+            <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Onion</span><span class="item-total">5 onion, medium</span></div>
+                <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>2</span></div><div class="prov-line"><span class="src">Slow-Cooker Beef Ragù · cook Tue</span><span>3</span></div></div></div>
+            <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Avocado</span><span class="item-total">1</span></div>
+                <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>1</span></div></div></div>
+            <div class="sl-group">Pantry</div>
+            <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Vegetable Broth</span><span class="item-total">250 ml</span></div>
+                <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>250 ml</span></div></div></div>
+            <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Coconut milk, canned</span><span class="item-total">400 ml</span></div></div>
+            <div class="sl-group" style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">Weeknight Chicken Curry<span style="text-transform:none;letter-spacing:0;font-size:10.5px">· 2 optional lines not listed — lime, coriander</span></div>
+            <div class="topup">＋ add item or top up an ingredient</div>
+            <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">The list is short by two lines, and it says which.</b> Lime and coriander do not appear as items; the recipe they belong to gets one row in the <b>group-header voice</b> — the idiom nested recipes (g) already uses for “<i>N components unresolved — see Cook</i>”, because it is the same shape of statement: a heading for the items that are <i>not</i> below it. It reads <b>muted, not amber</b>: an unresolved component is a defect somebody can fix, an optional line is a rule somebody chose. <b style="color:var(--ink)">Designed for, not built — the per-week override.</b> The owner wants, later, to edit a recipe <i>for one planned week only</i>: tick an optional line in, substitute an ingredient. The seam left for it: a <code>plan_entry_line_override</code> table (<code>plan_entry_id · line_item_id · included · substitute_ingredient_id · quantity · unit · measure_id</code>, one row per touched line, the untouched recipe stays the recipe); the derivations already go through <code>effectiveLines</code>, so the override join slots into one place instead of three; the recipe page’s “Used in” tab is where a week-specific edit would show. Nothing above is a migration this wave. <span style="color:var(--muted)">The header on this frame is (h)’s — drawn once here so the Shop reads as one screen.</span></p>
+    </div>
+
+    <!-- (g1) COOK · HEADER -->
+    <div class="frame">
+        <p class="frame-name"><b>g1 · Cook · header</b> · the WeekSwitcher is the only title (D7c A) — no “Batch cook plan”, no pill; the lit tab says where you are</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span></div>
+            <div class="cook split">
+                <div class="cook-title">Weeknight Chicken Curry</div>
+                <div class="cook-sub">4 portions across the week · keeps 4 d</div>
+                <div class="session"><div class="ses-top"><span class="ses-when">Cook Mon</span><span class="ses-scale">×1</span></div><div class="ses-covers">covers Mon dinner + Thu dinner · 4 portions</div>
+                    <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:4"></span><span class="tl-gone" style="flex:3"></span></div><div class="tl-days"><span>Mon</span><span>Thu</span><span>Fri</span></div></div></div>
+            </div>
+            <div class="cook">
+                <div class="cook-title">Slow-Cooker Beef Ragù</div>
+                <div class="cook-sub">4 portions · Tue &amp; Sat · freezable</div>
+                <div class="session"><div class="ses-top"><span class="ses-when">Cook Tue</span><span class="ses-scale">×1</span></div><div class="ses-covers">covers Tue + Sat dinner · 4 portions</div>
+                    <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:2"></span><span class="tl-aging" style="flex:5"></span></div><div class="tl-days"><span>Tue</span><span>Fri</span><span>Sat</span></div></div></div>
+                <div class="frz-note"><span class="ic">❄</span><span>Saturday is far off, but Ragù freezes — cook once Tuesday, freeze Saturday’s share.</span></div>
+            </div>
+            <div class="er-no"><b>retired:</b> the static title <i>Batch cook plan · next week</i> and the <i>this week ›</i> pill (<code>BackToThisWeekPill</code>) beside it. The switcher’s herb dot and its “This week” item are the same information, where the eye already is.</div>
+            <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni on"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D7a — one shared position; D7c — switcher only.</b> Changing the week on Shop changes it on Cook and Week: that is the state the app already has (<code>viewedWeekStartProvider</code>, keep-alive, read by all three — Week v2 D3), so this is a header change, not a state one. The <code>.wkhdr</code> markup is Week v2 (c)’s, verbatim, minus the Week screen’s <code>Edit</code> action — Cook and Shop have no header action of their own today (<code>FHeader.nested</code> with the pill as its only suffix), and none is added. <b style="color:var(--ink)">The name leaves the header</b> — owner: “<i>the switcher only / nav bar is the right indicator</i>” — which is one header grammar across the loop, and it is exactly why (i) exists. <span style="color:var(--muted)">Alternatives the owner passed over: (B) a mono eyebrow <code>BATCH COOK PLAN</code> above the switcher — keeps the name at the cost of a taller header on two of three tabs; (C) name as title, switcher as a second row — heaviest, and the switcher stops being <i>the</i> title.</span> <b style="color:var(--ink)">Blast radius:</b> <code>cook_screen_test</code>’s four title asserts, <code>shopping_screen_test</code>, the smoke’s five <code>find.text('Batch cook plan')</code> / <code>'Shopping list'</code> anchors — replaced by a semantics label on the switcher or a key on each tab root.</p>
+    </div>
+
+    <div class="flow"><span>tap the title</span><span class="arrow">→</span></div>
+
+    <!-- (g2) COOK · THE MENU -->
+    <div class="frame">
+        <p class="frame-name"><b>g2 · Cook · the week menu</b> · This week · Next week · Last week · Jump to today — and no “Copy last week into this one” (D7b)</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▴</span></span><span class="chev">›</span></div>
+            <div class="wkmenu">
+                <div class="wkmi on"><span class="ic">●</span>This week<span class="k">31 Aug · 2 cooks</span></div>
+                <div class="wkmi"><span class="ic">›</span>Next week<span class="k">7 Sep · nothing to cook</span></div>
+                <div class="wkmi"><span class="ic">‹</span>Last week<span class="k">24 Aug · 3 cooks</span></div>
+                <div class="wkmi sep"><span class="ic">⌖</span>Jump to today</div>
+            </div>
+            <div class="er-no"><b>not on Cook or Shop:</b> ⧉ <i>Copy last week into this one</i> — a Week <b>write</b>. These tabs’ stated rule is “edit the Week, and this re-derives”; the item stays on the Week screen’s menu, where it has lived since Week v2 D5. <code>WeekSwitcher(showCopyLastWeek: false)</code>.</div>
+            <div class="cook split" style="opacity:.45">
+                <div class="cook-title">Weeknight Chicken Curry</div>
+                <div class="cook-sub">4 portions across the week · keeps 4 d</div>
+            </div>
+            <p class="conv-note">the chevrons step; the menu jumps — both move all three tabs at once, because there is one viewed week</p>
+            <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni on"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D7b — a derived tab does not write the week.</b> The menu is the shipped <code>_WeekMenu</code> (<code>FPopoverMenu</code>, two item groups) with one item conditionally absent; the flag is the only change to <code>week_header.dart</code> besides deleting the pill and the banner. <b style="color:var(--ink)">The trailing labels are this tab’s own facts</b> — <i>2 cooks</i>, <i>nothing to cook</i> — where the Week screen’s say <i>9 meals</i> / <i>empty</i>; each tab’s menu speaks in its own derivation. <span style="color:var(--muted)">If that per-tab count is more plumbing than it is worth, the menu can carry the Week’s meal counts unchanged; the drawing prefers the tab’s own words and flags it.</span></p>
+    </div>
+
+    <!-- (h) SHOP · HEADER, ANOTHER WEEK -->
+    <div class="frame">
+        <p class="frame-name"><b>h · Shop · header, on another week</b> · the same switcher as the only title; the Week screen’s banner is retired, not reworded</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">‹</span><span class="wt">Next week<span class="dt">7 Sep</span><span class="caret">▾</span></span><span class="chev">›</span></div>
+            <div class="er-shopsync"><span class="sy"></span><span class="st">all ticks synced</span><span class="sm">· 14:02</span></div>
+            <div class="pastban" style="text-decoration:line-through;opacity:.5;margin-top:10px"><span style="flex:1">You’re looking at <b style="color:var(--ink);font-weight:600">next week</b> — Cook and Shop follow it too</span><span class="go">this week ›</span></div>
+            <div class="er-no" style="margin-top:6px"><b>retired:</b> <code>ViewedWeekBanner</code> on the Week screen, and both <code>BackToThisWeekPill</code>s. The switcher in every header — with no herb dot on a week that isn’t this one, and “This week” one tap into its menu — is the honest signal.</div>
+            <p class="conv-note" style="margin:10px 20px 0;letter-spacing:.04em">summed from the cook plan · with provenance</p>
+            <div class="sl-group">Produce</div>
+            <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Charred broccoli</span><span class="item-total">1 head</span></div>
+                <div class="prov"><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad · cook Wed</span><span>1 head</span></div></div></div>
+            <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Halloumi</span><span class="item-total">250 g</span></div></div>
+            <div class="topup">＋ add item or top up an ingredient</div>
+            <div class="er-no"><b>retired:</b> the static title <i>Shopping list · next week</i> + pill.</div>
+            <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">The banner was the price of Week v2 D3, and the switcher pays it now.</b> Week v2 (e) said: <i>if Cook and Shop follow the viewed week, they must say so, and one tap must get you home</i>. With the switcher as every tab’s title, both halves are met on the tab itself — the title names the week (no dot = not this week), and the chevron or the menu is the tap home — so a banner on the Week screen about the <i>other</i> tabs is redundant. It is deleted, not reworded (plan note). <b style="color:var(--ink)">D9’s status line stays</b> under the header exactly where Errors v1 put it; the switcher takes only the title slot. <b style="color:var(--ink)">Ticks keep their week</b> — <code>shopping_list_entry.week_start_date</code> shipped with Week v2 D3, so a tick on next week’s halloumi is next week’s.</p>
+    </div>
+
+    <!-- (i) BOTTOM BAR · CONTRAST -->
+    <div class="frame" style="width:706px;max-width:100%">
+        <p class="frame-name"><b>i · Bottom bar · contrast (D7d)</b> · today beside proposed — the selected item steps herb → herb-deep; unselected unchanged; measured against the bar’s ground</p>
+        <div class="r3-two">
+            <div class="nv-anat">
+                <p class="flabel" style="margin:0 0 10px;min-height:19px;display:flex;align-items:center">Today · selected = primary (herb)</p>
+                <div class="nv-bar">
+                    <div class="nv-i"><span class="g">▤</span><span class="l">Library</span></div>
+                    <div class="nv-i"><span class="g">▦</span><span class="l">Week</span></div>
+                    <div class="nv-i on"><span class="g">◍</span><span class="l">Cook</span></div>
+                    <div class="nv-i"><span class="g">▤</span><span class="l">Shop</span></div>
+                </div>
+                <div class="nv-call">
+                    <span class="n">selected</span><span><b>herb #2C6A3A</b> on #FFFFFF — <b>6.50:1</b> · weight 700</span>
+                    <span class="n">unselected</span><span><b>muted #66736A</b> on #FFFFFF — <b>4.97:1</b> · weight 400</span>
+                    <span class="n">between</span><span>herb vs muted — <b>1.31:1</b> — the two greens are a shade apart; the weight change carries most of the difference</span>
+                </div>
+                <div class="nv-swatch"><span class="nv-tok"><b>#2C6A3A</b> herb</span><span class="nv-tok"><b>#66736A</b> muted</span><span class="nv-tok"><b>#FFFFFF</b> surface</span></div>
+            </div>
+            <div class="nv-anat" style="border-color:var(--herb)">
+                <p class="flabel" style="margin:0 0 10px;min-height:19px;display:flex;align-items:center;gap:6px;color:var(--herb-deep)">Proposed · selected = herb-deep <span class="proposed-tag">D7d (A)</span></p>
+                <div class="nv-bar deep">
+                    <div class="nv-i"><span class="g">▤</span><span class="l">Library</span></div>
+                    <div class="nv-i"><span class="g">▦</span><span class="l">Week</span></div>
+                    <div class="nv-i on"><span class="g">◍</span><span class="l">Cook</span></div>
+                    <div class="nv-i"><span class="g">▤</span><span class="l">Shop</span></div>
+                </div>
+                <div class="nv-call">
+                    <span class="n">selected</span><span><b>herb-deep #21502C</b> on #FFFFFF — <b>9.34:1</b> · weight 700 (AAA at any size)</span>
+                    <span class="n">unselected</span><span><b>muted #66736A</b> on #FFFFFF — <b>4.97:1</b> · weight 400 · <i>unchanged</i></span>
+                    <span class="n">between</span><span>herb-deep vs muted — <b>1.88:1</b> — up from 1.31:1; the selected item is now the darkest thing on the bar after ink</span>
+                </div>
+                <div class="nv-swatch"><span class="nv-tok"><b>#21502C</b> herb-deep</span><span class="nv-tok"><b>#66736A</b> muted</span><span class="nv-tok"><b>#FFFFFF</b> surface</span></div>
+            </div>
+        </div>
+        <p class="conv-note" style="margin:12px 4px 0;font-size:10px">WCAG 2.x relative-luminance ratios, computed by the lane (sRGB → linear, (L1+0.05)/(L2+0.05)). AA for text is 4.5:1 (3:1 large); AAA is 7:1. There is no WCAG floor for two <i>foreground</i> states against each other — 1.31 → 1.88 is reported as a measurement, not a pass. For reference: ink #18211C on surface 16.49:1 · herb on paper #F4F6F1 5.98:1 · herb-deep on paper 8.58:1 · muted on paper 4.57:1.</p>
+        <p class="rc-note"><b style="color:var(--ink)">D7d — the ruling, and why now.</b> With D7c the header no longer names the screen, so the lit tab carries the whole “where am I” — and the owner finds the selected icon too close to the unselected ones. The bar takes Forui’s default item style today: selected = <code>primary</code> (herb), unselected = <code>mutedForeground</code> (muted), weight 400 → 700; <code>ansi_bottom_nav.dart</code> deliberately sets no colour of its own (its label style is <code>ansiMonoInherit</code>, so the theme’s selected variant wins). <b style="color:var(--ink)">(A) — selected steps to <code>herbDeep</code></b> via an <code>FBottomNavigationBarStyle</code> override in <code>ansi_theme.dart</code>, unselected unchanged. It is the same darkening the theme’s <code>secondaryForeground</code> already uses, so no new colour enters the palette, and every existing unselected label keeps its 4.97:1. <span style="color:var(--muted)">Alternatives: (B) lighten the unselected instead — risks the labels falling under the 4.5:1 floor they clear by half a point today; (C) both, plus a 2 px herb underline on the selected item — heavier than the bar wants. Both stay available if 1.88:1 proves not enough on the Pixel; the drawing draws the ruling.</span> <b style="color:var(--ink)">Every bar in this section is drawn as proposed</b> (the <code>.r3 .nav .ni.on</code> rule), so the Cook and Shop frames above are the whole change together: a switcher title and a darker lit tab.</p>
+    </div>
+
+</div>
+</div>
+<!-- lane:round3:end -->
+
     <footer class="footer">
         <span><b>Ansi</b> — complete board</span>
         <span>Flutter · Forui · Supabase · PowerSync</span>
