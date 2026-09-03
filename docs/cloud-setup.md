@@ -479,6 +479,28 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-09-03 (day) — field test round three (plan 0025): 0024 pint + quart, 0025 optional lines
+
+- `deploy-supabase` run `33757959262` from `main@35d4ed5`, `reseed_template`
+  NOT ticked (the seed diff in this wave is the R1 assertion list only, and
+  **0024** carries its own additive UNION backfill of `allowed_units`, so no
+  reseed and no rollout leg): link ✓ · `db push` ✓ (**0024** `quart_pint` —
+  `unit_family()`, `default_allowed_units()`, `density_unlocked_units()`
+  re-created with `pt`/`qt`, backfill counted; **0025** `optional_line` —
+  `recipe_line_item.optional boolean not null default false`) · `functions
+  deploy import-recipe` ✓ (unchanged code) · sync streams ✓ (`select *`, so
+  the new column rides).
+- `cloud_verify`: **9 ok · 0 warn · 0 fail** (JWKS ES256, auth, REST, RLS
+  surfaces, PowerSync reachable, 14 tables with equal column lists).
+- **Readback (owner leg — agents are gated from `--linked` on purpose):**
+  `select max(version) from supabase_migrations.schema_migrations;` → expect
+  `0025` · `select count(*) from ingredient where allowed_units ? 'qt';` and
+  `… ? 'pt'` → expect every `l`-admitting row for `qt`, every `cup`-admitting
+  row for `pt` (Vegetable Broth among them) · `select column_default from
+  information_schema.columns where table_name = 'recipe_line_item' and
+  column_name = 'optional';` → `false`. Record the numbers here when run.
+- Tagged **`v0.4.0`** after this push (release.md §5 order).
+
 ### 2026-09-03 (night) — field test round two (plan 0024): 0021–0023, the default-measure curation
 
 - `deploy-supabase` run `33715780637` from `main@12ba7ae`, `reseed_template`

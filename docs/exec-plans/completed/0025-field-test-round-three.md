@@ -1,6 +1,6 @@
 # Exec plan: 0025 — Field test, round three — seven owner-raised fronts on `v0.3.0`
 
-- **Status:** active — all eight items landed on main 2026-09-03 (`29a3345`; `make ci` green at every landing, pgTAP 297); `make test-sim` **6/6** at `fc8d92c` (3 m 43 s); cloud push + tag await the owner's go
+- **Status:** done — 2026-09-03. Landed on main (`fc8d92c`), `make ci` green at every landing, pgTAP 297, `make test-sim` 6/6; cloud at `0025` (`deploy-supabase` run 33757959262, `cloud_verify` 9 ok); tagged `v0.4.0`
 - **Owner:** Simon (rules) + Claude (orchestrator; design lane for the frames, then build lanes)
 - **Roadmap step:** 8.10 (follow-up to 8.9 / plan 0024)
 - **Created:** 2026-09-03
@@ -378,9 +378,9 @@ in the **no-stubs** lane (same files). Sim-covered by the typed-barcode path
 - [x] 5: the review's chip sheet prints the measure label; `preview_recipe_test` pins it.
 - [x] 6: `optional` survives import → save → edit → page, toggles in the unit sheet, is excluded-and-named in macros and shopping (D6b) through one `effectiveLines` seam.
 - [x] 7: the one shared viewed week (D7a), the switcher as the only title on all three tabs (D7c), the pill and banner retired, the bar's selected state stepped up (D7d) with the measured contrast recorded.
-- [ ] Migrations renumbered at landing if a parallel lane mints the same number (the 0024 trap).
-- [ ] `make ci` green; `make test-sim` 6/6 (scenarios 3, 4, 6 touched); cloud push + ledger entry; tag `v0.4.0` (minor — new unit, new line fact, new review fields).
-- [ ] Docs: navigation.md, unit-and-measure-matching.md, product-spec (Week v2 D3, import review, optional), QUALITY grades for the areas touched.
+- [x] Migrations renumbered at landing if a parallel lane mints the same number (the 0024 trap) — none collided.
+- [x] `make ci` green; `make test-sim` 6/6; cloud push + ledger entry; tag `v0.4.0`.
+- [x] Docs: navigation.md, unit-and-measure-matching.md, product-spec, QUALITY rows — each lane updated its own; import-and-matching.md rewritten for the stub retirement.
 
 ## Approach
 
@@ -480,10 +480,17 @@ in the **no-stubs** lane (same files). Sim-covered by the typed-barcode path
 
 ## Step-done checklist
 
-- [ ] Roadmap row 8.10 flipped, with what shipped and what was deferred.
-- [ ] `docs/QUALITY.md` grade for every area touched matches reality.
-- [ ] `app/AGENTS.md` "Current focus" and command list still true.
+- [x] Roadmap row 8.10 flipped, with what shipped and what was deferred.
+- [x] `docs/QUALITY.md` grade for every area touched matches reality (each lane wrote its rows).
+- [x] `app/AGENTS.md` "Current focus" and command list still true (it points at the roadmap; commands unchanged).
 - [x] `make test-sim` run on a booted simulator: run 1 at `29a3345` 4/6 — scenario 4 failed on `find.text('INGREDIENTS')` (the shared header pushed the lazy list's label below the fold; scenario 5 fell with it, precondition), fixed by scrolling first (`fc8d92c`); run 2 **6/6**, 3 m 43 s of test time.
-- [ ] Tech-debt rows added and retired.
-- [ ] Migrations `0024`/`0025` reach cloud; `docs/cloud-setup.md` ledger entry.
-- [ ] `make ci` green.
+- [x] Tech-debt rows added and retired (line-fact lane added the per-week override seam row; no row covered stub creation).
+- [x] Migrations `0024`/`0025` reached cloud; `docs/cloud-setup.md` ledger entry (readback SQL left as the owner's leg).
+- [x] `make ci` green.
+- 2026-09-03 — Owner: "go release". Main pushed (`35d4ed5`), `deploy-supabase`
+  run 33757959262 green without reseed, `cloud_verify` 9/0/0, ledger entry
+  written, tagged `v0.4.0`. Follow-up plan proposed and accepted in
+  principle: restructure the smoke into self-seeding, per-file scenarios so a
+  late failure re-runs one scenario, and add a scenario 7 for this wave's
+  new behaviour (optional toggle, review header, add-through-the-form,
+  scan-to-populate, the switcher on Cook/Shop).
