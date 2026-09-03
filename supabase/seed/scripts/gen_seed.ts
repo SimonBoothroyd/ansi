@@ -40,7 +40,7 @@ const UNIT_IDS = new Set([
   "to_taste",
 ]);
 
-interface VocabRow {
+export interface VocabRow {
   canonical_name: string;
   category?: string;
   default_unit?: string;
@@ -49,7 +49,89 @@ interface VocabRow {
   notes?: string;
 }
 
+export interface SeedIngredient extends VocabRow {
+  /** `normalize(canonical_name)` — the row's stored `match_text`. */
+  match: string;
+}
+
+export interface SeedAlias {
+  /** The owning ingredient's match_text — what the SQL joins on. */
+  ing_match: string;
+  alias_text: string;
+  alias_match: string;
+}
+
+export interface SeedPlan {
+  ingredients: SeedIngredient[];
+  aliases: SeedAlias[];
+  /** Every reason the seed must not be written. Empty means go. */
+  problems: string[];
+}
+
 const sqlStr = (s: string) => `'${s.replace(/'/g, "''")}'`;
+
+/**
+ * Validates the vocab and computes every `match_text` the seed will store.
+ *
+ * ONE namespace for the lot — ingredient and alias keys together — because
+ * that is how the runtime reads them: the cascade's exact tier searches both
+ * tables as a single surface, and the picker's row surface is the union of a
+ * row's own key and its aliases. An alias that normalizes onto ANOTHER
+ * ingredient's key (or another ingredient's alias) would therefore route
+ * every exact hit for that text to whichever row the query happened to reach
+ * first — silently, and differently on each side. So it is a build failure
+ * naming both sides, never a skip. The only aliases dropped quietly are the
+ * ones the ingredient itself already covers: its own canonical key, or a
+ * second alias of the same ingredient landing on the same text.
+ */
+export function planSeed(rows: VocabRow[]): SeedPlan {
+  const problems: string[] = [];
+  // match_text → who holds it, phrased for the failure message.
+  const owner = new Map<string, { name: string; via: string }>();
+
+  const ingredients = rows.map((r) => {
+    const match = normalize(r.canonical_name);
+    if (!match) problems.push(`empty match_text for ${r.canonical_name}`);
+    const held = owner.get(match);
+    if (held) {
+      problems.push(
+        `match_text "${match}" collides: ${held.name} vs ${r.canonical_name}`,
+      );
+    }
+    owner.set(match, { name: r.canonical_name, via: "canonical name" });
+    if (r.default_unit && !UNIT_IDS.has(r.default_unit)) {
+      problems.push(
+        `bad default_unit "${r.default_unit}" on ${r.canonical_name}`,
+      );
+    }
+    return { ...r, match };
+  });
+
+  const aliases: SeedAlias[] = [];
+  for (const ing of ingredients) {
+    for (const alias of ing.aliases ?? []) {
+      const am = normalize(alias);
+      if (!am) continue;
+      const held = owner.get(am);
+      if (held?.name === ing.canonical_name) continue; // already covered
+      if (held) {
+        problems.push(
+          `alias "${alias}" of ${ing.canonical_name} normalizes to "${am}", ` +
+            `already held by ${held.name} (${held.via})`,
+        );
+        continue;
+      }
+      owner.set(am, { name: ing.canonical_name, via: `alias "${alias}"` });
+      aliases.push({
+        ing_match: ing.match,
+        alias_text: alias,
+        alias_match: am,
+      });
+    }
+  }
+
+  return { ingredients, aliases, problems };
+}
 
 function main(): void {
   const dir = new URL(".", import.meta.url).pathname;
@@ -61,28 +143,9 @@ function main(): void {
   const rows: VocabRow[] = Deno.readTextFileSync(inputPath)
     .split("\n").map((l) => l.trim()).filter(Boolean).map((l) => JSON.parse(l));
 
-  // Validate + compute match_text. Collisions would break the alias join, so
-  // fail loudly rather than emit a broken seed.
-  const byMatch = new Map<string, string>();
-  const problems: string[] = [];
-  const ingredients = rows.map((r) => {
-    const match = normalize(r.canonical_name);
-    if (!match) problems.push(`empty match_text for ${r.canonical_name}`);
-    if (byMatch.has(match)) {
-      problems.push(
-        `match_text "${match}" collides: ${
-          byMatch.get(match)
-        } vs ${r.canonical_name}`,
-      );
-    }
-    byMatch.set(match, r.canonical_name);
-    if (r.default_unit && !UNIT_IDS.has(r.default_unit)) {
-      problems.push(
-        `bad default_unit "${r.default_unit}" on ${r.canonical_name}`,
-      );
-    }
-    return { ...r, match };
-  });
+  // A collision would break the alias join or shadow another row's exact
+  // match, so fail loudly rather than emit a broken seed.
+  const { ingredients, aliases, problems } = planSeed(rows);
   if (problems.length) {
     console.error(
       "seed vocab problems:\n" + problems.map((p) => "  " + p).join("\n"),
@@ -90,21 +153,12 @@ function main(): void {
     Deno.exit(1);
   }
 
-  // Alias rows, deduped and joined to their ingredient by the ingredient's
-  // match_text. Skip an alias whose normalized form equals the canonical's (the
-  // canonical already matches it) or collides with a different ingredient.
-  const aliasRows: string[] = [];
-  for (const ing of ingredients) {
-    const seen = new Set([ing.match]);
-    for (const alias of ing.aliases ?? []) {
-      const am = normalize(alias);
-      if (!am || seen.has(am)) continue;
-      seen.add(am);
-      aliasRows.push(
-        `  (${sqlStr(ing.match)}, ${sqlStr(alias)}, ${sqlStr(am)})`,
-      );
-    }
-  }
+  // Alias rows join to their ingredient by the ingredient's match_text.
+  const aliasRows = aliases.map((a) =>
+    `  (${sqlStr(a.ing_match)}, ${sqlStr(a.alias_text)}, ${
+      sqlStr(a.alias_match)
+    })`
+  );
 
   const out: string[] = [];
   out.push(

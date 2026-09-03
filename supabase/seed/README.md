@@ -63,7 +63,13 @@ pass only for offline judgment (never in the runtime matcher — ADR-0004):
 4. `deno task gen-seed` — deterministically turns `vocab.jsonl` into
    `../seed.sql`, computing each `match_text` with the shared normalizer (so
    stored keys stay symmetric with the runtime cascade) and failing on
-   collisions. Everything seeds `status='stub'` (density/macros come later).
+   collisions — in **one namespace across every ingredient key and every
+   alias**, because the cascade's exact tier searches both tables as one
+   surface. An alias that normalizes onto another ingredient's key (or
+   another ingredient's alias) fails the build naming both sides
+   (`planSeed`, tested in `gen_seed.test.ts`); only an alias its own
+   ingredient already covers is dropped quietly. Everything seeds
+   `status='stub'` (density/macros come later).
 5. `supabase db reset` applies it.
 
 `vocab.jsonl` is the source of truth; edit it and re-run `gen-seed` to change the

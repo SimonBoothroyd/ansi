@@ -90,6 +90,17 @@ assigned here, not minted: **0021 = lane C, 0022 = lane D**.
   same precedent as the plan-0022 measure edits — so a fresh reset and a
   migrated database agree. The Deno suite now also reads the shared vector
   file, closing the parity loop from the server side.
+- 2026-09-03 (lane D) — **The alias-collision check is one namespace.**
+  `gen_seed.ts` now plans the seed through an exported `planSeed(rows)`: every
+  ingredient key is claimed first, then every alias, in a single
+  match_text → owner map, so an alias landing on another ingredient's key or
+  alias is a build failure naming both sides. The tracker's "batch-6
+  verification query" is not in the repo (it was a one-off run in a session),
+  so the model is the runtime's own reading — the exact tier searches
+  ingredient ∪ alias as one surface. Same-ingredient duplicates and an alias
+  equal to its own canonical key are still dropped quietly, as before. The
+  current vocab passes; `gen-seed` re-run, byte-identical.
+
 ## Notes / open questions
 
 - Lane D: the fix for `molasses` is most likely an explicit invariant-word
