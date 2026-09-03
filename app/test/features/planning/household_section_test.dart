@@ -1,11 +1,12 @@
-/// The Household sheet (plan 0027 P-D2/D3): the roster with each member's
-/// segment, every tap a write, custom in quarter steps within ¼..3.
+/// The Household section of `/account` (plan 0027 P-D2/D3, moved off the
+/// Library `⋯` by 0028 E6): the roster with each member's segment, every tap
+/// a write, custom in quarter steps within ¼..3.
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
-import 'package:ansi/features/planning/presentation/household_sheet.dart';
+import 'package:ansi/features/planning/presentation/household_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -19,16 +20,13 @@ const _roster = [
   Member(id: 'm2', displayName: 'Jun', portionFactor: 0.75),
 ];
 
-/// A screen with one door — the sheet is opened through its public
-/// `showHouseholdSheet`, as the Library `⋯` does.
+/// The section on its own — `/account` renders it under an eyebrow, and this
+/// exercises the roster without the page's chrome around it.
 Widget _host(List<Override> overrides) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
-    home: Builder(
-      builder: (context) => FButton(
-        onPress: () => showHouseholdSheet(context),
-        child: const Text('open'),
-      ),
+    home: const FScaffold(
+      child: SingleChildScrollView(child: HouseholdSection()),
     ),
     builder: (context, child) => FTheme(
       data: ansiThemeData(),
@@ -45,7 +43,6 @@ Future<FakePlanningRepository> _open(
   await tester.pumpWidget(
     _host([planningRepositoryProvider.overrideWithValue(repo)]),
   );
-  await tester.tap(find.text('open'));
   await tester.pumpAndSettle();
   return repo;
 }
@@ -62,7 +59,6 @@ void main() {
       'says what a meal for both now counts as (frame a)', (tester) async {
     await _open(tester);
 
-    expect(find.text('Household'), findsOneWidget);
     expect(find.text('USUAL PORTION'), findsOneWidget);
     expect(find.text('Ada'), findsOneWidget);
     expect(find.text('Jun'), findsOneWidget);

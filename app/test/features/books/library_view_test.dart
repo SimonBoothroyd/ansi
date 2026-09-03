@@ -4,8 +4,6 @@ import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/books/domain/book_collapse_store.dart';
 import 'package:ansi/features/books/presentation/library_view.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
-import 'package:ansi/features/planning/data/planning_providers.dart';
-import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,7 +13,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/fake_book_repository.dart';
-import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/forui_semantics.dart';
 
 class _FakeBookRepo extends FakeBookRepository {
@@ -138,6 +135,10 @@ Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
         path: '/recipes/new',
         builder: (_, _) => const FScaffold(child: Text('editor screen')),
       ),
+      GoRoute(
+        path: '/account',
+        builder: (_, _) => const FScaffold(child: Text('account screen')),
+      ),
     ],
   );
   addTearDown(router.dispose);
@@ -200,35 +201,28 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ingredients'), findsOneWidget);
-    expect(find.text('Household'), findsOneWidget);
+    expect(find.text('Account'), findsOneWidget);
     expect(find.text('New book'), findsOneWidget);
-    expect(find.text('Sign out'), findsOneWidget);
     expect(find.text('New recipe'), findsNothing);
+    // 0028 E6: the session and the sync line are the account page's now, and
+    // a menu that held sign-out was the whole complaint behind v2 D1.
+    expect(find.text('Sign out'), findsNothing);
   });
 
-  testWidgets('Household opens the portion sheet over the roster (plan 0027 '
-      'P-D3)', (tester) async {
-    await tester.pumpWidget(
-      _host([
-        ..._repo(_library),
-        planningRepositoryProvider.overrideWithValue(
-          FakePlanningRepository(const [
-            Member(id: 'm1', displayName: 'Ada'),
-            Member(id: 'm2', displayName: 'Jun', portionFactor: 0.75),
-          ]),
-        ),
-      ]),
-    );
-    await tester.pump();
-    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Household'));
+  testWidgets('Account opens the page, not a sheet (plan 0028 E6)', (
+    tester,
+  ) async {
+    late GoRouter router;
+    await tester.pumpWidget(_routedHost(_repo(_library), (r) => router = r));
     await tester.pumpAndSettle();
 
-    expect(find.text('USUAL PORTION'), findsOneWidget);
-    expect(find.text('Ada'), findsOneWidget);
-    expect(find.text('Jun'), findsOneWidget);
-    expect(find.textContaining('counts as 1¾ portions'), findsOneWidget);
+    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Account'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.toString(), '/account');
+    expect(find.text('account screen'), findsOneWidget);
   });
 
   testWidgets('a rename lands even when the Library is gone under its prompt '

@@ -10,7 +10,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/sync/session.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_error_state.dart';
@@ -18,12 +17,11 @@ import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_search_field.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
-import '../../../shared/sync_health_row.dart';
 import '../../../shared/write.dart';
+import '../../account/presentation/account_view.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/presentation/ingredient_list_view.dart'
     show kIngredientsRoute;
-import '../../planning/presentation/household_sheet.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/book_providers.dart';
@@ -264,15 +262,15 @@ class _OverflowMenu extends ConsumerWidget {
                 context.pushOnce(kIngredientsRoute);
               },
             ),
-            // The household's non-recipe things live in this menu already
-            // (Ingredients, Sign out), so a person's usual portion is set
-            // from here too (plan 0027 P-D3).
+            // The household, this device and the session are one page now
+            // (plan 0028 E6) — the route v2 D1 deferred until a second
+            // setting appeared, which the usual portion is.
             FItem(
               prefix: const Icon(FLucideIcons.users),
-              title: const Text('Household'),
+              title: const Text('Account'),
               onPress: () {
                 unawaited(controller.hide());
-                unawaited(showHouseholdSheet(context));
+                context.pushOnce(kAccountRoute);
               },
             ),
             FItem(
@@ -294,32 +292,6 @@ class _OverflowMenu extends ConsumerWidget {
               ),
           ],
         ),
-        FItemGroup(
-          children: [
-            FItem(
-              prefix: const Icon(FLucideIcons.logOut),
-              title: const Text('Sign out'),
-              onPress: () async {
-                unawaited(controller.hide());
-                // The header never unmounts, but the rule is one rule: the
-                // notifier is read after the dialog through the container.
-                final container = ProviderScope.containerOf(
-                  context,
-                  listen: false,
-                );
-                if (await _confirmSignOut(context)) {
-                  await container
-                      .read(sessionControllerProvider.notifier)
-                      .signOut();
-                }
-              },
-            ),
-          ],
-        ),
-        // The menu's footer: where this device stands with the server. Below
-        // the divider because it is a fact, not an action — until it isn't, at
-        // which point the row itself becomes the way on.
-        FItemGroup(children: const [SyncHealthRow()]),
       ],
       builder: (context, controller, _) => Stack(
         clipBehavior: Clip.none,
@@ -352,38 +324,6 @@ class _OverflowMenu extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Asks before signing out: sign-out disconnects sync and clears this device's
-/// local copy of the household data (it stays on the server).
-Future<bool> _confirmSignOut(BuildContext context) async {
-  final confirmed = await showAnsiDialog<bool>(
-    context: context,
-    builder: (context, style, animation) => FDialog(
-      animation: animation,
-      title: Text('Sign out?', style: ansiSerif(size: 20)),
-      body: Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Text(
-          'This removes the synced data from this device. It stays in your '
-          'household and comes back when you sign in again.',
-          style: ansiSans(size: 13, color: AnsiColors.muted),
-        ),
-      ),
-      actions: [
-        FButton(
-          onPress: () => Navigator.of(context).pop(true),
-          child: const Text('Sign out'),
-        ),
-        FButton(
-          variant: FButtonVariant.outline,
-          onPress: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
-        ),
-      ],
-    ),
-  );
-  return confirmed ?? false;
 }
 
 class _BookCard extends ConsumerWidget {

@@ -1,6 +1,6 @@
-/// "Household" — the one new surface of plan 0027 front P (board frame a): a
-/// sheet off the Library `⋯` listing the members, each with the segment that
-/// sets their usual portion.
+/// "Household" — who eats here and how much, as a section of `/account`
+/// (plan 0028 E6; the roster and the segment are plan 0027 front P, board
+/// frame a).
 ///
 /// A usual portion belongs to the person, not to Tuesday's curry, so it is
 /// stated once here and spent wherever a head-count used to be — the entry
@@ -12,6 +12,10 @@
 /// The segment (P-D2) is the five quick picks ×½ · ×¾ · ×1 · ×1¼ · ×1½ and a
 /// `…` that opens a stepper in quarter steps from ¼ to 3 — nobody knows they
 /// eat 0.83 of a portion. Every tap writes through; there is no Save.
+///
+/// This was a sheet off the Library `⋯` until 0028 deleted that menu. It is a
+/// section now, not a sheet: a sheet is a place to answer one question, and
+/// the household is a thing you look at beside the device and the session.
 library;
 
 import 'dart:async';
@@ -24,7 +28,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
-import '../../../shared/ansi_modals.dart';
 import '../../../shared/write.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
@@ -32,106 +35,64 @@ import 'meal_fields.dart';
 import 'week_view_models.dart';
 import 'week_widgets.dart';
 
-/// Opens the Household sheet.
-Future<void> showHouseholdSheet(BuildContext context) {
-  return showAnsiSheet<void>(
-    context: context,
-    // The root navigator, not the tab shell's branch navigator — see
-    // showBookReorderSheet.
-    builder: (_) => const _HouseholdSheet(),
-  );
-}
-
-class _HouseholdSheet extends ConsumerWidget {
-  const _HouseholdSheet();
+class HouseholdSection extends ConsumerWidget {
+  const HouseholdSection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Live: the partner's write lands here too, mid-sheet.
+    // Live: the partner's write lands here too, mid-screen.
     final members = ref.watch(membersProvider).asData?.value ?? const [];
     final repo = ref.read(planningRepositoryProvider);
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AnsiColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: AnsiColors.line)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        20,
-        12,
-        20,
-        MediaQuery.viewInsetsOf(context).bottom + 20,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => Navigator.of(context).pop(),
-                child: const Icon(FLucideIcons.x, size: 22),
-              ),
-              Expanded(
-                child: Text(
-                  'Household',
-                  textAlign: TextAlign.center,
-                  style: ansiSerif(size: 20),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const MealFieldLabel('Usual portion'),
+        const SizedBox(height: 8),
+        for (final (i, m) in members.indexed)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    EaterAvatar(member: m, color: memberColor(i)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(m.displayName, style: ansiSerif(size: 17)),
+                    ),
+                    Text(
+                      '×${formatFraction(m.portionFactor)}',
+                      style: ansiMono(size: 12, color: AnsiColors.herbDeep),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 22),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const MealFieldLabel('Usual portion'),
-          const SizedBox(height: 8),
-          for (final (i, m) in members.indexed)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      EaterAvatar(member: m, color: memberColor(i)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(m.displayName, style: ansiSerif(size: 17)),
-                      ),
-                      Text(
-                        '×${formatFraction(m.portionFactor)}',
-                        style: ansiMono(size: 12, color: AnsiColors.herbDeep),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  PortionFactorSegment(
-                    value: m.portionFactor,
-                    onChanged: (factor) => unawaited(
-                      ref.write(
-                        context,
-                        'set ${m.displayName}’s usual portion',
-                        () => repo.setPortionFactor(m.id, factor),
-                      ),
+                const SizedBox(height: 8),
+                PortionFactorSegment(
+                  value: m.portionFactor,
+                  onChanged: (factor) => unawaited(
+                    ref.write(
+                      context,
+                      'set ${m.displayName}’s usual portion',
+                      () => repo.setPortionFactor(m.id, factor),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          if (members.isNotEmpty)
-            Text(
-              householdDemandLine(members),
-              style: ansiMono(size: 10.5, color: AnsiColors.muted),
-            ),
-        ],
-      ),
+          ),
+        if (members.isNotEmpty)
+          Text(
+            householdDemandLine(members),
+            style: ansiMono(size: 10.5, color: AnsiColors.muted),
+          ),
+      ],
     );
   }
 }
 
-/// The sheet's foot: what a meal for the whole roster now counts as, and the
+/// The section's foot: what a meal for the whole roster now counts as, and the
 /// three places that read it that way — *"a meal for both counts as 1¾
 /// portions — the cook plan, the shop and the macro lens all read it that
 /// way"* (board frame a).

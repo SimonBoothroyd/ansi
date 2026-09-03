@@ -6,9 +6,10 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 
-/// Opens the Library header's `⋯` — Ingredients · Household · New book ·
-/// Reorder books · Sign out. `.first`: the header's is the first ellipsis in
-/// the tree; every book card and section carries one of its own after it.
+/// Opens the Library header's `⋯` — Ingredients · Account · New book ·
+/// Reorder books (0028 E6 moved the session and the sync line to `/account`).
+/// `.first`: the header's is the first ellipsis in the tree; every book card
+/// and section carries one of its own after it.
 Future<void> openLibraryMenu(WidgetTester tester) async {
   await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
   await tester.pumpAndSettle();

@@ -20,6 +20,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../features/account/presentation/account_view.dart';
 import '../../features/auth/presentation/connecting_view.dart';
 import '../../features/auth/presentation/sign_in_view.dart';
 import '../../features/books/presentation/library_view.dart';
@@ -139,6 +140,14 @@ GoRouter router(Ref ref) {
       // The vocabulary manager (step 8.5, plan 0020 D8) — pushed like
       // `/import`, not a fifth tab: the four tabs are the loop, and a
       // vocabulary is reference data.
+      // `/account` — the household, this device, the session (plan 0028 E6).
+      // Pushed like `/ingredients`, and for the same reason: the four tabs are
+      // the loop, and neither a vocabulary nor an account is a phase of it.
+      GoRoute(
+        path: '/account',
+        name: 'account',
+        builder: (context, state) => const AccountView(),
+      ),
       GoRoute(
         path: '/ingredients',
         name: 'ingredients',

@@ -518,15 +518,16 @@ void main() {
     expect(find.textContaining('Chicken Curry · cook Mon'), findsOneWidget);
 
     // ------------------------------------------------------------------------
-    // 3d · A USUAL PORTION PER PERSON (plan 0027 P-D3/D4/D5) — set from the
-    // Library ⋯ ▸ Household, proven on the server, then read everywhere the
-    // head-count used to be. Runs last so every number above is the
+    // 3d · A USUAL PORTION PER PERSON (plan 0027 P-D3/D4/D5) — set on the
+    // account page (0028 E6 moved the roster off the Library `⋯` and out of a
+    // sheet), proven on the server, then read everywhere the head-count used
+    // to be. Runs last so every number above is the
     // all-factors-1 identity the plan promised.
     // ------------------------------------------------------------------------
     await tapTab(tester, FLucideIcons.library);
     await pumpUntilFound(tester, find.text('Our Cookbook'));
     await openLibraryMenu(tester);
-    await tester.tap(find.text('Household'));
+    await tester.tap(find.text('Account'));
     await pumpUntilFound(tester, find.text('USUAL PORTION'));
     // Both at ×1: a meal for both is still two portions.
     expect(find.textContaining('counts as 2 portions'), findsOneWidget);
@@ -554,7 +555,8 @@ void main() {
       closeTo(0.75, 1e-9),
       reason: 'the household-scoped UPDATE policy let Ada set Jun’s factor',
     );
-    await tester.tap(find.byIcon(FLucideIcons.x).last); // the sheet's close
+    // Back off the pushed page rather than closing a sheet.
+    await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('USUAL PORTION'), findsNothing);
 
