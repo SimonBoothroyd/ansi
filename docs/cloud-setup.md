@@ -479,6 +479,24 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-09-03 (night) — field test round two (plan 0024): 0021–0023, the default-measure curation
+
+- `deploy-supabase` run `33715780637` from `main@12ba7ae`, `reseed_template`
+  ticked: link ✓ · `db push` ✓ (**0021** admission mirror, **0022**
+  singularize invariants — the parallel debt pass — and **0023**
+  `default_measure`) · `functions deploy import-recipe` ✓ · sync streams ✓ ·
+  **reseed ✓** (the borrowed `pepper, medium`, the 132 curated defaults).
+- Human legs, run right after (durable data — both row-preserving):
+  `rollout_measure_refresh.sql` (insert-missing; nothing to report) and
+  `select ingredient_default_measure_backfill()` → **1** row filled on the
+  household (the pepper whose medium had only just arrived).
+- **Readback:** `schema_migrations` max `0023` · template 132 defaults, 0
+  admitting `piece` · household `8ac5c4d0-…f07d` 132 defaults over 271
+  measures · sample defaults: cucumber, ginger → `piece, 1 inch`, onion →
+  `onion, medium`, red bell pepper → `pepper, medium`, broccoli → none.
+  `cloud_verify`: **9 ok · 0 warn · 0 fail**.
+- Tagged **`v0.3.0`** after this push (release.md §5 order).
+
 ### 2026-09-03 (later) — full cloud reset after the doubled template; reseed becomes a button
 
 - **Why a reset:** a by-hand `seed.sql` against the already-seeded project

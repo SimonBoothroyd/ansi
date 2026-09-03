@@ -1,6 +1,6 @@
 # Exec plan: 0024 — Field test, round two — the import & macros seam, and the Android inset
 
-- **Status:** active — **landed on main 2026-09-03** (`96a3039`…`934a604` + smoke/fmt follow-ups), `make ci` green (1486 · 155 · docs), pgTAP 284, `make test-sim` 6/6; cloud push + release in flight
+- **Status:** done — 2026-09-03. Landed on main, `make ci` green (1486 · 155 · docs), pgTAP 284, `make test-sim` 6/6; cloud at `0023` with the curated defaults live (deploy run 33715780637, `cloud_verify` 9 ok); released as `v0.3.0`.
 - **Owner:** Simon (rules) + Claude (orchestrator; one design lane, then one build lane)
 - **Roadmap step:** follow-up to 8.8 (plan 0022); absorbs the remainder of 8.7
 - **Created:** 2026-09-03
@@ -49,7 +49,7 @@ proven only when the next APK runs on the phone).
 - [x] Migration `0023` additive (data is durable — no reset), backfilled from the curation table by measure label, union semantics; pgTAP `default_measure.sql` (23).
 - [x] `make ci` green; `make test-sim` 6/6 with scenario 4 re-driven ("2 red peppers" lands unflagged on `pepper, medium`; two lazy-list finder fixes on the way — the named group and, earlier, the Week bar).
 - [x] The Android fix confirmed on the Pixel (owner, after a hard reset; recorded by the parallel session in this file).
-- [ ] Docs: ADR-0010 amended by a new ADR only if the rule changes (it does not — a default is a curated fact); product-spec §5; tracker rows.
+- [x] Docs: no new ADR (a curated default is a fact under ADR-0010 — noted in the decision log); product-spec §4/§5; tracker rows added by the lane.
 
 ## Decision log
 
@@ -113,6 +113,5 @@ proven only when the next APK runs on the phone).
 
 ## Step-done checklist
 
-- [ ] Roadmap row; QUALITY grades; tracker rows added/retired; `make ci`;
-      `make test-sim`; cloud push (`0023` + the reseed button for the
-      default-measure curation) and a ledger entry; tag.
+- [x] Roadmap row 8.9 🟢; tracker rows added by the lane; `make ci`; `make test-sim` 6/6; cloud push (`0023` + the reseed button + the rollout/backfill legs) and the ledger entry; tag `v0.3.0`.
+- [ ] QUALITY grades for import/recipes/ingredients — one line each, next docs pass.
