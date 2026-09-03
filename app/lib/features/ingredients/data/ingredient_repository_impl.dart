@@ -426,6 +426,48 @@ class SqliteIngredientRepository implements IngredientRepository {
   }
 
   @override
+  Future<Ingredient?> setDefaultMeasure(
+    String ingredientId,
+    String? measureId,
+  ) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    final wrote = await _db.writeTransaction((tx) async {
+      final row = await tx.getOptional(
+        'SELECT id FROM ingredient WHERE id = ? AND deleted_at IS NULL',
+        [ingredientId],
+      );
+      if (row == null) return false;
+      if (measureId != null) {
+        // The server's own-measure trigger (0023) refuses a measure from
+        // another row or another household. Checking it here too is not
+        // belt-and-braces: local writes land in SQLite first and only reach
+        // that trigger on the next upload, so without this the app would
+        // read back a default that the server is about to reject.
+        final measure = await tx.getOptional(
+          'SELECT id FROM ingredient_measure '
+          'WHERE id = ? AND ingredient_id = ? AND deleted_at IS NULL',
+          [measureId, ingredientId],
+        );
+        if (measure == null) {
+          throw ArgumentError.value(
+            measureId,
+            'measureId',
+            'is not a live measure of ingredient $ingredientId',
+          );
+        }
+      }
+      await tx.execute(
+        'UPDATE ingredient SET default_measure_id = ?, updated_at = ? '
+        'WHERE id = ?',
+        [measureId, now, ingredientId],
+      );
+      return true;
+    });
+    if (!wrote) return null;
+    return byId(ingredientId);
+  }
+
+  @override
   Future<Ingredient?> applyUsdaProbe(
     String ingredientId, {
     required String source,
@@ -712,6 +754,7 @@ class SqliteIngredientRepository implements IngredientRepository {
     macros: Macros.tryParse(r['macros'] as String?),
     macrosBasis: MacrosBasis.fromDb(r['macros_basis'] as String?),
     allowedUnits: _parseAllowedUnits(r['allowed_units'] as String?),
+    defaultMeasureId: r['default_measure_id'] as String?,
     measureCount: (r['measure_count'] as int?) ?? 0,
     source: r['source'] as String?,
   );

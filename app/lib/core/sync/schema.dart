@@ -148,6 +148,10 @@ const schema = Schema([
     // Explicit allowed-unit list (JSON array of unit ids, ADR-0008 / 0012);
     // null → the client derives the same defaults.
     Column.text('allowed_units'),
+    // → ingredient_measure.id (nullable, 0023): the curated measure a bare
+    // COUNT of this row means ("2 onions" = 2 × onion, medium). Null is a
+    // real answer. Uuids ride as text through PowerSync.
+    Column.text('default_measure_id'),
     Column.text('status'),
     Column.text('source'),
     Column.text('match_text'),

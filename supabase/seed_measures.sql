@@ -285,6 +285,7 @@ join (values
   ('white mushroom', 'mushroom, small', 10, 2, 'usda_fdc:169251 (1 small)'),
   ('white mushroom', 'slice', 6, 3, 'usda_fdc:169251 (1 slice)'),
   ('yellow bell pepper', 'pepper, large', 186, 0, 'usda_fdc:169383 (1 pepper, large (3-3/4" long, 3" dia))'),
+  ('yellow bell pepper', 'pepper, medium', 119, 0, 'usda_fdc:170108 (1 medium (approx 2-3/4" long, 2-1/2 dia.)) — borrowed'),
   ('yellow bell pepper', 'strip', 5.2, 1, 'usda_fdc:169383 (10 strips)'),
   ('yellow squash', 'squash, medium', 196, 0, 'usda_fdc:169291 (1 medium) — borrowed (zucchini)'),
   ('zucchini', 'zucchini, medium', 196, 0, 'usda_fdc:169291 (1 medium)'),

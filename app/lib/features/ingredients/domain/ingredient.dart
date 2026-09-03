@@ -34,6 +34,17 @@ abstract class Ingredient with _$Ingredient {
     /// to deriving the same ADR defaults (`defaultAllowedUnitSet`).
     List<Unit>? allowedUnits,
 
+    /// The measure a bare COUNT of this ingredient means — "2 onions" is two
+    /// `onion, medium` (0023, seam D1). A curated per-row FACT, not a rule:
+    /// it is spent once, visibly, when an import line names a number and no
+    /// thing, and nothing downstream interprets it.
+    ///
+    /// **Null is a real answer.** Broccoli's `whole`/`spear`/`crown` are
+    /// three different things and none of them is "a broccoli", so that line
+    /// keeps its flag and the user picks (ADR-0010). Null also means "this
+    /// row has no measures at all", and "the household cleared it".
+    String? defaultMeasureId,
+
     /// Distinct live measure labels this ingredient carries — the picker
     /// row's "N measures" capability hint (7.7). Populated by list reads;
     /// 0 where a caller didn't ask for it.

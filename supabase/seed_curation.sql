@@ -3,9 +3,10 @@
 -- (with reasons) and regenerate (deno task gen-seed).
 --
 -- Runs LAST: applies the audited curation overrides (plan 0013), fills
--- the density tail from the FAO/INFOODS fallback, then refreshes the
+-- the density tail from the FAO/INFOODS fallback, refreshes the
 -- template vocab's materialized allowed_units now that every density
--- source has run.
+-- source has run, and sets each row's curated default count measure
+-- (seam D1 — what a bare "2 onions" means).
 --
 -- Density fallback dataset: FAO/INFOODS Density Database v2.0 (2012)
 -- (see seed/fao_density.jsonl for the source URL + sha256, and
@@ -2118,6 +2119,1458 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'piece')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'white bread';
 
+-- active yeast dry: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'sachet'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'active yeast dry'
+   and i.deleted_at is null;
+
+-- almond: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'almond'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'almond'
+   and i.deleted_at is null;
+
+-- apple: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'apple, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'apple'
+   and i.deleted_at is null;
+
+-- apricot: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'apricot'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'apricot'
+   and i.deleted_at is null;
+
+-- asparagus: seam D1 (owner 2026-09-03, 'lgtm'): sized family of the counted thing (a spear IS what a recipe counts)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'spear, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'asparagus'
+   and i.deleted_at is null;
+
+-- avocado: seam D1 (owner 2026-09-03, 'lgtm'): sole count — the ADR-0010 field-test row
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'avocado'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'avocado'
+   and i.deleted_at is null;
+
+-- baked bean: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (16 oz)'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'baked bean'
+   and i.deleted_at is null;
+
+-- banana: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'banana, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'banana'
+   and i.deleted_at is null;
+
+-- basil: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'leaf'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'basil'
+   and i.deleted_at is null;
+
+-- bay leaf: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'leaf'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'bay leaf'
+   and i.deleted_at is null;
+
+-- beet: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'beet'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'beet'
+   and i.deleted_at is null;
+
+-- black bean canned: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (15 oz), drained'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'black bean canned'
+   and i.deleted_at is null;
+
+-- black eyed pea canned: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (15 oz), drained'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'black eyed pea canned'
+   and i.deleted_at is null;
+
+-- blueberry: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'berry'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'blueberry'
+   and i.deleted_at is null;
+
+-- brazil nut: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'kernel'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'brazil nut'
+   and i.deleted_at is null;
+
+-- brussel sprout: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'sprout'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'brussel sprout'
+   and i.deleted_at is null;
+
+-- burger bun: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'bun'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'burger bun'
+   and i.deleted_at is null;
+
+-- butternut squash: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'squash, whole'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'butternut squash'
+   and i.deleted_at is null;
+
+-- cannellini bean canned: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (15 oz), drained'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'cannellini bean canned'
+   and i.deleted_at is null;
+
+-- cantaloupe: seam D1 (owner 2026-09-03, 'lgtm'): sized family of the WHOLE; wedges/balls are fragments
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'melon, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'cantaloupe'
+   and i.deleted_at is null;
+
+-- carrot: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'carrot, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'carrot'
+   and i.deleted_at is null;
+
+-- cauliflower: seam D1 (owner 2026-09-03, 'lgtm'): the head IS the cauliflower; floweret is the fragment [flagged for the owner's ruling; signed off as proposed]
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'head, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'cauliflower'
+   and i.deleted_at is null;
+
+-- celery: seam D1 (owner 2026-09-03, 'lgtm'): a recipe counts stalks; the seed has no whole-head measure [flagged for the owner's ruling; signed off as proposed]
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'stalk, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'celery'
+   and i.deleted_at is null;
+
+-- cherry: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'cherry'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'cherry'
+   and i.deleted_at is null;
+
+-- chickpea canned: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (15 oz), drained'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'chickpea canned'
+   and i.deleted_at is null;
+
+-- cilantro: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'sprig'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'cilantro'
+   and i.deleted_at is null;
+
+-- cinnamon stick: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'stick'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'cinnamon stick'
+   and i.deleted_at is null;
+
+-- coconut milk: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (400 ml)'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'coconut milk'
+   and i.deleted_at is null;
+
+-- corn: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'ear, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'corn'
+   and i.deleted_at is null;
+
+-- corn tortilla: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'tortilla'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'corn tortilla'
+   and i.deleted_at is null;
+
+-- cremini mushroom: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'mushroom, whole'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'cremini mushroom'
+   and i.deleted_at is null;
+
+-- cucumber: seam D1 (owner 2026-09-03, 'lgtm'): sole count — the field-test row that stayed flagged (D3)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'cucumber'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'cucumber'
+   and i.deleted_at is null;
+
+-- dark red kidney bean canned: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (15 oz), drained'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'dark red kidney bean canned'
+   and i.deleted_at is null;
+
+-- date: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'date, pitted'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'date'
+   and i.deleted_at is null;
+
+-- dill: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'sprig'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'dill'
+   and i.deleted_at is null;
+
+-- dill pickle: seam D1 (owner 2026-09-03, 'lgtm'): sole count (owner ruled spear IS the count)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'spear'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'dill pickle'
+   and i.deleted_at is null;
+
+-- edamame frozen: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'package'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'edamame frozen'
+   and i.deleted_at is null;
+
+-- eggplant: seam D1 (owner 2026-09-03, 'lgtm'): you buy and count the unpeeled one [flagged for the owner's ruling; signed off as proposed]
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'eggplant, unpeeled'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'eggplant'
+   and i.deleted_at is null;
+
+-- english muffin: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'muffin'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'english muffin'
+   and i.deleted_at is null;
+
+-- enoki mushroom: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'mushroom, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'enoki mushroom'
+   and i.deleted_at is null;
+
+-- extra firm tofu: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail block)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'block (14 oz)'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'extra firm tofu'
+   and i.deleted_at is null;
+
+-- fennel: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'bulb'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'fennel'
+   and i.deleted_at is null;
+
+-- fig dried: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'fig, whole'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'fig dried'
+   and i.deleted_at is null;
+
+-- fire tomato canned roasted: seam D1 (owner 2026-09-03, 'lgtm'): two can sizes; 14.5 oz is the standard retail can (sort 0) [flagged for the owner's ruling; signed off as proposed]
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (14.5 oz)'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'fire tomato canned roasted'
+   and i.deleted_at is null;
+
+-- flour tortilla: seam D1 (owner 2026-09-03, 'lgtm'): a recipe counts tortillas; the package is the shopping unit [flagged for the owner's ruling; signed off as proposed]
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'tortilla'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'flour tortilla'
+   and i.deleted_at is null;
+
+-- gala apple: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'apple, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'gala apple'
+   and i.deleted_at is null;
+
+-- garlic: seam D1 (owner 2026-09-03, 'lgtm'): sole count — owner example
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'clove'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'garlic'
+   and i.deleted_at is null;
+
+-- ginger: seam D1 (owner 2026-09-03, 'lgtm'): what a recipe counts ("a 1-inch piece"); slice is the fragment [flagged for the owner's ruling; signed off as proposed]
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'piece, 1 inch'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'ginger'
+   and i.deleted_at is null;
+
+-- gold potato: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'potato, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'gold potato'
+   and i.deleted_at is null;
+
+-- granny smith apple: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'apple, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'granny smith apple'
+   and i.deleted_at is null;
+
+-- grapefruit: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'grapefruit, whole'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'grapefruit'
+   and i.deleted_at is null;
+
+-- great northern bean canned: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (15 oz), drained'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'great northern bean canned'
+   and i.deleted_at is null;
+
+-- green bean: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'bean'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'green bean'
+   and i.deleted_at is null;
+
+-- green bean canned: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (14.5 oz), drained'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'green bean canned'
+   and i.deleted_at is null;
+
+-- green bell pepper: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'pepper, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'green bell pepper'
+   and i.deleted_at is null;
+
+-- green grape: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'grape'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'green grape'
+   and i.deleted_at is null;
+
+-- green olive: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'olive'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'green olive'
+   and i.deleted_at is null;
+
+-- hazelnut: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'nut'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'hazelnut'
+   and i.deleted_at is null;
+
+-- hot chili: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'chili'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'hot chili'
+   and i.deleted_at is null;
+
+-- instant yeast: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'sachet'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'instant yeast'
+   and i.deleted_at is null;
+
+-- jalapeno: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'jalapeno'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'jalapeno'
+   and i.deleted_at is null;
+
+-- king oyster mushroom: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'mushroom, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'king oyster mushroom'
+   and i.deleted_at is null;
+
+-- kiwi: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'kiwi, whole'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'kiwi'
+   and i.deleted_at is null;
+
+-- kombu: seam D1 (owner 2026-09-03, 'lgtm'): sole count (owner ruled strip IS the count)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'strip'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'kombu'
+   and i.deleted_at is null;
+
+-- leek: seam D1 (owner 2026-09-03, 'lgtm'): the whole; slice is the fragment
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'leek'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'leek'
+   and i.deleted_at is null;
+
+-- lemon: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'lemon, whole'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'lemon'
+   and i.deleted_at is null;
+
+-- lemon juice: seam D1 (owner 2026-09-03, 'lgtm'): sole count ("juice of 1 lemon")
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'lemon'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'lemon juice'
+   and i.deleted_at is null;
+
+-- light red kidney bean canned: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (15 oz), drained'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'light red kidney bean canned'
+   and i.deleted_at is null;
+
+-- lime: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'lime, whole'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'lime'
+   and i.deleted_at is null;
+
+-- lime juice: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'lime'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'lime juice'
+   and i.deleted_at is null;
+
+-- mango: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'mango, whole'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'mango'
+   and i.deleted_at is null;
+
+-- multigrain bread: seam D1 (owner 2026-09-03, 'lgtm'): sized family of the counted thing (a slice)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'slice regular'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'multigrain bread'
+   and i.deleted_at is null;
+
+-- napa cabbage: seam D1 (owner 2026-09-03, 'lgtm'): sole count — the contrast with cabbage: one measure, no ambiguity
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'head'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'napa cabbage'
+   and i.deleted_at is null;
+
+-- navy bean canned: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (15 oz), drained'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'navy bean canned'
+   and i.deleted_at is null;
+
+-- nectarine: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'nectarine, whole'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'nectarine'
+   and i.deleted_at is null;
+
+-- nori: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'sheet'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'nori'
+   and i.deleted_at is null;
+
+-- okra: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'pod'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'okra'
+   and i.deleted_at is null;
+
+-- onion: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium; owner example
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'onion, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'onion'
+   and i.deleted_at is null;
+
+-- orange: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'orange, whole'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'orange'
+   and i.deleted_at is null;
+
+-- orange bell pepper: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'pepper, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'orange bell pepper'
+   and i.deleted_at is null;
+
+-- orange juice: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'orange, juiced'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'orange juice'
+   and i.deleted_at is null;
+
+-- oyster mushroom: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'mushroom'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'oyster mushroom'
+   and i.deleted_at is null;
+
+-- parsley: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'sprig'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'parsley'
+   and i.deleted_at is null;
+
+-- parsnip: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'parsnip, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'parsnip'
+   and i.deleted_at is null;
+
+-- pea frozen: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'package'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'pea frozen'
+   and i.deleted_at is null;
+
+-- peach: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'peach, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'peach'
+   and i.deleted_at is null;
+
+-- pineapple: seam D1 (owner 2026-09-03, 'lgtm'): the whole; slices are fragments
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'pineapple, whole'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'pineapple'
+   and i.deleted_at is null;
+
+-- pinto bean canned: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (15 oz), drained'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'pinto bean canned'
+   and i.deleted_at is null;
+
+-- pistachio: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'kernel'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'pistachio'
+   and i.deleted_at is null;
+
+-- plantain: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'plantain'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'plantain'
+   and i.deleted_at is null;
+
+-- poblano pepper: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'pepper'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'poblano pepper'
+   and i.deleted_at is null;
+
+-- portobello mushroom: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'mushroom, whole'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'portobello mushroom'
+   and i.deleted_at is null;
+
+-- radish: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'radish, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'radish'
+   and i.deleted_at is null;
+
+-- raspberry: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'raspberry'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'raspberry'
+   and i.deleted_at is null;
+
+-- red bell pepper: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium; the field-test row
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'pepper, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'red bell pepper'
+   and i.deleted_at is null;
+
+-- red delicious apple: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'apple, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'red delicious apple'
+   and i.deleted_at is null;
+
+-- red grape: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'grape'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'red grape'
+   and i.deleted_at is null;
+
+-- red onion: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'onion, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'red onion'
+   and i.deleted_at is null;
+
+-- red potato: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'potato, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'red potato'
+   and i.deleted_at is null;
+
+-- rhubarb: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'stalk'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'rhubarb'
+   and i.deleted_at is null;
+
+-- russet potato: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'potato, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'russet potato'
+   and i.deleted_at is null;
+
+-- scallion: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'scallion, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'scallion'
+   and i.deleted_at is null;
+
+-- serrano pepper: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'pepper'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'serrano pepper'
+   and i.deleted_at is null;
+
+-- shallot: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'shallot, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'shallot'
+   and i.deleted_at is null;
+
+-- shiitake bacon: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'slice'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'shiitake bacon'
+   and i.deleted_at is null;
+
+-- shiitake mushroom: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'mushroom, whole'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'shiitake mushroom'
+   and i.deleted_at is null;
+
+-- silken tofu: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail block)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'block (12.3 oz)'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'silken tofu'
+   and i.deleted_at is null;
+
+-- soft sandwich bread: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'slice'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'soft sandwich bread'
+   and i.deleted_at is null;
+
+-- sprouted multigrain bread: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'slice'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'sprouted multigrain bread'
+   and i.deleted_at is null;
+
+-- star anise: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'pod'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'star anise'
+   and i.deleted_at is null;
+
+-- strawberry: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'strawberry, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'strawberry'
+   and i.deleted_at is null;
+
+-- sweet potato: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'sweet potato'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'sweet potato'
+   and i.deleted_at is null;
+
+-- tatsoi: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'head'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'tatsoi'
+   and i.deleted_at is null;
+
+-- tempeh: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail package)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'package (8 oz)'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'tempeh'
+   and i.deleted_at is null;
+
+-- thai basil: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'leaf'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'thai basil'
+   and i.deleted_at is null;
+
+-- tofu bacon: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'slice'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'tofu bacon'
+   and i.deleted_at is null;
+
+-- tomato: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium; cherry/plum/slice/wedge are other things
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'tomato, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'tomato'
+   and i.deleted_at is null;
+
+-- tomato canned: seam D1 (owner 2026-09-03, 'lgtm'): two can sizes; 14.5 oz is the standard retail can (sort 0) [flagged for the owner's ruling; signed off as proposed]
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (14.5 oz)'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'tomato canned'
+   and i.deleted_at is null;
+
+-- tomato canned whole: seam D1 (owner 2026-09-03, 'lgtm'): a canned-tomato line counts cans, not the tomatoes inside [flagged for the owner's ruling; signed off as proposed]
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (14.5 oz)'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'tomato canned whole'
+   and i.deleted_at is null;
+
+-- tomato paste: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (6 oz)'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'tomato paste'
+   and i.deleted_at is null;
+
+-- tomato puree canned: seam D1 (owner 2026-09-03, 'lgtm'): two can sizes; 29 oz is the standard puree can (sort 0) [flagged for the owner's ruling; signed off as proposed]
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (29 oz)'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'tomato puree canned'
+   and i.deleted_at is null;
+
+-- tomato sauce canned: seam D1 (owner 2026-09-03, 'lgtm'): two can sizes; 15 oz is the standard sauce can (sort 0) [flagged for the owner's ruling; signed off as proposed]
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (15 oz)'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'tomato sauce canned'
+   and i.deleted_at is null;
+
+-- tostada shell: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'shell'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'tostada shell'
+   and i.deleted_at is null;
+
+-- turnip: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'turnip, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'turnip'
+   and i.deleted_at is null;
+
+-- vegan sausage: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'link'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'vegan sausage'
+   and i.deleted_at is null;
+
+-- watermelon: seam D1 (owner 2026-09-03, 'lgtm'): the whole; wedge/ball are fragments — 4518 g, so verify [flagged for the owner's ruling; signed off as proposed]
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'melon'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'watermelon'
+   and i.deleted_at is null;
+
+-- wheat bread whole: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'slice'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'wheat bread whole'
+   and i.deleted_at is null;
+
+-- white bread: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'slice'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'white bread'
+   and i.deleted_at is null;
+
+-- white mushroom: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'mushroom, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'white mushroom'
+   and i.deleted_at is null;
+
+-- yellow bell pepper: seam D1 (owner 2026-09-03, 'lgtm'): SEED GAP: this row carried only pepper, large (186 g) where the other three bells carry medium/large/small, so a borrowed pepper, medium at 119 g is added above and the default lands on it [flagged for the owner's ruling; signed off as proposed]
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'pepper, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'yellow bell pepper'
+   and i.deleted_at is null;
+
+-- yellow squash: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'squash, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'yellow squash'
+   and i.deleted_at is null;
+
+-- zucchini: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'zucchini, medium'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'zucchini'
+   and i.deleted_at is null;
+
 -- R1 invariant (Simon, 2026-08-29): a volume default_unit REQUIRES a
 -- density — a volume line on a density-less per-g ingredient can never
 -- compute macros, so the class must not silently return. Fill an honest
@@ -2125,6 +3578,7 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'wh
 -- weight, always via the pipeline inputs.
 do $$
 declare violators text;
+        landed int;
 begin
   select string_agg(canonical_name || ' (' || default_unit || ')', ', ')
     into violators
@@ -2156,7 +3610,21 @@ begin
       violators;
   end if;
 
-  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 78 density + 197 allowed-unit overrides + 12 FAO density fills; R1 (volume default => density) and R2 (kitchen density band) hold';
+
+  -- R3 (seam D1): every curated default landed. A ruling whose label
+  -- no longer names a live measure would silently leave the row asking
+  -- for a unit on every counted line — the exact friction D1 removes —
+  -- so a short count is an error, not a notice.
+  select count(*) into landed
+  from ingredient
+  where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null
+    and default_measure_id is not null;
+  if landed <> 132 then
+    raise exception
+      'seed_curation R3: % of 132 curated default measures landed (a default_measure label no longer names a live measure)', landed;
+  end if;
+
+  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 78 density + 197 allowed-unit overrides + 12 FAO density fills; 132 default count measures; R1 (volume default => density), R2 (kitchen density band) and R3 (every curated default landed) hold';
 end $$;
 
 commit;

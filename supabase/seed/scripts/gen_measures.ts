@@ -638,7 +638,8 @@ function main(): void {
   // gen_seed.ts honours `density` and `allowed_units`. A drop that matches
   // nothing is stale and fails the run rather than rotting silently.
   let dropped = 0, added = 0;
-  for (const o of readOverrides(here)) {
+  const curation = readOverrides(here);
+  for (const o of curation) {
     if (o.kind === "drop_measure") {
       const before = rows.length;
       const keep = rows.filter(
@@ -656,7 +657,7 @@ function main(): void {
     } else if (o.kind === "add_measure") {
       rows.push({
         matchText: o.match_text,
-        label: o.label!,
+        label: o.label as string,
         grams: o.basis_amount!,
         sortOrder: o.sort_order ?? 0,
         source: o.source ?? "seed:typical",
@@ -683,6 +684,54 @@ function main(): void {
       problems.push(`non-positive basis_amount: ${r.matchText}`);
     }
   }
+
+  // --- The default count measure pass (seam D1) ------------------------------
+  // This script owns the final measure list, so it is the only place that can
+  // check a `default_measure` label against what the row actually carries.
+  // Two gates, both exhaustiveness rather than taste:
+  //   * a label that names no live measure on its row is STALE — the same
+  //     failure a stale `drop_measure` gets;
+  //   * a row that carries a measure and has NO ruling fails the run, so a
+  //     regenerated USDA seed cannot quietly add measured rows nobody
+  //     decided about. `label: null` IS a ruling; omission is not.
+  const labelsByRow = new Map<string, Set<string>>();
+  for (const r of rows) {
+    let labels = labelsByRow.get(r.matchText);
+    if (labels === undefined) {
+      labels = new Set<string>();
+      labelsByRow.set(r.matchText, labels);
+    }
+    labels.add(r.label);
+  }
+  const ruled = new Set<string>();
+  for (const o of curation) {
+    if (o.kind !== "default_measure") continue;
+    if (ruled.has(o.match_text)) {
+      problems.push(`two default_measure rulings for ${o.match_text}`);
+    }
+    ruled.add(o.match_text);
+    const have = labelsByRow.get(o.match_text);
+    if (!have) {
+      problems.push(
+        `default_measure on a row with no measures: ${o.match_text}`,
+      );
+    } else if (o.label !== null && !have.has(o.label as string)) {
+      problems.push(
+        `stale default_measure override: ${o.match_text} / "${o.label}" ` +
+          `(row carries: ${[...have].join(", ")})`,
+      );
+    }
+  }
+  for (const matchText of labelsByRow.keys()) {
+    if (!ruled.has(matchText)) {
+      problems.push(
+        `no default_measure ruling for the measured row "${matchText}" — ` +
+          `add one to curation_overrides.jsonl (label, or null for ` +
+          `"no honest default")`,
+      );
+    }
+  }
+
   if (problems.length > 0) {
     console.error(problems.join("\n"));
     Deno.exit(1);

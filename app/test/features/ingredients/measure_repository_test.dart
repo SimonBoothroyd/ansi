@@ -24,6 +24,14 @@ Future<void> _seedMeasure(
   [id, 'h', ingredientId, label, amount, sortOrder, createdAt, deletedAt],
 );
 
+/// The `coconut` vocab row itself — most tests here only need measures, but
+/// the default-measure legs write to `ingredient`.
+Future<void> _seedIngredient(PowerSyncDatabase db) => db.execute(
+  'INSERT INTO ingredient (id, household_id, canonical_name, default_unit, '
+  "status, source, match_text) VALUES ('coconut', 'h', 'Coconut milk', 'ml', "
+  "'complete', 'seed', 'coconut milk')",
+);
+
 void main() {
   late PowerSyncDatabase db;
   late Directory dir;
@@ -248,6 +256,58 @@ void main() {
         [added.id],
       );
       expect(row['deleted_at'], isNotNull);
+    });
+
+    test("softDeleteMeasure clears a default that pointed at it — the FK's "
+        'set-null only sees a HARD delete (0023 / seam D1)', () async {
+      await _seedIngredient(db);
+      final added = await repo.addMeasure(
+        ingredientId: 'coconut',
+        label: 'half can',
+        amount: 200,
+      );
+      await db.execute(
+        'UPDATE ingredient SET default_measure_id = ? WHERE id = ?',
+        [added.id, 'coconut'],
+      );
+
+      await repo.softDeleteMeasure(added.id);
+
+      final row = await db.get(
+        "SELECT default_measure_id FROM ingredient WHERE id = 'coconut'",
+      );
+      expect(
+        row['default_measure_id'],
+        isNull,
+        reason:
+            'a dangling default would keep offering a measure nothing '
+            'carries — "Ask me each time" is the honest next state',
+      );
+    });
+
+    test("softDeleteMeasure leaves ANOTHER row's default alone", () async {
+      await _seedIngredient(db);
+      final kept = await repo.addMeasure(
+        ingredientId: 'coconut',
+        label: 'half can',
+        amount: 200,
+      );
+      final going = await repo.addMeasure(
+        ingredientId: 'coconut',
+        label: 'quarter can',
+        amount: 100,
+      );
+      await db.execute(
+        'UPDATE ingredient SET default_measure_id = ? WHERE id = ?',
+        [kept.id, 'coconut'],
+      );
+
+      await repo.softDeleteMeasure(going.id);
+
+      final row = await db.get(
+        "SELECT default_measure_id FROM ingredient WHERE id = 'coconut'",
+      );
+      expect(row['default_measure_id'], kept.id);
     });
 
     test('addMeasure validates at the repository, not just the form', () async {

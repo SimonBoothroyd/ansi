@@ -246,7 +246,28 @@ supabase db query --linked -f supabase/rollout_measure_refresh.sql
 # 7. re-run the preview: `to_insert` should now read 0 for every household.
 ```
 
-**Interplay between the two scripts: none — each owns one table.** The
+**The default count measure has a third leg, and it is a function, not a
+file** (0023 / plan 0024 seam D1). `ingredient.default_measure_id` says what a
+bare "2 onions" means, and the migration fills it for every existing household
+by (`match_text`, measure `label`) as it applies — fill-only, so a household
+that has set its own default keeps it. The one case that needs a second pass
+is a default whose measure the household did not yet have: `yellow bell
+pepper` gains a borrowed `pepper, medium` (119 g) with this slice, so it
+arrives only with the measures leg above. After a reseed + step 6, run:
+
+```bash
+# 8. fill defaults whose measure has only just landed (idempotent; returns the
+#    number of rows filled — 0 once everything has caught up).
+supabase db query --linked "select ingredient_default_measure_backfill();"
+```
+
+It fills nulls only and never removes, so it is safe to re-run after any
+template reseed. Its curation list is a snapshot frozen in `0023`; the source
+of truth is `supabase/seed/curation_overrides.jsonl` (kind `default_measure`),
+which the reseed applies to the template through `seed_curation.sql`.
+
+**Interplay between the three scripts: none — each owns one table or column.**
+The
 `ingredient` script never reads or writes `ingredient_measure`; the measures
 script never writes `ingredient`; neither touches `household.backfilled_at`.
 Run them in either order. The run-once `backfilled_at` clone inside

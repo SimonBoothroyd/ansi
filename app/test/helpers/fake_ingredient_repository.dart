@@ -29,6 +29,12 @@ mixin IngredientManagerStubs implements IngredientRepository {
       throw UnimplementedError();
 
   @override
+  Future<Ingredient?> setDefaultMeasure(
+    String ingredientId,
+    String? measureId,
+  ) => throw UnimplementedError();
+
+  @override
   Future<Ingredient?> applyUsdaProbe(
     String ingredientId, {
     required String source,
@@ -198,6 +204,33 @@ class FakeIngredientRepo implements IngredientRepository {
     final kept = {...current.allowedUnits ?? allowedUnitsFor(current)};
     if (!kept.remove(pieces)) return current;
     final updated = current.copyWith(allowedUnits: kept.toList());
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<Ingredient?> setDefaultMeasure(
+    String ingredientId,
+    String? measureId,
+  ) async {
+    final current = _find(ingredientId);
+    if (current == null) return null;
+    // Clearing must survive freezed's "a null means unchanged" copyWith, and
+    // clearing is half of what this write is for.
+    final updated = Ingredient(
+      id: current.id,
+      canonicalName: current.canonicalName,
+      defaultUnit: current.defaultUnit,
+      status: current.status,
+      category: current.category,
+      densityGPerMl: current.densityGPerMl,
+      macros: current.macros,
+      macrosBasis: current.macrosBasis,
+      allowedUnits: current.allowedUnits,
+      defaultMeasureId: measureId,
+      measureCount: current.measureCount,
+      source: current.source,
+    );
     _replace(updated);
     return updated;
   }

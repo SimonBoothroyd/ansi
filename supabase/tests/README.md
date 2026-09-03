@@ -68,6 +68,20 @@ assertions in `begin … rollback` so runs leave no residue.
   is a no-op. pgTAP cannot include a file outside `tests/`, so the script's
   statement is mirrored verbatim between `>>>`/`<<<` markers inside a temp
   function — `make db-lint` diffs the two blocks.
+- `default_measure.sql` — the curated default count measure (0023, plan 0024
+  seam D1): `ingredient.default_measure_id` is a nullable FK with `on delete
+  set null` (a hard-deleted measure clears the default rather than dangling
+  it); the own-measure trigger refuses a measure belonging to another
+  ingredient or another household; the backfill
+  (`ingredient_default_measure_backfill()`) fills a NULL by (`match_text`,
+  measure `label`) per household, never overwrites a household's own choice,
+  writes nothing for a `null` ruling, and is a no-op on a second run; the
+  seeded template carries the curation and **exactly the nine fragment-set
+  rows carry no default, asserted BY NAME** (the same job the `piece` guard in
+  `unit_admission.sql` does for ADR-0010 — the pass is DATA, so a regenerated
+  seed must not be able to rule on one of them silently); and
+  `ensure_onboarded()` carries every default into a new household BY LABEL,
+  re-keyed onto that household's own measure rows.
 - `access_token_hook.sql` — `add_household_claim()` (0007/0008): injects the
   `household_id` claim for an onboarded user (oldest live membership,
   agreeing with `current_household_id()`), passes a not-yet-onboarded user's

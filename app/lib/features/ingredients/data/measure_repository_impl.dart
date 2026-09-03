@@ -214,10 +214,23 @@ class SqliteMeasureRepository implements MeasureRepository {
   @override
   Future<void> softDeleteMeasure(String measureId) async {
     final now = DateTime.now().toUtc().toIso8601String();
-    await _db.execute(
-      'UPDATE ingredient_measure SET deleted_at = ?, updated_at = ? '
-      'WHERE id = ?',
-      [now, now, measureId],
-    );
+    await _db.writeTransaction((tx) async {
+      await tx.execute(
+        'UPDATE ingredient_measure SET deleted_at = ?, updated_at = ? '
+        'WHERE id = ?',
+        [now, now, measureId],
+      );
+      // A default pointing at the row just tombstoned goes with it, in the
+      // same write (0023 / seam D1). The FK's `on delete set null` only sees
+      // a HARD delete, and a dangling default is precisely the "confidently
+      // wrong" failure that column exists to avoid: the flesh-out form would
+      // keep offering a measure nothing carries. The honest next state is
+      // "Ask me each time", and the label is never resurrected by it.
+      await tx.execute(
+        'UPDATE ingredient SET default_measure_id = NULL, updated_at = ? '
+        'WHERE default_measure_id = ?',
+        [now, measureId],
+      );
+    });
   }
 }

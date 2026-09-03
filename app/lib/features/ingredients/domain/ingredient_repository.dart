@@ -187,6 +187,22 @@ abstract interface class IngredientRepository {
   /// admission section again, one tap from returning.
   Future<Ingredient?> stopOfferingPiece(String ingredientId);
 
+  /// Sets what a bare COUNT of this ingredient means — "2 onions" is two
+  /// `onion, medium` ([Ingredient.defaultMeasureId], 0023 / seam D1). A null
+  /// [measureId] clears it back to "ask me each time".
+  ///
+  /// It is a **stated fact**, so it saves the moment it is picked, like the
+  /// measures editor's own writes — not on a form's Save. Clearing it never
+  /// touches the measure itself: the row keeps every label it had, and only
+  /// stops having a preferred one.
+  ///
+  /// [measureId] must name a LIVE measure of this same ingredient; the
+  /// server refuses anything else outright (a "1 onion" silently counted as
+  /// a clove is the one lie this column could tell), and so does this. Throws
+  /// [ArgumentError] when it doesn't resolve. Returns the updated row, or
+  /// null when [ingredientId] doesn't resolve.
+  Future<Ingredient?> setDefaultMeasure(String ingredientId, String? measureId);
+
   /// Writes a USDA probe result into the row's NULL fields — plan 0020
   /// **D7b**, the local half of "enrichment should not wait for sync".
   ///

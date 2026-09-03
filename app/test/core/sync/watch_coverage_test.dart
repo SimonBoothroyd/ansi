@@ -46,10 +46,13 @@ const _exemptTables = <String, Set<String>>{
   // manager list, which reads `ingredient` and its measure counts and nothing
   // else. Every table below belongs to a one-shot Future instead: aliases to
   // `search`/`aliases`, the reference tables to `recentlyUsed` and the delete
-  // guard's `recipeReferences`. None of them can make the LIST stale — a new
-  // alias changes no row the list draws.
+  // guard's `recipeReferences`, `ingredient_measure` to `setDefaultMeasure`'s
+  // own-measure check. None of them can make the LIST stale — a new alias
+  // changes no row the list draws, and the measure count the list DOES draw
+  // rides the `ingredient` watch as a correlated subquery.
   'lib/features/ingredients/data/ingredient_repository_impl.dart': {
     'ingredient_alias',
+    'ingredient_measure',
     'recipe_line_item',
     'ingredient_group',
     'recipe',

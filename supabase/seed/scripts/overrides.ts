@@ -23,6 +23,13 @@
 //     the materialized allowed-unit list: `set` replaces wholesale, or
 //     `add`/`remove` tweak the rule output (consumed by gen_seed.ts →
 //     seed_curation.sql).
+//   * default_measure {match_text, label, reason} — what a bare COUNT of
+//     this ingredient means ("2 onions" → 2 × `onion, medium`); seam D1,
+//     consumed by gen_measures.ts (label validity) and gen_seed.ts →
+//     seed_curation.sql. `label` must be PRESENT and is either a live
+//     measure label on that row or an explicit `null` ("no honest default —
+//     ask every time", the fragment sets). `undefined` is an error, so the
+//     pass cannot be silently incomplete.
 //   * macros        {match_text, macros: {kcal, protein, fat, carb,
 //     [fiber]}, source, reason} — label-sourced macros (per 100 g) for a
 //     row FDC genuinely lacks (no-analogue rule keeps it link-less) or
@@ -36,11 +43,12 @@ export interface CurationOverride {
     | "add_measure"
     | "density"
     | "allowed_units"
+    | "default_measure"
     | "macros";
   match_text: string;
   reason: string;
-  // add_measure / drop_measure
-  label?: string;
+  // add_measure / drop_measure / default_measure (null = no default)
+  label?: string | null;
   basis_amount?: number;
   sort_order?: number;
   source?: string; // also: macros / density provenance ("label:…")
@@ -119,6 +127,23 @@ export function readOverrides(scriptsDir: string): CurationOverride[] {
       !o.set && !(o.add?.length) && !(o.remove?.length)
     ) {
       problems.push(`allowed_units override changes nothing: ${o.match_text}`);
+    }
+    // `label` must be WRITTEN, string or explicit null — an omitted one is a
+    // row nobody ruled on, and the whole point of the pass (seam D1) is that
+    // "no default" is a decision somebody made, not a gap.
+    if (o.kind === "default_measure" && o.label === undefined) {
+      problems.push(
+        `default_measure needs a label (a measure label, or null for ` +
+          `"no default"): ${o.match_text}`,
+      );
+    }
+    if (
+      o.kind === "default_measure" && typeof o.label === "string" && !o.label
+    ) {
+      problems.push(
+        `default_measure label, when given, must be non-empty (use null for ` +
+          `"no default"): ${o.match_text}`,
+      );
     }
     if (o.kind === "macros") {
       const m = o.macros;

@@ -722,6 +722,81 @@ void main() {
     });
   });
 
+  group('setDefaultMeasure (0023 / seam D1: what "2 onions" means)', () {
+    setUp(() async {
+      await db.execute(
+        'INSERT INTO ingredient_measure '
+        '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
+        'VALUES (?, ?, ?, ?, ?, ?)',
+        ['m1', 'h', '1', 'onion, medium', 110, 0],
+      );
+      await db.execute(
+        'INSERT INTO ingredient_measure '
+        '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
+        'VALUES (?, ?, ?, ?, ?, ?)',
+        ['m2', 'h', '1', 'onion, large', 150, 1],
+      );
+      await db.execute(
+        'INSERT INTO ingredient_measure '
+        '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
+        'VALUES (?, ?, ?, ?, ?, ?)',
+        ['m9', 'h', '2', 'spear', 31, 0],
+      );
+    });
+
+    test('a row starts with no default, and the pick reads back', () async {
+      expect((await repo.byId('1'))!.defaultMeasureId, isNull);
+      final updated = await repo.setDefaultMeasure('1', 'm1');
+      expect(updated!.defaultMeasureId, 'm1');
+      expect((await repo.byId('1'))!.defaultMeasureId, 'm1');
+      // …and through the batched read the import review uses.
+      expect((await repo.byIds({'1'}))['1']!.defaultMeasureId, 'm1');
+    });
+
+    test('clearing it back to "ask me each time" sticks — a null is a real '
+        'answer, not "unchanged"', () async {
+      await repo.setDefaultMeasure('1', 'm2');
+      final cleared = await repo.setDefaultMeasure('1', null);
+      expect(cleared!.defaultMeasureId, isNull);
+      expect((await repo.byId('1'))!.defaultMeasureId, isNull);
+    });
+
+    test('clearing never deletes the measure — the row keeps every label it '
+        'had, and only stops having a preferred one', () async {
+      await repo.setDefaultMeasure('1', 'm1');
+      await repo.setDefaultMeasure('1', null);
+      final live = await db.getAll(
+        "SELECT label FROM ingredient_measure WHERE ingredient_id = '1' "
+        'AND deleted_at IS NULL ORDER BY sort_order',
+      );
+      expect(live.map((r) => r['label']), ['onion, medium', 'onion, large']);
+    });
+
+    test("a measure of ANOTHER row is refused — a '1 onion' silently counted "
+        'as a spear is the one lie this column could tell', () async {
+      await expectLater(
+        repo.setDefaultMeasure('1', 'm9'),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect((await repo.byId('1'))!.defaultMeasureId, isNull);
+    });
+
+    test('a tombstoned measure is refused too', () async {
+      await db.execute(
+        "UPDATE ingredient_measure SET deleted_at = '2026-09-03T00:00:00Z' "
+        "WHERE id = 'm1'",
+      );
+      await expectLater(
+        repo.setDefaultMeasure('1', 'm1'),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('null for an unknown id', () async {
+      expect(await repo.setDefaultMeasure('nope', null), isNull);
+    });
+  });
+
   group('applyUsdaProbe (D7b: the local half of the enrichment)', () {
     test('fills a bare stub and extends allowed_units with what the density '
         'unlocks — the same event, the same rule as setDensity', () async {
