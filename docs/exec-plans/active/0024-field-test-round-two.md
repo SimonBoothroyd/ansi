@@ -1,4 +1,4 @@
-# Exec plan: Field test, round two — the import & macros seam, and the Android inset
+# Exec plan: 0024 — Field test, round two — the import & macros seam, and the Android inset
 
 - **Status:** active — design phase (frames being drawn for sign-off)
 - **Owner:** Simon (rules) + Claude (orchestrator; one design lane, then one build lane)
@@ -46,7 +46,7 @@ proven only when the next APK runs on the phone).
 ## Acceptance criteria
 
 - [ ] Board section "Import & macros seam · v2" signed off.
-- [ ] Migration `0021` additive (data is durable — no reset), backfilled from the curation table; pgTAP.
+- [ ] Migration `0023` additive (data is durable — no reset), backfilled from the curation table; pgTAP.
 - [ ] `make ci` green; `make test-sim` scenario 4 re-driven (import with a sized-produce line lands unflagged).
 - [ ] The Android fix confirmed on the Pixel from a release-workflow rehearsal artifact (no tag).
 - [ ] Docs: ADR-0010 amended by a new ADR only if the rule changes (it does not — a default is a curated fact); product-spec §5; tracker rows.
@@ -67,13 +67,14 @@ proven only when the next APK runs on the phone).
   cut off — the shell-wide inset symptom (Cook, Week, Library) is gone with
   `0f8a134` + `b2f91a2` in. Recorded as the field observation; the rehearsal
   artifact walk above stands as the formal check.
-- 2026-09-03 — Migration numbering: the debt pass (`0023-debt-pass.md`)
-  landed `0021_admission_mirror.sql` and `0022_singularize_invariants.sql`
-  on main the same evening, so this plan's additive migration is **`0023`**,
-  not `0021` as the entry above says.
+- 2026-09-03 — Migration numbering: the debt pass (`0023-debt-pass.md`,
+  a parallel session) landed `0021_admission_mirror.sql` and
+  `0022_singularize_invariants.sql` on main the same evening, so this plan's
+  additive migration is **`0023`**, not `0021` as the entry above says — and
+  this plan is **0024**, renamed from 0023 to stop the two plans colliding.
 
 ## Step-done checklist
 
 - [ ] Roadmap row; QUALITY grades; tracker rows added/retired; `make ci`;
-      `make test-sim`; cloud push (`0021` + the reseed button for the
+      `make test-sim`; cloud push (`0023` + the reseed button for the
       default-measure curation) and a ledger entry; tag.

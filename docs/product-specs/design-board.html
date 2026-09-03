@@ -911,7 +911,9 @@
 </style>
 <!-- lane-style:search:end -->
 <!-- lane-style:seam:start -->
-<style data-lane="seam"> block below carries every NEW rule;     -->
+<style data-lane="seam">
+    /* the seam frames print "2 pepper, medium" in the amount column: let it wrap */
+    .l3.seam .l3-amt{white-space:normal;flex:0 0 92px;line-height:1.25;padding-right:6px;} block below carries every NEW rule;     -->
 <!--  move it into the board's head <style> when the section is merged.    -->
 <!--  It depends on the editor lane's .mstep / .echip / .mstep-* rules     -->
 <!--  (already on the board) and on the piece lane's .chip-note / .askrow. -->
@@ -3625,10 +3627,10 @@
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
             <div class="grp">
-                <div class="l3"><span class="l3-amt">2 pepper, medium</span><span class="l3-body"><span class="l3-id">Red bell pepper</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">2 pepper, medium</span><span class="l3-body"><span class="l3-id">Red bell pepper</span></span></div>
                 <div class="l3 marked"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Cucumber</span><span class="rowmark"><span class="rd"></span>needs a weight</span></span></div>
                 <div class="l3 marked"><span class="l3-amt">200 g</span><span class="l3-body"><span class="l3-id">Tofu</span><span class="rowmark"><span class="rd"></span>stub ingredient</span></span></div>
-                <div class="l3"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span></div>
             </div>
             <p class="macro-lab">Per serving</p>
             <div class="macro-inc">
@@ -3651,11 +3653,11 @@
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
             <div class="grp">
-                <div class="l3"><span class="l3-amt">2 pepper, medium</span><span class="l3-body"><span class="l3-id">Red bell pepper</span></span></div>
-                <div class="l3"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span></div>
-                <div class="l3"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Chickpea canned</span><span class="l3-note">drained</span></span></div>
-                <div class="l3"><span class="l3-amt impr">handful</span><span class="l3-body"><span class="l3-id">Parsley</span><span class="l3-note">chopped</span></span></div>
-                <div class="l3"><span class="l3-amt impr">to taste</span><span class="l3-body"><span class="l3-id">Sesame seeds</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">2 pepper, medium</span><span class="l3-body"><span class="l3-id">Red bell pepper</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Chickpea canned</span><span class="l3-note">drained</span></span></div>
+                <div class="l3 seam"><span class="l3-amt impr">handful</span><span class="l3-body"><span class="l3-id">Parsley</span><span class="l3-note">chopped</span></span></div>
+                <div class="l3 seam"><span class="l3-amt impr">to taste</span><span class="l3-body"><span class="l3-id">Sesame seeds</span></span></div>
             </div>
             <p class="macro-lab">Per serving</p>
             <div class="macro tight"><div class="m"><div class="mv">418</div><div class="ml">kcal</div></div><div class="m"><div class="mv">16 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">54 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">13 g</div><div class="ml">fat</div></div></div>
