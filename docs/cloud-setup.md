@@ -417,6 +417,31 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-09-03 (later) — full cloud reset after the doubled template; reseed becomes a button
+
+- **Why a reset:** a by-hand `seed.sql` against the already-seeded project
+  doubled the template (616 rows / 308 names, aliases ×3, measures 273/270,
+  ginger's measures twice). Owner ruling the same night — §2c — *reset,
+  never patch*: `supabase db reset --linked --yes` from `main@000a7cb`
+  (every migration through **`0020`**, all five seeds in `config.toml`
+  order), then `deploy-supabase` run `33705387598` (link ✓ · `db push` no-op
+  ✓ · `functions deploy import-recipe` ✓ · **sync streams ✓** · reseed
+  skipped, as intended after a reset).
+- **Readback:** template 308 live ingredients · 0 tombstoned · 112 aliases ·
+  270 measures · **0 admit `piece`** · 272 with macros · `jalapeno` once ·
+  ginger = `piece, 1 inch 12 g` + `slice 2.2 g` · `usda_food` 8,204 ·
+  `schema_migrations` max `0020`. `cloud_verify`: **8 ok · 1 warn · 0 fail**.
+- **What the reset cost:** every onboarded household and auth user
+  (`households: 0`). Both phones sign up again on next launch — the
+  accepted price of §2c while data is throwaway.
+- **Fixed for the future:** `0020` = template-only unique indexes on
+  `ingredient(match_text)` and `ingredient_alias(ingredient_id, match_text)`
+  (live rows), the generated `seed.sql` upserts on them, `seed_usda.sql` is
+  skipped by the button when the reference table is populated, and
+  `deploy-supabase` carries the `reseed_template` input (first green run
+  with it: `33704952842`). `powersync/cli.yaml` lets the streams leg run
+  (runs `33704042001` onward).
+
 ### 2026-09-03 — polish pass (plan 0022) deploy
 
 - `deploy-supabase` run `33702716396` from `main@fb13bf3`: **link ✓ · `db
