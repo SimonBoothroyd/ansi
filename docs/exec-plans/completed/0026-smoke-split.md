@@ -1,6 +1,6 @@
 # Exec plan: the sim smoke — independent files, then the missing editor legs
 
-- **Status:** active
+- **Status:** done (2026-09-03)
 - **Owner:** Simon (orchestrating) · agent lanes
 - **Roadmap step:** cross-cutting (test harness; follows 3.5 and 7.4)
 - **Created:** 2026-09-03
@@ -52,11 +52,17 @@ its add-new chain, both of which are host-tested over fakes only.
 - [x] `make test-sim` still runs the directory; `make test-sim FILE=week
       DEVICE=<udid>` runs one file on a chosen sim. The Makefile help line
       says so.
-- [ ] The recipe-editor file gains the method-chip legs (select → To
+- [x] The recipe-editor file gains the method-chip legs (select → To
       ingredient; tap chip → rename; a timer) and the create-new-from-editor
       leg with the flesh-out form actually filled (name + default unit),
       asserting the quantity sheet opens on the form's units and the stub row
-      survives the sync round trip.
+      survives the sync round trip. **Landed 2026-09-03 (lane B, finished
+      by the orchestrator):** select → To ingredient, tap → rename, select →
+      To timer, the refs on `recipe.steps` after the round trip; the Optional
+      switch → `optional = 1` + the page tag; create-new → Create & flesh out
+      → the form over the picker → the quantity sheet on the form's units →
+      the stub row (`allowed_units` a real array). `make test-sim
+      FILE=recipe_editor`: **2:33 of test time, 3:25 wall**.
 - [x] Wall time per file and for the directory recorded here after the first
       green run. **2026-09-03, iPhone 17 (incremental build, local stack):**
       import 1:23 · ingredients 1:47 · nested 1:56 · the whole directory
@@ -70,7 +76,7 @@ its add-new chain, both of which are host-tested over fakes only.
       `make test-sim FILE=ingredients` green, **2026-09-03, iPhone 17 Pro
       Max: 3:06 wall (2:26 of test time, 24 s incremental build)**, one
       `testWidgets` still. `make ci` green. No `lib/` change.
-- [ ] Docs updated: `app/AGENTS.md` (the smoke paragraph), `docs/QUALITY.md`
+- [x] Docs updated: `app/AGENTS.md` (the smoke paragraph), `docs/QUALITY.md`
       (CI row's smoke sentence, Recipes row's "unrun by the lane" note),
       `docs/design-docs/navigation.md` (the file reference), the tracker rows
       that name `app_test.dart` or "scenario N". (Lane C: the AGENTS.md
@@ -164,13 +170,21 @@ the shared local backend is never a collision.
   the editor file runs alone; do not pad timeouts.
 - Run time was never recorded for the one-file suite; record it here now.
 
+- 2026-09-03 — **Lanes B and C were killed and landed as work in progress** by
+  the orchestrator: three parallel sim lanes saturated the machine (load
+  50–110) and two of them idled waiting for background runs. Their files ran
+  green alone afterwards on one simulator, serially — the standing rule now
+  (owner, 2026-09-03: one sim, one run at a time).
+
 ## Step-done checklist
 
-- [ ] Roadmap: no row of its own; note under the CI/harness row in
+- [x] Roadmap: no row of its own; note under the CI/harness row in
       `docs/QUALITY.md` instead.
-- [ ] `docs/QUALITY.md` grade for every area touched matches reality.
-- [ ] `app/AGENTS.md` smoke paragraph and command list true.
-- [ ] `make test-sim` (directory) green on a booted simulator, recorded here.
-- [ ] Tech-debt rows added for corners cut, retired/narrowed for the legs
+- [x] `docs/QUALITY.md` grade for every area touched matches reality.
+- [x] `app/AGENTS.md` smoke paragraph and command list true (seven files).
+- [x] `make test-sim` (directory) green on a booted simulator, recorded here
+      (6/6 in 7:53 before the B/C/D legs; then editor 3:25 · ingredients 2:58 ·
+      library 1:49 · week 1:16 alone).
+- [x] Tech-debt rows added for corners cut, retired/narrowed for the legs
       this plan pays (density entry, Library v2 taps, the 2026-09-03 sim row).
-- [ ] `make ci` green.
+- [x] `make ci` green.

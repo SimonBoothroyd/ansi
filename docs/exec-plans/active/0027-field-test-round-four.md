@@ -94,16 +94,16 @@ are repeated here so a lane needs nothing outside the repo.
 
 ## Acceptance criteria
 
-- [ ] Each front lands as its D-list says; deviations are recorded in the
+- [x] Each front lands as its D-list says; deviations are recorded in the
       decision log below with the reason, not silently.
   - [x] **Front M** — landed 2026-09-03 (lane M): M-D1…D6 as ruled; the
         judgement calls are in the log.
-- [ ] Tests at every layer the change touches: pure domain, repo on a real
+- [x] Tests at every layer the change touches: pure domain, repo on a real
       `PowerSyncDatabase`, widget over the real form/sheet, pgTAP for both
       migrations, the mapper's fixture test for M-D5.
 - [x] `make ci` green per lane; the orchestrator re-ran it at each landing
       (M: 1623 · +P: 1644 · +U: 1684 app tests; 155 deno; docs-check).
-- [ ] `make test-sim`: the ingredients file drives M-D1 + U-D1/D2 on the real
+- [x] `make test-sim`: the ingredients file drives M-D1 + U-D1/D2 on the real
       stack (the trigger legs); the week file drives P-D3/D4. Recorded here.
   - [x] **Week (front P)** — landed 2026-09-03 (lane D): `week_test.dart`'s
         3d leg drives P-D3 (Ada sets Jun's ×¾ from Library `⋯` ▸ Household),
@@ -114,7 +114,7 @@ are repeated here so a lane needs nothing outside the repo.
         ¼-portion nudge; Monday's override + Wednesday's lone eater still 4)
         and P-D5 (Jun's lens: "434 kcal" · "1 meal · Jun · ¾ of 1¾
         portions"). `make test-sim FILE=week` on the iPhone 17: **39 s of test time, 1:16 wall** (24 s of it the Xcode build) — the 3d leg adds about five seconds to the file.
-- [ ] Docs: `docs/QUALITY.md` rows (Ingredients manager, Barcode add,
+- [x] Docs: `docs/QUALITY.md` rows (Ingredients manager, Barcode add,
       Planning, Cook-plan), `app/AGENTS.md` if a rule changes, ADR-0009's
       density leg unaffected, the roadmap 8.11 row flipped, cloud ledger
       entry once `0026`/`0027` are pushed.
@@ -285,10 +285,10 @@ never `db-reset` the shared stack; sims are the orchestrator's at landing.
 
 ## Step-done checklist
 
-- [ ] Roadmap 8.11 flipped with one line on what shipped / deferred.
-- [ ] `docs/QUALITY.md` grades match reality.
-- [ ] `app/AGENTS.md` still true.
-- [ ] `make test-sim` recorded here.
-- [ ] Tech-debt rows added / retired.
-- [ ] `0026`/`0027` on cloud, ledger entry in `docs/cloud-setup.md`.
-- [ ] `make ci` green.
+- [x] Roadmap 8.11 flipped with one line on what shipped / deferred.
+- [x] `docs/QUALITY.md` grades match reality.
+- [x] `app/AGENTS.md` still true.
+- [x] `make test-sim` recorded here (ingredients 2:20 test / 2:58 wall — M-D1/D2/D3 + U-D1/D2; week 39 s / 1:16 — P-D3/D4/D5).
+- [x] Tech-debt rows added / retired.
+- [ ] `0026`/`0027`/`0028` on cloud, ledger entry in `docs/cloud-setup.md` — **the one open item**; the plan moves to `completed/` when it lands.
+- [x] `make ci` green (1685 app · 155 deno at the last landing).
