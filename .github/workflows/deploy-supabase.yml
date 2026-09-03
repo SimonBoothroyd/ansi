@@ -125,9 +125,13 @@ jobs:
       - name: 5 · Reseed the template vocabulary (opt-in)
         if: ${{ inputs.reseed_template }}
         run: |
-          q() { supabase db query --linked "$1" | jq -r '.rows[0] | to_entries[0].value'; }
+          # The CLI chats before its JSON ("Initialising login role...", the
+          # update nag), so keep only the document before jq sees it.
+          q() { supabase db query --linked "$1" 2>/dev/null | sed -n '/^{/,$p' | jq -r '.rows[0] | to_entries[0].value'; }
+          usda="$(q 'select count(*) from usda_food')"
+          echo "usda_food rows: ${usda:-unreadable}"
           supabase db query --linked -f supabase/seed.sql
-          if [ "$(q 'select count(*) from usda_food')" = "0" ]; then
+          if [ "$usda" = "0" ]; then
             supabase db query --linked -f supabase/seed_usda.sql
           else
             echo "usda_food already populated — skipping seed_usda.sql"
