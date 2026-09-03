@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (26 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (27 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -36,6 +36,7 @@ introduced in `0001_household.sql` · RLS enabled · in the `powersync` publicat
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |
 | `sort_order` | `int` | no | not null default 0 *(added in `0007_sync.sql`)* |
+| `portion_factor` | `numeric(4,2)` | no | not null default 1 constraint household_member_portion_factor_range check (portion_factor >= 0.25 and portion_factor <= 3) *(added in `0026_portion_factor.sql`)* |
 
 Table constraints: `unique (household_id, auth_user_id)`
 

@@ -184,15 +184,18 @@ const schema = Schema([
 
   // Household members — synced (step 7). Created server-side at onboarding
   // (`ensure_onboarded`, migration 0007); the client reads them (eaters on a
-  // plan_entry reference these ids) but never writes them. `auth_user_id`
-  // stays server-only: the sync rule for this table selects an explicit
-  // column list that excludes it (docker/powersync.yaml) — what a rule
-  // SELECTs is exactly what ships to the device, so omitting the column here
-  // alone would not keep it off the wire.
+  // plan_entry reference these ids) and writes exactly one column,
+  // `portion_factor` (0026, plan 0027 P-D3 — the Household sheet; the server
+  // grants UPDATE on that column alone). `auth_user_id` stays server-only:
+  // the sync rule for this table selects an explicit column list that
+  // excludes it (docker/powersync.yaml) — what a rule SELECTs is exactly what
+  // ships to the device, so omitting the column here alone would not keep it
+  // off the wire.
   Table('household_member', [
     Column.text('household_id'),
     Column.text('display_name'),
     Column.integer('sort_order'),
+    Column.real('portion_factor'), // a usual portion, ×1 by default (0026)
     ..._audit,
   ]),
 

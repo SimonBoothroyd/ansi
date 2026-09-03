@@ -180,6 +180,49 @@ void main() {
     expect(session.scaleFactor, 3);
   });
 
+  test('a member’s portion factor drives the demand, the override still wins, '
+      'and a factor change re-derives the plan (plan 0027 P-D1/D4)', () async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    for (final (id, name, order, factor) in [
+      ('a', 'Ada', 0, 1.0),
+      ('b', 'Jun', 1, 0.75),
+    ]) {
+      await db.execute(
+        'INSERT INTO household_member (id, household_id, display_name, '
+        'sort_order, portion_factor, created_at, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [id, 'h', name, order, factor, now, now],
+      );
+    }
+    await _insertRecipe(db, 'r', 'Soup', servings: 4, keepsForDays: 4);
+    await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'r',
+      eaterIds: ['a', 'b'],
+    );
+    final stream = StreamIterator(repo.watchCookPlan(_week));
+    expect(await stream.moveNext(), isTrue);
+    var session = stream.current.recipes.single.sessions.single;
+    // 1 + ¾ of a serves-4 recipe — fractional, and not rounded up.
+    expect(session.totalPortions, 1.75);
+    expect(session.scaleFactor, 0.4375);
+
+    // The factor is part of the derivation, so moving it re-fires the watch.
+    await planning.setPortionFactor('b', 1.5);
+    expect(await stream.moveNext(), isTrue);
+    session = stream.current.recipes.single.sessions.single;
+    expect(session.totalPortions, 2.5);
+
+    // The whole-number override still wins over the eaters' factors.
+    final entryId = (await planning.watchWeek(_week).first)!.entries.single.id;
+    await planning.setPortions(entryId, 3);
+    expect(await stream.moveNext(), isTrue);
+    expect(stream.current.recipes.single.sessions.single.totalPortions, 3);
+    await stream.cancel();
+  });
+
   test('a meal whose recipe was deleted is left out of the plan', () async {
     await _insertRecipe(db, 'gone', 'Ghost', keepsForDays: 3);
     await planning.addEntry(

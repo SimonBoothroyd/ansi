@@ -332,22 +332,25 @@ final class ViewedWeekProvider
 
 String _$viewedWeekHash() => r'50ef21a8dbfa2471f53e93b9489410ae325561d8';
 
-/// The household eater roster.
+/// The household eater roster, live — a portion factor set on either phone
+/// (plan 0027) reaches every Portions row and the Household sheet as it lands.
 
 @ProviderFor(members)
 const membersProvider = MembersProvider._();
 
-/// The household eater roster.
+/// The household eater roster, live — a portion factor set on either phone
+/// (plan 0027) reaches every Portions row and the Household sheet as it lands.
 
 final class MembersProvider
     extends
         $FunctionalProvider<
           AsyncValue<List<Member>>,
           List<Member>,
-          FutureOr<List<Member>>
+          Stream<List<Member>>
         >
-    with $FutureModifier<List<Member>>, $FutureProvider<List<Member>> {
-  /// The household eater roster.
+    with $FutureModifier<List<Member>>, $StreamProvider<List<Member>> {
+  /// The household eater roster, live — a portion factor set on either phone
+  /// (plan 0027) reaches every Portions row and the Household sheet as it lands.
   const MembersProvider._()
     : super(
         from: null,
@@ -364,17 +367,17 @@ final class MembersProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<Member>> $createElement(
+  $StreamProviderElement<List<Member>> $createElement(
     $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  ) => $StreamProviderElement(pointer);
 
   @override
-  FutureOr<List<Member>> create(Ref ref) {
+  Stream<List<Member>> create(Ref ref) {
     return members(ref);
   }
 }
 
-String _$membersHash() => r'3a22c0d4097b2b89991990cc72bdac5780eb4baf';
+String _$membersHash() => r'b6ee66656f2fed1b10e5fa8dbab1a42d1b36f9e7';
 
 /// The most recent planned week before the VIEWED one — what "copy last week"
 /// would copy, so it is relative to the week you are standing on.

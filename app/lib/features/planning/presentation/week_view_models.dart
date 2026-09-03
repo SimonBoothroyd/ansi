@@ -112,10 +112,11 @@ Stream<WeekPlan?> viewedWeek(Ref ref) => ref
     .watch(planningRepositoryProvider)
     .watchWeek(ref.watch(viewedWeekStartProvider));
 
-/// The household eater roster.
+/// The household eater roster, live — a portion factor set on either phone
+/// (plan 0027) reaches every Portions row and the Household sheet as it lands.
 @riverpod
-Future<List<Member>> members(Ref ref) =>
-    ref.watch(planningRepositoryProvider).members();
+Stream<List<Member>> members(Ref ref) =>
+    ref.watch(planningRepositoryProvider).watchMembers();
 
 /// The most recent planned week before the VIEWED one — what "copy last week"
 /// would copy, so it is relative to the week you are standing on.

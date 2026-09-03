@@ -151,6 +151,34 @@ void main() {
     expect(flour.totals.single.amount, 200); // 100 g × 2
   });
 
+  test('the list scales by the same fractional demand the cook plan derives '
+      '(plan 0027 P-D1 — shopping otherwise untouched)', () async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    for (final (id, name, order, factor) in [
+      ('a', 'Ada', 0, 1.0),
+      ('b', 'Jun', 1, 0.75),
+    ]) {
+      await db.execute(
+        'INSERT INTO household_member (id, household_id, display_name, '
+        'sort_order, portion_factor, created_at, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [id, 'h', name, order, factor, now, now],
+      );
+    }
+    await _insertRecipe(db, 'curry', 'Curry', lines: [('flour', 100, g)]);
+    // 1 + ¾ eaters of a 2-serving recipe → ×0.875.
+    await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'curry',
+      eaterIds: ['a', 'b'],
+    );
+    final list = await repo.watchShoppingList(_week).first;
+    final flour = list.groups.single.items.single;
+    expect(flour.totals.single.amount, closeTo(87.5, 1e-9));
+  });
+
   test('an optional line is left off the list, and its recipe says which '
       '(plan 0025 / D6b)', () async {
     await _insertIngredient(db, 'lime', 'Lime', 'produce', 'piece');

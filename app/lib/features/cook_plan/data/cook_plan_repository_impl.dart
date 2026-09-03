@@ -13,7 +13,8 @@ import 'dart:convert';
 import 'package:sqlite_async/sqlite_async.dart';
 
 import '../../../core/units/units.dart';
-import '../../planning/domain/planning.dart' show mondayOf;
+import '../../planning/data/planning_repository_impl.dart' show loadMembers;
+import '../../planning/domain/planning.dart' show eatersDemand, mondayOf;
 import '../../recipes/domain/component_math.dart';
 import '../domain/cook_plan.dart';
 import '../domain/cook_plan_repository.dart';
@@ -37,16 +38,19 @@ class SqliteCookPlanRepository implements CookPlanRepository {
     // so a change to any (including a recipe's shelf life) re-derives the plan.
     // Since 8.6 the groups and line items join too: a component line — or the
     // yield it resolves against — moves the derived component sessions, so a
-    // change to either must re-fire.
+    // change to either must re-fire. Since plan 0027 a member's portion
+    // factor is part of every meal's demand, so `household_member` joins too
+    // (cross-joined — it is not tied to the week — purely to be seen).
     return _db
         .watch(
-          'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id '
+          'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, hm.id '
           'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
           'LEFT JOIN recipe r ON r.id = pe.recipe_id '
           'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
           'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
+          'LEFT JOIN household_member hm ON 1 = 1 '
           'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
           parameters: [key],
         )
@@ -68,14 +72,22 @@ class SqliteCookPlanRepository implements CookPlanRepository {
       [weekKey],
     );
 
+    // A meal's demand is Σ of its eaters' portion factors unless the entry's
+    // override is set (plan 0027 P-D1) — the same `eatersDemand` the Week's
+    // sheets and macro lens read, so the cook plan never disagrees with them.
+    final members = {for (final m in await loadMembers(_db)) m.id: m};
+
     // Group meals by recipe, preserving first-seen recipe order (buildCookPlan
     // re-orders by cook day anyway).
     final byRecipe = <String, PlannedRecipe>{};
     final meals = <String, List<CoveredMeal>>{};
     for (final row in rows) {
       final recipeId = row['recipe_id'] as String;
-      final eaters = jsonDecode(row['eaters'] as String? ?? '[]') as List;
-      final portions = ((row['portions'] as int?) ?? eaters.length).toDouble();
+      final eaters = (jsonDecode(row['eaters'] as String? ?? '[]') as List)
+          .cast<String>();
+      final portions =
+          (row['portions'] as int?)?.toDouble() ??
+          eatersDemand(eaters, members);
       byRecipe[recipeId] ??= PlannedRecipe(
         recipeId: recipeId,
         title: row['title'] as String,

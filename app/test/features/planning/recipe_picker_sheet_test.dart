@@ -85,6 +85,12 @@ class _FakePlanningRepo implements PlanningRepository {
     Member(id: 'm1', displayName: 'Ada'),
     Member(id: 'm2', displayName: 'Jun'),
   ];
+
+  @override
+  Stream<List<Member>> watchMembers() => Stream.fromFuture(members());
+
+  @override
+  Future<void> setPortionFactor(String memberId, double factor) async {}
   @override
   Stream<Map<String, DateTime>> watchLastPlanned() =>
       Stream.value({'r1': DateTime.now().subtract(const Duration(days: 3))});

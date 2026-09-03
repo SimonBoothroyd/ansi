@@ -65,7 +65,7 @@ sync_rules:
         parameters: select request.jwt() ->> 'household_id' as household_id
         data:
           - select * from household         where id = bucket.household_id
-          - select id, household_id, display_name, sort_order, created_at, updated_at, deleted_at from household_member where household_id = bucket.household_id
+          - select id, household_id, display_name, sort_order, portion_factor, created_at, updated_at, deleted_at from household_member where household_id = bucket.household_id
           - select * from ingredient        where household_id = bucket.household_id
           - select * from ingredient_alias  where household_id = bucket.household_id
           - select * from ingredient_measure where household_id = bucket.household_id

@@ -37,7 +37,8 @@ import '../../../core/units/units.dart';
 import '../../cook_plan/data/cook_plan_repository_impl.dart'
     show loadComponentGraph;
 import '../../cook_plan/domain/cook_plan.dart';
-import '../../planning/domain/planning.dart' show mondayOf;
+import '../../planning/data/planning_repository_impl.dart' show loadMembers;
+import '../../planning/domain/planning.dart' show eatersDemand, mondayOf;
 import '../../recipes/domain/effective_lines.dart';
 import '../../recipes/domain/recipe.dart';
 import '../domain/shopping.dart';
@@ -87,13 +88,13 @@ class SqliteShoppingRepository implements ShoppingRepository {
   Stream<ShoppingList> watchShoppingList(DateTime weekStart) {
     final key = _weekKey(weekStart);
     // Reference every table the load reads and select a column from each so
-    // all nine become watch triggers (see the library doc). The shopping,
-    // ingredient, and measure tables aren't tied to the week, so they're
-    // cross-joined (`ON 1=1`) purely to be seen.
+    // all ten become watch triggers (see the library doc). The shopping,
+    // ingredient, measure and member tables aren't tied to the week, so
+    // they're cross-joined (`ON 1=1`) purely to be seen.
     return _db
         .watch(
           'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, se.id, sc.id, '
-          'i.id, im.id '
+          'i.id, im.id, hm.id '
           'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
@@ -104,6 +105,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
           'LEFT JOIN shopping_list_contribution sc ON 1 = 1 '
           'LEFT JOIN ingredient i ON 1 = 1 '
           'LEFT JOIN ingredient_measure im ON 1 = 1 '
+          'LEFT JOIN household_member hm ON 1 = 1 '
           'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
           parameters: [key],
         )
@@ -174,12 +176,20 @@ class SqliteShoppingRepository implements ShoppingRepository {
       );
     }
 
+    // The same demand the cook plan derives (plan 0027 P-D1): Σ of the
+    // eaters' portion factors, the override winning. The list is otherwise
+    // untouched by the factor — it still scales by the session's batch
+    // factor, which is where the demand lands.
+    final members = {for (final m in await loadMembers(_db)) m.id: m};
     final byRecipe = <String, PlannedRecipe>{};
     final meals = <String, List<CoveredMeal>>{};
     for (final row in rows) {
       final recipeId = row['recipe_id'] as String;
-      final eaters = jsonDecode(row['eaters'] as String? ?? '[]') as List;
-      final portions = ((row['portions'] as int?) ?? eaters.length).toDouble();
+      final eaters = (jsonDecode(row['eaters'] as String? ?? '[]') as List)
+          .cast<String>();
+      final portions =
+          (row['portions'] as int?)?.toDouble() ??
+          eatersDemand(eaters, members);
       byRecipe[recipeId] ??= PlannedRecipe(
         recipeId: recipeId,
         title: row['title'] as String,

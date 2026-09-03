@@ -38,10 +38,6 @@ const _repoSuffix = '_repository_impl.dart';
 /// Tables a given repo reads only from a one-shot Future API that is not part
 /// of any watch stream's load path.
 const _exemptTables = <String, Set<String>>{
-  // `members()` is a one-shot Future (eater picker), not part of watchWeek.
-  'lib/features/planning/data/planning_repository_impl.dart': {
-    'household_member',
-  },
   // The vocab repo's watches (`watchVocabulary`, `watchStubCount`) render the
   // manager list, which reads `ingredient` and its measure counts and nothing
   // else. Every table below belongs to a one-shot Future instead: aliases to

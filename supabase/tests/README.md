@@ -82,6 +82,14 @@ assertions in `begin … rollback` so runs leave no residue.
   seed must not be able to rule on one of them silently); and
   `ensure_onboarded()` carries every default into a new household BY LABEL,
   re-keyed onto that household's own measure rows.
+- `portion_factor.sql` — `household_member.portion_factor` (0026, exec plan
+  0027 front P): defaults to 1 so every pre-existing member is the one-portion
+  eater the head-count always meant (P-D6); the range check refuses below ¼
+  and above 3 and admits both ends (P-D2); under RLS a member sets the
+  partner's factor and their own, an UPDATE aimed at another household's
+  member touches 0 rows, and the column-narrow grant means `display_name` and
+  `auth_user_id` raise `42501` from the client (P-D3 — the one UPDATE door the
+  table has).
 - `access_token_hook.sql` — `add_household_claim()` (0007/0008): injects the
   `household_id` claim for an onboarded user (oldest live membership,
   agreeing with `current_household_id()`), passes a not-yet-onboarded user's

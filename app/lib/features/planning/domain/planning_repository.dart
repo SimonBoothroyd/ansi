@@ -21,8 +21,20 @@ abstract interface class PlanningRepository {
 
   /// Every household member (the eater roster), ordered for display. Members
   /// are server-owned — created at onboarding (`ensure_onboarded`, migration
-  /// 0007) and synced down; the app never writes them.
+  /// 0007) and synced down; the one thing the app writes on them is the
+  /// portion factor ([setPortionFactor]).
   Future<List<Member>> members();
+
+  /// [members], reacting to local writes and the partner's synced ones — the
+  /// Household sheet's segment and every Portions row read it, so a factor
+  /// set on either phone shows on both without a re-open.
+  Stream<List<Member>> watchMembers();
+
+  /// Sets a member's usual portion (plan 0027 P-D1/D3): a multiple of one
+  /// recipe serving in quarter steps, 0.25–3 (`isValidPortionFactor`; the
+  /// `0026` check constraint refuses anything outside the range). Either
+  /// member may set either's — the row is household-scoped, not self-scoped.
+  Future<void> setPortionFactor(String memberId, double factor);
 
   /// The most recent planned date (week Monday + day offset) per recipe,
   /// across every week — the recipe picker rows' "last planned" recency

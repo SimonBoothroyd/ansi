@@ -4,7 +4,9 @@
 /// aggregate and react to local writes via `watch`. Writes are small, targeted
 /// INSERT/UPDATE: never `INSERT ... ON CONFLICT`, which PowerSync's view-backed
 /// local tables reject (a regression test under `test/core/sync/` pins that).
-/// Deletes are soft (tombstone), spec §3.
+/// Deletes are soft (tombstone), spec §3. The one write to a server-owned
+/// table is `household_member.portion_factor` (plan 0027) — the column the
+/// server grants UPDATE on, and nothing else on that row.
 library;
 
 import 'dart:convert';
@@ -115,16 +117,27 @@ class SqlitePlanningRepository implements PlanningRepository {
   }
 
   @override
-  Future<List<Member>> members() async {
-    final rows = await _db.getAll(
-      'SELECT id, display_name FROM household_member '
-      'WHERE deleted_at IS NULL '
-      'ORDER BY sort_order, display_name',
+  Future<List<Member>> members() => loadMembers(_db);
+
+  // The same SELECT as [loadMembers], written out rather than shared through
+  // a constant: the watch-coverage structural test reads the literal after
+  // `.watch(` to learn which tables this stream is triggered by.
+  @override
+  Stream<List<Member>> watchMembers() => _db
+      .watch(
+        'SELECT id, display_name, portion_factor FROM household_member '
+        'WHERE deleted_at IS NULL '
+        'ORDER BY sort_order, display_name',
+      )
+      .map(_membersFrom);
+
+  @override
+  Future<void> setPortionFactor(String memberId, double factor) async {
+    await _db.execute(
+      'UPDATE household_member SET portion_factor = ?, updated_at = ? '
+      'WHERE id = ?',
+      [factor, _now(), memberId],
     );
-    return [
-      for (final r in rows)
-        Member(id: r['id'] as String, displayName: r['display_name'] as String),
-    ];
   }
 
   @override
@@ -281,3 +294,28 @@ class SqlitePlanningRepository implements PlanningRepository {
 
   String _now() => DateTime.now().toUtc().toIso8601String();
 }
+
+/// The household's live members in display order, with their portion factors
+/// (plan 0027). Shared with the cook-plan and shopping repositories, which
+/// derive the same demand from the same rows — a factor read three ways would
+/// be three places to drift.
+///
+/// A row without a factor (a local test insert; a device mid-sync before
+/// `0026` reached it) reads `1`, the column's own default — never a zero that
+/// would silently empty a meal.
+Future<List<Member>> loadMembers(SqliteConnection db) async => _membersFrom(
+  await db.getAll(
+    'SELECT id, display_name, portion_factor FROM household_member '
+    'WHERE deleted_at IS NULL '
+    'ORDER BY sort_order, display_name',
+  ),
+);
+
+List<Member> _membersFrom(List<Row> rows) => [
+  for (final r in rows)
+    Member(
+      id: r['id'] as String,
+      displayName: r['display_name'] as String,
+      portionFactor: (r['portion_factor'] as num?)?.toDouble() ?? 1,
+    ),
+];

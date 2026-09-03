@@ -71,6 +71,38 @@ void main() {
       final members = await repo.members();
       expect(members.map((m) => m.displayName), ['Ada']);
     });
+
+    test('a member row without a factor reads 1 — the column’s own default '
+        '(plan 0027 P-D6)', () async {
+      await _insertMember(db, 'm1', 'Ada', 0);
+      expect((await repo.members()).single.portionFactor, 1);
+    });
+
+    test('setPortionFactor writes the one client-owned column, members() '
+        'reads it back and watchMembers re-emits (P-D1/D3)', () async {
+      await _insertMember(db, 'm1', 'Ada', 0);
+      await _insertMember(db, 'm2', 'Jun', 1);
+      final stream = StreamIterator(repo.watchMembers());
+      expect(await stream.moveNext(), isTrue);
+      expect(stream.current.map((m) => m.portionFactor), [1, 1]);
+
+      // Either member may set either's — the repo takes the member id, not
+      // "me".
+      await repo.setPortionFactor('m2', 0.75);
+      expect(await stream.moveNext(), isTrue);
+      expect(stream.current.map((m) => m.portionFactor), [1, 0.75]);
+      expect((await repo.members()).last.portionFactor, 0.75);
+      await stream.cancel();
+
+      // Nothing else on the row moved: the server grants UPDATE on
+      // portion_factor + updated_at alone, and the local write matches.
+      final row = await db.get(
+        'SELECT display_name, sort_order FROM household_member WHERE id = ?',
+        ['m2'],
+      );
+      expect(row['display_name'], 'Jun');
+      expect(row['sort_order'], 1);
+    });
   });
 
   group('weeks and entries', () {

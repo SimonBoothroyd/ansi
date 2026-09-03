@@ -143,6 +143,12 @@ class _FakePlanningRepo implements PlanningRepository {
   Future<WeekPlan?> mostRecentWeekBefore(DateTime weekStart) async => null;
   @override
   Future<List<Member>> members() async => const [];
+
+  @override
+  Stream<List<Member>> watchMembers() => Stream.fromFuture(members());
+
+  @override
+  Future<void> setPortionFactor(String memberId, double factor) async {}
   @override
   Stream<Map<String, DateTime>> watchLastPlanned() => Stream.value(const {});
   @override
