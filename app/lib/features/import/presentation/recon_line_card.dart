@@ -875,6 +875,10 @@ Future<void> editLineAmount(
     initialChoice: preselect != null
         ? MeasureOption(preselect)
         : (unit != null ? UnitOption(unit) : null),
+    // The same sheet the editor uses, so the review gets the Optional switch
+    // for free (D6a) — seeded from the extractor's flag, and the raw tag on
+    // the card keeps saying what the source said.
+    initialOptional: resolution.optional,
   );
   if (result is! QuantitySaved) return;
   // The notifier is read HERE, after the awaited sheet — never captured before
@@ -889,7 +893,9 @@ Future<void> editLineAmount(
       unitPicked: result.unitPicked || preselect != null,
       currentUnit: r.unit,
     );
-    return r.setAmount(quantity: result.quantity, unit: picked);
+    return r
+        .setAmount(quantity: result.quantity, unit: picked)
+        .setOptional(optional: result.optional);
   });
 }
 

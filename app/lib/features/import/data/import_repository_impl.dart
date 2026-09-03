@@ -274,8 +274,8 @@ class SqliteImportRepository implements ImportRepository {
           await tx.execute(
             'INSERT INTO recipe_line_item (id, household_id, group_id, '
             'ingredient_id, sub_recipe_id, quantity, unit, measure_id, note, '
-            'sort_order, created_at, updated_at) '
-            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'optional, sort_order, created_at, updated_at) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
               lineIds[line.lineIndex],
               _householdId,
@@ -286,6 +286,9 @@ class SqliteImportRepository implements ImportRepository {
               if (measureId != null) pieces.id else _unitId(line),
               measureId,
               line.note,
+              // 0/1 like the schema's other flags (plan 0025 #6); a
+              // component line arrives false from `buildCommit`.
+              if (line.optional) 1 else 0,
               sortInGroup,
               now,
               now,

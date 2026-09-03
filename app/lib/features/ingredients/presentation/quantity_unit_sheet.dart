@@ -54,16 +54,20 @@ sealed class QuantitySheetResult {
 /// The user confirmed a quantity + unit choice. [unitPicked] is true only
 /// when a chip was explicitly tapped — callers preserving an unresolved
 /// `measure_id` (the degrade-don't-destroy rule) clear it only then.
+/// [optional] is the Optional switch's final state (plan 0025 / D6a) — false
+/// for a host that did not offer the row.
 final class QuantitySaved extends QuantitySheetResult {
   const QuantitySaved({
     required this.choice,
     required this.unitPicked,
     this.quantity,
+    this.optional = false,
   });
 
   final double? quantity;
   final UnitChoice choice;
   final bool unitPicked;
+  final bool optional;
 }
 
 /// The user hit the remove affordance (edit-top-up only).
@@ -80,6 +84,7 @@ Future<QuantitySheetResult?> showQuantityUnitSheet(
   UnitChoice? initialChoice,
   bool requireQuantity = false,
   bool pendingMeasure = false,
+  bool? initialOptional,
   String confirmLabel = 'Done',
   bool showRemove = false,
 }) {
@@ -91,6 +96,7 @@ Future<QuantitySheetResult?> showQuantityUnitSheet(
       initialChoice: initialChoice,
       requireQuantity: requireQuantity,
       pendingMeasure: pendingMeasure,
+      initialOptional: initialOptional,
       confirmLabel: confirmLabel,
       onDone: (saved) => Navigator.of(sheetContext).pop(saved),
       onRemove: showRemove
@@ -108,6 +114,7 @@ class QuantityUnitEditor extends HookConsumerWidget {
     this.initialChoice,
     this.requireQuantity = false,
     this.pendingMeasure = false,
+    this.initialOptional,
     this.confirmLabel = 'Done',
     this.onRemove,
     super.key,
@@ -125,6 +132,13 @@ class QuantityUnitEditor extends HookConsumerWidget {
   /// shown with a pending note until a chip is explicitly picked.
   final bool pendingMeasure;
 
+  /// The line's stored `optional` flag, when the host is a RECIPE line (the
+  /// editor and the import review — plan 0025 / D6a): the sheet then shows
+  /// the Optional switch between the chips and Done. Null hides the row —
+  /// a shopping top-up has no such fact, and the component sheet is its own
+  /// surface (an optional sub-recipe is a week-level question, not a line's).
+  final bool? initialOptional;
+
   final String confirmLabel;
   final ValueChanged<QuantitySaved> onDone;
   final VoidCallback? onRemove;
@@ -136,6 +150,7 @@ class QuantityUnitEditor extends HookConsumerWidget {
       initialChoice ?? UnitOption(ingredient.defaultUnit),
     );
     final unitPicked = useState(false);
+    final optional = useState(initialOptional ?? false);
     final managing = useState(false);
     final deletedNote = useState<String?>(null);
     // The line's stored choice, admitted into the chip row even when the
@@ -231,6 +246,7 @@ class QuantityUnitEditor extends HookConsumerWidget {
                 deletedNote: deletedNote.value,
                 pendingMeasure: pendingMeasure,
                 requireQuantity: requireQuantity,
+                optional: initialOptional == null ? null : optional,
                 confirmLabel: confirmLabel,
                 onManage: () => managing.value = true,
                 onDone: () => onDone(
@@ -238,6 +254,7 @@ class QuantityUnitEditor extends HookConsumerWidget {
                     quantity: quantity.value,
                     choice: choice.value,
                     unitPicked: unitPicked.value,
+                    optional: optional.value,
                   ),
                 ),
                 onRemove: onRemove,
@@ -260,6 +277,7 @@ class _QuantitySurface extends StatelessWidget {
     required this.deletedNote,
     required this.pendingMeasure,
     required this.requireQuantity,
+    required this.optional,
     required this.confirmLabel,
     required this.onManage,
     required this.onDone,
@@ -280,6 +298,10 @@ class _QuantitySurface extends StatelessWidget {
   final String? deletedNote;
   final bool pendingMeasure;
   final bool requireQuantity;
+
+  /// The Optional switch's state, or null when this host has no such row
+  /// (see [QuantityUnitEditor.initialOptional]).
+  final ValueNotifier<bool>? optional;
   final String confirmLabel;
   final VoidCallback onManage;
   final VoidCallback onDone;
@@ -410,6 +432,23 @@ class _QuantitySurface extends StatelessWidget {
           },
           onManage: onManage,
         ),
+        // The Optional row (D6a, board frame e1) sits between the chips and
+        // Done, in the row grammar the chip sheet's "Show the amount here"
+        // uses. The caption names BOTH consequences, because the switch is
+        // one tap and the effect is on two other screens.
+        if (optional != null) ...[
+          const SizedBox(height: 14),
+          FSwitch(
+            label: Text('Optional', style: ansiSans(size: 15)),
+            value: optional!.value,
+            onChange: (on) => optional!.value = on,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'left out of macros and the shop list, and named where it left',
+            style: ansiMono(size: 11, color: AnsiColors.muted),
+          ),
+        ],
         const SizedBox(height: 14),
         FButton(onPress: canConfirm ? onDone : null, child: Text(confirmLabel)),
         if (onRemove != null) ...[

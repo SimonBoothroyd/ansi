@@ -151,6 +151,37 @@ void main() {
     expect(flour.totals.single.amount, 200); // 100 g × 2
   });
 
+  test('an optional line is left off the list, and its recipe says which '
+      '(plan 0025 / D6b)', () async {
+    await _insertIngredient(db, 'lime', 'Lime', 'produce', 'piece');
+    await _insertRecipe(
+      db,
+      'curry',
+      'Curry',
+      lines: [('onion', 3, pieces), ('lime', 1, pieces)],
+    );
+    await db.execute('UPDATE recipe_line_item SET optional = 1 WHERE id = ?', [
+      'curry-li1',
+    ]);
+    await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'curry',
+      eaterIds: ['a', 'b'],
+    );
+
+    final list = await repo.watchShoppingList(_week).first;
+    // No lime item anywhere — and no invented quantity in its place.
+    expect(list.groups.expand((g) => g.items).map((i) => i.ingredientId), [
+      'onion',
+    ]);
+    final echo = list.optionalLines.single;
+    expect(echo.recipeId, 'curry');
+    expect(echo.recipeTitle, 'Curry');
+    expect(echo.names, ['Lime']);
+  });
+
   test('merges a shared ingredient across recipes with provenance', () async {
     await _insertRecipe(db, 'curry', 'Curry', lines: [('onion', 3, pieces)]);
     await _insertRecipe(db, 'ragu', 'Ragù', lines: [('onion', 2, pieces)]);

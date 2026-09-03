@@ -38,6 +38,8 @@ import '../../cook_plan/data/cook_plan_repository_impl.dart'
     show loadComponentGraph;
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../planning/domain/planning.dart' show mondayOf;
+import '../../recipes/domain/effective_lines.dart';
+import '../../recipes/domain/recipe.dart';
 import '../domain/shopping.dart';
 import '../domain/shopping_repository.dart';
 
@@ -48,12 +50,15 @@ const _weekdayShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const _uuid = Uuid();
 
-/// A recipe line as the shopping list needs it. `unit` is null when the
-/// persisted id isn't a known unit — `rawUnit` keeps the string for the
-/// breakdown's unconverted note. `measure` is resolved when the line is
-/// quantified in one (null if its row is missing — the stored count unit then
-/// stands, an honest degradation).
+/// A recipe line as the shopping list needs it. `line` is the domain
+/// [LineItem] the `effectiveLines` seam rules on (id, name, `optional`);
+/// `unit` is null when the persisted id isn't a known unit — `rawUnit` keeps
+/// the string for the breakdown's unconverted note, and the domain line's
+/// `pieces` fallback is never read here. `measure` is resolved when the line
+/// is quantified in one (null if its row is missing — the stored count unit
+/// then stands, an honest degradation).
 typedef _LineItem = ({
+  LineItem line,
   String ingredientId,
   double? quantity,
   Unit? unit,
@@ -106,7 +111,9 @@ class SqliteShoppingRepository implements ShoppingRepository {
   }
 
   Future<ShoppingList> _load(String weekKey) async {
-    final (cook, unresolved) = await _deriveCookContributions(weekKey);
+    final (cook, unresolved, optional) = await _deriveCookContributions(
+      weekKey,
+    );
     final (entries, manual) = await _loadOverlay(weekKey);
     final meta = await _loadIngredientMeta({
       ...cook.map((c) => c.ingredientId),
@@ -119,6 +126,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
       meta: meta,
       weekdayShort: _weekdayShort,
       unresolvedComponents: unresolved,
+      optionalLines: optional,
     );
   }
 
@@ -133,7 +141,19 @@ class SqliteShoppingRepository implements ShoppingRepository {
   /// row without an `ingredient_id`, which is exactly the component rows (you
   /// buy almonds, not aioli). The second return value is the per-parent
   /// "N components unresolved" echo built from the plan's gaps.
-  Future<(List<CookContributionInput>, List<UnresolvedComponentNote>)>
+  ///
+  /// Since plan 0025 (D6b) each recipe's lines pass through the
+  /// `effectiveLines` seam before any session expands them — this is where
+  /// lines meet the week, so it is where the per-week override will join
+  /// later — and the third return value is the per-recipe "N optional lines
+  /// not listed" echo built from what the seam dropped.
+  Future<
+    (
+      List<CookContributionInput>,
+      List<UnresolvedComponentNote>,
+      List<OptionalLinesNote>,
+    )
+  >
   _deriveCookContributions(String weekKey) async {
     final rows = await _db.getAll(
       'SELECT pe.day_of_week, pe.meal_slot, pe.eaters, pe.portions, '
@@ -150,6 +170,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
       return (
         const <CookContributionInput>[],
         const <UnresolvedComponentNote>[],
+        const <OptionalLinesNote>[],
       );
     }
 
@@ -188,9 +209,27 @@ class SqliteShoppingRepository implements ShoppingRepository {
     });
 
     final contributions = <CookContributionInput>[];
+    final optionalNotes = <OptionalLinesNote>[];
     for (final recipe in plan.recipes) {
       final batched = recipe.sessions.length > 1;
-      final items = lineItems[recipe.recipeId] ?? const [];
+      final stored = lineItems[recipe.recipeId] ?? const <_LineItem>[];
+      // The seam (D6b): the sessions below expand only the kept lines, and
+      // the dropped ones become this recipe's echo row — never a silent
+      // hole in a list somebody shops from.
+      final effective = effectiveLines(stored.map((i) => i.line));
+      final keptIds = {for (final l in effective.kept) l.id};
+      final items = [
+        for (final i in stored)
+          if (keptIds.contains(i.line.id)) i,
+      ];
+      final dropped = droppedNames(effective, LineDropReason.optional);
+      if (dropped.isNotEmpty) {
+        optionalNotes.add((
+          recipeId: recipe.recipeId,
+          recipeTitle: recipe.title,
+          names: dropped,
+        ));
+      }
       for (final session in recipe.sessions) {
         for (final item in items) {
           // An unrecognised unit can't be scaled (it might even be imprecise);
@@ -231,7 +270,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
       for (final e in plan.unresolvedComponentsByParent.entries)
         (recipeId: e.key, recipeTitle: titles[e.key] ?? '', count: e.value),
     ]..sort((a, b) => a.recipeTitle.compareTo(b.recipeTitle));
-    return (contributions, unresolved);
+    optionalNotes.sort((a, b) => a.recipeTitle.compareTo(b.recipeTitle));
+    return (contributions, unresolved, optionalNotes);
   }
 
   Future<Map<String, List<_LineItem>>> _loadLineItems(
@@ -240,12 +280,14 @@ class SqliteShoppingRepository implements ShoppingRepository {
     if (recipeIds.isEmpty) return const {};
     final placeholders = List.filled(recipeIds.length, '?').join(', ');
     final rows = await _db.getAll(
-      'SELECT g.recipe_id, li.ingredient_id, li.quantity, li.unit, '
+      'SELECT g.recipe_id, li.id, li.ingredient_id, li.quantity, li.unit, '
+      'li.optional, ing.canonical_name AS ingredient_name, '
       'li.measure_id, im.label AS measure_label, '
       'im.basis_amount AS measure_amount, i2.macros_basis AS measure_basis, '
       'im.sort_order AS measure_sort, im.source AS measure_source '
       'FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
+      'LEFT JOIN ingredient ing ON ing.id = li.ingredient_id '
       'LEFT JOIN ingredient_measure im '
       'ON im.id = li.measure_id AND im.deleted_at IS NULL '
       'LEFT JOIN ingredient i2 ON i2.id = im.ingredient_id '
@@ -261,12 +303,27 @@ class SqliteShoppingRepository implements ShoppingRepository {
       // NOT a `pieces` fallback, which would let the total sum an invented
       // unit (invariant 3: honest numbers).
       final rawUnit = row['unit'] as String?;
+      final unit = rawUnit == null ? null : unitById(rawUnit);
+      final measure = _toMeasure(row);
       (byRecipe[row['recipe_id'] as String] ??= []).add((
+        // The domain line the seam rules on. Its `unit` is the honest
+        // fallback the recipe page also shows; the expansion reads the
+        // record's nullable `unit` instead, so nothing invented is summed.
+        line: LineItem(
+          id: row['id'] as String,
+          ingredientId: ingredientId,
+          ingredientName: row['ingredient_name'] as String? ?? '',
+          unit: unit ?? pieces,
+          quantity: (row['quantity'] as num?)?.toDouble(),
+          measureId: row['measure_id'] as String?,
+          measure: measure,
+          optional: row['optional'] == 1,
+        ),
         ingredientId: ingredientId,
         quantity: (row['quantity'] as num?)?.toDouble(),
-        unit: rawUnit == null ? null : unitById(rawUnit),
+        unit: unit,
         rawUnit: rawUnit,
-        measure: _toMeasure(row),
+        measure: measure,
       ));
     }
     return byRecipe;

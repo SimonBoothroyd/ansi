@@ -108,6 +108,63 @@ void main() {
       );
     });
 
+    test("D6b's sentence — optional lines are counted, then named", () {
+      expect(
+        notCountedNote([
+          _note(MacroLineReason.optional, name: 'Lime'),
+          _note(MacroLineReason.optional, name: 'Coriander'),
+        ]),
+        'not counted · 2 optional lines: Lime, Coriander',
+      );
+      expect(
+        notCountedNote([_note(MacroLineReason.optional, name: 'Lime')]),
+        'not counted · 1 optional line: Lime',
+      );
+    });
+
+    test('imprecise and optional coincide on ONE line with both reasons', () {
+      expect(
+        notCountedNote([
+          _note(MacroLineReason.optional, name: 'Lime'),
+          _note(MacroLineReason.imprecise, name: 'Parsley', unit: 'handful'),
+          _note(MacroLineReason.optional, name: 'Coriander'),
+        ]),
+        'not counted: Parsley · handful · 2 optional lines: Lime, Coriander',
+      );
+    });
+
+    test('an optional line is by rule — never fixable, and its word is the '
+        "page's tag", () {
+      final notes = [
+        _note(MacroLineReason.optional, name: 'Lime'),
+        _note(MacroLineReason.stubIngredient, name: 'Tofu'),
+      ];
+      expect(
+        fixableNotes(RecipeMacroSummary(notes: notes)).single.name,
+        'Tofu',
+      );
+      expect(incompleteLineNote(MacroLineReason.optional), 'optional');
+    });
+
+    test('the caption under the line says what applies, and where the switch '
+        'is', () {
+      expect(
+        notCountedCaption(const RecipeMacroSummary(impreciseLines: 1)),
+        contains('excluded by rule'),
+      );
+      expect(
+        notCountedCaption(const RecipeMacroSummary(optionalLines: 1)),
+        'optional lines are left out by rule, not by failure — untick '
+        'Optional on a line to count it.',
+      );
+      expect(
+        notCountedCaption(
+          const RecipeMacroSummary(impreciseLines: 1, optionalLines: 1),
+        ),
+        allOf(contains('a pinch'), contains('untick Optional')),
+      );
+    });
+
     test('it names ONLY the by-rule exclusions — a stub is a defect, not an '
         'exclusion, and belongs in the fixable list', () {
       final notes = [

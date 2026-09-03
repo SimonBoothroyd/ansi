@@ -350,4 +350,52 @@ void main() {
       expect(plan.gaps, isEmpty);
     });
   });
+
+  test('an optional line does not change the cook plan (plan 0025 / D6b): a '
+      'batch is a batch whether the lime comes', () async {
+    await _insertRecipe(db, 'curry', 'Chicken Curry', keepsForDays: 3);
+    await _insertRecipe(db, 'plain', 'Plain Curry', keepsForDays: 3);
+    // One ordinary and one optional ingredient line on the first recipe only;
+    // the second has no lines at all. Plain INSERTs — the tables are views.
+    final now = DateTime.now().toUtc().toIso8601String();
+    await db.execute(
+      'INSERT INTO ingredient_group (id, household_id, recipe_id, sort_order, '
+      'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+      ['g-curry', 'h', 'curry', 0, now, now],
+    );
+    for (final (id, optional) in [('li-onion', 0), ('li-lime', 1)]) {
+      await db.execute(
+        'INSERT INTO recipe_line_item (id, household_id, group_id, '
+        'ingredient_id, quantity, unit, optional, sort_order, created_at, '
+        'updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [id, 'h', 'g-curry', 'ing-$id', 1, pieces.id, optional, 0, now, now],
+      );
+    }
+    for (final recipeId in ['curry', 'plain']) {
+      for (final day in [0, 5]) {
+        await planning.addEntry(
+          weekStart: _week,
+          dayOfWeek: day,
+          mealSlot: 'Dinner',
+          recipeId: recipeId,
+          eaterIds: ['a', 'b'],
+        );
+      }
+    }
+
+    final plan = await repo.watchCookPlan(_week).first;
+    final byTitle = {for (final r in plan.recipes) r.title: r};
+    final curry = byTitle['Chicken Curry']!;
+    final plain = byTitle['Plain Curry']!;
+    expect(curry.sessions.map((s) => s.cookDay), [0, 5]);
+    expect(
+      curry.sessions.map((s) => s.cookDay),
+      plain.sessions.map((s) => s.cookDay),
+    );
+    expect(
+      curry.sessions.map((s) => s.scaleFactor),
+      plain.sessions.map((s) => s.scaleFactor),
+    );
+    expect(curry.totalPortions, plain.totalPortions);
+  });
 }

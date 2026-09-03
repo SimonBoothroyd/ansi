@@ -105,6 +105,66 @@ void main() {
     expect(rice.note, 'rinsed');
   });
 
+  test('optional survives save → load, and a flipped flag is a child-diff '
+      'UPDATE on the same row (plan 0025 #6)', () async {
+    final recipe = _sampleRecipe();
+    final sauce = recipe.groups[0];
+    await repo.saveRecipe(
+      recipe.copyWith(
+        groups: [
+          sauce.copyWith(
+            items: [sauce.items[0], sauce.items[1].copyWith(optional: true)],
+          ),
+          recipe.groups[1],
+        ],
+      ),
+    );
+
+    var loaded = (await repo.watchRecipe('r1').first)!;
+    expect(loaded.groups[0].items.map((i) => i.optional), [false, true]);
+    expect(loaded.groups[1].items.single.optional, isFalse);
+    // The computed summary already reads the flag: the salt line is named
+    // as optional, not as the imprecise line it would otherwise be.
+    expect(loaded.macros!.optionalLines, 1);
+    expect(loaded.macros!.impreciseLines, 0);
+    expect(
+      loaded.macros!.notes
+          .where((n) => n.reason == MacroLineReason.optional)
+          .single
+          .name,
+      'Salt',
+    );
+    // …and the list row's own loader agrees.
+    final row = (await repo.watchRecipes().first).single;
+    expect(row.macros!.optionalLines, 1);
+
+    // Flip both lines and re-save: kept ids, so the diff must UPDATE them —
+    // a flag is a change like any other field.
+    final g = loaded.groups[0];
+    await repo.saveRecipe(
+      loaded.copyWith(
+        groups: [
+          g.copyWith(
+            items: [
+              g.items[0].copyWith(optional: true),
+              g.items[1].copyWith(optional: false),
+            ],
+          ),
+          loaded.groups[1],
+        ],
+      ),
+    );
+    loaded = (await repo.watchRecipe('r1').first)!;
+    expect(loaded.groups[0].items.map((i) => i.id), ['i1', 'i2']);
+    expect(loaded.groups[0].items.map((i) => i.optional), [true, false]);
+    final stored = await db.getAll(
+      'SELECT id, optional FROM recipe_line_item WHERE id IN (?, ?) '
+      'ORDER BY id',
+      ['i1', 'i2'],
+    );
+    expect(stored.map((r) => r['optional']), [1, 0]);
+  });
+
   test('an imported recipe keeps its tokenized method across a save', () async {
     // An import-shaped recipe: the method lives in `methodSteps` (token stream)
     // and the plain `steps` list is empty. Editing anything else and saving

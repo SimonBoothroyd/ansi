@@ -91,6 +91,7 @@ Widget _host({
   required _FakeMeasureRepo repo,
   required ValueChanged<QuantitySaved> onDone,
   UnitChoice? initialChoice,
+  bool? initialOptional,
 }) => ProviderScope(
   overrides: [measureRepositoryProvider.overrideWithValue(repo)],
   child: MaterialApp(
@@ -101,6 +102,7 @@ Widget _host({
           ingredient: _potato,
           initialQuantity: 2,
           initialChoice: initialChoice,
+          initialOptional: initialOptional,
           onDone: onDone,
         ),
       ),
@@ -257,5 +259,65 @@ void main() {
     // ("cup" chip selected in the spoon row alongside tsp/tbsp).
     expect(find.text('weighs'), findsOneWidget);
     expect(find.text('cup'), findsOneWidget);
+  });
+
+  testWidgets('the Optional row is offered only to a recipe-line host (D6a) — '
+      'a shopping top-up has no such fact', (tester) async {
+    _filterSemanticsAssertions();
+    await tester.pumpWidget(
+      _host(repo: _FakeMeasureRepo(const [_large]), onDone: (_) {}),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Optional'), findsNothing);
+    expect(find.byType(FSwitch), findsNothing);
+  });
+
+  testWidgets('the Optional switch rides Done, with both consequences named '
+      'under it (frame e1)', (tester) async {
+    _filterSemanticsAssertions();
+    QuantitySaved? saved;
+    await tester.pumpWidget(
+      _host(
+        repo: _FakeMeasureRepo(const [_large]),
+        initialOptional: false,
+        onDone: (s) => saved = s,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Optional'), findsOneWidget);
+    expect(
+      find.text(
+        'left out of macros and the shop list, and named where it left',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byType(FSwitch));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    expect(saved!.optional, isTrue);
+    expect(saved!.quantity, 2); // a fact about the line, not its amount
+    expect(saved!.unitPicked, isFalse);
+  });
+
+  testWidgets('a line that arrives optional opens on the switch set', (
+    tester,
+  ) async {
+    _filterSemanticsAssertions();
+    QuantitySaved? saved;
+    await tester.pumpWidget(
+      _host(
+        repo: _FakeMeasureRepo(const [_large]),
+        initialOptional: true,
+        onDone: (s) => saved = s,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(saved!.optional, isTrue);
   });
 }

@@ -47,6 +47,7 @@ class LineResolution {
     this.isCorrection = false,
     this.isDropped = false,
     this.unitFromDefault = false,
+    this.optional = false,
   });
 
   /// Position in the payload's flattened line order — the stable key.
@@ -117,6 +118,13 @@ class LineResolution {
   /// Cleared the moment the user touches the unit ([pickUnit], [setAmount]).
   final bool unitFromDefault;
 
+  /// The recipe says this line may be left out (plan 0025 / D6b) — seeded
+  /// from the extractor's raw flag, toggled in the amount sheet at review,
+  /// committed to `recipe_line_item.optional`. Always false while the line is
+  /// a component ([linkToRecipe] clears it): an optional sub-recipe is a
+  /// week-level question, not a line fact.
+  final bool optional;
+
   /// Whether this line is a sub-recipe COMPONENT (step 8.6 / D1) rather than
   /// an ingredient line.
   bool get isComponent => linkedRecipeId != null;
@@ -145,6 +153,7 @@ class LineResolution {
     bool? isCorrection,
     bool? isDropped,
     bool? unitFromDefault,
+    bool? optional,
     bool clearIngredient = false,
     bool clearStub = false,
     bool clearLink = false,
@@ -170,6 +179,7 @@ class LineResolution {
     isCorrection: isCorrection ?? this.isCorrection,
     isDropped: isDropped ?? this.isDropped,
     unitFromDefault: unitFromDefault ?? this.unitFromDefault,
+    optional: optional ?? this.optional,
   );
 
   /// Drops the line from the import — reversible until Save ([undrop]).
@@ -216,7 +226,16 @@ class LineResolution {
     clearStub: true,
     // A link is not an ingredient correction — there is no alias to write.
     isCorrection: false,
+    // Nor is a component line ever optional (D6b's stated scope) — the raw
+    // flag was about an ingredient, and the sheet does not offer the switch
+    // on a component.
+    optional: false,
   );
+
+  /// Marks the line optional, or not — the amount sheet's switch at review
+  /// (plan 0025 / D6a). A fact about the line, not its amount.
+  LineResolution setOptional({required bool optional}) =>
+      copyWith(optional: optional);
 
   /// Un-links the line, back to the plain unmatched text it arrived as —
   /// reversible right up to Save, like every other review decision.
@@ -271,6 +290,7 @@ class LineResolution {
     quantity: quantity,
     isCorrection: isCorrection,
     isDropped: isDropped,
+    optional: optional,
   );
 
   /// Sets the line's note (blank/whitespace clears it).
@@ -329,6 +349,9 @@ LineResolution initialResolution(int lineIndex, ReconLine line) {
     chosenIngredientId: adopt ? top.ingredientId : null,
     chosenName: adopt ? top.canonicalName : null,
     quantity: isRange ? null : raw.qty,
+    // The extractor's flag is the starting state (plan 0025 #6) — a human
+    // may untick it at review, and the card keeps showing the raw tag.
+    optional: raw.optional,
   );
 }
 
@@ -495,6 +518,10 @@ CommitPayload buildCommit(
           quantity: r.quantity,
           unit: r.unit,
           note: (r.notes?.isEmpty ?? true) ? null : r.notes,
+          // Re-asserted at the seam like the identity rules above: a
+          // component line commits as not optional whatever the raw flag
+          // said about the text it was linked from.
+          optional: !r.isComponent && r.optional,
         ),
       );
       flatIndex++;

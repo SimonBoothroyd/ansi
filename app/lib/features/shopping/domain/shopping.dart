@@ -81,6 +81,21 @@ typedef UnresolvedComponentNote = ({
   int count,
 });
 
+/// One planned recipe's "N optional lines not listed" echo (plan 0025 / D6b).
+///
+/// An optional line contributes NOTHING to the list — the `effectiveLines`
+/// seam dropped it before the session was expanded — and the recipe it
+/// belongs to says so, by name, in the same group-header voice as
+/// [UnresolvedComponentNote]. The difference is the colour: an unresolved
+/// component is a defect somebody can fix, an optional line is a rule
+/// somebody chose, so the row reads muted rather than amber. `names` are the
+/// dropped lines' ingredient names in stored order.
+typedef OptionalLinesNote = ({
+  String recipeId,
+  String recipeTitle,
+  List<String> names,
+});
+
 /// A persisted shopping entry row (the check-off + free-text anchor).
 /// `createdAt` (ISO-8601) makes duplicate-entry merging deterministic: the
 /// oldest live row per ingredient is the canonical one on every device.
@@ -219,7 +234,9 @@ abstract class ShoppingGroup with _$ShoppingGroup {
 }
 
 /// The whole shopping list, grouped by aisle, plus the per-parent
-/// [unresolvedComponents] echo (step 8.6 / D4).
+/// [unresolvedComponents] echo (step 8.6 / D4) and the per-recipe
+/// [optionalLines] echo (plan 0025 / D6b) — what the list is short by, and
+/// why it is silent about it.
 @freezed
 abstract class ShoppingList with _$ShoppingList {
   const ShoppingList._();
@@ -228,6 +245,7 @@ abstract class ShoppingList with _$ShoppingList {
     @Default(<ShoppingGroup>[]) List<ShoppingGroup> groups,
     @Default(<UnresolvedComponentNote>[])
     List<UnresolvedComponentNote> unresolvedComponents,
+    @Default(<OptionalLinesNote>[]) List<OptionalLinesNote> optionalLines,
   }) = _ShoppingList;
 
   bool get isEmpty => groups.isEmpty;
@@ -494,7 +512,12 @@ String cookLabel(CookContributionInput c, List<String> weekdayShort) {
 /// any-checked, and the oldest row (created_at, id) is the canonical entry —
 /// so no device silently drops the other's top-ups or check-off.
 /// [unresolvedComponents] is carried through to the built list untouched — the
-/// cook plan's gaps, counted per planned recipe (step 8.6 / D4).
+/// cook plan's gaps, counted per planned recipe (step 8.6 / D4). So is
+/// [optionalLines] (plan 0025 / D6b): the lines the `effectiveLines` seam
+/// dropped before [cook] was derived, named per recipe. The builder never
+/// sees an optional line as a contribution — the drop happens at the seam,
+/// once, where the per-week override will later join — it only carries the
+/// echo so the list can say what it left out.
 ShoppingList buildShoppingList({
   required List<CookContributionInput> cook,
   required List<ShoppingEntryInput> entries,
@@ -502,6 +525,7 @@ ShoppingList buildShoppingList({
   required Map<String, IngredientMetaInput> meta,
   required List<String> weekdayShort,
   List<UnresolvedComponentNote> unresolvedComponents = const [],
+  List<OptionalLinesNote> optionalLines = const [],
 }) {
   // Index persisted entries by their ingredient (free-text ones stay by id),
   // keeping every duplicate so it can be merged rather than dropped.
@@ -767,6 +791,7 @@ ShoppingList buildShoppingList({
   return ShoppingList(
     groups: groups,
     unresolvedComponents: unresolvedComponents,
+    optionalLines: optionalLines,
   );
 }
 

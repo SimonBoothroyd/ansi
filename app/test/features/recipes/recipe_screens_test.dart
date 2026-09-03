@@ -11,6 +11,7 @@ import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_repository.dart';
+import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
 import 'package:ansi/features/recipes/presentation/recipe_editor_view.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:flutter/material.dart';
@@ -245,6 +246,52 @@ void main() {
     expect(find.text('3'), findsNothing);
     // The ingredient identity renders in a rich line (amount + name + notes).
     expect(find.textContaining('Garlic', findRichText: true), findsWidgets);
+  });
+
+  testWidgets('RecipeView tags an optional line after its note, in the '
+      'identity column (plan 0025 / D6b)', (tester) async {
+    const recipe = Recipe(
+      id: '3',
+      title: 'Curry',
+      servingsBase: 2,
+      groups: [
+        IngredientGroup(
+          id: 'g1',
+          items: [
+            LineItem(
+              id: 'i1',
+              ingredientId: 'lime',
+              ingredientName: 'Lime',
+              unit: pieces,
+              quantity: 1,
+              note: 'to serve',
+              optional: true,
+            ),
+            LineItem(
+              id: 'i2',
+              ingredientId: 'rice',
+              ingredientName: 'Rice',
+              unit: g,
+              quantity: 200,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _host(const RecipeView(recipeId: '3'), [
+        recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(recipe)),
+      ]),
+    );
+    await tester.pump();
+
+    // One tag, on the lime row only — and the amount column still says "1":
+    // the tag is a fact about the line, not about its amount.
+    expect(find.byType(OptionalTag), findsOneWidget);
+    expect(find.text('optional'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('200 g'), findsOneWidget);
   });
 
   testWidgets('RecipeEditorView builds a blank create form', (tester) async {

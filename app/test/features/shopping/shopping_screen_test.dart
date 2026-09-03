@@ -326,4 +326,50 @@ void main() {
     expect(find.text('SAUSAGE SLIDERS'), findsOneWidget);
     expect(find.text('1 component unresolved — see Cook'), findsOneWidget);
   });
+
+  testWidgets('an optional line that left the list is named by its recipe, '
+      'muted — a rule, not a defect (D6b)', (tester) async {
+    final list = ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Pantry',
+          items: [
+            ShoppingItem(
+              name: 'Olive oil',
+              ingredientId: 'oil',
+              totals: [Quantity(30, ml)],
+            ),
+          ],
+        ),
+      ],
+      optionalLines: const [
+        (
+          recipeId: 'curry',
+          recipeTitle: 'Weeknight Chicken Curry',
+          names: ['lime', 'coriander'],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _host([
+        shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(list)),
+      ]),
+    );
+    await tester.pump();
+
+    expect(find.text('WEEKNIGHT CHICKEN CURRY'), findsOneWidget);
+    expect(
+      find.text('2 optional lines not listed — lime, coriander'),
+      findsOneWidget,
+    );
+    // Muted, not amber: the unresolved echo's flag icon is not on this row.
+    expect(
+      find.descendant(
+        of: find.byType(OptionalLinesEcho),
+        matching: find.byIcon(FLucideIcons.flag),
+      ),
+      findsNothing,
+    );
+  });
 }

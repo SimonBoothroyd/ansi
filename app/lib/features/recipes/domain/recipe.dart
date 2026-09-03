@@ -174,6 +174,14 @@ abstract class IngredientGroup with _$IngredientGroup {
 /// is the stored id verbatim and [subRecipe] the resolved target, null while
 /// the row hasn't synced (or was deleted). Nothing derives from a component
 /// whose target is missing — the line simply reads as the text it stored (D5).
+///
+/// An **optional** line (plan 0025 / D6b) is one the recipe says may be left
+/// out — "lime, to serve (optional)". It is a stored fact about the line, not
+/// about its amount: "1 lime" is still what the recipe says. What the flag
+/// changes is what a TOTAL covers, through one seam (`effectiveLines`): the
+/// macro summary and the shopping list leave the line out and name it where
+/// it left; the cook plan is unaffected. Never offered on a component line —
+/// an optional sub-recipe is a week-level question, the override seam's job.
 @freezed
 abstract class LineItem with _$LineItem {
   const LineItem._();
@@ -189,6 +197,7 @@ abstract class LineItem with _$LineItem {
     String? measureId,
     Measure? measure,
     String? note,
+    @Default(false) bool optional,
   }) = _LineItem;
 
   /// Whether this line is a sub-recipe component rather than an ingredient.

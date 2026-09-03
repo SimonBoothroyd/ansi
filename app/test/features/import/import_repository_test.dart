@@ -134,6 +134,61 @@ void main() {
     return (payload: p, resolutions: resolutions);
   }
 
+  test(
+    'commit writes the optional flag the review carried (plan 0025 #6)',
+    () async {
+      const p = ReconciliationPayload(
+        title: 'Optional Lime',
+        servingsBase: 2,
+        groups: [
+          ReconGroup(
+            lines: [
+              ReconLine(
+                raw: RawLineItem(
+                  ingredientText: 'onion',
+                  qty: 1,
+                  unit: 'piece',
+                ),
+                band: MatchBand.auto,
+                candidates: [
+                  MatchCandidate(
+                    ingredientId: 'ing-onion',
+                    canonicalName: 'Onion',
+                  ),
+                ],
+              ),
+              ReconLine(
+                raw: RawLineItem(
+                  ingredientText: 'lime, to serve',
+                  optional: true,
+                ),
+                band: MatchBand.none,
+              ),
+            ],
+          ),
+        ],
+      );
+      final recipeId = await repo.commit(
+        buildCommit(
+          p,
+          [
+            initialResolution(0, p.flatLines[0]),
+            initialResolution(1, p.flatLines[1]).resolveToNewStub('Lime'),
+          ],
+          header: _header(p),
+          issuesByLine: null,
+        ),
+      );
+      final rows = await db.getAll(
+        'SELECT li.optional FROM recipe_line_item li '
+        'JOIN ingredient_group g ON g.id = li.group_id '
+        'WHERE g.recipe_id = ? ORDER BY li.sort_order',
+        [recipeId],
+      );
+      expect(rows.map((r) => r['optional']), [0, 1]);
+    },
+  );
+
   test('commit writes the recipe, groups, and non-null line items', () async {
     final c = resolvedCommit();
     final recipeId = await repo.commit(

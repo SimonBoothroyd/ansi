@@ -330,9 +330,14 @@ class _LineItemEditor extends ConsumerWidget {
             ? MeasureOption(measure)
             : UnitOption(item.unit),
         pendingMeasure: pending,
+        // An ingredient line offers the Optional switch (D6a); the component
+        // branch above never reaches here, so the sheet never offers it
+        // on a sub-recipe.
+        initialOptional: item.optional,
       );
       if (result is! QuantitySaved) return;
       notifier.setLineItemQuantity(item.id, result.quantity);
+      notifier.setLineItemOptional(item.id, optional: result.optional);
       switch (result.choice) {
         case MeasureOption(:final measure):
           notifier.setLineItemMeasure(item.id, measure);

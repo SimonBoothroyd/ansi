@@ -558,6 +558,7 @@ class _IngredientsTab extends StatelessWidget {
       case MacroLineReason.noAmount:
         context.pushOnce('/recipes/${recipe.id}/edit');
       case MacroLineReason.imprecise:
+      case MacroLineReason.optional:
         break; // excluded by rule — there is nothing to fix
     }
   }

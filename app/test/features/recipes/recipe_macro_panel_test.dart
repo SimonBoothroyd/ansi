@@ -325,6 +325,39 @@ void main() {
     expect(find.textContaining('excluded by rule'), findsOneWidget);
   });
 
+  testWidgets('a real total names its optional lines too (D6b), and says '
+      'where the switch is', (tester) async {
+    const summary = RecipeMacroSummary(
+      perServing: Macros(kcal: 418, protein: 16, carb: 54, fat: 13),
+      optionalLines: 2,
+      notes: [
+        (
+          lineId: 'i1',
+          name: 'Lime',
+          reason: MacroLineReason.optional,
+          unit: null,
+        ),
+        (
+          lineId: 'i2',
+          name: 'Coriander',
+          reason: MacroLineReason.optional,
+          unit: null,
+        ),
+      ],
+    );
+    await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
+
+    expect(find.text('418'), findsOneWidget);
+    expect(find.byType(IncompleteBadge), findsNothing);
+    expect(
+      find.text('not counted · 2 optional lines: Lime, Coriander'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('untick Optional'), findsOneWidget);
+    // By rule, so never listed as something to fix.
+    expect(find.textContaining('Lime · '), findsNothing);
+  });
+
   testWidgets('a complete recipe with nothing excluded says nothing extra', (
     tester,
   ) async {

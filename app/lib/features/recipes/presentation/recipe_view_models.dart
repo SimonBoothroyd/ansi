@@ -273,6 +273,12 @@ class RecipeEditor extends _$RecipeEditor
     (i) => i.copyWith(unit: pieces, measureId: measure.id, measure: measure),
   );
 
+  /// Marks the line optional, or not (plan 0025 / D6a — the quantity sheet's
+  /// switch). A fact about the line, never about its amount: the quantity
+  /// and unit are untouched, and what changes is what a total covers.
+  void setLineItemOptional(String itemId, {required bool optional}) =>
+      _mapItem(itemId, (i) => i.copyWith(optional: optional));
+
   /// Re-points a line at another ingredient, **keeping the line's id** (0022
   /// D6).
   ///

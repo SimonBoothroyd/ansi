@@ -14,6 +14,12 @@
 /// changes, to a [RecipeChip] that pushes the target's page. A component whose
 /// target is missing (a sync race, D5) degrades to the plain text it stored,
 /// muted, and says so; nothing derived, nothing invented.
+///
+/// **An optional line carries a tag after the note** (plan 0025 / D6b, board
+/// frame e2) in the stub badge's voice, because it is the same kind of claim
+/// — a fact about the line that changes what a total covers. It sits in the
+/// identity column, never the amount column: "1 lime" is still what the
+/// recipe says.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -204,6 +210,9 @@ class _Identity extends StatelessWidget {
       size: 16,
       color: AnsiColors.muted,
     ).copyWith(fontStyle: FontStyle.italic);
+    // A folded multi-use row is tagged if ANY use is optional: the tag says
+    // a line here is left out of the totals, and one is.
+    final optional = uses.uses.any((u) => u.optional);
 
     // A component whose target resolved: the chip IS the identity, with the
     // note beside it exactly as an ingredient's would be.
@@ -219,6 +228,7 @@ class _Identity extends StatelessWidget {
             onTap: onOpen == null ? null : () => onOpen!(id),
           ),
           if (notes.isNotEmpty) Text(notes, style: noteStyle),
+          if (optional) const OptionalTag(),
         ],
       );
     }
@@ -245,7 +255,33 @@ class _Identity extends StatelessWidget {
             ),
             TextSpan(text: part, style: noteStyle),
           ],
+          if (optional)
+            const WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Padding(
+                padding: EdgeInsets.only(left: 8),
+                child: OptionalTag(),
+              ),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+/// The `optional` tag (board frame e2's `.r3-tag`): the stub badge's exact
+/// voice — `FBadge.secondary`, muted mono — so a reader who knows one knows
+/// the other. Public so the page test can find it by type.
+class OptionalTag extends StatelessWidget {
+  const OptionalTag({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FBadge(
+      variant: FBadgeVariant.secondary,
+      child: Text(
+        'optional',
+        style: ansiMono(size: 10, color: AnsiColors.muted),
       ),
     );
   }

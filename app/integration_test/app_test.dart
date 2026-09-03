@@ -1423,6 +1423,16 @@ void main() {
     )).map((r) => r['id'] as String).toSet();
     expect(lineIds, hasLength(8));
 
+    // Plan 0025 #6: the two lines the extractor flagged optional (the chilli
+    // pair) committed AS optional. The flag used to stop at the review card.
+    final optionalLines = await db.get(
+      'SELECT COUNT(*) AS c FROM recipe_line_item li '
+      'JOIN ingredient_group g ON g.id = li.group_id '
+      'WHERE g.recipe_id = ? AND li.optional = 1 AND li.deleted_at IS NULL',
+      [recipeId],
+    );
+    expect(optionalLines['c'] as int, 2);
+
     // Seam D2, end to end: the defaulted line committed as a MEASURE line —
     // the label rode through `buildCommit` exactly as a tapped chip's does,
     // and the repository re-resolved it to the household's own

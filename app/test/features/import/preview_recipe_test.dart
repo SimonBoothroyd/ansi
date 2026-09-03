@@ -318,4 +318,28 @@ void main() {
       expect(item.measure, isNull);
     });
   });
+
+  test('the preview carries optional onto the line, as the page will tag it '
+      '(plan 0025 / D6b)', () {
+    final payload = ReconciliationPayload(
+      title: 'T',
+      groups: [
+        ReconGroup(
+          lines: [
+            _line('lime', qty: 1, unit: 'piece'),
+            const ReconLine(
+              raw: RawLineItem(ingredientText: 'coriander', optional: true),
+              band: MatchBand.none,
+            ),
+          ],
+        ),
+      ],
+    );
+    final resolutions = [
+      initialResolution(0, payload.flatLines[0]).resolveToNewStub('Lime'),
+      initialResolution(1, payload.flatLines[1]).resolveToNewStub('Coriander'),
+    ];
+    final recipe = buildPreviewRecipe(payload, resolutions, servingsBase: 2);
+    expect(recipe.groups.single.items.map((i) => i.optional), [false, true]);
+  });
 }

@@ -650,4 +650,113 @@ void main() {
       expect(summary.impreciseLines, 0);
     });
   });
+
+  group(
+    'optional lines (plan 0025 / D6b) — through the effectiveLines seam',
+    () {
+      LineItem optional(String id, {double? quantity = 50, Unit unit = g}) =>
+          _line(id, quantity: quantity, unit: unit).copyWith(optional: true);
+
+      test('excluded by rule: the total shows, the line is named, nothing is '
+          'incomplete', () {
+        final summary = summarizeRecipeMacros(
+          servingsBase: 1,
+          lines: [_line('x', quantity: 100), optional('lime')],
+          nutritionOf: _vocab(),
+        );
+        expect(summary.incomplete, isFalse);
+        expect(summary.perServing!.kcal, 100); // the lime's 50 g added nothing
+        expect(summary.optionalLines, 1);
+        expect(summary.notes.single.reason, MacroLineReason.optional);
+        expect(summary.notes.single.name, 'lime');
+        expect(summary.notes.single.lineId, 'li-lime');
+      });
+
+      test('the seam runs first: an optional stub, or an optional pinch, is '
+          'named once — as optional', () {
+        final summary = summarizeRecipeMacros(
+          servingsBase: 1,
+          lines: [
+            _line('x', quantity: 100),
+            optional('missing'),
+            optional('salt', quantity: null, unit: toTaste),
+          ],
+          nutritionOf: _vocab(),
+        );
+        expect(summary.incomplete, isFalse);
+        expect(summary.stubLines, 0);
+        expect(summary.impreciseLines, 0);
+        expect(summary.optionalLines, 2);
+        expect(
+          summary.notes.map((n) => n.reason),
+          everyElement(MacroLineReason.optional),
+        );
+      });
+
+      test('composes with the imprecise exclusion — every one named, in line '
+          'order', () {
+        final summary = summarizeRecipeMacros(
+          servingsBase: 1,
+          lines: [
+            _line('x', quantity: 100),
+            optional('lime'),
+            _line('parsley', unit: handful),
+            optional('coriander'),
+          ],
+          nutritionOf: _vocab(),
+        );
+        expect(summary.incomplete, isFalse);
+        expect(summary.impreciseLines, 1);
+        expect(summary.optionalLines, 2);
+        expect(summary.notes.map((n) => n.name), [
+          'lime',
+          'parsley',
+          'coriander',
+        ]);
+      });
+
+      test('a recipe whose lines are ALL optional summed nothing and still '
+          'refuses — the D6 guard, shared', () {
+        final summary = summarizeRecipeMacros(
+          servingsBase: 1,
+          lines: [
+            optional('lime'),
+            _line('salt', unit: toTaste),
+          ],
+          nutritionOf: _vocab(),
+        );
+        expect(summary.incomplete, isTrue);
+        expect(summary.nothingWeighable, isTrue);
+        expect(summary.noLines, isFalse);
+      });
+
+      test("a sub-recipe's own optional line leaves ITS total the same way, "
+          'and the parent does not name it', () {
+        LineItem component(String subId) => LineItem(
+          id: 'c-$subId',
+          subRecipeId: subId,
+          subRecipe: SubRecipeTarget(id: subId, title: subId),
+          ingredientName: subId,
+          unit: batches,
+          quantity: 1,
+        );
+        final summary = summarizeRecipeMacros(
+          servingsBase: 1,
+          lines: [component('aioli')],
+          nutritionOf: _vocab(),
+          subRecipeOf: (id) => id == 'aioli'
+              ? (
+                  servingsBase: 1,
+                  lines: [_line('x', quantity: 100), optional('lime')],
+                  yields: const <YieldDenomination>[],
+                )
+              : null,
+        );
+        expect(summary.incomplete, isFalse);
+        expect(summary.perServing!.kcal, 100); // 1 batch of the aioli, lime out
+        expect(summary.optionalLines, 0);
+        expect(summary.notes, isEmpty);
+      });
+    },
+  );
 }

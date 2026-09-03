@@ -20,7 +20,7 @@
 -- Run by `supabase test db`.
 
 begin;
-select plan(44);
+select plan(45);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: two households, five recipes in A (one soft-deleted), one in B.
@@ -67,6 +67,13 @@ insert into ingredient_group (id, household_id, recipe_id) values
 select col_is_null(
   'recipe_line_item', 'ingredient_id',
   'ingredient_id is nullable now — a component line has no ingredient (D1)'
+);
+
+-- 0025: `optional` is a stored fact about a line, defaulting to "no" so every
+-- line written before the column existed keeps meaning what it meant.
+select col_default_is(
+  'recipe_line_item', 'optional', 'false',
+  'optional exists and defaults to false (plan 0025 D6b)'
 );
 
 select lives_ok(

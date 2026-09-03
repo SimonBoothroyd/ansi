@@ -25,7 +25,8 @@
 ///
 /// **And a real total says what it left out** (seam D6). Imprecise lines are
 /// excluded by rule, and `not counted: Parsley · handful` prints beneath the
-/// cells, every time.
+/// cells, every time — as do optional lines since plan 0025 (D6b), one reason
+/// wider on the same line: `not counted · 2 optional lines: Lime, Coriander`.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -85,7 +86,8 @@ class RecipeMacroPanel extends StatelessWidget {
   }
 }
 
-/// `not counted: Parsley · handful, Sesame seeds · to taste`.
+/// `not counted: Parsley · handful, Sesame seeds · to taste` — and/or
+/// `not counted · 2 optional lines: Lime, Coriander`.
 class _NotCounted extends StatelessWidget {
   const _NotCounted({required this.summary});
 
@@ -103,8 +105,7 @@ class _NotCounted extends StatelessWidget {
           Text(note, style: ansiMono(size: 11, color: AnsiColors.muted)),
           const SizedBox(height: 2),
           Text(
-            'a pinch has no weight to count — these are excluded by rule, '
-            'not by failure.',
+            notCountedCaption(summary),
             style: ansiSans(size: 12, color: AnsiColors.muted, height: 1.35),
           ),
         ],

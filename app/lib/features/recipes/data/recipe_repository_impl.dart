@@ -64,7 +64,7 @@ class SqliteRecipeRepository implements RecipeRepository {
     // reads instead.
     final lineRows = await _db.getAll(
       'SELECT g.recipe_id, li.id, li.ingredient_id, li.sub_recipe_id, '
-      'li.quantity, li.unit, '
+      'li.quantity, li.unit, li.optional, '
       'li.measure_id, im.label AS m_label, im.basis_amount AS m_amount, '
       'im.sort_order AS m_sort, im.source AS m_source, '
       'ing.canonical_name AS ing_name, '
@@ -103,6 +103,7 @@ class SqliteRecipeRepository implements RecipeRepository {
               r['sub_title'] as String? ?? r['ing_name'] as String? ?? '',
           unit: unitById(r['unit'] as String) ?? pieces,
           quantity: (r['quantity'] as num?)?.toDouble(),
+          optional: _flag(r['optional']),
           measureId: measureId,
           // Full construction incl. sort_order/source (the 51c80b9 rule:
           // every loader selects what Measure's == compares).
@@ -355,6 +356,10 @@ class SqliteRecipeRepository implements RecipeRepository {
     );
   }
 
+  /// A 0/1 flag column as a bool. Null (a row synced from a server that had
+  /// not yet learned the column) reads as false — the column's own default.
+  static bool _flag(Object? v) => v == 1 || v == true;
+
   LineItem _toLineItem(Row r) {
     // The measure resolves only when its row is live locally; the raw
     // measure_id is kept regardless so a save never strips it (see [LineItem]).
@@ -375,6 +380,7 @@ class SqliteRecipeRepository implements RecipeRepository {
           : r['ingredient_name'] as String? ?? '(unknown ingredient)',
       unit: unitById(r['unit'] as String) ?? pieces,
       quantity: (r['quantity'] as num?)?.toDouble(),
+      optional: _flag(r['optional']),
       measureId: measureId,
       measure:
           measureId == null || measureLabel == null || measureAmount == null
@@ -407,7 +413,7 @@ class SqliteRecipeRepository implements RecipeRepository {
     );
     final lineRows = await _db.getAll(
       'SELECT g.recipe_id, li.id, li.ingredient_id, li.sub_recipe_id, '
-      'li.quantity, li.unit, li.measure_id, '
+      'li.quantity, li.unit, li.optional, li.measure_id, '
       'im.label AS m_label, im.basis_amount AS m_amount, '
       'im.sort_order AS m_sort, im.source AS m_source, '
       'ing.macros, ing.macros_basis, ing.density_g_per_ml, ing.status '
@@ -434,6 +440,9 @@ class SqliteRecipeRepository implements RecipeRepository {
           ingredientName: '',
           unit: unitById(r['unit'] as String) ?? pieces,
           quantity: (r['quantity'] as num?)?.toDouble(),
+          // A sub-recipe's own optional lines leave ITS total the same way
+          // (the walk runs the same seam at every level).
+          optional: _flag(r['optional']),
           measureId: measureId,
           measure:
               measureId == null || measureLabel == null || measureAmount == null
@@ -710,7 +719,7 @@ class SqliteRecipeRepository implements RecipeRepository {
             await tx.execute(
               'UPDATE recipe_line_item SET group_id = ?, ingredient_id = ?, '
               'sub_recipe_id = ?, quantity = ?, unit = ?, measure_id = ?, '
-              'note = ?, '
+              'note = ?, optional = ?, '
               'sort_order = ?, updated_at = ?, deleted_at = NULL WHERE id = ?',
               [
                 group.id,
@@ -720,6 +729,10 @@ class SqliteRecipeRepository implements RecipeRepository {
                 item.unit.id,
                 measureId,
                 item.note,
+                // Written on every kept line, so a flag flipped in the
+                // editor is a change like any other field (plan 0025 #6).
+                // A component line never carries it (D6b's stated scope).
+                if (item.optional && !component) 1 else 0,
                 li,
                 now,
                 item.id,
@@ -729,8 +742,8 @@ class SqliteRecipeRepository implements RecipeRepository {
             await tx.execute(
               'INSERT INTO recipe_line_item (id, household_id, group_id, '
               'ingredient_id, sub_recipe_id, quantity, unit, measure_id, note, '
-              'sort_order, created_at, updated_at) '
-              'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              'optional, sort_order, created_at, updated_at) '
+              'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
               [
                 item.id,
                 _householdId,
@@ -741,6 +754,7 @@ class SqliteRecipeRepository implements RecipeRepository {
                 item.unit.id,
                 measureId,
                 item.note,
+                if (item.optional && !component) 1 else 0,
                 li,
                 now,
                 now,

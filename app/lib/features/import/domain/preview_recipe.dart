@@ -91,6 +91,9 @@ Recipe buildPreviewRecipe(
           measure: measure,
           quantity: r.quantity,
           note: (r.notes?.trim().isEmpty ?? true) ? null : r.notes!.trim(),
+          // The preview tags the line as the page will (plan 0025 / D6b);
+          // the commit guard's rule for a component, mirrored.
+          optional: !r.isComponent && r.optional,
         ),
       );
       flatIndex++;

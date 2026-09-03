@@ -111,6 +111,11 @@ class ShoppingView extends ConsumerWidget {
         // says what it left out.
         for (final note in data.unresolvedComponents)
           _UnresolvedEcho(note: note),
+        // …and what it left out BY RULE (plan 0025 / D6b): an optional
+        // line contributes nothing, and the recipe it belongs to says
+        // which lines, in the same voice — muted, not amber, because a
+        // rule somebody chose is not a defect somebody can fix.
+        for (final note in data.optionalLines) OptionalLinesEcho(note: note),
         const _AddItemButton(),
       ],
     ),
@@ -199,6 +204,56 @@ class _UnresolvedEcho extends StatelessWidget {
               '$count component${count == 1 ? '' : 's'} unresolved — see Cook',
               overflow: TextOverflow.ellipsis,
               style: ansiMono(size: 10.5, color: _foreground),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A recipe's "N optional lines not listed — lime, coriander" echo (plan 0025
+/// / D6b, board frame f): the group-header voice nested recipes' unresolved
+/// echo uses, because it is the same shape of statement — a heading for the
+/// items that are NOT below it — drawn muted rather than amber. Public so the
+/// screen test can find the row by type.
+class OptionalLinesEcho extends StatelessWidget {
+  const OptionalLinesEcho({required this.note, super.key});
+
+  final OptionalLinesNote note;
+
+  /// `2 optional lines not listed — lime, coriander`.
+  static String text(OptionalLinesNote note) {
+    final n = note.names.length;
+    return '$n optional line${n == 1 ? '' : 's'} not listed — '
+        '${note.names.join(', ')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Flexible(
+            child: Text(
+              note.recipeTitle.toUpperCase(),
+              overflow: TextOverflow.ellipsis,
+              style: ansiMono(
+                size: 10,
+                color: AnsiColors.muted,
+                letterSpacing: 1.4,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              text(note),
+              overflow: TextOverflow.ellipsis,
+              style: ansiMono(size: 10.5, color: AnsiColors.muted),
             ),
           ),
         ],

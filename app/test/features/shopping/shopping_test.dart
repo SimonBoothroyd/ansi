@@ -392,6 +392,7 @@ void main() {
       Map<String, List<ManualContributionInput>> manual = const {},
       Map<String, IngredientMetaInput> meta = const {},
       List<UnresolvedComponentNote> unresolvedComponents = const [],
+      List<OptionalLinesNote> optionalLines = const [],
     }) => buildShoppingList(
       cook: cook,
       entries: entries,
@@ -399,6 +400,7 @@ void main() {
       meta: meta,
       weekdayShort: _weekdays,
       unresolvedComponents: unresolvedComponents,
+      optionalLines: optionalLines,
     );
 
     IngredientMetaInput metaFor(
@@ -880,6 +882,26 @@ void main() {
       expect(list.unresolvedComponents, [
         (recipeId: 'sliders', recipeTitle: 'Sausage Sliders', count: 1),
       ]);
+    });
+
+    test('optional lines ride through as the per-recipe echo, untouched — '
+        'the drop itself happened at the seam (D6b)', () {
+      final list = build(
+        cook: [_cook('flour', 100, g)],
+        meta: {'flour': metaFor('Flour', 'baking')},
+        optionalLines: const [
+          (
+            recipeId: 'curry',
+            recipeTitle: 'Weeknight Chicken Curry',
+            names: ['lime', 'coriander'],
+          ),
+        ],
+      );
+      expect(list.groups.expand((g) => g.items).map((i) => i.ingredientId), [
+        'flour',
+      ]);
+      expect(list.optionalLines.single.recipeTitle, 'Weeknight Chicken Curry');
+      expect(list.optionalLines.single.names, ['lime', 'coriander']);
     });
 
     test('no unresolved components means no echo at all', () {

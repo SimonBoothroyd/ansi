@@ -936,4 +936,62 @@ void main() {
       });
     });
   });
+
+  group('optional (plan 0025 #6): a line fact that survives the review', () {
+    test("seeded from the extractor's raw flag", () {
+      expect(
+        initialResolution(0, _line('lime', optional: true)).optional,
+        isTrue,
+      );
+      expect(initialResolution(0, _line('lime')).optional, isFalse);
+    });
+
+    test("the sheet's switch sets it; every other setter keeps it", () {
+      var r = initialResolution(
+        0,
+        _line('lime', qty: 1, unit: 'piece'),
+      ).setOptional(optional: true);
+      r = r
+          .setAmount(quantity: 2, unit: 'piece')
+          .setNotes('to serve')
+          .restorePrintedUnit('piece')
+          .pickUnit('piece');
+      expect(r.optional, isTrue);
+      expect(r.setOptional(optional: false).optional, isFalse);
+    });
+
+    test(
+      'linking to a recipe clears it — a component line is never optional',
+      () {
+        final r = initialResolution(
+          0,
+          _line('aioli', optional: true, qty: 1, unit: 'cup'),
+        ).linkToRecipe('r-aioli', 'Romesco Aioli');
+        expect(r.optional, isFalse);
+      },
+    );
+
+    test('buildCommit carries it onto the CommitLine', () {
+      final payload = _payload([
+        _line('onion', band: MatchBand.auto, qty: 1, candidates: [_cand]),
+        _line(
+          'lime',
+          band: MatchBand.auto,
+          qty: 1,
+          candidates: [_cand],
+          optional: true,
+        ),
+      ]);
+      final commit = buildCommit(
+        payload,
+        [
+          initialResolution(0, payload.flatLines[0]),
+          initialResolution(1, payload.flatLines[1]),
+        ],
+        header: _header(payload),
+        issuesByLine: null,
+      );
+      expect(commit.groups.single.lines.map((l) => l.optional), [false, true]);
+    });
+  });
 }

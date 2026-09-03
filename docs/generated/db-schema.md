@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (25 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (26 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -152,6 +152,7 @@ introduced in `0003_recipes.sql` · RLS enabled · in the `powersync` publicatio
 | `deleted_at` | `timestamptz` | yes |  |
 | `measure_id` | `uuid` | yes | references ingredient_measure(id) *(added in `0009_ingredient_measures.sql`)* |
 | `sub_recipe_id` | `uuid` | yes | references recipe(id) *(added in `0017_nested_recipes.sql`)* |
+| `optional` | `boolean` | no | not null default false *(added in `0025_optional_line.sql`)* |
 
 ## `book`
 

@@ -27,6 +27,14 @@
 ///   knowable to within a pinch of salt. The one guard: a recipe whose lines
 ///   are ALL imprecise summed nothing and still refuses
 ///   ([RecipeMacroSummary.nothingWeighable]);
+/// - an **optional** line (plan 0025 / **D6b**) is excluded by rule too,
+///   through the one [effectiveLines] seam every derivation shares, and
+///   composes with the imprecise exclusion under the total: `not counted ·
+///   2 optional lines: Lime, Coriander`. It runs before every other test, so
+///   an optional line that is also imprecise, or a stub, is named once — as
+///   optional. Like the imprecise case it does NOT make the summary
+///   incomplete, and shares its one guard: a recipe whose lines are ALL
+///   optional (or optional and imprecise) summed nothing and still refuses;
 /// - anything else — a stub ingredient, a count line without a measure, a
 ///   numberless line, a missing density — makes the whole summary honestly
 ///   **incomplete**: no partial total is ever shown as if it were the
@@ -47,6 +55,7 @@ import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import 'component_math.dart';
+import 'effective_lines.dart';
 import 'recipe.dart';
 
 /// What the summation needs to know about one vocab ingredient. `macros` is
@@ -87,9 +96,15 @@ enum MacroLineReason {
   subRecipeIncomplete,
 
   /// `to taste`, `pinch`, `dash`, `handful` — unweighable BY NATURE, so
-  /// excluded by rule rather than by failure (seam **D6**). This is the one
-  /// reason that does NOT make a summary [RecipeMacroSummary.incomplete].
+  /// excluded by rule rather than by failure (seam **D6**). With [optional],
+  /// one of the two reasons that do NOT make a summary
+  /// [RecipeMacroSummary.incomplete].
   imprecise,
+
+  /// The recipe marks the line optional (plan 0025 / D6b): left out by the
+  /// [effectiveLines] seam, by rule, and named under the total. The other
+  /// reason that does NOT make a summary incomplete.
+  optional,
 }
 
 /// One line left out of the total, named. `lineId` is the `recipe_line_item`
@@ -135,6 +150,7 @@ class RecipeMacroSummary {
     this.subRecipesIncomplete = 0,
     this.countLinesWithoutMeasure = 0,
     this.impreciseLines = 0,
+    this.optionalLines = 0,
     this.notes = const [],
     this.noLines = false,
     this.nothingWeighable = false,
@@ -151,6 +167,13 @@ class RecipeMacroSummary {
   /// salt. The one guard is [noLines]'s sibling: a recipe whose lines are ALL
   /// imprecise summed nothing, and `0 kcal` there would be a fabrication.
   final int impreciseLines;
+
+  /// Lines excluded BY RULE because the recipe marks them optional (plan 0025
+  /// / D6b) — dropped by the [effectiveLines] seam before anything else looks
+  /// at them, and named under the total beside the imprecise ones. Like
+  /// [impreciseLines] it never makes the summary [incomplete]; it shares the
+  /// [nothingWeighable] guard.
+  final int optionalLines;
 
   /// Every excluded line, named, in line order (seam **D5**). The panel's
   /// list, the row markers and the "not counted" line all read off this —
@@ -178,9 +201,10 @@ class RecipeMacroSummary {
   /// per-line failure.
   final bool noLines;
 
-  /// Every line was imprecise, so nothing was weighed (seam **D6**'s one
-  /// guard). The total would be `0 kcal`, which would be a fabrication rather
-  /// than a computation — the same shape as [noLines].
+  /// Every line was imprecise or optional, so nothing was weighed (seam
+  /// **D6**'s one guard, shared by D6b). The total would be `0 kcal`, which
+  /// would be a fabrication rather than a computation — the same shape as
+  /// [noLines].
   final bool nothingWeighable;
 
   bool get incomplete => perServing == null;
@@ -195,6 +219,7 @@ class RecipeMacroSummary {
       other.subRecipesIncomplete == subRecipesIncomplete &&
       other.countLinesWithoutMeasure == countLinesWithoutMeasure &&
       other.impreciseLines == impreciseLines &&
+      other.optionalLines == optionalLines &&
       _sameNotes(other.notes, notes) &&
       other.noLines == noLines &&
       other.nothingWeighable == nothingWeighable;
@@ -216,6 +241,7 @@ class RecipeMacroSummary {
     subRecipesIncomplete,
     countLinesWithoutMeasure,
     impreciseLines,
+    optionalLines,
     Object.hashAll(notes),
     noLines,
     nothingWeighable,
@@ -225,7 +251,8 @@ class RecipeMacroSummary {
   String toString() {
     if (!incomplete) {
       return 'RecipeMacroSummary($perServing /serving'
-          '${impreciseLines > 0 ? ', $impreciseLines imprecise' : ''})';
+          '${impreciseLines > 0 ? ', $impreciseLines imprecise' : ''}'
+          '${optionalLines > 0 ? ', $optionalLines optional' : ''})';
     }
     final why = noLines
         ? 'no lines'
@@ -294,6 +321,7 @@ RecipeMacroSummary _summarize({
   var subIncomplete = 0;
   var bareCounts = 0;
   var imprecise = 0;
+  var optional = 0;
   var lineCount = 0;
   final notes = <MacroLineNote>[];
 
@@ -305,8 +333,20 @@ RecipeMacroSummary _summarize({
         unit: unit,
       ));
 
+  // D6b, through the seam every derivation shares. The walk still runs in
+  // stored order (the notes are named in line order, seam D5), asking the
+  // seam's answer for each line FIRST — so an optional line is never also a
+  // stub or a bare count in the panel's eyes: it is named once, as optional,
+  // and it still counts as a line for the nothing-weighable guard.
+  final dropped = {for (final d in effectiveLines(lines).dropped) d.line};
+
   for (final line in lines) {
     lineCount++;
+    if (dropped.contains(line)) {
+      optional++;
+      note(line, MacroLineReason.optional);
+      continue;
+    }
     final subRecipeId = line.subRecipeId;
     if (subRecipeId != null) {
       switch (_componentMacros(
@@ -376,9 +416,10 @@ RecipeMacroSummary _summarize({
   // No lines summed nothing: rendering that as "~0 kcal /serving" would
   // present an absence as a computed number (invariant 3, never zeros). The
   // D6 guard is the same shape — a recipe of nothing but salt-to-taste summed
-  // nothing either, so it still refuses.
+  // nothing either, so it still refuses — and D6b's optional lines share it:
+  // a recipe whose every line is optional has claimed zero grams of anything.
   final noLines = lineCount == 0;
-  final nothingWeighable = !noLines && imprecise == lineCount;
+  final nothingWeighable = !noLines && imprecise + optional == lineCount;
   final incomplete =
       noLines ||
       nothingWeighable ||
@@ -396,6 +437,7 @@ RecipeMacroSummary _summarize({
     subRecipesIncomplete: subIncomplete,
     countLinesWithoutMeasure: bareCounts,
     impreciseLines: imprecise,
+    optionalLines: optional,
     notes: notes,
     noLines: noLines,
     nothingWeighable: nothingWeighable,

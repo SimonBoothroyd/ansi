@@ -280,7 +280,11 @@ mixin _$CommitLine {
 /// it is set the line is a COMPONENT line and the other two identities are
 /// null; the repository writes no `measure_id` for it either (measures are
 /// an ingredient concept, and migration 0017 pins both rules).
- String? get subRecipeId; double? get quantity; String? get unit; String? get note;
+ String? get subRecipeId; double? get quantity; String? get unit; String? get note;/// The recipe says this line may be left out (plan 0025 / D6b) — seeded
+/// from the extractor's raw flag, toggled at review, written to
+/// `recipe_line_item.optional`. Always false on a component line: an
+/// optional sub-recipe is a week-level question, not a line fact.
+ bool get optional;
 /// Create a copy of CommitLine
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -291,16 +295,16 @@ $CommitLineCopyWith<CommitLine> get copyWith => _$CommitLineCopyWithImpl<CommitL
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CommitLine&&(identical(other.lineIndex, lineIndex) || other.lineIndex == lineIndex)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.stubKey, stubKey) || other.stubKey == stubKey)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.note, note) || other.note == note));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CommitLine&&(identical(other.lineIndex, lineIndex) || other.lineIndex == lineIndex)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.stubKey, stubKey) || other.stubKey == stubKey)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.note, note) || other.note == note)&&(identical(other.optional, optional) || other.optional == optional));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,lineIndex,ingredientId,stubKey,subRecipeId,quantity,unit,note);
+int get hashCode => Object.hash(runtimeType,lineIndex,ingredientId,stubKey,subRecipeId,quantity,unit,note,optional);
 
 @override
 String toString() {
-  return 'CommitLine(lineIndex: $lineIndex, ingredientId: $ingredientId, stubKey: $stubKey, subRecipeId: $subRecipeId, quantity: $quantity, unit: $unit, note: $note)';
+  return 'CommitLine(lineIndex: $lineIndex, ingredientId: $ingredientId, stubKey: $stubKey, subRecipeId: $subRecipeId, quantity: $quantity, unit: $unit, note: $note, optional: $optional)';
 }
 
 
@@ -311,7 +315,7 @@ abstract mixin class $CommitLineCopyWith<$Res>  {
   factory $CommitLineCopyWith(CommitLine value, $Res Function(CommitLine) _then) = _$CommitLineCopyWithImpl;
 @useResult
 $Res call({
- int lineIndex, String? ingredientId, String? stubKey, String? subRecipeId, double? quantity, String? unit, String? note
+ int lineIndex, String? ingredientId, String? stubKey, String? subRecipeId, double? quantity, String? unit, String? note, bool optional
 });
 
 
@@ -328,7 +332,7 @@ class _$CommitLineCopyWithImpl<$Res>
 
 /// Create a copy of CommitLine
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? lineIndex = null,Object? ingredientId = freezed,Object? stubKey = freezed,Object? subRecipeId = freezed,Object? quantity = freezed,Object? unit = freezed,Object? note = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? lineIndex = null,Object? ingredientId = freezed,Object? stubKey = freezed,Object? subRecipeId = freezed,Object? quantity = freezed,Object? unit = freezed,Object? note = freezed,Object? optional = null,}) {
   return _then(_self.copyWith(
 lineIndex: null == lineIndex ? _self.lineIndex : lineIndex // ignore: cast_nullable_to_non_nullable
 as int,ingredientId: freezed == ingredientId ? _self.ingredientId : ingredientId // ignore: cast_nullable_to_non_nullable
@@ -337,7 +341,8 @@ as String?,subRecipeId: freezed == subRecipeId ? _self.subRecipeId : subRecipeId
 as String?,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as double?,unit: freezed == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
 as String?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,optional: null == optional ? _self.optional : optional // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -422,10 +427,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int lineIndex,  String? ingredientId,  String? stubKey,  String? subRecipeId,  double? quantity,  String? unit,  String? note)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int lineIndex,  String? ingredientId,  String? stubKey,  String? subRecipeId,  double? quantity,  String? unit,  String? note,  bool optional)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CommitLine() when $default != null:
-return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.subRecipeId,_that.quantity,_that.unit,_that.note);case _:
+return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.subRecipeId,_that.quantity,_that.unit,_that.note,_that.optional);case _:
   return orElse();
 
 }
@@ -443,10 +448,10 @@ return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.subRecipe
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int lineIndex,  String? ingredientId,  String? stubKey,  String? subRecipeId,  double? quantity,  String? unit,  String? note)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int lineIndex,  String? ingredientId,  String? stubKey,  String? subRecipeId,  double? quantity,  String? unit,  String? note,  bool optional)  $default,) {final _that = this;
 switch (_that) {
 case _CommitLine():
-return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.subRecipeId,_that.quantity,_that.unit,_that.note);case _:
+return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.subRecipeId,_that.quantity,_that.unit,_that.note,_that.optional);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -463,10 +468,10 @@ return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.subRecipe
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int lineIndex,  String? ingredientId,  String? stubKey,  String? subRecipeId,  double? quantity,  String? unit,  String? note)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int lineIndex,  String? ingredientId,  String? stubKey,  String? subRecipeId,  double? quantity,  String? unit,  String? note,  bool optional)?  $default,) {final _that = this;
 switch (_that) {
 case _CommitLine() when $default != null:
-return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.subRecipeId,_that.quantity,_that.unit,_that.note);case _:
+return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.subRecipeId,_that.quantity,_that.unit,_that.note,_that.optional);case _:
   return null;
 
 }
@@ -478,7 +483,7 @@ return $default(_that.lineIndex,_that.ingredientId,_that.stubKey,_that.subRecipe
 
 
 class _CommitLine implements CommitLine {
-  const _CommitLine({required this.lineIndex, this.ingredientId, this.stubKey, this.subRecipeId, this.quantity, this.unit, this.note});
+  const _CommitLine({required this.lineIndex, this.ingredientId, this.stubKey, this.subRecipeId, this.quantity, this.unit, this.note, this.optional = false});
   
 
 /// The flattened line index — its position in the commit's line order and
@@ -494,6 +499,11 @@ class _CommitLine implements CommitLine {
 @override final  double? quantity;
 @override final  String? unit;
 @override final  String? note;
+/// The recipe says this line may be left out (plan 0025 / D6b) — seeded
+/// from the extractor's raw flag, toggled at review, written to
+/// `recipe_line_item.optional`. Always false on a component line: an
+/// optional sub-recipe is a week-level question, not a line fact.
+@override@JsonKey() final  bool optional;
 
 /// Create a copy of CommitLine
 /// with the given fields replaced by the non-null parameter values.
@@ -505,16 +515,16 @@ _$CommitLineCopyWith<_CommitLine> get copyWith => __$CommitLineCopyWithImpl<_Com
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CommitLine&&(identical(other.lineIndex, lineIndex) || other.lineIndex == lineIndex)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.stubKey, stubKey) || other.stubKey == stubKey)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.note, note) || other.note == note));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CommitLine&&(identical(other.lineIndex, lineIndex) || other.lineIndex == lineIndex)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.stubKey, stubKey) || other.stubKey == stubKey)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.note, note) || other.note == note)&&(identical(other.optional, optional) || other.optional == optional));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,lineIndex,ingredientId,stubKey,subRecipeId,quantity,unit,note);
+int get hashCode => Object.hash(runtimeType,lineIndex,ingredientId,stubKey,subRecipeId,quantity,unit,note,optional);
 
 @override
 String toString() {
-  return 'CommitLine(lineIndex: $lineIndex, ingredientId: $ingredientId, stubKey: $stubKey, subRecipeId: $subRecipeId, quantity: $quantity, unit: $unit, note: $note)';
+  return 'CommitLine(lineIndex: $lineIndex, ingredientId: $ingredientId, stubKey: $stubKey, subRecipeId: $subRecipeId, quantity: $quantity, unit: $unit, note: $note, optional: $optional)';
 }
 
 
@@ -525,7 +535,7 @@ abstract mixin class _$CommitLineCopyWith<$Res> implements $CommitLineCopyWith<$
   factory _$CommitLineCopyWith(_CommitLine value, $Res Function(_CommitLine) _then) = __$CommitLineCopyWithImpl;
 @override @useResult
 $Res call({
- int lineIndex, String? ingredientId, String? stubKey, String? subRecipeId, double? quantity, String? unit, String? note
+ int lineIndex, String? ingredientId, String? stubKey, String? subRecipeId, double? quantity, String? unit, String? note, bool optional
 });
 
 
@@ -542,7 +552,7 @@ class __$CommitLineCopyWithImpl<$Res>
 
 /// Create a copy of CommitLine
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? lineIndex = null,Object? ingredientId = freezed,Object? stubKey = freezed,Object? subRecipeId = freezed,Object? quantity = freezed,Object? unit = freezed,Object? note = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? lineIndex = null,Object? ingredientId = freezed,Object? stubKey = freezed,Object? subRecipeId = freezed,Object? quantity = freezed,Object? unit = freezed,Object? note = freezed,Object? optional = null,}) {
   return _then(_CommitLine(
 lineIndex: null == lineIndex ? _self.lineIndex : lineIndex // ignore: cast_nullable_to_non_nullable
 as int,ingredientId: freezed == ingredientId ? _self.ingredientId : ingredientId // ignore: cast_nullable_to_non_nullable
@@ -551,7 +561,8 @@ as String?,subRecipeId: freezed == subRecipeId ? _self.subRecipeId : subRecipeId
 as String?,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as double?,unit: freezed == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
 as String?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,optional: null == optional ? _self.optional : optional // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

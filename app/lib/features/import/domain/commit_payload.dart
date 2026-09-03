@@ -50,6 +50,12 @@ abstract class CommitLine with _$CommitLine {
     double? quantity,
     String? unit,
     String? note,
+
+    /// The recipe says this line may be left out (plan 0025 / D6b) — seeded
+    /// from the extractor's raw flag, toggled at review, written to
+    /// `recipe_line_item.optional`. Always false on a component line: an
+    /// optional sub-recipe is a week-level question, not a line fact.
+    @Default(false) bool optional,
   }) = _CommitLine;
 }
 

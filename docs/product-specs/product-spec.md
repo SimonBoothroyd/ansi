@@ -170,8 +170,25 @@ Single shared household dataset; both members full read/write; everything scoped
 ### Recipe
 `id · title · book_id · section (user-defined label) · servings_base · favorite (step 7.7) · ingredient_groups[] · steps[]`
 - **ingredient_group:** `name · line_items[]`
-- **line_item:** `ingredient_id · quantity · unit`
+- **line_item:** `ingredient_id · quantity · unit · optional (0025)`
 - Scaling = quantity × factor (imprecise units left as-is).
+- **Optional lines (plan 0025, D6a/D6b).** `optional` is a stored fact about
+  a line — "lime, to serve (optional)" — not about its amount: the page
+  still prints `1 lime`, with a muted `optional` tag after the note in the
+  stub badge's voice. It is seeded from the extractor's flag at import,
+  toggled in the quantity/unit sheet (the editor and the review share it;
+  never offered on a component line), and its only effect is on what a
+  TOTAL covers, through one seam — `effectiveLines(lines, planEntryId)` —
+  that every derivation runs over: the macro summary and the shopping list
+  leave the line out **and name it where it left** (`not counted · 2
+  optional lines: Lime, Coriander` under the panel, composed with the
+  imprecise exclusion; `2 optional lines not listed — lime, coriander` as
+  the recipe's muted echo row on Shop), never a silent drop; the cook plan
+  is unaffected — a batch is a batch whether the lime comes. A recipe whose
+  every line is optional summed nothing and refuses, like an all-imprecise
+  one. Deliberately not built: the per-week override (tick an optional line
+  back in for one planned week, substitute an ingredient) — the seam's
+  unread `planEntryId` is where it joins (tracker).
 - `favorite` is the household-shared curated shortlist behind the recipe
   picker's Favorites tab; marked from the recipe page's header menu.
 - **Per-serving macro summation (step 7.7, pulled from step 9):** pure-Dart

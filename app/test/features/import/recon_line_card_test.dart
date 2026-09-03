@@ -828,6 +828,54 @@ void main() {
     expect(find.text('Pick a supported unit'), findsNothing);
   });
 
+  testWidgets("the amount sheet's Optional switch writes the line fact back "
+      'onto the resolution (plan 0025 / D6a)', (tester) async {
+    _filterSemanticsAssertions();
+    final container = ProviderContainer(
+      overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
+        importRepositoryProvider.overrideWithValue(
+          _FakeRepo(_unitMismatchPayload()),
+        ),
+        ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
+        measureRepositoryProvider.overrideWithValue(_FakeMeasureRepo()),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container
+        .read(importControllerProvider.notifier)
+        .startImport(const ImportFromUrl('x'));
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: FTheme(
+            data: ansiThemeData(),
+            child: const FScaffold(child: _LiveBody()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(FLucideIcons.pencil));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(AmountEditor));
+    await tester.pumpAndSettle();
+
+    // The same sheet the editor uses, so the review gets the row for free.
+    expect(find.text('Optional'), findsOneWidget);
+    await tester.tap(find.byType(FSwitch));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    final updated =
+        container.read(importControllerProvider) as ImportReconciling;
+    expect(updated.resolutions.single.optional, isTrue);
+  });
+
   // --- plan 0022 / ADR-0010 · the board's frame (a) -------------------------
   //
   // "1 large ripe avocado" extracts as unit="piece" and used to commit as a
