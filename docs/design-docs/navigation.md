@@ -225,6 +225,7 @@ one.
 - `app/test/shared/guarded_navigation_test.dart` — the dedupe contract, plus a
   **structural** test that fails on a bare `context.push`/`go`/`pushReplacement`
   in a view, with a named exception list for the post-action landings.
-- `app/integration_test/app_test.dart` (`make test-sim`, local-only) — drives
-  the real bar on a simulator; `backToShell`'s predicate is "the nav bar is in
+- `app/integration_test/` (`make test-sim`, local-only; `backToShell` lives in
+  `support/editor.dart`) — drives the real bar on a simulator;
+  `backToShell`'s predicate is "the nav bar is in
   the tree", which holds precisely because pushed pages cover the shell.

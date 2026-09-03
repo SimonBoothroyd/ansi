@@ -119,7 +119,7 @@ reads them.
 make gen             # build_runner
 make analyze         # flutter analyze + custom_lint (must be clean)
 make test-app        # flutter test (fetches the PowerSync core extension first)
-make test-sim        # integration smoke on a booted iOS sim (local gate)
+make test-sim        # integration smoke on a booted iOS sim (local gate); FILE=week DEVICE=<udid> narrow it
 make powersync-core  # fetch the PowerSync SQLite core extension for host tests
 make run             # flutter run with --dart-define from .env.local
 ```
@@ -150,17 +150,27 @@ The loop (agents drive it with the iOS Simulator tools; humans use `flutter run`
 4. **Observe** (`control{action:"screenshot"}`) → compare to the design →
    **edit** the Forui/theme code → rebuild → screenshot again. Repeat.
 
-**The smoke test.** `make test-sim` runs `integration_test/app_test.dart`
-against whichever simulator is booted (boot one first — step 1 above), driving
-the real UI over the real step-7 stack with **live sync**. It needs the **local
-stack running** (`make db-up`) and nothing else: the suite is **auth-aware and
-self-provisioning** (it creates a throwaway two-person household over HTTP,
-then signs in through the real gate). Six scenarios: auth → library
-(create/edit a recipe incl. method steps, jsonb + child-diff round-trips) →
-week/cook/shop → import (reconcile → commit) → ingredients manager (stub
-band, rename, add-by-barcode) → nested recipes (yield + component line →
-plan → cook/shop → gap card + delete refusal). It is deliberately *not* in
-CI (macOS runners are slow and expensive at hobby scale).
+**The smoke test.** `make test-sim` runs `integration_test/` against a booted
+simulator (boot one first — step 1 above), driving the real UI over the real
+step-7 stack with **live sync**. It needs the **local stack running**
+(`make db-up`) and nothing else. Since plan 0026 it is **one file per flow**,
+each independently runnable — `make test-sim FILE=week` runs
+`week_test.dart` alone; `DEVICE=<udid>` targets a specific simulator so
+parallel lanes can each hold one. The six files: `auth` (the sign-in gate →
+/connecting → Library) · `recipe_editor` (create/edit a recipe incl. method
+steps, jsonb + child-diff round-trips) · `week` (week/cook/shop) · `import`
+(reconcile → commit, over the local import repository — no LLM) ·
+`ingredients` (stub band, rename, add-by-barcode off a fixture) · `nested`
+(yield + component line → plan → cook/shop → gap card + delete refusal).
+Every file is **self-provisioning**: its `setUpAll` creates its OWN throwaway
+two-person household over HTTP (`support/stack.dart`) and signs in
+programmatically; only `auth_test.dart` drives the gate. Prerequisites a
+flow needs (the week's favourited recipe, the manager's stub) are seeded
+through the app's own repositories over the throwaway `PowerSyncDatabase`
+and round-tripped through sync — never by driving another flow's UI.
+`support/` holds the shared boot, waits, finders and the editor/week
+drivers. It is deliberately *not* in CI (macOS runners are slow and expensive
+at hobby scale).
 
 Notes:
 

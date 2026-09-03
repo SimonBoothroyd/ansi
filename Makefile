@@ -70,8 +70,11 @@ test-app: powersync-core ## Flutter unit + widget tests
 powersync-core: ## Fetch the PowerSync SQLite core extension for host tests
 	@./scripts/fetch_powersync_core.sh
 
-test-sim: ## Integration smoke on a booted iOS sim (needs the local backend up: make db-up; self-provisions its own throwaway user)
-	cd $(APP) && flutter test integration_test $(DART_DEFINES)
+# One file per flow under integration_test/; each provisions its own household.
+# FILE=week runs integration_test/week_test.dart alone; DEVICE=<udid> targets a
+# specific booted simulator (parallel lanes run on separate sims).
+test-sim: ## Integration smoke on a booted iOS sim: the directory, or FILE=<name> for one file; DEVICE=<udid> picks the sim (needs the local backend up: make db-up)
+	cd $(APP) && flutter test $(if $(FILE),integration_test/$(FILE)_test.dart,integration_test) $(if $(DEVICE),-d $(DEVICE)) $(DART_DEFINES)
 
 test-fns: ## Edge-function (Deno) tests
 	cd $(FNS) && deno task test
