@@ -55,7 +55,14 @@ proven only when the next APK runs on the phone).
 
 - 2026-09-03 — Data is durable from here (owner): `0021` is additive with a
   backfill; no reset.
-- 2026-09-03 — No tag until this slice lands (owner: "don't tag yet").
+- 2026-09-03 — No tag until this slice lands (owner: "don't tag yet", then
+  "I want our D1–D6 to land before new release"). The Android inset fix is
+  tested on the Pixel from a **release-workflow rehearsal artifact** (no tag,
+  no Release), never from a tag.
+- 2026-09-03 — Owner confirmed Week and Library were cut off too, i.e. the
+  symptom is shell-wide: consistent with one keyboard height subtracted
+  twice (the shell's scaffold and the tab root's). Belt and braces landed
+  `b2f91a2`: the sign-in page drops the keyboard before it navigates away.
 
 ## Step-done checklist
 
