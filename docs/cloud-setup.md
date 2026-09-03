@@ -498,7 +498,11 @@ or any dashboard-config walk.
   `… ? 'pt'` → expect every `l`-admitting row for `qt`, every `cup`-admitting
   row for `pt` (Vegetable Broth among them) · `select column_default from
   information_schema.columns where table_name = 'recipe_line_item' and
-  column_name = 'optional';` → `false`. Record the numbers here when run.
+  column_name = 'optional';` → `false`. **Run by the owner 13:0x UTC:**
+  `qt` **168** = `l` **168**, `pt` **514** = `cup` **514** (the D2b rule
+  holds row-for-row across every household), `optional` default **false**
+  (0025 applied; the max-version query was not run separately — the column
+  is the proof).
 - Tagged **`v0.4.0`** after this push (release.md §5 order).
 
 ### 2026-09-03 (night) — field test round two (plan 0024): 0021–0023, the default-measure curation
