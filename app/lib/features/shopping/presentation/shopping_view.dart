@@ -17,6 +17,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/write.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
@@ -188,20 +189,29 @@ class _ItemRow extends ConsumerWidget {
 
   final ShoppingItem item;
 
-  Future<void> _toggle(WidgetRef ref) async {
+  Future<void> _toggle(BuildContext context, WidgetRef ref) async {
     final repo = ref.read(shoppingRepositoryProvider);
     final entryId = item.entryId;
+    final what = item.checked ? 'untick ${item.name}' : 'tick ${item.name}';
     // A touched line (free-text, checked, or topped-up) has an entry; a purely
     // derived ingredient doesn't yet — check-off lazily creates it.
     if (entryId != null) {
-      await repo.setEntryChecked(entryId: entryId, checked: !item.checked);
+      await ref.write(
+        context,
+        what,
+        () => repo.setEntryChecked(entryId: entryId, checked: !item.checked),
+      );
     } else {
       // The tick belongs to the week on screen (0018 / D3) — checking Flour
       // while looking at next week must not tick this week's Flour.
-      await repo.setIngredientChecked(
-        ingredientId: item.ingredientId!,
-        checked: !item.checked,
-        weekStart: ref.read(viewedWeekStartProvider),
+      await ref.write(
+        context,
+        what,
+        () => repo.setIngredientChecked(
+          ingredientId: item.ingredientId!,
+          checked: !item.checked,
+          weekStart: ref.read(viewedWeekStartProvider),
+        ),
       );
     }
   }
@@ -227,7 +237,7 @@ class _ItemRow extends ConsumerWidget {
   Widget _rowBody(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => _toggle(ref),
+      onTap: () => _toggle(context, ref),
       onLongPress: item.isUserAdded
           ? () => _confirmRemove(context, ref, item)
           : null,
@@ -569,7 +579,10 @@ Future<void> _confirmRemove(
       ],
     ),
   );
-  if ((remove ?? false) && entryId != null) {
-    await repo.removeEntry(entryId: entryId);
-  }
+  if (!(remove ?? false) || entryId == null || !context.mounted) return;
+  await ref.write(
+    context,
+    'remove ${item.name}',
+    () => repo.removeEntry(entryId: entryId),
+  );
 }

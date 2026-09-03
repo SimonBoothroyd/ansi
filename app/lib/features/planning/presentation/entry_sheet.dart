@@ -30,6 +30,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/write.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../data/planning_providers.dart';
@@ -164,10 +165,14 @@ class _EntrySheet extends HookConsumerWidget {
                 day: entry.dayOfWeek,
                 slot: entry.mealSlot,
                 onChanged: (day, slot) => unawaited(
-                  repo.setDaySlot(
-                    entryId: entry.id,
-                    dayOfWeek: day,
-                    mealSlot: slot,
+                  ref.write(
+                    context,
+                    'move that meal',
+                    () => repo.setDaySlot(
+                      entryId: entry.id,
+                      dayOfWeek: day,
+                      mealSlot: slot,
+                    ),
                   ),
                 ),
               ),
@@ -183,7 +188,13 @@ class _EntrySheet extends HookConsumerWidget {
                   onToggle: (id) {
                     final next = {...entry.eaterIds};
                     next.contains(id) ? next.remove(id) : next.add(id);
-                    unawaited(repo.setEaters(entry.id, next.toList()));
+                    unawaited(
+                      ref.write(
+                        context,
+                        'change who is eating',
+                        () => repo.setEaters(entry.id, next.toList()),
+                      ),
+                    );
                   },
                 ),
               ),
@@ -194,8 +205,13 @@ class _EntrySheet extends HookConsumerWidget {
                 value: entry.portionsOrDefault,
                 tracksEaters: entry.portions == null,
                 eaters: entry.eaterIds.length,
-                onChanged: (v) =>
-                    unawaited(repo.setPortions(entry.id, v < 1 ? 1 : v)),
+                onChanged: (v) => unawaited(
+                  ref.write(
+                    context,
+                    'change the portions',
+                    () => repo.setPortions(entry.id, v < 1 ? 1 : v),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               // A deleted recipe has no page to open, so the row is absent
@@ -217,9 +233,16 @@ class _EntrySheet extends HookConsumerWidget {
                 icon: FLucideIcons.trash2,
                 label: 'Remove from the week',
                 danger: true,
-                onTap: () {
-                  unawaited(repo.removeEntry(entry.id));
-                  Navigator.of(context).pop();
+                // The sheet closes only once the row is actually gone: popping
+                // on a write that never landed is exactly the confusing
+                // outcome this front exists to end.
+                onTap: () async {
+                  final removed = await ref.writeOk(
+                    context,
+                    'remove that meal',
+                    () => repo.removeEntry(entry.id),
+                  );
+                  if (removed && context.mounted) Navigator.of(context).pop();
                 },
               ),
             ],

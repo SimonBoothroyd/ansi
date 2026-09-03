@@ -83,8 +83,35 @@ Future<T?> guardedWrite<T>(
   }
 }
 
-/// Sugar so a call site reads as one line — see [guardedWrite], which this
-/// forwards to unchanged.
+/// [guardedWrite] for a `Future<void>` write whose caller still has to branch —
+/// closing the sheet it was started from, navigating on.
+///
+/// `T?` cannot carry success when `T` is `void`, and a sheet that pops on a
+/// write that never landed is the confusing outcome this whole front exists to
+/// end. Returns true when the write landed.
+Future<bool> guardedWriteOk(
+  BuildContext context,
+  WidgetRef ref, {
+  required String what,
+  required Future<void> Function() action,
+  String? reassurance,
+  bool retryable = true,
+}) async =>
+    await guardedWrite<bool>(
+      context,
+      ref,
+      what: what,
+      action: () async {
+        await action();
+        return true;
+      },
+      reassurance: reassurance,
+      retryable: retryable,
+    ) ??
+    false;
+
+/// Sugar so a call site reads as one line — see [guardedWrite] and
+/// [guardedWriteOk], which these forward to unchanged.
 extension AnsiWrite on WidgetRef {
   Future<T?> write<T>(
     BuildContext context,
@@ -93,6 +120,21 @@ extension AnsiWrite on WidgetRef {
     String? reassurance,
     bool retryable = true,
   }) => guardedWrite(
+    context,
+    this,
+    what: what,
+    action: action,
+    reassurance: reassurance,
+    retryable: retryable,
+  );
+
+  Future<bool> writeOk(
+    BuildContext context,
+    String what,
+    Future<void> Function() action, {
+    String? reassurance,
+    bool retryable = true,
+  }) => guardedWriteOk(
     context,
     this,
     what: what,

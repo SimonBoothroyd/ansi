@@ -24,6 +24,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/write.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../recipes/domain/recipe.dart';
 import '../data/planning_providers.dart';
@@ -103,17 +104,23 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     final portions = portionsOverride.value ?? eaters.value.length;
 
     Future<void> add() async {
-      await ref
-          .read(planningRepositoryProvider)
-          .addEntry(
-            weekStart: weekStart,
-            dayOfWeek: dayState.value,
-            mealSlot: slotState.value,
-            recipeId: recipe.id,
-            eaterIds: eaters.value.toList(),
-            portions: portionsOverride.value,
-          );
-      if (context.mounted) Navigator.of(context).pop();
+      // The sheet closes only on a write that landed. A throw used to skip the
+      // pop and leave it open and inert — the most confusing possible outcome.
+      final added = await ref.write(
+        context,
+        "add ${kWeekdayFull[dayState.value]}'s meal",
+        () => ref
+            .read(planningRepositoryProvider)
+            .addEntry(
+              weekStart: weekStart,
+              dayOfWeek: dayState.value,
+              mealSlot: slotState.value,
+              recipeId: recipe.id,
+              eaterIds: eaters.value.toList(),
+              portions: portionsOverride.value,
+            ),
+      );
+      if (added != null && context.mounted) Navigator.of(context).pop();
     }
 
     return Container(

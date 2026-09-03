@@ -30,6 +30,8 @@
 /// (D2) and `week_view_models.dart` (D3).
 library;
 
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -39,6 +41,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/write.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../data/planning_providers.dart';
@@ -154,7 +157,13 @@ class WeekView extends HookConsumerWidget {
                 _FirstMealBar(
                   weekStart: weekStart,
                   hasLastWeek: lastWeek != null,
-                  onCopyLastWeek: () => repo.copyLastWeek(weekStart),
+                  onCopyLastWeek: () => unawaited(
+                    ref.write(
+                      context,
+                      'copy last week',
+                      () => repo.copyLastWeek(weekStart),
+                    ),
+                  ),
                 ),
               _LensRow(lens: lens, roster: roster),
               for (var d = 0; d < 7; d++)

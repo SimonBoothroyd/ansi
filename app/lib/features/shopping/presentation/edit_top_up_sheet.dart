@@ -20,6 +20,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/write.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
@@ -90,30 +91,38 @@ class _EditTopUpSheet extends ConsumerWidget {
       final repo = ref.read(shoppingRepositoryProvider);
       // A measure top-up stores the honest count fallback unit (`pieces`)
       // beside the measure id — see [ShoppingRepository.addTopUp].
-      await switch (result.choice) {
-        UnitOption(:final unit) => repo.editContribution(
-          contributionId: contributionId,
-          quantity: qty,
-          unit: unit,
-          // An unresolved measure id survives a re-save untouched; only an
-          // explicit chip pick clears it (mirrors the recipe editor).
-          measureId: result.unitPicked ? null : unresolvedMeasureId,
-        ),
-        MeasureOption(:final measure) => repo.editContribution(
-          contributionId: contributionId,
-          quantity: qty,
-          unit: pieces,
-          measureId: measure.id,
-        ),
-      };
-      if (context.mounted) Navigator.of(context).pop();
+      final saved = await ref.writeOk(
+        context,
+        'save that top-up',
+        () async => switch (result.choice) {
+          UnitOption(:final unit) => repo.editContribution(
+            contributionId: contributionId,
+            quantity: qty,
+            unit: unit,
+            // An unresolved measure id survives a re-save untouched; only an
+            // explicit chip pick clears it (mirrors the recipe editor).
+            measureId: result.unitPicked ? null : unresolvedMeasureId,
+          ),
+          MeasureOption(:final measure) => repo.editContribution(
+            contributionId: contributionId,
+            quantity: qty,
+            unit: pieces,
+            measureId: measure.id,
+          ),
+        },
+      );
+      if (saved && context.mounted) Navigator.of(context).pop();
     }
 
     Future<void> remove() async {
-      await ref
-          .read(shoppingRepositoryProvider)
-          .removeContribution(contributionId: contributionId);
-      if (context.mounted) Navigator.of(context).pop();
+      final removed = await ref.writeOk(
+        context,
+        'remove that top-up',
+        () => ref
+            .read(shoppingRepositoryProvider)
+            .removeContribution(contributionId: contributionId),
+      );
+      if (removed && context.mounted) Navigator.of(context).pop();
     }
 
     return QuantityUnitEditor(

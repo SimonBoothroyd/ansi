@@ -21,6 +21,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/write.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_picker.dart';
@@ -164,8 +165,12 @@ class _FreeTextBody extends HookConsumerWidget {
     Future<void> add() async {
       final value = text.value.trim();
       if (value.isEmpty) return;
-      await ref.read(shoppingRepositoryProvider).addFreeTextItem(text: value);
-      if (context.mounted) Navigator.of(context).pop();
+      final added = await ref.writeOk(
+        context,
+        'add $value',
+        () => ref.read(shoppingRepositoryProvider).addFreeTextItem(text: value),
+      );
+      if (added && context.mounted) Navigator.of(context).pop();
     }
 
     return Column(
@@ -219,22 +224,26 @@ class _TopUpBody extends HookConsumerWidget {
       final weekStart = ref.read(viewedWeekStartProvider);
       // A measure top-up stores the honest count fallback unit (`pieces`)
       // beside the measure id — see [ShoppingRepository.addTopUp].
-      await switch (result.choice) {
-        UnitOption(:final unit) => repo.addTopUp(
-          ingredientId: ing.id,
-          quantity: qty,
-          unit: unit,
-          weekStart: weekStart,
-        ),
-        MeasureOption(:final measure) => repo.addTopUp(
-          ingredientId: ing.id,
-          quantity: qty,
-          unit: pieces,
-          measureId: measure.id,
-          weekStart: weekStart,
-        ),
-      };
-      if (context.mounted) Navigator.of(context).pop();
+      final added = await ref.writeOk(
+        context,
+        'add ${ing.canonicalName}',
+        () async => switch (result.choice) {
+          UnitOption(:final unit) => repo.addTopUp(
+            ingredientId: ing.id,
+            quantity: qty,
+            unit: unit,
+            weekStart: weekStart,
+          ),
+          MeasureOption(:final measure) => repo.addTopUp(
+            ingredientId: ing.id,
+            quantity: qty,
+            unit: pieces,
+            measureId: measure.id,
+            weekStart: weekStart,
+          ),
+        },
+      );
+      if (added && context.mounted) Navigator.of(context).pop();
     }
 
     return Column(

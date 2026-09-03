@@ -27,7 +27,7 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// It grows one feature per sweep commit, so the invariant is enforced from the
 /// first sweep and no commit ever ships a red build or a temporary skip.
-const _scannedFeatures = {'books'};
+const _scannedFeatures = {'books', 'cook_plan', 'planning', 'shopping'};
 
 /// Interface methods that *read*. Everything else a repository declares is a
 /// write and must go through the guard.
@@ -86,7 +86,9 @@ List<File> _dartFiles(Directory dir) =>
 /// one belongs to, so a write nested a level deeper inside the guard's closure
 /// still counts as guarded.
 bool _insideGuard(String source, int index) {
-  final head = RegExp(r'(?:\bguardedWrite|\.write)\s*(?:<[^<>()]*>)?\s*$');
+  final head = RegExp(
+    r'(?:\bguardedWrite(?:Ok)?|\.write(?:Ok)?)\s*(?:<[^<>()]*>)?\s*$',
+  );
   var depth = 0;
   for (var i = index - 1; i >= 0; i--) {
     final c = source[i];

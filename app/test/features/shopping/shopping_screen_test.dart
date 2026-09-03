@@ -25,9 +25,14 @@ class _FakeCookPlanRepo implements CookPlanRepository {
 
 /// A canned shopping list; mutations are no-ops (the screen just renders).
 class _FakeShoppingRepo implements ShoppingRepository {
-  _FakeShoppingRepo(this.list);
+  _FakeShoppingRepo(this.list, {this.tickThrows = false});
 
   final ShoppingList list;
+
+  /// Whether a check-off refuses — the aisle case the status line and the
+  /// failure toast exist for.
+  final bool tickThrows;
+  int tickCalls = 0;
 
   @override
   Stream<ShoppingList> watchShoppingList(DateTime weekStart) =>
@@ -44,7 +49,10 @@ class _FakeShoppingRepo implements ShoppingRepository {
   Future<void> setEntryChecked({
     required String entryId,
     required bool checked,
-  }) async {}
+  }) async {
+    tickCalls++;
+    if (tickThrows) throw StateError('RLS denied');
+  }
 
   @override
   Future<void> addTopUp({
@@ -79,7 +87,10 @@ class _FakeShoppingRepo implements ShoppingRepository {
 Widget _host(List<Override> overrides) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
-    home: FTheme(data: ansiThemeData(), child: const ShoppingView()),
+    home: FTheme(
+      data: ansiThemeData(),
+      child: const FToaster(child: ShoppingView()),
+    ),
   ),
 );
 
@@ -253,6 +264,31 @@ void main() {
     expect(find.text('Romesco Aioli · for Sliders · cook Sat'), findsOneWidget);
     // Summed once, bought once.
     expect(find.text('60 ml'), findsOneWidget);
+  });
+
+  testWidgets('a tick that does not land says so, in the item’s own name', (
+    tester,
+  ) async {
+    const list = ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Non-food',
+          items: [ShoppingItem(name: 'Paper towels', entryId: 'e1')],
+        ),
+      ],
+    );
+    final repo = _FakeShoppingRepo(list, tickThrows: true);
+
+    await tester.pumpWidget(
+      _host([shoppingRepositoryProvider.overrideWithValue(repo)]),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Paper towels'));
+    await tester.pumpAndSettle();
+
+    expect(repo.tickCalls, 1);
+    expect(find.text('Couldn’t tick Paper towels.'), findsOneWidget);
   });
 
   testWidgets('an unresolved component makes the list’s silence legible (D4)', (
