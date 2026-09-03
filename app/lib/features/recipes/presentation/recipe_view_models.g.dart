@@ -313,7 +313,7 @@ final class LineItemIngredientProvider
 }
 
 String _$lineItemIngredientHash() =>
-    r'0ae0badeabfeb2035ea5f7781c8d9d1c6e8976fa';
+    r'4c3b527f76234a712182d22f5efadac9b0845b4d';
 
 /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
 /// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
@@ -420,7 +420,7 @@ final class RecipeEditorProvider
   }
 }
 
-String _$recipeEditorHash() => r'16b3c1b4e52c4b35538c4a8b611fdbd7e873897f';
+String _$recipeEditorHash() => r'cee47dd79d27bb163e12fbb456bb5df5cb24432b';
 
 /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
 /// blank one with a fresh id and a single empty group (create).

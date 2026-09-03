@@ -17,6 +17,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/sync_status_line.dart';
 import '../../../shared/write.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../planning/presentation/week_format.dart';
@@ -51,42 +52,57 @@ class ShoppingView extends ConsumerWidget {
         ),
         suffixes: const [BackToThisWeekPill()],
       ),
-      child: list.when(
-        loading: () => const Center(child: FCircularProgress()),
-        error: (e, _) {
-          debugPrint('shopping list failed: $e');
-          return Center(
-            child: Text(
-              'Could not build the shopping list.',
-              textAlign: TextAlign.center,
-              style: ansiMono(size: 13, color: AnsiColors.muted),
-            ),
-          );
-        },
-        // D5b: the screen never swaps itself out for a data condition. An
-        // empty list is a quiet line INSIDE the list chrome, keeping both of
-        // this screen's affordances — the add-item door works with no plan at
-        // all, which is exactly why it must not be taken away.
-        data: (data) => ListView(
-          padding: const EdgeInsets.only(top: 6, bottom: 24),
-          children: [
-            const _ListCaption(),
-            if (data.isEmpty) const _NothingToBuyLine(),
-            for (final group in data.groups) _Group(group: group),
-            // What the list is short by, and why it is silent about it
-            // (step 8.6 / D4): an unresolved component contributes
-            // nothing — never an invented quantity — so the parent it
-            // belongs to says so and points at the surface that fixes
-            // it. A list that is quietly short is worse than one that
-            // says what it left out.
-            for (final note in data.unresolvedComponents)
-              _UnresolvedEcho(note: note),
-            const _AddItemButton(),
-          ],
-        ),
+      // The status line sits between the header and the scroll, not inside it
+      // (D9): mid-aisle, an answer that has scrolled away is no answer. The
+      // shell's banner, when there is one, sits above this whole column — the
+      // banner says something is wrong, this says where you stand.
+      child: Column(
+        children: [
+          const AnsiSyncStatusLine(noun: 'tick'),
+          Expanded(child: _list(context, ref, list)),
+        ],
       ),
     );
   }
+
+  Widget _list(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<ShoppingList> list,
+  ) => list.when(
+    loading: () => const Center(child: FCircularProgress()),
+    error: (e, _) {
+      debugPrint('shopping list failed: $e');
+      return Center(
+        child: Text(
+          'Could not build the shopping list.',
+          textAlign: TextAlign.center,
+          style: ansiMono(size: 13, color: AnsiColors.muted),
+        ),
+      );
+    },
+    // D5b: the screen never swaps itself out for a data condition. An
+    // empty list is a quiet line INSIDE the list chrome, keeping both of
+    // this screen's affordances — the add-item door works with no plan at
+    // all, which is exactly why it must not be taken away.
+    data: (data) => ListView(
+      padding: const EdgeInsets.only(top: 6, bottom: 24),
+      children: [
+        const _ListCaption(),
+        if (data.isEmpty) const _NothingToBuyLine(),
+        for (final group in data.groups) _Group(group: group),
+        // What the list is short by, and why it is silent about it
+        // (step 8.6 / D4): an unresolved component contributes
+        // nothing — never an invented quantity — so the parent it
+        // belongs to says so and points at the surface that fixes
+        // it. A list that is quietly short is worse than one that
+        // says what it left out.
+        for (final note in data.unresolvedComponents)
+          _UnresolvedEcho(note: note),
+        const _AddItemButton(),
+      ],
+    ),
+  );
 }
 
 class _ListCaption extends StatelessWidget {

@@ -17,6 +17,7 @@ import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_search_field.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/sync_health_row.dart';
 import '../../../shared/write.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/presentation/ingredient_list_view.dart'
@@ -292,6 +293,10 @@ class _OverflowMenu extends ConsumerWidget {
             ),
           ],
         ),
+        // The menu's footer: where this device stands with the server. Below
+        // the divider because it is a fact, not an action — until it isn't, at
+        // which point the row itself becomes the way on.
+        FItemGroup(children: const [SyncHealthRow()]),
       ],
       builder: (context, controller, _) => Stack(
         clipBehavior: Clip.none,

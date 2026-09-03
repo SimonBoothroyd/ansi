@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// A counter page: the tap count is [State] held by the branch's Navigator, so
 /// it survives a tab switch exactly when the branch subtree stays mounted.
@@ -106,9 +107,14 @@ GoRouter _router() {
 
 Future<void> _pump(WidgetTester tester, GoRouter router) async {
   await tester.pumpWidget(
-    MaterialApp.router(
-      routerConfig: router,
-      builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
+    // The shell hosts the sync banner (once, above the routed child), so it
+    // needs the provider scope the real app gives it.
+    ProviderScope(
+      child: MaterialApp.router(
+        routerConfig: router,
+        builder: (context, child) =>
+            FTheme(data: ansiThemeData(), child: child!),
+      ),
     ),
   );
   await tester.pumpAndSettle();

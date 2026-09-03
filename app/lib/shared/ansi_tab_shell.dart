@@ -20,6 +20,7 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 
 import 'ansi_bottom_nav.dart';
+import 'sync_banner.dart';
 
 /// The branch the app treats as home: back from anywhere else lands here first.
 const kHomeBranch = 0;
@@ -51,7 +52,15 @@ class AnsiTabShell extends StatelessWidget {
       // the page padding already; leaving it on here would double it.
       childPad: false,
       footer: AnsiBottomNav(shell: shell),
-      child: shell,
+      child: Column(
+        children: [
+          // The sync banner belongs to the app, not to a tab, so it lives here
+          // exactly once, above every branch. It draws nothing at all while
+          // sync is healthy — which is almost always.
+          const AnsiSyncBanner(),
+          Expanded(child: shell),
+        ],
+      ),
     ),
   );
 }

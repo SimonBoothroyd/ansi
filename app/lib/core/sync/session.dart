@@ -42,6 +42,7 @@ import '../../features/books/data/book_repository_impl.dart';
 import 'connector.dart';
 import 'database.dart';
 import 'device_prefs.dart';
+import 'dropped_write.dart';
 
 part 'session.g.dart';
 
@@ -289,8 +290,14 @@ class SessionController extends _$SessionController {
     }
   }
 
-  Future<void> _connect(PowerSyncDatabase db) =>
-      db.connect(connector: AnsiConnector(ref.read(supabaseClientProvider)));
+  Future<void> _connect(PowerSyncDatabase db) => db.connect(
+    connector: AnsiConnector(
+      ref.read(supabaseClientProvider),
+      // The refused-and-discarded write finally has somewhere to be heard:
+      // the sync-health banner reads this list (core/sync/sync_health.dart).
+      onDropped: ref.read(droppedWritesProvider.notifier),
+    ),
+  );
 
   /// Re-runs `ensure_onboarded` behind an already-published cached session, to
   /// heal drift (e.g. the household changed server-side).
@@ -307,6 +314,21 @@ class SessionController extends _$SessionController {
       // Offline or transient: the cached household stands; a later launch
       // reconciles.
     }
+  }
+
+  /// Restarts the sync connection — what the sync banner's "Try now" does.
+  ///
+  /// PowerSync backs off on its own and, while disconnected, breaks out of the
+  /// upload loop entirely until the sync stream reconnects. That is correct for
+  /// a sync engine and useless to someone who has just walked out of a
+  /// basement, which is the whole reason this button exists.
+  ///
+  /// A no-op unless a session is established: there is nothing to reconnect.
+  Future<void> reconnect() async {
+    if (state is! SessionReady) return;
+    final db = ref.read(powerSyncDatabaseProvider);
+    await db.disconnect();
+    await _connect(db);
   }
 
   /// Re-attempts session establishment after a [SessionError].

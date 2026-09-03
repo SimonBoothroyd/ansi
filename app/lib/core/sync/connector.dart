@@ -18,6 +18,7 @@ import 'package:powersync/powersync.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/env.dart';
+import 'dropped_write.dart';
 
 /// Whether a PostgREST error means "this write is invalid" — retrying can't
 /// help, so we drop the offending transaction rather than block the queue.
@@ -87,9 +88,15 @@ Map<String, dynamic> patchPayload(CrudEntry op) =>
     _decodeJsonbColumns(op.table, op.opData ?? const {});
 
 class AnsiConnector extends PowerSyncBackendConnector {
-  AnsiConnector(this._supabase);
+  AnsiConnector(this._supabase, {DroppedWriteSink? onDropped})
+    : _onDropped = onDropped ?? const NoopDroppedWriteSink();
 
   final SupabaseClient _supabase;
+
+  /// Where a discarded transaction is reported. The `debugPrint` below stays
+  /// beside it, not instead of it — a console line is for whoever is attached,
+  /// and this is for the person it happened to.
+  final DroppedWriteSink _onDropped;
 
   @override
   Future<PowerSyncCredentials?> fetchCredentials() async {
@@ -135,6 +142,16 @@ class AnsiConnector extends PowerSyncBackendConnector {
           'sync: DROPPING crud transaction after fatal PostgREST error on '
           '${current?.table}/${current?.op.name} id=${current?.id} '
           '(code=${e.code}): ${e.message}',
+        );
+        _onDropped.dropped(
+          DroppedWrite(
+            table: current?.table ?? '?',
+            op: current?.op.name ?? '?',
+            rowId: current?.id ?? '?',
+            code: e.code ?? '?',
+            message: e.message,
+            at: DateTime.now(),
+          ),
         );
         await transaction.complete();
       } else {

@@ -11,6 +11,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:ansi/core/sync/connector.dart';
+import 'package:ansi/core/sync/dropped_write.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -18,6 +19,14 @@ import 'package:powersync/powersync.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../helpers/test_db.dart';
+
+/// Collects what the connector reports it discarded.
+class _RecordingSink implements DroppedWriteSink {
+  final writes = <DroppedWrite>[];
+
+  @override
+  void dropped(DroppedWrite write) => writes.add(write);
+}
 
 class _MockSupabase extends Mock implements SupabaseClient {}
 
@@ -205,11 +214,13 @@ void main() {
     late Directory dir;
     late _FakePostgrest backend;
     late AnsiConnector connector;
+    late _RecordingSink dropped;
 
     setUp(() async {
       (db, dir) = await openTestDb();
       backend = _FakePostgrest();
-      connector = AnsiConnector(_FakeSupabase(backend));
+      dropped = _RecordingSink();
+      connector = AnsiConnector(_FakeSupabase(backend), onDropped: dropped);
     });
 
     tearDown(() => closeTestDb(db, dir));
@@ -291,6 +302,14 @@ void main() {
       expect(log, contains('put'));
       expect(log, contains('r1'));
       expect(log, contains('23505'));
+
+      // And — the point of this front — it is reported to something a person
+      // can be shown, not only to a console nobody is attached to.
+      final report = dropped.writes.single;
+      expect(report.table, 'recipe');
+      expect(report.op, 'put');
+      expect(report.rowId, 'r1');
+      expect(report.code, '23505');
     });
 
     test('transient PostgREST error rethrows and keeps the queue', () async {

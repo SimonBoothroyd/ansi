@@ -310,7 +310,7 @@ String _$lastPlannedByRecipeHash() =>
 
 /// Per-recipe macro summaries, indexed by recipe id.
 ///
-/// `watchRecipes()` already carries `macros` on every [RecipeSummary], so the
+/// `watchRecipes()` already carries `macros` on every `RecipeSummary`, so the
 /// week needs NO new repository method and no second summation — it reads the
 /// same figure the picker rows and the recipe panel show.
 
@@ -319,7 +319,7 @@ const recipeMacrosByIdProvider = RecipeMacrosByIdProvider._();
 
 /// Per-recipe macro summaries, indexed by recipe id.
 ///
-/// `watchRecipes()` already carries `macros` on every [RecipeSummary], so the
+/// `watchRecipes()` already carries `macros` on every `RecipeSummary`, so the
 /// week needs NO new repository method and no second summation — it reads the
 /// same figure the picker rows and the recipe panel show.
 
@@ -333,7 +333,7 @@ final class RecipeMacrosByIdProvider
     with $Provider<Map<String, RecipeMacroSummary>> {
   /// Per-recipe macro summaries, indexed by recipe id.
   ///
-  /// `watchRecipes()` already carries `macros` on every [RecipeSummary], so the
+  /// `watchRecipes()` already carries `macros` on every `RecipeSummary`, so the
   /// week needs NO new repository method and no second summation — it reads the
   /// same figure the picker rows and the recipe panel show.
   const RecipeMacrosByIdProvider._()
@@ -372,7 +372,7 @@ final class RecipeMacrosByIdProvider
   }
 }
 
-String _$recipeMacrosByIdHash() => r'7c1edb7b5c29083b5ce85a43553e42bc58838ac9';
+String _$recipeMacrosByIdHash() => r'bcce65c48ca6eabca10ea29ed99479705f17030d';
 
 /// The viewed week's macros under [lens] (null = Everyone) — D4.
 
