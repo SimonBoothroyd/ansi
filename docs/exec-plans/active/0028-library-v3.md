@@ -32,7 +32,7 @@ re-shelved without entering the editor; `/account` exists.
       book `⋯`'s Move up / Move down.
 - [ ] E5 — Ingredients renders as a card at the end of the library
       (`308 ingredients · 3 stubs`, `›`); the stub **dot** is deleted.
-- [ ] E6 — `/account` route: household members + usual portions (today's sheet),
+- [x] E6 — `/account` route: household members + usual portions (today's sheet),
       sync health's quiet line, Sign out with its confirm.
 - [ ] E7 — the dashed `＋ new book` footer row exists at last.
 - [ ] E8 — a `⋯` on the recipe row with **Move to…** and the favourite toggle;
@@ -54,7 +54,8 @@ re-shelved without entering the editor; `/account` exists.
 
 ## Approach
 
-Lane A owns `library_view.dart` and must land before C/D/E touch it.
+**Order changed 2026-09-03:** lane D goes first (see below), then A, then B/C.
+Lane A owns `library_view.dart` and must land before B/C touch it.
 
 1. **Lane A — the Library screen** (E1, E2, E3, E5, E7 + the deletions).
    Slices, each its own commit: header (field + `users` link, `_AddMenu` and
@@ -66,9 +67,12 @@ Lane A owns `library_view.dart` and must land before C/D/E touch it.
 3. **Lane C — Move to…** (E8). `setFiling` on `RecipeRepository` beside
    `setFavorite`, the row `⋯`, the target sheet, the announced sentence. The
    refusal grammar is `moveBookContents`' in the singular.
-4. **Lane D — `/account`** (E6). The one new surface, and the only slice that
-   can ship late: until it exists the `users` control opens today's Household
-   sheet with Sign out appended.
+4. **Lane D — `/account`** (E6). ✅ **Landed 2026-09-03** (`b6b1248`) — and
+   moved to the FRONT of the order, not the back: building it first gives the
+   header link a real destination on day one, so `week_test`'s usual-portion
+   leg moves once instead of twice and no interim sheet is needed. The sheet
+   became `HouseholdSection`; the `⋯` lost Sign out and the sync line and its
+   Household item became `Account`. 1688 host tests green.
 5. **Close-out** — sim legs, spec rewrite, QUALITY grades, board tag, tracker.
 
 Traps (memory): ff-merge main first; copy `.env.local` into the worktree; sims
@@ -83,7 +87,7 @@ sim covers it" is not true:
 | What the slice removes | Test that drives it today | Moves to |
 |---|---|---|
 | the header `⋯` | `integration_test/support/library.dart` — `openLibraryMenu()` taps `ellipsis.first` | the helper is replaced by `openAccount()` (the `users` glyph); `openBookMenu` is untouched |
-| the header `⋯` ▸ Household | `week_test.dart:528` (usual-portion leg, plan 0027 P-D3) | **twice**: lane A re-points it at the interim door (glyph → today's sheet), lane D at `/account` |
+| the header `⋯` ▸ Household | `week_test.dart:528` (usual-portion leg, plan 0027 P-D3) | ✅ once, in lane D: `Account` → the page, backing out instead of closing a sheet |
 | the header `⋯` ▸ Ingredients | `ingredients_test.dart:200-211` | the Ingredients **card** at the end of the library |
 | "Reorder books" + its sheet | `library_test.dart:150-154`; host `library_view_test.dart:265-282, 329` | the book `⋯` ▸ Move up; the two presence/absence tests delete with the conditional |
 | the `⋯` contents + Sign out | host `library_view_test.dart:190-205, 906` | rewritten against the header's one link, then against `/account` in lane D |
