@@ -14,6 +14,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
@@ -71,16 +72,12 @@ class ShoppingView extends ConsumerWidget {
     AsyncValue<ShoppingList> list,
   ) => list.when(
     loading: () => const Center(child: FCircularProgress()),
-    error: (e, _) {
-      debugPrint('shopping list failed: $e');
-      return Center(
-        child: Text(
-          'Could not build the shopping list.',
-          textAlign: TextAlign.center,
-          style: ansiMono(size: 13, color: AnsiColors.muted),
-        ),
-      );
-    },
+    error: (e, st) => AnsiErrorState(
+      what: 'the shopping list',
+      error: e,
+      stackTrace: st,
+      onRetry: () => ref.invalidate(currentShoppingListProvider),
+    ),
     // D5b: the screen never swaps itself out for a data condition. An
     // empty list is a quiet line INSIDE the list chrome, keeping both of
     // this screen's affordances — the add-item door works with no plan at

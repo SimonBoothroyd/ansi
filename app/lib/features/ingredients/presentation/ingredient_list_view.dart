@@ -63,6 +63,9 @@ class IngredientListView extends HookConsumerWidget {
       return () => field.removeListener(onEdit);
     }, [field]);
 
+    // Decorative emptiness, weighed (D6): the screen's own `when` renders the
+    // loading and error branches, so this fallback only ever covers the frame
+    // before the first emission.
     final all = vocabulary.asData?.value ?? const <Ingredient>[];
     final stubs = [
       for (final i in all)

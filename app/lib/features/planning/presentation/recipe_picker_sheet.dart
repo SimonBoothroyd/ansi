@@ -62,6 +62,10 @@ class _RecipePickerSheet extends HookConsumerWidget {
     final query = useState('');
     final tab = useState(0); // 0 = Recent, 1 = Books, 2 = Favorites
 
+    // Decorative emptiness, weighed (D6): every one of these decorates the
+    // picker's rows — the filing breadcrumb, the eater avatars, the "last
+    // planned" chip. A missing decoration is a quieter row, not a wrong
+    // answer, and the recipe list itself renders its own empty state.
     final recipes = ref.watch(recipeListProvider).asData?.value ?? const [];
     final library = ref.watch(libraryProvider).asData?.value ?? const [];
     final week = ref.watch(viewedWeekProvider).asData?.value;

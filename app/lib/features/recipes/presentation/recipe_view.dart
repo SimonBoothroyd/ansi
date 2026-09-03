@@ -24,6 +24,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/method_step_text.dart';
@@ -51,17 +52,14 @@ class RecipeView extends ConsumerWidget {
 
     return async.when(
       loading: () => const FScaffold(child: Center(child: FCircularProgress())),
-      error: (e, _) {
-        debugPrint('recipe load failed: $e');
-        return FScaffold(
-          child: Center(
-            child: Text(
-              'Could not load this recipe.',
-              style: ansiMono(size: 13, color: AnsiColors.muted),
-            ),
-          ),
-        );
-      },
+      error: (e, st) => FScaffold(
+        child: AnsiErrorState(
+          what: 'this recipe',
+          error: e,
+          stackTrace: st,
+          onRetry: () => ref.invalidate(recipeByIdProvider(recipeId)),
+        ),
+      ),
       data: (recipe) => recipe == null
           ? FScaffold(
               child: Center(
@@ -87,13 +85,19 @@ class _RecipeBody extends HookConsumerWidget {
     // and the same rows carry the count D5's delete refusal speaks. A
     // still-loading query reads as "nothing points here yet" — two tabs, the
     // page it has always had — never as a third empty pane.
-    final uses =
-        ref.watch(recipeUsedInProvider(recipe.id)).asData?.value ??
-        const <RecipeUse>[];
+    final usesAsync = ref.watch(recipeUsedInProvider(recipe.id));
+    final uses = usesAsync.asData?.value ?? const <RecipeUse>[];
+    // Load-bearing emptiness (D6): "nothing points here" and "we could not
+    // find out" lead to different conclusions, so an errored query keeps the
+    // tab and says so inside it rather than quietly removing the evidence.
+    final usesFailed = usesAsync.hasError;
     final tabs = [
       'Ingredients',
       'Method',
-      if (uses.isNotEmpty) usedInTabLabel(uses.length),
+      if (usesFailed)
+        'Used in'
+      else if (uses.isNotEmpty)
+        usedInTabLabel(uses.length),
     ];
     // The last back-link can go while the tab is open; fall back rather than
     // stare at a pane that no longer exists.
@@ -193,6 +197,13 @@ class _RecipeBody extends HookConsumerWidget {
             )
           else if (index == 1)
             _MethodTab(recipe: recipe, servings: servings.value)
+          else if (usesFailed)
+            AnsiErrorState(
+              what: 'what this is used in',
+              error: usesAsync.error!,
+              stackTrace: usesAsync.stackTrace,
+              onRetry: () => ref.invalidate(recipeUsedInProvider(recipe.id)),
+            )
           else
             _UsedInTab(uses: uses),
         ],
@@ -216,9 +227,17 @@ class _RecipeBody extends HookConsumerWidget {
     // is something a person can act on, "failed" is not. Read the repository
     // (keepAlive) rather than the tab's cached rows: the answer must be the
     // one that is true at the moment of the tap.
+    //
+    // Guarded, because the alternative is the worst outcome this front knows
+    // of: a check that threw would leave `uses` unknown, and an unknown that
+    // reads as "nothing points here" turns a refusal into a delete.
     final repository = ref.read(recipeRepositoryProvider);
-    final uses = await repository.usedIn(recipe.id);
-    if (!context.mounted) return;
+    final uses = await ref.write(
+      context,
+      'check what uses this recipe',
+      () => repository.usedIn(recipe.id),
+    );
+    if (uses == null || !context.mounted) return;
     if (uses.isNotEmpty) {
       await showAnsiDialog<void>(
         context: context,

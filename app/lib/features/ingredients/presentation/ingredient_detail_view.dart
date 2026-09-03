@@ -26,6 +26,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_error_state.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
@@ -134,6 +135,7 @@ class _DetailForm extends HookConsumerWidget {
     // back the resolved spoon — the density entry pre-picks it (F2: one
     // shared editor, so the redirect works here exactly as in the sheet).
     final redirectedSpoon = useState<Unit?>(null);
+    final measuresAsync = ref.watch(ingredientMeasuresProvider(ing.id));
 
     // The row as the FORM currently reads it: the stored facts with the two
     // draft choices the D4c admission rule turns on — the default unit and
@@ -369,32 +371,46 @@ class _DetailForm extends HookConsumerWidget {
         ),
 
         const _Label('MEASURES — COUNT-LIKE, IN THE BASIS'),
-        MeasuresEditor(
-          ingredient: ing,
-          measures:
-              ref.watch(ingredientMeasuresProvider(ing.id)).asData?.value ??
-              const [],
-          onDelete: (m) => ref.write(
-            context,
-            'delete that measure',
-            () => ref.read(measureRepositoryProvider).softDeleteMeasure(m.id),
+        // Load-bearing emptiness (D6): an errored measures stream rendered as
+        // `const []` hides rows that exist, and this form's next Save would
+        // then write the narrowed set back. So the error is a state, not a
+        // fact about the ingredient.
+        if (measuresAsync case AsyncError(:final error, :final stackTrace))
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: AnsiErrorState(
+              compact: true,
+              what: 'the measures',
+              error: error,
+              stackTrace: stackTrace,
+              onRetry: () => ref.invalidate(ingredientMeasuresProvider(ing.id)),
+            ),
+          )
+        else
+          MeasuresEditor(
+            ingredient: ing,
+            measures: measuresAsync.asData?.value ?? const [],
+            onDelete: (m) => ref.write(
+              context,
+              'delete that measure',
+              () => ref.read(measureRepositoryProvider).softDeleteMeasure(m.id),
+            ),
+            // Nothing here selects a measure — the form is not a quantity
+            // entry surface; the watched provider re-renders the list.
+            onAdded: (_) {},
+            // A volume-named label is a density in disguise (ADR-0008 §2); the
+            // editor refuses it and the density section above pre-picks that
+            // spoon, which is the whole point of sharing one widget.
+            onVolumeLabel: (u) => redirectedSpoon.value = u,
+            // The piece question wrote `allowed_units` straight through the
+            // repository, so the chips above must follow in the same breath —
+            // otherwise this form's next Save would put `piece` back from a
+            // draft made before the question was asked.
+            onIngredientChanged: (updated) {
+              allowed.value = allowedUnitsFor(updated).toSet();
+              ref.invalidate(ingredientByIdProvider(ing.id));
+            },
           ),
-          // Nothing here selects a measure — the form is not a quantity
-          // entry surface; the watched provider re-renders the list.
-          onAdded: (_) {},
-          // A volume-named label is a density in disguise (ADR-0008 §2); the
-          // editor refuses it and the density section above pre-picks that
-          // spoon, which is the whole point of sharing one widget.
-          onVolumeLabel: (u) => redirectedSpoon.value = u,
-          // The piece question wrote `allowed_units` straight through the
-          // repository, so the chips above must follow in the same breath —
-          // otherwise this form's next Save would put `piece` back from a
-          // draft made before the question was asked.
-          onIngredientChanged: (updated) {
-            allowed.value = allowedUnitsFor(updated).toSet();
-            ref.invalidate(ingredientByIdProvider(ing.id));
-          },
-        ),
 
         const _Label('IMPRECISE UNITS'),
         _ImpreciseLine(ingredient: ing),
@@ -691,6 +707,9 @@ class _CategoryPicker extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Decorative emptiness, weighed (D6): these are typing SUGGESTIONS, and
+    // the row's own category is added below regardless — so "we don't know the
+    // others" and "there are no others" cost the user the same nothing.
     final known = ref.watch(ingredientCategoriesProvider).asData?.value ?? [];
     // The row's own category is always offered even when nothing else carries
     // it any more — the same rule the unit pickers follow for a stored
@@ -859,6 +878,10 @@ class _AliasEditor extends HookConsumerWidget {
           spacing: 6,
           runSpacing: 6,
           children: [
+            // Decorative emptiness, weighed (D6): the add field below is the
+            // point of this section and works with no list at all; an alias
+            // that exists but did not load is re-added harmlessly (the
+            // repository is idempotent on match_text).
             for (final a in aliases.asData?.value ?? const <IngredientAlias>[])
               GestureDetector(
                 behavior: HitTestBehavior.opaque,

@@ -14,6 +14,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
@@ -89,15 +90,12 @@ class RecipeEditorView extends ConsumerWidget {
       ),
       child: async.when(
         loading: () => const Center(child: FCircularProgress()),
-        error: (e, _) {
-          debugPrint('recipe editor load failed: $e');
-          return Center(
-            child: Text(
-              'Could not open the editor.',
-              style: ansiMono(size: 13, color: AnsiColors.muted),
-            ),
-          );
-        },
+        error: (e, st) => AnsiErrorState(
+          what: 'the editor',
+          error: e,
+          stackTrace: st,
+          onRetry: () => ref.invalidate(recipeEditorProvider(recipeId)),
+        ),
         data: (recipe) => _EditorForm(recipe: recipe, notifier: notifier),
       ),
     );
@@ -947,6 +945,9 @@ class _FilingPicker extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Decorative emptiness, weighed (D6): with no books the filing picker
+    // shows nothing to file into, which is exactly what a household with no
+    // books sees — and `ensureDefaultBook` means that state cannot persist.
     final books = ref.watch(libraryProvider).asData?.value ?? const [];
     if (books.isEmpty) return const SizedBox.shrink();
 

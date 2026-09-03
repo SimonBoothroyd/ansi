@@ -39,6 +39,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_error_state.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
@@ -94,6 +95,9 @@ class WeekView extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final weekStart = ref.watch(viewedWeekStartProvider);
     final week = ref.watch(viewedWeekProvider);
+    // Decorative emptiness, weighed (D6): an empty roster draws no avatars and
+    // no lens chips. The week's own meals — the thing this screen is for — are
+    // unaffected, and the roster arrives with the first sync.
     final roster = ref.watch(membersProvider).asData?.value ?? const <Member>[];
     // The cook markers are a READ of the derivation the Cook tab draws, for
     // this same week (D6). Null while it loads — a row simply has no second
@@ -135,16 +139,12 @@ class WeekView extends HookConsumerWidget {
       ),
       child: week.when(
         loading: () => const Center(child: FCircularProgress()),
-        error: (e, _) {
-          debugPrint('week load failed: $e');
-          return Center(
-            child: Text(
-              'Could not load the week.',
-              textAlign: TextAlign.center,
-              style: ansiMono(size: 13, color: AnsiColors.muted),
-            ),
-          );
-        },
+        error: (e, st) => AnsiErrorState(
+          what: 'the week',
+          error: e,
+          stackTrace: st,
+          onRetry: () => ref.invalidate(viewedWeekProvider),
+        ),
         // `watchWeek` emitting null stops meaning "show a different screen"
         // and starts meaning "seven empty days" (D5).
         data: (plan) {

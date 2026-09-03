@@ -84,6 +84,8 @@ Stream<Map<String, DateTime>> lastPlannedByRecipe(Ref ref) =>
 @riverpod
 Map<String, RecipeMacroSummary> recipeMacrosById(Ref ref) {
   final recipes =
+      // Decorative emptiness, weighed (D6): this resolves titles for rows the
+      // week already has; an unresolved one falls back to its stored title.
       ref.watch(recipeListProvider).asData?.value ?? const <RecipeSummary>[];
   return {
     for (final r in recipes)

@@ -104,6 +104,8 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final search = useIngredientSearch(ref, context);
+    // Decorative emptiness, weighed (D6): the books only group the picker's
+    // rows. The recipes themselves come from their own provider and still list.
     final books = ref.watch(libraryProvider).asData?.value ?? const [];
     final refusal = useState<String?>(null);
 

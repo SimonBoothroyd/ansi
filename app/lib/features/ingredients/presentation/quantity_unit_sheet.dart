@@ -34,6 +34,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/write.dart';
 import '../../recipes/presentation/format.dart';
@@ -146,9 +147,8 @@ class QuantityUnitEditor extends HookConsumerWidget {
     // read this copy, updated by the density write path.
     final live = useState(ingredient);
 
-    final measures =
-        ref.watch(ingredientMeasuresProvider(ingredient.id)).asData?.value ??
-        const <Measure>[];
+    final measuresAsync = ref.watch(ingredientMeasuresProvider(ingredient.id));
+    final measures = measuresAsync.asData?.value ?? const <Measure>[];
 
     // Deleting the SELECTED measure reconciles the choice (deliberate call,
     // post-7.7 review): keeping it would let Done write a tombstoned
@@ -195,7 +195,20 @@ class QuantityUnitEditor extends HookConsumerWidget {
               ) +
               12,
         ),
-        child: managing.value
+        // Load-bearing emptiness (D6): an errored measures stream read as "no
+        // measures" silently narrows which units this line may be written in
+        // (ADR-0008) — the user's honest "2 half-cans" is simply not offered,
+        // with no hint that anything went wrong. So it is said out loud,
+        // instead of the chips it would otherwise quietly remove.
+        child: measuresAsync.hasError
+            ? AnsiErrorState(
+                what: 'this ingredient’s measures',
+                error: measuresAsync.error!,
+                stackTrace: measuresAsync.stackTrace,
+                onRetry: () =>
+                    ref.invalidate(ingredientMeasuresProvider(ingredient.id)),
+              )
+            : managing.value
             ? _MeasureManager(
                 ingredient: live.value,
                 measures: measures,

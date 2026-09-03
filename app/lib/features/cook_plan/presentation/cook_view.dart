@@ -17,6 +17,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_error_state.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
@@ -53,16 +54,12 @@ class CookView extends ConsumerWidget {
       ),
       child: plan.when(
         loading: () => const Center(child: FCircularProgress()),
-        error: (e, _) {
-          debugPrint('cook plan failed: $e');
-          return Center(
-            child: Text(
-              'Could not work out the cook plan.',
-              textAlign: TextAlign.center,
-              style: ansiMono(size: 13, color: AnsiColors.muted),
-            ),
-          );
-        },
+        error: (e, st) => AnsiErrorState(
+          what: 'the cook plan',
+          error: e,
+          stackTrace: st,
+          onRetry: () => ref.invalidate(currentCookPlanProvider),
+        ),
         data: (data) => ListView(
           padding: const EdgeInsets.only(top: 6, bottom: 24),
           children: [

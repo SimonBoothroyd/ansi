@@ -13,6 +13,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/sync/session.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_search_field.dart';
 import '../../../shared/dashed_border_box.dart';
@@ -70,16 +71,12 @@ class LibraryView extends HookConsumerWidget {
           Expanded(
             child: library.when(
               loading: () => const Center(child: FCircularProgress()),
-              error: (e, _) {
-                debugPrint('library load failed: $e');
-                return Center(
-                  child: Text(
-                    'Could not load the library.',
-                    textAlign: TextAlign.center,
-                    style: ansiMono(size: 13, color: AnsiColors.muted),
-                  ),
-                );
-              },
+              error: (e, st) => AnsiErrorState(
+                what: 'the library',
+                error: e,
+                stackTrace: st,
+                onRetry: () => ref.invalidate(libraryProvider),
+              ),
               // While a query is live the tree is gone, so the fold state is
               // ignored: there is nothing to fold. Clearing the field restores
               // it exactly as it was, folds included.
@@ -245,7 +242,8 @@ class _OverflowMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stubs = ref.watch(stubCountProvider).asData?.value ?? 0;
+    final stubsAsync = ref.watch(stubCountProvider);
+    final stubs = stubsAsync.asData?.value ?? 0;
 
     return FPopoverMenu(
       menuBuilder: (_, controller, _) => [
@@ -308,7 +306,11 @@ class _OverflowMenu extends ConsumerWidget {
           // D8: the badge climbs one level, so the door advertises itself
           // without being opened. Absent — not grey — at zero, the same rule
           // the badge inside the menu already documents.
-          if (stubs > 0)
+          //
+          // Drawn on an ERRORED count too (D6): a dot cannot say "unknown", but
+          // hiding it would answer "nothing to flesh out" on a question the app
+          // could not answer. It points at the door; the badge inside says so.
+          if (stubs > 0 || stubsAsync.hasError)
             const Positioned(
               key: kStubDotKey,
               top: 2,
@@ -1092,7 +1094,20 @@ class _StubCountBadge extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final count = ref.watch(stubCountProvider).asData?.value ?? 0;
+    final async = ref.watch(stubCountProvider);
+    // Load-bearing emptiness (D6): a `?? 0` here rendered an errored stream as
+    // "nothing to flesh out" on the one honest work-queue the app has. The
+    // count and the not-knowing are different facts, so they look different.
+    if (async.hasError) {
+      return FBadge(
+        variant: FBadgeVariant.secondary,
+        child: Text(
+          'stubs unknown',
+          style: ansiMono(size: 10, color: AnsiColors.aging),
+        ),
+      );
+    }
+    final count = async.asData?.value ?? 0;
     if (count == 0) return const SizedBox.shrink();
     return FBadge(
       variant: FBadgeVariant.secondary,
