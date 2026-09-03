@@ -122,22 +122,42 @@ function main(): void {
     `values (${sqlStr(HOUSEHOLD_ID)}, ${sqlStr(HOUSEHOLD_NAME)}, true)`,
     "on conflict (id) do update set is_template = true;",
     "",
-    "insert into ingredient",
-    "  (household_id, canonical_name, category, default_unit, status, source, match_text)",
-    "values",
+    "-- Re-runnable (0020): the template holds ONE live row per match_text, so",
+    "-- an existing row is refreshed in place (name, category, default unit —",
+    "-- never status/macros/density, which later seeds and humans own) and a",
+    "-- new one is inserted. A household is never touched here.",
+    "with v(canonical_name, category, default_unit, match_text) as (values",
   );
   out.push(
     ingredients.map((ing) =>
       "  (" + [
-        sqlStr(HOUSEHOLD_ID),
         sqlStr(ing.canonical_name),
         ing.category ? sqlStr(ing.category) : "null",
         sqlStr(ing.default_unit ?? "piece"),
-        "'stub'",
-        "'seed'",
         sqlStr(ing.match),
       ].join(", ") + ")"
-    ).join(",\n") + ";",
+    ).join(",\n") + ")",
+    ", refreshed as (",
+    "  update ingredient i",
+    "     set canonical_name = v.canonical_name, category = v.category,",
+    "         default_unit = v.default_unit, updated_at = now()",
+    "    from v",
+    `   where i.household_id = ${sqlStr(HOUSEHOLD_ID)}`,
+    "     and i.match_text = v.match_text and i.deleted_at is null",
+    "     and (i.canonical_name, i.category, i.default_unit)",
+    "         is distinct from (v.canonical_name, v.category, v.default_unit)",
+    "  returning i.match_text",
+    ")",
+    "insert into ingredient",
+    "  (household_id, canonical_name, category, default_unit, status, source, match_text)",
+    `select ${
+      sqlStr(HOUSEHOLD_ID)
+    }, v.canonical_name, v.category, v.default_unit, 'stub', 'seed', v.match_text`,
+    "  from v",
+    " where not exists (",
+    "   select 1 from ingredient i",
+    `    where i.household_id = ${sqlStr(HOUSEHOLD_ID)}`,
+    "      and i.match_text = v.match_text and i.deleted_at is null);",
   );
 
   if (aliasRows.length) {
@@ -152,7 +172,11 @@ function main(): void {
       "join (values",
       aliasRows.join(",\n"),
       ") as a(ing_match, alias_text, alias_match) on i.match_text = a.ing_match",
-      `where i.household_id = ${sqlStr(HOUSEHOLD_ID)};`,
+      `where i.household_id = ${sqlStr(HOUSEHOLD_ID)} and i.deleted_at is null`,
+      "  and not exists (",
+      "    select 1 from ingredient_alias x",
+      "     where x.ingredient_id = i.id and x.match_text = a.alias_match",
+      "       and x.deleted_at is null);",
     );
   }
   out.push("", "commit;", "");

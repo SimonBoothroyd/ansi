@@ -77,6 +77,19 @@ the memory note referenced from the step-7 exec plan; this doc is cloud-only.
 ## 2. Seed the cloud vocab
 
 `db push` ships schema, not data — a fresh cloud household has no ingredients.
+
+> **Since 2026-09-03 this whole section is one button:** Actions →
+> **deploy-supabase** → Run workflow with **`reseed_template`** ticked runs
+> the five files below in this order (release.md §4.2 step 5). Migration
+> `0020` made the seed **re-runnable** — the template holds one live row per
+> `match_text` and the generated `seed.sql` upserts on it — after a hand-run
+> on 2026-09-03 had doubled the template (616 rows for 308 names; `0020`
+> tombstones such duplicates at `db push`). One file is NOT re-runnable and
+> the button knows it: `seed_usda.sql` is 8,204 plain inserts into a
+> primary-keyed reference table, so it is skipped when the table is already
+> populated (it never changes between releases; regenerate + `db reset` if it
+> ever does). The commands stay below for the by-hand path.
+
 Run the vocab seed via the **Management API** (uses your CLI login, no DB
 password):
 

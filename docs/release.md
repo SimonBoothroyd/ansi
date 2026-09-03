@@ -48,7 +48,7 @@ mutate live household data stays a human act.
 | `import-recipe` edge function | `deploy-supabase.yml` → `supabase functions deploy` | same run |
 | PowerSync sync streams ([`docker/powersync-cloud.streams.yaml`](../docker/powersync-cloud.streams.yaml)) | `deploy-supabase.yml` → `powersync deploy sync-config` | same run — also re-run after any cloud `db reset` |
 | Function secrets (`ANTHROPIC_API_KEY`, `IMPORT_ALLOWED_HOUSEHOLDS`) | `supabase secrets set` | **human**, [cloud-setup §3b](./cloud-setup.md) |
-| Template vocab reseed | SQL block, run by hand | **human**, [cloud-setup §2](./cloud-setup.md) |
+| Template vocab reseed | `deploy-supabase.yml` → the five seed files, in order | Actions → Run workflow with **`reseed_template`** ticked (since 2026-09-03 / `0020`) |
 | Rolling a reseed onto existing households | [`supabase/rollout_ingredient_refresh.sql`](../supabase/rollout_ingredient_refresh.sql), preview then run | **human**, [cloud-setup §2b](./cloud-setup.md) |
 | Dashboard settings (auth hook, JWT audience, public sign-up) | Dashboards | **human**, cloud-setup's checklist |
 
@@ -395,6 +395,15 @@ Actions → **deploy-supabase** → Run workflow. One job, in order:
    schema they must match — run this workflow after ANY cloud `db reset`,
    even one with no migration changes.
 
+5. **reseed the template vocabulary** — only when the run was dispatched with
+   **`reseed_template` ticked**: `seed.sql` → `seed_usda.sql` (skipped when
+   the reference table is already populated; its 8,204 plain inserts never
+   change between releases) → `seed_prefill.sql` → `seed_measures.sql` →
+   `seed_curation.sql`, in the runbook's order, against the member-less
+   template household only. Re-runnable since migration `0020` (one live
+   template row per `match_text`; the generated seed upserts on it). Tick it
+   whenever `supabase/seed/**` or a generated `seed_*.sql` changed.
+
 Then it prints a step summary naming the legs it deliberately did not do.
 
 ### 4.3 The posture, and the trade
@@ -414,9 +423,6 @@ less repeatable. If the repo ever goes public, revoke the token first.
 
 ### 4.4 What this workflow will never do
 
-- **Reseed the template vocab** ([cloud-setup §2](./cloud-setup.md)). A change
-  to `supabase/seed/vocab.jsonl` or the generated `seed.sql` reaches cloud only
-  when you run that block by hand (`seed_curation.sql` last).
 - **Roll a reseed onto existing households**
   ([cloud-setup §2b](./cloud-setup.md)). A reseed updates the *template*
   household; households already onboarded keep their old clone until the §2b
@@ -435,8 +441,10 @@ record the run in cloud-setup's ledger.
 ## 5. Full ship checklist
 
 1. `make ci` green locally.
-2. Migrations changed? Actions → deploy-supabase → Run workflow (§4.2).
-3. Seed changed? Do cloud-setup §2, then §2b (§4.4) — by hand.
+2. Migrations or the edge function changed? Actions → deploy-supabase → Run
+   workflow (§4.2).
+3. Seed changed? Tick **`reseed_template`** on that same run (§4.2 step 5),
+   then do cloud-setup §2b (§4.4) by hand if existing households need it.
 4. `scripts/cloud_verify.sh` clean.
 5. `git tag vX.Y.Z && git push origin vX.Y.Z`. (No pubspec bump needed — the
    tag is the version of record, §3c.)

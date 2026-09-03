@@ -365,8 +365,11 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
       `import-recipe` redeployed; the sync-streams leg failed on the pinned
       CLI (needs a `powersync/` project dir — tracker) but was a no-op here
       (the YAML is unchanged since `3c9d75e`); `cloud_verify` 8 ok · 1 warn;
-      ledger entry in `docs/cloud-setup.md`. **Still human-run:** the
-      template-vocab reseed for the piece curation + the folded seed
-      (cloud-setup §2, `seed_curation.sql` last). App tagged `v0.2.0` at
-      `fb13bf3` after the deploy.
+      ledger entry in `docs/cloud-setup.md`. The template-vocab reseed for the
+      piece curation + the folded seed became a **button** the same night
+      (`deploy-supabase` input `reseed_template`) after a hand-run doubled the
+      template — migration `0020` tombstones such duplicates, adds
+      template-only unique indexes, and the generated `seed.sql` upserts on
+      them (pgTAP `template_seed.sql`). App tagged `v0.2.0` at `fb13bf3` after
+      the deploy.
 - [x] `make ci` green on main at `4c48875`+ (1404 · 153 · docs OK).

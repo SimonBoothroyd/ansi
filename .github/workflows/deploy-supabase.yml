@@ -19,8 +19,10 @@ name: deploy-supabase
 # same button as the schema they must match.
 #
 # NOT in this pipeline, on purpose:
-#   * Template reseeds (cloud-setup §2) and the household rollout (§2b) —
-#     they mutate live household data and stay human-run.
+#   * The household rollout (cloud-setup §2b) — it mutates live household
+#     data and stays human-run. The TEMPLATE reseed (§2) graduated onto this
+#     button on 2026-09-03 behind the `reseed_template` input: the template is
+#     member-less, no device writes to it, and 0020 made the seed re-runnable.
 #   * Function secrets — ANTHROPIC_API_KEY and IMPORT_ALLOWED_HOUSEHOLDS are
 #     managed with `supabase secrets set` (cloud-setup §3b), never from here.
 #     Values live only in the Supabase project; CI has no business holding them.
@@ -29,6 +31,16 @@ name: deploy-supabase
 #     list: the CLI deploys them here.)
 on:
   workflow_dispatch:
+    inputs:
+      reseed_template:
+        description: >-
+          Also reseed the TEMPLATE vocabulary (seed.sql → seed_usda (only if the
+          reference table is empty) → seed_prefill → seed_measures →
+          seed_curation). Touches the member-less template household only;
+          re-runnable since 0020. Existing households still need the §2b
+          rollout by hand.
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-supabase # never two pushes at the same project at once
@@ -107,6 +119,24 @@ jobs:
             --instance-id "$POWERSYNC_INSTANCE_ID" \
             --sync-config-file-path docker/powersync-cloud.streams.yaml
 
+      # Opt-in: reseed the TEMPLATE vocabulary (cloud-setup §2). Same order as
+      # the runbook; seed_usda only when the reference table is empty (its
+      # 8,204 rows are plain inserts and never change between releases).
+      - name: 5 · Reseed the template vocabulary (opt-in)
+        if: ${{ inputs.reseed_template }}
+        run: |
+          q() { supabase db query --linked "$1" | jq -r '.rows[0] | to_entries[0].value'; }
+          supabase db query --linked -f supabase/seed.sql
+          if [ "$(q 'select count(*) from usda_food')" = "0" ]; then
+            supabase db query --linked -f supabase/seed_usda.sql
+          else
+            echo "usda_food already populated — skipping seed_usda.sql"
+          fi
+          supabase db query --linked -f supabase/seed_prefill.sql
+          supabase db query --linked -f supabase/seed_measures.sql
+          supabase db query --linked -f supabase/seed_curation.sql
+          echo "template: $(q "select count(*) from ingredient where household_id='00000000-0000-0000-0000-0000000000aa' and deleted_at is null") live ingredients"
+
       # The deploy is only half the story whenever a change also altered the
       # curated vocabulary. Nothing here can safely do that leg, so it ends by
       # saying so out loud instead of leaving cloud half-migrated in silence.
@@ -122,9 +152,13 @@ jobs:
             echo "**Not applied — do these by hand if this deploy included"
             echo "seed-affecting changes:**"
             echo
-            echo "- **cloud-setup §2 — reseed the cloud vocab.** Any change to"
-            echo "  \`supabase/seed/vocab.jsonl\` or the generated \`seed.sql\` only"
-            echo "  reaches cloud when you run that block (\`seed_curation.sql\` LAST)."
+            if [ "${{ inputs.reseed_template }}" = "true" ]; then
+              echo "- **cloud-setup §2 — template reseed: DONE on this run** (step 5)."
+            else
+              echo "- **cloud-setup §2 — reseed the template vocab.** Not ticked on"
+              echo "  this run: re-dispatch with \`reseed_template\` if \`supabase/seed/**\`"
+              echo "  or a generated \`seed_*.sql\` changed."
+            fi
             echo "- **cloud-setup §2b — roll reseeded \`ingredient\` columns onto"
             echo "  existing households.** A reseed updates the TEMPLATE household;"
             echo "  households already onboarded keep their old clone until the §2b"
