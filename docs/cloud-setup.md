@@ -380,6 +380,27 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-09-03 — polish pass (plan 0022) deploy
+
+- `deploy-supabase` run `33702716396` from `main@fb13bf3`: **link ✓ · `db
+  push` ✓ (0018 fold_diacritics, 0019 shopping_week) · `functions deploy
+  import-recipe` ✓ (the shared normalizer's diacritic fold) · sync streams
+  ✗** — `powersync@0.10.0 deploy sync-config` now refuses without a
+  `powersync/` project directory ("Run powersync init cloud … first"), so
+  the leg never ran. **No-op for this deploy**: `docker/powersync-cloud.streams.yaml`
+  last changed at `3c9d75e` (before the pass) and both rules on the tables
+  0019 touched are `select *`, so the cloud streams already match. Fixing
+  the leg is a tracker row; re-run it after any cloud `db reset`.
+- `scripts/cloud_verify.sh`: **8 ok · 1 warn · 0 fail** (the warn is the
+  standing junk-household census).
+- **Still human-run, not yet done:** the template reseed for the piece
+  curation + the folded seed (§2: `seed.sql` → `seed_usda` → `seed_prefill`
+  → `seed_measures` → `seed_curation`, the last one last). Note that §2b's
+  rollout only *extends* `allowed_units`, so the piece **removal** reaches
+  existing households only by wipe-and-re-onboard (dev data is throwaway).
+- App: `v0.2.0` tagged at the same commit after this deploy (release.md §5
+  order: cloud first, then the tag).
+
 ### 2026-09-01 — full cloud reset and rebuild
 
 Human steps done (Simon): **`supabase db reset --linked`** — the cloud database
