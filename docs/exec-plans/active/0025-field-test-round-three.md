@@ -1,6 +1,6 @@
 # Exec plan: 0025 — Field test, round three — seven owner-raised fronts on `v0.3.0`
 
-- **Status:** active — all eight items landed on main 2026-09-03 (`29a3345`; `make ci` green at every landing, pgTAP 297); `make test-sim` running; cloud push + tag to follow
+- **Status:** active — all eight items landed on main 2026-09-03 (`29a3345`; `make ci` green at every landing, pgTAP 297); `make test-sim` **6/6** at `fc8d92c` (3 m 43 s); cloud push + tag await the owner's go
 - **Owner:** Simon (rules) + Claude (orchestrator; design lane for the frames, then build lanes)
 - **Roadmap step:** 8.10 (follow-up to 8.9 / plan 0024)
 - **Created:** 2026-09-03
@@ -483,7 +483,7 @@ in the **no-stubs** lane (same files). Sim-covered by the typed-barcode path
 - [ ] Roadmap row 8.10 flipped, with what shipped and what was deferred.
 - [ ] `docs/QUALITY.md` grade for every area touched matches reality.
 - [ ] `app/AGENTS.md` "Current focus" and command list still true.
-- [ ] `make test-sim` run on a booted simulator; result recorded here.
+- [x] `make test-sim` run on a booted simulator: run 1 at `29a3345` 4/6 — scenario 4 failed on `find.text('INGREDIENTS')` (the shared header pushed the lazy list's label below the fold; scenario 5 fell with it, precondition), fixed by scrolling first (`fc8d92c`); run 2 **6/6**, 3 m 43 s of test time.
 - [ ] Tech-debt rows added and retired.
 - [ ] Migrations `0024`/`0025` reach cloud; `docs/cloud-setup.md` ledger entry.
 - [ ] `make ci` green.
