@@ -1,8 +1,10 @@
+import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/import/domain/line_resolution.dart';
 import 'package:ansi/features/import/domain/preview_recipe.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
+import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 ReconLine _line(String text, {double? qty, String? unit, String? notes}) =>
@@ -160,5 +162,160 @@ void main() {
     expect(item.subRecipe?.title, 'Romesco Aioli');
     expect(item.quantity, 0.25);
     expect(item.unit, cup);
+  });
+
+  group('a resolved measure (plan 0025 #5)', () {
+    const avocado = Measure(id: 'm-avocado', label: 'avocado', amount: 150);
+
+    test(
+      'previews as commit writes it: piece + measure, formatted by label',
+      () {
+        final payload = ReconciliationPayload(
+          title: 'Guacamole',
+          groups: [
+            ReconGroup(lines: [_line('avocado', qty: 1)]),
+          ],
+        );
+        // D2's arrival (or a tapped chip) rides the measure LABEL on the line —
+        // not a catalogue unit id, which is what used to degrade it to "piece".
+        final resolutions = [
+          initialResolution(
+            0,
+            payload.flatLines[0],
+          ).resolveToIngredient('ing-avocado', 'Avocado').pickUnit('avocado'),
+        ];
+
+        final recipe = buildPreviewRecipe(
+          payload,
+          resolutions,
+          servingsBase: 2,
+          measureByLine: {0: avocado},
+        );
+
+        final item = recipe.groups.single.items.single;
+        expect(item.unit, pieces);
+        expect(item.measureId, 'm-avocado');
+        expect(item.measure, avocado);
+        // The chip sheet and the recipe page format through the same function.
+        expect(amountOfLineItem(item), '1 avocado');
+      },
+    );
+
+    test('without the measure the same line still degrades to piece', () {
+      final payload = ReconciliationPayload(
+        title: 'Guacamole',
+        groups: [
+          ReconGroup(lines: [_line('avocado', qty: 1)]),
+        ],
+      );
+      final resolutions = [
+        initialResolution(
+          0,
+          payload.flatLines[0],
+        ).resolveToIngredient('ing-avocado', 'Avocado').pickUnit('avocado'),
+      ];
+
+      final item = buildPreviewRecipe(
+        payload,
+        resolutions,
+        servingsBase: 2,
+      ).groups.single.items.single;
+      expect(item.unit, pieces);
+      expect(item.measureId, isNull);
+      expect(item.measure, isNull);
+      expect(amountOfLineItem(item), '1');
+    });
+
+    test('a catalogue-unit line and a numberless line are untouched', () {
+      final payload = ReconciliationPayload(
+        title: 'T',
+        groups: [
+          ReconGroup(
+            lines: [
+              _line('spaghetti', qty: 200, unit: 'g'),
+              _line('avocado', qty: 1),
+              _line('salt'),
+            ],
+          ),
+        ],
+      );
+      final resolutions = [
+        initialResolution(
+          0,
+          payload.flatLines[0],
+        ).resolveToIngredient('ing-spag', 'Spaghetti'),
+        initialResolution(
+          1,
+          payload.flatLines[1],
+        ).resolveToIngredient('ing-avocado', 'Avocado').pickUnit('avocado'),
+        initialResolution(
+          2,
+          payload.flatLines[2],
+        ).resolveToIngredient('ing-salt', 'Salt'),
+      ];
+
+      final items = buildPreviewRecipe(
+        payload,
+        resolutions,
+        servingsBase: 2,
+        measureByLine: {1: avocado},
+      ).groups.single.items;
+
+      expect(items[0].unit, g);
+      expect(items[0].measure, isNull);
+      expect(amountOfLineItem(items[0]), '200 g');
+      expect(items[1].measure, avocado);
+      expect(items[2].unit, toTaste);
+      expect(items[2].measure, isNull);
+    });
+
+    test('a component line never carries one, whatever the map says', () {
+      final payload = ReconciliationPayload(
+        title: 'T',
+        groups: [
+          ReconGroup(lines: [_line('Romesco Aioli', qty: 0.25, unit: 'cup')]),
+        ],
+      );
+      final item = buildPreviewRecipe(
+        payload,
+        [
+          initialResolution(
+            0,
+            payload.flatLines[0],
+          ).linkToRecipe('r-aioli', 'Romesco Aioli'),
+        ],
+        servingsBase: 8,
+        measureByLine: {0: avocado},
+      ).groups.single.items.single;
+
+      expect(item.isComponent, isTrue);
+      expect(item.unit, cup);
+      expect(item.measureId, isNull);
+      expect(item.measure, isNull);
+    });
+
+    test('a create-new stub never carries one, whatever the map says', () {
+      final payload = ReconciliationPayload(
+        title: 'T',
+        groups: [
+          ReconGroup(lines: [_line('avocado', qty: 1, unit: 'avocado')]),
+        ],
+      );
+      final item = buildPreviewRecipe(
+        payload,
+        [
+          initialResolution(
+            0,
+            payload.flatLines[0],
+          ).resolveToNewStub('Avocado'),
+        ],
+        servingsBase: 2,
+        measureByLine: {0: avocado},
+      ).groups.single.items.single;
+
+      expect(item.unit, pieces);
+      expect(item.measureId, isNull);
+      expect(item.measure, isNull);
+    });
   });
 }

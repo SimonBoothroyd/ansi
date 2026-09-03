@@ -54,11 +54,19 @@ class ReconciliationBody extends HookConsumerWidget {
         : {for (final e in byLine.entries) e.key: e.value.issues};
     // The method's step cards read the same recipe a save would write — so
     // the "Reads as" fold shows live amounts, and a chip keyed on
-    // `previewLineId(i)` resolves without any extra plumbing (seam D4).
+    // `previewLineId(i)` resolves without any extra plumbing (seam D4). The
+    // measure a line's unit names rides in from the SAME validation map the
+    // card prints it from, so the chip sheet cannot say "piece" where the
+    // card says "avocado" (plan 0025 #5).
     final recipe = buildPreviewRecipe(
       payload,
       state.resolutions,
       servingsBase: state.servings,
+      measureByLine: {
+        if (byLine != null)
+          for (final e in byLine.entries)
+            if (e.value.unitMeasure != null) e.key: e.value.unitMeasure!,
+      },
     );
     final methodHost = ImportMethodEditing(
       controller: controller,

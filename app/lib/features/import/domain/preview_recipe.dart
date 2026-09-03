@@ -9,6 +9,7 @@
 /// repository at commit; this recipe exists only to be looked at.
 library;
 
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/domain/normalize.dart';
 import '../../ingredients/domain/search_query.dart';
@@ -35,10 +36,22 @@ String previewLineId(int index) => '$kPreviewLinePrefix$index';
 /// A DROPPED line is left out, exactly as [buildCommit] leaves it out, and any
 /// step chip that pointed at it demotes to its own label as plain prose — so
 /// the preview keeps showing what a save would actually write.
+///
+/// [measureByLine] is the measure each line's unit NAMES, by flat line index —
+/// the review's validation already resolved it once for the whole import
+/// (`LineValidation.unitMeasure`), and the preview takes that same value
+/// rather than re-deriving it, so the card and the chip sheet cannot disagree.
+/// A line with a measure previews exactly as commit writes it (`unit =
+/// 'piece'` + `measure_id`, migration 0009): its formatter reads the measure
+/// label, not "piece". A measure word is not a catalogue unit id, so without
+/// this it degraded to a bare count — right at commit, wrong on the sheet
+/// (plan 0025 #5). A component line and a create-new stub never carry one,
+/// whatever the map says, mirroring the commit guard.
 Recipe buildPreviewRecipe(
   ReconciliationPayload payload,
   List<LineResolution> resolutions, {
   required double servingsBase,
+  Map<int, Measure> measureByLine = const {},
 }) {
   final byIndex = {
     for (final r in resolutions)
@@ -56,6 +69,9 @@ Recipe buildPreviewRecipe(
         flatIndex++;
         continue;
       }
+      final measure = r.isComponent || r.chosenIngredientId == null
+          ? null
+          : measureByLine[flatIndex];
       items.add(
         LineItem(
           id: previewLineId(flatIndex),
@@ -70,7 +86,9 @@ Recipe buildPreviewRecipe(
                 )
               : null,
           ingredientName: _displayName(r),
-          unit: _unitOf(r),
+          unit: measure == null ? _unitOf(r) : pieces,
+          measureId: measure?.id,
+          measure: measure,
           quantity: r.quantity,
           note: (r.notes?.trim().isEmpty ?? true) ? null : r.notes!.trim(),
         ),
@@ -115,9 +133,9 @@ String _identityId(LineResolution r) {
 String _displayName(LineResolution r) =>
     r.linkedRecipeTitle ?? r.chosenName ?? r.createStubName ?? r.ingredientText;
 
-/// The line's unit: the mapped catalog unit, else an honest degrade — count
-/// for a numbered line, "to taste" for a numberless one (invariant 3, never a
-/// fabricated gram).
+/// The line's unit when it names no measure: the mapped catalog unit, else an
+/// honest degrade — count for a numbered line, "to taste" for a numberless one
+/// (invariant 3, never a fabricated gram). Mirrors the repository's `_unitId`.
 Unit _unitOf(LineResolution r) {
   final mapped = r.unit == null ? null : unitById(r.unit!);
   if (mapped != null) return mapped;
