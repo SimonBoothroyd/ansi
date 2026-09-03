@@ -3506,9 +3506,9 @@
 
 <!-- lane:seam:start -->
 <!-- ===== IMPORT & MACROS SEAM (PROPOSED — owner field test 2026-09-03) ===== -->
-<div class="section-head"><span class="ey">Import &amp; macros seam · v2</span><span class="proposed-tag">proposed — drawn 2026-09-03 from the owner’s first real import; direction accepted, D1 curation + the 21 flagged rows await the ruling</span><span class="rule"></span><span class="sub">The default is a fact somebody stated, said out loud at the moment it is spent — and a refusal that names the line it is waiting on</span></div>
+<div class="section-head"><span class="ey">Import &amp; macros seam · v2</span><span class="proposed-tag">signed off 2026-09-03 (“lgtm”) — D1–D6 as drawn, the 21 flagged defaults as proposed · build in progress (plan 0024, migration 0023)</span><span class="rule"></span><span class="sub">The default is a fact somebody stated, said out loud at the moment it is spent — and a refusal that names the line it is waiting on</span></div>
 
-<div class="locknote prop">
+<div class="locknote">
     <p class="lk-h">Owner field test, 2026-09-03 (Pixel) — three gaps, one direction</p>
     <p>“<i>now piece isn’t an option most things like onion, pepper, etc <b>require users to select a unit on import</b></i>” · “<i>importing the recipe — <b>the steps weren’t editable</b> and it was mentioning it’s still v1?!</i>” · “<i>this message [<span style="font-family:'IBM Plex Mono',monospace">incomplete · 2 unconvertible</span>] makes it <b>impossible to know what ingredients need fixing</b></i>” · “<i>things that are <b>to taste, or imprecise</b> should[n’t] be required or show up in macros</i>”.</p>
     <p><b>ADR-0010 is not reopened.</b> <span style="font-family:'IBM Plex Mono',monospace">piece</span> stays an admission fact; no size word is read out of <span style="font-family:'IBM Plex Mono',monospace">raw_amount</span>, no rule resolves a line at runtime, no stored line is rewritten. What lands is a <b>second stated fact</b> per row — <span style="font-family:'IBM Plex Mono',monospace">default_measure_id</span>, curated by hand like the <span style="font-family:'IBM Plex Mono',monospace">piece</span> removals, <b>nullable, and null is a real answer</b>. A curated fact is a decision somebody made and can see; a cascade is a guess made fresh every time.</p>

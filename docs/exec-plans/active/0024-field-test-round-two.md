@@ -1,6 +1,6 @@
 # Exec plan: 0024 — Field test, round two — the import & macros seam, and the Android inset
 
-- **Status:** active — design phase (frames being drawn for sign-off)
+- **Status:** active — **build phase**: frames signed off 2026-09-03 ("lgtm"), one build lane in a worktree
 - **Owner:** Simon (rules) + Claude (orchestrator; one design lane, then one build lane)
 - **Roadmap step:** follow-up to 8.8 (plan 0022); absorbs the remainder of 8.7
 - **Created:** 2026-09-03
@@ -72,6 +72,18 @@ proven only when the next APK runs on the phone).
   `0022_singularize_invariants.sql` on main the same evening, so this plan's
   additive migration is **`0023`**, not `0021` as the entry above says — and
   this plan is **0024**, renamed from 0023 to stop the two plans colliding.
+
+- 2026-09-03 — **Signed off** ("lgtm"): D1–D6 as drawn; the 21 flagged
+  defaults as proposed (retail can as the canned default, cauliflower head,
+  celery stalk, eggplant unpeeled, flour tortilla single, ginger `piece, 1
+  inch`, mint/spinach/broth none, watermelon → melon, cabbages + lettuces
+  none, yellow bell pepper gains a borrowed medium). D2 scope: the default
+  answers a line that named a number and no thing; a named unit always wins.
+  D6: `handful` is excluded with `to taste`.
+- 2026-09-03 — For the debt-pass session (it reads this file): migration
+  **0023** is this plan's; the seam build lane owns import/**, recipe_macros,
+  incomplete_macros, recipe_macro_panel, recipe_view, ingredient_detail_view
+  (Counts as), curation_overrides.jsonl + gen_seed.ts, seed regeneration.
 
 ## Step-done checklist
 
