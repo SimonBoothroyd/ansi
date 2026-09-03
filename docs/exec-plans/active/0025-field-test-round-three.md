@@ -1,6 +1,6 @@
 # Exec plan: 0025 — Field test, round three — seven owner-raised fronts on `v0.3.0`
 
-- **Status:** draft — scoped 2026-09-03; D2–D7 ruled by the owner the same day; board frames next
+- **Status:** active — items 1, 2, 5 landed on main 2026-09-03 (`make ci` green, pgTAP 296); board section "Field test · round three" proposed, awaiting sign-off before the header / line-fact / no-stubs / weeks lanes
 - **Owner:** Simon (rules) + Claude (orchestrator; design lane for the frames, then build lanes)
 - **Roadmap step:** 8.10 (follow-up to 8.9 / plan 0024)
 - **Created:** 2026-09-03
@@ -348,11 +348,11 @@ Board frames: Cook and Shop headers.
 ## Acceptance criteria
 
 - [ ] Board frames for 3, 4, 6, 7 signed off; D1–D7 recorded in the decision log.
-- [ ] 1: edit → Save → one back returns to the opener; new → Save → recipe page; widget test; navigation.md §3 updated.
-- [ ] 2: `qt` + `pt` (D2a) in every mirror in the table; migration `0024` additive with UNION backfill; pgTAP vectors; `unit_hints` test; docs table.
+- [x] 1: edit → Save → one back returns to the opener; new → Save → recipe page; widget test; navigation.md §3 updated.
+- [x] 2: `qt` + `pt` (D2a) in every mirror in the table; migration `0024` additive with UNION backfill; pgTAP vectors; `unit_hints` test; docs table.
 - [ ] 3: no app path mints a stub as a side effect — picker, top-up and import review all run sheet → form → back; `CommitStub` retired; verified on the real sim.
 - [ ] 4: one shared header form under both hosts; the review commits title / yield×2 / shelf life / book; a structural test pins the section list to both hosts.
-- [ ] 5: the review's chip sheet prints the measure label; `preview_recipe_test` pins it.
+- [x] 5: the review's chip sheet prints the measure label; `preview_recipe_test` pins it.
 - [ ] 6: `optional` survives import → save → edit → page, toggles in the unit sheet, is excluded-and-named in macros and shopping (D6b) through one `effectiveLines` seam.
 - [ ] 7: the one shared viewed week (D7a), the switcher as the only title on all three tabs (D7c), the pill and banner retired, the bar's selected state stepped up (D7d) with the measured contrast recorded.
 - [ ] Migrations renumbered at landing if a parallel lane mints the same number (the 0024 trap).
@@ -395,6 +395,20 @@ Board frames: Cook and Shop headers.
   needs more contrast against the unselected ones → **D7d**. Every decision
   is now ruled; next is the design lane for the board frames (3, 4, 6, 7 +
   the bar), then sign-off, then build lanes.
+- 2026-09-03 — Landed on main: **#1** `73f0d1e` (edit pops, create replaces;
+  the editor test harness now hosts the editor over a blank opener), **#5**
+  `45c04a8` (preview takes `measureByLine` from the validation map — the
+  card's own value, so the two cannot disagree; commit's case-insensitive
+  label match vs the card's exact match left as is, every writer rides the
+  raw label), **#2** `4e32081` (18 files; migration `0024_quart_pint.sql`
+  unions `qt` only where the stored list already names `l`, `pt` where it
+  names `cup`, so a household that removed litres does not get a quart back;
+  the density cross leg gains `pt` not `qt` because it never named `l`).
+  Gates on `210d964`: format · analyze · 1506 app tests · 155 fn tests ·
+  docs-check · pgTAP 296. Left for the tracker at close-out: the barcode
+  module's OFF pack-size word table and `component_units.dart`'s yield chip
+  list don't know pt/qt (both deliberately narrow lists). Board section
+  merged and published (`147c506`), awaiting sign-off.
 
 ## Notes / open questions
 
