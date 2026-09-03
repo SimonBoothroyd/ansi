@@ -432,7 +432,9 @@ or any dashboard-config walk.
 - **Readback:** template 308 live ingredients · 0 tombstoned · 112 aliases ·
   270 measures · **0 admit `piece`** · 272 with macros · `jalapeno` once ·
   ginger = `piece, 1 inch 12 g` + `slice 2.2 g` · `usda_food` 8,204 ·
-  `schema_migrations` max `0020`. `cloud_verify`: **8 ok · 1 warn · 0 fail**.
+  `schema_migrations` max `0020`. `cloud_verify`: 8 ok · 1 warn (public
+  sign-up open for the re-onboarding) → **9 ok · 0 warn · 0 fail** once Simon
+  turned sign-up off again (§3c) at 02:05.
 - **What the reset cost:** every onboarded household and auth user
   (`households: 0`). Simon re-onboarded at 01:58 UTC → household
   `8ac5c4d0-…f07d` (1 member); **`IMPORT_ALLOWED_HOUSEHOLDS` re-set to it**
