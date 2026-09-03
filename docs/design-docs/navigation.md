@@ -153,6 +153,18 @@ if (ModalRoute.of(context)?.isCurrent ?? false) Navigator.of(context).pop();
 test with a live removal (`week_screen_test.dart`, "pops it exactly once")
 fails on the unguarded code.
 
+
+### A tab root leaves the keyboard inset to the shell
+
+Forui's `FScaffold` shrinks its content by `MediaQuery.viewInsets.bottom`
+while `resizeToAvoidBottomInset` is true (its default). Under the shell every
+tab screen's scaffold is nested inside the shell's, so the same inset would be
+subtracted twice — and on Android the inset can outlive the sign-in keyboard,
+which left the Cook tab's list a few lines tall on the owner's Pixel
+(2026-09-03; iOS never showed it). Rule: the four tab roots pass
+`resizeToAvoidBottomInset: false`; the shell's scaffold owns the inset. Held by
+`test/structure/tab_root_scaffold_test.dart`.
+
 ## 5. One tap, one page
 
 Tap-driven navigation goes through `context.pushOnce` / `context.goOnce`
