@@ -391,6 +391,14 @@ or any dashboard-config walk.
   last changed at `3c9d75e` (before the pass) and both rules on the tables
   0019 touched are `select *`, so the cloud streams already match. Fixing
   the leg is a tracker row; re-run it after any cloud `db reset`.
+  **Fixed the same night:** the CLI needs a project directory even with an
+  explicit file path, so the repo now carries `powersync/cli.yaml` (`type:
+  cloud`, nothing else — no `service.yaml`, so this button can never rewrite
+  the instance config) and the workflow's `validate` is scoped to
+  `--validate-only sync-config`. Runs `33703880935` (directory present,
+  unscoped validate still wanted `service.yaml`) → `33704042001` **all four
+  legs green**, streams deployed ("Deployment operation completed
+  successfully"). `cloud_verify` after it: 8 ok · 1 warn · 0 fail.
 - `scripts/cloud_verify.sh`: **8 ok · 1 warn · 0 fail** (the warn is the
   standing junk-household census).
 - **Still human-run, not yet done:** the template reseed for the piece
