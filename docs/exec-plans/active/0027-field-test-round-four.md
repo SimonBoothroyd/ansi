@@ -101,7 +101,8 @@ are repeated here so a lane needs nothing outside the repo.
 - [ ] Tests at every layer the change touches: pure domain, repo on a real
       `PowerSyncDatabase`, widget over the real form/sheet, pgTAP for both
       migrations, the mapper's fixture test for M-D5.
-- [ ] `make ci` green per lane; the orchestrator re-runs it at each landing.
+- [x] `make ci` green per lane; the orchestrator re-ran it at each landing
+      (M: 1623 · +P: 1644 · +U: 1684 app tests; 155 deno; docs-check).
 - [ ] `make test-sim`: the ingredients file drives M-D1 + U-D1/D2 on the real
       stack (the trigger legs); the week file drives P-D3/D4. Recorded here.
 - [ ] Docs: `docs/QUALITY.md` rows (Ingredients manager, Barcode add,
@@ -240,6 +241,21 @@ never `db-reset` the shared stack; sims are the orchestrator's at landing.
   environmental, not a regression; the trigger/probe/data assertions,
   including all twenty new ones, pass. The orchestrator's `supabase test db`
   on a reset stack is the authoritative run.
+
+- 2026-09-03 — **All three fronts landed on main** (M `c2888ba`…`8d83102`,
+  P `4ea19a9`…`3bd1dfd`, U `e4ff333`…`919c1aa`), by cherry-pick; the only
+  conflicts were additive (the form's doc comment and imports, the three
+  docs files' appended sections). `0026`/`0027` applied to the local stack
+  with `supabase migration up` (no reset) and the PowerSync container
+  recreated for the streams; the whole smoke directory then ran **6/6 in
+  7:53** on iPhone 17. The M/U/P legs themselves are Lanes C and D's.
+- 2026-09-03 — **pgTAP on the migrated stack found a pre-existing bug**, not
+  a regression: `unit_admission` #49 failed because every app-created
+  ingredient had uploaded `allowed_units` as a jsonb *string* (the connector's
+  jsonb map never listed the 0012 column). Fixed in the connector, repaired
+  by `0028_allowed_units_jsonb_repair.sql`, held by
+  `test/structure/jsonb_columns_test.dart`; pgTAP 327/327 after (`ceebc66`).
+  `0028` rides to cloud with `0026`/`0027`.
 
 ## Step-done checklist
 
