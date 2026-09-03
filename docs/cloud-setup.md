@@ -434,8 +434,12 @@ or any dashboard-config walk.
   ginger = `piece, 1 inch 12 g` + `slice 2.2 g` · `usda_food` 8,204 ·
   `schema_migrations` max `0020`. `cloud_verify`: **8 ok · 1 warn · 0 fail**.
 - **What the reset cost:** every onboarded household and auth user
-  (`households: 0`). Both phones sign up again on next launch — the
-  accepted price of §2c while data is throwaway.
+  (`households: 0`). Simon re-onboarded at 01:58 UTC → household
+  `8ac5c4d0-…f07d` (1 member); **`IMPORT_ALLOWED_HOUSEHOLDS` re-set to it**
+  at 02:00 (the function secrets survive a reset, so the allowlist still
+  named the dead household — remember this leg after any future reset,
+  which under §2c is now an owner call). The second phone joins that
+  household through the normal join flow.
 - **Fixed for the future:** `0020` = template-only unique indexes on
   `ingredient(match_text)` and `ingredient_alias(ingredient_id, match_text)`
   (live rows), the generated `seed.sql` upserts on them, `seed_usda.sql` is
