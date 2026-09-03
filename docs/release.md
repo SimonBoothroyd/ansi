@@ -18,10 +18,13 @@ Two workflows do the mechanical parts:
 >
 > - Repo: `github.com/SimonBoothroyd/ansi`. All four signing secrets, both
 >   Supabase deploy secrets, the PowerSync deploy token, and the three build
->   variables (§2.3, §4.1) are set. **`PLAY_SERVICE_ACCOUNT_JSON` is NOT set**
->   (checked 2026-09-03 — `gh secret list`; the `v0.2.0` run's guard printed
->   the SKIPPED notice and `play-internal` skipped), so releases land on the
->   GitHub Release only until §3a step 7 is finished and the secret is set.
+>   variables (§2.3, §4.1) are set.
+> - **Play is deliberately not used** (owner decision, 2026-09-03: the console
+>   walk in §3a became a form-filling nightmare and was abandoned).
+>   `PLAY_SERVICE_ACCOUNT_JSON` is intentionally unset, so `play-internal`
+>   skips on every tag by design and the phones install the signed APK from
+>   the GitHub Release (§3b's sideload fallback is the primary path). §3a
+>   stays in this file as the record of what it would take, not as a to-do.
 > - The Gradle signing block is committed (§1).
 > - Play Console: the account exists, the **Ansi** app is created under the
 >   permanent package `io.ansi.app`, the internal track and its tester list are
@@ -29,7 +32,7 @@ Two workflows do the mechanical parts:
 >   a second app under a different package can never update the installed one.
 > - Tags shipped: `v0.1.0` (2026-09-01) and `v0.2.0` (2026-09-03, the polish
 >   pass — guard · android · ios green, signed APK + AAB on the Release,
->   Play upload skipped for the reason above).
+>   Play upload skipped by design — see above).
 
 ## What syncs how
 
