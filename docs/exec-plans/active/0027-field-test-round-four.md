@@ -105,6 +105,15 @@ are repeated here so a lane needs nothing outside the repo.
       (M: 1623 · +P: 1644 · +U: 1684 app tests; 155 deno; docs-check).
 - [ ] `make test-sim`: the ingredients file drives M-D1 + U-D1/D2 on the real
       stack (the trigger legs); the week file drives P-D3/D4. Recorded here.
+  - [x] **Week (front P)** — landed 2026-09-03 (lane D): `week_test.dart`'s
+        3d leg drives P-D3 (Ada sets Jun's ×¾ from Library `⋯` ▸ Household),
+        proves the `0026` UPDATE door (the upload queue drains and a direct
+        PostgREST read of `household_member.portion_factor` returns `0.75`),
+        P-D4 (the Saturday entry sheet's "1¾ portions — Ada 1 · Jun ¾ — their
+        usual"; Cook's "covers Sat dinner · 1¾ portions", "×0.88" and the
+        ¼-portion nudge; Monday's override + Wednesday's lone eater still 4)
+        and P-D5 (Jun's lens: "434 kcal" · "1 meal · Jun · ¾ of 1¾
+        portions"). `make test-sim FILE=week` on the iPhone 17: **39 s of test time, 1:16 wall** (24 s of it the Xcode build) — the 3d leg adds about five seconds to the file.
 - [ ] Docs: `docs/QUALITY.md` rows (Ingredients manager, Barcode add,
       Planning, Cook-plan), `app/AGENTS.md` if a rule changes, ADR-0009's
       density leg unaffected, the roadmap 8.11 row flipped, cloud ledger
@@ -132,7 +141,8 @@ those two lines at landing) and `docs/QUALITY.md`.
   the fraction everywhere), `make ci` green in the lane; pgTAP run against
   the shared local stack with `0026` applied *inside* the test transaction
   and rolled back (no reset, no residue) — 9/9. The sim leg (`week_test`
-  driving P-D3/D4) is the orchestrator's at landing.
+  driving P-D3/D4/D5) landed 2026-09-03 with lane D — see the acceptance
+  line above.
 
 Traps (memory): ff-merge main first; copy `.env.local` into the worktree;
 never `db-reset` the shared stack; sims are the orchestrator's at landing.
@@ -241,6 +251,22 @@ never `db-reset` the shared stack; sims are the orchestrator's at landing.
   environmental, not a regression; the trigger/probe/data assertions,
   including all twenty new ones, pass. The orchestrator's `supabase test db`
   on a reset stack is the authoritative run.
+- 2026-09-03 (lane D) — **The sim's lens leg plans a second, seeded recipe.**
+  P-D5's "¾ of 1¾ portions" is the denominator under a *total*, and the
+  week file's curry has no total to put it under — Garlic by the clove and
+  Onion by the piece are count lines, refused by rule (invariant 3), and a
+  refused day names no share. Rather than weaken the curry (its refusal is
+  what the picker, confirm and week assertions lean on), the file seeds
+  "Macro Bowl" (200 g Almonds, serves 2 — a line the seeded vocab resolves)
+  and plans it on Sunday for both, so the lens has 579 kcal a serving to
+  split. It runs last, after 3a–3c, so every earlier number stays the
+  all-factors-1 identity P-D6 promised.
+- 2026-09-03 (lane D) — **The RLS door is proven by a server read, not only
+  the queue.** A drained upload queue says the connector's PATCH was not
+  refused; the test also reads `household_member.portion_factor` back
+  through the signed-in Supabase client, which is the table's own word that
+  `0026`'s policy + column-narrow grant let Ada set Jun's row. A test-only
+  REST read — `lib/` still reads synced data from SQLite alone.
 
 - 2026-09-03 — **All three fronts landed on main** (M `c2888ba`…`8d83102`,
   P `4ea19a9`…`3bd1dfd`, U `e4ff333`…`919c1aa`), by cherry-pick; the only

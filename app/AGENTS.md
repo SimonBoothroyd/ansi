@@ -169,11 +169,12 @@ parallel lanes can each hold one. The seven files: `auth` (the sign-in gate →
 /connecting → Library) · `library` (fold, the pinned title search and its
 `DID YOU MEAN` band, book rename, the refused delete, the reorder sheet) ·
 `recipe_editor` (create/edit a recipe incl. method steps, jsonb + child-diff
-round-trips) · `week` (week/cook/shop) · `import` (reconcile → commit, over
-the local import repository — no LLM) · `ingredients` (stub band, rename,
-add-by-barcode off a fixture) · `nested` (yield + component line → plan →
-cook/shop → gap card + delete refusal). Every file is
-**self-provisioning**: its `setUpAll`
+round-trips) · `week` (week/cook/shop, then the usual portion set from
+Library `⋯` ▸ Household and read as a fraction on the entry sheet, the lens
+and the Cook tab) · `import` (reconcile → commit, over the local import
+repository — no LLM) · `ingredients` (stub band, rename, add-by-barcode off
+a fixture) · `nested` (yield + component line → plan → cook/shop → gap card
++ delete refusal). Every file is **self-provisioning**: its `setUpAll`
 creates its OWN throwaway two-person household over HTTP
 (`support/stack.dart`) and signs in programmatically; only `auth_test.dart`
 drives the gate. Prerequisites a flow needs (the week's favourited recipe,

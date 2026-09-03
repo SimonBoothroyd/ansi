@@ -17,16 +17,27 @@
 /// that authors the same recipe; this file's subject is what the week does
 /// with it.
 ///
+/// Then the usual portion (plan 0027 front P): Jun's factor set to ×¾ from
+/// the Library `⋯` ▸ Household sheet — the first client UPDATE on
+/// `household_member`, so the round trip and a direct server read are what
+/// prove the `0026` RLS door — and the fraction it makes said on the entry
+/// sheet, under the per-person lens, and on the Cook tab's session row and
+/// whole-batch nudge. The lens leg plans a second seeded recipe ("Macro
+/// Bowl", 200 g Almonds — a line that resolves), because the curry's count
+/// lines are honestly incomplete and a refused total names no share.
+///
 /// Local gate only (`make test-sim FILE=week`), never CI. Needs the local
 /// backend running (`make db-up`) and the usual `--dart-define`s.
 library;
 
 import 'dart:convert';
 
-import 'package:ansi/core/units/units.dart' show pieces;
+import 'package:ansi/core/units/units.dart' show g, pieces;
 import 'package:ansi/features/cook_plan/presentation/cook_view.dart'
     show CookView;
 import 'package:ansi/features/planning/domain/planning.dart' show mondayOf;
+import 'package:ansi/features/planning/presentation/week_view.dart'
+    show WeekView;
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/shopping/presentation/shopping_view.dart'
@@ -36,9 +47,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:powersync/powersync.dart' hide Column;
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 import 'package:uuid/uuid.dart';
 
 import 'support/drive.dart';
+import 'support/library.dart';
 import 'support/stack.dart';
 import 'support/week.dart';
 
@@ -112,6 +125,55 @@ Future<String> _seedChickenCurry(
   return recipeId;
 }
 
+/// A recipe whose macros RESOLVE — one weighed line of a vocab row the seed
+/// filled (Almonds, 579 kcal per 100 g), serving two — so the per-person
+/// lens has a total to name its share under. Filed in the default book like
+/// the curry; never favourited, so the Favorites tab stays the curry's.
+Future<void> _seedMacroBowl(
+  PowerSyncDatabase db, {
+  required String householdId,
+}) async {
+  final almonds = await db.get(
+    "SELECT id FROM ingredient WHERE canonical_name = 'Almonds' "
+    "AND status = 'complete' AND deleted_at IS NULL",
+  );
+  final book = await db.get(
+    'SELECT id FROM book WHERE deleted_at IS NULL '
+    'ORDER BY sort_order, created_at LIMIT 1',
+  );
+  await SqliteRecipeRepository(db, householdId: householdId).saveRecipe(
+    Recipe(
+      id: _uuid.v4(),
+      title: 'Macro Bowl',
+      servingsBase: 2,
+      keepsForDays: 2,
+      bookId: book['id'] as String,
+      groups: [
+        IngredientGroup(
+          id: _uuid.v4(),
+          items: [
+            LineItem(
+              id: _uuid.v4(),
+              ingredientId: almonds['id'] as String,
+              ingredientName: 'Almonds',
+              unit: g,
+              quantity: 200,
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+/// The chip labelled [label] on the Household sheet's row for [name] — the
+/// segment sits under the member's name, so the row is found by ancestry
+/// (the host test's finder).
+Finder _memberChip(String name, String label) => find.descendant(
+  of: find.ancestor(of: find.text(name), matching: find.byType(Column)).first,
+  matching: find.text(label),
+);
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -139,7 +201,8 @@ void main() {
       db,
       householdId: stack.householdId,
     );
-    // The seed goes up and comes back down before anything reads it: the
+    await _seedMacroBowl(db, householdId: stack.householdId);
+    // The seeds go up and come back down before anything reads them: the
     // week plans a recipe the server has, exactly as it would one authored
     // on the partner's device.
     await stack.waitForSyncRoundTrip(tester);
@@ -453,5 +516,105 @@ void main() {
     // lines remain.
     await tester.pumpAndSettle();
     expect(find.textContaining('Chicken Curry · cook Mon'), findsOneWidget);
+
+    // ------------------------------------------------------------------------
+    // 3d · A USUAL PORTION PER PERSON (plan 0027 P-D3/D4/D5) — set from the
+    // Library ⋯ ▸ Household, proven on the server, then read everywhere the
+    // head-count used to be. Runs last so every number above is the
+    // all-factors-1 identity the plan promised.
+    // ------------------------------------------------------------------------
+    await tapTab(tester, FLucideIcons.library);
+    await pumpUntilFound(tester, find.text('Our Cookbook'));
+    await openLibraryMenu(tester);
+    await tester.tap(find.text('Household'));
+    await pumpUntilFound(tester, find.text('USUAL PORTION'));
+    // Both at ×1: a meal for both is still two portions.
+    expect(find.textContaining('counts as 2 portions'), findsOneWidget);
+    await tester.tap(_memberChip('Jun', '×¾'));
+    await tester.pumpAndSettle();
+    // The write lands in the sheet's own foot line (P-D3: Ada set Jun's).
+    await pumpUntilFound(tester, find.textContaining('counts as 1¾ portions'));
+
+    // The RLS door `0026` added: `household_member` never took a client
+    // write before this. The upload queue draining is the connector's word
+    // that the PATCH was accepted; the server read is the table's own.
+    await stack.waitForSyncRoundTrip(tester);
+    final local = await db.get(
+      'SELECT portion_factor FROM household_member WHERE id = ?',
+      [junId],
+    );
+    expect((local['portion_factor']! as num).toDouble(), closeTo(0.75, 1e-9));
+    final server = await Supabase.instance.client
+        .from('household_member')
+        .select('portion_factor')
+        .eq('id', junId)
+        .single();
+    expect(
+      (server['portion_factor']! as num).toDouble(),
+      closeTo(0.75, 1e-9),
+      reason: 'the household-scoped UPDATE policy let Ada set Jun’s factor',
+    );
+    await tester.tap(find.byIcon(FLucideIcons.x).last); // the sheet's close
+    await tester.pumpAndSettle();
+    expect(find.text('USUAL PORTION'), findsNothing);
+
+    // On the Week: the Saturday curry has both eaters and no override, so
+    // its entry sheet speaks the fraction (P-D4) — never 1.75. The screen
+    // is as 3b left it — in edit mode, scrolled to Saturday — so neither
+    // `Edit` nor the lens row at the top of the lazy list is in the tree;
+    // anchor on the view itself.
+    await tapTab(tester, FLucideIcons.calendarDays);
+    await pumpUntilFound(tester, find.byType(WeekView));
+    // The lens leg's meal first: Macro Bowl on Sunday, for both.
+    await addMealOn(tester, 'Sunday', 'Macro Bowl');
+    await scrollTo(tester, find.text('Saturday'));
+    await tester.tap(
+      find.descendant(
+        of: dayCard('Saturday'),
+        matching: find.text('Chicken Curry'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('This meal'), findsOneWidget);
+    expect(find.text('1¾ portions'), findsOneWidget);
+    expect(find.text('Ada 1 · Jun ¾ — their usual'), findsOneWidget);
+    expect(find.textContaining('1.75'), findsNothing);
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+
+    // Under Jun's lens the Sunday total is ¾ of a 579 kcal serving, and the
+    // denominator names the share (P-D5). The curry's own days stay refused
+    // — count lines without a measure resolve to no total, whoever looks.
+    await leaveWeekEditMode(tester);
+    await scrollTo(tester, find.text('Everyone'), delta: -300);
+    await tester.tap(find.text('Jun'));
+    await tester.pumpAndSettle();
+    await scrollTo(tester, find.text('1 meal · Jun · ¾ of 1¾ portions'));
+    expect(find.text('434 kcal'), findsWidgets);
+    await scrollTo(tester, find.text('Everyone'), delta: -300);
+    await tester.tap(find.text('Everyone'));
+    await tester.pumpAndSettle();
+
+    // The Cook tab: 1¾ portions of a serves-2 recipe is ×0.88, and the
+    // whole-batch nudge speaks the quarter left over (P-D4). Monday's
+    // override (3) and Wednesday's lone eater (1) are untouched by Jun's
+    // factor, so that session still says 4.
+    await tapTab(tester, FLucideIcons.cookingPot);
+    await pumpUntilFound(tester, find.byKey(CookView.rootKey));
+    await scrollTo(tester, find.text('covers Mon + Wed dinner · 4 portions'));
+    await scrollTo(tester, find.text('covers Sat dinner · 1¾ portions'));
+    expect(
+      find.text(
+        'cook ×1 instead — covers 2 portions · ¼ portion left over · '
+        'shopping still buys ×0.88',
+      ),
+      findsWidgets,
+    );
+    await scrollTo(tester, find.text('covers Sun dinner · 1¾ portions'));
+    expect(
+      find.text('1¾ portions across the week · keeps 2 d'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('1.75'), findsNothing);
   });
 }
