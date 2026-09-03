@@ -1,11 +1,13 @@
 /// Widget tests for the ingredients manager (step 8.5, design board
-/// "Ingredients manager · v1" frames a–e).
+/// "Ingredients manager · v1" frames a–e; plan 0027 front U, "The USDA
+/// match" frames a–d).
 ///
 /// The screen states that carry the plan's decisions are the ones worth
 /// pinning: the stub band's **needs macros** wording (D5 overruled the
 /// board's "needs density · macros"), the confirm CTA's gate and its
 /// reversal, the delete refusal's count, the dashed density-locked chips
-/// (D4), the honest USDA note (D7), and — frame (e) — a barcode scan
+/// (D4), the USDA match named on the form with its two doors (U-D1/D2/D3)
+/// and searched from the add sheet (U-D7), and — frame (e) — a barcode scan
 /// prefilling a draft that never completes a row (D1): its provenance and
 /// ODbL credit carried, a panel-less product left blank with the reason, and
 /// a dismissed scan changing nothing.
@@ -1789,27 +1791,164 @@ void main() {
       expect(find.textContaining('it never leaves the server'), findsOneWidget);
     });
 
-    testWidgets('F1: on an UNSAVED draft the lookup is drawn and disabled, '
-        'with the reason — it used to be a silent no-op', (tester) async {
+    testWidgets('U-D7: the USDA leg is a SEARCH — the name field is the '
+        'query, the rows are the top five with their band word, and the '
+        'greyed lookup is gone', (tester) async {
       _filterSemanticsAssertions();
-      final probe = _RecordingProbe(_usdaAnswer);
+      final probe = _RecordingProbe.list(const [
+        _usdaAnswer,
+        UsdaCandidate(
+          fdcId: 11217,
+          description: 'Curry leaves, dried',
+          category: 'Spices and Herbs',
+          source: 'usda_fdc:11217',
+          score: 0.9,
+          macros: Macros(kcal: 300, protein: 12, carb: 60, fat: 5),
+        ),
+      ]);
       await tester.pumpWidget(
         _sheetHost(FakeIngredientRepo(const []), probe: probe),
       );
       await tester.pumpAndSettle();
-      // Not offered at all until the USDA source is picked…
       expect(find.text('Look up in USDA'), findsNothing);
 
       await tester.tap(find.text('USDA FDC'));
       await tester.pumpAndSettle();
-      expect(find.text('Look up in USDA'), findsOneWidget);
-      expect(find.textContaining('save first'), findsOneWidget);
-
-      // Tapping it does nothing — there is no row to fill in, and the
-      // affordance says so rather than shrugging.
-      await tester.tap(find.text('Look up in USDA'));
-      await tester.pumpAndSettle();
+      expect(find.text('Look up in USDA'), findsNothing);
+      expect(find.textContaining('save first'), findsNothing);
+      // No name, no question.
+      expect(find.textContaining('type the name below'), findsOneWidget);
       expect(probe.asked, isEmpty);
+
+      await tester.enterText(_nameField, 'Curry leaves');
+      // One frame arms the debounce; the next lets it fire.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+
+      expect(probe.asked.single, normalizeMatchText('Curry leaves'));
+      expect(probe.limits.single, 5);
+      expect(find.text('Curry leaves, raw'), findsOneWidget);
+      expect(find.text('a guess'), findsOneWidget);
+      expect(find.text('Curry leaves, dried'), findsOneWidget);
+      expect(find.text('close match'), findsOneWidget);
+      expect(find.text('Create & flesh out'), findsOneWidget);
+    });
+
+    testWidgets('U-D7: Create with a pick applies THAT candidate as the row '
+        'is made — stamped, named, scored, still a stub', (tester) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      final probe = _RecordingProbe.list(const [
+        _usdaAnswer,
+        UsdaCandidate(
+          fdcId: 11217,
+          description: 'Curry leaves, dried',
+          source: 'usda_fdc:11217',
+          score: 0.9,
+          macros: Macros(kcal: 300, protein: 12, carb: 60, fat: 5),
+        ),
+      ]);
+      await tester.pumpWidget(
+        _addHost(repo, body: _fixture('nutella_per_100g'), probe: probe),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add an ingredient'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('USDA FDC'));
+      await tester.pumpAndSettle();
+      await tester.enterText(_nameField, 'Curry leaves');
+      // One frame arms the debounce; the next lets it fire.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Curry leaves, dried'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Create from “Curry leaves, dried” & flesh out'),
+        findsOneWidget,
+      );
+      await tester.tap(find.textContaining('Create from'));
+      await tester.pumpAndSettle();
+
+      // One question was asked — the search; the create did not probe again.
+      expect(probe.asked, hasLength(1));
+      final created = repo.rows.single;
+      expect(created.canonicalName, 'Curry leaves');
+      expect(created.source, 'usda_fdc:11217');
+      expect(created.sourceLabel, 'Curry leaves, dried');
+      expect(created.sourceScore, 0.9);
+      expect(created.macros!.kcal, 300);
+      expect(created.status, IngredientStatus.stub);
+      // The form it lands on names the pick — the U-D1 tests above pin that
+      // rendering for a row stamped exactly like this one.
+    });
+
+    testWidgets('U-D7: nothing picked on the USDA leg is today’s behaviour — '
+        'the probe’s best hit at birth (owner: auto-fill stays)', (
+      tester,
+    ) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      final probe = _RecordingProbe(_usdaAnswer);
+      await tester.pumpWidget(
+        _addHost(repo, body: _fixture('nutella_per_100g'), probe: probe),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add an ingredient'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('USDA FDC'));
+      await tester.pumpAndSettle();
+      await tester.enterText(_nameField, 'Curry leaves');
+      // One frame arms the debounce; the next lets it fire.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(find.text('Curry leaves, raw'), findsOneWidget);
+
+      // A pick, then un-picked: the list is the only place a pick lives.
+      await tester.tap(find.text('Curry leaves, raw'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Create from'), findsOneWidget);
+      await tester.tap(find.text('Curry leaves, raw'));
+      await tester.pumpAndSettle();
+      expect(find.text('Create & flesh out'), findsOneWidget);
+
+      await tester.tap(find.text('Create & flesh out'));
+      await tester.pumpAndSettle();
+
+      final created = repo.rows.single;
+      expect(created.source, 'usda_fdc:11216');
+      expect(created.sourceLabel, 'Curry leaves, raw');
+      expect(created.status, IngredientStatus.stub);
+    });
+
+    testWidgets('U-D7 offline: the leg says the search cannot run, Create '
+        'still makes a plain stub, and Manual is unchanged', (tester) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      await tester.pumpWidget(_sheetHost(repo));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('USDA FDC'));
+      await tester.pumpAndSettle();
+      await tester.enterText(_nameField, 'Curry leaves');
+      // One frame arms the debounce; the next lets it fire.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('nothing came back for “Curry leaves”'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Offline it cannot run'), findsOneWidget);
+      expect(find.byType(FDialog), findsNothing);
+
+      await tester.tap(find.text('Manual'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('nothing came back'), findsNothing);
+      expect(find.text('Create & flesh out'), findsOneWidget);
     });
 
     testWidgets('D7b: creating a manual ingredient probes at birth — it '

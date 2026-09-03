@@ -8,11 +8,14 @@
 /// Three sources, drawn as one segment because that is where the board put
 /// the barcode entry point:
 /// - **Manual** — type the name, get a stub, land on the flesh-out form.
-/// - **USDA FDC** — the same write. The lookup is not a client action:
-///   `usda_food` never syncs to a device (ADR-0005), so the trigram match
-///   runs server-side when the row uploads (plan 0020 D7 (a)) and the form's
-///   "Look up in USDA" button is a re-read, not a query. The segment says so
-///   rather than implying a catalogue we deliberately don't ship.
+/// - **USDA FDC** — a search (plan 0027 **U-D7**, board frame d): the name
+///   field is the query, the rows are the server's top five with their band
+///   word (`probe_usda`, ADR-0005 — the reference set never leaves the
+///   server), and Create applies the picked candidate through
+///   `applyUsdaProbe` as the row is made, stamping its id and label. Nothing
+///   picked ⇒ a plain stub that today's D7b probe-at-birth and the server
+///   trigger fill with the best hit (owner: auto-fill stays). Offline the
+///   search cannot run; the leg says so, and Manual is unchanged.
 /// - **Barcode** — opens the scan surface (`scanBarcodeForDraft`, the barcode
 ///   module's one public door) and comes back with an [IngredientDraft]. The
 ///   draft **prefills and never completes** (D1): it lands through
@@ -31,6 +34,8 @@
 /// detour.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -47,9 +52,17 @@ import '../data/ingredient_providers.dart';
 import '../data/usda_enrichment.dart';
 import '../domain/apply_draft.dart';
 import '../domain/ingredient.dart';
+import '../domain/normalize.dart';
+import '../domain/usda_probe.dart';
 import 'density_entry.dart' show AnsiModeChip;
 import 'draft_card.dart';
 import 'serving_row.dart';
+import 'usda_pick_sheet.dart' show UsdaCandidateList;
+
+/// How long the USDA leg waits after a keystroke before asking the server —
+/// long enough that a name typed at speed is one question, short enough
+/// that the list feels like it follows the field.
+const _usdaSearchDebounce = Duration(milliseconds: 350);
 
 /// The add sources of frame (d).
 enum NewIngredientSource { manual, usda, barcode }
@@ -120,8 +133,41 @@ class NewIngredientSheet extends HookConsumerWidget {
     // per-100 derivation ([Macros.per100From]), never the printed four.
     final serving = useState(const ServingDraft());
     final servingBasis = useState(MacrosBasis.perG);
+    // The USDA leg (U-D7): the server's answers for the name as typed — null
+    // while a question is in flight — and the row the person picked from
+    // them. A pick that the latest answer no longer contains is dropped: the
+    // list is the only place a pick can come from.
+    final usdaResults = useState<List<UsdaCandidate>?>(null);
+    final usdaPick = useState<UsdaCandidate?>(null);
+    final usdaGeneration = useRef(0);
+    final probe = ref.read(usdaProbeProvider);
     final canCreate =
         name.value.trim().isNotEmpty && !creating.value && !scanning.value;
+
+    final usdaQuery = source.value == NewIngredientSource.usda
+        ? normalizeMatchText(name.value)
+        : '';
+    useEffect(() {
+      if (source.value != NewIngredientSource.usda) return null;
+      final generation = ++usdaGeneration.value;
+      if (usdaQuery.isEmpty) {
+        usdaResults.value = const [];
+        usdaPick.value = null;
+        return null;
+      }
+      usdaResults.value = null;
+      // Debounced, and answers that arrive out of order are dropped by the
+      // generation stamp — the list always describes the name in the field.
+      final timer = Timer(_usdaSearchDebounce, () async {
+        final found = await probe.search(usdaQuery);
+        if (!context.mounted || generation != usdaGeneration.value) return;
+        usdaResults.value = found;
+        if (!found.any((c) => c.fdcId == usdaPick.value?.fdcId)) {
+          usdaPick.value = null;
+        }
+      });
+      return timer.cancel;
+    }, [usdaQuery]);
 
     Future<void> create() async {
       creating.value = true;
@@ -147,6 +193,9 @@ class NewIngredientSheet extends HookConsumerWidget {
         final macrosBasis = panel == null
             ? landing?.macrosBasis ?? MacrosBasis.perG
             : servingBasis.value;
+        final pick = source.value == NewIngredientSource.usda
+            ? usdaPick.value
+            : null;
         // One guard over the whole creation: the row, its opt-in pack measure
         // and the enrichment are one act to the person who tapped Create, so
         // they get one honest answer if any of it fails.
@@ -182,12 +231,30 @@ class NewIngredientSheet extends HookConsumerWidget {
                     amount: pack.amountInBasis,
                   );
             }
+            // U-D7: born from the pick. The candidate the person chose lands
+            // through the same apply every other fill uses — stamped, named,
+            // scored, and still a stub (D5) — as the row is made.
+            if (pick != null) {
+              final picked = await ref
+                  .read(ingredientRepositoryProvider)
+                  .applyUsdaProbe(
+                    row.id,
+                    source: pick.source,
+                    sourceLabel: pick.description,
+                    sourceScore: pick.score,
+                    densityGPerMl: pick.densityGPerMl,
+                    macros: pick.macros,
+                    explicitPick: true,
+                  );
+              return picked ?? row;
+            }
             // D7b: born enriched. The probe runs BEFORE the form opens, so a
             // new ingredient arrives with whatever USDA had rather than
             // acquiring it a few seconds later if you are still looking.
             // Offline it answers null within its own short timeout and the
             // 0014/0015 trigger picks the row up on upload — so this is a
-            // beat, never a stall, and never an error.
+            // beat, never a stall, and never an error. An unpicked USDA-leg
+            // create takes this path too (owner: auto-fill stays).
             //
             // Only a manual draft is probed. A barcode row carries Open Food
             // Facts provenance (`off:<barcode>`) and the probe's source stamp
@@ -196,7 +263,7 @@ class NewIngredientSheet extends HookConsumerWidget {
             if (prefill?.source != DraftSource.barcode) {
               final enriched = await enrichFromUsda(
                 row,
-                probe: ref.read(usdaProbeProvider),
+                probe: probe,
                 repository: ref.read(ingredientRepositoryProvider),
               );
               return enriched.row ?? row;
@@ -335,10 +402,11 @@ class NewIngredientSheet extends HookConsumerWidget {
                 'Type the name your recipes will read. It saves as a stub — '
                     'fill in the macros and confirm it to make it count.',
               NewIngredientSource.usda =>
-                'Same write, plus a server-side lookup: USDA FoodData Central '
-                    'is matched when the row syncs up (it never leaves the '
-                    'server — ADR-0005), and the form opens pre-populated. '
-                    'A prefill never confirms the row for you.',
+                'Search USDA FoodData Central by the name below and pick the '
+                    'food — the row is born from the pick. The search runs on '
+                    'the server (it never leaves the server — ADR-0005). '
+                    'Nothing picked, and the server fills its best hit when '
+                    'the row syncs. A pick never confirms the row for you.',
               NewIngredientSource.barcode =>
                 'Scan the pack or type the number: the lookup runs on this '
                     'phone and prefills a draft. Open Food Facts is '
@@ -346,30 +414,34 @@ class NewIngredientSheet extends HookConsumerWidget {
                     'blank — and nothing counts until you confirm it.',
             }, style: ansiMono(size: 10, color: AnsiColors.muted)),
 
-            // F1: the lookup is drawn on the USDA leg, and it is DISABLED —
-            // there is no row yet to fill in. It was a silent no-op on an
-            // unsaved draft, which taught the user nothing; a greyed button
-            // with the reason under it says what to do instead. Creating runs
-            // exactly this probe (D7b), so the affordance is honest about
-            // being the same action a moment later.
+            // U-D7: the leg is what it looked like it was — a search. The
+            // name field below is the query; these are the server's answers
+            // for it, and a tap picks (a second tap un-picks).
             if (source.value == NewIngredientSource.usda) ...[
               const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AnsiColors.line),
-                  borderRadius: BorderRadius.circular(8),
+              if (usdaQuery.isEmpty)
+                Text(
+                  'type the name below — the search follows it',
+                  style: ansiMono(size: 11, color: AnsiColors.muted),
+                )
+              else if (usdaResults.value == null)
+                Text(
+                  'asking the server…',
+                  style: ansiMono(size: 11, color: AnsiColors.muted),
+                )
+              else
+                UsdaCandidateList(
+                  candidates: usdaResults.value!,
+                  queryName: name.value.trim(),
+                  selected: usdaPick.value?.fdcId,
+                  onPick: (c) => usdaPick.value =
+                      usdaPick.value?.fdcId == c.fdcId ? null : c,
                 ),
-                child: Text(
-                  'Look up in USDA',
-                  textAlign: TextAlign.center,
-                  style: ansiMono(size: 12, color: AnsiColors.muted),
-                ),
-              ),
               const SizedBox(height: 4),
               Text(
-                'save first — a lookup fills in a row, and there isn’t one '
-                'yet. Creating it runs exactly this lookup.',
+                'the search runs on the server — the reference set never '
+                'leaves it (ADR-0005). Offline it cannot run; Manual still '
+                'works, and the server looks the name up when the row syncs.',
                 style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ],
@@ -450,9 +522,12 @@ class NewIngredientSheet extends HookConsumerWidget {
             const SizedBox(height: 14),
             FButton(
               onPress: canCreate ? create : null,
-              child: Text(
-                prefill == null ? 'Create & flesh out' : 'Save & review',
-              ),
+              child: Text(switch ((prefill, usdaPick.value)) {
+                (null, null) => 'Create & flesh out',
+                (null, final pick?) =>
+                  'Create from “${pick.description}” & flesh out',
+                _ => 'Save & review',
+              }),
             ),
           ],
         ),
