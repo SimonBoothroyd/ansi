@@ -140,6 +140,12 @@ const _packUnits = <String, Unit>{
   'pounds': lb,
   'fl oz': flOz,
   'floz': flOz,
+  'pt': pint,
+  'pint': pint,
+  'pints': pint,
+  'qt': quart,
+  'quart': quart,
+  'quarts': quart,
 };
 
 /// OFF's `brands` is a comma-separated list because contributors append the

@@ -15,9 +15,10 @@ void main() {
   });
 
   test('a "makes 1 cup" yield opens its family, kitchen-trimmed', () {
-    // Exactly the board's frame-d row: batch | cup tbsp tsp ml.
+    // The board's frame-d row — batch | cup tbsp tsp ml — plus the US pair
+    // at the tail (plan 0025 #2).
     final offer = componentUnitChips(yields: [(qty: 1, unit: cup)]);
-    expect(offer.chips, [batches, cup, tbsp, tsp, ml]);
+    expect(offer.chips, [batches, cup, tbsp, tsp, ml, pint, quart]);
     // Label-reading granularity is not kitchen granularity.
     expect(offer.chips, isNot(contains(flOz)));
     expect(offer.chips, isNot(contains(l)));
@@ -27,7 +28,7 @@ void main() {
     final offer = componentUnitChips(
       yields: [(qty: 250, unit: g), (qty: 16, unit: tbsp)],
     );
-    expect(offer.chips, [batches, g, kg, tbsp, cup, tsp, ml]);
+    expect(offer.chips, [batches, g, kg, tbsp, cup, tsp, ml, pint, quart]);
   });
 
   test('a mass-only yield does NOT open volume — no density for a recipe', () {

@@ -216,6 +216,13 @@ void main() {
       expect(parsePackQuantity('1 oz (28.3 g)'), const DraftPackSize(1, oz));
       // A comma decimal, which European contributors type.
       expect(parsePackQuantity('1,5 l'), const DraftPackSize(1.5, l));
+      // US dairy and stock cartons (plan 0025 #2).
+      expect(
+        parsePackQuantity('1 quart (946 ml)'),
+        const DraftPackSize(1, quart),
+      );
+      expect(parsePackQuantity('2 pints'), const DraftPackSize(2, pint));
+      expect(parsePackQuantity('1 qt'), const DraftPackSize(1, quart));
     });
 
     test('refuses what it cannot land on a catalog unit', () {

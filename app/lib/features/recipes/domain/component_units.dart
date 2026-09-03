@@ -9,9 +9,10 @@
 ///   all, which is what keeps a yield-less recipe linkable and derivable.
 /// - Each stated yield opens its own family, at the magnitudes a kitchen
 ///   reaches for ([kComponentKitchenUnits]) — a yield of `1 cup` offers
-///   `cup · tbsp · tsp · ml`, never `fl oz` or `mg`. There is no density for a
-///   recipe, so a family the yields do not state is not offered: the fix is
-///   the yield's optional SECOND denomination, not a guessed bridge.
+///   `cup · tbsp · tsp · ml · pt · qt`, never `fl oz` or `mg`. There is no
+///   density for a recipe, so a family the yields do not state is not
+///   offered: the fix is the yield's optional SECOND denomination, not a
+///   guessed bridge.
 /// - The **stored selection is always admitted** (the 7.7 rule, verbatim): an
 ///   imported line's printed unit stays an offered chip even when the filter
 ///   would not raise it, flagged as outside the filter and rendered with the
@@ -26,13 +27,15 @@ import '../../../core/units/units.dart';
 import 'component_math.dart';
 
 /// The kitchen workhorses each yield family opens, in chip order (design board
-/// frame d draws exactly `cup · tbsp · tsp · ml` for a `makes 1 cup` yield).
+/// frame d draws `cup · tbsp · tsp · ml` for a `makes 1 cup` yield; the US
+/// pair joined the tail with plan 0025 #2 — a stock that "makes 1 quart" is a
+/// kitchen fact too).
 ///
 /// Deliberately narrower than the catalogue: label-reading granularity (`mg`,
 /// `fl oz`) is not kitchen granularity, and a recipe yield is a kitchen fact.
 /// An imprecise or `batch` yield opens nothing — neither converts.
 const kComponentKitchenUnits = <UnitFamily, List<Unit>>{
-  UnitFamily.volume: [cup, tbsp, tsp, ml],
+  UnitFamily.volume: [cup, tbsp, tsp, ml, pint, quart],
   UnitFamily.mass: [g, kg],
   UnitFamily.count: [pieces],
 };
