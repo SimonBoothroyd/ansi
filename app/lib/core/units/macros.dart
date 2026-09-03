@@ -55,6 +55,28 @@ class Macros {
     );
   }
 
+  /// The per-100 macros a label printed per serving asserts — plan 0027
+  /// M-D1/M-D3.
+  ///
+  /// A US Nutrition Facts panel reads "1 Tbsp (14 g) · 100 kcal"; the row
+  /// stores per 100 of its [basis], so the four [printed] figures are scaled
+  /// by `100 / serving`. [serving] is the serving's amount in [basis]'s base
+  /// unit (14 for a 14 g serving on a per-100 g row). The result is
+  /// **unrounded** on purpose (M-D3): the label's own rounding scales with
+  /// it, and rounding again would compound a rounding that was never ours.
+  ///
+  /// Returns null — never a fabricated number (invariant 3) — when [serving]
+  /// is not a positive finite amount: a zero or missing serving weight has
+  /// no per-100 reading at all.
+  static Macros? per100From({
+    required double serving,
+    required MacrosBasis basis,
+    required Macros printed,
+  }) {
+    if (!(serving > 0) || !serving.isFinite) return null;
+    return printed.scaledBy(100 / serving);
+  }
+
   final double kcal;
 
   /// Grams of protein / carbohydrate / fat.
