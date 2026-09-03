@@ -160,6 +160,46 @@ void main() {
     });
   });
 
+  group('a per-serving panel (plan 0027 M-D5) takes the macros slot', () {
+    const printed = Macros(kcal: 180, protein: 6, carb: 10, fat: 14);
+    const panel = DraftServingPanel(
+      printed: printed,
+      servingAmount: 32,
+      servingBasis: MacrosBasis.perG,
+      servingSize: '2 Tbsp (32 g)',
+    );
+    const peanutButter = IngredientDraft(
+      suggestedName: 'Peanut butter',
+      source: DraftSource.barcode,
+      barcode: '0851087000250',
+      macrosGap: DraftMacrosGap.perServingPanel,
+      servingPanel: panel,
+      packSize: DraftPackSize(454, g),
+    );
+
+    test('on an empty target it lands as printed, with the serving’s basis '
+        '— never converted here', () {
+      final applied = applyDraft(peanutButter, target: const DraftTarget());
+      expect(applied.servingPanel, panel);
+      expect(applied.macros, isNull);
+      expect(applied.macrosBasis, MacrosBasis.perG);
+      expect(applied.fillsSomething, isTrue);
+      // The pack offer is bridged into the basis the row will keep.
+      expect(applied.packMeasure!.amountInBasis, 454);
+    });
+
+    test('a panel a human already typed stays, and is named — the same rule '
+        'as a per-100 panel', () {
+      final applied = applyDraft(
+        peanutButter,
+        target: const DraftTarget(hasMacros: true),
+      );
+      expect(applied.servingPanel, isNull);
+      expect(applied.macrosBasis, isNull);
+      expect(applied.skipped, [DraftSkip.macros]);
+    });
+  });
+
   test('hasLookupProvenance: null and manual are free, the rest are taken', () {
     expect(hasLookupProvenance(null), isFalse);
     expect(hasLookupProvenance(''), isFalse);

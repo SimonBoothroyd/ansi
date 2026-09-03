@@ -39,13 +39,15 @@ enum DraftMacrosGap {
   /// The product is in Open Food Facts but nobody has entered its panel.
   noPanel('Open Food Facts has no nutrition panel for this product.'),
 
-  /// The panel Open Food Facts holds is per *serving*. Converting it to a
-  /// per-100 basis needs the serving's mass, and OFF's `serving_size` is
-  /// free text ("1 serving (16 fl oz)") — so the fields stay blank rather
-  /// than divided by a guess (plan 0020 D1).
+  /// The panel Open Food Facts holds is per *serving*, and the four printed
+  /// figures ride along in [IngredientDraft.servingPanel]. Converting them
+  /// to per-100 needs the serving's mass; OFF's `serving_size` is free text
+  /// ("1 serving (16 fl oz)"), so it is never parsed — the numeric
+  /// `serving_quantity` prefills the serving row when OFF has one, and
+  /// otherwise the host asks for it (plan 0027 M-D5).
   perServingPanel(
-    'Open Food Facts holds this panel per serving, not per 100 — and its '
-    'serving size is free text, so a per-100 figure would be a guess.',
+    'Open Food Facts holds this panel per serving, not per 100 — type the '
+    'serving weight from the pack and the row stores per 100.',
   );
 
   const DraftMacrosGap(this.message);
@@ -78,6 +80,58 @@ class DraftPackSize {
   String toString() => 'DraftPackSize($amount ${unit.id})';
 }
 
+/// A nutrition panel as a pack prints it **per serving** (plan 0027 M-D5) —
+/// the four figures verbatim, and what Open Food Facts knows about the
+/// serving they describe.
+///
+/// Never converted here: a per-100 reading needs the serving's amount in the
+/// row's basis, and this type only carries what OFF said. The host lands it
+/// on the form's per-serving mode, where [Macros.per100From] does the
+/// arithmetic in front of the person holding the pack.
+@immutable
+class DraftServingPanel {
+  const DraftServingPanel({
+    required this.printed,
+    this.servingAmount,
+    this.servingBasis,
+    this.servingSize,
+  });
+
+  /// kcal · protein · carb · fat, per serving, as printed. All four or the
+  /// panel is not carried at all — [Macros.tryParse]'s rule.
+  final Macros printed;
+
+  /// OFF's numeric `serving_quantity`, when it carries one, in
+  /// [servingBasis]'s base unit. Null means the person types it from the
+  /// pack — the free-text `serving_size` is never parsed into a number.
+  final double? servingAmount;
+
+  /// The basis `serving_quantity_unit` names (g → per-100 g, ml → per-100
+  /// ml). Null with [servingAmount] null, or when OFF's unit is neither.
+  final MacrosBasis? servingBasis;
+
+  /// OFF's `serving_size` verbatim ("1 Tbsp (14 g)") — shown beside the
+  /// serving row as what the pack calls it, never parsed.
+  final String? servingSize;
+
+  @override
+  bool operator ==(Object other) =>
+      other is DraftServingPanel &&
+      other.printed == printed &&
+      other.servingAmount == servingAmount &&
+      other.servingBasis == servingBasis &&
+      other.servingSize == servingSize;
+
+  @override
+  int get hashCode =>
+      Object.hash(printed, servingAmount, servingBasis, servingSize);
+
+  @override
+  String toString() =>
+      'DraftServingPanel($printed per $servingAmount '
+      '${servingBasis?.dbValue ?? '?'} · $servingSize)';
+}
+
 /// A prefilled, unsaved ingredient — the barcode path's only output.
 class IngredientDraft {
   const IngredientDraft({
@@ -89,6 +143,7 @@ class IngredientDraft {
     this.macros,
     this.macrosBasis = MacrosBasis.perG,
     this.macrosGap = DraftMacrosGap.none,
+    this.servingPanel,
     this.densityGPerMl,
     this.packSize,
   });
@@ -133,6 +188,12 @@ class IngredientDraft {
 
   /// Why [macros] is null. [DraftMacrosGap.none] whenever it is not.
   final DraftMacrosGap macrosGap;
+
+  /// The panel as printed per serving, when [macrosGap] is
+  /// [DraftMacrosGap.perServingPanel] and OFF carried all four figures.
+  /// [macros] stays null alongside it: the per-100 reading is derived on the
+  /// host, in front of the person, from a serving amount they can see.
+  final DraftServingPanel? servingPanel;
 
   /// Always null from a barcode lookup: Open Food Facts holds no density,
   /// and one is not derivable from a pack size. The field exists so the

@@ -25,7 +25,7 @@ IngredientDraft? draftFromOffBody(Map<String, Object?> body) {
   final code = _text(product['code']) ?? _text(body['code']);
   final productName = _text(product['product_name']);
   final brand = _firstBrand(_text(product['brands']));
-  final (macros, basis, gap) = _readPanel(product);
+  final panel = _readPanel(product);
 
   return IngredientDraft(
     // Falls back to the brand, then to blank — an empty name field the user
@@ -35,54 +35,110 @@ IngredientDraft? draftFromOffBody(Map<String, Object?> body) {
     barcode: code,
     productName: productName,
     brand: brand,
-    macros: macros,
-    macrosBasis: basis,
-    macrosGap: gap,
+    macros: panel.macros,
+    macrosBasis: panel.basis,
+    macrosGap: panel.gap,
+    servingPanel: panel.serving,
     // densityGPerMl stays null on purpose: OFF holds no density, and a pack
     // size is a volume OR a mass, never the ratio between them.
     packSize: parsePackQuantity(_text(product['quantity'])),
   );
 }
 
-/// The panel: per-100 macros, the basis they were read in, and — when there
-/// are none — why.
-(Macros?, MacrosBasis, DraftMacrosGap) _readPanel(Map<String, Object?> p) {
+/// What the panel read as: per-100 macros in their basis, or a per-serving
+/// panel carried as printed, or nothing — with the gap saying which.
+typedef _Panel = ({
+  Macros? macros,
+  MacrosBasis basis,
+  DraftMacrosGap gap,
+  DraftServingPanel? serving,
+});
+
+_Panel _readPanel(Map<String, Object?> p) {
   final per = _text(p['nutrition_data_per']);
-  // A per-serving panel does not convert to per-100 without the serving's
-  // mass, and OFF's `serving_size` is free text ("1 serving (16 fl oz)").
-  // D1: leave the macros blank with a note rather than divide by a guess.
+  final n = p['nutriments'];
+  final nutriments = n is Map<String, Object?> ? n : const <String, Object?>{};
+
+  // A per-serving panel (plan 0027 M-D5): the four printed figures ride
+  // through as printed, with OFF's numeric `serving_quantity` when it has
+  // one. Never a per-100 figure from here — the serving's mass is what the
+  // conversion needs, and `serving_size` is free text ("1 serving (16 fl
+  // oz)") that is never parsed into a number. The host lands the panel on
+  // the form's per-serving mode and does the arithmetic in front of the
+  // person holding the pack.
   if (per == 'serving') {
-    return (null, MacrosBasis.perG, DraftMacrosGap.perServingPanel);
+    final printed = _four(nutriments, '_serving');
+    if (printed == null) {
+      // Flagged per serving but the only serving keys are `*_prepared_*`
+      // (the NESQUIK shape): there is no printed panel to carry, and no
+      // serving weight would make one.
+      return (
+        macros: null,
+        basis: MacrosBasis.perG,
+        gap: DraftMacrosGap.noPanel,
+        serving: null,
+      );
+    }
+    final (amount, servingBasis) = _servingQuantity(p);
+    return (
+      macros: null,
+      basis: servingBasis ?? MacrosBasis.perG,
+      gap: DraftMacrosGap.perServingPanel,
+      serving: DraftServingPanel(
+        printed: printed,
+        servingAmount: amount,
+        servingBasis: servingBasis,
+        servingSize: _text(p['serving_size']),
+      ),
+    );
   }
   // `100ml` is a liquid label read as the label reads it (7.7). Absent or
   // unrecognised, the per-100 keys below are still per 100 of *something*,
   // and grams is both the column default and the commoner panel.
   final basis = per == '100ml' ? MacrosBasis.perMl : MacrosBasis.perG;
-
-  final n = p['nutriments'];
-  if (n is! Map<String, Object?>) {
-    return (null, basis, DraftMacrosGap.noPanel);
-  }
-  // Only the plain `*_100g` keys. The near-misses are real and wrong:
-  // `energy-kcal` (no suffix) is whatever column the contributor typed in,
-  // and `*_prepared_100g` describes the made-up drink, not the powder in the
-  // tin — a cocoa powder mapped from its prepared panel would understate
-  // every recipe that used it by roughly a factor of ten.
-  final kcal = _number(n['energy-kcal_100g']);
-  final protein = _number(n['proteins_100g']);
-  final carb = _number(n['carbohydrates_100g']);
-  final fat = _number(n['fat_100g']);
-  // All four or none, the same rule a vocab row's macros obey
-  // ([Macros.tryParse]) — three numbers and an invented zero is exactly the
-  // dishonest total invariant 3 exists to prevent.
-  if (kcal == null || protein == null || carb == null || fat == null) {
-    return (null, basis, DraftMacrosGap.noPanel);
-  }
+  final macros = _four(nutriments, '_100g');
   return (
-    Macros(kcal: kcal, protein: protein, carb: carb, fat: fat),
-    basis,
-    DraftMacrosGap.none,
+    macros: macros,
+    basis: basis,
+    gap: macros == null ? DraftMacrosGap.noPanel : DraftMacrosGap.none,
+    serving: null,
   );
+}
+
+/// The four macros under one OFF key [suffix] (`_100g`, `_serving`), or null
+/// unless all four are there.
+///
+/// Only the plain keys. The near-misses are real and wrong: `energy-kcal`
+/// (no suffix) is whatever column the contributor typed in, and
+/// `*_prepared_100g` describes the made-up drink, not the powder in the tin
+/// — a cocoa powder mapped from its prepared panel would understate every
+/// recipe that used it by roughly a factor of ten. All four or none, the
+/// same rule a vocab row's macros obey ([Macros.tryParse]) — three numbers
+/// and an invented zero is exactly the dishonest total invariant 3 exists to
+/// prevent.
+Macros? _four(Map<String, Object?> n, String suffix) {
+  final kcal = _number(n['energy-kcal$suffix']);
+  final protein = _number(n['proteins$suffix']);
+  final carb = _number(n['carbohydrates$suffix']);
+  final fat = _number(n['fat$suffix']);
+  if (kcal == null || protein == null || carb == null || fat == null) {
+    return null;
+  }
+  return Macros(kcal: kcal, protein: protein, carb: carb, fat: fat);
+}
+
+/// OFF's numeric `serving_quantity` with the basis its unit names, or
+/// `(null, null)` when there is none or the unit is neither g nor ml. A
+/// positive number only — a zero serving is no serving.
+(double?, MacrosBasis?) _servingQuantity(Map<String, Object?> p) {
+  final amount = _number(p['serving_quantity']);
+  if (amount == null || !(amount > 0)) return (null, null);
+  return switch (_text(p['serving_quantity_unit'])?.toLowerCase()) {
+    // Absent means grams in OFF's own reading of the field.
+    'g' || null => (amount, MacrosBasis.perG),
+    'ml' => (amount, MacrosBasis.perMl),
+    _ => (null, null),
+  };
 }
 
 /// Parses OFF's free-text `quantity` ("400 ml", "1 kg", "1 oz (28.3 g)")

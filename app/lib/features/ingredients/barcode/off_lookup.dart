@@ -106,8 +106,8 @@ class OffLookup {
   /// The keys the mapper reads. Sent as `fields=` so OFF returns those
   /// rather than the whole product document.
   static const fields =
-      'code,product_name,brands,quantity,serving_size,'
-      'nutrition_data_per,nutriments';
+      'code,product_name,brands,quantity,serving_size,serving_quantity,'
+      'serving_quantity_unit,nutrition_data_per,nutriments';
 
   final http.Client _client;
   final bool _ownsClient;

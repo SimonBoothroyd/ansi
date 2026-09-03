@@ -92,6 +92,7 @@ class DraftApplication {
     this.name,
     this.macros,
     this.macrosBasis,
+    this.servingPanel,
     this.source,
     this.packMeasure,
   });
@@ -99,11 +100,21 @@ class DraftApplication {
   /// The name to put in the field, or null when the human's stays.
   final String? name;
 
-  /// The panel to put in the fields, with [macrosBasis] — both or neither.
-  /// Null when the human's panel stays, and null when the draft has none: an
-  /// absent panel is a fact about Open Food Facts, never a row of zeros.
+  /// The panel to put in the fields, with [macrosBasis]. Null when the
+  /// human's panel stays, and null when the draft has none: an absent panel
+  /// is a fact about Open Food Facts, never a row of zeros.
   final Macros? macros;
+
+  /// The basis the landing panel reads in — set with [macros], or with
+  /// [servingPanel] (the serving's own basis, the row's default when OFF
+  /// named none); null when neither lands.
   final MacrosBasis? macrosBasis;
+
+  /// A panel printed per serving to land on the host's per-serving mode
+  /// (plan 0027 M-D5) — the same slot [macros] fills, so the same rule: null
+  /// when the human's panel stays. [macros] is null whenever this is set;
+  /// the per-100 reading is the host's to derive, in front of the person.
+  final DraftServingPanel? servingPanel;
 
   /// The provenance to write (`off:<barcode>`), or null to keep the stored one.
   final String? source;
@@ -117,7 +128,8 @@ class DraftApplication {
 
   /// Whether the draft changed anything at all — false for a not-found scan
   /// landing on a row that already has a name.
-  bool get fillsSomething => name != null || macros != null || source != null;
+  bool get fillsSomething =>
+      name != null || macros != null || servingPanel != null || source != null;
 }
 
 /// Applies [draft] onto [target] under the rule in this file's header.
@@ -136,12 +148,14 @@ DraftApplication applyDraft(
 
   Macros? macros;
   MacrosBasis? macrosBasis;
-  if (draft.macros != null) {
+  DraftServingPanel? servingPanel;
+  if (draft.macros != null || draft.servingPanel != null) {
     if (target.hasMacros) {
       skipped.add(DraftSkip.macros);
     } else {
       macros = draft.macros;
       macrosBasis = draft.macrosBasis;
+      servingPanel = draft.servingPanel;
     }
   }
 
@@ -165,6 +179,7 @@ DraftApplication applyDraft(
     name: name,
     macros: macros,
     macrosBasis: macrosBasis,
+    servingPanel: servingPanel,
     source: source,
     packMeasure: packAmount == null
         ? null

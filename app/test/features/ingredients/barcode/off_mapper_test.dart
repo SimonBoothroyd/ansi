@@ -1,8 +1,16 @@
 /// Table-driven over REAL Open Food Facts payloads, captured verbatim on
-/// 2026-08-31 from `GET /api/v2/product/{barcode}.json` with the client's own
-/// `fields=` projection ([OffLookup.fields]). The only edit is the removal of
-/// the `nutriments_estimated` block OFF returns unasked — ~1.5 kB of modelled
-/// micronutrients this mapper never looks at.
+/// 2026-08-31 (and the two per-serving ones on 2026-09-03) from
+/// `GET /api/v2/product/{barcode}.json` with the client's own `fields=`
+/// projection ([OffLookup.fields]). The only edit is the removal of the
+/// `nutriments_estimated` block OFF returns unasked — ~1.5 kB of modelled
+/// micronutrients this mapper never looks at — with ONE exception, named on
+/// its case: `peanut_butter_per_serving` is a real capture whose
+/// `nutrition_data_per` was flipped `100g` → `serving`. OFF's search was
+/// unavailable on the day, and none of ~30 US products probed by hand was
+/// flagged per serving while still carrying the plain `*_serving` four
+/// (`kraft_mac_per_serving` is what those look like — the flag with only
+/// `*_prepared_serving` keys under it). The peanut butter's `*_serving`
+/// keys, `serving_quantity` and `serving_size` are all OFF's own.
 ///
 /// The barcodes are named in each case so a future reader can re-fetch them.
 /// Real payloads matter here because the whole risk of this mapper is OFF's
@@ -37,6 +45,7 @@ typedef _Case = ({
   MacrosBasis basis,
   DraftMacrosGap gap,
   DraftPackSize? packSize,
+  DraftServingPanel? servingPanel,
 });
 
 const _cases = <_Case>[
@@ -50,6 +59,7 @@ const _cases = <_Case>[
     basis: MacrosBasis.perG,
     gap: DraftMacrosGap.none,
     packSize: null,
+    servingPanel: null,
   ),
   (
     fixture: 'oatly_per_100ml',
@@ -61,6 +71,7 @@ const _cases = <_Case>[
     basis: MacrosBasis.perMl,
     gap: DraftMacrosGap.none,
     packSize: DraftPackSize(200, ml),
+    servingPanel: null,
   ),
   (
     fixture: 'monster_per_100ml',
@@ -79,6 +90,7 @@ const _cases = <_Case>[
     basis: MacrosBasis.perMl,
     gap: DraftMacrosGap.none,
     packSize: DraftPackSize(16, oz),
+    servingPanel: null,
   ),
   (
     fixture: 'nesquik_no_panel',
@@ -93,6 +105,45 @@ const _cases = <_Case>[
     basis: MacrosBasis.perG,
     gap: DraftMacrosGap.noPanel,
     packSize: DraftPackSize(1, kg),
+    servingPanel: null,
+  ),
+  (
+    fixture: 'peanut_butter_per_serving',
+    barcode: '0851087000250',
+    why:
+        'A PER-SERVING PANEL (plan 0027 M-D5) — the four `*_serving` figures '
+        'ride through as printed, with OFF’s numeric serving_quantity; the '
+        'per-100 keys beside them are NOT read (the row derives its own, in '
+        'front of the person). Captured, with the flag flipped — see the '
+        'header',
+    suggestedName: 'Peanut Butter (The Bees Knees)',
+    brand: 'Peanut Butter & Co',
+    macros: null,
+    basis: MacrosBasis.perG,
+    gap: DraftMacrosGap.perServingPanel,
+    packSize: null,
+    servingPanel: DraftServingPanel(
+      printed: Macros(kcal: 180, protein: 6, carb: 10, fat: 14),
+      servingAmount: 32,
+      servingBasis: MacrosBasis.perG,
+      servingSize: '2 Tbsp (32 g)',
+    ),
+  ),
+  (
+    fixture: 'kraft_mac_per_serving',
+    barcode: '0021000658831',
+    why:
+        'flagged per serving, but the only serving keys are '
+        '`*_prepared_serving` (the made-up dish, not the box) — no printed '
+        'panel to carry, so no serving weight would make one: no panel, '
+        'and the serving row is not opened',
+    suggestedName: 'mac & cheese',
+    brand: 'Kraft',
+    macros: null,
+    basis: MacrosBasis.perG,
+    gap: DraftMacrosGap.noPanel,
+    packSize: DraftPackSize(7.25, oz),
+    servingPanel: null,
   ),
 ];
 
@@ -110,6 +161,13 @@ void main() {
         expect(draft.macrosBasis, c.basis);
         expect(draft.macrosGap, c.gap);
         expect(draft.packSize, c.packSize);
+        expect(draft.servingPanel, c.servingPanel);
+        // A per-serving panel is carried iff the gap says so — and never
+        // beside per-100 macros (M-D5: the per-100 reading is the host's).
+        expect(
+          draft.servingPanel != null,
+          draft.macrosGap == DraftMacrosGap.perServingPanel,
+        );
 
         // Invariant across every row: a lookup prefills, it never completes.
         expect(draft.source, DraftSource.barcode);
@@ -128,33 +186,90 @@ void main() {
       expect(draftFromOffBody(loadFixture('unknown_not_found')), isNull);
     });
 
-    test('a per-serving panel leaves the macros blank, with the reason', () {
-      // Constructed, not captured: OFF's API normalizes contributed panels
-      // onto `*_100g` keys, so `nutrition_data_per: "serving"` is rare in a
-      // live response — but it is in OFF's schema and D1 rules on it, so the
-      // branch is pinned here. Everything else is shaped like the fixtures.
-      final draft = draftFromOffBody({
+    group('a per-serving panel (plan 0027 M-D5)', () {
+      // Constructed variants of the peanut-butter fixture's shape, for the
+      // serving-quantity legs a single capture cannot cover.
+      Map<String, Object?> body(Map<String, Object?> product) => {
         'status': 1,
         'code': '1234567890128',
         'product': <String, Object?>{
           'code': '1234567890128',
           'product_name': 'Trail mix',
           'nutrition_data_per': 'serving',
-          'serving_size': '1 serving (40 g)',
           'nutriments': <String, Object?>{
             'energy-kcal_serving': 210.0,
             'proteins_serving': 6.0,
             'carbohydrates_serving': 18.0,
             'fat_serving': 13.0,
+            // OFF's own per-100 derivation sits beside the printed four;
+            // the mapper leaves it alone.
+            'energy-kcal_100g': 525.0,
+            'proteins_100g': 15.0,
+            'carbohydrates_100g': 45.0,
+            'fat_100g': 32.5,
           },
+          ...product,
         },
+      };
+      const printed = Macros(kcal: 210, protein: 6, carb: 18, fat: 13);
+
+      test('no numeric serving: the four ride through, the amount is left '
+          'for the person — never parsed out of the free text', () {
+        final draft = draftFromOffBody(
+          body({'serving_size': '1 serving (40 g)'}),
+        )!;
+        expect(draft.macros, isNull);
+        expect(draft.macrosGap, DraftMacrosGap.perServingPanel);
+        expect(draft.macrosGap.message, contains('type the serving weight'));
+        expect(
+          draft.servingPanel,
+          const DraftServingPanel(
+            printed: printed,
+            servingSize: '1 serving (40 g)',
+          ),
+        );
+        // The name still arrives — a missing panel is not a failed lookup.
+        expect(draft.suggestedName, 'Trail mix');
       });
 
-      expect(draft!.macros, isNull);
-      expect(draft.macrosGap, DraftMacrosGap.perServingPanel);
-      expect(draft.macrosGap.message, contains('would be a guess'));
-      // The name still arrives — a missing panel is not a failed lookup.
-      expect(draft.suggestedName, 'Trail mix');
+      test('an ml serving names the ml basis; a string quantity still '
+          'reads', () {
+        final draft = draftFromOffBody(
+          body({'serving_quantity': '240', 'serving_quantity_unit': 'ml'}),
+        )!;
+        expect(draft.macrosBasis, MacrosBasis.perMl);
+        expect(draft.servingPanel!.servingAmount, 240);
+        expect(draft.servingPanel!.servingBasis, MacrosBasis.perMl);
+      });
+
+      test('a serving in a unit that is neither g nor ml, or a zero one, is '
+          'no serving amount at all', () {
+        for (final product in [
+          {'serving_quantity': 1, 'serving_quantity_unit': 'oz'},
+          {'serving_quantity': 0, 'serving_quantity_unit': 'g'},
+          {'serving_quantity': 'a cup'},
+        ]) {
+          final draft = draftFromOffBody(body(product))!;
+          expect(draft.servingPanel!.printed, printed, reason: '$product');
+          expect(draft.servingPanel!.servingAmount, isNull, reason: '$product');
+          expect(draft.servingPanel!.servingBasis, isNull, reason: '$product');
+        }
+      });
+
+      test('a half-printed serving panel is no panel — the same all-or-none '
+          'rule as per 100', () {
+        final draft = draftFromOffBody(
+          body({
+            'nutriments': <String, Object?>{
+              'energy-kcal_serving': 210.0,
+              'proteins_serving': 6.0,
+              'carbohydrates_serving': 18.0,
+            },
+          }),
+        )!;
+        expect(draft.servingPanel, isNull);
+        expect(draft.macrosGap, DraftMacrosGap.noPanel);
+      });
     });
 
     test('a half-filled panel is no panel — three numbers and a zero is a '

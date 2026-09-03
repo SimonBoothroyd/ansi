@@ -10,6 +10,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../recipes/presentation/format.dart';
 import '../barcode/barcode_add.dart';
 import '../domain/apply_draft.dart';
 import 'macros_format.dart';
@@ -36,6 +37,7 @@ class DraftCard extends StatelessWidget {
       );
     }
     final macros = draft.macros;
+    final serving = draft.servingPanel;
     final provenance = [
       if (draft.brand != null) draft.brand!,
       if (draft.barcode != null) 'barcode ${draft.barcode}',
@@ -71,6 +73,17 @@ class DraftCard extends StatelessWidget {
               'the basis, not converted',
               style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
+          ] else if (serving != null) ...[
+            // A per-serving panel (plan 0027 M-D5): the four as printed, and
+            // what OFF knows about the serving. The per-100 reading is the
+            // host's to derive — in front of the person, from a serving
+            // amount they can see and change.
+            Text(formatMacroLine(serving.printed), style: ansiMono(size: 12)),
+            const SizedBox(height: 2),
+            Text(
+              _servingLine(serving),
+              style: ansiMono(size: 10, color: AnsiColors.muted),
+            ),
           ] else
             // Blank, with the reason. Never zeros: an absent panel is a fact
             // about Open Food Facts, not a nutrition figure (D1).
@@ -90,5 +103,21 @@ class DraftCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Under the printed four: what OFF knows about the serving, and whether
+  /// the amount still has to be typed.
+  static String _servingLine(DraftServingPanel serving) {
+    final size = serving.servingSize;
+    final amount = serving.servingAmount;
+    if (amount == null) {
+      final says = size == null ? '' : ' — the pack says “$size”';
+      return 'panel read per serving$says — type the serving weight and the '
+          'row stores per 100';
+    }
+    final basis = serving.servingBasis!;
+    final says = size == null ? '' : ' (“$size”)';
+    return 'panel read per serving of ${formatQuantity(amount)} '
+        '${basis.baseUnit.label}$says — stored per 100 ${basis.dbValue}';
   }
 }
