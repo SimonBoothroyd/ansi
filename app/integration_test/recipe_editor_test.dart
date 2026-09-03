@@ -6,24 +6,116 @@
 /// the saved recipe and assert its children survive the server round-trip
 /// (the connector jsonb + diffing-save fixes).
 ///
+/// A second scenario (plan 0026 item 6) drives the editor legs that were
+/// host-tested over fakes only, on a recipe SEEDED through the repository:
+/// the method step card's select → **To ingredient** / **To timer** toolbar,
+/// tap-a-chip → the chip sheet's rename; the quantity sheet's **Optional**
+/// switch; and create-new from inside the editor — picker footer → New
+/// ingredient → **Create & flesh out** → the flesh-out form over the picker →
+/// back → the quantity sheet opening on the units the form set. Each leg is
+/// asserted in the local db after the sync round trip.
+///
 /// Local gate only (`make test-sim FILE=recipe_editor`), never CI. Needs the
 /// local backend running (`make db-up`) and the usual `--dart-define`s.
 library;
 
 import 'dart:convert';
 
+import 'package:ansi/core/units/units.dart' show pieces;
+import 'package:ansi/features/ingredients/domain/normalize.dart'
+    show normalizeMatchText;
+import 'package:ansi/features/ingredients/presentation/density_entry.dart'
+    show AnsiModeChip;
+import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart'
+    show IngredientDetailView;
 import 'package:ansi/features/ingredients/presentation/quantity_unit_sheet.dart'
     show QuantityUnitEditor, UnitChipRow;
+import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/presentation/ingredient_line.dart'
+    show OptionalTag;
 import 'package:ansi/features/recipes/presentation/recipe_editor_view.dart'
     show RecipeEditorView;
+import 'package:ansi/shared/method_step_text.dart' show MethodChip;
+import 'package:ansi/shared/picker_shell.dart' show PickerShell;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:powersync/powersync.dart' hide Column;
+import 'package:uuid/uuid.dart';
 
 import 'support/drive.dart';
 import 'support/editor.dart';
 import 'support/stack.dart';
+
+const _uuid = Uuid();
+
+/// The step the chip scenario works: one ingredient word to chip, one
+/// duration in words for the timer door to read.
+const _step = 'Crush the garlic and simmer for 10 minutes.';
+
+/// Writes the recipe the chip scenario edits — Garlic 3 clove, Onion 1, one
+/// plain-text step — through the real repository, filed under the
+/// household's default book. Returns the ids the assertions need.
+Future<({String recipeId, String garlicLineId, String onionLineId})>
+_seedChipCurry(PowerSyncDatabase db, {required String householdId}) async {
+  final garlic = await db.get(
+    "SELECT id FROM ingredient WHERE canonical_name = 'Garlic' "
+    'AND deleted_at IS NULL',
+  );
+  final onion = await db.get(
+    "SELECT id FROM ingredient WHERE canonical_name = 'Onion' "
+    'AND deleted_at IS NULL',
+  );
+  final clove = await db.getOptional(
+    'SELECT id FROM ingredient_measure WHERE ingredient_id = ? '
+    "AND label = 'clove' AND deleted_at IS NULL",
+    [garlic['id']],
+  );
+  expect(clove, isNotNull, reason: "Garlic's seeded 'clove' measure");
+  final book = await db.get(
+    'SELECT id FROM book WHERE deleted_at IS NULL '
+    'ORDER BY sort_order, created_at LIMIT 1',
+  );
+  final ids = (
+    recipeId: _uuid.v4(),
+    garlicLineId: _uuid.v4(),
+    onionLineId: _uuid.v4(),
+  );
+  await SqliteRecipeRepository(db, householdId: householdId).saveRecipe(
+    Recipe(
+      id: ids.recipeId,
+      title: 'Chip Curry',
+      servingsBase: 2,
+      bookId: book['id'] as String,
+      steps: const [_step],
+      groups: [
+        IngredientGroup(
+          id: _uuid.v4(),
+          items: [
+            LineItem(
+              id: ids.garlicLineId,
+              ingredientId: garlic['id'] as String,
+              ingredientName: 'Garlic',
+              unit: pieces,
+              quantity: 3,
+              measureId: clove!['id'] as String,
+            ),
+            LineItem(
+              id: ids.onionLineId,
+              ingredientId: onion['id'] as String,
+              ingredientName: 'Onion',
+              unit: pieces,
+              quantity: 1,
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+  return ids;
+}
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -245,15 +337,7 @@ void main() {
     // Re-open and edit the saved recipe (tweak Garlic 3 → 4). The diffing
     // `saveRecipe` must leave every kept child live — the old delete-reinsert
     // tombstoned the children server-side on any edit.
-    await tester.tap(
-      find.descendant(
-        of: find.byType(FHeaderAction),
-        matching: find.byIcon(FLucideIcons.ellipsis),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Edit'));
-    await pumpUntilFound(tester, find.text('Edit recipe'));
+    await editRecipeFromPage(tester);
     await scrollTo(tester, find.text('Garlic'));
     // The line's quantity control ("3 clove") re-opens the quantity sheet.
     await tester.tap(find.text('3 clove'));
@@ -284,4 +368,243 @@ void main() {
     );
     expect(editedItems.map((r) => r['quantity']).toList(), [4, 1]);
   });
+
+  testWidgets(
+    'recipe editor: method chips, the optional switch, and create-new from '
+    'inside the editor — on the real stack',
+    (tester) async {
+      ignoreForuiSemanticsAssertion();
+      final db = stack.db;
+      await stack.openLibrary(tester);
+      final seeded = await _seedChipCurry(db, householdId: stack.householdId);
+      await stack.waitForSyncRoundTrip(tester);
+
+      await scrollTo(tester, find.text('Chip Curry'));
+      await tester.tap(find.text('Chip Curry'));
+      await pumpUntilFound(tester, find.text('OUR COOKBOOK'));
+
+      // ----------------------------------------------------------------------
+      // Method chips (0022 D2a/D2b) — select → To ingredient, tap → rename,
+      // select → To timer; then the refs survive the round trip.
+      // ----------------------------------------------------------------------
+      await editRecipeFromPage(tester);
+      await scrollTo(tester, find.text('Step 1'));
+      final field = stepFields().first;
+      expect(stepText(tester, field), _step);
+
+      // "garlic" → a chip pointing at the Garlic line. The picker arrives
+      // pre-matched over this recipe's own lines, so it is one more tap.
+      final garlic = _step.indexOf('garlic');
+      await selectInStep(tester, field, garlic, garlic + 'garlic'.length);
+      await tapToolbarItem(tester, 'To ingredient');
+      await pumpUntilFound(tester, find.text('Chip as “Garlic”'));
+      await tester.tap(find.text('Chip as “Garlic”'));
+      await tester.pumpAndSettle();
+      expect(
+        stepText(tester, field),
+        _step,
+        reason: 'To ingredient annotates the words; it changes no text',
+      );
+
+      // A tap inside the chip opens its sheet, seeded with the line and its
+      // live amount; the Word field renames the chip in place.
+      await tapStepAt(tester, field, garlic + 2);
+      await pumpUntilFound(tester, find.text('POINTS AT'));
+      expect(find.textContaining('Garlic · 3'), findsOneWidget);
+      await tester.enterText(find.byType(EditableText).last, 'garlic cloves');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.x).last);
+      await tester.pumpAndSettle();
+      const renamed = 'Crush the garlic cloves and simmer for 10 minutes.';
+      expect(stepText(tester, field), renamed);
+
+      // "10 minutes" → the timer stepper, seeded from the selection alone,
+      // and the words become formatTimerRange's own output.
+      final minutes = renamed.indexOf('10 minutes');
+      await selectInStep(tester, field, minutes, minutes + '10 minutes'.length);
+      await tapToolbarItem(tester, 'To timer');
+      await pumpUntilFound(tester, find.text('GOES IN AS'));
+      expect(
+        find.text('Crush the garlic cloves and simmer for 10 min.'),
+        findsOneWidget,
+        reason: 'the stepper is seeded from the selected words',
+      );
+      await tester.tap(find.text('Insert'));
+      await tester.pumpAndSettle();
+      const timed = 'Crush the garlic cloves and simmer for 10 min.';
+      expect(stepText(tester, field), timed);
+
+      // The focused card's "Reads as" preview is the shipped renderer: both
+      // chips render, the ingredient one with the line's live amount.
+      await tapStepAt(tester, field, timed.length);
+      await pumpUntilFound(tester, find.text('READS AS'));
+      expect(find.widgetWithText(MethodChip, 'garlic cloves'), findsOneWidget);
+      expect(find.widgetWithText(MethodChip, '10 min'), findsOneWidget);
+
+      await scrollTo(tester, find.text('Save'), delta: -150);
+      await saveRecipe(tester);
+      await stack.waitForSyncRoundTrip(tester);
+      final steps =
+          jsonDecode(
+                (await db.get('SELECT steps FROM recipe WHERE id = ?', [
+                      seeded.recipeId,
+                    ]))['steps']!
+                    as String,
+              )
+              as List<dynamic>;
+      expect(steps, hasLength(1));
+      final tokens = (steps.single as Map)['tokens'] as List<dynamic>;
+      final byType = {
+        for (final t in tokens.cast<Map<String, dynamic>>()) t['t']: t,
+      };
+      final ref = byType['ref']!;
+      expect(ref['refs'], [seeded.garlicLineId]);
+      expect(ref['label'], 'garlic cloves');
+      final timer = byType['timer']!;
+      expect(timer['lowSeconds'], 600);
+      expect(timer['highSeconds'], 600);
+      // …and the recipe page renders them.
+      await tester.tap(find.text('Method'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(MethodChip, 'garlic cloves'), findsOneWidget);
+      expect(find.widgetWithText(MethodChip, '10 min'), findsOneWidget);
+
+      // ----------------------------------------------------------------------
+      // The Optional switch (plan 0025 D6a) — in the line's quantity sheet;
+      // the flag lands on the row and the page tags the line.
+      // ----------------------------------------------------------------------
+      await editRecipeFromPage(tester);
+      await scrollTo(tester, find.text('1 piece'));
+      await tester.tap(find.text('1 piece'));
+      await pumpUntilFound(tester, find.byType(QuantityUnitEditor));
+      expect(find.text('Optional'), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(QuantityUnitEditor),
+          matching: find.byType(FSwitch),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      await scrollTo(tester, find.text('Save'), delta: -150);
+      await saveRecipe(tester);
+      await stack.waitForSyncRoundTrip(tester);
+      final onion = await db.get(
+        'SELECT optional FROM recipe_line_item WHERE id = ?',
+        [seeded.onionLineId],
+      );
+      expect(onion['optional'], 1);
+      await tester.tap(find.text('Ingredients'));
+      await tester.pumpAndSettle();
+      expect(find.byType(OptionalTag), findsOneWidget);
+
+      // ----------------------------------------------------------------------
+      // Create-new from inside the editor (plan 0025 D3): the one add chain —
+      // picker footer → New ingredient → Create & flesh out → the form OVER
+      // the picker → back → the quantity sheet on the units the form set.
+      // ----------------------------------------------------------------------
+      await editRecipeFromPage(tester);
+      await scrollTo(tester, find.text('Add ingredient'));
+      await tester.tap(find.text('Add ingredient'));
+      await pumpUntilFound(tester, find.text('Add an ingredient'));
+      // A name nothing in the vocab (or USDA's trigram floor of 0.5) can
+      // match, so the row is born bare and stays `manual`.
+      const name = 'Zorblat';
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(PickerShell),
+          matching: find.byType(EditableText),
+        ),
+        name,
+      );
+      await pumpUntilFound(tester, find.textContaining('add "$name"'));
+      await tester.tap(find.textContaining('add "$name"'));
+      await pumpUntilFound(tester, find.text('Create & flesh out'));
+      await tester.tap(find.text('Create & flesh out'));
+      // The flesh-out form lands over the still-open picker.
+      await pumpUntilFound(tester, find.text('CANONICAL NAME'));
+      expect(find.byType(IngredientDetailView), findsOneWidget);
+      final created = await db.get(
+        'SELECT id, status, source, allowed_units FROM ingredient '
+        'WHERE canonical_name = ? AND deleted_at IS NULL',
+        [name],
+      );
+      expect(created['status'], 'stub');
+      expect(created['allowed_units'], isNull, reason: 'born bare');
+
+      // Set the default unit to kg — which also admits it — and Save the
+      // form; the picker is awaiting the form's pop underneath.
+      await scrollTo(tester, find.text('CATEGORY · DEFAULT UNIT'));
+      final kg = find.descendant(
+        of: find.byKey(const ValueKey('default-unit-row')),
+        matching: find.widgetWithText(AnsiModeChip, 'kg'),
+      );
+      await tester.ensureVisible(kg);
+      await tester.pumpAndSettle();
+      await tester.tap(kg);
+      await tester.pump();
+      // `.last`: the density section carries its own small Save above.
+      await scrollTo(tester, find.text('Confirm — it counts from here'));
+      await tester.tap(find.text('Save').last);
+      await tester.pumpAndSettle();
+      await waitForDb(
+        tester,
+        () async =>
+            (await db.get('SELECT default_unit FROM ingredient WHERE id = ?', [
+              created['id'],
+            ]))['default_unit'] ==
+            'kg',
+        'the form save to land in the local database',
+      );
+      await tester.tap(find.byType(FHeaderAction).first);
+      // Back pops the form; the picker resolves with the RE-READ row and the
+      // editor opens the quantity sheet on it — chips for the units the form
+      // set, kg (the default) among them.
+      await pumpUntilFound(tester, find.byType(QuantityUnitEditor));
+      final chip = find.descendant(
+        of: find.byType(UnitChipRow),
+        matching: find.text('kg'),
+      );
+      expect(chip, findsOneWidget, reason: "the form's default unit chip");
+      expect(
+        find.descendant(of: find.byType(UnitChipRow), matching: find.text('g')),
+        findsOneWidget,
+      );
+      await tester.enterText(find.byType(EditableText).last, '2');
+      await tester.pump();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(find.text('2 kg'), findsOneWidget); // the line's quantity pill
+      await scrollTo(tester, find.text('Save'), delta: -150);
+      await saveRecipe(tester);
+
+      // After the round trip: the stub row survives as written (a manual,
+      // bare stub whose match_text is the normalizer's), `allowed_units` is a
+      // REAL json array — the connector fix, not a jsonb string — and the
+      // line points at it.
+      await stack.waitForSyncRoundTrip(tester);
+      final row = await db.get(
+        'SELECT status, source, match_text, '
+        'json_type(allowed_units) AS shape FROM ingredient WHERE id = ?',
+        [created['id']],
+      );
+      expect(row['status'], 'stub');
+      expect(row['source'], 'manual');
+      expect(row['match_text'], normalizeMatchText(name));
+      expect(row['shape'], 'array');
+      final line = await db.get(
+        'SELECT li.quantity, li.unit FROM recipe_line_item li '
+        'JOIN ingredient_group g ON g.id = li.group_id '
+        'WHERE g.recipe_id = ? AND li.ingredient_id = ? '
+        'AND li.deleted_at IS NULL',
+        [seeded.recipeId, created['id']],
+      );
+      expect(line['quantity'], 2);
+      expect(line['unit'], 'kg');
+      await tester.tap(find.text('Ingredients'));
+      await tester.pumpAndSettle();
+      expect(find.text(name), findsOneWidget);
+    },
+  );
 }

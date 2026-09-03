@@ -1,12 +1,15 @@
-/// Driving the recipe editor: opening it from the Library, adding lines
-/// through the 7.7 picker → quantity-sheet chain, saving, and backing out of
-/// the pages a save leaves on the stack.
+/// Driving the recipe editor: opening it from the Library or a saved
+/// recipe's page, adding lines through the 7.7 picker → quantity-sheet
+/// chain, working a method step card (select → toolbar, tap-a-chip), saving,
+/// and backing out of the pages a save leaves on the stack.
 library;
 
 import 'package:ansi/features/ingredients/presentation/quantity_unit_sheet.dart'
     show QuantityUnitEditor;
 import 'package:ansi/features/recipes/presentation/component_quantity_sheet.dart'
     show ComponentQuantityEditor;
+import 'package:ansi/features/recipes/presentation/method_span_controller.dart'
+    show MethodSpanController;
 import 'package:ansi/features/recipes/presentation/recipe_editor_view.dart'
     show RecipeEditorView;
 import 'package:ansi/shared/picker_shell.dart' show PickerShell;
@@ -145,6 +148,77 @@ Future<void> addComponentLine(
   expect(find.text(hint), findsOneWidget, reason: "the row's yield hint");
   await tester.tap(find.text(title).last);
   await pumpUntilFound(tester, find.byType(ComponentQuantityEditor));
+}
+
+/// Opens a saved recipe's editor from its page: the header's ⋯ ▸ Edit.
+Future<void> editRecipeFromPage(WidgetTester tester) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byType(FHeaderAction),
+      matching: find.byIcon(FLucideIcons.ellipsis),
+    ),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Edit'));
+  await pumpUntilFound(tester, find.text('Edit recipe'));
+}
+
+/// Every method step card's editable, in card order — told apart from the
+/// form's other fields by the controller that paints the chips.
+Finder stepFields() => find.byWidgetPredicate(
+  (w) => w is EditableText && w.controller is MethodSpanController,
+);
+
+/// The text the step card [field] is showing.
+String stepText(WidgetTester tester, Finder field) =>
+    tester.widget<EditableText>(field).controller.text;
+
+/// A real tap inside the step card [field], on the character at [offset] —
+/// the tap-to-edit door (0022 D2a): the field's own `onTap` fires after the
+/// tap has placed the caret, so a tap inside a chip opens its sheet and a
+/// tap on prose (or at the very end) only moves the caret and focuses.
+Future<void> tapStepAt(WidgetTester tester, Finder field, int offset) async {
+  final editable = tester.state<EditableTextState>(field).renderEditable;
+  final caret = editable.getLocalRectForCaret(TextPosition(offset: offset));
+  await tester.tapAt(editable.localToGlobal(caret.center));
+  await tester.pumpAndSettle();
+}
+
+/// Selects `[start, end)` of the step card [field] and raises the platform
+/// selection toolbar over it — the D2b writing door.
+///
+/// Focus is taken with a tap at the END of the text rather than the field's
+/// centre, which can land inside a chip and open its sheet instead. The
+/// selection itself is set through the controller: a drag-select is the one
+/// gesture the test driver cannot make reliably on a device (it lands on a
+/// word boundary of the platform's choosing), and the toolbar reads the
+/// controller's selection, so this is the same range a real drag produces.
+Future<void> selectInStep(
+  WidgetTester tester,
+  Finder field,
+  int start,
+  int end,
+) async {
+  await tapStepAt(tester, field, stepText(tester, field).length);
+  tester.widget<EditableText>(field).controller.selection = TextSelection(
+    baseOffset: start,
+    extentOffset: end,
+  );
+  await tester.pumpAndSettle();
+  tester.state<EditableTextState>(field).showToolbar();
+  await tester.pumpAndSettle();
+}
+
+/// Takes [item] from the raised selection toolbar. On iOS the Cupertino
+/// toolbar paginates; the editor's two items sit right after Copy so they
+/// fit the first page on a phone, but page forward if they did not.
+Future<void> tapToolbarItem(WidgetTester tester, String item) async {
+  if (find.text(item).evaluate().isEmpty) {
+    await tester.tap(find.text('▶'));
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(find.text(item));
+  await tester.pumpAndSettle();
 }
 
 /// The recipe editor's Save, then the saved recipe's page.
