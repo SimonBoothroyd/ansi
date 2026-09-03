@@ -46,6 +46,10 @@ mixin IngredientManagerStubs implements IngredientRepository {
   }) => throw UnimplementedError();
 
   @override
+  Future<Ingredient?> declineUsdaPrefill(String ingredientId) =>
+      throw UnimplementedError();
+
+  @override
   Stream<List<Ingredient>> watchVocabulary() => const Stream.empty();
 
   @override
@@ -298,6 +302,33 @@ class FakeIngredientRepo implements IngredientRepository {
       source: source,
       sourceLabel: sourceLabel,
       sourceScore: sourceScore,
+    );
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<Ingredient?> declineUsdaPrefill(String ingredientId) async {
+    final current = _find(ingredientId);
+    if (current == null || !isUsdaPrefilled(current.source)) return null;
+    // The real write's shape (U-D2): density stripped as clearDensity strips
+    // it, macros gone, the stamp replaced, the label kept, back to a stub.
+    // Field-by-field because three of those are nulls freezed would read as
+    // "unchanged".
+    final kept = {...current.allowedUnits ?? allowedUnitsFor(current)}
+      ..removeAll(densityStrippedUnits(current));
+    final updated = Ingredient(
+      id: current.id,
+      canonicalName: current.canonicalName,
+      defaultUnit: current.defaultUnit,
+      status: IngredientStatus.stub,
+      category: current.category,
+      macrosBasis: current.macrosBasis,
+      allowedUnits: kept.toList(),
+      defaultMeasureId: current.defaultMeasureId,
+      measureCount: current.measureCount,
+      source: usdaDeclinedSource,
+      sourceLabel: current.sourceLabel,
     );
     _replace(updated);
     return updated;

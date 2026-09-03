@@ -256,6 +256,28 @@ abstract interface class IngredientRepository {
     bool explicitPick = false,
   });
 
+  /// *Not this food* — undoes a USDA prefill in ONE write (plan 0027
+  /// **U-D2**): the density goes through the same strip [clearDensity] runs
+  /// (D4b — the units it alone unlocked come out), the macros go, and
+  /// `source` becomes [usdaDeclinedSource]. The row is a `stub` afterwards
+  /// (a row with no macros never asserts `complete`, D5), and
+  /// [Ingredient.sourceLabel] SURVIVES so the form can name the food that
+  /// was refused; the score is cleared with the match it described.
+  ///
+  /// Exactly what the prefill wrote comes out, because on a `usda_fdc:` row
+  /// both prefill writers are fill-null-only on a bare stub — so the prefill
+  /// is the author of both numbers. Offered only while `source` still starts
+  /// with `usda_fdc:`: a row a human has since re-sourced is the human's.
+  /// Returns null when [ingredientId] doesn't resolve or the row is not a
+  /// USDA-filled one (nothing written).
+  ///
+  /// Why a new source value rather than a reset to `manual`: the rename
+  /// trigger's WHEN clause (0015) lists the sources it may refill — `manual`
+  /// is one — and `usda_declined` is deliberately not. Declining once means
+  /// the next rename leaves the row alone; only an explicit pick
+  /// ([applyUsdaProbe] with `explicitPick`) writes over it.
+  Future<Ingredient?> declineUsdaPrefill(String ingredientId);
+
   // --- The manager's write half (step 8.5) -----------------------------------
 
   /// The whole live vocabulary, canonical-name ordered, as a watched query —

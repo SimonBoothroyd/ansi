@@ -375,17 +375,11 @@ class SqliteIngredientRepository implements IngredientRepository {
       if (row == null) return false;
       final current = _toIngredient(row);
       if (current.densityGPerMl == null) return true; // nothing to delete
-      // D4b: the cross-family admission goes with the number it was derived
-      // from. The basis family and the default unit's family survive — see
-      // `densityStrippedUnits`. Curated units outside the derived rules are
-      // untouched: only what the density unlocked is subtracted.
-      final kept = {...current.allowedUnits ?? defaultAllowedUnitSet(current)}
-        ..removeAll(densityStrippedUnits(current));
       await tx.execute(
         'UPDATE ingredient SET density_g_per_ml = NULL, allowed_units = ?, '
         'updated_at = ? WHERE id = ?',
         [
-          jsonEncode([for (final u in kept) u.id]),
+          jsonEncode([for (final u in _strippedOfDensity(current)) u.id]),
           now,
           ingredientId,
         ],
@@ -394,6 +388,48 @@ class SqliteIngredientRepository implements IngredientRepository {
     });
     if (!updated) return null;
     return byId(ingredientId);
+  }
+
+  /// D4b: the admission list as it reads once [current]'s density is gone —
+  /// the cross-family units go with the number they were derived from. The
+  /// basis family and the default unit's family survive (see
+  /// `densityStrippedUnits`); curated units outside the derived rules are
+  /// untouched. Read by [clearDensity] and [declineUsdaPrefill], which are
+  /// the two places a density is ever deleted.
+  static Set<Unit> _strippedOfDensity(Ingredient current) =>
+      {...current.allowedUnits ?? defaultAllowedUnitSet(current)}
+        ..removeAll(densityStrippedUnits(current));
+
+  @override
+  Future<Ingredient?> declineUsdaPrefill(String ingredientId) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    final declined = await _db.writeTransaction((tx) async {
+      final row = await tx.getOptional(
+        'SELECT i.*, $_measureCount FROM ingredient i '
+        'WHERE i.id = ? AND i.deleted_at IS NULL',
+        [ingredientId],
+      );
+      if (row == null) return false;
+      final current = _toIngredient(row);
+      // Only a row the prefill still authors: anything else is a human's.
+      if (!isUsdaPrefilled(current.source)) return false;
+      // One statement: the density strip (the clearDensity rule, D4b), the
+      // macros, the stamp, and the status — a row with no macros is a stub
+      // (D5). The label stays: the form names what was refused.
+      await tx.execute(
+        'UPDATE ingredient SET density_g_per_ml = NULL, macros = NULL, '
+        "allowed_units = ?, source = ?, source_score = NULL, status = 'stub', "
+        'updated_at = ? WHERE id = ?',
+        [
+          jsonEncode([for (final u in _strippedOfDensity(current)) u.id]),
+          usdaDeclinedSource,
+          now,
+          ingredientId,
+        ],
+      );
+      return true;
+    });
+    return declined ? byId(ingredientId) : null;
   }
 
   @override

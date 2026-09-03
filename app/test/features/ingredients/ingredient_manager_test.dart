@@ -676,6 +676,52 @@ void main() {
       expect(find.text('Look up in USDA'), findsNothing);
     });
 
+    testWidgets('U-D2: tapping Not this food clears the prefilled numbers '
+        'from the row AND the open form, and the line turns into the '
+        'declined one', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo([
+        _curryLeaves.copyWith(
+          densityGPerMl: _usdaAnswer.densityGPerMl,
+          macros: _usdaAnswer.macros,
+          allowedUnits: const [g, kg, tsp, tbsp, cup, ml],
+        ),
+      ]);
+      await tester.pumpWidget(_host(repo, at: '/ingredients/curry'));
+      await tester.pumpAndSettle();
+      expect(_macroFieldText(tester, 'kcal'), '108');
+      // A pending edit in a field the undo has no business with.
+      await tester.enterText(_measureLabelField, 'small bunch');
+      await tester.pump();
+
+      await tester.tap(find.widgetWithText(FButton, 'Not this food'));
+      await tester.pumpAndSettle();
+
+      final row = (await repo.byId('curry'))!;
+      expect(row.source, usdaDeclinedSource);
+      expect(row.densityGPerMl, isNull);
+      expect(row.macros, isNull);
+      expect(row.sourceLabel, 'Curry leaves, raw');
+      expect(row.status, IngredientStatus.stub);
+      // D4b on screen: the volume family the density alone admitted is out.
+      expect(row.allowedUnits!.map((u) => u.id).toSet(), {'g', 'kg'});
+      // The form followed the row (G1): four blank fields, not stale numbers
+      // a Save would write straight back.
+      expect(_macroFieldText(tester, 'kcal'), isEmpty);
+      expect(_macroFieldText(tester, 'fat'), isEmpty);
+      expect(
+        tester.widget<TextField>(_measureLabelField).controller!.text,
+        'small bunch',
+      );
+      expect(find.text('USDA · declined'), findsOneWidget);
+      expect(find.widgetWithText(FButton, 'Not this food'), findsNothing);
+      expect(
+        find.textContaining('a rename will not bring them back'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('a row USDA never touched carries no provenance line at '
         'all', (tester) async {
       _filterSemanticsAssertions();

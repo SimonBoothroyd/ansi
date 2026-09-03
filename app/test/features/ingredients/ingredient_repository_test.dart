@@ -928,6 +928,100 @@ void main() {
       expect(picked.status, IngredientStatus.stub);
     });
 
+    test(
+      'U-D2 declineUsdaPrefill: ONE write takes out exactly what the '
+      'prefill wrote — density (and the units it unlocked, D4b), macros, '
+      'the stamp — keeps the name, and a rename after it does not refill',
+      () async {
+        final filled = (await repo.applyUsdaProbe(
+          '3',
+          source: 'usda_fdc:11216',
+          sourceLabel: 'Olive oil, salad or cooking',
+          sourceScore: 0.88,
+          densityGPerMl: 0.35,
+          macros: const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
+        ))!;
+        expect(filled.allowedUnits!.map((u) => u.id), contains('cup'));
+
+        final declined = await repo.declineUsdaPrefill('3');
+        expect(declined, isNotNull);
+        expect(declined!.densityGPerMl, isNull);
+        expect(declined.macros, isNull);
+        expect(declined.source, 'usda_declined');
+        expect(declined.sourceLabel, 'Olive oil, salad or cooking');
+        expect(declined.sourceScore, isNull);
+        expect(declined.status, IngredientStatus.stub);
+        // D4b: the volume family the density alone admitted is gone; the
+        // basis family stays.
+        expect(declined.allowedUnits!.map((u) => u.id).toSet(), {'g', 'kg'});
+        final stored = await db.get(
+          'SELECT density_g_per_ml, macros, source, source_label, '
+          'source_score, status FROM ingredient WHERE id = ?',
+          ['3'],
+        );
+        expect(stored['density_g_per_ml'], isNull);
+        expect(stored['macros'], isNull);
+        expect(stored['source'], 'usda_declined');
+        expect(stored['source_score'], isNull);
+
+        // The Dart half of "a rename does not refill": the rename write itself
+        // touches neither the numbers nor the stamp (the server half — the
+        // 0015 WHEN clause skipping usda_declined — is pinned in pgTAP).
+        final renamed = (await repo.saveEdit(
+          '3',
+          IngredientEdit(
+            canonicalName: 'Olive oil, extra virgin',
+            defaultUnit: g,
+            macrosBasis: MacrosBasis.perG,
+            allowedUnits: declined.allowedUnits!.toSet(),
+          ),
+        ))!;
+        expect(renamed.source, 'usda_declined');
+        expect(renamed.sourceLabel, 'Olive oil, salad or cooking');
+        expect(renamed.densityGPerMl, isNull);
+        expect(renamed.macros, isNull);
+        // …and the automatic apply path now refuses the row.
+        expect(
+          await repo.applyUsdaProbe(
+            '3',
+            source: 'usda_fdc:11216',
+            densityGPerMl: 0.35,
+          ),
+          isNull,
+        );
+      },
+    );
+
+    test(
+      'declineUsdaPrefill refuses a row the prefill does not author — a '
+      'seeded row, a barcode row, an unknown id — and writes nothing',
+      () async {
+        // id '1' is a seed row with source 'seed'.
+        expect(await repo.declineUsdaPrefill('1'), isNull);
+        expect((await repo.byId('1'))!.source, 'seed');
+        await repo.setDensity('3', 0.9);
+        expect(await repo.declineUsdaPrefill('3'), isNull);
+        expect((await repo.byId('3'))!.densityGPerMl, 0.9);
+        expect(await repo.declineUsdaPrefill('nope'), isNull);
+      },
+    );
+
+    test('declining a CONFIRMED prefill returns it to a stub — a row with '
+        'no macros never asserts complete (D5)', () async {
+      await repo.applyUsdaProbe(
+        '3',
+        source: 'usda_fdc:11216',
+        sourceLabel: 'Olive oil, salad or cooking',
+        macros: const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
+      );
+      await repo.confirmStub('3');
+      expect((await repo.byId('3'))!.status, IngredientStatus.complete);
+
+      final declined = (await repo.declineUsdaPrefill('3'))!;
+      expect(declined.status, IngredientStatus.stub);
+      expect(declined.macros, isNull);
+    });
+
     test('an explicit pick still never overwrites numbers — the bare-stub '
         'guard is not the one it lifts', () async {
       await repo.setDensity('3', 0.9);

@@ -535,7 +535,32 @@ class _DetailForm extends HookConsumerWidget {
         // refused or re-chosen.
         _UsdaProvenance(
           ingredient: ing,
-          onDecline: null,
+          onDecline: busy.value
+              ? null
+              : () async {
+                  busy.value = true;
+                  try {
+                    // One write (U-D2): the prefilled density and macros come
+                    // out and the row is marked declined. The macro fields
+                    // follow through G1's re-seed (the row's macros moved and
+                    // the draft was theirs), the chips through the density
+                    // effect above.
+                    final cleared = await ref.write(
+                      context,
+                      'undo the USDA fill',
+                      () => ref
+                          .read(ingredientRepositoryProvider)
+                          .declineUsdaPrefill(ing.id),
+                    );
+                    if (cleared == null || !context.mounted) return;
+                    ref.invalidate(ingredientByIdProvider(ing.id));
+                    message.value =
+                        'Cleared — the USDA numbers are gone, and a rename '
+                        'will not bring them back.';
+                  } finally {
+                    if (context.mounted) busy.value = false;
+                  }
+                },
           onChooseAnother: null,
         ),
 
