@@ -56,9 +56,10 @@ Unit? printedImpreciseUnit(String? unit) {
 ///
 /// That third leg is never-invent, read the other way round. J3 gated what the
 /// editor may SUGGEST; it must not gate what the source SAID. Without it a
-/// canned "a pinch of chilli flakes" landing on a freshly created stub — which
-/// has no category at all — validated as `unitNotAllowed` and locked the Save
-/// gate on a unit nobody could have picked, because it was never offered.
+/// canned "a pinch of chilli flakes" landing on a freshly created row — which
+/// has no category until the form gives it one — validated as
+/// `unitNotAllowed` and locked the Save gate on a unit nobody could have
+/// picked, because it was never offered.
 /// Exactly one word is admitted: the one that was printed. A row still earns
 /// no other imprecise chip it has not earned.
 Set<Unit> importImpreciseUnitsFor(Ingredient ingredient, {String? parsedUnit}) {
@@ -386,10 +387,9 @@ List<LineIssue> lineIssues(
         ? const [LineIssue.amountMissing]
         : const [];
   }
-  final matched =
-      resolution.chosenIngredientId != null ||
-      resolution.createStubName != null;
-  if (!matched) return const [LineIssue.unmatched];
+  if (resolution.chosenIngredientId == null) {
+    return const [LineIssue.unmatched];
+  }
 
   final issues = <LineIssue>[];
   if (resolution.isRange && resolution.quantity == null) {

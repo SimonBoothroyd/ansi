@@ -8,11 +8,14 @@
 /// only reaches a running app when something names it directly.
 ///
 /// `commit` is real. It writes the resolved recipe, its groups and line items,
-/// any create-new stubs, and correction aliases in one transaction, generating
-/// ids up front so it can remap each step token's `line_index` refs to the
-/// created `line_item_id`s before the recipe row is written (§4.6). Local
-/// tables are SQLite VIEWS, so every write is a plain INSERT — never
-/// `ON CONFLICT` ([mise-powersync-views-no-upsert]).
+/// and correction aliases in one transaction, generating ids up front so it
+/// can remap each step token's `line_index` refs to the created
+/// `line_item_id`s before the recipe row is written (§4.6). It creates no
+/// ingredient: every line arrives with a real id, because "create new" at
+/// review now runs the New-ingredient sheet and the flesh-out form before the
+/// line resolves (plan 0025 D3) — the `import_stub` leg is gone. Local tables
+/// are SQLite VIEWS, so every write is a plain INSERT — never `ON CONFLICT`
+/// ([mise-powersync-views-no-upsert]).
 library;
 
 import 'dart:convert';
@@ -152,9 +155,7 @@ class SqliteImportRepository implements ImportRepository {
     final recipeId = _uuid.v4();
 
     // Ids up front so step refs can be remapped before the recipe row is
-    // written. Stub ids are keyed by the coalescing key, so identical no-match
-    // lines share one created ingredient.
-    final stubIdByKey = {for (final s in payload.stubs) s.key: _uuid.v4()};
+    // written.
     final lineIds = <int, String>{}; // flat line_index → line_item_id
     for (final group in payload.groups) {
       for (final line in group.lines) {
@@ -165,34 +166,7 @@ class SqliteImportRepository implements ImportRepository {
     final stepsJson = jsonEncode(_remapSteps(payload.steps, lineIds));
 
     await _db.writeTransaction((tx) async {
-      // 1. Create-new stubs (status='stub', source='import_stub'). USDA flesh-
-      // out is a later view over these rows — no macros/density invented now.
-      //
-      // `match_text` is written with the SERVER's phrase rules
-      // (`normalizeMatchText`, the plan-0020 D6 port), not the character-level
-      // search normalizer: this row is what the *next* import's cascade
-      // searches, and the cascade searches by the server's rules. The two
-      // genuinely differ — "Chicken thighs, boneless" is `chicken thigh
-      // boneless` to the server and `chicken thighs boneless` to the search
-      // normalizer — so writing the wrong one here is the same silent
-      // matching regression D6 closed everywhere else.
-      for (final stub in payload.stubs) {
-        await tx.execute(
-          'INSERT INTO ingredient (id, household_id, canonical_name, '
-          'default_unit, status, source, match_text, created_at, updated_at) '
-          "VALUES (?, ?, ?, 'g', 'stub', 'import_stub', ?, ?, ?)",
-          [
-            stubIdByKey[stub.key],
-            _householdId,
-            stub.name,
-            normalizeMatchText(stub.name),
-            now,
-            now,
-          ],
-        );
-      }
-
-      // 2. The recipe row, carrying the remapped tokenized steps and EVERY
+      // 1. The recipe row, carrying the remapped tokenized steps and EVERY
       // header column the editor's save writes (plan 0025 #4) — the same
       // column list, in the same order, which a structural test pins so the
       // two writers cannot drift apart again.
@@ -235,9 +209,9 @@ class SqliteImportRepository implements ImportRepository {
         ],
       );
 
-      // 3. Groups, then line items in flattened order. Every line carries
-      // exactly one identity: an ingredient (real or just-created) or, for a
-      // line the reviewer LINKED, a sub-recipe (0017's XOR).
+      // 2. Groups, then line items in flattened order. Every line carries
+      // exactly one identity: an ingredient or, for a line the reviewer
+      // LINKED, a sub-recipe (0017's XOR).
       var sortInGroup = 0;
       for (var gi = 0; gi < payload.groups.length; gi++) {
         final group = payload.groups[gi];
@@ -251,12 +225,10 @@ class SqliteImportRepository implements ImportRepository {
         for (final line in group.lines) {
           // Exactly one identity (migration 0017's `line_item_identity_xor`):
           // a review-LINKED line is a component — `sub_recipe_id` set,
-          // `ingredient_id` null — and everything else resolves to a real or
-          // just-created ingredient.
+          // `ingredient_id` null — and everything else resolves to a real
+          // vocabulary row.
           final subRecipeId = line.subRecipeId;
-          final ingredientId = subRecipeId != null
-              ? null
-              : (line.ingredientId ?? stubIdByKey[line.stubKey]);
+          final ingredientId = subRecipeId != null ? null : line.ingredientId;
           if (subRecipeId == null && ingredientId == null) {
             throw StateError('line ${line.lineIndex} has no identity');
           }
@@ -298,14 +270,16 @@ class SqliteImportRepository implements ImportRepository {
         }
       }
 
-      // 4. Correction aliases (source='import_correction') — lane B's loop.
+      // 3. Correction aliases (source='import_correction') — lane B's loop.
       // Find-or-create, not blind insert: correcting "yellow onion" onto Onion
       // on every import would otherwise pile up a duplicate alias row per
       // import, all of them matching identically. Local tables are VIEWS, so
       // this is an existence check + a plain INSERT, never an UPSERT
-      // ([mise-powersync-views-no-upsert]). Same D6 rule as the stub above:
-      // the alias is written with the server's phrase normalizer, because the
-      // cascade that will one day match on it searches by those rules.
+      // ([mise-powersync-views-no-upsert]). The D6 rule: the alias is written
+      // with the SERVER's phrase normalizer (`normalizeMatchText`, the
+      // plan-0020 port), not the character-level search normalizer, because
+      // the cascade that will one day match on it searches by those rules —
+      // "ripe tomatoes, chopped" is `ripe tomato chopped` to the server.
       for (final c in payload.corrections) {
         final matchText = normalizeMatchText(c.aliasText);
         final existing = await tx.getOptional(

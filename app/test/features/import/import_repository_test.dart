@@ -68,13 +68,17 @@ void main() {
     await _seedIngredient(db, 'ing-onion', 'Onion');
     await _seedIngredient(db, 'ing-spaghetti', 'Spaghetti');
     await _seedIngredient(db, 'ing-tomatoes', 'Chopped tomatoes');
+    // The row the review's create-new chain would have made for the two
+    // "mystery spice" lines (sheet → form → back) before either resolved.
+    await _seedIngredient(db, 'ing-mystery', 'Mystery Spice');
   });
 
   tearDown(() => closeTestDb(db, dir));
 
-  // A small payload: an auto onion, two identical no-match "mystery" lines, and
-  // a no-match "yellow onion" the user corrects onto the real onion. One step
-  // references lines 0 (onion) and 1 (mystery).
+  // A small payload: an auto onion, two identical no-match "mystery" lines
+  // (both resolved to the row the first one created), and a no-match "yellow
+  // onion" the user corrects onto the real onion. One step references lines 0
+  // (onion) and 1 (mystery).
   const payload = ReconciliationPayload(
     title: 'Test Recipe',
     servingsBase: 2,
@@ -124,8 +128,14 @@ void main() {
     const p = payload;
     final resolutions = [
       initialResolution(0, p.flatLines[0]), // accept auto onion
-      initialResolution(1, p.flatLines[1]).resolveToNewStub('Mystery Spice'),
-      initialResolution(2, p.flatLines[2]).resolveToNewStub('Mystery Spice'),
+      initialResolution(
+        1,
+        p.flatLines[1],
+      ).resolveToIngredient('ing-mystery', 'Mystery Spice'),
+      initialResolution(
+        2,
+        p.flatLines[2],
+      ).resolveToIngredient('ing-mystery', 'Mystery Spice'),
       initialResolution(
         3,
         p.flatLines[3],
@@ -173,7 +183,10 @@ void main() {
           p,
           [
             initialResolution(0, p.flatLines[0]),
-            initialResolution(1, p.flatLines[1]).resolveToNewStub('Lime'),
+            initialResolution(
+              1,
+              p.flatLines[1],
+            ).resolveToIngredient('ing-onion', 'Onion'),
           ],
           header: _header(p),
           issuesByLine: null,
@@ -311,31 +324,38 @@ void main() {
     expect(row['book_id'], books.single['id']);
   });
 
-  test('identical no-match lines coalesce onto one created stub', () async {
-    final c = resolvedCommit();
-    await repo.commit(
-      buildCommit(
-        c.payload,
-        c.resolutions,
-        header: _header(c.payload),
-        issuesByLine: null,
-      ),
-    );
+  test(
+    'the commit creates no ingredient — two lines on one created row point '
+    'at it, and the vocabulary is exactly what it was (plan 0025 D3)',
+    () async {
+      final before = (await db.getAll('SELECT id FROM ingredient')).length;
+      final c = resolvedCommit();
+      await repo.commit(
+        buildCommit(
+          c.payload,
+          c.resolutions,
+          header: _header(c.payload),
+          issuesByLine: null,
+        ),
+      );
 
-    final stubs = await db.getAll(
-      "SELECT * FROM ingredient WHERE source = 'import_stub'",
-    );
-    expect(stubs, hasLength(1));
-    expect(stubs.single['canonical_name'], 'Mystery Spice');
-    expect(stubs.single['status'], 'stub');
+      expect((await db.getAll('SELECT id FROM ingredient')).length, before);
+      expect(
+        await db.getAll(
+          "SELECT id FROM ingredient WHERE source = 'import_stub'",
+        ),
+        isEmpty,
+        reason: 'the import_stub leg is retired — nothing mints one',
+      );
 
-    // Both mystery lines point at that one stub.
-    final lines = await db.getAll(
-      'SELECT ingredient_id FROM recipe_line_item ORDER BY sort_order',
-    );
-    expect(lines[1]['ingredient_id'], stubs.single['id']);
-    expect(lines[2]['ingredient_id'], stubs.single['id']);
-  });
+      // Both mystery lines point at the row the review made.
+      final lines = await db.getAll(
+        'SELECT ingredient_id FROM recipe_line_item ORDER BY sort_order',
+      );
+      expect(lines[1]['ingredient_id'], 'ing-mystery');
+      expect(lines[2]['ingredient_id'], 'ing-mystery');
+    },
+  );
 
   test('a correction writes an import_correction alias', () async {
     final c = resolvedCommit();
@@ -356,10 +376,10 @@ void main() {
     expect(aliases.single['ingredient_id'], 'ing-onion');
   });
 
-  test('D6: a committed stub and a correction alias carry the SERVER phrase '
-      'rules, not the character-level search normalizer', () async {
+  test('D6: a correction alias carries the SERVER phrase rules, not the '
+      'character-level search normalizer', () async {
     // The last D6 residual: import's commit was still writing `match_text`
-    // with `normalizeSearchQuery`, so a stub it created carried text the
+    // with `normalizeSearchQuery`, so an alias it wrote carried text the
     // server's cascade would never search for — the exact silent matching
     // regression D6 closed on every other writer.
     const p = ReconciliationPayload(
@@ -384,7 +404,7 @@ void main() {
       initialResolution(
         0,
         p.flatLines[0],
-      ).resolveToNewStub('Chicken thighs, boneless'),
+      ).resolveToIngredient('ing-onion', 'Onion'),
       initialResolution(1, p.flatLines[1]).resolveToIngredient(
         'ing-tomatoes',
         'Chopped tomatoes',
@@ -395,17 +415,9 @@ void main() {
       buildCommit(p, resolutions, header: _header(p), issuesByLine: null),
     );
 
-    const stubName = 'Chicken thighs, boneless';
-    final stub = await db.get(
-      "SELECT match_text FROM ingredient WHERE source = 'import_stub'",
-    );
-    // The server singularizes and re-orders; the search normalizer only
-    // folds characters. Both halves matter: the value is what the server
-    // would have written, and it is NOT what the old call site wrote.
-    expect(stub['match_text'], 'chicken thigh boneless');
-    expect(stub['match_text'], normalizeMatchText(stubName));
-    expect(stub['match_text'], isNot(normalizeSearchQuery(stubName)));
-
+    // The server singularizes; the search normalizer only folds characters.
+    // Both halves matter: the value is what the server would have written,
+    // and it is NOT what the old call site wrote.
     const aliasText = 'ripe tomatoes, chopped';
     final alias = await db.get(
       'SELECT alias_text, match_text FROM ingredient_alias '
@@ -458,8 +470,14 @@ void main() {
       const p = payload;
       final resolutions = [
         initialResolution(0, p.flatLines[0]), // onion, kept
-        initialResolution(1, p.flatLines[1]).resolveToNewStub('Mystery').drop(),
-        initialResolution(2, p.flatLines[2]).resolveToNewStub('Mystery'),
+        initialResolution(
+          1,
+          p.flatLines[1],
+        ).resolveToIngredient('ing-mystery', 'Mystery Spice').drop(),
+        initialResolution(
+          2,
+          p.flatLines[2],
+        ).resolveToIngredient('ing-mystery', 'Mystery Spice'),
         initialResolution(
           3,
           p.flatLines[3],
@@ -596,70 +614,6 @@ void main() {
       final offered = await picker.search('Parmesan');
       expect(offered.rows.single.canonicalName, 'Parmezan cheese');
       expect(offered.guessed, isTrue);
-    });
-
-    test("the stub coalescing key IS the server's dedupe key", () async {
-      // `noneDedupeKey` on the server is `normalize(ingredient_text)` — the
-      // phrase rules. The client keyed on the character-level query normalizer
-      // instead, so two no-match lines reading "Almonds" and "almond" made ONE
-      // stub server-side and TWO here. They now agree: one row, both lines.
-      const twoSpellings = ReconciliationPayload(
-        title: 'Two Spellings',
-        servingsBase: 2,
-        groups: [
-          ReconGroup(
-            lines: [
-              ReconLine(
-                raw: RawLineItem(
-                  ingredientText: 'Almonds',
-                  qty: 100,
-                  unit: 'g',
-                ),
-                band: MatchBand.none,
-              ),
-              ReconLine(
-                raw: RawLineItem(ingredientText: 'almond', qty: 50, unit: 'g'),
-                band: MatchBand.none,
-              ),
-            ],
-          ),
-        ],
-      );
-      final resolutions = [
-        initialResolution(
-          0,
-          twoSpellings.flatLines[0],
-        ).resolveToNewStub('Almonds'),
-        initialResolution(
-          1,
-          twoSpellings.flatLines[1],
-        ).resolveToNewStub('almond'),
-      ];
-      final recipeId = await repo.commit(
-        buildCommit(
-          twoSpellings,
-          resolutions,
-          header: _header(twoSpellings),
-          issuesByLine: null,
-        ),
-      );
-
-      final stubs = await db.getAll(
-        "SELECT id, match_text FROM ingredient WHERE source = 'import_stub'",
-      );
-      expect(stubs, hasLength(1));
-      expect(stubs.single['match_text'], normalizeMatchText('Almonds'));
-
-      final lines = await db.getAll(
-        'SELECT li.ingredient_id FROM recipe_line_item li '
-        'JOIN ingredient_group g ON g.id = li.group_id '
-        'WHERE g.recipe_id = ? ORDER BY li.sort_order',
-        [recipeId],
-      );
-      expect(
-        lines.map((r) => r['ingredient_id']),
-        everyElement(stubs.single['id']),
-      );
     });
   });
 

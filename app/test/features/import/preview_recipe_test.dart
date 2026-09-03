@@ -46,7 +46,10 @@ void main() {
         0,
         payload.flatLines[0],
       ).resolveToIngredient('ing-spag', 'Spaghetti'),
-      initialResolution(1, payload.flatLines[1]).resolveToNewStub('Garlic'),
+      initialResolution(
+        1,
+        payload.flatLines[1],
+      ).resolveToIngredient('ing-garlic', 'Garlic'),
     ];
 
     final recipe = buildPreviewRecipe(payload, resolutions, servingsBase: 2);
@@ -86,11 +89,14 @@ void main() {
       ],
     );
     final resolutions = [
-      initialResolution(0, payload.flatLines[0]).resolveToNewStub('Spaghetti'),
+      initialResolution(
+        0,
+        payload.flatLines[0],
+      ).resolveToIngredient('ing-spag', 'Spaghetti'),
       initialResolution(
         1,
         payload.flatLines[1],
-      ).resolveToNewStub('Basil').drop(),
+      ).resolveToIngredient('ing-basil', 'Basil').drop(),
     ];
 
     final recipe = buildPreviewRecipe(payload, resolutions, servingsBase: 2);
@@ -108,7 +114,7 @@ void main() {
     ]);
   });
 
-  test('identical no-match uses share an identity id so they fold inline', () {
+  test('two lines resolved to one row share its id so they fold inline', () {
     final payload = ReconciliationPayload(
       title: 'T',
       groups: [
@@ -124,11 +130,11 @@ void main() {
       initialResolution(
         0,
         payload.flatLines[0],
-      ).resolveToNewStub('Aleppo chilli'),
+      ).resolveToIngredient('ing-chilli', 'Aleppo chilli'),
       initialResolution(
         1,
         payload.flatLines[1],
-      ).resolveToNewStub('Aleppo chilli'),
+      ).resolveToIngredient('ing-chilli', 'Aleppo chilli'),
     ];
 
     final recipe = buildPreviewRecipe(payload, resolutions, servingsBase: 1);
@@ -293,30 +299,6 @@ void main() {
       expect(item.measureId, isNull);
       expect(item.measure, isNull);
     });
-
-    test('a create-new stub never carries one, whatever the map says', () {
-      final payload = ReconciliationPayload(
-        title: 'T',
-        groups: [
-          ReconGroup(lines: [_line('avocado', qty: 1, unit: 'avocado')]),
-        ],
-      );
-      final item = buildPreviewRecipe(
-        payload,
-        [
-          initialResolution(
-            0,
-            payload.flatLines[0],
-          ).resolveToNewStub('Avocado'),
-        ],
-        servingsBase: 2,
-        measureByLine: {0: avocado},
-      ).groups.single.items.single;
-
-      expect(item.unit, pieces);
-      expect(item.measureId, isNull);
-      expect(item.measure, isNull);
-    });
   });
 
   test('the preview carries optional onto the line, as the page will tag it '
@@ -336,8 +318,14 @@ void main() {
       ],
     );
     final resolutions = [
-      initialResolution(0, payload.flatLines[0]).resolveToNewStub('Lime'),
-      initialResolution(1, payload.flatLines[1]).resolveToNewStub('Coriander'),
+      initialResolution(
+        0,
+        payload.flatLines[0],
+      ).resolveToIngredient('ing-lime', 'Lime'),
+      initialResolution(
+        1,
+        payload.flatLines[1],
+      ).resolveToIngredient('ing-coriander', 'Coriander'),
     ];
     final recipe = buildPreviewRecipe(payload, resolutions, servingsBase: 2);
     expect(recipe.groups.single.items.map((i) => i.optional), [false, true]);

@@ -77,11 +77,15 @@ void main() {
 
       var state = container.read(importControllerProvider) as ImportReconciling;
       for (final r in state.resolutions) {
-        // Resolve any line still missing an ingredient with a new stub.
-        if (r.chosenIngredientId == null && r.createStubName == null) {
+        // Resolve any line still missing an ingredient to a row — what the
+        // review's create-new chain hands back once the form has popped.
+        if (r.chosenIngredientId == null) {
           controller().updateResolution(
             r.lineIndex,
-            (res) => res.resolveToNewStub(res.ingredientText),
+            (res) => res.resolveToIngredient(
+              'ing-${res.lineIndex}',
+              res.ingredientText,
+            ),
           );
         }
         // Pick the low endpoint for any range.
@@ -99,9 +103,13 @@ void main() {
       final id = await controller().commit(issuesByLine: null);
       expect(id, 'recipe-1');
       expect(container.read(importControllerProvider), isA<ImportCommitted>());
-      // The two identical "Aleppo chilli flakes" lines coalesced to one stub.
-      final stubNames = fake.committed!.stubs.map((s) => s.name).toList();
-      expect(stubNames.where((n) => n == 'Aleppo chilli flakes'), hasLength(1));
+      // Every committed line carries a real identity — the commit mints none.
+      expect(
+        fake.committed!.groups
+            .expand((g) => g.lines)
+            .every((l) => l.ingredientId != null || l.subRecipeId != null),
+        isTrue,
+      );
     },
   );
 
@@ -134,8 +142,7 @@ void main() {
     final before = state.resolutions.length;
     for (final r in state.resolutions) {
       final needsWork =
-          (r.chosenIngredientId == null && r.createStubName == null) ||
-          (r.isRange && r.quantity == null);
+          r.chosenIngredientId == null || (r.isRange && r.quantity == null);
       if (needsWork) {
         controller().updateResolution(r.lineIndex, (x) => x.drop());
       }
@@ -182,10 +189,13 @@ void main() {
     await controller().startImport(const ImportFromUrl('x'));
     var state = container.read(importControllerProvider) as ImportReconciling;
     for (final r in state.resolutions) {
-      if (r.chosenIngredientId == null && r.createStubName == null) {
+      if (r.chosenIngredientId == null) {
         controller().updateResolution(
           r.lineIndex,
-          (res) => res.resolveToNewStub(res.ingredientText),
+          (res) => res.resolveToIngredient(
+            'ing-${res.lineIndex}',
+            res.ingredientText,
+          ),
         );
       }
       if (r.isRange) {
@@ -231,10 +241,13 @@ void main() {
       await controller().startImport(const ImportFromUrl('x'));
       var state = container.read(importControllerProvider) as ImportReconciling;
       for (final r in state.resolutions) {
-        if (r.chosenIngredientId == null && r.createStubName == null) {
+        if (r.chosenIngredientId == null) {
           controller().updateResolution(
             r.lineIndex,
-            (res) => res.resolveToNewStub(res.ingredientText),
+            (res) => res.resolveToIngredient(
+              'ing-${res.lineIndex}',
+              res.ingredientText,
+            ),
           );
         }
         if (r.isRange) {

@@ -102,8 +102,6 @@ class ImportReconciling extends ImportState {
         ..write('|')
         ..write(r.chosenIngredientId ?? '')
         ..write('|')
-        ..write(r.createStubName ?? '')
-        ..write('|')
         ..write(r.linkedRecipeId ?? '')
         ..write('|')
         ..write(r.unit ?? '')
@@ -277,9 +275,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     if (s is! ImportReconciling) return;
     final before = s.resolutions.firstWhere((r) => r.lineIndex == lineIndex);
     var after = update(before);
-    final rematched =
-        after.chosenIngredientId != before.chosenIngredientId ||
-        after.createStubName != before.createStubName;
+    final rematched = after.chosenIngredientId != before.chosenIngredientId;
     if (rematched && before.unitFromDefault) {
       // The word on the line was OURS, not the source's, so a new identity
       // gets the printed one back before its own default is spent (D2). Left
@@ -472,15 +468,6 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
       if (ingredient != null) {
         measures = measuresById[ingredient.id] ?? const [];
       }
-    } else if (r.createStubName != null) {
-      // A create-new stub commits as a plain 'g' vocab row — validate the unit
-      // against that shape (plus the always-admitted imprecise units).
-      ingredient = Ingredient(
-        id: 'stub:${r.lineIndex}',
-        canonicalName: r.createStubName!,
-        defaultUnit: g,
-        status: IngredientStatus.stub,
-      );
     }
     result[r.lineIndex] = LineValidation(
       issues: lineIssues(r, ingredient: ingredient, measures: measures),

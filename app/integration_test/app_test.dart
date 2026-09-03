@@ -107,6 +107,8 @@ import 'package:ansi/features/ingredients/domain/normalize.dart'
     show normalizeMatchText;
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart'
     show IngredientDetailView;
+import 'package:ansi/features/ingredients/presentation/ingredient_picker.dart'
+    show IngredientResultList;
 import 'package:ansi/features/ingredients/presentation/quantity_unit_sheet.dart'
     show QuantityUnitEditor, UnitChipRow;
 import 'package:ansi/features/planning/domain/planning.dart' show mondayOf;
@@ -1211,9 +1213,18 @@ void main() {
       .evaluate()
       .isNotEmpty;
 
-  /// Resolves an unmatched (`none`) line by creating a new ingredient stub:
-  /// open the seeded search sheet, then take its create-new footer.
-  Future<void> createStubForLine(WidgetTester tester, int i) async {
+  /// Resolves an unmatched (`none`) line to a NEW ingredient the way the
+  /// review does since plan 0025 D3: open the seeded search sheet, take its
+  /// create-new footer, walk the New-ingredient sheet and the flesh-out form
+  /// it pushes over the review, and back out — the line then resolves to the
+  /// row as an ordinary match. A second line printing the SAME thing finds
+  /// the row the first one made in the search instead, so nothing is created
+  /// twice (the commit-time coalescing that used to do this is gone).
+  Future<void> createIngredientForLine(
+    WidgetTester tester,
+    int i, {
+    required String name,
+  }) async {
     await expandLine(tester, i);
     final open = find.descendant(
       of: reviewCard(i),
@@ -1222,12 +1233,40 @@ void main() {
     await tester.ensureVisible(open);
     await tester.pumpAndSettle();
     await tester.tap(open);
+    await pumpUntilFound(tester, find.byType(PickerShell));
+    // Search first: a previous line may already have made this row.
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(PickerShell),
+        matching: find.byType(EditableText),
+      ),
+      name,
+    );
     await tester.pumpAndSettle();
-    // The sheet seeds create-new with the raw line text, so the two identical
-    // "Aleppo chilli flakes" lines default to the same name and coalesce.
+    final existing = find.descendant(
+      of: find.byType(IngredientResultList),
+      matching: find.text(name),
+    );
+    if (existing.evaluate().isNotEmpty) {
+      await tester.tap(existing.first);
+      await tester.pumpAndSettle();
+      return;
+    }
+    // The footer is seeded with the typed name (else the raw line text).
     final create = find.textContaining('as a new ingredient');
     expect(create, findsOneWidget, reason: 'the create-new footer for line $i');
     await tester.tap(create);
+    await pumpUntilFound(tester, find.text('Create & flesh out'));
+    await tester.tap(find.text('Create & flesh out'));
+    // The form lands OVER the review's sheet; back is the only exit, and it
+    // is the pop the sheet is awaiting — the sheet then resolves the line
+    // with the row and closes.
+    await pumpUntilFound(tester, find.text('CANONICAL NAME'));
+    await tester.tap(find.byType(FHeaderAction).first);
+    await pumpUntilFound(
+      tester,
+      find.descendant(of: reviewCard(i), matching: find.text(name)),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -1365,9 +1404,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(lineShows(6, 'Did you mean'), isFalse);
 
-    // Everything still unmatched (`none`) becomes a new ingredient stub. The
-    // two identical chilli lines seed the same name, so they must coalesce onto
-    // ONE created ingredient at commit.
+    // Everything still unmatched (`none`) becomes a new ingredient through the
+    // one add flow — sheet → form → back (plan 0025 D3). The two identical
+    // chilli lines print the same name, so the second finds the row the first
+    // made: ONE created ingredient, with nothing minted at commit.
+    const rawNames = {
+      2: 'tinned chopped tomatoes',
+      3: 'Aleppo chilli flakes',
+      4: 'Aleppo chilli flakes',
+      7: 'fresh basil leaves',
+    };
     for (final i in [2, 3, 4, 7]) {
       // Expand FIRST: a below-the-fold ListView child isn't built at all, so
       // probing its labels before scrolling to it always reads "clean" and the
@@ -1376,7 +1422,7 @@ void main() {
       await expandLine(tester, i);
       if (lineShows(i, 'Match an ingredient') ||
           lineShows(i, 'Find or create ingredient')) {
-        await createStubForLine(tester, i);
+        await createIngredientForLine(tester, i, name: rawNames[i]!);
       }
     }
 
@@ -1476,8 +1522,9 @@ void main() {
       );
     }
 
-    // Every line resolved to a real ingredient, and the duplicate no-match
-    // lines coalesced onto ONE created stub.
+    // Every line resolved to a real ingredient; the second chilli line found
+    // the row the first one made (nothing created twice), and the commit
+    // minted nothing — the `import_stub` leg is retired (plan 0025 D3).
     final unresolved = await db.get(
       'SELECT COUNT(*) AS c FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id '
@@ -1485,11 +1532,16 @@ void main() {
       [recipeId],
     );
     expect(unresolved['c'] as int, 0);
-    final chilliStubs = await db.getAll(
-      "SELECT id FROM ingredient WHERE source = 'import_stub' "
-      "AND canonical_name LIKE '%chilli flakes%' AND deleted_at IS NULL",
+    final chilliRows = await db.getAll(
+      'SELECT id FROM ingredient '
+      "WHERE canonical_name LIKE '%chilli flakes%' AND deleted_at IS NULL",
     );
-    expect(chilliStubs, hasLength(1));
+    expect(chilliRows, hasLength(1));
+    expect(
+      await db.getAll("SELECT id FROM ingredient WHERE source = 'import_stub'"),
+      isEmpty,
+      reason: 'no path mints a stub as a side effect any more',
+    );
 
     // It SYNCED — the whole point of running this on a device.
     await waitForSyncRoundTrip(tester);
@@ -1517,12 +1569,14 @@ void main() {
   ) async {
     ignoreForuiSemanticsAssertion();
 
-    // Scenario 4 left exactly one coalesced chilli stub behind. Assert it up
-    // front so a change to the canned payload fails HERE, with a reason,
-    // rather than as a mystery finder miss inside the form below.
+    // Scenario 4 created exactly one chilli row through the add flow and
+    // backed out of its form unconfirmed, so it is still a stub (plan 0025 D3,
+    // detail 7). Assert it up front so a change to the canned payload fails
+    // HERE, with a reason, rather than as a mystery finder miss inside the
+    // form below.
     final chilliRows = await db.getAll(
       'SELECT id, canonical_name, match_text FROM ingredient '
-      "WHERE source = 'import_stub' "
+      "WHERE status = 'stub' "
       "AND canonical_name LIKE '%chilli flakes%' AND deleted_at IS NULL",
     );
     expect(
@@ -1530,7 +1584,7 @@ void main() {
       hasLength(1),
       reason:
           'scenario 5 fleshes out the stub scenario 4 created — one '
-          "'%chilli flakes%' import_stub row",
+          "'%chilli flakes%' stub row",
     );
     final stubId = chilliRows.single['id'] as String;
     final stubName = chilliRows.single['canonical_name'] as String;

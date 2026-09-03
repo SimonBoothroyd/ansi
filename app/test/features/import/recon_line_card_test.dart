@@ -18,17 +18,22 @@ import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/ingredients/domain/measure_repository.dart';
+import 'package:ansi/features/ingredients/presentation/new_ingredient_sheet.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:ansi/features/recipes/presentation/recipe_chip.dart';
+import 'package:ansi/shared/picker_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_measure_repository.dart';
+import '../../helpers/silent_usda_probe.dart';
 
 /// A fake edge function returning a fixed single-line payload; commit records.
 class _FakeRepo implements ImportRepository {
@@ -591,7 +596,10 @@ void main() {
     // Match it → the flag clears and notes unlock.
     container
         .read(importControllerProvider.notifier)
-        .updateResolution(0, (r) => r.resolveToNewStub('Mystery spice'));
+        .updateResolution(
+          0,
+          (r) => r.resolveToIngredient('ing-mystery', 'Mystery spice'),
+        );
     await tester.pumpAndSettle();
 
     expect(find.text('Match an ingredient'), findsNothing);
@@ -628,7 +636,6 @@ void main() {
                 ),
                 onResolveExisting: (id, name, {required correction}) =>
                     picked = id,
-                onResolveStub: (_) {},
               ),
             ),
           ),
@@ -1442,6 +1449,108 @@ void main() {
         ),
         '2 sprigs',
       );
+    });
+  });
+
+  group('create-new at review is the one add flow (plan 0025 D3, frame d)', () {
+    testWidgets('the footer opens the New-ingredient sheet with the line’s '
+        'text, walks the form pushed over the search sheet, and resolves the '
+        'line to the re-read row as an existing ingredient', (tester) async {
+      _filterSemanticsAssertions();
+      final repo = FakeIngredientRepo(const []);
+      final picks = <ReconcilePick?>[];
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, _) => FScaffold(
+              child: Builder(
+                builder: (context) => FButton(
+                  onPress: () async => picks.add(
+                    await showReconcileIngredientSheet(
+                      context,
+                      seedName: 'curry leaves',
+                    ),
+                  ),
+                  child: const Text('match'),
+                ),
+              ),
+            ),
+          ),
+          // The flesh-out form's stand-in: pops on tap, like back does.
+          GoRoute(
+            path: '/ingredients/:id',
+            builder: (context, state) => FScaffold(
+              child: FButton(
+                onPress: () => context.pop(),
+                child: Text('form ${state.pathParameters['id']}'),
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            ingredientRepositoryProvider.overrideWithValue(repo),
+            measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
+            usdaProbeProvider.overrideWithValue(const SilentUsdaProbe()),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            builder: (context, child) =>
+                FTheme(data: ansiThemeData(), child: child!),
+          ),
+        ),
+      );
+      await tester.tap(find.text('match'));
+      await tester.pumpAndSettle();
+
+      // The row reads in the picker footer's voice, seeded with the line's
+      // own text — no "add as stub" (round-3 detail 9).
+      final create = find.text('create "curry leaves" as a new ingredient');
+      expect(create, findsOneWidget);
+      await tester.tap(create);
+      await tester.pumpAndSettle();
+      expect(repo.rows, isEmpty, reason: 'tapping the row writes nothing');
+      expect(find.text('New ingredient'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(
+              find
+                  .descendant(
+                    of: find.byType(NewIngredientSheet),
+                    matching: find.byType(TextField),
+                  )
+                  .first,
+            )
+            .controller!
+            .text,
+        'curry leaves',
+      );
+
+      await tester.tap(find.text('Create & flesh out'));
+      await tester.pumpAndSettle();
+      final created = repo.rows.single;
+      expect(find.text('form ${created.id}'), findsOneWidget);
+      expect(picks, isEmpty, reason: 'the line resolves after the form pops');
+
+      // What the form did: admitted a unit. Then back.
+      repo.rows[0] = created.copyWith(allowedUnits: [g, kg]);
+      await tester.tap(find.text('form ${created.id}'));
+      await tester.pumpAndSettle();
+
+      // Resolved as the ordinary matched state, on the re-read row; the
+      // search sheet has closed with it.
+      expect(picks.single, isA<PickExisting>());
+      final row = (picks.single! as PickExisting).ingredient;
+      expect(row.id, created.id);
+      expect(row.canonicalName, 'curry leaves');
+      expect(row.allowedUnits, [g, kg]);
+      expect(row.status, IngredientStatus.stub);
+      expect(find.byType(PickerShell), findsNothing);
     });
   });
 }

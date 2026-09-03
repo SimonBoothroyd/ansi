@@ -11,7 +11,6 @@ library;
 
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
-import '../../ingredients/domain/normalize.dart';
 import '../../ingredients/domain/search_query.dart';
 import '../../recipes/domain/method_step.dart';
 import '../../recipes/domain/recipe.dart';
@@ -27,8 +26,8 @@ const kPreviewLinePrefix = 'line-';
 String previewLineId(int index) => '$kPreviewLinePrefix$index';
 
 /// Assembles the preview [Recipe] from a resolved reconciliation. Every line
-/// carries the ingredient the user resolved it to (a real match's name, a
-/// create-new stub's name, or — defensively — the raw text); a multi-use
+/// carries the ingredient the user resolved it to (a real match's name, or —
+/// defensively — the raw text); a multi-use
 /// identity shares one [LineItem.ingredientId] so the recipe page folds it into
 /// a single inline row. Method steps are remapped from line-index refs to the
 /// synthetic line ids and rendered by the existing fold.
@@ -45,8 +44,8 @@ String previewLineId(int index) => '$kPreviewLinePrefix$index';
 /// 'piece'` + `measure_id`, migration 0009): its formatter reads the measure
 /// label, not "piece". A measure word is not a catalogue unit id, so without
 /// this it degraded to a bare count — right at commit, wrong on the sheet
-/// (plan 0025 #5). A component line and a create-new stub never carry one,
-/// whatever the map says, mirroring the commit guard.
+/// (plan 0025 #5). A component line never carries one, whatever the map says,
+/// mirroring the commit guard.
 Recipe buildPreviewRecipe(
   ReconciliationPayload payload,
   List<LineResolution> resolutions, {
@@ -117,24 +116,18 @@ Recipe buildPreviewRecipe(
 }
 
 /// The stable identity id for the preview line — a matched ingredient's id, or
-/// a `stub:` handle keyed by the coalescing name so identical no-match uses
-/// fold onto one inline row.
-///
-/// The `stub:` key must be the one [buildCommit] coalesces on, or the preview
-/// shows two rows for what commit writes as one row: `normalizeMatchText`,
-/// which is also the server's `noneDedupeKey`. The `raw:` handle names a line
-/// that has no identity at all, so the looser character normalization is the
+/// a `raw:` handle for a line that has no identity at all. A line with no
+/// identity is still a line, so the looser character normalization is the
 /// right one there — two differently phrased unresolved lines are two lines.
+/// (A `stub:` handle used to sit between the two; it went with the commit-time
+/// stub leg, plan 0025 D3 — a created row has a real id like any other.)
 String _identityId(LineResolution r) {
   if (r.chosenIngredientId != null) return r.chosenIngredientId!;
-  if (r.createStubName != null) {
-    return 'stub:${normalizeMatchText(r.createStubName!)}';
-  }
   return 'raw:${normalizeSearchQuery(r.ingredientText)}';
 }
 
 String _displayName(LineResolution r) =>
-    r.linkedRecipeTitle ?? r.chosenName ?? r.createStubName ?? r.ingredientText;
+    r.linkedRecipeTitle ?? r.chosenName ?? r.ingredientText;
 
 /// The line's unit when it names no measure: the mapped catalog unit, else an
 /// honest degrade — count for a numbered line, "to taste" for a numberless one

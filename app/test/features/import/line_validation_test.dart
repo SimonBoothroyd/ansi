@@ -62,7 +62,6 @@ const _kale = Ingredient(
 
 LineResolution _res({
   String? chosenIngredientId,
-  String? createStubName,
   bool isRange = false,
   double? quantity,
   String? unit,
@@ -73,7 +72,6 @@ LineResolution _res({
   isRange: isRange,
   unit: unit,
   chosenIngredientId: chosenIngredientId,
-  createStubName: createStubName,
   quantity: quantity,
 );
 
@@ -103,13 +101,14 @@ void main() {
 
     test("J3b: a line's OWN printed imprecise word is admitted whatever the "
         'category — never-invent cuts both ways', () {
-      // THE SCENARIO-4 SHAPE. A create-new stub commits as a plain `g` row
-      // with NO category, so it earns no imprecise word at all; the source
-      // printed "a pinch of chilli flakes". Under the bare J3 gate that line
-      // flagged `unitNotAllowed` and locked the Save gate on a unit nobody
-      // could ever have picked, because it was never offered.
+      // THE SCENARIO-4 SHAPE. A row created at review is a plain `g` stub
+      // with NO category until the form gives it one, so it earns no
+      // imprecise word at all; the source printed "a pinch of chilli flakes".
+      // Under the bare J3 gate that line flagged `unitNotAllowed` and locked
+      // the Save gate on a unit nobody could ever have picked, because it was
+      // never offered.
       const stub = Ingredient(
-        id: 'stub:4',
+        id: 'ing-chilli',
         canonicalName: 'Chilli flakes',
         defaultUnit: g,
         status: IngredientStatus.stub,
@@ -120,7 +119,7 @@ void main() {
       );
       expect(
         lineIssues(
-          _res(createStubName: 'Chilli flakes', unit: 'pinch'),
+          _res(chosenIngredientId: 'ing-chilli', unit: 'pinch'),
           ingredient: stub,
         ),
         isEmpty,
@@ -310,10 +309,10 @@ void main() {
 
     test('an imprecise unit is always allowed (to serve)', () {
       final issues = lineIssues(
-        _res(createStubName: 'Aleppo chilli', unit: 'to_taste'),
-        // A create-new stub validates against a plain g-shaped stub.
+        _res(chosenIngredientId: 'ing-aleppo', unit: 'to_taste'),
+        // A row just created at review is a plain g-shaped stub.
         ingredient: const Ingredient(
-          id: 'stub',
+          id: 'ing-aleppo',
           canonicalName: 'Aleppo chilli',
           defaultUnit: g,
           status: IngredientStatus.stub,

@@ -85,9 +85,7 @@ class ReviewLineCard extends HookConsumerWidget {
     // A LINKED line counts as resolved for the card's purposes: it has an
     // identity, so the amount and notes unlock exactly as a matched line's do.
     final matched =
-        resolution.chosenIngredientId != null ||
-        resolution.createStubName != null ||
-        resolution.isComponent;
+        resolution.chosenIngredientId != null || resolution.isComponent;
     // Read the notifier at CALL time, never captured (the file's rule).
     void setDropped({required bool value}) => ref
         .read(importControllerProvider.notifier)
@@ -145,10 +143,7 @@ class _DroppedLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name =
-        resolution.chosenName ??
-        resolution.createStubName ??
-        line.raw.ingredientText;
+    final name = resolution.chosenName ?? line.raw.ingredientText;
     return Row(
       children: [
         const Icon(FLucideIcons.trash2, size: 14, color: AnsiColors.muted),
@@ -254,10 +249,7 @@ class _Collapsed extends StatelessWidget {
   Widget build(BuildContext context) {
     final raw = line.raw;
     final imprecise = _isImprecise(resolution);
-    final name =
-        resolution.chosenName ??
-        resolution.createStubName ??
-        raw.ingredientText;
+    final name = resolution.chosenName ?? raw.ingredientText;
     final notes = resolution.notes?.trim();
     final amount = amountLabel(resolution, raw);
     final label = attentionLabel(
@@ -480,7 +472,6 @@ class _Expanded extends ConsumerWidget {
           onResolveExisting: (id, name, {required correction}) => update(
             (r) => r.resolveToIngredient(id, name, correction: correction),
           ),
-          onResolveStub: (name) => update((r) => r.resolveToNewStub(name)),
           onLinkRecipe: (c) =>
               update((r) => r.linkToRecipe(c.recipeId, c.title)),
           onUnlink: () => update((r) => r.unlink()),
@@ -807,10 +798,9 @@ Future<void> editLineAmount(
     await editComponentAmount(context, ref, lineIndex);
     return;
   }
-  final matched =
-      resolution.chosenIngredientId != null ||
-      resolution.createStubName != null;
-  if (!matched) return; // units need an ingredient to derive an allowed set
+  if (resolution.chosenIngredientId == null) {
+    return; // units need an ingredient to derive an allowed set
+  }
 
   Ingredient? loaded;
   var measures = const <Measure>[];
@@ -845,10 +835,7 @@ Future<void> editLineAmount(
       loaded ??
       Ingredient(
         id: resolution.chosenIngredientId ?? 'import-$lineIndex',
-        canonicalName:
-            resolution.chosenName ??
-            resolution.createStubName ??
-            resolution.ingredientText,
+        canonicalName: resolution.chosenName ?? resolution.ingredientText,
         defaultUnit: unit ?? (resolution.quantity == null ? toTaste : g),
         status: IngredientStatus.stub,
       );
@@ -1071,7 +1058,6 @@ class Resolver extends StatelessWidget {
     required this.candidates,
     required this.resolution,
     required this.onResolveExisting,
-    required this.onResolveStub,
     this.recipeCandidates = const [],
     this.onLinkRecipe,
     this.onUnlink,
@@ -1086,9 +1072,13 @@ class Resolver extends StatelessWidget {
   final List<RecipeCandidate> recipeCandidates;
 
   final LineResolution resolution;
+
+  /// Resolves the line to a vocabulary row — a candidate, a search hit, or
+  /// the row the create-new chain just made (plan 0025 D3, frame d): the
+  /// New-ingredient sheet, the flesh-out form pushed over it, back, and the
+  /// line lands on that row as the ordinary matched state.
   final void Function(String id, String name, {required bool correction})
   onResolveExisting;
-  final ValueChanged<String> onResolveStub;
 
   /// Links the line to the tapped recipe. Null where linking is not offered.
   final ValueChanged<RecipeCandidate>? onLinkRecipe;
@@ -1117,8 +1107,6 @@ class Resolver extends StatelessWidget {
           candidate.canonicalName,
           correction: false,
         );
-      case CreateNewStub(:final name):
-        onResolveStub(name);
     }
   }
 
@@ -1138,14 +1126,6 @@ class Resolver extends StatelessWidget {
     if (resolution.chosenIngredientId != null) {
       return _Chosen(
         label: resolution.chosenName ?? 'Matched',
-        isNew: false,
-        onTap: () => _openSearch(context),
-      );
-    }
-    if (resolution.createStubName != null) {
-      return _Chosen(
-        label: 'new: ${resolution.createStubName}',
-        isNew: true,
         onTap: () => _openSearch(context),
       );
     }
@@ -1204,14 +1184,9 @@ class Resolver extends StatelessWidget {
 /// The resolved ingredient — the WHOLE row is the re-match affordance now (the
 /// tiny "change" link is gone): tap the ✓/＋ ingredient to open the picker.
 class _Chosen extends StatelessWidget {
-  const _Chosen({
-    required this.label,
-    required this.isNew,
-    required this.onTap,
-  });
+  const _Chosen({required this.label, required this.onTap});
 
   final String label;
-  final bool isNew;
   final VoidCallback onTap;
 
   @override
@@ -1229,11 +1204,7 @@ class _Chosen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Row(
             children: [
-              Icon(
-                isNew ? FLucideIcons.plus : FLucideIcons.check,
-                size: 15,
-                color: AnsiColors.herb,
-              ),
+              const Icon(FLucideIcons.check, size: 15, color: AnsiColors.herb),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -1405,9 +1376,9 @@ class _Pill extends StatelessWidget {
 
 // --- The seeded search / create-new sheet ------------------------------------
 
-/// A reconciliation pick: a server candidate, an existing vocab ingredient, or
-/// the intent to create a new stub (deferred to commit so identical no-match
-/// lines coalesce).
+/// A reconciliation pick: a server candidate, or an existing vocab ingredient
+/// — which is also what the create-new footer hands back, once the row exists
+/// and the flesh-out form has been walked (plan 0025 D3).
 sealed class ReconcilePick {
   const ReconcilePick();
 }
@@ -1422,15 +1393,16 @@ class PickExisting extends ReconcilePick {
   final Ingredient ingredient;
 }
 
-class CreateNewStub extends ReconcilePick {
-  const CreateNewStub(this.name);
-  final String name;
-}
-
 /// Opens the vocab search sheet PRE-SEEDED with this line's [candidates] +
 /// recents + create-new — never blank (decision 5). Resolves to a
-/// [ReconcilePick] or null if dismissed. Create-new returns the intent (it does
-/// not write a stub here) so [buildCommit] can coalesce duplicates.
+/// [ReconcilePick] or null if dismissed.
+///
+/// Create-new is the picker's own add-new chain (frame d): the
+/// New-ingredient sheet with the line's text prefilled, the flesh-out form
+/// pushed over THIS sheet and awaited, then the re-read row — resolved as a
+/// [PickExisting], the ordinary matched state, no special case. Nothing is
+/// deferred to commit: a line can no longer carry a name instead of an id, so
+/// there is nothing to coalesce there.
 Future<ReconcilePick?> showReconcileIngredientSheet(
   BuildContext context, {
   required String seedName,
@@ -1472,11 +1444,14 @@ class _ReconcileSheet extends HookConsumerWidget {
         showingRecents: search.showingRecents,
         onPick: (ing) => Navigator.of(context).pop(PickExisting(ing)),
       ),
-      footer: _CreateNewRow(
-        // Seed create-new with the query, else the raw line text — so two
-        // identical no-match lines default to the same coalescing name.
-        name: search.query.trim().isEmpty ? seedName : search.query,
-        onCreate: (name) => Navigator.of(context).pop(CreateNewStub(name)),
+      // The picker footer's own row, in its `.addnew` voice — it no longer
+      // creates a stub-by-default, so it no longer reads like one. Seeded
+      // with the query, else the raw line text, so "curry leaves" becomes the
+      // row without retyping.
+      footer: AddNewIngredientRow(
+        query: search.query.trim().isEmpty ? seedName : search.query,
+        label: (name) => 'create "$name" as a new ingredient',
+        onCreated: (ing) => Navigator.of(context).pop(PickExisting(ing)),
       ),
     );
   }
@@ -1523,57 +1498,6 @@ class _SuggestedForLine extends StatelessWidget {
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _CreateNewRow extends StatelessWidget {
-  const _CreateNewRow({required this.name, required this.onCreate});
-
-  final String name;
-  final ValueChanged<String> onCreate;
-
-  @override
-  Widget build(BuildContext context) {
-    final trimmed = name.trim();
-    final enabled = trimmed.isNotEmpty;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: enabled ? () => onCreate(trimmed) : null,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: enabled ? AnsiColors.herb : AnsiColors.line,
-          ),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                FLucideIcons.plus,
-                size: 13,
-                color: enabled ? AnsiColors.herb : AnsiColors.muted,
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  enabled
-                      ? 'create "$trimmed" as a new ingredient'
-                      : 'type a name to create it',
-                  overflow: TextOverflow.ellipsis,
-                  style: ansiMono(
-                    size: 11,
-                    color: enabled ? AnsiColors.herb : AnsiColors.muted,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

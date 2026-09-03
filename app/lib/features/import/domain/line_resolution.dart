@@ -2,11 +2,17 @@
 /// `ReconciliationPayload` into a `CommitPayload` — PURE DART (invariant 2).
 ///
 /// A `LineResolution` captures the user's decision for one flattened line:
-/// which ingredient it resolved to (an existing one, or a create-new stub),
-/// and — for a printed **range** — which number the user picked. `none` lines
-/// start unresolved; the human resolves them (spec §8). The invariant is
-/// enforced at the seam: `buildCommit` throws unless every line is resolved AND
-/// valid, so a partial import can never reach PowerSync.
+/// which vocabulary ingredient it resolved to, and — for a printed **range** —
+/// which number the user picked. `none` lines start unresolved; the human
+/// resolves them (spec §8). The invariant is enforced at the seam:
+/// `buildCommit` throws unless every line is resolved AND valid, so a partial
+/// import can never reach PowerSync.
+///
+/// A line resolves to a row that EXISTS. "Create new" at review is not a
+/// resolution state any more (plan 0025 D3): it opens the New-ingredient sheet
+/// and the flesh-out form, and the line then resolves to that row like any
+/// other — so the commit-time stub leg (`CommitStub`, coalescing by name) has
+/// no input and is gone.
 ///
 /// A line the user DROPPED is the one exception, and it is one everywhere at
 /// once: it is excluded from validation, from the Save gate, and from the
@@ -20,15 +26,14 @@ library;
 
 import '../../../core/units/units.dart';
 import '../../ingredients/domain/allowed_units.dart';
-import '../../ingredients/domain/normalize.dart';
 import '../../recipes/domain/recipe.dart';
 import 'amount_text.dart';
 import 'commit_payload.dart';
 import 'line_validation.dart';
 import 'reconciliation_payload.dart';
 
-/// One line's resolution. Exactly one of [chosenIngredientId] /
-/// [createStubName] is set once the line is resolved; both null means the user
+/// One line's resolution. [chosenIngredientId] is set once the line is
+/// resolved to an ingredient; null (with no [linkedRecipeId]) means the user
 /// still has to act (the `none` starting state).
 class LineResolution {
   const LineResolution({
@@ -40,7 +45,6 @@ class LineResolution {
     this.notes,
     this.chosenIngredientId,
     this.chosenName,
-    this.createStubName,
     this.linkedRecipeId,
     this.linkedRecipeTitle,
     this.quantity,
@@ -68,18 +72,14 @@ class LineResolution {
   final String? chosenIngredientId;
   final String? chosenName;
 
-  /// The name for a create-new stub, or null. Identical names coalesce onto one
-  /// stub at commit.
-  final String? createStubName;
-
   /// The household recipe this line was LINKED to (step 8.6 / D6), or null.
   ///
   /// Set only by a human tapping the offered chip — never on arrival, at any
   /// score. While it is set the line is a component line: it has no ingredient
-  /// ([chosenIngredientId] and [createStubName] are cleared by [linkToRecipe]),
-  /// wants no ingredient match, and faces no `allowed_units` gate — admission
-  /// is an ingredient concept, and this unit meets the target's yield family
-  /// later, at derive time (D2).
+  /// ([chosenIngredientId] is cleared by [linkToRecipe]), wants no ingredient
+  /// match, and faces no `allowed_units` gate — admission is an ingredient
+  /// concept, and this unit meets the target's yield family later, at derive
+  /// time (D2).
   final String? linkedRecipeId;
 
   /// The linked recipe's title, for the chip. Display only — [linkedRecipeId]
@@ -138,13 +138,11 @@ class LineResolution {
   /// callers gate on both.
   bool get isResolved => isComponent
       ? quantity != null
-      : (chosenIngredientId != null || createStubName != null) &&
-            !(isRange && quantity == null);
+      : chosenIngredientId != null && !(isRange && quantity == null);
 
   LineResolution copyWith({
     String? chosenIngredientId,
     String? chosenName,
-    String? createStubName,
     String? linkedRecipeId,
     String? linkedRecipeTitle,
     double? quantity,
@@ -155,7 +153,6 @@ class LineResolution {
     bool? unitFromDefault,
     bool? optional,
     bool clearIngredient = false,
-    bool clearStub = false,
     bool clearLink = false,
     bool clearQuantity = false,
     bool clearNotes = false,
@@ -170,7 +167,6 @@ class LineResolution {
         ? null
         : (chosenIngredientId ?? this.chosenIngredientId),
     chosenName: clearIngredient ? null : (chosenName ?? this.chosenName),
-    createStubName: clearStub ? null : (createStubName ?? this.createStubName),
     linkedRecipeId: clearLink ? null : (linkedRecipeId ?? this.linkedRecipeId),
     linkedRecipeTitle: clearLink
         ? null
@@ -191,6 +187,10 @@ class LineResolution {
 
   /// Resolves the line to an existing ingredient. [correction] marks it a user
   /// override (alias write-back); accepting the band's top candidate is not.
+  ///
+  /// A row the review just CREATED (sheet → form → back, plan 0025 D3) arrives
+  /// here too, as a correction: the raw text becomes an alias of the row the
+  /// human made for it, exactly as picking any other row from the search does.
   LineResolution resolveToIngredient(
     String ingredientId,
     String name, {
@@ -199,16 +199,8 @@ class LineResolution {
     chosenIngredientId: ingredientId,
     chosenName: name,
     isCorrection: correction,
-    clearStub: true,
     // Matching an ingredient UN-LINKS a component line: exactly one identity
     // (D1's XOR), and re-picking is how a link is undone (D7's rule too).
-    clearLink: true,
-  );
-
-  /// Resolves the line to a brand-new stub named [name].
-  LineResolution resolveToNewStub(String name) => copyWith(
-    createStubName: name.trim(),
-    clearIngredient: true,
     clearLink: true,
   );
 
@@ -223,7 +215,6 @@ class LineResolution {
     linkedRecipeId: recipeId,
     linkedRecipeTitle: title,
     clearIngredient: true,
-    clearStub: true,
     // A link is not an ingredient correction — there is no alias to write.
     isCorrection: false,
     // Nor is a component line ever optional (D6b's stated scope) — the raw
@@ -284,7 +275,6 @@ class LineResolution {
     notes: notes,
     chosenIngredientId: chosenIngredientId,
     chosenName: chosenName,
-    createStubName: createStubName,
     linkedRecipeId: linkedRecipeId,
     linkedRecipeTitle: linkedRecipeTitle,
     quantity: quantity,
@@ -395,8 +385,6 @@ const kLowConfidenceFloor = 0.75;
 /// Builds the [CommitPayload] from a fully-resolved, fully-valid
 /// reconciliation.
 ///
-/// - Coalesces create-new stubs by normalized name — identical no-match lines
-///   land on one [CommitStub] (0014's within-import dedupe).
 /// - Preserves the payload's group structure and the flattened line INDEX of
 ///   every surviving line (step refs index into it; the repo remaps on write).
 /// - Emits an alias correction for every user override of a matched line.
@@ -460,30 +448,6 @@ CommitPayload buildCommit(
   }
   final byIndex = {for (final r in kept) r.lineIndex: r};
 
-  // Coalesce stubs: normalized name → the display name of its first
-  // occurrence. The key is `normalizeMatchText`, which IS the server's
-  // `noneDedupeKey` — the same phrase rules, on both sides of the seam. It
-  // used to be the character-level query normalizer, so two no-match lines
-  // reading "Almonds" and "almond" coalesced to one stub on the server and to
-  // TWO on the client, and a comment claimed a symmetry that did not exist.
-  final stubKeyByIndex = <int, String>{};
-  final stubs = <String, CommitStub>{};
-  for (final r in kept) {
-    final name = r.createStubName;
-    if (name == null) continue;
-    if (r.isComponent) {
-      // Belt and braces for the XOR: a resolution carrying both identities is
-      // a bug upstream, and one stub row written for a line that will not use
-      // it is a ghost ingredient in the vocabulary.
-      throw StateError(
-        'line ${r.lineIndex} is linked to a recipe and cannot also make a stub',
-      );
-    }
-    final key = normalizeMatchText(name);
-    stubs.putIfAbsent(key, () => CommitStub(key: key, name: name));
-    stubKeyByIndex[r.lineIndex] = key;
-  }
-
   final groups = <CommitGroup>[];
   var flatIndex = 0;
   for (final group in payload.groups) {
@@ -503,7 +467,7 @@ CommitPayload buildCommit(
             'linked line ${r.lineIndex} needs an amount before commit',
           );
         }
-        if (r.chosenIngredientId != null || r.createStubName != null) {
+        if (r.chosenIngredientId != null) {
           throw StateError(
             'line ${r.lineIndex} carries both a recipe link and an ingredient',
           );
@@ -513,7 +477,6 @@ CommitPayload buildCommit(
         CommitLine(
           lineIndex: flatIndex,
           ingredientId: r.isComponent ? null : r.chosenIngredientId,
-          stubKey: r.isComponent ? null : stubKeyByIndex[flatIndex],
           subRecipeId: r.linkedRecipeId,
           quantity: r.quantity,
           unit: r.unit,
@@ -571,7 +534,6 @@ CommitPayload buildCommit(
     bookId: header.bookId,
     sectionId: header.sectionId,
     groups: groups,
-    stubs: stubs.values.toList(),
     // The review screen's own method, when it edited one (seam D4); otherwise
     // the payload's, byte-for-byte.
     steps: steps ?? payload.steps,

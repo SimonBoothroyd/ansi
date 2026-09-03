@@ -15,9 +15,9 @@
 
 ## 1. Scope
 
-This doc details two things the main spec left open: how ingredients are stored for matching, and how imported recipe lines are reconciled against them. It covers the full path from "paste a link / take a photo" to "recipe committed with every line resolved to a known ingredient or a stub."
+This doc details two things the main spec left open: how ingredients are stored for matching, and how imported recipe lines are reconciled against them. It covers the full path from "paste a link / take a photo" to "recipe committed with every line resolved to a known ingredient."
 
-**In scope:** intake, extraction, normalization, the match cascade, the reconciliation screen's data contract, the stub lifecycle, and the offline story.
+**In scope:** intake, extraction, normalization, the match cascade, the reconciliation screen's data contract, create-new at review and the stub lifecycle, and the offline story.
 **Out of scope:** the recipe page/cook mode UI, meal planning, the batch cook plan, and the shopping list (all covered elsewhere). The chip *rendering* lives with the recipe page, but the step storage model and the import-time alignment that feed it are specified here (§4.6). The unit system is assumed to exist already — it does not, everything here depends on it (spec §4, "build FIRST").
 
 ---
@@ -84,7 +84,7 @@ flowchart TD
     G --> H[ReconciliationPayload → the app]
     H --> I["Review recipe — one editable screen §8"]
     I -->|Save| J[Commit through PowerSync]
-    J -.create-new.-> K[Stub written in the same transaction §9]
+    I -.create-new.-> K[New-ingredient sheet → flesh-out form → back; the line resolves to the row §9]
     J -.correction.-> L[Raw string written back as an alias]
     K -.on arrival, DB trigger.-> M[USDA FDC lookup prefills density/macros — row stays 'stub']
 ```
@@ -98,7 +98,7 @@ The stages, and who owns each:
 | 3 | **Normalize** — `ingredient_text` → `match_text` (§7) | `_shared/normalize.ts`, called **inside** `match.ts` | yes |
 | 4 | **Match** — the cascade, bands + candidates (§6) | `_shared/match.ts` + the Postgres seam `match_db.ts` | yes |
 | 5 | **Reconcile** — one merged editable review screen (§8) | `app/lib/features/import` | human |
-| 6 | **Commit** — recipe, groups, lines, stubs, aliases in one local transaction; step refs remapped index → `line_item_id` | `SqliteImportRepository.commit` | yes |
+| 6 | **Commit** — recipe, groups, lines, aliases in one local transaction; step refs remapped index → `line_item_id`; creates no ingredient (§9) | `SqliteImportRepository.commit` | yes |
 
 Stages 1–4 are the `import-recipe` edge function; 5–6 are the app. The boundary
 between them is the `ReconciliationPayload` — the frozen contract in
@@ -336,8 +336,8 @@ Steps render with inline ingredient chips, and cook mode highlights the same ref
 
 Separate the thing you **match against** from the thing you **search when creating**:
 
-- **`ingredient`** — the household's curated, lean vocabulary (~150–300 rows in practice). This is the match target and the only ingredient data that syncs to devices. Seeded small; grows through imports and stubs.
-- **`usda_food`** — the full USDA FoodData Central reference (Foundation Foods + SR Legacy, CC0), read-only, **server-side only**. Used for the "create a new ingredient" search and for background stub prefill (§9). **Never matched against during import.**
+- **`ingredient`** — the household's curated, lean vocabulary (~150–300 rows in practice). This is the match target and the only ingredient data that syncs to devices. Seeded small; grows through the one add flow — the New-ingredient sheet and the flesh-out form — wherever it is opened, the import review included (§9).
+- **`usda_food`** — the full USDA FoodData Central reference (Foundation Foods + SR Legacy, CC0), read-only, **server-side only**. Used for the "create a new ingredient" probe and for background stub prefill (§9). **Never matched against during import.**
 
 Matching against 8,000 SR Legacy rows — where "chicken thigh" appears fifteen ways — produces constant wrong matches. Matching against the couple hundred ingredients the household actually uses is high-precision and easy. USDA is a lookup for *creation*, not a match target.
 
@@ -356,7 +356,7 @@ create table ingredient (
   density_g_per_ml numeric,          -- nullable; stub until set
   macros          jsonb,             -- {kcal, protein, carb, fat}; nullable
   status          text not null,     -- 'complete' | 'stub'
-  source          text,              -- 'usda_fdc:<id>' | 'manual' | 'barcode' | 'import_stub'
+  source          text,              -- 'seed' | 'manual' | 'usda_fdc:<id>' | 'off:<barcode>' ('import_stub' on rows minted before plan 0025 D3)
   match_text      text not null      -- normalized form of canonical_name (see §7)
 );
 
@@ -514,10 +514,10 @@ two are pinned together by shared vectors
 `normalize.test.ts`) — change one, change both, and extend the vectors, the same
 habit `default_allowed_units()` and `defaultAllowedUnitSet` already keep. Since
 the 8.5 close-out **every** client writer calls it, import's own commit
-included — `SqliteImportRepository.commit` writes `normalizeMatchText` for both
-the `import_stub` row and the correction alias, so a stub minted at review and
-one minted in the manager land the same `match_text` the server would have
-written.
+included — `SqliteImportRepository.commit` writes `normalizeMatchText` for the
+correction alias, and a row created at review is written by the same
+`createStub` the manager's sheet uses (§9), so it lands the same `match_text`
+the server would have written.
 
 ---
 
@@ -553,10 +553,11 @@ a save would write, and Save at the bottom.
 
 On Save, one local transaction writes the recipe (filed into the default book —
 the Library renders books, so a book-less recipe would save into a place nothing
-shows it), its groups and line items, any create-new stubs, and any correction
-aliases; step refs are remapped from `line_index` to the created `line_item_id`s
-(§4.6). Local PowerSync tables are SQLite **views**, so every write is a plain
-INSERT — never `ON CONFLICT`.
+shows it), its groups and line items, and any correction aliases; step refs are
+remapped from `line_index` to the created `line_item_id`s (§4.6). It creates no
+ingredient: a line that needed a new one got it at review, through the
+New-ingredient sheet and the flesh-out form (§9). Local PowerSync tables are
+SQLite **views**, so every write is a plain INSERT — never `ON CONFLICT`.
 
 **The learning loop — nearly free, and the highest-value low-effort feature in the
 pipeline.** When a user corrects a match (rejects an auto-match and picks another,
@@ -575,7 +576,7 @@ Coconut milk, canned) and matching improves with zero ML.
 
 ---
 
-## 9. Stub lifecycle
+## 9. Create-new at review, and the stub lifecycle
 
 ```
 band `none` line
@@ -584,10 +585,17 @@ band `none` line
 the USER chooses "create new"        ← no silent auto-stub (§6)
    │
    ▼
-stub row written CLIENT-SIDE, inside the commit transaction
-  (status='stub', source='import_stub', density/macros null)
-   │  · keyed by the coalescing key, so identical no-match lines
-   │    in one import share ONE created ingredient
+the New-ingredient sheet (manual · USDA · barcode), name prefilled from
+the line's text — the SAME sheet the manager's ＋ opens (plan 0025 D3)
+   │  · `createStub`: status='stub', source='manual' (or `off:<barcode>`),
+   │    match_text by the server's phrase rules; probed at birth (D7b)
+   ▼
+the flesh-out form, pushed OVER the review's sheet and awaited
+   │  · back is the only exit; confirming is optional and human (D5)
+   ▼
+the line resolves to that row — the ordinary matched state, by id
+   │  · a second line printing the same thing finds the row in the
+   │    search; nothing is created twice, and the commit mints nothing
    │  · syncs up like any other local write
    │
    ├──► surfaces in the ingredients manager (step 8.5): a stub BAND on top
@@ -602,6 +610,19 @@ stub row written CLIENT-SIDE, inside the commit transaction
 user opens the stub in the manager → edits/fills density + macros →
   presses Confirm → status='complete'
 ```
+
+**No path creates an ingredient without landing on the flesh-out form**
+(owner ruling, plan 0025 D3: "move away from allowing stubs; ideally only the
+seeded rows are stubs"). Until 2026-09-03 the review deferred creation to the
+commit, which minted one `source='import_stub'` row per unmatched name,
+coalesced by `normalizeMatchText` — `CommitStub`, `CommitLine.stubKey`,
+`LineResolution.createStubName` and the repository's stub INSERT. All of it is
+gone: a resolution now carries an id or nothing, so there is nothing to
+coalesce and nothing for the commit to create. What a row backed out of
+unconfirmed still is: a `stub`, honestly badged, named by the macro panel —
+D3 forbids minting one *as a side effect*, not a human leaving a form early.
+`import_stub` survives only as a legacy `source` value on rows minted before
+the change.
 
 **The prefill, precisely** (step 8.5, plan 0020 D7). It is an `after insert or
 update of canonical_name` trigger on `ingredient` — a plpgsql port of
@@ -633,12 +654,13 @@ confirms fine (density controls what units are *sayable*, not whether the
 numbers are honest). The reverse is available too — a `complete` row can be
 un-confirmed back to `stub`.
 
-**Why the stub is written by the client, not the server.** Both surfaces were
+**Why the row is written by the client, not the server.** Both surfaces were
 designed ([0019](../exec-plans/completed/0019-import-integration.md)'s coordination
 ledger) and both wrote the identical row. The client won because the decision to
-create is the *user's*, taken at review, and the commit is already one local
-transaction — a server-side create would mean a round trip mid-commit and two
-places that can mint the same row. The server keeps only the enrichment leg.
+create is the *user's*, taken at review — and since D3 it is taken *on the form*,
+one row at a time, through the same repository write the manager uses. A
+server-side create would mean a round trip mid-review and two places that can
+mint the same row. The server keeps only the enrichment leg.
 
 Until a stub is complete it is left out of unit conversions and macro totals (the
 spec's "honest numbers" rule) — a stub line is a real, plannable, shoppable line

@@ -114,7 +114,6 @@ void main() {
     test('none starts unresolved', () {
       final r = initialResolution(0, _line('mystery spice', qty: 1));
       expect(r.chosenIngredientId, isNull);
-      expect(r.createStubName, isNull);
       expect(r.isResolved, isFalse);
     });
   });
@@ -141,23 +140,33 @@ void main() {
     });
   });
 
-  group('create-new + coalescing', () {
-    test('identical no-match lines coalesce onto one stub', () {
+  group('create-new at review is an ordinary match (plan 0025 D3)', () {
+    test('a row the review just created commits by id like any other — '
+        'there is no stub leg, so nothing coalesces at commit', () {
+      // Two identical no-match lines: the first creates "Aleppo chilli
+      // flakes" (sheet → form → back), the second finds that row in the
+      // search. Both arrive here as the same id, as corrections (the raw text
+      // becomes the row's alias).
       final payload = _payload([
         _line('Aleppo chilli flakes'),
         _line('Aleppo chilli flakes'),
         _line('fresh basil'),
       ]);
       final resolutions = [
+        initialResolution(0, payload.flatLines[0]).resolveToIngredient(
+          'ing-chilli',
+          'Aleppo chilli flakes',
+          correction: true,
+        ),
+        initialResolution(1, payload.flatLines[1]).resolveToIngredient(
+          'ing-chilli',
+          'Aleppo chilli flakes',
+          correction: true,
+        ),
         initialResolution(
-          0,
-          payload.flatLines[0],
-        ).resolveToNewStub('Aleppo chilli flakes'),
-        initialResolution(
-          1,
-          payload.flatLines[1],
-        ).resolveToNewStub('Aleppo chilli flakes'),
-        initialResolution(2, payload.flatLines[2]).resolveToNewStub('basil'),
+          2,
+          payload.flatLines[2],
+        ).resolveToIngredient('ing-basil', 'Basil', correction: true),
       ];
 
       final commit = buildCommit(
@@ -166,13 +175,13 @@ void main() {
         header: _header(payload),
         issuesByLine: null,
       );
-      // Two distinct stubs: the duplicate chilli lines share one.
-      expect(commit.stubs, hasLength(2));
       final lines = commit.groups.single.lines;
-      expect(lines[0].stubKey, lines[1].stubKey);
-      expect(lines[0].stubKey, isNot(lines[2].stubKey));
-      // No stub line carries an ingredientId (it's created at write).
-      expect(lines.every((l) => l.ingredientId == null), isTrue);
+      expect(lines[0].ingredientId, 'ing-chilli');
+      expect(lines[1].ingredientId, 'ing-chilli');
+      expect(lines[2].ingredientId, 'ing-basil');
+      // Every line carries a real id — a commit can no longer name a row it
+      // expects the repository to mint.
+      expect(lines.every((l) => l.ingredientId != null), isTrue);
     });
   });
 
@@ -446,7 +455,7 @@ void main() {
       expect(lines.map((l) => l.lineIndex), [0, 2]);
     });
 
-    test('a dropped line drags no correction or stub along with it', () {
+    test('a dropped line drags no correction along with it', () {
       final payload = _payload([
         _line('yellow onion', band: MatchBand.auto, qty: 1, candidates: []),
         _line('mystery', qty: 1),
@@ -455,7 +464,10 @@ void main() {
         initialResolution(0, payload.flatLines[0])
             .resolveToIngredient('ing-scallion', 'Scallion', correction: true)
             .drop(),
-        initialResolution(1, payload.flatLines[1]).resolveToNewStub('Mystery'),
+        initialResolution(
+          1,
+          payload.flatLines[1],
+        ).resolveToIngredient('ing-mystery', 'Mystery'),
       ];
       final commit = buildCommit(
         payload,
@@ -464,7 +476,7 @@ void main() {
         issuesByLine: null,
       );
       expect(commit.corrections, isEmpty);
-      expect(commit.stubs, hasLength(1));
+      expect(commit.groups.single.lines.single.ingredientId, 'ing-mystery');
     });
 
     test('a group whose every line was dropped is not written', () {
@@ -478,11 +490,14 @@ void main() {
       final commit = buildCommit(
         payload,
         [
-          initialResolution(0, payload.flatLines[0]).resolveToNewStub('X'),
+          initialResolution(
+            0,
+            payload.flatLines[0],
+          ).resolveToIngredient('ing-x', 'X'),
           initialResolution(
             1,
             payload.flatLines[1],
-          ).resolveToNewStub('Y').drop(),
+          ).resolveToIngredient('ing-y', 'Y').drop(),
         ],
         header: _header(payload),
         issuesByLine: null,
@@ -576,7 +591,10 @@ void main() {
       );
       final resolutions = [
         for (var i = 0; i < payload.flatLines.length; i++)
-          initialResolution(i, payload.flatLines[i]).resolveToNewStub('s$i'),
+          initialResolution(
+            i,
+            payload.flatLines[i],
+          ).resolveToIngredient('ing-$i', 's$i'),
       ];
       final commit = buildCommit(
         payload,
@@ -663,8 +681,6 @@ void main() {
         final rematched = linked.resolveToIngredient('v-aioli', 'Aioli');
         expect(rematched.isComponent, isFalse);
         expect(rematched.chosenIngredientId, 'v-aioli');
-        // As is creating a stub.
-        expect(linked.resolveToNewStub('Aioli').isComponent, isFalse);
       },
     );
 
@@ -719,7 +735,7 @@ void main() {
 
     group('buildCommit — the same rule, re-asserted at the seam', () {
       test('a linked line commits as a component: sub_recipe_id set, no '
-          'ingredient, no stub', () {
+          'ingredient', () {
         final payload = aioliPayload();
         final commit = buildCommit(
           payload,
@@ -735,10 +751,8 @@ void main() {
         final line = commit.groups.single.lines.single;
         expect(line.subRecipeId, 'r-aioli');
         expect(line.ingredientId, isNull);
-        expect(line.stubKey, isNull);
         expect(line.quantity, 0.25);
         expect(line.unit, 'cup');
-        expect(commit.stubs, isEmpty);
         expect(commit.corrections, isEmpty);
       });
 
@@ -860,10 +874,10 @@ void main() {
 
       List<LineResolution> resolveEveryLine(ReconciliationPayload payload) => [
         for (var i = 0; i < payload.flatLines.length; i++)
-          initialResolution(
-            i,
-            payload.flatLines[i],
-          ).resolveToNewStub(payload.flatLines[i].raw.ingredientText),
+          initialResolution(i, payload.flatLines[i]).resolveToIngredient(
+            'ing-$i',
+            payload.flatLines[i].raw.ingredientText,
+          ),
       ];
 
       test('nobody taps ⇒ the commit is IDENTICAL to the offer-free one', () {
@@ -887,7 +901,7 @@ void main() {
           header: _header(without, servingsBase: 8),
           issuesByLine: null,
         );
-        // Freezed equality is deep: groups, lines, stubs, steps, corrections.
+        // Freezed equality is deep: groups, lines, steps, corrections.
         expect(offered, plain);
         expect(
           offered.groups
@@ -922,16 +936,11 @@ void main() {
         final linked = lines.firstWhere((l) => l.lineIndex == aioliIndex);
         expect(linked.subRecipeId, 'r-aioli');
         expect(linked.ingredientId, isNull);
-        expect(linked.stubKey, isNull);
-        // Every other line is untouched, and the linked line's stub is gone
-        // from the vocabulary write (nothing mints an ingredient for it).
+        // Every other line is untouched: still an ingredient line, by id.
         expect(lines.where((l) => l.subRecipeId != null), hasLength(1));
         expect(
-          commit.stubs.length,
-          resolveEveryLine(
-                payload,
-              ).map((r) => r.createStubName!.toLowerCase()).toSet().length -
-              1,
+          lines.where((l) => l.ingredientId != null),
+          hasLength(lines.length - 1),
         );
       });
     });

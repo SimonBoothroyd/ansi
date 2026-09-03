@@ -182,15 +182,25 @@ void main() {
     expect(after[0]!.unitChoices.map((c) => c.token), contains('clove'));
   });
 
-  test('J3b: a printed imprecise word on a freshly created stub validates — '
+  test('J3b: a printed imprecise word on a freshly created row validates — '
       'the Save gate cannot lock on a unit the editor never offers', () async {
     final container = await reviewing();
-    // The user taps "create new" on the no-match line, exactly as scenario 4
-    // does. The stub commits as a plain `g` row with NO category, so the J3
-    // category gate earns it no imprecise word at all.
+    // The user takes "create new" on the no-match line, exactly as scenario 4
+    // does: the sheet writes a plain `g` stub with NO category (the form is
+    // where a category arrives), so the J3 category gate earns it no
+    // imprecise word at all — and the line resolves to that row.
+    await db.execute(
+      'INSERT INTO ingredient (id, household_id, canonical_name, default_unit, '
+      "status, source, created_at, updated_at) VALUES (?, ?, ?, 'g', 'stub', "
+      "'manual', ?, ?)",
+      ['ing-chilli', 'h', 'Chilli flakes', '2026-01-01', '2026-01-01'],
+    );
     container
         .read(importControllerProvider.notifier)
-        .updateResolution(1, (r) => r.resolveToNewStub('Chilli flakes'));
+        .updateResolution(
+          1,
+          (r) => r.resolveToIngredient('ing-chilli', 'Chilli flakes'),
+        );
 
     final byLine = await container.read(importValidationProvider.future);
     expect(
