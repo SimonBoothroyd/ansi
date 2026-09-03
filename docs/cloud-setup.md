@@ -82,9 +82,10 @@ the memory note referenced from the step-7 exec plan; this doc is cloud-only.
 > **deploy-supabase** → Run workflow with **`reseed_template`** ticked runs
 > the five files below in this order (release.md §4.2 step 5). Migration
 > `0020` made the seed **re-runnable** — the template holds one live row per
-> `match_text` and the generated `seed.sql` upserts on it — after a hand-run
-> on 2026-09-03 had doubled the template (616 rows for 308 names; `0020`
-> tombstones such duplicates at `db push`). One file is NOT re-runnable and
+> `match_text` and the generated `seed.sql` upserts on it. (A hand-run on
+> 2026-09-03 had doubled the template, 616 rows for 308 names; the answer was
+> a **full cloud reset**, not a repair migration — see the posture below.)
+> One file is NOT re-runnable and
 > the button knows it: `seed_usda.sql` is 8,204 plain inserts into a
 > primary-keyed reference table, so it is skipped when the table is already
 > populated (it never changes between releases; regenerate + `db reset` if it
@@ -216,6 +217,29 @@ resurrects a soft-deleted row. Run them in either order. The measures path
 still costs a household its user-authored measures (it needs zero live rows to
 clone) — this one costs nothing, which is exactly why `ingredient` gets a
 script instead of a marker reset.
+
+### 2c. The posture: reset, never patch (owner ruling, 2026-09-03)
+
+> "I don't want 10,000 migrations. We don't have any live data that can't be
+> easily re-added to the live db, so prefer reset and make sure the db is
+> fixed for the future."
+
+While the household data is throwaway (through the roadmap — the app's
+memory says the same), a cloud database that has drifted — a doubled seed, a
+half-applied hand run, a stream list frozen at an old step — is **rebuilt**,
+not repaired:
+
+```bash
+supabase db reset --linked        # every migration + every seed in config.toml order
+```
+
+then Actions → **deploy-supabase** (the function + the sync streams ride that
+button; leave `reseed_template` unticked — the reset already seeded), then
+`scripts/cloud_verify.sh`, then a ledger entry. Migrations carry **only what
+fixes the future** (constraints, columns, triggers) and never a one-off data
+repair; a repair that is tempting to write as a migration is the signal to
+reset instead. The cost is every onboarded household and auth user — accepted
+for now, and the reason this section will change the day real data exists.
 
 ## 3. PowerSync Cloud instance
 
