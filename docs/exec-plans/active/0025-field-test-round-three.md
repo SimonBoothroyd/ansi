@@ -345,9 +345,32 @@ and need a stable anchor (a semantics label on the switcher, or a key on each
 tab root). Docs: product-spec Week v2 D3 wording; board section "Week v2" D3.
 Board frames: Cook and Shop headers.
 
+### 8. Scan a barcode from the flesh-out form (owner-added 2026-09-03)
+
+> "manual flesh out ingredient form has option to scan barcode to populate.
+> same for ingredient editor. ideally these are the same forms."
+
+**What's there.** They are already one form: `ingredient_detail_view.dart`
+serves both the just-created row and an existing one (edit + confirm). The
+barcode door (`scanBarcodeForDraft`) is reachable only from the New
+ingredient sheet's Barcode segment, and only *before* the row exists — the
+sheet applies the draft at creation (name, macros + basis, pack measure,
+`off:<barcode>` provenance). A row that was created manually, or seeded, has
+no way to be populated from a label afterwards.
+
+**Fix.** The form gains a "Scan barcode" action that runs the same door and
+applies the draft through ONE shared apply function the sheet also uses (one
+answer to "what does a draft do to a row"). The draft **prefills and never
+confirms** (plan 0020 D1/D5): it fills fields that are empty and leaves a
+value the human already typed alone, saying in the draft card which fields it
+skipped; provenance becomes `off:<barcode>` only when the row had none. Rides
+in the **no-stubs** lane (same files). Sim-covered by the typed-barcode path
+(scenario 5's idiom); the live camera stays the physical-device errand.
+
 ## Acceptance criteria
 
-- [ ] Board frames for 3, 4, 6, 7 signed off; D1–D7 recorded in the decision log.
+- [x] Board frames for 3, 4, 6, 7 signed off ("go", 2026-09-03, no re-review); D1–D7 recorded in the decision log.
+- [ ] 8: the flesh-out form scans a barcode into empty fields through the sheet's own apply function; never confirms; widget test + the typed path on the sim.
 - [x] 1: edit → Save → one back returns to the opener; new → Save → recipe page; widget test; navigation.md §3 updated.
 - [x] 2: `qt` + `pt` (D2a) in every mirror in the table; migration `0024` additive with UNION backfill; pgTAP vectors; `unit_hints` test; docs table.
 - [ ] 3: no app path mints a stub as a side effect — picker, top-up and import review all run sheet → form → back; `CommitStub` retired; verified on the real sim.
@@ -367,7 +390,7 @@ Board frames: Cook and Shop headers.
    - **units** — item 2 (Dart + TS + SQL + seed regen + docs).
    - **header** — item 4: the shared header form + both hosts; item 5 rides with it (same preview/commit seam).
    - **line-fact** — item 6 end to end (migration `0025`, schema, `LineItem`, repo, import carry-through, the unit-sheet toggle, page tag, `effectiveLines` in macros + shopping).
-   - **no-stubs** — item 3 across the picker, the top-up and the review's create-new; retires `CommitStub`.
+   - **no-stubs** — item 3 across the picker, the top-up and the review's create-new; retires `CommitStub`; plus item 8 (scan-to-populate on the form).
    - **weeks** — item 7.
    Seams the structural tests will catch at landing: the guarded-navigation exception list (1, 3), the write-guard (3, 6), the tab-root scaffold test (7), the smoke anchors (7).
 3. Orchestrator rebases and fast-forwards main per lane, re-running gates; `make test-sim` from the main checkout; cloud push; tag.
@@ -409,6 +432,12 @@ Board frames: Cook and Shop headers.
   module's OFF pack-size word table and `component_units.dart`'s yield chip
   list don't know pt/qt (both deliberately narrow lists). Board section
   merged and published (`147c506`), awaiting sign-off.
+- 2026-09-03 — Owner: "go" on the frames without re-review, and item 8 added
+  (scan a barcode from the flesh-out form; the editor and the flesh-out form
+  are already one form). Four build lanes launched: header, line-fact,
+  no-stubs (+8), weeks. Owner also rolled in the two pt/qt stragglers the
+  units lane flagged (OFF pack-size words, the yield chip list) — done on
+  main directly.
 
 ## Notes / open questions
 
