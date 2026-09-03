@@ -96,7 +96,11 @@ jobs:
       # anything is touched. Pinned, not latest: local and CI move together.
       - name: 4 · Deploy PowerSync sync streams
         run: |
+          # Only the sync config: `validate` otherwise also checks the service
+          # schema and the replication connections, which read a service.yaml
+          # this repo deliberately does not carry (powersync/README.md).
           npx --yes powersync@0.10.0 validate \
+            --validate-only sync-config \
             --instance-id "$POWERSYNC_INSTANCE_ID" \
             --sync-config-file-path docker/powersync-cloud.streams.yaml
           npx --yes powersync@0.10.0 deploy sync-config \

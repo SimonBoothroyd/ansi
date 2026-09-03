@@ -15,6 +15,8 @@ dashboard-managed (docs/cloud-setup.md §3). The sync rules live in
 `docker/powersync-cloud.streams.yaml` next to the local `docker/powersync.yaml`
 they are drift-checked against (`scripts/check_stream_drift.sh`).
 
-Proven 2026-09-03: with only `cli.yaml` present the CLI proceeds to the token +
-instance check; without the directory it never gets there (deploy run
-33702716396, step 4).
+Proven 2026-09-03: with only `cli.yaml` present, `deploy sync-config` proceeds
+straight to the token + instance check, and `validate --validate-only
+sync-config` validates the streams file alone; an unscoped `validate` also
+runs the configuration-schema and connection tests, which need the
+`service.yaml` we leave out (deploy runs 33702716396 and 33703880935, step 4).
