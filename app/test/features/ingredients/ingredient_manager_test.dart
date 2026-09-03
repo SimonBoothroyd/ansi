@@ -155,6 +155,10 @@ const _usdaAnswer = UsdaCandidate(
 class _RecordingProbe extends UsdaProbe {
   _RecordingProbe(UsdaCandidate? answer) : answers = [?answer];
 
+  /// A short-list, best first — what the Choose-another sheet and the
+  /// New-ingredient leg ask for.
+  _RecordingProbe.list(this.answers);
+
   final List<UsdaCandidate> answers;
   final asked = <String>[];
   final limits = <int>[];
@@ -720,6 +724,146 @@ void main() {
         find.textContaining('a rename will not bring them back'),
         findsOneWidget,
       );
+    });
+
+    testWidgets('U-D3: Choose another flushes the form, asks for FIVE under '
+        'the stored name, lists them with their band word (the current match '
+        'tagged, a nameless one left out), and a pick replaces the fill '
+        'through the explicit apply', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo([
+        _curryLeaves.copyWith(
+          densityGPerMl: _usdaAnswer.densityGPerMl,
+          macros: _usdaAnswer.macros,
+        ),
+      ]);
+      final probe = _RecordingProbe.list(const [
+        _usdaAnswer, // the current match, 11216
+        UsdaCandidate(
+          fdcId: 11217,
+          description: 'Curry leaves, dried',
+          category: 'Spices and Herbs',
+          source: 'usda_fdc:11217',
+          score: 0.9,
+          macros: Macros(kcal: 300, protein: 12, carb: 60, fat: 5),
+        ),
+        UsdaCandidate(
+          fdcId: 11218,
+          description: 'Curry powder',
+          source: 'usda_fdc:11218',
+          score: 0.55,
+          densityGPerMl: 0.5,
+        ),
+        UsdaCandidate(
+          fdcId: 11219,
+          description: 'Curry, nameless',
+          source: 'usda_fdc:11219',
+          score: 0.52,
+        ),
+      ]);
+      await tester.pumpWidget(
+        _host(repo, at: '/ingredients/curry', probe: probe),
+      );
+      await tester.pumpAndSettle();
+
+      // A rename typed and not saved: the sheet must ask about THIS name.
+      await tester.enterText(find.byType(TextField).first, 'Curry leaf');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FButton, 'Choose another ›'));
+      await tester.pumpAndSettle();
+
+      expect(probe.asked.single, normalizeMatchText('Curry leaf'));
+      expect(probe.limits.single, 5);
+      expect(find.text('USDA · for “Curry leaf”'), findsOneWidget);
+      expect(find.text('Curry leaves, raw'), findsWidgets);
+      expect(find.text('current'), findsOneWidget);
+      expect(find.text('Curry leaves, dried'), findsOneWidget);
+      expect(find.text('Spices and Herbs'), findsOneWidget);
+      expect(find.text('close match'), findsOneWidget);
+      expect(find.text('Curry powder'), findsOneWidget);
+      expect(find.text('a guess'), findsOneWidget);
+      // Nothing to copy, nothing to pick.
+      expect(find.text('Curry, nameless'), findsNothing);
+
+      await tester.tap(find.text('Curry leaves, dried'));
+      await tester.pumpAndSettle();
+
+      final row = (await repo.byId('curry'))!;
+      expect(row.canonicalName, 'Curry leaf');
+      expect(row.source, 'usda_fdc:11217');
+      expect(row.sourceLabel, 'Curry leaves, dried');
+      expect(row.sourceScore, 0.9);
+      expect(row.macros!.kcal, 300);
+      expect(row.densityGPerMl, isNull); // the old fill is replaced whole
+      expect(row.status, IngredientStatus.stub);
+      // The form followed: the line names the new food, the fields carry
+      // its numbers.
+      expect(
+        find.textContaining('Curry leaves, dried · FDC 11217 · close match'),
+        findsOneWidget,
+      );
+      expect(_macroFieldText(tester, 'kcal'), '300');
+      expect(
+        find.textContaining('Filled from “Curry leaves, dried”'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('U-D3: on a DECLINED row the refused food is tagged and the '
+        'pick lands despite the decline — a person’s own choice', (
+      tester,
+    ) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo([
+        _curryLeaves.copyWith(source: usdaDeclinedSource),
+      ]);
+      final probe = _RecordingProbe.list(const [
+        _usdaAnswer,
+        UsdaCandidate(
+          fdcId: 11217,
+          description: 'Curry leaves, dried',
+          source: 'usda_fdc:11217',
+          score: 0.9,
+          macros: Macros(kcal: 300, protein: 12, carb: 60, fat: 5),
+        ),
+      ]);
+      await tester.pumpWidget(
+        _host(repo, at: '/ingredients/curry', probe: probe),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FButton, 'Choose another ›'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('declined'), findsOneWidget);
+      await tester.tap(find.text('Curry leaves, dried'));
+      await tester.pumpAndSettle();
+
+      final row = (await repo.byId('curry'))!;
+      expect(row.source, 'usda_fdc:11217');
+      expect(row.sourceLabel, 'Curry leaves, dried');
+      expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
+    });
+
+    testWidgets('U-D3 offline: the sheet says nothing came back, and closing '
+        'it changes nothing', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo(const [_curryLeaves]);
+      await tester.pumpWidget(_host(repo, at: '/ingredients/curry'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FButton, 'Choose another ›'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('nothing came back for “Curry leaves, fresh”'),
+        findsOneWidget,
+      );
+      expect(find.byType(FDialog), findsNothing);
+      await tester.tap(find.byIcon(FLucideIcons.x).last);
+      await tester.pumpAndSettle();
+      expect((await repo.byId('curry'))!.source, 'usda_fdc:11216');
     });
 
     testWidgets('a row USDA never touched carries no provenance line at '

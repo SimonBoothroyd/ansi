@@ -1022,21 +1022,85 @@ void main() {
       expect(declined.macros, isNull);
     });
 
-    test('an explicit pick still never overwrites numbers — the bare-stub '
-        'guard is not the one it lifts', () async {
-      await repo.setDensity('3', 0.9);
-      expect(
-        await repo.applyUsdaProbe(
-          '3',
-          source: 'usda_fdc:9',
-          sourceLabel: 'Olive oil, chosen',
-          densityGPerMl: 0.5,
-          explicitPick: true,
-        ),
-        isNull,
+    test('U-D3: an explicit pick REPLACES a fill that is still the prefill’s '
+        'own — density, macros, stamp, label, score — and the admission '
+        'list follows the density both ways', () async {
+      await repo.applyUsdaProbe(
+        '3',
+        source: 'usda_fdc:11216',
+        sourceLabel: 'Olive oil, salad or cooking',
+        sourceScore: 0.88,
+        densityGPerMl: 0.35,
+        macros: const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
       );
-      expect((await repo.byId('3'))!.densityGPerMl, 0.9);
+      // A pick with macros and NO density: the old density's unlock goes
+      // with it (D4b), exactly as clearDensity would have taken it.
+      final picked = (await repo.applyUsdaProbe(
+        '3',
+        source: 'usda_fdc:9',
+        sourceLabel: 'Olive oil, chosen',
+        sourceScore: 0.7,
+        macros: const Macros(kcal: 50, protein: 1, carb: 2, fat: 3),
+        explicitPick: true,
+      ))!;
+      expect(picked.source, 'usda_fdc:9');
+      expect(picked.sourceLabel, 'Olive oil, chosen');
+      expect(picked.sourceScore, closeTo(0.7, 1e-6));
+      expect(picked.densityGPerMl, isNull);
+      expect(picked.macros!.kcal, 50);
+      expect(picked.status, IngredientStatus.stub);
+      expect(picked.allowedUnits!.map((u) => u.id).toSet(), {'g', 'kg'});
+
+      // And a pick WITH a density unlocks again.
+      final again = (await repo.applyUsdaProbe(
+        '3',
+        source: 'usda_fdc:10',
+        sourceLabel: 'Olive oil, dense',
+        densityGPerMl: 0.9,
+        explicitPick: true,
+      ))!;
+      expect(again.densityGPerMl, 0.9);
+      expect(again.macros, isNull);
+      expect(again.allowedUnits!.map((u) => u.id), contains('cup'));
     });
+
+    test('an explicit pick on a CONFIRMED prefill replaces it and returns '
+        'the row to a stub — choosing is not confirming (U-D4)', () async {
+      await repo.applyUsdaProbe(
+        '3',
+        source: 'usda_fdc:11216',
+        macros: const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
+      );
+      await repo.confirmStub('3');
+      final picked = (await repo.applyUsdaProbe(
+        '3',
+        source: 'usda_fdc:9',
+        sourceLabel: 'Olive oil, chosen',
+        macros: const Macros(kcal: 50, protein: 1, carb: 2, fat: 3),
+        explicitPick: true,
+      ))!;
+      expect(picked.status, IngredientStatus.stub);
+      expect(picked.macros!.kcal, 50);
+    });
+
+    test(
+      'an explicit pick still never overwrites numbers a person supplied '
+      '— the bare-stub guard is lifted only for the prefill’s own fill',
+      () async {
+        await repo.setDensity('3', 0.9);
+        expect(
+          await repo.applyUsdaProbe(
+            '3',
+            source: 'usda_fdc:9',
+            sourceLabel: 'Olive oil, chosen',
+            densityGPerMl: 0.5,
+            explicitPick: true,
+          ),
+          isNull,
+        );
+        expect((await repo.byId('3'))!.densityGPerMl, 0.9);
+      },
+    );
   });
 
   // --- The manager's write half (step 8.5, plan 0020) ------------------------

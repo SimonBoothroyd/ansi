@@ -72,6 +72,7 @@ import 'density_entry.dart';
 import 'draft_card.dart';
 import 'measures_editor.dart';
 import 'serving_row.dart';
+import 'usda_pick_sheet.dart';
 
 /// The pushed route for one vocab row.
 String ingredientDetailRoute(String id) => '/ingredients/$id';
@@ -561,7 +562,57 @@ class _DetailForm extends HookConsumerWidget {
                     if (context.mounted) busy.value = false;
                   }
                 },
-          onChooseAnother: null,
+          onChooseAnother: busy.value
+              ? null
+              : () async {
+                  // Captured BEFORE the sheet: the write after it goes through
+                  // these, never the widget's ref (app/AGENTS.md — the row can
+                  // be unmounted by the time the person picks).
+                  final repo = ref.read(ingredientRepositoryProvider);
+                  final container = ProviderScope.containerOf(
+                    context,
+                    listen: false,
+                  );
+                  final host = hostContextOf(context);
+                  busy.value = true;
+                  try {
+                    // F1: the sheet asks under the STORED name, so pending
+                    // edits are flushed first — the same rule the lookup
+                    // button keeps.
+                    final saved = await save();
+                    if (saved == null || !context.mounted) return;
+                    final pick = await showUsdaPickSheet(
+                      context,
+                      ingredient: saved,
+                    );
+                    if (pick == null) return;
+                    // U-D3: the same apply path as every other fill, with the
+                    // declined guard lifted for a person's own choice — the
+                    // stamp, the label and the score move to the chosen food.
+                    final applied = await container.write(
+                      host,
+                      'use that USDA match',
+                      () => repo.applyUsdaProbe(
+                        saved.id,
+                        source: pick.source,
+                        sourceLabel: pick.description,
+                        sourceScore: pick.score,
+                        densityGPerMl: pick.densityGPerMl,
+                        macros: pick.macros,
+                        explicitPick: true,
+                      ),
+                    );
+                    if (applied == null) return;
+                    container.invalidate(ingredientByIdProvider(saved.id));
+                    if (context.mounted) {
+                      message.value =
+                          'Filled from “${pick.description}” — still a stub '
+                          'until you confirm.';
+                    }
+                  } finally {
+                    if (context.mounted) busy.value = false;
+                  }
+                },
         ),
 
         const _Label('MACROS — ENTER THEM AS THE LABEL READS'),

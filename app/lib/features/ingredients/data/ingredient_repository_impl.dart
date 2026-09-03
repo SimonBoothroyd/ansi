@@ -523,36 +523,49 @@ class SqliteIngredientRepository implements IngredientRepository {
       );
       if (row == null) return false;
       final current = _toIngredient(row);
+      final bare =
+          current.status == IngredientStatus.stub &&
+          current.densityGPerMl == null &&
+          current.macros == null;
       // The guards re-checked inside the transaction, not just by the caller:
       // the row can change between the probe and this write (another device,
-      // or the server trigger landing first). Same shape as the 0014/0015
-      // trigger's WHEN clause, which is what makes the race benign.
-      if (current.status != IngredientStatus.stub ||
-          current.densityGPerMl != null ||
-          current.macros != null) {
+      // or the server trigger landing first). The automatic path mirrors the
+      // 0014/0015 trigger's WHEN clause — a bare stub, and not one a person
+      // declined (plan 0027 U-D2) — which is what makes the race benign. A
+      // person's own pick (U-D3) may also replace a fill that is still the
+      // prefill's own; nothing ever replaces numbers a person supplied.
+      final replacingOwnFill = explicitPick && isUsdaPrefilled(current.source);
+      if (explicitPick) {
+        if (!bare && !replacingOwnFill) return false;
+      } else if (!bare || isUsdaDeclined(current.source)) {
         return false;
       }
-      // The declined guard (plan 0027 U-D2): the trigger's WHEN clause leaves
-      // a declined row alone, and so does every automatic path here. Only a
-      // person's own pick writes over a person's own "no".
-      if (isUsdaDeclined(current.source) && !explicitPick) return false;
-      // A landing density unlocks units, exactly as `setDensity` does — same
-      // event, same rule (ADR-0009). No density, no change to the list.
-      final units = densityGPerMl == null
-          ? current.allowedUnits
-          : [
-              ...{
-                ...current.allowedUnits ?? defaultAllowedUnitSet(current),
-                ...densityUnlockedUnits(current),
-              },
-            ];
+      // The admission list follows the density both ways (ADR-0009 / D4b):
+      // an old density's unlock comes out with it, a landing density's goes
+      // in — the same events `clearDensity` and `setDensity` are. A row with
+      // no explicit list and no density arriving stays on the derived
+      // fallback.
+      List<Unit>? units;
+      if (current.densityGPerMl != null || densityGPerMl != null) {
+        final next = {
+          ...current.allowedUnits ?? defaultAllowedUnitSet(current),
+        };
+        if (current.densityGPerMl != null && densityGPerMl == null) {
+          next.removeAll(densityStrippedUnits(current));
+        }
+        if (densityGPerMl != null) next.addAll(densityUnlockedUnits(current));
+        units = next.toList();
+      } else {
+        units = current.allowedUnits;
+      }
       // Label and score in the same statement as the stamp — the trigger's
       // shape (0027), so a row never says `usda_fdc:<id>` without being able
-      // to say which food and how sure.
+      // to say which food and how sure. The row reads `stub` whatever it
+      // was: a fill is never confirmed by the act of choosing it (U-D4).
       await tx.execute(
         'UPDATE ingredient SET density_g_per_ml = ?, macros = ?, '
         'allowed_units = ?, source = ?, source_label = ?, source_score = ?, '
-        'updated_at = ? WHERE id = ?',
+        "status = 'stub', updated_at = ? WHERE id = ?",
         [
           densityGPerMl,
           _macrosJson(macros),

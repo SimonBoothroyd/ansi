@@ -288,17 +288,37 @@ class FakeIngredientRepo implements IngredientRepository {
     if (current == null) return null;
     // The same guards the real repo re-checks inside its transaction (D7b):
     // a bare stub only, so a machine's numbers never land on a row someone
-    // has filled in — and a declined row only for a person's own pick
-    // (plan 0027 U-D2/U-D3).
-    if (current.status != IngredientStatus.stub ||
-        current.densityGPerMl != null ||
-        current.macros != null) {
+    // has filled in — a declined row, or a fill that is still the prefill's
+    // own, only for a person's own pick (plan 0027 U-D2/U-D3).
+    final bare =
+        current.status == IngredientStatus.stub &&
+        current.densityGPerMl == null &&
+        current.macros == null;
+    if (explicitPick) {
+      if (!bare && !isUsdaPrefilled(current.source)) return null;
+    } else if (!bare || isUsdaDeclined(current.source)) {
       return null;
     }
-    if (isUsdaDeclined(current.source) && !explicitPick) return null;
-    final updated = current.copyWith(
+    // Rebuilt field-by-field: a pick with no density must CLEAR one, and
+    // freezed reads a null as "unchanged". The admission list follows the
+    // density both ways, as the real write's does.
+    final units = {...current.allowedUnits ?? allowedUnitsFor(current)};
+    if (current.densityGPerMl != null && densityGPerMl == null) {
+      units.removeAll(densityStrippedUnits(current));
+    }
+    if (densityGPerMl != null) units.addAll(densityUnlockedUnits(current));
+    final updated = Ingredient(
+      id: current.id,
+      canonicalName: current.canonicalName,
+      defaultUnit: current.defaultUnit,
+      status: IngredientStatus.stub,
+      category: current.category,
       densityGPerMl: densityGPerMl,
       macros: macros,
+      macrosBasis: current.macrosBasis,
+      allowedUnits: units.toList(),
+      defaultMeasureId: current.defaultMeasureId,
+      measureCount: current.measureCount,
       source: source,
       sourceLabel: sourceLabel,
       sourceScore: sourceScore,

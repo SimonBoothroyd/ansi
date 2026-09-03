@@ -239,10 +239,15 @@ abstract interface class IngredientRepository {
   ///
   /// **The declined guard** (U-D2/U-D3): a row whose `source` is
   /// [usdaDeclinedSource] is refused too — a person said "not this food",
-  /// and no automatic path re-fills it. [explicitPick] lifts that one guard
-  /// and only that one: a candidate a person chose from the *Choose another*
-  /// sheet lands on a declined row; a row with numbers is still never
-  /// overwritten.
+  /// and no automatic path re-fills it. [explicitPick] — a candidate a
+  /// person chose from the *Choose another* sheet — lifts exactly two
+  /// things: that guard, and the bare-row guard **where the numbers are the
+  /// prefill's own** (`source` still `usda_fdc:`; both prefill writers are
+  /// fill-null-only, so on such a row they authored both numbers). Then the
+  /// old fill is replaced whole — density (its D4b strip applied, the new
+  /// density's unlock unioned), macros, stamp, label, score — and the row
+  /// reads `stub` whatever it was. A row with numbers a person supplied is
+  /// still never overwritten, pick or no pick.
   ///
   /// The row stays `stub`: a machine's numbers never complete an ingredient
   /// (D5, and the trigger's own contract).
