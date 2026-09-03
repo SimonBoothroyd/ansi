@@ -184,16 +184,16 @@ begin
     units := units || p_default_unit;
   end if;
   if category in ('spices & seasoning', 'fats & oils') then
-    units := units || 'pinch';
+    units := units || array['pinch'];
   end if;
   if category in ('spices & seasoning', 'fats & oils') then
-    units := units || 'dash';
+    units := units || array['dash'];
   end if;
   if category in ('produce', 'spices & seasoning') then
-    units := units || 'handful';
+    units := units || array['handful'];
   end if;
   if category in ('spices & seasoning', 'fats & oils') then
-    units := units || 'to_taste';
+    units := units || array['to_taste'];
   end if;
 
   -- Dedupe, order-preserving, into a jsonb array.
