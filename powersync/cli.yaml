@@ -1,0 +1,5 @@
+# This file is managed by the PowerSync CLI (`powersync init cloud`).
+# It exists so `powersync deploy sync-config` in .github/workflows/deploy-supabase.yml
+# finds a project directory; the sync config itself is docker/powersync-cloud.streams.yaml
+# (passed with --sync-config-file-path). See powersync/README.md.
+type: cloud

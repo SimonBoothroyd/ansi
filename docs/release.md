@@ -377,7 +377,11 @@ Actions → **deploy-supabase** → Run workflow. One job, in order:
 3. **functions deploy** — ships `import-recipe`
 4. **sync streams** — validates then deploys
    `docker/powersync-cloud.streams.yaml` to the PowerSync instance
-   (`powersync deploy sync-config`, CLI pinned). This leg exists because of
+   (`powersync deploy sync-config`, CLI pinned). The CLI insists on a project
+   directory even with an explicit file path, so the repo carries
+   [`powersync/cli.yaml`](../powersync/README.md) — one line, `type: cloud`,
+   and deliberately no `service.yaml` (that would let a run rewrite the
+   instance config; only the sync config rides this button). This leg exists because of
    the 2026-09-01 outage: a cloud rebuild left the dashboard streams frozen at
    step 7.5, so `ingredient_measure` synced to no device while every
    repo-side check stayed green. Streams now ride the same button as the
