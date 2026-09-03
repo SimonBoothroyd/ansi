@@ -479,6 +479,17 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+> **Pending cloud (plan 0027):** migration **`0026_portion_factor.sql`**
+> (`household_member.portion_factor`, default 1 — row-preserving — plus the
+> table's first client UPDATE policy and a column-narrow grant) is on `main`
+> but **not yet pushed**. It ships with `0027_usda_source_label.sql` in one
+> `deploy-supabase` run; both touch the **sync streams** (`household_member`
+> gains `portion_factor` in its explicit column list, `ingredient` gains
+> `source_label`), so the streams are redeployed in the same pass. Readback:
+> `select column_default from information_schema.columns where table_name =
+> 'household_member' and column_name = 'portion_factor';` → `1`. Replace this
+> note with the ledger entry once it lands.
+
 ### 2026-09-03 (day) — field test round three (plan 0025): 0024 pint + quart, 0025 optional lines
 
 - `deploy-supabase` run `33757959262` from `main@35d4ed5`, `reseed_template`

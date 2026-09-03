@@ -123,7 +123,12 @@ those two lines at landing) and `docs/QUALITY.md`.
   sheet's search). Each slice its own commit.
 - **Lane P** — front P. Migration `0026`. Slices: domain (demand, weights,
   fraction formatting, identity test) → data (column, member entity, repo) →
-  Household sheet → entry sheet / cook / lens copy.
+  Household sheet → entry sheet / cook / lens copy. ✅ **Built 2026-09-03**
+  (`828573d` domain · `2b08ed4` wire · `75de314` Household sheet · `da7fbba`
+  the fraction everywhere), `make ci` green in the lane; pgTAP run against
+  the shared local stack with `0026` applied *inside* the test transaction
+  and rolled back (no reset, no residue) — 9/9. The sim leg (`week_test`
+  driving P-D3/D4) is the orchestrator's at landing.
 
 Traps (memory): ff-merge main first; copy `.env.local` into the worktree;
 never `db-reset` the shared stack; sims are the orchestrator's at landing.
@@ -164,6 +169,37 @@ never `db-reset` the shared stack; sims are the orchestrator's at landing.
   serving-quantity variants (absent, ml, oz, zero) are constructed in its
   shape. `serving_quantity` + `serving_quantity_unit` joined the client's
   `fields=` projection.
+- 2026-09-03 — **P-D6 "RLS unchanged" could not hold as written.** The board
+  read the household-scoped UPDATE on `household_member` as "already in
+  place"; `0001` ships the table with a read policy and a `select` grant
+  only (the client never wrote a member row). P-D3 — either member sets
+  either's — needs an UPDATE door, so `0026` adds one: a household-scoped
+  `household_member_update` policy (the same `current_household_id()` anchor
+  every table uses) and a **column-narrow** grant on `portion_factor` +
+  `updated_at` (what the connector PATCHes), so `display_name` and
+  `auth_user_id` stay server-owned. pgTAP pins all of it, including the
+  `42501` on the other columns.
+- 2026-09-03 — **Shopping's data layer reads the factor; its domain is
+  untouched.** "Shopping is untouched" (P-D4) is kept as *no per-person
+  split, still scaled by the session's batch factor* — but the shopping
+  repo derives `CoveredMeal.portions` from the rows itself, so leaving it on
+  the head-count would have bought for 2 while the cook plan cooked 1¾. Both
+  derived repos now read demand through one `eatersDemand` over one
+  `loadMembers`, and watch `household_member`.
+- 2026-09-03 — **Only the quarter glyphs (¼ ½ ¾) are used.** Every factor is a
+  quarter step and any sum of quarters is a quarter, so those cover every
+  demand the household can state; a non-quarter value (a lens share under an
+  override, `3 × ¾ ⁄ 1¾ = 1.29`; a leftover against a `serves 2.5` recipe)
+  prints as a trimmed decimal rather than a glyph the bundled faces might
+  lack. `formatPortions` reads singular at or below one ("¾ portion").
+- 2026-09-03 — **`membersProvider` is a stream.** The Portions rows and the
+  Household sheet read the roster live (`watchMembers`), so a factor set on
+  the partner's phone lands mid-sheet; the derived tabs' watches join
+  `household_member` for the same reason.
+- 2026-09-03 — **The grid's portions chip is the override**, drawn only when
+  it differs from the eaters' own summed demand (identical to the old rule
+  when every factor is 1); a fractional usual never earns a chip — the
+  avatars are the who, the sheet says the how much.
 
 ## Step-done checklist
 
