@@ -24,6 +24,12 @@ import '../core/theme/ansi_theme.dart';
 /// failure the user has already moved past does not follow them around.
 const _toastDuration = Duration(seconds: 6);
 
+/// A context below the app's one `FToaster`, for a caller that has none of its
+/// own — the zone handler, which runs outside the widget tree entirely.
+///
+/// `app.dart` mounts it inside the toaster; it is null until the first frame.
+final ansiToastAnchor = GlobalKey(debugLabel: 'ansi toast anchor');
+
 /// Reports that one thing the user asked for did not happen.
 ///
 /// [what] is a lowercase verb phrase in the user's own noun completing
@@ -60,5 +66,35 @@ void showAnsiFailureToast(
             },
             child: const Text('Retry'),
           ),
+  );
+}
+
+/// Reports that something threw where nobody was expecting it.
+///
+/// Primary, not destructive: this is information, not alarm — the app kept
+/// going, and a user action that failed already had its own honest surface via
+/// [showAnsiFailureToast]. The rate limiting lives in the caller
+/// (`core/observability/crash_sink.dart`), because an exception thrown inside
+/// `build` repeats every frame.
+void showAnsiProblemToast(
+  BuildContext context, {
+  required VoidCallback onCopyDetails,
+}) {
+  showFToast(
+    context: context,
+    alignment: FToastAlignment.bottomCenter,
+    duration: _toastDuration,
+    icon: const Icon(FLucideIcons.info),
+    title: const Text('Something went wrong.'),
+    description: Text('Ansi kept going.', style: ansiMonoInherit(size: 11)),
+    suffixBuilder: (context, entry) => FButton(
+      variant: FButtonVariant.outline,
+      size: FButtonSizeVariant.sm,
+      onPress: () {
+        entry.dismiss();
+        onCopyDetails();
+      },
+      child: const Text('Copy details'),
+    ),
   );
 }

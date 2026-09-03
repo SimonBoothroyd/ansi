@@ -15,6 +15,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../core/observability/crash_sink.dart';
 import 'ansi_toast.dart';
 
 /// Runs one user-initiated write and reports its failure honestly.
@@ -54,14 +55,37 @@ Future<T?> guardedWrite<T>(
   required Future<T> Function() action,
   String? reassurance,
   bool retryable = true,
+}) {
+  // Resolved BEFORE the await, and carried by hand from here on. `ref` is
+  // unsafe the moment the widget it belongs to is gone, and surviving exactly
+  // that is the point of this helper — a sheet dismissed mid-write must not
+  // turn a repository failure into a second, different one.
+  final crashes = ref.read(crashSinkProvider);
+  return _attempt(
+    context,
+    crashes,
+    what: what,
+    action: action,
+    reassurance: reassurance,
+    retryable: retryable,
+  );
+}
+
+Future<T?> _attempt<T>(
+  BuildContext context,
+  CrashSink crashes, {
+  required String what,
+  required Future<T> Function() action,
+  String? reassurance,
+  bool retryable = true,
 }) async {
   try {
     return await action();
   } on Object catch (error, stack) {
-    // Handled, so it is logged here and never reported again by the zone
-    // handler — otherwise one failed write produces both "Couldn't save the
-    // recipe" and "Something went wrong", which is the app arguing with itself.
-    debugPrint('write failed ($what): $error\n$stack');
+    // `note`, not `report`: this failure is handled, and it has its own honest
+    // surface below. Reporting it too would produce both "Couldn't save the
+    // recipe" and "Something went wrong" — the app arguing with itself.
+    crashes.note(error, stack);
     if (!context.mounted) return null;
     showAnsiFailureToast(
       context,
@@ -69,9 +93,9 @@ Future<T?> guardedWrite<T>(
       reassurance: reassurance,
       onRetry: retryable
           ? () => unawaited(
-              guardedWrite(
+              _attempt(
                 context,
-                ref,
+                crashes,
                 what: what,
                 action: action,
                 reassurance: reassurance,

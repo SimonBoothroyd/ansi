@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'core/router/app_router.dart';
 import 'core/sync/session.dart';
 import 'core/theme/ansi_theme.dart';
+import 'shared/ansi_toast.dart';
 
 /// Root widget. `MaterialApp.router` hosts go_router (Flutter needs a
 /// `WidgetsApp` for routing, overlays and localizations); every visible
@@ -28,7 +29,11 @@ class AnsiApp extends ConsumerWidget {
       // dialog — lands in this one stack instead of a per-screen overlay.
       builder: (context, child) => FTheme(
         data: theme,
-        child: FToaster(child: child!),
+        child: FToaster(
+          // The anchor the zone handler toasts through: it runs outside the
+          // widget tree and has no context of its own.
+          child: KeyedSubtree(key: ansiToastAnchor, child: child!),
+        ),
       ),
     );
   }

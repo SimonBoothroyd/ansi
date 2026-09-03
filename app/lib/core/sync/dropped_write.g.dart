@@ -56,7 +56,7 @@ final class DroppedWritesProvider
   }
 }
 
-String _$droppedWritesHash() => r'd98438db877717ed3d479f8e50e97efa0a84a37f';
+String _$droppedWritesHash() => r'83cb910933d2ac208bc9daa0fbe7b8135b6102e8';
 
 /// Every write this device has lost, oldest first.
 ///
