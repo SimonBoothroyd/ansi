@@ -1332,6 +1332,9 @@ void main() {
 
     // The extraction arrived, grouped, with every line surfaced for review.
     expect(find.text('Weeknight Tomato Pasta'), findsOneWidget);
+    // The shared six-section header (plan 0025 #4) now sits above the list's
+    // section label, and the review list is lazy — scroll to it.
+    await scrollTo(tester, find.text('INGREDIENTS'));
     expect(find.text('INGREDIENTS'), findsOneWidget);
     // The named group sits under the first group's cards; with the seam's
     // extra "2 red peppers" line the review list (lazy) no longer builds it
