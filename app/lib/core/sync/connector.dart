@@ -31,19 +31,25 @@ bool isFatalPostgrestError(PostgrestException e) {
       code.startsWith('42');
 }
 
-/// The server's `jsonb` columns, per table — keep in lockstep with
-/// `supabase/migrations` (0002 `ingredient.macros`, 0003 `recipe.steps`,
-/// 0005 `plan_entry.eaters`).
+/// The server's `jsonb` columns, per table — held in lockstep with
+/// `supabase/migrations` by `test/structure/jsonb_columns_test.dart`, which
+/// derives the set from the migrations (0002 `ingredient.macros`, 0003
+/// `recipe.steps`, 0005 `plan_entry.eaters`, 0012 `ingredient.allowed_units`)
+/// and fails the build when this map falls behind.
 ///
 /// PowerSync's local SQLite stores JSON values as TEXT, so a queued op carries
 /// e.g. `steps` as the *string* `'["step one"]'`. Uploading that string as-is
 /// makes Postgres store a jsonb **string** (`jsonb_typeof` = `string`), and
 /// when the row syncs back down every reader that expects an array/object
-/// crashes. Decode these columns to native structures before upload.
+/// crashes — or, quieter and worse, every server-side rule that asks
+/// `allowed_units ? unit` answers false. `allowed_units` was missing from this
+/// map from 0012 until 2026-09-03 (found by pgTAP over smoke-created rows;
+/// repaired server-side by 0028). Decode these columns to native structures
+/// before upload.
 const Map<String, Set<String>> jsonbColumnsByTable = {
   'recipe': {'steps'},
   'plan_entry': {'eaters'},
-  'ingredient': {'macros'},
+  'ingredient': {'macros', 'allowed_units'},
 };
 
 /// Returns [data] with any [jsonbColumnsByTable] columns of [table] decoded

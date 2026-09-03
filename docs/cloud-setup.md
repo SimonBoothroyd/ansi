@@ -506,6 +506,11 @@ or any dashboard-config walk.
   count(*) from probe_usda('kale', 5);` as `authenticated` → up to 5.
 - `0026_portion_factor.sql` (lane P) rides in the same push; its own note
   is the orchestrator's at landing.
+- **`0028_allowed_units_jsonb_repair.sql` rides in the same push** and is the
+  one that matters for existing phones: every ingredient the app created since
+  0012 uploaded `allowed_units` as a jsonb STRING (connector map gap, fixed
+  2026-09-03). Readback after the push: `select count(*) from ingredient where
+  jsonb_typeof(allowed_units) = 'string';` → `0`.
 
 ### 2026-09-03 (day) — field test round three (plan 0025): 0024 pint + quart, 0025 optional lines
 

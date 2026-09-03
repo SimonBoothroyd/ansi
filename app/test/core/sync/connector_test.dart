@@ -160,9 +160,17 @@ void main() {
       expect(plan['eaters'], ['m1']);
 
       final ingredient = putPayload(
-        _put('ingredient', 'i1', {'macros': '{"kcal":100}'}),
+        _put('ingredient', 'i1', {
+          'macros': '{"kcal":100}',
+          'allowed_units': '["g","kg"]',
+        }),
       );
       expect(ingredient['macros'], {'kcal': 100});
+      // 0012's column was missing from the map until 2026-09-03: every
+      // app-created ingredient uploaded its admission list as a jsonb STRING,
+      // which `allowed_units ? unit` on the server never matched (pgTAP over
+      // smoke-created rows caught it; 0028 repairs the stored rows).
+      expect(ingredient['allowed_units'], ['g', 'kg']);
     });
 
     test('leaves absent / null jsonb columns alone', () {

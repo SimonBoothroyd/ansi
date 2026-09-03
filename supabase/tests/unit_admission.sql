@@ -43,7 +43,7 @@
 -- Run by `supabase test db`.
 
 begin;
-select plan(131);
+select plan(132);
 
 -- ---------------------------------------------------------------------------
 -- default_allowed_units() vectors — mirror allowed_units_test.dart, group
@@ -1250,6 +1250,15 @@ select throws_ok(
   '23514',
   null,
   'basis_amount rejects non-positive amounts (0012 check)'
+);
+
+-- 0028: no admission list is a jsonb STRING any more — the connector decodes
+-- `allowed_units` before upload and the migration re-typed what was stored.
+select is(
+  (select count(*)::int from ingredient
+     where jsonb_typeof(allowed_units) = 'string'),
+  0,
+  'no ingredient carries allowed_units as a jsonb string (0028 repair)'
 );
 
 select * from finish();
