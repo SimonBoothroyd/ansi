@@ -4146,6 +4146,211 @@
 </div>
 <!-- lane:round3:end -->
 
+<!-- lane:macros-per-serving:start -->
+<!-- ===== MACROS FROM A LABEL (PROPOSED — owner field test 2026-09-03, item 2) ===== -->
+<div class="section-head" id="macros-per-serving"><span class="ey">Macros from a label · per serving</span><span class="proposed-tag">proposed 2026-09-03 — awaiting owner sign-off</span><span class="rule"></span><span class="sub">The pack says “1 Tbsp (14 g) · 100 kcal”; the row stores per 100 g — the form does the arithmetic, and says what it did</span></div>
+
+<div class="locknote">
+    <p class="lk-h">Proposed — owner report #2, 2026-09-03: “some packages only state per serving”</p>
+    <p>Today the flesh-out form takes macros <b>per 100 g / per 100 ml</b> only (<b>ingredient.macros_basis</b>, ADR-0008), so a US Nutrition Facts panel means a calculator. The barcode path already meets the same panel and <b>refuses</b> it with a named gap (<b>off_mapper.dart</b>, <span style="font-family:'IBM Plex Mono',monospace">perServingPanel</span>). The density entry (7.8) already reads “1 tbsp of this weighs N g” — the very sentence the label prints.</p>
+    <div class="ledger">
+        <span class="k ch">decides</span><span><b>D1</b> a <i>per</i> segment on the macros label — per 100 g · per 100 ml · <b>per serving</b> — revealing one serving row, the four fields taking the label’s figures as printed, and a stored-line preview under them · <b>D2</b> the serving’s “1 tbsp = 14 g” is offered, <b>opt-in</b>, as this row’s density (or a measure when it names a thing) in the same save · <b>D3</b> store the derived per-100 unrounded, say once that the label’s rounding scaled with it · <b>D4</b> nothing on the wire · <b>D5</b> the barcode draft lands on the same selector, serving prefilled from OFF’s numeric <span style="font-family:'IBM Plex Mono',monospace">serving_quantity</span> when it has one · <b>D6</b> four macros stay four — sodium, fibre, saturated fat are not modelled.</span>
+        <span class="k">kept</span><span>per-100 storage · the stub / complete rule (plan 0020 D5: macros gate <span style="font-family:'IBM Plex Mono',monospace">complete</span>, confirming is a human act) · the barcode draft that prefills and never completes.</span>
+    </div>
+    <p class="src">Decisions and the build sketch: <b>macros-per-serving-decisions.md</b> (scratchpad, this session). No migration; a pure-Dart conversion in <b>core/units/macros.dart</b>, the form section, one mapper branch.</p>
+</div>
+
+<div class="board">
+
+    <div class="frame">
+        <p class="frame-name"><b>(a) The macros section · per serving</b> — the label typed as printed; the row stored as every row is</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Buttery Spread</span><span class="dots">⋯</span></div>
+            <p class="flabel">Macros</p>
+            <div class="frow"><div class="seg"><span class="segopt">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt on">per serving</span></div></div>
+            <p class="flabel">One serving is</p>
+            <div class="frow" style="display:flex;gap:10px"><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace">14</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace">g ▾</div><div class="fin" style="flex:1;color:var(--muted)">1 Tbsp on the pack</div></div>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv">100</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">0 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">0 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">11 g</div><div class="mil">fat</div></div></div></div>
+            <div class="status-line"><span class="sdot"></span>stored per 100 g:&nbsp;<b style="color:var(--ink)">714 kcal · 0 P · 79 F · 0 C</b></div>
+            <p class="conv-note">from a 14 g serving — the label’s rounding scales with it (0 g here means under 0.5 g on the pack)</p>
+            <p class="flabel">This serving also says</p>
+            <div class="frow"><div class="chips"><span class="chip">☐ 1 tbsp weighs 14 g — set as density</span></div></div>
+            <div class="savebtn">Save</div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D1 — one control, in the section it changes.</b> Per 100 g stays the default; nobody who never taps the segment sees anything new. The four fields are the same four fields; the serving row is the only addition, and the stored line under them keeps invariant 3 in view: the human reads the derivation before Save. <span style="color:var(--muted)">Rejected: a separate “enter from a label” sheet (ceremony for four numbers the form already has); a serving-size field always shown, prefilled 100 (a fifth number to check on every row).</span> <b style="color:var(--ink)">D3 — derive, store, forget.</b> The row stores per-100 like every row; the note is said once, at entry. If it is missed later, persisting the printed figures is an additive column, not a redesign.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>(b) The serving is a density fact</b> — opt-in, same save, the 7.8 phrasing</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Buttery Spread</span><span class="dots">⋯</span></div>
+            <p class="flabel">This serving also says</p>
+            <div class="frow"><div class="chips"><span class="chip" style="border-color:var(--herb);color:var(--herb)">☑ 1 tbsp weighs 14 g — set as density</span></div></div>
+            <p class="flabel">Density (volume ↔ weight)</p>
+            <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace">0.95 g / ml <span style="color:var(--muted)">· from “1 tbsp weighs 14 g”</span></div></div>
+            <p class="flabel">Units this row admits</p>
+            <div class="frow"><div class="chips"><span class="chip">g</span><span class="chip">kg</span><span class="chip" style="border-style:dashed">tsp</span><span class="chip" style="border-style:dashed">tbsp</span><span class="chip" style="border-style:dashed">ml</span></div></div>
+            <p class="conv-note">the dashed chips unlock exactly as they do when a density is typed by hand (ADR-0009) — one stored fact, two phrasings</p>
+            <div class="savebtn">Save</div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D2 — offered, never assumed.</b> “1 Tbsp (14 g)” is <code>densityFromVolumeWeight(tbsp, 14 g)</code> verbatim, so the offer costs nothing and writes through the entry that already exists. It stays <b>off by default</b>: a pack’s “about 1 tbsp” is sometimes a guess, and a density minted from a guess would decide what units the row admits. When the serving names a thing (“1 slice (28 g)”) the same line offers a <b>measure</b> instead, through the measures editor. <span style="color:var(--muted)">Rejected: always writing it (a guess becomes admission); never offering it (the user retypes the sentence they just read).</span></p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>(c) Barcode · a per-serving panel</b> — lands on the same selector instead of a refusal</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">✕</span><span class="ttl">Scanned</span><span class="dots"></span></div>
+            <p class="flabel">Matched · Open Food Facts</p>
+            <div class="matched"><div class="mnm">Buttery Spread, 425 g</div><div class="msrc">earth balance · barcode 0337xxxx · ODbL</div></div>
+            <p class="flabel">Macros</p>
+            <div class="frow"><div class="seg"><span class="segopt">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt on">per serving</span></div></div>
+            <p class="flabel">One serving is</p>
+            <div class="frow" style="display:flex;gap:10px"><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">—</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace">g ▾</div><div class="fin" style="flex:1;color:var(--muted)">the pack says “1 Tbsp (14 g)” — type the weight</div></div>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv">100</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">0 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">0 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">11 g</div><div class="mil">fat</div></div></div></div>
+            <div class="status-line"><span class="sdot"></span>Saves as a <b style="color:var(--ink)">&nbsp;stub</b>&nbsp;— the serving weight is what is missing.</div>
+            <div class="savebtn">Save to queue</div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D5 — the same rule the form has.</b> Today <code>perServingPanel</code> throws away four real numbers the pack printed because OFF’s <code>serving_size</code> is prose. With D1 the draft can carry them into <i>per serving</i> mode: the serving amount prefilled when OFF also has the numeric <code>serving_quantity</code>, else <b>empty and flagged</b> — never parsed out of “1 serving (16 fl oz)”. The row still saves as a stub (plan 0020 D5); nothing here confirms. <span style="color:var(--muted)">D6 — the model stays four macros: calories are kcal already; sodium, saturated fat and fibre on the panel are not fields and do not become fields in this slice.</span></p>
+    </div>
+
+</div>
+<!-- lane:macros-per-serving:end -->
+
+<!-- lane:usda-match:start -->
+<!-- ===== THE USDA MATCH, SAID OUT LOUD (PROPOSED — owner field test 2026-09-03, item 3) ===== -->
+<div class="section-head" id="usda-match"><span class="ey">The USDA match · shown, undone, re-chosen</span><span class="proposed-tag">proposed 2026-09-03 — awaiting owner sign-off</span><span class="rule"></span><span class="sub">A stub is filled from the reference set silently today — the form should name the food it copied, and let a human say “not that one”</span></div>
+
+<div class="locknote">
+    <p class="lk-h">Proposed — owner report #3, 2026-09-03: “show what the exact match was, and let the user undo”</p>
+    <p>A bare stub is prefilled on insert and on rename by the <b>0014/0015</b> trigger and, since plan 0020 D7b, by the app’s <b>applyUsdaProbe</b> — both fill-null-only, both writing <b>density + macros</b> and stamping <span style="font-family:'IBM Plex Mono',monospace">source = usda_fdc:&lt;id&gt;</span>. The probe (<b>0016</b>) returns <span style="font-family:'IBM Plex Mono',monospace">fdc_id · density · macros · score · source</span> — <b>no description</b>, so the phone cannot say which food it was. The rename trigger re-fires while the row is a bare stub whose source is null / manual / import_stub.</p>
+    <div class="ledger">
+        <span class="k ch">decides</span><span><b>D1</b> a provenance line at the head of the macros/density section — description · FDC id · a band word from the score — carried by a new synced <span style="font-family:'IBM Plex Mono',monospace">ingredient.source_label</span> that both writers set from a probe widened to return <span style="font-family:'IBM Plex Mono',monospace">description</span> · <b>D2</b> <i>Not this food</i> is one write: clear the density (through <span style="font-family:'IBM Plex Mono',monospace">clearDensity</span>, so the unlocked units strip back, D4b) and the macros, and set <span style="font-family:'IBM Plex Mono',monospace">source = usda_declined</span>, which the rename trigger does not refill · <b>D3</b> <i>Choose another ▸</i> — the probe gains a <span style="font-family:'IBM Plex Mono',monospace">limit</span>, the sheet lists the next five, a pick applies through the same apply path — second slice · <b>D4</b> nothing here promotes a row; confirming stays a human act · <b>D5</b> one migration, the column synced, RLS unchanged.</span>
+        <span class="k">kept</span><span>ADR-0004/0005 untouched — <span style="font-family:'IBM Plex Mono',monospace">usda_food</span> never syncs and is never a recipe-match target · the list rows and the stub band carry no provenance (the form is the place).</span>
+    </div>
+    <p class="src">Decisions and the build sketch: <b>usda-match-decisions.md</b> (scratchpad, this session).</p>
+</div>
+
+<div class="board">
+
+    <div class="frame">
+        <p class="frame-name"><b>(a) The form · where the numbers came from</b> — one line, two doors</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Kale</span><span class="dots">⋯</span></div>
+            <p class="flabel">Filled from USDA · not confirmed</p>
+            <div class="matched"><div class="mnm">Kale, raw</div><div class="msrc">FDC 168421 · <b style="color:var(--herb)">close match</b> for “kale”</div>
+                <div class="chips" style="margin-top:10px"><span class="chip">Not this food</span><span class="chip">Choose another ›</span></div></div>
+            <p class="flabel">Density (volume ↔ weight)</p>
+            <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace">0.42 g / ml <span style="color:var(--muted)">· USDA</span></div></div>
+            <p class="flabel">Macros per 100 g</p>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv">35</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">2.9 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">4.4 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">1.5 g</div><div class="mil">fat</div></div></div></div>
+            <div class="status-line"><span class="sdot"></span>Still a <b style="color:var(--ink)">&nbsp;stub</b>&nbsp;— confirm when the numbers are yours.</div>
+            <div class="savebtn">Confirm</div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D1 — the row’s own fact, readable offline.</b> The description travels as <code>source_label</code>, written by the trigger and by the app’s apply in the same statement that stamps <code>usda_fdc:&lt;id&gt;</code>; the band word comes from the stored score rule the probe already uses (0.5 floor; ≥ 0.85 reads <i>close match</i>, below it <i>a guess</i>, the import’s own bands). <span style="color:var(--muted)">Rejected: asking <code>probe_usda</code> when the form opens — online-only on an offline-first screen, and after a rename it would name a different food than the one that filled the row; packing the description into the <code>source</code> string — a label parsed out of a provenance key.</span> <b style="color:var(--ink)">D4 — nothing here confirms.</b> Plan 0020 D5 stands: the line reads <i>not confirmed</i> until a human taps Confirm.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>(b) Not this food</b> — exactly what the probe wrote comes out; what a human typed stays</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Kale</span><span class="dots">⋯</span></div>
+            <p class="flabel">USDA · declined</p>
+            <div class="matched"><div class="mnm" style="color:var(--muted)">Kale, raw — not this food</div><div class="msrc">the filled numbers were cleared · <span style="color:var(--herb)">Choose another ›</span></div></div>
+            <p class="flabel">Density (volume ↔ weight)</p>
+            <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">— g / ml</div></div>
+            <p class="flabel">Units this row admits</p>
+            <div class="frow"><div class="chips"><span class="chip">g</span><span class="chip">kg</span><span class="chip" style="border-style:dashed;color:var(--muted)">ml · needs a density</span></div></div>
+            <p class="flabel">Macros per 100 g</p>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">kcal</div></div><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">protein</div></div><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">carb</div></div><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">fat</div></div></div></div>
+            <p class="conv-note">renaming this row will <b>not</b> refill it — you said no once</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D2 — one write, and the trigger honours it.</b> Both writers are fill-null-only on a bare stub, so on a <code>usda_fdc:</code> row the prefill is the author of <i>both</i> the density and the macros; undo clears both — the density through <code>clearDensity</code>, which already strips the volume family it unlocked (D4b) — and sets <code>source = 'usda_declined'</code>. The 0015 WHEN clause lists the sources it may refill; <i>declined</i> is not among them, so the next rename leaves the row alone. Undo is offered only while <code>source</code> still starts with <code>usda_fdc:</code>: a row a human has edited since is the human’s. <span style="color:var(--muted)">Rejected: a <code>prefill_declined_at</code> column (a second column for one bit <code>source</code> already carries); resetting to <code>manual</code> (re-arms the refill — you would decline the same food twice).</span></p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>(c) Choose another</b> — the next five, the same apply path <span class="stretch-tag">second slice</span></p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <div class="c-h">USDA · for “kale”</div>
+            <div class="srow"><span class="sname">Kale, raw</span><span class="slab" style="color:var(--muted)">declined</span></div>
+            <div class="srow"><span class="sname"><b>Kale, frozen, cooked, boiled</b></span><span class="slab" style="color:var(--herb)">close</span></div>
+            <div class="srow"><span class="sname">Kale, cooked, boiled, drained</span><span class="slab" style="color:var(--herb)">close</span></div>
+            <div class="srow"><span class="sname">Kale, scotch, raw</span><span class="slab" style="color:var(--muted)">a guess</span></div>
+            <div class="srow"><span class="sname">Kale chips</span><span class="slab" style="color:var(--muted)">a guess</span></div>
+            <p class="conv-note">picking one fills density + macros from it and names it on the form — still a stub until you confirm</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D3 — in scope, second.</b> <code>probe_usda</code> gains a <code>limit</code> (default 1 — every existing caller unchanged); the form asks for five, ranked by the same total order (score, then id). A pick applies through <code>applyUsdaProbe</code> with the declined guard lifted for an explicit choice, and stamps that id and label. <span style="color:var(--muted)">Deferred with it: nothing — undo alone (frame b) ships first because it needs no new sheet, and it already leaves the human no worse than today.</span> <b style="color:var(--ink)">D5</b> — <code>source_label</code> joins <code>schema.dart</code> and the sync rules (the docs drift check holds the pair); RLS is the existing household-scoped UPDATE; pgTAP pins the trigger writing the label, the declined stub staying bare on rename, and the widened probe’s order.</p>
+    </div>
+
+</div>
+<!-- lane:usda-match:end -->
+
+<!-- lane:portion-factor:start -->
+<!-- ===== A USUAL PORTION PER PERSON (PROPOSED — owner question 2026-09-03, item 4) ===== -->
+<div class="section-head" id="portion-factor"><span class="ey">A usual portion per person</span><span class="proposed-tag">proposed 2026-09-03 — awaiting owner sign-off</span><span class="rule"></span><span class="sub">“My wife eats ¾ what I do” — a fact about a person, spent everywhere a head-count is spent today, and said as a fraction rather than rounded away</span></div>
+
+<div class="locknote">
+    <p class="lk-h">Proposed — owner question #4, 2026-09-03</p>
+    <p>Demand is a head-count today: an entry’s <b>eaters</b> (member ids) or its integer <b>portions</b> override, <span style="font-family:'IBM Plex Mono',monospace">portionsOrDefault = portions ?? eaters.length</span>. The cook plan already divides that by <span style="font-family:'IBM Plex Mono',monospace">servings_base</span> into a <b>fractional</b> batch count with the whole-batch nudge on top; shopping scales by that factor; the per-person macro lens splits <b>evenly</b> — “the only figure eaters + portions can honestly state” (Week v2, frame e). <span style="font-family:'IBM Plex Mono',monospace">household_member</span> has no size column and the app has no household screen — the Library <span style="font-family:'IBM Plex Mono',monospace">⋯</span> holds Ingredients · New book · Reorder · Sign out.</p>
+    <div class="ledger">
+        <span class="k ch">decides</span><span><b>D1</b> the factor lives on the member — <span style="font-family:'IBM Plex Mono',monospace">household_member.portion_factor</span>, default 1; demand = Σ factors of the eaters; the per-entry integer override still wins · <b>D2</b> a segment ×½ · ×¾ · ×1 · ×1¼ · ×1½ + custom in quarter steps · <b>D3</b> set from a <i>Household</i> row in the Library <span style="font-family:'IBM Plex Mono',monospace">⋯</span>, either member may set either · <b>D4</b> demand is fractional and printed as a fraction everywhere — the entry sheet, the cook session, the nudge — never rounded silently · <b>D5</b> the per-person lens weights by factor and names its denominator · <b>D6</b> one migration with default 1: every number today is unchanged until someone taps.</span>
+        <span class="k">kept</span><span>eaters as the who · the integer override as the exception · the cook plan’s batch math and nudge · shopping untouched.</span>
+    </div>
+    <p class="src">Decisions and the build sketch: <b>portion-factor-decisions.md</b> (scratchpad, this session).</p>
+</div>
+
+<div class="board">
+
+    <div class="frame">
+        <p class="frame-name"><b>(a) Household</b> — the one new surface: a sheet off the Library <span style="font-family:'IBM Plex Mono',monospace">⋯</span></p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <div class="c-h">Household</div>
+            <p class="clabel">Usual portion</p>
+            <div class="eater-row"><span class="lab"><b>Ada</b></span><span class="eaters"><span class="ep on a">A</span></span></div>
+            <div class="frow"><div class="seg"><span class="segopt">×½</span><span class="segopt">×¾</span><span class="segopt on">×1</span><span class="segopt">×1¼</span><span class="segopt">×1½</span><span class="segopt">…</span></div></div>
+            <div class="eater-row"><span class="lab"><b>Jun</b></span><span class="eaters"><span class="ep on j">J</span></span></div>
+            <div class="frow"><div class="seg"><span class="segopt">×½</span><span class="segopt on">×¾</span><span class="segopt">×1</span><span class="segopt">×1¼</span><span class="segopt">×1½</span><span class="segopt">…</span></div></div>
+            <p class="conv-note">a meal for both counts as <b>1¾ portions</b> — the cook plan, the shop and the macro lens all read it that way</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D1 / D3 — a standing fact, stated once.</b> A usual portion belongs to the person, not to Tuesday’s curry, so it sits on <code>household_member</code> and is spent wherever the eater count is spent today. The override on an entry remains the place for the exception (“cook 3 tonight”). It is set from a <i>Household</i> row in the Library <code>⋯</code> because that menu is already where the household’s non-recipe things live (Ingredients, Sign out). <span style="color:var(--muted)">Rejected: per entry only (repeats the fact every meal); a long-press on the Week’s lens chip (hidden); a Settings tab (the four tabs are the loop — navigation v2).</span> <b style="color:var(--ink)">D2</b> — a small set plus custom in quarter steps; nobody knows they eat 0.83 of a portion.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>(b) Entry sheet</b> — the demand it now states, and the override still winning</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <div class="c-h">This meal</div>
+            <div class="picked"><div class="rthumb">◍</div><div class="pn"><div class="ptitle">Weeknight Chicken Curry</div><div class="rml">520 kcal <span class="per">· 34 p · 48 c · 19 f</span> <span class="per">/serving</span></div></div></div>
+            <p class="clabel">Who’s eating</p>
+            <div class="eater-row"><span class="lab"><b>Both</b> — Ada &amp; Jun</span><span class="eaters"><span class="ep on a">A</span><span class="ep on j">J</span></span></div>
+            <p class="clabel">Portions</p>
+            <div class="portion"><div class="pl">1¾ portions<small>Ada 1 · Jun ¾ — their usual</small></div><div class="pstepper"><span class="s">–</span><span class="qv">—</span><span class="s">+</span></div></div>
+            <div class="batch-note">Cooks <b>Monday</b> at <b>×0.44</b> of a 4-serving batch — the Cook tab will offer the whole batch instead, with <b>2¼ portions left over</b>.</div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D4 — fractional, and printed as one.</b> Demand becomes Σ factors (1¾), <code>CookSession.portions</code> becomes a double, and batches = demand ÷ <code>servings_base</code> exactly as today — the machinery was already fractional; only the input was whole. Fractions render as ½ ¾ ¼ glyphs, never “1.75”. The stepper stays whole numbers; when it is set, its small print reads <i>overrides the eaters’ 1¾</i>. <span style="color:var(--muted)">Rejected: rounding demand up to whole portions — cooks more than anyone asked, silently.</span></p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>(c) Cook · Week lens</b> — the nudge speaks the fraction; the lens weights by it and names its denominator</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">‹</span><span class="wt">Week of 14 Sep<span class="caret">▾</span></span><span class="chev">›</span><span class="dots">⋯</span></div>
+            <p class="list-h">Cook · Monday</p>
+            <div class="srow"><span class="slab">×0.44</span><span class="sname">Weeknight Chicken Curry <span style="color:var(--muted)">· 1¾ portions</span></span></div>
+            <p class="conv-note">cook <b>×1</b> instead — covers 4 portions · <b>2¼ left over</b> · keeps 4 d</p>
+            <p class="list-h">Week · Jun</p>
+            <div class="day2"><div class="day2-head"><div class="day2-name">Monday</div><span class="day2-date">14 Sep</span></div>
+                <div class="srow"><span class="slab">Dinner</span><span class="sname">Weeknight Chicken Curry</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span></div>
+                <div class="daymac"><span class="dm">390<span class="u">kcal</span></span><span class="dm">26<span class="u">g p</span></span><span class="dm">36<span class="u">g c</span></span><span class="dm">14<span class="u">g f</span></span><span class="scope">Jun · ¾ of 1¾ portions</span></div>
+            </div>
+            <p class="conv-note">Ada’s lens reads 520 kcal on the same meal — <b>1 of 1¾</b>; an override of 3 gives Jun 3 × ¾⁄1¾ = 1.29 servings, said the same way</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D5 — the split the household just declared.</b> The even split was honest only because nothing said otherwise; with a factor on file it would state a figure the household has called false. A person’s share = per-serving macros × their factor (× override ÷ Σ factors when an override is set), and the scope line names the denominator. An entry with an override and no eaters stays unattributable, as today. <b style="color:var(--ink)">D6</b> — <code>0026_portion_factor.sql</code> adds the column with default 1; <code>schema.dart</code> and the sync rules carry it; RLS is the household-scoped UPDATE already in place; a test runs today’s fixtures through the new derivations and asserts every number is unchanged when all factors are 1. <span style="color:var(--muted)">Out: per-meal per-person factors, child members, a per-person shopping split.</span></p>
+    </div>
+
+</div>
+<!-- lane:portion-factor:end -->
+
+
     <footer class="footer">
         <span><b>Ansi</b> — complete board</span>
         <span>Flutter · Forui · Supabase · PowerSync</span>
