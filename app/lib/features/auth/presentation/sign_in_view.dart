@@ -40,6 +40,13 @@ class SignInView extends HookConsumerWidget {
 
     Future<void> run(Future<void> Function() action) async {
       if (busy.value) return;
+      // Drop the keyboard BEFORE the sign-in navigates away. A successful
+      // sign-in replaces this page while the keyboard is still up, and on
+      // Android the IME inset can then outlive the keyboard (the owner's
+      // Pixel: every tab shrunk by a keyboard height after signing in) — a
+      // field that is unfocused here hides the keyboard while the page that
+      // owns it is still around to hear the inset go back to zero.
+      FocusManager.instance.primaryFocus?.unfocus();
       busy.value = true;
       error.value = null;
       try {
