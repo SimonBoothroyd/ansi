@@ -1289,8 +1289,13 @@ void main() {
 
     // The extraction arrived, grouped, with every line surfaced for review.
     expect(find.text('Weeknight Tomato Pasta'), findsOneWidget);
-    expect(find.text('To finish'), findsOneWidget); // the named group
     expect(find.text('INGREDIENTS'), findsOneWidget);
+    // The named group sits under the first group's cards; with the seam's
+    // extra "2 red peppers" line the review list (lazy) no longer builds it
+    // on arrival — scroll to it rather than wait for it, then come back up.
+    await scrollTo(tester, find.text('To finish'));
+    expect(find.text('To finish'), findsOneWidget); // the named group
+    await scrollTo(tester, find.text('INGREDIENTS'), delta: -300);
     // Nothing is auto-committed: the header counts what still wants a look.
     expect(find.textContaining('to review'), findsOneWidget);
 
