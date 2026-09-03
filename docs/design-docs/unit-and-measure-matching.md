@@ -35,7 +35,7 @@ A closed set of catalog units in four families:
 | Family | Members | Ratio | Converts |
 |---|---|---|---|
 | `mass` | g, kg, mg, oz, lb | into **grams** | within family; to volume only via density |
-| `volume` | ml, l, tsp, tbsp, fl_oz, cup | into **ml** | within family; to mass only via density |
+| `volume` | ml, l, tsp, tbsp, fl_oz, cup, pt, qt | into **ml** | within family; to mass only via density |
 | `count` | piece | none | only to itself |
 | `imprecise` | pinch, dash, to_taste | none | never; never scales (`scale()` returns it unchanged) |
 
@@ -131,7 +131,7 @@ measures — the add-measure form redirects "cup" into the density field
 
   | Hint list | Contents | Why ① gets it |
   |---|---|---|
-  | `units` | the catalog's mappable ids — g, kg, mg, oz, lb, ml, l, tsp, tbsp, fl_oz, cup, piece | land a printed unit on a real catalog id |
+  | `units` | the catalog's mappable ids — g, kg, mg, oz, lb, ml, l, tsp, tbsp, fl_oz, cup, pt, qt, piece | land a printed unit on a real catalog id |
   | `imprecise` | pinch, dash, to_taste, handful | let a vague amount stay honestly vague instead of being force-fit to a number |
   | `size_words` | large, medium, small, big, tiny | size scales the amount, it isn't a unit |
   | `measures` | **clove · head · sprig · loaf · block · slice · can · bunch · stalk** | everyday **counting nouns**; without them ① force-fits "2 garlic cloves" onto `piece` (the clove→piece failure) |

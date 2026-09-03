@@ -26,6 +26,13 @@ void main() {
       'Makes 250 grams': (qty: 250, unit: g),
       'YIELDS 2 LITRES': (qty: 2, unit: l),
       'Yield: 16 tbsp': (qty: 16, unit: tbsp),
+      // The US pair (plan 0025 D2a): stock and cream recipes print these.
+      'Makes 2 quarts': (qty: 2, unit: quart),
+      'Makes 1 quart': (qty: 1, unit: quart),
+      'Yields 1 qt': (qty: 1, unit: quart),
+      'Makes 1 pint': (qty: 1, unit: pint),
+      'makes 3 pints': (qty: 3, unit: pint),
+      'Makes 1 pt.': (qty: 1, unit: pint),
       // No prefix at all — the amount is still plainly the amount.
       '500 ml': (qty: 500, unit: ml),
       '8 pieces': (qty: 8, unit: pieces),

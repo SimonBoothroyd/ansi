@@ -3584,7 +3584,8 @@ begin
     into violators
   from ingredient
   where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null
-    and default_unit in ('ml', 'l', 'tsp', 'tbsp', 'fl_oz', 'cup')
+    and default_unit in ('ml', 'l', 'tsp', 'tbsp', 'fl_oz', 'cup',
+                         'pt', 'qt')
     and density_g_per_ml is null;
   if violators is not null then
     raise exception

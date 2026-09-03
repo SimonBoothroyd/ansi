@@ -17,6 +17,8 @@ Deno.test("deriveUnitHints — mappable canonical units, no imprecise leak", () 
       "tbsp",
       "fl_oz",
       "cup",
+      "pt",
+      "qt",
       "piece",
     ]
   ) {

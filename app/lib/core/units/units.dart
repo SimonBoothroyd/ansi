@@ -100,6 +100,8 @@ const tsp = Unit._('tsp', 'tsp', UnitFamily.volume, 4.92892159375);
 const tbsp = Unit._('tbsp', 'tbsp', UnitFamily.volume, 14.78676478125);
 const flOz = Unit._('fl_oz', 'fl oz', UnitFamily.volume, 29.5735295625);
 const cup = Unit._('cup', 'cup', UnitFamily.volume, 236.5882365);
+const pint = Unit._('pt', 'pt', UnitFamily.volume, 473.176473);
+const quart = Unit._('qt', 'qt', UnitFamily.volume, 946.352946);
 
 // Count.
 const pieces = Unit._('piece', 'piece', UnitFamily.count, null);
@@ -126,7 +128,7 @@ const batches = Unit._('batch', 'batch', UnitFamily.batch, null);
 /// (step 8.6 / D2 non-goal). Ingredient admission rules and pickers read this.
 const kIngredientUnits = <Unit>[
   g, kg, mg, oz, lb, //
-  ml, l, tsp, tbsp, flOz, cup, //
+  ml, l, tsp, tbsp, flOz, cup, pint, quart, //
   pieces, //
   pinch, dash, handful, toTaste,
 ];

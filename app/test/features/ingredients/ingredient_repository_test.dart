@@ -531,12 +531,15 @@ void main() {
 
     test('a mass-default row gains the kitchen volume workhorses', () async {
       final updated = await repo.setDensity('1', 0.7); // default_unit 'g'
+      // `pt` rides with `cup` on the cross leg (plan 0025 D2b); `qt` does
+      // not, because `l` never did.
       expect(updated!.allowedUnits!.map((u) => u.id).toSet(), {
         'g',
         'kg',
         'tsp',
         'tbsp',
         'cup',
+        'pt',
         'ml',
       });
     });
@@ -554,6 +557,7 @@ void main() {
         'tsp',
         'tbsp',
         'cup',
+        'pt',
         'ml',
       });
     });
@@ -819,6 +823,7 @@ void main() {
         'tsp',
         'tbsp',
         'cup',
+        'pt',
         'ml',
       });
     });

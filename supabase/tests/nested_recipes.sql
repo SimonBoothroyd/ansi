@@ -20,7 +20,7 @@
 -- Run by `supabase test db`.
 
 begin;
-select plan(42);
+select plan(44);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: two households, five recipes in A (one soft-deleted), one in B.
@@ -134,6 +134,8 @@ select is(unit_family('g'),        'mass',      'unit_family: g is mass');
 select is(unit_family('lb'),       'mass',      'unit_family: lb is mass');
 select is(unit_family('cup'),      'volume',    'unit_family: cup is volume');
 select is(unit_family('fl_oz'),    'volume',    'unit_family: fl_oz is volume');
+select is(unit_family('pt'),       'volume',    'unit_family: pt is volume (0024)');
+select is(unit_family('qt'),       'volume',    'unit_family: qt is volume (0024)');
 select is(unit_family('piece'),    'count',     'unit_family: piece is count');
 select is(unit_family('to_taste'), 'imprecise', 'unit_family: to_taste is imprecise');
 select is(

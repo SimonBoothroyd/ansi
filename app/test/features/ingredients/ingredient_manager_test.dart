@@ -614,7 +614,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 1. Locked: the cross-family chips are drawn dashed, with the hint.
-      expect(_dashedChipLabels(tester), {'tsp', 'tbsp', 'cup', 'ml'});
+      expect(_dashedChipLabels(tester), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
       expect(
         find.textContaining('dashed chips need a density'),
         findsOneWidget,
@@ -652,7 +652,7 @@ void main() {
         'g',
         'handful',
       });
-      expect(_dashedChipLabels(tester), {'tsp', 'tbsp', 'cup', 'ml'});
+      expect(_dashedChipLabels(tester), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
     });
 
     testWidgets('G6: a density-less row draws the locked chips, and the note '
@@ -673,7 +673,7 @@ void main() {
       // It used to be three sentences, one of which claimed a family was
       // locked from the basis rather than from what is actually dashed.
       expect(
-        find.text('no density — tsp · tbsp · cup · ml locked'),
+        find.text('no density — tsp · tbsp · cup · ml · pt locked'),
         findsOneWidget,
       );
       expect(find.textContaining('That blocks nothing'), findsNothing);

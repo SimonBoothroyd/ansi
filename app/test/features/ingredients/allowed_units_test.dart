@@ -45,7 +45,7 @@ void main() {
       final units = allowedUnitsFor(
         _ing(cup, density: 0.59, category: 'baking'),
       );
-      expect(units, [cup, tbsp, ml, l, g, kg]);
+      expect(units, [cup, tbsp, ml, l, pint, quart, g, kg]);
     });
 
     test('the olive-oil shape: tbsp default /g oil — mates + g + the oil '
@@ -53,7 +53,7 @@ void main() {
       final units = allowedUnitsFor(
         _ing(tbsp, density: 0.91, category: 'fats & oils'),
       );
-      expect(units, [tbsp, tsp, cup, ml, g, pinch, dash, toTaste]);
+      expect(units, [tbsp, tsp, cup, ml, pint, g, pinch, dash, toTaste]);
       expect(units, isNot(contains(handful)));
     });
 
@@ -85,10 +85,12 @@ void main() {
         tbsp,
         ml,
         l,
+        pint,
+        quart,
       ]);
       expect(
         allowedUnitsFor(_ing(cup, basis: MacrosBasis.perMl, density: 1.03)),
-        [cup, tbsp, ml, l, g, kg],
+        [cup, tbsp, ml, l, pint, quart, g, kg],
       );
     });
 
@@ -98,7 +100,7 @@ void main() {
       // trails the default's own (the choice builder pushes it below the
       // measures too).
       final units = allowedUnitsFor(_ing(g, density: 0.4));
-      expect(units, [g, kg, tsp, tbsp, cup, ml]);
+      expect(units, [g, kg, tsp, tbsp, cup, ml, pint]);
       expect(units, isNot(contains(pieces)));
     });
 
@@ -108,12 +110,14 @@ void main() {
       final units = allowedUnitsFor(
         _ing(pieces, density: 0.66, category: 'produce'),
       );
-      expect(units, [pieces, g, tsp, tbsp, cup, ml, handful]);
+      expect(units, [pieces, g, tsp, tbsp, cup, ml, pint, handful]);
       // `kg` stays out: the big metric sibling rides the same magnitude gate
       // the mass/volume legs use, and a piece default is not big-scale. It is
-      // the board frame's dashed chip.
+      // the board frame's dashed chip. `qt` rides with `l`, so it stays out
+      // with it (D2b); `pt` rides with `cup`, so it came in.
       expect(units, isNot(contains(kg)));
       expect(units, isNot(contains(l)));
+      expect(units, isNot(contains(quart)));
     });
 
     test('without a density a count default still admits nothing but its own '
@@ -132,7 +136,104 @@ void main() {
       final units = allowedUnitsFor(
         _ing(pinch, density: 1, category: 'spices & seasoning'),
       );
-      expect(units, [g, tsp, tbsp, cup, ml, pinch, dash, handful, toTaste]);
+      expect(units, [
+        g,
+        tsp,
+        tbsp,
+        cup,
+        ml,
+        pint,
+        pinch,
+        dash,
+        handful,
+        toTaste,
+      ]);
+    });
+
+    group('pint and quart (plan 0025 D2b) — quart rides with litre, pint '
+        'rides with cup', () {
+      test('the broth shape: a cup default admits a pint, and a quart with '
+          'it — "1 quart broth" lands on a chip', () {
+        final broth = allowedUnitsFor(
+          _ing(cup, basis: MacrosBasis.perMl, category: 'pantry'),
+        );
+        expect(broth, containsAll(<Unit>[pint, quart]));
+        // …behind the metric jugs in chip order, never fronted over them.
+        expect(broth, [cup, tbsp, ml, l, pint, quart]);
+      });
+
+      test('a litre default admits a quart', () {
+        expect(allowedUnitsFor(_ing(l, basis: MacrosBasis.perMl)), [
+          l,
+          cup,
+          ml,
+          pint,
+          quart,
+        ]);
+      });
+
+      test('a spoon default admits neither — no quarts of yeast', () {
+        for (final i in [
+          _ing(tsp, basis: MacrosBasis.perMl),
+          _ing(tsp, density: 0.4),
+          _ing(tbsp, basis: MacrosBasis.perMl),
+        ]) {
+          final units = allowedUnitsFor(i);
+          expect(units, isNot(contains(quart)), reason: i.defaultUnit.id);
+          // tbsp's mates name cup, so a pint rides in there — tsp's do not.
+          expect(
+            units.contains(pint),
+            i.defaultUnit == tbsp,
+            reason: i.defaultUnit.id,
+          );
+        }
+      });
+
+      test('the pair as defaults: one rung each side, and both pass the big '
+          'gate', () {
+        expect(allowedUnitsFor(_ing(quart, basis: MacrosBasis.perMl)), [
+          quart,
+          cup,
+          ml,
+          l,
+          pint,
+        ]);
+        expect(allowedUnitsFor(_ing(pint, basis: MacrosBasis.perMl)), [
+          pint,
+          cup,
+          ml,
+          quart,
+        ]);
+        // Per-g with a density: the basis leg brings kg because a pint is
+        // cup-scale and a quart litre-scale.
+        expect(allowedUnitsFor(_ing(pint, density: 1)), [
+          pint,
+          cup,
+          ml,
+          quart,
+          g,
+          kg,
+        ]);
+        expect(allowedUnitsFor(_ing(quart, density: 1)), [
+          quart,
+          cup,
+          ml,
+          l,
+          pint,
+          g,
+          kg,
+        ]);
+        // …and without one they are stranded like any cross-family default.
+        expect(allowedUnitsFor(_ing(pint)), [g, kg]);
+        expect(defaultUnitNeedsDensity(_ing(quart)), isTrue);
+      });
+
+      test('a density buys a mass row a pint but never a quart — the cross '
+          'leg names cup, not l', () {
+        final oats = densityUnlockedUnits(_ing(g, density: 0.4));
+        expect(oats, contains(pint));
+        expect(oats, isNot(contains(quart)));
+      });
     });
 
     test('mg and fl oz stay label-reading units: offered only as the '
@@ -325,7 +426,7 @@ void main() {
         [
           'g', 'kg', // the default's own family leads
           'potato, large', // measures
-          'tsp', 'tbsp', 'cup', 'ml', // density-unlocked, demoted
+          'tsp', 'tbsp', 'cup', 'ml', 'pt', // density-unlocked, demoted
         ],
       );
     });
@@ -517,14 +618,14 @@ void main() {
         'hidden — the section has to explain what a density buys', () {
       final curryLeaves = _ing(g, category: 'produce');
       expect(selectedOf(curryLeaves), {'g', 'kg', 'handful'});
-      expect(lockedOf(curryLeaves), {'tsp', 'tbsp', 'cup', 'ml'});
+      expect(lockedOf(curryLeaves), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
     });
 
     test('a piece default with no density locks BOTH families beyond its own '
         'basis base — the D4 unlock is what opens them', () {
       final mangoWithoutDensity = _ing(pieces, category: 'produce');
       expect(selectedOf(mangoWithoutDensity), {'piece', 'g', 'handful'});
-      expect(lockedOf(mangoWithoutDensity), {'tsp', 'tbsp', 'cup', 'ml'});
+      expect(lockedOf(mangoWithoutDensity), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
     });
 
     test('with the density, nothing is locked (the mango frame)', () {
@@ -537,6 +638,7 @@ void main() {
         'tbsp',
         'cup',
         'ml',
+        'pt',
         'handful',
       });
     });
@@ -554,7 +656,7 @@ void main() {
       // The shape a device leaves behind when the density is deleted
       // somewhere the list did not follow (an older client, a server edit).
       final stale = _ing(pieces, allowed: const [pieces, g, cup, ml]);
-      expect(lockedOf(stale), {'tsp', 'tbsp', 'cup', 'ml'});
+      expect(lockedOf(stale), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
       // …and the basis side is untouched: it never needed a density.
       expect(selectedOf(stale), {'piece', 'g'});
     });
@@ -566,7 +668,7 @@ void main() {
       expect(selectedOf(perMl), containsAll(<String>['ml', 'l']));
 
       final perG = _ing(g);
-      expect(lockedOf(perG), {'tsp', 'tbsp', 'cup', 'ml'});
+      expect(lockedOf(perG), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
       expect(selectedOf(perG), containsAll(<String>['g']));
     });
   });
@@ -575,7 +677,7 @@ void main() {
     test('the mango shape: the volume leg goes, piece and the basis base '
         'stay', () {
       final mango = _ing(pieces, density: 0.66, category: 'produce');
-      expect(densityStrippedUnits(mango), {tsp, tbsp, cup, ml});
+      expect(densityStrippedUnits(mango), {tsp, tbsp, cup, ml, pint});
       expect(densityStrippedUnits(mango), isNot(contains(g)));
       expect(densityStrippedUnits(mango), isNot(contains(pieces)));
     });
@@ -584,7 +686,7 @@ void main() {
         'row’s own default unit, which the density was the only thing '
         'admitting', () {
       final flour = _ing(cup, density: 0.59, category: 'baking');
-      expect(densityStrippedUnits(flour), {cup, tbsp, ml, l});
+      expect(densityStrippedUnits(flour), {cup, tbsp, ml, l, pint, quart});
       // Mass is its basis family and survives, density or not.
       expect(densityStrippedUnits(flour), isNot(contains(g)));
       expect(densityStrippedUnits(flour), isNot(contains(kg)));

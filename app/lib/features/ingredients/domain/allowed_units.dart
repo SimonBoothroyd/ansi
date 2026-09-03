@@ -19,8 +19,11 @@ import 'ingredient.dart';
 /// Kitchen display order within each family: the units a cook reaches for
 /// first, ahead of metric jugs and customary conversions. The default unit is
 /// always fronted; the rest of its admitted family follows in this order.
+/// The US pair (`pt`, `qt`) sits behind the metric jugs: they are admitted
+/// for the stock and cream lines American recipes print (plan 0025 D2), not
+/// fronted over what this kitchen measures in.
 const _kitchenOrder = {
-  UnitFamily.volume: [tsp, tbsp, cup, ml, l, flOz],
+  UnitFamily.volume: [tsp, tbsp, cup, ml, l, pint, quart, flOz],
   UnitFamily.mass: [g, kg, oz, lb, mg],
 };
 
@@ -31,13 +34,21 @@ const _kitchenOrder = {
 /// with the default fronted. `mg`/`fl oz` reach a picker only as the default
 /// (or admitted stored) unit: they are label-reading granularity, not
 /// kitchen granularity.
+///
+/// **Quart rides with litre, pint rides with cup** (plan 0025 D2b): a mates
+/// list that names `l` names `qt`, one that names `cup` names `pt` — the two
+/// are the same magnitude in the other customary system, so a broth that may
+/// be said in cups and litres may be said in pints and quarts. `qt` and `pt`
+/// as defaults mate the same way, one rung each side.
 const _kitchenMates = <Unit, Set<Unit>>{
   tsp: {tsp, tbsp},
-  tbsp: {tbsp, tsp, cup, ml},
-  cup: {cup, tbsp, ml, l},
-  ml: {ml, l, tsp, tbsp, cup},
-  l: {l, ml, cup},
-  flOz: {flOz, tbsp, cup, ml},
+  tbsp: {tbsp, tsp, cup, ml, pint},
+  cup: {cup, tbsp, ml, l, pint, quart},
+  ml: {ml, l, tsp, tbsp, cup, pint, quart},
+  l: {l, ml, cup, pint, quart},
+  flOz: {flOz, tbsp, cup, ml, pint},
+  quart: {quart, pint, cup, l, ml},
+  pint: {pint, cup, quart, ml},
   g: {g, kg},
   kg: {kg, g},
   mg: {mg, g},
@@ -47,9 +58,10 @@ const _kitchenMates = <Unit, Set<Unit>>{
 
 /// What a density unlocks of the *other* mass/volume family: the kitchen
 /// workhorses only, demoted below measures in display order ("g of milk" is
-/// doable but strange — ADR-0008).
+/// doable but strange — ADR-0008). `pt` rides with `cup` here as everywhere
+/// (D2b); `qt` does not appear because `l` does not.
 const _crossKitchen = {
-  UnitFamily.volume: [tsp, tbsp, cup, ml],
+  UnitFamily.volume: [tsp, tbsp, cup, pint, ml],
   UnitFamily.mass: [g, kg],
 };
 
@@ -135,8 +147,9 @@ Set<Unit> _derivedSet(Ingredient ingredient, {required bool density}) {
       ? UnitFamily.volume
       : UnitFamily.mass;
   // Cup/lb-scale defaults justify the big metric sibling (kg / l); spoons
-  // and grams don't ("no litres of yeast" applies to kilograms too).
-  final big = d == cup || d == lb || d == l || d == kg;
+  // and grams don't ("no litres of yeast" applies to kilograms too). The US
+  // pair is cup- and litre-scale, so both pass (D2b).
+  final big = _isBig(d);
 
   final units = <Unit>{};
   switch (d.family) {
@@ -189,7 +202,7 @@ Set<Unit> _derivedSet(Ingredient ingredient, {required bool density}) {
 /// own family when the density is the only thing admitting it.
 Set<Unit> _densityCrossLeg(Ingredient ingredient) {
   final d = ingredient.defaultUnit;
-  final big = d == cup || d == lb || d == l || d == kg;
+  final big = _isBig(d);
   return switch (d.family) {
     UnitFamily.mass => _crossKitchen[UnitFamily.volume]!.toSet(),
     UnitFamily.volume => {g, if (big) kg},
@@ -204,6 +217,12 @@ Set<Unit> _densityCrossLeg(Ingredient ingredient) {
   };
 }
 
+/// Whether a default unit is cup/lb-scale or larger — the magnitude gate the
+/// big metric siblings (`kg` / `l`) ride behind. `pt` is cup-scale and `qt`
+/// litre-scale, so the US pair passes exactly as `cup` and `l` do (D2b).
+bool _isBig(Unit d) =>
+    d == cup || d == lb || d == l || d == kg || d == pint || d == quart;
+
 /// What a stored density actually buys [ingredient]: the whole rule read with
 /// the density on, minus the whole rule read with it off.
 ///
@@ -214,9 +233,9 @@ Set<Unit> _densityCrossLeg(Ingredient ingredient) {
 /// density landing on a cup-default per-100 g row unioned `g` (already
 /// admitted) while leaving `cup` — the row's OWN default — unadmitted.
 ///
-/// - Mango (piece default, per-g macros) → `tsp, tbsp, cup, ml`.
-/// - Flour (cup default, per-g macros) → `cup, tbsp, ml, l`: since D4c the
-///   volume family is the density's to give, default unit or not.
+/// - Mango (piece default, per-g macros) → `tsp, tbsp, cup, pt, ml`.
+/// - Flour (cup default, per-g macros) → `cup, tbsp, ml, l, pt, qt`: since
+///   D4c the volume family is the density's to give, default unit or not.
 /// - Milk (ml default, per-ml macros) → `g`.
 Set<Unit> densityUnlockedUnits(Ingredient ingredient) => _derivedSet(
   ingredient,

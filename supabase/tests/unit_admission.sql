@@ -29,10 +29,15 @@
 -- the assertion here is the only thing standing between a regenerated seed
 -- and a silently restored `piece`.
 --
+-- Plan 0025 / 0024 adds pint and quart under D2b — quart rides with litre,
+-- pint rides with cup — so every vector whose mates name `l` or `cup` grew
+-- `qt` / `pt`, and a block at the end pins the rule directly plus the
+-- additive backfill's post-state.
+--
 -- Run by `supabase test db`.
 
 begin;
-select plan(101);
+select plan(111);
 
 -- ---------------------------------------------------------------------------
 -- default_allowed_units() vectors — mirror allowed_units_test.dart, group
@@ -58,7 +63,7 @@ select is(
 -- kitchen mates, g AND kg (cup-scale justifies the big sibling).
 select is(
   default_allowed_units('cup', 'g', 0.59, 'baking'),
-  '["cup", "tbsp", "ml", "l", "g", "kg"]'::jsonb,
+  '["cup", "tbsp", "ml", "l", "pt", "qt", "g", "kg"]'::jsonb,
   'cup default /g with density: kitchen volume + g/kg (the flour shape)'
 );
 
@@ -66,7 +71,7 @@ select is(
 -- mates + g + the OIL class's words. J3: no handful of oil.
 select is(
   default_allowed_units('tbsp', 'g', 0.91, 'fats & oils'),
-  '["tbsp", "tsp", "cup", "ml", "g", "pinch", "dash", "to_taste"]'::jsonb,
+  '["tbsp", "tsp", "cup", "ml", "pt", "g", "pinch", "dash", "to_taste"]'::jsonb,
   'tbsp default /g oil: mates + g + pinch/dash/to_taste (the olive-oil shape)'
 );
 select ok(
@@ -102,12 +107,12 @@ select is(
 -- leg without a density; with one, mass unlocks.
 select is(
   default_allowed_units('cup', 'ml', null, null),
-  '["cup", "tbsp", "ml", "l"]'::jsonb,
+  '["cup", "tbsp", "ml", "l", "pt", "qt"]'::jsonb,
   'cup default /ml without density: volume only'
 );
 select is(
   default_allowed_units('cup', 'ml', 1.03, null),
-  '["cup", "tbsp", "ml", "l", "g", "kg"]'::jsonb,
+  '["cup", "tbsp", "ml", "l", "pt", "qt", "g", "kg"]'::jsonb,
   'cup default /ml with density: g/kg unlock (demoted client-side)'
 );
 
@@ -115,7 +120,7 @@ select is(
 -- AND cups are both honest; no piece.
 select is(
   default_allowed_units('g', 'g', 0.4, null),
-  '["g", "kg", "tsp", "tbsp", "cup", "ml"]'::jsonb,
+  '["g", "kg", "tsp", "tbsp", "cup", "pt", "ml"]'::jsonb,
   'g default /g with density: own family + the volume workhorses, no piece'
 );
 
@@ -125,7 +130,7 @@ select is(
 -- mass/volume legs use, and a piece default is not big-scale.
 select is(
   default_allowed_units('piece', 'g', 0.66, 'produce'),
-  '["piece", "g", "tsp", "tbsp", "cup", "ml", "handful"]'::jsonb,
+  '["piece", "g", "tsp", "tbsp", "cup", "pt", "ml", "handful"]'::jsonb,
   'count default /g WITH density: volume workhorses unlock (the mango shape)'
 );
 
@@ -143,7 +148,7 @@ select is(
 -- leg's ml is not duplicated.
 select is(
   default_allowed_units('piece', 'ml', 1.0, 'dairy'),
-  '["piece", "ml", "tsp", "tbsp", "cup", "g"]'::jsonb,
+  '["piece", "ml", "tsp", "tbsp", "cup", "pt", "g"]'::jsonb,
   'count default /ml with density: mass unlocks, basis ml not duplicated'
 );
 
@@ -151,7 +156,7 @@ select is(
 -- keeps its whole tail INCLUDING handful'.
 select is(
   default_allowed_units('pinch', 'g', 1, 'spices & seasoning'),
-  '["g", "tsp", "tbsp", "cup", "ml", "pinch", "dash", "handful", "to_taste"]'::jsonb,
+  '["g", "tsp", "tbsp", "cup", "pt", "ml", "pinch", "dash", "handful", "to_taste"]'::jsonb,
   'imprecise default with density: both families unlock, whole tail kept'
 );
 
@@ -170,6 +175,7 @@ select ok(
 select is(
   (select count(*)::int
      from unnest(array['g','kg','oz','lb','ml','l','tsp','tbsp','cup',
+                       'pt','qt',
                        'piece','pinch','dash','handful','to_taste']) as d(unit)
     where default_allowed_units(d.unit, 'g', 1, null) ? 'mg'
        or default_allowed_units(d.unit, 'g', 1, null) ? 'fl_oz'),
@@ -188,6 +194,7 @@ select is(
   (select count(*)::int
      from (values ('g'), ('kg'), ('mg'), ('oz'), ('lb'),
                   ('ml'), ('l'), ('tsp'), ('tbsp'), ('fl_oz'), ('cup'),
+                  ('pt'), ('qt'),
                   ('piece'), ('pinch'), ('dash'), ('handful'), ('to_taste'))
           as u(unit)
     where not (default_allowed_units(u.unit, 'g', 1, null) ? u.unit)),
@@ -200,6 +207,7 @@ select is(
                   ('oz', 'mass'), ('lb', 'mass'),
                   ('ml', 'volume'), ('l', 'volume'), ('tsp', 'volume'),
                   ('tbsp', 'volume'), ('fl_oz', 'volume'), ('cup', 'volume'),
+                  ('pt', 'volume'), ('qt', 'volume'),
                   ('piece', 'count'), ('pinch', 'imprecise'),
                   ('dash', 'imprecise'), ('handful', 'imprecise'),
                   ('to_taste', 'imprecise'))
@@ -260,7 +268,7 @@ select is(
 -- `dash`; the app offered only `handful`.
 select is(
   default_allowed_units('cup', 'g', 0.2, 'produce'),
-  '["cup", "tbsp", "ml", "l", "g", "kg", "handful"]'::jsonb,
+  '["cup", "tbsp", "ml", "l", "pt", "qt", "g", "kg", "handful"]'::jsonb,
   'kale (cup /g, density, produce): a handful, never a pinch or a dash'
 );
 
@@ -299,7 +307,7 @@ select is(
 
 -- Dart: 'the mango shape: the volume leg goes, piece and the basis base stay'.
 select is(
-  density_unlocked_units('piece', 'g'), array['tsp','tbsp','cup','ml'],
+  density_unlocked_units('piece', 'g'), array['tsp','tbsp','cup','pt','ml'],
   'a piece /g default: the density buys the volume workhorses (the mango shape)'
 );
 -- Dart: 'THE FLOUR SHAPE, under D4c: the volume family goes — including the
@@ -307,7 +315,7 @@ select is(
 -- 0014's one-argument leg returned ["g","kg"] here — already admitted by the
 -- basis leg — which is the bug 0021 exists for.
 select is(
-  density_unlocked_units('cup', 'g'), array['cup','tbsp','ml','l'],
+  density_unlocked_units('cup', 'g'), array['cup','tbsp','ml','l','pt','qt'],
   'a cup /g default: the density buys the volume family, own default included (the flour shape)'
 );
 -- Dart: 'the milk shape: a per-ml row loses g, keeps every volume unit'.
@@ -316,11 +324,11 @@ select is(
   'an ml /ml default: the density buys g only (the milk shape)'
 );
 select is(
-  density_unlocked_units('g', 'g'), array['tsp','tbsp','cup','ml'],
+  density_unlocked_units('g', 'g'), array['tsp','tbsp','cup','pt','ml'],
   'a mass default unlocks the volume workhorses'
 );
 select is(
-  density_unlocked_units('tbsp', 'g'), array['tbsp','tsp','cup','ml'],
+  density_unlocked_units('tbsp', 'g'), array['tbsp','tsp','cup','ml','pt'],
   'a spoon-scale volume default /g: the density buys its own spoons back (no kilos of tbsp)'
 );
 select is(
@@ -328,11 +336,11 @@ select is(
   'a cup-scale volume default on its own basis also justifies kg'
 );
 select is(
-  density_unlocked_units('piece', 'ml'), array['tsp','tbsp','cup','g'],
+  density_unlocked_units('piece', 'ml'), array['tsp','tbsp','cup','pt','g'],
   'a count default /ml unlocks the volume workhorses AND g — never the basis ml'
 );
 select is(
-  density_unlocked_units('pinch', 'g'), array['tsp','tbsp','cup','ml'],
+  density_unlocked_units('pinch', 'g'), array['tsp','tbsp','cup','pt','ml'],
   'an imprecise default unlocks both families too, minus the basis leg (ADR-0009)'
 );
 
@@ -463,7 +471,7 @@ where id = 'cccccccc-0000-0000-0000-00000000000a';
 select is(
   (select allowed_units from ingredient
      where id = 'cccccccc-0000-0000-0000-00000000000a'),
-  '["g", "kg", "cup", "tbsp", "ml", "l"]'::jsonb,
+  '["g", "kg", "cup", "tbsp", "ml", "l", "pt", "qt"]'::jsonb,
   'a density landing on a stripped cup /g row restores its own default''s family (the flour shape)'
 );
 
@@ -479,7 +487,7 @@ where id = 'cccccccc-0000-0000-0000-00000000000b';
 select is(
   (select allowed_units from ingredient
      where id = 'cccccccc-0000-0000-0000-00000000000b'),
-  '["ml", "l", "tsp", "tbsp", "cup", "g"]'::jsonb,
+  '["ml", "l", "tsp", "tbsp", "cup", "pt", "qt", "g"]'::jsonb,
   'a density landing on an ml /ml row unions g and nothing else (the milk shape)'
 );
 
@@ -492,10 +500,114 @@ select is(
      where density_g_per_ml is not null
        and allowed_units is not null
        and default_unit in ('g','kg','mg','oz','lb',
-                            'ml','l','tsp','tbsp','fl_oz','cup')
+                            'ml','l','tsp','tbsp','fl_oz','cup','pt','qt')
        and not (allowed_units ? default_unit)),
   0,
   'no density-carrying mass/volume row lacks its own default unit (0021 backfill)'
+);
+
+-- ---------------------------------------------------------------------------
+-- 0024 / plan 0025 D2b: pint and quart. Quart rides with litre, pint rides
+-- with cup — wherever a default's mates name `l` they name `qt`, wherever
+-- they name `cup` they name `pt`; the pair as defaults mate one rung each
+-- side; both join the `big` gate. Mirrors allowed_units_test.dart group
+-- 'pint and quart (plan 0025 D2b)'.
+-- ---------------------------------------------------------------------------
+
+-- Dart: 'the broth shape: a cup default admits a pint, and a quart with it'.
+select ok(
+  default_allowed_units('cup', 'ml', null, 'pantry') ? 'pt'
+  and default_allowed_units('cup', 'ml', null, 'pantry') ? 'qt',
+  'a cup-default row admits pt (rides with cup) and qt (rides with l)'
+);
+-- Dart: 'a litre default admits a quart'.
+select is(
+  default_allowed_units('l', 'ml', null, null),
+  '["l", "ml", "cup", "pt", "qt"]'::jsonb,
+  'an l-default row admits qt — and pt, since its mates name cup'
+);
+-- Dart: 'a spoon default admits neither — no quarts of yeast'.
+select ok(
+  not (default_allowed_units('tsp', 'ml', null, null) ? 'pt')
+  and not (default_allowed_units('tsp', 'ml', null, null) ? 'qt')
+  and not (default_allowed_units('tsp', 'g', 0.4, null) ? 'pt')
+  and not (default_allowed_units('tsp', 'g', 0.4, null) ? 'qt'),
+  'a tsp-default row admits neither pt nor qt, density or not'
+);
+-- Dart: 'the pair as defaults'. qt mates one rung each side and, being
+-- litre-scale, passes the big gate on the basis leg; pt likewise at cup
+-- scale.
+select is(
+  default_allowed_units('qt', 'ml', null, null),
+  '["qt", "pt", "cup", "l", "ml"]'::jsonb,
+  'a qt default /ml: its own mates, one rung each side'
+);
+select is(
+  default_allowed_units('pt', 'g', 1.0, null),
+  '["pt", "cup", "qt", "ml", "g", "kg"]'::jsonb,
+  'a pt default /g with density: mates + g AND kg (pint is cup-scale, so big)'
+);
+select is(
+  default_allowed_units('pt', 'g', null, null),
+  '["g", "kg"]'::jsonb,
+  'a pt default /g without density: stranded like any cross-family default (D4c)'
+);
+-- The density cross leg names cup, so it names pt; it never named l, so a
+-- density buys a gram row no quart.
+select ok(
+  'pt' = any(density_unlocked_units('g', 'g'))
+  and not ('qt' = any(density_unlocked_units('g', 'g'))),
+  'a density buys a mass row pt but not qt (the cross leg names cup, not l)'
+);
+
+-- The 0024 backfill's post-state, as an invariant over the whole table: no
+-- stored list that names `l` and whose recomputed defaults admit `qt` lacks
+-- `qt`; same for `cup` and `pt`. True of the template after a reset (the seed
+-- re-materializes) and of a migrated database (the backfill unions) alike.
+select is(
+  (select count(*)::int from ingredient i
+     where i.allowed_units is not null
+       and (   (i.allowed_units ? 'l' and not (i.allowed_units ? 'qt')
+                and default_allowed_units(i.default_unit, i.macros_basis,
+                                          i.density_g_per_ml, i.category) ? 'qt')
+            or (i.allowed_units ? 'cup' and not (i.allowed_units ? 'pt')
+                and default_allowed_units(i.default_unit, i.macros_basis,
+                                          i.density_g_per_ml, i.category) ? 'pt'))),
+  0,
+  'every row that says l/cup and whose rule admits qt/pt says qt/pt (0024 backfill)'
+);
+-- …reaching the row the plan was about: "1 quart broth" lands on a chip.
+select ok(
+  (select allowed_units ? 'qt' and allowed_units ? 'pt' and allowed_units ? 'cup'
+     from ingredient
+     where household_id = '00000000-0000-0000-0000-0000000000aa'
+       and match_text = 'vegetable broth'),
+  'vegetable broth (cup default) admits qt and pt beside its cup'
+);
+-- …and the union is what the migration does to a list it did not write: a
+-- hand-edited row that says cup keeps its curated word and gains only the
+-- pair, exactly as the backfill statement would leave it.
+insert into ingredient (id, household_id, canonical_name, default_unit,
+  category, source, match_text, macros_basis, density_g_per_ml, allowed_units)
+values ('cccccccc-0000-0000-0000-00000000000c',
+  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Curated Stock', 'cup', 'pantry',
+  'manual', 'curated stock', 'ml', 1.0, '["cup", "ml", "to_taste"]'::jsonb);
+update ingredient i
+   set allowed_units = i.allowed_units || (
+         select coalesce(jsonb_agg(n.unit order by n.ord), '[]'::jsonb)
+           from jsonb_array_elements_text(
+                  default_allowed_units(i.default_unit, i.macros_basis,
+                                        i.density_g_per_ml, i.category))
+                with ordinality as n(unit, ord)
+          where (   (n.unit = 'qt' and i.allowed_units ? 'l')
+                 or (n.unit = 'pt' and i.allowed_units ? 'cup'))
+            and not (i.allowed_units ? n.unit))
+ where i.id = 'cccccccc-0000-0000-0000-00000000000c';
+select is(
+  (select allowed_units from ingredient
+     where id = 'cccccccc-0000-0000-0000-00000000000c'),
+  '["cup", "ml", "to_taste", "pt"]'::jsonb,
+  'the backfill shape: a curated list that says cup (not l) gains pt only, keeps to_taste'
 );
 
 -- ---------------------------------------------------------------------------

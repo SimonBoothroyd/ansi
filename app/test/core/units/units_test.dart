@@ -15,6 +15,31 @@ void main() {
       );
     });
 
+    test('pint and quart are exact US customary (plan 0025 D2a)', () {
+      // Both are defined off the US gallon like every other volume entry:
+      // 1 qt = 2 pt = 4 cup = 946.352946 ml, 1 pt = 473.176473 ml.
+      expect(
+        convert(Quantity(1, quart), to: ml).valueOrNull?.amount,
+        946.352946,
+      );
+      expect(
+        convert(Quantity(1, pint), to: ml).valueOrNull?.amount,
+        473.176473,
+      );
+      expect(
+        convert(Quantity(1, quart), to: pint).valueOrNull?.amount,
+        closeTo(2, 1e-9),
+      );
+      expect(
+        convert(Quantity(1, quart), to: cup).valueOrNull?.amount,
+        closeTo(4, 1e-9),
+      );
+      expect(
+        convert(Quantity(1, pint), to: cup).valueOrNull?.amount,
+        closeTo(2, 1e-9),
+      );
+    });
+
     test('volume→mass via density (600 ml @1.02 == 612 g)', () {
       final r = convert(Quantity(600, ml), to: g, densityGPerMl: 1.02);
       expect(r.valueOrNull?.amount, closeTo(612, 1e-6));
@@ -78,6 +103,18 @@ void main() {
     test('unitById round-trips a persisted id', () {
       expect(unitById('tbsp'), tbsp);
       expect(unitById('nope'), isNull);
+    });
+
+    test('pt and qt are catalogue ids, ordered after cup in the volume '
+        'block (plan 0025)', () {
+      expect(unitById('pt'), pint);
+      expect(unitById('qt'), quart);
+      expect(pint.family, UnitFamily.volume);
+      expect(quart.family, UnitFamily.volume);
+      final volume = kIngredientUnits
+          .where((u) => u.family == UnitFamily.volume)
+          .toList();
+      expect(volume, [ml, l, tsp, tbsp, flOz, cup, pint, quart]);
     });
   });
 

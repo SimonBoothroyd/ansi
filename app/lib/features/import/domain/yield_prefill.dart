@@ -74,6 +74,12 @@ const kYieldUnitWords = <String, Unit>{
   'tablespoons': tbsp,
   'cup': cup,
   'cups': cup,
+  'pt': pint,
+  'pint': pint,
+  'pints': pint,
+  'qt': quart,
+  'quart': quart,
+  'quarts': quart,
   'piece': pieces,
   'pieces': pieces,
 };

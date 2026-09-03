@@ -34,6 +34,8 @@ export const UNIT_HINTS: UnitHints = {
     "tbsp",
     "fl_oz",
     "cup",
+    "pt",
+    "qt",
     "piece",
   ],
   imprecise: [
@@ -107,6 +109,8 @@ const PRINTED_UNIT: Record<string, [singular: string, plural: string]> = {
   tbsp: ["tablespoon", "tablespoons"],
   fl_oz: ["fl oz", "fl oz"],
   cup: ["cup", "cups"],
+  pt: ["pint", "pints"],
+  qt: ["quart", "quarts"],
   piece: ["", ""],
   clove: ["clove", "cloves"],
   head: ["head", "heads"],

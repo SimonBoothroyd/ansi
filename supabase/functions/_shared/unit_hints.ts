@@ -46,6 +46,8 @@ const UNIT_CATALOG: readonly UnitMirror[] = [
   { id: "tbsp", family: "volume" },
   { id: "fl_oz", family: "volume" },
   { id: "cup", family: "volume" },
+  { id: "pt", family: "volume" },
+  { id: "qt", family: "volume" },
   // Count.
   { id: "piece", family: "count" },
   // Imprecise (non-scaling, non-converting).
