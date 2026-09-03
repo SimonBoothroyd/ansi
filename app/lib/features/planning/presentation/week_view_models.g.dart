@@ -8,26 +8,190 @@ part of 'week_view_models.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The Monday of the week containing today.
+/// The wall clock, as a seam: production reads [DateTime.now]; a test
+/// overrides this with a fixed or scripted clock and drives [Today] across a
+/// midnight it chooses. Keep-alive because [Today] is, and a keep-alive
+/// provider may only depend on keep-alive providers (riverpod_lint).
+
+@ProviderFor(clock)
+const clockProvider = ClockProvider._();
+
+/// The wall clock, as a seam: production reads [DateTime.now]; a test
+/// overrides this with a fixed or scripted clock and drives [Today] across a
+/// midnight it chooses. Keep-alive because [Today] is, and a keep-alive
+/// provider may only depend on keep-alive providers (riverpod_lint).
+
+final class ClockProvider
+    extends
+        $FunctionalProvider<
+          DateTime Function(),
+          DateTime Function(),
+          DateTime Function()
+        >
+    with $Provider<DateTime Function()> {
+  /// The wall clock, as a seam: production reads [DateTime.now]; a test
+  /// overrides this with a fixed or scripted clock and drives [Today] across a
+  /// midnight it chooses. Keep-alive because [Today] is, and a keep-alive
+  /// provider may only depend on keep-alive providers (riverpod_lint).
+  const ClockProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'clockProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$clockHash();
+
+  @$internal
+  @override
+  $ProviderElement<DateTime Function()> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  DateTime Function() create(Ref ref) {
+    return clock(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DateTime Function() value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DateTime Function()>(value),
+    );
+  }
+}
+
+String _$clockHash() => r'3f65ad34ac6fcd532de9004042bdf2ed2bd85b13';
+
+/// The current LOCAL calendar day — midnight, local time, date-only.
 ///
-/// Known wart, pre-existing: `DateTime.now()` in a provider doesn't re-fire at
-/// midnight, so "today" is stale until the next rebuild (tracker debt).
+/// A `DateTime.now()` read once in a provider is stale from midnight until
+/// something else rebuilds the tree, which the TODAY pill made visible. This
+/// re-fires twice over: one [Timer] armed for the next local midnight, whose
+/// callback re-arms it (a 23- or 25-hour DST day is simply a different wait),
+/// and an [AppLifecycleListener] for resume, because a phone asleep in a
+/// pocket suspends timers and may wake past several midnights. Keep-alive so
+/// the timer outlives the screens that read it; both hooks are released in
+/// `onDispose`, which also runs if [clock] is ever overridden mid-flight.
+///
+/// The state is a value, so listeners are told only when the day actually
+/// changes — a resume at 3 pm on the same day is silent.
+
+@ProviderFor(Today)
+const todayProvider = TodayProvider._();
+
+/// The current LOCAL calendar day — midnight, local time, date-only.
+///
+/// A `DateTime.now()` read once in a provider is stale from midnight until
+/// something else rebuilds the tree, which the TODAY pill made visible. This
+/// re-fires twice over: one [Timer] armed for the next local midnight, whose
+/// callback re-arms it (a 23- or 25-hour DST day is simply a different wait),
+/// and an [AppLifecycleListener] for resume, because a phone asleep in a
+/// pocket suspends timers and may wake past several midnights. Keep-alive so
+/// the timer outlives the screens that read it; both hooks are released in
+/// `onDispose`, which also runs if [clock] is ever overridden mid-flight.
+///
+/// The state is a value, so listeners are told only when the day actually
+/// changes — a resume at 3 pm on the same day is silent.
+final class TodayProvider extends $NotifierProvider<Today, DateTime> {
+  /// The current LOCAL calendar day — midnight, local time, date-only.
+  ///
+  /// A `DateTime.now()` read once in a provider is stale from midnight until
+  /// something else rebuilds the tree, which the TODAY pill made visible. This
+  /// re-fires twice over: one [Timer] armed for the next local midnight, whose
+  /// callback re-arms it (a 23- or 25-hour DST day is simply a different wait),
+  /// and an [AppLifecycleListener] for resume, because a phone asleep in a
+  /// pocket suspends timers and may wake past several midnights. Keep-alive so
+  /// the timer outlives the screens that read it; both hooks are released in
+  /// `onDispose`, which also runs if [clock] is ever overridden mid-flight.
+  ///
+  /// The state is a value, so listeners are told only when the day actually
+  /// changes — a resume at 3 pm on the same day is silent.
+  const TodayProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'todayProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$todayHash();
+
+  @$internal
+  @override
+  Today create() => Today();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DateTime value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DateTime>(value),
+    );
+  }
+}
+
+String _$todayHash() => r'e4062fd47b074ebf11218806499ea11996d0ab42';
+
+/// The current LOCAL calendar day — midnight, local time, date-only.
+///
+/// A `DateTime.now()` read once in a provider is stale from midnight until
+/// something else rebuilds the tree, which the TODAY pill made visible. This
+/// re-fires twice over: one [Timer] armed for the next local midnight, whose
+/// callback re-arms it (a 23- or 25-hour DST day is simply a different wait),
+/// and an [AppLifecycleListener] for resume, because a phone asleep in a
+/// pocket suspends timers and may wake past several midnights. Keep-alive so
+/// the timer outlives the screens that read it; both hooks are released in
+/// `onDispose`, which also runs if [clock] is ever overridden mid-flight.
+///
+/// The state is a value, so listeners are told only when the day actually
+/// changes — a resume at 3 pm on the same day is silent.
+
+abstract class _$Today extends $Notifier<DateTime> {
+  DateTime build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<DateTime, DateTime>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<DateTime, DateTime>,
+              DateTime,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
+/// The Monday of the week containing [Today]. Moves with it, so it is right
+/// across midnight and after a resume; the week on screen does not — that is
+/// [ViewedWeekStart]'s job, and it is deliberately left alone.
 
 @ProviderFor(currentWeekStart)
 const currentWeekStartProvider = CurrentWeekStartProvider._();
 
-/// The Monday of the week containing today.
-///
-/// Known wart, pre-existing: `DateTime.now()` in a provider doesn't re-fire at
-/// midnight, so "today" is stale until the next rebuild (tracker debt).
+/// The Monday of the week containing [Today]. Moves with it, so it is right
+/// across midnight and after a resume; the week on screen does not — that is
+/// [ViewedWeekStart]'s job, and it is deliberately left alone.
 
 final class CurrentWeekStartProvider
     extends $FunctionalProvider<DateTime, DateTime, DateTime>
     with $Provider<DateTime> {
-  /// The Monday of the week containing today.
-  ///
-  /// Known wart, pre-existing: `DateTime.now()` in a provider doesn't re-fire at
-  /// midnight, so "today" is stale until the next rebuild (tracker debt).
+  /// The Monday of the week containing [Today]. Moves with it, so it is right
+  /// across midnight and after a resume; the week on screen does not — that is
+  /// [ViewedWeekStart]'s job, and it is deliberately left alone.
   const CurrentWeekStartProvider._()
     : super(
         from: null,
@@ -61,7 +225,7 @@ final class CurrentWeekStartProvider
   }
 }
 
-String _$currentWeekStartHash() => r'fdfd04e6f844526dc22fbdfdeaa0ef12609dfe24';
+String _$currentWeekStartHash() => r'3d665c5bcd9d6937af169aec303fa09fb8e0bedd';
 
 /// The Monday of the week on screen. Defaults to the week containing today;
 /// the header switcher moves it and Cook/Shop derive from it (D3).

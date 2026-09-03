@@ -3,9 +3,12 @@
 /// The week is a **position, not a singleton** (D2/D3). [currentWeekStart] is
 /// still the Monday of the week containing today, but its only jobs now are
 /// (a) seeding [ViewedWeekStart], (b) the "is this week?" emphasis, and (c) the
-/// "back to this week" return. [ViewedWeekStart] is the week being LOOKED AT —
-/// app-level and keep-alive, so it survives the bottom nav's `context.go`
-/// (which replaces the route) and carries across the Week/Cook/Shop tabs.
+/// "back to this week" return. It derives from [Today], the one place the app
+/// asks what day it is, which re-fires at local midnight and on resume — so
+/// "today" moves while the app stays open, and ONLY today moves.
+/// [ViewedWeekStart] is the week being LOOKED AT — app-level and keep-alive,
+/// so it survives the bottom nav's `context.go` (which replaces the route),
+/// carries across the Week/Cook/Shop tabs, and does not jump at midnight.
 /// [viewedWeek] streams that week's meals off the repository.
 ///
 /// Mutations don't need their own notifier — views call the keep-alive
@@ -14,6 +17,9 @@
 /// `[[mise-riverpod-notifier-ref-after-async]]`).
 library;
 
+import 'dart:async';
+
+import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../recipes/domain/recipe.dart';
@@ -25,12 +31,60 @@ import '../domain/week_macros.dart';
 
 part 'week_view_models.g.dart';
 
-/// The Monday of the week containing today.
+/// The wall clock, as a seam: production reads [DateTime.now]; a test
+/// overrides this with a fixed or scripted clock and drives [Today] across a
+/// midnight it chooses. Keep-alive because [Today] is, and a keep-alive
+/// provider may only depend on keep-alive providers (riverpod_lint).
+@Riverpod(keepAlive: true)
+DateTime Function() clock(Ref ref) => DateTime.now;
+
+/// The current LOCAL calendar day — midnight, local time, date-only.
 ///
-/// Known wart, pre-existing: `DateTime.now()` in a provider doesn't re-fire at
-/// midnight, so "today" is stale until the next rebuild (tracker debt).
+/// A `DateTime.now()` read once in a provider is stale from midnight until
+/// something else rebuilds the tree, which the TODAY pill made visible. This
+/// re-fires twice over: one [Timer] armed for the next local midnight, whose
+/// callback re-arms it (a 23- or 25-hour DST day is simply a different wait),
+/// and an [AppLifecycleListener] for resume, because a phone asleep in a
+/// pocket suspends timers and may wake past several midnights. Keep-alive so
+/// the timer outlives the screens that read it; both hooks are released in
+/// `onDispose`, which also runs if [clock] is ever overridden mid-flight.
+///
+/// The state is a value, so listeners are told only when the day actually
+/// changes — a resume at 3 pm on the same day is silent.
+@Riverpod(keepAlive: true)
+class Today extends _$Today {
+  @override
+  DateTime build() {
+    final now = ref.watch(clockProvider);
+    Timer? timer;
+    void arm() {
+      final at = now();
+      // The local constructor normalises day + 1 across month and year ends.
+      final midnight = DateTime(at.year, at.month, at.day + 1);
+      timer = Timer(midnight.difference(at), () {
+        state = _dateOf(now());
+        arm();
+      });
+    }
+
+    arm();
+    final lifecycle = AppLifecycleListener(
+      onResume: () => state = _dateOf(now()),
+    );
+    ref
+      ..onDispose(() => timer?.cancel())
+      ..onDispose(lifecycle.dispose);
+    return _dateOf(now());
+  }
+
+  static DateTime _dateOf(DateTime at) => DateTime(at.year, at.month, at.day);
+}
+
+/// The Monday of the week containing [Today]. Moves with it, so it is right
+/// across midnight and after a resume; the week on screen does not — that is
+/// [ViewedWeekStart]'s job, and it is deliberately left alone.
 @riverpod
-DateTime currentWeekStart(Ref ref) => mondayOf(DateTime.now());
+DateTime currentWeekStart(Ref ref) => mondayOf(ref.watch(todayProvider));
 
 /// The Monday of the week on screen. Defaults to the week containing today;
 /// the header switcher moves it and Cook/Shop derive from it (D3).

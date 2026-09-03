@@ -15,7 +15,7 @@ unreachable for existing households, and the one visible app bug (stale
 
 ## Acceptance criteria
 
-- [ ] Lane A — `currentWeekStartProvider` re-fires at local midnight; tested with an injected clock.
+- [x] Lane A — `currentWeekStartProvider` re-fires at local midnight; tested with an injected clock.
 - [ ] Lane B — a monotone `ingredient_measure` rollout (insert-missing, never delete/overwrite), previewable, idempotent, pgTAP-tested; cloud-setup §2b + release.md updated; the canned-tomato tracker rows point at it.
 - [ ] Lane C — migration `0021` brings `default_allowed_units` / `density_unlocked_units` / the imprecise gate to parity with `allowed_units.dart`; `supabase/tests/unit_admission.sql` mirrors `allowed_units_test.dart`; no removal backfill (ADR-0009).
 - [ ] Lane D — `molasses`-class words singularize per the comment on BOTH sides (TS + Dart + shared vectors); migration `0022` rewrites affected `match_text` rows in place; `gen_seed.ts` alias-collision check is global.
@@ -35,6 +35,20 @@ assigned here, not minted: **0021 = lane C, 0022 = lane D**.
   the midnight ticker. The `search_query.dart` move to `core/search/` (tracker
   suggests doing it with the plural fix) is left out to keep lane D's diff
   reviewable; it is the natural next slice.
+- 2026-09-03 — Lane A: "today" is a keep-alive `Today` notifier
+  (`week_view_models.dart`) holding the local calendar day, re-fired by one
+  `Timer` armed for the next local midnight (re-armed by its own callback, so
+  DST days just wait longer) AND by an `AppLifecycleListener.onResume`, since
+  iOS suspends timers in the background and a phone can wake past several
+  midnights; both are released in `onDispose`. The wall clock is a
+  `clockProvider` seam (keep-alive, because riverpod_lint requires keep-alive
+  dependencies for keep-alive providers) that tests override and drive with
+  `fake_async`. `currentWeekStart` is now `mondayOf(today)`; `ViewedWeekStart`
+  is untouched and still reads `DateTime.now()` directly — the viewed week must
+  not jump at midnight. One consumer moved with it: `week_view.dart`'s TODAY
+  pill read `DateTime.now().weekday` inside `build`, which only ever
+  re-rendered when the *Monday* changed, so it now watches `todayProvider` —
+  a provider-read swap, not a UI path change. The tracker row is retired.
 
 ## Notes / open questions
 

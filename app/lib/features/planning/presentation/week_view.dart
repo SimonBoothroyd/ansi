@@ -105,8 +105,12 @@ class WeekView extends HookConsumerWidget {
     final cookPlan = ref.watch(currentCookPlanProvider).asData?.value;
 
     // "cooks today" is only true of the week containing today.
+    // Read off [Today], not `DateTime.now()`: the Monday is the same all week,
+    // so only the day provider re-fires this at a Tuesday midnight.
     final isThisWeek = weekStart == ref.watch(currentWeekStartProvider);
-    final todayDayOfWeek = isThisWeek ? DateTime.now().weekday - 1 : null;
+    final todayDayOfWeek = isThisWeek
+        ? ref.watch(todayProvider).weekday - 1
+        : null;
 
     final lastWeek = ref.watch(lastWeekProvider).asData?.value;
     final repo = ref.read(planningRepositoryProvider);

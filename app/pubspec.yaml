@@ -69,6 +69,7 @@ dev_dependencies:
 
   # Test helpers
   mocktail: ^1.0.0
+  fake_async: ^1.3.0      # drive the midnight ticker across a fake clock
   flutter_launcher_icons: ^0.14.4
 
 flutter:
