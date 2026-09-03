@@ -30,9 +30,11 @@ Two workflows do the mechanical parts:
 >   permanent package `io.ansi.app`, the internal track and its tester list are
 >   configured, and §3a's one-time walk is complete. **Do not walk §3a again** —
 >   a second app under a different package can never update the installed one.
-> - Tags shipped: `v0.1.0` (2026-09-01) and `v0.2.0` (2026-09-03, the polish
+> - Tags shipped: `v0.1.0` (2026-09-01), `v0.2.0` (2026-09-03, the polish
 >   pass — guard · android · ios green, signed APK + AAB on the Release,
->   Play upload skipped by design — see above).
+>   Play upload skipped by design — see above), `v0.3.0` (2026-09-03, field
+>   test round two) and `v0.4.0` (2026-09-03, field test round three — run
+>   33758932599, same three jobs green, APK 92 MB + AAB 80 MB on the Release).
 
 ## What syncs how
 
