@@ -11,6 +11,7 @@ import 'package:ansi/features/planning/domain/planning_repository.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/planning/presentation/week_view.dart';
+import 'package:ansi/features/planning/presentation/week_widgets.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
@@ -27,11 +28,20 @@ import '../../helpers/forui_semantics.dart';
 /// A canned planner: emits [week] for the current week and [last] as the
 /// reference week, with two members. Mutations are inert.
 class _FakePlanningRepo implements PlanningRepository {
-  _FakePlanningRepo({this.week, this.last, this.onCopy});
+  _FakePlanningRepo({
+    this.week,
+    this.last,
+    this.onCopy,
+    this.roster = const [
+      Member(id: 'm1', displayName: 'Ada'),
+      Member(id: 'm2', displayName: 'Jun'),
+    ],
+  });
 
   final WeekPlan? week;
   final WeekPlan? last;
   final void Function(DateTime weekStart)? onCopy;
+  final List<Member> roster;
 
   @override
   Stream<WeekPlan?> watchWeek(DateTime weekStart) => Stream.value(week);
@@ -40,10 +50,7 @@ class _FakePlanningRepo implements PlanningRepository {
   Future<WeekPlan?> mostRecentWeekBefore(DateTime weekStart) async => last;
 
   @override
-  Future<List<Member>> members() async => const [
-    Member(id: 'm1', displayName: 'Ada'),
-    Member(id: 'm2', displayName: 'Jun'),
-  ];
+  Future<List<Member>> members() async => roster;
 
   @override
   Stream<List<Member>> watchMembers() => Stream.fromFuture(members());
@@ -219,21 +226,28 @@ Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
   );
 }
 
-WeekPlan _plannedWeek({int? portions}) => WeekPlan(
-  id: 'w',
-  weekStart: DateTime.utc(2026, 8, 24),
-  entries: [
-    PlanEntry(
-      id: 'e1',
-      dayOfWeek: 3,
-      mealSlot: 'Dinner',
-      recipeId: 'r1',
-      recipeTitle: 'Weeknight Chicken Curry',
-      eaterIds: const ['m1'],
-      portions: portions,
-    ),
-  ],
-);
+WeekPlan _plannedWeek({int? portions, List<String> eaters = const ['m1']}) =>
+    WeekPlan(
+      id: 'w',
+      weekStart: DateTime.utc(2026, 8, 24),
+      entries: [
+        PlanEntry(
+          id: 'e1',
+          dayOfWeek: 3,
+          mealSlot: 'Dinner',
+          recipeId: 'r1',
+          recipeTitle: 'Weeknight Chicken Curry',
+          eaterIds: eaters,
+          portions: portions,
+        ),
+      ],
+    );
+
+/// Ada eats a portion, Jun three-quarters of one (plan 0027).
+const _factoredRoster = [
+  Member(id: 'm1', displayName: 'Ada'),
+  Member(id: 'm2', displayName: 'Jun', portionFactor: 0.75),
+];
 
 /// The same recipe twice, inside one fridge window — the shape that gives a
 /// dish row something to say on its second line.
@@ -868,5 +882,106 @@ void main() {
     expect(find.text('Weeknight Chicken Curry'), findsNothing);
     expect(router.state.uri.toString(), '/week');
     expect(find.text('Add the first meal'), findsOneWidget);
+  });
+
+  group('the portion factor, said everywhere (plan 0027 P-D4/D5)', () {
+    const complete = RecipeMacroSummary(
+      perServing: Macros(kcal: 500, protein: 30, carb: 40, fat: 20),
+    );
+
+    Future<void> openEntrySheet(WidgetTester tester, {int? portions}) async {
+      ignoreForuiSemanticsAssertion();
+      late GoRouter router;
+      await tester.pumpWidget(
+        _routedHost([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(
+              week: _plannedWeek(
+                eaters: const ['m1', 'm2'],
+                portions: portions,
+              ),
+              roster: _factoredRoster,
+            ),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        ], (r) => router = r),
+      );
+      await tester.pumpAndSettle();
+      router.go('/week');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Weeknight Chicken Curry'));
+      await tester.pumpAndSettle();
+      expect(find.text('This meal'), findsOneWidget);
+    }
+
+    testWidgets('the Portions row says the fraction and who makes it up', (
+      tester,
+    ) async {
+      await openEntrySheet(tester);
+      expect(find.text('1¾ portions'), findsOneWidget);
+      expect(find.text('Ada 1 · Jun ¾ — their usual'), findsOneWidget);
+      // The stepper's box reads the same fraction — never 1.75.
+      expect(find.text('1¾'), findsOneWidget);
+      expect(find.textContaining('1.75'), findsNothing);
+    });
+
+    testWidgets('an override stays whole and its small print names the '
+        'figure it replaced', (tester) async {
+      await openEntrySheet(tester, portions: 3);
+      // Twice: the grid's chip behind the sheet, and the sheet's own row.
+      expect(find.text('3 portions'), findsNWidgets(2));
+      expect(
+        find.text('overrides the eaters’ 1¾ — Ada 1 · Jun ¾'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the grid’s portions chip is the override, absent while the '
+        'eaters’ own fraction is the demand', (tester) async {
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(
+              week: _plannedWeek(eaters: const ['m1', 'm2']),
+              roster: _factoredRoster,
+            ),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        ]),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(PortionsChip), findsNothing);
+    });
+
+    testWidgets('the lens weights by the factor and names its denominator', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(
+              week: _plannedWeek(eaters: const ['m1', 'm2']),
+              roster: _factoredRoster,
+            ),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(complete)),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      // Everyone: 1¾ servings × 500, and the meal count alone.
+      expect(find.text('875 kcal'), findsWidgets);
+      expect(find.text('1 meal'), findsWidgets);
+      expect(find.textContaining('of 1¾ portions'), findsNothing);
+
+      await tester.tap(find.text('Jun'));
+      await tester.pumpAndSettle();
+      // Jun: ¾ × 500, and the denominator named beside the meal count.
+      expect(find.text('375 kcal'), findsWidgets);
+      expect(find.text('1 meal · Jun · ¾ of 1¾ portions'), findsWidgets);
+      expect(find.text('875 kcal'), findsNothing);
+    });
   });
 }

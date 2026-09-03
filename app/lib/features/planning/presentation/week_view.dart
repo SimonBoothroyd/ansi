@@ -624,7 +624,13 @@ class _DishRow extends StatelessWidget {
             dayOfWeek: entry.dayOfWeek,
             mealSlot: entry.mealSlot,
           );
-    final showPortions = entry.portionsOrDefault != entry.eaterIds.length;
+    // The chip is the OVERRIDE, and only when it differs from what the eaters
+    // would have demanded on their own (their factors summed, plan 0027).
+    final override = entry.portions;
+    final usual = eatersDemand(entry.eaterIds, {
+      for (final m in roster) m.id: m,
+    });
+    final showPortions = override != null && (override - usual).abs() > 1e-9;
 
     void onTap() {
       if (editing) {
@@ -661,7 +667,7 @@ class _DishRow extends StatelessWidget {
                   ),
                   if (showPortions) ...[
                     const SizedBox(width: 8),
-                    PortionsChip(portions: entry.portionsOrDefault),
+                    PortionsChip(portions: override),
                   ],
                   const SizedBox(width: 8),
                   EaterAvatarStack(

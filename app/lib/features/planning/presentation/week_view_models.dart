@@ -148,6 +148,14 @@ Map<String, RecipeMacroSummary> recipeMacrosById(Ref ref) {
   };
 }
 
+/// The roster keyed by id — the portion factors every demand and lens share
+/// is weighted by (plan 0027).
+@riverpod
+Map<String, Member> membersById(Ref ref) => {
+  for (final m in ref.watch(membersProvider).asData?.value ?? const <Member>[])
+    m.id: m,
+};
+
 /// The viewed week's macros under [lens] (null = Everyone) — D4.
 @riverpod
 MealSetMacros weekMacros(Ref ref, String? lens) {
@@ -157,6 +165,7 @@ MealSetMacros weekMacros(Ref ref, String? lens) {
     plan?.entries ?? const [],
     summaryFor: (id) => macros[id],
     lensMemberId: lens,
+    membersById: ref.watch(membersByIdProvider),
   );
 }
 
@@ -170,5 +179,6 @@ MealSetMacros dayMacros(Ref ref, int dayOfWeek, String? lens) {
     plan?.entriesForDay(dayOfWeek) ?? const [],
     summaryFor: (id) => macros[id],
     lensMemberId: lens,
+    membersById: ref.watch(membersByIdProvider),
   );
 }

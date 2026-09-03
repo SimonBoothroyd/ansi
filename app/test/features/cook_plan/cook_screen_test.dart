@@ -173,6 +173,32 @@ void main() {
     expect(find.text(titleFor(0)), findsOneWidget);
   });
 
+  testWidgets('a fractional demand reads as a fraction on the session row and '
+      'in the whole-batch nudge (plan 0027 P-D4)', (tester) async {
+    // A 1 and a ¾ eater of a serves-2 recipe: ×0.88 → cook ×1, ¼ over.
+    await tester.pumpWidget(
+      _host([
+        cookPlanRepositoryProvider.overrideWithValue(
+          _FakeCookPlanRepo([
+            _recipe('Curry', {0: 1.75}, keeps: 3),
+          ]),
+        ),
+      ]),
+    );
+    await tester.pump();
+
+    expect(find.text('covers Mon dinner · 1¾ portions'), findsOneWidget);
+    expect(find.text('×0.88'), findsOneWidget);
+    expect(
+      find.text(
+        'cook ×1 instead — covers 2 portions · ¼ portion left over · '
+        'shopping still buys ×0.88',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('1.75'), findsNothing);
+  });
+
   testWidgets('an empty plan is a quiet line INSIDE the screen (D5b)', (
     tester,
   ) async {

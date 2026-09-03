@@ -101,8 +101,6 @@ class _ConfirmMealSheet extends HookConsumerWidget {
       return null;
     }, [members]);
 
-    final portions = portionsOverride.value ?? eaters.value.length;
-
     Future<void> add() async {
       // The sheet closes only on a write that landed. A throw used to skip the
       // pop and leave it open and inert — the most confusing possible outcome.
@@ -182,9 +180,9 @@ class _ConfirmMealSheet extends HookConsumerWidget {
             const MealFieldLabel('Portions'),
             const SizedBox(height: 6),
             MealPortionsStepper(
-              value: portions,
-              tracksEaters: portionsOverride.value == null,
-              eaters: eaters.value.length,
+              portionsOverride: portionsOverride.value,
+              eaterIds: eaters.value.toList(),
+              roster: members.asData?.value ?? const [],
               onChanged: (v) => portionsOverride.value = v < 1 ? 1 : v,
             ),
             const SizedBox(height: 20),

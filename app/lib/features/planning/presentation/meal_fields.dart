@@ -21,6 +21,7 @@ import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/portions.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../../cook_plan/domain/cook_plan.dart';
@@ -253,32 +254,50 @@ class MealEaterPicker extends StatelessWidget {
   }
 }
 
-/// Portions, defaulting to the eater count and bumpable for big appetites
-/// (spec §8). [eaters] lets the sub-line state the split the per-person macro
-/// lens will use — the honest even share, at the moment you set it (D4a).
+/// Portions: the eaters' usual — Σ of their portion factors, said as a
+/// fraction (`1¾ portions — Ada 1 · Jun ¾`, plan 0027 P-D4) — or the
+/// whole-number [override] for big/small appetites (spec §8), whose small
+/// print reads *overrides the eaters' 1¾* so the figure it replaced is never
+/// hidden. The stepper itself stays whole: from a fractional usual, `+` goes
+/// to the next whole number and `−` to the previous one.
 class MealPortionsStepper extends StatelessWidget {
   const MealPortionsStepper({
-    required this.value,
-    required this.tracksEaters,
+    required this.portionsOverride,
+    required this.eaterIds,
+    required this.roster,
     required this.onChanged,
-    this.eaters = 0,
     super.key,
   });
 
-  final int value;
-  final bool tracksEaters;
-  final int eaters;
+  /// `plan_entry.portions`: null tracks the eaters.
+  final int? portionsOverride;
+
+  /// Who is eating, and the household roster to read their factors and names
+  /// from. An eater the roster lacks counts one, as `eatersDemand` says.
+  final List<String> eaterIds;
+  final List<Member> roster;
   final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final note = tracksEaters
-        ? 'defaults to eaters — bump up for big appetites'
-        : eaters > 0
-        ? '$value portions overrides the $eaters '
-              '${eaters == 1 ? 'eater' : 'eaters'} — '
-              '${formatQuantity(value / eaters)} each'
-        : 'manual override';
+    final byId = {for (final m in roster) m.id: m};
+    final usual = eatersDemand(eaterIds, byId);
+    final demand = portionsOverride?.toDouble() ?? usual;
+    // Names in roster order, each with their own factor.
+    final names = [
+      for (final m in roster)
+        if (eaterIds.contains(m.id))
+          '${m.displayName} ${formatFraction(m.portionFactor)}',
+    ].join(' · ');
+    final tracks = portionsOverride == null;
+    final note = tracks
+        ? names.isEmpty
+              ? 'defaults to eaters — bump up for big appetites'
+              : '$names — their usual'
+        : eaterIds.isEmpty
+        ? 'manual override'
+        : 'overrides the eaters’ ${formatFraction(usual)}'
+              '${names.isEmpty ? '' : ' — $names'}';
     return Row(
       children: [
         Expanded(
@@ -286,7 +305,7 @@ class MealPortionsStepper extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '$value ${value == 1 ? 'portion' : 'portions'}',
+                formatPortions(demand),
                 style: ansiSans(size: 15, weight: FontWeight.w600),
               ),
               const SizedBox(height: 2),
@@ -296,17 +315,20 @@ class MealPortionsStepper extends StatelessWidget {
         ),
         _StepButton(
           icon: FLucideIcons.minus,
-          onTap: () => onChanged(value - 1),
+          onTap: () => onChanged(demand.ceil() - 1),
         ),
         SizedBox(
           width: 40,
           child: Text(
-            '$value',
+            formatFraction(demand),
             textAlign: TextAlign.center,
             style: ansiMono(size: 16, weight: FontWeight.w600),
           ),
         ),
-        _StepButton(icon: FLucideIcons.plus, onTap: () => onChanged(value + 1)),
+        _StepButton(
+          icon: FLucideIcons.plus,
+          onTap: () => onChanged(demand.floor() + 1),
+        ),
       ],
     );
   }

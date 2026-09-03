@@ -50,6 +50,18 @@ String mealDenominator(MealSetMacros macros) {
       : '${macros.counted} of ${macros.considered} $noun';
 }
 
+/// The denominator line under a total: the meal count, and under a person's
+/// lens their share of the portions too — `1 meal · Jun · ¾ of 1¾ portions`
+/// (plan 0027 P-D5). [scope] is `Everyone` or the member's display name, as
+/// the Week passes it; only a person has a share to name.
+String denominatorLine(MealSetMacros macros, {required String scope}) {
+  final share = portionShareLine(
+    macros,
+    lensName: scope == 'Everyone' ? null : scope,
+  );
+  return [mealDenominator(macros), if (share != null) share].join(' · ');
+}
+
 /// Why one meal was left out, in the shared vocabulary where there is one.
 String exclusionNote(ExcludedMeal meal) => switch (meal.reason) {
   // The picker row's, the confirm card's and the recipe panel's exact words.
@@ -149,12 +161,16 @@ class DayMacroLine extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Expanded(child: MacroCells(macros: macros.total!)),
+            MacroCells(macros: macros.total!),
             const SizedBox(width: 8),
-            Text(
-              mealDenominator(macros),
-              style: ansiMono(size: 10, color: AnsiColors.muted),
+            Expanded(
+              child: Text(
+                denominatorLine(macros, scope: scope),
+                textAlign: TextAlign.right,
+                style: ansiMono(size: 10, color: AnsiColors.muted),
+              ),
             ),
           ],
         ),
@@ -248,7 +264,7 @@ class WeekMacroBand extends StatelessWidget {
             Text(
               [
                 if (average != null) _averageLine(average, macros),
-                mealDenominator(macros),
+                denominatorLine(macros, scope: scope),
               ].join(' · '),
               style: ansiMono(size: 10, color: AnsiColors.muted),
             ),

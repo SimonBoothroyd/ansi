@@ -541,6 +541,61 @@ final class RecipeMacrosByIdProvider
 
 String _$recipeMacrosByIdHash() => r'bcce65c48ca6eabca10ea29ed99479705f17030d';
 
+/// The roster keyed by id — the portion factors every demand and lens share
+/// is weighted by (plan 0027).
+
+@ProviderFor(membersById)
+const membersByIdProvider = MembersByIdProvider._();
+
+/// The roster keyed by id — the portion factors every demand and lens share
+/// is weighted by (plan 0027).
+
+final class MembersByIdProvider
+    extends
+        $FunctionalProvider<
+          Map<String, Member>,
+          Map<String, Member>,
+          Map<String, Member>
+        >
+    with $Provider<Map<String, Member>> {
+  /// The roster keyed by id — the portion factors every demand and lens share
+  /// is weighted by (plan 0027).
+  const MembersByIdProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'membersByIdProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$membersByIdHash();
+
+  @$internal
+  @override
+  $ProviderElement<Map<String, Member>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  Map<String, Member> create(Ref ref) {
+    return membersById(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Map<String, Member> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Map<String, Member>>(value),
+    );
+  }
+}
+
+String _$membersByIdHash() => r'e952de3b656972111633e5164c675f4d045e7674';
+
 /// The viewed week's macros under [lens] (null = Everyone) — D4.
 
 @ProviderFor(weekMacros)
@@ -603,7 +658,7 @@ final class WeekMacrosProvider
   }
 }
 
-String _$weekMacrosHash() => r'155a729b22549d7b1d98c2ac22877a6e1562e0ab';
+String _$weekMacrosHash() => r'18ccac97520f365e7e725a1bd80a2bc7db7a290c';
 
 /// The viewed week's macros under [lens] (null = Everyone) — D4.
 
@@ -692,7 +747,7 @@ final class DayMacrosProvider
   }
 }
 
-String _$dayMacrosHash() => r'306fbce8c22516f14f4d3523f70db1e96d8ad93b';
+String _$dayMacrosHash() => r'946b030b15db540aad00e8cefa2c90748b90d469';
 
 /// One day's macros under [lens] — the SAME function over a narrower set, so
 /// the week is never a sum of rounded day totals.

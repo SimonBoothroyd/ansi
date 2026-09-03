@@ -202,9 +202,9 @@ class _EntrySheet extends HookConsumerWidget {
               const MealFieldLabel('Portions'),
               const SizedBox(height: 6),
               MealPortionsStepper(
-                value: entry.portionsOrDefault,
-                tracksEaters: entry.portions == null,
-                eaters: entry.eaterIds.length,
+                portionsOverride: entry.portions,
+                eaterIds: entry.eaterIds,
+                roster: members.asData?.value ?? const [],
                 onChanged: (v) => unawaited(
                   ref.write(
                     context,
