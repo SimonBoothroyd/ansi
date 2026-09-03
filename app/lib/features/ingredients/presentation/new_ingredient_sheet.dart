@@ -49,6 +49,7 @@ import '../domain/apply_draft.dart';
 import '../domain/ingredient.dart';
 import 'density_entry.dart' show AnsiModeChip;
 import 'draft_card.dart';
+import 'serving_row.dart';
 
 /// The add sources of frame (d).
 enum NewIngredientSource { manual, usda, barcode }
@@ -113,6 +114,12 @@ class NewIngredientSheet extends HookConsumerWidget {
     // CTA — but it is never *auto*-added: no tick, no measure row.
     final addPackMeasure = useState(true);
     final packLabel = useState('pack');
+    // Plan 0027 M-D5: a panel Open Food Facts holds per serving lands on the
+    // same serving row the form has — the amount prefilled from OFF's numeric
+    // `serving_quantity`, else empty and flagged — and Create stores the
+    // per-100 derivation ([Macros.per100From]), never the printed four.
+    final serving = useState(const ServingDraft());
+    final servingBasis = useState(MacrosBasis.perG);
     final canCreate =
         name.value.trim().isNotEmpty && !creating.value && !scanning.value;
 
@@ -121,6 +128,25 @@ class NewIngredientSheet extends HookConsumerWidget {
       try {
         final prefill = draft.value;
         final landing = applied.value;
+        final panel = landing?.servingPanel;
+        final servingAmount = serving.value.amount;
+        // Absent macros stay absent: a missing panel writes no numbers
+        // (D1/invariant 3), and present ones keep the basis the label read
+        // them in rather than being converted (7.7). A per-serving panel is
+        // the one conversion — and only once the serving weight is there;
+        // without it the row is a stub with no panel, not a guess.
+        final macros = panel == null
+            ? landing?.macros
+            : servingAmount == null
+            ? null
+            : Macros.per100From(
+                serving: servingAmount,
+                basis: servingBasis.value,
+                printed: panel.printed,
+              );
+        final macrosBasis = panel == null
+            ? landing?.macrosBasis ?? MacrosBasis.perG
+            : servingBasis.value;
         // One guard over the whole creation: the row, its opt-in pack measure
         // and the enrichment are one act to the person who tapped Create, so
         // they get one honest answer if any of it fails.
@@ -136,11 +162,8 @@ class NewIngredientSheet extends HookConsumerWidget {
                   // found product, `manual` for anything else, including the
                   // not-found exit (which kept the code but learnt nothing).
                   source: landing?.source ?? 'manual',
-                  // Absent macros stay absent: a missing panel writes no
-                  // numbers (D1/invariant 3), and present ones keep the basis
-                  // the label read them in rather than being converted (7.7).
-                  macros: landing?.macros,
-                  macrosBasis: landing?.macrosBasis ?? MacrosBasis.perG,
+                  macros: macros,
+                  macrosBasis: macrosBasis,
                 );
             // The opt-in half of frame (e): the pack size becomes a real
             // measure row only because the tick is on. It rides the shared
@@ -231,6 +254,11 @@ class NewIngredientSheet extends HookConsumerWidget {
           name.value = landing.name!;
           seededName.value = landing.name;
         }
+        final panel = landing.servingPanel;
+        if (panel != null) {
+          serving.value = ServingDraft.fromPanel(panel);
+          servingBasis.value = panel.servingBasis ?? MacrosBasis.perG;
+        }
       } finally {
         if (context.mounted) scanning.value = false;
       }
@@ -238,6 +266,7 @@ class NewIngredientSheet extends HookConsumerWidget {
 
     final prefill = draft.value;
     final pack = applied.value?.packMeasure;
+    final panel = applied.value?.servingPanel;
 
     return Container(
       decoration: const BoxDecoration(
@@ -351,6 +380,25 @@ class NewIngredientSheet extends HookConsumerWidget {
                 draft: prefill,
                 skipped: applied.value?.skipped ?? const [],
               ),
+              // M-D5: the serving row, under the card that printed the four.
+              // Re-keyed per draft, like the name field: `initial` seeds the
+              // amount once.
+              if (panel != null) ...[
+                const SizedBox(height: 10),
+                ServingRow(
+                  key: ValueKey('sheet-serving-${prefill.barcode ?? ''}'),
+                  draft: serving.value,
+                  basis: servingBasis.value,
+                  onAmount: (t) =>
+                      serving.value = serving.value.copyWith(amountText: t),
+                  onBasis: (b) => servingBasis.value = b,
+                ),
+                StoredPer100Line(
+                  basis: servingBasis.value,
+                  serving: serving.value,
+                  printed: panel.printed,
+                ),
+              ],
             ],
 
             const SizedBox(height: 18),
@@ -389,8 +437,13 @@ class NewIngredientSheet extends HookConsumerWidget {
               ],
               const SizedBox(height: 10),
               Text(
-                'Saves as a stub — confirm it on the next screen to make it '
-                'count.',
+                panel != null && serving.value.amount == null
+                    ? 'Saves as a stub — the serving weight is what is '
+                          'missing. Without it the panel is not stored; type '
+                          'it above, or the four figures again on the next '
+                          'screen.'
+                    : 'Saves as a stub — confirm it on the next screen to '
+                          'make it count.',
                 style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ],

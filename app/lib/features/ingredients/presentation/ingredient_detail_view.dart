@@ -22,6 +22,14 @@
 /// only where the row had none, and nothing confirms the row. Since the form
 /// and the add sheet are one form, a row created by name and then scanned
 /// ends up exactly where a row created by scan would.
+///
+/// Since plan 0027 (front M) the macros section has a **per serving** mode:
+/// the four fields take a label's figures as printed, a serving row says what
+/// they describe, and the row still stores per 100 of the basis — derived
+/// unrounded ([Macros.per100From], M-D3) and previewed live. The serving's
+/// "1 tbsp = 14 g" is offered, opt-in, as this row's density (or a measure
+/// when it names a thing) in the same save (M-D2). A barcode draft whose
+/// panel came per serving lands on that mode (M-D5).
 library;
 
 import 'dart:async';
@@ -54,6 +62,7 @@ import '../domain/normalize.dart';
 import 'density_entry.dart';
 import 'draft_card.dart';
 import 'measures_editor.dart';
+import 'serving_row.dart';
 
 /// The pushed route for one vocab row.
 String ingredientDetailRoute(String id) => '/ingredients/$id';
@@ -159,6 +168,17 @@ class _DetailForm extends HookConsumerWidget {
     final seededMacros = useState<_MacroDraft>(_MacroDraft.from(ing.macros));
     // Bumped on every re-seed, and used as the macro fields' key. See G1.
     final macroSeed = useState(0);
+    // Plan 0027 M-D1: the macros section's per-serving mode. The four fields
+    // then hold the label's figures AS PRINTED and the serving row says what
+    // they describe; what is stored is still per 100 of the basis (M-D3).
+    final perServing = useState(false);
+    final serving = useState(const ServingDraft());
+    // Bumped when a scan seeds the serving row, and used as its key — the
+    // same mechanism the macro fields use (G1).
+    final servingSeed = useState(0);
+    // M-D2: the serving's "1 tbsp = 14 g" as this row's density (or a
+    // measure) — off by default, one tap, the same save.
+    final servingOffer = useState(false);
     final allowed = useState(allowedUnitsFor(ing).toSet());
     final message = useState<String?>(null);
     // The USDA lookup's status note, owned HERE rather than inside the button
@@ -235,6 +255,9 @@ class _DetailForm extends HookConsumerWidget {
       seededMacros.value = fresh;
       macros.value = fresh;
       macroSeed.value++;
+      // A row's own macros are per 100 by definition — the fields now hold
+      // them, so the mode must say so.
+      perServing.value = false;
       return null;
     }, [rowMacros]);
 
@@ -253,7 +276,23 @@ class _DetailForm extends HookConsumerWidget {
 
     // A `complete` row is one whose macros the household stands behind — the
     // form's own draft is what the CTA acts on, so the gate reads the draft.
-    final draftMacros = macros.value.toMacros();
+    // In per-serving mode the fields hold the printed four and the draft is
+    // their per-100 derivation (M-D1/M-D3) — null until the serving weight
+    // is in, so nothing is stored that was divided by a blank.
+    final printed = macros.value.toMacros();
+    final servingAmount = serving.value.amount;
+    final draftMacros = !perServing.value
+        ? printed
+        : (printed == null || servingAmount == null)
+        ? null
+        : Macros.per100From(
+            serving: servingAmount,
+            basis: basis.value,
+            printed: printed,
+          );
+    final offer = perServing.value
+        ? servingOfferFor(serving.value, basis.value)
+        : null;
     final stub = ing.status == IngredientStatus.stub;
 
     Future<Ingredient?> save() async {
@@ -269,40 +308,72 @@ class _DetailForm extends HookConsumerWidget {
             'part of a panel isn’t a panel.';
         return null;
       }
+      if (perServing.value && printed != null && servingAmount == null) {
+        message.value =
+            'One serving is how much? The label’s figures become per 100 '
+            'only once the serving weight is typed.';
+        return null;
+      }
       busy.value = true;
       try {
-        // The keepAlive repo provider, not a throwaway notifier: this
-        // survives the await.
-        //
+        // The keepAlive repo providers, not a throwaway notifier: these
+        // survive the await.
+        final ingredients = ref.read(ingredientRepositoryProvider);
+        final measures = ref.read(measureRepositoryProvider);
+        // M-D2: the opt-in, taken. It writes through the entry paths that
+        // already exist — `setDensity` (the same unlock the density entry's
+        // spoon phrasing lands) or `addMeasure` — as part of this one save.
+        final taken = servingOffer.value ? offer : null;
         // Wrapped in a record so the guard's own "it threw" null stays
         // distinct from the repository's "the row is gone" null: a failed
         // write must not be reported as a deleted ingredient.
         final outcome = await ref.write(
           context,
           'save ${ing.canonicalName}',
-          () async => (
-            row: await ref
-                .read(ingredientRepositoryProvider)
-                .saveEdit(
-                  ing.id,
-                  IngredientEdit(
-                    canonicalName: name.value,
-                    defaultUnit: defaultUnit.value,
-                    macrosBasis: basis.value,
-                    allowedUnits: allowed.value,
-                    category: category.value.trim().isEmpty
-                        ? null
-                        : category.value.trim(),
-                    macros: draftMacros,
-                    source: pendingSource.value,
-                  ),
-                ),
-          ),
+          () async {
+            final row = await ingredients.saveEdit(
+              ing.id,
+              IngredientEdit(
+                canonicalName: name.value,
+                defaultUnit: defaultUnit.value,
+                macrosBasis: basis.value,
+                allowedUnits: allowed.value,
+                category: category.value.trim().isEmpty
+                    ? null
+                    : category.value.trim(),
+                macros: draftMacros,
+                source: pendingSource.value,
+              ),
+            );
+            if (row != null) {
+              switch (taken) {
+                case DensityOffer(:final gPerMl):
+                  await ingredients.setDensity(ing.id, gPerMl);
+                case MeasureOffer(:final label, :final amount):
+                  await measures.addMeasure(
+                    ingredientId: ing.id,
+                    label: label,
+                    amount: amount,
+                  );
+                case null:
+                  break;
+              }
+            }
+            return (
+              row: row,
+              measureAdded: row != null && taken is MeasureOffer,
+            );
+          },
         );
         if (outcome == null || !context.mounted) return null;
         final saved = outcome.row;
         pendingSource.value = null; // stamped now, or the row is gone
+        // Landed, so untick: the next Save must not add it twice.
+        if (taken != null) servingOffer.value = false;
         ref.invalidate(ingredientByIdProvider(ing.id));
+        if (outcome.measureAdded) {
+          ref.invalidate(ingredientMeasuresProvider(ing.id));
+        }
         message.value = saved == null ? 'It is no longer here.' : 'Saved.';
         return saved;
       } finally {
@@ -340,6 +411,20 @@ class _DetailForm extends HookConsumerWidget {
         // the controllers pick the new text up (G1's mechanism).
         macros.value = _MacroDraft.from(applied.macros);
         macroSeed.value++;
+        perServing.value = false;
+      }
+      final panel = applied.servingPanel;
+      if (panel != null) {
+        // M-D5: a per-serving panel lands on the per-serving mode — the four
+        // as printed, the serving amount prefilled when OFF had a number and
+        // otherwise left for the person, never parsed out of the free text.
+        perServing.value = true;
+        if (panel.servingBasis != null) basis.value = panel.servingBasis!;
+        macros.value = _MacroDraft.from(panel.printed);
+        macroSeed.value++;
+        serving.value = ServingDraft.fromPanel(panel);
+        servingSeed.value++;
+        servingOffer.value = false;
       }
       if (applied.source != null) pendingSource.value = applied.source;
     }
@@ -442,22 +527,54 @@ class _DetailForm extends HookConsumerWidget {
         ),
 
         const _Label('MACROS — ENTER THEM AS THE LABEL READS'),
+        // M-D1: one segment, in the section it changes. Per 100 of the basis
+        // is the default; per serving reveals the row below and reads the
+        // same four fields as the label prints them.
         Row(
           children: [
             AnsiModeChip(
               label: 'per 100 g',
-              selected: basis.value == MacrosBasis.perG,
-              onTap: () => basis.value = MacrosBasis.perG,
+              selected: !perServing.value && basis.value == MacrosBasis.perG,
+              onTap: () {
+                perServing.value = false;
+                basis.value = MacrosBasis.perG;
+              },
             ),
             const SizedBox(width: 6),
             AnsiModeChip(
               label: 'per 100 ml',
-              selected: basis.value == MacrosBasis.perMl,
-              onTap: () => basis.value = MacrosBasis.perMl,
+              selected: !perServing.value && basis.value == MacrosBasis.perMl,
+              onTap: () {
+                perServing.value = false;
+                basis.value = MacrosBasis.perMl;
+              },
+            ),
+            const SizedBox(width: 6),
+            AnsiModeChip(
+              label: 'per serving',
+              selected: perServing.value,
+              onTap: () => perServing.value = true,
             ),
           ],
         ),
         const SizedBox(height: 8),
+        // Three slots (the ListView rule above): the serving row, the stored
+        // line and the M-D2 offer hold their positions whether or not the
+        // mode is on, so toggling it cannot shift the fields below onto the
+        // wrong element. The serving unit sets the BASIS — a 14 g serving
+        // reads per 100 g — so the admission chips follow it live.
+        if (perServing.value)
+          ServingRow(
+            key: ValueKey('serving-row-${servingSeed.value}'),
+            draft: serving.value,
+            basis: basis.value,
+            onAmount: (t) =>
+                serving.value = serving.value.copyWith(amountText: t),
+            onName: (t) => serving.value = serving.value.copyWith(name: t),
+            onBasis: (b) => basis.value = b,
+          )
+        else
+          const SizedBox.shrink(),
         // The key is the row-version (G1): it changes only when the row's own
         // macros were re-seeded into the draft above, and that is exactly when
         // the four controllers need rebuilding around their new text.
@@ -466,6 +583,22 @@ class _DetailForm extends HookConsumerWidget {
           draft: macros.value,
           onChanged: (d) => macros.value = d,
         ),
+        if (perServing.value)
+          StoredPer100Line(
+            basis: basis.value,
+            serving: serving.value,
+            printed: printed,
+          )
+        else
+          const SizedBox.shrink(),
+        if (offer != null)
+          _ServingOfferLine(
+            offer: offer,
+            taken: servingOffer.value,
+            onToggle: (v) => servingOffer.value = v,
+          )
+        else
+          const SizedBox.shrink(),
 
         const _Label('DENSITY — OPTIONAL, EITHER WAY, ONE STORED FACT'),
         DensityEntry(
@@ -708,6 +841,44 @@ class _MacroFields extends StatelessWidget {
         field('protein', draft.protein, (t) => draft.copyWith(protein: t)),
         field('carb', draft.carb, (t) => draft.copyWith(carb: t)),
         field('fat', draft.fat, (t) => draft.copyWith(fat: t)),
+      ],
+    );
+  }
+}
+
+/// M-D2's line — "This serving also says": the serving's "1 tbsp = 14 g"
+/// offered as this row's density, or "1 slice = 28 g" as a measure. Off by
+/// default: a pack's "about 1 tbsp" is sometimes a guess, and a density
+/// minted from a guess would decide what units the row admits.
+class _ServingOfferLine extends StatelessWidget {
+  const _ServingOfferLine({
+    required this.offer,
+    required this.taken,
+    required this.onToggle,
+  });
+
+  final ServingOffer offer;
+  final bool taken;
+  final ValueChanged<bool> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _Label('THIS SERVING ALSO SAYS'),
+        FCheckbox(
+          key: const ValueKey('serving-offer'),
+          value: taken,
+          onChange: onToggle,
+          label: Text(offer.sentence, style: ansiMono(size: 11)),
+        ),
+        _Note(
+          taken
+              ? offer.whenTaken
+              : 'not taken — the serving is stored as macros only; tick it '
+                    'and Save writes this too',
+        ),
       ],
     );
   }
@@ -1730,6 +1901,103 @@ class _MacroDraft {
 /// the opposite of the basis family, which is always sayable (ADR-0008 §1).
 String _crossFamilyWord(Ingredient ingredient) =>
     ingredient.macrosBasis == MacrosBasis.perMl ? 'weight' : 'volume';
+
+// --- The M-D2 offer ----------------------------------------------------------
+
+/// What a serving's name and weight also say about the row (plan 0027
+/// M-D2): a density when the pack measured a spoon, a measure when it named
+/// a thing. Computed, never written — the form writes it only when ticked.
+sealed class ServingOffer {
+  const ServingOffer();
+
+  /// The tick's label: "1 tbsp weighs 14 g — set as density".
+  String get sentence;
+
+  /// The note under a taken tick: what Save will do with it.
+  String get whenTaken;
+}
+
+/// "1 tbsp = 14 g" — a volume-named weight IS a density (ADR-0008 §2), so
+/// it lands through the same `setDensity` the density entry's spoon phrasing
+/// uses, and the volume chips unlock exactly as they would there (ADR-0009).
+class DensityOffer extends ServingOffer {
+  const DensityOffer({
+    required this.unit,
+    required this.gramsPerUnit,
+    required this.gPerMl,
+  });
+
+  final Unit unit;
+  final double gramsPerUnit;
+  final double gPerMl;
+
+  @override
+  String get sentence =>
+      '1 ${unit.label} weighs ${formatQuantity(gramsPerUnit)} g — set as '
+      'density';
+
+  @override
+  String get whenTaken =>
+      '= ${formatDensity(gPerMl)} g/ml, written with this Save through the '
+      'density entry — the volume chips unlock as they do when a density is '
+      'typed by hand';
+}
+
+/// "1 slice = 28 g" — a count-like human unit mapped into the basis
+/// (ADR-0008 §3), added through the measures editor's own write.
+class MeasureOffer extends ServingOffer {
+  const MeasureOffer({
+    required this.label,
+    required this.amount,
+    required this.basis,
+  });
+
+  final String label;
+
+  /// In [basis]'s base unit — what `addMeasure` stores.
+  final double amount;
+  final MacrosBasis basis;
+
+  @override
+  String get sentence =>
+      '1 $label = ${formatQuantity(amount)} ${basis.baseUnit.label} — add as '
+      'a measure';
+
+  @override
+  String get whenTaken =>
+      'lands in the measures below with this Save — rename it or bin it '
+      'there';
+}
+
+/// The offer a serving row makes, or null when it makes none.
+///
+/// The name is read as an optional count and a word ("2 Tbsp", "slice").
+/// A spoon word with a **mass** serving is a density — per spoon, so "2 Tbsp
+/// = 32 g" offers 16 g a tablespoon; a spoon with an ml serving is a volume
+/// of itself and offers nothing. Any other word is a measure of one — a
+/// count above one would need a singular nobody typed ("2 slices"), so it
+/// is not offered rather than guessed at.
+ServingOffer? servingOfferFor(ServingDraft serving, MacrosBasis basis) {
+  final amount = serving.amount;
+  final name = serving.name.trim();
+  if (amount == null || name.isEmpty) return null;
+  final m = RegExp(r'^(\d+(?:[.,]\d+)?)\s+(.+)$').firstMatch(name);
+  final count = m == null
+      ? 1.0
+      : double.tryParse(m.group(1)!.replaceAll(',', '.'));
+  final word = (m == null ? name : m.group(2)!).trim();
+  if (count == null || !(count > 0) || word.isEmpty) return null;
+  final volume = volumeUnitFromLabel(word);
+  if (volume != null) {
+    if (basis != MacrosBasis.perG) return null;
+    final perUnit = amount / count;
+    final gPerMl = densityFromVolumeWeight(volume, perUnit);
+    if (gPerMl == null) return null;
+    return DensityOffer(unit: volume, gramsPerUnit: perUnit, gPerMl: gPerMl);
+  }
+  if (count != 1) return null;
+  return MeasureOffer(label: word, amount: amount, basis: basis);
+}
 
 /// `60` not `60.0`, `0.66` unchanged — seeds a numeric field with what a
 /// person would have typed.
