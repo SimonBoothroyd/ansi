@@ -165,19 +165,22 @@ step-7 stack with **live sync**. It needs the **local stack running**
 (`make db-up`) and nothing else. Since plan 0026 it is **one file per flow**,
 each independently runnable — `make test-sim FILE=week` runs
 `week_test.dart` alone; `DEVICE=<udid>` targets a specific simulator so
-parallel lanes can each hold one. The six files: `auth` (the sign-in gate →
-/connecting → Library) · `recipe_editor` (create/edit a recipe incl. method
-steps, jsonb + child-diff round-trips) · `week` (week/cook/shop) · `import`
-(reconcile → commit, over the local import repository — no LLM) ·
-`ingredients` (stub band, rename, add-by-barcode off a fixture) · `nested`
-(yield + component line → plan → cook/shop → gap card + delete refusal).
-Every file is **self-provisioning**: its `setUpAll` creates its OWN throwaway
-two-person household over HTTP (`support/stack.dart`) and signs in
-programmatically; only `auth_test.dart` drives the gate. Prerequisites a
-flow needs (the week's favourited recipe, the manager's stub) are seeded
-through the app's own repositories over the throwaway `PowerSyncDatabase`
-and round-tripped through sync — never by driving another flow's UI.
-`support/` holds the shared boot, waits, finders and the editor/week
+parallel lanes can each hold one. The seven files: `auth` (the sign-in gate →
+/connecting → Library) · `library` (fold, the pinned title search and its
+`DID YOU MEAN` band, book rename, the refused delete, the reorder sheet) ·
+`recipe_editor` (create/edit a recipe incl. method steps, jsonb + child-diff
+round-trips) · `week` (week/cook/shop) · `import` (reconcile → commit, over
+the local import repository — no LLM) · `ingredients` (stub band, rename,
+add-by-barcode off a fixture) · `nested` (yield + component line → plan →
+cook/shop → gap card + delete refusal). Every file is
+**self-provisioning**: its `setUpAll`
+creates its OWN throwaway two-person household over HTTP
+(`support/stack.dart`) and signs in programmatically; only `auth_test.dart`
+drives the gate. Prerequisites a flow needs (the week's favourited recipe,
+the library's second book, the manager's stub) are seeded through the app's
+own repositories over the throwaway `PowerSyncDatabase` and round-tripped
+through sync — never by driving another flow's UI. `support/` holds the
+shared boot, waits, finders and the library/editor/week
 drivers. It is deliberately *not* in CI (macOS runners are slow and expensive
 at hobby scale).
 

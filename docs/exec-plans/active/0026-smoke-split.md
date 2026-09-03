@@ -97,6 +97,13 @@ the shared local backend is never a collision.
    and "Counts as" into `ingredients_test.dart` (tracker 2026-08-29 and
    2026-09-03 rows); the four Library v2 taps into a Library leg of
    `auth_test.dart` or its own `library_test.dart` (tracker 2026-09-02 row).
+   ✅ **The Library half landed 2026-09-03 (lane D)** as its own
+   `library_test.dart` + `support/library.dart`: fold/unfold, the title
+   search with its `DID YOU MEAN` band and the clear, rename through the
+   book `⋯`, the refused delete (count + "Move them to…"), and the reorder
+   sheet — the rename and the order asserted in the local db after the round
+   trip. **28 s of test time, 1:49 wall** (47 s of that the Xcode build) on
+   the iPhone 17. The tracker row is retired.
 
 ## Decision log
 
@@ -122,6 +129,16 @@ the shared local backend is never a collision.
 - 2026-09-03 — **Time per file is the point.** A red in one flow now costs
   under two minutes to re-run, against seven for the old suite — the reason
   the split was worth doing before Lanes B and C add legs.
+- 2026-09-03 (lane D) — **The Library legs are a file, not a leg of
+  `auth_test.dart`.** The auth file's subject is the gate and it is the one
+  file that starts signed out; a Library leg there would have paid the gate
+  before every tap. Its own file signs in programmatically like the rest and
+  seeds the second book and the recipe through `SqliteBookRepository` /
+  `SqliteRecipeRepository`, so nothing it asserts came from another flow's UI.
+- 2026-09-03 (lane D) — **The reorder sheet and the `DID YOU MEAN` band
+  ride along.** The tracker row asked for four taps; the two it left out cost
+  a few seconds each and were the last Library v2 surfaces no sim drove, so
+  the row retires whole rather than narrowing.
 
 ## Notes / open questions
 
