@@ -21,6 +21,8 @@ planning/
                   recipe_picker_sheet + confirm_meal_sheet (the two-step add
                   flow), entry_sheet (what a row opens in edit mode),
                   meal_fields (the controls both sheets share),
+                  household_sheet (the members' usual portions, off the
+                  Library ⋯ — plan 0027 P-D3),
                   week_widgets (Pill, EaterAvatar, EaterAvatarStack,
                   PortionsChip, CookMarkerLine), week_format
 ```

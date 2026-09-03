@@ -23,6 +23,7 @@ import '../../../shared/write.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/presentation/ingredient_list_view.dart'
     show kIngredientsRoute;
+import '../../planning/presentation/household_sheet.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/book_providers.dart';
@@ -261,6 +262,17 @@ class _OverflowMenu extends ConsumerWidget {
               onPress: () {
                 unawaited(controller.hide());
                 context.pushOnce(kIngredientsRoute);
+              },
+            ),
+            // The household's non-recipe things live in this menu already
+            // (Ingredients, Sign out), so a person's usual portion is set
+            // from here too (plan 0027 P-D3).
+            FItem(
+              prefix: const Icon(FLucideIcons.users),
+              title: const Text('Household'),
+              onPress: () {
+                unawaited(controller.hide());
+                unawaited(showHouseholdSheet(context));
               },
             ),
             FItem(
