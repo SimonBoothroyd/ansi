@@ -1553,4 +1553,111 @@ void main() {
       expect(find.byType(PickerShell), findsNothing);
     });
   });
+
+  group(
+    'a pick lands even when the card is gone by the time the sheet closes',
+    () {
+      // The review is a viewport. On a phone the search sheet's keyboard
+      // shrinks it, and the card that opened the sheet can scroll out and
+      // UNMOUNT while the sheet is still open. Riverpod 3 throws on a
+      // `WidgetRef` used after unmount, so the pick was lost (owner field
+      // report, 2026-09-03: "swapped wild garlic for kale, it didn't set") —
+      // and the amount sheets share the shape. The pick must land regardless
+      // of what happened to the card underneath.
+      testWidgets('the search sheet resolves the line through the controller, '
+          'not the unmounted card', (tester) async {
+        _filterSemanticsAssertions();
+        const kale = Ingredient(
+          id: 'ing-kale',
+          canonicalName: 'Kale',
+          defaultUnit: g,
+          status: IngredientStatus.complete,
+        );
+        final container = ProviderContainer(
+          overrides: [
+            bookRepositoryProvider.overrideWithValue(
+              const FakeBookRepository(),
+            ),
+            importRepositoryProvider.overrideWithValue(
+              _FakeRepo(_nonePayload()),
+            ),
+            ingredientRepositoryProvider.overrideWithValue(
+              FakeIngredientRepo(const [kale]),
+            ),
+            measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
+            usdaProbeProvider.overrideWithValue(const SilentUsdaProbe()),
+          ],
+        );
+        addTearDown(container.dispose);
+        await container
+            .read(importControllerProvider.notifier)
+            .startImport(const ImportFromUrl('x'));
+
+        final showCard = ValueNotifier(true);
+        addTearDown(showCard.dispose);
+        await tester.pumpWidget(_toggleHost(container, showCard));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(FLucideIcons.pencil));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Find or create ingredient'));
+        await tester.pumpAndSettle();
+        expect(find.byType(PickerShell), findsOneWidget);
+
+        // The card leaves the tree while the sheet is up.
+        showCard.value = false;
+        await tester.pumpAndSettle();
+        expect(find.byType(ReviewLineCard), findsNothing);
+        expect(find.byType(PickerShell), findsOneWidget);
+
+        await tester.tap(
+          find.descendant(
+            of: find.byType(PickerShell),
+            matching: find.text('Kale'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        final state = container.read(importControllerProvider);
+        final line = (state as ImportReconciling).resolutions.single;
+        expect(line.chosenIngredientId, 'ing-kale');
+        expect(line.chosenName, 'Kale');
+        expect(
+          line.isCorrection,
+          isTrue,
+          reason: 'a search pick is a correction',
+        );
+      });
+    },
+  );
+}
+
+/// [_host], but the card can be removed from the tree mid-flow — the state
+/// stays watched at the top so the (autoDispose) controller lives on.
+Widget _toggleHost(ProviderContainer container, ValueNotifier<bool> show) =>
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        home: FTheme(
+          data: ansiThemeData(),
+          child: FScaffold(
+            child: ValueListenableBuilder<bool>(
+              valueListenable: show,
+              builder: (_, visible, _) =>
+                  visible ? const _Body() : const _Watcher(),
+            ),
+          ),
+        ),
+      ),
+    );
+
+/// Keeps the controller alive without rendering a card.
+class _Watcher extends ConsumerWidget {
+  const _Watcher();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(importControllerProvider);
+    return const SizedBox.shrink();
+  }
 }

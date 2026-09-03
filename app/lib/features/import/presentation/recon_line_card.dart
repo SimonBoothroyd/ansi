@@ -372,11 +372,18 @@ class _Expanded extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Read at CALL time, never captured: `Resolver` hands its picks back after
-    // an awaited sheet, and a notifier instance captured before that await can
-    // be a disposed one by the time it lands.
-    void update(LineResolution Function(LineResolution) f) =>
-        ref.read(importControllerProvider.notifier).updateResolution(_index, f);
+    // Read at CALL time through the app-lifetime container, never through
+    // this card's `ref` and never as a captured notifier: `Resolver` hands its
+    // pick back after an awaited sheet, and by then the card can be UNMOUNTED
+    // — on a phone the sheet's keyboard shrinks the review list under it and
+    // the card scrolls out — and a `WidgetRef` used after unmount throws
+    // (Riverpod 3), which lost the pick. A notifier captured before the await
+    // can be a disposed one instead. The container outlives both; the review
+    // still watching the provider keeps the notifier alive.
+    final container = ProviderScope.containerOf(context, listen: false);
+    void update(LineResolution Function(LineResolution) f) => container
+        .read(importControllerProvider.notifier)
+        .updateResolution(_index, f);
     final issues = validation.issues;
     final linked = resolution.isComponent;
     final label = attentionLabel(
@@ -788,6 +795,9 @@ Future<void> editLineAmount(
 ) async {
   final state = ref.read(importControllerProvider);
   if (state is! ImportReconciling) return;
+  // Captured BEFORE the sheet: the app-lifetime container is what the write
+  // after the await goes through (the chip's own element may be gone by then).
+  final container = ProviderScope.containerOf(context, listen: false);
   final raw = state.payload.flatLines[lineIndex].raw;
   final resolution = state.resolutions.firstWhere(
     (r) => r.lineIndex == lineIndex,
@@ -868,22 +878,26 @@ Future<void> editLineAmount(
     initialOptional: resolution.optional,
   );
   if (result is! QuantitySaved) return;
-  // The notifier is read HERE, after the awaited sheet — never captured before
-  // it and never threaded in through a constructor: the instance a widget was
-  // built with can be stale (or disposed) by the time the sheet closes.
-  ref.read(importControllerProvider.notifier).updateResolution(lineIndex, (r) {
-    // A pre-selected measure counts as picked on confirm: the sheet opened ON
-    // it, so Done means "yes, that one" — otherwise the one-tap resolve would
-    // silently keep the unit the line was flagged for.
-    final picked = sheetChoiceUnit(
-      choice: result.choice,
-      unitPicked: result.unitPicked || preselect != null,
-      currentUnit: r.unit,
-    );
-    return r
-        .setAmount(quantity: result.quantity, unit: picked)
-        .setOptional(optional: result.optional);
-  });
+  // The notifier is read HERE, after the awaited sheet, through the container
+  // captured before it — never through `ref` (the chip's element can be
+  // unmounted by now, and Riverpod 3 throws on that) and never as an instance
+  // captured before the await (which can be a disposed one).
+  container.read(importControllerProvider.notifier).updateResolution(
+    lineIndex,
+    (r) {
+      // A pre-selected measure counts as picked on confirm: the sheet opened ON
+      // it, so Done means "yes, that one" — otherwise the one-tap resolve would
+      // silently keep the unit the line was flagged for.
+      final picked = sheetChoiceUnit(
+        choice: result.choice,
+        unitPicked: result.unitPicked || preselect != null,
+        currentUnit: r.unit,
+      );
+      return r
+          .setAmount(quantity: result.quantity, unit: picked)
+          .setOptional(optional: result.optional);
+    },
+  );
 }
 
 /// Opens lane U's COMPONENT quantity sheet for a linked line (8.6 / D2 · D6)
@@ -904,6 +918,7 @@ Future<void> editComponentAmount(
 ) async {
   final state = ref.read(importControllerProvider);
   if (state is! ImportReconciling) return;
+  final container = ProviderScope.containerOf(context, listen: false);
   final resolution = state.resolutions.firstWhere(
     (r) => r.lineIndex == lineIndex,
   );
@@ -946,8 +961,9 @@ Future<void> editComponentAmount(
     initialUnit: stored,
   );
   if (result == null) return;
-  // Read AFTER the awaited sheet, never captured before it.
-  ref
+  // Read AFTER the awaited sheet through the container, never captured before
+  // it and never through a possibly-unmounted `ref` (see `editLineAmount`).
+  container
       .read(importControllerProvider.notifier)
       .updateResolution(
         lineIndex,
