@@ -17,15 +17,19 @@ Two workflows do the mechanical parts:
 > understand a mechanism or to rebuild it, not as a to-do list.
 >
 > - Repo: `github.com/SimonBoothroyd/ansi`. All four signing secrets, both
->   Supabase deploy secrets, `PLAY_SERVICE_ACCOUNT_JSON`, and the three build
->   variables (§2.3, §4.1) are set.
+>   Supabase deploy secrets, the PowerSync deploy token, and the three build
+>   variables (§2.3, §4.1) are set. **`PLAY_SERVICE_ACCOUNT_JSON` is NOT set**
+>   (checked 2026-09-03 — `gh secret list`; the `v0.2.0` run's guard printed
+>   the SKIPPED notice and `play-internal` skipped), so releases land on the
+>   GitHub Release only until §3a step 7 is finished and the secret is set.
 > - The Gradle signing block is committed (§1).
 > - Play Console: the account exists, the **Ansi** app is created under the
 >   permanent package `io.ansi.app`, the internal track and its tester list are
 >   configured, and §3a's one-time walk is complete. **Do not walk §3a again** —
 >   a second app under a different package can never update the installed one.
-> - The first tag, `v0.1.0`, has been pushed; its `release` run was still in
->   flight when this note was written, so nothing here claims a shipped build.
+> - Tags shipped: `v0.1.0` (2026-09-01) and `v0.2.0` (2026-09-03, the polish
+>   pass — guard · android · ios green, signed APK + AAB on the Release,
+>   Play upload skipped for the reason above).
 
 ## What syncs how
 
