@@ -554,6 +554,160 @@ void main() {
     });
   });
 
+  group('arrivalMeasure (seam D2: the default answers a number and no '
+      'thing)', () {
+    // The 21 rows the owner ruled on are DATA; what is defended here is the
+    // rule that spends them.
+    const potatoWithDefault = Ingredient(
+      id: 'i-potato',
+      canonicalName: 'Gold Potato',
+      defaultUnit: pieces,
+      category: 'produce',
+      status: IngredientStatus.complete,
+      densityGPerMl: 0.59,
+      allowedUnits: [g, tsp, tbsp, cup, ml, handful],
+      defaultMeasureId: 'm-p-med',
+    );
+
+    test('a refused `piece` on a row with a default lands on it', () {
+      expect(
+        arrivalMeasure(potatoWithDefault, _potatoSizes, unit: 'piece'),
+        _potatoSizes.first,
+      );
+    });
+
+    test('a line that printed NO unit lands on it too — "onions, sliced"', () {
+      expect(
+        arrivalMeasure(potatoWithDefault, _potatoSizes, unit: null),
+        _potatoSizes.first,
+      );
+      expect(
+        arrivalMeasure(potatoWithDefault, _potatoSizes, unit: ''),
+        _potatoSizes.first,
+      );
+    });
+
+    test('a printed WORD the row refuses is never overruled — a bunch is '
+        'twenty-five sprigs, and replacing it would be the guess ADR-0010 '
+        'forbids', () {
+      for (final printed in ['bunch', 'head', 'can', 'sprig']) {
+        expect(
+          arrivalMeasure(potatoWithDefault, _potatoSizes, unit: printed),
+          isNull,
+          reason: printed,
+        );
+      }
+    });
+
+    test('a refused MASS/VOLUME unit is a density gap, not a count gap — a '
+        'measure cannot answer it', () {
+      expect(
+        arrivalMeasure(_garlic, const [_clove], unit: 'ml'),
+        isNull,
+        reason: 'garlic has no density; a clove is not what "2 ml" meant',
+      );
+    });
+
+    test('a unit the row already carries is left alone', () {
+      expect(arrivalMeasure(potatoWithDefault, _potatoSizes, unit: 'g'), null);
+      expect(
+        arrivalMeasure(potatoWithDefault, _potatoSizes, unit: 'potato, large'),
+        isNull,
+      );
+    });
+
+    test('no default and several measures ⇒ nothing (the fragment set: the '
+        'flag stands and the user picks)', () {
+      expect(arrivalMeasure(_potato, _potatoSizes, unit: 'piece'), isNull);
+      expect(arrivalMeasure(_potato, _potatoSizes, unit: null), isNull);
+    });
+
+    test('no default and exactly ONE measure ⇒ that one (D3: the promise '
+        'ADR-0010 consequence 4 made, kept on the LINE)', () {
+      expect(
+        arrivalMeasure(_avocado, const [_avocadoMeasure], unit: 'piece'),
+        _avocadoMeasure,
+      );
+    });
+
+    test('a default whose measure has not synced in yet ⇒ nothing — never a '
+        'DIFFERENT measure than the one the household named', () {
+      expect(
+        arrivalMeasure(potatoWithDefault, const [
+          Measure(id: 'm-p-lrg', label: 'potato, large', amount: 369),
+        ], unit: 'piece'),
+        isNull,
+      );
+    });
+
+    test('a volume-named measure is skipped — density owns volume', () {
+      const cupDefault = Ingredient(
+        id: 'i-x',
+        canonicalName: 'X',
+        defaultUnit: pieces,
+        status: IngredientStatus.complete,
+        allowedUnits: [g],
+        defaultMeasureId: 'm-cup',
+      );
+      expect(
+        arrivalMeasure(cupDefault, const [
+          Measure(id: 'm-cup', label: 'cup', amount: 120),
+        ], unit: 'piece'),
+        isNull,
+      );
+    });
+
+    test('the label it returns is a token lineIssues accepts — the card is '
+        'clean for the ORDINARY reason, with no new LineIssue', () {
+      final measure = arrivalMeasure(
+        potatoWithDefault,
+        _potatoSizes,
+        unit: 'piece',
+      )!;
+      final arrived = _res(
+        chosenIngredientId: potatoWithDefault.id,
+        unit: 'piece',
+      ).applyDefaultUnit(measure.label);
+      expect(
+        lineIssues(
+          arrived,
+          ingredient: potatoWithDefault,
+          measures: _potatoSizes,
+        ),
+        isEmpty,
+      );
+      expect(arrived.unitFromDefault, isTrue);
+      // …and it is idempotent: a second pass answers nothing.
+      expect(
+        arrivalMeasure(potatoWithDefault, _potatoSizes, unit: arrived.unit),
+        isNull,
+      );
+    });
+
+    test('a user pick clears the mark — the card stops claiming the default '
+        'answered this line', () {
+      final arrived = _res(
+        chosenIngredientId: potatoWithDefault.id,
+      ).applyDefaultUnit('potato, medium');
+      expect(arrived.pickUnit('potato, large').unitFromDefault, isFalse);
+      expect(
+        arrived.setAmount(quantity: 2, unit: 'g').unitFromDefault,
+        isFalse,
+      );
+    });
+
+    test("restorePrintedUnit puts the SOURCE's word back — our word must not "
+        'follow the line onto a different ingredient', () {
+      final arrived = _res(
+        chosenIngredientId: potatoWithDefault.id,
+        unit: 'piece',
+      ).applyDefaultUnit('potato, medium');
+      final rematched = arrived.restorePrintedUnit('piece');
+      expect(rematched.unit, 'piece');
+      expect(rematched.unitFromDefault, isFalse);
+    });
+  });
+
   group('preselectedMeasure (one confirm tap, not a scroll-and-choose)', () {
     test('an inadmissible unit on a row with ONE measure pre-picks it', () {
       final picked = preselectedMeasure(

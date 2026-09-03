@@ -218,8 +218,18 @@ List<UnitSuggestion> rankedUnitChips(
 /// ([LineIssue.unitNotAllowed]) and the ingredient names **exactly one**
 /// measure, that measure is what the line meant — there is nothing else it
 /// could have meant. Pre-selecting it turns resolving into one confirm tap
-/// instead of a scroll-and-choose; the flag stays up until the user actually
-/// confirms.
+/// instead of a scroll-and-choose.
+///
+/// **It pre-selects the SHEET, not the LINE** (seam D3, named). Nothing in the
+/// validation path has ever called this: [lineIssues] checks the resolution's
+/// own unit, which this function does not write, so a sole-measure cucumber
+/// line stayed flagged until somebody opened the sheet and confirmed — while
+/// ADR-0010 consequence 4's "one measure pre-selects" read to everyone as "is
+/// not flagged". [arrivalMeasure] is the function that writes the LINE, and
+/// under it a bare count on a row with a default (or a sole count measure)
+/// arrives clean. This one keeps its original, narrower job: seeding the
+/// amount sheet for the cases the arrival rule deliberately does not answer —
+/// a printed `bunch`, a printed `ml`.
 ///
 /// **Two or more measures pre-select nothing** (plan 0022 / ADR-0010, owner).
 /// A potato line arriving as `piece` could be small, medium or large, and
@@ -247,13 +257,84 @@ Measure? preselectedMeasure(
   return offered.length == 1 ? offered.first : null;
 }
 
+/// The measure a line should ARRIVE on — the ingredient's curated default,
+/// spent at the one moment it is worth spending (seam **D2**).
+///
+/// **The scope rule, in one sentence: the default answers a line that named a
+/// number and no thing; it never overrules a line that named a thing.**
+/// Concretely it fires when the line printed no unit at all, or printed a
+/// `count`-family unit the row refuses (i.e. `piece` on a measured row —
+/// ADR-0010's own case). A line that printed `bunch`, `head` or `can` keeps
+/// today's flag, because replacing the source's own word with our default is
+/// exactly the guess ADR-0010 forbids: cilantro's default IS `sprig` (2.22 g)
+/// and "1 bunch cilantro" is about twenty-five of them.
+///
+/// The caller writes the returned measure's LABEL onto the resolution — the
+/// same token a tapped chip writes ([sheetChoiceUnit]) — so [lineIssues] then
+/// finds an acceptable unit and the card is clean **for the ordinary reason**.
+/// There is no new [LineIssue], no "flagged but allowed" state, and the commit
+/// path is byte-for-byte what a tapped chip produces.
+///
+/// Null when the row has no default, when the default's measure row has not
+/// synced in yet (flag, never guess a different one), and when the unit is
+/// already fine. Volume-labelled measures are skipped for the same reason the
+/// chip row skips them: density owns volume (ADR-0008 §2).
+Measure? arrivalMeasure(
+  Ingredient ingredient,
+  List<Measure> measures, {
+  required String? unit,
+}) {
+  if (unit != null && unit.isNotEmpty) {
+    final parsed = unitById(unit);
+    // A measure label, or a word the catalog has never heard of. Either way
+    // the source named a THING, and the default stands aside.
+    if (parsed == null) return null;
+    if (parsed.family != UnitFamily.count) return null;
+    if (acceptableUnitTokens(
+      ingredient,
+      measures,
+      parsedUnit: unit,
+    ).contains(unit)) {
+      return null; // the row carries this count word; nothing to answer
+    }
+  }
+  final offered = [
+    for (final m in measures)
+      if (!isVolumeUnitLabel(m.label)) m,
+  ];
+  final id = ingredient.defaultMeasureId;
+  if (id != null) {
+    for (final m in offered) {
+      if (m.id == id) return m;
+    }
+    // The row states a default whose measure this device has not synced yet.
+    // Falling through to the sole-measure leg would be picking a DIFFERENT
+    // measure than the one the household named, so the line keeps its flag.
+    return null;
+  }
+  // No stated default, but exactly one measure: there is nothing else the
+  // line could have meant, which is ADR-0010 consequence 4's own sentence.
+  // This is [preselectedMeasure]'s promise, finally kept on the LINE (D3).
+  return offered.length == 1 ? offered.single : null;
+}
+
 /// One line's review state: its outstanding [issues] and, for a matched line,
 /// the valid units to offer as inline chips when the unit needs a fix.
 class LineValidation {
-  const LineValidation({required this.issues, this.unitChoices = const []});
+  const LineValidation({
+    required this.issues,
+    this.unitChoices = const [],
+    this.unitMeasure,
+  });
 
   final List<LineIssue> issues;
   final List<UnitSuggestion> unitChoices;
+
+  /// The measure the line's current unit NAMES, when it names one — so the
+  /// card can print the weight beside it ("counts as pepper, medium · 119 g",
+  /// seam D2) without a second measure read per line. Null when the unit is a
+  /// catalog unit, a word nothing carries, or absent.
+  final Measure? unitMeasure;
 
   bool get isClean => issues.isEmpty;
 }

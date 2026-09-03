@@ -3,6 +3,8 @@
 /// share.
 library;
 
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/units/measure.dart';
@@ -185,6 +187,74 @@ class ImportController extends _$ImportController {
     } finally {
       _starting = false;
     }
+    // OUTSIDE the try: spending the curated defaults is a courtesy on top of a
+    // successful import (seam D2), and a vocab read that cannot answer must
+    // never turn a recipe that arrived into "could not import this recipe".
+    // It no-ops unless the state above is a reconciliation.
+    await spendDefaultMeasures();
+  }
+
+  /// Writes each matched line's curated default measure onto its resolution —
+  /// seam **D2**, the one moment the fact is spent.
+  ///
+  /// It runs where the resolutions are BUILT (on arrival, and again after a
+  /// re-match), never inside `importValidation`: a validation pass has to stay
+  /// a pure read, or the map that gates Save starts mutating the state it is
+  /// validating. What it writes is the measure's LABEL — the same token a
+  /// tapped chip writes — so nothing downstream learns a new word.
+  ///
+  /// Idempotent by construction: once the label is on the line,
+  /// [arrivalMeasure] sees an acceptable unit and answers null, and so it does
+  /// for any unit the user picked themselves.
+  Future<void> spendDefaultMeasures() async {
+    final before = state;
+    if (before is! ImportReconciling) return;
+    final matchedIds = {
+      for (final r in before.resolutions)
+        if (!r.isDropped && r.chosenIngredientId != null) r.chosenIngredientId!,
+    };
+    if (matchedIds.isEmpty) return;
+    final Map<String, Ingredient> vocab;
+    final Map<String, List<Measure>> measuresById;
+    try {
+      // Both repositories are resolved BEFORE the first await and read
+      // straight off their keepAlive providers — never a stream provider
+      // (plan 0020 J2), and never a `ref.read` after an await
+      // ([mise-riverpod-notifier-ref-after-async]).
+      final vocabRepo = ref.read(ingredientRepositoryProvider);
+      final measureRepo = ref.read(measureRepositoryProvider);
+      vocab = await vocabRepo.byIds(matchedIds);
+      measuresById = await measureRepo.measuresByIngredients(matchedIds);
+    } on Object {
+      // A vocab read that cannot answer simply spends no default: the lines
+      // keep their printed units and their honest flags. Never a guess.
+      return;
+    }
+    if (!ref.mounted) return;
+    // Re-read: the user may have edited (or left) while the vocab loaded.
+    final s = state;
+    if (s is! ImportReconciling) return;
+    var changed = false;
+    final next = <LineResolution>[];
+    for (final r in s.resolutions) {
+      final ingredient = r.isDropped ? null : vocab[r.chosenIngredientId];
+      if (ingredient == null) {
+        next.add(r);
+        continue;
+      }
+      final measure = arrivalMeasure(
+        ingredient,
+        measuresById[ingredient.id] ?? const [],
+        unit: r.unit,
+      );
+      if (measure == null) {
+        next.add(r);
+        continue;
+      }
+      changed = true;
+      next.add(r.applyDefaultUnit(measure.label));
+    }
+    if (changed) state = s.copyWith(resolutions: next);
   }
 
   /// Applies [update] to the resolution at [lineIndex]. A no-op unless the flow
@@ -195,12 +265,25 @@ class ImportController extends _$ImportController {
   ) {
     final s = state;
     if (s is! ImportReconciling) return;
+    final before = s.resolutions.firstWhere((r) => r.lineIndex == lineIndex);
+    var after = update(before);
+    final rematched =
+        after.chosenIngredientId != before.chosenIngredientId ||
+        after.createStubName != before.createStubName;
+    if (rematched && before.unitFromDefault) {
+      // The word on the line was OURS, not the source's, so a new identity
+      // gets the printed one back before its own default is spent (D2). Left
+      // alone, a pepper's `pepper, medium` would follow the line onto broccoli
+      // and be flagged there as if the recipe had said it.
+      after = after.restorePrintedUnit(s.payload.flatLines[lineIndex].raw.unit);
+    }
     state = s.copyWith(
       resolutions: [
         for (final r in s.resolutions)
-          if (r.lineIndex == lineIndex) update(r) else r,
+          if (r.lineIndex == lineIndex) after else r,
       ],
     );
+    if (rematched) unawaited(spendDefaultMeasures());
   }
 
   /// Sets the serving count the recipe commits with (min 1).
@@ -338,9 +421,21 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
           // The line's own printed unit rides along: a source-printed
           // imprecise word is admissible whatever the category (J3b).
           : acceptableUnitChips(ingredient, measures, parsedUnit: r.unit),
+      unitMeasure: _measureNamed(r.unit, measures),
     );
   }
   return result;
+}
+
+/// The measure [unit] names among [measures], or null when it names a catalog
+/// unit (or nothing). A measure rides its LABEL on a resolution, so this is
+/// the whole of the lookup.
+Measure? _measureNamed(String? unit, List<Measure> measures) {
+  if (unit == null || unit.isEmpty) return null;
+  for (final m in measures) {
+    if (m.label == unit) return m;
+  }
+  return null;
 }
 
 /// The ONE "how many lines still want you" count — the header's "N to review"

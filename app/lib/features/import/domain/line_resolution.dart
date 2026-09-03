@@ -46,6 +46,7 @@ class LineResolution {
     this.quantity,
     this.isCorrection = false,
     this.isDropped = false,
+    this.unitFromDefault = false,
   });
 
   /// Position in the payload's flattened line order — the stable key.
@@ -102,6 +103,20 @@ class LineResolution {
   /// chip that pointed at it to the chip's own label text.
   final bool isDropped;
 
+  /// The line's [unit] is the ingredient's curated default measure, spent on
+  /// arrival because the source named a number and no thing (seam **D2**).
+  ///
+  /// **Display only, and never persisted.** The stored line records an
+  /// ordinary measure — no `inferred` mark, no provenance, no revert. Those
+  /// are a *guess's* apparatus, and this is not a guess: it is shown on the
+  /// card at the moment it is applied ("counts as pepper, medium · 119 g"),
+  /// beside the chips that change it, so nothing happens behind the user's
+  /// back. The flag exists so the card can say that sentence, and so a
+  /// re-match knows the word on the line was ours rather than the source's.
+  ///
+  /// Cleared the moment the user touches the unit ([pickUnit], [setAmount]).
+  final bool unitFromDefault;
+
   /// Whether this line is a sub-recipe COMPONENT (step 8.6 / D1) rather than
   /// an ingredient line.
   bool get isComponent => linkedRecipeId != null;
@@ -129,6 +144,7 @@ class LineResolution {
     String? notes,
     bool? isCorrection,
     bool? isDropped,
+    bool? unitFromDefault,
     bool clearIngredient = false,
     bool clearStub = false,
     bool clearLink = false,
@@ -153,6 +169,7 @@ class LineResolution {
     quantity: clearQuantity ? null : (quantity ?? this.quantity),
     isCorrection: isCorrection ?? this.isCorrection,
     isDropped: isDropped ?? this.isDropped,
+    unitFromDefault: unitFromDefault ?? this.unitFromDefault,
   );
 
   /// Drops the line from the import — reversible until Save ([undrop]).
@@ -212,12 +229,49 @@ class LineResolution {
   /// picked [quantity] (null clears it — "to taste") and, when the user picked
   /// a unit chip, the [unit]. A range resolves the moment a number is set here,
   /// exactly like an explicit endpoint pick.
-  LineResolution setAmount({double? quantity, String? unit}) =>
-      copyWith(quantity: quantity, clearQuantity: quantity == null, unit: unit);
+  LineResolution setAmount({double? quantity, String? unit}) => copyWith(
+    quantity: quantity,
+    clearQuantity: quantity == null,
+    unit: unit,
+    // A unit the user set in the sheet is theirs; the card stops saying the
+    // default answered this line (D2).
+    unitFromDefault: unit == null ? null : false,
+  );
 
   /// Picks a unit from the inline unit-suggestion chips, leaving the quantity
   /// untouched (unit resolution is independent of the amount — round-3 #4).
-  LineResolution pickUnit(String unit) => copyWith(unit: unit);
+  LineResolution pickUnit(String unit) =>
+      copyWith(unit: unit, unitFromDefault: false);
+
+  /// Spends the ingredient's curated default measure on this line: the same
+  /// write [pickUnit] makes, marked as ours rather than the user's (seam D2).
+  ///
+  /// The label is what a tapped chip would have written, so `lineIssues`,
+  /// `sheetChoiceUnit` and `buildCommit` see nothing new — the card is clean
+  /// for the ordinary reason, and the saved row is an ordinary measure line.
+  LineResolution applyDefaultUnit(String label) =>
+      copyWith(unit: label, unitFromDefault: true);
+
+  /// Puts the SOURCE's own word back on a line whose unit we had supplied —
+  /// what a re-match calls before the new ingredient's default is spent.
+  /// Without it a pepper's `pepper, medium` would follow the line onto
+  /// broccoli and be flagged there as if the recipe had printed it.
+  LineResolution restorePrintedUnit(String? printed) => LineResolution(
+    lineIndex: lineIndex,
+    band: band,
+    ingredientText: ingredientText,
+    isRange: isRange,
+    unit: printed,
+    notes: notes,
+    chosenIngredientId: chosenIngredientId,
+    chosenName: chosenName,
+    createStubName: createStubName,
+    linkedRecipeId: linkedRecipeId,
+    linkedRecipeTitle: linkedRecipeTitle,
+    quantity: quantity,
+    isCorrection: isCorrection,
+    isDropped: isDropped,
+  );
 
   /// Sets the line's note (blank/whitespace clears it).
   LineResolution setNotes(String? notes) {

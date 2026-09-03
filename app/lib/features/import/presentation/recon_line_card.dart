@@ -392,13 +392,29 @@ class _Expanded extends ConsumerWidget {
       hasRecipeOffer: line.recipeCandidates.isNotEmpty,
     );
     final reference = rawLineText(line.raw);
-    // Offer inline unit chips only when the current unit actually needs a fix
-    // — an ambiguous/unmapped unit (round-3 #2), parallel to the ingredient
-    // "did you mean" pills. A valid unit needs no prompting.
+    // Offer inline unit chips when the current unit needs a fix — an
+    // ambiguous/unmapped unit (round-3 #2), parallel to the ingredient "did
+    // you mean" pills — AND on a line the default answered (seam D2): the
+    // choice made for you belongs on screen beside the ones you could make
+    // instead. Hiding them would make the tap-to-change invisible and turn a
+    // stated fact into a silent one. Any other valid unit needs no prompting.
     final showUnitChips =
         matched &&
-        issues.contains(LineIssue.unitNotAllowed) &&
+        (issues.contains(LineIssue.unitNotAllowed) ||
+            resolution.unitFromDefault) &&
         validation.unitChoices.isNotEmpty;
+    // The whole honesty argument for D2, in one line of mono: the default is
+    // shown at the moment it is applied, on the card, next to the raw source
+    // line. Nothing is inferred behind the user's back because nothing is
+    // behind their back.
+    final defaulted = resolution.unitFromDefault
+        ? validation.unitMeasure
+        : null;
+    final countsAs = defaulted == null
+        ? null
+        : 'counts as  ${defaulted.label} · '
+              '${formatQuantity(defaulted.amount)} '
+              '${defaulted.basis.baseUnit.label}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -480,6 +496,14 @@ class _Expanded extends ConsumerWidget {
               _DisabledChip(label: amountLabel(resolution, line.raw)),
           ],
         ),
+        if (countsAs != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 72),
+            child: Text(
+              '$countsAs  ·  tap a chip to change',
+              style: ansiMono(size: 10, color: AnsiColors.muted),
+            ),
+          ),
         if (showUnitChips) ...[
           const SizedBox(height: 8),
           _UnitSuggestions(
@@ -835,9 +859,15 @@ Future<void> editLineAmount(
       (resolution.isRange ? (raw.qtyLow ?? raw.qtyHigh) : null);
   // An inadmissible unit on an ingredient that names measures opens on the
   // likeliest measure — "2 clove" for a garlic line that arrived as "2 ml".
+  // …and a line the default already answered opens ON that measure, so "tap
+  // to change" lands on the choice it is changing rather than on nothing
+  // (seam D2).
   final preselect = loaded == null
       ? null
-      : preselectedMeasure(loaded, measures, unit: resolution.unit);
+      : preselectedMeasure(loaded, measures, unit: resolution.unit) ??
+            (resolution.unitFromDefault
+                ? measures.where((m) => m.label == resolution.unit).firstOrNull
+                : null);
   final result = await showQuantityUnitSheet(
     context,
     ingredient: amountSheetIngredient(base, parsedUnit: resolution.unit),
