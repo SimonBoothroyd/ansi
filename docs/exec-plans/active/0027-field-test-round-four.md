@@ -96,6 +96,8 @@ are repeated here so a lane needs nothing outside the repo.
 
 - [ ] Each front lands as its D-list says; deviations are recorded in the
       decision log below with the reason, not silently.
+  - [x] **Front M** — landed 2026-09-03 (lane M): M-D1…D6 as ruled; the
+        judgement calls are in the log.
 - [ ] Tests at every layer the change touches: pure domain, repo on a real
       `PowerSyncDatabase`, widget over the real form/sheet, pgTAP for both
       migrations, the mapper's fixture test for M-D5.
@@ -132,6 +134,36 @@ never `db-reset` the shared stack; sims are the orchestrator's at landing.
   assigned up front (P = `0026`, U = `0027`) so the lanes cannot collide.
 - 2026-09-03 — U-D7's sub-ruling: an unpicked USDA-leg create keeps today's
   auto-fill (owner agreed with the recommendation).
+- 2026-09-03 (lane M) — **The serving unit is the basis.** M-D1's serving row
+  is amount + g/ml; picking `ml` flips `macros_basis` to per-100 ml rather
+  than converting, so a 240 ml serving stores per 100 ml and the admission
+  chips follow live. One stored fact, named by the serving.
+- 2026-09-03 (lane M) — **How M-D2 reads the serving's name.** The row has a
+  free-text "as the pack calls it" field (seeded from OFF's `serving_size`
+  with its parenthetical weight dropped). An optional leading count and a
+  word: a volume word with a *mass* serving is a density **per spoon** ("2
+  Tbsp = 32 g" offers 16 g a tablespoon, through `densityFromVolumeWeight`);
+  a volume word with an ml serving offers nothing (a volume of itself); any
+  other word is a measure of one, and a count above one ("2 slices") is not
+  offered rather than singularised by guess. Off by default; a taken offer
+  unticks itself after the Save that landed it.
+- 2026-09-03 (lane M) — **The add sheet's per-serving leg is the serving
+  row, not the full segment.** The sheet already draws the printed four on
+  the result card; under it sits the shared `ServingRow` (amount + g/ml,
+  prefilled or flagged) and the stored-line preview, and Create stores the
+  derivation. Without a serving weight the row saves as a panel-less stub
+  and the note says so — the printed four are not persisted anywhere (M-D3),
+  so retyping them on the form is the honest fallback. The M-D2 offer is the
+  form's only (the sheet creates, it does not admit units).
+- 2026-09-03 (lane M) — **Fixtures.** OFF's search API was down and no US
+  product probed by hand was flagged `nutrition_data_per: serving` with the
+  plain `*_serving` four (the flagged ones carry `*_prepared_serving` only —
+  captured as `kraft_mac_per_serving`, which maps to *no panel*). The
+  happy-path fixture is a real capture (Peanut Butter & Co, 0851087000250)
+  with that one flag flipped, stated in the test's header; the
+  serving-quantity variants (absent, ml, oz, zero) are constructed in its
+  shape. `serving_quantity` + `serving_quantity_unit` joined the client's
+  `fields=` projection.
 
 ## Step-done checklist
 
