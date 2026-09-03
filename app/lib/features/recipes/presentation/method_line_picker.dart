@@ -46,17 +46,25 @@ final class AddRecipeLine extends MethodLinePick {
 
 /// Opens the picker over [lines], seeded with [query] (the selected words, so
 /// a single match arrives already found).
+/// [canAddLine] false disables the footer's add-a-line door and says why
+/// (seam D4's scope cut): the import review offers THIS import's lines only,
+/// because a brand-new line would need a flat index `buildCommit` does not
+/// walk. Disabled rather than hidden — a door that vanishes teaches nothing.
 Future<MethodLinePick?> showMethodLinePicker(
   BuildContext context, {
   required List<LineItem> lines,
   String query = '',
   Set<String> alreadyInStep = const {},
+  bool canAddLine = true,
+  String? addLineReason,
 }) => showAnsiSheet<MethodLinePick>(
   context: context,
   builder: (_) => _MethodLinePickerSheet(
     lines: lines,
     initialQuery: query,
     alreadyInStep: alreadyInStep,
+    canAddLine: canAddLine,
+    addLineReason: addLineReason,
   ),
 );
 
@@ -65,6 +73,8 @@ class _MethodLinePickerSheet extends HookWidget {
     required this.lines,
     required this.initialQuery,
     required this.alreadyInStep,
+    required this.canAddLine,
+    required this.addLineReason,
   });
 
   final List<LineItem> lines;
@@ -72,6 +82,9 @@ class _MethodLinePickerSheet extends HookWidget {
 
   /// Lines this step already chips — drawn with a tick, still pickable.
   final Set<String> alreadyInStep;
+
+  final bool canAddLine;
+  final String? addLineReason;
 
   @override
   Widget build(BuildContext context) {
@@ -130,19 +143,43 @@ class _MethodLinePickerSheet extends HookWidget {
       ),
       footer: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => Navigator.of(context).pop(const AddRecipeLine()),
+        onTap: canAddLine
+            ? () => Navigator.of(context).pop(const AddRecipeLine())
+            : null,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(FLucideIcons.plus, size: 16, color: AnsiColors.herb),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Add an ingredient to this recipe',
-                  style: ansiSans(size: 14, color: AnsiColors.herbDeep),
-                ),
+              Row(
+                children: [
+                  Icon(
+                    FLucideIcons.plus,
+                    size: 16,
+                    color: canAddLine ? AnsiColors.herb : AnsiColors.muted,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Add an ingredient to this recipe',
+                      style: ansiSans(
+                        size: 14,
+                        color: canAddLine
+                            ? AnsiColors.herbDeep
+                            : AnsiColors.muted,
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              if (!canAddLine && addLineReason != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, left: 26),
+                  child: Text(
+                    addLineReason!,
+                    style: ansiMono(size: 10, color: AnsiColors.muted),
+                  ),
+                ),
             ],
           ),
         ),

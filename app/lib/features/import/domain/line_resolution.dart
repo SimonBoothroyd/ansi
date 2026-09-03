@@ -398,6 +398,11 @@ const kLowConfidenceFloor = 0.75;
 /// ingredient match and no `allowed_units` admission (that is an ingredient
 /// concept; the unit meets the target's yield family at derive time).
 ///
+/// [steps] is the method the review screen edited (seam D4), already converted
+/// back to line-index refs by `stepsFromDrafts`. Omitted — the common path,
+/// where nobody touched the method — the payload's own steps ride through
+/// unchanged.
+///
 /// [yieldQty]/[yieldUnit] are what the review's MAKES row states — usually
 /// prefilled from `yield_raw` (see [parseYieldRaw]), often user-set, and
 /// frequently nothing at all. The yield NEVER gates Save: a yield-less recipe
@@ -409,6 +414,7 @@ CommitPayload buildCommit(
   required Map<int, List<LineIssue>>? issuesByLine,
   double? yieldQty,
   Unit? yieldUnit,
+  List<Step>? steps,
 }) {
   if (!allResolved(resolutions)) {
     throw StateError('every line must be resolved before commit');
@@ -524,7 +530,9 @@ CommitPayload buildCommit(
     totalTimeSeconds: payload.totalTimeSeconds?.lowSeconds,
     groups: groups,
     stubs: stubs.values.toList(),
-    steps: payload.steps,
+    // The review screen's own method, when it edited one (seam D4); otherwise
+    // the payload's, byte-for-byte.
+    steps: steps ?? payload.steps,
     corrections: corrections,
   );
 }

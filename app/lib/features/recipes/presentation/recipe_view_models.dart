@@ -19,6 +19,7 @@ import '../domain/method_draft.dart';
 import '../domain/method_step.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_repository.dart';
+import 'method_editing.dart';
 
 part 'recipe_view_models.g.dart';
 
@@ -73,8 +74,13 @@ Future<Ingredient?> lineItemIngredient(
 /// so a search for a recipe you were about to write becomes that recipe rather
 /// than an empty form. It is part of the family key, so arriving with a
 /// different title is a different draft.
+///
+/// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
+/// every member of that interface was already here, written for the step
+/// cards. The import review's adapter implements the same surface, so the
+/// cards can host on either screen without two of them existing.
 @riverpod
-class RecipeEditor extends _$RecipeEditor {
+class RecipeEditor extends _$RecipeEditor implements MethodEditing {
   @override
   Future<Recipe> build(String? recipeId, {String? initialTitle}) async {
     if (recipeId != null) {
@@ -212,6 +218,7 @@ class RecipeEditor extends _$RecipeEditor {
   /// Appends a line for [ingredient]. The 7.7 add flow hands the quantity +
   /// unit choice straight from the quantity sheet; without a [choice] the
   /// line starts in the ingredient's default unit.
+  @override
   void addLineItem(
     String groupId,
     Ingredient ingredient, {
@@ -250,6 +257,7 @@ class RecipeEditor extends _$RecipeEditor {
   /// an ordinary line with the other identity: no ingredient id, no measure
   /// (measures are an ingredient concept), and a `batch` default so a line
   /// backed out of the quantity sheet still means something honest.
+  @override
   void addComponentLineItem(
     String groupId,
     SubRecipeTarget target, {
@@ -364,17 +372,20 @@ class RecipeEditor extends _$RecipeEditor {
   /// The substitution being read through this sitting, or null. **Session
   /// state, not a column** — the swap and the read-through happen in one
   /// sitting, and a save clears it.
+  @override
   Substitution? substitution() => _substitution;
   Substitution? _substitution;
 
   /// What every relabelled chip used to say, so "keep the old word" is one
   /// tap. Same session lifetime as [substitution].
+  @override
   List<ChipRelabel> relabels() => List.unmodifiable(_relabels);
   final List<ChipRelabel> _relabels = [];
 
   /// D3's revert: the chip keeps its ref and takes its printed word back.
   /// Re-pointing "sausages" from Pork sausage to Italian sausage is the case
   /// where the old word was right all along.
+  @override
   void keepOldWord(ChipRelabel relabel) {
     renameChip(relabel.stepId, relabel.spanIndex, relabel.oldWord);
     _relabels.remove(relabel);
@@ -414,6 +425,7 @@ class RecipeEditor extends _$RecipeEditor {
 
   /// Every line of this recipe by id — what the fold derives a chip's live
   /// amount from, and what the line picker offers.
+  @override
   Map<String, LineItem> lineById() => {
     for (final group in _current.groups)
       for (final item in group.items) item.id: item,
@@ -421,6 +433,7 @@ class RecipeEditor extends _$RecipeEditor {
 
   /// The method as the editor holds it: one sentence per step, with the ranges
   /// that are chips. Derived from the tokens, so there is one source of truth.
+  @override
   List<MethodDraftStep> methodDraft() {
     final steps = _current.methodSteps ?? const <MethodStep>[];
     if (_stepIds.length != steps.length) {
@@ -454,21 +467,26 @@ class RecipeEditor extends _$RecipeEditor {
 
   /// One keystroke in a step card. Span arithmetic (and chip demotion) lives
   /// in [applyEdit]; this only re-seats the result.
+  @override
   void editStep(String stepId, String text) =>
       _mapStep(stepId, (d) => applyEdit(d, text));
 
+  @override
   void addMethodStep() {
     final drafts = addStep(methodDraft(), id: _uuid.v4());
     _setMethod(drafts);
   }
 
+  @override
   void removeMethodStep(String stepId) =>
       _setMethod(removeStep(methodDraft(), stepId));
 
+  @override
   void moveMethodStep(String stepId, int by) =>
       _setMethod(moveStep(methodDraft(), stepId, by));
 
   /// Chips the range `[start, end)` of [stepId] — **changing no text**.
+  @override
   void chipRange(
     String stepId, {
     required int start,
@@ -502,6 +520,7 @@ class RecipeEditor extends _$RecipeEditor {
   /// with the seconds in the span record, so the round-trip never re-parses
   /// the string it printed. The timer sheet's "Goes in as" shows exactly what
   /// will land before it lands.
+  @override
   void timerRange(
     String stepId, {
     required int start,
@@ -527,6 +546,7 @@ class RecipeEditor extends _$RecipeEditor {
   });
 
   /// The no-selection door: splices [word] in at the caret and chips it.
+  @override
   void insertChip(
     String stepId, {
     required int offset,
@@ -554,6 +574,7 @@ class RecipeEditor extends _$RecipeEditor {
 
   /// The no-selection door for a timer: inserts [formatTimerRange]'s own
   /// output, so the round-trip never re-parses the string it printed.
+  @override
   void insertTimer(
     String stepId, {
     required int offset,
@@ -577,6 +598,7 @@ class RecipeEditor extends _$RecipeEditor {
   /// Re-points the chip at [index] of [stepId] — **this chip only**, and
   /// without touching the sentence. The line's identity picker is what moves
   /// every chip at once (D3).
+  @override
   void repointChip(String stepId, int index, List<String> refs) => _mapStep(
     stepId,
     (d) => switch (d.spans.elementAtOrNull(index)) {
@@ -592,6 +614,7 @@ class RecipeEditor extends _$RecipeEditor {
 
   /// Renames the chip's word. The one place that changes what a chip says —
   /// the sheet's Word field and D3's "keep the old word" call it alike.
+  @override
   void renameChip(String stepId, int index, String word) => _mapStep(
     stepId,
     (d) => index < d.spans.length
@@ -601,6 +624,7 @@ class RecipeEditor extends _$RecipeEditor {
 
   /// The D9 override: display only. No quantity is invented, moved or summed
   /// by flipping it.
+  @override
   void setChipAmountRule(String stepId, int index, ChipAmountRule rule) =>
       _mapStep(
         stepId,
@@ -617,6 +641,7 @@ class RecipeEditor extends _$RecipeEditor {
 
   /// Re-times a timer. Its text becomes [formatTimerRange]'s output again, so
   /// the round-trip still never re-parses the string it printed.
+  @override
   void setTimerSpan(String stepId, int index, int low, int high) => _mapStep(
     stepId,
     (d) => index < d.spans.length
@@ -636,10 +661,12 @@ class RecipeEditor extends _$RecipeEditor {
 
   /// Drops a chip or timer, **keeping its word**: the sentence survives and
   /// only the link dies.
+  @override
   void removeChip(String stepId, int index) =>
       _mapStep(stepId, (d) => removeSpan(d, index));
 
   /// What a convert-to-plain-text would cost, for the confirm to count (D5).
+  @override
   ({int chips, int timers}) methodLinkCounts() {
     var chips = 0;
     var timers = 0;
@@ -661,6 +688,7 @@ class RecipeEditor extends _$RecipeEditor {
   /// extraction it just read (§4.6). There is no endpoint that takes free text
   /// and returns tokens, and building one would ship user prose to a model
   /// over a route ADR-0004 never opened.
+  @override
   void convertMethodToPlainText() {
     final prose = flattenMethod(
       _current.methodSteps ?? const [],
@@ -672,8 +700,17 @@ class RecipeEditor extends _$RecipeEditor {
     _set(_current.copyWith(methodSteps: methodFromPlainSteps(prose)));
   }
 
+  /// The recipe editor owns the whole recipe, so the chip picker's
+  /// add-a-line door is open here (seam D4).
+  @override
+  bool get canAddLine => true;
+
+  @override
+  String? get addLineReason => null;
+
   /// The group a chip's *new* line lands in — the first one, minted if this
   /// recipe somehow has none.
+  @override
   String ensureGroupId() {
     if (_current.groups.isNotEmpty) return _current.groups.first.id;
     final id = _uuid.v4();

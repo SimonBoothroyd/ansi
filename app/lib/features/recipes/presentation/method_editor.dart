@@ -15,6 +15,13 @@
 /// This replaces the read-only notice an imported method used to get. Nothing
 /// is re-tokenized, re-matched or re-fetched on open: the refs are the
 /// `line_item_id`s the import committed.
+///
+/// **Two hosts, one card** (seam D4). The cards edit through [MethodEditing]
+/// rather than the recipe editor's notifier, so the import review screen —
+/// the screen most likely to need a method fix — edits with these same cards
+/// over its own draft. There the refs are the preview's `line-<i>` ids and
+/// the picker's add-a-line door is disabled with its reason; everything else
+/// is identical, which is the point of there being one card.
 library;
 
 import 'dart:async';
@@ -40,16 +47,16 @@ import '../domain/recipe.dart';
 import 'component_quantity_sheet.dart';
 import 'line_target_picker.dart';
 import 'method_chip_sheet.dart';
+import 'method_editing.dart';
 import 'method_line_picker.dart';
 import 'method_span_controller.dart';
 import 'method_timer_sheet.dart';
-import 'recipe_view_models.dart';
 
 class MethodEditor extends StatelessWidget {
   const MethodEditor({required this.recipe, required this.notifier, super.key});
 
   final Recipe recipe;
-  final RecipeEditor notifier;
+  final MethodEditing notifier;
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +153,7 @@ class MethodStepCard extends HookConsumerWidget {
   final int lastIndex;
   final Map<String, LineItem> lineById;
   final Recipe recipe;
-  final RecipeEditor notifier;
+  final MethodEditing notifier;
 
   /// Whether a line's identity change moved one of this step's chips this
   /// sitting — the amber *check* in the card's header (D3).
@@ -326,6 +333,8 @@ class MethodStepCard extends HookConsumerWidget {
       context,
       recipe: recipe,
       notifier: notifier,
+      canAddLine: notifier.canAddLine,
+      addLineReason: notifier.addLineReason,
       query: word,
       alreadyInStep: {
         for (final span in step.spans)
@@ -396,6 +405,8 @@ class MethodStepCard extends HookConsumerWidget {
             context,
             recipe: recipe,
             notifier: notifier,
+            canAddLine: notifier.canAddLine,
+            addLineReason: notifier.addLineReason,
             query: spanWord(step, index),
           ),
           onChanged: (edit) => notifier
@@ -457,6 +468,8 @@ class MethodStepCard extends HookConsumerWidget {
       context,
       recipe: recipe,
       notifier: notifier,
+      canAddLine: notifier.canAddLine,
+      addLineReason: notifier.addLineReason,
       alreadyInStep: {
         for (final span in step.spans)
           if (span is RefSpan) ...span.refs,
@@ -497,12 +510,18 @@ class MethodStepCard extends HookConsumerWidget {
 /// the line the chip should point at — running the shipped
 /// `showLineTargetPicker` → quantity-sheet chain when the footer is taken, so
 /// adding an ingredient and chipping it is ONE act.
+///
+/// [canAddLine] false (the import review, seam D4) disables that door and
+/// says why: the review offers THIS import's lines only, because a brand-new
+/// line would need a flat index `buildCommit` does not walk.
 Future<String?> pickOrAddLine(
   BuildContext context, {
   required Recipe recipe,
-  required RecipeEditor notifier,
+  required MethodEditing notifier,
   String query = '',
   Set<String> alreadyInStep = const {},
+  bool canAddLine = true,
+  String? addLineReason,
 }) async {
   final pick = await showMethodLinePicker(
     context,
@@ -510,6 +529,8 @@ Future<String?> pickOrAddLine(
     lines: notifier.lineById().values.toList(),
     query: query,
     alreadyInStep: alreadyInStep,
+    canAddLine: canAddLine,
+    addLineReason: addLineReason,
   );
   if (pick == null || !context.mounted) return null;
   if (pick is PickedRecipeLine) return pick.lineId;
@@ -557,7 +578,7 @@ Future<String?> pickOrAddLine(
 /// guarded against.
 Future<void> _confirmFlatten(
   BuildContext context,
-  RecipeEditor notifier,
+  MethodEditing notifier,
 ) async {
   final counts = notifier.methodLinkCounts();
   if (counts.chips == 0 && counts.timers == 0) return;
@@ -671,7 +692,7 @@ class _SubstitutionNotice extends StatelessWidget {
 }
 
 /// The one-tap revert, on the card whose chip moved. It calls the same
-/// [RecipeEditor.renameChip] the chip sheet's Word field calls — one place
+/// [MethodEditing.renameChip] the chip sheet's Word field calls — one place
 /// changes what a chip says.
 class _KeepTheOldWord extends StatelessWidget {
   const _KeepTheOldWord({required this.relabel, required this.onKeep});

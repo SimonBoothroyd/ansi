@@ -11,10 +11,12 @@ import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/ingredient.dart';
+import '../../recipes/domain/method_draft.dart';
 import '../data/import_providers.dart';
 import '../domain/import_repository.dart';
 import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
+import '../domain/method_draft_bridge.dart';
 import '../domain/reconciliation_payload.dart';
 import '../domain/yield_prefill.dart';
 
@@ -45,10 +47,17 @@ class ImportReconciling extends ImportState {
     required this.servings,
     this.yieldQty,
     this.yieldUnit,
+    this.editedSteps,
   });
 
   final ReconciliationPayload payload;
   final List<LineResolution> resolutions;
+
+  /// The method as the review's step cards hold it, once anybody has typed
+  /// (seam **D4**). Null means "nobody has": the cards then derive their
+  /// drafts from the payload through the preview, so the common path stores
+  /// nothing and a commit writes `payload.steps` byte-for-byte.
+  final List<MethodDraftStep>? editedSteps;
 
   /// The serving count the recipe commits with — seeded from the payload
   /// (defaulting to 1 when the source was unclear, which the UI flags).
@@ -113,6 +122,7 @@ class ImportReconciling extends ImportState {
     double? servings,
     double? yieldQty,
     Unit? yieldUnit,
+    List<MethodDraftStep>? editedSteps,
     bool clearYield = false,
   }) => ImportReconciling(
     payload: payload,
@@ -120,6 +130,7 @@ class ImportReconciling extends ImportState {
     servings: servings ?? this.servings,
     yieldQty: clearYield ? null : (yieldQty ?? this.yieldQty),
     yieldUnit: clearYield ? null : (yieldUnit ?? this.yieldUnit),
+    editedSteps: editedSteps ?? this.editedSteps,
   );
 }
 
@@ -286,6 +297,14 @@ class ImportController extends _$ImportController {
     if (rematched) unawaited(spendDefaultMeasures());
   }
 
+  /// Re-seats the review's method drafts (seam **D4**) — every step-card edit
+  /// lands here through `ImportMethodEditing`.
+  void setMethodDraft(List<MethodDraftStep> drafts) {
+    final s = state;
+    if (s is! ImportReconciling) return;
+    state = s.copyWith(editedSteps: drafts);
+  }
+
   /// Sets the serving count the recipe commits with (min 1).
   void setServings(double servings) {
     final s = state;
@@ -316,6 +335,7 @@ class ImportController extends _$ImportController {
   }) async {
     final s = state;
     if (s is! ImportReconciling || !s.canCommit) return null;
+    final edited = s.editedSteps;
     final payload = buildCommit(
       s.payload,
       s.resolutions,
@@ -323,6 +343,13 @@ class ImportController extends _$ImportController {
       issuesByLine: issuesByLine,
       yieldQty: s.yieldQty,
       yieldUnit: s.yieldUnit,
+      // Only when somebody actually typed: an untouched method commits the
+      // payload's own steps byte-for-byte (seam D4).
+      steps: edited == null
+          ? null
+          : stepsFromDrafts(edited, {
+              for (final r in keptLines(s.resolutions)) r.lineIndex,
+            }),
     );
     state = const ImportCommitting();
     try {

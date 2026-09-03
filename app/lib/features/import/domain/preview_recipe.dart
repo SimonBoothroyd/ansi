@@ -17,9 +17,13 @@ import '../../recipes/domain/recipe.dart';
 import 'line_resolution.dart';
 import 'reconciliation_payload.dart';
 
+/// The prefix every synthetic preview line id carries. `method_draft_bridge`
+/// parses ids back to indexes with it, so the two cannot drift.
+const kPreviewLinePrefix = 'line-';
+
 /// The synthetic line-item id for the flattened line at [index] — the handle
 /// the preview's method refs point at.
-String previewLineId(int index) => 'line-$index';
+String previewLineId(int index) => '$kPreviewLinePrefix$index';
 
 /// Assembles the preview [Recipe] from a resolved reconciliation. Every line
 /// carries the ingredient the user resolved it to (a real match's name, a

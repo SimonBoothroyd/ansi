@@ -6,6 +6,11 @@
 ///
 /// The never-invent flags (0014) are shown, not hidden: parse warnings, a
 /// degraded image, a truncated source, and each line's own flags.
+///
+/// The METHOD is editable here too (seam D4): the shipped editor v2 step
+/// cards, hosted over the review's own draft by `ImportMethodEditing`. Chips
+/// key on the preview's `line-<i>` ids and convert back to line indexes at
+/// commit; the only thing the review cannot do is mint a brand-new line.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -15,13 +20,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
-import '../../../shared/method_step_text.dart';
-import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
+import '../../recipes/presentation/method_editor.dart';
 import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
 import '../domain/preview_recipe.dart';
 import '../domain/reconciliation_payload.dart';
+import 'import_method_editing.dart';
 import 'import_view_models.dart';
 import 'recon_line_card.dart';
 
@@ -47,11 +52,18 @@ class ReconciliationBody extends HookConsumerWidget {
     final issuesByLine = byLine == null
         ? null
         : {for (final e in byLine.entries) e.key: e.value.issues};
-    // The read-only method fold reads the same recipe a save would write.
+    // The method's step cards read the same recipe a save would write — so
+    // the "Reads as" fold shows live amounts, and a chip keyed on
+    // `previewLineId(i)` resolves without any extra plumbing (seam D4).
     final recipe = buildPreviewRecipe(
       payload,
       state.resolutions,
       servingsBase: state.servings,
+    );
+    final methodHost = ImportMethodEditing(
+      controller: controller,
+      state: state,
+      preview: recipe,
     );
 
     final rows = <Widget>[];
@@ -117,13 +129,7 @@ class ReconciliationBody extends HookConsumerWidget {
         ),
         ...rows,
         const SizedBox(height: 24),
-        _MethodPreview(recipe: recipe),
-        const SizedBox(height: 12),
-        Text(
-          'Method is read-only in v1 — chips render with live amounts; editing '
-          'lands later via the recipe’s Edit route.',
-          style: ansiMono(size: 11, color: AnsiColors.muted),
-        ),
+        MethodEditor(recipe: recipe, notifier: methodHost),
         const SizedBox(height: 20),
         FButton(
           onPress: canSave
@@ -418,53 +424,6 @@ class _MakesRow extends StatelessWidget {
                         'still saves, links and scales; only the derived '
                         'numbers wait.',
               style: ansiMono(size: 10, color: AnsiColors.muted),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// The read-only method: each step folded to prose + inline ingredient/timer
-/// chips by [MethodStepText] (no render-time matching), numbered.
-class _MethodPreview extends StatelessWidget {
-  const _MethodPreview({required this.recipe});
-
-  final Recipe recipe;
-
-  @override
-  Widget build(BuildContext context) {
-    final steps = recipe.methodSteps ?? const [];
-    if (steps.isEmpty) return const SizedBox.shrink();
-    final lineById = {
-      for (final g in recipe.groups)
-        for (final i in g.items) i.id: i,
-    };
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('METHOD', style: ansiLabel()),
-        const SizedBox(height: 8),
-        for (var i = 0; i < steps.length; i++)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${i + 1}',
-                  style: ansiMono(size: 13, weight: FontWeight.w700),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: MethodStepText(
-                    step: steps[i],
-                    lineById: lineById,
-                    textSize: 15,
-                  ),
-                ),
-              ],
             ),
           ),
       ],
