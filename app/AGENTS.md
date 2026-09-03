@@ -41,6 +41,13 @@ screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md)
   `ConsumerWidget`/`HookConsumerWidget` that only read state and dispatch intents.
 - **Repositories are interfaces in `domain/`**, implemented in `data/`. Tests
   override the provider with a fake — never hit Supabase in a unit test.
+- **Every repository write reached from a widget goes through
+  `ref.write(context, what, action)`** (`shared/write.dart`), so a write that
+  throws says so instead of stopping a spinner. Enforced by
+  `test/structure/no_bare_repo_write_test.dart`, whose write set is derived from
+  the `domain/` interfaces. The posture it belongs to — what gets a toast, what
+  gets a banner, and the seven things the app deliberately stays quiet about:
+  [`../docs/design-docs/errors-and-sync-health.md`](../docs/design-docs/errors-and-sync-health.md).
 - **Repository tests open a real `PowerSyncDatabase`** (`test/helpers/test_db.dart`,
   built from `core/sync/schema.dart`), because local tables are SQLite *views*
   and reject SQL that plain tables accept — `INSERT … ON CONFLICT` above all.

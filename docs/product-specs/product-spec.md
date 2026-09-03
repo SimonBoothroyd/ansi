@@ -279,6 +279,20 @@ the Library and a second back leaves the app. Sheets and dialogs open above the
 whole shell. The mechanics, the full back table and the rules that are
 structurally enforced: [`../design-docs/navigation.md`](../design-docs/navigation.md).
 
+**Errors & sync health (shipped):** one rule — *a toast reports an act, a banner
+reports a state*. Every write reached from a widget goes through one guarded
+door, so an action that didn't happen says so in the user's own noun and offers
+Retry; a screen that couldn't load says what, why and Try again. Sync health is
+one provider read by three quiet surfaces — the shell's banner, a line in the
+Library `⋯` menu, and, because Shop is the one screen two phones drive at once
+in a supermarket, a line under the shopping list's header in that screen's own
+noun (*2 ticks waiting*). Being **offline is never reported**: the app
+distinguishes *waiting* (the offline-first design working, always muted) from
+*stalled past five minutes* and from a write the server **refused and
+discarded**, which is the only place data is lost and now the only red one. The
+words, the thresholds and the seven things the app deliberately stays quiet
+about: [`../design-docs/errors-and-sync-health.md`](../design-docs/errors-and-sync-health.md).
+
 **Import (webpage):** parse schema.org/Recipe JSON-LD first (no AI). LLM fallback for messy pages.
 **Import (photo):** vision model → structured lines. Both feed one reconciliation screen.
 **Reconciliation screen (matching, not free text):**

@@ -41,6 +41,10 @@ against the code. (Vendored snapshots of *other people's* docs live in
 - [`navigation.md`](./navigation.md) — the tab shell and why the bar is one
   instance, the cross-fade spec, what back does on every screen state, the
   root-navigator rule for sheets and dialogs, and the tap guard.
+- [`errors-and-sync-health.md`](./errors-and-sync-health.md) — the one rule (a
+  toast reports an act, a banner reports a state), the one door every write goes
+  through and the test that holds it, the four sync states and the words for
+  each, and — just as deliberately — the seven things the app stays quiet about.
 - [`powersync-watch-triggers.md`](./powersync-watch-triggers.md) — what makes a
   watched query re-fire, the unselected-LEFT-JOIN trap that silently drops a
   table from the trigger set, and the `triggerOnTables:` escape hatch.
