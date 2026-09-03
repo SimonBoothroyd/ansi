@@ -164,7 +164,16 @@ class MeasuresEditor extends HookConsumerWidget {
           final changed = await ref.write(
             context,
             'stop offering “piece”',
-            () => ingredients.stopOfferingPiece(ingredient.id),
+            () async {
+              await ingredients.stopOfferingPiece(ingredient.id);
+              // The second half of the answer the question always implied
+              // (seam D1). The moment a household says "'tomato, medium' says
+              // it better than piece", they have also said what a bare "1
+              // tomato" MEANS — so the same act sets it, in the same write.
+              // "Keep both" leaves it unset, which is the honest reading of
+              // "both words are sayable here".
+              return ingredients.setDefaultMeasure(ingredient.id, added.id);
+            },
           );
           if (changed != null) onIngredientChanged(changed);
         }
@@ -221,12 +230,27 @@ Future<bool?> _askStopOfferingPiece(
         '${ingredient.canonicalName}?',
         style: ansiSerif(size: 18),
       ),
-      body: Text(
-        'A line can say 1 ${added.label} ($amount, so it counts toward macros '
-        'and the shopping total) or 1 piece (an honest count with no weight). '
-        'Offering both means a line can be either, and later nobody can tell '
-        'which was meant.',
-        style: ansiSans(size: 14, color: AnsiColors.muted),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'A line can say 1 ${added.label} ($amount, so it counts toward '
+            'macros and the shopping total) or 1 piece (an honest count with '
+            'no weight). Offering both means a line can be either, and later '
+            'nobody can tell which was meant.',
+            style: ansiSans(size: 14, color: AnsiColors.muted),
+          ),
+          const SizedBox(height: 10),
+          // Seam D1: the two questions were always one.
+          Text(
+            'Answering No also sets Counts as: ${added.label} — the measure '
+            'you just named becomes what a bare '
+            '“1 ${ingredient.canonicalName.toLowerCase()}” means. Both are '
+            'one tap from changing, on this page.',
+            style: ansiMono(size: 11, color: AnsiColors.muted),
+          ),
+        ],
       ),
       actions: [
         FButton(

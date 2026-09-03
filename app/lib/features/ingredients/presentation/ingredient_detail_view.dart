@@ -16,6 +16,8 @@
 ///   count — a line's ingredient is never allowed to dangle.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -25,12 +27,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
 import '../../books/presentation/text_prompt.dart';
+import '../../recipes/presentation/format.dart';
 import '../data/ingredient_providers.dart';
 import '../data/usda_enrichment.dart';
 import '../domain/allowed_units.dart';
@@ -411,6 +415,15 @@ class _DetailForm extends HookConsumerWidget {
               ref.invalidate(ingredientByIdProvider(ing.id));
             },
           ),
+
+        // Seam D1's UI (board frame f): what a bare count of this row MEANS.
+        // It sits with the measures because it is a fact ABOUT them, and it
+        // is hidden entirely on a row that has none — there is nothing to
+        // choose and nothing to ask.
+        if ((measuresAsync.asData?.value ?? const []).isNotEmpty) ...[
+          const _Label('COUNTS AS — WHAT “2 ONIONS” MEANS'),
+          _CountsAsRow(ingredient: ing, measures: measuresAsync.asData!.value),
+        ],
 
         const _Label('IMPRECISE UNITS'),
         _ImpreciseLine(ingredient: ing),
@@ -983,6 +996,105 @@ class _AliasEditor extends HookConsumerWidget {
 /// (ADR-0008 §5 as tightened by plan 0020 J3: pinch and dash for the
 /// spice/seasoning/oil classes, handful for greens). A fact about the
 /// category, not a switch on this form, so it is read out rather than offered.
+/// "Counts as" — what a bare count of this row MEANS (seam **D1**, board
+/// frame f).
+///
+/// The picker's first entry is **"Ask me each time"** (null), and that is the
+/// honest state for a row whose measures are three different things
+/// (broccoli: whole · spear · crown). Clearing a default is one tap and never
+/// destroys a measure: the row keeps every label it had and only stops having
+/// a preferred one.
+///
+/// It is a **stated fact**, so it saves the moment it is picked — like the
+/// measures editor's own writes, not on this form's Save. A household owns
+/// this from the moment its vocabulary is cloned; the seeded value is a
+/// starting point, not a rule.
+class _CountsAsRow extends ConsumerWidget {
+  const _CountsAsRow({required this.ingredient, required this.measures});
+
+  final Ingredient ingredient;
+  final List<Measure> measures;
+
+  /// The sentinel for "Ask me each time" — `FSelect`'s own null means "no
+  /// selection", which is a different thing from "the household chose none".
+  static const _ask = '';
+
+  /// Writes the pick and re-reads the row. `ingredientById` is a one-shot
+  /// Future, so nothing re-fires on its own — the same reason the measures
+  /// editor's `piece` answer invalidates it.
+  Future<void> _pick(BuildContext context, WidgetRef ref, String? id) async {
+    final repo = ref.read(ingredientRepositoryProvider);
+    await ref.write(
+      context,
+      'set what a count of this means',
+      () => repo.setDefaultMeasure(
+        ingredient.id,
+        (id == null || id == _ask) ? null : id,
+      ),
+    );
+    if (context.mounted) ref.invalidate(ingredientByIdProvider(ingredient.id));
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final byId = {for (final m in measures) m.id: m};
+    final current = ingredient.defaultMeasureId;
+    // A default whose measure this device has not synced (or that was
+    // tombstoned elsewhere) reads as unset rather than as a phantom row.
+    final selected = current != null && byId.containsKey(current)
+        ? current
+        : _ask;
+    final one = ingredient.canonicalName.toLowerCase();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Flexible(child: Text('One $one is', style: ansiMono(size: 11))),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: FSelect<String>.rich(
+                format: (id) => id == _ask
+                    ? '— not set'
+                    : '${byId[id]?.label ?? '—'} · '
+                          '${formatQuantity(byId[id]?.amount)} '
+                          '${byId[id]?.basis.baseUnit.label ?? ''}',
+                control: FSelectControl<String>.lifted(
+                  value: selected,
+                  onChange: (id) => unawaited(_pick(context, ref, id)),
+                ),
+                children: [
+                  const FSelectItem(
+                    title: Text('Ask me each time'),
+                    value: _ask,
+                  ),
+                  for (final m in measures)
+                    FSelectItem(
+                      title: Text(
+                        '${m.label} · ${formatQuantity(m.amount)} '
+                        '${m.basis.baseUnit.label}',
+                      ),
+                      value: m.id,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(
+            'used when a line says a number and no unit. A line that names '
+            'something — “2 large onions” — always wins.',
+            style: ansiMono(size: 10, color: AnsiColors.muted),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ImpreciseLine extends StatelessWidget {
   const _ImpreciseLine({required this.ingredient});
 

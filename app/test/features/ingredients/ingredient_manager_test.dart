@@ -964,6 +964,105 @@ void main() {
       expect(find.text('piece'), findsWidgets);
     });
 
+    // --- seam D1: "Counts as", the second half of the same answer ----------
+
+    testWidgets('answering No also sets Counts as — the two questions were '
+        'always one, and the prompt says so', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo(const [_mango]);
+      final measures = _FakeMeasures();
+      await tester.pumpWidget(
+        _host(repo, at: '/ingredients/mango', measures: measures),
+      );
+      await tester.pumpAndSettle();
+      expect(repo.rows.single.defaultMeasureId, isNull);
+
+      await addMeasure(tester, 'mango, medium', '207');
+      expect(
+        find.textContaining('Answering No also sets Counts as: mango, medium'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('No — “mango, medium” says it'));
+      await tester.pumpAndSettle();
+
+      expect(repo.rows.single.defaultMeasureId, measures.rows.single.id);
+      expect(allowedUnitsFor(repo.rows.single), isNot(contains(pieces)));
+    });
+
+    testWidgets('“Keep both” leaves Counts as unset — the honest reading of '
+        '"both words are sayable here"', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo(const [_mango]);
+      await tester.pumpWidget(
+        _host(repo, at: '/ingredients/mango', measures: _FakeMeasures()),
+      );
+      await tester.pumpAndSettle();
+
+      await addMeasure(tester, 'mango, medium', '207');
+      await tester.tap(find.text('Keep both'));
+      await tester.pumpAndSettle();
+
+      expect(repo.rows.single.defaultMeasureId, isNull);
+    });
+
+    testWidgets('the Counts as picker sets it, and "Ask me each time" clears '
+        'it without touching a single measure', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo(const [_mango]);
+      final measures = _FakeMeasures(const [
+        Measure(id: 'm-med', label: 'mango, medium', amount: 207),
+        Measure(id: 'm-lrg', label: 'mango, large', amount: 280),
+      ]);
+      await tester.pumpWidget(
+        _host(repo, at: '/ingredients/mango', measures: measures),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('COUNTS AS — WHAT “2 ONIONS” MEANS'), findsOneWidget);
+      expect(find.text('One mango is'), findsOneWidget);
+      expect(find.text('— not set'), findsOneWidget);
+
+      await tester.tap(find.text('— not set'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('mango, medium · 207 g').last);
+      await tester.pumpAndSettle();
+      expect(repo.rows.single.defaultMeasureId, 'm-med');
+
+      // …and back to "Ask me each time", which is a real answer.
+      await tester.tap(find.text('mango, medium · 207 g').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ask me each time').last);
+      await tester.pumpAndSettle();
+      expect(repo.rows.single.defaultMeasureId, isNull);
+      // Clearing a default never destroys a measure: the row keeps every
+      // label it had and only stops having a preferred one.
+      expect(measures.rows.map((m) => m.label), [
+        'mango, medium',
+        'mango, large',
+      ]);
+    });
+
+    testWidgets('a row with NO measures is not asked — there is nothing to '
+        'choose and nothing to ask', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      await tester.pumpWidget(
+        _host(
+          FakeIngredientRepo(const [_mango]),
+          at: '/ingredients/mango',
+          measures: _FakeMeasures(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('COUNTS AS — WHAT “2 ONIONS” MEANS'), findsNothing);
+      expect(find.text('One mango is'), findsNothing);
+    });
+
     testWidgets("F3: the category is a dropdown of the household's own "
         'categories — free text is gone', (tester) async {
       _filterSemanticsAssertions();
