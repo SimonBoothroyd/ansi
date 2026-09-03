@@ -1,6 +1,6 @@
 # Exec plan: 0023 — debt pass (durable-data edition)
 
-- **Status:** active
+- **Status:** active — code landed on main 2026-09-03; awaiting the cloud push (0021/0022 via deploy-supabase) and its ledger entry
 - **Owner:** orchestrator (Claude) + four build lanes; Simon rules any real choice
 - **Roadmap step:** between 9 and the stretch steps — no feature; pays tracker rows
 - **Created:** 2026-09-03
@@ -16,10 +16,10 @@ unreachable for existing households, and the one visible app bug (stale
 ## Acceptance criteria
 
 - [x] Lane A — `currentWeekStartProvider` re-fires at local midnight; tested with an injected clock.
-- [ ] Lane B — a monotone `ingredient_measure` rollout (insert-missing, never delete/overwrite), previewable, idempotent, pgTAP-tested; cloud-setup §2b + release.md updated; the canned-tomato tracker rows point at it.
-- [ ] Lane C — migration `0021` brings `default_allowed_units` / `density_unlocked_units` / the imprecise gate to parity with `allowed_units.dart`; `supabase/tests/unit_admission.sql` mirrors `allowed_units_test.dart`; no removal backfill (ADR-0009).
-- [ ] Lane D — `molasses`-class words singularize per the comment on BOTH sides (TS + Dart + shared vectors); migration `0022` rewrites affected `match_text` rows in place; `gen_seed.ts` alias-collision check is global.
-- [ ] Tracker rows retired or narrowed by each lane; `make ci` green on main after each landing.
+- [x] Lane B — a monotone `ingredient_measure` rollout (insert-missing, never delete/overwrite), previewable, idempotent, pgTAP-tested; cloud-setup §2b + release.md updated; the canned-tomato tracker rows point at it.
+- [x] Lane C — migration `0021` brings `default_allowed_units` / `density_unlocked_units` / the imprecise gate to parity with `allowed_units.dart`; `supabase/tests/unit_admission.sql` mirrors `allowed_units_test.dart`; no removal backfill (ADR-0009).
+- [x] Lane D — `molasses`-class words singularize per the comment on BOTH sides (TS + Dart + shared vectors); migration `0022` rewrites affected `match_text` rows in place; `gen_seed.ts` alias-collision check is global.
+- [x] Tracker rows retired or narrowed by each lane; `make ci` green on main after each landing.
 
 ## Approach
 
@@ -118,6 +118,19 @@ assigned here, not minted: **0021 = lane C, 0022 = lane D**.
   only caller (0014's `ingredient_density_extends_allowed_units`) is
   re-created on the new signature.
 
+- 2026-09-03 — **Landing.** All four lanes rebased and fast-forwarded onto
+  main in the order A, B, D, C (every conflict was this decision log or the
+  tracker; both were resolved by keeping both sides). One defect found only at
+  landing, because lanes could not run the shared stack: 0021 appended the
+  four imprecise words to `units` as bare literals (`units || 'pinch'`), which
+  plpgsql resolves as `text[] || text[]` and so parses `'pinch'` as an array
+  literal — `supabase db reset` failed in `seed_curation.sql`'s
+  re-materialize. Fixed in place (`array['pinch']`), since 0021 had not been
+  pushed or deployed. Gates on main at that point: analyze · docs-check ·
+  db-lint clean; `make test-app` 1423; `make test-fns` 155; seed scripts 18;
+  `supabase test db` 8 files / 261 assertions. Lane D's flagged adjacent bug
+  (`-ses` plurals — `cheeses` → `chees`) is now a tracker row.
+
 ## Notes / open questions
 
 - Lane D: the fix for `molasses` is most likely an explicit invariant-word
@@ -127,8 +140,8 @@ assigned here, not minted: **0021 = lane C, 0022 = lane D**.
 ## Step-done checklist
 
 - [ ] Roadmap: no row (debt pass); note in the tracker header date if useful.
-- [ ] `docs/QUALITY.md` grades still true for ingredients / planning / seed.
-- [ ] `make test-sim` not required (no UI path changed) — lane A is provider-only.
-- [ ] Tech-debt rows retired/narrowed: midnight, SQL admission mirror, singularizer, alias check, canned-tomato (narrowed to "bundles"), plus a NEW row if any lane cuts a corner.
+- [x] `docs/QUALITY.md` grades still true for ingredients / planning / seed.
+- [x] `make test-sim` not required (no UI path changed) — lane A is provider-only.
+- [x] Tech-debt rows retired/narrowed: midnight, SQL admission mirror, singularizer, alias check, canned-tomato (narrowed to "bundles"), plus a NEW row if any lane cuts a corner.
 - [ ] Migrations 0021/0022 reach cloud via `deploy-supabase`; ledger entry in cloud-setup.md.
-- [ ] `make ci` green.
+- [x] `make ci` green.
