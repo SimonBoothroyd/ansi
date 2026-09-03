@@ -1,6 +1,6 @@
 # Exec plan: 0025 — Field test, round three — seven owner-raised fronts on `v0.3.0`
 
-- **Status:** active — items 1, 2, 5 landed on main 2026-09-03 (`make ci` green, pgTAP 296); board section "Field test · round three" proposed, awaiting sign-off before the header / line-fact / no-stubs / weeks lanes
+- **Status:** active — all eight items landed on main 2026-09-03 (`29a3345`; `make ci` green at every landing, pgTAP 297); `make test-sim` running; cloud push + tag to follow
 - **Owner:** Simon (rules) + Claude (orchestrator; design lane for the frames, then build lanes)
 - **Roadmap step:** 8.10 (follow-up to 8.9 / plan 0024)
 - **Created:** 2026-09-03
@@ -370,14 +370,14 @@ in the **no-stubs** lane (same files). Sim-covered by the typed-barcode path
 ## Acceptance criteria
 
 - [x] Board frames for 3, 4, 6, 7 signed off ("go", 2026-09-03, no re-review); D1–D7 recorded in the decision log.
-- [ ] 8: the flesh-out form scans a barcode into empty fields through the sheet's own apply function; never confirms; widget test + the typed path on the sim.
+- [x] 8: the flesh-out form scans a barcode into empty fields through the sheet's own apply function; never confirms; widget test + the typed path on the sim.
 - [x] 1: edit → Save → one back returns to the opener; new → Save → recipe page; widget test; navigation.md §3 updated.
 - [x] 2: `qt` + `pt` (D2a) in every mirror in the table; migration `0024` additive with UNION backfill; pgTAP vectors; `unit_hints` test; docs table.
-- [ ] 3: no app path mints a stub as a side effect — picker, top-up and import review all run sheet → form → back; `CommitStub` retired; verified on the real sim.
-- [ ] 4: one shared header form under both hosts; the review commits title / yield×2 / shelf life / book; a structural test pins the section list to both hosts.
+- [x] 3: no app path mints a stub as a side effect — picker, top-up and import review all run sheet → form → back; `CommitStub` retired; verified on the real sim.
+- [x] 4: one shared header form under both hosts; the review commits title / yield×2 / shelf life / book; a structural test pins the section list to both hosts.
 - [x] 5: the review's chip sheet prints the measure label; `preview_recipe_test` pins it.
-- [ ] 6: `optional` survives import → save → edit → page, toggles in the unit sheet, is excluded-and-named in macros and shopping (D6b) through one `effectiveLines` seam.
-- [ ] 7: the one shared viewed week (D7a), the switcher as the only title on all three tabs (D7c), the pill and banner retired, the bar's selected state stepped up (D7d) with the measured contrast recorded.
+- [x] 6: `optional` survives import → save → edit → page, toggles in the unit sheet, is excluded-and-named in macros and shopping (D6b) through one `effectiveLines` seam.
+- [x] 7: the one shared viewed week (D7a), the switcher as the only title on all three tabs (D7c), the pill and banner retired, the bar's selected state stepped up (D7d) with the measured contrast recorded.
 - [ ] Migrations renumbered at landing if a parallel lane mints the same number (the 0024 trap).
 - [ ] `make ci` green; `make test-sim` 6/6 (scenarios 3, 4, 6 touched); cloud push + ledger entry; tag `v0.4.0` (minor — new unit, new line fact, new review fields).
 - [ ] Docs: navigation.md, unit-and-measure-matching.md, product-spec (Week v2 D3, import review, optional), QUALITY grades for the areas touched.
@@ -437,7 +437,35 @@ in the **no-stubs** lane (same files). Sim-covered by the typed-barcode path
   are already one form). Four build lanes launched: header, line-fact,
   no-stubs (+8), weeks. Owner also rolled in the two pt/qt stragglers the
   units lane flagged (OFF pack-size words, the yield chip list) — done on
-  main directly.
+  main directly (`20ce01d`).
+- 2026-09-03 — Landed, in order: **#7** `b8d3e4a` (switcher as the title of
+  Cook/Shop, pill + banner deleted, selected tab herbDeep — 9.34:1 vs 6.50:1,
+  gap 1.88:1 vs 1.31:1, pinned in `ansi_theme_test`; the menu's trailing
+  count labels only the viewed week's row — the other rows would cost two
+  derivations per tab, easy to widen later), **#4** `ea179de` (the six-section
+  `recipe_header_form.dart` iterated from one list, `RecipeHeaderHost` under
+  both the editor and the import controller, shared `recipe_header_edits.dart`
+  so semantics cannot drift either, `recipe_insert_columns_test` pins that
+  import's INSERT and the editor's save write the same columns; the editor
+  was not dropping times, its UPDATE simply never named them and nothing
+  could read them; the review's MAKES row now defaults to `g` like the editor
+  instead of the old `piece`/"—"), **#6** `8625cde` (migration `0025`,
+  `effectiveLines` with an accepted-and-unread `planEntryId` pinned by a
+  test, "not counted · N optional lines: …", the Shop echo row, cook plan
+  asserted unchanged; names print as the vocab stores them — "Lime", not the
+  frame's lowercase), **#3 + #8** `80becaf` + `29a3345` (a page pushed from a
+  root sheet lands ABOVE the sheet and pops back to it — tested — so the
+  picker stays open, pushes the form with `pushOnceFor`, awaits, re-reads,
+  resolves; `applyDraft` is pure Dart used by the sheet and the form: name
+  fills only an empty field, macros only when no panel is present,
+  provenance becomes `off:<barcode>` only over null/`manual`, the pack size
+  is an offer never a write, status untouched; `CommitStub` / `CreateNewStub`
+  / the coalescing leg retired, the created row resolves as an existing one
+  with the raw text written back as its alias; legacy `import_stub` rows and
+  the SQL `source in (…)` legs left as they are). Smoke steps changed by the
+  lanes: Cook/Shop finders → root keys; scenario 4 creates the chilli row
+  through the form and asserts zero `import_stub` rows; scenario 5's
+  precondition is the stub row scenario 4 created.
 
 ## Notes / open questions
 
