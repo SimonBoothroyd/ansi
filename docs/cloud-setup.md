@@ -143,8 +143,9 @@ households:
   nuance: the clone leg still requires **zero live measures**, so a
   household that keeps any live row (its own `manual` measures included) is
   merely re-stamped without cloning — this rollout only works by wiping a
-  household's user-authored measures along with the seeded ones, which is
-  acceptable solely because dev data is throwaway.
+  household's user-authored measures along with the seeded ones — which was
+  acceptable only while dev data was throwaway. **Since 2026-09-03 (§2c) it
+  is not**: do not run this leg against a household with real measures.
 
 Note migration 0009 also touched the **sync streams** — redeploy
 `docker/powersync-cloud.streams.yaml` (step 3 below) so `ingredient_measure`
@@ -218,28 +219,29 @@ still costs a household its user-authored measures (it needs zero live rows to
 clone) — this one costs nothing, which is exactly why `ingredient` gets a
 script instead of a marker reset.
 
-### 2c. The posture: reset, never patch (owner ruling, 2026-09-03)
+### 2c. The posture: data is durable now (owner ruling, 2026-09-03)
 
-> "I don't want 10,000 migrations. We don't have any live data that can't be
-> easily re-added to the live db, so prefer reset and make sure the db is
-> fixed for the future."
+Two rulings landed the same evening, in this order, and the second governs:
 
-While the household data is throwaway (through the roadmap — the app's
-memory says the same), a cloud database that has drifted — a doubled seed, a
-half-applied hand run, a stream list frozen at an old step — is **rebuilt**,
-not repaired:
+1. *"I don't want 10,000 migrations… prefer reset and make sure the db is
+   fixed for the future."* — so the doubled template was answered with a
+   **full cloud reset** (ledger below), and `0020` carries only the
+   future-proofing (template-only unique indexes), no data repair.
+2. *"Unless I say so, the data is not ephemeral."* — the big changes are
+   believed done, so **that reset was the last free one.** From here the
+   household data on the cloud and on the phones is real:
+   - **No `supabase db reset --linked` without an explicit owner call.**
+   - **Migrations preserve rows**: additive columns, backfills, `if not
+     exists`; never a drop, a rewrite, or a tombstone sweep of household data.
+   - A fix that is tempting to write as a data repair is a design question for
+     the owner, not a migration.
+   - The §2 rollout notes that say "acceptable because dev data is throwaway"
+     (the measures wipe-and-re-clone) are **no longer acceptable**; a reseed
+     reaches existing households only through `rollout_ingredient_refresh.sql`
+     (§2b), which is monotonic by construction.
 
-```bash
-supabase db reset --linked        # every migration + every seed in config.toml order
-```
-
-then Actions → **deploy-supabase** (the function + the sync streams ride that
-button; leave `reseed_template` unticked — the reset already seeded), then
-`scripts/cloud_verify.sh`, then a ledger entry. Migrations carry **only what
-fixes the future** (constraints, columns, triggers) and never a one-off data
-repair; a repair that is tempting to write as a migration is the signal to
-reset instead. The cost is every onboarded household and auth user — accepted
-for now, and the reason this section will change the day real data exists.
+The app's own memory said "data is ephemeral through the roadmap" since
+2026-08-26; that era ended here.
 
 ## 3. PowerSync Cloud instance
 
