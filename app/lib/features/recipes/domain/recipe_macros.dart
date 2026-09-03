@@ -16,13 +16,28 @@
 ///   own summary is complete. Anything else is a named reason on the parent
 ///   ([RecipeMacroSummary.subRecipesUnresolved] /
 ///   [RecipeMacroSummary.subRecipesIncomplete]), never a dropped line;
-/// - anything else — a stub ingredient, a count line without a measure, an
-///   imprecise-only line, a numberless line, a missing density — makes the
-///   whole summary honestly **incomplete**: no partial total is ever shown
-///   as if it were the recipe's macros (invariant 3, never zeros);
+/// - an **imprecise** line — `to taste`, `pinch`, `dash`, `handful` — is
+///   excluded **by rule** and does NOT make the summary incomplete (seam
+///   **D6**). It is unweighable by nature: no measure and no density turn a
+///   handful into grams, so marking it "fixable" would mark a line that can
+///   never be cleared. Nothing is invented (it contributes zero because zero
+///   grams of it were claimed, not because a number was guessed) and nothing
+///   is silent (every one is named under the total, by name, every time) —
+///   which is a stronger reading of invariant 3 than hiding a figure that is
+///   knowable to within a pinch of salt. The one guard: a recipe whose lines
+///   are ALL imprecise summed nothing and still refuses
+///   ([RecipeMacroSummary.nothingWeighable]);
+/// - anything else — a stub ingredient, a count line without a measure, a
+///   numberless line, a missing density — makes the whole summary honestly
+///   **incomplete**: no partial total is ever shown as if it were the
+///   recipe's macros (invariant 3, never zeros);
 /// - a recipe with **no lines at all** is likewise incomplete
 ///   ([RecipeMacroSummary.noLines]): an empty sum is an absence, not a
 ///   ~0 kcal recipe.
+///
+/// Every excluded line is also NAMED, in line order, in
+/// [RecipeMacroSummary.notes] (seam **D5**) — the refusal says which lines it
+/// is waiting on, which is strictly more honest, not less.
 library;
 
 import 'package:meta/meta.dart';
@@ -40,6 +55,52 @@ typedef IngredientNutrition = ({
   Macros? macros,
   MacrosBasis basis,
   double? densityGPerMl,
+});
+
+/// Why one line is not in the total — the per-line half of the refusal
+/// (seam **D5**: *"this message makes it impossible to know what ingredients
+/// need fixing"*).
+///
+/// The wording for each lives in `shared/incomplete_macros.dart`, beside the
+/// summary-level [RecipeMacroSummary] note, so the panel's list, a row's
+/// marker and the picker row are one vocabulary.
+enum MacroLineReason {
+  /// The vocab row has no macros yet — the flesh-out form is the fix.
+  stubIngredient,
+
+  /// The line names an ingredient this device has never synced.
+  unknownIngredient,
+
+  /// A bare count with nothing weighing it ("2 pieces", no measure).
+  needsWeight,
+
+  /// A cross-basis line on a row with no density.
+  needsDensity,
+
+  /// No quantity at all.
+  noAmount,
+
+  /// A component line whose batch math does not resolve.
+  subRecipeUnresolved,
+
+  /// A component line whose target's own summary is incomplete.
+  subRecipeIncomplete,
+
+  /// `to taste`, `pinch`, `dash`, `handful` — unweighable BY NATURE, so
+  /// excluded by rule rather than by failure (seam **D6**). This is the one
+  /// reason that does NOT make a summary [RecipeMacroSummary.incomplete].
+  imprecise,
+}
+
+/// One line left out of the total, named. `lineId` is the `recipe_line_item`
+/// id (null only where a caller built lines without one), so a surface can
+/// mark the row in place; `unit` is the line's own printed imprecise word
+/// ("handful"), carried for [MacroLineReason.imprecise] and null otherwise.
+typedef MacroLineNote = ({
+  String? lineId,
+  String name,
+  MacroLineReason reason,
+  String? unit,
 });
 
 /// The honest per-serving summary of a recipe's macros.
@@ -73,12 +134,32 @@ class RecipeMacroSummary {
     this.subRecipesUnresolved = 0,
     this.subRecipesIncomplete = 0,
     this.countLinesWithoutMeasure = 0,
+    this.impreciseLines = 0,
+    this.notes = const [],
     this.noLines = false,
+    this.nothingWeighable = false,
   });
 
   final Macros? perServing;
   final int stubLines;
   final int unconvertibleLines;
+
+  /// Lines excluded BY RULE because their unit is unweighable by nature
+  /// (seam **D6**). **It does not make the summary [incomplete]** — the total
+  /// is shown and the exclusion is named beneath it, which is a stronger form
+  /// of honesty than hiding a number that is knowable to within a pinch of
+  /// salt. The one guard is [noLines]'s sibling: a recipe whose lines are ALL
+  /// imprecise summed nothing, and `0 kcal` there would be a fabrication.
+  final int impreciseLines;
+
+  /// Every excluded line, named, in line order (seam **D5**). The panel's
+  /// list, the row markers and the "not counted" line all read off this —
+  /// one computation, one vocabulary.
+  ///
+  /// A nested recipe's own exclusions never appear here: a parent names its
+  /// component line ("Romesco Aioli · sub-recipe incomplete"), not the
+  /// child's lines.
+  final List<MacroLineNote> notes;
 
   /// Component lines whose batch math does not resolve (step 8.6 / D8): no
   /// yield on the target, a unit in no yield's family, no amount, or a cycle.
@@ -97,6 +178,11 @@ class RecipeMacroSummary {
   /// per-line failure.
   final bool noLines;
 
+  /// Every line was imprecise, so nothing was weighed (seam **D6**'s one
+  /// guard). The total would be `0 kcal`, which would be a fabrication rather
+  /// than a computation — the same shape as [noLines].
+  final bool nothingWeighable;
+
   bool get incomplete => perServing == null;
 
   @override
@@ -108,7 +194,18 @@ class RecipeMacroSummary {
       other.subRecipesUnresolved == subRecipesUnresolved &&
       other.subRecipesIncomplete == subRecipesIncomplete &&
       other.countLinesWithoutMeasure == countLinesWithoutMeasure &&
-      other.noLines == noLines;
+      other.impreciseLines == impreciseLines &&
+      _sameNotes(other.notes, notes) &&
+      other.noLines == noLines &&
+      other.nothingWeighable == nothingWeighable;
+
+  static bool _sameNotes(List<MacroLineNote> a, List<MacroLineNote> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 
   @override
   int get hashCode => Object.hash(
@@ -118,18 +215,29 @@ class RecipeMacroSummary {
     subRecipesUnresolved,
     subRecipesIncomplete,
     countLinesWithoutMeasure,
+    impreciseLines,
+    Object.hashAll(notes),
     noLines,
+    nothingWeighable,
   );
 
   @override
-  String toString() => incomplete
-      ? 'RecipeMacroSummary(incomplete: '
-            '${noLines ? 'no lines' : '$stubLines stub, '
-                      '$countLinesWithoutMeasure bare count, '
-                      '$unconvertibleLines unconvertible, '
-                      '$subRecipesUnresolved sub unresolved, '
-                      '$subRecipesIncomplete sub incomplete'})'
-      : 'RecipeMacroSummary($perServing /serving)';
+  String toString() {
+    if (!incomplete) {
+      return 'RecipeMacroSummary($perServing /serving'
+          '${impreciseLines > 0 ? ', $impreciseLines imprecise' : ''})';
+    }
+    final why = noLines
+        ? 'no lines'
+        : nothingWeighable
+        ? 'nothing weighable'
+        : '$stubLines stub, '
+              '$countLinesWithoutMeasure bare count, '
+              '$unconvertibleLines unconvertible, '
+              '$subRecipesUnresolved sub unresolved, '
+              '$subRecipesIncomplete sub incomplete';
+    return 'RecipeMacroSummary(incomplete: $why)';
+  }
 }
 
 /// What the summation needs about one sub-recipe it walks into (step 8.6 /
@@ -185,7 +293,17 @@ RecipeMacroSummary _summarize({
   var subUnresolved = 0;
   var subIncomplete = 0;
   var bareCounts = 0;
+  var imprecise = 0;
   var lineCount = 0;
+  final notes = <MacroLineNote>[];
+
+  void note(LineItem line, MacroLineReason reason, {String? unit}) =>
+      notes.add((
+        lineId: line.id,
+        name: line.subRecipe?.title ?? line.ingredientName,
+        reason: reason,
+        unit: unit,
+      ));
 
   for (final line in lines) {
     lineCount++;
@@ -200,11 +318,25 @@ RecipeMacroSummary _summarize({
       )) {
         case _ComponentUnresolved():
           subUnresolved++;
+          note(line, MacroLineReason.subRecipeUnresolved);
         case _ComponentIncomplete():
           subIncomplete++;
+          note(line, MacroLineReason.subRecipeIncomplete);
         case _ComponentMacros(:final macros):
           total += macros;
       }
+      continue;
+    }
+    // Seam D6, and it runs FIRST: `to taste` and its family are unweighable
+    // by nature, so the line is excluded BY RULE rather than by any failure —
+    // before the quantity test (a `to taste` line usually has no quantity at
+    // all and would otherwise read as "unconvertible") and before the stub
+    // test (a pinch of a stub is still just a pinch). Nothing is invented: it
+    // contributes zero because zero grams of it were claimed. Nothing is
+    // silent either — every one of these is named under the total.
+    if (line.measure == null && line.unit.family == UnitFamily.imprecise) {
+      imprecise++;
+      note(line, MacroLineReason.imprecise, unit: line.unit.label);
       continue;
     }
     final ingredientId = line.ingredientId;
@@ -214,14 +346,27 @@ RecipeMacroSummary _summarize({
     final macros = nutrition?.macros;
     if (nutrition == null || macros == null) {
       stubs++;
+      note(
+        line,
+        nutrition == null
+            ? MacroLineReason.unknownIngredient
+            : MacroLineReason.stubIngredient,
+      );
       continue;
     }
     final per100 = _amountInBasis(line, nutrition);
     if (per100 == null) {
       if (_isBareCount(line)) {
         bareCounts++;
+        note(line, MacroLineReason.needsWeight);
       } else {
         unconvertible++;
+        note(
+          line,
+          line.quantity == null
+              ? MacroLineReason.noAmount
+              : MacroLineReason.needsDensity,
+        );
       }
       continue;
     }
@@ -229,10 +374,14 @@ RecipeMacroSummary _summarize({
   }
 
   // No lines summed nothing: rendering that as "~0 kcal /serving" would
-  // present an absence as a computed number (invariant 3, never zeros).
+  // present an absence as a computed number (invariant 3, never zeros). The
+  // D6 guard is the same shape — a recipe of nothing but salt-to-taste summed
+  // nothing either, so it still refuses.
   final noLines = lineCount == 0;
+  final nothingWeighable = !noLines && imprecise == lineCount;
   final incomplete =
       noLines ||
+      nothingWeighable ||
       stubs > 0 ||
       unconvertible > 0 ||
       subUnresolved > 0 ||
@@ -246,7 +395,10 @@ RecipeMacroSummary _summarize({
     subRecipesUnresolved: subUnresolved,
     subRecipesIncomplete: subIncomplete,
     countLinesWithoutMeasure: bareCounts,
+    impreciseLines: imprecise,
+    notes: notes,
     noLines: noLines,
+    nothingWeighable: nothingWeighable,
   );
 }
 

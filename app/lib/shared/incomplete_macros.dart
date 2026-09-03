@@ -27,6 +27,11 @@ import '../features/recipes/domain/recipe_macros.dart';
 /// row's chip row holds its measures and (mostly) not `piece`.
 String incompleteNote(RecipeMacroSummary summary) {
   if (summary.noLines) return 'no ingredients yet';
+  // Seam D6's one guard: every line was imprecise, so nothing was weighed.
+  // `0 kcal` there would be a fabrication — the same shape as no ingredients
+  // at all, and it gets its own words rather than being folded into a bucket
+  // that names a defect.
+  if (summary.nothingWeighable) return 'nothing weighable yet';
   final stubs = summary.stubLines;
   final counts = summary.countLinesWithoutMeasure;
   final unresolved = summary.subRecipesUnresolved;
@@ -48,6 +53,55 @@ String incompleteNote(RecipeMacroSummary summary) {
   // Every line joined and there are lines — the only remaining cause is a
   // non-positive serving count (the DB check makes this near-unreachable).
   return parts.isEmpty ? 'servings not set' : parts.join(' · ');
+}
+
+/// What ONE excluded line is waiting on — the per-line half of the same
+/// vocabulary (seam **D5**). The panel's list, a row's marker and the picker
+/// row all read this, so `Cucumber · needs a weight` says the same thing
+/// wherever it appears.
+///
+/// [MacroLineReason.imprecise] has no wording of its own here: an imprecise
+/// line is named by the WORD THE SOURCE PRINTED ("handful", "to taste"), not
+/// by a defect — see [notCountedNote].
+String incompleteLineNote(MacroLineReason reason) => switch (reason) {
+  MacroLineReason.stubIngredient => 'stub ingredient',
+  MacroLineReason.unknownIngredient => 'not in your ingredients yet',
+  MacroLineReason.needsWeight => 'needs a weight',
+  MacroLineReason.needsDensity => 'needs a density',
+  MacroLineReason.noAmount => 'no amount',
+  MacroLineReason.subRecipeUnresolved => 'sub-recipe has no yield',
+  MacroLineReason.subRecipeIncomplete => 'sub-recipe incomplete',
+  MacroLineReason.imprecise => 'not counted',
+};
+
+/// The lines a summary is WAITING ON — everything a household could fix. The
+/// imprecise ones are excluded by rule, not by failure, so they are named
+/// under the total by [notCountedNote] instead.
+List<MacroLineNote> fixableNotes(RecipeMacroSummary summary) => [
+  for (final note in summary.notes)
+    if (note.reason != MacroLineReason.imprecise) note,
+];
+
+/// `not counted: Parsley · handful, Sesame seeds · to taste` — the exclusion
+/// D6 prints UNDER the total, every time (seam **D6**).
+///
+/// This sentence is the whole honesty argument: nothing is invented, because
+/// zero grams were claimed; and nothing is silent, because a reader can see
+/// precisely what the figure does and does not cover. The unit word is the
+/// line's own printed one, never a category name.
+///
+/// Null when nothing was excluded by rule — a caller renders nothing then,
+/// rather than an empty "not counted:".
+String? notCountedNote(List<MacroLineNote> notes) {
+  final excluded = [
+    for (final note in notes)
+      if (note.reason == MacroLineReason.imprecise) note,
+  ];
+  if (excluded.isEmpty) return null;
+  final named = [
+    for (final n in excluded) '${n.name} · ${n.unit ?? 'imprecise'}',
+  ];
+  return 'not counted: ${named.join(', ')}';
 }
 
 /// The amber `incomplete` badge (design board `.badge-inc`).

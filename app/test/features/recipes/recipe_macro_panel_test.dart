@@ -206,4 +206,186 @@ void main() {
     expect(find.byType(IncompleteBadge), findsNothing);
     expect(find.text('612'), findsOneWidget);
   });
+
+  // --- seam D5: the refusal names the lines ---------------------------------
+
+  testWidgets('the count line is KEPT verbatim and the names arrive under it', (
+    tester,
+  ) async {
+    const summary = RecipeMacroSummary(
+      stubLines: 1,
+      countLinesWithoutMeasure: 1,
+      notes: [
+        (
+          lineId: 'i1',
+          name: 'Cucumber',
+          reason: MacroLineReason.needsWeight,
+          unit: null,
+        ),
+        (
+          lineId: 'i2',
+          name: 'Tofu',
+          reason: MacroLineReason.stubIngredient,
+          unit: null,
+        ),
+      ],
+    );
+    await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
+
+    // The picker rows' string, unchanged — the three surfaces still refuse in
+    // the same words.
+    expect(find.text('1 stub line · 1 line needs a weight'), findsOneWidget);
+    // …and now the panel says WHICH.
+    expect(find.textContaining('Cucumber'), findsOneWidget);
+    expect(find.textContaining('needs a weight'), findsWidgets);
+    expect(find.textContaining('Tofu'), findsOneWidget);
+    expect(find.textContaining('stub ingredient'), findsWidgets);
+  });
+
+  testWidgets('the list caps at four with +N more', (tester) async {
+    final summary = RecipeMacroSummary(
+      stubLines: 6,
+      notes: [
+        for (var i = 0; i < 6; i++)
+          (
+            lineId: 'i$i',
+            name: 'Row $i',
+            reason: MacroLineReason.stubIngredient,
+            unit: null,
+          ),
+      ],
+    );
+    await tester.pumpWidget(_host(RecipeMacroPanel(summary: summary)));
+
+    expect(find.textContaining('Row 0'), findsOneWidget);
+    expect(find.textContaining('Row 3'), findsOneWidget);
+    expect(find.textContaining('Row 4'), findsNothing);
+    expect(find.text('+2 more'), findsOneWidget);
+  });
+
+  testWidgets('a named line is a door — onFix gets the note it names', (
+    tester,
+  ) async {
+    const note = (
+      lineId: 'i1',
+      name: 'Cucumber',
+      reason: MacroLineReason.needsWeight,
+      unit: null,
+    );
+    MacroLineNote? tapped;
+    await tester.pumpWidget(
+      _host(
+        RecipeMacroPanel(
+          summary: const RecipeMacroSummary(
+            countLinesWithoutMeasure: 1,
+            notes: [note],
+          ),
+          onFix: (n) => tapped = n,
+        ),
+      ),
+    );
+
+    await tester.tap(find.textContaining('Cucumber'));
+    await tester.pump();
+    expect(tapped, note);
+  });
+
+  // --- seam D6: a total, and what it left out -------------------------------
+
+  testWidgets('a real total prints "not counted" beneath the cells', (
+    tester,
+  ) async {
+    const summary = RecipeMacroSummary(
+      perServing: Macros(kcal: 418, protein: 16, carb: 54, fat: 13),
+      impreciseLines: 2,
+      notes: [
+        (
+          lineId: 'i4',
+          name: 'Parsley',
+          reason: MacroLineReason.imprecise,
+          unit: 'handful',
+        ),
+        (
+          lineId: 'i5',
+          name: 'Sesame seeds',
+          reason: MacroLineReason.imprecise,
+          unit: 'to taste',
+        ),
+      ],
+    );
+    await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
+
+    // The number is shown — this state was unreachable before D6.
+    expect(find.text('418'), findsOneWidget);
+    expect(find.byType(IncompleteBadge), findsNothing);
+    expect(
+      find.text('not counted: Parsley · handful, Sesame seeds · to taste'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('excluded by rule'), findsOneWidget);
+  });
+
+  testWidgets('a complete recipe with nothing excluded says nothing extra', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_host(const RecipeMacroPanel(summary: _complete)));
+    expect(find.textContaining('not counted'), findsNothing);
+  });
+
+  testWidgets(
+    'an all-imprecise recipe still refuses, in its own words',
+    (tester) async {
+      const summary = RecipeMacroSummary(
+        impreciseLines: 2,
+        nothingWeighable: true,
+        notes: [
+          (
+            lineId: 'i1',
+            name: 'Salt',
+            reason: MacroLineReason.imprecise,
+            unit: 'to taste',
+          ),
+        ],
+      );
+      await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
+
+      expect(find.byType(IncompleteBadge), findsOneWidget);
+      expect(find.text('nothing weighable yet'), findsOneWidget);
+      expect(find.text('KCAL'), findsNothing);
+      expect(find.text('0'), findsNothing);
+    },
+  );
+
+  testWidgets('the ingredient rows carry the marker, keyed by line id', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        const RecipeView(recipeId: '1'),
+        recipes: Stream.value(
+          _recipe(
+            const RecipeMacroSummary(
+              countLinesWithoutMeasure: 1,
+              notes: [
+                (
+                  lineId: 'i1',
+                  name: 'Chicken thigh',
+                  reason: MacroLineReason.needsWeight,
+                  unit: null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // The row itself says why the total is waiting on it — on a long recipe
+    // the panel is below the fold, and reading a name there and then hunting
+    // for the row is the failure this replaces. (The panel's own list draws
+    // its names as one rich span, so this plain marker is the row's.)
+    expect(find.text('needs a weight'), findsOneWidget);
+    expect(find.byType(IncompleteBadge), findsOneWidget);
+  });
 }

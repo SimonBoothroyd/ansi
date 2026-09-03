@@ -150,7 +150,8 @@ void main() {
       expect(summary.unconvertibleLines, 1);
     });
 
-    test('an imprecise-only line marks the summary incomplete', () {
+    test('an imprecise line does NOT make the summary incomplete — seam D6, '
+        'and it is the one bucket that does not', () {
       final summary = summarizeRecipeMacros(
         servingsBase: 1,
         lines: [
@@ -159,8 +160,13 @@ void main() {
         ],
         nutritionOf: _vocab(),
       );
-      expect(summary.incomplete, isTrue);
-      expect(summary.unconvertibleLines, 1);
+      expect(summary.incomplete, isFalse);
+      // The total is the sum of the REST: 100 g × 100 kcal/100 g.
+      expect(summary.perServing!.kcal, 100);
+      expect(summary.impreciseLines, 1);
+      // Never "unconvertible": nothing failed to convert, and nothing was
+      // ever weighed.
+      expect(summary.unconvertibleLines, 0);
     });
 
     test('a numberless line marks the summary incomplete', () {
@@ -443,6 +449,205 @@ void main() {
         subRecipeOf: (_) => null,
       );
       expect(summary.subRecipesUnresolved, 2);
+    });
+  });
+
+  // --- seam D5 + D6 --------------------------------------------------------
+  // The refusal names its causes, and `imprecise` is a RULE rather than a
+  // defect. The owner's two sentences: "this message makes it impossible to
+  // know what ingredients need fixing" and "things that are to taste, or
+  // imprecise should[n't] be required or show up in macros".
+
+  group('the named lines (seam D5)', () {
+    test('every excluded line is named, in line order, with its reason', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [
+          _line('x', quantity: 100),
+          _line('missing', quantity: 50),
+          _line('stub', quantity: 50),
+          _line('count', quantity: 2, unit: pieces),
+          _line('none'),
+        ],
+        nutritionOf: (id) => switch (id) {
+          'missing' => null,
+          'stub' => (
+            macros: null,
+            basis: MacrosBasis.perG,
+            densityGPerMl: null,
+          ),
+          _ => (macros: _per100, basis: MacrosBasis.perG, densityGPerMl: null),
+        },
+      );
+      expect(summary.notes.map((n) => n.reason), [
+        MacroLineReason.unknownIngredient,
+        MacroLineReason.stubIngredient,
+        MacroLineReason.needsWeight,
+        MacroLineReason.noAmount,
+      ]);
+      // …and each names the ROW it is waiting on, so a surface can mark it in
+      // place rather than making the reader hunt for it.
+      expect(summary.notes.map((n) => n.lineId), [
+        'li-missing',
+        'li-stub',
+        'li-count',
+        'li-none',
+      ]);
+      expect(summary.notes.first.name, 'missing');
+    });
+
+    test('a cross-basis line with no density says "needs a density", not the '
+        'anonymous "unconvertible"', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 1, unit: cup)],
+        nutritionOf: _vocab(),
+      );
+      expect(summary.notes.single.reason, MacroLineReason.needsDensity);
+      // The COUNT bucket is untouched, so `incompleteNote` still says exactly
+      // what it said before.
+      expect(summary.unconvertibleLines, 1);
+    });
+
+    test('a component names the TARGET, with its own reason', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [
+          const LineItem(
+            id: 'li-aioli',
+            subRecipeId: 'r-aioli',
+            subRecipe: SubRecipeTarget(id: 'r-aioli', title: 'Romesco Aioli'),
+            ingredientName: 'Romesco Aioli',
+            unit: batches,
+            quantity: 1,
+          ),
+        ],
+        nutritionOf: _vocab(),
+        subRecipeOf: (_) => null,
+      );
+      expect(summary.notes.single.name, 'Romesco Aioli');
+      expect(summary.notes.single.reason, MacroLineReason.subRecipeUnresolved);
+    });
+
+    test("a nested recipe's own exclusions do NOT propagate — a parent names "
+        "its component line, never the child's lines", () {
+      final nodes = <String, SubRecipeNode>{
+        'a': (
+          servingsBase: 1,
+          lines: [
+            _line('stub', quantity: 10),
+            _line('x', quantity: 1, unit: pinch),
+          ],
+          yields: const [(qty: 1.0, unit: cup)],
+        ),
+      };
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [
+          const LineItem(
+            id: 'li-a',
+            subRecipeId: 'a',
+            subRecipe: SubRecipeTarget(id: 'a', title: 'Sauce'),
+            ingredientName: 'Sauce',
+            unit: batches,
+            quantity: 1,
+          ),
+        ],
+        nutritionOf: (id) => id == 'stub'
+            ? (macros: null, basis: MacrosBasis.perG, densityGPerMl: null)
+            : (macros: _per100, basis: MacrosBasis.perG, densityGPerMl: null),
+        subRecipeOf: (id) => nodes[id],
+      );
+      expect(summary.notes.single.name, 'Sauce');
+      expect(summary.notes.single.reason, MacroLineReason.subRecipeIncomplete);
+      expect(
+        summary.impreciseLines,
+        0,
+        reason: "the child's pinch is the child's business",
+      );
+    });
+  });
+
+  group('imprecise never gates the total (seam D6)', () {
+    test('handful goes with to taste — one word, one meaning, and the line '
+        'carries its OWN printed word', () {
+      for (final unit in [pinch, dash, handful, toTaste]) {
+        final summary = summarizeRecipeMacros(
+          servingsBase: 1,
+          lines: [
+            _line('x', quantity: 100),
+            _line('herb', quantity: 1, unit: unit),
+          ],
+          nutritionOf: _vocab(),
+        );
+        expect(summary.incomplete, isFalse, reason: unit.id);
+        expect(summary.perServing!.kcal, 100, reason: unit.id);
+        expect(summary.impreciseLines, 1, reason: unit.id);
+        expect(
+          summary.notes.single.reason,
+          MacroLineReason.imprecise,
+          reason: unit.id,
+        );
+        expect(summary.notes.single.unit, unit.label, reason: unit.id);
+      }
+    });
+
+    test('a bare count is still a bare count — the two are different claims, '
+        'and only one of them is fixable', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [
+          _line('x', quantity: 100),
+          _line('x', quantity: 2, unit: pieces),
+        ],
+        nutritionOf: _vocab(),
+      );
+      expect(summary.incomplete, isTrue);
+      expect(summary.countLinesWithoutMeasure, 1);
+      expect(summary.notes.single.reason, MacroLineReason.needsWeight);
+    });
+
+    test('a recipe of NOTHING but imprecise lines still refuses — 0 kcal '
+        'there would be a fabrication, not a number', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [
+          _line('x', quantity: 1, unit: toTaste),
+          _line('x', quantity: 1, unit: pinch),
+        ],
+        nutritionOf: _vocab(),
+      );
+      expect(summary.incomplete, isTrue);
+      expect(summary.nothingWeighable, isTrue);
+      expect(summary.perServing, isNull);
+    });
+
+    test('an imprecise line on a STUB row is still excluded by rule — a pinch '
+        'of anything is still a pinch', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [
+          _line('x', quantity: 100),
+          _line('stub', quantity: 1, unit: pinch),
+        ],
+        nutritionOf: (id) => id == 'stub'
+            ? (macros: null, basis: MacrosBasis.perG, densityGPerMl: null)
+            : (macros: _per100, basis: MacrosBasis.perG, densityGPerMl: null),
+      );
+      expect(summary.incomplete, isFalse);
+      expect(summary.stubLines, 0);
+      expect(summary.impreciseLines, 1);
+    });
+
+    test('a MEASURE line is never imprecise, whatever unit it stores', () {
+      const clove = Measure(id: 'm', label: 'clove', amount: 3);
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 2, measure: clove)],
+        nutritionOf: _vocab(),
+      );
+      expect(summary.incomplete, isFalse);
+      expect(summary.impreciseLines, 0);
     });
   });
 }

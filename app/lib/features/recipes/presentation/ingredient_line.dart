@@ -32,10 +32,24 @@ class RecipeIngredientLine extends StatelessWidget {
     required this.uses,
     this.onEditAmount,
     this.onOpenSubRecipe,
+    this.macroMarker,
+    this.onFixMacro,
     super.key,
   });
 
   final LineUses uses;
+
+  /// Why this row is left out of the macro total, in the shared per-line
+  /// words (seam **D5**) — `needs a weight`, `stub ingredient`. Null when the
+  /// row is in the total, or when the caller has no summary to read.
+  ///
+  /// It renders as a small amber dot plus the reason at the end of the amount
+  /// column, in **the same amber the import review card uses**, because it is
+  /// the same claim: *this line is why a number is missing.*
+  final String? macroMarker;
+
+  /// Opens the fix the marker implies. When set, the marker is a door.
+  final VoidCallback? onFixMacro;
 
   /// When set, the row shows a pinned-right edit pencil and the amount column
   /// is tappable — the editable preview's tap-to-edit-amount gesture. Null on
@@ -81,13 +95,21 @@ class RecipeIngredientLine extends StatelessWidget {
             children: [
               SizedBox(
                 width: _amountWidth,
-                child: onEditAmount == null
-                    ? amountText
-                    : GestureDetector(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (onEditAmount == null)
+                      amountText
+                    else
+                      GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: onEditAmount,
                         child: amountText,
                       ),
+                    if (macroMarker != null)
+                      _MacroMarker(label: macroMarker!, onTap: onFixMacro),
+                  ],
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -114,6 +136,54 @@ class RecipeIngredientLine extends StatelessWidget {
         ),
         Container(height: 1, color: AnsiColors.line),
       ],
+    );
+  }
+}
+
+/// The in-place marker (seam **D5**): an amber dot and the reason, under the
+/// amount. Marked in place because on a long recipe the panel is below the
+/// fold, and reading a name there and then hunting for the row is the failure
+/// this replaces.
+class _MacroMarker extends StatelessWidget {
+  const _MacroMarker({required this.label, this.onTap});
+
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final row = Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            width: 5,
+            height: 5,
+            decoration: const BoxDecoration(
+              color: AnsiColors.aging,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Text(
+              label,
+              style: ansiMono(
+                size: 9.5,
+                color: AnsiColors.muted,
+              ).copyWith(height: 1.3),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (onTap == null) return row;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: row,
     );
   }
 }

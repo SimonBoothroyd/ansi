@@ -6,6 +6,7 @@ import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
@@ -262,9 +263,10 @@ void main() {
 
   test('summaries carry a computed per-serving macro summary (7.7)', () async {
     // Rice and Onion carry per-100 g macros, but the sample's Onion line is
-    // a bare count (unbridgeable without a measure) and Salt has no macros
-    // (a stub line) — so the summary must be honestly incomplete, never a
-    // partial total.
+    // a bare count (unbridgeable without a measure) — so the summary must be
+    // honestly incomplete, never a partial total. Its Salt line says "to
+    // taste", which seam D6 excludes BY RULE: it is not a stub line, not a
+    // failed conversion, and not a reason the summary refuses.
     for (final id in ['ing-rice', 'ing-onion']) {
       await db.execute('UPDATE ingredient SET macros = ? WHERE id = ?', [
         '{"kcal":130,"protein":2.7,"carb":28,"fat":0.3}',
@@ -275,11 +277,17 @@ void main() {
 
     var summary = (await repo.watchRecipes().first).single.macros!;
     expect(summary.incomplete, isTrue);
-    expect(summary.stubLines, 1); // Salt: complete status, no macros
+    expect(summary.stubLines, 0);
+    expect(summary.impreciseLines, 1); // Salt, to taste
     // Onion: a bare count with no measure — its own D6 reason, not a
     // failed conversion.
     expect(summary.countLinesWithoutMeasure, 1);
     expect(summary.unconvertibleLines, 0);
+    // …and the refusal NAMES the line it is waiting on (seam D5), by the
+    // display name the page uses.
+    expect(summary.notes.map((n) => n.name), ['Onion', 'Salt']);
+    expect(summary.notes.first.reason, MacroLineReason.needsWeight);
+    expect(summary.notes.first.lineId, 'i1');
 
     // A recipe whose every line joins computes per-serving numbers: 150 g of
     // rice across 2 servings.
@@ -394,9 +402,13 @@ void main() {
     expect(complete.perServing!.kcal, closeTo(97.5, 1e-9)); // 130 × 1.5 / 2
     final incomplete = (await repo.watchRecipe('r1').first)!.macros!;
     expect(incomplete.incomplete, isTrue);
-    expect(incomplete.stubLines, 1); // Salt: complete status, no macros
+    expect(incomplete.impreciseLines, 1); // Salt, to taste — excluded by rule
+    expect(incomplete.stubLines, 0);
     expect(incomplete.countLinesWithoutMeasure, 1); // Onion: count, no measure
     expect(incomplete.unconvertibleLines, 0);
+    // The two surfaces agreeing INCLUDES the names now (seam D5): a picker
+    // row and the page must call the same line the same thing.
+    expect(incomplete.notes.map((n) => n.name), ['Onion', 'Salt']);
   });
 
   test('a recipe page with no lines is incomplete, never ~0 kcal', () async {

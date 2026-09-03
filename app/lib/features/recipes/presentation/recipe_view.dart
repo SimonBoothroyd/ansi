@@ -27,11 +27,15 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/incomplete_macros.dart';
 import '../../../shared/method_step_text.dart';
 import '../../../shared/write.dart';
+import '../../ingredients/presentation/ingredient_detail_view.dart'
+    show ingredientDetailRoute;
 import '../data/recipe_providers.dart';
 import '../domain/line_display.dart';
 import '../domain/recipe.dart';
+import '../domain/recipe_macros.dart';
 import '../domain/recipe_repository.dart';
 import '../domain/scaling.dart';
 import 'component_format.dart';
@@ -521,10 +525,46 @@ class _IngredientsTab extends StatelessWidget {
   final double servings;
   final ValueChanged<double> onServings;
 
+  /// Opens the fix a named line's reason implies (seam **D5**) — the marker
+  /// is a door, and this is the one place that decides which door.
+  ///
+  /// A stub, an unknown row or a missing density is an INGREDIENT problem, so
+  /// it opens the flesh-out form; the two nested reasons open the sub-recipe.
+  /// A bare count or a missing amount is a LINE problem — and the recipe page
+  /// is read-only, so it routes to the editor rather than opening a sheet
+  /// this screen has no writer for.
+  void _fix(BuildContext context, MacroLineNote note) {
+    final line = _lineById(recipe)[note.lineId];
+    switch (note.reason) {
+      case MacroLineReason.stubIngredient:
+      case MacroLineReason.unknownIngredient:
+      case MacroLineReason.needsDensity:
+        final id = line?.ingredientId;
+        if (id != null) context.pushOnce(ingredientDetailRoute(id));
+      case MacroLineReason.subRecipeUnresolved:
+      case MacroLineReason.subRecipeIncomplete:
+        final id = line?.subRecipeId;
+        if (id != null) context.pushOnce('/recipes/$id');
+      case MacroLineReason.needsWeight:
+      case MacroLineReason.noAmount:
+        context.pushOnce('/recipes/${recipe.id}/edit');
+      case MacroLineReason.imprecise:
+        break; // excluded by rule — there is nothing to fix
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final groups = scaleGroups(recipe, servings);
     final factor = scaleFactorFor(recipe, servings);
+    // The panel's names and the rows' markers come from ONE list, keyed by
+    // line id — one lookup, never a second computation that could disagree.
+    final markers = {
+      for (final note in fixableNotes(
+        recipe.macros ?? const RecipeMacroSummary(),
+      ))
+        if (note.lineId != null) note.lineId!: note,
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -554,21 +594,50 @@ class _IngredientsTab extends StatelessWidget {
             const _Hairline(),
           ],
           for (final uses in groupLineUses(group.items))
-            RecipeIngredientLine(
-              uses: uses,
-              // A component's chip pushes its target's page (D7).
-              onOpenSubRecipe: (id) => context.pushOnce('/recipes/$id'),
-            ),
+            () {
+              final note = _firstNote(uses, markers);
+              return RecipeIngredientLine(
+                uses: uses,
+                // A component's chip pushes its target's page (D7).
+                onOpenSubRecipe: (id) => context.pushOnce('/recipes/$id'),
+                macroMarker: note == null
+                    ? null
+                    : incompleteLineNote(note.reason),
+                onFixMacro: note == null ? null : () => _fix(context, note),
+              );
+            }(),
         ],
         // Below the list, as the design board's Recipe frame drew it: the
         // strip reads as the sum of the lines above it, and it stays clear of
         // the scaler — a static per-serving figure sitting under a stepper
         // would invite the reading that the stepper drives it (it does not).
         const SizedBox(height: 22),
-        RecipeMacroPanel(summary: recipe.macros),
+        RecipeMacroPanel(
+          summary: recipe.macros,
+          onFix: (note) => _fix(context, note),
+        ),
       ],
     );
   }
+}
+
+/// The recipe's line items by id — what a macro note's `lineId` resolves to
+/// when the marker is tapped. Read off the UNSCALED recipe: scaling mints new
+/// [LineItem]s but keeps their ids, and the identity is all this needs.
+Map<String, LineItem> _lineById(Recipe recipe) => {
+  for (final group in recipe.groups)
+    for (final item in group.items) item.id: item,
+};
+
+/// The first note that names any of a display row's sibling lines. A row can
+/// fold several uses of one ingredient; one marker on the row is enough to
+/// say the total is waiting on it.
+MacroLineNote? _firstNote(LineUses uses, Map<String, MacroLineNote> markers) {
+  for (final use in uses.uses) {
+    final note = markers[use.id];
+    if (note != null) return note;
+  }
+  return null;
 }
 
 class _ScaleControl extends StatelessWidget {

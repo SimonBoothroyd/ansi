@@ -67,6 +67,7 @@ class SqliteRecipeRepository implements RecipeRepository {
       'li.quantity, li.unit, '
       'li.measure_id, im.label AS m_label, im.basis_amount AS m_amount, '
       'im.sort_order AS m_sort, im.source AS m_source, '
+      'ing.canonical_name AS ing_name, '
       'ing.macros, ing.macros_basis, ing.density_g_per_ml, ing.status, '
       'sub.title AS sub_title, sub.yield_qty AS sub_yield_qty, '
       'sub.yield_unit AS sub_yield_unit, sub.yield_qty_2 AS sub_yield_qty_2, '
@@ -94,7 +95,12 @@ class SqliteRecipeRepository implements RecipeRepository {
           ingredientId: r['ingredient_id'] as String?,
           subRecipeId: r['sub_recipe_id'] as String?,
           subRecipe: _toSubRecipeTarget(r),
-          ingredientName: r['sub_title'] as String? ?? '',
+          // The NAME matters here as well as on the page: a macro summary
+          // now names the lines it is waiting on (seam D5), and the picker
+          // row and the recipe page must not disagree about what a line is
+          // called.
+          ingredientName:
+              r['sub_title'] as String? ?? r['ing_name'] as String? ?? '',
           unit: unitById(r['unit'] as String) ?? pieces,
           quantity: (r['quantity'] as num?)?.toDouble(),
           measureId: measureId,
