@@ -363,6 +363,12 @@ final class LineItemIngredientFamily extends $Family
 /// than an empty form. It is part of the family key, so arriving with a
 /// different title is a different draft.
 ///
+/// [initialBookId] and [initialSectionId] are the same idea for the FILING
+/// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
+/// over, so the recipe lands on the shelf you tapped instead of in whichever
+/// book `ensureDefaultBook()` returns. They key the family too — the same
+/// blank form filed into two different sections is two drafts.
+///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
 /// every member of that interface was already here, written for the step
 /// cards. The import review's adapter implements the same surface, so the
@@ -382,6 +388,12 @@ const recipeEditorProvider = RecipeEditorFamily._();
 /// than an empty form. It is part of the family key, so arriving with a
 /// different title is a different draft.
 ///
+/// [initialBookId] and [initialSectionId] are the same idea for the FILING
+/// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
+/// over, so the recipe lands on the shelf you tapped instead of in whichever
+/// book `ensureDefaultBook()` returns. They key the family too — the same
+/// blank form filed into two different sections is two drafts.
+///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
 /// every member of that interface was already here, written for the step
 /// cards. The import review's adapter implements the same surface, so the
@@ -399,6 +411,12 @@ final class RecipeEditorProvider
   /// than an empty form. It is part of the family key, so arriving with a
   /// different title is a different draft.
   ///
+  /// [initialBookId] and [initialSectionId] are the same idea for the FILING
+  /// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
+  /// over, so the recipe lands on the shelf you tapped instead of in whichever
+  /// book `ensureDefaultBook()` returns. They key the family too — the same
+  /// blank form filed into two different sections is two drafts.
+  ///
   /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
   /// every member of that interface was already here, written for the step
   /// cards. The import review's adapter implements the same surface, so the
@@ -407,7 +425,13 @@ final class RecipeEditorProvider
   /// this notifier here and over the import controller at review.
   const RecipeEditorProvider._({
     required RecipeEditorFamily super.from,
-    required (String?, {String? initialTitle}) super.argument,
+    required (
+      String?, {
+      String? initialTitle,
+      String? initialBookId,
+      String? initialSectionId,
+    })
+    super.argument,
   }) : super(
          retry: null,
          name: r'recipeEditorProvider',
@@ -441,7 +465,7 @@ final class RecipeEditorProvider
   }
 }
 
-String _$recipeEditorHash() => r'ed96c2d90f7a5a0555bf00053d5a9338ba48493d';
+String _$recipeEditorHash() => r'e5b6a80f120e9aacd931ccc0763532682c7b06cd';
 
 /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
 /// blank one with a fresh id and a single empty group (create).
@@ -451,6 +475,12 @@ String _$recipeEditorHash() => r'ed96c2d90f7a5a0555bf00053d5a9338ba48493d';
 /// so a search for a recipe you were about to write becomes that recipe rather
 /// than an empty form. It is part of the family key, so arriving with a
 /// different title is a different draft.
+///
+/// [initialBookId] and [initialSectionId] are the same idea for the FILING
+/// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
+/// over, so the recipe lands on the shelf you tapped instead of in whichever
+/// book `ensureDefaultBook()` returns. They key the family too — the same
+/// blank form filed into two different sections is two drafts.
 ///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
 /// every member of that interface was already here, written for the step
@@ -466,7 +496,12 @@ final class RecipeEditorFamily extends $Family
           AsyncValue<Recipe>,
           Recipe,
           FutureOr<Recipe>,
-          (String?, {String? initialTitle})
+          (
+            String?, {
+            String? initialTitle,
+            String? initialBookId,
+            String? initialSectionId,
+          })
         > {
   const RecipeEditorFamily._()
     : super(
@@ -486,6 +521,12 @@ final class RecipeEditorFamily extends $Family
   /// than an empty form. It is part of the family key, so arriving with a
   /// different title is a different draft.
   ///
+  /// [initialBookId] and [initialSectionId] are the same idea for the FILING
+  /// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
+  /// over, so the recipe lands on the shelf you tapped instead of in whichever
+  /// book `ensureDefaultBook()` returns. They key the family too — the same
+  /// blank form filed into two different sections is two drafts.
+  ///
   /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
   /// every member of that interface was already here, written for the step
   /// cards. The import review's adapter implements the same surface, so the
@@ -493,11 +534,20 @@ final class RecipeEditorFamily extends $Family
   /// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
   /// this notifier here and over the import controller at review.
 
-  RecipeEditorProvider call(String? recipeId, {String? initialTitle}) =>
-      RecipeEditorProvider._(
-        argument: (recipeId, initialTitle: initialTitle),
-        from: this,
-      );
+  RecipeEditorProvider call(
+    String? recipeId, {
+    String? initialTitle,
+    String? initialBookId,
+    String? initialSectionId,
+  }) => RecipeEditorProvider._(
+    argument: (
+      recipeId,
+      initialTitle: initialTitle,
+      initialBookId: initialBookId,
+      initialSectionId: initialSectionId,
+    ),
+    from: this,
+  );
 
   @override
   String toString() => r'recipeEditorProvider';
@@ -512,6 +562,12 @@ final class RecipeEditorFamily extends $Family
 /// than an empty form. It is part of the family key, so arriving with a
 /// different title is a different draft.
 ///
+/// [initialBookId] and [initialSectionId] are the same idea for the FILING
+/// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
+/// over, so the recipe lands on the shelf you tapped instead of in whichever
+/// book `ensureDefaultBook()` returns. They key the family too — the same
+/// blank form filed into two different sections is two drafts.
+///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
 /// every member of that interface was already here, written for the step
 /// cards. The import review's adapter implements the same surface, so the
@@ -520,15 +576,34 @@ final class RecipeEditorFamily extends $Family
 /// this notifier here and over the import controller at review.
 
 abstract class _$RecipeEditor extends $AsyncNotifier<Recipe> {
-  late final _$args = ref.$arg as (String?, {String? initialTitle});
+  late final _$args =
+      ref.$arg
+          as (
+            String?, {
+            String? initialTitle,
+            String? initialBookId,
+            String? initialSectionId,
+          });
   String? get recipeId => _$args.$1;
   String? get initialTitle => _$args.initialTitle;
+  String? get initialBookId => _$args.initialBookId;
+  String? get initialSectionId => _$args.initialSectionId;
 
-  FutureOr<Recipe> build(String? recipeId, {String? initialTitle});
+  FutureOr<Recipe> build(
+    String? recipeId, {
+    String? initialTitle,
+    String? initialBookId,
+    String? initialSectionId,
+  });
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build(_$args.$1, initialTitle: _$args.initialTitle);
+    final created = build(
+      _$args.$1,
+      initialTitle: _$args.initialTitle,
+      initialBookId: _$args.initialBookId,
+      initialSectionId: _$args.initialSectionId,
+    );
     final ref = this.ref as $Ref<AsyncValue<Recipe>, Recipe>;
     final element =
         ref.element

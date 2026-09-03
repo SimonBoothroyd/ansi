@@ -31,7 +31,13 @@ import 'recipe_header_form.dart';
 import 'recipe_view_models.dart';
 
 class RecipeEditorView extends ConsumerWidget {
-  const RecipeEditorView({this.recipeId, this.initialTitle, super.key});
+  const RecipeEditorView({
+    this.recipeId,
+    this.initialTitle,
+    this.initialBookId,
+    this.initialSectionId,
+    super.key,
+  });
 
   final String? recipeId;
 
@@ -40,9 +46,19 @@ class RecipeEditorView extends ConsumerWidget {
   /// [recipeId] is set: an existing recipe already has a title.
   final String? initialTitle;
 
+  /// The shelf the door that opened this knew about (0028 E3) — a section's
+  /// `＋` carries both; every other door carries neither.
+  final String? initialBookId;
+  final String? initialSectionId;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final editor = recipeEditorProvider(recipeId, initialTitle: initialTitle);
+    final editor = recipeEditorProvider(
+      recipeId,
+      initialTitle: initialTitle,
+      initialBookId: initialBookId,
+      initialSectionId: initialSectionId,
+    );
     final async = ref.watch(editor);
     final notifier = ref.read(editor.notifier);
 

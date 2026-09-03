@@ -66,6 +66,13 @@ class _RecordingBookRepo extends FakeBookRepository {
   }) async => moved = (from: fromBookId, to: toBookId);
 }
 
+/// The `＋` on the label row for [section] — scoped by ancestry, because the
+/// header, the dashed new-section row and the empty shelf all draw one too.
+Finder _sectionAdd(String section) => find.descendant(
+  of: find.ancestor(of: find.text(section), matching: find.byType(Row)).first,
+  matching: find.byIcon(FLucideIcons.plus),
+);
+
 const _library = [
   Book(
     id: 'b1',
@@ -765,6 +772,49 @@ void main() {
     // The old copy pointed at the ＋, which after D1 no longer makes books.
     expect(find.textContaining('with the + above'), findsNothing);
     expect(find.text('new book'), findsOneWidget);
+  });
+
+  group('the section ＋ (0028 E2) files from the tap', () {
+    testWidgets('a section door carries its book AND its section', (
+      tester,
+    ) async {
+      late GoRouter router;
+      await tester.pumpWidget(_routedHost(_repo(_library), (r) => router = r));
+      await tester.pumpAndSettle();
+
+      // Scoped to the label's own row: the header still has a ＋ of its own
+      // until the next slice, and the dashed new-section row has one too.
+      await tester.tap(_sectionAdd('Weeknight'));
+      await tester.pumpAndSettle();
+      expect(find.text('New recipe'), findsOneWidget);
+      expect(find.text('Import a recipe'), findsOneWidget);
+
+      await tester.tap(find.text('New recipe'));
+      await tester.pumpAndSettle();
+
+      final uri = router.state.uri;
+      expect(uri.path, '/recipes/new');
+      expect(uri.queryParameters['book'], 'b1');
+      expect(uri.queryParameters['section'], 's1');
+    });
+
+    testWidgets('the Unsectioned door carries the book and no section', (
+      tester,
+    ) async {
+      late GoRouter router;
+      await tester.pumpWidget(_routedHost(_repo(_library), (r) => router = r));
+      await tester.pumpAndSettle();
+
+      await tester.tap(_sectionAdd('Unsectioned'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Import a recipe'));
+      await tester.pumpAndSettle();
+
+      final uri = router.state.uri;
+      expect(uri.path, '/import');
+      expect(uri.queryParameters['book'], 'b1');
+      expect(uri.queryParameters.containsKey('section'), isFalse);
+    });
   });
 
   testWidgets('the add-section affordance uses an icon, not a raw ＋ glyph', (

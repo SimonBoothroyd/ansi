@@ -108,6 +108,42 @@ void main() {
     },
   );
 
+  test('a draft opened from a section door is filed there, not in the default '
+      'book (0028 E3)', () async {
+    final container = ProviderContainer(
+      overrides: [
+        recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
+        bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    // What `/recipes/new?book=b9&section=s9` carries: the shelf the ＋ was
+    // standing on. `ensureDefaultBook` is not consulted at all.
+    final filed = await container.read(
+      recipeEditorProvider(
+        null,
+        initialBookId: 'b9',
+        initialSectionId: 's9',
+      ).future,
+    );
+    expect(filed.bookId, 'b9');
+    expect(filed.sectionId, 's9');
+
+    // The Unsectioned door files into the book and leaves the section null.
+    final unsectioned = await container.read(
+      recipeEditorProvider(null, initialBookId: 'b9').future,
+    );
+    expect(unsectioned.bookId, 'b9');
+    expect(unsectioned.sectionId, isNull);
+    expect(unsectioned.id, isNot(filed.id));
+
+    // And with no door to inherit from, the default book as always.
+    final plain = await container.read(recipeEditorProvider(null).future);
+    expect(plain.bookId, 'b1');
+    expect(plain.sectionId, isNull);
+  });
+
   group('the MAKES row (step 8.6 / D2 · D9, board frame h)', () {
     Future<RecipeEditor> editor(ProviderContainer container) async {
       await container.read(recipeEditorProvider(null).future);

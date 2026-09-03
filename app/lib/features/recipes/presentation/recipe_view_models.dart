@@ -77,6 +77,12 @@ Future<Ingredient?> lineItemIngredient(
 /// than an empty form. It is part of the family key, so arriving with a
 /// different title is a different draft.
 ///
+/// [initialBookId] and [initialSectionId] are the same idea for the FILING
+/// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
+/// over, so the recipe lands on the shelf you tapped instead of in whichever
+/// book `ensureDefaultBook()` returns. They key the family too — the same
+/// blank form filed into two different sections is two drafts.
+///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
 /// every member of that interface was already here, written for the step
 /// cards. The import review's adapter implements the same surface, so the
@@ -87,7 +93,12 @@ Future<Ingredient?> lineItemIngredient(
 class RecipeEditor extends _$RecipeEditor
     implements MethodEditing, RecipeHeaderHost {
   @override
-  Future<Recipe> build(String? recipeId, {String? initialTitle}) async {
+  Future<Recipe> build(
+    String? recipeId, {
+    String? initialTitle,
+    String? initialBookId,
+    String? initialSectionId,
+  }) async {
     if (recipeId != null) {
       final existing = await ref
           .read(recipeRepositoryProvider)
@@ -95,14 +106,18 @@ class RecipeEditor extends _$RecipeEditor
           .first;
       if (existing != null) return _tokenized(existing);
     }
-    // New recipe: file it into the default book (Unsectioned) so it surfaces in
-    // the Library the moment it's saved.
-    final book = await ref.read(bookRepositoryProvider).ensureDefaultBook();
+    // New recipe: filed from the start, so FILE UNDER states a fact rather
+    // than asking a question. The shelf you tapped when it is one of the
+    // section doors; otherwise the default book, unsectioned, as before.
+    final bookId =
+        initialBookId ??
+        (await ref.read(bookRepositoryProvider).ensureDefaultBook()).id;
     return Recipe(
       id: _uuid.v4(),
       title: initialTitle?.trim() ?? '',
       servingsBase: 2,
-      bookId: book.id,
+      bookId: bookId,
+      sectionId: initialSectionId,
       groups: [IngredientGroup(id: _uuid.v4())],
       methodSteps: const [],
     );

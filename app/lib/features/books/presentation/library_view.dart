@@ -823,6 +823,10 @@ class _SectionBlock extends ConsumerWidget {
                   ).copyWith(fontStyle: FontStyle.italic),
                 ),
               ),
+              // E2: the two doors that make a recipe, on the row that knows
+              // where the recipe goes. `Unsectioned` gets one too — it has no
+              // `⋯`, and it is the door for "this book, no section".
+              _SectionAddMenu(book: book, section: section),
               if (section != null) _SectionMenu(book: book, section: section),
             ],
           ),
@@ -837,6 +841,67 @@ class _SectionBlock extends ConsumerWidget {
           else
             for (final r in _recipes) _RecipeRow(recipe: r),
         ],
+      ),
+    );
+  }
+}
+
+/// The `＋` on a section label — Library v2 D1's menu, word for word, on a row
+/// that knows its book and its section (0028 E2).
+///
+/// The header `＋` could only ever promise "a recipe, somewhere"; this one
+/// carries `?book=&section=` so the editor opens already filed. `section` is
+/// null on the synthetic Unsectioned bucket, which files into the book alone.
+class _SectionAddMenu extends StatelessWidget {
+  const _SectionAddMenu({required this.book, this.section});
+
+  final Book book;
+  final BookSection? section;
+
+  /// `/recipes/new` and `/import` take the same two parameters, so the door
+  /// that opens is the only thing that differs between the items.
+  String _route(String path) => Uri(
+    path: path,
+    queryParameters: {
+      'book': book.id,
+      if (section != null) 'section': section!.id,
+    },
+  ).toString();
+
+  @override
+  Widget build(BuildContext context) {
+    return FPopoverMenu(
+      menuBuilder: (_, controller, _) => [
+        FItemGroup(
+          children: [
+            FItem(
+              prefix: const Icon(FLucideIcons.cookingPot),
+              title: const Text('New recipe'),
+              onPress: () {
+                unawaited(controller.hide());
+                context.pushOnce(_route('/recipes/new'));
+              },
+            ),
+            FItem(
+              prefix: const Icon(FLucideIcons.download),
+              title: const Text('Import a recipe'),
+              onPress: () {
+                unawaited(controller.hide());
+                context.pushOnce(_route('/import'));
+              },
+            ),
+          ],
+        ),
+      ],
+      builder: (context, controller, _) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: controller.toggle,
+        child: const Padding(
+          // The touch target the glyph does not have on its own, on a row
+          // whose other control is a `⋯` of the same weight.
+          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Icon(FLucideIcons.plus, size: 15, color: AnsiColors.herb),
+        ),
       ),
     );
   }

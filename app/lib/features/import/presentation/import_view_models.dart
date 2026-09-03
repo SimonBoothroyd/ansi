@@ -166,7 +166,11 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
 
   /// Runs the extract→match pipeline for [source] and moves to reconciliation.
   /// A second call while the first is in flight is a no-op.
-  Future<void> startImport(ImportSource source) async {
+  Future<void> startImport(
+    ImportSource source, {
+    String? bookId,
+    String? sectionId,
+  }) async {
     if (_starting) return;
     _starting = true;
     state = const ImportLoading();
@@ -176,10 +180,11 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
       final importRepo = ref.read(importRepositoryProvider);
       final bookRepo = ref.read(bookRepositoryProvider);
       final payload = await importRepo.startImport(source);
-      // The draft is FILED from the start, into the same default book commit
-      // has always used, so FILE UNDER shows where the recipe will land
-      // rather than a blank a human has to fill before anything is honest.
-      final book = await bookRepo.ensureDefaultBook();
+      // The draft is FILED from the start, so FILE UNDER shows where the
+      // recipe will land rather than a blank a human has to fill before
+      // anything is honest. The shelf the door knew about when there was one
+      // (0028 E3), else the same default book commit has always used.
+      final filedBookId = bookId ?? (await bookRepo.ensureDefaultBook()).id;
       if (!ref.mounted) return;
       // The header opens on whatever the page PLAINLY said — servings, a
       // yield in a plain amount + unit, the printed times — and unset
@@ -187,7 +192,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
       state = ImportReconciling(
         payload: payload,
         resolutions: initialResolutions(payload),
-        header: headerDraft(payload, bookId: book.id),
+        header: headerDraft(payload, bookId: filedBookId, sectionId: sectionId),
       );
     } on Object catch (e) {
       if (!ref.mounted) return;

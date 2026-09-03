@@ -1006,6 +1006,25 @@
     .supersedes{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;background:var(--herb-soft);color:var(--herb-deep);border-radius:6px;padding:2px 7px;margin-left:6px;}
 </style>
 <!-- lane-style:seam:end -->
+<!-- lane-style:week3:start -->
+<style data-lane="week3">
+  /* Week · v3 — lane-local additions only. Everything else reuses the
+     board's shipped classes, including every class Week · v2 added.
+     v3 is a subtraction: it needs exactly two new rules. */
+
+  /* the remove control (E3). MUTED, not red: a destructive glyph on every
+     row of a resting screen shouts, and the undo is what carries the
+     safety — the colour never was. */
+  .rmv{flex:none;color:var(--muted);font-size:15px;line-height:1;padding-left:5px;}
+
+  /* the one add door (E5). It sits with the MEALS — last row of the list,
+     above the day's total — because it adds a meal, not a number; .daymac
+     keeps its own border-top and stays the card's foot. On an empty day
+     .emptyline sits straight under the head and needs nothing, so the
+     hairline is scoped to "follows a dish row". */
+  .day2 .srow + .emptyline{border-top:1px solid var(--line);margin-top:7px;padding-top:8px;}
+</style>
+<!-- lane-style:week3:end -->
 </head>
 <body>
 <div class="wrap">
@@ -3153,6 +3172,105 @@
 </div>
 <!-- lane:week:end -->
 
+<!-- lane:week3:start -->
+<div class="section-head" id="week-v3"><span class="ey">Week · v3</span><span class="proposed-tag">locked · signed off 2026-09-03 — “I don’t think edit and a separate page earns its keep any more”, then “shouldn’t tapping the portions or user icon open an editor?” (E7) and “undo toast” (E3a); building now</span><span class="rule"></span><span class="sub">v2 bought a resting state with a mode. v3 asks whether the mode was ever the cheap way to pay for it</span></div>
+
+<div class="locknote">
+    <p class="lk-h">Proposed — “can’t we just have tap opens recipe, a minus sign clears it?” (owner, 2026-09-03)</p>
+    <p><b>Week · v2 D1/D7</b> justified <code>Edit</code>/<code>Done</code> on one claim: <i>the mode changes what a tap means</i>. Three things have since eaten that claim. <b>One —</b> D5b gave presentation its own add doors (<code>nothing planned</code>, the first-meal bar), so edit’s exclusive door is now only “a day that already has a meal”: the one add path in the app hidden behind a mode. <b>Two —</b> edit <i>blanks the numbers you are editing against</i>: <code>week_view.dart:610</code> forces the cook marker to null and <code>:465</code> replaces the day macro line with the add door, so the mode that mutates the week is the mode that hides its consequence. <b>Three —</b> neither tap is destructive, and a mode earns its keep when the wrong tap is dangerous, not when it is merely different. Underneath, <code>showEntrySheet</code> has exactly one caller, and so do <code>setDaySlot</code>, <code>setEaters</code> and <code>setPortions</code> — the sheet <i>is</i> those three writes. The question in one line: <b>are three writes worth a screen?</b></p>
+    <div class="ledger">
+        <span class="k">extends</span><span><b>Week · v2</b> → the day card, slot gutter, dish row, avatars, the lens, the switcher, the cook markers and the day/week macro lines, all unchanged — v3 subtracts, it does not redraw · <b>Confirm &amp; place v2</b> → still the place a meal is <i>made</i>, and now the only place its <b>day · slot</b> is set · <b>meal_fields.dart</b> → keeps both its consumers and therefore its whole reason to exist (<code>confirm_meal_sheet.dart:14</code>): the confirm sheet and E7’s editor are the same two controls, so they still cannot drift · <b>Recipe picker v2</b> → its <i>already this week</i> quick picks become the way a meal is <b>moved</b>, so they stop being a convenience and start being load-bearing · <b>Library · v3</b> → the same argument one screen over: v3 asks whether a thing needs a menu, this asks whether it needs a mode · <b>Errors &amp; sync health D1</b> → the toast surface that carries the undo · <b>A usual portion per person</b> (0027) → why the per-entry <code>portions</code> override is now the exception, not the norm.</span>
+        <span class="k ch">decides</span><span><b>E1</b> <b>the mode goes</b> — one state, no <code>Edit</code>/<code>Done</code>, <code>WeekMode</code> deleted · <b>E2</b> a dish row opens <b>the recipe</b>, always; the <code>›</code> leaves with the mode that needed it · <b>E3</b> a quiet <code>−</code> at the row’s right removes the meal, and an <b>undo toast — not a confirm — is what makes it safe</b> (owner-ruled 2026-09-03) · <b>E4</b> <b>the entry sheet is deleted</b> — as a <i>hub</i>: nothing is reached any more by tapping a meal “to see everything about it”. <code>setDaySlot</code> leaves the UI with it; <b>day · slot is changed by remove-and-re-add</b> through the picker’s quick picks · <b>E5</b> <b>one add door in every state</b> — <code>＋ add a meal</code> as the last row of every day card; on an empty day it <i>is</i> the <code>nothing planned</code> line, so the dashed edit-only door and the separate emptiness line collapse into one widget · <b>E6</b> the cook markers and the day macro line are <b>never hidden</b>, because there is no longer a state that could hide them · <b>E7</b> <b>a row’s controls are the facts the row prints</b> — the title opens the recipe it names, and the <b>portions chip + avatar stack are ONE target</b> opening a compact editor holding exactly those two fields (<code>MealEaterPicker</code> + <code>MealPortionsStepper</code>, straight out of <code>meal_fields.dart</code>). One target, not two: the chip is conditional (<code>week_view.dart:631</code> draws it only when the override differs from the eaters’ demand), so a chip-only tap would be missing from most rows and could never <i>set</i> a first override.</span>
+        <span class="k ch">refuses</span><span>No <b>confirm dialog</b> on remove — it would tax every removal to prevent a rare mis-tap, and the act is fully recoverable (recipe · day · slot · eaters · portions are all in hand). No <b>door with no surface</b> — no long-press, and no swipe-to-delete as the only removal. This is the line E7 does <i>not</i> cross and must not be read as crossing: a long-press has nothing on screen to aim at, whereas the avatars and the portions chip are <b>printed values</b>, and tapping a printed value to change it is the plainest thing a touch UI does. The test is not “how many targets does the row have”, it is <b>“is the target drawn”</b>. A <code>›</code> fails that test in the other direction — it is drawn, but it announces <i>the row navigates</i> and so competes with the row itself; that is why v3 deletes it and keeps these. No return of the per-row <code>⋯</code> (v2 retired it) and no <b>edit mode under another name</b> — not a segmented <code>[Read|Edit]</code>, not a second route. And no red: the <code>−</code> is muted like everything else on a resting screen; the undo carries the safety, not the colour.</span>
+        <span class="k ch">asks</span><span><b>Nothing open — both questions are ruled (owner, 2026-09-03).</b> <b>E4a</b> asked whether losing the 2-tap eaters edit was acceptable; <b>E7</b> answered it by giving the edit to the values themselves, so the deletion stands and the edit gets cheaper rather than more expensive. <b>E3a</b> asked undo-or-nothing on remove: <b>undo</b>. A destructive control on every row of a resting screen is defensible only if the act is trivially reversible, and v3 makes it so rather than asserting it already is. The editor is a <b>sheet</b>, not a row-anchored popover — it reuses <code>meal_fields</code> verbatim, and v2 retired the last popover a row had.</span>
+    </div>
+    <p class="src">Traced from shipped code, 2026-09-03: <code>week_view.dart</code> (the <code>WeekMode</code> enum, <code>_ModeAction</code>, and the mode threaded through <code>_DayCard</code> → <code>_SlotGroup</code> → <code>_DishRow</code>), <code>entry_sheet.dart</code> (328 lines, one caller), <code>planning_repository.dart</code>. Blast radius: 3 lib files, 4 widget tests, <code>integration_test/support/week.dart</code> (<code>enterWeekEditMode</code> collapses to nothing), spec §Week screen, <code>features/planning/README.md</code>, and a tech-debt row so <code>WeekMode</code> is not reinvented — line 14 of the tracker already has the right shape.</p>
+</div>
+
+<div class="board">
+
+    <div class="frame">
+        <p class="frame-name"><b>(a) Week · v3</b> — the one state · <i>supersedes “Week · presentation” and “Week · edit”, which were the same screen twice</i></p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span><span class="dots">⋯</span></div>
+            <div class="lensrow"><span class="lbl">for</span><span class="pchip on">Everyone</span><span class="pchip"><span class="av a">A</span>Ada</span><span class="pchip"><span class="av j">J</span>Jun</span></div>
+
+            <div class="day2"><div class="day2-head"><div class="day2-name">Monday</div><span class="day2-date">31 Aug</span></div>
+                <div class="srow"><span class="slab">Bkfst</span><span class="sname">Buttermilk Pancakes</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
+                <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Weeknight Chicken Curry</span><span class="cookmark"><span class="mini-fresh"></span>cooks today · 1¾ portions</span></div><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
+                <div class="emptyline"><span class="plus">＋</span>add a meal</div>
+                <div class="daymac"><span class="dm">1 900<span class="u">kcal</span></span><span class="dm">90<span class="u">g p</span></span><span class="dm">212<span class="u">g c</span></span><span class="dm">70<span class="u">g f</span></span><span class="scope">2 meals</span></div>
+            </div>
+
+            <div class="day2 today"><div class="day2-head"><div class="day2-name">Tuesday</div><span class="day2-date">1 Sep</span><span class="todaytag">TODAY</span></div>
+                <div class="srow"><span class="slab">Lunch</span><div class="split2"><div class="sub"><span class="sn">Miso Salmon Rice Bowl</span><span class="avs"><span class="av j">J</span></span><span class="rmv">−</span></div><div class="sub"><span class="sn">Herb &amp; Feta Frittata</span><span class="avs"><span class="av a">A</span></span><span class="rmv">−</span></div></div></div>
+                <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Slow-Cooker Beef Ragù</span><span class="cookmark"><span class="mini-fresh"></span>cooks Tue · ×2</span></div><span class="portchip">3 portions</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
+                <div class="emptyline"><span class="plus">＋</span>add a meal</div>
+                <div class="daymac"><span class="dm">2 270<span class="u">kcal</span></span><span class="dm">144<span class="u">g p</span></span><span class="dm">162<span class="u">g c</span></span><span class="dm">110<span class="u">g f</span></span><span class="scope">3 meals</span></div>
+            </div>
+
+            <div class="day2 empty-day"><div class="day2-head"><div class="day2-name">Wednesday</div><span class="day2-date">2 Sep</span></div>
+                <div class="emptyline"><span class="plus">＋</span>nothing planned</div>
+            </div>
+
+            <div class="day2"><div class="day2-head"><div class="day2-name">Thursday</div><span class="day2-date">3 Sep</span></div>
+                <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Weeknight Chicken Curry</span><span class="cookmark from">from Monday’s batch</span></div><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
+                <div class="emptyline"><span class="plus">＋</span>add a meal</div>
+                <div class="daymac"><span class="dm">1 040<span class="u">kcal</span></span><span class="dm">68<span class="u">g p</span></span><span class="dm">96<span class="u">g c</span></span><span class="dm">38<span class="u">g f</span></span><span class="scope">1 meal</span></div>
+            </div>
+
+            <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">E1 / E5 — the two frames become one, and the header loses a control.</b> Compare this against v2’s (a) and (b): the header has no <code>Edit</code>, the rows have no <code>›</code>, and <b>every day carries the same line</b> — <code>＋ add a meal</code> on a day with meals, <code>＋ nothing planned</code> on a day without. That is one widget in two wordings, replacing v2’s dashed edit-only door <i>and</i> its separate emptiness line. It sits <b>with the meals, above the total</b>: it adds a <i>meal</i>, not a number, so it belongs to the list it extends, and the day’s macro line stays what closes the card. D5b is not weakened by this, it is finally stated strictly: the affordance that fills a region is <i>always</i> on the region, not on a mode. <span style="color:var(--muted)">Rejected: keeping the dashed <code>＋ Add a meal</code> box always-on — seven permanent dashed rectangles is the noise v2 built the mode to escape; the quiet mono line carries the same door at a tenth of the weight.</span> <b style="color:var(--ink)">E6 — nothing hides the numbers now.</b> v2’s edit mode blanked the cook marker and swapped the day macro line out for its add door; you added a meal and lost the two readings that tell you whether it was a good idea. Here Monday’s <code>cooks today · 1¾ portions</code> and its macro line are simply always there.</p>
+    </div>
+
+    <div class="flow"><span>−</span><span class="arrow">→</span></div>
+
+    <div class="frame">
+        <p class="frame-name"><b>(b) Removed</b> — the one addition v3 makes, and the reason it can afford to have no confirm</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span><span class="dots">⋯</span></div>
+            <div class="lensrow"><span class="lbl">for</span><span class="pchip on">Everyone</span><span class="pchip"><span class="av a">A</span>Ada</span><span class="pchip"><span class="av j">J</span>Jun</span></div>
+            <div class="day2"><div class="day2-head"><div class="day2-name">Monday</div><span class="day2-date">31 Aug</span></div>
+                <div class="srow"><span class="slab">Bkfst</span><span class="sname">Buttermilk Pancakes</span><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
+                <div class="emptyline"><span class="plus">＋</span>add a meal</div>
+                <div class="daymac"><span class="dm">860<span class="u">kcal</span></span><span class="dm">22<span class="u">g p</span></span><span class="dm">116<span class="u">g c</span></span><span class="dm">32<span class="u">g f</span></span><span class="scope">1 meal</span></div>
+            </div>
+            <p class="conv-note">Monday’s dinner is gone, and so is its cook marker on <b>Thursday</b> — the batch it fed no longer exists. The derivation says so on its own; nothing had to be told.</p>
+            <div style="height:26px"></div>
+            <div class="er-toast quiet">
+                <span class="ti">−</span>
+                <div class="tb"><div class="tt">Removed Weeknight Chicken Curry from Monday.</div>
+                    <div class="td">dinner · Ada &amp; Jun · 1¾ portions</div></div>
+                <span class="ta">Undo</span>
+            </div>
+            <div class="er-tspace"></div>
+            <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">E3 — undo is what buys the missing confirm.</b> A destructive control on every row of a resting, scrolling screen is only defensible if the act is trivially reversible, so v3 makes it so rather than arguing that it already is. The toast is the errors-lane surface in its <code>quiet</code> variant, and it breaks that lane’s <i>“no success toasts”</i> rule <b>deliberately and once</b>: this toast is not reporting success, it is <b>carrying the undo</b>, which is the only reason it exists. Its second line names what would come back — <code>dinner · Ada &amp; Jun · 1¾ portions</code> — because an undo you cannot audit is a promise, not a control. <span style="color:var(--muted)">Rejected: a confirm dialog (taxes every removal to prevent a rare mis-tap); a red <code>−</code> (shouts on a screen whose whole job is calm reading — the colour was never the safety); swipe-to-delete as the only path (undiscoverable, and v3’s whole argument is against invisible doors).</span></p>
+    </div>
+
+    <div class="flow"><span>E7</span><span class="arrow">→</span></div>
+
+    <div class="frame">
+        <p class="frame-name"><b>(c) Who’s eating</b> — what the avatar + portions cluster opens · <i>owner, 2026-09-03: “shouldn’t tapping the portions or user icon open an editor?”</i></p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <div class="c-h">Weeknight Chicken Curry</div>
+            <p class="conv-note" style="margin-top:2px">Thursday · dinner — from Monday’s batch</p>
+            <p class="clabel">Who’s eating</p>
+            <div class="eater-row"><span class="lab"><b>Ada</b> only</span><span class="eaters"><span class="ep on a">A</span><span class="ep j">J</span></span></div>
+            <p class="clabel">Portions</p>
+            <div class="portion"><div class="pl">1 portion<small>Ada 1 — their usual</small></div><div class="pstepper"><span class="s">–</span><span class="qv">—</span><span class="s">+</span></div></div>
+            <p class="conv-note">two fields, both written through on tap — no Save, no Close ceremony, and <b>no way through to the recipe or the bin</b>: those are the title and the <span style="font-family:'IBM Plex Mono',monospace">−</span>, already on the row you came from</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">E7 — a field editor, not the hub coming back.</b> The difference is not size, it is what the surface is <i>for</i>. The entry sheet was reached by tapping <b>the meal</b> and answered “everything about this meal” — day · slot, eaters, portions, open the recipe, remove it — which is why it needed a mode to hide it and why deleting it was worth doing. This is reached by tapping <b>the values it edits</b> and holds nothing else; there is no second route to the recipe in it, and no remove. It is two widgets out of <code>meal_fields.dart</code> in a sheet, so it is also the reason that file keeps its job of stopping the add path and the edit path from drifting. <span style="color:var(--muted)">Rejected: <b>the chip alone as the target</b> — it is drawn only when an override exists, so most rows would have none and a first override could never be set; <b>an always-on portions chip</b> to fix that — it would print <code>1¾</code> on every row to serve the rare case, and the avatars already say who; <b>day · slot in here too</b> — the row does not print a day as a value (its <i>position</i> is its day), and putting it back is how the hub grows again.</span> <b style="color:var(--ink)">The hit target is the cluster, not the two spans</b> — chip and avatars share one ~44 pt region at the row’s right, so the target exists identically on every row whether or not a chip is drawn.</p>
+    </div>
+
+</div>
+<!-- lane:week3:end -->
+
+
 <!-- lane:errors:start -->
 <!-- ===================================================================== -->
 <!--  ERRORS & SYNC HEALTH V1 — board fragment (errors lane, 2026-09-02)   -->
@@ -4648,7 +4766,7 @@
     <footer class="footer">
         <span><b>Ansi</b> — complete board</span>
         <span>Flutter · Forui · Supabase · PowerSync</span>
-        <span>37 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8) · import + recipe-view v3 (locked — re-traced from shipped code 2026-08-31) · macro panel (step 9) · ingredients manager v1 (locked — re-traced from shipped code + owner rulings 2026-08-31; shipped 8.5, sim-covered by scenario 5) · nested recipes v1 (locked — signed off 2026-09-01, shipped 8.6 2026-09-02, sim-covered by scenario 6) · the polish pass (seven sections, all signed off and shipped 2026-09-02 — navigation v2 · library v2 · week v2 · recipe editor v2 · search &amp; matching v1 · piece → measure · errors &amp; sync health; exec plan 0022; `make test-sim` 6/6)</span>
+        <span>37 views · library · intake · plan→cook→shop · pickers v2 (shipped 7.7) · unit admission (7.8) · import + recipe-view v3 (locked — re-traced from shipped code 2026-08-31) · macro panel (step 9) · ingredients manager v1 (locked — re-traced from shipped code + owner rulings 2026-08-31; shipped 8.5, sim-covered by scenario 5) · nested recipes v1 (locked — signed off 2026-09-01, shipped 8.6 2026-09-02, sim-covered by scenario 6) · the polish pass (seven sections, all signed off and shipped 2026-09-02 — navigation v2 · library v2 · week v2 · recipe editor v2 · search &amp; matching v1 · piece → measure · errors &amp; sync health; exec plan 0022; `make test-sim` 6/6) · <b>week v3</b> (locked 2026-09-03 — the mode goes, the row opens the recipe, a muted <span style="font-family:'IBM Plex Mono',monospace">−</span> with an undo toast, and the avatar/portions cluster is the meal editor)</span>
     </footer>
 
 </div>

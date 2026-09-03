@@ -98,3 +98,46 @@ void showAnsiProblemToast(
     ),
   );
 }
+
+/// Reports that something the user removed is **recoverable**, and offers the
+/// way back.
+///
+/// This is the one deliberate exception to "no success toasts"
+/// (`docs/design-docs/errors-and-sync-health.md`, D1): it is not reporting
+/// that a write succeeded — it is **carrying the undo**, which is the only
+/// reason it exists. Week v3 E3 spends it to buy the confirm dialog it
+/// refuses: a `−` on every dish row of a resting screen is defensible only
+/// because the act is trivially reversible, and this is what makes it so.
+///
+/// [what] is what went, in the user's own nouns — "Removed Chicken Curry from
+/// Monday." [detail] names what would come back ("dinner · Ada & Jun · 1¾
+/// portions"), because an undo you cannot audit is a promise, not a control.
+///
+/// Primary, not destructive: nothing is wrong. The red is reserved for
+/// [showAnsiFailureToast], where something actually failed.
+void showAnsiUndoToast(
+  BuildContext context, {
+  required String what,
+  String? detail,
+  required VoidCallback onUndo,
+}) {
+  showFToast(
+    context: context,
+    alignment: FToastAlignment.bottomCenter,
+    duration: _toastDuration,
+    icon: const Icon(FLucideIcons.minus),
+    title: Text(what),
+    description: detail == null
+        ? null
+        : Text(detail, style: ansiMonoInherit(size: 11)),
+    suffixBuilder: (context, entry) => FButton(
+      variant: FButtonVariant.outline,
+      size: FButtonSizeVariant.sm,
+      onPress: () {
+        entry.dismiss();
+        onUndo();
+      },
+      child: const Text('Undo'),
+    ),
+  );
+}

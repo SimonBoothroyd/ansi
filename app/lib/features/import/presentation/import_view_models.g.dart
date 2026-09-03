@@ -65,7 +65,7 @@ final class ImportControllerProvider
   }
 }
 
-String _$importControllerHash() => r'b94b221f3241d5cca4e796eb83caa5497e52f2fe';
+String _$importControllerHash() => r'f57f05112a6ab713d1f357004ef958f026b29520';
 
 /// The import session controller.
 ///

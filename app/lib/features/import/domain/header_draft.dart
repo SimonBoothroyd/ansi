@@ -25,7 +25,11 @@ const kImportHeaderDraftId = 'import-draft';
 /// - **shelf life** unset and **filed into [bookId]** (the default book, the
 ///   same place commit has always put an import), because no page prints
 ///   either.
-Recipe headerDraft(ReconciliationPayload payload, {required String? bookId}) {
+Recipe headerDraft(
+  ReconciliationPayload payload, {
+  required String? bookId,
+  String? sectionId,
+}) {
   final prefill = parseYieldRaw(payload.yieldRaw);
   return Recipe(
     id: kImportHeaderDraftId,
@@ -36,5 +40,6 @@ Recipe headerDraft(ReconciliationPayload payload, {required String? bookId}) {
     cookTimeSeconds: payload.cookTimeSeconds?.lowSeconds,
     totalTimeSeconds: payload.totalTimeSeconds?.lowSeconds,
     bookId: bookId,
+    sectionId: sectionId,
   );
 }

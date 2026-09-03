@@ -23,8 +23,10 @@ Widget _host(List<Override> overrides) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
     home: const AccountView(),
-    builder: (context, child) =>
-        FTheme(data: ansiThemeData(), child: FToaster(child: child!)),
+    builder: (context, child) => FTheme(
+      data: ansiThemeData(),
+      child: FToaster(child: child!),
+    ),
   ),
 );
 

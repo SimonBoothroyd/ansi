@@ -18,7 +18,12 @@ import 'import_view_models.dart';
 import 'reconciliation_view.dart';
 
 class ImportView extends HookConsumerWidget {
-  const ImportView({super.key});
+  const ImportView({this.initialBookId, this.initialSectionId, super.key});
+
+  /// The shelf a section's `＋` was standing on (0028 E3). Null from every
+  /// other door, and then the draft files into the default book as before.
+  final String? initialBookId;
+  final String? initialSectionId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -78,8 +83,15 @@ class ImportView extends HookConsumerWidget {
         ],
       ),
       child: switch (state) {
-        ImportIdle() => const _IntakeForm(),
-        ImportFailed(:final message) => _IntakeForm(error: message),
+        ImportIdle() => _IntakeForm(
+          initialBookId: initialBookId,
+          initialSectionId: initialSectionId,
+        ),
+        ImportFailed(:final message) => _IntakeForm(
+          error: message,
+          initialBookId: initialBookId,
+          initialSectionId: initialSectionId,
+        ),
         ImportLoading() => const _Busy(label: 'Reading the recipe…'),
         ImportReconciling() => ReconciliationBody(state: state),
         ImportCommitting() => const _Busy(label: 'Saving…'),
@@ -110,7 +122,12 @@ class _Busy extends StatelessWidget {
 }
 
 class _IntakeForm extends HookConsumerWidget {
-  const _IntakeForm({this.error});
+  const _IntakeForm({this.error, this.initialBookId, this.initialSectionId});
+
+  /// Carried from the route so the draft is filed where the door stood
+  /// (0028 E3).
+  final String? initialBookId;
+  final String? initialSectionId;
 
   final String? error;
 
@@ -141,7 +158,11 @@ class _IntakeForm extends HookConsumerWidget {
         FButton(
           onPress: url.value.trim().isEmpty
               ? null
-              : () => controller.startImport(ImportFromUrl(url.value.trim())),
+              : () => controller.startImport(
+                  ImportFromUrl(url.value.trim()),
+                  bookId: initialBookId,
+                  sectionId: initialSectionId,
+                ),
           child: const Text('Import from link'),
         ),
         const SizedBox(height: 24),
@@ -154,7 +175,11 @@ class _IntakeForm extends HookConsumerWidget {
           onPress: () async {
             final paths = await ref.read(photoIntakeProvider).pickAndCrop();
             if (paths.isEmpty) return;
-            await controller.startImport(ImportFromPhotos(paths));
+            await controller.startImport(
+              ImportFromPhotos(paths),
+              bookId: initialBookId,
+              sectionId: initialSectionId,
+            );
           },
           child: const Text('Import from photos'),
         ),

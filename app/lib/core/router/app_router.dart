@@ -135,7 +135,10 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/import',
         name: 'import',
-        builder: (context, state) => const ImportView(),
+        builder: (context, state) => ImportView(
+          initialBookId: state.uri.queryParameters['book'],
+          initialSectionId: state.uri.queryParameters['section'],
+        ),
       ),
       // The vocabulary manager (step 8.5, plan 0020 D8) — pushed like
       // `/import`, not a fifth tab: the four tabs are the loop, and a
@@ -161,12 +164,17 @@ GoRouter router(Ref ref) {
       ),
       // `?title=` prefills the draft — what the Library's "nothing matches"
       // state hands over, so a search for a recipe you were about to write
-      // becomes the recipe (Library v2 / D7·5).
+      // becomes the recipe (Library v2 / D7·5). `?book=&section=` file it —
+      // what a section's `＋` hands over (0028 E3), so the recipe lands on the
+      // shelf that was tapped instead of in the default book.
       GoRoute(
         path: '/recipes/new',
         name: 'recipe-new',
-        builder: (context, state) =>
-            RecipeEditorView(initialTitle: state.uri.queryParameters['title']),
+        builder: (context, state) => RecipeEditorView(
+          initialTitle: state.uri.queryParameters['title'],
+          initialBookId: state.uri.queryParameters['book'],
+          initialSectionId: state.uri.queryParameters['section'],
+        ),
       ),
       GoRoute(
         path: '/recipes/:id',
