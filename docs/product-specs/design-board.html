@@ -4281,6 +4281,26 @@
         <p class="rc-note"><b style="color:var(--ink)">D3 — in scope, second.</b> <code>probe_usda</code> gains a <code>limit</code> (default 1 — every existing caller unchanged); the form asks for five, ranked by the same total order (score, then id). A pick applies through <code>applyUsdaProbe</code> with the declined guard lifted for an explicit choice, and stamps that id and label. <span style="color:var(--muted)">Deferred with it: nothing — undo alone (frame b) ships first because it needs no new sheet, and it already leaves the human no worse than today.</span> <b style="color:var(--ink)">D5</b> — <code>source_label</code> joins <code>schema.dart</code> and the sync rules (the docs drift check holds the pair); RLS is the existing household-scoped UPDATE; pgTAP pins the trigger writing the label, the declined stub staying bare on rename, and the widened probe’s order.</p>
     </div>
 
+    <div class="frame">
+        <p class="frame-name"><b>(d) New ingredient · USDA is a search</b> — owner addition 2026-09-03: the greyed “Look up in USDA” goes; you search, you pick, the row is born from the pick</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <div class="c-h">New ingredient</div>
+            <p class="flabel">Canonical name</p>
+            <div class="frow"><div class="fin big">Kale</div></div>
+            <p class="flabel">Source</p>
+            <div class="frow"><div class="seg"><span class="segopt">Manual</span><span class="segopt on">USDA FDC</span><span class="segopt">Barcode</span></div></div>
+            <div class="field"><div class="search"><span class="mag">⌕</span>kale<span class="care"></span></div></div>
+            <div class="srow"><span class="sname"><b>Kale, raw</b></span><span class="slab" style="color:var(--herb)">close</span></div>
+            <div class="srow"><span class="sname">Kale, frozen, cooked, boiled</span><span class="slab" style="color:var(--herb)">close</span></div>
+            <div class="srow"><span class="sname">Kale, scotch, raw</span><span class="slab" style="color:var(--muted)">a guess</span></div>
+            <div class="srow"><span class="sname">Kale chips</span><span class="slab" style="color:var(--muted)">a guess</span></div>
+            <p class="conv-note">the search runs on the server (ADR-0005 — the reference set never leaves it); offline, the leg says so and Manual still works</p>
+            <div class="savebtn">Create from “Kale, raw” &amp; flesh out</div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">D7 — the leg becomes what it looked like it was.</b> Today the USDA segment shows a disabled “Look up in USDA” and a note that creating runs the lookup — honest, and useless: the human cannot see or choose the food, and the best trigram hit for “kale” is whatever it is. With the widened <code>probe_usda(name, limit)</code> from D3 the same segment becomes a <b>search</b> — the name field is the query, the rows are the top five with their band word — and <i>Create</i> applies the <b>picked</b> candidate through <code>applyUsdaProbe</code> as the row is made, stamping its id and label (D1). Creating with <b>nothing picked</b> makes a plain stub, which the server trigger fills with its best hit as today; <b>ruling needed:</b> whether an <i>unpicked</i> USDA-leg create should still auto-fill (today’s behaviour) or should mean “none of these” (<code>usda_declined</code>). Recommend <b>auto-fill stays</b> — the leg is opt-in, and undo (frame b) is one tap. Offline the search cannot run; the leg says so and Manual is unchanged. <span style="color:var(--muted)">Rejected: shipping a slice of <code>usda_food</code> to the phone for an offline search — ADR-0005 exists for the reason its size and licence make it a server fact.</span></p>
+    </div>
+
 </div>
 <!-- lane:usda-match:end -->
 
