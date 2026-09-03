@@ -283,7 +283,21 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
   provider as the Library `⋯` line, so the two cannot disagree; no per-item
   pending marks. Assumed unless overruled: the 5-minute stall threshold,
   structural test only (no custom_lint package yet), the four named
-  load-bearing providers.
+  load-bearing providers. **Landed on main 2026-09-02** (`b1e0b33`…`084ec8c`,
+  rebased over Library v2 by the lane itself — the whole Library sweep
+  re-applied to the rewritten screen): `ref.write(context, what, action)`
+  as the one door for every UI write (43 sites in 16 files; structural test
+  derives the write-method list from the repository interfaces, no
+  allow-list growth), a destructive toast with Retry through one `FToaster`
+  in `AnsiApp`; `syncHealthProvider` off PowerSync's status + upload queue,
+  the connector reporting a `DroppedWrite` (persisted) when an upload is
+  refused, the quiet line in the Library `⋯` menu, the shell-hosted
+  `AnsiSyncBanner` (stalled past 5 min / refused), the Shop status line
+  (D9) on the same provider; `AnsiErrorState` + `describeFailure` replacing
+  six shrugs, four load-bearing `?? const []` sites made honest (incl. the
+  delete-refusal count and Library v2's stub dot); the zone handler through
+  a `CrashSink` seam (`ToastCrashSink`, rate-limited, no vendor);
+  `docs/design-docs/errors-and-sync-health.md`. 1404 app tests.
 - **Week — signed off** as recommended with the owner's change: the cook
   marker sits on a second line under the dish title, not in a trailing
   column. Assumed unless overruled: D3 (Cook/Shop follow the viewed week, so
