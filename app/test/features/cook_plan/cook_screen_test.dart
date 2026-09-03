@@ -106,7 +106,7 @@ Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
 
 PlannedRecipe _recipe(
   String title,
-  Map<int, int> days, {
+  Map<int, num> days, {
   String? id,
   int? keeps,
   bool freezable = false,
@@ -118,7 +118,11 @@ PlannedRecipe _recipe(
   freezable: freezable,
   meals: [
     for (final e in days.entries)
-      CoveredMeal(dayOfWeek: e.key, mealSlot: 'Dinner', portions: e.value),
+      CoveredMeal(
+        dayOfWeek: e.key,
+        mealSlot: 'Dinner',
+        portions: e.value.toDouble(),
+      ),
   ],
 );
 

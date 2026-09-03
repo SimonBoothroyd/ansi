@@ -3,7 +3,9 @@
 /// PURE DART (invariant 2): no `package:flutter`. A [WeekPlan] is one week
 /// (addressed by its Monday `weekStart`) holding the [PlanEntry] meals planned
 /// across its seven days. A [Member] is a person in the household; an entry's
-/// [PlanEntry.eaterIds] point at them and the count is the entry's demand.
+/// [PlanEntry.eaterIds] point at them and the sum of their
+/// [Member.portionFactor]s is the entry's demand ([demandPortions]) unless the
+/// entry's whole-number [PlanEntry.portions] override says otherwise.
 ///
 /// Meal slots are free text (spec §8, not an enum); [kDefaultMealSlots] are the
 /// three the UI offers, and [mealSlotRank] orders known slots ahead of custom
@@ -23,14 +25,60 @@ part 'planning.freezed.dart';
 abstract class Member with _$Member {
   const Member._();
 
-  const factory Member({required String id, required String displayName}) =
-      _Member;
+  const factory Member({
+    required String id,
+    required String displayName,
+
+    /// The person's usual portion as a multiple of one recipe serving (plan
+    /// 0027 P-D1): `0.75` for someone who eats three-quarters of a serving.
+    /// A standing fact about the person, spent wherever a head-count used to
+    /// be — the cook plan, the shopping list and the macro lens all read it
+    /// through [demandPortions]. Quarter steps from 0.25 to 3; the default
+    /// `1` keeps every number exactly what it was before the factor existed
+    /// (P-D6).
+    @Default(1.0) double portionFactor,
+  }) = _Member;
 
   /// The uppercase first letter of [displayName] for the avatar, or '?' when
   /// the name is empty.
   String get initial =>
       displayName.trim().isEmpty ? '?' : displayName.trim()[0].toUpperCase();
 }
+
+/// The portion factors the household can be set to from the segment (P-D2):
+/// the five quick picks, and *custom* in quarter steps between
+/// [kPortionFactorMin] and [kPortionFactorMax].
+const kPortionFactorPicks = [0.5, 0.75, 1.0, 1.25, 1.5];
+const kPortionFactorMin = 0.25;
+const kPortionFactorMax = 3.0;
+const kPortionFactorStep = 0.25;
+
+/// Whether [factor] is one the column accepts: a quarter step within
+/// [kPortionFactorMin]..[kPortionFactorMax] (the `0026` check constraint,
+/// mirrored so the sheet never offers a value the server would refuse).
+bool isValidPortionFactor(double factor) {
+  if (factor < kPortionFactorMin - 1e-9 || factor > kPortionFactorMax + 1e-9) {
+    return false;
+  }
+  final steps = factor / kPortionFactorStep;
+  return (steps - steps.roundToDouble()).abs() < 1e-9;
+}
+
+/// Σ [Member.portionFactor] over [eaterIds] — what the eaters on a meal
+/// usually eat, in portions. An eater the roster no longer holds (a
+/// tombstoned member) counts as one portion, exactly as the head-count did.
+double eatersDemand(
+  Iterable<String> eaterIds,
+  Map<String, Member> membersById,
+) => eaterIds.fold(0, (sum, id) => sum + (membersById[id]?.portionFactor ?? 1));
+
+/// An entry's demand in portions (P-D1): the whole-number [PlanEntry.portions]
+/// override when one is set, else [eatersDemand] over its eaters. Fractional
+/// by design — `1¾` for a 1 and a ¾ eater — and printed as a fraction, never
+/// rounded (P-D4). With every factor at 1 this is [PlanEntry.portionsOrDefault]
+/// to the digit (P-D6).
+double demandPortions(PlanEntry entry, Map<String, Member> membersById) =>
+    entry.portions?.toDouble() ?? eatersDemand(entry.eaterIds, membersById);
 
 /// One planned meal: a [recipeId] (with [recipeTitle] denormalised for display)
 /// on [dayOfWeek] (0=Monday..6=Sunday) under a free-text [mealSlot], eaten by
@@ -52,7 +100,11 @@ abstract class PlanEntry with _$PlanEntry {
     int? portions,
   }) = _PlanEntry;
 
-  /// The effective portion demand: the [portions] override, or the eater count.
+  /// The entry's own portion count before the household's factors: the
+  /// [portions] override, or the eater HEAD-count. The demand a plan cooks
+  /// for is [demandPortions], which weighs each eater by their
+  /// [Member.portionFactor]; this is the factor-less figure the override
+  /// stepper counts in.
   int get portionsOrDefault => portions ?? eaterIds.length;
 }
 

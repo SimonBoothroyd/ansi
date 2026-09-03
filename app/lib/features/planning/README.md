@@ -47,15 +47,19 @@ cook plan's `batchHintFor`/`clusterSessions`).
   older `week_plan` rows are the past, reached only via "copy last week". No
   calendar (spec §4).
 - **`plan_entry.eaters`** is a JSON array of `household_member` ids; demand for
-  an entry = `|eaters|`. It's a field (last-write-wins, spec §3), not a join
-  table.
+  an entry = Σ of the eaters' `portion_factor` (`demandPortions`, plan 0027
+  P-D1 — `1¾` for a 1 and a ¾ eater, printed as a fraction through
+  `core/units/portions.dart`, never rounded), unless the whole-number
+  `portions` override is set. It's a field (last-write-wins, spec §3), not a
+  join table.
 - **Meal slots are free text** (spec §8). `kDefaultMealSlots` are the three the
   UI offers; `mealSlotRank` orders known slots ahead of custom ones per day.
 - **Members** are **synced** from the server (step 7): `ensure_onboarded`
   (migration 0007) creates the `household_member` rows at sign-in and they stream
-  down; the app reads them but never writes them. (Pre-step-7 they were a
-  local-only, `ensureMembers()`-seeded table.) See
-  [`schema.dart`](../../core/sync/schema.dart).
+  down; the app reads them, and the one column it writes is `portion_factor`
+  (plan 0027 P-D3: the Household sheet off the Library `⋯`, either member may
+  set either's). (Pre-step-7 they were a local-only, `ensureMembers()`-seeded
+  table.) See [`schema.dart`](../../core/sync/schema.dart).
 
 ## Navigation
 

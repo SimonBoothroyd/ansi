@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// A recipe with [days] as (dayOfWeek → portions) meals, all on Dinner.
 PlannedRecipe _recipe(
-  Map<int, int> days, {
+  Map<int, num> days, {
   String id = 'r',
   String title = 'Dish',
   double servings = 2,
@@ -21,7 +21,11 @@ PlannedRecipe _recipe(
   freezerDays: freezerDays,
   meals: [
     for (final e in days.entries)
-      CoveredMeal(dayOfWeek: e.key, mealSlot: 'Dinner', portions: e.value),
+      CoveredMeal(
+        dayOfWeek: e.key,
+        mealSlot: 'Dinner',
+        portions: e.value.toDouble(),
+      ),
   ],
 );
 
@@ -296,7 +300,7 @@ void main() {
   });
 
   group('wholeBatchNudgeFor', () {
-    CookSession session({double servings = 4, int portions = 3}) =>
+    CookSession session({double servings = 4, double portions = 3}) =>
         clusterSessions(_recipe({0: portions}, servings: servings)).single;
 
     test('a fractional factor nudges up to the next whole batch', () {
@@ -326,6 +330,18 @@ void main() {
       // 0.1 + 0.2 style noise: 4.5 servings × (9/4.5 = 2.0000…) stays whole.
       final s = clusterSessions(_recipe({0: 9}, servings: 4.5)).single;
       expect(wholeBatchNudgeFor(s), isNull);
+    });
+
+    test('a fractional demand (plan 0027 P-D4) is scaled and nudged exactly '
+        'as a whole one — never rounded up first', () {
+      // A 1 and a ¾ eater of a serves-4 recipe: ×0.4375 → cook ×1, 2¼ over.
+      final s = session(portions: 1.75);
+      expect(s.totalPortions, 1.75);
+      expect(s.scaleFactor, 0.4375);
+      final nudge = wholeBatchNudgeFor(s);
+      expect(nudge!.factor, 1);
+      expect(nudge.batchPortions, 4);
+      expect(nudge.leftoverPortions, 2.25);
     });
 
     test('fractional servings_base yields honest fractional leftovers', () {

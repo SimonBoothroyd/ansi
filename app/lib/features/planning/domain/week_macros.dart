@@ -28,6 +28,7 @@ library;
 import 'package:meta/meta.dart';
 
 import '../../../core/units/macros.dart';
+import '../../../core/units/portions.dart';
 import '../../recipes/domain/recipe_macros.dart';
 import 'planning.dart';
 
@@ -67,6 +68,8 @@ class MealSetMacros {
     this.considered = 0,
     this.excluded = const [],
     this.daysContributing = 0,
+    this.servings = 0,
+    this.demand = 0,
   });
 
   /// The sum over the meals that resolved. **Null when nothing resolved, and
@@ -78,6 +81,16 @@ class MealSetMacros {
 
   /// Meals in scope, after the lens. The denominator the label must state.
   final int considered;
+
+  /// The servings [total] was multiplied over: the whole demand of every
+  /// counted meal under Everyone, and under a person's lens their weighted
+  /// share of it (P-D5). With [demand], the lens's own denominator — `¾ of
+  /// 1¾ portions`.
+  final double servings;
+
+  /// The full demand of the counted meals — everyone's portions, whoever's
+  /// lens this is. Equal to [servings] under Everyone.
+  final double demand;
 
   /// Every meal in scope that did not join the total, named.
   final List<ExcludedMeal> excluded;
@@ -109,35 +122,51 @@ class MealSetMacros {
   @override
   String toString() =>
       'MealSetMacros($counted of $considered meals, total: $total, '
-      'excluded: ${excluded.length}, days: $daysContributing)';
+      'excluded: ${excluded.length}, days: $daysContributing, '
+      'servings: $servings of $demand)';
+}
+
+/// The lens's denominator, named (P-D5): `Jun · ¾ of 1¾ portions`. Null when
+/// there is no total to attribute (the refusals print their own words) — and
+/// null under Everyone, whose share is the whole and needs no second number.
+String? portionShareLine(MealSetMacros macros, {required String? lensName}) {
+  if (lensName == null || macros.total == null) return null;
+  return '$lensName · ${formatFraction(macros.servings)} of '
+      '${formatPortions(macros.demand)}';
 }
 
 /// Sums `perServing × servings` over [entries].
 ///
-/// * **Everyone** ([lensMemberId] null) — `servings = portionsOrDefault`, the
-///   household figure.
+/// * **Everyone** ([lensMemberId] null) — `servings = demandPortions`, the
+///   household figure: the override, else Σ of the eaters' portion factors.
 /// * **A person's lens** — the entry is in scope only if that member is in
-///   `eaterIds`, and `servings = portionsOrDefault / |eaterIds|`: an even
-///   split, which is the only figure `eaters` + `portions` can honestly state
-///   (spec §8 calls the override "big/small appetites", so the override IS
-///   eating more). An entry with NO eaters cannot be attributed to anyone, so
-///   under a person's lens it stays in scope and is excluded WITH A REASON —
-///   it might be theirs, and pretending otherwise would quietly shrink the
-///   denominator.
+///   `eaterIds`, and `servings` is their own factor — the split the household
+///   itself declared (P-D5) — scaled by `override ÷ Σ factors` when an
+///   override is set (spec §8 calls the override "big/small appetites", so
+///   the override IS eating more, shared out in the same proportions). With
+///   every factor at 1 this is the even split it used to be. An entry with
+///   NO eaters cannot be attributed to anyone, so under a person's lens it
+///   stays in scope and is excluded WITH A REASON — it might be theirs, and
+///   pretending otherwise would quietly shrink the denominator.
 ///
 /// [summaryFor] hands back a recipe's per-serving summary (null when the
-/// recipe is gone or not loaded). Day and week totals come from this one
-/// function over two entry sets, so a week is never a sum of rounded days.
+/// recipe is gone or not loaded); [membersById] carries the factors (an
+/// absent member counts 1, as [eatersDemand] says). Day and week totals come
+/// from this one function over two entry sets, so a week is never a sum of
+/// rounded days.
 MealSetMacros sumPlannedMacros(
   Iterable<PlanEntry> entries, {
   required RecipeMacroSummary? Function(String recipeId) summaryFor,
   String? lensMemberId,
+  Map<String, Member> membersById = const {},
 }) {
   Macros? total;
   var counted = 0;
   var considered = 0;
   final excluded = <ExcludedMeal>[];
   final days = <int>{};
+  var servingsSum = 0.0;
+  var demandSum = 0.0;
 
   for (final entry in entries) {
     final eaters = entry.eaterIds;
@@ -151,8 +180,10 @@ MealSetMacros sumPlannedMacros(
     considered++;
 
     final label = entry.recipeTitle ?? '(deleted recipe)';
-    final demand = entry.portionsOrDefault;
-    if (demand <= 0 || (lensMemberId != null && eaters.isEmpty)) {
+    final factorsSum = eatersDemand(eaters, membersById);
+    final demand = demandPortions(entry, membersById);
+    if (demand <= 0 ||
+        (lensMemberId != null && (eaters.isEmpty || factorsSum <= 0))) {
       excluded.add((
         entryId: entry.id,
         label: label,
@@ -186,12 +217,15 @@ MealSetMacros sumPlannedMacros(
     }
 
     final servings = lensMemberId == null
-        ? demand.toDouble()
-        : demand / eaters.length;
+        ? demand
+        : (membersById[lensMemberId]?.portionFactor ?? 1) *
+              (entry.portions == null ? 1 : demand / factorsSum);
     final part = perServing.scaledBy(servings);
     total = total == null ? part : total + part;
     counted++;
     days.add(entry.dayOfWeek);
+    servingsSum += servings;
+    demandSum += demand;
   }
 
   return MealSetMacros(
@@ -200,5 +234,7 @@ MealSetMacros sumPlannedMacros(
     considered: considered,
     excluded: List.unmodifiable(excluded),
     daysContributing: days.length,
+    servings: servingsSum,
+    demand: demandSum,
   );
 }

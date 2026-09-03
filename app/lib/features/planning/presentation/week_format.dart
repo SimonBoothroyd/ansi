@@ -5,6 +5,7 @@ library;
 
 import 'dart:math' as math;
 
+import '../../../core/units/portions.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../domain/planning.dart';
 
@@ -136,8 +137,9 @@ typedef CookMarker = ({
   CookMarkerKind kind,
   int cookDay,
 
-  /// Portions the whole batch cooks — the `batch of 4` on the cook day.
-  int batchPortions,
+  /// Portions the whole batch cooks — the `batch of 4` (or `batch of 1¾`,
+  /// P-D4) on the cook day.
+  double batchPortions,
 
   /// Where this day sits in the batch's fridge window, 0 (just cooked) to 1
   /// (the end of it). Drives the mini fresh→gone bar. 0 when the recipe has
@@ -199,9 +201,9 @@ String cookMarkerLabel(CookMarker marker, {int? todayDayOfWeek}) =>
     switch (marker.kind) {
       CookMarkerKind.cooks =>
         todayDayOfWeek == marker.cookDay
-            ? 'cooks today · batch of ${marker.batchPortions}'
+            ? 'cooks today · batch of ${formatFraction(marker.batchPortions)}'
             : 'cooks ${kWeekdayShort[marker.cookDay]} · '
-                  'batch of ${marker.batchPortions}',
+                  'batch of ${formatFraction(marker.batchPortions)}',
       CookMarkerKind.fromBatch =>
         'from ${kWeekdayFull[marker.cookDay]}\u2019s batch',
       // The snowflake is drawn as an icon beside this, never as a glyph — the

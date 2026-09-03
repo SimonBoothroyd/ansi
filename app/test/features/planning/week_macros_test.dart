@@ -184,4 +184,83 @@ void main() {
     expect(_sum(const []).perDayAverage, isNull);
     expect(_sum([_entry(id: 'a', recipeId: 'stub')]).perDayAverage, isNull);
   });
+
+  group('the portion factor (plan 0027 P-D5)', () {
+    // Ada eats a portion, Jun three-quarters of one.
+    const roster = {
+      'ada': Member(id: 'ada', displayName: 'Ada'),
+      'jun': Member(id: 'jun', displayName: 'Jun', portionFactor: 0.75),
+    };
+    MealSetMacros sum(List<PlanEntry> entries, {String? lens}) =>
+        sumPlannedMacros(
+          entries,
+          summaryFor: _summaries,
+          lensMemberId: lens,
+          membersById: roster,
+        );
+
+    test('Everyone sums the fractional demand — 1¾ servings, not 2', () {
+      final macros = sum([_entry(id: 'a')]);
+      expect(macros.total!.kcal, 175);
+      expect(macros.servings, 1.75);
+      expect(macros.demand, 1.75);
+    });
+
+    test(
+      'a person’s lens weights by their factor and names the denominator',
+      () {
+        final jun = sum([_entry(id: 'a')], lens: 'jun');
+        expect(jun.total!.kcal, 75);
+        expect(jun.servings, 0.75);
+        expect(jun.demand, 1.75);
+        expect(
+          portionShareLine(jun, lensName: 'Jun'),
+          'Jun · ¾ of 1¾ portions',
+        );
+        final ada = sum([_entry(id: 'a')], lens: 'ada');
+        expect(ada.total!.kcal, 100);
+        expect(
+          portionShareLine(ada, lensName: 'Ada'),
+          'Ada · 1 of 1¾ portions',
+        );
+      },
+    );
+
+    test('an override is shared out in the same proportions — 3 × ¾ ⁄ 1¾', () {
+      final entries = [_entry(id: 'a', portions: 3)];
+      expect(sum(entries).total!.kcal, 300);
+      final jun = sum(entries, lens: 'jun');
+      expect(jun.total!.kcal, closeTo(3 * 0.75 / 1.75 * 100, 1e-9));
+      expect(
+        portionShareLine(jun, lensName: 'Jun'),
+        'Jun · 1.29 of 3 portions',
+      );
+      final ada = sum(entries, lens: 'ada');
+      expect(ada.total!.kcal, closeTo(3 / 1.75 * 100, 1e-9));
+    });
+
+    test('an override with no eaters stays unattributable under a lens', () {
+      final macros = sum([
+        _entry(id: 'a', eaters: const [], portions: 3),
+      ], lens: 'jun');
+      expect(macros.total, isNull);
+      expect(macros.excluded.single.reason, MealExclusion.noEaters);
+      expect(portionShareLine(macros, lensName: 'Jun'), isNull);
+    });
+
+    test('Everyone has no share line — the whole needs no second number', () {
+      expect(portionShareLine(sum([_entry(id: 'a')]), lensName: null), isNull);
+    });
+
+    test(
+      'the share line sums across meals, so a day reads as one fraction',
+      () {
+        final jun = sum([_entry(id: 'a'), _entry(id: 'b')], lens: 'jun');
+        expect(
+          portionShareLine(jun, lensName: 'Jun'),
+          'Jun · 1½ of 3½ portions',
+        );
+      },
+    );
+  });
 }

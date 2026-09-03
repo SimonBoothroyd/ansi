@@ -63,6 +63,72 @@ void main() {
     });
   });
 
+  group('demandPortions (plan 0027 P-D1)', () {
+    const ada = Member(id: 'ada', displayName: 'Ada');
+    const jun = Member(id: 'jun', displayName: 'Jun', portionFactor: 0.75);
+    const roster = {'ada': ada, 'jun': jun};
+
+    PlanEntry entry({
+      List<String> eaters = const ['ada', 'jun'],
+      int? portions,
+    }) => PlanEntry(
+      id: 'e',
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'r',
+      eaterIds: eaters,
+      portions: portions,
+    );
+
+    test('a member eats one portion unless the household says otherwise', () {
+      expect(ada.portionFactor, 1);
+    });
+
+    test('demand is the sum of the eaters’ factors — 1¾ for a 1 and a ¾', () {
+      expect(demandPortions(entry(), roster), 1.75);
+      expect(demandPortions(entry(eaters: ['jun']), roster), 0.75);
+    });
+
+    test('the whole-number override still wins, whoever is eating', () {
+      expect(demandPortions(entry(portions: 3), roster), 3);
+      // An override with nobody down to eat is still a real demand.
+      expect(demandPortions(entry(eaters: const [], portions: 3), roster), 3);
+    });
+
+    test('with every factor at 1 it is the head-count to the digit (P-D6)', () {
+      final e = entry();
+      expect(demandPortions(e, const {}), e.portionsOrDefault);
+      expect(demandPortions(e, {'ada': ada}), e.portionsOrDefault);
+    });
+
+    test('an eater the roster no longer holds counts one, as the head-count '
+        'did', () {
+      expect(demandPortions(entry(eaters: ['ada', 'gone']), roster), 2);
+    });
+
+    test('no eaters and no override is no demand', () {
+      expect(demandPortions(entry(eaters: const []), roster), 0);
+    });
+  });
+
+  group('isValidPortionFactor (P-D2)', () {
+    test('accepts the picks and every quarter step in range', () {
+      for (final pick in kPortionFactorPicks) {
+        expect(isValidPortionFactor(pick), isTrue, reason: '$pick');
+      }
+      expect(isValidPortionFactor(0.25), isTrue);
+      expect(isValidPortionFactor(1.75), isTrue);
+      expect(isValidPortionFactor(3), isTrue);
+    });
+
+    test('refuses out-of-range and off-step values (the 0026 check)', () {
+      expect(isValidPortionFactor(0), isFalse);
+      expect(isValidPortionFactor(3.25), isFalse);
+      expect(isValidPortionFactor(0.83), isFalse);
+      expect(isValidPortionFactor(1.1), isFalse);
+    });
+  });
+
   group('WeekPlan.entriesForDay', () {
     PlanEntry entry(String id, int day, String slot) =>
         PlanEntry(id: id, dayOfWeek: day, mealSlot: slot, recipeId: 'r');

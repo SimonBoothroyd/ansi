@@ -22,7 +22,7 @@ CookSession _session({
   covers: covers,
 );
 
-CoveredMeal _meal(int day, String slot, int portions) =>
+CoveredMeal _meal(int day, String slot, double portions) =>
     CoveredMeal(dayOfWeek: day, mealSlot: slot, portions: portions);
 
 void main() {
@@ -32,13 +32,6 @@ void main() {
       expect(formatScale(1.5), '×1.5');
       expect(formatScale(0.75), '×0.75');
       expect(formatScale(2), '×2');
-    });
-  });
-
-  group('formatPortions', () {
-    test('pluralizes properly', () {
-      expect(formatPortions(1), '1 portion');
-      expect(formatPortions(2), '2 portions');
     });
   });
 
@@ -163,15 +156,6 @@ void main() {
     });
   });
 
-  group('formatPortionsAmount', () {
-    test('trims whole and fractional counts, with the right plural', () {
-      expect(formatPortionsAmount(4), '4 portions');
-      expect(formatPortionsAmount(1), '1 portion');
-      expect(formatPortionsAmount(2.5), '2.5 portions');
-      expect(formatPortionsAmount(0.5), '0.5 portions');
-    });
-  });
-
   group('wholeBatchNudgeLine', () {
     test('spells out the whole-batch advice with honest leftovers', () {
       // The closing clause is honest about the accepted gap (tracker row):
@@ -191,8 +175,21 @@ void main() {
           batchPortions: 5.0,
           leftoverPortions: 0.5,
         ), rawFactor: 1.25),
-        'cook ×2 instead — covers 5 portions · 0.5 portions left over · '
+        'cook ×2 instead — covers 5 portions · ½ portion left over · '
         'shopping still buys ×1.25',
+      );
+    });
+
+    test('a fractional demand leaves a fractional, glyph-printed leftover '
+        '(plan 0027 P-D4)', () {
+      // 1¾ portions of a serves-4 recipe: ×0.44 → cook ×1, 2¼ left over.
+      final nudge = wholeBatchNudgeFor(
+        _session(cookDay: 0, covers: [_meal(0, 'Dinner', 1.75)], servings: 4),
+      );
+      expect(
+        wholeBatchNudgeLine(nudge!, rawFactor: 0.4375),
+        'cook ×1 instead — covers 4 portions · 2¼ portions left over · '
+        'shopping still buys ×0.44',
       );
     });
   });

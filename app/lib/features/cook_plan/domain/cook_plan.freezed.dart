@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CoveredMeal {
 
- int get dayOfWeek; String get mealSlot; int get portions;
+ int get dayOfWeek; String get mealSlot; double get portions;
 /// Create a copy of CoveredMeal
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -45,7 +45,7 @@ abstract mixin class $CoveredMealCopyWith<$Res>  {
   factory $CoveredMealCopyWith(CoveredMeal value, $Res Function(CoveredMeal) _then) = _$CoveredMealCopyWithImpl;
 @useResult
 $Res call({
- int dayOfWeek, String mealSlot, int portions
+ int dayOfWeek, String mealSlot, double portions
 });
 
 
@@ -67,7 +67,7 @@ class _$CoveredMealCopyWithImpl<$Res>
 dayOfWeek: null == dayOfWeek ? _self.dayOfWeek : dayOfWeek // ignore: cast_nullable_to_non_nullable
 as int,mealSlot: null == mealSlot ? _self.mealSlot : mealSlot // ignore: cast_nullable_to_non_nullable
 as String,portions: null == portions ? _self.portions : portions // ignore: cast_nullable_to_non_nullable
-as int,
+as double,
   ));
 }
 
@@ -152,7 +152,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int dayOfWeek,  String mealSlot,  int portions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int dayOfWeek,  String mealSlot,  double portions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CoveredMeal() when $default != null:
 return $default(_that.dayOfWeek,_that.mealSlot,_that.portions);case _:
@@ -173,7 +173,7 @@ return $default(_that.dayOfWeek,_that.mealSlot,_that.portions);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int dayOfWeek,  String mealSlot,  int portions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int dayOfWeek,  String mealSlot,  double portions)  $default,) {final _that = this;
 switch (_that) {
 case _CoveredMeal():
 return $default(_that.dayOfWeek,_that.mealSlot,_that.portions);case _:
@@ -193,7 +193,7 @@ return $default(_that.dayOfWeek,_that.mealSlot,_that.portions);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int dayOfWeek,  String mealSlot,  int portions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int dayOfWeek,  String mealSlot,  double portions)?  $default,) {final _that = this;
 switch (_that) {
 case _CoveredMeal() when $default != null:
 return $default(_that.dayOfWeek,_that.mealSlot,_that.portions);case _:
@@ -213,7 +213,7 @@ class _CoveredMeal implements CoveredMeal {
 
 @override final  int dayOfWeek;
 @override final  String mealSlot;
-@override final  int portions;
+@override final  double portions;
 
 /// Create a copy of CoveredMeal
 /// with the given fields replaced by the non-null parameter values.
@@ -245,7 +245,7 @@ abstract mixin class _$CoveredMealCopyWith<$Res> implements $CoveredMealCopyWith
   factory _$CoveredMealCopyWith(_CoveredMeal value, $Res Function(_CoveredMeal) _then) = __$CoveredMealCopyWithImpl;
 @override @useResult
 $Res call({
- int dayOfWeek, String mealSlot, int portions
+ int dayOfWeek, String mealSlot, double portions
 });
 
 
@@ -267,7 +267,7 @@ class __$CoveredMealCopyWithImpl<$Res>
 dayOfWeek: null == dayOfWeek ? _self.dayOfWeek : dayOfWeek // ignore: cast_nullable_to_non_nullable
 as int,mealSlot: null == mealSlot ? _self.mealSlot : mealSlot // ignore: cast_nullable_to_non_nullable
 as String,portions: null == portions ? _self.portions : portions // ignore: cast_nullable_to_non_nullable
-as int,
+as double,
   ));
 }
 

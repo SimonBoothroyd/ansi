@@ -14,7 +14,14 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Member {
 
- String get id; String get displayName;
+ String get id; String get displayName;/// The person's usual portion as a multiple of one recipe serving (plan
+/// 0027 P-D1): `0.75` for someone who eats three-quarters of a serving.
+/// A standing fact about the person, spent wherever a head-count used to
+/// be — the cook plan, the shopping list and the macro lens all read it
+/// through [demandPortions]. Quarter steps from 0.25 to 3; the default
+/// `1` keeps every number exactly what it was before the factor existed
+/// (P-D6).
+ double get portionFactor;
 /// Create a copy of Member
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +32,16 @@ $MemberCopyWith<Member> get copyWith => _$MemberCopyWithImpl<Member>(this as Mem
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Member&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Member&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.portionFactor, portionFactor) || other.portionFactor == portionFactor));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,displayName);
+int get hashCode => Object.hash(runtimeType,id,displayName,portionFactor);
 
 @override
 String toString() {
-  return 'Member(id: $id, displayName: $displayName)';
+  return 'Member(id: $id, displayName: $displayName, portionFactor: $portionFactor)';
 }
 
 
@@ -45,7 +52,7 @@ abstract mixin class $MemberCopyWith<$Res>  {
   factory $MemberCopyWith(Member value, $Res Function(Member) _then) = _$MemberCopyWithImpl;
 @useResult
 $Res call({
- String id, String displayName
+ String id, String displayName, double portionFactor
 });
 
 
@@ -62,11 +69,12 @@ class _$MemberCopyWithImpl<$Res>
 
 /// Create a copy of Member
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,Object? portionFactor = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
-as String,
+as String,portionFactor: null == portionFactor ? _self.portionFactor : portionFactor // ignore: cast_nullable_to_non_nullable
+as double,
   ));
 }
 
@@ -151,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String displayName)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String displayName,  double portionFactor)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Member() when $default != null:
-return $default(_that.id,_that.displayName);case _:
+return $default(_that.id,_that.displayName,_that.portionFactor);case _:
   return orElse();
 
 }
@@ -172,10 +180,10 @@ return $default(_that.id,_that.displayName);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String displayName)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String displayName,  double portionFactor)  $default,) {final _that = this;
 switch (_that) {
 case _Member():
-return $default(_that.id,_that.displayName);case _:
+return $default(_that.id,_that.displayName,_that.portionFactor);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -192,10 +200,10 @@ return $default(_that.id,_that.displayName);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String displayName)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String displayName,  double portionFactor)?  $default,) {final _that = this;
 switch (_that) {
 case _Member() when $default != null:
-return $default(_that.id,_that.displayName);case _:
+return $default(_that.id,_that.displayName,_that.portionFactor);case _:
   return null;
 
 }
@@ -207,11 +215,19 @@ return $default(_that.id,_that.displayName);case _:
 
 
 class _Member extends Member {
-  const _Member({required this.id, required this.displayName}): super._();
+  const _Member({required this.id, required this.displayName, this.portionFactor = 1.0}): super._();
   
 
 @override final  String id;
 @override final  String displayName;
+/// The person's usual portion as a multiple of one recipe serving (plan
+/// 0027 P-D1): `0.75` for someone who eats three-quarters of a serving.
+/// A standing fact about the person, spent wherever a head-count used to
+/// be — the cook plan, the shopping list and the macro lens all read it
+/// through [demandPortions]. Quarter steps from 0.25 to 3; the default
+/// `1` keeps every number exactly what it was before the factor existed
+/// (P-D6).
+@override@JsonKey() final  double portionFactor;
 
 /// Create a copy of Member
 /// with the given fields replaced by the non-null parameter values.
@@ -223,16 +239,16 @@ _$MemberCopyWith<_Member> get copyWith => __$MemberCopyWithImpl<_Member>(this, _
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Member&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Member&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.portionFactor, portionFactor) || other.portionFactor == portionFactor));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,displayName);
+int get hashCode => Object.hash(runtimeType,id,displayName,portionFactor);
 
 @override
 String toString() {
-  return 'Member(id: $id, displayName: $displayName)';
+  return 'Member(id: $id, displayName: $displayName, portionFactor: $portionFactor)';
 }
 
 
@@ -243,7 +259,7 @@ abstract mixin class _$MemberCopyWith<$Res> implements $MemberCopyWith<$Res> {
   factory _$MemberCopyWith(_Member value, $Res Function(_Member) _then) = __$MemberCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String displayName
+ String id, String displayName, double portionFactor
 });
 
 
@@ -260,11 +276,12 @@ class __$MemberCopyWithImpl<$Res>
 
 /// Create a copy of Member
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,Object? portionFactor = null,}) {
   return _then(_Member(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
-as String,
+as String,portionFactor: null == portionFactor ? _self.portionFactor : portionFactor // ignore: cast_nullable_to_non_nullable
+as double,
   ));
 }
 

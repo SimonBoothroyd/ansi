@@ -75,7 +75,7 @@ class SqliteCookPlanRepository implements CookPlanRepository {
     for (final row in rows) {
       final recipeId = row['recipe_id'] as String;
       final eaters = jsonDecode(row['eaters'] as String? ?? '[]') as List;
-      final portions = (row['portions'] as int?) ?? eaters.length;
+      final portions = ((row['portions'] as int?) ?? eaters.length).toDouble();
       byRecipe[recipeId] ??= PlannedRecipe(
         recipeId: recipeId,
         title: row['title'] as String,

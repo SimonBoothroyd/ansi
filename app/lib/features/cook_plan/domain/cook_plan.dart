@@ -40,13 +40,15 @@ part 'cook_plan.freezed.dart';
 
 /// One planned appearance of a recipe in the week — a `plan_entry` reduced to
 /// what batching needs: its [dayOfWeek] (0=Mon..6=Sun), [mealSlot], and the
-/// [portions] it demands (the entry's override or its eater count).
+/// [portions] it demands (the entry's override, or the sum of its eaters'
+/// portion factors — `demandPortions`, plan 0027 P-D1). Fractional by design:
+/// a 1 and a ¾ eater are `1.75`, and nothing here rounds it.
 @freezed
 abstract class CoveredMeal with _$CoveredMeal {
   const factory CoveredMeal({
     required int dayOfWeek,
     required String mealSlot,
-    required int portions,
+    required double portions,
   }) = _CoveredMeal;
 }
 
@@ -167,10 +169,11 @@ abstract class CookSession with _$CookSession {
   /// The last day this batch is eaten.
   int get lastCoveredDay => coveredDays.isEmpty ? cookDay : coveredDays.last;
 
-  /// Portions to cook: the sum of every covered meal's demand. Zero on a
+  /// Portions to cook: the sum of every covered meal's demand — fractional
+  /// when a portion factor is (P-D4), and said as a fraction. Zero on a
   /// component session — portions are not its denomination ([batchesToCook]
   /// is).
-  int get totalPortions => covers.fold(0, (s, m) => s + m.portions);
+  double get totalPortions => covers.fold(0, (s, m) => s + m.portions);
 
   /// The multiplier everything downstream scales the recipe's lines by.
   ///
@@ -230,7 +233,7 @@ abstract class RecipeCookPlan with _$RecipeCookPlan {
 
   /// Total portions of this recipe cooked across the week (all sessions).
   /// Component sessions contribute nothing — they are counted in batches.
-  int get totalPortions => sessions.fold(0, (s, x) => s + x.totalPortions);
+  double get totalPortions => sessions.fold(0, (s, x) => s + x.totalPortions);
 
   /// Distinct days this recipe is eaten across the week, ascending.
   List<int> get days {

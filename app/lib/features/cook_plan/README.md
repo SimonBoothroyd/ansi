@@ -32,7 +32,11 @@ share when the recipe is `freezable` and the meal is within `freezer_days`
 
 - The **cook day** is the earliest covered day (display-only this step).
 - The **scale factor** is the raw `total_portions / servings_base` — honest, not
-  nudged to a whole batch (whole-ingredient scaling is deferred).
+  nudged to a whole batch (whole-ingredient scaling is deferred). Since plan
+  0027 `total_portions` is a double: a meal's demand is Σ of its eaters'
+  portion factors (`1¾` for a 1 and a ¾ eater), the batch math was already
+  fractional, and every count is printed as a fraction (`core/units/
+  portions.dart`), the nudge's leftover included.
 - A recipe with no `keeps_for_days` (unknown shelf life) is never split.
 
 `batchHintFor` reuses `clusterSessions` so the planner's "same batch" hint on the

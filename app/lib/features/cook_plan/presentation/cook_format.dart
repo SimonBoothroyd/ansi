@@ -4,6 +4,7 @@ library;
 
 import 'dart:math' as math;
 
+import '../../../core/units/portions.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/component_format.dart';
@@ -19,9 +20,6 @@ String formatScale(double factor) {
   return '×$s';
 }
 
-/// "1 portion" / "4 portions" — a count with the right plural.
-String formatPortions(int count) => '$count portion${count == 1 ? '' : 's'}';
-
 /// The week menu row's trailing label on the Cook tab — what that week holds
 /// in this tab's own derivation, `2 cooks` / `1 cook` / `nothing to cook`
 /// (plan 0025 frame g2), never the Week's meal count.
@@ -31,31 +29,21 @@ String formatCookCount(int sessions) => switch (sessions) {
   _ => '$sessions cooks',
 };
 
-/// [formatPortions] for a possibly-fractional count ("2.5 portions") — whole
-/// batches of a fractional `servings_base` yield these. Trims like
-/// [formatScale].
-String formatPortionsAmount(double count) {
-  final s = count
-      .toStringAsFixed(2)
-      .replaceAll(RegExp(r'0+$'), '')
-      .replaceAll(RegExp(r'\.$'), '');
-  return '$s portion${s == '1' ? '' : 's'}';
-}
-
 /// The whole-batch nudge line for a fractional session (step 7.6):
 /// "cook ×1 instead — covers 4 portions · 1 portion left over · shopping
 /// still buys ×0.75". The honest raw factor stays on the tile; this is
 /// advice beside it, never a replacement (invariant 3) — and the closing
 /// clause is honest about the accepted gap (tech-debt tracker): the shopping
 /// list keeps scaling by [rawFactor], so a cook following the advice tops up
-/// by eye until the nudge is persisted and the list can read it.
+/// by eye until the nudge is persisted and the list can read it. A
+/// fractional count speaks the fraction — `2¼ portions left over` (P-D4).
 String wholeBatchNudgeLine(
   WholeBatchNudge nudge, {
   required double rawFactor,
 }) =>
     'cook ×${nudge.factor} instead — covers '
-    '${formatPortionsAmount(nudge.batchPortions)} · '
-    '${formatPortionsAmount(nudge.leftoverPortions)} left over · '
+    '${formatPortions(nudge.batchPortions)} · '
+    '${formatPortions(nudge.leftoverPortions)} left over · '
     'shopping still buys ${formatScale(rawFactor)}';
 
 /// The recipe card's summary line: total portions across the week plus its
