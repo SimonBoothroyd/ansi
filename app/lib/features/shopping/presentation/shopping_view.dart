@@ -633,11 +633,15 @@ Future<void> _confirmRemove(
   WidgetRef ref,
   ShoppingItem item,
 ) async {
-  // Read the keep-alive repo and the entry id BEFORE the dialog await: while
-  // it sits open the watched stream can drop this row (say, the other device
-  // removed it), unmounting the row widget — a `ref.read` after the await
-  // would then throw on a disposed ref.
+  // Everything the write needs is resolved BEFORE the dialog await: while it
+  // sits open the watched stream can drop this row (say, the other device
+  // removed it), unmounting the row widget — a `ref` used after the await
+  // would then throw, and a `context.mounted` bail would drop the removal
+  // the user just confirmed. The container and the host context outlive
+  // the row (`hostContextOf`).
   final repo = ref.read(shoppingRepositoryProvider);
+  final container = ProviderScope.containerOf(context, listen: false);
+  final host = hostContextOf(context);
   final entryId = item.entryId;
   final remove = await showAnsiDialog<bool>(
     context: context,
@@ -662,9 +666,9 @@ Future<void> _confirmRemove(
       ],
     ),
   );
-  if (!(remove ?? false) || entryId == null || !context.mounted) return;
-  await ref.write(
-    context,
+  if (!(remove ?? false) || entryId == null) return;
+  await container.write(
+    host,
     'remove ${item.name}',
     () => repo.removeEntry(entryId: entryId),
   );

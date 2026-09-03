@@ -596,19 +596,25 @@ class _FilingPicker extends ConsumerWidget {
             FButton.icon(
               variant: FButtonVariant.secondary,
               onPress: () async {
+                // The prompt's keyboard shrinks the editor's list, so this
+                // row can be unmounted by the time Add is tapped: the write
+                // goes through handles that outlive it (`hostContextOf`).
+                final container = ProviderScope.containerOf(
+                  context,
+                  listen: false,
+                );
+                final overlay = hostContextOf(context);
                 final name = await promptForText(
                   context,
                   title: 'New section',
                   hint: 'Name it anything',
                   confirm: 'Add',
                 );
-                if (name == null || name.trim().isEmpty || !context.mounted) {
-                  return;
-                }
-                final id = await ref.write(
-                  context,
+                if (name == null || name.trim().isEmpty) return;
+                final id = await container.write(
+                  overlay,
                   'add that section',
-                  () => ref
+                  () => container
                       .read(bookRepositoryProvider)
                       .createSection(currentBookId, name),
                 );

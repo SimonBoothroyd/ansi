@@ -83,14 +83,17 @@ const _library = [
   ),
 ];
 
-/// The Library as the app hosts it — including the single [FToaster], without
-/// which any screen that calls `ref.write` throws instead of reporting.
+/// The Library as the app hosts it — the theme and the single [FToaster]
+/// ABOVE the navigator, as `app.dart` mounts them, so a write that reports its
+/// failure after a dialog (through the root overlay, `hostContextOf`) finds
+/// the toaster exactly as it does on the phone.
 Widget _host(List<Override> overrides) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
-    home: FTheme(
+    home: const LibraryView(),
+    builder: (context, child) => FTheme(
       data: ansiThemeData(),
-      child: const FToaster(child: LibraryView()),
+      child: FToaster(child: child!),
     ),
   ),
 );
@@ -98,6 +101,24 @@ Widget _host(List<Override> overrides) => ProviderScope(
 List<Override> _repo(List<Book> books) => [
   bookRepositoryProvider.overrideWithValue(_FakeBookRepo(books)),
 ];
+
+/// [_host], but the Library can be taken out of the tree while one of its
+/// prompts is up — the phone's keyboard-shrinks-the-list case, made exact.
+Widget _toggleHost(List<Override> overrides, ValueNotifier<bool> show) =>
+    ProviderScope(
+      overrides: overrides,
+      child: MaterialApp(
+        home: ValueListenableBuilder<bool>(
+          valueListenable: show,
+          builder: (_, visible, _) =>
+              visible ? const LibraryView() : const SizedBox.shrink(),
+        ),
+        builder: (context, child) => FTheme(
+          data: ansiThemeData(),
+          child: FToaster(child: child!),
+        ),
+      ),
+    );
 
 /// The library inside a real router, so a menu item can push and the pushed
 /// route can be popped again.
@@ -179,6 +200,37 @@ void main() {
     expect(find.text('New book'), findsOneWidget);
     expect(find.text('Sign out'), findsOneWidget);
     expect(find.text('New recipe'), findsNothing);
+  });
+
+  testWidgets('a rename lands even when the Library is gone under its prompt '
+      '(the keyboard-shrinks-the-list case)', (tester) async {
+    // The prompt's keyboard shrinks the list on a phone, so the header row
+    // that opened it can be unmounted by the time Rename is tapped. Riverpod
+    // 3 throws on a `WidgetRef` used after that; the write now goes through
+    // the handles captured before the await (`hostContextOf`).
+    filterForuiSemanticsAssertions();
+    final repo = _RecordingBookRepo(_library);
+    final show = ValueNotifier(true);
+    addTearDown(show.dispose);
+    await tester.pumpWidget(
+      _toggleHost([bookRepositoryProvider.overrideWithValue(repo)], show),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rename'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'Weeknights');
+
+    show.value = false;
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryView), findsNothing);
+    expect(find.text('Rename'), findsOneWidget, reason: 'the prompt stays up');
+
+    await tester.tap(find.text('Rename'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(repo.renamedTo, 'Weeknights');
   });
 
   testWidgets('Reorder books is absent on a one-book library', (tester) async {

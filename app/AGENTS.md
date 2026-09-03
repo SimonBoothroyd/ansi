@@ -48,6 +48,15 @@ screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md)
   the `domain/` interfaces. The posture it belongs to — what gets a toast, what
   gets a banner, and the seven things the app deliberately stays quiet about:
   [`../docs/design-docs/errors-and-sync-health.md`](../docs/design-docs/errors-and-sync-health.md).
+- **A write after an awaited sheet, dialog or prompt goes through the handles
+  captured before the await** — `ProviderScope.containerOf(context, listen:
+  false)` and `hostContextOf(context)`, then `container.write(host, what,
+  action)` (`shared/write.dart`). Never the widget's `ref` (every list is a
+  viewport; the sheet's keyboard shrinks it and the row that opened the sheet
+  can be unmounted by the time the user confirms — Riverpod 3 throws on that)
+  and never a `context.mounted` bail on the write itself (it drops the action
+  the user just confirmed). Enforced by
+  `test/structure/no_ref_after_await_test.dart`.
 - **Repository tests open a real `PowerSyncDatabase`** (`test/helpers/test_db.dart`,
   built from `core/sync/schema.dart`), because local tables are SQLite *views*
   and reject SQL that plain tables accept — `INSERT … ON CONFLICT` above all.

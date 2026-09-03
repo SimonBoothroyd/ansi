@@ -73,14 +73,21 @@ Future<void> _addMealFlow(
   required DateTime weekStart,
   required int dayOfWeek,
 }) async {
+  // The picker's search brings the keyboard, which shrinks the week's list
+  // under it: the day card whose door opened this flow can be unmounted by
+  // the time a recipe is tapped. The confirm sheet opens from a context that
+  // outlives the card (`hostContextOf`), so the pick is never dropped.
+  final host = hostContextOf(context);
   final recipe = await showRecipePickerSheet(
     context,
     dayOfWeek: dayOfWeek,
     slot: _kDefaultSlot,
   );
-  if (recipe == null || !context.mounted) return;
+  if (recipe == null) return;
   await showConfirmMealSheet(
-    context,
+    // The host outlives the row — see [hostContextOf].
+    // ignore: use_build_context_synchronously
+    host.context,
     weekStart: weekStart,
     dayOfWeek: dayOfWeek,
     slot: _kDefaultSlot,

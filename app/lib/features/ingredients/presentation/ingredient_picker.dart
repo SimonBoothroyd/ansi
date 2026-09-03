@@ -29,6 +29,7 @@ import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/picker_shell.dart';
+import '../../../shared/write.dart' show hostContextOf;
 import '../data/ingredient_providers.dart';
 import '../domain/ingredient.dart';
 import '../domain/search_query.dart';
@@ -391,25 +392,32 @@ class AddNewIngredientRow extends HookConsumerWidget {
 
     Future<void> addNew() async {
       busy.value = true;
+      // The chain crosses two awaits with a keyboard in each; the handles
+      // it continues through outlive this row (`hostContextOf`), so the
+      // row the human just fleshed out is handed back whatever became of
+      // the footer that started it.
+      final container = ProviderScope.containerOf(context, listen: false);
+      final host = hostContextOf(context);
       try {
         final created = await showNewIngredientSheet(
           context,
           initialName: name,
         );
-        if (created == null || !context.mounted) return;
+        if (created == null) return;
         // The form lands ABOVE this picker's sheet and pops back to it; the
         // guarded push returns when it does. The picker is still open
         // underneath the whole time, which is what lets it resolve after.
-        await context.pushOnceFor<void>(ingredientDetailRoute(created.id));
-        if (!context.mounted) return;
+        // The host outlives the row — see [hostContextOf].
+        // ignore: use_build_context_synchronously
+        await host.context.pushOnceFor<void>(ingredientDetailRoute(created.id));
         // Re-read rather than reuse: the form's edits — allowed units,
         // measures, a density, the macros — are what the quantity sheet
         // opening next must see, and the row the sheet handed over predates
         // all of them. The keepAlive repo provider is safe across the await.
-        final row = await ref
+        final row = await container
             .read(ingredientRepositoryProvider)
             .byId(created.id);
-        if (!context.mounted || row == null) return;
+        if (row == null) return;
         onCreated(row);
       } finally {
         if (context.mounted) busy.value = false;

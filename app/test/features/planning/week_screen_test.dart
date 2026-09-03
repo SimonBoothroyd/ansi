@@ -22,6 +22,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
+import '../../helpers/forui_semantics.dart';
+
 /// A canned planner: emits [week] for the current week and [last] as the
 /// reference week, with two members. Mutations are inert.
 class _FakePlanningRepo implements PlanningRepository {
@@ -627,6 +629,52 @@ void main() {
       );
       expect(opacity.opacity, lessThan(1));
     });
+  });
+
+  testWidgets('the confirm sheet still opens when the Week is gone under the '
+      'picker (the keyboard-shrinks-the-list case)', (tester) async {
+    // The picker's search brings the keyboard, which shrinks the week's list:
+    // the day card whose door opened the flow can be unmounted by the time a
+    // recipe is tapped. The confirm sheet opens from a context that outlives
+    // the card (`hostContextOf`) — a `context.mounted` bail used to drop the
+    // pick here.
+    filterForuiSemanticsAssertions();
+    final show = ValueNotifier(true);
+    addTearDown(show.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: _withCook([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(week: _plannedWeek()),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(null)),
+        ], null),
+        child: MaterialApp(
+          home: ValueListenableBuilder<bool>(
+            valueListenable: show,
+            builder: (_, visible, _) =>
+                visible ? const WeekView() : const SizedBox.shrink(),
+          ),
+          builder: (context, child) =>
+              FTheme(data: ansiThemeData(), child: child!),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add a meal').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Search recipes'), findsOneWidget, reason: 'the picker');
+
+    show.value = false;
+    await tester.pumpAndSettle();
+    expect(find.byType(WeekView), findsNothing);
+
+    await tester.tap(find.text('Weeknight Chicken Curry').last);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Add to plan'), findsOneWidget, reason: 'confirm sheet');
   });
 
   testWidgets('presentation is the resting state — no add doors, no chevrons', (

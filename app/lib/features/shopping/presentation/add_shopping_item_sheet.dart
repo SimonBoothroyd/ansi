@@ -210,22 +210,29 @@ class _TopUpBody extends HookConsumerWidget {
     final search = useIngredientSearch(ref, context);
 
     Future<void> pick(Ingredient ing) async {
+      // The quantity sheet brings the keyboard, which shrinks this sheet's
+      // list under it — the tapped row can be unmounted by the time Add
+      // top-up is pressed. Resolve everything the write needs first, through
+      // handles that outlive the row (`hostContextOf`); never a `ref` after
+      // the await, never a `context.mounted` bail that drops the top-up.
+      final container = ProviderScope.containerOf(context, listen: false);
+      final host = hostContextOf(context);
       final result = await showQuantityUnitSheet(
         context,
         ingredient: ing,
         requireQuantity: true,
         confirmLabel: 'Add top-up',
       );
-      if (result is! QuantitySaved || !context.mounted) return;
+      if (result is! QuantitySaved) return;
       final qty = result.quantity;
       if (qty == null) return;
-      final repo = ref.read(shoppingRepositoryProvider);
+      final repo = container.read(shoppingRepositoryProvider);
       // The top-up joins the list on screen (0018 / D3).
-      final weekStart = ref.read(viewedWeekStartProvider);
+      final weekStart = container.read(viewedWeekStartProvider);
       // A measure top-up stores the honest count fallback unit (`pieces`)
       // beside the measure id — see [ShoppingRepository.addTopUp].
-      final added = await ref.writeOk(
-        context,
+      final added = await container.writeOk(
+        host,
         'add ${ing.canonicalName}',
         () async => switch (result.choice) {
           UnitOption(:final unit) => repo.addTopUp(
@@ -243,7 +250,11 @@ class _TopUpBody extends HookConsumerWidget {
           ),
         },
       );
-      if (added && context.mounted) Navigator.of(context).pop();
+      // This sheet is the root navigator's top route again once the quantity
+      // sheet has popped, so the host pops it whether or not the row lives.
+      // The host outlives the row — see [hostContextOf].
+      // ignore: use_build_context_synchronously
+      if (added) Navigator.of(host.context).pop();
     }
 
     return Column(

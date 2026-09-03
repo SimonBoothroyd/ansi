@@ -166,6 +166,13 @@ class _GroupEditor extends StatelessWidget {
   /// quantity control re-opens the sheet.
   Future<void> _addLine(BuildContext context) async {
     final name = group.name;
+    // The picker's search brings the keyboard, which shrinks the editor's
+    // list under it: this group card can be unmounted by the time a row is
+    // tapped. The second sheet opens from a context that outlives the card
+    // (`hostContextOf`), and [notifier] is the editor's own, kept alive by
+    // the page watching it — so the line is added whatever became of the
+    // card. Never a `context.mounted` bail here: it would drop the pick.
+    final host = hostContextOf(context);
     final picked = await showLineTargetPicker(
       context,
       editingRecipeId: recipeId,
@@ -173,11 +180,13 @@ class _GroupEditor extends StatelessWidget {
           ? 'Add an ingredient'
           : 'Add to “$name”',
     );
-    if (picked == null || !context.mounted) return;
+    if (picked == null) return;
     switch (picked) {
       case PickedIngredient(:final ingredient):
         final result = await showQuantityUnitSheet(
-          context,
+          // The host outlives the row — see [hostContextOf].
+          // ignore: use_build_context_synchronously
+          host.context,
           ingredient: ingredient,
         );
         notifier.addLineItem(
@@ -188,9 +197,11 @@ class _GroupEditor extends StatelessWidget {
         );
       case PickedSubRecipe(:final target):
         final result = await showComponentQuantitySheet(
-          context,
+          // The host outlives the row — see [hostContextOf].
+          // ignore: use_build_context_synchronously
+          host.context,
           target: target,
-          onSetYield: () => context.pushOnce('/recipes/${target.id}/edit'),
+          onSetYield: () => host.context.pushOnce('/recipes/${target.id}/edit'),
         );
         notifier.addComponentLineItem(
           group.id,
@@ -517,6 +528,9 @@ class _ComponentLineEditor extends StatelessWidget {
     final label = componentAmountText(item.quantity, item.unit);
 
     Future<void> editQuantity() async {
+      // The sheet's keyboard can unmount this row; the yield door pushes
+      // from a context that outlives it.
+      final host = hostContextOf(context);
       final result = await showComponentQuantitySheet(
         context,
         target:
@@ -529,7 +543,7 @@ class _ComponentLineEditor extends StatelessWidget {
         initialUnit: item.unit,
         onSetYield: target == null
             ? null
-            : () => context.pushOnce('/recipes/${target.id}/edit'),
+            : () => host.context.pushOnce('/recipes/${target.id}/edit'),
       );
       if (result == null) return;
       notifier

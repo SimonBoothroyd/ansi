@@ -238,16 +238,24 @@ class _RecipeBody extends HookConsumerWidget {
     // Guarded, because the alternative is the worst outcome this front knows
     // of: a check that threw would leave `uses` unknown, and an unknown that
     // reads as "nothing points here" turns a refusal into a delete.
+    //
+    // This page is a whole route and does not unmount under its dialogs, but
+    // the rule is one rule (`hostContextOf`): what runs after an awaited
+    // dialog goes through the container and the host, never `ref`.
     final repository = ref.read(recipeRepositoryProvider);
-    final uses = await ref.write(
-      context,
+    final container = ProviderScope.containerOf(context, listen: false);
+    final host = hostContextOf(context);
+    final uses = await container.write(
+      host,
       'check what uses this recipe',
       () => repository.usedIn(recipe.id),
     );
-    if (uses == null || !context.mounted) return;
+    if (uses == null) return;
     if (uses.isNotEmpty) {
       await showAnsiDialog<void>(
-        context: context,
+        // The host outlives the row — see [hostContextOf].
+        // ignore: use_build_context_synchronously
+        context: host.context,
         builder: (context, style, animation) => FDialog(
           animation: animation,
           title: Text('Can’t delete this recipe', style: ansiSerif(size: 20)),
@@ -270,7 +278,9 @@ class _RecipeBody extends HookConsumerWidget {
     }
 
     final ok = await showAnsiDialog<bool>(
-      context: context,
+      // The host outlives the row — see [hostContextOf].
+      // ignore: use_build_context_synchronously
+      context: host.context,
       builder: (context, style, animation) => FDialog(
         animation: animation,
         title: Text('Delete recipe?', style: ansiSerif(size: 20)),
@@ -289,9 +299,9 @@ class _RecipeBody extends HookConsumerWidget {
         ],
       ),
     );
-    if ((ok ?? false) && context.mounted) {
-      final deleted = await ref.writeOk(
-        context,
+    if (ok ?? false) {
+      final deleted = await container.writeOk(
+        host,
         'delete that recipe',
         () => repository.deleteRecipe(recipe.id),
       );

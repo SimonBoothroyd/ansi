@@ -289,8 +289,16 @@ class _OverflowMenu extends ConsumerWidget {
               title: const Text('Sign out'),
               onPress: () async {
                 unawaited(controller.hide());
+                // The header never unmounts, but the rule is one rule: the
+                // notifier is read after the dialog through the container.
+                final container = ProviderScope.containerOf(
+                  context,
+                  listen: false,
+                );
                 if (await _confirmSignOut(context)) {
-                  await ref.read(sessionControllerProvider.notifier).signOut();
+                  await container
+                      .read(sessionControllerProvider.notifier)
+                      .signOut();
                 }
               },
             ),
@@ -484,17 +492,23 @@ Future<void> promptForNewSection(
   WidgetRef ref,
   String bookId,
 ) async {
+  // The prompt's keyboard shrinks the Library under it, so the card row that
+  // opened it can be unmounted by the time Add is tapped: the write goes
+  // through handles that outlive the row (`hostContextOf`), never a `ref`
+  // after the await and never a `context.mounted` bail that drops the name.
+  final container = ProviderScope.containerOf(context, listen: false);
+  final host = hostContextOf(context);
   final name = await promptForText(
     context,
     title: 'New section',
     hint: 'Name it anything',
     confirm: 'Add',
   );
-  if (name == null || name.trim().isEmpty || !context.mounted) return;
-  await ref.write(
-    context,
+  if (name == null || name.trim().isEmpty) return;
+  await container.write(
+    host,
     'add that section',
-    () => ref.read(bookRepositoryProvider).createSection(bookId, name),
+    () => container.read(bookRepositoryProvider).createSection(bookId, name),
   );
 }
 
@@ -536,6 +550,13 @@ class _BookMenu extends ConsumerWidget {
               title: const Text('Rename'),
               onPress: () async {
                 unawaited(controller.hide());
+                // The prompt's keyboard can unmount this header row; the
+                // write continues through handles that outlive it.
+                final container = ProviderScope.containerOf(
+                  context,
+                  listen: false,
+                );
+                final host = hostContextOf(context);
                 final name = await promptForText(
                   context,
                   title: 'Rename book',
@@ -543,11 +564,9 @@ class _BookMenu extends ConsumerWidget {
                   initial: book.name,
                   confirm: 'Rename',
                 );
-                if (name == null || name.trim().isEmpty || !context.mounted) {
-                  return;
-                }
-                await ref.write(
-                  context,
+                if (name == null || name.trim().isEmpty) return;
+                await container.write(
+                  host,
                   'rename that book',
                   () => repo.renameBook(book.id, name),
                 );
@@ -619,15 +638,21 @@ Future<void> confirmDeleteBook(
 ) async {
   // Keep-alive, read before the first await: every branch below crosses a
   // dialog, and a throwaway notifier would be disposed before its callback ran.
+  // The container and the host context outlive the header row that opened
+  // the menu (`hostContextOf`): every dialog after the first await opens
+  // from the host, and the write goes through the container — never a `ref`
+  // after an await, never a `context.mounted` bail that drops a confirmed
+  // delete or move.
   final repo = ref.read(bookRepositoryProvider);
+  final container = ProviderScope.containerOf(context, listen: false);
+  final host = hostContextOf(context);
 
   if (books.length <= 1) {
     // Separate on purpose: `ensureDefaultBook()` would re-mint a book on the
     // next launch, and a book that reappears after you delete it is worse than
     // being told no.
-    if (!context.mounted) return;
     await _refuse(
-      context,
+      host.context,
       title: 'Can’t delete “${book.name}”',
       body: 'This is your only book — every recipe needs a shelf.',
     );
@@ -635,11 +660,12 @@ Future<void> confirmDeleteBook(
   }
 
   final held = await repo.countRecipesIn(book.id);
-  if (!context.mounted) return;
 
   if (held > 0) {
     final move = await _refuse(
-      context,
+      // The host outlives the row — see [hostContextOf].
+      // ignore: use_build_context_synchronously
+      host.context,
       title: 'Can’t delete “${book.name}” yet',
       body:
           'It holds $held ${held == 1 ? 'recipe' : 'recipes'}. Move '
@@ -647,9 +673,11 @@ Future<void> confirmDeleteBook(
           '${held == 1 ? 'it' : 'them'}.',
       door: 'Move them to…',
     );
-    if (!move || !context.mounted) return;
+    if (!move) return;
     final target = await showBookPickSheet(
-      context,
+      // The host outlives the row — see [hostContextOf].
+      // ignore: use_build_context_synchronously
+      host.context,
       moving: held,
       from: book,
       candidates: [
@@ -657,18 +685,19 @@ Future<void> confirmDeleteBook(
           if (b.id != book.id) b,
       ],
     );
-    if (target == null || !context.mounted) return;
-    await ref.write(
-      context,
+    if (target == null) return;
+    await container.write(
+      host,
       'move those recipes',
       () => repo.moveBookContents(fromBookId: book.id, toBookId: target.id),
     );
     return;
   }
 
-  if (!context.mounted) return;
   final confirmed = await showAnsiDialog<bool>(
-    context: context,
+    // The host outlives the row — see [hostContextOf].
+    // ignore: use_build_context_synchronously
+    context: host.context,
     builder: (context, style, animation) => FDialog(
       animation: animation,
       title: Text('Delete “${book.name}”?', style: ansiSerif(size: 20)),
@@ -692,9 +721,9 @@ Future<void> confirmDeleteBook(
       ],
     ),
   );
-  if (!(confirmed ?? false) || !context.mounted) return;
-  await ref.write(
-    context,
+  if (!(confirmed ?? false)) return;
+  await container.write(
+    host,
     'delete “${book.name}”',
     () => repo.deleteBook(book.id),
   );
@@ -895,6 +924,12 @@ class _SectionMenu extends ConsumerWidget {
               title: const Text('Rename'),
               onPress: () async {
                 unawaited(controller.hide());
+                // As for the book rename: the keyboard can unmount this row.
+                final container = ProviderScope.containerOf(
+                  context,
+                  listen: false,
+                );
+                final host = hostContextOf(context);
                 final name = await promptForText(
                   context,
                   title: 'Rename section',
@@ -902,11 +937,9 @@ class _SectionMenu extends ConsumerWidget {
                   initial: section.name,
                   confirm: 'Rename',
                 );
-                if (name == null || name.trim().isEmpty || !context.mounted) {
-                  return;
-                }
-                await ref.write(
-                  context,
+                if (name == null || name.trim().isEmpty) return;
+                await container.write(
+                  host,
                   'rename that section',
                   () => repo.renameSection(section.id, name),
                 );
@@ -1077,17 +1110,19 @@ class _EmptyState extends ConsumerWidget {
 
 /// Names and creates a book, from the `⋯` menu and the no-books state alike.
 Future<void> promptForNewBook(BuildContext context, WidgetRef ref) async {
+  final container = ProviderScope.containerOf(context, listen: false);
+  final host = hostContextOf(context);
   final name = await promptForText(
     context,
     title: 'New book',
     hint: 'e.g. Our Cookbook',
     confirm: 'Create',
   );
-  if (name == null || name.trim().isEmpty || !context.mounted) return;
-  await ref.write(
-    context,
+  if (name == null || name.trim().isEmpty) return;
+  await container.write(
+    host,
     'create that book',
-    () => ref.read(bookRepositoryProvider).createBook(name),
+    () => container.read(bookRepositoryProvider).createBook(name),
   );
 }
 

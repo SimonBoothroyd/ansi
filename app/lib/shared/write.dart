@@ -134,6 +134,108 @@ Future<bool> guardedWriteOk(
     ) ??
     false;
 
+/// A context that outlives the row that opened a sheet: the root navigator's
+/// overlay. Resolve it BEFORE the first `await` in a flow that continues after
+/// a sheet or dialog — open the next sheet with it, toast through it, and
+/// nothing is lost when the row itself is gone.
+///
+/// Why a row can be gone: every list here is a viewport, and on a phone the
+/// sheet's keyboard shrinks it, so the card that opened the sheet scrolls out
+/// and unmounts while the sheet is still up. Riverpod 3 throws on a
+/// `WidgetRef` used after that (owner report 2026-09-03 #1), and a
+/// `context.mounted` bail avoids the throw only by dropping the write the user
+/// just confirmed. The overlay sits below the app's one `FTheme` and
+/// `FToaster` and inside the root navigator, so every `showAnsi*` door and
+/// `showAnsiFailureToast` work from it. Held by
+/// `test/structure/no_ref_after_await_test.dart`.
+HostContext hostContextOf(BuildContext context) =>
+    HostContext(Navigator.of(context, rootNavigator: true).overlay!.context);
+
+/// A context that is safe across async gaps — see [hostContextOf].
+///
+/// Its own type rather than a bare `BuildContext` so the
+/// `use_build_context_synchronously` lint, which cannot know that the root
+/// overlay outlives every row, is answered once here instead of with an
+/// `ignore` at every call site. Reach the context through [context].
+extension type const HostContext(BuildContext context) {}
+
+/// [guardedWrite] for a write that lands AFTER an awaited sheet, from a
+/// widget that may no longer exist: [container] was captured before the await
+/// (`ProviderScope.containerOf(context, listen: false)`), [host] is
+/// [hostContextOf] from the same moment. Same posture, same toast.
+Future<T?> guardedWriteFrom<T>(
+  ProviderContainer container,
+  HostContext host, {
+  required String what,
+  required Future<T> Function() action,
+  String? reassurance,
+  bool retryable = true,
+}) => _attempt(
+  host.context,
+  container.read(crashSinkProvider),
+  what: what,
+  action: action,
+  reassurance: reassurance,
+  retryable: retryable,
+);
+
+/// [guardedWriteOk] in the [guardedWriteFrom] form.
+Future<bool> guardedWriteOkFrom(
+  ProviderContainer container,
+  HostContext host, {
+  required String what,
+  required Future<void> Function() action,
+  String? reassurance,
+  bool retryable = true,
+}) async =>
+    await guardedWriteFrom<bool>(
+      container,
+      host,
+      what: what,
+      action: () async {
+        await action();
+        return true;
+      },
+      reassurance: reassurance,
+      retryable: retryable,
+    ) ??
+    false;
+
+/// Sugar for the post-await form — see [guardedWriteFrom]. Reads as
+/// `container.write(host, 'rename that book', …)`, so the structural write
+/// check recognises it as the same door.
+extension AnsiContainerWrite on ProviderContainer {
+  Future<T?> write<T>(
+    HostContext host,
+    String what,
+    Future<T> Function() action, {
+    String? reassurance,
+    bool retryable = true,
+  }) => guardedWriteFrom(
+    this,
+    host,
+    what: what,
+    action: action,
+    reassurance: reassurance,
+    retryable: retryable,
+  );
+
+  Future<bool> writeOk(
+    HostContext host,
+    String what,
+    Future<void> Function() action, {
+    String? reassurance,
+    bool retryable = true,
+  }) => guardedWriteOkFrom(
+    this,
+    host,
+    what: what,
+    action: action,
+    reassurance: reassurance,
+    retryable: retryable,
+  );
+}
+
 /// Sugar so a call site reads as one line — see [guardedWrite] and
 /// [guardedWriteOk], which these forward to unchanged.
 extension AnsiWrite on WidgetRef {
