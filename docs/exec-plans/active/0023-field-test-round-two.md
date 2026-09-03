@@ -63,6 +63,14 @@ proven only when the next APK runs on the phone).
   symptom is shell-wide: consistent with one keyboard height subtracted
   twice (the shell's scaffold and the tab root's). Belt and braces landed
   `b2f91a2`: the sign-in page drops the keyboard before it navigates away.
+- 2026-09-03 — Owner, after a hard reset on the Pixel: the UI is no longer
+  cut off — the shell-wide inset symptom (Cook, Week, Library) is gone with
+  `0f8a134` + `b2f91a2` in. Recorded as the field observation; the rehearsal
+  artifact walk above stands as the formal check.
+- 2026-09-03 — Migration numbering: the debt pass (`0023-debt-pass.md`)
+  landed `0021_admission_mirror.sql` and `0022_singularize_invariants.sql`
+  on main the same evening, so this plan's additive migration is **`0023`**,
+  not `0021` as the entry above says.
 
 ## Step-done checklist
 
