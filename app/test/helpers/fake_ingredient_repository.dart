@@ -38,8 +38,11 @@ mixin IngredientManagerStubs implements IngredientRepository {
   Future<Ingredient?> applyUsdaProbe(
     String ingredientId, {
     required String source,
+    String? sourceLabel,
+    double? sourceScore,
     double? densityGPerMl,
     Macros? macros,
+    bool explicitPick = false,
   }) => throw UnimplementedError();
 
   @override
@@ -230,6 +233,8 @@ class FakeIngredientRepo implements IngredientRepository {
       defaultMeasureId: measureId,
       measureCount: current.measureCount,
       source: current.source,
+      sourceLabel: current.sourceLabel,
+      sourceScore: current.sourceScore,
     );
     _replace(updated);
     return updated;
@@ -257,6 +262,8 @@ class FakeIngredientRepo implements IngredientRepository {
       allowedUnits: kept.toList(),
       measureCount: current.measureCount,
       source: current.source,
+      sourceLabel: current.sourceLabel,
+      sourceScore: current.sourceScore,
     );
     _replace(updated);
     return updated;
@@ -266,23 +273,31 @@ class FakeIngredientRepo implements IngredientRepository {
   Future<Ingredient?> applyUsdaProbe(
     String ingredientId, {
     required String source,
+    String? sourceLabel,
+    double? sourceScore,
     double? densityGPerMl,
     Macros? macros,
+    bool explicitPick = false,
   }) async {
+    if (densityGPerMl == null && macros == null) return null;
     final current = _find(ingredientId);
     if (current == null) return null;
-    // The same two guards the real repo re-checks inside its transaction
-    // (D7b): a bare stub only, so a machine's numbers never land on a row
-    // someone has filled in.
+    // The same guards the real repo re-checks inside its transaction (D7b):
+    // a bare stub only, so a machine's numbers never land on a row someone
+    // has filled in — and a declined row only for a person's own pick
+    // (plan 0027 U-D2/U-D3).
     if (current.status != IngredientStatus.stub ||
         current.densityGPerMl != null ||
         current.macros != null) {
       return null;
     }
+    if (isUsdaDeclined(current.source) && !explicitPick) return null;
     final updated = current.copyWith(
       densityGPerMl: densityGPerMl,
       macros: macros,
       source: source,
+      sourceLabel: sourceLabel,
+      sourceScore: sourceScore,
     );
     _replace(updated);
     return updated;
@@ -309,6 +324,8 @@ class FakeIngredientRepo implements IngredientRepository {
       measureCount: current.measureCount,
       // Patch-shaped, like the real write: a null keeps the stored stamp.
       source: edit.source ?? current.source,
+      sourceLabel: current.sourceLabel,
+      sourceScore: current.sourceScore,
     );
     _replace(updated);
     return updated;

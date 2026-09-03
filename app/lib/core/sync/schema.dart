@@ -158,6 +158,12 @@ const schema = Schema([
     Column.text('default_measure_id'),
     Column.text('status'),
     Column.text('source'),
+    // The USDA food a prefill copied from, and the trigram score that earned
+    // it (0027, plan 0027 U-D1) — written beside `source` by both prefill
+    // writers so the form can name the match offline. Null where nothing
+    // filled the row or the fill predates 0027.
+    Column.text('source_label'),
+    Column.real('source_score'),
     Column.text('match_text'),
     ..._audit,
   ]),

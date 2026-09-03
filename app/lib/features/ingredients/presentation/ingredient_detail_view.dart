@@ -30,6 +30,14 @@
 /// "1 tbsp = 14 g" is offered, opt-in, as this row's density (or a measure
 /// when it names a thing) in the same save (M-D2). A barcode draft whose
 /// panel came per serving lands on that mode (M-D5).
+/// Since plan 0027 (front U) the form **names the USDA match** at the head of
+/// its macros section — the food's description, its FDC id and a band word,
+/// read off the row's own `source_label` / `source_score` so it is true
+/// offline — with two doors beside it: *Not this food* (one write: the
+/// prefilled density and macros come out, `source` becomes `usda_declined`,
+/// and the rename trigger leaves the row alone from then on) and *Choose
+/// another ▸* (the next five candidates, a pick applied through the same
+/// `applyUsdaProbe`). Neither confirms anything (U-D4).
 library;
 
 import 'dart:async';
@@ -59,6 +67,7 @@ import '../domain/apply_draft.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/normalize.dart';
+import '../domain/usda_probe.dart';
 import 'density_entry.dart';
 import 'draft_card.dart';
 import 'measures_editor.dart';
@@ -432,20 +441,14 @@ class _DetailForm extends HookConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 48),
       children: [
-        // A SLOT, not a conditional child. A lookup that succeeds turns this
-        // banner on, and an unkeyed insertion at the top of a ListView shifts
-        // every sibling by one — which reconciles each of them against the
-        // wrong element and silently resets its hook state, including the
-        // note the lookup just wrote. Keeping the position occupied keeps the
-        // rest of the form aligned.
-        if (stub && isUsdaPrefilled(ing.source))
-          const _PrefillBanner()
-        else
-          const SizedBox.shrink(),
-
-        // Two more slots, for the same reason: the scan door, and the card
-        // its draft lands on. Offered on a stub only — a confirmed row has
-        // nothing empty for a label to fill, and its numbers are a human's.
+        // SLOTS, not conditional children. A lookup that succeeds turns a
+        // section on, and an unkeyed insertion in a ListView shifts every
+        // sibling by one — which reconciles each of them against the wrong
+        // element and silently resets its hook state, including the note the
+        // lookup just wrote. Keeping every position occupied keeps the rest
+        // of the form aligned. First: the scan door, and the card its draft
+        // lands on. Offered on a stub only — a confirmed row has nothing
+        // empty for a label to fill, and its numbers are a human's.
         if (stub)
           Padding(
             padding: const EdgeInsets.only(top: 12),
@@ -524,6 +527,16 @@ class _DetailForm extends HookConsumerWidget {
             allowed.value = {...allowed.value, fix};
             await save();
           },
+        ),
+
+        // U-D1: where the numbers came from, at the head of the section that
+        // holds them. A slot again (it renders nothing on a row USDA never
+        // touched), and the two doors are the only place the prefill can be
+        // refused or re-chosen.
+        _UsdaProvenance(
+          ingredient: ing,
+          onDecline: null,
+          onChooseAnother: null,
         ),
 
         const _Label('MACROS — ENTER THEM AS THE LABEL READS'),
@@ -728,8 +741,11 @@ class _DetailForm extends HookConsumerWidget {
         // so a rename typed and not yet saved is the name USDA is asked
         // about — the exact flow that failed on the owner's device. A slot
         // again, so that landing a density (which retires the note above)
-        // cannot shift this section and wipe what it just said.
-        if (stub)
+        // cannot shift this section and wipe what it just said. Not offered
+        // on a row USDA already filled or a person already refused: there
+        // the provenance line's doors are the way to change the match, and
+        // an automatic probe would have nothing it may write (U-D2).
+        if (stub && !isUsdaPrefilled(ing.source) && !isUsdaDeclined(ing.source))
           _UsdaLookup(
             ingredient: ing,
             flush: save,
@@ -751,19 +767,72 @@ class _DetailForm extends HookConsumerWidget {
 
 // --- Sections ----------------------------------------------------------------
 
-/// Frame (c)'s "Filled in for you — check it" banner. Shown only where the
-/// numbers are a machine's guess and nobody has confirmed them yet (D1/D5).
-class _PrefillBanner extends StatelessWidget {
-  const _PrefillBanner();
+/// The USDA provenance line (plan 0027 **U-D1**, board frames a and b): which
+/// food filled this row, how sure the match was, and the two doors.
+///
+/// Read off the row's own `source_label` / `source_score`, never off a live
+/// probe — the form is offline-first, and after a rename a fresh probe would
+/// name a different food than the one that actually filled the row. A row
+/// filled before 0027 carries a stamp and no label; it reads as the FDC id
+/// alone rather than inventing a name. Nothing here confirms (U-D4): the
+/// header says *not confirmed* until a human taps Confirm below.
+///
+/// Two states, one widget, because they are the same fact at two moments:
+/// - **prefilled** (`usda_fdc:<id>`): the name, the id, the band word, and
+///   both doors;
+/// - **declined** (`usda_declined`, after *Not this food*): the refused
+///   name, what the undo did, and *Choose another* alone — plus the one
+///   sentence a person needs to hear once, that a rename will not refill it.
+class _UsdaProvenance extends StatelessWidget {
+  const _UsdaProvenance({
+    required this.ingredient,
+    required this.onDecline,
+    required this.onChooseAnother,
+  });
+
+  final Ingredient ingredient;
+
+  /// *Not this food*. Null disables the door (a write in flight).
+  final Future<void> Function()? onDecline;
+
+  /// *Choose another ▸*. Null disables the door.
+  final Future<void> Function()? onChooseAnother;
 
   @override
   Widget build(BuildContext context) {
+    final source = ingredient.source;
+    if (!isUsdaPrefilled(source) && !isUsdaDeclined(source)) {
+      return const SizedBox.shrink();
+    }
+    final declined = isUsdaDeclined(source);
+    final stub = ingredient.status == IngredientStatus.stub;
+    final label = ingredient.sourceLabel;
+    final score = ingredient.sourceScore;
+    final name = ingredient.canonicalName;
+
+    final String header;
+    final String line;
+    if (declined) {
+      header = 'USDA · declined';
+      line =
+          '${label ?? 'that USDA food'} — not this food · the filled numbers '
+          'were cleared';
+    } else {
+      header = 'Filled from USDA · ${stub ? 'not confirmed' : 'confirmed'}';
+      line = [
+        ?label,
+        'FDC ${usdaFdcId(source) ?? '?'}',
+        if (score != null) '${UsdaBand.of(score).word} for “$name”',
+      ].join(' · ');
+    }
+    final tone = declined ? AnsiColors.muted : AnsiColors.aging;
+
     return Container(
-      margin: const EdgeInsets.only(top: 8),
+      margin: const EdgeInsets.only(top: 20),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AnsiColors.paper,
-        border: Border.all(color: AnsiColors.aging),
+        border: Border.all(color: declined ? AnsiColors.line : tone),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -771,24 +840,40 @@ class _PrefillBanner extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
-                FLucideIcons.triangleAlert,
+              Icon(
+                declined ? FLucideIcons.circleOff : FLucideIcons.triangleAlert,
                 size: 13,
-                color: AnsiColors.aging,
+                color: tone,
               ),
               const SizedBox(width: 6),
-              Text(
-                'Filled in for you — check it',
-                style: ansiSans(size: 13, weight: FontWeight.w600),
-              ),
+              Text(header, style: ansiSans(size: 13, weight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 4),
-          Text(
-            '· USDA FoodData Central matched this name on the server.\n'
-            '· Nothing counts until you confirm.',
-            style: ansiMono(size: 10, color: AnsiColors.muted),
+          Text(line, style: ansiMono(size: 10, color: AnsiColors.muted)),
+          const SizedBox(height: 8),
+          Row(
+            spacing: 8,
+            children: [
+              if (!declined)
+                FButton(
+                  size: FButtonSizeVariant.sm,
+                  variant: FButtonVariant.outline,
+                  onPress: onDecline,
+                  child: const Text('Not this food'),
+                ),
+              FButton(
+                size: FButtonSizeVariant.sm,
+                variant: FButtonVariant.outline,
+                onPress: onChooseAnother,
+                child: const Text('Choose another ›'),
+              ),
+            ],
           ),
+          if (declined)
+            const _Note(
+              'renaming this row will not refill it — you said no once',
+            ),
         ],
       ),
     );
@@ -1614,6 +1699,11 @@ class _UsdaLookup extends HookConsumerWidget {
                 'up.',
           UsdaEnrichment.notBare =>
             'Nothing to fill in — this row already has numbers.',
+          // Unreachable from this button (it is not offered on a declined
+          // row), stated anyway so the enum stays exhaustive here.
+          UsdaEnrichment.declined =>
+            'You said this wasn’t the USDA food — Choose another to pick '
+                'one.',
         }, result.row ?? saved);
       } finally {
         if (context.mounted) busy.value = false;

@@ -61,6 +61,8 @@ const _mango = Ingredient(
   source: 'seed',
 );
 
+/// A stub the server prefill stamped and named (0027): the match is a close
+/// one, so the form's provenance line reads `close match`.
 const _curryLeaves = Ingredient(
   id: 'curry',
   canonicalName: 'Curry leaves, fresh',
@@ -68,6 +70,8 @@ const _curryLeaves = Ingredient(
   status: IngredientStatus.stub,
   category: 'produce',
   source: 'usda_fdc:11216',
+  sourceLabel: 'Curry leaves, raw',
+  sourceScore: 0.91,
 );
 
 /// The D4c shape the owner hit: a cup default on a per-100 g row with no
@@ -137,6 +141,8 @@ class _FakeMeasures implements MeasureRepository {
 /// trigram match would have returned.
 const _usdaAnswer = UsdaCandidate(
   fdcId: 11216,
+  description: 'Curry leaves, raw',
+  category: 'Vegetables and Vegetable Products',
   source: 'usda_fdc:11216',
   score: 0.71,
   densityGPerMl: 0.35,
@@ -144,26 +150,30 @@ const _usdaAnswer = UsdaCandidate(
 );
 
 /// Records what it was asked. F1's whole point is that the question is about
-/// the name as SAVED, so the recording is the assertion.
-class _RecordingProbe implements UsdaProbe {
-  _RecordingProbe(this.answer);
+/// the name as SAVED, so the recording is the assertion. Answers its one
+/// candidate (or nothing), capped at the limit asked for.
+class _RecordingProbe extends UsdaProbe {
+  _RecordingProbe(UsdaCandidate? answer) : answers = [?answer];
 
-  final UsdaCandidate? answer;
+  final List<UsdaCandidate> answers;
   final asked = <String>[];
+  final limits = <int>[];
 
   @override
-  Future<UsdaCandidate?> probe(String matchText) async {
+  Future<List<UsdaCandidate>> search(String matchText, {int limit = 5}) async {
     asked.add(matchText);
-    return answer;
+    limits.add(limit);
+    return answers.take(limit).toList();
   }
 }
 
 /// The offline / unconfigured answer: nothing, without throwing.
-class _SilentProbe implements UsdaProbe {
+class _SilentProbe extends UsdaProbe {
   const _SilentProbe();
 
   @override
-  Future<UsdaCandidate?> probe(String matchText) async => null;
+  Future<List<UsdaCandidate>> search(String matchText, {int limit = 5}) async =>
+      const [];
 }
 
 /// The flesh-out form is one long scroll; a phone-sized test viewport builds
@@ -557,8 +567,9 @@ void main() {
       expect(cta.onPress, isNull);
     });
 
-    testWidgets('a machine prefill is flagged, and says nothing counts until '
-        'a human confirms (D1/D5)', (tester) async {
+    testWidgets('U-D1: a machine prefill is NAMED at the head of the macros '
+        'section — the food, its FDC id, the band word — reads not '
+        'confirmed, and offers both doors', (tester) async {
       _filterSemanticsAssertions();
       _tallScreen(tester);
       await tester.pumpWidget(
@@ -568,11 +579,114 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Filled in for you — check it'), findsOneWidget);
+      expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
       expect(
-        find.textContaining('Nothing counts until you confirm.'),
+        find.text(
+          'Curry leaves, raw · FDC 11216 · close match for “Curry leaves, '
+          'fresh”',
+        ),
         findsOneWidget,
       );
+      expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
+      expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
+      // The old lookup button has no job on a row USDA already filled: the
+      // doors are how the match changes.
+      expect(find.text('Look up in USDA'), findsNothing);
+      // D5 still: the status line says what a stub costs.
+      expect(find.textContaining('Still a stub'), findsOneWidget);
+    });
+
+    testWidgets('U-D1: the band word follows the score — below 0.85 the line '
+        'says a guess; a row filled before 0027 names the id alone', (
+      tester,
+    ) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo([
+        _curryLeaves.copyWith(sourceScore: 0.62),
+      ]);
+      await tester.pumpWidget(_host(repo, at: '/ingredients/curry'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('a guess for “Curry leaves, fresh”'),
+        findsOneWidget,
+      );
+
+      // A legacy stamp with no label and no score: honest, not invented.
+      await tester.pumpWidget(
+        _host(
+          FakeIngredientRepo(const [
+            Ingredient(
+              id: 'old',
+              canonicalName: 'Old prefill',
+              defaultUnit: g,
+              status: IngredientStatus.stub,
+              source: 'usda_fdc:171705',
+            ),
+          ]),
+          at: '/ingredients/old',
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('FDC 171705'), findsOneWidget);
+      // No band word invented for a score the row never carried.
+      expect(find.textContaining('for “Old prefill”'), findsNothing);
+    });
+
+    testWidgets('U-D1: a CONFIRMED prefill still names its match, and says '
+        'confirmed', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo([
+        _curryLeaves.copyWith(
+          status: IngredientStatus.complete,
+          macros: _usdaAnswer.macros,
+        ),
+      ]);
+      await tester.pumpWidget(_host(repo, at: '/ingredients/curry'));
+      await tester.pumpAndSettle();
+      expect(find.text('Filled from USDA · confirmed'), findsOneWidget);
+      expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
+    });
+
+    testWidgets('U-D2: a DECLINED row names the food it refused, says the '
+        'numbers were cleared, offers Choose another alone, and warns that a '
+        'rename will not refill it', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo([
+        _curryLeaves.copyWith(source: usdaDeclinedSource),
+      ]);
+      await tester.pumpWidget(_host(repo, at: '/ingredients/curry'));
+      await tester.pumpAndSettle();
+      expect(find.text('USDA · declined'), findsOneWidget);
+      expect(
+        find.text(
+          'Curry leaves, raw — not this food · the filled numbers were '
+          'cleared',
+        ),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(FButton, 'Not this food'), findsNothing);
+      expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
+      expect(
+        find.text('renaming this row will not refill it — you said no once'),
+        findsOneWidget,
+      );
+      expect(find.text('Look up in USDA'), findsNothing);
+    });
+
+    testWidgets('a row USDA never touched carries no provenance line at '
+        'all', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      await tester.pumpWidget(
+        _host(FakeIngredientRepo(const [_blackRice]), at: '/ingredients/rice'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('USDA ·'), findsNothing);
+      expect(find.textContaining('from USDA'), findsNothing);
+      expect(find.text('Look up in USDA'), findsOneWidget);
     });
 
     testWidgets('typing the four macros arms the CTA, and confirming flips '
@@ -1198,11 +1312,17 @@ void main() {
       expect(row.densityGPerMl, 0.35);
       expect(row.macros, const Macros(kcal: 108, protein: 6, carb: 19, fat: 1));
       expect(row.source, 'usda_fdc:11216');
+      expect(row.sourceLabel, 'Curry leaves, raw');
       expect(row.status, IngredientStatus.stub);
+      // Since 0027 the fill is NAMED where the numbers live, and the lookup
+      // section (with its "filled this in" note) retires — the provenance
+      // line and its doors are the way the match changes from here.
+      expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
       expect(
-        find.textContaining('USDA FoodData Central filled this in'),
+        find.textContaining('Curry leaves, raw · FDC 11216 · a guess for '),
         findsOneWidget,
       );
+      expect(find.text('Look up in USDA'), findsNothing);
     });
 
     testWidgets('G1: a successful lookup lands its numbers in the OPEN form’s '
@@ -1288,7 +1408,12 @@ void main() {
       // A candidate with a name but nothing to copy — the note the owner saw
       // linger.
       final probe = _RecordingProbe(
-        const UsdaCandidate(fdcId: 11216, source: 'usda_fdc:11216', score: 0.7),
+        const UsdaCandidate(
+          fdcId: 11216,
+          description: 'Curry leaves, raw',
+          source: 'usda_fdc:11216',
+          score: 0.7,
+        ),
       );
       await tester.pumpWidget(
         _host(repo, at: '/ingredients/curry', probe: probe),

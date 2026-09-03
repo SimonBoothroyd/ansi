@@ -808,6 +808,8 @@ void main() {
       final applied = await repo.applyUsdaProbe(
         '3',
         source: 'usda_fdc:11216',
+        sourceLabel: 'Olive oil, salad or cooking',
+        sourceScore: 0.88,
         densityGPerMl: 0.35,
         macros: const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
       );
@@ -815,6 +817,17 @@ void main() {
       expect(applied!.densityGPerMl, 0.35);
       expect(applied.macros!.kcal, 108);
       expect(applied.source, 'usda_fdc:11216');
+      // U-D1: the label and the score land in the same write as the stamp,
+      // and read back off the row.
+      expect(applied.sourceLabel, 'Olive oil, salad or cooking');
+      expect(applied.sourceScore, closeTo(0.88, 1e-6));
+      final stored = await db.get(
+        'SELECT source, source_label, source_score FROM ingredient '
+        'WHERE id = ?',
+        ['3'],
+      );
+      expect(stored['source_label'], 'Olive oil, salad or cooking');
+      expect(stored['source_score'], closeTo(0.88, 1e-6));
       // Still a stub: confirming is a human act (D5).
       expect(applied.status, IngredientStatus.stub);
       expect(applied.allowedUnits!.map((u) => u.id).toSet(), {
@@ -872,6 +885,63 @@ void main() {
       // Nothing unlocked, because nothing bridged: the row had no explicit
       // list and still has none.
       expect(applied.allowedUnits, isNull);
+    });
+
+    test('U-D2/U-D3: a DECLINED row refuses an automatic apply, and takes an '
+        'explicit pick — which stamps the new id and label', () async {
+      await db.execute(
+        "UPDATE ingredient SET source = 'usda_declined', "
+        "source_label = 'Olive oil, refused' WHERE id = ?",
+        ['3'],
+      );
+      // The automatic path (a creation probe, a lookup): nothing lands.
+      expect(
+        await repo.applyUsdaProbe(
+          '3',
+          source: 'usda_fdc:9',
+          sourceLabel: 'Olive oil, guessed again',
+          sourceScore: 0.7,
+          densityGPerMl: 0.9,
+        ),
+        isNull,
+      );
+      final untouched = (await repo.byId('3'))!;
+      expect(untouched.source, 'usda_declined');
+      expect(untouched.densityGPerMl, isNull);
+      expect(untouched.sourceLabel, 'Olive oil, refused');
+
+      // A person's own pick from the Choose-another sheet: lands, and the
+      // stamp, the label and the score all move to the chosen food.
+      final picked = await repo.applyUsdaProbe(
+        '3',
+        source: 'usda_fdc:9',
+        sourceLabel: 'Olive oil, chosen',
+        sourceScore: 0.7,
+        densityGPerMl: 0.9,
+        explicitPick: true,
+      );
+      expect(picked, isNotNull);
+      expect(picked!.source, 'usda_fdc:9');
+      expect(picked.sourceLabel, 'Olive oil, chosen');
+      expect(picked.sourceScore, closeTo(0.7, 1e-6));
+      expect(picked.densityGPerMl, 0.9);
+      expect(picked.status, IngredientStatus.stub);
+    });
+
+    test('an explicit pick still never overwrites numbers — the bare-stub '
+        'guard is not the one it lifts', () async {
+      await repo.setDensity('3', 0.9);
+      expect(
+        await repo.applyUsdaProbe(
+          '3',
+          source: 'usda_fdc:9',
+          sourceLabel: 'Olive oil, chosen',
+          densityGPerMl: 0.5,
+          explicitPick: true,
+        ),
+        isNull,
+      );
+      expect((await repo.byId('3'))!.densityGPerMl, 0.9);
     });
   });
 

@@ -34,10 +34,16 @@
 -- `qt` / `pt`, and a block at the end pins the rule directly plus the
 -- additive backfill's post-state.
 --
+-- Plan 0027 / 0027 (front U) names the USDA match: `ingredient.source_label`
+-- + `source_score`, written by the prefill trigger beside its stamp; a
+-- `usda_declined` source the rename leg never refills; and the probe widened
+-- to return `description` / `category` with a limit, ordered as before.
+-- Those assertions sit inside the 0014 / 0015 / 0016 blocks they extend.
+--
 -- Run by `supabase test db`.
 
 begin;
-select plan(111);
+select plan(131);
 
 -- ---------------------------------------------------------------------------
 -- default_allowed_units() vectors — mirror allowed_units_test.dart, group
@@ -840,6 +846,23 @@ select is(
   'stub',
   'the prefilled row STAYS a stub — completion is a human confirm (D5)'
 );
+-- 0027 / plan 0027 U-D1: the match is NAMED beside its stamp, with the score
+-- that earned it, in the same statement — so the form can say which food.
+select has_column('ingredient', 'source_label',
+  '0027: ingredient carries source_label');
+select has_column('ingredient', 'source_score',
+  '0027: ingredient carries source_score');
+select is(
+  (select source_label from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000003'),
+  'Zzquux Test Reference Food',
+  'the prefill writes the usda_food description as source_label (U-D1)'
+);
+select ok(
+  (select source_score >= 0.5 and source_score <= 1 from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000003'),
+  'and the trigram score that earned it, within the floor and 1'
+);
 -- The density landed by the prefill also flows through the density trigger,
 -- so the row's allowed_units are honest about what it can now say.
 select ok(
@@ -860,6 +883,33 @@ select is(
      where id = 'cccccccc-0000-0000-0000-000000000004'),
   'import_stub',
   'a weak trigram hit does not prefill (below the 0.5 floor)'
+);
+select ok(
+  (select source_label is null and source_score is null from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000004'),
+  'and names nothing — a row nothing filled carries no label (0027)'
+);
+
+-- 0027 / plan 0027 U-D2: a DECLINED stub — a person said "not this food" —
+-- is never refilled, on insert or on rename. `usda_declined` is not among
+-- the sources the WHEN clause may probe; the label of the refused food
+-- stays so the form can name it.
+insert into ingredient (id, household_id, canonical_name, default_unit,
+  status, source, source_label, match_text)
+values ('cccccccc-0000-0000-0000-000000000010',
+  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Zzquux Test Reference Food', 'g',
+  'stub', 'usda_declined', 'Zzquux Test Reference Food',
+  'zzquux test reference food');
+select ok(
+  (select density_g_per_ml is null and macros is null from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000010'),
+  'a declined stub is not prefilled on insert, whatever it matches (U-D2)'
+);
+select is(
+  (select source from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000010'),
+  'usda_declined',
+  'and its source stays usda_declined'
 );
 
 -- A seeded/curated row is NOT prefilled: the seed pipeline audits its own
@@ -964,6 +1014,42 @@ select is(
   'stub',
   'a renamed-and-prefilled row is STILL a stub (D5 holds on the new leg)'
 );
+select is(
+  (select source_label from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000008'),
+  'Zzquux Test Reference Food',
+  'the rename leg names the match too (0027 U-D1)'
+);
+
+-- U-D2 on the rename leg: the flow the ruling is about. A declined row is
+-- renamed to the very name that would match, and stays bare.
+insert into ingredient (id, household_id, canonical_name, default_unit,
+  status, source, source_label, match_text)
+values ('cccccccc-0000-0000-0000-000000000011',
+  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Qqfoo Declined Item', 'g',
+  'stub', 'usda_declined', 'Zzquux Test Reference Food',
+  'qqfoo declined item');
+update ingredient
+   set canonical_name = 'Zzquux Test Reference Food',
+       match_text = 'zzquux test reference food'
+ where id = 'cccccccc-0000-0000-0000-000000000011';
+select ok(
+  (select density_g_per_ml is null and macros is null from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000011'),
+  'renaming a DECLINED stub does not refill it — you said no once (U-D2)'
+);
+select is(
+  (select source from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000011'),
+  'usda_declined',
+  'and the decline survives the rename'
+);
+select is(
+  (select source_label from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000011'),
+  'Zzquux Test Reference Food',
+  'as does the name of the food that was refused'
+);
 
 -- The guard that matters most on the update leg: a row someone has already
 -- filled in is never re-probed, so a rename cannot clobber real numbers.
@@ -997,10 +1083,17 @@ select is(
 -- no behaviour. What follows pins the new door.
 -- ---------------------------------------------------------------------------
 
-select has_function('probe_usda', array['text'],
-  'probe_usda(text) exists — the D7b client door');
-select has_function('usda_probe', array['text'],
-  'usda_probe(text) exists — the shared probe both callers read');
+-- 0027 widened both signatures with a limit (default 1): the one-argument
+-- forms are gone, so a PostgREST call can never be ambiguous between two
+-- overloads.
+select has_function('probe_usda', array['text', 'integer'],
+  'probe_usda(text, int) exists — the D7b client door, with a limit (0027)');
+select hasnt_function('probe_usda', array['text'],
+  'the one-argument probe_usda is gone — no overload ambiguity');
+select has_function('usda_probe', array['text', 'integer'],
+  'usda_probe(text, int) exists — the shared probe both callers read');
+select hasnt_function('usda_probe', array['text'],
+  'the one-argument usda_probe is gone');
 
 -- SECURITY DEFINER with a pinned search_path, exactly as 0014's function has:
 -- these read a table no client role is granted, so definer rights are the
@@ -1023,15 +1116,15 @@ select ok(
 -- The grant shape: authenticated reaches the RPC and NOTHING else. anon
 -- reaches neither, and the reference table stays ungranted (ADR-0005).
 select ok(
-  has_function_privilege('authenticated', 'probe_usda(text)', 'execute'),
+  has_function_privilege('authenticated', 'probe_usda(text, int)', 'execute'),
   'authenticated may call probe_usda — the D7b door is open'
 );
 select ok(
-  not has_function_privilege('anon', 'probe_usda(text)', 'execute'),
+  not has_function_privilege('anon', 'probe_usda(text, int)', 'execute'),
   'anon may not: enrichment is for a signed-in household'
 );
 select ok(
-  not has_function_privilege('authenticated', 'usda_probe(text)', 'execute'),
+  not has_function_privilege('authenticated', 'usda_probe(text, int)', 'execute'),
   'authenticated may NOT call the helper directly — one door, not two'
 );
 select ok(
@@ -1061,6 +1154,55 @@ select is(
   (select source from probe_usda('zzquux test reference food')),
   'usda_fdc:999000001',
   'and the SAME source stamp the trigger writes — one formatter, not two'
+);
+
+-- 0027 / plan 0027 U-D1 + U-D3: the probe names its candidate, and can list
+-- more than one — in the SAME total order (score desc, fdc_id asc) as the
+-- single answer, so "the next five" are what the trigger would have picked
+-- had each earlier one not existed. A second reference row, a near miss of
+-- the first, makes the order observable.
+insert into usda_food (fdc_id, description, category, density_g_per_ml,
+  macros, match_text)
+values (999000002, 'Zzquux Test Reference Food Two', 'produce', 0.5,
+  '{"kcal": 50, "protein": 1, "carb": 10, "fat": 1}'::jsonb,
+  'zzquux test reference food two');
+select is(
+  (select description from probe_usda('zzquux test reference food')),
+  'Zzquux Test Reference Food',
+  'probe_usda returns the candidate''s description (0027 U-D1)'
+);
+select is(
+  (select category from probe_usda('zzquux test reference food')),
+  'produce',
+  'and its category'
+);
+select is(
+  (select count(*) from probe_usda('zzquux test reference food')),
+  1::bigint,
+  'the default limit is still ONE — every existing caller unchanged'
+);
+select is(
+  (select array_agg(fdc_id order by ord)
+     from probe_usda('zzquux test reference food', 5)
+     with ordinality as p(fdc_id, description, category, density_g_per_ml,
+       macros, score, source, ord)),
+  array[999000001, 999000002],
+  'with a limit, the list is ordered as before: the exact hit, then the near '
+  'miss (U-D3)'
+);
+select ok(
+  (select bool_and(score >= 0.5) from probe_usda('zzquux test reference food', 5)),
+  'and every listed candidate clears the same 0.5 floor'
+);
+select is(
+  (select count(*) from probe_usda('zzquux test reference food', 500)),
+  2::bigint,
+  'a limit above the hits returns the hits — and never more than the cap'
+);
+select is(
+  (select fdc_id from probe_usda('zzquux test reference food', 0)),
+  999000001,
+  'a limit of zero reads as one, not as nothing'
 );
 
 -- The 0.5 floor lives in the helper, so the RPC inherits it: the same weak

@@ -51,20 +51,54 @@ abstract class Ingredient with _$Ingredient {
     @Default(0) int measureCount,
 
     /// The row's provenance stamp (`seed`, `manual`, `import_stub`,
-    /// `usda_fdc:<fdc_id>` — the server prefill's mark, plan 0020 D7).
+    /// `usda_fdc:<fdc_id>` — the server prefill's mark, plan 0020 D7 — or
+    /// [usdaDeclinedSource], a person's "not this food", plan 0027 U-D2).
     /// Shown, never interpreted as truth: it says where the numbers came
     /// from, and a machine-supplied one still waits for a human confirm
     /// (D5). Null on a row read by a caller that didn't select it.
     String? source,
+
+    /// The name of the USDA food the prefill copied from —
+    /// `usda_food.description`, written beside [source] by both prefill
+    /// writers (migration 0027, plan 0027 U-D1) so the form can say WHICH
+    /// food filled the row, offline. Survives a decline: the form names the
+    /// food that was refused. Null on rows filled before 0027 and on rows
+    /// nothing filled.
+    String? sourceLabel,
+
+    /// The trigram score (0.5–1) that earned the match in [sourceLabel],
+    /// stored so the band word (`UsdaBand`) is readable offline. Shown, never
+    /// acted on — the floor is the server's. Null where the label is null,
+    /// and cleared by a decline.
+    double? sourceScore,
   }) = _Ingredient;
 }
 
-/// Whether [source] marks a row the server's USDA prefill wrote into —
-/// `usda_fdc:<fdc_id>` (`match_db.ts`). The list's stub band and the form's
-/// "filled in for you" banner both read this rather than guessing from the
-/// presence of macros.
+/// Whether [source] marks a row the USDA prefill wrote into —
+/// `usda_fdc:<fdc_id>`, stamped by the server trigger and by the app's
+/// `applyUsdaProbe` alike. The list's stub band and the form's provenance
+/// line both read this rather than guessing from the presence of macros.
 bool isUsdaPrefilled(String? source) =>
     source?.startsWith('usda_fdc:') ?? false;
+
+/// The `source` a person's *Not this food* leaves behind (plan 0027 U-D2).
+///
+/// Its own value rather than a reset to `manual` because the rename
+/// trigger's WHEN clause (0015) lists the sources it may refill — `manual`
+/// among them — and this one is deliberately not on the list: a food refused
+/// once is not offered again by a machine. Only an explicit pick
+/// (`applyUsdaProbe` with `explicitPick`) writes over it.
+const usdaDeclinedSource = 'usda_declined';
+
+/// Whether [source] is [usdaDeclinedSource].
+bool isUsdaDeclined(String? source) => source == usdaDeclinedSource;
+
+/// The FDC id inside a `usda_fdc:<id>` stamp, or null for any other
+/// [source] — the number the provenance line prints beside the food's name.
+int? usdaFdcId(String? source) {
+  if (source == null || !isUsdaPrefilled(source)) return null;
+  return int.tryParse(source.substring('usda_fdc:'.length));
+}
 
 /// One alternate name for an ingredient ("mangoes", "ataulfo") — the search
 /// cascade matches these as well as [Ingredient.canonicalName], so the

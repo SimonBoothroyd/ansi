@@ -1,55 +1,90 @@
 /// The USDA enrichment probe — PURE DART (invariant 2).
 ///
-/// Plan 0020 **D7b**. `usda_food` never syncs to a device (ADR-0005), so the
-/// app cannot search it. What it *can* do, since migration 0016, is ask the
-/// server for **one** candidate by name through a security-definer RPC that
-/// writes nothing (`probe_usda`). That is the whole of this interface: a
-/// question with at most one answer.
+/// Plan 0020 **D7b**, widened by plan 0027 **U-D1/U-D3**. `usda_food` never
+/// syncs to a device (ADR-0005), so the app cannot search it. What it *can*
+/// do, since migration 0016, is ask the server for candidates by name
+/// through a security-definer RPC that writes nothing (`probe_usda`). Since
+/// 0027 the answer names each candidate (its `description`) and can be a
+/// short-list rather than a single row — "the next five", in the same total
+/// order the prefill trigger uses, so the form can offer *Choose another*.
+/// The reference set is still not browsable: the server caps the list.
 ///
 /// Why it exists at all, when the 0014/0015 trigger already enriches stubs on
 /// upload: the trigger is a *reaction to a round trip*. A stub written on a
 /// phone is enriched only after write → upload → trigger → sync down. D7b
-/// lets a creation flow ask the question at birth and lets "Look up in USDA"
-/// be a real query rather than a re-read of a row nothing has changed yet.
+/// lets a creation flow ask the question at birth and lets a lookup be a real
+/// query rather than a re-read of a row nothing has changed yet.
 ///
-/// **The offline contract is part of the type.** [UsdaProbe.probe] returns
-/// null for "no confident candidate" *and* for "could not ask" — a network
-/// miss is not an error here, because the trigger path is still running and
-/// will catch the row when it syncs. Callers degrade with honest copy; they
-/// never raise a dialog for a missing connection.
+/// **The offline contract is part of the type.** [UsdaProbe.search] returns
+/// an empty list for "no confident candidate" *and* for "could not ask" — a
+/// network miss is not an error here, because the trigger path is still
+/// running and will catch the row when it syncs. Callers degrade with honest
+/// copy; they never raise a dialog for a missing connection.
 library;
 
 import 'package:meta/meta.dart';
 
 import '../../../core/units/macros.dart';
 
-/// One USDA candidate's copyable fields, as `probe_usda` returns them.
+/// How sure the match was, in the two words the form and the pick sheets
+/// print (plan 0027 U-D1: "≥ 0.85 close, 0.5–0.85 a guess" — the import's own
+/// bands). The 0.5 floor is the server's; nothing below it ever arrives.
+enum UsdaBand {
+  close,
+  guess;
+
+  static UsdaBand of(double score) => score >= 0.85 ? close : guess;
+
+  /// The band as the screens say it.
+  String get word => switch (this) {
+    close => 'close match',
+    guess => 'a guess',
+  };
+}
+
+/// One USDA candidate, as `probe_usda` returns it.
 ///
-/// Deliberately only what the server prefill itself copies: a density, a
-/// macro panel, the provenance stamp, and the trigram [score] that earned it.
-/// Nothing here describes the reference set — this is an answer about one
-/// ingredient, not a window onto `usda_food`.
+/// Deliberately only what the server prefill itself copies — a density, a
+/// macro panel, the provenance stamp — plus what a person needs to recognise
+/// it: the [description], its [category], and the trigram [score] that
+/// earned it. Nothing here describes the reference set beyond the rows
+/// offered; this is an answer about one ingredient, not a window onto
+/// `usda_food`.
 @immutable
 class UsdaCandidate {
   const UsdaCandidate({
     required this.fdcId,
+    required this.description,
     required this.source,
     required this.score,
+    this.category,
     this.densityGPerMl,
     this.macros,
   });
 
-  /// Parses one RPC row, or null when the shape is not what 0016 promises —
+  /// Parses one RPC row, or null when the shape is not what 0027 promises —
   /// a malformed answer must degrade to "nothing came back", never to a
-  /// half-populated candidate that then writes half a panel.
+  /// half-populated candidate that then writes half a panel. A row without a
+  /// description is such a row: the whole point of 0027 is that a match can
+  /// be named, and a server that cannot name it is a server this build does
+  /// not yet understand.
   static UsdaCandidate? tryParse(Map<String, Object?> row) {
     final fdcId = row['fdc_id'];
+    final description = row['description'];
     final source = row['source'];
     final score = row['score'];
-    if (fdcId is! num || source is! String || score is! num) return null;
+    if (fdcId is! num ||
+        description is! String ||
+        source is! String ||
+        score is! num) {
+      return null;
+    }
+    final category = row['category'];
     final density = row['density_g_per_ml'];
     return UsdaCandidate(
       fdcId: fdcId.toInt(),
+      description: description,
+      category: category is String ? category : null,
       source: source,
       score: score.toDouble(),
       densityGPerMl: density is num ? density.toDouble() : null,
@@ -78,35 +113,51 @@ class UsdaCandidate {
 
   final int fdcId;
 
+  /// The food's name as USDA lists it ("Kale, raw") — what the row stores as
+  /// `source_label` when this candidate is applied.
+  final String description;
+
+  /// USDA's food category ("Vegetables and Vegetable Products"), or null.
+  /// Shown on the pick sheets as a second line; never stored.
+  final String? category;
+
   /// The row's provenance stamp, `usda_fdc:<fdc_id>` — formatted by the
   /// server so the app and the trigger cannot disagree about it.
   final String source;
 
-  /// The trigram similarity that cleared the server's 0.5 floor. Shown, not
-  /// acted on: the floor is the server's to enforce.
+  /// The trigram similarity that cleared the server's 0.5 floor. Shown as a
+  /// [band], stored beside the label, never acted on: the floor is the
+  /// server's to enforce.
   final double score;
+
+  UsdaBand get band => UsdaBand.of(score);
 
   final double? densityGPerMl;
   final Macros? macros;
 
   /// Whether there is anything worth writing. A candidate with neither a
   /// density nor a panel is a name match and nothing else — applying it would
-  /// only churn the row's `source`.
+  /// only churn the row's `source`, and the pick sheets leave it out.
   bool get hasSomethingToCopy => densityGPerMl != null || macros != null;
 
   @override
   String toString() =>
-      'UsdaCandidate($source, score: $score, density: $densityGPerMl, '
-      'macros: $macros)';
+      'UsdaCandidate($source "$description", score: $score, '
+      'density: $densityGPerMl, macros: $macros)';
 }
 
-// An interface, not a bare function type, for the same reason every
-// repository here is one: tests and the unconfigured build swap the whole
-// implementation through a provider, and a named type is what makes the two
-// substitutions read as the same idea.
-// ignore: one_member_abstracts
-abstract interface class UsdaProbe {
-  /// The best USDA candidate for [matchText], or null.
+/// The one question the app can ask the reference set.
+///
+/// A class with one abstract method rather than a function type, for the
+/// same reason every repository here is one: tests and the unconfigured
+/// build swap the whole implementation through a provider. [probe] is the
+/// single-answer form every existing caller reads, derived from [search] so
+/// the two cannot disagree about what "best" means.
+abstract class UsdaProbe {
+  const UsdaProbe();
+
+  /// The best [limit] USDA candidates for [matchText], best first, or an
+  /// empty list.
   ///
   /// [matchText] is the ingredient's **match text** — what
   /// `normalizeMatchText` produces and what the row stores — so this probe
@@ -114,9 +165,16 @@ abstract interface class UsdaProbe {
   /// candidate. Passing a raw display name would quietly ask a different
   /// question than the trigger asks.
   ///
-  /// Returns null for a name nothing confidently matches **and** for an
-  /// unreachable server. The caller cannot tell the two apart, and must not
-  /// need to: in both cases the honest thing to say is that nothing came
-  /// back, and the trigger will still catch the row when it syncs.
-  Future<UsdaCandidate?> probe(String matchText);
+  /// Empty for a name nothing confidently matches **and** for an unreachable
+  /// server. The caller cannot tell the two apart, and must not need to: in
+  /// both cases the honest thing to say is that nothing came back, and the
+  /// trigger will still catch the row when it syncs. The server caps
+  /// [limit] at ten.
+  Future<List<UsdaCandidate>> search(String matchText, {int limit = 5});
+
+  /// The single best candidate — [search] with a limit of one — or null.
+  Future<UsdaCandidate?> probe(String matchText) async {
+    final found = await search(matchText, limit: 1);
+    return found.isEmpty ? null : found.first;
+  }
 }

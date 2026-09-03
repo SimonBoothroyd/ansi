@@ -44,6 +44,12 @@ enum UsdaEnrichment {
   /// out or confirmed row is never re-probed — that is the rule that stops a
   /// trigram guess from overwriting numbers a human stood behind.
   notBare,
+
+  /// A person said "not this food" (plan 0027 U-D2), and an automatic probe
+  /// does not argue: the row is bare, and stays bare until they choose one
+  /// themselves. Not even asked — the round trip would be spent on an answer
+  /// nothing may write.
+  declined,
 }
 
 /// Probes USDA for [ingredient] and applies the answer into its NULL fields.
@@ -59,6 +65,9 @@ Future<({UsdaEnrichment outcome, Ingredient? row})> enrichFromUsda(
 }) async {
   if (!isBareStub(ingredient)) {
     return (outcome: UsdaEnrichment.notBare, row: null);
+  }
+  if (isUsdaDeclined(ingredient.source)) {
+    return (outcome: UsdaEnrichment.declined, row: null);
   }
   // The row's `match_text`, recomputed rather than read: `Ingredient` does
   // not carry the column, and it does not need to. D6 closed the rename
@@ -80,6 +89,8 @@ Future<({UsdaEnrichment outcome, Ingredient? row})> enrichFromUsda(
     densityGPerMl: candidate.densityGPerMl,
     macros: candidate.macros,
     source: candidate.source,
+    sourceLabel: candidate.description,
+    sourceScore: candidate.score,
   );
   return applied == null
       // The row went away, or stopped being a bare stub between the read and

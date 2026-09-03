@@ -471,8 +471,11 @@ class SqliteIngredientRepository implements IngredientRepository {
   Future<Ingredient?> applyUsdaProbe(
     String ingredientId, {
     required String source,
+    String? sourceLabel,
+    double? sourceScore,
     double? densityGPerMl,
     Macros? macros,
+    bool explicitPick = false,
   }) async {
     if (densityGPerMl == null && macros == null) return null;
     final now = DateTime.now().toUtc().toIso8601String();
@@ -493,6 +496,10 @@ class SqliteIngredientRepository implements IngredientRepository {
           current.macros != null) {
         return false;
       }
+      // The declined guard (plan 0027 U-D2): the trigger's WHEN clause leaves
+      // a declined row alone, and so does every automatic path here. Only a
+      // person's own pick writes over a person's own "no".
+      if (isUsdaDeclined(current.source) && !explicitPick) return false;
       // A landing density unlocks units, exactly as `setDensity` does — same
       // event, same rule (ADR-0009). No density, no change to the list.
       final units = densityGPerMl == null
@@ -503,9 +510,13 @@ class SqliteIngredientRepository implements IngredientRepository {
                 ...densityUnlockedUnits(current),
               },
             ];
+      // Label and score in the same statement as the stamp — the trigger's
+      // shape (0027), so a row never says `usda_fdc:<id>` without being able
+      // to say which food and how sure.
       await tx.execute(
         'UPDATE ingredient SET density_g_per_ml = ?, macros = ?, '
-        'allowed_units = ?, source = ?, updated_at = ? WHERE id = ?',
+        'allowed_units = ?, source = ?, source_label = ?, source_score = ?, '
+        'updated_at = ? WHERE id = ?',
         [
           densityGPerMl,
           _macrosJson(macros),
@@ -514,6 +525,8 @@ class SqliteIngredientRepository implements IngredientRepository {
           else
             jsonEncode([for (final u in units) u.id]),
           source,
+          sourceLabel,
+          sourceScore,
           now,
           ingredientId,
         ],
@@ -762,6 +775,8 @@ class SqliteIngredientRepository implements IngredientRepository {
     defaultMeasureId: r['default_measure_id'] as String?,
     measureCount: (r['measure_count'] as int?) ?? 0,
     source: r['source'] as String?,
+    sourceLabel: r['source_label'] as String?,
+    sourceScore: (r['source_score'] as num?)?.toDouble(),
   );
 
   /// Parses the row's `allowed_units` jsonb (a JSON array of unit ids) into

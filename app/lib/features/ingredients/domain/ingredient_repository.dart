@@ -232,13 +232,28 @@ abstract interface class IngredientRepository {
   /// the same write — the same rule [setDensity] follows, because it is the
   /// same event (ADR-0009).
   ///
+  /// [sourceLabel] and [sourceScore] — the food's name and the score that
+  /// earned it (plan 0027 U-D1) — are written in the same statement as
+  /// [source], exactly as the trigger writes them, so a row never carries a
+  /// stamp without the name behind it.
+  ///
+  /// **The declined guard** (U-D2/U-D3): a row whose `source` is
+  /// [usdaDeclinedSource] is refused too — a person said "not this food",
+  /// and no automatic path re-fills it. [explicitPick] lifts that one guard
+  /// and only that one: a candidate a person chose from the *Choose another*
+  /// sheet lands on a declined row; a row with numbers is still never
+  /// overwritten.
+  ///
   /// The row stays `stub`: a machine's numbers never complete an ingredient
   /// (D5, and the trigger's own contract).
   Future<Ingredient?> applyUsdaProbe(
     String ingredientId, {
     required String source,
+    String? sourceLabel,
+    double? sourceScore,
     double? densityGPerMl,
     Macros? macros,
+    bool explicitPick = false,
   });
 
   // --- The manager's write half (step 8.5) -----------------------------------

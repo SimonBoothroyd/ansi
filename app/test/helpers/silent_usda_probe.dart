@@ -5,9 +5,10 @@ library;
 
 import 'package:ansi/features/ingredients/domain/usda_probe.dart';
 
-class SilentUsdaProbe implements UsdaProbe {
+class SilentUsdaProbe extends UsdaProbe {
   const SilentUsdaProbe();
 
   @override
-  Future<UsdaCandidate?> probe(String matchText) async => null;
+  Future<List<UsdaCandidate>> search(String matchText, {int limit = 5}) async =>
+      const [];
 }
