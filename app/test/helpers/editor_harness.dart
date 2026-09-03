@@ -172,14 +172,25 @@ void ignoreSemanticsAsserts() {
   addTearDown(() => FlutterError.onError = reportError);
 }
 
-/// The editor under a real router, because Save navigates to the recipe page
-/// and the card's sheets are opened on the ROOT navigator.
+/// The editor under a real router, because Save navigates (an existing
+/// recipe's editor pops back onto its page; a new one replaces itself with
+/// the page it made) and the card's sheets are opened on the ROOT navigator.
+///
+/// The editor starts one page deep, over a blank opener, so the pop has
+/// somewhere to land — popping the only page trips go_router's assertion.
 Widget hostEditor(String? recipeId, List<Override> overrides) {
   final router = GoRouter(
+    initialLocation: '/edit',
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, _) => RecipeEditorView(recipeId: recipeId),
+        builder: (_, _) => const SizedBox(),
+        routes: [
+          GoRoute(
+            path: 'edit',
+            builder: (_, _) => RecipeEditorView(recipeId: recipeId),
+          ),
+        ],
       ),
       GoRoute(path: '/recipes/:id', builder: (_, _) => const SizedBox()),
     ],

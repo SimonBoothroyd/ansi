@@ -122,8 +122,9 @@ void main() {
           'returns to the Library branch after the recipe is deleted — the '
           'shell is the bottom of the root stack, so `go` lands on it',
       'lib/features/recipes/presentation/recipe_editor_view.dart':
-          'post-save navigation, replacing the editor with the recipe just '
-          'written so back returns to where the editor was opened from',
+          'the NEW-recipe landing only: Save replaces the editor with the '
+          'recipe just created so back returns to where the editor was '
+          'opened from; saving an existing recipe pops back onto its page',
     };
 
     /// Line comments blanked, so a doc comment naming `context.push(` cannot
@@ -164,9 +165,9 @@ void main() {
 
       for (final file in files) {
         final source = stripComments(file.readAsStringSync());
-        guardedCalls += RegExp(
-          r'\bcontext\.(pushOnce|goOnce)\s*\(',
-        ).allMatches(source).length;
+        guardedCalls += RegExp(r'\bcontext\.(pushOnce|goOnce)\s*\(')
+            .allMatches(source)
+            .length;
         if (exceptions.containsKey(file.path)) continue;
         for (final m in bare.allMatches(source)) {
           final line = '\n'.allMatches(source.substring(0, m.start)).length + 1;
@@ -196,9 +197,8 @@ void main() {
         final file = File(path);
         expect(file.existsSync(), isTrue, reason: '$path is gone — drop it');
         expect(
-          RegExp(
-            r'\bcontext\.(push|go|replace)(Replacement)?(Named)?\s*\(',
-          ).hasMatch(stripComments(file.readAsStringSync())),
+          RegExp(r'\bcontext\.(push|go|replace)(Replacement)?(Named)?\s*\(')
+              .hasMatch(stripComments(file.readAsStringSync())),
           isTrue,
           reason: '$path no longer navigates bare ($why) — drop the exception',
         );

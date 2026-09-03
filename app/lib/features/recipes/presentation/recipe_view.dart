@@ -123,8 +123,10 @@ class _RecipeBody extends HookConsumerWidget {
       header: FHeader.nested(
         prefixes: [
           FHeaderAction.back(
-            // After Save's `context.go`, the stack is replaced and there is
-            // nothing to pop, so fall back to the list.
+            // A cold deep link lands here with no shell page beneath
+            // (navigation.md §6), so there is nothing to pop: fall back to
+            // the Library. Every other arrival — a push, or the editor's
+            // Save replacing itself on a new recipe — has an opener under it.
             onPress: () =>
                 context.canPop() ? context.pop() : context.goOnce('/'),
           ),

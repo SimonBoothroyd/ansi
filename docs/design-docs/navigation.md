@@ -75,7 +75,8 @@ branch, and an intercepted pop is spent on `goBranch(0)`.
 | **Library tab** | leaves the app — this is home | nothing (no gesture at a stack root) |
 | **Week · Cook · Shop tab** | → the **Library tab**; a second back leaves | nothing |
 | **A pushed page** (recipe · editor · import · ingredients) | pops to the tab under it | works — interactive, tracks the finger |
-| **A page landed on after a save / import commit** | pops to where it was opened from | works |
+| **A page landed on after an import commit or a NEW recipe's save** | pops to where it was opened from — the page replaced the flow that made it | works |
+| **The recipe page after saving an EXISTING recipe** | the editor has popped back onto it; back pops to where the recipe was opened from | works |
 | **A page landed on after a delete** | leaves the app — it *is* the Library tab now | n/a |
 | **A modal sheet or dialog** | dismisses it | the sheet's own downward drag |
 | **An open popover menu** | n/a — the menu closes itself the moment an item is chosen | n/a |
@@ -107,11 +108,19 @@ tab loop — the same rule the Ingredients manager already locked.
 
 ### Post-action navigation replaces; it does not flatten
 
-After a save or an import commit the app calls **`context.pushReplacement`**, so
-the top page is swapped and whatever it was opened from stays underneath. A
-`context.go` there replaces the whole match list with one page: back left the
-app, and the iOS edge swipe vanished on a page that looked exactly like a pushed
-one.
+After a **new** recipe's save or an import commit the app calls
+**`context.pushReplacement`**, so the top page is swapped and whatever it was
+opened from stays underneath. A `context.go` there replaces the whole match
+list with one page: back left the app, and the iOS edge swipe vanished on a
+page that looked exactly like a pushed one.
+
+Saving an **existing** recipe **pops** instead. The rule is *editing returns
+you to where you opened the editor; creating lands you on the thing you made*.
+The editor was pushed over the recipe page, which is a watched query and
+already shows the save; a replace there would stack a second copy of that
+page over the first — `[shell, recipe, recipe]` — and cost a second back to
+get past it. (Opened from somewhere else — Cook's gap card, the "set yield"
+sub-editor — the pop returns there, which is still the right answer.)
 
 The one exception is the **delete** case (`recipe_view.dart`), which keeps
 `context.go('/')`. That page is pushed above the whole shell and the shell is

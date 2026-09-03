@@ -73,14 +73,19 @@ class RecipeEditorView extends ConsumerWidget {
                       'save the recipe',
                       notifier.save,
                     );
-                    if (id == null) return;
-                    // Replace the editor with the saved recipe, rather than
-                    // `go`: `go` would flatten the stack to one page, so back
-                    // would leave the app and the iOS edge-swipe would vanish
-                    // on a page that looks exactly like a pushed one. A
-                    // replacement swaps the top page and leaves whatever the
-                    // editor was opened from underneath it.
-                    if (context.mounted) {
+                    if (id == null || !context.mounted) return;
+                    // Editing returns you to where you opened the editor;
+                    // creating lands you on the thing you made. An existing
+                    // recipe's page is already beneath the editor as a watched
+                    // query, so a pop shows the save — replacing would stack a
+                    // second copy of that page and cost a second back. A new
+                    // recipe has only its opener beneath, so the editor is
+                    // replaced (not `go`ne to: that would flatten the stack,
+                    // back would leave the app and the iOS edge swipe would
+                    // vanish on a page that looks exactly like a pushed one).
+                    if (recipeId != null) {
+                      context.pop();
+                    } else {
                       context.pushReplacement('/recipes/$id');
                     }
                   },
