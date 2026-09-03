@@ -39,10 +39,13 @@
 ///                 a real array.
 ///   4 import      paste a link → the review screen → resolve every line
 ///                 (an auto match confirmed, a printed RANGE picked, a
-///                 `suggest` pill taken onto a real vocab row, `none` lines
-///                 created as stubs that coalesce) → Save → the recipe lands
+///                 counted-produce line arriving UNFLAGGED on its curated
+///                 default measure (seam D2), a `suggest` pill taken onto a
+///                 real vocab row, `none` lines created as stubs that
+///                 coalesce) → Save → the recipe lands
 ///                 FILED in a book with tokenized steps whose refs are real
-///                 line_item ids, over LIVE sync. The import repository is
+///                 line_item ids and the defaulted line carrying a real
+///                 `measure_id`, over LIVE sync. The import repository is
 ///                 overridden to the local one, so NO edge function and NO
 ///                 LLM is called — see `openLibraryWithLocalImport`.
 ///   5 ingredients Library ▸ ＋ ▸ Ingredients → the stub band over the real
@@ -1165,6 +1168,14 @@ void main() {
   //     not by the fixture. Only the extract+match hop is stubbed; the
   //     reconciliation UI, the commit write path, PowerSync and the Library are
   //     all the real thing.
+  //
+  //     Since plan 0024 (seam D2) the payload also carries a counted-produce
+  //     line — "2 red peppers", printed as `piece`, which a measured row
+  //     refuses under ADR-0010. It arrives on the row's CURATED DEFAULT
+  //     measure, unflagged, and commits as a `measure_id`; this is the one
+  //     place that runs end to end, because the default comes off a really
+  //     synced `ingredient.default_measure_id` (migration 0023's clone leg)
+  //     rather than a fixture.
   // ---------------------------------------------------------------------------
 
   /// The review card for flattened line [i] (`ValueKey('review-line-$i')`).
@@ -1296,7 +1307,34 @@ void main() {
     await pickRangeAmountForLine(tester, 1);
     expect(lineShows(1, 'Set the amount'), isFalse);
 
-    // Line 5 — the `suggest` band: confirm the "did you mean" pill onto an
+    // Line 5 — "2 red peppers", the seam D2 line. It printed a NUMBER AND NO
+    // THING (`piece`, which a measured row refuses under ADR-0010), so the
+    // review spends the row's curated default and the card arrives CLEAN:
+    // no "Pick a supported unit", nothing held up, and the fact said out loud
+    // where it was applied. Before this slice the same line was a stop.
+    await expandLine(tester, 5);
+    expect(
+      lineShows(5, 'Pick a supported unit'),
+      isFalse,
+      reason:
+          'a counted-produce line must arrive on its default measure, '
+          'unflagged (seam D2)',
+    );
+    expect(
+      find
+          .descendant(
+            of: reviewCard(5),
+            matching: find.textContaining('counts as  pepper, medium'),
+          )
+          .evaluate(),
+      isNotEmpty,
+      reason: 'the default is shown at the moment it is applied',
+    );
+    // The chips stay visible with the default selected — the choice made for
+    // you, beside the ones you could make instead.
+    expect(lineShows(5, 'pepper, large'), isTrue);
+
+    // Line 6 — the `suggest` band: confirm the "did you mean" pill onto an
     // EXISTING vocab row rather than creating a stub.
     //
     // The fake repository re-points the candidate at whatever the household
@@ -1306,22 +1344,22 @@ void main() {
     // (queried by the precondition at the top of this test) so a reseed fails
     // loudly rather than as a mystery finder miss.
     final pillLabel = parmesanRows.single['canonical_name'] as String;
-    await expandLine(tester, 5);
-    expect(lineShows(5, 'Did you mean'), isTrue);
+    await expandLine(tester, 6);
+    expect(lineShows(6, 'Did you mean'), isTrue);
     final pill = find.descendant(
-      of: reviewCard(5),
+      of: reviewCard(6),
       matching: find.text(pillLabel),
     );
     await tester.ensureVisible(pill);
     await tester.pumpAndSettle();
     await tester.tap(pill);
     await tester.pumpAndSettle();
-    expect(lineShows(5, 'Did you mean'), isFalse);
+    expect(lineShows(6, 'Did you mean'), isFalse);
 
     // Everything still unmatched (`none`) becomes a new ingredient stub. The
     // two identical chilli lines seed the same name, so they must coalesce onto
     // ONE created ingredient at commit.
-    for (final i in [2, 3, 4, 6]) {
+    for (final i in [2, 3, 4, 7]) {
       // Expand FIRST: a below-the-fold ListView child isn't built at all, so
       // probing its labels before scrolling to it always reads "clean" and the
       // loop would silently skip the line (exactly how the gate stayed locked
@@ -1374,7 +1412,37 @@ void main() {
       'WHERE g.recipe_id = ? AND li.deleted_at IS NULL',
       [recipeId],
     )).map((r) => r['id'] as String).toSet();
-    expect(lineIds, hasLength(7));
+    expect(lineIds, hasLength(8));
+
+    // Seam D2, end to end: the defaulted line committed as a MEASURE line —
+    // the label rode through `buildCommit` exactly as a tapped chip's does,
+    // and the repository re-resolved it to the household's own
+    // `ingredient_measure` row. That FK is what makes "2 red peppers" count
+    // toward the macros and the shopping total instead of being an honest
+    // count with no weight.
+    final pepperLine = await db.get(
+      'SELECT li.quantity, li.unit, li.measure_id, im.label, im.basis_amount '
+      'FROM recipe_line_item li '
+      'JOIN ingredient_group g ON g.id = li.group_id '
+      'JOIN ingredient i ON i.id = li.ingredient_id '
+      'LEFT JOIN ingredient_measure im ON im.id = li.measure_id '
+      "WHERE g.recipe_id = ? AND i.match_text = 'red bell pepper' "
+      'AND li.deleted_at IS NULL',
+      [recipeId],
+    );
+    expect(
+      pepperLine['measure_id'],
+      isNotNull,
+      reason:
+          'the curated default must commit as a measure_id, not as a bare '
+          'count (seam D2)',
+    );
+    expect(pepperLine['label'], 'pepper, medium');
+    expect(pepperLine['basis_amount'], 119);
+    expect(pepperLine['quantity'], 2);
+    // The stored line keeps the honest count fallback beside the measure —
+    // nothing about it says "this came from a default".
+    expect(pepperLine['unit'], 'piece');
     final refs = [
       for (final s in steps)
         for (final t in (s as Map)['tokens'] as List)

@@ -57,7 +57,7 @@ void main() {
         final collective = lastTokens.whereType<RefToken>().firstWhere(
           (t) => t.refs.length > 1,
         );
-        expect(collective.refs, [2, 5]);
+        expect(collective.refs, [2, 6]);
         final garnish = lastTokens.whereType<RefToken>().firstWhere(
           (t) => t.portion != null,
         );

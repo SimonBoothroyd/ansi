@@ -91,6 +91,25 @@ proven only when the next APK runs on the phone).
   default-measure curation; `0021`/`0022` ride along), verify, then **cut
   the release** (`v0.3.0` — a minor, since the release adds the default
   measure and the review step cards).
+- 2026-09-03 — **No new ADR for D1, and none for D6 either.** A curated
+  default count measure is a *fact under [ADR-0010](../../decisions/0010-piece-is-an-admission-fact.md)*,
+  not an amendment to it: `ingredient.default_measure_id` is the second
+  stated per-row fact of exactly the kind ADR-0008 §4 established and
+  ADR-0010 spends its length defending — decided by hand, recorded with its
+  reason in `curation_overrides.jsonl`, nullable because "I don't know" is a
+  real answer, and spent at ONE visible moment rather than re-derived. Every
+  clause of ADR-0010's decision survives verbatim: `piece` is still not
+  offered where a measure names the thing, no size word is read out of
+  `raw_amount`, no rule resolves a line at runtime, no stored line is
+  rewritten, and consequence 4's "one measure pre-selects" is now TRUE of the
+  line rather than only of the sheet (D3 found it was never true of either —
+  `preselectedMeasure` seeded the amount sheet and nothing else, so the flag
+  stood until somebody opened and confirmed it). D6 is likewise an
+  *interpretation* of invariant 3 the invariant already contains — nothing is
+  invented, nothing is silent — and the product spec §4/§5 is where it is
+  written down, because it changes what a screen shows rather than what the
+  system is allowed to believe. If a later change makes a default something
+  the machine *derives*, that is the ADR.
 
 ## Step-done checklist
 

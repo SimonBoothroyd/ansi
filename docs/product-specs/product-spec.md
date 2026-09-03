@@ -87,7 +87,7 @@ Single shared household dataset; both members full read/write; everything scoped
   `allowed_units` with the family it unlocks, in the same write.
 
 ### Ingredient
-`id · canonical_name · aliases[] · category · density_g_per_ml (nullable) · macros {kcal, protein, carb, fat} (nullable) · macros_basis ('g' | 'ml', step 7.7) · allowed_units (jsonb unit-id array, step 7.8) · default_unit · status (complete | stub) · source`
+`id · canonical_name · aliases[] · category · density_g_per_ml (nullable) · macros {kcal, protein, carb, fat} (nullable) · macros_basis ('g' | 'ml', step 7.7) · allowed_units (jsonb unit-id array, step 7.8) · default_measure_id (nullable FK, 0023) · default_unit · status (complete | stub) · source`
 - `source` is **provenance, and it is load-bearing**: `seed` (the template
   vocab), `manual` (typed in the picker or the manager), `import_stub` (created
   at an import commit), `usda_fdc:<id>` (what the server-side prefill stamps),
@@ -142,6 +142,30 @@ Single shared household dataset; both members full read/write; everything scoped
   (`supabase/seed/curation_overrides.jsonl`, one reasoned line per row), and by
   the household for their own rows, asked once in the measures editor the
   moment they add a row's first measure.
+- **`default_measure_id` says what a bare COUNT of the row MEANS** — "2
+  onions" is two `onion, medium` (migration 0023, plan 0024 seam D1). It is
+  the *second* stated fact per row, the same kind of fact `allowed_units`
+  already is, and it exists because ADR-0010 was right and expensive: taking
+  `piece` off 142 measured rows made every counted-produce line a stop, and
+  the app was asking a question whose answer was already known and the same
+  every time.
+  - **Nullable, and null is a real answer.** Broccoli's `whole`/`spear`/
+    `crown` are three different things and none of them is "a broccoli", so
+    that line keeps its flag and the user picks — the model can say "I don't
+    know", which a rule never can. 141 seeded rows carry a measure: 132 get a
+    default, 9 fragment sets get none, each with its reason in
+    `supabase/seed/curation_overrides.jsonl` (kind `default_measure`).
+  - **Curated, never derived.** The three shapes are *sized family → the
+    `medium`*, *sole count measure → that one*, *fragment set → none*. A rule
+    would put a default on broccoli and take it off `yellow bell pepper`, and
+    would re-decide the whole list on every USDA regeneration.
+  - **Spent once, visibly.** The import review writes it onto a line that
+    named a number and no thing (§5 · Import), and nothing downstream
+    interprets it: no stored line records that it came from here.
+  - Household-owned from the moment the vocabulary clones: the flesh-out
+    form's **"Counts as"** row sets it, "Ask me each time" clears it, and the
+    measures editor's ask-once `piece` question sets it as the second half of
+    the same answer. Soft-deleting the measure clears it.
 
 ### Recipe
 `id · title · book_id · section (user-defined label) · servings_base · favorite (step 7.7) · ingredient_groups[] · steps[]`
@@ -152,13 +176,40 @@ Single shared household dataset; both members full read/write; everything scoped
   picker's Favorites tab; marked from the recipe page's header menu.
 - **Per-serving macro summation (step 7.7, pulled from step 9):** pure-Dart
   `summarizeRecipeMacros` sums line items × vocab macros honouring
-  `macros_basis` (measure lines via grams); ANY stub / unbridgeable /
-  imprecise-only line — and a recipe with no lines at all — renders the
-  whole summary honestly `incomplete` — no partial total ever shows as the
-  recipe's macros, and an empty sum never shows as ~0 kcal. Feeds the
+  `macros_basis` (measure lines via grams); ANY stub / unbridgeable line —
+  and a recipe with no lines at all — renders the whole summary honestly
+  `incomplete` — no partial total ever shows as the recipe's macros, and an
+  empty sum never shows as ~0 kcal. Feeds the
   picker rows **and the recipe page's per-serving macro panel** — step 9
   shipped that panel off this same summation, so the two surfaces cannot
-  disagree. *Reality check, resolved:* this read `incomplete` on most real
+  disagree.
+  - **The refusal NAMES its causes** (plan 0024 seam D5). The count line the
+    picker rows print is kept verbatim, and under it the panel lists the
+    lines the total is waiting on — `Cucumber · needs a weight`, `Tofu ·
+    stub ingredient` — capped at four with `+N more`, each one a door to the
+    fix its reason implies. The same reason is drawn **in place** on the
+    ingredient row, in the import review's amber, because it is the same
+    claim: *this line is why a number is missing.* One helper
+    (`incompleteLineNote`) gives every reason one wording, so the panel, the
+    marker and the picker row are one vocabulary. Nothing new joins any
+    total; the refusal just stops being anonymous.
+  - **Imprecise lines never gate the total** (seam **D6**). `to taste`,
+    `pinch`, `dash` and `handful` are unweighable BY NATURE — no measure and
+    no density turns a handful into grams — so they are excluded **by rule**,
+    the total is shown, and the exclusion is printed under it by name, every
+    time: `not counted: Parsley · handful, Sesame seeds · to taste`.
+    Invariant 3 holds in both halves and is read the *stronger* way: nothing
+    is invented (a handful contributes zero because zero grams of it were
+    claimed, not because a number was guessed) and nothing is silent (a
+    reader can see exactly what the figure covers). The imprecise family is
+    already excluded everywhere else on purpose — `convert` refuses it,
+    `scale` leaves it alone — so the macro engine treating the same word as a
+    fixable defect was the outlier. **One guard:** a recipe whose lines are
+    *all* imprecise summed nothing and still refuses (`nothing weighable
+    yet`), the same shape as `no ingredients yet`. If a household ever wants
+    a handful weighed, the answer is a **measure** on that row
+    (`handful ≈ 25 g`, with provenance), not an engine special case.
+  *Reality check, resolved:* this read `incomplete` on most real
   recipes when density coverage was 7/291; 7.8's FDC-spoons→density work, the
   FAO fallback and 8.5's D4d pass took it to **297/308**, so most recipes now
   read as numbers and the residual `incomplete` is the honest 11-row tail.
@@ -299,6 +350,31 @@ about: [`../design-docs/errors-and-sync-health.md`](../design-docs/errors-and-sy
 - Confident auto-match → shown with an "undo / wrong match" affordance to correct it
 - Medium confidence → "did you mean?" suggestions
 - No match → "add new" → creates a **stub**, surfaced for fleshing out
+- **A line that named a number and no thing arrives on the row's curated
+  default measure, unflagged** (plan 0024 seam D2). "2 red peppers" comes in
+  as `2 × pepper, medium`, the card is clean, Save is not gated, the raw
+  source line stays above it, and the chips stay visible with the default
+  selected — the choice made for you, beside the ones you could make instead.
+  The card says the fact out loud where it is applied: `counts as pepper,
+  medium · 119 g · tap a chip to change`. There is no `inferred` mark, no
+  revert and no provenance on the stored line, because those are a *guess's*
+  apparatus and this is displayed at the point of use. Mechanically the
+  resolution's unit is set to the measure's LABEL — the exact token a tapped
+  chip writes — so the card is clean for the ordinary reason and the commit
+  is byte-for-byte what a tap produces.
+  - **The scope rule, in one sentence: the default answers a line that named
+    a number and no thing; it never overrules a line that named a thing.** It
+    fires on no printed unit, or a count-family unit the row refuses
+    (`piece`). "1 **bunch** cilantro" keeps today's flag — cilantro's default
+    IS `sprig` at 2.22 g and a bunch is about twenty-five of them. A refused
+    `cup` is a *density* gap, not a count gap, and a measure cannot answer it.
+  - A row with **no default** keeps today's flag and its did-you-mean chips.
+- **The METHOD is editable here**, with the same step cards as the recipe
+  editor (seam D4) — the screen most likely to need a method fix used to be
+  the only one that could not make it. Chips key on the preview's line ids
+  and convert back to line indexes at commit; a chip whose lines were all
+  dropped demotes to plain prose. The one thing the review cannot do is mint
+  a brand-new line, and the picker's add-a-line door says so.
 
 **Fleshing out a stub (step 8.5, shipped):** a stub needs density/macros before
 it counts toward conversions or macro totals. It surfaces as a **band on top of
