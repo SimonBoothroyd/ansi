@@ -165,9 +165,9 @@ void main() {
 
       for (final file in files) {
         final source = stripComments(file.readAsStringSync());
-        guardedCalls += RegExp(r'\bcontext\.(pushOnce|goOnce)\s*\(')
-            .allMatches(source)
-            .length;
+        guardedCalls += RegExp(
+          r'\bcontext\.(pushOnce|goOnce)\s*\(',
+        ).allMatches(source).length;
         if (exceptions.containsKey(file.path)) continue;
         for (final m in bare.allMatches(source)) {
           final line = '\n'.allMatches(source.substring(0, m.start)).length + 1;
@@ -197,8 +197,9 @@ void main() {
         final file = File(path);
         expect(file.existsSync(), isTrue, reason: '$path is gone — drop it');
         expect(
-          RegExp(r'\bcontext\.(push|go|replace)(Replacement)?(Named)?\s*\(')
-              .hasMatch(stripComments(file.readAsStringSync())),
+          RegExp(
+            r'\bcontext\.(push|go|replace)(Replacement)?(Named)?\s*\(',
+          ).hasMatch(stripComments(file.readAsStringSync())),
           isTrue,
           reason: '$path no longer navigates bare ($why) — drop the exception',
         );
