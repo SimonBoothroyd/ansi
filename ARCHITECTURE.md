@@ -70,8 +70,13 @@ Flutter app  ──writes──▶  local SQLite  ──PowerSync queue──▶
 
 ## The one architectural spine: matching is online-only (ADR-0004)
 
-Recipe import is the only place fuzzy matching happens, and import is always
-online (we're either fetching a webpage or calling a vision model). That single
+Recipe import is the only place matching against a *reference set* happens,
+and import is always online (we're either fetching a webpage or calling a
+vision model). The phone's own search boxes do carry a typo tier since the
+2026-09-02 polish pass, but it is a deterministic scored comparison over the
+household's few hundred synced rows, offered under a "did you mean" header for
+a human to pick, never a resolution — see
+[`docs/design-docs/search-and-matching.md`](./docs/design-docs/search-and-matching.md). That single
 fact means the phone never needs an embedding model or the 8,000-row USDA
 reference set. The match engine lives entirely server-side (a Supabase edge
 function); only human-readable, already-resolved `ingredient` rows sync to the
@@ -81,8 +86,9 @@ Two lookups that look similar but are different jobs (design doc §10):
 
 - **Machine proposes, then a human confirms** — import reconciliation. Online,
   full ranked cascade, auto-accepts above a threshold. Server-side.
-- **Human picks from a list** — the manual "Add ingredient" search. Offline,
-  typo-tolerant retrieval over ~150–300 synced rows. On-device.
+- **Human picks from a list** — every search box on the phone (the ingredient
+  picker, both recipe pickers, the Library). Offline, one three-tier rule
+  (`searchRank`) over the synced rows. On-device.
 
 The barcode add flow (step 8.5) does not bend this: a barcode is a **primary
 key**, so the Open Food Facts read is an exact-key fetch, not matching, and it
