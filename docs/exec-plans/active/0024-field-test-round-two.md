@@ -1,6 +1,6 @@
 # Exec plan: 0024 — Field test, round two — the import & macros seam, and the Android inset
 
-- **Status:** active — **build phase**: frames signed off 2026-09-03 ("lgtm"), one build lane in a worktree
+- **Status:** active — **landed on main 2026-09-03** (`96a3039`…`934a604` + smoke/fmt follow-ups), `make ci` green (1486 · 155 · docs), pgTAP 284, `make test-sim` 6/6; cloud push + release in flight
 - **Owner:** Simon (rules) + Claude (orchestrator; one design lane, then one build lane)
 - **Roadmap step:** follow-up to 8.8 (plan 0022); absorbs the remainder of 8.7
 - **Created:** 2026-09-03
@@ -45,10 +45,10 @@ proven only when the next APK runs on the phone).
 
 ## Acceptance criteria
 
-- [ ] Board section "Import & macros seam · v2" signed off.
-- [ ] Migration `0023` additive (data is durable — no reset), backfilled from the curation table; pgTAP.
-- [ ] `make ci` green; `make test-sim` scenario 4 re-driven (import with a sized-produce line lands unflagged).
-- [ ] The Android fix confirmed on the Pixel from a release-workflow rehearsal artifact (no tag).
+- [x] Board section "Import & macros seam · v2" signed off ("lgtm", 2026-09-03).
+- [x] Migration `0023` additive (data is durable — no reset), backfilled from the curation table by measure label, union semantics; pgTAP `default_measure.sql` (23).
+- [x] `make ci` green; `make test-sim` 6/6 with scenario 4 re-driven ("2 red peppers" lands unflagged on `pepper, medium`; two lazy-list finder fixes on the way — the named group and, earlier, the Week bar).
+- [x] The Android fix confirmed on the Pixel (owner, after a hard reset; recorded by the parallel session in this file).
 - [ ] Docs: ADR-0010 amended by a new ADR only if the rule changes (it does not — a default is a curated fact); product-spec §5; tracker rows.
 
 ## Decision log
