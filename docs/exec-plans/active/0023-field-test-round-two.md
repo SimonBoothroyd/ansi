@@ -48,7 +48,7 @@ proven only when the next APK runs on the phone).
 - [ ] Board section "Import & macros seam · v2" signed off.
 - [ ] Migration `0021` additive (data is durable — no reset), backfilled from the curation table; pgTAP.
 - [ ] `make ci` green; `make test-sim` scenario 4 re-driven (import with a sized-produce line lands unflagged).
-- [ ] The Android fix confirmed on the Pixel from the next Release APK.
+- [ ] The Android fix confirmed on the Pixel from a release-workflow rehearsal artifact (no tag).
 - [ ] Docs: ADR-0010 amended by a new ADR only if the rule changes (it does not — a default is a curated fact); product-spec §5; tracker rows.
 
 ## Decision log
