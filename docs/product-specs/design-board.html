@@ -582,6 +582,59 @@
   .lib-nohit .h q{color:var(--herb-deep);}
 </style>
 <!-- lane-style:library:end -->
+<!-- lane-style:library3:start -->
+<style data-lane="library3">
+  /* Library · v3 — lane-local additions only. Everything else reuses the
+     board's shipped classes, including every class Library · v2 added. */
+
+  /* the header once the name, the ＋ and the ⋯ are all gone */
+  .lib-abar3{gap:12px;padding-bottom:8px;}
+  .lib-hfield{flex:1;min-width:0;display:flex;align-items:center;gap:9px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-size:13.5px;}
+  .lib-hfield .mag{color:var(--muted);}
+
+  /* the one header control: initials that NAVIGATE (E6) — never a menu */
+  .id3{display:inline-flex;align-items:center;justify-content:center;width:29px;height:29px;border-radius:50%;background:var(--herb-soft);border:1px solid #CBDECB;font-size:13px;}
+
+  /* the section label row: ＋ (the two doors) beside the ⋯ it already has */
+  .sec-lab3{display:flex;align-items:center;gap:10px;}
+  .sec-lab3 .lbl{flex:1;min-width:0;}
+  .sec-lab3 .ctl3{flex:none;display:flex;align-items:center;gap:11px;font-style:normal;color:var(--muted);font-size:12px;}
+  .sec-lab3 .ctl3 .p{color:var(--herb);font-size:14px;}
+
+  /* the ⋯ the recipe row gains for "Move to…" (E8) */
+  .lib-row .rm{flex:none;color:var(--muted);font-size:13px;padding-left:2px;}
+
+  /* the library's footer: the rare things, visible instead of hidden */
+  .lib-foot{margin:8px 20px 0;display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:var(--frame);font-size:13px;}
+  .lib-foot .fi{flex:none;width:16px;text-align:center;color:var(--herb);font-size:13px;}
+  .lib-foot .fl{flex:1;min-width:0;}
+  .lib-foot .fc{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#7A5A16;background:#FBF3E3;border-radius:6px;padding:2px 6px;}
+  .lib-foot .fx{flex:none;color:var(--muted);font-size:12px;}
+  .lib-foot .fs{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+
+  /* the account page: member rows and their usual portion (E6) */
+  .acc-row{display:flex;align-items:center;gap:11px;padding:11px 14px;border-top:1px solid var(--line);font-size:13.5px;}
+  .acc-row:first-child{border-top:none;}
+  .acc-row .who{flex:1;min-width:0;font-family:'Spectral',serif;font-size:15px;}
+  .acc-row .pf{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb-deep);background:var(--herb-soft);border:1px solid #CBDECB;border-radius:8px;padding:3px 8px;}
+  .acc-row .pf.one{color:var(--muted);background:var(--paper);border-color:var(--line);}
+
+  /* the dissolution table: what was in the menu, and where it already was */
+  .lib-gone .mi .lb{text-decoration:line-through;color:var(--muted);}
+  .lib-went{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.04em;color:var(--herb-deep);margin:5px 20px 0;}
+  .lib-went b{color:var(--ink);font-weight:500;}
+
+  /* FILE UNDER, demoted to one line in the editor (E9) */
+  .lib-file3{margin:10px 20px 0;display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:11px 13px;background:var(--frame);}
+  .lib-file3 .bc3{flex:1;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--herb);}
+  .lib-file3 .ed{color:var(--muted);font-size:12px;}
+
+  /* a decision recorded on the frame it belongs to */
+  .lib-ruled{margin:10px 20px 0;border:1px solid #CBDECB;border-radius:12px;padding:10px 12px;background:var(--herb-soft);}
+  .lib-ruled .oh{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--herb-deep);margin-bottom:5px;}
+  .lib-ruled .ob{font-size:12px;color:var(--ink);line-height:1.45;}
+</style>
+<!-- lane-style:library3:end -->
 <!-- lane-style:nav:start -->
 <style data-lane="nav"> block into the document head's      -->
 <!-- style area (or immediately before the section), and the section       -->
@@ -2384,6 +2437,227 @@
 
 </div>
 <!-- lane:library:end -->
+
+<!-- lane:library3:start -->
+<!-- ===== LIBRARY V3 (LOCKED — the menus dissolve, 2026-09-03) ===== -->
+<div class="section-head"><span class="ey">Library · v3</span><span class="proposed-tag">locked · signed off 2026-09-03 — E2 · E5 · E6 · E8 ruled by the owner; build lanes in plan 0028</span><span class="rule"></span><span class="sub">v2 asked which menu each thing belongs in. v3 asks whether it needs a menu at all — and finds most of it was already somewhere else</span></div>
+
+<div class="locknote">
+    <p class="lk-h">Locked — the Library with no header menus at all</p>
+    <p>Library · v2 split one overloaded <span style="font-family:'IBM Plex Mono',monospace">＋</span> into <span style="font-family:'IBM Plex Mono',monospace">＋</span> and <span style="font-family:'IBM Plex Mono',monospace">⋯</span>. Within a day <span style="font-family:'IBM Plex Mono',monospace">⋯</span> had taken Household and sync health and become the catch-all it replaced, which says the split was the right <i>diagnosis</i> and the wrong <i>cure</i>: a second menu is where things go when nobody asks whether they need to be in a menu. So v3 asks. <b>Two of the items in that menu are already implemented one row away</b> — “Reorder books” is <code>_BookReorderSheet.move</code>, the same splice-and-<code>reorderBooks</code> the book's own <span style="font-family:'IBM Plex Mono',monospace">⋯</span> performs as Move up / Move down; “New section” sits in that same book menu <i>and</i> on a dashed row inside every open card. Another, Ingredients, is a door that wants to be <b>seen</b>, not opened. What is left is an account screen v2 already promised to build. <b>The Library header ends up as one search field</b>, an open book card ends up with <b>no dashed rows at all</b>, and the app loses a sheet, two popovers, a badge-dot and a conditional while gaining nothing but a <span style="font-family:'IBM Plex Mono',monospace">＋</span> where the filing is already known.</p>
+    <div class="ledger">
+        <span class="k">extends</span><span><b>Library · v2</b> (D1–D8, shipped 2026-09-02) → <b>D1's promise is kept verbatim</b>: <span style="font-family:'IBM Plex Mono',monospace">＋</span> is still “the two doors that make a recipe, and nothing else” — it moves from the header to the shelf, where the filing is already known · <b>v2 D4</b> → the book <span style="font-family:'IBM Plex Mono',monospace">⋯</span> and the section <span style="font-family:'IBM Plex Mono',monospace">⋯</span>, which already hold every shape act v3 stops duplicating · <b>Week · v2 / Cook / Shop</b> → the header rule these three already ship: no screen name, a control in its place · <b>Ingredients manager · v1 (D8)</b> → the badge that wanted to advertise itself, now on a row that is always visible instead of a dot on a menu that is not.</span>
+        <span class="k ch">decides</span><span><b>E1</b> the Library header is <b>the search field and one identity control</b> — no screen name, no <span style="font-family:'IBM Plex Mono',monospace">＋</span>, no <span style="font-family:'IBM Plex Mono',monospace">⋯</span>; the identity control is a <b>link, not a menu</b>, so it cannot accumulate · <b>E2</b> the <span style="font-family:'IBM Plex Mono',monospace">＋</span> <b>moves onto the section label</b>, opening the same two doors (New recipe · Import a recipe), each filed <b>all the way</b> from the tap · <b>E3</b> the dashed <b>new section</b> row goes: it is a duplicate of the book <span style="font-family:'IBM Plex Mono',monospace">⋯</span>'s own item, so an open card carries <b>no dashed rows</b> · <b>E4</b> <b>“Reorder books” is deleted</b>, not relocated — the book <span style="font-family:'IBM Plex Mono',monospace">⋯</span>'s Move up / Move down is the identical write · <b>E5</b> <b>Ingredients becomes a shelf of its own</b> — a card at the end of the library, the same anatomy as a book, carrying <i>308 ingredients · 3 stubs</i>. Not a menu item, not a footer row: the vocabulary is a <b>first-class thing you can eat from</b>, and the shipped code already says so on the Shop tab. The dot dies with the menu · <b>E6</b> <b>Household · sync health · Sign out</b> become a real <span style="font-family:'IBM Plex Mono',monospace">/account</span> page — members and their usual portions, where this device stands, and the session — reached from the header's initials. <b>Not a fifth tab</b> · <b>E7</b> the dashed <b>＋ new book</b> row, drawn on the v2 board and never built, opens that footer group · <b>E8</b> <b>“Move to…”</b> on the recipe row's own <span style="font-family:'IBM Plex Mono',monospace">⋯</span>, on a narrow write beside <span style="font-family:'IBM Plex Mono',monospace">setFavorite</span> · <b>E9</b> the editor's <b>FILE UNDER demotes to one breadcrumb line</b> — a fact you can change, not a question on the way in.</span>
+        <span class="k ch">ruled</span><span><b>E8 — a <span style="font-family:'IBM Plex Mono',monospace">⋯</span> on the row, not a long-press</b> (owner, 2026-09-03). A long-press would have left v2 <b>D6</b> untouched but is found by nobody. <b>This amends D6</b>, which kept the row a single tap target: the row now has a second target. The star still only <i>reports</i> — the toggle moves into the new menu, one deliberate tap away, never onto the row itself.</span>
+        <span class="k ch">refuses</span><span>No <b>New recipe / Import on the book menu</b> — that was this fragment's own first draft, and it duplicated the section <span style="font-family:'IBM Plex Mono',monospace">＋</span> permanently to serve one edge case (a book whose recipes are <i>all</i> sectioned) that <b>E9's line already answers in one tap</b>. No <b>dashed chips on a populated card</b>: the two doors are the empty shelf's, and stay there. No <b>fifth tab</b> for account or Ingredients — the four tabs are a <b>loop</b> (find → plan → cook → buy), not a list of the app's screens; a tab spends permanent thumb-level space on every screen for an act performed monthly, and it stops the bar reading as the week's cycle. No <b>floating stub pill</b> above the tab bar: permanent furniture that reports incompleteness is the nag v2 <b>D6</b> refused on browsing rows, and the shell's banner — the app's one persistent slot — is reserved by the errors lane for a state that is <i>wrong</i>, which a stub is not. No <b>drag</b> anywhere while sections lack it. No new matcher.</span>
+        <span class="k">costs</span><span><b>Zero migrations</b>, and a net <b>deletion</b>: out go <code>book_reorder_sheet.dart</code>, <code>_OverflowMenu</code>, <code>_AddMenu</code>, the stub <b>dot</b>, the <code>books.length >= 2</code> conditional and the dashed section row; in come one <span style="font-family:'IBM Plex Mono',monospace">＋</span> on a row that already lays out as a flex line with a control in it, three footer rows, and a row menu. E8 needs one narrow repository method — <span style="font-family:'IBM Plex Mono',monospace">setFiling(id, bookId, sectionId)</span> beside the shipped <span style="font-family:'IBM Plex Mono',monospace">setFavorite</span>. <b>E6's <span style="font-family:'IBM Plex Mono',monospace">/account</span> is the only new surface</b> and the only deferrable one — until the page exists the initials can open today's Household sheet, with Sign out appended.</span>
+    </div>
+    <p class="src">Raised from use: “do we even need <span style="font-family:'IBM Plex Mono',monospace">＋</span>”, “do we need the Library title”, “do we really need reorder books”, “can we expose Ingredients better so we can drop that menu entirely”. The <b>fold</b> objection was raised and dropped — the fold is default-open, per-device, one tap to reverse. Alternatives that lost are annotated on the frame that would have drawn them.</p>
+</div>
+
+<div class="board">
+
+    <!-- (a) THE LIBRARY, WITH NOTHING IN THE HEADER -->
+    <div class="frame">
+        <p class="frame-name"><b>Library home · v3</b> · one field, no menus, no dashed rows</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar lib-abar3">
+                <div class="lib-hfield"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span></div>
+                <span class="id3">👥</span>
+            </div>
+
+            <div class="book-card" style="margin-top:2px">
+                <div class="book-top">
+                    <div class="lib-bhead">
+                        <div class="bn-wrap"><div class="bn">Our Cookbook</div><div class="bc">42 recipes · 3 sections</div></div>
+                        <div class="ctl"><span>⌄</span><span>⋯</span></div>
+                    </div>
+                </div>
+                <div class="sec">
+                    <div class="sec-lab sec-lab3"><span class="lbl">Weeknight</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
+                    <div class="lib-row"><span class="t">Weeknight Chicken Curry</span><span class="star">★</span><span class="sv">serves 4</span><span class="rm">⋯</span></div>
+                    <div class="lib-row"><span class="t">Miso Salmon</span><span class="sv">serves 2</span><span class="rm">⋯</span></div>
+                </div>
+                <div class="sec">
+                    <div class="sec-lab sec-lab3" style="color:var(--muted)"><span class="lbl">Unsectioned</span><span class="ctl3"><span class="p">＋</span></span></div>
+                    <div class="lib-row"><span class="t">House Ragù</span><span class="sv">serves 6</span><span class="rm">⋯</span></div>
+                </div>
+            </div>
+
+            <div class="book-card">
+                <div class="book-top">
+                    <div class="lib-bhead">
+                        <div class="bn-wrap"><div class="bn">Baking</div><div class="bc">9 recipes · 2 sections</div></div>
+                        <div class="ctl"><span>›</span><span>⋯</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lib-newbook">＋ new book</div>
+
+            <div class="book-card" style="margin-top:14px">
+                <div class="book-top">
+                    <div class="lib-bhead">
+                        <div class="bn-wrap"><div class="bn">Ingredients</div><div class="bc">308 ingredients · 3 stubs</div></div>
+                        <div class="ctl"><span>›</span></div>
+                    </div>
+                </div>
+            </div>
+            <p class="conv-note" style="margin-top:12px">the vocabulary is a <b>shelf</b>, drawn like one — after the books, because it is a different kind of shelf, and with a <b>›</b> because it opens rather than folds</p>
+            <p class="conv-note">the <b>👥</b> beside the field is the one control in this header: it <b>opens the account page</b> — the household, this device, sign out. It is a <b>link</b>, so it can never grow a second item</p>
+            <p class="conv-note">an open card is books, sections and recipes. Every control on it hangs off a row that <b>already existed</b></p>
+            <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">E1 — the header stops being a place things can be put.</b> Week, Cook and Shop each put a working control in the title slot and say why in their own source: <i>“no screen name — the lit tab says where you are.”</i> The Library's control is the field it already owns, pinned in a band of its own below; moving it up reclaims a row on the app's home screen and keeps v2 D2's promise exactly. The stronger effect is structural: <b>a header with no menu on it cannot accumulate one.</b> v2's <span style="font-family:'IBM Plex Mono',monospace">⋯</span> took two new items within a day of shipping, and it would have taken more. <b style="color:var(--ink)">E6 — one control survives, and it is a link.</b> The objection to keeping anything in this header was that it becomes the next catch-all. That objection is about <b>menus</b>, not controls: a popover accumulates because adding a row to one is free, while <b>a control that navigates has nowhere to put a sixth item</b> — the growth pressure lands on the account <i>page</i>, which is a page and can hold it. So the initials stay, and the header is a field and a door. <span style="color:var(--muted)">Rejected: a <b>fifth tab</b>. The four tabs are a <b>loop</b> — find, plan, cook, buy — not an index of screens; a household tab spends thumb-level space on <i>every</i> screen of the app on an act performed monthly, and the moment the bar holds one non-loop item it stops being readable as the week's cycle. The page the tab was wanted for is the right idea and it is built either way (<span style="font-family:'IBM Plex Mono',monospace">/account</span>: members and their usual portions, where this device stands, the session). Also rejected: reaching it from a <b>footer row</b> — signing out cannot be the one act you have to scroll past every shelf to find.</span> <b style="color:var(--ink)">E5 — Ingredients is not reference data, and the shipped schema already knows it.</b> <code>shopping_list_entry</code> carries <code>ingredient_id uuid references ingredient(id)</code> beside <code>free_text</code>, under a check that exactly one is set — which is to say a <b>top-up is an ingredient put on a list with no recipe anywhere near it</b>. The vocabulary is already something you plan <i>with</i>, not just something recipes point at, so drawing it as a menu item (v2) or a hairline footer row (this fragment's own second draft) understates what it is. It gets a <b>card</b>: the book anatomy exactly — name, count line, one control — sitting after the books because it is a <i>different kind</i> of shelf, with a <span style="font-family:'IBM Plex Mono',monospace">›</span> rather than a fold, because 308 rows do not belong inside a card. Plan 0020 D8 wanted this: its badge, then v2's <b>dot</b>, were both proxies for “there is something over here” — a count line on a shelf says it outright and both proxies delete. <span style="color:var(--muted)">Rejected: <b>floating it above the tab bar</b> so the count is always on screen. Permanent furniture that reports incompleteness is the nag v2 <b>D6</b> refused on browsing rows — “a number nobody asked for or an <code>incomplete</code> nag, turning browsing into a lecture about vocabulary hygiene” — and the app's one persistent slot, the shell banner, is reserved by the errors lane for a state that is <b>wrong</b>, which a stub is not. A card is <i>more</i> present than a floating pill anyway, and it is present where you are already browsing. Also rejected: a <b>fifth tab</b> for it — an ingredient you can eat belongs to <i>find</i>, and <b>find is this tab</b>.</span> <b style="color:var(--ink)">What this placement is deliberately built to survive — and which is explicitly NOT in v3.</b> <code>plan_entry.recipe_id</code> is <code>uuid <b>not null</b> references recipe(id)</code>, so an ingredient cannot be planned today. The intended shape, <b>stated so the placement is not an accident</b> (owner, 2026-09-03): a <b>slot takes a recipe OR an ingredient</b> — most likely one <i>snacks</i> slot rather than a crop of new slot types, and <code>meal_slot</code> is already free text, so the slot costs nothing. The <i>target</i> is the migration, and its precedent is already in this repo: nullable <code>recipe_id</code> + <code>ingredient_id</code> under the same XOR check <code>shopping_list_entry</code> uses today. <b>Not now, not here</b> — no schema is touched by v3 — but the day it lands, the shelf drawn here is where the vocabulary should already have been, which is the reason not to file it under a menu in the meantime. Its own board section, and a tracker row.</p>
+    </div>
+
+    <div class="flow"><span>👥 opens</span><span class="arrow">→</span></div>
+
+    <!-- (f) /ACCOUNT -->
+    <div class="frame">
+        <p class="frame-name"><b>/account</b> · one tap on the <b>👥</b> in the Library header — the household, this device, the session</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Account</span><span style="width:14px"></span></div>
+
+            <p class="lib-mcap" style="margin-top:2px">household · who eats here, and how much</p>
+            <div class="lib-menu">
+                <div class="acc-row"><span class="who">Ada</span><span class="pf">×1</span><span style="color:var(--muted);font-size:12px">›</span></div>
+                <div class="acc-row"><span class="who">Jun</span><span class="pf">×¾</span><span style="color:var(--muted);font-size:12px">›</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">the sheet plan 0027 built, now a section of a page — a <b>usual portion</b> belongs to the person, and it is spent wherever a head-count used to be</p>
+
+            <p class="lib-mcap">this device</p>
+            <div class="lib-menu">
+                <div class="acc-row"><span class="who" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">Synced just now</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">the quiet half of sync health lives here — the <b>loud</b> half stays where it is, a shell banner over whatever you are doing</p>
+
+            <p class="lib-mcap">session</p>
+            <div class="lib-menu">
+                <div class="mi"><span class="ic">⇥</span><span class="lb">Sign out</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">keeps its confirm — “this removes the synced data from this device”</p>
+            <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">E6 — the page v2 D1 promised, built when its own trigger fired.</b> D1 deferred this with a condition: <i>“a screen whose only content is a Sign-out button exists to hold a divider. Take that route the moment a second setting appears, and Sign out moves there whole.”</i> Household arrived <b>one day later</b>, so the screen now has three things to hold and none of them is a divider. <b style="color:var(--ink)">It is a pushed page, not a tab.</b> The four tabs are a <b>loop</b> — find, plan, cook, buy — and the moment the bar carries one item that is not a phase of the week, it stops reading as the week's cycle and becomes an index of screens. This page is visited monthly; it does not buy thumb-level space on <i>every</i> screen. <span style="color:var(--muted)">Alternatives: keep the Household <b>sheet</b> and hang Sign out off it — a sheet is a place to answer one question, not a place to live, and sync health has nowhere to sit in one; a footer row in the Library — signing out cannot be the act you scroll past every shelf to find; a fifth <b>tab</b> — above.</span> <b style="color:var(--ink)">The door is the glyph the app already uses for this.</b> An earlier draft drew initials in the circle — a monogram only reads as identity once you have been taught it, and this app has no avatars anywhere to teach it. The <b>household</b> glyph does the teaching for free, and it is not a new choice: <code>FLucideIcons.users</code> is what the shipped <span style="font-family:'IBM Plex Mono',monospace">⋯</span> already puts beside <i>Household</i>. Same icon, same meaning, promoted out of a menu into the header. And it is a <b>link</b>: a control that navigates cannot accumulate — the pressure to add lands on this page, which is a page and can take it. That is the whole difference between this and the <span style="font-family:'IBM Plex Mono',monospace">⋯</span> it replaces. <b>Deferrable:</b> until the route exists the initials can open today's Household sheet with Sign out appended — the only slice of v3 that can ship late without stranding anything.</p>
+    </div>
+
+    <div class="flow"><span>the ＋ moves</span><span class="arrow">→</span></div>
+
+    <!-- (b) THE ＋ ON THE SHELF -->
+    <div class="frame">
+        <p class="frame-name"><b>＋ · the two doors, unchanged</b> · they just open where the filing is known</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <p class="lib-mcap" style="margin-top:8px">＋ on <i>Baking ▸ Slow Sundays</i></p>
+            <div class="lib-menu">
+                <div class="mi"><span class="ic">◍</span><span class="lb">New recipe</span></div>
+                <div class="mi"><span class="ic">⤓</span><span class="lb">Import a recipe</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">v2 D1's menu, <b>word for word</b> — the same two items, moved from a header that could not know the answer to a row that does</p>
+            <p class="lib-mcap">either door → the editor opens filed</p>
+            <div class="lib-file3"><span class="bc3">Baking · Slow Sundays</span><span class="ed">change ›</span></div>
+            <p class="conv-note" style="margin-top:10px">today both land in <span style="font-family:'IBM Plex Mono',monospace">books.first.id</span> — whichever book sorts first — and say nothing about it</p>
+            <p class="lib-mcap">and the book's own unfiled shelf</p>
+            <div class="lib-foot" style="margin-top:6px"><span class="fi">＋</span><span class="fl"><span class="fs">Unsectioned ▸ ＋ → Baking · Unsectioned</span></span></div>
+            <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">E2 — this is not a new affordance, it is v2 D1's own menu with a known answer attached.</b> The two items are unchanged; what changes is that the control sits on a row that knows its book <i>and</i> its section, so <code>/recipes/new?book=…&amp;section=…</code> replaces a question the form used to ask. The label is already a flex line with <code>_SectionMenu</code>'s <span style="font-family:'IBM Plex Mono',monospace">⋯</span> at its right edge, so <span style="font-family:'IBM Plex Mono',monospace">＋ ⋯</span> is the book header's <i>chevron + ⋯</i> anatomy one level down — <b>two controls, no new row.</b> <b style="color:var(--ink)">Why not fold the ＋ into the section ⋯ as well?</b> It would leave one control per row and hide creation behind an ellipsis on a screen whose <i>whole purpose</i> is making and finding recipes. A shape menu can be discovered late; the primary act cannot. <b style="color:var(--ink)">The all-sectioned book needs nothing.</b> <code>if (book.unsectioned.isNotEmpty)</code> means such a book renders no Unsectioned label — and the answer is <b>not</b> a book-level door, which is where this fragment's first draft went wrong: it put New recipe · Import on the book <span style="font-family:'IBM Plex Mono',monospace">⋯</span>, duplicating the section <span style="font-family:'IBM Plex Mono',monospace">＋</span> permanently to serve an edge case. Someone who sectioned every recipe wants the next one sectioned too; if they do not, E9's <code>change ›</code> clears it in one tap on the screen already open. <span style="color:var(--muted)">Also rejected: always rendering an empty <b>Unsectioned</b> label so the ＋ is uniform — a label with no rows under it is the zero that renders, which is the stub badge's own rule.</span></p>
+    </div>
+
+    <div class="flow"><span>and the menu?</span><span class="arrow">→</span></div>
+
+    <!-- (c) THE MENU DISSOLVES -->
+    <div class="frame">
+        <p class="frame-name"><b>Where the ⋯ went</b> · two items were already implemented one row away</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <p class="lib-mcap" style="margin-top:8px">v2's library ⋯ — every item, and its real home</p>
+            <div class="lib-menu lib-gone">
+                <div class="mi"><span class="ic">🥕</span><span class="lb">Ingredients</span></div>
+                <div class="mi"><span class="ic">◐</span><span class="lb">Household</span></div>
+                <div class="mi"><span class="ic">＋</span><span class="lb">New book</span></div>
+                <div class="mi"><span class="ic">⇅</span><span class="lb">Reorder books</span></div>
+                <div class="mi"><span class="ic">⇥</span><span class="lb">Sign out</span></div>
+                <div class="mi"><span class="ic">◷</span><span class="lb">Synced just now</span></div>
+            </div>
+            <p class="lib-went"><b>INGREDIENTS</b> → its own card at the end of the library, with the count the dot was hinting at</p>
+            <p class="lib-went"><b>HOUSEHOLD · SIGN OUT · SYNC</b> → a real <span style="text-transform:none">/account</span> page behind the header's initials — v2 D1's own trigger</p>
+            <p class="lib-went"><b>NEW BOOK</b> → the dashed footer row the v2 board drew and the build missed</p>
+            <p class="lib-went"><b>REORDER BOOKS</b> → <b>nowhere. It already existed:</b> the book ⋯ ▸ Move up / Move down</p>
+            <p class="lib-mcap">the book ⋯ · unchanged, and now the only door to each</p>
+            <div class="lib-menu">
+                <div class="mi"><span class="ic">✎</span><span class="lb">Rename</span></div>
+                <div class="mi"><span class="ic">＋</span><span class="lb">New section</span></div>
+                <div class="mi"><span class="ic">↑</span><span class="lb">Move up</span></div>
+                <div class="mi"><span class="ic">↓</span><span class="lb">Move down</span></div>
+                <div class="rule"></div>
+                <div class="mi danger"><span class="ic">🗑</span><span class="lb">Delete book</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:12px">the dashed <b>＋ new section</b> row inside the card goes for the same reason: <b>New section</b> is right here, one row above it</p>
+            <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">E4 — “Reorder books” is a second user interface for a write the book menu already performs.</b> <code>_BookReorderSheet.move()</code> and <code>_BookMenu._move()</code> are the same four lines: read the ids, splice one, call <code>reorderBooks</code>. The sheet shows all books at once, which is a real advantage — for four books it is not worth a file, a menu item, a <code>books.length >= 2</code> conditional and a second idiom for an act v2 D4 deliberately made <b>clunky on both paths</b> (“no drag for books while sections lack it”). Delete the sheet; the capability does not move, because it never left. <span style="color:var(--muted)">Reconsider if a household ever holds enough books that ordering them one step at a time is the complaint — at which point the answer is drag, once sections can have it too, and it belongs on the row, not in a sheet.</span> <b style="color:var(--ink)">E3 — the same argument one level down.</b> v2 D5 moved the dashed <i>new section</i> row <b>inside</b> the card so its noise would scale with what is open; it did not ask why the row existed at all while <b>New section</b> sat in the book <span style="font-family:'IBM Plex Mono',monospace">⋯</span> immediately above it. With the row gone an expanded card has <b>no dashed furniture</b> — and the “name it anything” promise D5 was protecting lives in the naming prompt, which is where a person actually reads it. <b style="color:var(--ink)">E6 — v2 D1 wrote its own trigger and the trigger fired:</b> <i>“take that route the moment a second setting appears, and Sign out moves there whole.”</i> Household arrived <b>one day later</b>. <span style="color:var(--muted)">Alternative: leave Household and Sign out in a two-item <span style="font-family:'IBM Plex Mono',monospace">⋯</span> — a menu that exists to hold a divider, which is the exact thing D1 refused to build as a screen.</span></p>
+    </div>
+
+    <div class="flow"><span>the shelving act</span><span class="arrow">→</span></div>
+
+    <!-- (d) MOVE TO… -->
+    <div class="frame">
+        <p class="frame-name"><b>Move to…</b> · re-filing is a library act, on the row's own <span style="font-family:'IBM Plex Mono',monospace">⋯</span></p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar lib-abar3">
+                <div class="lib-hfield"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span></div>
+                <span class="id3">👥</span>
+            </div>
+            <div class="book-card" style="margin-top:2px">
+                <div class="book-top">
+                    <div class="lib-bhead">
+                        <div class="bn-wrap"><div class="bn">Our Cookbook</div><div class="bc">42 recipes · 3 sections</div></div>
+                        <div class="ctl"><span>⌄</span><span>⋯</span></div>
+                    </div>
+                </div>
+                <div class="sec">
+                    <div class="sec-lab sec-lab3"><span class="lbl">Weeknight</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
+                    <div class="lib-row"><span class="t">House Ragù</span><span class="sv">serves 6</span><span class="rm">⋯</span></div>
+                </div>
+            </div>
+            <div class="lib-menu">
+                <div class="mi"><span class="ic">→</span><span class="lb">Move to…</span></div>
+                <div class="mi"><span class="ic">★</span><span class="lb">Favorite</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">then a target: the books, each with its sections — <b>“House Ragù moves to Baking · Slow Sundays”</b>, said before it acts, the “Move them to…” grammar in the singular</p>
+            <div class="lib-ruled">
+                <div class="oh">ruled · owner, 2026-09-03</div>
+                <div class="ob"><b>A <span style="font-family:'IBM Plex Mono',monospace">⋯</span> on the row, not a long-press.</b> This <b>amends v2 D6</b>, which kept the row a single tap target. The <b>★ still only reports</b> — drawn on the row, toggled from the menu, never by touching the row itself.</div>
+            </div>
+            <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">E8 — moving a recipe is the one library act the Library cannot do.</b> The filing is <b>readable</b> on the recipe page — the <code>BOOK · SECTION</code> eyebrow above the title — and <b>writable</b> nowhere but the editor: the recipe <span style="font-family:'IBM Plex Mono',monospace">⋯</span> is Favorite · Edit · Delete, and filing is only ever persisted by <code>saveRecipe</code>, a whole-recipe write. So re-shelving one recipe is <i>row → ⋯ → Edit → FILE UNDER → save</i>: an editing round trip, on the one screen where the shelves are not visible. <b style="color:var(--ink)">The act already exists in bulk</b> — the delete refusal's door is <code>moveBookContents</code>, every recipe in a book re-filed unsectioned, announced before it acts. E8 is that sentence in the singular, on a narrow write (<code>setFiling</code>) modelled on <code>setFavorite</code>. <b style="color:var(--ink)">The cost, stated:</b> the browsing row now has two targets where D6 allowed one; the mitigation is D6's own rule kept intact — the star <b>reports</b> on the row and <b>toggles</b> only inside the menu — so the row's own tap still means exactly one thing. <span style="color:var(--muted)">Alternatives: a <b>Move</b> item on the recipe page's <span style="font-family:'IBM Plex Mono',monospace">⋯</span> — no D6 amendment, and still the wrong screen: you pick a destination while looking at none of them. A <b>long-press</b> — keeps D6 whole, found by nobody (ruled out). <b>Drag</b> — refused with book reorder, same reason.</span></p>
+    </div>
+
+    <div class="flow"><span>and in the editor</span><span class="arrow">→</span></div>
+
+    <!-- (e) FILE UNDER, DEMOTED -->
+    <div class="frame">
+        <p class="frame-name"><b>FILE UNDER · demoted</b> · a fact you can change, not a question on the way in</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <p class="lib-mcap" style="margin-top:8px">v3 — one line, pre-set from the ＋ you tapped</p>
+            <div class="lib-file3"><span class="bc3">Our Cookbook · Weeknight</span><span class="ed">change ›</span></div>
+            <p class="conv-note" style="margin-top:10px">tapping it opens the same book + section picker that ships today — unchanged, just no longer in the way</p>
+            <p class="lib-mcap">why it does not simply go</p>
+            <div class="lib-menu">
+                <div class="mi"><span class="ic">◍</span><span class="lb" style="font-size:12.5px">Week ▸ picker ▸ <b>＋ new recipe</b> — no shelf in view</span></div>
+                <div class="mi"><span class="ic">⌕</span><span class="lb" style="font-size:12.5px">no-hits ▸ <b>new recipe called “…”</b> — the tree is gone</span></div>
+                <div class="mi"><span class="ic">✎</span><span class="lb" style="font-size:12.5px">every <b>existing</b> recipe — the only re-file control until E8</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:12px">the first two default to the first book and are <b>correctable in one tap</b> on the line above — which is the whole reason the control stays</p>
+            <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">E9 — demoted, not deleted, and the difference matters three times.</b> <code>RecipeHeaderForm</code> is the <b>same form the editor renders for an existing recipe</b>, so FILE UNDER is the app's only re-filing control; and two creation doors genuinely have no shelf to inherit — the Week picker's <span style="font-family:'IBM Plex Mono',monospace">＋ new recipe</span>, where you are planning Tuesday and no book is on screen, and the no-hits state, where a live query has <i>replaced</i> the tree. Both keep today's behaviour (default to the first book), but with the filing stated on the header line rather than buried in a form section, a wrong default is <b>visible</b> and one tap from right. It is also what lets E2 refuse a book-level door: “I want this one unfiled after all” is answered on the screen that is already open. <span style="color:var(--muted)">Rejected: make it <b>read-only</b> and force every move through E8's Library door — tidier on paper, but it strands exactly those two doors, which are the ones most likely to have guessed wrong.</span> <b style="color:var(--ink)">The line is the recipe page's own eyebrow</b>, <code>BOOK · SECTION</code> in herb caps, so the editor states filing in the words the reader already saw — one idiom, two screens, no new anatomy.</p>
+    </div>
+
+
+</div>
+<!-- lane:library3:end -->
 
 
 
