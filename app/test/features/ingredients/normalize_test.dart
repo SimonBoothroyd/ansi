@@ -95,6 +95,9 @@ void main() {
       expect(matchTextForms('almo'), ['almo']); // mid-typing prefix
       expect(matchTextForms('asparagus'), ['asparagus']);
       expect(matchTextForms('boneless'), ['boneless']);
+      // The explicit invariant set, not the regex guard: `molass` must never
+      // be tried as a second form now that no row is written with it.
+      expect(matchTextForms('molasses'), ['molasses']);
     });
 
     test('every form is still free of LIKE wildcards', () {
@@ -111,6 +114,7 @@ void main() {
       expect(singularizeToken('leaves'), 'leaf');
       expect(singularizeToken('chillies'), 'chilli');
       expect(singularizeToken('boneless'), 'boneless');
+      expect(singularizeToken('molasses'), 'molasses');
       expect(normalizeMatchText('Almonds'), singularizeToken('almonds'));
     });
   });

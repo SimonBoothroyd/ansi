@@ -73,6 +73,23 @@ assigned here, not minted: **0021 = lane C, 0022 = lane D**.
   `make db-lint` diffs the two blocks. The lane could not run the pgTAP
   suite (shared stack is off-limits); the orchestrator's landing gates do.
 
+- 2026-09-03 (lane D) — **An explicit invariant-word set, not a regex change.**
+  `INVARIANT_WORDS` / `_invariantWords` = `{molasses}` on both sides, checked
+  before every suffix rule. Admission rule, written next to the set: a word
+  goes in only when it is genuinely singular AND the rules produce a non-word
+  for it. Words the rules reduce to a real stem — `brussels` → `brussel` (the
+  one such word in the seed vocab), `grits` → `grit` — stay out: the query side
+  reduces them identically, so the stored key still matches, and admitting
+  them would cost every household a rewrite for no gain. The regex guard
+  (`-ss/-us/-is/-ous`) stays as the general rule. Blast radius measured: no
+  `vocab.jsonl` row changes (`gen-seed` re-run, byte-identical), five
+  `usda_food` rows (`molass` → `molasses`), plus anything a household typed.
+  `0022` rewrites all three tables in place, guarded against 0020's template
+  unique indexes (raise, never skip). `seed_usda.sql` got the identical
+  whole-word rewrite by hand because the FDC bundles are not committed — the
+  same precedent as the plan-0022 measure edits — so a fresh reset and a
+  migrated database agree. The Deno suite now also reads the shared vector
+  file, closing the parity loop from the server side.
 ## Notes / open questions
 
 - Lane D: the fix for `molasses` is most likely an explicit invariant-word

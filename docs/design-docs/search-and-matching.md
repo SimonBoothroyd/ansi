@@ -201,7 +201,9 @@ Supplement plus Latin Extended-A) is stated in its doc comment.
   through **both** recipe picker widgets, asserting identical rendered sets,
   over the exact queries the audit measured them disagreeing on.
 - **`normalize_vectors.json`** — the phrase normalizer's Dart/TypeScript
-  parity, extended with the diacritic cases.
+  parity, extended with the diacritic cases and the invariant words
+  (`molasses`), and since plan 0023 read by **both** suites rather than
+  copied into one.
 
 ## 8. Stated bounds
 

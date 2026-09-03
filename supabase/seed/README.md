@@ -106,6 +106,15 @@ regenerate:
    density note above); `match_text` uses the shared normalizer so the
    reference is indexed the same way.
 
+> **A normalizer change reaches this file too.** When the shared normalizer
+> changes what it writes, the committed `seed_usda.sql` is stale until the
+> bundles are re-run — and it is 8,204 plain inserts, so it seeds a *fresh*
+> database only. The plan-0023 invariant-word fix (`molasses`, migration
+> `0022`) applied the identical whole-word rewrite (`molass` → `molasses`,
+> five rows) to the committed file by hand, the same precedent as the
+> measure edits below, so a fresh reset and a migrated database agree. A
+> regeneration from the bundles reproduces it verbatim.
+
 ## Ingredient measures (`scripts/gen_measures.ts`)
 
 `../seed_measures.sql` — the template vocab's starter **measures** ("1 potato,

@@ -243,6 +243,23 @@ const STATE_WORDS = new Set([
 /** Purely a quantity token: digits, unicode fractions, ranges. */
 const QUANTITY = /^[\d¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞/.,\-–—]+$/;
 
+/**
+ * Singular words the suffix rules would mangle because they END like a
+ * plural. The regex guard below (`-ss`, `-us`, `-is`, `-ous`) already spares
+ * boneless, asparagus and hummus; this set is for the words it cannot see —
+ * "molasses" ends in `-sses`, so the guard misses it and the sibilant rule
+ * used to write `molass`.
+ *
+ * Admission rule: a word goes in only when it is genuinely singular AND the
+ * rules produce a non-word for it. A word the rules reduce to a real stem
+ * (grits → grit, brussels → brussel) stays out — the query side reduces it
+ * the same way, so the stored key still matches — and would cost every
+ * household a `match_text` rewrite for no gain. Adding a word here changes
+ * what is stored: pair it with a migration that rewrites the old form in
+ * place (0022 is the model) and extend the shared vectors.
+ */
+const INVARIANT_WORDS = new Set(["molasses"]);
+
 /** Irregular plurals a suffix rule would get wrong. */
 const IRREGULAR_PLURALS: Record<string, string> = {
   leaves: "leaf",
@@ -379,8 +396,10 @@ function classify(
 
 /** English singularization, conservative enough to leave non-plurals alone. */
 function singularize(word: string): string {
+  if (INVARIANT_WORDS.has(word)) return word;
   if (IRREGULAR_PLURALS[word]) return IRREGULAR_PLURALS[word];
-  // Words that look plural but aren't: boneless, asparagus, molasses, …
+  // Words that look plural but aren't: boneless, asparagus, hummus, … A word
+  // this guard cannot see (molasses: `-sses`) belongs in INVARIANT_WORDS.
   if (/(ss|us|is|ous)$/.test(word)) return word;
   if (/ies$/.test(word) && word.length > 4) return word.slice(0, -3) + "y";
   // No general -ves→-f rule: most food -ves are plain -s plurals (chives→chive,

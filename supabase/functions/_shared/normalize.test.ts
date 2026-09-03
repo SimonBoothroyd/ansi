@@ -34,6 +34,24 @@ Deno.test("normalize — singularization edge cases", () => {
   assertEquals(normalize("bay leaves"), "bay leaf"); // genuine -ves→-f (irregular)
 });
 
+Deno.test("normalize — invariant words that only look plural", () => {
+  // The regex guard spares -ss/-us/-is/-ous; "molasses" ends in -sses and
+  // used to come out as `molass` (tracker row, plan 0023 lane D). It is in
+  // INVARIANT_WORDS now, wherever it sits in the phrase.
+  assertEquals(normalize("molasses"), "molasses");
+  assertEquals(normalize("Blackstrap Molasses"), "blackstrap molasses");
+  assertEquals(normalize("2 tablespoons molasses"), "molasses");
+  // The guard's own cases still hold.
+  assertEquals(normalize("hummus"), "hummus");
+  assertEquals(normalize("couscous"), "couscous");
+  assertEquals(normalize("Swiss chard"), "swiss chard");
+  assertEquals(normalize("watercress"), "watercress");
+  // Real -es plurals keep singularizing — the set is a list, not a rule.
+  assertEquals(normalize("radishes"), "radish");
+  assertEquals(normalize("2 peaches"), "peach");
+  assertEquals(normalize("mashed potatoes"), "potato");
+});
+
 Deno.test("normalize — folds diacritics onto the base letter", () => {
   // The letter survives (never "jalapeo"), but its accent does not: a line
   // printed without the tilde has to reach the row that has it (0023 D5).
@@ -103,6 +121,25 @@ Deno.test("normalize — drops vague amount words", () => {
   );
   // "and"/"of" are filler: "1 head of garlic, peeled and chopped" → "garlic".
   assertEquals(normalize("garlic, peeled and chopped"), "garlic");
+});
+
+// --- the shared vectors ------------------------------------------------------
+
+Deno.test("normalize — agrees with the shared Dart/TS vectors", () => {
+  // The same file the Dart port's parity test reads. The literals above are
+  // the source the vectors are copied from; this closes the loop from the
+  // other side, so an entry added for Dart alone still has to hold here.
+  const path = new URL(
+    "../../../app/test/features/ingredients/normalize_vectors.json",
+    import.meta.url,
+  );
+  const { vectors } = JSON.parse(Deno.readTextFileSync(path)) as {
+    vectors: { from: string; in: string; out: string }[];
+  };
+  if (vectors.length < 30) throw new Error("vector file did not load");
+  for (const v of vectors) {
+    assertEquals(normalize(v.in), v.out, `[${v.from}] "${v.in}"`);
+  }
 });
 
 // --- stripParentheticals (8.6 / 0021 D6) -------------------------------------

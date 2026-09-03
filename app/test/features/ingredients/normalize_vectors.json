@@ -8,8 +8,8 @@
     "(lib/features/ingredients/domain/normalize.dart). This file is what stops them",
     "drifting: it fails CI here rather than failing an import six weeks later.",
     "Change a rule on either side and this file changes with it.",
-    "The Deno suite can read this same file (deno test --allow-read) to close the",
-    "loop from the other direction; today it still carries its own literals."
+    "The Deno suite reads this same file too (normalize.test.ts, under the task's",
+    "--allow-read), so an entry added for either side has to hold on both."
   ],
   "vectors": [
     { "from": "spec §7 worked examples", "in": "2 large Onions, diced", "out": "onion" },
@@ -32,6 +32,17 @@
     { "from": "singularization edge cases", "in": "chives", "out": "chive" },
     { "from": "singularization edge cases", "in": "olives", "out": "olive" },
     { "from": "singularization edge cases", "in": "bay leaves", "out": "bay leaf" },
+
+    { "from": "invariant words that only look plural", "in": "molasses", "out": "molasses" },
+    { "from": "invariant words that only look plural", "in": "Blackstrap Molasses", "out": "blackstrap molasses" },
+    { "from": "invariant words that only look plural", "in": "2 tablespoons molasses", "out": "molasses" },
+    { "from": "invariant words that only look plural", "in": "hummus", "out": "hummus" },
+    { "from": "invariant words that only look plural", "in": "couscous", "out": "couscous" },
+    { "from": "invariant words that only look plural", "in": "Swiss chard", "out": "swiss chard" },
+    { "from": "invariant words that only look plural", "in": "watercress", "out": "watercress" },
+    { "from": "invariant words that only look plural", "in": "radishes", "out": "radish" },
+    { "from": "invariant words that only look plural", "in": "2 peaches", "out": "peach" },
+    { "from": "invariant words that only look plural", "in": "mashed potatoes", "out": "potato" },
 
     { "from": "folds diacritics, keeps the letter", "in": "jalapeño", "out": "jalapeno" },
     { "from": "folds diacritics, keeps the letter", "in": "Jalapeño", "out": "jalapeno" },
