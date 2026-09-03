@@ -19,6 +19,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:ansi/app.dart';
 import 'package:ansi/core/config/env.dart';
@@ -231,14 +232,29 @@ typedef _Household = ({String email, String id});
 /// runs are filled with plug users until a sign-up lands in a genuinely fresh
 /// (and therefore clean) household; the partner then deterministically joins
 /// it.
+///
+/// Two files provisioning at the same moment (parallel lanes, each on its
+/// own simulator, one shared backend) can PAIR: each Ada creates a fresh
+/// household and the other's Ada joins it, both read two members, both try
+/// again ~200 ms later — in lock-step, until the cap (observed 2026-09-03:
+/// eight "Ada, Ada" households, stamps 1–60 ms apart, no Jun anywhere). A
+/// random pause after a full household breaks the lock-step within an
+/// attempt or two; the cap is generous because each attempt is cheap.
 Future<_Household> _provisionHousehold() async {
-  for (var attempt = 0; attempt < 8; attempt++) {
+  final jitter = Random();
+  for (var attempt = 0; attempt < 24; attempt++) {
     final stamp = DateTime.now().millisecondsSinceEpoch;
     // NOTE: example.com is on the cloud blocklist — use the app's own domain.
     final email = 'smoke$stamp.ada@ansi.app';
     final token = await _signUp(email, fullName: 'Ada');
     final household = await _ensureOnboarded(token);
-    if (await _memberCount(token, household) > 1) continue; // filled a stray
+    if (await _memberCount(token, household) > 1) {
+      // Filled a stray, or paired with another lane's Ada (see above).
+      await Future<void>.delayed(
+        Duration(milliseconds: 50 + jitter.nextInt(450)),
+      );
+      continue;
+    }
     final partnerToken = await _signUp(
       'smoke$stamp.jun@ansi.app',
       fullName: 'Jun',
@@ -252,7 +268,10 @@ Future<_Household> _provisionHousehold() async {
     }
     return (email: email, id: household);
   }
-  throw StateError('no fresh household after 8 sign-ups — too many strays?');
+  throw StateError(
+    'no fresh household after 24 sign-ups — too many strays, or another '
+    'file provisioning in lock-step?',
+  );
 }
 
 Future<String> _signUp(String email, {required String fullName}) async {

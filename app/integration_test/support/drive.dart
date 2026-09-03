@@ -33,6 +33,16 @@ void ignoreForuiSemanticsAssertion() {
         '${details.stack}'.contains('_updateSelectionRects')) {
       return;
     }
+    // Same family, third callback (plan 0026 lane C): a window-metrics
+    // change — the software keyboard leaving as a form pops — is dispatched
+    // to every registered `EditableTextState.didChangeMetrics`, including
+    // one whose route was just removed, and its `View.of` lookup trips on
+    // the deactivated element. Debug-only framework noise on teardown;
+    // filtered narrowly by its stack.
+    if (text.contains("Looking up a deactivated widget's ancestor") &&
+        '${details.stack}'.contains('EditableTextState.didChangeMetrics')) {
+      return;
+    }
     // Same family, other callback: a focused field's show-caret-on-screen
     // post-frame callback can outlive its route by one frame when a form is
     // popped mid-focus ("findRenderObject ... inactive/DEFUNCT" out of
@@ -170,5 +180,17 @@ Future<void> scrollTo(
     );
   }
   await tester.ensureVisible(finder.first);
+  await tester.pumpAndSettle();
+}
+
+/// Scrolls [finder]'s first match to the MIDDLE of its viewport, then
+/// settles. The form pages scroll under a pinned header, so a target that is
+/// inside the viewport's bounds can still sit beneath the header and swallow
+/// a tap (observed: the density entry's g/ml chip at y=108 after the entry's
+/// own save re-laid its section out). `ensureVisible` leaves an
+/// already-visible widget where it is; this always moves it. Use it after
+/// [scrollTo] (which builds the target) and before a tap.
+Future<void> centerOn(WidgetTester tester, Finder finder) async {
+  await Scrollable.ensureVisible(tester.element(finder.first), alignment: 0.5);
   await tester.pumpAndSettle();
 }

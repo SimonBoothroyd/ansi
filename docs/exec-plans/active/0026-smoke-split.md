@@ -63,10 +63,19 @@ its add-new chain, both of which are host-tested over fakes only.
       **7:19 wall (6:31 of test time)**. Auth, editor and week each passed
       alone in the lane; their individual times were lost with the lane's
       transcript (API cut-offs) and belong in the next re-drive.
+- [x] **Lane C:** the ingredients file gains the tracker legs on the form it
+      already opens — the density entry both phrasings (the round-tripped
+      `allowed_units` asserted as a jsonb array), "Counts as" set → back →
+      reopened → stuck — plus plan 0027's M-D1/D2/D3 and U-D1/U-D2 legs.
+      `make test-sim FILE=ingredients` green, **2026-09-03, iPhone 17 Pro
+      Max: 3:06 wall (2:26 of test time, 24 s incremental build)**, one
+      `testWidgets` still. `make ci` green. No `lib/` change.
 - [ ] Docs updated: `app/AGENTS.md` (the smoke paragraph), `docs/QUALITY.md`
       (CI row's smoke sentence, Recipes row's "unrun by the lane" note),
       `docs/design-docs/navigation.md` (the file reference), the tracker rows
-      that name `app_test.dart` or "scenario N".
+      that name `app_test.dart` or "scenario N". (Lane C: the AGENTS.md
+      ingredients line, the Ingredients-manager QUALITY row, the 2026-08-29
+      row retired, the 2026-09-03 sim row narrowed to the import leg.)
 
 ## Approach
 
@@ -104,6 +113,11 @@ the shared local backend is never a collision.
    sheet — the rename and the order asserted in the local db after the round
    trip. **28 s of test time, 1:49 wall** (47 s of that the Xcode build) on
    the iPhone 17. The tracker row is retired.
+   2026-09-03 rows) — **landed 2026-09-03**, together with plan 0027's
+   ingredients sim legs (M-D1/D2/D3, U-D1/U-D2) on the same form; the four
+   Library v2 taps into a Library leg of `auth_test.dart` or its own
+   `library_test.dart` (tracker 2026-09-02 row) — **not in lane C's brief,
+   still open**.
 
 ## Decision log
 
