@@ -48,6 +48,11 @@ class LibraryView extends HookConsumerWidget {
     final searching = typed.trim().isNotEmpty;
 
     return FScaffold(
+      // A tab root sits INSIDE the shell's scaffold, which already shrinks
+      // the branch area for the keyboard; a second scaffold subtracting the
+      // same inset squeezes the content twice (Android showed a list a few
+      // lines tall after the sign-in keyboard).
+      resizeToAvoidBottomInset: false,
       childPad: false,
       header: FHeader.nested(
         title: Text('Library', style: ansiHeaderTitle()),

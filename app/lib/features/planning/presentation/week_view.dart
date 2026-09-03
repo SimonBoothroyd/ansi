@@ -123,6 +123,11 @@ class WeekView extends HookConsumerWidget {
         'Everyone';
 
     return FScaffold(
+      // A tab root sits INSIDE the shell's scaffold, which already shrinks
+      // the branch area for the keyboard; a second scaffold subtracting the
+      // same inset squeezes the content twice (Android showed a list a few
+      // lines tall after the sign-in keyboard).
+      resizeToAvoidBottomInset: false,
       // "Copy last week" used to live in a header `⋯`, a lens-bar chip AND the
       // empty-state button. It now has ONE permanent home — the switcher menu
       // (D2) — plus the empty-week chip below.
