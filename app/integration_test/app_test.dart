@@ -91,6 +91,8 @@ import 'package:ansi/core/config/env.dart';
 import 'package:ansi/core/sync/database.dart';
 import 'package:ansi/core/sync/schema.dart';
 import 'package:ansi/core/sync/session.dart' show currentHouseholdIdProvider;
+import 'package:ansi/features/cook_plan/presentation/cook_view.dart'
+    show CookView;
 import 'package:ansi/features/import/data/import_providers.dart';
 import 'package:ansi/features/import/data/import_repository_impl.dart';
 import 'package:ansi/features/import/presentation/import_view.dart'
@@ -114,6 +116,8 @@ import 'package:ansi/features/recipes/presentation/recipe_chip.dart'
     show RecipeChip;
 import 'package:ansi/features/recipes/presentation/recipe_editor_view.dart'
     show RecipeEditorView;
+import 'package:ansi/features/shopping/presentation/shopping_view.dart'
+    show ShoppingView;
 import 'package:ansi/shared/picker_shell.dart' show PickerShell;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1051,7 +1055,7 @@ void main() {
     // D7 (nav) — the lens is a filter the user CHOSE, and the shell keeps it:
     // a round trip through Cook comes back under Jun, not reset to Everyone.
     await tapTab(tester, FLucideIcons.cookingPot);
-    await pumpUntilFound(tester, find.text('Batch cook plan'));
+    await pumpUntilFound(tester, find.byKey(CookView.rootKey));
     await tapTab(tester, FLucideIcons.calendarDays);
     await pumpUntilFound(tester, find.text('Everyone'));
     expect(find.text('Chicken Curry'), findsNWidgets(2));
@@ -1065,7 +1069,7 @@ void main() {
     // ------------------------------------------------------------------------
     // Mon + Wed sit inside the 2-day window → ONE session covers both.
     await tapTab(tester, FLucideIcons.cookingPot);
-    await pumpUntilFound(tester, find.text('Batch cook plan'));
+    await pumpUntilFound(tester, find.byKey(CookView.rootKey));
     await pumpUntilFound(tester, find.text('Cook Mon'));
     expect(find.textContaining('Cook '), findsOneWidget);
     // Monday's override (3) + Wednesday's single eater after the edit (1).
@@ -1096,7 +1100,7 @@ void main() {
     // 3c · SHOP — provenance roll-up, a manual top-up, and check-off.
     // ------------------------------------------------------------------------
     await tapTab(tester, FLucideIcons.shoppingBasket);
-    await pumpUntilFound(tester, find.text('Shopping list'));
+    await pumpUntilFound(tester, find.byKey(ShoppingView.rootKey));
     await pumpUntilFound(tester, find.text('Garlic'));
     expect(find.text('Onion'), findsOneWidget);
     // Both cook sessions contribute, labelled per batch.
@@ -2181,7 +2185,7 @@ void main() {
     );
 
     await tapTab(tester, FLucideIcons.shoppingBasket);
-    await pumpUntilFound(tester, find.text('Shopping list'));
+    await pumpUntilFound(tester, find.byKey(ShoppingView.rootKey));
     // The component LINE never becomes an item (you buy almonds, not aioli) —
     // the aioli's own lines do, through the derived session.
     await scrollTo(tester, find.text('Almonds'));
@@ -2275,7 +2279,7 @@ void main() {
     // The Shop tab: the unresolved component contributes NOTHING, and the
     // parent says so rather than leaving the list quietly short (D4).
     await tapTab(tester, FLucideIcons.shoppingBasket);
-    await pumpUntilFound(tester, find.text('Shopping list'));
+    await pumpUntilFound(tester, find.byKey(ShoppingView.rootKey));
     await scrollTo(tester, find.text('1 component unresolved — see Cook'));
     expect(find.text('SAUSAGE SLIDERS'), findsOneWidget);
     expect(

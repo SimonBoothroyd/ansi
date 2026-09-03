@@ -4,6 +4,9 @@ import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_view.dart';
+import 'package:ansi/features/planning/domain/planning.dart' show mondayOf;
+import 'package:ansi/features/planning/presentation/week_format.dart';
+import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/planning/presentation/week_view_models.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
@@ -120,9 +123,8 @@ PlannedRecipe _recipe(
 );
 
 void main() {
-  testWidgets('the header names the viewed week and offers the way home (D3)', (
-    tester,
-  ) async {
+  testWidgets('the week switcher is the whole title, and its menu speaks in '
+      'cooks (0025 D7a/D7c)', (tester) async {
     await tester.pumpWidget(
       _host([
         cookPlanRepositoryProvider.overrideWithValue(
@@ -132,8 +134,20 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // On the current week the header is just the screen's name.
-    expect(find.text('Batch cook plan'), findsOneWidget);
+    final monday = mondayOf(DateTime.now());
+    String titleFor(int weeksAhead) {
+      final t = formatWeekTitle(
+        monday.add(Duration(days: 7 * weeksAhead)),
+        monday,
+      );
+      return '${t.label} · ${t.date}';
+    }
+
+    // No screen name and no pill: the switcher names the week, and the lit
+    // tab in the bar is what says "Cook".
+    expect(find.byType(WeekSwitcher), findsOneWidget);
+    expect(find.text(titleFor(0)), findsOneWidget);
+    expect(find.textContaining('Batch cook plan'), findsNothing);
     expect(find.text('this week'), findsNothing);
 
     final container = ProviderScope.containerOf(
@@ -141,13 +155,18 @@ void main() {
     );
     container.read(viewedWeekStartProvider.notifier).step(1);
     await tester.pumpAndSettle();
+    expect(find.text(titleFor(1)), findsOneWidget);
+    expect(find.text('this week'), findsNothing);
 
-    expect(find.text('Batch cook plan · next week'), findsOneWidget);
-    expect(find.text('this week'), findsOneWidget);
-
-    await tester.tap(find.text('this week'));
+    // The menu: this tab's own derivation on the row it has derived, no Week
+    // write (D7b), and "This week" as the way home.
+    await tester.tap(find.text(titleFor(1)));
     await tester.pumpAndSettle();
-    expect(find.text('Batch cook plan'), findsOneWidget);
+    expect(find.text('nothing to cook'), findsOneWidget);
+    expect(find.text('Copy last week into this one'), findsNothing);
+    await tester.tap(find.text('This week'));
+    await tester.pumpAndSettle();
+    expect(find.text(titleFor(0)), findsOneWidget);
   });
 
   testWidgets('an empty plan is a quiet line INSIDE the screen (D5b)', (
@@ -164,7 +183,7 @@ void main() {
 
     // The chrome stays put — header and caption — and the empty body carries
     // the door that would fill it, instead of a full-bleed page with one exit.
-    expect(find.text('Batch cook plan'), findsOneWidget);
+    expect(find.byType(WeekSwitcher), findsOneWidget);
     expect(
       find.text('grouped by recipe · split by shelf life'),
       findsOneWidget,

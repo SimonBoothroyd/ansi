@@ -31,31 +31,40 @@ import 'cook_view_models.dart';
 class CookView extends ConsumerWidget {
   const CookView({super.key});
 
+  /// The tab root's stable anchor: the header no longer names the screen
+  /// (plan 0025 D7c), so the smoke test waits on this key instead of a title.
+  static const rootKey = ValueKey('cook-root');
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final plan = ref.watch(currentCookPlanProvider);
-    // D3: the plan derives from the VIEWED week, so the header names it and
-    // offers the one tap home when it isn't the current one.
-    final weekSuffix = formatDerivedWeekSuffix(
-      ref.watch(viewedWeekStartProvider),
-      ref.watch(currentWeekStartProvider),
-    );
+    final viewed = ref.watch(viewedWeekStartProvider);
 
     return FScaffold(
+      key: rootKey,
       // A tab root sits INSIDE the shell's scaffold, which already shrinks
       // the branch area for the keyboard; a second scaffold subtracting the
       // same inset squeezes the content twice (Android showed a list a few
       // lines tall after the sign-in keyboard).
       resizeToAvoidBottomInset: false,
+      // D7a/D7c: the plan derives from the ONE viewed week, so the switcher
+      // is the whole title — no screen name (the lit tab says where you are),
+      // no pill (the switcher's dot and its "This week" item are the same
+      // information). No "copy last week": that is a Week write (D7b).
       header: FHeader.nested(
-        title: Text(
-          weekSuffix == null
-              ? 'Batch cook plan'
-              : 'Batch cook plan · $weekSuffix',
-          overflow: TextOverflow.ellipsis,
-          style: ansiHeaderTitle(),
+        title: WeekSwitcher(
+          showCopyLastWeek: false,
+          // The menu speaks in this tab's derivation — "2 cooks", not "9
+          // meals" — for the week it has already derived. The other rows stay
+          // bare rather than deriving two more plans just to label them.
+          detailFor: (weekStart) {
+            final data = plan.asData?.value;
+            if (data == null || weekStart != viewed) return null;
+            return formatCookCount(
+              data.recipes.fold(0, (n, r) => n + r.sessions.length),
+            );
+          },
         ),
-        suffixes: const [BackToThisWeekPill()],
       ),
       child: plan.when(
         loading: () => const Center(child: FCircularProgress()),

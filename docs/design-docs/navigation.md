@@ -45,7 +45,7 @@ hard-wires its container and leaves no hook for the cross-fade.
 | what moves | **nothing** — opacity only, zero translation, zero scale |
 | curves | `easeOut` on the incoming branch, `easeIn` on the outgoing |
 | the bar | completely static: it does not fade, move or rebuild |
-| the bar item | the selected icon and label tick `mutedForeground → primary`, 400 → 700 |
+| the bar item | the selected icon and label tick `mutedForeground → herbDeep`, 400 → 700 (plan 0025 D7d: `ansi_theme.dart` overrides only the selected variant's colour — 9.34:1 on the bar, 1.88:1 from the unselected — because on Cook and Shop the lit tab is the only thing naming the screen) |
 
 A slide promises "this came from over there and you can send it back". That is
 true of a pushed page and false of a sibling tab — which is why a directional

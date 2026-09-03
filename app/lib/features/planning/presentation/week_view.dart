@@ -136,7 +136,13 @@ class WeekView extends HookConsumerWidget {
       // empty-state button. It now has ONE permanent home — the switcher menu
       // (D2) — plus the empty-week chip below.
       header: FHeader.nested(
-        title: const WeekSwitcher(),
+        title: WeekSwitcher(
+          // The menu speaks in this tab's derivation — "9 meals" — for the
+          // week on screen; the other rows stay bare.
+          detailFor: (monday) => week.asData == null || monday != weekStart
+              ? null
+              : formatMealCount(week.asData!.value?.entries.length ?? 0),
+        ),
         suffixes: [
           _ModeAction(
             mode: mode.value,
@@ -161,7 +167,6 @@ class WeekView extends HookConsumerWidget {
           return ListView(
             padding: const EdgeInsets.only(top: 8, bottom: 24),
             children: [
-              const ViewedWeekBanner(),
               if (empty)
                 _FirstMealBar(
                   weekStart: weekStart,

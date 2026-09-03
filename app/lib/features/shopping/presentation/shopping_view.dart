@@ -34,29 +34,39 @@ import 'shopping_view_models.dart';
 class ShoppingView extends ConsumerWidget {
   const ShoppingView({super.key});
 
+  /// The tab root's stable anchor: the header no longer names the screen
+  /// (plan 0025 D7c), so the smoke test waits on this key instead of a title.
+  static const rootKey = ValueKey('shop-root');
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref.watch(currentShoppingListProvider);
-    // D3: the list derives from the VIEWED week (and since 0018 its check-offs
-    // and top-ups belong to that week), so the header names it.
-    final weekSuffix = formatDerivedWeekSuffix(
-      ref.watch(viewedWeekStartProvider),
-      ref.watch(currentWeekStartProvider),
-    );
+    final viewed = ref.watch(viewedWeekStartProvider);
 
     return FScaffold(
+      key: rootKey,
       // A tab root sits INSIDE the shell's scaffold, which already shrinks
       // the branch area for the keyboard; a second scaffold subtracting the
       // same inset squeezes the content twice (Android showed a list a few
       // lines tall after the sign-in keyboard).
       resizeToAvoidBottomInset: false,
+      // D7a/D7c: the list derives from the ONE viewed week (and since 0018 its
+      // check-offs and top-ups belong to that week), so the switcher is the
+      // whole title — no screen name, no pill. No "copy last week": that is a
+      // Week write (D7b).
       header: FHeader.nested(
-        title: Text(
-          weekSuffix == null ? 'Shopping list' : 'Shopping list · $weekSuffix',
-          overflow: TextOverflow.ellipsis,
-          style: ansiHeaderTitle(),
+        title: WeekSwitcher(
+          showCopyLastWeek: false,
+          // The menu speaks in this tab's derivation — "6 items" — for the
+          // week it has already summed; the other rows stay bare.
+          detailFor: (weekStart) {
+            final data = list.asData?.value;
+            if (data == null || weekStart != viewed) return null;
+            return formatItemCount(
+              data.groups.fold(0, (n, g) => n + g.items.length),
+            );
+          },
         ),
-        suffixes: const [BackToThisWeekPill()],
       ),
       // The status line sits between the header and the scroll, not inside it
       // (D9): mid-aisle, an answer that has scrolled away is no answer. The

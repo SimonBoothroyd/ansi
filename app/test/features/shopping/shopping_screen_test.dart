@@ -3,6 +3,7 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
+import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/shopping/data/shopping_providers.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:ansi/features/shopping/domain/shopping_repository.dart';
@@ -107,7 +108,10 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Shopping list'), findsOneWidget); // the chrome stays
+    // The chrome stays — and the chrome is the week switcher, not a screen
+    // name (0025 D7c): the lit tab in the bar is what says "Shop".
+    expect(find.byType(WeekSwitcher), findsOneWidget);
+    expect(find.textContaining('Shopping list'), findsNothing);
     expect(
       find.textContaining('nothing to buy for this week yet'),
       findsOneWidget,

@@ -416,4 +416,12 @@ void main() {
       }
     });
   });
+
+  group("formatCookCount (the Cook tab's menu row, in its own words)", () {
+    test('counts cook sessions, never meals', () {
+      expect(formatCookCount(0), 'nothing to cook');
+      expect(formatCookCount(1), '1 cook');
+      expect(formatCookCount(2), '2 cooks');
+    });
+  });
 }

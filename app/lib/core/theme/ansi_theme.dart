@@ -35,7 +35,31 @@ FThemeData ansiThemeData() {
     border: AnsiColors.line,
     card: AnsiColors.surface,
   );
-  return FThemeData(colors: colors, touch: true, debugLabel: 'Ansi');
+  return FThemeData(colors: colors, touch: true, debugLabel: 'Ansi').copyWith(
+    // The bottom bar's selected item steps herb → herbDeep (plan 0025 D7d).
+    // With the switcher as every tab's title the lit tab carries the whole
+    // "where am I", and Forui's default (selected = primary, herb 6.50:1 on
+    // the bar's white; unselected = mutedForeground, muted 4.97:1) put the
+    // two states only 1.31:1 apart. herbDeep is 9.34:1 on surface and 1.88:1
+    // from muted — the same darkening `secondaryForeground` already uses, so
+    // no new colour enters the palette. Only the selected variant's colour
+    // changes; its weight (700 / bold) and the unselected state are Forui's.
+    // `test/core/theme/ansi_theme_test.dart` measures both.
+    bottomNavigationBarStyle: FBottomNavigationBarStyleDelta.delta(
+      itemStyle: FBottomNavigationBarItemStyleDelta.delta(
+        iconStyle: FVariantsDelta.delta([
+          FVariantOperation.exact({
+            FTappableVariantConstraint.selected,
+          }, const IconThemeDataDelta.delta(color: AnsiColors.herbDeep)),
+        ]),
+        textStyle: FVariantsDelta.delta([
+          FVariantOperation.exact({
+            FTappableVariantConstraint.selected,
+          }, const TextStyleDelta.delta(color: AnsiColors.herbDeep)),
+        ]),
+      ),
+    ),
+  );
 }
 
 /// A minimal Material theme for the `MaterialApp.router` host so the window

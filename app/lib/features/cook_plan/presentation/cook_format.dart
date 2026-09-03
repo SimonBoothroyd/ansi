@@ -22,6 +22,15 @@ String formatScale(double factor) {
 /// "1 portion" / "4 portions" — a count with the right plural.
 String formatPortions(int count) => '$count portion${count == 1 ? '' : 's'}';
 
+/// The week menu row's trailing label on the Cook tab — what that week holds
+/// in this tab's own derivation, `2 cooks` / `1 cook` / `nothing to cook`
+/// (plan 0025 frame g2), never the Week's meal count.
+String formatCookCount(int sessions) => switch (sessions) {
+  0 => 'nothing to cook',
+  1 => '1 cook',
+  _ => '$sessions cooks',
+};
+
 /// [formatPortions] for a possibly-fractional count ("2.5 portions") — whole
 /// batches of a fractional `servings_base` yield these. Trims like
 /// [formatScale].

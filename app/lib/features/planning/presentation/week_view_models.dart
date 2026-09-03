@@ -3,9 +3,9 @@
 /// The week is a **position, not a singleton** (D2/D3). [currentWeekStart] is
 /// still the Monday of the week containing today, but its only jobs now are
 /// (a) seeding [ViewedWeekStart], (b) the "is this week?" emphasis, and (c) the
-/// "back to this week" return. It derives from [Today], the one place the app
-/// asks what day it is, which re-fires at local midnight and on resume — so
-/// "today" moves while the app stays open, and ONLY today moves.
+/// switcher menu's "This week" return. It derives from [Today], the one place
+/// the app asks what day it is, which re-fires at local midnight and on resume
+/// — so "today" moves while the app stays open, and ONLY today moves.
 /// [ViewedWeekStart] is the week being LOOKED AT — app-level and keep-alive,
 /// so it survives the bottom nav's `context.go` (which replaces the route),
 /// carries across the Week/Cook/Shop tabs, and does not jump at midnight.

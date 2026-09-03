@@ -77,9 +77,10 @@ String formatDayDate(DateTime monday, int dayOfWeek) =>
   };
 }
 
-/// The Cook/Shop header's week suffix under D3 — those screens derive from the
-/// VIEWED week, so they have to say which one when it isn't the current one.
-/// Null on the current week (the header stays the plain screen name).
+/// The Cook/Shop empty states' week word under D3 — those screens derive from
+/// the VIEWED week, so "nothing planned for *next week* yet" has to say which
+/// one when it isn't the current one. Null on the current week. (The headers
+/// no longer need it: the switcher is their title — plan 0025 D7c.)
 String? formatDerivedWeekSuffix(DateTime monday, DateTime today) {
   final title = formatWeekTitle(monday, today);
   if (title.isThisWeek) return null;
@@ -87,6 +88,14 @@ String? formatDerivedWeekSuffix(DateTime monday, DateTime today) {
   // leading word is lowered — the month keeps its casing).
   return title.label[0].toLowerCase() + title.label.substring(1);
 }
+
+/// The Week menu row's trailing label — what that week holds, in the Week's
+/// own derivation: `9 meals` / `1 meal` / `empty` (Week v2 frame c).
+String formatMealCount(int meals) => switch (meals) {
+  0 => 'empty',
+  1 => '1 meal',
+  _ => '$meals meals',
+};
 
 /// The picker row's "last planned" recency: `today`, `3d ago`, `2w ago`,
 /// `3mo ago` — or, for a meal planned in the FUTURE, `in 3d` / `in 2w` /

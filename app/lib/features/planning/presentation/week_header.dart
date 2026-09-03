@@ -1,16 +1,20 @@
-/// The week switcher and its two return affordances (D2/D3).
+/// The week switcher — the title of the Week, Cook and Shop screens.
 ///
-/// The week is a **position**, so the Week screen's header title is itself the
-/// control: `‹ This week · 31 Aug ▾ ›`. The chevrons step one week (unbounded
-/// — a week with no row costs nothing, because `_getOrCreateWeek` only writes
-/// on the first meal); tapping the title opens the short week menu, which is
-/// also where "copy last week" now lives.
+/// The week is a **position**, so the header title is itself the control:
+/// `‹ This week · 31 Aug ▾ ›`. The chevrons step one week (unbounded — a week
+/// with no row costs nothing, because `_getOrCreateWeek` only writes on the
+/// first meal); tapping the title opens the short week menu.
 ///
-/// Cook and Shop derive from the same [ViewedWeekStart] (D3), so they must say
-/// which week they are showing and offer one tap home: [BackToThisWeekPill] in
-/// their header, and [ViewedWeekBanner] on the Week screen itself.
+/// There is ONE viewed week ([ViewedWeekStart], D3 / plan 0025 D7a): Cook and
+/// Shop derive from it, so all three tabs carry this same switcher as their
+/// only title. Its herb dot and its "This week" item are how a derived tab
+/// says which week it shows and offers the tap home — the pill and banner that
+/// used to do that job are retired, not reworded. Two things differ per host:
+/// "Copy last week into this one" is a Week *write* and stays off the derived
+/// tabs ([WeekSwitcher.showCopyLastWeek], D7b), and each tab's menu rows speak
+/// in that tab's own derivation ([WeekSwitcher.detailFor]).
 ///
-/// These live apart from `week_view.dart` because all three tabs draw them.
+/// Lives apart from `week_view.dart` because all three tabs draw it.
 library;
 
 import 'dart:async';
@@ -26,10 +30,22 @@ import '../data/planning_providers.dart';
 import 'week_format.dart';
 import 'week_view_models.dart';
 
-/// The header title of the Week screen: chevrons either side of the week's
-/// name, the name itself opening the week menu.
+/// The header title of every tab that shows a week: chevrons either side of
+/// the week's name, the name itself opening the week menu.
 class WeekSwitcher extends ConsumerWidget {
-  const WeekSwitcher({super.key});
+  const WeekSwitcher({this.showCopyLastWeek = true, this.detailFor, super.key});
+
+  /// Whether the menu offers "Copy last week into this one". It is a Week
+  /// write, and a derived tab's rule is "edit the Week, and this re-derives"
+  /// (D7b) — so Cook and Shop pass false and never read the planning
+  /// repository at all.
+  final bool showCopyLastWeek;
+
+  /// The trailing label for the menu row of a given week (its Monday), in the
+  /// host tab's own words — `2 cooks`, `6 items`, `9 meals` — or null for a
+  /// bare row. A tab only knows the week it has derived, so the rows it can
+  /// label are the ones it already has data for.
+  final String? Function(DateTime weekStart)? detailFor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,7 +61,13 @@ class WeekSwitcher extends ConsumerWidget {
           semantics: 'Previous week',
           onTap: () => ref.read(viewedWeekStartProvider.notifier).step(-1),
         ),
-        Flexible(child: _WeekMenu(title: title)),
+        Flexible(
+          child: _WeekMenu(
+            title: title,
+            showCopyLastWeek: showCopyLastWeek,
+            detailFor: detailFor,
+          ),
+        ),
         _Chevron(
           icon: FLucideIcons.chevronRight,
           semantics: 'Next week',
@@ -87,16 +109,32 @@ class _Chevron extends StatelessWidget {
 /// The title, tappable: `● This week · 31 Aug ▾`. The herb dot marks the
 /// current week so the emphasis survives a glance.
 class _WeekMenu extends ConsumerWidget {
-  const _WeekMenu({required this.title});
+  const _WeekMenu({
+    required this.title,
+    required this.showCopyLastWeek,
+    required this.detailFor,
+  });
 
   final ({String label, String? date, bool isThisWeek}) title;
+  final bool showCopyLastWeek;
+  final String? Function(DateTime weekStart)? detailFor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final viewed = ref.watch(viewedWeekStartProvider);
-    final hasLastWeek = ref.watch(lastWeekProvider).asData?.value != null;
+    final thisWeek = ref.watch(currentWeekStartProvider);
+    // Only the Week screen's menu has a reason to know whether there is a
+    // last week to copy; the derived tabs never touch the planning repository.
+    final hasLastWeek =
+        showCopyLastWeek && ref.watch(lastWeekProvider).asData?.value != null;
     final notifier = ref.read(viewedWeekStartProvider.notifier);
-    final repo = ref.read(planningRepositoryProvider);
+
+    Widget? detail(DateTime weekStart) {
+      final label = detailFor?.call(weekStart);
+      return label == null
+          ? null
+          : Text(label, style: ansiMono(size: 11, color: AnsiColors.muted));
+    }
 
     return FPopoverMenu(
       // `menuBuilder`, not `menu`: an item has to be able to dismiss the menu
@@ -107,6 +145,7 @@ class _WeekMenu extends ConsumerWidget {
             FItem(
               prefix: const Icon(FLucideIcons.dot),
               title: const Text('This week'),
+              details: detail(thisWeek),
               onPress: () {
                 unawaited(controller.hide());
                 notifier.today();
@@ -115,25 +154,19 @@ class _WeekMenu extends ConsumerWidget {
             FItem(
               prefix: const Icon(FLucideIcons.chevronRight),
               title: const Text('Next week'),
+              details: detail(thisWeek.add(const Duration(days: 7))),
               onPress: () {
                 unawaited(controller.hide());
-                notifier.set(
-                  ref
-                      .read(currentWeekStartProvider)
-                      .add(const Duration(days: 7)),
-                );
+                notifier.set(thisWeek.add(const Duration(days: 7)));
               },
             ),
             FItem(
               prefix: const Icon(FLucideIcons.chevronLeft),
               title: const Text('Last week'),
+              details: detail(thisWeek.subtract(const Duration(days: 7))),
               onPress: () {
                 unawaited(controller.hide());
-                notifier.set(
-                  ref
-                      .read(currentWeekStartProvider)
-                      .subtract(const Duration(days: 7)),
-                );
+                notifier.set(thisWeek.subtract(const Duration(days: 7)));
               },
             ),
           ],
@@ -150,7 +183,9 @@ class _WeekMenu extends ConsumerWidget {
                     ref.write(
                       context,
                       'copy last week',
-                      () => repo.copyLastWeek(viewed),
+                      () => ref
+                          .read(planningRepositoryProvider)
+                          .copyLastWeek(viewed),
                     ),
                   );
                 },
@@ -197,82 +232,6 @@ class _WeekMenu extends ConsumerWidget {
               FLucideIcons.chevronDown,
               size: 15,
               color: AnsiColors.muted,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The Week screen's own banner while another week is on screen: it says the
-/// derived tabs came along (D3) and offers the one tap home.
-class ViewedWeekBanner extends ConsumerWidget {
-  const ViewedWeekBanner({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final viewed = ref.watch(viewedWeekStartProvider);
-    final today = ref.watch(currentWeekStartProvider);
-    final suffix = formatDerivedWeekSuffix(viewed, today);
-    if (suffix == null) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-      decoration: BoxDecoration(
-        color: AnsiColors.herbSoft,
-        border: Border.all(color: AnsiColors.line),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'You’re looking at $suffix — Cook and Shop follow it too',
-              style: ansiMono(size: 11, color: AnsiColors.herbDeep),
-            ),
-          ),
-          const SizedBox(width: 8),
-          const BackToThisWeekPill(),
-        ],
-      ),
-    );
-  }
-}
-
-/// `back to this week ›` — the return, shown only while another week is
-/// viewed. Cook and Shop carry it in their header (D3).
-class BackToThisWeekPill extends ConsumerWidget {
-  const BackToThisWeekPill({this.label = 'this week', super.key});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final viewed = ref.watch(viewedWeekStartProvider);
-    final today = ref.watch(currentWeekStartProvider);
-    if (viewed == today) return const SizedBox.shrink();
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => ref.read(viewedWeekStartProvider.notifier).today(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: AnsiColors.surface,
-          border: Border.all(color: AnsiColors.herb),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label, style: ansiMono(size: 11, color: AnsiColors.herbDeep)),
-            const SizedBox(width: 3),
-            const Icon(
-              FLucideIcons.chevronRight,
-              size: 12,
-              color: AnsiColors.herbDeep,
             ),
           ],
         ),

@@ -231,4 +231,12 @@ void main() {
       expect(formatLastPlanned(DateTime.utc(2026, 10, 27), today), 'in 2mo');
     });
   });
+
+  group("formatMealCount (the Week's menu row, in its own words)", () {
+    test('counts meals, and calls an empty week empty', () {
+      expect(formatMealCount(0), 'empty');
+      expect(formatMealCount(1), '1 meal');
+      expect(formatMealCount(9), '9 meals');
+    });
+  });
 }

@@ -302,8 +302,9 @@ void main() {
       expect(find.text(titleFor(-1)), findsOneWidget);
     });
 
-    testWidgets('another week announces that Cook and Shop came too, and '
-        'offers one tap home', (tester) async {
+    testWidgets('another week shows no banner and no pill — the switcher in '
+        'every header is the signal, and its menu is the way home (0025 '
+        'D7a)', (tester) async {
       await tester.pumpWidget(
         _host([
           planningRepositoryProvider.overrideWithValue(
@@ -314,17 +315,23 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(FLucideIcons.chevronRight).first);
+      // The menu speaks in this tab's derivation for the week on screen.
+      await tester.tap(find.text(titleFor(0)));
       await tester.pumpAndSettle();
-      expect(
-        find.textContaining('Cook and Shop follow it too'),
-        findsOneWidget,
-      );
+      expect(find.text('1 meal'), findsOneWidget);
+      await tester.tap(find.text('Next week'));
+      await tester.pumpAndSettle();
+      expect(find.text(titleFor(1)), findsOneWidget);
 
-      await tester.tap(find.text('this week'));
+      // Retired, not reworded: Cook and Shop carry the same switcher now.
+      expect(find.textContaining('Cook and Shop follow it too'), findsNothing);
+      expect(find.text('this week'), findsNothing);
+
+      await tester.tap(find.text(titleFor(1)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('This week'));
       await tester.pumpAndSettle();
       expect(find.text(titleFor(0)), findsOneWidget);
-      expect(find.textContaining('Cook and Shop follow it too'), findsNothing);
     });
 
     testWidgets('the title menu jumps weeks and owns "copy last week"', (
