@@ -85,6 +85,13 @@ proven only when the next APK runs on the phone).
   incomplete_macros, recipe_macro_panel, recipe_view, ingredient_detail_view
   (Counts as), curation_overrides.jsonl + gen_seed.ts, seed regeneration.
 
+- 2026-09-03 — Owner authorised, ahead of the landing: once the seam lane
+  lands and `make ci` + `make test-sim` are green, run the cloud push
+  (`deploy-supabase` with `reseed_template` ticked — `0023` + the
+  default-measure curation; `0021`/`0022` ride along), verify, then **cut
+  the release** (`v0.3.0` — a minor, since the release adds the default
+  measure and the review step cards).
+
 ## Step-done checklist
 
 - [ ] Roadmap row; QUALITY grades; tracker rows added/retired; `make ci`;
