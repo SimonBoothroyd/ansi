@@ -360,11 +360,13 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
       rewritten for the step cards and the week redesign; the second run
       found the entry-sheet double pop). The final run, with errors & sync health in, was the third.
 - [x] Tech-debt rows added and retired by each lane; the count-unit and single-word-typo rows retired at landing.
-- [ ] **Cloud, still to push** (one sitting, `docs/release.md`): migrations
-      `0018_fold_diacritics.sql` (folds stored `match_text`; one row today)
-      and `0019_shopping_week.sql` (week-scoped check-offs; sync rules
-      unchanged); the **template-vocab reseed** for the piece curation and the
-      folded seed (`db push` does not reseed — the `rollout_ingredient_refresh`
-      path); `functions deploy import-recipe` for the shared normalizer's
-      diacritic fold. Then a `cloud-setup.md` ledger entry.
+- [x] **Cloud pushed 2026-09-03** (`deploy-supabase` run 33702716396):
+      `0018_fold_diacritics.sql` + `0019_shopping_week.sql` applied,
+      `import-recipe` redeployed; the sync-streams leg failed on the pinned
+      CLI (needs a `powersync/` project dir — tracker) but was a no-op here
+      (the YAML is unchanged since `3c9d75e`); `cloud_verify` 8 ok · 1 warn;
+      ledger entry in `docs/cloud-setup.md`. **Still human-run:** the
+      template-vocab reseed for the piece curation + the folded seed
+      (cloud-setup §2, `seed_curation.sql` last). App tagged `v0.2.0` at
+      `fb13bf3` after the deploy.
 - [x] `make ci` green on main at `4c48875`+ (1404 · 153 · docs OK).
