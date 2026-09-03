@@ -70,6 +70,9 @@ const _allowed = <String, String>{
   'lib/features/import/presentation/import_view_models.dart:startImport':
       'the import controller maps every failure to ImportFailed, which the '
       'intake form renders inline with the reason (D8: already honest).',
+  'lib/features/import/presentation/import_view_models.dart:ensureDefaultBook':
+      'inside the same startImport try: the header draft is filed into the '
+      'default book on arrival, and a failure is the same ImportFailed.',
   'lib/features/import/presentation/import_view_models.dart:commit':
       'same — ImportFailed with the reason, under the review screen.',
   'lib/features/import/presentation/import_view.dart:startImport':

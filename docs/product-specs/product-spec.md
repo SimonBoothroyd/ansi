@@ -369,6 +369,17 @@ about: [`../design-docs/errors-and-sync-health.md`](../design-docs/errors-and-sy
     IS `sprig` at 2.22 g and a bunch is about twenty-five of them. A refused
     `cup` is a *density* gap, not a count gap, and a measure cannot answer it.
   - A row with **no default** keeps today's flag and its did-you-mean chips.
+- **The header is the editor's** (plan 0025 #4, board frames a/b): TITLE ·
+  SERVES · MAKES (both denominations) · TIMES · SHELF LIFE · FILE UNDER are
+  the recipe editor's own `RecipeHeaderForm`, rendered over a header draft
+  the review holds from the moment the page arrives. Prefilled only where the
+  page plainly said it — servings, a plain-amount yield, the printed cook and
+  total times — and unset otherwise (shelf life, a section); filed into the
+  default book from the start so FILE UNDER shows where it will land. What
+  only the review knows is drawn *around* the form, never inside a copy of
+  it: the never-invent strip above, *not printed — set it* beside SERVES,
+  *from source: …* under MAKES. Nothing in the header gates Save; every
+  column of it rides the commit.
 - **The METHOD is editable here**, with the same step cards as the recipe
   editor (seam D4) — the screen most likely to need a method fix used to be
   the only one that could not make it. Chips key on the preview's line ids

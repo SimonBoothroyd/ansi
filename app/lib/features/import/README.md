@@ -52,7 +52,8 @@ import/
     line_resolution.dart         one line's decision + buildCommit()
     line_validation.dart         per-line issues + the Save gate
     preview_recipe.dart          payload → the Recipe the method fold renders
-    yield_prefill.dart           yield_raw → the MAKES row's prefill (8.6)
+    header_draft.dart            payload → the header draft the form edits (0025)
+    yield_prefill.dart           yield_raw → the MAKES prefill (8.6)
     import_repository.dart       ImportRepository + ImportSource
   data/
     import_repository_impl.dart  SqliteImportRepository — the REAL commit
@@ -109,12 +110,20 @@ import/
   cook plan rather than here. Unlink (or match an ingredient) puts the line
   back; a line nobody taps commits byte-identically to before the field
   existed, which `line_resolution_test` pins against the gold specimens.
-- **The MAKES row is attempt-then-flag** (8.6 / D9, board frame h). Extraction
-  captures `yield_raw` and commit used to drop it. The review now shows the
-  source line and prefills the fields **only** from a plain amount + unit
-  (`parseYieldRaw`: "MAKES: 8 SLIDERS" → `8 piece`); anything fancier leaves
-  them empty over the visible text. The yield never gates Save, and the
-  optional second denomination belongs to the recipe editor.
+- **The header is the editor's** (plan 0025 #4, board frame b). The review
+  holds a header draft `Recipe` (`domain/header_draft.dart`) from the moment
+  the page arrives and renders the recipes feature's `RecipeHeaderForm` over
+  it, with `ImportController` as its `RecipeHeaderHost` — title, serves, makes
+  in both denominations, cook/total times, shelf life and filing, one widget
+  shared with the editor so a section added there cannot miss the review.
+  Prefill is attempt-then-flag over the whole header: servings and the times
+  as printed, the yield **only** from a plain amount + unit (`parseYieldRaw`:
+  "MAKES: 8 SLIDERS" → `8 piece`), shelf life unset, filed into the default
+  book. What only the review knows rides the form's note slot — *not printed
+  — set it* beside SERVES, *from source: …* under MAKES — and the source-notes
+  strip sits above the form. Nothing in the header gates Save; `buildCommit`
+  reads every column off the draft and the INSERT writes the same list the
+  editor's save does (a structural test pins the two equal).
 - **Writes are view-safe**: local PowerSync tables are SQLite views, so every
   statement is a plain INSERT — never UPSERT ([[mise-powersync-views-no-upsert]]).
 - **Filing into the default book is load-bearing.** The Library renders books and
@@ -151,5 +160,10 @@ backend.
   fixture (`supabase/functions/import-recipe/__fixtures__/…golden.json`), so a
   TS-side shape change fails on the Dart side too.
 - Widget: `recon_line_card_test` (incl. the 8.6 offer → link → unlink path and
-  the component quantity sheet), `review_makes_row_test`. Intake seams:
-  `photo_intake_test`.
+  the component quantity sheet), `review_header_test` (the shared header on
+  the review: notes strip above, the two host notes, prefill, the whole
+  header riding the commit). Intake seams: `photo_intake_test`.
+- Seam: `test/features/recipes/recipe_header_form_test` renders every
+  section of `kRecipeHeaderSections` under BOTH hosts and round-trips every
+  setter; `test/structure/recipe_insert_columns_test` pins the import's and
+  the editor's `INSERT INTO recipe` column lists equal.

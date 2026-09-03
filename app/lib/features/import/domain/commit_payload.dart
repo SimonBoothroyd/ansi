@@ -78,15 +78,31 @@ abstract class CommitPayload with _$CommitPayload {
     required double servingsBase,
     String? servingsRaw,
 
-    /// What one batch MAKES, as the review's MAKES row states it (8.6 / D2 ·
+    /// What one batch MAKES, as the review's header states it (8.6 / D2 ·
     /// D9, board frame h) — prefilled from `yield_raw` only when that was a
     /// plain amount + unit, and otherwise whatever the human typed, or
     /// nothing. Both halves or neither: a half-stated yield is half a fact.
-    /// The optional SECOND denomination is added in the editor afterwards.
+    /// The SECOND denomination is the editor's affordance, now at review too
+    /// (plan 0025 #4): the same header form, so the same two slots.
     double? yieldQty,
     Unit? yieldUnit,
+    double? yieldQty2,
+    Unit? yieldUnit2,
     int? cookTimeSeconds,
     int? totalTimeSeconds,
+
+    /// Shelf life, as the header's SHELF LIFE section states it — unset
+    /// unless a human set it, because no page prints it.
+    int? keepsForDays,
+    @Default(false) bool freezable,
+    int? freezerDays,
+
+    /// Where the recipe is FILED. Null files into the household's default
+    /// book at write, exactly where commit has always put an import; the
+    /// review's draft names that book from the start so FILE UNDER can move
+    /// it before it lands.
+    String? bookId,
+    String? sectionId,
     @Default(<CommitGroup>[]) List<CommitGroup> groups,
     @Default(<CommitStub>[]) List<CommitStub> stubs,
     @Default(<Step>[]) List<Step> steps,

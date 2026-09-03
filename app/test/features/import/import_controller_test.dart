@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/import/data/canned_payload.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
 import 'package:ansi/features/import/domain/commit_payload.dart';
@@ -10,6 +12,8 @@ import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:ansi/features/import/presentation/import_view_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+import '../../helpers/fake_book_repository.dart';
 
 /// A fake edge function + a commit that records the payload instead of writing.
 /// [gate], when set, holds `startImport` open so a second call can race it.
@@ -41,7 +45,10 @@ void main() {
   setUp(() {
     fake = _FakeImportRepository();
     container = ProviderContainer(
-      overrides: [importRepositoryProvider.overrideWithValue(fake)],
+      overrides: [
+        importRepositoryProvider.overrideWithValue(fake),
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
+      ],
     );
   });
 
@@ -198,5 +205,83 @@ void main() {
     }..[0] = [LineIssue.unitNotAllowed];
     expect(() => controller().commit(issuesByLine: issues), throwsStateError);
     expect(fake.committed, isNull);
+  });
+
+  group('the header draft (plan 0025 #4)', () {
+    test('is seeded from the payload — servings and times prefilled, shelf '
+        'life unset, filed into the default book', () async {
+      await controller().startImport(const ImportFromUrl('x'));
+      final state =
+          container.read(importControllerProvider) as ImportReconciling;
+      final header = state.header;
+      expect(header.title, state.payload.title);
+      expect(header.servingsBase, state.payload.servingsBase);
+      // The canned page prints a total time and no cook time.
+      expect(header.totalTimeSeconds, 1500);
+      expect(header.cookTimeSeconds, isNull);
+      expect(header.keepsForDays, isNull);
+      expect(header.freezable, isFalse);
+      expect(header.bookId, 'b1');
+      expect(header.sectionId, isNull);
+      // The preview reads its serving count straight off the draft.
+      expect(state.servings, header.servingsBase);
+    });
+
+    test('every setter lands on the draft and rides the commit', () async {
+      await controller().startImport(const ImportFromUrl('x'));
+      var state = container.read(importControllerProvider) as ImportReconciling;
+      for (final r in state.resolutions) {
+        if (r.chosenIngredientId == null && r.createStubName == null) {
+          controller().updateResolution(
+            r.lineIndex,
+            (res) => res.resolveToNewStub(res.ingredientText),
+          );
+        }
+        if (r.isRange) {
+          controller().updateResolution(
+            r.lineIndex,
+            (res) => res.pickQuantity(1),
+          );
+        }
+      }
+      controller()
+        ..setTitle('Tomato Pasta, ours')
+        ..setServings(4)
+        ..setYield(1.2, kg)
+        ..setSecondYield(6, cup)
+        ..setCookTime(20 * 60)
+        ..setTotalTime(25 * 60)
+        ..setKeepsForDays(3)
+        ..setFreezable(true)
+        ..setFreezerDays(60)
+        ..setSection('s-quick');
+      state = container.read(importControllerProvider) as ImportReconciling;
+      expect(state.header.yields, [
+        (qty: 1.2, unit: kg),
+        (qty: 6.0, unit: cup),
+      ]);
+      // A header edit re-runs no vocab query: the validation key is about
+      // the lines, and none of them moved.
+      expect(state.validationKey, isNotEmpty);
+
+      await controller().commit(issuesByLine: null);
+      final c = fake.committed!;
+      expect(c.title, 'Tomato Pasta, ours');
+      expect(c.servingsBase, 4);
+      expect(
+        (c.yieldQty, c.yieldUnit, c.yieldQty2, c.yieldUnit2),
+        (1.2, kg, 6, cup),
+      );
+      expect((c.cookTimeSeconds, c.totalTimeSeconds), (1200, 1500));
+      expect((c.keepsForDays, c.freezable, c.freezerDays), (3, true, 60));
+      expect((c.bookId, c.sectionId), ('b1', 's-quick'));
+    });
+
+    test('the header is only readable at the review', () {
+      expect(() => controller().header, throwsStateError);
+      // …and a setter outside it is a no-op rather than a throw.
+      controller().setTitle('nothing to write on');
+      expect(container.read(importControllerProvider), isA<ImportIdle>());
+    });
   });
 }

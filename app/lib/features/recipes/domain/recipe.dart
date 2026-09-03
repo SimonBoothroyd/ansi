@@ -86,6 +86,13 @@ abstract class Recipe with _$Recipe {
     /// density.
     double? yieldQty2,
     Unit? yieldUnit2,
+
+    /// The printed cook and total times, in seconds (plan 0025 #4). Two typed
+    /// facts with no rule between them — a total below the cook time is what
+    /// somebody wrote, not an error to refuse. Null is unset: the page never
+    /// said, and nothing invents one.
+    int? cookTimeSeconds,
+    int? totalTimeSeconds,
   }) = _Recipe;
 
   /// This recipe's stated yields, largest-priority first, with half-stated or

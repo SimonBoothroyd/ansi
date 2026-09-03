@@ -336,6 +336,8 @@ class SqliteRecipeRepository implements RecipeRepository {
       yieldUnit: unitById(r['yield_unit'] as String? ?? ''),
       yieldQty2: (r['yield_qty_2'] as num?)?.toDouble(),
       yieldUnit2: unitById(r['yield_unit_2'] as String? ?? ''),
+      cookTimeSeconds: r['cook_time_seconds'] as int?,
+      totalTimeSeconds: r['total_time_seconds'] as int?,
       macros: summarizeRecipeMacros(
         servingsBase: (r['servings_base'] as num).toDouble(),
         lines: lines,
@@ -579,8 +581,8 @@ class SqliteRecipeRepository implements RecipeRepository {
           'INSERT INTO recipe (id, household_id, title, servings_base, steps, '
           'keeps_for_days, freezable, freezer_days, book_id, section_id, '
           'yield_qty, yield_unit, yield_qty_2, yield_unit_2, '
-          'created_at, updated_at) '
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'cook_time_seconds, total_time_seconds, created_at, updated_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             recipe.id,
             _householdId,
@@ -596,6 +598,8 @@ class SqliteRecipeRepository implements RecipeRepository {
             recipe.yieldUnit?.id,
             recipe.yieldQty2,
             recipe.yieldUnit2?.id,
+            recipe.cookTimeSeconds,
+            recipe.totalTimeSeconds,
             now,
             now,
           ],
@@ -605,7 +609,8 @@ class SqliteRecipeRepository implements RecipeRepository {
           'UPDATE recipe SET title = ?, servings_base = ?, steps = ?, '
           'keeps_for_days = ?, freezable = ?, freezer_days = ?, book_id = ?, '
           'section_id = ?, yield_qty = ?, yield_unit = ?, yield_qty_2 = ?, '
-          'yield_unit_2 = ?, updated_at = ? WHERE id = ?',
+          'yield_unit_2 = ?, cook_time_seconds = ?, total_time_seconds = ?, '
+          'updated_at = ? WHERE id = ?',
           [
             recipe.title,
             recipe.servingsBase,
@@ -619,6 +624,8 @@ class SqliteRecipeRepository implements RecipeRepository {
             recipe.yieldUnit?.id,
             recipe.yieldQty2,
             recipe.yieldUnit2?.id,
+            recipe.cookTimeSeconds,
+            recipe.totalTimeSeconds,
             now,
             recipe.id,
           ],

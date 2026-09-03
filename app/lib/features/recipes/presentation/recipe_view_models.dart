@@ -18,8 +18,10 @@ import '../data/recipe_providers.dart';
 import '../domain/method_draft.dart';
 import '../domain/method_step.dart';
 import '../domain/recipe.dart';
+import '../domain/recipe_header_edits.dart';
 import '../domain/recipe_repository.dart';
 import 'method_editing.dart';
+import 'recipe_header_form.dart';
 
 part 'recipe_view_models.g.dart';
 
@@ -78,9 +80,12 @@ Future<Ingredient?> lineItemIngredient(
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
 /// every member of that interface was already here, written for the step
 /// cards. The import review's adapter implements the same surface, so the
-/// cards can host on either screen without two of them existing.
+/// cards can host on either screen without two of them existing. The same
+/// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
+/// this notifier here and over the import controller at review.
 @riverpod
-class RecipeEditor extends _$RecipeEditor implements MethodEditing {
+class RecipeEditor extends _$RecipeEditor
+    implements MethodEditing, RecipeHeaderHost {
   @override
   Future<Recipe> build(String? recipeId, {String? initialTitle}) async {
     if (recipeId != null) {
@@ -124,76 +129,48 @@ class RecipeEditor extends _$RecipeEditor implements MethodEditing {
   /// the child-diff write twice concurrently.
   bool _saving = false;
 
+  // --- the header (plan 0025 #4) ----------------------------------------
+  //
+  // Every rule — both halves of a yield or neither, the other-family lock,
+  // no freezer window on a dish that does not freeze — is `RecipeHeaderEdits`,
+  // shared with the import review's host; these only seat the result.
+
+  @override
+  Recipe get header => _current;
+
+  @override
   void setTitle(String title) => _set(_current.copyWith(title: title));
 
-  void setServings(double servings) =>
-      _set(_current.copyWith(servingsBase: servings <= 0 ? 1 : servings));
+  @override
+  void setServings(double servings) => _set(_current.withServings(servings));
 
-  /// Sets what one batch MAKES — the first denomination (step 8.6 / D2, board
-  /// frame h). Both halves are set or neither is, and clearing the first also
-  /// drops the second: the migration pins "a second denomination only when the
-  /// first is stated", and a save that bounces off a CHECK is not a state the
-  /// editor should be able to reach.
-  void setYield(double? qty, Unit? unit) {
-    final stated = qty != null && qty > 0 && unit != null;
-    _set(
-      _current.copyWith(
-        yieldQty: stated ? qty : null,
-        yieldUnit: stated ? unit : null,
-        yieldQty2: stated ? _current.yieldQty2 : null,
-        yieldUnit2: stated ? _current.yieldUnit2 : null,
-      ),
-    );
-  }
+  @override
+  void setYield(double? qty, Unit? unit) => _set(_current.withYield(qty, unit));
 
-  /// Sets (or clears, with nulls) the optional SECOND denomination — "makes
-  /// 250 g · 16 tbsp". Ignored while no first denomination is stated, and a
-  /// unit in the first's own family is refused: the pair exists to bridge two
-  /// families, and two numbers in one family would be a second fact about the
-  /// same one.
-  void setSecondYield(double? qty, Unit? unit) {
-    if (_current.yieldQty == null || _current.yieldUnit == null) return;
-    final stated = qty != null && qty > 0 && unit != null;
-    if (stated && unit.family == _current.yieldUnit!.family) return;
-    _set(
-      _current.copyWith(
-        yieldQty2: stated ? qty : null,
-        yieldUnit2: stated ? unit : null,
-      ),
-    );
-  }
+  @override
+  void setSecondYield(double? qty, Unit? unit) =>
+      _set(_current.withSecondYield(qty, unit));
 
-  /// Sets the fridge shelf life in days; null (or a non-positive value) leaves
-  /// it unset — the cook plan then never splits this recipe.
-  void setKeepsForDays(int? days) => _set(
-    _current.copyWith(keepsForDays: (days == null || days <= 0) ? null : days),
-  );
+  @override
+  void setCookTime(int? seconds) => _set(_current.withCookTime(seconds));
 
-  /// Toggles whether the dish freezes. Clearing it also drops any freezer
-  /// window (a non-freezable recipe has no freezer days). Positional bool to
-  /// tear off directly as a `ValueChanged<bool>` for the switch.
-  // ignore: avoid_positional_boolean_parameters
-  void setFreezable(bool freezable) => _set(
-    _current.copyWith(
-      freezable: freezable,
-      freezerDays: freezable ? _current.freezerDays : null,
-    ),
-  );
+  @override
+  void setTotalTime(int? seconds) => _set(_current.withTotalTime(seconds));
 
-  /// Sets the freezer shelf life in days; null (or non-positive) means "no
-  /// limit" — a freezable recipe merges however far the meal is.
-  void setFreezerDays(int? days) => _set(
-    _current.copyWith(freezerDays: (days == null || days <= 0) ? null : days),
-  );
+  @override
+  void setKeepsForDays(int? days) => _set(_current.withKeepsForDays(days));
 
-  /// Files the recipe into [bookId], clearing the section (a new book has none
-  /// in common with the old one).
-  void setBook(String bookId) =>
-      _set(_current.copyWith(bookId: bookId, sectionId: null));
+  @override
+  void setFreezable(bool freezable) => _set(_current.withFreezable(freezable));
 
-  /// Sets (or clears, with null) the section within the current book.
-  void setSection(String? sectionId) =>
-      _set(_current.copyWith(sectionId: sectionId));
+  @override
+  void setFreezerDays(int? days) => _set(_current.withFreezerDays(days));
+
+  @override
+  void setBook(String bookId) => _set(_current.withBook(bookId));
+
+  @override
+  void setSection(String? sectionId) => _set(_current.withSection(sectionId));
 
   void addGroup() => _set(
     _current.copyWith(

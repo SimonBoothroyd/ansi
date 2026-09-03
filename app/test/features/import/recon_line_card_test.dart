@@ -5,6 +5,7 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
 import 'package:ansi/features/import/domain/commit_payload.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
@@ -26,6 +27,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 
 /// A fake edge function returning a fixed single-line payload; commit records.
@@ -502,6 +504,7 @@ void main() {
       '(re-match + amount + notes)', (tester) async {
     final container = ProviderContainer(
       overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(_FakeRepo(_autoPayload())),
       ],
     );
@@ -535,6 +538,7 @@ void main() {
     _filterSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(_FakeRepo(_autoPayload())),
       ],
     );
@@ -561,6 +565,7 @@ void main() {
     _filterSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(_FakeRepo(_nonePayload())),
       ],
     );
@@ -645,6 +650,7 @@ void main() {
       'only the amount is flagged (round-3 #4)', (tester) async {
     final container = ProviderContainer(
       overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
           _FakeRepo(_autoRangePayload()),
         ),
@@ -675,6 +681,7 @@ void main() {
     _filterSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(_FakeRepo(_autoPayload())),
       ],
     );
@@ -718,6 +725,7 @@ void main() {
     _filterSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(_FakeRepo(_autoPayload())),
       ],
     );
@@ -774,6 +782,7 @@ void main() {
     _filterSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
           _FakeRepo(_unitMismatchPayload()),
         ),
@@ -862,6 +871,7 @@ void main() {
     _filterSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
           _FakeRepo(_piecePayload('Red Pepper', _pepper.id)),
         ),
@@ -915,6 +925,7 @@ void main() {
     final repo = _FakeRepo(_piecePayload('Cucumber', _cucumber.id));
     final container = ProviderContainer(
       overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(repo),
         ingredientRepositoryProvider.overrideWithValue(
           _FakeIngredientRepo(_cucumber),
@@ -954,6 +965,7 @@ void main() {
     _filterSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
           _FakeRepo(_piecePayload('Broccoli', _broccoli.id)),
         ),
@@ -987,6 +999,7 @@ void main() {
     _filterSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(_FakeRepo(_bunchPayload())),
         ingredientRepositoryProvider.overrideWithValue(
           _FakeIngredientRepo(_cilantro),
@@ -1017,6 +1030,7 @@ void main() {
     _filterSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
           _FakeRepo(_piecePayload('Gold Potato', _potato.id)),
         ),
@@ -1064,6 +1078,7 @@ void main() {
     _filterSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(_FakeRepo(_autoPayload())),
       ],
     );
@@ -1102,6 +1117,7 @@ void main() {
     Future<ProviderContainer> reviewing() async {
       final container = ProviderContainer(
         overrides: [
+          bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
           importRepositoryProvider.overrideWithValue(
             _FakeRepo(_recipeOfferPayload()),
           ),

@@ -5,9 +5,29 @@ import 'package:ansi/features/import/domain/line_validation.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'gold_fixture.dart';
+
+/// The header draft as the review hands it to `buildCommit` (plan 0025 #4):
+/// the page's own title and times, the serving count and yield the test
+/// states. Explicit rather than `headerDraft`, so a test says exactly what
+/// the header held.
+Recipe _header(
+  ReconciliationPayload payload, {
+  double servingsBase = 2,
+  double? yieldQty,
+  Unit? yieldUnit,
+}) => Recipe(
+  id: 'draft',
+  title: payload.title,
+  servingsBase: servingsBase,
+  yieldQty: yieldQty,
+  yieldUnit: yieldUnit,
+  cookTimeSeconds: payload.cookTimeSeconds?.lowSeconds,
+  totalTimeSeconds: payload.totalTimeSeconds?.lowSeconds,
+);
 
 ReconLine _line(
   String text, {
@@ -143,7 +163,7 @@ void main() {
       final commit = buildCommit(
         payload,
         resolutions,
-        servingsBase: 2,
+        header: _header(payload),
         issuesByLine: null,
       );
       // Two distinct stubs: the duplicate chilli lines share one.
@@ -185,7 +205,7 @@ void main() {
       final commit = buildCommit(
         payload,
         resolutions,
-        servingsBase: 2,
+        header: _header(payload),
         issuesByLine: null,
       );
       expect(commit.corrections, hasLength(1));
@@ -419,7 +439,7 @@ void main() {
       final commit = buildCommit(
         payload,
         resolutions,
-        servingsBase: 2,
+        header: _header(payload),
         issuesByLine: null,
       );
       final lines = commit.groups.single.lines;
@@ -440,7 +460,7 @@ void main() {
       final commit = buildCommit(
         payload,
         resolutions,
-        servingsBase: 2,
+        header: _header(payload),
         issuesByLine: null,
       );
       expect(commit.corrections, isEmpty);
@@ -464,7 +484,7 @@ void main() {
             payload.flatLines[1],
           ).resolveToNewStub('Y').drop(),
         ],
-        servingsBase: 2,
+        header: _header(payload),
         issuesByLine: null,
       );
       expect(commit.groups.map((g) => g.name), ['A']);
@@ -480,7 +500,7 @@ void main() {
         () => buildCommit(
           payload,
           resolutions,
-          servingsBase: 2,
+          header: _header(payload),
           issuesByLine: const {
             0: [LineIssue.unitNotAllowed],
           },
@@ -505,7 +525,7 @@ void main() {
         () => buildCommit(
           payload,
           resolutions,
-          servingsBase: 2,
+          header: _header(payload),
           issuesByLine: null,
         ),
         throwsStateError,
@@ -524,7 +544,7 @@ void main() {
         () => buildCommit(
           payload,
           resolutions,
-          servingsBase: 2,
+          header: _header(payload),
           issuesByLine: const {
             0: [LineIssue.unitNotAllowed],
           },
@@ -536,7 +556,7 @@ void main() {
         buildCommit(
           payload,
           resolutions,
-          servingsBase: 2,
+          header: _header(payload),
           issuesByLine: const {0: <LineIssue>[]},
         ).groups.single.lines,
         hasLength(1),
@@ -561,7 +581,7 @@ void main() {
       final commit = buildCommit(
         payload,
         resolutions,
-        servingsBase: 4,
+        header: _header(payload, servingsBase: 4),
         issuesByLine: null,
       );
       expect(commit.groups.map((g) => g.name), ['A', 'B']);
@@ -709,7 +729,7 @@ void main() {
               payload.flatLines[0],
             ).linkToRecipe('r-aioli', 'Romesco Aioli'),
           ],
-          servingsBase: 2,
+          header: _header(payload),
           issuesByLine: const {0: <LineIssue>[]},
         );
         final line = commit.groups.single.lines.single;
@@ -735,7 +755,7 @@ void main() {
           () => buildCommit(
             payload,
             resolutions,
-            servingsBase: 2,
+            header: _header(payload),
             // Even with a LYING issue map, the structural gate holds.
             issuesByLine: const {0: <LineIssue>[]},
           ),
@@ -763,7 +783,7 @@ void main() {
           () => buildCommit(
             payload,
             [both],
-            servingsBase: 2,
+            header: _header(payload),
             issuesByLine: const {0: <LineIssue>[]},
           ),
           throwsStateError,
@@ -781,10 +801,8 @@ void main() {
         final stated = buildCommit(
           payload,
           resolutions,
-          servingsBase: 2,
+          header: _header(payload, yieldQty: 8, yieldUnit: pieces),
           issuesByLine: null,
-          yieldQty: 8,
-          yieldUnit: pieces,
         );
         expect(stated.yieldQty, 8);
         expect(stated.yieldUnit, pieces);
@@ -793,9 +811,8 @@ void main() {
         final halfStated = buildCommit(
           payload,
           resolutions,
-          servingsBase: 2,
+          header: _header(payload, yieldQty: 8),
           issuesByLine: null,
-          yieldQty: 8,
         );
         expect(halfStated.yieldQty, isNull);
         expect(halfStated.yieldUnit, isNull);
@@ -804,7 +821,7 @@ void main() {
         final none = buildCommit(
           payload,
           resolutions,
-          servingsBase: 2,
+          header: _header(payload),
           issuesByLine: null,
         );
         expect(none.yieldQty, isNull);
@@ -861,13 +878,13 @@ void main() {
         final offered = buildCommit(
           withOffers,
           resolveEveryLine(withOffers),
-          servingsBase: 8,
+          header: _header(withOffers, servingsBase: 8),
           issuesByLine: null,
         );
         final plain = buildCommit(
           without,
           resolveEveryLine(without),
-          servingsBase: 8,
+          header: _header(without, servingsBase: 8),
           issuesByLine: null,
         );
         // Freezed equality is deep: groups, lines, stubs, steps, corrections.
@@ -898,7 +915,7 @@ void main() {
         final commit = buildCommit(
           payload,
           resolutions,
-          servingsBase: 8,
+          header: _header(payload, servingsBase: 8),
           issuesByLine: null,
         );
         final lines = commit.groups.expand((g) => g.lines).toList();

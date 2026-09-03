@@ -12,10 +12,30 @@ import 'package:ansi/features/ingredients/domain/search_query.dart';
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
 import '../../helpers/test_db.dart';
+
+/// The header draft as the review hands it to `buildCommit` (plan 0025 #4):
+/// the page's own title and times, the serving count and yield the test
+/// states, and no book — so these commits exercise the default-book filing
+/// the repository guarantees on its own.
+Recipe _header(
+  ReconciliationPayload payload, {
+  double servingsBase = 2,
+  double? yieldQty,
+  Unit? yieldUnit,
+}) => Recipe(
+  id: 'draft',
+  title: payload.title,
+  servingsBase: servingsBase,
+  yieldQty: yieldQty,
+  yieldUnit: yieldUnit,
+  cookTimeSeconds: payload.cookTimeSeconds?.lowSeconds,
+  totalTimeSeconds: payload.totalTimeSeconds?.lowSeconds,
+);
 
 Future<void> _seedIngredient(
   PowerSyncDatabase db,
@@ -120,7 +140,7 @@ void main() {
       buildCommit(
         c.payload,
         c.resolutions,
-        servingsBase: 3,
+        header: _header(c.payload, servingsBase: 3),
         issuesByLine: null,
       ),
     );
@@ -179,7 +199,7 @@ void main() {
       buildCommit(
         p,
         [initialResolution(0, p.flatLines[0])],
-        servingsBase: 1,
+        header: _header(p, servingsBase: 1),
         issuesByLine: null,
       ),
     );
@@ -205,7 +225,7 @@ void main() {
       buildCommit(
         c.payload,
         c.resolutions,
-        servingsBase: 2,
+        header: _header(c.payload),
         issuesByLine: null,
       ),
     );
@@ -222,7 +242,7 @@ void main() {
       buildCommit(
         c.payload,
         c.resolutions,
-        servingsBase: 2,
+        header: _header(c.payload),
         issuesByLine: null,
       ),
     );
@@ -242,7 +262,7 @@ void main() {
       buildCommit(
         c.payload,
         c.resolutions,
-        servingsBase: 2,
+        header: _header(c.payload),
         issuesByLine: null,
       ),
     );
@@ -268,7 +288,7 @@ void main() {
       buildCommit(
         c.payload,
         c.resolutions,
-        servingsBase: 2,
+        header: _header(c.payload),
         issuesByLine: null,
       ),
     );
@@ -317,7 +337,7 @@ void main() {
       ),
     ];
     await repo.commit(
-      buildCommit(p, resolutions, servingsBase: 2, issuesByLine: null),
+      buildCommit(p, resolutions, header: _header(p), issuesByLine: null),
     );
 
     const stubName = 'Chicken thighs, boneless';
@@ -347,7 +367,7 @@ void main() {
       buildCommit(
         c.payload,
         c.resolutions,
-        servingsBase: 2,
+        header: _header(c.payload),
         issuesByLine: null,
       ),
     );
@@ -392,7 +412,7 @@ void main() {
       ];
 
       final recipeId = await repo.commit(
-        buildCommit(p, resolutions, servingsBase: 2, issuesByLine: null),
+        buildCommit(p, resolutions, header: _header(p), issuesByLine: null),
       );
       final lines = await db.getAll(
         'SELECT li.id FROM recipe_line_item li '
@@ -424,7 +444,7 @@ void main() {
       buildCommit(
         c.payload,
         c.resolutions,
-        servingsBase: 2,
+        header: _header(c.payload),
         issuesByLine: null,
       ),
     );
@@ -564,7 +584,7 @@ void main() {
         buildCommit(
           twoSpellings,
           resolutions,
-          servingsBase: 2,
+          header: _header(twoSpellings),
           issuesByLine: null,
         ),
       );
@@ -649,10 +669,13 @@ void main() {
         buildCommit(
           p,
           resolutions,
-          servingsBase: 8,
+          header: _header(
+            p,
+            servingsBase: 8,
+            yieldQty: yieldQty,
+            yieldUnit: yieldUnit,
+          ),
           issuesByLine: null,
-          yieldQty: yieldQty,
-          yieldUnit: yieldUnit,
         ),
       );
     }
@@ -734,6 +757,96 @@ void main() {
         line.componentAmount,
         const ResolvedComponentAmount(0.25, against: (qty: 1, unit: cup)),
       );
+    });
+  });
+
+  group('the header at review (plan 0025 #4)', () {
+    test('commit writes every header column the editor writes: title, both '
+        'yields, times, shelf life, filing', () async {
+      await db.execute(
+        'INSERT INTO book (id, household_id, name, sort_order, created_at, '
+        "updated_at) VALUES ('b-mine', 'h', 'Weeknights', 0, '', '')",
+      );
+      await db.execute(
+        'INSERT INTO book_section (id, household_id, book_id, name, '
+        'sort_order, created_at, updated_at) '
+        "VALUES ('s-quick', 'h', 'b-mine', 'Quick', 0, '', '')",
+      );
+      final c = resolvedCommit();
+      const header = Recipe(
+        id: 'draft',
+        title: '  Test Recipe, ours  ',
+        servingsBase: 3,
+        yieldQty: 250,
+        yieldUnit: g,
+        yieldQty2: 16,
+        yieldUnit2: tbsp,
+        cookTimeSeconds: 2100,
+        totalTimeSeconds: 4200,
+        keepsForDays: 4,
+        freezable: true,
+        freezerDays: 30,
+        bookId: 'b-mine',
+        sectionId: 's-quick',
+      );
+      final recipeId = await repo.commit(
+        buildCommit(
+          c.payload,
+          c.resolutions,
+          header: header,
+          issuesByLine: null,
+        ),
+      );
+
+      final row = await db.get('SELECT * FROM recipe WHERE id = ?', [recipeId]);
+      expect(row['title'], 'Test Recipe, ours');
+      expect((row['servings_base'] as num).toDouble(), 3);
+      expect((row['yield_qty'] as num).toDouble(), 250);
+      expect(row['yield_unit'], 'g');
+      expect((row['yield_qty_2'] as num).toDouble(), 16);
+      expect(row['yield_unit_2'], 'tbsp');
+      expect(row['cook_time_seconds'], 2100);
+      expect(row['total_time_seconds'], 4200);
+      expect(row['keeps_for_days'], 4);
+      expect(row['freezable'], 1);
+      expect(row['freezer_days'], 30);
+      expect(row['book_id'], 'b-mine');
+      expect(row['section_id'], 's-quick');
+
+      // And it opens in the editor as the same aggregate — the recipe
+      // repository reads back what the import wrote, column for column.
+      final loaded = (await SqliteRecipeRepository(
+        db,
+        householdId: 'h',
+      ).watchRecipe(recipeId).first)!;
+      expect(loaded.title, 'Test Recipe, ours');
+      expect(loaded.yields, [(qty: 250.0, unit: g), (qty: 16.0, unit: tbsp)]);
+      expect((loaded.cookTimeSeconds, loaded.totalTimeSeconds), (2100, 4200));
+      expect(
+        (loaded.keepsForDays, loaded.freezable, loaded.freezerDays),
+        (4, true, 30),
+      );
+      expect((loaded.bookName, loaded.sectionName), ('Weeknights', 'Quick'));
+    });
+
+    test('a header that states nothing writes nulls and an unfrozen row — '
+        'and still files into the default book', () async {
+      final c = resolvedCommit();
+      final recipeId = await repo.commit(
+        buildCommit(
+          c.payload,
+          c.resolutions,
+          header: _header(c.payload),
+          issuesByLine: null,
+        ),
+      );
+      final row = await db.get('SELECT * FROM recipe WHERE id = ?', [recipeId]);
+      expect(row['keeps_for_days'], isNull);
+      expect(row['freezable'], 0);
+      expect(row['freezer_days'], isNull);
+      expect(row['section_id'], isNull);
+      expect(row['yield_qty_2'], isNull);
+      expect(row['book_id'], isNotNull);
     });
   });
 }

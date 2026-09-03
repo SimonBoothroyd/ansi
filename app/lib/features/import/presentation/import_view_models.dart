@@ -9,16 +9,20 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../books/data/book_providers.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../recipes/domain/method_draft.dart';
+import '../../recipes/domain/recipe.dart';
+import '../../recipes/domain/recipe_header_edits.dart';
+import '../../recipes/presentation/recipe_header_form.dart';
 import '../data/import_providers.dart';
+import '../domain/header_draft.dart';
 import '../domain/import_repository.dart';
 import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
 import '../domain/method_draft_bridge.dart';
 import '../domain/reconciliation_payload.dart';
-import '../domain/yield_prefill.dart';
 
 part 'import_view_models.g.dart';
 
@@ -44,14 +48,22 @@ class ImportReconciling extends ImportState {
   const ImportReconciling({
     required this.payload,
     required this.resolutions,
-    required this.servings,
-    this.yieldQty,
-    this.yieldUnit,
+    required this.header,
     this.editedSteps,
   });
 
   final ReconciliationPayload payload;
   final List<LineResolution> resolutions;
+
+  /// The header draft (plan 0025 #4, board frame b): title, serves, makes in
+  /// up to two denominations, times, shelf life and filing, as the shared
+  /// header form edits them — seeded by [headerDraft], every column read off
+  /// it at commit. The preview recipe is this same object with the lines on
+  /// it, earlier.
+  ///
+  /// None of it gates Save. A yield-less, time-less recipe saves, links and
+  /// scales; only the derived numbers wait.
+  final Recipe header;
 
   /// The method as the review's step cards hold it, once anybody has typed
   /// (seam **D4**). Null means "nobody has": the cards then derive their
@@ -59,18 +71,9 @@ class ImportReconciling extends ImportState {
   /// nothing and a commit writes `payload.steps` byte-for-byte.
   final List<MethodDraftStep>? editedSteps;
 
-  /// The serving count the recipe commits with — seeded from the payload
-  /// (defaulting to 1 when the source was unclear, which the UI flags).
-  final double servings;
-
-  /// What one batch MAKES (8.6 / D2 · D9, board frame h): prefilled from the
-  /// payload's `yield_raw` when that was a plain amount + unit, and otherwise
-  /// left empty over the still-visible source line for a human to set.
-  ///
-  /// It NEVER gates Save. A yield-less recipe saves, links and scales; only
-  /// the derived numbers wait.
-  final double? yieldQty;
-  final Unit? yieldUnit;
+  /// The serving count the preview scales against — the header's, read
+  /// through so the preview and the commit cannot disagree.
+  double get servings => header.servingsBase;
 
   /// Every kept line resolved, and at least one line kept — the structural half
   /// of the commit gate. Unit validity is the other half and needs the vocab,
@@ -88,8 +91,8 @@ class ImportReconciling extends ImportState {
 
   /// The fingerprint of everything [importValidation] depends on: per line, its
   /// match, its unit, whether a printed range still needs a number, and whether
-  /// it was dropped (a dropped line reports no issues). Notes and the serving
-  /// count change no line's validity, so typing a note must not re-run a vocab
+  /// it was dropped (a dropped line reports no issues). Notes and the header
+  /// change no line's validity, so typing a note must not re-run a vocab
   /// query per line.
   String get validationKey {
     final key = StringBuffer();
@@ -119,17 +122,12 @@ class ImportReconciling extends ImportState {
 
   ImportReconciling copyWith({
     List<LineResolution>? resolutions,
-    double? servings,
-    double? yieldQty,
-    Unit? yieldUnit,
+    Recipe? header,
     List<MethodDraftStep>? editedSteps,
-    bool clearYield = false,
   }) => ImportReconciling(
     payload: payload,
     resolutions: resolutions ?? this.resolutions,
-    servings: servings ?? this.servings,
-    yieldQty: clearYield ? null : (yieldQty ?? this.yieldQty),
-    yieldUnit: clearYield ? null : (yieldUnit ?? this.yieldUnit),
+    header: header ?? this.header,
     editedSteps: editedSteps ?? this.editedSteps,
   );
 }
@@ -160,7 +158,7 @@ class ImportFailed extends ImportState {
 /// guarded by [Ref.mounted]. Guards rather than `keepAlive`: an abandoned
 /// import should be collected, not kept warm for a flow the user left.
 @riverpod
-class ImportController extends _$ImportController {
+class ImportController extends _$ImportController implements RecipeHeaderHost {
   @override
   ImportState build() => const ImportIdle();
 
@@ -175,22 +173,23 @@ class ImportController extends _$ImportController {
     _starting = true;
     state = const ImportLoading();
     try {
-      // The keepAlive repo provider, read directly after the await — never a
-      // throwaway notifier ([mise-riverpod-notifier-ref-after-async]).
-      final payload = await ref
-          .read(importRepositoryProvider)
-          .startImport(source);
+      // Both keepAlive repositories are resolved BEFORE the first await, and
+      // never `ref.read` after one ([mise-riverpod-notifier-ref-after-async]).
+      final importRepo = ref.read(importRepositoryProvider);
+      final bookRepo = ref.read(bookRepositoryProvider);
+      final payload = await importRepo.startImport(source);
+      // The draft is FILED from the start, into the same default book commit
+      // has always used, so FILE UNDER shows where the recipe will land
+      // rather than a blank a human has to fill before anything is honest.
+      final book = await bookRepo.ensureDefaultBook();
       if (!ref.mounted) return;
-      // The MAKES row opens on whatever `yield_raw` PLAINLY said, and empty
-      // otherwise — 0014's attempt-then-flag, the same pattern servings uses
-      // on this screen. Nothing is guessed from a fancier phrase.
-      final prefill = parseYieldRaw(payload.yieldRaw);
+      // The header opens on whatever the page PLAINLY said — servings, a
+      // yield in a plain amount + unit, the printed times — and unset
+      // otherwise: 0014's attempt-then-flag, over the whole header now.
       state = ImportReconciling(
         payload: payload,
         resolutions: initialResolutions(payload),
-        servings: (payload.servingsBase ?? 1).toDouble(),
-        yieldQty: prefill?.qty,
-        yieldUnit: prefill?.unit,
+        header: headerDraft(payload, bookId: book.id),
       );
     } on Object catch (e) {
       if (!ref.mounted) return;
@@ -305,24 +304,68 @@ class ImportController extends _$ImportController {
     state = s.copyWith(editedSteps: drafts);
   }
 
-  /// Sets the serving count the recipe commits with (min 1).
-  void setServings(double servings) {
+  // --- the header (plan 0025 #4) ----------------------------------------
+  //
+  // The review is the header form's second host. Every rule a setter holds
+  // is `RecipeHeaderEdits`, shared with the editor's notifier; these only
+  // re-seat the draft. A no-op unless the flow is at reconciliation.
+
+  /// The header draft the form renders. Only meaningful at reconciliation —
+  /// the form exists on no other screen of the flow.
+  @override
+  Recipe get header {
     final s = state;
-    if (s is! ImportReconciling) return;
-    state = s.copyWith(servings: servings < 1 ? 1 : servings);
+    if (s is! ImportReconciling) {
+      throw StateError('the import has no header outside the review');
+    }
+    return s.header;
   }
 
-  /// Sets what one batch MAKES (8.6 / D9, board frame h). Both halves or
-  /// neither — the migration's `recipe_yield_pair` CHECK says so, and half a
-  /// yield is half a fact. Clearing the amount clears the row.
-  void setYield(double? qty, Unit? unit) {
+  void _mapHeader(Recipe Function(Recipe) f) {
     final s = state;
     if (s is! ImportReconciling) return;
-    final stated = qty != null && qty > 0 && unit != null;
-    state = stated
-        ? s.copyWith(yieldQty: qty, yieldUnit: unit)
-        : s.copyWith(clearYield: true);
+    state = s.copyWith(header: f(s.header));
   }
+
+  @override
+  void setTitle(String title) => _mapHeader((h) => h.copyWith(title: title));
+
+  @override
+  void setServings(double servings) =>
+      _mapHeader((h) => h.withServings(servings));
+
+  @override
+  void setYield(double? qty, Unit? unit) =>
+      _mapHeader((h) => h.withYield(qty, unit));
+
+  @override
+  void setSecondYield(double? qty, Unit? unit) =>
+      _mapHeader((h) => h.withSecondYield(qty, unit));
+
+  @override
+  void setCookTime(int? seconds) => _mapHeader((h) => h.withCookTime(seconds));
+
+  @override
+  void setTotalTime(int? seconds) =>
+      _mapHeader((h) => h.withTotalTime(seconds));
+
+  @override
+  void setKeepsForDays(int? days) =>
+      _mapHeader((h) => h.withKeepsForDays(days));
+
+  @override
+  void setFreezable(bool freezable) =>
+      _mapHeader((h) => h.withFreezable(freezable));
+
+  @override
+  void setFreezerDays(int? days) => _mapHeader((h) => h.withFreezerDays(days));
+
+  @override
+  void setBook(String bookId) => _mapHeader((h) => h.withBook(bookId));
+
+  @override
+  void setSection(String? sectionId) =>
+      _mapHeader((h) => h.withSection(sectionId));
 
   /// Builds the commit payload and writes it. Returns the new recipe id, or
   /// null if the flow wasn't ready / a write failed.
@@ -339,10 +382,8 @@ class ImportController extends _$ImportController {
     final payload = buildCommit(
       s.payload,
       s.resolutions,
-      servingsBase: s.servings,
+      header: s.header,
       issuesByLine: issuesByLine,
-      yieldQty: s.yieldQty,
-      yieldUnit: s.yieldUnit,
       // Only when somebody actually typed: an untouched method commits the
       // payload's own steps byte-for-byte (seam D4).
       steps: edited == null

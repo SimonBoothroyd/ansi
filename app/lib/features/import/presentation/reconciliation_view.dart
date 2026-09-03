@@ -19,9 +19,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../core/units/units.dart';
-import '../../recipes/presentation/format.dart';
 import '../../recipes/presentation/method_editor.dart';
+import '../../recipes/presentation/recipe_header_form.dart';
 import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
 import '../domain/preview_recipe.dart';
@@ -116,18 +115,41 @@ class ReconciliationBody extends HookConsumerWidget {
     // different rules and the header never decremented).
     final outstanding = ref.watch(importOutstandingLinesProvider);
 
+    final source = payload.yieldRaw?.trim();
+    final sourceStated = source != null && source.isNotEmpty;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
       children: [
-        Text(
-          payload.title.isEmpty ? 'Untitled recipe' : payload.title,
-          style: ansiSerif(size: 28, weight: FontWeight.w700),
-        ),
-        const SizedBox(height: 12),
+        // The never-invent strip sits ABOVE the form (plan 0025, frame b):
+        // with the title an editable field now, it reads as "about the whole
+        // import" before the fields begin.
         _SourceNotes(payload: payload),
-        _ServingsRow(state: state, onChanged: controller.setServings),
-        const SizedBox(height: 12),
-        _MakesRow(state: state, onChanged: controller.setYield),
+        // The editor's header, hosted by the controller (D4). What only the
+        // review knows is drawn around it through the note slot, not inside
+        // a copy of it: whether the page printed a serving count, and what it
+        // said about the yield — `yield_raw` stays visible as the reference
+        // the fields are (or are not) filled from, the same honesty every
+        // line card has under it. Nothing here gates Save.
+        RecipeHeaderForm(
+          host: controller,
+          timeCaptions: false,
+          notes: RecipeHeaderNotes(
+            besideServes: payload.servingsBase == null
+                ? 'not printed — set it'
+                : null,
+            underMakes: sourceStated ? 'from source:  $source' : null,
+            afterMakes: state.header.yieldQty != null
+                ? null
+                : sourceStated
+                ? 'the page didn’t say a number — set one, or leave it '
+                      'unset. Nothing is invented, and a yield-less recipe '
+                      'still saves, links and scales; only the derived '
+                      'numbers wait.'
+                : 'the page didn’t say what this makes — set it, or leave '
+                      'it unset. Nothing is invented, and a yield-less '
+                      'recipe still saves, links and scales.',
+          ),
+        ),
         const SizedBox(height: 10),
         // The count is what the recipe will HAVE — a dropped line is on its way
         // out, and counting it would contradict the greyed card saying so.
@@ -264,177 +286,6 @@ class _SectionHeader extends StatelessWidget {
           Expanded(child: Container(height: 1, color: AnsiColors.line)),
         ],
       ),
-    );
-  }
-}
-
-class _ServingsRow extends StatelessWidget {
-  const _ServingsRow({required this.state, required this.onChanged});
-
-  final ImportReconciling state;
-  final ValueChanged<double> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final unclear = state.payload.servingsBase == null;
-    return Row(
-      children: [
-        Text('SERVES', style: ansiLabel()),
-        if (unclear) ...[
-          const SizedBox(width: 8),
-          Text(
-            'not printed — set it',
-            style: ansiMono(size: 10, color: AnsiColors.aging),
-          ),
-        ],
-        const Spacer(),
-        FButton.icon(
-          onPress: state.servings > 1
-              ? () => onChanged(state.servings - 1)
-              : null,
-          child: const Icon(FLucideIcons.minus),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text(
-            formatQuantity(state.servings),
-            style: ansiSans(size: 17, weight: FontWeight.w700),
-          ),
-        ),
-        FButton.icon(
-          onPress: () => onChanged(state.servings + 1),
-          child: const Icon(FLucideIcons.plus),
-        ),
-      ],
-    );
-  }
-}
-
-/// The MAKES row (step 8.6 / D2 · D9, design board frame h — the Review half),
-/// under SERVES: what one batch of this recipe makes.
-///
-/// It is the editor's row wearing the review screen's honesty: the `yield_raw`
-/// SOURCE LINE stays visible above the fields, and the fields themselves are
-/// prefilled ONLY from a plain `amount + known unit` ("MAKES: 8 SLIDERS" → 8
-/// piece). Anything fancier — "MAKES ENOUGH FOR A CROWD" — leaves them empty
-/// over that visible text and waits for a human: 0014's attempt-then-flag, the
-/// same pattern servings uses three lines up. A wrong yield would silently
-/// poison every derived batch, session and shopping number downstream; an
-/// empty one is honest and one tap from right.
-///
-/// The row is deliberately NOT the editor widget itself: only the review has
-/// an unset UNIT to render ("— ▾"), because only here does the field start
-/// from what a page printed rather than from a stated fact. The optional
-/// SECOND denomination is the editor's (frame h's other half) — one row here,
-/// as drawn.
-///
-/// The yield NEVER gates Save.
-class _MakesRow extends StatelessWidget {
-  const _MakesRow({required this.state, required this.onChanged});
-
-  final ImportReconciling state;
-  final void Function(double? qty, Unit? unit) onChanged;
-
-  /// The units a yield may be stated in — everything an ingredient line can
-  /// say except the imprecise words ("makes a pinch" is not a yield) and
-  /// `batch`, which is what a yield is measured *against*, never in.
-  static final List<Unit> _units = [
-    for (final u in kIngredientUnits)
-      if (u.family != UnitFamily.imprecise) u,
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final source = state.payload.yieldRaw?.trim();
-    final unit = state.yieldUnit;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text('MAKES', style: ansiLabel()),
-            const SizedBox(width: 6),
-            Text(
-              '· optional',
-              style: ansiMono(size: 10, color: AnsiColors.muted),
-            ),
-          ],
-        ),
-        // What the page actually said, always visible — the reference the
-        // fields are (or are not) filled from.
-        if (source != null && source.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'from source:  $source',
-              style: ansiMono(size: 11, color: AnsiColors.muted),
-            ),
-          ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            SizedBox(
-              width: 110,
-              child: FTextField(
-                hint: '—',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                control: FTextFieldControl.managed(
-                  initial: TextEditingValue(
-                    text: formatQuantity(state.yieldQty),
-                  ),
-                  onChange: (v) {
-                    final text = v.text.trim();
-                    onChanged(
-                      text.isEmpty ? null : double.tryParse(text),
-                      // Typing a number before touching the unit means the
-                      // count the page named: `piece` is the honest default,
-                      // and it is one tap from anything else.
-                      unit ?? pieces,
-                    );
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FSelect<String>.rich(
-                // No unit yet reads as "—", never as a plausible-looking one.
-                format: (id) => unitById(id)?.label ?? '—',
-                control: FSelectControl<String>.lifted(
-                  value: unit?.id,
-                  onChange: (id) {
-                    final picked = id == null ? null : unitById(id);
-                    if (picked != null) onChanged(state.yieldQty, picked);
-                  },
-                ),
-                children: [
-                  for (final u in _units)
-                    FSelectItem(title: Text(u.label), value: u.id),
-                ],
-              ),
-            ),
-          ],
-        ),
-        if (state.yieldQty == null)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              source == null || source.isEmpty
-                  ? 'the page didn’t say what this makes — set it, or leave '
-                        'it unset. Nothing is invented, and a yield-less '
-                        'recipe still saves, links and scales.'
-                  : 'the page didn’t say a number — set one, or leave it '
-                        'unset. Nothing is invented, and a yield-less recipe '
-                        'still saves, links and scales; only the derived '
-                        'numbers wait.',
-              style: ansiMono(size: 10, color: AnsiColors.muted),
-            ),
-          ),
-      ],
     );
   }
 }

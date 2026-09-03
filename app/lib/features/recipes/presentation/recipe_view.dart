@@ -34,6 +34,7 @@ import '../../ingredients/presentation/ingredient_detail_view.dart'
     show ingredientDetailRoute;
 import '../data/recipe_providers.dart';
 import '../domain/line_display.dart';
+import '../domain/method_step.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_macros.dart';
 import '../domain/recipe_repository.dart';
@@ -402,6 +403,8 @@ class _Chips extends StatelessWidget {
   Widget build(BuildContext context) {
     final keeps = recipe.keepsForDays;
     final freezer = recipe.freezerDays;
+    final cook = recipe.cookTimeSeconds;
+    final total = recipe.totalTimeSeconds;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -416,6 +419,10 @@ class _Chips extends StatelessWidget {
         // Serves and makes are two independent facts; neither derives from
         // the other, so both sit here.
         for (final label in yieldPillLabels(recipe.yields)) _Chip(label),
+        // The printed times (plan 0025 #4), each only when the page (or a
+        // human) stated it — never a derived or invented one.
+        if (cook != null) _Chip('cook ${formatDuration(cook)}'),
+        if (total != null) _Chip('${formatDuration(total)} total'),
       ],
     );
   }

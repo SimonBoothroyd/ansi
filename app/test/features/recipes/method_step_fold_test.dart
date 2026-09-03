@@ -249,4 +249,18 @@ void main() {
     );
     expect(_chipAmounts(step, lineById: lines), [null]);
   });
+
+  group('formatDuration — the one voice for a time', () {
+    test('minutes, hours, and the honest odd seconds', () {
+      expect(formatDuration(30), '30 s');
+      expect(formatDuration(90), '1 min 30 s');
+      expect(formatDuration(2100), '35 min');
+      expect(formatDuration(3600), '1 h');
+      expect(formatDuration(4200), '1 h 10 min');
+    });
+
+    test('a zero-width timer range is the same word', () {
+      expect(formatTimerRange(2100, 2100), formatDuration(2100));
+    });
+  });
 }

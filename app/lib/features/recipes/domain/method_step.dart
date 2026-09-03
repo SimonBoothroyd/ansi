@@ -307,11 +307,14 @@ String formatNumber(double amount) {
 /// Formats a timer span. Whole minutes read as "6 min" / "6–8 min"; an
 /// hour or more reads as "2 h 30 min". A sub-minute time keeps its seconds.
 String formatTimerRange(int lowSeconds, int highSeconds) {
-  if (lowSeconds == highSeconds) return _formatDuration(lowSeconds);
-  return '${_formatDurationValue(lowSeconds)}–${_formatDuration(highSeconds)}';
+  if (lowSeconds == highSeconds) return formatDuration(lowSeconds);
+  return '${_formatDurationValue(lowSeconds)}–${formatDuration(highSeconds)}';
 }
 
-String _formatDuration(int seconds) {
+/// Formats one duration in the timer's voice — "35 min", "1 h 10 min",
+/// "2 h" — the same words the recipe page's cook/total chips and the header
+/// form's TIMES steppers print, so a time reads the same wherever it lands.
+String formatDuration(int seconds) {
   if (seconds < 60) return '$seconds s';
   final minutes = seconds ~/ 60;
   final remMinutes = minutes % 60;
@@ -327,8 +330,8 @@ String _formatDuration(int seconds) {
 /// The value half of a range endpoint — the unit label rides on the high end
 /// only ("6–8 min"), so the low end drops "min" when both share it.
 String _formatDurationValue(int seconds) {
-  if (seconds < 60 || seconds % 60 != 0) return _formatDuration(seconds);
+  if (seconds < 60 || seconds % 60 != 0) return formatDuration(seconds);
   final minutes = seconds ~/ 60;
   if (minutes < 60) return '$minutes';
-  return _formatDuration(seconds);
+  return formatDuration(seconds);
 }

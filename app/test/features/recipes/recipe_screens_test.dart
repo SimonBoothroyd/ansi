@@ -387,4 +387,31 @@ void main() {
     await _pumpUntil(tester, find.text('the library'));
     expect(router.state.uri.toString(), '/');
   });
+
+  testWidgets('the recipe page prints the stated times as chips, and only '
+      'the stated ones (plan 0025 #4)', (tester) async {
+    await tester.pumpWidget(
+      _host(const RecipeView(recipeId: '1'), [
+        recipeRepositoryProvider.overrideWithValue(
+          _FakeRecipeRepo(
+            _recipe.copyWith(cookTimeSeconds: 2100, totalTimeSeconds: 4200),
+          ),
+        ),
+      ]),
+    );
+    await tester.pump();
+    expect(find.text('cook 35 min'), findsOneWidget);
+    expect(find.text('1 h 10 min total'), findsOneWidget);
+
+    await tester.pumpWidget(
+      _host(const RecipeView(recipeId: '1'), [
+        recipeRepositoryProvider.overrideWithValue(
+          _FakeRecipeRepo(_recipe.copyWith(cookTimeSeconds: 2100)),
+        ),
+      ]),
+    );
+    await tester.pump();
+    expect(find.text('cook 35 min'), findsOneWidget);
+    expect(find.textContaining('total'), findsNothing);
+  });
 }

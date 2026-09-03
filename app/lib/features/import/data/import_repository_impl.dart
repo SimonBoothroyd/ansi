@@ -192,36 +192,44 @@ class SqliteImportRepository implements ImportRepository {
         );
       }
 
-      // 2. The recipe row, carrying the remapped tokenized steps. It is FILED
-      // into the default book, exactly as the new-recipe path does
-      // (`RecipeEditor.build` → `ensureDefaultBook`): the Library renders books
-      // and skips book-less recipes, so a null `book_id` here saves the recipe
-      // into a place nothing shows it.
+      // 2. The recipe row, carrying the remapped tokenized steps and EVERY
+      // header column the editor's save writes (plan 0025 #4) — the same
+      // column list, in the same order, which a structural test pins so the
+      // two writers cannot drift apart again.
       //
-      // It also carries what one batch MAKES when the review stated it (8.6 /
-      // D2): prefilled from `yield_raw` where that was a plain amount + unit,
-      // else whatever the human typed, else nothing at all. `buildCommit`
-      // guarantees both halves or neither, so the `recipe_yield_pair` CHECK
-      // cannot be hit here. The optional SECOND denomination is an editor
-      // affordance — the review states one, and a yield-less recipe is a
-      // perfectly good save.
-      final bookId = await _defaultBookId(tx, now);
+      // Filing is load-bearing: the Library renders books and skips book-less
+      // recipes, so a null `book_id` would save the recipe into a place
+      // nothing shows it. The review's draft normally names the default book
+      // from the start (FILE UNDER can move it); a draft that never resolved
+      // one still lands in the default book here, exactly as the new-recipe
+      // path does (`RecipeEditor.build` → `ensureDefaultBook`).
+      //
+      // `buildCommit` guarantees both halves of a yield or neither, so the
+      // `recipe_yield_pair` CHECKs cannot be hit here.
+      final bookId = payload.bookId ?? await _defaultBookId(tx, now);
       await tx.execute(
         'INSERT INTO recipe (id, household_id, title, servings_base, steps, '
-        'cook_time_seconds, total_time_seconds, yield_qty, yield_unit, '
-        'book_id, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'keeps_for_days, freezable, freezer_days, book_id, section_id, '
+        'yield_qty, yield_unit, yield_qty_2, yield_unit_2, '
+        'cook_time_seconds, total_time_seconds, created_at, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           recipeId,
           _householdId,
           payload.title,
           payload.servingsBase,
           stepsJson,
-          payload.cookTimeSeconds,
-          payload.totalTimeSeconds,
+          payload.keepsForDays,
+          if (payload.freezable) 1 else 0,
+          payload.freezerDays,
+          bookId,
+          payload.sectionId,
           payload.yieldQty,
           payload.yieldUnit?.id,
-          bookId,
+          payload.yieldQty2,
+          payload.yieldUnit2?.id,
+          payload.cookTimeSeconds,
+          payload.totalTimeSeconds,
           now,
           now,
         ],

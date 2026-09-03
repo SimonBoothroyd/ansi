@@ -30,6 +30,17 @@ The editor's **shelf-life inputs** (keeps / freezable / freezer days) landed in
 step 5 — they feed the cook plan's clustering; the recipe page renders the
 `keeps`/`freezable` chips from those values.
 
+The editor's **header is one widget with two hosts** (plan 0025 #4):
+`presentation/recipe_header_form.dart` renders TITLE · SERVES · MAKES · TIMES ·
+SHELF LIFE · FILE UNDER from `kRecipeHeaderSections` over a `RecipeHeaderHost`
+— the editor notifier here, the import controller on the review screen — with
+an optional per-section note slot for what a host knows and the form does
+not. The rules every setter holds (both halves of a yield or neither, no
+freezer window on a dish that does not freeze…) are `domain/
+recipe_header_edits.dart`, shared by both hosts. `Recipe` carries the printed
+`cookTimeSeconds` / `totalTimeSeconds`; the page prints them as `cook 35 min`
+/ `1 h 10 min total` chips through `formatDuration`, the timer's own voice.
+
 The **per-serving macro panel** (step 9) closes the recipe page's Ingredients
 tab: four cells (kcal · protein · carb · fat) off `Recipe.macros`, derived from
 the shared `summarizeRecipeMacros` summation — the same one the pickers use, so

@@ -1230,4 +1230,45 @@ void main() {
       });
     });
   });
+
+  group('cook and total times (plan 0025 #4)', () {
+    test('round-trip through saveRecipe, on insert and on update', () async {
+      await repo.saveRecipe(
+        _sampleRecipe().copyWith(cookTimeSeconds: 2100, totalTimeSeconds: 4200),
+      );
+      final loaded = (await repo.watchRecipe('r1').first)!;
+      expect((loaded.cookTimeSeconds, loaded.totalTimeSeconds), (2100, 4200));
+
+      // The editor's path: open, change something else, save the aggregate.
+      await repo.saveRecipe(
+        loaded.copyWith(title: 'Renamed', totalTimeSeconds: 4500),
+      );
+      final again = (await repo.watchRecipe('r1').first)!;
+      expect((again.cookTimeSeconds, again.totalTimeSeconds), (2100, 4500));
+      // …and clearing one writes a null, never a stale number.
+      await repo.saveRecipe(again.copyWith(cookTimeSeconds: null));
+      expect((await repo.watchRecipe('r1').first)!.cookTimeSeconds, isNull);
+    });
+
+    test('the times an import wrote survive an editor re-save', () async {
+      // What the import commit writes and the editor used to be blind to:
+      // before the entity carried these, an editor save left the columns
+      // alone by luck of the UPDATE list rather than by reading them.
+      await db.execute(
+        'INSERT INTO recipe (id, household_id, title, servings_base, steps, '
+        'cook_time_seconds, total_time_seconds) '
+        "VALUES ('imp', 'h', 'Imported', 2, '[]', 1500, 2400)",
+      );
+      final loaded = (await repo.watchRecipe('imp').first)!;
+      expect((loaded.cookTimeSeconds, loaded.totalTimeSeconds), (1500, 2400));
+
+      await repo.saveRecipe(loaded.copyWith(title: 'Imported, edited'));
+      final row = await db.get(
+        'SELECT cook_time_seconds, total_time_seconds FROM recipe WHERE id = ?',
+        ['imp'],
+      );
+      expect(row['cook_time_seconds'], 1500);
+      expect(row['total_time_seconds'], 2400);
+    });
+  });
 }

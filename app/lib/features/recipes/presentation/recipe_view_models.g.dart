@@ -362,10 +362,13 @@ final class LineItemIngredientFamily extends $Family
 /// so a search for a recipe you were about to write becomes that recipe rather
 /// than an empty form. It is part of the family key, so arriving with a
 /// different title is a different draft.
+///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
 /// every member of that interface was already here, written for the step
 /// cards. The import review's adapter implements the same surface, so the
-/// cards can host on either screen without two of them existing.
+/// cards can host on either screen without two of them existing. The same
+/// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
+/// this notifier here and over the import controller at review.
 
 @ProviderFor(RecipeEditor)
 const recipeEditorProvider = RecipeEditorFamily._();
@@ -378,10 +381,13 @@ const recipeEditorProvider = RecipeEditorFamily._();
 /// so a search for a recipe you were about to write becomes that recipe rather
 /// than an empty form. It is part of the family key, so arriving with a
 /// different title is a different draft.
+///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
 /// every member of that interface was already here, written for the step
 /// cards. The import review's adapter implements the same surface, so the
-/// cards can host on either screen without two of them existing.
+/// cards can host on either screen without two of them existing. The same
+/// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
+/// this notifier here and over the import controller at review.
 final class RecipeEditorProvider
     extends $AsyncNotifierProvider<RecipeEditor, Recipe> {
   /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
@@ -392,10 +398,13 @@ final class RecipeEditorProvider
   /// so a search for a recipe you were about to write becomes that recipe rather
   /// than an empty form. It is part of the family key, so arriving with a
   /// different title is a different draft.
+  ///
   /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
   /// every member of that interface was already here, written for the step
   /// cards. The import review's adapter implements the same surface, so the
-  /// cards can host on either screen without two of them existing.
+  /// cards can host on either screen without two of them existing. The same
+  /// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
+  /// this notifier here and over the import controller at review.
   const RecipeEditorProvider._({
     required RecipeEditorFamily super.from,
     required (String?, {String? initialTitle}) super.argument,
@@ -432,7 +441,7 @@ final class RecipeEditorProvider
   }
 }
 
-String _$recipeEditorHash() => r'00c125baf5b2af94e3a0a60360202a6a2aa295a3';
+String _$recipeEditorHash() => r'f2e7ad57433add3d0d6f0b71ee5824c122a06fe7';
 
 /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
 /// blank one with a fresh id and a single empty group (create).
@@ -442,10 +451,13 @@ String _$recipeEditorHash() => r'00c125baf5b2af94e3a0a60360202a6a2aa295a3';
 /// so a search for a recipe you were about to write becomes that recipe rather
 /// than an empty form. It is part of the family key, so arriving with a
 /// different title is a different draft.
+///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
 /// every member of that interface was already here, written for the step
 /// cards. The import review's adapter implements the same surface, so the
-/// cards can host on either screen without two of them existing.
+/// cards can host on either screen without two of them existing. The same
+/// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
+/// this notifier here and over the import controller at review.
 
 final class RecipeEditorFamily extends $Family
     with
@@ -473,10 +485,13 @@ final class RecipeEditorFamily extends $Family
   /// so a search for a recipe you were about to write becomes that recipe rather
   /// than an empty form. It is part of the family key, so arriving with a
   /// different title is a different draft.
+  ///
   /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
   /// every member of that interface was already here, written for the step
   /// cards. The import review's adapter implements the same surface, so the
-  /// cards can host on either screen without two of them existing.
+  /// cards can host on either screen without two of them existing. The same
+  /// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
+  /// this notifier here and over the import controller at review.
 
   RecipeEditorProvider call(String? recipeId, {String? initialTitle}) =>
       RecipeEditorProvider._(
@@ -496,10 +511,13 @@ final class RecipeEditorFamily extends $Family
 /// so a search for a recipe you were about to write becomes that recipe rather
 /// than an empty form. It is part of the family key, so arriving with a
 /// different title is a different draft.
+///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
 /// every member of that interface was already here, written for the step
 /// cards. The import review's adapter implements the same surface, so the
-/// cards can host on either screen without two of them existing.
+/// cards can host on either screen without two of them existing. The same
+/// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
+/// this notifier here and over the import controller at review.
 
 abstract class _$RecipeEditor extends $AsyncNotifier<Recipe> {
   late final _$args = ref.$arg as (String?, {String? initialTitle});

@@ -21,11 +21,11 @@ library;
 import '../../../core/units/units.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/normalize.dart';
+import '../../recipes/domain/recipe.dart';
 import 'amount_text.dart';
 import 'commit_payload.dart';
 import 'line_validation.dart';
 import 'reconciliation_payload.dart';
-import 'yield_prefill.dart';
 
 /// One line's resolution. Exactly one of [chosenIngredientId] /
 /// [createStubName] is set once the line is resolved; both null means the user
@@ -403,17 +403,16 @@ const kLowConfidenceFloor = 0.75;
 /// where nobody touched the method — the payload's own steps ride through
 /// unchanged.
 ///
-/// [yieldQty]/[yieldUnit] are what the review's MAKES row states — usually
-/// prefilled from `yield_raw` (see [parseYieldRaw]), often user-set, and
-/// frequently nothing at all. The yield NEVER gates Save: a yield-less recipe
-/// saves, links and scales; only derived numbers wait (D2).
+/// [header] is the review's header draft (plan 0025 #4): title, serves,
+/// makes in up to two denominations, times, shelf life and filing, as the
+/// shared header form left them. Every header column the editor's save
+/// writes is read off it. None of it gates Save: a yield-less, time-less
+/// recipe saves, links and scales; only derived numbers wait (D2).
 CommitPayload buildCommit(
   ReconciliationPayload payload,
   List<LineResolution> resolutions, {
-  required double servingsBase,
+  required Recipe header,
   required Map<int, List<LineIssue>>? issuesByLine,
-  double? yieldQty,
-  Unit? yieldUnit,
   List<Step>? steps,
 }) {
   if (!allResolved(resolutions)) {
@@ -516,18 +515,34 @@ CommitPayload buildCommit(
         ),
   ];
 
-  // Both halves of a yield or neither — the migration's `recipe_yield_pair`
-  // CHECK says the same thing, and a commit must not be able to bounce off it.
-  final statedYield = yieldQty != null && yieldQty > 0 && yieldUnit != null;
+  // Both halves of a yield or neither, and a second only over a first — the
+  // migration's `recipe_yield_pair` CHECKs say the same thing, and a commit
+  // must not be able to bounce off them however the draft was built.
+  final yieldQty = header.yieldQty;
+  final yieldQty2 = header.yieldQty2;
+  final statedYield =
+      yieldQty != null && yieldQty > 0 && header.yieldUnit != null;
+  final statedSecond =
+      statedYield &&
+      yieldQty2 != null &&
+      yieldQty2 > 0 &&
+      header.yieldUnit2 != null;
 
   return CommitPayload(
-    title: payload.title,
-    servingsBase: servingsBase,
+    title: header.title.trim(),
+    servingsBase: header.servingsBase,
     servingsRaw: payload.servingsRaw,
     yieldQty: statedYield ? yieldQty : null,
-    yieldUnit: statedYield ? yieldUnit : null,
-    cookTimeSeconds: payload.cookTimeSeconds?.lowSeconds,
-    totalTimeSeconds: payload.totalTimeSeconds?.lowSeconds,
+    yieldUnit: statedYield ? header.yieldUnit : null,
+    yieldQty2: statedSecond ? yieldQty2 : null,
+    yieldUnit2: statedSecond ? header.yieldUnit2 : null,
+    cookTimeSeconds: header.cookTimeSeconds,
+    totalTimeSeconds: header.totalTimeSeconds,
+    keepsForDays: header.keepsForDays,
+    freezable: header.freezable,
+    freezerDays: header.freezerDays,
+    bookId: header.bookId,
+    sectionId: header.sectionId,
     groups: groups,
     stubs: stubs.values.toList(),
     // The review screen's own method, when it edited one (seam D4); otherwise

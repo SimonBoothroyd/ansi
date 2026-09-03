@@ -10,6 +10,7 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
 import 'package:ansi/features/import/domain/commit_payload.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
@@ -32,6 +33,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 
 class _FakeRepo implements ImportRepository {
@@ -158,6 +160,7 @@ class _Body extends ConsumerWidget {
 Future<ProviderContainer> _reviewing(_FakeRepo repo) async {
   final container = ProviderContainer(
     overrides: [
+      bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
       importRepositoryProvider.overrideWithValue(repo),
       ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
       measureRepositoryProvider.overrideWithValue(_FakeMeasureRepo()),
@@ -298,7 +301,7 @@ void main() {
       state: ImportReconciling(
         payload: payload,
         resolutions: const [],
-        servings: 4,
+        header: const Recipe(id: 'draft', title: 'T', servingsBase: 4),
       ),
       preview: const Recipe(id: 'preview', title: 'T', servingsBase: 4),
     );
