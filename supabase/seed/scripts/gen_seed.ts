@@ -317,7 +317,7 @@ function writeCuration(dir: string, vocabMatchTexts: Set<string>): void {
     "-- the density tail from the FAO/INFOODS fallback, refreshes the",
     "-- template vocab's materialized allowed_units now that every density",
     "-- source has run, and sets each row's curated default count measure",
-    "-- (seam D1 — what a bare \"2 onions\" means).",
+    '-- (seam D1 — what a bare "2 onions" means).',
     "--",
     `-- Density fallback dataset: ${FAO_DATASET}`,
     "-- (see seed/fao_density.jsonl for the source URL + sha256, and",
