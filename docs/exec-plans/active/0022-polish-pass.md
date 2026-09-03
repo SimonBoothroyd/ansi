@@ -182,7 +182,10 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
   (`⋯` beside `＋`, no `/account` yet; titles-only search; per-device fold;
   book `⋯` with the refused delete + "Move them to…"; the reporting ★).
   Board tag flipped to signed off; build waits on the nav shell. **Landed on
-  main 2026-09-02** (`378c9e1`…`1e381d6`): book rename/reorder/delete-with-
+  main 2026-09-02** (`…1cc2033`, after a first "fast-forward" that had run
+  inside the lane's own worktree and merged nothing — caught by checking
+  `git branch --contains`; the smoke was re-run with Library actually in,
+  6/6): book rename/reorder/delete-with-
   refusal + "Move them to…", the `＋`/`⋯` header split with the stub dot,
   per-device folds, the book `⋯` menu and the in-card new-section row, the
   pinned search over the shared `searchRank` (best tier only, `DID YOU MEAN`
