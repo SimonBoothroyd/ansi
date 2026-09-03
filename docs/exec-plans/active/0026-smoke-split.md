@@ -31,29 +31,38 @@ its add-new chain, both of which are host-tested over fakes only.
 
 ## Acceptance criteria
 
-- [ ] `app/integration_test/` holds one file per flow — `auth_test.dart`,
+- [x] `app/integration_test/` holds one file per flow — `auth_test.dart`,
       `recipe_editor_test.dart`, `week_test.dart`, `import_test.dart`,
       `ingredients_test.dart`, `nested_test.dart` — and a `support/` library
       with the shared boot, provisioning, waits and finders. `app_test.dart`
-      is gone.
-- [ ] Every file passes **alone** (`flutter test integration_test/<file>.dart`
+      is gone. (`d421331`)
+- [x] Every file passes **alone** (`flutter test integration_test/<file>.dart`
       with the dart-defines) on a booted sim over the local stack, and the
-      directory run is green.
-- [ ] Only `auth_test.dart` drives the sign-in gate; every other file signs in
-      programmatically in `setUpAll` and provisions its **own** household.
-- [ ] Prerequisites are seeded through the app's own repositories over the
+      directory run is green. (2026-09-03, iPhone 17: six files alone, then
+      the directory 6/6.)
+- [x] Only `auth_test.dart` drives the sign-in gate; every other file signs in
+      programmatically in `setUpAll` and provisions its **own** household
+      (`support/stack.dart`, `SmokeStack`). No `lib/` change was needed: the
+      session controller picks the in-memory session up on pump.
+- [x] Prerequisites are seeded through the app's own repositories over the
       throwaway `PowerSyncDatabase` (real code, real sync), never through the
-      UI of another flow: the week file seeds its favourited two-day recipe,
-      the ingredients file seeds its stub.
-- [ ] `make test-sim` still runs the directory; `make test-sim FILE=week`
-      (or equivalent) runs one file. The Makefile help line says so.
+      UI of another flow: the week file seeds its favourited two-day recipe
+      through `SqliteRecipeRepository.saveRecipe`, the ingredients file its
+      stub through `createStub`.
+- [x] `make test-sim` still runs the directory; `make test-sim FILE=week
+      DEVICE=<udid>` runs one file on a chosen sim. The Makefile help line
+      says so.
 - [ ] The recipe-editor file gains the method-chip legs (select → To
       ingredient; tap chip → rename; a timer) and the create-new-from-editor
       leg with the flesh-out form actually filled (name + default unit),
       asserting the quantity sheet opens on the form's units and the stub row
       survives the sync round trip.
-- [ ] Wall time per file and for the directory recorded here after the first
-      green run.
+- [x] Wall time per file and for the directory recorded here after the first
+      green run. **2026-09-03, iPhone 17 (incremental build, local stack):**
+      import 1:23 · ingredients 1:47 · nested 1:56 · the whole directory
+      **7:19 wall (6:31 of test time)**. Auth, editor and week each passed
+      alone in the lane; their individual times were lost with the lane's
+      transcript (API cut-offs) and belong in the next re-drive.
 - [ ] Docs updated: `app/AGENTS.md` (the smoke paragraph), `docs/QUALITY.md`
       (CI row's smoke sentence, Recipes row's "unrun by the lane" note),
       `docs/design-docs/navigation.md` (the file reference), the tracker rows
@@ -104,6 +113,15 @@ the shared local backend is never a collision.
 - 2026-09-03 — **One household per file.** Provisioning is seconds over HTTP
   and makes parallel lanes on separate sims safe against the one shared
   backend.
+
+- 2026-09-03 — **Lane A landed by cherry-pick, not fast-forward.** The lane
+  was cut off four times by API overload before it could report; the
+  orchestrator committed its work-in-progress from the worktree, ran the
+  last two files and the directory itself, and cherry-picked the verified
+  commit onto main (a release-docs commit had landed on main meanwhile).
+- 2026-09-03 — **Time per file is the point.** A red in one flow now costs
+  under two minutes to re-run, against seven for the old suite — the reason
+  the split was worth doing before Lanes B and C add legs.
 
 ## Notes / open questions
 
