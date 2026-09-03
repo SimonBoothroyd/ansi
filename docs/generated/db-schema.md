@@ -62,6 +62,8 @@ introduced in `0002_ingredients.sql` · RLS enabled · in the `powersync` public
 | `macros_basis` | `text` | no | not null default 'g' check (macros_basis in ('g', 'ml')) *(added in `0011_picker_uplift.sql`)* |
 | `allowed_units` | `jsonb` | yes | *(added in `0012_unit_admission.sql`)* |
 | `default_measure_id` | `uuid` | yes | references ingredient_measure(id) on delete set null *(added in `0023_default_measure.sql`)* |
+| `source_label` | `text` | yes | *(added in `0027_usda_source_label.sql`)* |
+| `source_score` | `real` | yes | *(added in `0027_usda_source_label.sql`)* |
 
 ## `ingredient_alias`
 

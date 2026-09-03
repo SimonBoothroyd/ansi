@@ -70,7 +70,9 @@ ingredients/
   presentation/
     ingredient_list_view.dart   the manager list
     ingredient_detail_view.dart the flesh-out form
-    new_ingredient_sheet.dart   the add flow's three sources
+    new_ingredient_sheet.dart   the add flow's three sources (USDA = a search)
+    usda_pick_sheet.dart        "Choose another": the USDA short-list, and the
+                                candidate rows the add sheet's USDA leg shares
     ingredient_picker.dart      picker v2 (7.7) + the add-new chain's row
     draft_card.dart             the barcode result card, drawn by sheet and form
     quantity_unit_sheet.dart    quantity + unit chips (7.7), manage measures
@@ -126,8 +128,21 @@ client's PowerSync upload transaction, so it is one indexed trigram probe and
 every error is swallowed rather than failing the upload. The row stays `stub`.
 A companion trigger extends `allowed_units` when a density lands from anywhere.
 
-That is why the form's "Look up in USDA" button is a **re-read, not a query**,
-and why a rename is worth re-saving: it re-fires the probe.
+Since `0016` the same probe is also a read-only RPC (`probe_usda`), so the
+app can ask at creation and from the form without waiting for the round
+trip; since `0027` (plan 0027 front U) the probe **names its answer** —
+`usda_probe` returns `description` + `category` and takes a limit — and both
+writers stamp `source_label` + `source_score` beside `usda_fdc:<id>`. That is
+what lets the form say *which* food filled a row, offline, at the head of its
+macros section, with two doors: **Not this food** (`declineUsdaPrefill` — one
+write: the density and its D4b strip, the macros, `source = usda_declined`,
+which the 0015 WHEN clause never refills) and **Choose another ▸**
+(`usda_pick_sheet.dart` over `probe.search`, the pick applied through
+`applyUsdaProbe(explicitPick: true)` — the only thing that writes over a
+decline or over the prefill's own fill; numbers a person typed are never
+overwritten). The New-ingredient sheet's USDA leg is the same search, and
+Create applies the pick as the row is made. Nothing in any of it confirms a
+row (U-D4).
 
 ## Tests
 

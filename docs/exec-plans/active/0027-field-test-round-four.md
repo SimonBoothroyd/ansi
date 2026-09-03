@@ -118,9 +118,12 @@ those two lines at landing) and `docs/QUALITY.md`.
 - **Lane M** — front M. No migration. `core/units/macros.dart` (the pure
   conversion), the form's macros section, the D2 opt-in line, the mapper +
   draft card branch.
-- **Lane U** — front U. Migration `0027`. Slices in order: D1+D5 (column,
+- [x] **Lane U** — front U. Migration `0027`. Slices in order: D1+D5 (column,
   probe, writers, provenance line) → D2 (undo) → D3 (choose another) → D7 (the
-  sheet's search). Each slice its own commit.
+  sheet's search). Each slice its own commit. **Landed 2026-09-03** — four
+  feature commits + docs; `make ci` green (1625 app tests); pgTAP 131 in
+  `unit_admission.sql`, run against a scratch Postgres (the shared stack was
+  not reset — see the decision log); sim leg left to the landing.
 - **Lane P** — front P. Migration `0026`. Slices: domain (demand, weights,
   fraction formatting, identity test) → data (column, member entity, repo) →
   Household sheet → entry sheet / cook / lens copy. ✅ **Built 2026-09-03**
@@ -200,6 +203,43 @@ never `db-reset` the shared stack; sims are the orchestrator's at landing.
   it differs from the eaters' own summed demand (identical to the old rule
   when every factor is 1); a fractional usual never earns a chip — the
   avatars are the who, the sheet says the how much.
+- 2026-09-03 — **Lane U, one column beyond U-D5's letter: `source_score`
+  beside `source_label`.** U-D1's band word ("close match" ≥ 0.85, "a guess"
+  below) is a function of the score, and the row did not carry one — so a
+  trigger-filled row (the common case) could not print the band offline. The
+  two alternatives were worse: asking `probe_usda` when the form opens is
+  online-only on an offline-first screen and, after a rename, names a
+  different food than the one that filled the row (the board rejected it);
+  re-deriving a trigram similarity on the phone is a second matcher under
+  invariant 1. `real`, written by both writers in the same statement, cleared
+  by a decline. Rows filled before 0027 print the FDC id alone — no band is
+  invented for a score never stored.
+- 2026-09-03 — Lane U: the sync-rules YAMLs are **unchanged** — both select
+  `*` from `ingredient`, so the columns ride down without a rule edit (the
+  drift check passes as-is); `schema.dart` gained the two client columns.
+- 2026-09-03 — Lane U: the form's "Look up in USDA" button retires on a row
+  USDA already filled or a person declined — there the provenance line's two
+  doors are the way the match changes, and an automatic probe would have
+  nothing it may write. It stays on every other stub. *Choose another* on a
+  `usda_fdc:` row replaces the prefill's own fill whole (both prefill writers
+  are fill-null-only, so the prefill authored both numbers); the D-list's
+  "declined guard lifted for an explicit pick" is read as also covering that
+  case, since frame (a) offers the door on a filled row. Numbers a person
+  supplied are never overwritten, pick or no pick.
+- 2026-09-03 — Lane U: U-D7's "offline the leg says the search cannot run"
+  — the probe collapses "offline" and "no confident hit" into one empty
+  answer by design (0016), and the app deliberately reports no "offline"
+  state anywhere (`sync_health.dart`), so the leg's copy says both: "nothing
+  came back — offline, or nothing close enough", with the standing note that
+  the search runs on the server and Manual still works.
+- 2026-09-03 — Lane U: pgTAP was run against a **scratch** Supabase Postgres
+  container (all 27 migrations + seeds applied by hand), never the shared
+  stack, whose reset is forbidden while other lanes share it. On that image
+  the CLI-provisioned assertions (RLS via `auth.uid()`, the client-role grant
+  on `usda_food`, the token hook) fail identically before and after 0027 —
+  environmental, not a regression; the trigger/probe/data assertions,
+  including all twenty new ones, pass. The orchestrator's `supabase test db`
+  on a reset stack is the authoritative run.
 
 ## Step-done checklist
 

@@ -489,6 +489,23 @@ or any dashboard-config walk.
 > `select column_default from information_schema.columns where table_name =
 > 'household_member' and column_name = 'portion_factor';` → `1`. Replace this
 > note with the ledger entry once it lands.
+### PENDING — plan 0027 (field test round four): 0026 portion factor, 0027 USDA source label
+
+- **`0027_usda_source_label.sql` is merged and NOT yet on cloud.** Additive
+  and row-preserving (§2c): `ingredient.source_label text` +
+  `source_score real`, both null on every existing row; `usda_probe` /
+  `probe_usda` re-created with a `limit` (the one-argument overloads are
+  dropped — a `deploy-supabase` run applies it; nothing to reseed, no rollout
+  leg). Sync streams select `*` from `ingredient`, so no stream deploy is
+  needed for the columns to ride. **Ship order matters:** the app build that
+  reads `probe_usda`'s `description` treats a server without it as "nothing
+  came back" (the trigger still fills), so push `0027` before tagging the
+  app. Readback after the push: `select column_name from
+  information_schema.columns where table_name = 'ingredient' and column_name
+  like 'source_%';` → `source`, `source_label`, `source_score`; `select
+  count(*) from probe_usda('kale', 5);` as `authenticated` → up to 5.
+- `0026_portion_factor.sql` (lane P) rides in the same push; its own note
+  is the orchestrator's at landing.
 
 ### 2026-09-03 (day) — field test round three (plan 0025): 0024 pint + quart, 0025 optional lines
 
