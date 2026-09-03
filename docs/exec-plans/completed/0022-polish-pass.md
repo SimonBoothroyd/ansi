@@ -1,9 +1,6 @@
 # Exec plan: Polish pass — ten owner-raised fronts, run as parallel lanes
 
-- **Status:** active — build phase (2026-09-02). All seven board sections
-  signed off; six build lanes running in worktrees (search · piece · nav
-  shell · library · week · editor); errors staged after library/week land.
-  Quickfix lane already on main.
+- **Status:** done — 2026-09-02. All seven fronts designed on the board, ruled by the owner, built as parallel lanes and landed on main the same day; `make ci` green (1404 app tests · 153 deno · docs-check) and `make test-sim` 6/6 with everything in. Cloud push pending (below).
 - **Owner:** Simon (design partner, rules on every decision) + Claude (orchestrator; lanes are sub-agents)
 - **Roadmap step:** post-8.6 polish; absorbs row 8.7 (piece↔measure) and adds rows for the rest
 - **Created:** 2026-09-02
@@ -50,10 +47,12 @@ structural test; C: popovers close before pushing).
       picker and the line-target picker; guard values chosen against the real
       vocab with numbers, not opinions; shared vectors pin Dart and TS. (The
       Library's title search joined it at landing.)
-- [ ] Every code change lands with a test; `make ci` green; `make test-sim`
-      re-driven for the tab shell, the Library, the Week screen.
-- [ ] Docs updated in the same PRs: product-spec §5, roadmap rows, tracker rows
-      added and retired.
+- [x] Every code change lands with a test; `make ci` green; `make test-sim`
+      re-driven for the tab shell, the Library, the Week screen (6/6, three
+      times over the landing sequence).
+- [x] Docs updated in the same PRs: product-spec §5, roadmap rows, tracker rows
+      added and retired; four new design docs (navigation, search & matching,
+      errors & sync health) and ADR-0010.
 
 ## Approach
 
@@ -356,12 +355,11 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
       editor / search / errors).
 - [ ] `docs/QUALITY.md` grades for every area touched.
 - [ ] `app/AGENTS.md` "Current focus" still true.
-- [x] `make test-sim` 6/6 on main 2026-09-02, twice: after nav shell · piece ·
+- [x] `make test-sim` 6/6 on main 2026-09-02, three times: after nav shell · piece ·
       search, and again after editor · week · library (scenarios 2 and 3
       rewritten for the step cards and the week redesign; the second run
-      found the entry-sheet double pop). Final re-run pending the errors
-      landing.
-- [ ] Tech-debt rows added and retired.
+      found the entry-sheet double pop). The final run, with errors & sync health in, was the third.
+- [x] Tech-debt rows added and retired by each lane; the count-unit and single-word-typo rows retired at landing.
 - [ ] **Cloud, still to push** (one sitting, `docs/release.md`): migrations
       `0018_fold_diacritics.sql` (folds stored `match_text`; one row today)
       and `0019_shopping_week.sql` (week-scoped check-offs; sync rules
@@ -369,4 +367,4 @@ Owner rulings, 2026-09-02 (the second consult, on the merged board):
       folded seed (`db push` does not reseed — the `rollout_ingredient_refresh`
       path); `functions deploy import-recipe` for the shared normalizer's
       diacritic fold. Then a `cloud-setup.md` ledger entry.
-- [ ] `make ci` green.
+- [x] `make ci` green on main at `4c48875`+ (1404 · 153 · docs OK).
