@@ -100,6 +100,23 @@ assigned here, not minted: **0021 = lane C, 0022 = lane D**.
   ingredient ∪ alias as one surface. Same-ingredient duplicates and an alias
   equal to its own canonical key are still dropped quietly, as before. The
   current vocab passes; `gen-seed` re-run, byte-identical.
+- 2026-09-03 — **Lane C, the additive backfill: included, but narrowed to the
+  bug's own signature.** `0021` unions `density_unlocked_units(default, basis)`
+  into a row only when it carries a density, a mass/volume default, and a
+  stored list that does not name that default unit — the shape a D4b
+  `clearDensity` (list stripped to `[g, kg]`, `cup` kept as default) leaves
+  once a later server-side density (a 0015 rename re-probe) landed and 0014's
+  one-argument leg unioned only `g, kg`. No curation and no honest edit
+  produces that combination, so it cannot touch a curated removal (pasta's
+  `tsp, tbsp`; olive oil's `pinch`) — which a blanket "union the new leg into
+  every density-carrying row" would have re-admitted; that blanket variant was
+  considered and rejected. Rows touched are counted in a `raise notice` so the
+  cloud `db push` log says how many the old rule actually wronged (expected:
+  zero or single digits). No removal backfill, per ADR-0009 rule 3. The
+  one-argument `density_unlocked_units(text)` is dropped rather than left as
+  an overload, so no caller can resolve to the stale rule by accident; its
+  only caller (0014's `ingredient_density_extends_allowed_units`) is
+  re-created on the new signature.
 
 ## Notes / open questions
 
