@@ -16,6 +16,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/write.dart';
 import '../../books/data/book_providers.dart';
 import '../../books/presentation/book_view_models.dart';
 import '../../books/presentation/text_prompt.dart';
@@ -63,7 +64,15 @@ class RecipeEditorView extends ConsumerWidget {
             onPress: !async.hasValue
                 ? null
                 : () async {
-                    final id = await notifier.save();
+                    // The highest-severity site in the audit: a throw inside
+                    // `save()` used to show only as the editor not navigating,
+                    // which reads as a laggy button rather than a lost recipe.
+                    final id = await ref.write(
+                      context,
+                      'save the recipe',
+                      notifier.save,
+                    );
+                    if (id == null) return;
                     // Replace the editor with the saved recipe, rather than
                     // `go`: `go` would flatten the stack to one page, so back
                     // would leave the app and the iOS edge-swipe would vanish
@@ -999,12 +1008,19 @@ class _FilingPicker extends ConsumerWidget {
                   hint: 'Name it anything',
                   confirm: 'Add',
                 );
-                if (name != null && name.trim().isNotEmpty) {
-                  final id = await ref
-                      .read(bookRepositoryProvider)
-                      .createSection(currentBookId, name);
-                  notifier.setSection(id);
+                if (name == null || name.trim().isEmpty || !context.mounted) {
+                  return;
                 }
+                final id = await ref.write(
+                  context,
+                  'add that section',
+                  () => ref
+                      .read(bookRepositoryProvider)
+                      .createSection(currentBookId, name),
+                );
+                // Selecting a section that was never created would file the
+                // recipe under an id the server has never heard of.
+                if (id != null) notifier.setSection(id);
               },
               child: const Icon(FLucideIcons.plus),
             ),

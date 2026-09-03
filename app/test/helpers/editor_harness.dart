@@ -24,9 +24,13 @@ import 'package:hooks_riverpod/misc.dart' show Override;
 import 'fake_ingredient_repository.dart';
 
 class FakeRecipeRepo implements RecipeRepository {
-  FakeRecipeRepo(this.recipe);
+  FakeRecipeRepo(this.recipe, {this.saveThrows = false});
 
   final Recipe? recipe;
+
+  /// Whether the write refuses — the case where Save used to look like a
+  /// laggy button and a recipe quietly went nowhere.
+  final bool saveThrows;
   final saved = <Recipe>[];
 
   @override
@@ -36,7 +40,10 @@ class FakeRecipeRepo implements RecipeRepository {
   Stream<Recipe?> watchRecipe(String id) => Stream.value(recipe);
 
   @override
-  Future<void> saveRecipe(Recipe r) async => saved.add(r);
+  Future<void> saveRecipe(Recipe r) async {
+    if (saveThrows) throw StateError('RLS denied');
+    saved.add(r);
+  }
 
   @override
   Future<void> deleteRecipe(String id) async {}
@@ -181,8 +188,12 @@ Widget hostEditor(String? recipeId, List<Override> overrides) {
     overrides: overrides,
     child: MaterialApp.router(
       routerConfig: router,
-      builder: (_, child) =>
-          FTheme(data: ansiThemeData(), child: child ?? const SizedBox()),
+      // The app's own ancestry: the theme, and the one toaster every
+      // `ref.write` raises its failure into.
+      builder: (_, child) => FTheme(
+        data: ansiThemeData(),
+        child: FToaster(child: child ?? const SizedBox()),
+      ),
     ),
   );
 }

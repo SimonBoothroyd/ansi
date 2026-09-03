@@ -31,6 +31,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/write.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/allowed_units.dart';
@@ -111,30 +112,40 @@ class MeasuresEditor extends HookConsumerWidget {
         return;
       }
       error.value = null;
-      final Measure added;
-      try {
-        added = await ref
-            .read(measureRepositoryProvider)
-            .addMeasure(
-              ingredientId: ingredient.id,
-              label: name,
-              amount: weight,
-            );
-        // The repo's validation contract IS ArgumentError (documented on
-        // addMeasure) — catching it here is the point: surface the refusal
-        // inline instead of crashing the host.
-        // ignore: avoid_catching_errors
-      } on ArgumentError catch (e) {
-        // The repository validates every write path (post-7.7 review); when
-        // its rules and the form's ever diverge, the refusal surfaces inline
-        // instead of silently diverging (or crashing).
-        if (!context.mounted) return;
-        error.value = '${e.message}';
-        return;
-      }
+      // Two different failures, two different surfaces. A *refusal* is the
+      // repository's validation contract (documented on addMeasure as an
+      // ArgumentError) and belongs inline under the field, in the form's own
+      // words. Anything else is a write that did not happen, and belongs in
+      // the shared toast — so the refusal is turned into a value here and the
+      // guard sees only the second kind.
+      final outcome = await ref.write(context, 'add that measure', () async {
+        try {
+          return (
+            measure: await ref
+                .read(measureRepositoryProvider)
+                .addMeasure(
+                  ingredientId: ingredient.id,
+                  label: name,
+                  amount: weight,
+                ),
+            refusal: null,
+          );
+          // The repository's validation contract IS ArgumentError (documented
+          // on addMeasure), so catching it here is the point, not a slip.
+          // ignore: avoid_catching_errors
+        } on ArgumentError catch (e) {
+          return (measure: null, refusal: '${e.message}');
+        }
+      });
       // The host can be dismissed while the write is in flight — touching
       // its state after that throws (every sibling path guards).
-      if (!context.mounted) return;
+      if (outcome == null || !context.mounted) return;
+      final refusal = outcome.refusal;
+      if (refusal != null) {
+        error.value = refusal;
+        return;
+      }
+      final added = outcome.measure!;
       // Plan 0022 / ADR-0010 — the one question in the `piece` model, asked at
       // the only moment its answer is obvious. `piece` means "a whole one of
       // these, and we have nothing better to call it"; `listed` being empty a
@@ -149,8 +160,12 @@ class MeasuresEditor extends HookConsumerWidget {
         final stop = await _askStopOfferingPiece(context, ingredient, added);
         // No answer (barrier tap, back) keeps `piece`: an admission is the
         // household's, and silence is not consent to remove one.
-        if (stop ?? false) {
-          final changed = await ingredients.stopOfferingPiece(ingredient.id);
+        if ((stop ?? false) && context.mounted) {
+          final changed = await ref.write(
+            context,
+            'stop offering “piece”',
+            () => ingredients.stopOfferingPiece(ingredient.id),
+          );
           if (changed != null) onIngredientChanged(changed);
         }
         if (!context.mounted) return;

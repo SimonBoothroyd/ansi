@@ -28,6 +28,7 @@ import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/write.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../data/ingredient_providers.dart';
 import '../data/usda_enrichment.dart';
@@ -225,22 +226,33 @@ class _DetailForm extends HookConsumerWidget {
       try {
         // The keepAlive repo provider, not a throwaway notifier: this
         // survives the await.
-        final saved = await ref
-            .read(ingredientRepositoryProvider)
-            .saveEdit(
-              ing.id,
-              IngredientEdit(
-                canonicalName: name.value,
-                defaultUnit: defaultUnit.value,
-                macrosBasis: basis.value,
-                allowedUnits: allowed.value,
-                category: category.value.trim().isEmpty
-                    ? null
-                    : category.value.trim(),
-                macros: draftMacros,
-              ),
-            );
-        if (!context.mounted) return null;
+        //
+        // Wrapped in a record so the guard's own "it threw" null stays
+        // distinct from the repository's "the row is gone" null: a failed
+        // write must not be reported as a deleted ingredient.
+        final outcome = await ref.write(
+          context,
+          'save ${ing.canonicalName}',
+          () async => (
+            row: await ref
+                .read(ingredientRepositoryProvider)
+                .saveEdit(
+                  ing.id,
+                  IngredientEdit(
+                    canonicalName: name.value,
+                    defaultUnit: defaultUnit.value,
+                    macrosBasis: basis.value,
+                    allowedUnits: allowed.value,
+                    category: category.value.trim().isEmpty
+                        ? null
+                        : category.value.trim(),
+                    macros: draftMacros,
+                  ),
+                ),
+          ),
+        );
+        if (outcome == null || !context.mounted) return null;
+        final saved = outcome.row;
         ref.invalidate(ingredientByIdProvider(ing.id));
         message.value = saved == null ? 'It is no longer here.' : 'Saved.';
         return saved;
@@ -362,8 +374,11 @@ class _DetailForm extends HookConsumerWidget {
           measures:
               ref.watch(ingredientMeasuresProvider(ing.id)).asData?.value ??
               const [],
-          onDelete: (m) =>
-              ref.read(measureRepositoryProvider).softDeleteMeasure(m.id),
+          onDelete: (m) => ref.write(
+            context,
+            'delete that measure',
+            () => ref.read(measureRepositoryProvider).softDeleteMeasure(m.id),
+          ),
           // Nothing here selects a measure — the form is not a quantity
           // entry surface; the watched provider re-renders the list.
           onAdded: (_) {},
@@ -404,8 +419,13 @@ class _DetailForm extends HookConsumerWidget {
             onConfirm: () async {
               final saved = await save();
               if (saved == null || !context.mounted) return;
-              await ref.read(ingredientRepositoryProvider).confirmStub(ing.id);
-              if (!context.mounted) return;
+              final confirmed = await ref.writeOk(
+                context,
+                'confirm ${ing.canonicalName}',
+                () =>
+                    ref.read(ingredientRepositoryProvider).confirmStub(ing.id),
+              );
+              if (!confirmed || !context.mounted) return;
               ref.invalidate(ingredientByIdProvider(ing.id));
               message.value = 'Confirmed — it counts from here.';
             },
@@ -413,8 +433,12 @@ class _DetailForm extends HookConsumerWidget {
         else
           _UnconfirmAction(
             onUnconfirm: () async {
-              await ref.read(ingredientRepositoryProvider).unconfirm(ing.id);
-              if (!context.mounted) return;
+              final undone = await ref.writeOk(
+                context,
+                'unconfirm ${ing.canonicalName}',
+                () => ref.read(ingredientRepositoryProvider).unconfirm(ing.id),
+              );
+              if (!undone || !context.mounted) return;
               ref.invalidate(ingredientByIdProvider(ing.id));
               message.value =
                   'Back to a stub — it stops counting until you '
@@ -815,10 +839,14 @@ class _AliasEditor extends HookConsumerWidget {
             'everything and nothing.';
         return;
       }
-      await ref
-          .read(ingredientRepositoryProvider)
-          .addAlias(ingredientId, draft.value);
-      if (!context.mounted) return;
+      final added = await ref.writeOk(
+        context,
+        'add that alias',
+        () => ref
+            .read(ingredientRepositoryProvider)
+            .addAlias(ingredientId, draft.value),
+      );
+      if (!added || !context.mounted) return;
       error.value = null;
       adding.value = false;
       ref.invalidate(ingredientAliasesProvider(ingredientId));
@@ -835,10 +863,14 @@ class _AliasEditor extends HookConsumerWidget {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () async {
-                  await ref
-                      .read(ingredientRepositoryProvider)
-                      .removeAlias(a.id);
-                  if (context.mounted) {
+                  final removed = await ref.writeOk(
+                    context,
+                    'remove that alias',
+                    () => ref
+                        .read(ingredientRepositoryProvider)
+                        .removeAlias(a.id),
+                  );
+                  if (removed && context.mounted) {
                     ref.invalidate(ingredientAliasesProvider(ingredientId));
                   }
                 },
@@ -1173,10 +1205,14 @@ class _DeleteAction extends HookConsumerWidget {
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () async {
-            final outcome = await ref
-                .read(ingredientRepositoryProvider)
-                .softDelete(ingredient.id);
-            if (!context.mounted) return;
+            final outcome = await ref.write(
+              context,
+              'delete ${ingredient.canonicalName}',
+              () => ref
+                  .read(ingredientRepositoryProvider)
+                  .softDelete(ingredient.id),
+            );
+            if (outcome == null || !context.mounted) return;
             switch (outcome) {
               case Deleted():
                 ref.invalidate(ingredientByIdProvider(ingredient.id));

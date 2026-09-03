@@ -27,7 +27,16 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// It grows one feature per sweep commit, so the invariant is enforced from the
 /// first sweep and no commit ever ships a red build or a temporary skip.
-const _scannedFeatures = {'books', 'cook_plan', 'planning', 'shopping'};
+const _scannedFeatures = {
+  'auth',
+  'books',
+  'cook_plan',
+  'import',
+  'ingredients',
+  'planning',
+  'recipes',
+  'shopping',
+};
 
 /// Interface methods that *read*. Everything else a repository declares is a
 /// write and must go through the guard.
@@ -51,7 +60,23 @@ const _readVerbs = {
 ///
 /// Keyed by method rather than by line so an edit above it does not silently
 /// move the exemption onto a different call.
-const _allowed = <String, String>{};
+const _allowed = <String, String>{
+  'lib/features/recipes/presentation/recipe_view_models.dart:saveRecipe':
+      'held by the editor notifier; its only caller — the editor Save button '
+      '— wraps `notifier.save` in ref.write, so the guard is one frame out.',
+  'lib/features/recipes/presentation/recipe_view_models.dart:ensureDefaultBook':
+      "inside the editor provider's build: a failure is an AsyncError the "
+      'screen already renders with a reason and a retry.',
+  'lib/features/import/presentation/import_view_models.dart:startImport':
+      'the import controller maps every failure to ImportFailed, which the '
+      'intake form renders inline with the reason (D8: already honest).',
+  'lib/features/import/presentation/import_view_models.dart:commit':
+      'same — ImportFailed with the reason, under the review screen.',
+  'lib/features/import/presentation/import_view.dart:startImport':
+      'the ImportController method, not the repository: it cannot throw.',
+  'lib/features/import/presentation/reconciliation_view.dart:commit':
+      'the ImportController method, not the repository: it cannot throw.',
+};
 
 /// Declarations on a repository interface: two-space indent, a `Future<…>`
 /// return type, a name, an open paren.

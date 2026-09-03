@@ -27,6 +27,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/method_step_text.dart';
+import '../../../shared/write.dart';
 import '../data/recipe_providers.dart';
 import '../domain/line_display.dart';
 import '../domain/recipe.dart';
@@ -137,9 +138,13 @@ class _RecipeBody extends HookConsumerWidget {
                     onPress: () {
                       unawaited(controller.hide());
                       unawaited(
-                        ref
-                            .read(recipeRepositoryProvider)
-                            .setFavorite(recipe.id, !favorite),
+                        ref.write(
+                          context,
+                          favorite ? 'unfavourite it' : 'favourite it',
+                          () => ref
+                              .read(recipeRepositoryProvider)
+                              .setFavorite(recipe.id, !favorite),
+                        ),
                       );
                     },
                   ),
@@ -259,7 +264,12 @@ class _RecipeBody extends HookConsumerWidget {
       ),
     );
     if ((ok ?? false) && context.mounted) {
-      await repository.deleteRecipe(recipe.id);
+      final deleted = await ref.writeOk(
+        context,
+        'delete that recipe',
+        () => repository.deleteRecipe(recipe.id),
+      );
+      if (!deleted) return;
       // `go`, not a replacement — the one post-action navigation where it is
       // right. This page is pushed ABOVE the whole tab shell, and the shell is
       // the bottom of the root stack; `go('/')` lands on the Library branch

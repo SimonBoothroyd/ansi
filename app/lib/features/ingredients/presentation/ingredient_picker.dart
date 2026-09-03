@@ -22,6 +22,7 @@ import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/picker_shell.dart';
+import '../../../shared/write.dart';
 import '../data/ingredient_providers.dart';
 import '../data/usda_enrichment.dart';
 import '../domain/ingredient.dart';
@@ -395,9 +396,12 @@ class AddNewIngredientRow extends HookConsumerWidget {
           : () async {
               creating.value = true;
               try {
-                final made = await ref
-                    .read(ingredientRepositoryProvider)
-                    .createStub(name);
+                final made = await ref.write(
+                  context,
+                  'add $name',
+                  () => ref.read(ingredientRepositoryProvider).createStub(name),
+                );
+                if (made == null || !context.mounted) return;
                 // D7b: born enriched. The same probe-and-apply the manager's
                 // add sheet runs — one answer to "what does creating an
                 // ingredient mean", not two. Offline it answers null within

@@ -33,6 +33,7 @@ import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/write.dart';
 import '../../recipes/presentation/format.dart';
 import '../barcode/barcode_add.dart';
 import '../data/ingredient_providers.dart';
@@ -87,55 +88,66 @@ class NewIngredientSheet extends HookConsumerWidget {
       try {
         final prefill = draft.value;
         final basis = prefill?.macrosBasis ?? MacrosBasis.perG;
-        final created = await ref
-            .read(ingredientRepositoryProvider)
-            .createStub(
-              name.value.trim(),
-              // The draft's own provenance value — `off:<barcode>` for a
-              // found product, `manual` for anything else, including the
-              // not-found exit (which kept the code but learnt nothing).
-              source: prefill?.sourceValue ?? 'manual',
-              // Absent macros stay absent: a missing panel writes no numbers
-              // (D1/invariant 3), and present ones keep the basis the label
-              // read them in rather than being converted (7.7).
-              macros: prefill?.macros,
-              macrosBasis: basis,
-            );
-        // The opt-in half of frame (e): the pack size becomes a real measure
-        // row only because the tick is on. It rides the shared editor's
-        // repository, so it is an ordinary `manual` measure from here — the
-        // flesh-out form can rename it by deleting and re-adding, or bin it.
-        final packAmount = _packAmountInBasis(prefill, basis);
-        if (addPackMeasure.value &&
-            packAmount != null &&
-            packLabel.value.trim().isNotEmpty) {
-          await ref
-              .read(measureRepositoryProvider)
-              .addMeasure(
-                ingredientId: created.id,
-                label: packLabel.value.trim(),
-                amount: packAmount,
+        // One guard over the whole creation: the row, its opt-in pack measure
+        // and the enrichment are one act to the person who tapped Create, so
+        // they get one honest answer if any of it fails.
+        final created = await ref.write(
+          context,
+          'add ${name.value.trim()}',
+          () async {
+            final row = await ref
+                .read(ingredientRepositoryProvider)
+                .createStub(
+                  name.value.trim(),
+                  // The draft's own provenance value — `off:<barcode>` for a
+                  // found product, `manual` for anything else, including the
+                  // not-found exit (which kept the code but learnt nothing).
+                  source: prefill?.sourceValue ?? 'manual',
+                  // Absent macros stay absent: a missing panel writes no
+                  // numbers (D1/invariant 3), and present ones keep the basis
+                  // the label read them in rather than being converted (7.7).
+                  macros: prefill?.macros,
+                  macrosBasis: basis,
+                );
+            // The opt-in half of frame (e): the pack size becomes a real
+            // measure row only because the tick is on. It rides the shared
+            // editor's repository, so it is an ordinary `manual` measure from
+            // here — the flesh-out form can rename it by deleting and
+            // re-adding, or bin it.
+            final packAmount = _packAmountInBasis(prefill, basis);
+            if (addPackMeasure.value &&
+                packAmount != null &&
+                packLabel.value.trim().isNotEmpty) {
+              await ref
+                  .read(measureRepositoryProvider)
+                  .addMeasure(
+                    ingredientId: row.id,
+                    label: packLabel.value.trim(),
+                    amount: packAmount,
+                  );
+            }
+            // D7b: born enriched. The probe runs BEFORE the form opens, so a
+            // new ingredient arrives with whatever USDA had rather than
+            // acquiring it a few seconds later if you are still looking.
+            // Offline it answers null within its own short timeout and the
+            // 0014/0015 trigger picks the row up on upload — so this is a
+            // beat, never a stall, and never an error.
+            //
+            // Only a manual draft is probed. A barcode row carries Open Food
+            // Facts provenance (`off:<barcode>`) and the probe's source stamp
+            // would replace it with a USDA id — the same exclusion the server
+            // trigger's WHEN clause makes.
+            if (prefill?.source != DraftSource.barcode) {
+              await enrichFromUsda(
+                row,
+                probe: ref.read(usdaProbeProvider),
+                repository: ref.read(ingredientRepositoryProvider),
               );
-        }
-        // D7b: born enriched. The probe runs BEFORE the form opens, so a new
-        // ingredient arrives with whatever USDA had rather than acquiring it
-        // a few seconds later if you are still looking. Offline it answers
-        // null within its own short timeout and the 0014/0015 trigger picks
-        // the row up on upload — so this is a beat, never a stall, and never
-        // an error.
-        //
-        // Only a manual draft is probed. A barcode row carries Open Food
-        // Facts provenance (`off:<barcode>`) and the probe's source stamp
-        // would replace it with a USDA id — the same exclusion the server
-        // trigger's WHEN clause makes.
-        if (prefill?.source != DraftSource.barcode) {
-          await enrichFromUsda(
-            created,
-            probe: ref.read(usdaProbeProvider),
-            repository: ref.read(ingredientRepositoryProvider),
-          );
-        }
-        if (!context.mounted) return;
+            }
+            return row;
+          },
+        );
+        if (created == null || !context.mounted) return;
         Navigator.of(context).pop();
         // The push outlives this sheet; nothing here waits on the form.
         context.pushOnce(ingredientDetailRoute(created.id));

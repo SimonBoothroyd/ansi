@@ -23,6 +23,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/write.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/allowed_units.dart';
@@ -85,9 +86,13 @@ class DensityEntry extends HookConsumerWidget {
         return;
       }
       error.value = null;
-      final updated = await ref
-          .read(ingredientRepositoryProvider)
-          .setDensity(ingredient.id, gPerMl);
+      final updated = await ref.write(
+        context,
+        'save that density',
+        () => ref
+            .read(ingredientRepositoryProvider)
+            .setDensity(ingredient.id, gPerMl),
+      );
       if (!context.mounted || updated == null) return;
       confirmingRemoval.value = false;
       onSaved(updated);
@@ -96,9 +101,12 @@ class DensityEntry extends HookConsumerWidget {
     // D4b's strip leg from the user's side: the number goes, and the units it
     // was the only reason to admit go with it, in one write.
     Future<void> remove() async {
-      final updated = await ref
-          .read(ingredientRepositoryProvider)
-          .clearDensity(ingredient.id);
+      final updated = await ref.write(
+        context,
+        'remove that density',
+        () =>
+            ref.read(ingredientRepositoryProvider).clearDensity(ingredient.id),
+      );
       if (!context.mounted || updated == null) return;
       confirmingRemoval.value = false;
       error.value = null;

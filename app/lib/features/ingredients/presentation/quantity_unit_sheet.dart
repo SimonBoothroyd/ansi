@@ -35,6 +35,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/write.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/allowed_units.dart';
@@ -157,10 +158,14 @@ class QuantityUnitEditor extends HookConsumerWidget {
     // merge-on-read is NOT deleted and stays admitted via the chip row's
     // off-filter rule instead.
     Future<void> deleteMeasure(Measure m) async {
-      await ref.read(measureRepositoryProvider).softDeleteMeasure(m.id);
+      final deleted = await ref.writeOk(
+        context,
+        'delete “${m.label}”',
+        () => ref.read(measureRepositoryProvider).softDeleteMeasure(m.id),
+      );
       // The sheet can be dismissed while the write is in flight — touching
       // hook state then would throw (same guard as _MeasureManager.save).
-      if (!context.mounted) return;
+      if (!deleted || !context.mounted) return;
       // A deleted measure also stops being the admitted stored choice.
       if (stored.value == MeasureOption(m)) stored.value = null;
       if (choice.value == MeasureOption(m)) {
