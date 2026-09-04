@@ -33,294 +33,102 @@ import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
 import '../../helpers/silent_usda_probe.dart';
+import '_fixtures.dart';
 
 /// One unmatched `none` line — the amount + notes must stay disabled until an
 /// ingredient is chosen, and the "needs you" flag must clear once it is.
-ReconciliationPayload _nonePayload() => const ReconciliationPayload(
-  title: 'T',
-  servingsBase: 2,
-  groups: [
-    ReconGroup(
-      lines: [
-        ReconLine(
-          raw: RawLineItem(
-            ingredientText: 'mystery spice',
-            rawAmount: 'a pinch',
-          ),
-          band: MatchBand.none,
-        ),
-      ],
-    ),
-  ],
-);
+final _none = reconPayload([
+  reconLine('mystery spice', band: MatchBand.none, rawAmount: 'a pinch'),
+]);
 
 /// One auto-matched line — resolved on arrival, but (owner refinement) still
 /// fully editable.
-ReconciliationPayload _autoPayload() => const ReconciliationPayload(
-  title: 'T',
-  servingsBase: 2,
-  groups: [
-    ReconGroup(
-      lines: [
-        ReconLine(
-          raw: RawLineItem(
-            ingredientText: 'spaghetti',
-            qty: 200,
-            unit: 'g',
-            rawAmount: '200g',
-          ),
-          band: MatchBand.auto,
-          candidates: [
-            MatchCandidate(
-              ingredientId: 'ing-spag',
-              canonicalName: 'Spaghetti',
-              score: 0.98,
-            ),
-          ],
-        ),
-      ],
-    ),
-  ],
-);
+final _auto = reconPayload([
+  reconLine(
+    'spaghetti',
+    qty: 200,
+    unit: 'g',
+    rawAmount: '200g',
+    ingredientId: 'ing-spag',
+    canonicalName: 'Spaghetti',
+    score: 0.98,
+  ),
+]);
 
 /// An auto-matched line whose amount is an unpicked RANGE — the ingredient
-/// must lock regardless of the range (round-3 #4).
-ReconciliationPayload _autoRangePayload() => const ReconciliationPayload(
-  title: 'T',
-  servingsBase: 2,
-  groups: [
-    ReconGroup(
-      lines: [
-        ReconLine(
-          raw: RawLineItem(
-            ingredientText: 'garlic cloves, sliced',
-            qtyLow: 2,
-            qtyHigh: 3,
-            unit: 'clove',
-            rawAmount: '2–3 cloves',
-          ),
-          band: MatchBand.auto,
-          candidates: [
-            MatchCandidate(
-              ingredientId: 'ing-garlic',
-              canonicalName: 'Garlic',
-              score: 0.95,
-            ),
-          ],
-        ),
-      ],
-    ),
-  ],
-);
+/// must lock regardless of the range.
+final _autoRange = reconPayload([
+  reconLine(
+    'garlic cloves, sliced',
+    qtyLow: 2,
+    qtyHigh: 3,
+    unit: 'clove',
+    rawAmount: '2–3 cloves',
+    ingredientId: garlic.id,
+    canonicalName: 'Garlic',
+    score: 0.95,
+  ),
+]);
 
 /// A matched line whose printed unit the ingredient cannot carry (`ml` on a
 /// density-less garlic) — the "pick a supported unit" case.
-ReconciliationPayload _unitMismatchPayload() => const ReconciliationPayload(
-  title: 'T',
-  servingsBase: 2,
-  groups: [
-    ReconGroup(
-      lines: [
-        ReconLine(
-          raw: RawLineItem(
-            ingredientText: 'garlic',
-            qty: 2,
-            unit: 'ml',
-            rawAmount: '2 ml',
-          ),
-          band: MatchBand.auto,
-          candidates: [
-            MatchCandidate(
-              ingredientId: 'ing-garlic',
-              canonicalName: 'Garlic',
-              score: 0.95,
-            ),
-          ],
-        ),
-      ],
-    ),
-  ],
-);
+final _unitMismatch = reconPayload([
+  reconLine(
+    'garlic',
+    qty: 2,
+    unit: 'ml',
+    rawAmount: '2 ml',
+    ingredientId: garlic.id,
+    canonicalName: 'Garlic',
+    score: 0.95,
+  ),
+]);
 
-/// The board's frame-(e) line: a printed cross-reference the server matched
-/// against a household recipe TITLE, offered beside an ingredient candidate.
-ReconciliationPayload _recipeOfferPayload() => const ReconciliationPayload(
-  title: 'Sausage Sliders',
-  servingsBase: 8,
-  groups: [
-    ReconGroup(
-      lines: [
-        ReconLine(
-          raw: RawLineItem(
-            ingredientText: 'Romesco Aioli (page 38)',
-            qty: 0.25,
-            unit: 'cup',
-            rawAmount: '¼ cup',
-          ),
-          band: MatchBand.suggest,
-          candidates: [
-            MatchCandidate(
-              ingredientId: 'ing-aioli',
-              canonicalName: 'Aioli, jarred',
-              score: 0.7,
-            ),
-          ],
-          recipeCandidates: [
-            RecipeCandidate(
-              recipeId: 'r-aioli',
-              title: 'Romesco Aioli',
-              score: 1,
-            ),
-          ],
-        ),
-      ],
-    ),
-  ],
-);
+/// A printed cross-reference the server matched against a household recipe
+/// TITLE, offered beside an ingredient candidate.
+final _recipeOffer = reconPayload(title: 'Sausage Sliders', servingsBase: 8, [
+  reconLine(
+    'Romesco Aioli (page 38)',
+    qty: 0.25,
+    unit: 'cup',
+    rawAmount: '¼ cup',
+    band: MatchBand.suggest,
+    ingredientId: 'ing-aioli',
+    canonicalName: 'Aioli, jarred',
+    score: 0.7,
+    recipeCandidates: const [
+      RecipeCandidate(recipeId: 'r-aioli', title: 'Romesco Aioli', score: 1),
+    ],
+  ),
+]);
 
-const _garlic = Ingredient(
-  id: 'ing-garlic',
-  canonicalName: 'Garlic',
-  defaultUnit: g,
-  status: IngredientStatus.complete,
-);
-
-const _clove = Measure(id: 'm-clove', label: 'clove', amount: 3);
-
-/// A `piece` line on a row whose measure names the thing — the board's frame
-/// (a). Post-curation (plan 0022) `piece` is not in the row's `allowed_units`,
-/// so the shipped `unitNotAllowed` machinery finally reaches this line.
+/// A `piece` line on a row whose measure names the thing. Post-curation (plan
+/// 0022) `piece` is not in the row's `allowed_units`, so the shipped
+/// `unitNotAllowed` machinery finally reaches this line.
 ReconciliationPayload _piecePayload(String name, String ingredientId) =>
-    ReconciliationPayload(
-      title: 'T',
-      servingsBase: 2,
-      groups: [
-        ReconGroup(
-          lines: [
-            ReconLine(
-              raw: RawLineItem(
-                ingredientText: '1 large ripe $name',
-                qty: 1,
-                unit: 'piece',
-                rawAmount: '1 large',
-              ),
-              band: MatchBand.auto,
-              candidates: [
-                MatchCandidate(
-                  ingredientId: ingredientId,
-                  canonicalName: name,
-                  score: 0.97,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ],
-    );
-
-/// Seam frame (a): a sized family with a curated default — "2 red peppers"
-/// means two mediums, and the review says so on the card.
-const _pepper = Ingredient(
-  id: 'ing-pepper',
-  canonicalName: 'Red bell pepper',
-  defaultUnit: pieces,
-  category: 'produce',
-  status: IngredientStatus.complete,
-  densityGPerMl: 0.5,
-  allowedUnits: [g, tsp, tbsp, cup, ml, handful],
-  defaultMeasureId: 'm-pep-med',
-);
-const _pepperSizes = [
-  Measure(id: 'm-pep-med', label: 'pepper, medium', amount: 119),
-  Measure(id: 'm-pep-lrg', label: 'pepper, large', amount: 164),
-  Measure(id: 'm-pep-sml', label: 'pepper, small', amount: 74),
-];
-
-/// Seam D3: one measure and no stated default. There is nothing else the line
-/// could have meant, which is ADR-0010 consequence 4's own sentence.
-const _cucumber = Ingredient(
-  id: 'ing-cucumber',
-  canonicalName: 'Cucumber',
-  defaultUnit: pieces,
-  category: 'produce',
-  status: IngredientStatus.complete,
-  allowedUnits: [g, handful],
-);
-const _cucumberMeasure = Measure(id: 'm-cuc', label: 'cucumber', amount: 301);
-
-/// Seam frame (b): a fragment set — three KINDS of countable thing and no
-/// dominant one, so the row states no default and the line keeps its flag.
-const _broccoli = Ingredient(
-  id: 'ing-broccoli',
-  canonicalName: 'Broccoli',
-  defaultUnit: pieces,
-  category: 'produce',
-  status: IngredientStatus.complete,
-  allowedUnits: [g, handful],
-);
-const _broccoliParts = [
-  Measure(id: 'm-b-whole', label: 'whole', amount: 608),
-  Measure(id: 'm-b-spear', label: 'spear', amount: 31),
-  Measure(id: 'm-b-crown', label: 'crown', amount: 150),
-];
-
-/// The scope rule's counter-case: a row whose default is its SOLE measure,
-/// on a line that printed a word of its own.
-const _cilantro = Ingredient(
-  id: 'ing-cilantro',
-  canonicalName: 'Cilantro',
-  defaultUnit: pieces,
-  category: 'produce',
-  status: IngredientStatus.complete,
-  allowedUnits: [g, handful],
-  defaultMeasureId: 'm-cil-sprig',
-);
-const _cilantroSprig = Measure(id: 'm-cil-sprig', label: 'sprig', amount: 2.22);
+    reconPayload([
+      reconLine(
+        '1 large ripe $name',
+        qty: 1,
+        unit: 'piece',
+        rawAmount: '1 large',
+        ingredientId: ingredientId,
+        canonicalName: name,
+      ),
+    ]);
 
 /// "1 bunch cilantro, chopped" — the source named a THING the row does not
 /// carry. Today's flag stands; the default answers a number and no thing.
-ReconciliationPayload _bunchPayload() => ReconciliationPayload(
-  title: 'T',
-  servingsBase: 2,
-  groups: [
-    ReconGroup(
-      lines: [
-        ReconLine(
-          raw: const RawLineItem(
-            ingredientText: '1 bunch cilantro, chopped',
-            qty: 1,
-            unit: 'bunch',
-            rawAmount: '1 bunch',
-          ),
-          band: MatchBand.auto,
-          candidates: [
-            MatchCandidate(
-              ingredientId: _cilantro.id,
-              canonicalName: 'Cilantro',
-              score: 0.97,
-            ),
-          ],
-        ),
-      ],
-    ),
-  ],
-);
-
-/// Frame (a) right: three sizes, so nothing is pre-selected and the user picks.
-const _potato = Ingredient(
-  id: 'ing-potato',
-  canonicalName: 'Gold Potato',
-  defaultUnit: pieces,
-  category: 'produce',
-  status: IngredientStatus.complete,
-  densityGPerMl: 0.59,
-  allowedUnits: [g, tsp, tbsp, cup, ml, handful],
-);
-const _potatoSizes = [
-  Measure(id: 'm-p-med', label: 'potato, medium', amount: 213),
-  Measure(id: 'm-p-lrg', label: 'potato, large', amount: 369),
-  Measure(id: 'm-p-sml', label: 'potato, small', amount: 170),
-];
+final _bunch = reconPayload([
+  reconLine(
+    '1 bunch cilantro, chopped',
+    qty: 1,
+    unit: 'bunch',
+    rawAmount: '1 bunch',
+    ingredientId: cilantro.id,
+    canonicalName: 'Cilantro',
+  ),
+]);
 
 /// The household's recipes, as the component sheet reads them: one aioli that
 /// says what a batch makes.
@@ -400,9 +208,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(
-          FakeImportRepo(_autoPayload()),
-        ),
+        importRepositoryProvider.overrideWithValue(FakeImportRepo(_auto)),
       ],
     );
     addTearDown(container.dispose);
@@ -436,9 +242,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(
-          FakeImportRepo(_autoPayload()),
-        ),
+        importRepositoryProvider.overrideWithValue(FakeImportRepo(_auto)),
       ],
     );
     addTearDown(container.dispose);
@@ -465,9 +269,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(
-          FakeImportRepo(_nonePayload()),
-        ),
+        importRepositoryProvider.overrideWithValue(FakeImportRepo(_none)),
       ],
     );
     addTearDown(container.dispose);
@@ -554,9 +356,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(
-          FakeImportRepo(_autoRangePayload()),
-        ),
+        importRepositoryProvider.overrideWithValue(FakeImportRepo(_autoRange)),
       ],
     );
     addTearDown(container.dispose);
@@ -585,9 +385,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(
-          FakeImportRepo(_autoPayload()),
-        ),
+        importRepositoryProvider.overrideWithValue(FakeImportRepo(_auto)),
       ],
     );
     addTearDown(container.dispose);
@@ -631,9 +429,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(
-          FakeImportRepo(_autoPayload()),
-        ),
+        importRepositoryProvider.overrideWithValue(FakeImportRepo(_auto)),
       ],
     );
     addTearDown(container.dispose);
@@ -691,13 +487,13 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
-          FakeImportRepo(_unitMismatchPayload()),
+          FakeImportRepo(_unitMismatch),
         ),
         ingredientRepositoryProvider.overrideWithValue(
-          const OneRowIngredientRepo(_garlic),
+          const OneRowIngredientRepo(garlic),
         ),
         measureRepositoryProvider.overrideWithValue(
-          FakeMeasureRepo(const [_clove]),
+          FakeMeasureRepo(const [garlicClove]),
         ),
       ],
     );
@@ -746,13 +542,13 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
-          FakeImportRepo(_unitMismatchPayload()),
+          FakeImportRepo(_unitMismatch),
         ),
         ingredientRepositoryProvider.overrideWithValue(
-          const OneRowIngredientRepo(_garlic),
+          const OneRowIngredientRepo(garlic),
         ),
         measureRepositoryProvider.overrideWithValue(
-          FakeMeasureRepo(const [_clove]),
+          FakeMeasureRepo(const [garlicClove]),
         ),
       ],
     );
@@ -820,208 +616,186 @@ void main() {
   }
 
   // --- plan 0024 · seam D2 + D3 · the board's frames (a) and (b) ------------
-  //
-  // D3, named: `preselectedMeasure` pre-selected the SHEET, never the LINE, so
-  // a sole-measure row stayed flagged until somebody opened and confirmed it.
-  // D2 writes the LINE, so a line that named a number and no thing arrives on
-  // its curated default (or its sole measure), clean, with the fact said out
-  // loud on the card and the chips still beside it.
 
-  testWidgets('a sized row arrives on its curated default, unflagged, with '
-      'the fact on the card and the alternatives beside it (frame a)', (
-    tester,
-  ) async {
-    filterForuiSemanticsAssertions();
+  /// Where a `piece` line lands on arrival, by the shape of the row's measure
+  /// set. `preselectedMeasure` used to pre-select the SHEET and never the
+  /// LINE, so a sole-measure row stayed flagged until somebody opened and
+  /// confirmed it. Writing the LINE means a line that named a number and no
+  /// thing arrives on its curated default — or its sole measure — clean, with
+  /// the fact said out loud on the card.
+  ///
+  /// The other three rows are the cases where arriving on something would be
+  /// a lie: a set with no dominant member, a set of three equals, and a line
+  /// that PRINTED a word of its own (cilantro's default IS `sprig` at 2.22 g
+  /// and a bunch is ~25 of them, so applying it would be a silent 25× error).
+  /// The model can say "I don't know", which a rule never can.
+  final arrivals =
+      <
+        ({
+          String what,
+          ReconciliationPayload payload,
+          Ingredient row,
+          List<Measure> measures,
+          String unit,
+          String? countsAs,
+        })
+      >[
+        (
+          what: 'a sized row arrives on its curated default',
+          payload: _piecePayload('Red Pepper', pepper.id),
+          row: pepper,
+          measures: pepperSizes,
+          unit: 'pepper, medium',
+          countsAs: 'counts as  pepper, medium · 119 g',
+        ),
+        (
+          what: 'a SOLE-measure row arrives on it too',
+          payload: _piecePayload('Cucumber', cucumber.id),
+          row: cucumber,
+          measures: const [cucumberMeasure],
+          unit: 'cucumber',
+          countsAs: 'counts as  cucumber · 301 g',
+        ),
+        (
+          what: 'a fragment set has no default and stays flagged',
+          payload: _piecePayload('Broccoli', broccoli.id),
+          row: broccoli,
+          measures: broccoliParts,
+          unit: 'piece',
+          countsAs: null,
+        ),
+        (
+          what: 'three sizes pre-select nothing',
+          payload: _piecePayload('Gold Potato', potato.id),
+          row: potato,
+          measures: potatoSizes,
+          unit: 'piece',
+          countsAs: null,
+        ),
+        (
+          what: 'a line that PRINTED a word the row refuses is untouched',
+          payload: _bunch,
+          row: cilantro,
+          measures: const [cilantroSprig],
+          unit: 'bunch',
+          countsAs: null,
+        ),
+      ];
+
+  ProviderContainer pieceLineContainer(
+    ReconciliationPayload payload,
+    Ingredient row,
+    List<Measure> measures, {
+    FakeImportRepo? repo,
+  }) {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
-          FakeImportRepo(_piecePayload('Red Pepper', _pepper.id)),
+          repo ?? FakeImportRepo(payload),
         ),
         ingredientRepositoryProvider.overrideWithValue(
-          const OneRowIngredientRepo(_pepper),
+          OneRowIngredientRepo(row),
         ),
-        measureRepositoryProvider.overrideWithValue(
-          FakeMeasureRepo(_pepperSizes),
-        ),
+        measureRepositoryProvider.overrideWithValue(FakeMeasureRepo(measures)),
       ],
     );
     addTearDown(container.dispose);
+    return container;
+  }
+
+  for (final c in arrivals) {
+    testWidgets('${c.what} — it reads `${c.unit}`, and the alternatives are '
+        'beside it', (tester) async {
+      filterForuiSemanticsAssertions();
+      final container = pieceLineContainer(c.payload, c.row, c.measures);
+      await pumpPieceLine(tester, container);
+
+      final resolved = c.countsAs != null;
+      expect(
+        find.text('Pick a supported unit'),
+        resolved ? findsNothing : findsWidgets,
+      );
+      final state =
+          container.read(importControllerProvider) as ImportReconciling;
+      expect(state.resolutions.single.unit, c.unit);
+      expect(state.resolutions.single.unitFromDefault, resolved);
+
+      await tester.tap(find.byIcon(FLucideIcons.pencil));
+      await tester.pumpAndSettle();
+
+      // The sentence that makes a default honest, shown at the moment it is
+      // applied — and absent when nothing was applied.
+      if (c.countsAs case final sentence?) {
+        expect(find.textContaining(sentence), findsOne);
+      } else {
+        expect(find.textContaining('counts as'), findsNothing);
+      }
+
+      // The chips stay VISIBLE — the choice made for you, beside the ones you
+      // could make instead. Hiding them would make tap-to-change invisible.
+      expect(find.text('UNIT'), findsOneWidget);
+      for (final m in c.measures) {
+        expect(find.text(m.label), findsWidgets);
+      }
+      expect(find.text('piece'), findsNothing);
+    });
+  }
+
+  testWidgets('one tap changes the size, and the card stops claiming the '
+      'default answered', (tester) async {
+    filterForuiSemanticsAssertions();
+    final container = pieceLineContainer(
+      _piecePayload('Red Pepper', pepper.id),
+      pepper,
+      pepperSizes,
+    );
     await pumpPieceLine(tester, container);
-
-    // No flag, nothing held up — the card is clean for the ORDINARY reason:
-    // the resolution's unit is one the row carries.
-    expect(find.text('Pick a supported unit'), findsNothing);
-    var state = container.read(importControllerProvider) as ImportReconciling;
-    expect(state.resolutions.single.unit, 'pepper, medium');
-    expect(state.resolutions.single.unitFromDefault, isTrue);
-
     await tester.tap(find.byIcon(FLucideIcons.pencil));
     await tester.pumpAndSettle();
 
-    // The source line is still there, and so is the sentence that makes the
-    // default honest: shown at the moment it is applied.
-    expect(find.textContaining('ripe Red Pepper'), findsWidgets);
-    expect(find.textContaining('counts as  pepper, medium · 119 g'), findsOne);
-
-    // The chips stay VISIBLE — the choice made for you, beside the ones you
-    // could make instead. Hiding them would make tap-to-change invisible.
-    expect(find.text('UNIT'), findsOneWidget);
-    for (final m in _pepperSizes) {
-      expect(find.text(m.label), findsWidgets);
-    }
-    expect(find.text('piece'), findsNothing);
-
-    // One tap changes it, and the card stops claiming the default answered.
     await tester.tap(find.text('pepper, large').last);
     await tester.pumpAndSettle();
-    state = container.read(importControllerProvider) as ImportReconciling;
+    final state = container.read(importControllerProvider) as ImportReconciling;
     expect(state.resolutions.single.unit, 'pepper, large');
     expect(state.resolutions.single.unitFromDefault, isFalse);
     expect(find.textContaining('counts as'), findsNothing);
     expect(find.text('Pick a supported unit'), findsNothing);
   });
 
-  testWidgets('a SOLE-measure row arrives on it too — the preselect that only '
-      'ever opened the sheet now writes the line (D3)', (tester) async {
+  testWidgets('a default the user never touched commits as a tapped chip '
+      'would — the label rides through, with no provenance of its own', (
+    tester,
+  ) async {
     filterForuiSemanticsAssertions();
-    final repo = FakeImportRepo(_piecePayload('Cucumber', _cucumber.id));
-    final container = ProviderContainer(
-      overrides: [
-        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(repo),
-        ingredientRepositoryProvider.overrideWithValue(
-          const OneRowIngredientRepo(_cucumber),
-        ),
-        measureRepositoryProvider.overrideWithValue(
-          FakeMeasureRepo(const [_cucumberMeasure]),
-        ),
-      ],
+    final repo = FakeImportRepo(_piecePayload('Cucumber', cucumber.id));
+    final container = pieceLineContainer(
+      _piecePayload('Cucumber', cucumber.id),
+      cucumber,
+      const [cucumberMeasure],
+      repo: repo,
     );
-    addTearDown(container.dispose);
     await pumpPieceLine(tester, container);
 
-    expect(find.text('Pick a supported unit'), findsNothing);
-    final state = container.read(importControllerProvider) as ImportReconciling;
-    expect(state.resolutions.single.unit, 'cucumber');
-    expect(state.resolutions.single.unitFromDefault, isTrue);
-
-    await tester.tap(find.byIcon(FLucideIcons.pencil));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('counts as  cucumber · 301 g'), findsOne);
-    expect(find.text('piece'), findsNothing);
-
-    // And the commit is byte-for-byte what a TAPPED chip produces: the
-    // measure's label rides through, and the repository re-resolves it to the
-    // `measure_id` FK exactly as it does for a hand-picked one. No new token,
-    // no provenance, no `inferred` mark on the stored line.
     await container
         .read(importControllerProvider.notifier)
         .commit(issuesByLine: const {0: []});
     expect(repo.committed!.groups.single.lines.single.unit, 'cucumber');
   });
 
-  testWidgets('a fragment set has no default and stays flagged — the model '
-      'can say "I don\'t know", which a rule never can (frame b)', (
-    tester,
-  ) async {
+  testWidgets('Save stays gated until the user picks one of three sizes — no '
+      'medium tie-break, no first-in-sort_order guess', (tester) async {
     filterForuiSemanticsAssertions();
-    final container = ProviderContainer(
-      overrides: [
-        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(
-          FakeImportRepo(_piecePayload('Broccoli', _broccoli.id)),
-        ),
-        ingredientRepositoryProvider.overrideWithValue(
-          const OneRowIngredientRepo(_broccoli),
-        ),
-        measureRepositoryProvider.overrideWithValue(
-          FakeMeasureRepo(_broccoliParts),
-        ),
-      ],
+    final container = pieceLineContainer(
+      _piecePayload('Gold Potato', potato.id),
+      potato,
+      potatoSizes,
     );
-    addTearDown(container.dispose);
     await pumpPieceLine(tester, container);
-
-    expect(find.text('Pick a supported unit'), findsWidgets);
-    final state = container.read(importControllerProvider) as ImportReconciling;
-    expect(state.resolutions.single.unit, 'piece');
-    expect(state.resolutions.single.unitFromDefault, isFalse);
-
-    await tester.tap(find.byIcon(FLucideIcons.pencil));
-    await tester.pumpAndSettle();
-    // Three different things — the user picks; we don't.
-    for (final m in _broccoliParts) {
-      expect(find.text(m.label), findsWidgets);
-    }
-    expect(find.textContaining('counts as'), findsNothing);
-  });
-
-  testWidgets('a line that PRINTED a word the row refuses is untouched — the '
-      'default never overrules the source', (tester) async {
-    filterForuiSemanticsAssertions();
-    final container = ProviderContainer(
-      overrides: [
-        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(
-          FakeImportRepo(_bunchPayload()),
-        ),
-        ingredientRepositoryProvider.overrideWithValue(
-          const OneRowIngredientRepo(_cilantro),
-        ),
-        measureRepositoryProvider.overrideWithValue(
-          FakeMeasureRepo(const [_cilantroSprig]),
-        ),
-      ],
-    );
-    addTearDown(container.dispose);
-    await pumpPieceLine(tester, container);
-
-    // Cilantro's default IS `sprig` (2.22 g) and a bunch is ~25 of them.
-    // Applying it here would be a silent 25× error, so the flag stands.
-    final state = container.read(importControllerProvider) as ImportReconciling;
-    expect(state.resolutions.single.unit, 'bunch');
-    expect(state.resolutions.single.unitFromDefault, isFalse);
-    expect(find.text('Pick a supported unit'), findsWidgets);
-
-    await tester.tap(find.byIcon(FLucideIcons.pencil));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('counts as'), findsNothing);
-    expect(find.text('sprig'), findsWidgets);
-  });
-
-  testWidgets('three measures pre-select nothing — Save stays gated until the '
-      'user picks a size, and then it clears', (tester) async {
-    filterForuiSemanticsAssertions();
-    final container = ProviderContainer(
-      overrides: [
-        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(
-          FakeImportRepo(_piecePayload('Gold Potato', _potato.id)),
-        ),
-        ingredientRepositoryProvider.overrideWithValue(
-          const OneRowIngredientRepo(_potato),
-        ),
-        measureRepositoryProvider.overrideWithValue(
-          FakeMeasureRepo(_potatoSizes),
-        ),
-      ],
-    );
-    addTearDown(container.dispose);
-    await pumpPieceLine(tester, container);
-
-    expect(find.text('Pick a supported unit'), findsWidgets);
     await tester.tap(find.byIcon(FLucideIcons.pencil));
     await tester.pumpAndSettle();
 
-    // All three sizes in front of the fold, `piece` nowhere.
-    for (final m in _potatoSizes) {
-      expect(find.text(m.label), findsOneWidget);
-    }
-    expect(find.text('piece'), findsNothing);
-
-    // Confirming the sheet without picking resolves NOTHING: no medium
-    // tie-break, no first-in-sort_order guess.
+    // Confirming the sheet without picking resolves NOTHING.
     await tester.tap(find.byType(AmountEditor));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Done'));
@@ -1044,9 +818,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(
-          FakeImportRepo(_autoPayload()),
-        ),
+        importRepositoryProvider.overrideWithValue(FakeImportRepo(_auto)),
       ],
     );
     addTearDown(container.dispose);
@@ -1086,7 +858,7 @@ void main() {
         overrides: [
           bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
           importRepositoryProvider.overrideWithValue(
-            FakeImportRepo(_recipeOfferPayload()),
+            FakeImportRepo(_recipeOffer),
           ),
           recipeRepositoryProvider.overrideWithValue(_recipeRepo()),
         ],
@@ -1496,9 +1268,7 @@ void main() {
             bookRepositoryProvider.overrideWithValue(
               const FakeBookRepository(),
             ),
-            importRepositoryProvider.overrideWithValue(
-              FakeImportRepo(_nonePayload()),
-            ),
+            importRepositoryProvider.overrideWithValue(FakeImportRepo(_none)),
             ingredientRepositoryProvider.overrideWithValue(
               FakeIngredientRepo(const [kale]),
             ),

@@ -17,7 +17,6 @@ import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:ansi/features/import/presentation/import_view_models.dart';
 import 'package:ansi/features/import/presentation/reconciliation_view.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
-import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/recipes/presentation/recipe_header_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -29,13 +28,7 @@ import '../../helpers/fake_import_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/forui_semantics.dart';
-
-const _onion = Ingredient(
-  id: 'ing-onion',
-  canonicalName: 'Onion',
-  defaultUnit: pieces,
-  status: IngredientStatus.complete,
-);
+import '_fixtures.dart';
 
 /// One clean auto-matched line, so Save's gate is about the header and
 /// nothing else, with whatever the page printed about the rest.
@@ -44,28 +37,21 @@ ReconciliationPayload _payload({
   int? servingsBase = 8,
   TimeRange? cookTime,
   List<String> parseWarnings = const [],
-}) => ReconciliationPayload(
+}) => reconPayload(
   title: 'Sausage Sliders',
   servingsBase: servingsBase,
   yieldRaw: yieldRaw,
   cookTimeSeconds: cookTime,
   parseWarnings: parseWarnings,
-  groups: const [
-    ReconGroup(
-      lines: [
-        ReconLine(
-          raw: RawLineItem(
-            ingredientText: 'onion, diced',
-            qty: 1,
-            unit: 'piece',
-            rawAmount: '1 onion',
-          ),
-          band: MatchBand.auto,
-          candidates: [
-            MatchCandidate(ingredientId: 'ing-onion', canonicalName: 'Onion'),
-          ],
-        ),
-      ],
+  [
+    reconLine(
+      'onion, diced',
+      qty: 1,
+      unit: 'piece',
+      rawAmount: '1 onion',
+      ingredientId: onionByPiece.id,
+      canonicalName: 'Onion',
+      score: 0,
     ),
   ],
 );
@@ -86,7 +72,7 @@ Future<ProviderContainer> _reviewing(ReconciliationPayload payload) async {
     overrides: [
       importRepositoryProvider.overrideWithValue(FakeImportRepo(payload)),
       ingredientRepositoryProvider.overrideWithValue(
-        const OneRowIngredientRepo(_onion),
+        const OneRowIngredientRepo(onionByPiece),
       ),
       measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
       bookRepositoryProvider.overrideWithValue(

@@ -1,12 +1,14 @@
 /// The ONE vocabulary for an incomplete macro summary, and the two helpers
 /// seam D5/D6 add beside it.
 ///
-/// The summary-level `incompleteNote` vectors live with the picker rows
-/// (`features/planning/recipe_picker_sheet_test.dart`), where they were
-/// written; what is pinned HERE is that the new per-line words exist for every
-/// reason, that "not counted" reads the way the board drew it, and — the
+/// Every sentence these helpers can print is pinned here: the summary-level
+/// note for each reason a total is incomplete, a per-line word for every
+/// reason there is, "not counted" the way the board drew it, and — the
 /// anti-drift pin — that an imprecise line contributes **nothing** to the
 /// summary-level note, because it is not a reason a summary is incomplete.
+///
+/// The surfaces that RENDER these sentences assert them by calling the helper,
+/// so the exact copy lives in exactly one place: here.
 library;
 
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
@@ -20,6 +22,41 @@ MacroLineNote _note(
 }) => (lineId: 'li', name: name, reason: reason, unit: unit);
 
 void main() {
+  group('incompleteNote: a reason, always, in one sentence', () {
+    /// Every incomplete cause and the sentence it prints. A reasonless badge
+    /// would leave a dangling separator on a picker row, so the note has to
+    /// stay total; a bare count reads as the fix ("needs a weight"), never as
+    /// the failure ("unconvertible").
+    const vectors = <String, RecipeMacroSummary>{
+      'no ingredients yet': RecipeMacroSummary(noLines: true),
+      // Servings ≤ 0 with zero stub/unconvertible lines. The DB check makes
+      // this near-unreachable, but the note must still answer.
+      'servings not set': RecipeMacroSummary(),
+      '2 stub lines': RecipeMacroSummary(stubLines: 2),
+      '1 sub-recipe unresolved': RecipeMacroSummary(subRecipesUnresolved: 1),
+      '2 sub-recipes unresolved': RecipeMacroSummary(subRecipesUnresolved: 2),
+      '1 sub-recipe incomplete': RecipeMacroSummary(subRecipesIncomplete: 1),
+      '1 line needs a weight': RecipeMacroSummary(countLinesWithoutMeasure: 1),
+      '3 lines need a weight': RecipeMacroSummary(countLinesWithoutMeasure: 3),
+      'nothing weighable yet': RecipeMacroSummary(nothingWeighable: true),
+      // Unfolded from each other, in one sentence.
+      '1 stub line · 3 sub-recipes incomplete': RecipeMacroSummary(
+        stubLines: 1,
+        subRecipesIncomplete: 3,
+      ),
+      '2 stub lines · 1 line needs a weight · 1 unconvertible':
+          RecipeMacroSummary(
+            stubLines: 2,
+            countLinesWithoutMeasure: 1,
+            unconvertibleLines: 1,
+          ),
+    };
+
+    for (final MapEntry(key: sentence, value: summary) in vectors.entries) {
+      test('"$sentence"', () => expect(incompleteNote(summary), sentence));
+    }
+  });
+
   group('incompleteNote is untouched by the imprecise bucket (D6)', () {
     test('an imprecise line changes nothing a surface prints', () {
       const withImprecise = RecipeMacroSummary(
@@ -68,28 +105,23 @@ void main() {
     });
 
     test('the wordings the board drew', () {
-      expect(incompleteLineNote(MacroLineReason.needsWeight), 'needs a weight');
-      expect(
-        incompleteLineNote(MacroLineReason.stubIngredient),
-        'stub ingredient',
-      );
-      expect(
-        incompleteLineNote(MacroLineReason.unknownIngredient),
-        'not in your ingredients yet',
-      );
-      expect(
-        incompleteLineNote(MacroLineReason.needsDensity),
-        'needs a density',
-      );
-      expect(incompleteLineNote(MacroLineReason.noAmount), 'no amount');
-      expect(
-        incompleteLineNote(MacroLineReason.subRecipeUnresolved),
-        'sub-recipe has no yield',
-      );
-      expect(
-        incompleteLineNote(MacroLineReason.subRecipeIncomplete),
-        'sub-recipe incomplete',
-      );
+      const drawn = {
+        MacroLineReason.stubIngredient: 'stub ingredient',
+        MacroLineReason.unknownIngredient: 'not in your ingredients yet',
+        MacroLineReason.needsWeight: 'needs a weight',
+        MacroLineReason.needsDensity: 'needs a density',
+        MacroLineReason.noAmount: 'no amount',
+        MacroLineReason.subRecipeUnresolved: 'sub-recipe has no yield',
+        MacroLineReason.subRecipeIncomplete: 'sub-recipe incomplete',
+        MacroLineReason.imprecise: 'not counted',
+        MacroLineReason.optional: 'optional',
+      };
+      // The totality check is the point: a reason added without a word here
+      // fails, rather than shipping a blank where the board drew a sentence.
+      expect(drawn.keys, unorderedEquals(MacroLineReason.values));
+      drawn.forEach((reason, word) {
+        expect(incompleteLineNote(reason), word, reason: reason.name);
+      });
     });
   });
 

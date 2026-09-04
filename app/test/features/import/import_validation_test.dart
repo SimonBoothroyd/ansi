@@ -25,44 +25,28 @@ import 'package:powersync/powersync.dart';
 
 import '../../helpers/fake_import_repository.dart';
 import '../../helpers/test_db.dart';
+import '_fixtures.dart';
 
-/// The owner's line: "1 clove garlic", auto-matched to the cloud garlic row.
-ReconciliationPayload _clovePayload() => const ReconciliationPayload(
-  title: 'Kale salad',
-  servingsBase: 2,
-  groups: [
-    ReconGroup(
-      lines: [
-        ReconLine(
-          raw: RawLineItem(
-            ingredientText: 'garlic clove, crushed',
-            qty: 1,
-            unit: 'clove',
-            rawAmount: '1 clove',
-          ),
-          band: MatchBand.auto,
-          candidates: [
-            MatchCandidate(
-              ingredientId: 'i-garlic',
-              canonicalName: 'Garlic',
-              score: 0.98,
-            ),
-          ],
-        ),
-        // Scenario 4's shape: nothing matches, the user creates a stub, and
-        // the source printed an imprecise word (plan 0020 J3b).
-        ReconLine(
-          raw: RawLineItem(
-            ingredientText: 'chilli flakes',
-            unit: 'pinch',
-            rawAmount: 'a pinch of',
-          ),
-          band: MatchBand.none,
-        ),
-      ],
-    ),
-  ],
-);
+/// The owner's line: "1 clove garlic", auto-matched to the cloud garlic row,
+/// beside scenario 4's shape — nothing matches, the user creates a stub, and
+/// the source printed an imprecise word.
+ReconciliationPayload _clovePayload() => reconPayload(title: 'Kale salad', [
+  reconLine(
+    'garlic clove, crushed',
+    qty: 1,
+    unit: 'clove',
+    rawAmount: '1 clove',
+    ingredientId: 'i-garlic',
+    canonicalName: 'Garlic',
+    score: 0.98,
+  ),
+  reconLine(
+    'chilli flakes',
+    unit: 'pinch',
+    rawAmount: 'a pinch of',
+    band: MatchBand.none,
+  ),
+]);
 
 void main() {
   late PowerSyncDatabase db;

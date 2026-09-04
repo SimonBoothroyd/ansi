@@ -120,7 +120,7 @@ void main() {
     expect(find.text('3d ago'), findsOneWidget);
     // The incomplete one: the badge and the reason — never zeros.
     expect(find.text('incomplete'), findsOneWidget);
-    expect(find.textContaining('1 stub line'), findsOneWidget);
+    expect(find.textContaining(incompleteNote(_salad.macros!)), findsOneWidget);
     expect(find.textContaining('~0 kcal'), findsNothing);
     // The eating footer names the household.
     expect(find.textContaining('Eating: '), findsOneWidget);
@@ -131,20 +131,19 @@ void main() {
       'words — the same sentence the panel and the confirm sheet render', (
     tester,
   ) async {
-    await _open(
-      tester,
-      recipes: const [
-        RecipeSummary(
-          id: 'r4',
-          title: 'Roast Potatoes',
-          servingsBase: 2,
-          macros: RecipeMacroSummary(countLinesWithoutMeasure: 2),
-        ),
-      ],
+    const potatoes = RecipeSummary(
+      id: 'r4',
+      title: 'Roast Potatoes',
+      servingsBase: 2,
+      macros: RecipeMacroSummary(countLinesWithoutMeasure: 2),
     );
+    await _open(tester, recipes: const [potatoes]);
 
     expect(find.text('incomplete'), findsOneWidget);
-    expect(find.textContaining('2 lines need a weight'), findsOneWidget);
+    expect(
+      find.textContaining(incompleteNote(potatoes.macros!)),
+      findsOneWidget,
+    );
     expect(find.textContaining('unconvertible'), findsNothing);
   });
 
@@ -154,71 +153,8 @@ void main() {
     await _open(tester, recipes: const [_bare]);
 
     expect(find.text('incomplete'), findsOneWidget);
-    expect(find.textContaining('no ingredients yet'), findsOneWidget);
+    expect(find.textContaining(incompleteNote(_bare.macros!)), findsOneWidget);
     expect(find.textContaining('kcal'), findsNothing);
-  });
-
-  test('incompleteNote never returns an empty string', () {
-    // Every incomplete cause carries a reason — a reasonless badge would
-    // leave a dangling separator on the row.
-    expect(
-      incompleteNote(const RecipeMacroSummary(noLines: true)),
-      'no ingredients yet',
-    );
-    expect(
-      // Servings ≤ 0 with zero stub/unconvertible lines (the DB check makes
-      // this near-unreachable, but the note must stay total).
-      incompleteNote(const RecipeMacroSummary()),
-      'servings not set',
-    );
-    expect(
-      incompleteNote(const RecipeMacroSummary(stubLines: 2)),
-      '2 stub lines',
-    );
-    // Step 8.6 / D8 — the two sub-recipe reasons, in the one helper so all
-    // three surfaces refuse in the same words.
-    expect(
-      incompleteNote(const RecipeMacroSummary(subRecipesUnresolved: 1)),
-      '1 sub-recipe unresolved',
-    );
-    expect(
-      incompleteNote(const RecipeMacroSummary(subRecipesUnresolved: 2)),
-      '2 sub-recipes unresolved',
-    );
-    expect(
-      incompleteNote(const RecipeMacroSummary(subRecipesIncomplete: 1)),
-      '1 sub-recipe incomplete',
-    );
-    expect(
-      incompleteNote(
-        const RecipeMacroSummary(stubLines: 1, subRecipesIncomplete: 3),
-      ),
-      '1 stub line · 3 sub-recipes incomplete',
-    );
-  });
-
-  test('D6: a bare count reads "needs a weight", never "unconvertible"', () {
-    // The one incomplete cause a household can fix in two taps, said in
-    // words that name the fix rather than the failure (plan 0022).
-    expect(
-      incompleteNote(const RecipeMacroSummary(countLinesWithoutMeasure: 1)),
-      '1 line needs a weight',
-    );
-    expect(
-      incompleteNote(const RecipeMacroSummary(countLinesWithoutMeasure: 3)),
-      '3 lines need a weight',
-    );
-    // Beside the other reasons, in one sentence, unfolded from them.
-    expect(
-      incompleteNote(
-        const RecipeMacroSummary(
-          stubLines: 2,
-          countLinesWithoutMeasure: 1,
-          unconvertibleLines: 1,
-        ),
-      ),
-      '2 stub lines · 1 line needs a weight · 1 unconvertible',
-    );
   });
 
   testWidgets('Recent orders by last-planned, created order as fallback', (

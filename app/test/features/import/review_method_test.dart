@@ -7,7 +7,6 @@
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
-import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
@@ -20,7 +19,6 @@ import 'package:ansi/features/import/presentation/import_method_editing.dart';
 import 'package:ansi/features/import/presentation/import_view_models.dart';
 import 'package:ansi/features/import/presentation/reconciliation_view.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
-import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/method_editor.dart';
 import 'package:flutter/material.dart';
@@ -33,38 +31,25 @@ import '../../helpers/fake_import_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/forui_semantics.dart';
-
-const _onion = Ingredient(
-  id: 'ing-onion',
-  canonicalName: 'Onion',
-  defaultUnit: g,
-  status: IngredientStatus.complete,
-);
+import '_fixtures.dart';
 
 /// One clean auto-matched line and a two-step method whose first step chips
 /// it — so Save is open and the method is the only thing under test.
-ReconciliationPayload _payload() => const ReconciliationPayload(
+ReconciliationPayload _payload() => reconPayload(
   title: 'Charred Pepper Traybake',
   servingsBase: 4,
-  groups: [
-    ReconGroup(
-      lines: [
-        ReconLine(
-          raw: RawLineItem(
-            ingredientText: 'onions, thinly sliced',
-            qty: 200,
-            unit: 'g',
-            rawAmount: '200 g onions',
-          ),
-          band: MatchBand.auto,
-          candidates: [
-            MatchCandidate(ingredientId: 'ing-onion', canonicalName: 'Onion'),
-          ],
-        ),
-      ],
+  [
+    reconLine(
+      'onions, thinly sliced',
+      qty: 200,
+      unit: 'g',
+      rawAmount: '200 g onions',
+      ingredientId: onionByWeight.id,
+      canonicalName: 'Onion',
+      score: 0,
     ),
   ],
-  steps: [
+  steps: const [
     payload.Step(
       tokens: [
         TextToken(s: 'Toss the '),
@@ -93,7 +78,7 @@ Future<ProviderContainer> _reviewing(FakeImportRepo repo) async {
       bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
       importRepositoryProvider.overrideWithValue(repo),
       ingredientRepositoryProvider.overrideWithValue(
-        const OneRowIngredientRepo(_onion),
+        const OneRowIngredientRepo(onionByWeight),
       ),
       measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
     ],
@@ -231,7 +216,7 @@ void main() {
     expect(host.canAddLine, isFalse);
     expect(host.addLineReason, isNotNull);
     expect(host.ensureGroupId, throwsUnsupportedError);
-    expect(() => host.addLineItem('g', _onion), throwsUnsupportedError);
+    expect(() => host.addLineItem('g', onionByWeight), throwsUnsupportedError);
     // …and the two review-only simplifications the interface allows.
     expect(host.substitution(), isNull);
     expect(host.relabels(), isEmpty);
