@@ -39,7 +39,7 @@ done and moving this file to `completed/`.
 
 - [ ] Roadmap row updated: status flipped, one line on what shipped and what was
       deliberately deferred.
-- [ ] `docs/QUALITY.md` grade for every area touched matches reality.
+- [ ] `ARCHITECTURE.md`'s standing table matches reality for every area touched.
 - [ ] `app/AGENTS.md` "Current focus" and command list still true.
 - [ ] Feature steps: `make test-sim` run on a booted simulator (the UI paths CI
       can't reach), and the result recorded here.

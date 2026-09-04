@@ -25,7 +25,7 @@ batches (bounded by shelf life) and buys each thing once.
 | A specific in-flight task's plan          | [`docs/exec-plans/active/`](./docs/exec-plans/active) |
 | Product behaviour (what the app does)     | [`docs/product-specs/`](./docs/product-specs) |
 | The operating principles agents must hold | [`docs/design-docs/core-beliefs.md`](./docs/design-docs/core-beliefs.md) |
-| The quality bar per area                  | [`docs/QUALITY.md`](./docs/QUALITY.md) |
+| How each area stands, and its gap         | [`ARCHITECTURE.md`](./ARCHITECTURE.md#where-each-area-stands) |
 | Secrets, auth, RLS                        | [`docs/SECURITY.md`](./docs/SECURITY.md) |
 | Standing up cloud (Supabase/PowerSync/Google) | [`docs/cloud-setup.md`](./docs/cloud-setup.md) |
 | Shipping — app release tags, Supabase deploys | [`docs/release.md`](./docs/release.md) |

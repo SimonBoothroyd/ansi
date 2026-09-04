@@ -54,9 +54,10 @@ SQLite database and syncs when online.
 Auth gates the whole app (step 7): sign in (Google OAuth, or dev email/password
 locally) → `ensure_onboarded` resolves or creates the household → an access-token
 hook stamps `household_id` into the JWT → PowerSync `.connect()` scopes every
-synced bucket to it. `core/sync/session.dart` drives this; the router holds the
-user on a `/connecting` screen until the household is ready. Standing up real
-cloud infra: [`docs/cloud-setup.md`](./docs/cloud-setup.md).
+synced bucket to it ([ADR-0006](./docs/decisions/0006-sync-auth-and-onboarding.md)).
+`core/sync/session.dart` drives this; the router holds the user on a
+`/connecting` screen until the household is ready. Standing up real cloud
+infra: [`docs/cloud-setup.md`](./docs/cloud-setup.md).
 
 Conflict resolution (spec §3): independent rows (list contributions, recipes)
 union on concurrent adds and never collide; field edits are last-write-wins
@@ -72,10 +73,9 @@ Flutter app  ──writes──▶  local SQLite  ──PowerSync queue──▶
 
 Recipe import is the only place matching against a *reference set* happens,
 and import is always online (we're either fetching a webpage or calling a
-vision model). The phone's own search boxes do carry a typo tier since the
-2026-09-02 polish pass, but it is a deterministic scored comparison over the
-household's few hundred synced rows, offered under a "did you mean" header for
-a human to pick, never a resolution — see
+vision model). The phone's own search boxes do carry a typo tier, but it is a
+deterministic scored comparison over the household's few hundred synced rows,
+offered under a "did you mean" header for a human to pick, never a resolution — see
 [`docs/design-docs/search-and-matching.md`](./docs/design-docs/search-and-matching.md). That single
 fact means the phone never needs an embedding model or the 8,000-row USDA
 reference set. The match engine lives entirely server-side (a Supabase edge
@@ -90,7 +90,7 @@ Two lookups that look similar but are different jobs (design doc §10):
   picker, both recipe pickers, the Library). Offline, one three-tier rule
   (`searchRank`) over the synced rows. On-device.
 
-The barcode add flow (step 8.5) does not bend this: a barcode is a **primary
+The barcode add flow does not bend this: a barcode is a **primary
 key**, so the Open Food Facts read is an exact-key fetch, not matching, and it
 runs on the device (the API is keyless and free, and its rate limit is per IP —
 a shared server address would pool every household onto one budget). What comes
@@ -104,15 +104,19 @@ back is a *draft*, never a row.
   server-side only. Used to *create* ingredients and to prefill stubs. Never
   matched against at import.
 
-Because `usda_food` never reaches a device, the stub prefill is a **database
-trigger**, not a client lookup and not an edge function: migrations `0014`/`0015`
-port `prefillStubFromUsda` to plpgsql and fire it as a stub arrives through the
-PowerSync upload queue (and again on a rename). It is `security definer`, cheap
-(one indexed trigram probe) and never fails the upload — and it leaves the row
-`status='stub'`, because confirming is a human act. Since step 8.5 that human has
-somewhere to do it: `features/ingredients` owns an in-app **manager**
-(`/ingredients`) where the vocabulary is browsed and edited — `allowed_units`,
-density, macros, name, aliases — so the admission list ([ADR-0008](./docs/decisions/0008-unit-admission-model.md),
+**Nothing matches an ingredient to USDA on its own.** Because `usda_food` never
+reaches a device, the one door to it is `probe_usda`, a read-only `security
+definer` RPC called when a person opens the USDA search on the flesh-out form.
+It ranks with BM25 over four server-only index tables (migration `0029`),
+writes nothing, and hands back candidates; the pick fills the form's **draft**,
+and the draft lands with everything else in a single Save
+([ADR-0011](./docs/decisions/0011-one-save-one-write.md)). A row stays
+`status='stub'` until a human confirms it, because confirming is a human act.
+
+That human works in `features/ingredients`, which owns the in-app **manager**
+(`/ingredients`) and the flesh-out form at `/ingredients/:id` — the one place a
+vocabulary row is created or edited: `allowed_units`, density, macros, name,
+aliases. So the admission list ([ADR-0008](./docs/decisions/0008-unit-admission-model.md),
 amended by [ADR-0009](./docs/decisions/0009-density-unlocks-both-families.md)) is
 no longer write-once-at-creation. That list is also where `piece` lives or does
 not: [ADR-0010](./docs/decisions/0010-piece-is-an-admission-fact.md) makes it an
@@ -164,3 +168,34 @@ Client config (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `POWERSYNC_URL`) is injected
 at build time via `--dart-define` and read in `lib/core/config/env.dart`. Nothing
 sensitive is committed. The extraction model key is a **server-side** secret set
 on the edge function, never shipped to the client.
+
+## Where each area stands
+
+One row per area of the system, so a gap is visible without reading the code.
+🟢 solid · 🟡 partial · 🔴 thin or missing. A 🟡 or 🔴 row names the gap that
+holds it there; a 🟢 row names what holds it up. Detail lives behind the link —
+this table stays one line per area.
+
+| Area | Grade | The gap | Link |
+|---|---|---|---|
+| Unit system (`core/units`) | 🟢 | Conversions, named measures and the count↔basis bridge are pure Dart, and a missing density or a bad amount refuses instead of guessing. | [ADR-0008](./docs/decisions/0008-unit-admission-model.md) · [unit-and-measure-matching.md](./docs/design-docs/unit-and-measure-matching.md) |
+| Ingredient data model + vocab | 🟢 | 308 seeded rows with curated measures, explicit per-ingredient `allowed_units` and 297 densities; one admission rule with a Dart mirror and shared vectors keeps SQL and app honest. | [ADR-0009](./docs/decisions/0009-density-unlocks-both-families.md) · [db-schema.md](./docs/generated/db-schema.md) |
+| Ingredients manager (`features/ingredients`) | 🟢 | `/ingredients` and the flesh-out form own the vocabulary; the form writes once, on Save, in one transaction, and a null id creates — so a row and its children land together. A USDA fill is named on the row and says whether it matches `all words` or `some words` of the name. | [ADR-0011](./docs/decisions/0011-one-save-one-write.md) |
+| Barcode add (`features/ingredients/barcode`) | 🟡 | No camera leg has run on physical hardware — a live scan, in-app capture and the camera-denied notice are one device errand — and nothing tests the live Open Food Facts API, so an upstream shape change would surface in a user's hands. | [tracker](./docs/exec-plans/tech-debt-tracker.md) |
+| Recipes (`features/recipes`) | 🟢 | Editor, page, scaling, nested components and per-serving macros run off one summation that reports `incomplete` rather than a wrong number; the repo is tested against real PowerSync views. | [product-spec.md](./docs/product-specs/product-spec.md) |
+| Books (`features/books`) | 🟡 | Library v3's header is built and host-tested, but the `library`, `ingredients` and `recipe_editor` smoke legs have not been driven on a simulator since it landed. | [plan 0028](./docs/exec-plans/active/0028-library-v3.md) |
+| Navigation (`shared/ansi_tab_shell.dart`, `core/router`) | 🟢 | One `StatefulShellRoute` under one bar, with structural tests holding the no-footer, no-bare-modal and guarded-push rules; Android's predictive back is verified only in a simulated binding. | [navigation.md](./docs/design-docs/navigation.md) |
+| Sync layer (`core/sync`) | 🟢 | Onboarding, the household JWT claim and the queue drain are pinned by pgTAP and real-`ps_crud` tests; the offline-queue drain and a two-client session remain untested. | [ADR-0006](./docs/decisions/0006-sync-auth-and-onboarding.md) · [cloud-setup.md](./docs/cloud-setup.md) |
+| Planning (`features/planning`) | 🟢 | Week v3's three drawn targets, the viewed week that Cook and Shop follow, and fractional demand from each member's `portion_factor` are domain-, widget- and simulator-tested. | [product-spec.md](./docs/product-specs/product-spec.md) |
+| Cook-plan (`features/cook_plan`) | 🟢 | The plan is derived at read time — shelf-life clustering, freezer merge and batch-denominated component sessions — with no `cook_session` table to fall out of date; the cook day is still display-only. | [tracker](./docs/exec-plans/tech-debt-tracker.md) |
+| Shopping (`features/shopping`) | 🟢 | The list is derived per device over a thin persisted overlay, sums only within a family unless a density bridges it, and shows bad data rather than dropping it. | [ADR-0007](./docs/decisions/0007-shopping-list-thin-overlay.md) |
+| Import pipeline, server (`supabase/functions`) | 🟢 | One forced LLM path into a deterministic, household-scoped cascade, tested end to end without network or keys against blessed gold labels. | [import-and-matching.md](./docs/product-specs/import-and-matching.md) · [ADR-0004](./docs/decisions/0004-matching-is-online-only.md) |
+| Import client (`features/import`) | 🟢 | One merged, always-editable review screen over pure-Dart resolution and validation, with the commit pinned against the server's golden fixture; intake is the gallery picker, so there is no in-app capture. | [import-and-matching.md](./docs/product-specs/import-and-matching.md) |
+| Evals (`evals/`) | 🟡 | The matching half runs in CI, but the extraction half needs real provider keys and a local photo corpus — so the half that chose the provider is unprotected — and no run output is committed, so there is no trend line. | [evals/AGENTS.md](./evals/AGENTS.md) |
+| Errors & sync health (cross-cutting) | 🟢 | Every UI write goes through one door held by a structural test, one error state carries a mapped reason, and one sync-health provider feeds three readouts that cannot disagree — the shell's banner, `/account` and the Shop list's line. | [errors-and-sync-health.md](./docs/design-docs/errors-and-sync-health.md) |
+| Docs / harness | 🟢 | `make docs-check` holds required files, link resolution, stream drift, table integrity, the ADR index and the freshness of the generated schema, so a skipped `make docs` is caught rather than noticed. | [docs/README.md](./docs/README.md) |
+| CI (`.github/workflows`) | 🟢 | Six workflows cover the app, backend, docs, evals, release and the Supabase deploy; the simulator smoke stays a local gate by choice, because it needs a booted device. | [release.md](./docs/release.md) |
+
+**The bar for "done" on any slice:** logic lives in the right layer (domain is
+pure Dart) · tests cover it and would fail if it broke · a behaviour change
+updates the doc that describes it · `make ci` and `make docs-check` are green.

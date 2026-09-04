@@ -9,7 +9,8 @@ task — pick up exactly where things stood, with the reasoning intact.
   named `NNNN-short-slug.md`. Keep its decision log updated as you go. When done,
   move it to `completed/`.
 - **Finishing a step?** Work the template's **step-done checklist** — roadmap
-  row, QUALITY.md grade, `app/AGENTS.md` focus, `make test-sim` for feature
+  row, the `ARCHITECTURE.md` standing table, `app/AGENTS.md` focus,
+  `make test-sim` for feature
   steps, tech-debt rows added *and* retired. The satellite docs drift precisely
   because "done" gets declared on the code alone.
 - [`roadmap.md`](./roadmap.md) is the standing, ordered build sequence with live

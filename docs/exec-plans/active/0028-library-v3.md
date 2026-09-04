@@ -44,7 +44,8 @@ re-shelved without entering the editor; `/account` exists.
       removes it** — see "Test moves", below. No slice lands red.
 - [ ] Tests cover the new logic (the narrow write, the query-param seeding, the
       filing shown on the editor line).
-- [ ] Docs updated: `docs/QUALITY.md` (books, recipes), `product-spec.md`
+- [ ] Docs updated: `ARCHITECTURE.md`'s standing table (books, recipes),
+      `product-spec.md`
       Library section rewritten to v3, board tag flipped to `shipped`.
 - [ ] `make test-sim` on a booted simulator for **all three affected files** —
       `library`, `week` (the usual-portion leg reaches Household through the
@@ -81,7 +82,7 @@ Lane A owns `library_view.dart` and must land before B/C touch it.
    leg moves once instead of twice and no interim sheet is needed. The sheet
    became `HouseholdSection`; the `⋯` lost Sign out and the sync line and its
    Household item became `Account`. 1688 host tests green.
-5. **Close-out** — sim legs, spec rewrite, QUALITY grades, board tag, tracker.
+5. **Close-out** — sim legs, spec rewrite, the standing table, board tag, tracker.
 
 Traps (memory): ff-merge main first; copy `.env.local` into the worktree; sims
 are the orchestrator's at landing, one simulator, serially.
@@ -171,7 +172,7 @@ Append-only.
 
 - `docs/product-specs/product-spec.md` — the Library section rewritten to v3
   (the header, creation on the shelf, the vocabulary's card, `/account`).
-- `docs/QUALITY.md` — the books row carries what v3 changed and says the sim
+- `ARCHITECTURE.md` — the books row carries what v3 changed and says the sim
   run is pending.
 - `docs/exec-plans/tech-debt-tracker.md` — the reorder row **narrowed** (one
   path again, not two); two rows **added**: the stub queue as a global counter,
@@ -196,7 +197,7 @@ Append-only.
 ## Step-done checklist
 
 - [ ] Roadmap row updated (8.12), naming what shipped and what was deferred.
-- [ ] `docs/QUALITY.md` grades for books and recipes match reality.
+- [ ] `ARCHITECTURE.md`'s standing table is true for books and recipes.
 - [ ] `app/AGENTS.md` "Current focus" still true.
 - [ ] `make test-sim` run on a booted simulator; result recorded above.
 - [ ] Tech-debt rows added for corners cut, retired/narrowed for debt paid.
