@@ -22,6 +22,7 @@ import 'package:ansi/features/books/presentation/library_view.dart'
     show LibraryView;
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/shared/ansi_select_row.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -189,8 +190,18 @@ void main() {
     await tester.tap(find.text('Move to…'));
     await pumpUntilFound(tester, find.text('here now'));
     // The shelf it is on now is marked and refuses to be picked; the target
-    // says what will happen before the tap that does it.
-    await tester.tap(find.text('Our Cookbook').last);
+    // says what will happen before the tap that does it. A book's NAME is a
+    // heading in the sheet, not a shelf — the pickable rows are the buckets
+    // under it, and the last one is the reordered default book's (Bread, the
+    // shelf Sourdough is already on, comes first and is refused).
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byType(AnsiSelectRow),
+            matching: find.text('Unsectioned'),
+          )
+          .last,
+    );
     await tester.pumpAndSettle();
     expect(
       find.textContaining('moves to Our Cookbook · Unsectioned'),
