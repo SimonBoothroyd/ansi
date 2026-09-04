@@ -12,8 +12,9 @@
 /// The rule it comes from: **a row's controls are the facts the row prints.**
 /// Day · slot is not one of them — a row does not print a day as a value, its
 /// *position* is its day — so moving a meal stays remove-and-re-add through
-/// the picker's "already this week" quick picks, and `setDaySlot` is no longer
-/// reachable from any screen.
+/// the picker's "already this week" quick picks. `setDaySlot` went with the
+/// entry sheet: with no screen left to call it, a repository method for it was
+/// dead code with a passing test, which is worse than no method at all.
 ///
 /// Both controls come from `meal_fields.dart`, which is the whole reason that
 /// file exists: the confirm sheet sets these two fields when a meal is made,
