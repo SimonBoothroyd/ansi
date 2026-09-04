@@ -1,6 +1,6 @@
 # Exec plan: field test, round four — three fronts, signed off on the board
 
-- **Status:** active
+- **Status:** done (2026-09-04) — built, sim-verified, and on cloud (`deploy-supabase` run `33903467804`)
 - **Owner:** Simon (rulings) · agent lanes (build) · orchestrator (landing)
 - **Roadmap step:** 8.11
 - **Created:** 2026-09-03
@@ -312,5 +312,5 @@ never `db-reset` the shared stack; sims are the orchestrator's at landing.
 - [x] `app/AGENTS.md` still true.
 - [x] `make test-sim` recorded here (ingredients 2:20 test / 2:58 wall — M-D1/D2/D3 + U-D1/D2; week 39 s / 1:16 — P-D3/D4/D5).
 - [x] Tech-debt rows added / retired.
-- [ ] `0026`/`0027`/`0028` on cloud, ledger entry in `docs/cloud-setup.md` — **the one open item**; the plan moves to `completed/` when it lands.
+- [x] `0026`/`0027`/`0028` on cloud, ledger entry in `docs/cloud-setup.md` — landed 2026-09-04, run `33903467804`.
 - [x] `make ci` green (1685 app · 155 deno at the last landing).

@@ -272,6 +272,6 @@ by A1, C, D, F and G; those lanes serialize on that file.
 - [x] `make test-sim` run on a booted simulator from the main checkout after
       wave 4, result recorded here.
 - [x] Tech-debt rows added for corners knowingly cut; retired for debt paid.
-- [ ] Migrations `0030`/`0031`: say in the roadmap row whether they have
+- [x] Migrations `0030`/`0031`: say in the roadmap row whether they have
       reached cloud; ledger entry in `docs/cloud-setup.md` when they do.
 - [x] `make ci` green.

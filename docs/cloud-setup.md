@@ -480,63 +480,36 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
-> **One errand clears the backlog.** Everything below `0025` is unpushed and
-> goes in a **single** `deploy-supabase` run: `0026` portion factor · `0027`
-> USDA source label · `0028` `allowed_units` repair · `0029` USDA search
-> ranking (with `seed_usda_index.sql` in the seed order) · and `0030`/`0031`
-> from the state-of-the-world sweep (RLS on the four search-index tables and
-> its pgTAP legs; the `tinned` → `canned` `match_text` rewrite). The sync
-> streams are redeployed in the same pass — `household_member` gains
-> `portion_factor` in its explicit column list. Two plans (0027 and 0029)
-> close on this push. The sections below carry each migration's readback;
-> replace them with one ledger entry once it lands.
+### 2026-09-04 — the backlog cleared in one run (plans 0027, 0029, 0030): 0026–0031
 
-### PENDING — plan 0029 (one save, one write): 0029 USDA search ranking
-
-- **`0029_usda_search_ranking.sql` is merged and NOT yet on cloud.** It drops
-  the `ingredient_usda_prefill` trigger and its function — nothing matches an
-  ingredient to USDA without a human pick any more — and replaces
-  `usda_probe`'s trigram ranking with BM25 over a new derived index
-  (`usda_search_token` / `_term` / `_doc` / `_stats`, granted to no client
-  role, ADR-0005 unchanged). `probe_usda` is NOT re-created: same signature,
-  same columns, so no app build is coupled to this one.
-- **It needs a seed step.** `supabase/seed_usda_index.sql` builds the index
-  and is now in `config.toml`'s order. The migration itself calls
-  `usda_rebuild_search_index()` at the end, so on cloud — where `usda_food` is
-  already loaded — `db push` alone is enough; the seed file matters for a
-  `db reset --linked`. **Re-run it after any change to `usda_food`**: a stale
-  index degrades search silently.
-- **Row-preserving, and deliberately no backfill.** Rows already stamped
-  `usda_fdc:<id>` by the old trigger keep their values, labels and scores —
-  re-matching them under a new ranker would overwrite decisions people made.
-- **One semantic change to watch.** `usda_probe.score` is now the query's
-  idf-weighted coverage (0..1) rather than a trigram similarity. It stays in
-  the range `ingredient.source_score` and the 0027 band word expect, but old
-  and new rows now carry two different meanings of "score". Retiring the band
-  is a copy decision the board still owns.
-
-### PENDING — plan 0027 (field test round four): 0026 portion factor, 0027 USDA source label
-
-- **`0027_usda_source_label.sql` is merged and NOT yet on cloud.** Additive
-  and row-preserving (§2c): `ingredient.source_label text` +
-  `source_score real`, both null on every existing row; `usda_probe` /
-  `probe_usda` re-created with a `limit` (the one-argument overloads are
-  dropped — a `deploy-supabase` run applies it; nothing to reseed, no rollout
-  leg). Sync streams select `*` from `ingredient`, so no stream deploy is
-  needed for the columns to ride. **Ship order matters:** the app build that
-  reads `probe_usda`'s `description` treats a server without it as "nothing
-  came back" (the trigger still fills), so push `0027` before tagging the
-  app. Readback after the push: `select column_name from
-  information_schema.columns where table_name = 'ingredient' and column_name
-  like 'source_%';` → `source`, `source_label`, `source_score`; `select
-  count(*) from probe_usda('kale', 5);` as `authenticated` → up to 5.
-- `0026_portion_factor.sql` (lane P) rides in the same push; its own note
-  is the orchestrator's at landing.
-- **`0028_allowed_units_jsonb_repair.sql` rides in the same push** and is the
-  one that matters for existing phones: every ingredient the app created since
-  0012 uploaded `allowed_units` as a jsonb STRING (connector map gap, fixed
-  2026-09-03). Readback after the push: `select count(*) from ingredient where
-  jsonb_typeof(allowed_units) = 'string';` → `0`.
+- `deploy-supabase` run `33903467804` from `main@8bc7419`, `reseed_template`
+  NOT ticked (nothing in this wave changes the seeded vocabulary; **0031**
+  rewrites stored keys in place): link ✓ · `db push` ✓ (**0026**
+  `portion_factor` · **0027** `usda_source_label` — `source_label` /
+  `source_score`, `probe_usda` with a `limit` · **0028**
+  `allowed_units_jsonb_repair` · **0029** `usda_search_ranking` — the prefill
+  trigger and its function dropped, BM25 over `usda_search_token` / `_term` /
+  `_doc` / `_stats`, the index built by the migration's own
+  `usda_rebuild_search_index()` · **0030** `usda_search_hardening` — RLS on
+  the four index tables, the unread trigram index dropped · **0031**
+  `tinned_is_canned` — `match_text` rewritten where it carried `tinned`,
+  duplicates tombstoned) · `functions deploy import-recipe` ✓ (the `tinned`
+  fold and the fused-amount token in the normalizer) · sync streams ✓
+  (`household_member` now lists `portion_factor`).
+- `cloud_verify`: **9 ok · 0 warn · 0 fail** — JWKS ES256, auth, REST, RLS
+  on all **19** tables (14 household-scoped + `usda_food` + the four index
+  tables), `usda_search_stats` populated, 14 synced tables with equal column
+  lists, template vocab 272 of 308 with macros.
+- **Readback (owner leg — agents are gated from `--linked` on purpose), not
+  yet run:** `select max(version) from supabase_migrations.schema_migrations;`
+  → `0031` · `select count(*) from ingredient where jsonb_typeof(allowed_units)
+  = 'string';` → `0` (0028) · `select count(*) from ingredient_alias where
+  match_text ~ '\mtinned\M' and deleted_at is null;` → `0` (0031) ·
+  `select n_docs from usda_search_stats;` → `8204` (0029) · `select
+  column_name from information_schema.columns where table_name =
+  'household_member' and column_name = 'portion_factor';` → one row (0026).
+- Tagged **`v0.5.0`** after this push (release.md §5 order) — release run
+  `33903706382`.
 
 ### 2026-09-03 (day) — field test round three (plan 0025): 0024 pint + quart, 0025 optional lines
 

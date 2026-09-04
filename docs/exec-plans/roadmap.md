@@ -8,16 +8,9 @@ what exists and which plan bought it.
 
 ## Next
 
-1. **Plan 0028's three remaining simulator legs** — `library`, `ingredients`
-   and `recipe_editor`, one simulator, serially. The `week` leg has run and
-   found two real bugs. This is the only thing between Library v3 and
-   `completed/`. → [plan 0028](./active/0028-library-v3.md)
-2. **The cloud push, as one errand.** Migrations `0026`–`0031` are merged (or
-   land with the sweep) and unpushed: one `deploy-supabase` run, the seed's
-   USDA index step after it, a readback per migration and one ledger entry.
-   It closes plans 0027 and 0029. → [`cloud-setup.md`](../cloud-setup.md)
-3. **Then** — step 10 (web) or step 11 (anti-waste), both stretch, or the
-   first idea worth building off the [backlog](./backlog.md).
+1. **Step 10 (web) or step 11 (anti-waste)**, both stretch — or the first
+   idea worth building off the [backlog](./backlog.md). Nothing is pending
+   on cloud and nothing is waiting on a simulator run.
 
 ## Shipped
 
@@ -46,14 +39,14 @@ and where to read about it.
 | 8.8 | Polish pass — navigation v2, search v1, Library v2, Week v2, editor v2, errors & sync health | 🟢 | [0022](./completed/0022-polish-pass.md) |
 | 8.9 | Field test, round two — the import→macros seam, curated default measures | 🟢 `v0.3.0` | [0024](./completed/0024-field-test-round-two.md) |
 | 8.10 | Field test, round three — eight fronts on `v0.3.0` | 🟢 `v0.4.0` | [0025](./completed/0025-field-test-round-three.md) |
-| 8.11 | Field test, round four — per-serving macros, the USDA match shown, a usual portion per person | 🟡 built and sim-verified; cloud push pending | [0027](./active/0027-field-test-round-four.md) |
-| 8.12 | Library v3 — the menus dissolve; `/account` exists. No migrations | 🟡 built; three sim legs outstanding | [0028](./active/0028-library-v3.md) |
+| 8.11 | Field test, round four — per-serving macros, the USDA match shown, a usual portion per person | 🟢 done — on cloud 2026-09-04 | [0027](./completed/0027-field-test-round-four.md) |
+| 8.12 | Library v3 — the menus dissolve; `/account` exists. No migrations | 🟢 done — all seven smoke files green 2026-09-04 | [0028](./completed/0028-library-v3.md) |
 | 8.13 | Week v3 — the mode goes; each tap gets its own drawn target | 🟢 | — |
 | 9 | Computed macros in the UI — the recipe page's per-serving panel | 🟢 | — |
 | — | Smoke split — one integration file per flow, each self-provisioning | 🟢 | [0026](./completed/0026-smoke-split.md) |
 | — | Debt pass — the server-side rule divergences, the measures rollout | 🟢 | [0023](./completed/0023-debt-pass.md) |
-| — | One save, one write — the New-ingredient sheet dissolves, and nothing matches to USDA on its own | 🟡 cloud push pending | [0029](./completed/0029-one-save-one-write.md) · [ADR-0011](../decisions/0011-one-save-one-write.md) |
-| — | State-of-the-world sweep — comments, docs, board, tests, UI anatomy | 🟡 built, cloud push pending (`0030`/`0031`) | [0030](./completed/0030-state-of-the-world-sweep.md) |
+| — | One save, one write — the New-ingredient sheet dissolves, and nothing matches to USDA on its own | 🟢 done — on cloud 2026-09-04 | [0029](./completed/0029-one-save-one-write.md) · [ADR-0011](../decisions/0011-one-save-one-write.md) |
+| — | State-of-the-world sweep — comments, docs, board, tests, UI anatomy | 🟢 done — on cloud 2026-09-04, shipped as `v0.5.0` | [0030](./completed/0030-state-of-the-world-sweep.md) |
 | 10 | Web UI (near-free with Flutter) | ⚪ stretch | — |
 | 11 | Anti-waste extras — freezer batching, monotony warnings, package-size flags | ⚪ stretch | — |
 

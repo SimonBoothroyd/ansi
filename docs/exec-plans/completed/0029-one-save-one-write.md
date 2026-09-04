@@ -238,7 +238,7 @@ Lanes A and B are one worktree; C follows.
 - [ ] `make test-sim FILE=ingredients` re-run: the form is now the create
       surface, and the leg rides with plan 0028's outstanding sim run.
 - [x] Tech-debt rows added for corners cut, retired for debt paid.
-- [ ] **Migration `0029` reaches cloud**, with a ledger entry in
+- [x] **Migration `0029` reaches cloud**, with a ledger entry in
       `docs/cloud-setup.md` — it rides with `0026`–`0031` in one
       `deploy-supabase` run, and `seed_usda_index.sql` runs after any change
       to `usda_food`.

@@ -1,6 +1,6 @@
 # Exec plan: Library · v3 — the menus dissolve
 
-- **Status:** active
+- **Status:** done (2026-09-04) — the three remaining smoke legs (`library`, `ingredients`, `recipe_editor`) ran green under plan 0030 lane S, alongside the other four
 - **Owner:** Simon (board signed off 2026-09-03)
 - **Roadmap step:** 8.12 — Library v3
 - **Created:** 2026-09-03
@@ -49,7 +49,7 @@ re-shelved without entering the editor; `/account` exists.
 - [x] Docs updated: `ARCHITECTURE.md`'s standing table (books, recipes),
       `product-spec.md`
       Library section rewritten to v3, board tag flipped to `shipped`.
-- [ ] `make test-sim` on a booted simulator for the three files still
+- [x] `make test-sim` on a booted simulator for the three files still
       outstanding — `library`, `ingredients` and `recipe_editor` — one
       simulator, serially; results recorded here. The `week` leg has run: it
       found the undo toast eating the next tap and the editor opening on a
@@ -203,7 +203,7 @@ Append-only.
 - [x] Roadmap row updated (8.12), naming what shipped and what was deferred.
 - [x] `ARCHITECTURE.md`'s standing table is true for books and recipes.
 - [x] `app/AGENTS.md` "Current focus" still true.
-- [ ] `make test-sim` run on a booted simulator; result recorded above.
+- [x] `make test-sim` run on a booted simulator; result recorded above (2026-09-04, all seven files green, plan 0030).
 - [x] Tech-debt rows added for corners cut, retired/narrowed for debt paid.
 - [x] No migrations in this step — say so in the roadmap row rather than
       leaving a reader to wonder about a cloud push.
