@@ -269,7 +269,7 @@ void main() {
     // ------------------------------------------------------------------------
     await backToShell(tester);
     await tapTab(tester, FLucideIcons.calendarDays);
-    // The lens's `Shared` became `Everyone` (D8); since week v3 there is no
+    // The lens's `Shared` became `Everyone` (D8); now there is no
     // mode to enter — `addMealOn` taps the day card's own add line (E5).
     await pumpUntilFound(tester, find.text('Everyone'));
     await addMealOn(tester, 'Friday', 'Sausage Sliders');

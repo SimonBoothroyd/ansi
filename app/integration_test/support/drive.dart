@@ -7,7 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 
-/// The first text field INSIDE [of]. Since Library v2 a pinned search field
+/// The first text field INSIDE [of]. Now a pinned search field
 /// is the first `EditableText` in the tree on every screen the Library branch
 /// sits under, so a bare `.first` would type into it.
 Finder fieldIn(Finder of) =>
@@ -18,7 +18,7 @@ Finder fieldIn(Finder of) =>
 ///
 /// Opening a Forui dialog while the accessibility tree is live trips a
 /// semantics assertion inside the framework — it reproduces in a plain
-/// widget test with `ensureSemantics()`, and forui is already pinned at
+/// widget test with `ensureSemantics`, and forui is already pinned at
 /// the newest 0.22.x (tech-debt tracker, 2026-08-27).
 /// (7.7) A dismissed sheet whose text field held focus can fire one last
 /// `EditableText` periodic post-frame callback after deactivation —
@@ -34,7 +34,7 @@ void ignoreForuiSemanticsAssertion() {
         '${details.stack}'.contains('_updateSelectionRects')) {
       return;
     }
-    // Same family, third callback (plan 0026 lane C): a window-metrics
+    // Same family, third callback: a window-metrics
     // change — the software keyboard leaving as a form pops — is dispatched
     // to every registered `EditableTextState.didChangeMetrics`, including
     // one whose route was just removed, and its `View.of` lookup trips on
@@ -46,7 +46,7 @@ void ignoreForuiSemanticsAssertion() {
     }
     // Same family, other callback: a focused field's show-caret-on-screen
     // post-frame callback can outlive its route by one frame when a form is
-    // popped mid-focus ("findRenderObject ... inactive/DEFUNCT" out of
+    // popped mid-focus ("findRenderObject... inactive/DEFUNCT" out of
     // EditableTextState._scheduleShowCaretOnScreen). Debug-only framework
     // noise on teardown; filtered narrowly by its stack. NB the same
     // callback, when it fires in time, SCROLLS the enclosing viewport — a
@@ -70,7 +70,7 @@ Future<void> tapTab(WidgetTester tester, IconData icon) =>
     tester.tap(find.byIcon(icon).last);
 
 /// Pumps until [finder] matches NOTHING, for something that leaves on a timer
-/// rather than on a write — the undo toast (week v3 E3) is the only such
+/// rather than on a write — the undo toast is the only such
 /// thing in the app, and it lingers over whatever the next step taps.
 ///
 /// The default timeout is comfortably past the toast's own six seconds.

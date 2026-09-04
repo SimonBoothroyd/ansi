@@ -1,17 +1,20 @@
 /// Sim smoke — IMPORT: paste a link → the review screen → resolve every line
-/// (an auto match confirmed, a printed RANGE picked, a counted-produce line
-/// arriving UNFLAGGED on its curated default measure (seam D2), a `suggest`
-/// pill taken onto a real vocab row, `none` lines created as stubs that
-/// coalesce) → Save → the recipe lands FILED in a book with tokenized steps
-/// whose refs are real line_item ids and the defaulted line carrying a real
-/// `measure_id`, over LIVE sync. The import repository is overridden to the
-/// local one, so NO edge function and NO LLM is called — see
-/// `SmokeStack.openLibraryWithLocalImport`.
+/// → Save, over LIVE sync.
 ///
-/// The nested-recipes IMPORT leg (the "↪ your recipe" suggestion chip on a
-/// review card) is not driven here: the canned payload deliberately carries
-/// no recipe candidates, and reaching the real matcher would mean the edge
-/// function and an LLM. It is host-tested instead.
+/// The lines cover the four shapes a review has to answer: an auto match
+/// confirmed, a printed RANGE picked, a counted-produce line that arrives
+/// UNFLAGGED on its curated default measure, and an unmatched line taken
+/// through the create-new chain onto a row of its own. The saved recipe lands
+/// FILED in a book, with tokenized steps whose refs are real `line_item` ids
+/// and the defaulted line carrying a real `measure_id`.
+///
+/// The import repository is overridden to the local one, so NO edge function
+/// and NO LLM is called — see `SmokeStack.openLibraryWithLocalImport`.
+///
+/// The nested-recipes leg (the "↪ your recipe" suggestion chip on a review
+/// card) is not driven here: the canned payload carries no recipe candidates,
+/// and reaching the real matcher would mean the edge function and an LLM. It
+/// is host-tested instead.
 ///
 /// Local gate only (`make test-sim FILE=import`), never CI. Needs the local
 /// backend running (`make db-up`) and the usual `--dart-define`s.
@@ -63,12 +66,12 @@ bool lineShows(int i, String text) => find
     .evaluate()
     .isNotEmpty;
 
-/// Resolves an unmatched (`none`) line to a NEW ingredient the way the
-/// review does since plan 0025 D3: open the seeded search sheet, take its
-/// create-new footer, walk the New-ingredient sheet and the flesh-out form
-/// it pushes over the review, and back out — the line then resolves to the
-/// row as an ordinary match. A second line printing the SAME thing finds
-/// the row the first one made in the search instead, so nothing is created
+/// Resolves an unmatched (`none`) line to a NEW ingredient the way the review
+/// does: open the seeded search sheet, take its create-new footer, walk the
+/// ingredient form it pushes over the review, and back out — the line then
+/// resolves to that row as an ordinary match. A second line printing the SAME
+/// thing finds the row the first one made in the search instead, so nothing is
+/// created
 /// twice (the commit-time coalescing that used to do this is gone).
 Future<void> createIngredientForLine(
   WidgetTester tester,
@@ -153,10 +156,10 @@ void main() {
   // hop is stubbed; the reconciliation UI, the commit write path, PowerSync
   // and the Library are all the real thing.
   //
-  // Since plan 0024 (seam D2) the payload also carries a counted-produce
-  // line — "2 red peppers", printed as `piece`, which a measured row
-  // refuses under ADR-0010. It arrives on the row's CURATED DEFAULT
-  // measure, unflagged, and commits as a `measure_id`; this is the one
+  // The payload also carries a counted-produce line — "2 red peppers",
+  // printed as `piece`, which a measured row refuses under ADR-0010. It
+  // arrives on the row's CURATED DEFAULT measure, unflagged, and commits
+  // as a `measure_id`; this is the one
   // place that runs end to end, because the default comes off a really
   // synced `ingredient.default_measure_id` (migration 0023's clone leg)
   // rather than a fixture.
@@ -208,7 +211,7 @@ void main() {
 
     // The extraction arrived, grouped, with every line surfaced for review.
     expect(find.text('Weeknight Tomato Pasta'), findsOneWidget);
-    // The shared six-section header (plan 0025 #4) now sits above the list's
+    // The shared six-section header now sits above the list's
     // section label, and the review list is lazy — scroll to it.
     await scrollTo(tester, find.text('INGREDIENTS'));
     expect(find.text('INGREDIENTS'), findsOneWidget);
@@ -284,7 +287,7 @@ void main() {
     expect(lineShows(6, 'Did you mean'), isFalse);
 
     // Everything still unmatched (`none`) becomes a new ingredient through the
-    // one add flow — sheet → form → back (plan 0025 D3). The two identical
+    // one add flow — sheet → form → back. The two identical
     // chilli lines print the same name, so the second finds the row the first
     // made: ONE created ingredient, with nothing minted at commit.
     const rawNames = {
@@ -348,7 +351,7 @@ void main() {
     )).map((r) => r['id'] as String).toSet();
     expect(lineIds, hasLength(8));
 
-    // Plan 0025 #6: the two lines the extractor flagged optional (the chilli
+    // the two lines the extractor flagged optional (the chilli
     // pair) committed AS optional. The flag used to stop at the review card.
     final optionalLines = await db.get(
       'SELECT COUNT(*) AS c FROM recipe_line_item li '
@@ -403,7 +406,7 @@ void main() {
 
     // Every line resolved to a real ingredient; the second chilli line found
     // the row the first one made (nothing created twice), and the commit
-    // minted nothing — the `import_stub` leg is retired (plan 0025 D3).
+    // minted nothing — the `import_stub` leg is retired.
     final unresolved = await db.get(
       'SELECT COUNT(*) AS c FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id '

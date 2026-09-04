@@ -1,9 +1,10 @@
-/// Sim smoke — LIBRARY: the Library v2 surfaces the editor and ingredients
-/// files walk past but never drive — the fold, the pinned title search (and
-/// its `DID YOU MEAN` band), the book `⋯` (rename, the delete refused with a
-/// count and "Move them to…") and the reorder sheet — on the real stack, so
-/// a sheet on the wrong navigator or a write that never uploads shows here
-/// before it shows on a phone.
+/// Sim smoke — LIBRARY: the surfaces the editor and ingredients files walk
+/// past but never drive — the fold, the pinned title search and its `DID YOU
+/// MEAN` band, the book `⋯` (rename, and the delete refused with a count and
+/// "Move them to…") and the reorder sheet.
+///
+/// On the real stack, so a sheet on the wrong navigator or a write that never
+/// uploads shows here before it shows on a phone.
 ///
 /// The second book and the recipe filed in it are SEEDED through the app's
 /// own repositories over the throwaway database and round-tripped through

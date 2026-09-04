@@ -1,8 +1,8 @@
-/// Driving the Week tab: a day's card, its one add door, and the two-step
-/// add flow that puts a recipe on a day.
+/// Driving the Week tab: a day's card, its one add door, and the two-step add
+/// flow that puts a recipe on a day.
 ///
-/// There are no mode helpers any more — week v3 (E1) deleted the mode, so
-/// `enterWeekEditMode` / `leaveWeekEditMode` have nothing to enter or leave.
+/// There are no mode helpers: the screen has one state, so there is nothing to
+/// enter or leave.
 library;
 
 import 'package:flutter/widgets.dart';

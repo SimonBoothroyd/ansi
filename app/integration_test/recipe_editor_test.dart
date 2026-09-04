@@ -1,19 +1,19 @@
-/// Sim smoke — RECIPE EDITOR: new section → new recipe through the 7.7
-/// pickers (picker v2 search → quantity + unit-chip sheet; a manual measure
-/// authored in the manage state, the seeded clove chip on the line; shelf
-/// life, method steps, filed under book + section) → breadcrumb + rendered
-/// title + local-db rows; favorite via the header menu; then re-open and edit
-/// the saved recipe and assert its children survive the server round-trip
-/// (the connector jsonb + diffing-save fixes).
+/// Sim smoke — RECIPE EDITOR, in two scenarios.
 ///
-/// A second scenario (plan 0026 item 6) drives the editor legs that were
-/// host-tested over fakes only, on a recipe SEEDED through the repository:
-/// the method step card's select → **To ingredient** / **To timer** toolbar,
-/// tap-a-chip → the chip sheet's rename; the quantity sheet's **Optional**
-/// switch; and create-new from inside the editor — picker footer → New
-/// ingredient → **Create & flesh out** → the flesh-out form over the picker →
-/// back → the quantity sheet opening on the units the form set. Each leg is
-/// asserted in the local db after the sync round trip.
+/// The first authors a recipe end to end: new section → new recipe through the
+/// picker → quantity + unit-chip sheet (with a manual measure authored in the
+/// manage state and the seeded clove chip on the line) → shelf life, method
+/// steps, filed under book + section → the breadcrumb, the rendered title and
+/// the local-db rows. Then favorite from the header menu, and re-open and edit
+/// the saved recipe, asserting its children survive the server round trip.
+///
+/// The second drives the editor legs that are otherwise host-tested over fakes
+/// only, on a recipe SEEDED through the repository: the method step card's
+/// select → **To ingredient** / **To timer** toolbar and tap-a-chip → the chip
+/// sheet's rename; the quantity sheet's **Optional** switch; and create-new
+/// from inside the editor — the picker footer pushes the ingredient form over
+/// the picker, and back on it the quantity sheet opens on the units that form
+/// set. Each leg is asserted in the local db after the sync round trip.
 ///
 /// Local gate only (`make test-sim FILE=recipe_editor`), never CI. Needs the
 /// local backend running (`make db-up`) and the usual `--dart-define`s.
@@ -240,7 +240,7 @@ void main() {
     // Two method steps — `recipe.steps` is a jsonb column, so these must
     // survive the upload round-trip as a real array (the sweep's connector
     // fix; the old double-encoding crashed the recipe view within a second).
-    // The v2 editor (plan 0022) is one card per step: a fresh recipe has no
+    // The v2 editor is one card per step: a fresh recipe has no
     // step field until "Add a step" makes one, and each card is its own field.
     await scrollTo(tester, find.text('METHOD'));
     for (final step in ['Brown the aromatics.', 'Simmer until thick.']) {
@@ -468,7 +468,7 @@ void main() {
       expect(find.widgetWithText(MethodChip, '10 min'), findsOneWidget);
 
       // ----------------------------------------------------------------------
-      // The Optional switch (plan 0025 D6a) — in the line's quantity sheet;
+      // The Optional switch — in the line's quantity sheet;
       // the flag lands on the row and the page tags the line.
       // ----------------------------------------------------------------------
       await editRecipeFromPage(tester);
@@ -498,7 +498,7 @@ void main() {
       expect(find.byType(OptionalTag), findsOneWidget);
 
       // ----------------------------------------------------------------------
-      // Create-new from inside the editor (plan 0025 D3): the one add chain —
+      // Create-new from inside the editor: the one add chain —
       // picker footer → New ingredient → Create & flesh out → the form OVER
       // the picker → back → the quantity sheet on the units the form set.
       // ----------------------------------------------------------------------
@@ -520,7 +520,7 @@ void main() {
       await tester.tap(find.textContaining('add "$name"'));
       await pumpUntilFound(tester, find.text('Create & flesh out'));
       await tester.tap(find.text('Create & flesh out'));
-      // The flesh-out form lands over the still-open picker.
+      // The ingredient form lands over the still-open picker.
       await pumpUntilFound(tester, find.text('CANONICAL NAME'));
       expect(find.byType(IngredientDetailView), findsOneWidget);
       final created = await db.get(

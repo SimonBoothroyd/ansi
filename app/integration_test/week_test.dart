@@ -1,31 +1,29 @@
-/// Sim smoke — WEEK → COOK → SHOP: the week — an empty week is a STATE of the
-/// screen (never the retired blank-week page), copy-last-week from its inline
-/// chip, a row's **three targets** (title → the recipe, avatar cluster → the
-/// meal editor, `−` → gone with an undo toast) — the mode, the per-row `⋯`
-/// and the eaters dialog are all retired — the two-step add flow (recipe
-/// picker v2 — Favorites tab included
-/// → confirm v2 with the full batch prose → portions), and the `Everyone`
-/// lens DIMMING rather than removing; one cook session covering two close
-/// meals and a split for a far one; the rolled-up shopping list with
-/// provenance, a manual top-up through the shared quantity sheet, and
-/// check-off. Runs with LIVE sync — `plan_entry.eaters` must survive the
-/// jsonb round-trip as a real array.
+/// Sim smoke — WEEK → COOK → SHOP, on LIVE sync, so `plan_entry.eaters` has
+/// to survive the jsonb round trip as a real array.
+///
+/// The Week tab: an empty week as a STATE of the screen, copy-last-week from
+/// its inline chip, a row's **three targets** (title → the recipe, avatar
+/// cluster → the meal editor, `−` → gone with an undo toast), the two-step add
+/// flow (the recipe picker, Favorites tab included → the confirm sheet's batch
+/// prose → portions), and the `Everyone` lens DIMMING rather than removing.
+/// Then Cook: one session covering two close meals and a split for a far one.
+/// Then Shop: the rolled-up list with provenance, a manual top-up through the
+/// shared quantity sheet, and check-off.
 ///
 /// The recipe the week plans — a favourited, two-day-shelf-life "Chicken
 /// Curry" (Garlic 4 clove, Onion 1, two steps) — is SEEDED through the app's
-/// own recipe repository over the throwaway database, then round-tripped
-/// through sync, before the Week tab opens. The editor file drives the UI
-/// that authors the same recipe; this file's subject is what the week does
-/// with it.
+/// own recipe repository over the throwaway database and round-tripped through
+/// sync before the Week tab opens. The editor file drives the UI that authors
+/// the same recipe; this file's subject is what the week does with it.
 ///
-/// Then the usual portion (plan 0027 front P): Jun's factor set to ×¾ from
-/// the Library `⋯` ▸ Household sheet — the first client UPDATE on
-/// `household_member`, so the round trip and a direct server read are what
-/// prove the `0026` RLS door — and the fraction it makes said on the entry
-/// sheet, under the per-person lens, and on the Cook tab's session row and
-/// whole-batch nudge. The lens leg plans a second seeded recipe ("Macro
-/// Bowl", 200 g Almonds — a line that resolves), because the curry's count
-/// lines are honestly incomplete and a refused total names no share.
+/// The usual portion runs last: Jun's factor set to ×¾ from the Household
+/// sheet — the only client UPDATE on `household_member`, so the round trip and
+/// a direct server read are what prove the `0026` RLS door — and the fraction
+/// it makes, said on the entry sheet, under the per-person lens, and on the
+/// Cook tab's session row and whole-batch nudge. That leg plans a second
+/// seeded recipe ("Macro Bowl", 200 g Almonds — a line that resolves), because
+/// the curry's count lines are honestly incomplete and a refused total names
+/// no share.
 ///
 /// Local gate only (`make test-sim FILE=week`), never CI. Needs the local
 /// backend running (`make db-up`) and the usual `--dart-define`s.
@@ -472,7 +470,7 @@ void main() {
     expect(find.textContaining('Chicken Curry · cook Mon'), findsNWidgets(2));
     expect(find.textContaining('Chicken Curry · cook Sat'), findsNWidgets(2));
 
-    // Manual top-up: +2 piece of Garlic through the add sheet.
+    // Manual top-up: +2 piece of Garlic through the add-item sheet.
     await scrollTo(tester, find.textContaining('add item or top up'));
     await tester.tap(find.textContaining('add item or top up'));
     await tester.pumpAndSettle();
@@ -526,7 +524,7 @@ void main() {
     expect(find.textContaining('Chicken Curry · cook Mon'), findsOneWidget);
 
     // ------------------------------------------------------------------------
-    // 3d · A USUAL PORTION PER PERSON (plan 0027 P-D3/D4/D5) — set on the
+    // 3d · A USUAL PORTION PER PERSON — set on the
     // account page (0028 E6 moved the roster off the Library `⋯` and out of a
     // sheet), proven on the server, then read everywhere the head-count used
     // to be. Runs last so every number above is the

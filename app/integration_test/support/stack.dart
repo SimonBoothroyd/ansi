@@ -12,7 +12,7 @@
 /// Provisioning is plain HTTP (sign-up + `ensure_onboarded`, the same calls
 /// as `scripts/smoke_auth.sh`) so the app can SIGN IN to an already-onboarded
 /// account. In-app sign-UP is not exercised on the sim — the session
-/// controller's post-onboarding `refreshSession()` makes it work (verified
+/// controller's post-onboarding `refreshSession` makes it work (verified
 /// manually on device, 7.4 sweep), but provisioning over HTTP keeps each
 /// run's users deterministic and the files focused on the signed-in app.
 library;

@@ -1,48 +1,40 @@
-/// Sim smoke — INGREDIENTS MANAGER: Library ▸ the Ingredients shelf → the
-/// stub band
-/// over the real vocab → open a stub, rename it, and prove the D6 match_text
-/// rewrite in the local db → on the SAME form, the four legs that only a real
-/// stack proves:
+/// Sim smoke — INGREDIENTS MANAGER: the Library's Ingredients shelf → the stub
+/// band over the real vocab → open a stub, rename it, and prove the
+/// `match_text` rewrite in the local db → then, on the SAME form, the four
+/// legs that only a real stack proves:
 ///
-/// - the 7.8 **density entry both ways** — "1 tbsp of this weighs N g", then
-///   the same sentence against `ml`, which is a g/ml —
-///   one stored fact, and ADR-0009's unlock of the other family asserted on
-///   the ROUND-TRIPPED `allowed_units` (as a jsonb array: the connector's
-///   decode-before-upload, 0028's repair);
-/// - **macros from a per-serving label** (plan 0027 M-D1/D3): the four typed
-///   as printed, the stored-per-100 preview, and the M-D2 spoon opt-in landing
-///   the density in the same Save;
-/// - **Counts as** on a measured stub (seam D1) — set, back, reopened, stuck,
-///   and accepted by the server's own-measure trigger (0023);
-/// - **the USDA match, said out loud** (plan 0027 U-D1/U-D2): a bare stub the
-///   SERVER's prefill trigger filled and NAMED on upload (the phone holds no
-///   `usda_food`), the provenance line on the form, *Not this food* clearing
-///   the numbers in one write, and — the D2 guarantee — a rename to another
-///   reference-set name that the trigger does NOT refill;
+/// - **density entry both ways** — "1 tbsp of this weighs N g", then the same
+///   sentence against `ml`, which is a g/ml — one stored fact, with ADR-0009's
+///   unlock of the other family asserted on the ROUND-TRIPPED `allowed_units`
+///   as a jsonb array (the connector decodes before upload);
+/// - **macros from a per-serving label** — the four figures typed as printed,
+///   the stored-per-100 preview, and the spoon opt-in landing the density in
+///   the same Save;
+/// - **Counts as** on a measured stub — set, back, reopened, stuck, and
+///   accepted by the server's own-measure trigger (migration 0023);
+/// - **the USDA match, said out loud** — the provenance line on the form
+///   naming the food, its FDC id and how much of the name it answers, all read
+///   off the row so it prints offline; then *Not this food*, which clears the
+///   density, its unlocked units, the macros and the score in ONE write and
+///   leaves the label behind so the form can still name what was refused.
 ///
-/// then add-new by BARCODE: the scan sheet's camera pane degrades to its
+/// Then add-new by BARCODE: the scan sheet's camera pane degrades to its
 /// designed notice (there is no camera in the Simulator), the typed field
 /// carries the code, and the lookup returns the committed Open Food Facts
-/// fixture through an overridden `offLookupProvider` — no network. Asserts the
-/// prefilled draft, then the saved row's `off:<barcode>` provenance, macros
-/// and `stub` status SURVIVING the sync round trip (D7b excludes barcode
-/// rows), and the G4 "needs completing" hint.
+/// fixture through an overridden `offLookupProvider` — no network. It asserts
+/// the prefilled draft, then the saved row's `off:<barcode>` provenance, its
+/// macros and its `stub` status surviving the sync round trip, and the "needs
+/// completing" hint.
 ///
 /// The stubs this file works on are SEEDED through the app's own ingredient
-/// repository — the same `saveForm(null, …)` the add form's one Save calls
-/// (a `manual` stub with the raw name and a server-rule `match_text`)
-/// — and round-tripped through sync before the manager opens. The import
-/// file drives the UI that creates the same row. The USDA stub is seeded that
-/// way ON PURPOSE rather than through the manager's ＋: the sheet's Manual and
-/// USDA legs run the client's own birth probe over the same RPC, which would
-/// fill the row before it ever uploaded and leave nothing for the trigger to
-/// prove. Seeded that way, the only writer of `source_label` on the local
-/// row is the server.
+/// repository — the same `saveForm(null, …)` the form's one Save calls — and
+/// round-tripped through sync before the manager opens. The import file drives
+/// the UI that creates the same row.
 ///
 /// Scanning from the camera is not exercised: `mobile_scanner` refuses
-/// still-image analysis on the iOS Simulator at compile time, and there is
-/// no camera to point at a pack, so the typed field is the Simulator's path
-/// to the identical downstream handler (plan 0020 D3 + the option-A ruling).
+/// still-image analysis on the iOS Simulator at compile time, and there is no
+/// camera to point at a pack, so the typed field is the Simulator's path to
+/// the identical downstream handler.
 ///
 /// Local gate only (`make test-sim FILE=ingredients`), never CI. Needs the
 /// local backend running (`make db-up`) and the usual `--dart-define`s.
@@ -224,7 +216,7 @@ void main() {
       expect(filled['source_score'], isNotNull);
       expect(filled['density_g_per_ml'], isNotNull);
       expect(filled['macros'], isNotNull);
-      // Filled, never completed: confirming is a human act (plan 0020 D5).
+      // Filled, never completed: confirming is a human act.
       expect(filled['status'], 'stub');
 
       // --- Library ▸ the Ingredients shelf ---------------------------------
@@ -409,7 +401,7 @@ void main() {
         'the g/ml-phrased density to land',
       );
 
-      // --- macros from a per-serving label (plan 0027 M-D1/D3, M-D2) --------
+      // --- macros from a per-serving label --------
       // The label as printed — "14 g · 100 kcal · 0 P · 0 C · 11 F" — and the
       // row stores per 100 g, unrounded, previewed before Save. The serving
       // is a spoon, so M-D2 offers it as the density; ticked, it lands in the
@@ -474,7 +466,7 @@ void main() {
       expect(per100['protein'], 0);
       expect(per100['carb'], 0);
       expect(labelled['macros_basis'], 'g');
-      // A label fills fields; confirming stays a human act (plan 0020 D5).
+      // A label fills fields; confirming stays a human act.
       expect(labelled['status'], 'stub');
       // The M-D2 tick: the density entry's own spoon arithmetic (ADR-0008
       // §2), landed by the form's Save — and it is the tick's number, not
@@ -546,7 +538,7 @@ void main() {
       await tester.tap(find.byType(FHeaderAction).first);
       await pumpUntilFound(tester, find.text('Search your vocabulary'));
 
-      // --- the USDA match, said out loud (plan 0027 U-D1 / U-D2) -----------
+      // --- the USDA match, said out loud -----------
       await scrollTo(tester, find.text(usdaName));
       await tester.tap(find.text(usdaName).first);
       await pumpUntilFound(tester, find.text('CANONICAL NAME'));
@@ -685,13 +677,12 @@ void main() {
       // rather than a fallback.
       await pumpUntilFound(tester, find.text('OR TYPE THE NUMBER'));
 
-      // Type the digits — the Simulator-walkable path (plan 0020 D3, and the
-      // scenario-5 option-A ruling). Downstream of `run()` this is the SAME
-      // handler the live detector calls.
+      // Type the digits — the Simulator-walkable path. Downstream of `run`
+      // this is the SAME handler the live detector calls.
       //
-      // Scoped, not positional: BOTH sheets are in the tree while the scanner
-      // is open, and the add sheet's autofocused NAME field is an EditableText
-      // too.
+      // Scoped, not positional: both the scan sheet and the form are in the
+      // tree while the scanner is open, and the form's autofocused NAME field
+      // is an EditableText too.
       await tester.enterText(
         find.descendant(
           of: find.byType(BarcodeScanSheet),
@@ -734,7 +725,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Save & review'));
 
-      // It lands on the flesh-out form for the row it just created.
+      // It lands on the ingredient form for the row it just created.
       await pumpUntilFound(tester, find.text('CANONICAL NAME'));
 
       // --- what landed in the local database -------------------------------
