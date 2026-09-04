@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Recipe picker &amp; confirm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
+    <h1 class="view-title">Recipe picker &amp; confirm</h1>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/planning</code> · <a href="../../exec-plans/active/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a></p>
+    <p class="view-blurb">Pick a recipe for a slot, then say who is eating and how much — the two steps between a day’s ＋ and a meal on the week.</p>
+</header>
+
+<div class="board">
+
+        <div class="frame" id="pv2-c">
+            <p class="frame-name"><b>The picker</b> · Recent · Books · Favorites, a batch-aware “already this week” band, and rows that carry servings, recency and honest macros — or say what they are missing</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Add a meal</span><span class="dots"></span></div>
+                <p class="target">to · <b>Wednesday, Dinner</b></p>
+                <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span><span class="care"></span></div></div>
+                <div class="rseg"><span class="rsegopt on">Recent</span><span class="rsegopt">Books</span><span class="rsegopt">Favorites</span></div>
+                <div class="reuse">
+                    <div class="reuse-h">Already this week — cook it in the same batch</div>
+                    <div class="reuse-chips">
+                        <span class="rchip">Chicken Curry <span class="day-t">Mon</span></span>
+                        <span class="rchip">Beef Ragù <span class="day-t">Tue</span></span>
+                    </div>
+                </div>
+                <p class="list-h">Recent</p>
+                <div class="rrow"><div class="rthumb">◍</div>
+                    <div class="rmeta"><div class="rn">Weeknight Chicken Curry</div>
+                        <div class="rtop"><div class="rbook">Our Cookbook · Weeknight</div><span class="rrec">2w ago</span></div>
+                        <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 4 d</span><span class="kpill frz">freezable</span></div>
+                        <div class="rml">serves 4 · ~520 kcal · 31P <span class="per" style="color:var(--muted)">/serving</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="rrow"><div class="rthumb">◍</div>
+                    <div class="rmeta"><div class="rn">Sheet-Pan Miso Salmon</div>
+                        <div class="rtop"><div class="rbook">Our Cookbook · Weeknight</div><span class="rrec">5d ago</span></div>
+                        <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 2 d</span></div>
+                        <div class="rml">serves 2 · ~460 kcal · 38P <span class="per" style="color:var(--muted)">/serving</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="rrow"><div class="rthumb">◍</div>
+                    <div class="rmeta"><div class="rn">Charred Broccoli &amp; Halloumi Salad</div>
+                        <div class="rtop"><div class="rbook">Our Cookbook · Weeknight</div><span class="rrec">3w ago</span></div>
+                        <div class="rkeep"><span class="kpill">best fresh</span></div>
+                        <div class="rml inc">serves 2 · <span class="badge-inc">incomplete</span>1 stub line</div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="rrow"><div class="rthumb">◍</div>
+                    <div class="rmeta"><div class="rn">Roast Chicken &amp; Veg</div>
+                        <div class="rtop"><div class="rbook">Our Cookbook · Slow Sundays</div><span class="rrec">6w ago</span></div>
+                        <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 3 d</span></div>
+                        <div class="rml">serves 4 · ~610 kcal · 45P <span class="per" style="color:var(--muted)">/serving</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="newrow">＋ new recipe — build it from scratch</div>
+                <div class="foot"><span class="foot-lab">Eating: <b>Ada &amp; Jun</b> · shared</span>
+                    <span class="eaters"><span class="ep on a">A</span><span class="ep on j">J</span></span></div>
+            </div></div>
+        </div>
+
+        <div class="frame" id="pv2-c2">
+            <p class="frame-name"><b>Confirm &amp; place</b> · the batch hint under the card, one combined day-and-slot control, the roster, and portions that default to the eaters’ own factors</p>
+            <div class="phone"><div class="notch"></div><div class="screen sheet">
+                <div class="grab"></div>
+                <div class="c-h">Add to plan</div>
+                <div class="picked"><div class="rthumb">◍</div>
+                    <div class="pn"><div class="ptitle">Weeknight Chicken Curry</div>
+                        <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 4 d</span><span class="kpill frz">freezable</span></div>
+                        <div class="rml">serves 4 · ~520 kcal · 31P <span class="per" style="color:var(--muted)">/serving</span></div></div></div>
+                <div class="batch-note" style="margin-top:10px">Chicken Curry already cooks <b>Monday</b> and keeps 4 days — Wednesday is inside that window, so this joins Monday’s batch instead of a second cook.</div>
+                <p class="clabel">Slot</p>
+                <div class="slotchip">Wednesday · Dinner<span class="caret">▾</span></div>
+                <p class="conv-note" style="margin:8px 20px 0">one control carries the day <i>and</i> the slot. The list ends in <b>Custom meal</b>, prompting <i>“e.g. Brunch, Snack”</i> — <code>meal_slot</code> is free text, so a household names its own</p>
+                <p class="clabel">Who's eating</p>
+                <div class="eater-row"><span class="eaters"><span class="ep on a">A</span></span><span class="lab" style="flex:none;margin-left:2px">Ada</span><span class="eaters" style="margin-left:14px"><span class="ep on j">J</span></span><span class="lab" style="flex:none;margin-left:2px">Jun</span></div>
+                <p class="clabel">Portions</p>
+                <div class="portion"><div class="pl">1¾ portions<small>Ada 1 · Jun ¾ — their usual</small></div>
+                    <div class="pstepper"><span class="s">–</span><span class="qv">1¾</span><span class="s">+</span></div></div>
+                <p class="conv-note" style="margin:8px 20px 0">the demand is the eaters’ portion factors summed, printed as a fraction. Step it by hand and the note says what it replaced: <b>overrides the eaters’ 1¾ — Ada 1 · Jun ¾</b></p>
+                <div class="addbtn">Add to Wednesday</div>
+            </div></div>
+        </div>
+
+</div>
+
+<p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>
