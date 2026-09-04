@@ -324,7 +324,10 @@ with v(canonical_name, category, default_unit, match_text) as (values
   ('Nori', 'pantry', 'piece', 'nori'),
   ('Seitan', 'proteins', 'oz', 'seitan'),
   ('Chickpea Flour', 'baking', 'cup', 'chickpea flour'),
-  ('Burger Buns', 'grains', 'piece', 'burger bun'))
+  ('Burger Buns', 'grains', 'piece', 'burger bun'),
+  ('Extra Virgin Olive Oil', 'fats & oils', 'tbsp', 'extra virgin olive oil'),
+  ('Peas', 'produce', 'cup', 'pea'),
+  ('Canned Lentils', 'pantry', 'oz', 'lentil canned'))
 , refreshed as (
   update ingredient i
      set canonical_name = v.canonical_name, category = v.category,
@@ -363,6 +366,8 @@ join (values
   ('star anise', 'star anise pod', 'star anise pod'),
   ('bay leaf', 'dried bay leaves', 'bay leaf dried'),
   ('garlic', 'fat garlic cloves', 'fat garlic'),
+  ('scallion', 'green onion', 'green onion'),
+  ('scallion', 'spring onion', 'spring onion'),
   ('chive', 'fresh chives', 'chive fresh'),
   ('celery', 'celery stalks', 'celery stalk'),
   ('cucumber', 'mini cucumbers', 'mini cucumber'),
@@ -459,7 +464,11 @@ join (values
   ('nori', 'sushi nori', 'sushi nori'),
   ('chickpea flour', 'garbanzo bean flour', 'garbanzo bean flour'),
   ('chickpea flour', 'besan', 'besan'),
-  ('burger bun', 'hamburger buns', 'hamburger bun')
+  ('burger bun', 'hamburger buns', 'hamburger bun'),
+  ('extra virgin olive oil', 'evoo', 'evoo'),
+  ('pea', 'garden peas', 'garden pea'),
+  ('pea', 'petit pois', 'petit pois'),
+  ('pea', 'green peas', 'green pea')
 ) as a(ing_match, alias_text, alias_match) on i.match_text = a.ing_match
 where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at is null
   and not exists (

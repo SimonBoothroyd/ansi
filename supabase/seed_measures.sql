@@ -149,6 +149,7 @@ join (values
   ('leek', 'slice', 6, 1, 'usda_fdc:169246 (1 slice)'),
   ('lemon', 'lemon, whole', 100, 0, 'seed:typical'),
   ('lemon juice', 'lemon', 48, 0, 'usda_fdc:167747 (1 lemon yields)'),
+  ('lentil canned', 'can (400 g), drained', 240, 0, 'seed:typical'),
   ('light red kidney bean canned', 'can (15 oz), drained', 266, 0, 'usda_fdc:174285 (1 can drained solids) — relabeled'),
   ('lime', 'lime, whole', 67, 0, 'usda_fdc:168155 (1 fruit (2" dia))'),
   ('lime juice', 'lime', 44, 0, 'usda_fdc:168156 (1 lime yields)'),
@@ -380,6 +381,7 @@ begin
     ('leek'),
     ('lemon'),
     ('lemon juice'),
+    ('lentil canned'),
     ('light red kidney bean canned'),
     ('lime'),
     ('lime juice'),
@@ -465,7 +467,7 @@ begin
   end if;
   select count(*) into n from ingredient_measure
   where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null;
-  raise notice 'seed_measures: % live template measures (% seeded)', n, 270;
+  raise notice 'seed_measures: % live template measures (% seeded)', n, 272;
 end $$;
 
 commit;

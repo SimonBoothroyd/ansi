@@ -336,7 +336,7 @@ Steps render with inline ingredient chips, and cook mode highlights the same ref
 
 Separate the thing you **match against** from the thing you **search when creating**:
 
-- **`ingredient`** — the household's curated, lean vocabulary (the seeded template alone is 308 rows). This is the match target and the only ingredient data that syncs to devices. Seeded small; grows through the one add flow — the **flesh-out form** at `/ingredients/new`, wherever it is opened, the import review included (§9).
+- **`ingredient`** — the household's curated, lean vocabulary (the seeded template alone is 311 rows). This is the match target and the only ingredient data that syncs to devices. Seeded small; grows through the one add flow — the **flesh-out form** at `/ingredients/new`, wherever it is opened, the import review included (§9).
 - **`usda_food`** — the full USDA FoodData Central reference (Foundation Foods + SR Legacy, CC0), read-only, **server-side only**. Reached by one read-only function, `probe_usda`, when a person opens the form's USDA search (§9). Nothing reads it in the background, and it is **never matched against during import.**
 
 Matching against 8,000 SR Legacy rows — where "chicken thigh" appears fifteen ways — produces constant wrong matches. Matching against the couple hundred ingredients the household actually uses is high-precision and easy. USDA is a lookup for *creation*, not a match target.
@@ -650,7 +650,7 @@ that simply reports `incomplete` instead of a fabricated number.
 
 The dividing line is **not fuzzy vs. exact** — both sides tolerate typos. It's **who acts on the result**:
 
-- **Retrieval for a human to pick** (offline, easy). The manual "Add ingredient" screen. Typo tolerance is welcome — "chikn" should surface "Chicken thigh" in the list. It only has to rank the right row into a short, visible set; the human filters, so nothing needs calibration. Over the few hundred synced household rows (308 seeded) this is trivial: SQLite FTS5 with the trigram tokenizer, or even an in-memory edit-distance pass in Dart. Works offline.
+- **Retrieval for a human to pick** (offline, easy). The manual "Add ingredient" screen. Typo tolerance is welcome — "chikn" should surface "Chicken thigh" in the list. It only has to rank the right row into a short, visible set; the human filters, so nothing needs calibration. Over the few hundred synced household rows (311 seeded) this is trivial: SQLite FTS5 with the trigram tokenizer, or even an in-memory edit-distance pass in Dart. Works offline.
 - **Automated matching that commits a decision** (online, hard). Import reconciliation. Auto-accepts above a threshold, produces confidence bands, and runs against the larger/ambiguous corpus (exact → trigram → none; there is no embedding tier). This is the part that must stay server-side.
 
 | | Human picks (manual add) | Machine proposes (import) |

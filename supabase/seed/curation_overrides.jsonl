@@ -639,3 +639,45 @@
 {"kind": "default_measure", "match_text": "yellow bell pepper", "label": "pepper, medium", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): SEED GAP: this row carried only pepper, large (186 g) where the other three bells carry medium/large/small, so a borrowed pepper, medium at 119 g is added above and the default lands on it [flagged for the owner's ruling; signed off as proposed]"}
 {"kind": "default_measure", "match_text": "yellow squash", "label": "squash, medium", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
 {"kind": "default_measure", "match_text": "zucchini", "label": "zucchini, medium", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium"}
+//
+// --- The round-five vocabulary additions (owner-ruled) ---------------------
+// Three rows the vocabulary was missing, each ruled by the owner rather than
+// derived: Extra Virgin Olive Oil is its OWN row (not an alias of Olive Oil —
+// "they are NOT the same"), Peas is the plain-peas row Frozen Peas was
+// standing in for, and Canned Lentils joins the `Canned *` family so a can of
+// lentils stops being read against a dry row's macros.
+//
+// Two of the three carry no usda_links entry, and that is the point:
+//   * extra virgin olive oil — FDC's own extra-virgin record (748608) carries
+//     a density but NO nutrients in the committed reference, so a link would
+//     buy a density and leave the row a macro-less stub. All olive oil is
+//     ~100 % fat / 884 kcal per 100 g, so the macros are borrowed from the
+//     refined record (171413) with the borrow stated, exactly the way the
+//     canned beans borrow pinto's drained basis; the DENSITY is extra
+//     virgin's own record, cited fdc_density:748608. The rows are separate
+//     because they are different foods to cook with, not because their
+//     macros differ.
+//   * lentil canned — FDC has no canned-lentil food AT ALL (only raw, dry,
+//     boiled and sprouted), so the no-analogue rule keeps the row link-less.
+//     Boiled lentils (172421) IS the drained-can basis, so its macros and
+//     its portion-derived density are borrowed under the round-2 coherence
+//     ruling: the macros must be on the same basis as the can measure they
+//     will be multiplied by.
+//
+// The can weight is the one number here with no FDC portion behind it. No
+// canned-lentil food means no `1 can drained solids` row to cite, and the
+// bean cans' weights describe a 15 oz US can, not the 400 g European one the
+// owner buys. 240 g is the typical printed drained weight for a 400 g can of
+// pulses — the same number this file already commits for the green-bean can
+// — and it is marked seed:typical so the guess is visible rather than
+// dressed as a citation.
+{"kind": "macros", "match_text": "extra virgin olive oil", "macros": {"kcal": 884, "protein": 0, "fat": 100, "carb": 0, "fiber": 0}, "source": "usda_fdc:171413 — borrowed (olive oil, salad or cooking)", "reason": "FDC's extra-virgin record (748608) carries a density but no nutrients; every olive oil is 100 % fat at 884 kcal/100 g, so the refined record's macros are the honest numbers for this row and the borrow is stated in the source"}
+{"kind": "density", "match_text": "extra virgin olive oil", "value": 0.907, "source": "fdc_density:748608", "reason": "extra virgin's OWN FDC record's portion-derived density (0.9070), slightly below the refined oil's 0.9130 — and required, since the row is tbsp-default (R1)"}
+{"kind": "allowed_units", "match_text": "extra virgin olive oil", "remove": ["pinch", "dash", "handful"], "reason": "a pinch of a liquid is senseless; to_taste stays — extra virgin olive oil is the finishing oil, so it is exactly the row that is added to taste"}
+{"kind": "macros", "match_text": "lentil canned", "macros": {"kcal": 116, "protein": 9.02, "fat": 0.38, "carb": 20.13, "fiber": 7.9}, "source": "usda_fdc:172421 — borrowed (lentils, boiled — the drained basis)", "reason": "round-2 coherence ruling applied to a new row: FDC has no canned lentil at all, and the can measure below is a DRAINED weight, so the macros must be on the drained basis — boiled lentils, not the dry row's 352 kcal"}
+{"kind": "density", "match_text": "lentil canned", "value": 0.8369, "source": "fdc_density:172421", "reason": "the drained-solids cup, matching the borrowed drained macros and the drained can; the dry row's 0.8115 is a cup of hard seeds, a different substance"}
+{"kind": "add_measure", "match_text": "lentil canned", "label": "can (400 g), drained", "basis_amount": 240, "sort_order": 0, "source": "seed:typical", "reason": "the 400 g European can the owner actually buys; FDC has no canned-lentil portion to cite, and the bean cans' 277 g is a 15 oz can — 240 g is the typical printed drained weight, the same figure already committed for the green-bean can"}
+{"kind": "allowed_units", "match_text": "lentil canned", "remove": ["tsp"], "reason": "pulses by the tbsp exist; by the tsp they do not (the ruling the canned beans already carry)"}
+{"kind": "allowed_units", "match_text": "lentil canned", "remove": ["piece"], "reason": "the natural count is the can — piece is only a worse way of saying it (the canned-family ruling)"}
+{"kind": "default_measure", "match_text": "lentil canned", "label": "can (400 g), drained", "reason": "sole count (the retail can), like every other row in the Canned * family"}
+{"kind": "allowed_units", "match_text": "pea", "remove": ["tsp", "tbsp"], "reason": "peas are poured by the cup, not spooned by the tsp — the ruling frozen peas already carry"}

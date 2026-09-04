@@ -91,6 +91,20 @@ update ingredient set
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'navy bean canned';
 
+-- extra virgin olive oil: FDC's extra-virgin record (748608) carries a density but no nutrients; every olive oil is 100 % fat at 884 kcal/100 g, so the refined record's macros are the honest numbers for this row and the borrow is stated in the source
+update ingredient set
+  macros = '{"kcal":884,"protein":0,"fat":100,"carb":0,"fiber":0}'::jsonb,
+  source = 'usda_fdc:171413 — borrowed (olive oil, salad or cooking)',
+  status = 'complete'
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'extra virgin olive oil';
+
+-- lentil canned: round-2 coherence ruling applied to a new row: FDC has no canned lentil at all, and the can measure below is a DRAINED weight, so the macros must be on the drained basis — boiled lentils, not the dry row's 352 kcal
+update ingredient set
+  macros = '{"kcal":116,"protein":9.02,"fat":0.38,"carb":20.13,"fiber":7.9}'::jsonb,
+  source = 'usda_fdc:172421 — borrowed (lentils, boiled — the drained basis)',
+  status = 'complete'
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'lentil canned';
+
 -- banana: the ranked pick landed on FDC's mashed cup (225 g -> 0.951); sliced (150 g/cup -> 0.634) is what a volume of banana means in a recipe
 update ingredient set density_g_per_ml = 0.634
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'banana';
@@ -478,6 +492,22 @@ update ingredient set
     then 'label:French''s Crispy Fried Onions (2 tbsp = 7 g)'
     else source || ' + label:French''s Crispy Fried Onions (2 tbsp = 7 g)' end
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'crispy onion';
+
+-- extra virgin olive oil: extra virgin's OWN FDC record's portion-derived density (0.9070), slightly below the refined oil's 0.9130 — and required, since the row is tbsp-default (R1)
+update ingredient set
+  density_g_per_ml = 0.907,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:748608'
+    else source || ' + fdc_density:748608' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'extra virgin olive oil';
+
+-- lentil canned: the drained-solids cup, matching the borrowed drained macros and the drained can; the dry row's 0.8115 is a cup of hard seeds, a different substance
+update ingredient set
+  density_g_per_ml = 0.8369,
+  source = case when source is null or source = 'seed'
+    then 'fdc_density:172421'
+    else source || ' + fdc_density:172421' end
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'lentil canned';
 
 -- Density fallback: FAO/INFOODS Density Database v2.0 (2012), via the reviewed
 -- fao_density_links.jsonl map. Fills ONLY rows the FDC volume-portion
@@ -2119,6 +2149,45 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'piece')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'white bread';
 
+-- extra virgin olive oil: a pinch of a liquid is senseless; to_taste stays — extra virgin olive oil is the finishing oil, so it is exactly the row that is added to taste
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'pinch')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'extra virgin olive oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'dash')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'extra virgin olive oil';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'handful')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'extra virgin olive oil';
+
+-- lentil canned: pulses by the tbsp exist; by the tsp they do not (the ruling the canned beans already carry)
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'lentil canned';
+
+-- lentil canned: the natural count is the can — piece is only a worse way of saying it (the canned-family ruling)
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'piece')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'lentil canned';
+
+-- pea: peas are poured by the cup, not spooned by the tsp — the ruling frozen peas already carry
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pea';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pea';
+
 -- active yeast dry: seam D1 (owner 2026-09-03, 'lgtm'): sole count
 update ingredient i set default_measure_id = m.id
   from ingredient_measure m
@@ -3571,6 +3640,17 @@ update ingredient i set default_measure_id = m.id
    and i.match_text = 'zucchini'
    and i.deleted_at is null;
 
+-- lentil canned: sole count (the retail can), like every other row in the Canned * family
+update ingredient i set default_measure_id = m.id
+  from ingredient_measure m
+ where m.ingredient_id = i.id
+   and m.household_id = i.household_id
+   and m.deleted_at is null
+   and m.label = 'can (400 g), drained'
+   and i.household_id = '00000000-0000-0000-0000-0000000000aa'
+   and i.match_text = 'lentil canned'
+   and i.deleted_at is null;
+
 -- R1 invariant (Simon, 2026-08-29): a volume default_unit REQUIRES a
 -- density — a volume line on a density-less per-g ingredient can never
 -- compute macros, so the class must not silently return. Fill an honest
@@ -3620,12 +3700,12 @@ begin
   from ingredient
   where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null
     and default_measure_id is not null;
-  if landed <> 132 then
+  if landed <> 133 then
     raise exception
-      'seed_curation R3: % of 132 curated default measures landed (a default_measure label no longer names a live measure)', landed;
+      'seed_curation R3: % of 133 curated default measures landed (a default_measure label no longer names a live measure)', landed;
   end if;
 
-  raise notice 'seed_curation: allowed_units refreshed; 11 macro + 78 density + 197 allowed-unit overrides + 12 FAO density fills; 132 default count measures; R1 (volume default => density), R2 (kitchen density band) and R3 (every curated default landed) hold';
+  raise notice 'seed_curation: allowed_units refreshed; 13 macro + 80 density + 201 allowed-unit overrides + 12 FAO density fills; 133 default count measures; R1 (volume default => density), R2 (kitchen density band) and R3 (every curated default landed) hold';
 end $$;
 
 commit;

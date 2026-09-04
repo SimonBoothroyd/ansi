@@ -179,6 +179,7 @@ from (values
   ('parsley', 170416),
   ('parsnip', 170417),
   ('pasta', 169736),
+  ('pea', 170419),
   ('pea frozen', 170016),
   ('peach', 169928),
   ('peanut', 172430),
