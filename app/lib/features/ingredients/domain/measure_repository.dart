@@ -28,10 +28,10 @@ abstract interface class MeasureRepository {
   /// no measures is absent from the map.
   ///
   /// The import review validates a whole recipe's lines at once and must not
-  /// fan out to a stream per line (plan 0020 **J2**): routing that through N
-  /// autoDispose stream providers is what let a measure-word unit —
-  /// "1 clove" of a garlic row that carries a `clove` measure — validate
-  /// against an EMPTY measure list and get flagged "Pick a supported unit".
+  /// fan out to a stream per line: routing that through N autoDispose stream
+  /// providers is what let a measure-word unit — "1 clove" of a garlic row that
+  /// carries a `clove` measure — validate against an EMPTY measure list and get
+  /// flagged "Pick a supported unit".
   Future<Map<String, List<Measure>>> measuresByIngredients(Set<String> ids);
 
   /// Authors a user measure of [ingredientId]: one [label] is [amount] of

@@ -1,12 +1,12 @@
 /// The rules behind every header edit, as pure transforms on a [Recipe] —
 /// PURE DART (invariant 2).
 ///
-/// Two hosts drive the one header form (plan 0025 #4): the recipe editor's
-/// notifier and the import review's controller. Each holds its draft
-/// differently, but what a setter is *allowed to leave behind* must not
-/// differ — a yield that is half a fact, a freezer window on a dish that does
-/// not freeze, a section from another book. Those rules live here, once, so a
-/// host is only a place to keep the result.
+/// Two hosts drive the one header form: the recipe editor's notifier and the
+/// import review's controller. Each holds its draft differently, but what a
+/// setter is *allowed to leave behind* must not differ — a yield that is half a
+/// fact, a freezer window on a dish that does not freeze, a section from
+/// another book. Those rules live here, once, so a host is only a place to keep
+/// the result.
 library;
 
 import '../../../core/units/units.dart';
@@ -48,8 +48,8 @@ extension RecipeHeaderEdits on Recipe {
     );
   }
 
-  /// The cook time in seconds; null (or non-positive) leaves it unset. No
-  /// rule ties it to the total — two typed facts (plan 0025, frame a).
+  /// The cook time in seconds; null (or non-positive) leaves it unset. No rule
+  /// ties it to the total — two typed facts.
   Recipe withCookTime(int? seconds) =>
       copyWith(cookTimeSeconds: _positiveOrNull(seconds));
 

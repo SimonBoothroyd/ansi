@@ -87,10 +87,10 @@ abstract class Recipe with _$Recipe {
     double? yieldQty2,
     Unit? yieldUnit2,
 
-    /// The printed cook and total times, in seconds (plan 0025 #4). Two typed
-    /// facts with no rule between them — a total below the cook time is what
-    /// somebody wrote, not an error to refuse. Null is unset: the page never
-    /// said, and nothing invents one.
+    /// The printed cook and total times, in seconds. Two typed facts with no
+    /// rule between them — a total below the cook time is what somebody wrote,
+    /// not an error to refuse. Null is unset: the page never said, and nothing
+    /// invents one.
     int? cookTimeSeconds,
     int? totalTimeSeconds,
   }) = _Recipe;
@@ -175,13 +175,13 @@ abstract class IngredientGroup with _$IngredientGroup {
 /// the row hasn't synced (or was deleted). Nothing derives from a component
 /// whose target is missing — the line simply reads as the text it stored (D5).
 ///
-/// An **optional** line (plan 0025 / D6b) is one the recipe says may be left
-/// out — "lime, to serve (optional)". It is a stored fact about the line, not
-/// about its amount: "1 lime" is still what the recipe says. What the flag
-/// changes is what a TOTAL covers, through one seam (`effectiveLines`): the
-/// macro summary and the shopping list leave the line out and name it where
-/// it left; the cook plan is unaffected. Never offered on a component line —
-/// an optional sub-recipe is a week-level question, the override seam's job.
+/// An **optional** line is one the recipe says may be left out — "lime, to
+/// serve (optional)". It is a stored fact about the line, not about its amount:
+/// "1 lime" is still what the recipe says. What the flag changes is what a
+/// TOTAL covers, through one seam (`effectiveLines`): the macro summary and the
+/// shopping list leave the line out and name it where it left; the cook plan is
+/// unaffected. Never offered on a component line — an optional sub-recipe is a
+/// week-level question, the override seam's job.
 @freezed
 abstract class LineItem with _$LineItem {
   const LineItem._();

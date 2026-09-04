@@ -176,10 +176,10 @@ class SqliteShoppingRepository implements ShoppingRepository {
       );
     }
 
-    // The same demand the cook plan derives (plan 0027 P-D1): Σ of the
-    // eaters' portion factors, the override winning. The list is otherwise
-    // untouched by the factor — it still scales by the session's batch
-    // factor, which is where the demand lands.
+    // The same demand the cook plan derives: Σ of the eaters' portion factors,
+    // the override winning. The list is otherwise untouched by the factor — it
+    // still scales by the session's batch factor, which is where the demand
+    // lands.
     final members = {for (final m in await loadMembers(_db)) m.id: m};
     final byRecipe = <String, PlannedRecipe>{};
     final meals = <String, List<CoveredMeal>>{};

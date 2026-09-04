@@ -113,7 +113,7 @@ Stream<WeekPlan?> viewedWeek(Ref ref) => ref
     .watchWeek(ref.watch(viewedWeekStartProvider));
 
 /// The household eater roster, live — a portion factor set on either phone
-/// (plan 0027) reaches every Portions row and the Household sheet as it lands.
+/// reaches every Portions row and the Household sheet as it lands.
 @riverpod
 Stream<List<Member>> members(Ref ref) =>
     ref.watch(planningRepositoryProvider).watchMembers();
@@ -148,8 +148,8 @@ Map<String, RecipeMacroSummary> recipeMacrosById(Ref ref) {
   };
 }
 
-/// The roster keyed by id — the portion factors every demand and lens share
-/// is weighted by (plan 0027).
+/// The roster keyed by id — the portion factors every demand and lens share is
+/// weighted by.
 @riverpod
 Map<String, Member> membersById(Ref ref) => {
   for (final m in ref.watch(membersProvider).asData?.value ?? const <Member>[])

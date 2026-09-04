@@ -4,8 +4,7 @@
 ///
 /// One rule runs through all of it: **a share of a batch is either stated or
 /// refused**. Nothing here ever renders `1×` for a component whose batch math
-/// did not resolve — the refusal says which honest refusal it is instead
-/// (exec plan 0021, D2/D3).
+/// did not resolve — the refusal says which honest refusal it is instead.
 library;
 
 import '../../../core/units/units.dart';

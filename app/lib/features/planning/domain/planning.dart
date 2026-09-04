@@ -29,13 +29,12 @@ abstract class Member with _$Member {
     required String id,
     required String displayName,
 
-    /// The person's usual portion as a multiple of one recipe serving (plan
-    /// 0027 P-D1): `0.75` for someone who eats three-quarters of a serving.
-    /// A standing fact about the person, spent wherever a head-count used to
-    /// be — the cook plan, the shopping list and the macro lens all read it
-    /// through [demandPortions]. Quarter steps from 0.25 to 3; the default
-    /// `1` keeps every number exactly what it was before the factor existed
-    /// (P-D6).
+    /// The person's usual portion as a multiple of one recipe serving: `0.75`
+    /// for someone who eats three-quarters of a serving. A standing fact about
+    /// the person, spent wherever a head-count used to be — the cook plan, the
+    /// shopping list and the macro lens all read it through [demandPortions].
+    /// Quarter steps from 0.25 to 3; the default `1` keeps every number exactly
+    /// what it was before the factor existed (P-D6).
     @Default(1.0) double portionFactor,
   }) = _Member;
 

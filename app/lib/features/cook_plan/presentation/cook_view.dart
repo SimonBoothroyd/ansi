@@ -31,8 +31,8 @@ import 'cook_view_models.dart';
 class CookView extends ConsumerWidget {
   const CookView({super.key});
 
-  /// The tab root's stable anchor: the header no longer names the screen
-  /// (plan 0025 D7c), so the smoke test waits on this key instead of a title.
+  /// The tab root's stable anchor: the header no longer names the screen, so
+  /// the smoke test waits on this key instead of a title.
   static const rootKey = ValueKey('cook-root');
 
   @override

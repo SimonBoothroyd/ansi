@@ -1,13 +1,12 @@
 /// Portion counts said the way a kitchen says them — PURE DART.
 ///
-/// A portion count became fractional with the per-member portion factor
-/// (plan 0027, front P): "my wife eats ¾ what I do" makes a meal for both
-/// `1¾ portions`, and the ruling (P-D4) is that the fraction is PRINTED as one
-/// — `½ ¾ ¼` glyphs, never `1.75`, never rounded silently to a whole. Every
-/// surface that says a portion count — the meal editor, the cook session row,
-/// the whole-batch nudge, the per-person macro lens — goes through
-/// [formatFraction] / [formatPortions] so they cannot drift into three
-/// spellings of the same number.
+/// A portion count became fractional with the per-member portion factor: "my
+/// wife eats ¾ what I do" makes a meal for both `1¾ portions`, and the ruling
+/// (P-D4) is that the fraction is PRINTED as one — `½ ¾ ¼` glyphs, never
+/// `1.75`, never rounded silently to a whole. Every surface that says a portion
+/// count — the meal editor, the cook session row, the whole-batch nudge, the
+/// per-person macro lens — goes through [formatFraction] / [formatPortions] so
+/// they cannot drift into three spellings of the same number.
 ///
 /// Only the quarter glyphs are used (`¼ ½ ¾`, Latin-1, present in every
 /// bundled face). The factor is set in quarter steps and any sum of quarters

@@ -28,10 +28,10 @@ abstract interface class PlanningRepository {
   /// the portion factor ([setPortionFactor]).
   Stream<List<Member>> watchMembers();
 
-  /// Sets a member's usual portion (plan 0027 P-D1/D3): a multiple of one
-  /// recipe serving in quarter steps, 0.25–3 (`isValidPortionFactor`; the
-  /// `0026` check constraint refuses anything outside the range). Either
-  /// member may set either's — the row is household-scoped, not self-scoped.
+  /// Sets a member's usual portion: a multiple of one recipe serving in quarter
+  /// steps, 0.25–3 (`isValidPortionFactor`; the `0026` check constraint refuses
+  /// anything outside the range). Either member may set either's — the row is
+  /// household-scoped, not self-scoped.
   Future<void> setPortionFactor(String memberId, double factor);
 
   /// The most recent planned date (week Monday + day offset) per recipe,

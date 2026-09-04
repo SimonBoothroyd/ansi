@@ -9,10 +9,10 @@
 /// the write extends the ingredient's explicit `allowed_units` with what the
 /// density unlocks in the same transaction (`setDensity`).
 ///
-/// It also owns the **deletion** of that number (plan 0020 D4b) — the mirror
-/// write, which strips the cross-family units the density was the only reason
-/// to admit (`clearDensity`). That is the single leg of the admission model
-/// where the allowed list shrinks; everything else unions.
+/// It also owns the **deletion** of that number — the mirror write, which
+/// strips the cross-family units the density was the only reason to admit
+/// (`clearDensity`). That is the single leg of the admission model where the
+/// allowed list shrinks; everything else unions.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -125,13 +125,13 @@ class DensityEntry extends HookWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // The headline and the stored number. The two phrasing chips that
-        // used to sit opposite them are GONE (plan 0028): the segment existed
-        // to choose between a sentence a person would say and one they would
-        // have to compute, and nobody divides grams by millilitres in their
-        // head. With them go G2's width problem — that fix was about these
-        // four things not fitting a 402pt phone — and the naming problem the
-        // label had ("a spoon weighs…" was cute; "grams per spoon" hid cup).
+        // The headline and the stored number. The two phrasing chips that used
+        // to sit opposite them are GONE: the segment existed to choose between
+        // a sentence a person would say and one they would have to compute, and
+        // nobody divides grams by millilitres in their head. With them go G2's
+        // width problem — that fix was about these four things not fitting a
+        // 402pt phone — and the naming problem the label had ("a spoon weighs…"
+        // was cute; "grams per spoon" hid cup).
         Row(
           children: [
             Text(headline, style: ansiLabel()),
@@ -218,7 +218,7 @@ class DensityEntry extends HookWidget {
 }
 
 /// Deleting the stored density — the one write in the whole admission model
-/// that makes the allowed list *shrink* (plan 0020 D4b).
+/// that makes the allowed list *shrink*.
 ///
 /// It asks first, and the question names the consequence rather than saying
 /// "are you sure": the cross-family chips this density unlocked

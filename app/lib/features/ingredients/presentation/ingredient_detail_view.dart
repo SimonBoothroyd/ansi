@@ -3,11 +3,11 @@
 /// "New ingredient" frame together with 7.7's macros-basis frame and 7.8's
 /// allowed-units frame into one scroll.
 ///
-/// It is an **editor**, not a one-way queue: a `complete` row opens here too
-/// (plan 0020 D5). What it owns, in the frame's order — canonical name (a
-/// rename rewrites `match_text`, D6), aliases, category + default unit,
-/// macros with their basis, density (the shared 7.8 [DensityEntry]), and the
-/// explicit ADR-0008 `allowed_units` list.
+/// It is an **editor**, not a one-way queue: a `complete` row opens here too.
+/// What it owns, in the frame's order — canonical name (a rename rewrites
+/// `match_text`, D6), aliases, category + default unit, macros with their
+/// basis, density (the shared 7.8 [DensityEntry]), and the explicit ADR-0008
+/// `allowed_units` list.
 ///
 /// Two rules the screen exists to enforce:
 /// - **Macros gate completion, density does not** (D5). Confirming is a
@@ -78,10 +78,10 @@ import 'usda_pick_sheet.dart';
 /// The pushed route for one vocab row.
 String ingredientDetailRoute(String id) => '/ingredients/$id';
 
-/// The pushed route for a row that does not exist yet (plan 0029 **C2**) —
-/// the one door to making an ingredient, now that the New-ingredient sheet is
-/// gone. [name] prefills the field, which is what a picker hands over so the
-/// words already typed into its search become the row.
+/// The pushed route for a row that does not exist yet — the one door to making
+/// an ingredient, now that the New-ingredient sheet is gone. [name] prefills
+/// the field, which is what a picker hands over so the words already typed into
+/// its search become the row.
 ///
 /// It pops with the created [Ingredient], or null if the person backed out —
 /// so a caller that is waiting on the row (the editor's picker) gets it.
@@ -106,7 +106,7 @@ class IngredientDetailView extends ConsumerWidget {
     super.key,
   });
 
-  /// The row to edit, or **null to create one** (plan 0029 **C2**).
+  /// The row to edit, or **null to create one**.
   ///
   /// This form is the only door to making an ingredient now. The
   /// New-ingredient sheet existed because it was the stage where nothing had
@@ -288,8 +288,8 @@ class _DetailForm extends HookConsumerWidget {
     final pendingSourceScore = useState<double?>(null);
     final aliasesAdded = useState<List<IngredientAlias>>(const []);
     final aliasesRemoved = useState<Set<String>>(const {});
-    // The last barcode scan (plan 0025 #8): the draft the card shows, what
-    // `applyDraft` decided about it, and whether its pack offer was taken.
+    // The last barcode scan: the draft the card shows, what `applyDraft`
+    // decided about it, and whether its pack offer was taken.
     final scanned = useState<IngredientDraft?>(null);
     final scanApplied = useState<DraftApplication?>(null);
     final packAdded = useState(false);
@@ -1349,10 +1349,10 @@ class _UsdaProvenance extends StatelessWidget {
 class _MacroFields extends StatelessWidget {
   const _MacroFields({required this.draft, required this.onChanged, super.key});
 
-  /// Seeds the four controllers when this widget is (re)built under a new
-  /// key — so it is the DRAFT, not the row: the form re-keys exactly when it
-  /// has put something new in the draft, whether that came from the row (G1)
-  /// or from a barcode scan (plan 0025 #8).
+  /// Seeds the four controllers when this widget is (re)built under a new key —
+  /// so it is the DRAFT, not the row: the form re-keys exactly when it has put
+  /// something new in the draft, whether that came from the row (G1) or from a
+  /// barcode scan.
   final _MacroDraft draft;
   final ValueChanged<_MacroDraft> onChanged;
 
@@ -1435,9 +1435,9 @@ class _ServingOfferLine extends StatelessWidget {
   }
 }
 
-/// What the form's own scan landed (plan 0025 #8): the shared result card,
-/// naming what it left alone, then what it did NOT do — nothing here saves
-/// or confirms — and the pack-size offer as a one-tap measure.
+/// What the form's own scan landed: the shared result card, naming what it left
+/// alone, then what it did NOT do — nothing here saves or confirms — and the
+/// pack-size offer as a one-tap measure.
 class _ScanResult extends StatelessWidget {
   const _ScanResult({
     required this.draft,
@@ -1619,7 +1619,7 @@ class _UnitChip extends StatelessWidget {
 }
 
 /// The category field: a dropdown of the household's own categories, plus one
-/// door to coin a new one (plan 0020 **F3**).
+/// door to coin a new one.
 ///
 /// Free text is gone. A typed category is only useful if it is the *same*
 /// string every other row uses — the imprecise-unit gate reads it by exact
@@ -2468,9 +2468,9 @@ class _MacroDraft {
 
 // --- The M-D2 offer ----------------------------------------------------------
 
-/// What a serving's name and weight also say about the row (plan 0027
-/// M-D2): a density when the pack measured a spoon, a measure when it named
-/// a thing. Computed, never written — the form writes it only when ticked.
+/// What a serving's name and weight also say about the row: a density when the
+/// pack measured a spoon, a measure when it named a thing. Computed, never
+/// written — the form writes it only when ticked.
 sealed class ServingOffer {
   const ServingOffer();
 

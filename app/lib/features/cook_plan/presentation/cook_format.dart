@@ -20,9 +20,9 @@ String formatScale(double factor) {
   return '×$s';
 }
 
-/// The week menu row's trailing label on the Cook tab — what that week holds
-/// in this tab's own derivation, `2 cooks` / `1 cook` / `nothing to cook`
-/// (plan 0025 frame g2), never the Week's meal count.
+/// The week menu row's trailing label on the Cook tab — what that week holds in
+/// this tab's own derivation, `2 cooks` / `1 cook` / `nothing to cook`, never
+/// the Week's meal count.
 String formatCookCount(int sessions) => switch (sessions) {
   0 => 'nothing to cook',
   1 => '1 cook',

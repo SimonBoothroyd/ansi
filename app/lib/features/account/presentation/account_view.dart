@@ -1,4 +1,4 @@
-/// `/account` — the household, this device, and the session (plan 0028 E6).
+/// `/account` — the household, this device, and the session.
 ///
 /// Library v2's D1 deferred this route with its own trigger written into it:
 /// *"a screen whose only content is a Sign-out button exists to hold a

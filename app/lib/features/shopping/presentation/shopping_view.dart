@@ -34,8 +34,8 @@ import 'shopping_view_models.dart';
 class ShoppingView extends ConsumerWidget {
   const ShoppingView({super.key});
 
-  /// The tab root's stable anchor: the header no longer names the screen
-  /// (plan 0025 D7c), so the smoke test waits on this key instead of a title.
+  /// The tab root's stable anchor: the header no longer names the screen, so
+  /// the smoke test waits on this key instead of a title.
   static const rootKey = ValueKey('shop-root');
 
   @override
@@ -111,10 +111,10 @@ class ShoppingView extends ConsumerWidget {
         // says what it left out.
         for (final note in data.unresolvedComponents)
           _UnresolvedEcho(note: note),
-        // …and what it left out BY RULE (plan 0025 / D6b): an optional
-        // line contributes nothing, and the recipe it belongs to says
-        // which lines, in the same voice — muted, not amber, because a
-        // rule somebody chose is not a defect somebody can fix.
+        // …and what it left out BY RULE: an optional line contributes nothing,
+        // and the recipe it belongs to says which lines, in the same voice —
+        // muted, not amber, because a rule somebody chose is not a defect
+        // somebody can fix.
         for (final note in data.optionalLines) OptionalLinesEcho(note: note),
         const _AddItemButton(),
       ],
@@ -212,11 +212,11 @@ class _UnresolvedEcho extends StatelessWidget {
   }
 }
 
-/// A recipe's "N optional lines not listed — lime, coriander" echo (plan 0025
-/// / D6b, board frame f): the group-header voice nested recipes' unresolved
-/// echo uses, because it is the same shape of statement — a heading for the
-/// items that are NOT below it — drawn muted rather than amber. Public so the
-/// screen test can find the row by type.
+/// A recipe's "N optional lines not listed — lime, coriander" echo: the
+/// group-header voice nested recipes' unresolved echo uses, because it is the
+/// same shape of statement — a heading for the items that are NOT below it —
+/// drawn muted rather than amber. Public so the screen test can find the row by
+/// type.
 class OptionalLinesEcho extends StatelessWidget {
   const OptionalLinesEcho({required this.note, super.key});
 

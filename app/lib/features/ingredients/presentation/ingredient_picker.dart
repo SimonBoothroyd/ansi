@@ -347,9 +347,8 @@ class IngredientRow extends StatelessWidget {
   }
 }
 
-/// "＋ can't find it? add a new ingredient" — the add-new chain's front door
-/// in every picker (plan 0025 D3, board frame c1). Disabled until something
-/// is typed.
+/// "＋ can't find it? add a new ingredient" — the add-new chain's front door in
+/// every picker. Disabled until something is typed.
 ///
 /// Tapping it writes nothing here. It opens the New-ingredient sheet with the
 /// query prefilled; when the sheet comes back with a created row, the row is
@@ -397,11 +396,11 @@ class AddNewIngredientRow extends HookConsumerWidget {
       // the footer that started it.
       final host = hostContextOf(context);
       try {
-        // ONE push, not a sheet and then a form (plan 0029 C2). The form is
-        // the create surface now: it lands ABOVE this picker's sheet, writes
-        // nothing until Save, and pops with the row it made — so backing out
-        // resolves nothing and leaves nothing behind, which the sheet could
-        // not offer because its Create had already written a row.
+        // ONE push, not a sheet and then a form. The form is the create surface
+        // now: it lands ABOVE this picker's sheet, writes nothing until Save,
+        // and pops with the row it made — so backing out resolves nothing and
+        // leaves nothing behind, which the sheet could not offer because its
+        // Create had already written a row.
         //
         // The picker stays open underneath the whole time, which is what lets
         // it resolve after. The host outlives the row (`hostContextOf`).

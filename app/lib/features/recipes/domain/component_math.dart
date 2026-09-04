@@ -5,8 +5,7 @@
 /// It counts pieces of the sausage recipe's *yield*. A recipe states what one
 /// batch makes ("makes 1 cup", "makes 8 piece") in up to two denominations of
 /// DIFFERENT unit families ("makes 250 g · 16 tbsp"), and a component line's
-/// printed amount is resolved against whichever denomination shares its family
-/// (exec plan 0021, D2):
+/// printed amount is resolved against whichever denomination shares its family:
 ///
 /// - `1 batch` always resolves — the batch denomination needs no yield, and
 ///   `qty` *is* the batch count.

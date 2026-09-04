@@ -23,12 +23,11 @@
 /// last route pushed or gone to, with path parameters already substituted
 /// (`/recipes/7`, not `/recipes/:id`).
 ///
-/// [GuardedNavigation.pushOnceFor] is the one push that hands the pushed
-/// page's pop value back. It exists for a flow that genuinely continues after
-/// the page — a picker that has just created an ingredient pushes the
-/// flesh-out form, waits for back, and only then resolves (plan 0025 D3) —
-/// and it keeps the same top-location guard, so a double tap still opens one
-/// form.
+/// [GuardedNavigation.pushOnceFor] is the one push that hands the pushed page's
+/// pop value back. It exists for a flow that genuinely continues after the page
+/// — a picker that has just created an ingredient pushes the flesh-out form,
+/// waits for back, and only then resolves — and it keeps the same top-location
+/// guard, so a double tap still opens one form.
 ///
 /// A structural test (`test/shared/guarded_navigation_test.dart`) fails the
 /// build if a view under `lib/features/**/presentation` or `lib/shared` calls

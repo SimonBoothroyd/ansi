@@ -51,9 +51,9 @@ String mealDenominator(MealSetMacros macros) {
 }
 
 /// The denominator line under a total: the meal count, and under a person's
-/// lens their share of the portions too — `1 meal · Jun · ¾ of 1¾ portions`
-/// (plan 0027 P-D5). [scope] is `Everyone` or the member's display name, as
-/// the Week passes it; only a person has a share to name.
+/// lens their share of the portions too — `1 meal · Jun · ¾ of 1¾ portions`.
+/// [scope] is `Everyone` or the member's display name, as the Week passes it;
+/// only a person has a share to name.
 String denominatorLine(MealSetMacros macros, {required String scope}) {
   final share = portionShareLine(
     macros,

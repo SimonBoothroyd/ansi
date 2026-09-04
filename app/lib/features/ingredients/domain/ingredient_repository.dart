@@ -190,10 +190,10 @@ class IngredientEdit {
   final String? category;
   final Macros? macros;
 
-  /// What the provenance is called and how sure the match was — written
-  /// beside [source] and patch-shaped for the same reason. A USDA pick fills
-  /// these into the draft rather than writing them itself (plan 0029 W5), so
-  /// the food that filled a row and the numbers it filled land together.
+  /// What the provenance is called and how sure the match was — written beside
+  /// [source] and patch-shaped for the same reason. A USDA pick fills these
+  /// into the draft rather than writing them itself, so the food that filled a
+  /// row and the numbers it filled land together.
   final String? sourceLabel;
   final double? sourceScore;
 
@@ -360,7 +360,7 @@ abstract interface class IngredientRepository {
   Stream<int> watchVocabularyCount();
 
   /// The household's distinct live categories, alphabetical — the flesh-out
-  /// form's category dropdown (plan 0020 **F3**).
+  /// form's category dropdown.
   ///
   /// The vocabulary *is* the category list: there is no separate table, and
   /// inventing one would leave two places to disagree about whether "produce"
@@ -369,9 +369,9 @@ abstract interface class IngredientRepository {
   /// are what free text left behind, and they are not a category.
   Stream<List<String>> watchCategories();
 
-  /// Applies a whole form in ONE transaction (plan 0029 W3): the row's
-  /// fields, the density, measures added and removed, aliases, "Counts as",
-  /// and — when [IngredientFormEdit.markComplete] — the status flip.
+  /// Applies a whole form in ONE transaction: the row's fields, the density,
+  /// measures added and removed, aliases, "Counts as", and — when
+  /// [IngredientFormEdit.markComplete] — the status flip.
   ///
   /// **A null [ingredientId] creates the row** (plan 0029 **C1**). That is
   /// the whole reason the form defers: with nothing written until Save, a

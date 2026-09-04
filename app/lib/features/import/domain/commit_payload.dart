@@ -4,9 +4,9 @@
 ///
 /// **Every line has exactly one identity** (migration 0017's
 /// `line_item_identity_xor`): either an existing `ingredientId` — a row the
-/// vocabulary already holds, including one the review just created through
-/// the New-ingredient sheet and the flesh-out form (plan 0025 D3) — or a
-/// `subRecipeId`, the household recipe a review-linked line points at (step
+/// vocabulary already holds, including one the review just created through the
+/// New-ingredient sheet and the flesh-out form — or a `subRecipeId`, the
+/// household recipe a review-linked line points at (step
 /// 8.6 / D1 · D6). The commit creates no ingredient of its own: the
 /// `import_stub` leg that minted a coalesced row per unmatched name retired
 /// with D3, so no line can arrive here without a real id.
@@ -43,10 +43,10 @@ abstract class CommitLine with _$CommitLine {
     String? unit,
     String? note,
 
-    /// The recipe says this line may be left out (plan 0025 / D6b) — seeded
-    /// from the extractor's raw flag, toggled at review, written to
-    /// `recipe_line_item.optional`. Always false on a component line: an
-    /// optional sub-recipe is a week-level question, not a line fact.
+    /// The recipe says this line may be left out — seeded from the extractor's
+    /// raw flag, toggled at review, written to `recipe_line_item.optional`.
+    /// Always false on a component line: an optional sub-recipe is a week-level
+    /// question, not a line fact.
     @Default(false) bool optional,
   }) = _CommitLine;
 }
@@ -76,12 +76,12 @@ abstract class CommitPayload with _$CommitPayload {
     required double servingsBase,
     String? servingsRaw,
 
-    /// What one batch MAKES, as the review's header states it (8.6 / D2 ·
-    /// D9, board frame h) — prefilled from `yield_raw` only when that was a
-    /// plain amount + unit, and otherwise whatever the human typed, or
-    /// nothing. Both halves or neither: a half-stated yield is half a fact.
-    /// The SECOND denomination is the editor's affordance, now at review too
-    /// (plan 0025 #4): the same header form, so the same two slots.
+    /// What one batch MAKES, as the review's header states it (8.6 / D2 · D9,
+    /// board frame h) — prefilled from `yield_raw` only when that was a plain
+    /// amount + unit, and otherwise whatever the human typed, or nothing. Both
+    /// halves or neither: a half-stated yield is half a fact. The SECOND
+    /// denomination is the editor's affordance, now at review too: the same
+    /// header form, so the same two slots.
     double? yieldQty,
     Unit? yieldUnit,
     double? yieldQty2,

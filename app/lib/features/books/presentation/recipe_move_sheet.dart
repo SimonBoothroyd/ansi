@@ -1,4 +1,4 @@
-/// "Move to…" — re-filing ONE recipe, from the Library (plan 0028 E8).
+/// "Move to…" — re-filing ONE recipe, from the Library.
 ///
 /// The act already existed in bulk: the delete refusal's door is
 /// `moveBookContents`, every recipe in a book re-filed and announced before it

@@ -1,12 +1,12 @@
 /// [PlanningRepository] over the local PowerSync SQLite (offline in step 4).
 ///
-/// Reads assemble `week_plan` / `plan_entry` / `recipe` rows into the [WeekPlan]
-/// aggregate and react to local writes via `watch`. Writes are small, targeted
-/// INSERT/UPDATE: never `INSERT ... ON CONFLICT`, which PowerSync's view-backed
-/// local tables reject (a regression test under `test/core/sync/` pins that).
-/// Deletes are soft (tombstone), spec §3. The one write to a server-owned
-/// table is `household_member.portion_factor` (plan 0027) — the column the
-/// server grants UPDATE on, and nothing else on that row.
+/// Reads assemble `week_plan` / `plan_entry` / `recipe` rows into the
+/// [WeekPlan] aggregate and react to local writes via `watch`. Writes are
+/// small, targeted INSERT/UPDATE: never `INSERT ... ON CONFLICT`, which
+/// PowerSync's view-backed local tables reject (a regression test under
+/// `test/core/sync/` pins that). Deletes are soft (tombstone), spec §3. The one
+/// write to a server-owned table is `household_member.portion_factor` — the
+/// column the server grants UPDATE on, and nothing else on that row.
 library;
 
 import 'dart:convert';
@@ -279,10 +279,10 @@ class SqlitePlanningRepository implements PlanningRepository {
   String _now() => DateTime.now().toUtc().toIso8601String();
 }
 
-/// The household's live members in display order, with their portion factors
-/// (plan 0027). Shared with the cook-plan and shopping repositories, which
-/// derive the same demand from the same rows — a factor read three ways would
-/// be three places to drift.
+/// The household's live members in display order, with their portion factors.
+/// Shared with the cook-plan and shopping repositories, which derive the same
+/// demand from the same rows — a factor read three ways would be three places
+/// to drift.
 ///
 /// A row without a factor (a local test insert; a device mid-sync before
 /// `0026` reached it) reads `1`, the column's own default — never a zero that

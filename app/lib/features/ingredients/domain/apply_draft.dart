@@ -110,10 +110,10 @@ class DraftApplication {
   /// named none); null when neither lands.
   final MacrosBasis? macrosBasis;
 
-  /// A panel printed per serving to land on the host's per-serving mode
-  /// (plan 0027 M-D5) — the same slot [macros] fills, so the same rule: null
-  /// when the human's panel stays. [macros] is null whenever this is set;
-  /// the per-100 reading is the host's to derive, in front of the person.
+  /// A panel printed per serving to land on the host's per-serving mode — the
+  /// same slot [macros] fills, so the same rule: null when the human's panel
+  /// stays. [macros] is null whenever this is set; the per-100 reading is the
+  /// host's to derive, in front of the person.
   final DraftServingPanel? servingPanel;
 
   /// The provenance to write (`off:<barcode>`), or null to keep the stored one.

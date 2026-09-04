@@ -822,13 +822,13 @@ Future<void> editLineAmount(
       loaded = null; // never leave the tap inert — fall back to a stand-in
     }
     try {
-      // Straight off the repository, NOT through the measures stream provider
-      // (plan 0020 **J2**). That read only ever worked because
-      // `importValidation` happened to be holding the same watch open: on its
-      // own it mints an autoDispose element with nothing listening, and a
-      // PowerSync watch does not emit before the element is collected — so the
-      // future completed with a `StateError`, the catch below turned it into
-      // "no measures", and the one-tap measure repair silently did nothing.
+      // Straight off the repository, NOT through the measures stream provider.
+      // That read only ever worked because `importValidation` happened to be
+      // holding the same watch open: on its own it mints an autoDispose element
+      // with nothing listening, and a PowerSync watch does not emit before the
+      // element is collected — so the future completed with a `StateError`, the
+      // catch below turned it into "no measures", and the one-tap measure
+      // repair silently did nothing.
       measures =
           (await ref.read(measureRepositoryProvider).measuresByIngredients({
             chosenId,
@@ -1089,10 +1089,10 @@ class Resolver extends StatelessWidget {
 
   final LineResolution resolution;
 
-  /// Resolves the line to a vocabulary row — a candidate, a search hit, or
-  /// the row the create-new chain just made (plan 0025 D3, frame d): the
-  /// New-ingredient sheet, the flesh-out form pushed over it, back, and the
-  /// line lands on that row as the ordinary matched state.
+  /// Resolves the line to a vocabulary row — a candidate, a search hit, or the
+  /// row the create-new chain just made: the New-ingredient sheet, the
+  /// flesh-out form pushed over it, back, and the line lands on that row as the
+  /// ordinary matched state.
   final void Function(String id, String name, {required bool correction})
   onResolveExisting;
 
@@ -1392,9 +1392,9 @@ class _Pill extends StatelessWidget {
 
 // --- The seeded search / create-new sheet ------------------------------------
 
-/// A reconciliation pick: a server candidate, or an existing vocab ingredient
-/// — which is also what the create-new footer hands back, once the row exists
-/// and the flesh-out form has been walked (plan 0025 D3).
+/// A reconciliation pick: a server candidate, or an existing vocab ingredient —
+/// which is also what the create-new footer hands back, once the row exists and
+/// the flesh-out form has been walked.
 sealed class ReconcilePick {
   const ReconcilePick();
 }

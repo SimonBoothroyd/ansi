@@ -18,10 +18,10 @@ import 'ingredient.dart';
 
 /// Kitchen display order within each family: the units a cook reaches for
 /// first, ahead of metric jugs and customary conversions. The default unit is
-/// always fronted; the rest of its admitted family follows in this order.
-/// The US pair (`pt`, `qt`) sits behind the metric jugs: they are admitted
-/// for the stock and cream lines American recipes print (plan 0025 D2), not
-/// fronted over what this kitchen measures in.
+/// always fronted; the rest of its admitted family follows in this order. The
+/// US pair (`pt`, `qt`) sits behind the metric jugs: they are admitted for the
+/// stock and cream lines American recipes print, not fronted over what this
+/// kitchen measures in.
 const _kitchenOrder = {
   UnitFamily.volume: [tsp, tbsp, cup, ml, l, pint, quart, flOz],
   UnitFamily.mass: [g, kg, oz, lb, mg],
@@ -75,13 +75,13 @@ const _crossKitchen = {
 /// spice/seasoning/oil classes; handful is for greens** — that is how cooks
 /// actually talk.
 ///
-/// Keys are the vocab's ACTUAL category values (`produce`, `pantry`,
-/// `spices & seasoning`, `grains`, `baking`, `fats & oils`, `dairy`,
-/// `proteins`). It has no separate 'condiment' category (plan 0013 note), and
-/// no leafy/greens category either — `produce` is the nearest thing the
-/// vocabulary can express, so it is what `handful` is gated on; a tighter
-/// gate would need the seed to split the category, not this map to grow.
-/// Condiment-ish pantry rows get theirs via curation overrides.
+/// Keys are the vocab's ACTUAL category values (`produce`, `pantry`, `spices &
+/// seasoning`, `grains`, `baking`, `fats & oils`, `dairy`, `proteins`). It has
+/// no separate 'condiment' category, and no leafy/greens category either —
+/// `produce` is the nearest thing the vocabulary can express, so it is what
+/// `handful` is gated on; a tighter gate would need the seed to split the
+/// category, not this map to grow. Condiment-ish pantry rows get theirs via
+/// curation overrides.
 const kImpreciseCategoryGates = <Unit, Set<String>>{
   pinch: {'spices & seasoning', 'fats & oils'},
   dash: {'spices & seasoning', 'fats & oils'},
@@ -226,12 +226,12 @@ bool _isBig(Unit d) =>
 /// What a stored density actually buys [ingredient]: the whole rule read with
 /// the density on, minus the whole rule read with it off.
 ///
-/// Derived rather than listed (plan 0020 **D4c**), which is what keeps it
-/// honest in both directions — the density write path unions exactly this
-/// into the EXPLICIT `allowed_units` list, and [densityStrippedUnits] takes
-/// exactly this back. Before D4c this was the cross-family leg alone, and a
-/// density landing on a cup-default per-100 g row unioned `g` (already
-/// admitted) while leaving `cup` — the row's OWN default — unadmitted.
+/// Derived rather than listed, which is what keeps it honest in both directions
+/// — the density write path unions exactly this into the EXPLICIT
+/// `allowed_units` list, and [densityStrippedUnits] takes exactly this back.
+/// Before D4c this was the cross-family leg alone, and a density landing on a
+/// cup-default per-100 g row unioned `g` (already admitted) while leaving `cup`
+/// — the row's OWN default — unadmitted.
 ///
 /// - Mango (piece default, per-g macros) → `tsp, tbsp, cup, pt, ml`.
 /// - Flour (cup default, per-g macros) → `cup, tbsp, ml, l, pt, qt`: since
@@ -243,7 +243,7 @@ Set<Unit> densityUnlockedUnits(Ingredient ingredient) => _derivedSet(
 ).difference(_derivedSet(ingredient, density: false));
 
 /// The units an ingredient admits **only because a density is stored** — what
-/// deleting that density takes away again (plan 0020 **D4b**).
+/// deleting that density takes away again.
 ///
 /// The same rule as [densityUnlockedUnits], read in the opposite direction:
 /// what a density adds is exactly what deleting it removes. The **basis

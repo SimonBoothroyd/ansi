@@ -55,11 +55,10 @@ class ImportReconciling extends ImportState {
   final ReconciliationPayload payload;
   final List<LineResolution> resolutions;
 
-  /// The header draft (plan 0025 #4, board frame b): title, serves, makes in
-  /// up to two denominations, times, shelf life and filing, as the shared
-  /// header form edits them — seeded by [headerDraft], every column read off
-  /// it at commit. The preview recipe is this same object with the lines on
-  /// it, earlier.
+  /// The header draft: title, serves, makes in up to two denominations, times,
+  /// shelf life and filing, as the shared header form edits them — seeded by
+  /// [headerDraft], every column read off it at commit. The preview recipe is
+  /// this same object with the lines on it, earlier.
   ///
   /// None of it gates Save. A yield-less, time-less recipe saves, links and
   /// scales; only the derived numbers wait.
@@ -230,10 +229,9 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     final Map<String, Ingredient> vocab;
     final Map<String, List<Measure>> measuresById;
     try {
-      // Both repositories are resolved BEFORE the first await and read
-      // straight off their keepAlive providers — never a stream provider
-      // (plan 0020 J2), and never a `ref.read` after an await
-      // ([mise-riverpod-notifier-ref-after-async]).
+      // Both repositories are resolved BEFORE the first await and read straight
+      // off their keepAlive providers — never a stream provider, and never a
+      // `ref.read` after an await ([mise-riverpod-notifier-ref-after-async]).
       final vocabRepo = ref.read(ingredientRepositoryProvider);
       final measureRepo = ref.read(measureRepositoryProvider);
       vocab = await vocabRepo.byIds(matchedIds);
@@ -434,16 +432,15 @@ String importValidationKey(Ref ref) {
 /// data across a refresh), never a data-only view that goes null mid-recompute.
 ///
 /// The whole import's vocab and the whole import's measures are each fetched in
-/// ONE repository query — never N round-trips down the line list, and (plan
-/// 0020 **J2**) never through the per-ingredient measure STREAM providers.
-/// Those are autoDispose, PowerSync's `watch` does not emit synchronously, and
-/// an element disposed before its first emission completes `.future` with a
-/// `StateError` — which this loader caught and turned into "no measures", so
-/// "1 clove" of a garlic row that carries a `clove` measure validated against
-/// an empty list and was flagged "Pick a supported unit". A plain read has no
-/// element to lose. Nothing is swallowed now either: a query that genuinely
-/// fails surfaces as the provider's error rather than as a screen full of
-/// wrongly-flagged lines.
+/// ONE repository query — never N round-trips down the line list, and never
+/// through the per-ingredient measure STREAM providers. Those are autoDispose,
+/// PowerSync's `watch` does not emit synchronously, and an element disposed
+/// before its first emission completes `.future` with a `StateError` — which
+/// this loader caught and turned into "no measures", so "1 clove" of a garlic
+/// row that carries a `clove` measure validated against an empty list and was
+/// flagged "Pick a supported unit". A plain read has no element to lose.
+/// Nothing is swallowed now either: a query that genuinely fails surfaces as
+/// the provider's error rather than as a screen full of wrongly-flagged lines.
 @riverpod
 Future<Map<int, LineValidation>> importValidation(Ref ref) async {
   ref.watch(importValidationKeyProvider);

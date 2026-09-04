@@ -1,6 +1,6 @@
-/// Recipe macro summation — PURE DART (invariant 2). Pulled forward from
-/// step 9 (plan 0011) to feed the recipe picker's honest per-serving row;
-/// the recipe-page macro panel remains step 9.
+/// Recipe macro summation — PURE DART (invariant 2). Pulled forward from step 9
+/// to feed the recipe picker's honest per-serving row; the recipe-page macro
+/// panel remains step 9.
 ///
 /// Sums a recipe's line items against the vocab's per-100 macros, honouring
 /// each ingredient's stored basis (`macros_basis`, migration 0011):
@@ -101,9 +101,9 @@ enum MacroLineReason {
   /// [RecipeMacroSummary.incomplete].
   imprecise,
 
-  /// The recipe marks the line optional (plan 0025 / D6b): left out by the
-  /// [effectiveLines] seam, by rule, and named under the total. The other
-  /// reason that does NOT make a summary incomplete.
+  /// The recipe marks the line optional: left out by the [effectiveLines] seam,
+  /// by rule, and named under the total. The other reason that does NOT make a
+  /// summary incomplete.
   optional,
 }
 
@@ -168,11 +168,10 @@ class RecipeMacroSummary {
   /// imprecise summed nothing, and `0 kcal` there would be a fabrication.
   final int impreciseLines;
 
-  /// Lines excluded BY RULE because the recipe marks them optional (plan 0025
-  /// / D6b) — dropped by the [effectiveLines] seam before anything else looks
-  /// at them, and named under the total beside the imprecise ones. Like
-  /// [impreciseLines] it never makes the summary [incomplete]; it shares the
-  /// [nothingWeighable] guard.
+  /// Lines excluded BY RULE because the recipe marks them optional — dropped by
+  /// the [effectiveLines] seam before anything else looks at them, and named
+  /// under the total beside the imprecise ones. Like [impreciseLines] it never
+  /// makes the summary [incomplete]; it shares the [nothingWeighable] guard.
   final int optionalLines;
 
   /// Every excluded line, named, in line order (seam **D5**). The panel's

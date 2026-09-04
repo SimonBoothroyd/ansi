@@ -1,5 +1,5 @@
-/// The Open Food Facts reader, as a provider — the barcode path's one
-/// injection seam (plan 0020 D2, scenario-5 option A).
+/// The Open Food Facts reader, as a provider — the barcode path's one injection
+/// seam.
 ///
 /// `scanBarcodeForDraft` and the New-ingredient sheet already take an
 /// [OffLookup] parameter, which is how the *widget* tests reach in. That hook

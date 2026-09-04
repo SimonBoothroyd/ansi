@@ -1,6 +1,6 @@
-/// The macros section's **per-serving** mode (plan 0027 M-D1) — the pieces
-/// both hosts draw: the serving row ("One serving is 14 g · 1 Tbsp on the
-/// pack") and the stored-line preview under the four fields.
+/// The macros section's **per-serving** mode — the pieces both hosts draw: the
+/// serving row ("One serving is 14 g · 1 Tbsp on the pack") and the stored-line
+/// preview under the four fields.
 ///
 /// The flesh-out form owns the mode; the New-ingredient sheet draws the row
 /// under a barcode draft whose panel came per serving (M-D5). The arithmetic
@@ -114,9 +114,8 @@ class ServingRow extends StatelessWidget {
       children: [
         Text('One serving is', style: ansiMono(size: 11)),
         const SizedBox(height: 6),
-        // A Wrap (plan 0020 G2): amount · g · ml · the name field is wider
-        // than a phone with the keyboard up, and a Row cannot give room it
-        // has not got.
+        // A Wrap: amount · g · ml · the name field is wider than a phone with
+        // the keyboard up, and a Row cannot give room it has not got.
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 6,

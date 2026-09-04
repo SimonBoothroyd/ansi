@@ -1,5 +1,5 @@
-/// Open Food Facts payload → [IngredientDraft] — PURE DART (invariant 2), so
-/// it is tested off committed fixtures with no network (plan 0020 D2).
+/// Open Food Facts payload → [IngredientDraft] — PURE DART (invariant 2), so it
+/// is tested off committed fixtures with no network.
 ///
 /// The mapping is deliberately narrow. OFF returns hundreds of nutriment
 /// keys, several of which *look* like the ones we want; this file reads four
@@ -59,13 +59,12 @@ _Panel _readPanel(Map<String, Object?> p) {
   final n = p['nutriments'];
   final nutriments = n is Map<String, Object?> ? n : const <String, Object?>{};
 
-  // A per-serving panel (plan 0027 M-D5): the four printed figures ride
-  // through as printed, with OFF's numeric `serving_quantity` when it has
-  // one. Never a per-100 figure from here — the serving's mass is what the
-  // conversion needs, and `serving_size` is free text ("1 serving (16 fl
-  // oz)") that is never parsed into a number. The host lands the panel on
-  // the form's per-serving mode and does the arithmetic in front of the
-  // person holding the pack.
+  // A per-serving panel: the four printed figures ride through as printed, with
+  // OFF's numeric `serving_quantity` when it has one. Never a per-100 figure
+  // from here — the serving's mass is what the conversion needs, and
+  // `serving_size` is free text ("1 serving (16 fl oz)") that is never parsed
+  // into a number. The host lands the panel on the form's per-serving mode and
+  // does the arithmetic in front of the person holding the pack.
   if (per == 'serving') {
     final printed = _four(nutriments, '_serving');
     if (printed == null) {

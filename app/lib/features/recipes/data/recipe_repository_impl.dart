@@ -729,9 +729,9 @@ class SqliteRecipeRepository implements RecipeRepository {
                 item.unit.id,
                 measureId,
                 item.note,
-                // Written on every kept line, so a flag flipped in the
-                // editor is a change like any other field (plan 0025 #6).
-                // A component line never carries it (D6b's stated scope).
+                // Written on every kept line, so a flag flipped in the editor
+                // is a change like any other field. A component line never
+                // carries it (D6b's stated scope).
                 if (item.optional && !component) 1 else 0,
                 li,
                 now,

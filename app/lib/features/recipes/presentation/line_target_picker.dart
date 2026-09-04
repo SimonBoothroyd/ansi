@@ -228,10 +228,10 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
             ),
         ],
       ),
-      // The add-new chain (plan 0025 D3): sheet → flesh-out form → back, and
-      // only then does this sheet resolve — so the editor's `_addLine`
-      // continues into the quantity sheet AFTER the form, on the units the
-      // form set. The row handed over is the re-read one.
+      // The add-new chain: sheet → flesh-out form → back, and only then does
+      // this sheet resolve — so the editor's `_addLine` continues into the
+      // quantity sheet AFTER the form, on the units the form set. The row
+      // handed over is the re-read one.
       footer: AddNewIngredientRow(
         query: search.query,
         onCreated: (ing) => Navigator.of(context).pop(PickedIngredient(ing)),

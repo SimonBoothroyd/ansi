@@ -73,8 +73,8 @@ class SqliteCookPlanRepository implements CookPlanRepository {
     );
 
     // A meal's demand is Σ of its eaters' portion factors unless the entry's
-    // override is set (plan 0027 P-D1) — the same `eatersDemand` the Week's
-    // sheets and macro lens read, so the cook plan never disagrees with them.
+    // override is set — the same `eatersDemand` the Week's sheets and macro
+    // lens read, so the cook plan never disagrees with them.
     final members = {for (final m in await loadMembers(_db)) m.id: m};
 
     // Group meals by recipe, preserving first-seen recipe order (buildCookPlan

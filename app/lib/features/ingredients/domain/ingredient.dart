@@ -85,7 +85,7 @@ abstract class Ingredient with _$Ingredient {
 bool isUsdaPrefilled(String? source) =>
     source?.startsWith('usda_fdc:') ?? false;
 
-/// The `source` a person's *Not this food* leaves behind (plan 0027 U-D2).
+/// The `source` a person's *Not this food* leaves behind.
 ///
 /// Its own value rather than a reset to `manual` because the rename trigger's
 /// WHEN clause (0015) listed the sources it could refill — `manual` among

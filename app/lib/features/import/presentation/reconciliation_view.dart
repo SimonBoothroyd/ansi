@@ -51,12 +51,12 @@ class ReconciliationBody extends HookConsumerWidget {
     final issuesByLine = byLine == null
         ? null
         : {for (final e in byLine.entries) e.key: e.value.issues};
-    // The method's step cards read the same recipe a save would write — so
-    // the "Reads as" fold shows live amounts, and a chip keyed on
+    // The method's step cards read the same recipe a save would write — so the
+    // "Reads as" fold shows live amounts, and a chip keyed on
     // `previewLineId(i)` resolves without any extra plumbing (seam D4). The
     // measure a line's unit names rides in from the SAME validation map the
-    // card prints it from, so the chip sheet cannot say "piece" where the
-    // card says "avocado" (plan 0025 #5).
+    // card prints it from, so the chip sheet cannot say "piece" where the card
+    // says "avocado".
     final recipe = buildPreviewRecipe(
       payload,
       state.resolutions,
@@ -120,9 +120,9 @@ class ReconciliationBody extends HookConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
       children: [
-        // The never-invent strip sits ABOVE the form (plan 0025, frame b):
-        // with the title an editable field now, it reads as "about the whole
-        // import" before the fields begin.
+        // The never-invent strip sits ABOVE the form: with the title an
+        // editable field now, it reads as "about the whole import" before the
+        // fields begin.
         _SourceNotes(payload: payload),
         // The editor's header, hosted by the controller (D4). What only the
         // review knows is drawn around it through the note slot, not inside

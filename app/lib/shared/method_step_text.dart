@@ -73,8 +73,8 @@ class MethodStepText extends StatelessWidget {
   ///
   /// The names used to be joined into ONE chip label, which the line breaker
   /// could not split: a seven-ingredient catch-all ran straight off the screen
-  /// on the owner's phone (plan 0020 J1). Same mechanics as
-  /// [_constituentSpans] — one span per chip, real text between them.
+  /// on the owner's phone. Same mechanics as [_constituentSpans] — one span per
+  /// chip, real text between them.
   Iterable<InlineSpan> _collectiveRun(
     List<String> names,
     String? amount,

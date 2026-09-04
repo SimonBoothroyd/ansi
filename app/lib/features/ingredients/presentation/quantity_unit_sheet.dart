@@ -51,11 +51,10 @@ sealed class QuantitySheetResult {
   const QuantitySheetResult();
 }
 
-/// The user confirmed a quantity + unit choice. [unitPicked] is true only
-/// when a chip was explicitly tapped — callers preserving an unresolved
-/// `measure_id` (the degrade-don't-destroy rule) clear it only then.
-/// [optional] is the Optional switch's final state (plan 0025 / D6a) — false
-/// for a host that did not offer the row.
+/// The user confirmed a quantity + unit choice. [unitPicked] is true only when
+/// a chip was explicitly tapped — callers preserving an unresolved `measure_id`
+/// (the degrade-don't-destroy rule) clear it only then. [optional] is the
+/// Optional switch's final state — false for a host that did not offer the row.
 final class QuantitySaved extends QuantitySheetResult {
   const QuantitySaved({
     required this.choice,
@@ -836,10 +835,9 @@ class _MeasureManager extends HookConsumerWidget {
         DensityEntry(
           ingredient: ingredient,
           redirectedSpoon: redirected.value,
-          // This host has no Save of its own — you are managing the
-          // vocabulary in the middle of picking a unit for a line — so it
-          // commits on tap, and its button goes on saying `Save` because that
-          // is what it does (plan 0029 W2/R3).
+          // This host has no Save of its own — you are managing the vocabulary
+          // in the middle of picking a unit for a line — so it commits on tap,
+          // and its button goes on saying `Save` because that is what it does.
           onSave: (gPerMl) async {
             final updated = await ref.write(
               context,

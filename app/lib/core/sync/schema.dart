@@ -85,9 +85,9 @@ const schema = Schema([
     Column.text('measure_id'), // → ingredient_measure.id (nullable, step 7.6)
     Column.text('note'),
     Column.integer('sort_order'),
-    // 0/1 (plan 0025 / D6b): the recipe says this line may be left out.
-    // Excluded from macros and the shop list and NAMED there; the cook plan
-    // ignores it. Same 0/1 shape as `favorite` and `freezable`.
+    // 0/1: the recipe says this line may be left out. Excluded from macros and
+    // the shop list and NAMED there; the cook plan ignores it. Same 0/1 shape
+    // as `favorite` and `freezable`.
     Column.integer('optional'),
     ..._audit,
   ]),

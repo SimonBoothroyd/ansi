@@ -20,7 +20,7 @@
 /// display names of the lines it stands for — so "onion mixture" can render as
 /// `onion mixture (onion, celery, green bell pepper)` rather than hiding what
 /// went into it. A collective with no label of its own is nothing BUT its
-/// constituents, and renders as the bare run (plan 0020 **J1**).
+/// constituents, and renders as the bare run.
 library;
 
 // The library doc above spells out the fold rules as prose; a few of its
@@ -196,9 +196,9 @@ List<MethodSpan> foldMethod(
 /// ref therefore falls back to that line item's ingredient name.
 ///
 /// A blank label on a COLLECTIVE stays blank and lets [_constituents] carry the
-/// names (plan 0020 **J1**): joining them here made one chip label out of seven
-/// ingredients, and a chip is one atomic box to the line breaker, so it ran
-/// clean off a phone screen instead of wrapping.
+/// names: joining them here made one chip label out of seven ingredients, and a
+/// chip is one atomic box to the line breaker, so it ran clean off a phone
+/// screen instead of wrapping.
 ///
 /// Still an id lookup, never render-time text matching (ADR-0004).
 String _chipLabel(

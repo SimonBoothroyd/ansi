@@ -3,7 +3,7 @@
 /// was left alone because a human had already filled that field in.
 ///
 /// Drawn by both hosts that take a draft — the New-ingredient sheet and the
-/// flesh-out form (plan 0025 #8) — so the two read alike.
+/// flesh-out form — so the two read alike.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -74,10 +74,10 @@ class DraftCard extends StatelessWidget {
               style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           ] else if (serving != null) ...[
-            // A per-serving panel (plan 0027 M-D5): the four as printed, and
-            // what OFF knows about the serving. The per-100 reading is the
-            // host's to derive — in front of the person, from a serving
-            // amount they can see and change.
+            // A per-serving panel: the four as printed, and what OFF knows
+            // about the serving. The per-100 reading is the host's to derive —
+            // in front of the person, from a serving amount they can see and
+            // change.
             Text(formatMacroLine(serving.printed), style: ansiMono(size: 12)),
             const SizedBox(height: 2),
             Text(

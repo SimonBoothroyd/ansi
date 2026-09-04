@@ -9,10 +9,10 @@
 /// import can never reach PowerSync.
 ///
 /// A line resolves to a row that EXISTS. "Create new" at review is not a
-/// resolution state any more (plan 0025 D3): it opens the New-ingredient sheet
-/// and the flesh-out form, and the line then resolves to that row like any
-/// other — so the commit-time stub leg (`CommitStub`, coalescing by name) has
-/// no input and is gone.
+/// resolution state any more: it opens the New-ingredient sheet and the
+/// flesh-out form, and the line then resolves to that row like any other — so
+/// the commit-time stub leg (`CommitStub`, coalescing by name) has no input and
+/// is gone.
 ///
 /// A line the user DROPPED is the one exception, and it is one everywhere at
 /// once: it is excluded from validation, from the Save gate, and from the
@@ -118,11 +118,11 @@ class LineResolution {
   /// Cleared the moment the user touches the unit ([pickUnit], [setAmount]).
   final bool unitFromDefault;
 
-  /// The recipe says this line may be left out (plan 0025 / D6b) — seeded
-  /// from the extractor's raw flag, toggled in the amount sheet at review,
-  /// committed to `recipe_line_item.optional`. Always false while the line is
-  /// a component ([linkToRecipe] clears it): an optional sub-recipe is a
-  /// week-level question, not a line fact.
+  /// The recipe says this line may be left out — seeded from the extractor's
+  /// raw flag, toggled in the amount sheet at review, committed to
+  /// `recipe_line_item.optional`. Always false while the line is a component
+  /// ([linkToRecipe] clears it): an optional sub-recipe is a week-level
+  /// question, not a line fact.
   final bool optional;
 
   /// Whether this line is a sub-recipe COMPONENT (step 8.6 / D1) rather than
@@ -223,8 +223,8 @@ class LineResolution {
     optional: false,
   );
 
-  /// Marks the line optional, or not — the amount sheet's switch at review
-  /// (plan 0025 / D6a). A fact about the line, not its amount.
+  /// Marks the line optional, or not — the amount sheet's switch at review. A
+  /// fact about the line, not its amount.
   LineResolution setOptional({required bool optional}) =>
       copyWith(optional: optional);
 
@@ -339,8 +339,8 @@ LineResolution initialResolution(int lineIndex, ReconLine line) {
     chosenIngredientId: adopt ? top.ingredientId : null,
     chosenName: adopt ? top.canonicalName : null,
     quantity: isRange ? null : raw.qty,
-    // The extractor's flag is the starting state (plan 0025 #6) — a human
-    // may untick it at review, and the card keeps showing the raw tag.
+    // The extractor's flag is the starting state — a human may untick it at
+    // review, and the card keeps showing the raw tag.
     optional: raw.optional,
   );
 }
@@ -414,11 +414,11 @@ const kLowConfidenceFloor = 0.75;
 /// where nobody touched the method — the payload's own steps ride through
 /// unchanged.
 ///
-/// [header] is the review's header draft (plan 0025 #4): title, serves,
-/// makes in up to two denominations, times, shelf life and filing, as the
-/// shared header form left them. Every header column the editor's save
-/// writes is read off it. None of it gates Save: a yield-less, time-less
-/// recipe saves, links and scales; only derived numbers wait (D2).
+/// [header] is the review's header draft: title, serves, makes in up to two
+/// denominations, times, shelf life and filing, as the shared header form left
+/// them. Every header column the editor's save writes is read off it. None of
+/// it gates Save: a yield-less, time-less recipe saves, links and scales; only
+/// derived numbers wait (D2).
 CommitPayload buildCommit(
   ReconciliationPayload payload,
   List<LineResolution> resolutions, {

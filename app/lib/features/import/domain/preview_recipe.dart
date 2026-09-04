@@ -38,14 +38,13 @@ String previewLineId(int index) => '$kPreviewLinePrefix$index';
 ///
 /// [measureByLine] is the measure each line's unit NAMES, by flat line index —
 /// the review's validation already resolved it once for the whole import
-/// (`LineValidation.unitMeasure`), and the preview takes that same value
-/// rather than re-deriving it, so the card and the chip sheet cannot disagree.
-/// A line with a measure previews exactly as commit writes it (`unit =
-/// 'piece'` + `measure_id`, migration 0009): its formatter reads the measure
-/// label, not "piece". A measure word is not a catalogue unit id, so without
-/// this it degraded to a bare count — right at commit, wrong on the sheet
-/// (plan 0025 #5). A component line never carries one, whatever the map says,
-/// mirroring the commit guard.
+/// (`LineValidation.unitMeasure`), and the preview takes that same value rather
+/// than re-deriving it, so the card and the chip sheet cannot disagree. A line
+/// with a measure previews exactly as commit writes it (`unit = 'piece'` +
+/// `measure_id`, migration 0009): its formatter reads the measure label, not
+/// "piece". A measure word is not a catalogue unit id, so without this it
+/// degraded to a bare count — right at commit, wrong on the sheet. A component
+/// line never carries one, whatever the map says, mirroring the commit guard.
 Recipe buildPreviewRecipe(
   ReconciliationPayload payload,
   List<LineResolution> resolutions, {
@@ -90,8 +89,8 @@ Recipe buildPreviewRecipe(
           measure: measure,
           quantity: r.quantity,
           note: (r.notes?.trim().isEmpty ?? true) ? null : r.notes!.trim(),
-          // The preview tags the line as the page will (plan 0025 / D6b);
-          // the commit guard's rule for a component, mirrored.
+          // The preview tags the line as the page will; the commit guard's rule
+          // for a component, mirrored.
           optional: !r.isComponent && r.optional,
         ),
       );

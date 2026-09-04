@@ -81,7 +81,7 @@ typedef UnresolvedComponentNote = ({
   int count,
 });
 
-/// One planned recipe's "N optional lines not listed" echo (plan 0025 / D6b).
+/// One planned recipe's "N optional lines not listed" echo.
 ///
 /// An optional line contributes NOTHING to the list — the `effectiveLines`
 /// seam dropped it before the session was expanded — and the recipe it
@@ -235,8 +235,8 @@ abstract class ShoppingGroup with _$ShoppingGroup {
 
 /// The whole shopping list, grouped by aisle, plus the per-parent
 /// [unresolvedComponents] echo (step 8.6 / D4) and the per-recipe
-/// [optionalLines] echo (plan 0025 / D6b) — what the list is short by, and
-/// why it is silent about it.
+/// [optionalLines] echo — what the list is short by, and why it is silent about
+/// it.
 @freezed
 abstract class ShoppingList with _$ShoppingList {
   const ShoppingList._();
@@ -505,19 +505,19 @@ String cookLabel(CookContributionInput c, List<String> weekdayShort) {
 /// cook one or a manual one) or is a free-text item — so an ingredient whose
 /// recipe was deleted (leaving only a stale checked row) drops off the list.
 ///
-/// Two live entries for the same ingredient can exist (two offline devices
-/// each touching Flour, merged later — no unique index guards this, by design:
-/// one would make the offline dupe fail upload and lose data). They are merged
+/// Two live entries for the same ingredient can exist (two offline devices each
+/// touching Flour, merged later — no unique index guards this, by design: one
+/// would make the offline dupe fail upload and lose data). They are merged
 /// deterministically here: manual contributions are unioned, checked is
-/// any-checked, and the oldest row (created_at, id) is the canonical entry —
-/// so no device silently drops the other's top-ups or check-off.
+/// any-checked, and the oldest row (created_at, id) is the canonical entry — so
+/// no device silently drops the other's top-ups or check-off.
 /// [unresolvedComponents] is carried through to the built list untouched — the
 /// cook plan's gaps, counted per planned recipe (step 8.6 / D4). So is
-/// [optionalLines] (plan 0025 / D6b): the lines the `effectiveLines` seam
-/// dropped before [cook] was derived, named per recipe. The builder never
-/// sees an optional line as a contribution — the drop happens at the seam,
-/// once, where the per-week override will later join — it only carries the
-/// echo so the list can say what it left out.
+/// [optionalLines]: the lines the `effectiveLines` seam dropped before [cook]
+/// was derived, named per recipe. The builder never sees an optional line as a
+/// contribution — the drop happens at the seam, once, where the per-week
+/// override will later join — it only carries the echo so the list can say what
+/// it left out.
 ShoppingList buildShoppingList({
   required List<CookContributionInput> cook,
   required List<ShoppingEntryInput> entries,

@@ -84,11 +84,11 @@ Future<Ingredient?> lineItemIngredient(
 /// blank form filed into two different sections is two drafts.
 ///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-/// every member of that interface was already here, written for the step
-/// cards. The import review's adapter implements the same surface, so the
-/// cards can host on either screen without two of them existing. The same
-/// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
-/// this notifier here and over the import controller at review.
+/// every member of that interface was already here, written for the step cards.
+/// The import review's adapter implements the same surface, so the cards can
+/// host on either screen without two of them existing. The same holds for
+/// [RecipeHeaderHost]: the header form renders over this notifier here and over
+/// the import controller at review.
 @riverpod
 class RecipeEditor extends _$RecipeEditor
     implements MethodEditing, RecipeHeaderHost {

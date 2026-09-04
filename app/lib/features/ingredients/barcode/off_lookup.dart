@@ -1,4 +1,4 @@
-/// The Open Food Facts product read, run **on the device** (plan 0020 D2).
+/// The Open Food Facts product read, run **on the device**.
 ///
 /// It is a keyless, free, public GET, so the two reasons `import-recipe` is
 /// an edge function — it holds an API key, and it spends money per call —

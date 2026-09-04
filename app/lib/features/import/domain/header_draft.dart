@@ -1,5 +1,5 @@
 /// The review's header draft — the [Recipe] the shared header form edits at
-/// import, seeded from the payload (plan 0025 #4, board frame b). PURE DART.
+/// import, seeded from the payload. PURE DART.
 ///
 /// The same attempt-then-flag rule servings has always used, applied to the
 /// whole header: a field is prefilled ONLY where the page plainly said it,

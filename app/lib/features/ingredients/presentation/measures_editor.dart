@@ -37,10 +37,10 @@ import '../domain/ingredient.dart';
 /// What the host did when the editor asked it to add a measure.
 ///
 /// A value rather than an exception, because the two failures belong on two
-/// different surfaces (plan 0029 W1): a **refusal** is the repository's
-/// documented validation contract and belongs inline under the field, while a
-/// write that did not happen has already been reported by the host's own
-/// guard and must not be said twice.
+/// different surfaces: a **refusal** is the repository's documented validation
+/// contract and belongs inline under the field, while a write that did not
+/// happen has already been reported by the host's own guard and must not be
+/// said twice.
 sealed class AddMeasureOutcome {
   const AddMeasureOutcome();
 }
@@ -127,11 +127,11 @@ class MeasuresEditor extends HookWidget {
   /// than a row that has not been saved.
   final Future<Ingredient?> Function(Measure added) onStopOfferingPiece;
 
-  /// What the add form's button says (plan 0029 **R3**). `Save` in a host
-  /// that commits on tap — the quantity sheet — and `Add` on the flesh-out
-  /// form, where the tap only puts it in the draft. A button reading Save
-  /// that saves nothing is the confusion this plan exists to remove, and it
-  /// would give the form's own docked Save a rival again.
+  /// What the add form's button says. `Save` in a host that commits on tap —
+  /// the quantity sheet — and `Add` on the flesh-out form, where the tap only
+  /// puts it in the draft. A button reading Save that saves nothing is the
+  /// confusion this plan exists to remove, and it would give the form's own
+  /// docked Save a rival again.
   final String addLabel;
 
   /// The quantity sheet opens straight into this state with the keyboard up;

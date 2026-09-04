@@ -8,14 +8,13 @@
 /// only reaches a running app when something names it directly.
 ///
 /// `commit` is real. It writes the resolved recipe, its groups and line items,
-/// and correction aliases in one transaction, generating ids up front so it
-/// can remap each step token's `line_index` refs to the created
-/// `line_item_id`s before the recipe row is written (§4.6). It creates no
-/// ingredient: every line arrives with a real id, because "create new" at
-/// review now runs the New-ingredient sheet and the flesh-out form before the
-/// line resolves (plan 0025 D3) — the `import_stub` leg is gone. Local tables
-/// are SQLite VIEWS, so every write is a plain INSERT — never `ON CONFLICT`
-/// ([mise-powersync-views-no-upsert]).
+/// and correction aliases in one transaction, generating ids up front so it can
+/// remap each step token's `line_index` refs to the created `line_item_id`s
+/// before the recipe row is written (§4.6). It creates no ingredient: every
+/// line arrives with a real id, because "create new" at review now runs the
+/// New-ingredient sheet and the flesh-out form before the line resolves — the
+/// `import_stub` leg is gone. Local tables are SQLite VIEWS, so every write is
+/// a plain INSERT — never `ON CONFLICT` ([mise-powersync-views-no-upsert]).
 library;
 
 import 'dart:convert';
@@ -206,9 +205,9 @@ class SqliteImportRepository implements ImportRepository {
 
     await _db.writeTransaction((tx) async {
       // 1. The recipe row, carrying the remapped tokenized steps and EVERY
-      // header column the editor's save writes (plan 0025 #4) — the same
-      // column list, in the same order, which a structural test pins so the
-      // two writers cannot drift apart again.
+      // header column the editor's save writes — the same column list, in the
+      // same order, which a structural test pins so the two writers cannot
+      // drift apart again.
       //
       // Filing is load-bearing: the Library renders books and skips book-less
       // recipes, so a null `book_id` would save the recipe into a place
@@ -297,8 +296,8 @@ class SqliteImportRepository implements ImportRepository {
               if (measureId != null) pieces.id else _unitId(line),
               measureId,
               line.note,
-              // 0/1 like the schema's other flags (plan 0025 #6); a
-              // component line arrives false from `buildCommit`.
+              // 0/1 like the schema's other flags; a component line arrives
+              // false from `buildCommit`.
               if (line.optional) 1 else 0,
               sortInGroup,
               now,

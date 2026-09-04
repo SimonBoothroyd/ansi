@@ -40,11 +40,11 @@ enum DraftMacrosGap {
   noPanel('Open Food Facts has no nutrition panel for this product.'),
 
   /// The panel Open Food Facts holds is per *serving*, and the four printed
-  /// figures ride along in [IngredientDraft.servingPanel]. Converting them
-  /// to per-100 needs the serving's mass; OFF's `serving_size` is free text
-  /// ("1 serving (16 fl oz)"), so it is never parsed — the numeric
+  /// figures ride along in [IngredientDraft.servingPanel]. Converting them to
+  /// per-100 needs the serving's mass; OFF's `serving_size` is free text ("1
+  /// serving (16 fl oz)"), so it is never parsed — the numeric
   /// `serving_quantity` prefills the serving row when OFF has one, and
-  /// otherwise the host asks for it (plan 0027 M-D5).
+  /// otherwise the host asks for it.
   perServingPanel(
     'Open Food Facts holds this panel per serving, not per 100 — type the '
     'serving weight from the pack and the row stores per 100.',
@@ -80,9 +80,8 @@ class DraftPackSize {
   String toString() => 'DraftPackSize($amount ${unit.id})';
 }
 
-/// A nutrition panel as a pack prints it **per serving** (plan 0027 M-D5) —
-/// the four figures verbatim, and what Open Food Facts knows about the
-/// serving they describe.
+/// A nutrition panel as a pack prints it **per serving** — the four figures
+/// verbatim, and what Open Food Facts knows about the serving they describe.
 ///
 /// Never converted here: a per-100 reading needs the serving's amount in the
 /// row's basis, and this type only carries what OFF said. The host lands it

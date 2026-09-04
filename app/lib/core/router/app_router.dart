@@ -142,10 +142,10 @@ GoRouter router(Ref ref) {
       ),
       // The vocabulary manager (step 8.5, plan 0020 D8) — pushed like
       // `/import`, not a fifth tab: the four tabs are the loop, and a
-      // vocabulary is reference data.
-      // `/account` — the household, this device, the session (plan 0028 E6).
-      // Pushed like `/ingredients`, and for the same reason: the four tabs are
-      // the loop, and neither a vocabulary nor an account is a phase of it.
+      // vocabulary is reference data. `/account` — the household, this device,
+      // the session. Pushed like `/ingredients`, and for the same reason: the
+      // four tabs are the loop, and neither a vocabulary nor an account is a
+      // phase of it.
       GoRoute(
         path: '/account',
         name: 'account',
@@ -156,11 +156,11 @@ GoRouter router(Ref ref) {
         name: 'ingredients',
         builder: (context, state) => const IngredientListView(),
       ),
-      // `/ingredients/new` — the ONE door to making an ingredient (plan 0029
-      // C2). It is the same form, with no row behind it yet: nothing is
-      // written until Save, so backing out leaves nothing. `?name=` prefills
-      // it, which is what a picker hands over so the words already typed into
-      // its search become the row without retyping.
+      // `/ingredients/new` — the ONE door to making an ingredient. It is the
+      // same form, with no row behind it yet: nothing is written until Save, so
+      // backing out leaves nothing. `?name=` prefills it, which is what a
+      // picker hands over so the words already typed into its search become the
+      // row without retyping.
       //
       // Declared BEFORE `/ingredients/:id` so `new` is a route and not an id.
       GoRoute(

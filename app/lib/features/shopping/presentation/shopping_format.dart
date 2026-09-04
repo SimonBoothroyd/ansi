@@ -9,9 +9,9 @@ import '../domain/shopping.dart';
 /// Formats one [Quantity] for the list, e.g. "500 g", "1.5 kg", "5 piece".
 String formatTotal(Quantity q) => '${formatQuantity(q.amount)} ${q.unit.label}';
 
-/// The week menu row's trailing label on the Shop tab — what that week holds
-/// in this tab's own derivation, `6 items` / `1 item` / `nothing to buy`
-/// (plan 0025 D7 frames g2/h), never the Week's meal count.
+/// The week menu row's trailing label on the Shop tab — what that week holds in
+/// this tab's own derivation, `6 items` / `1 item` / `nothing to buy`, never
+/// the Week's meal count.
 String formatItemCount(int items) => switch (items) {
   0 => 'nothing to buy',
   1 => '1 item',
