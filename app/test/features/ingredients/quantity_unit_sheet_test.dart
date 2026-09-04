@@ -257,7 +257,7 @@ void main() {
     );
     // …which switches to the spoon phrasing with that spoon pre-picked
     // ("cup" chip selected in the spoon row alongside tsp/tbsp).
-    expect(find.text('weighs'), findsOneWidget);
+    expect(find.text('of this weighs'), findsOneWidget);
     expect(find.text('cup'), findsOneWidget);
   });
 

@@ -49,11 +49,15 @@ class DensityEntry extends HookConsumerWidget {
   /// (plan 0020 D5: macros gate completion, density does not).
   final String headline;
 
-  static const _spoons = [tsp, tbsp, cup];
+  /// What "1 __ of this weighs" offers. `ml` is in the list on purpose: its
+  /// ratio to base is 1, so "1 ml of this weighs 0.66 g" IS 0.66 g/ml,
+  /// exactly. That is what let the old direct-g/ml field be deleted rather
+  /// than merely hidden — the two phrasings ADR-0008 promises are now two
+  /// picks in one sentence instead of two controls behind a segment.
+  static const _measures = [tsp, tbsp, cup, ml];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final spoonMode = useState(false);
     final spoon = useState<Unit>(tbsp);
     final input = useState<double?>(null);
     final error = useState<String?>(null);
@@ -65,10 +69,9 @@ class DensityEntry extends HookConsumerWidget {
     // volume unit keeps the current spoon (the phrasing still applies).
     useEffect(() {
       final r = redirectedSpoon;
-      if (r != null) {
-        spoonMode.value = true;
-        if (_spoons.contains(r)) spoon.value = r;
-      }
+      // The redirect no longer has a mode to switch — there is only the one
+      // sentence — so it just pre-picks the unit it resolved.
+      if (r != null && _measures.contains(r)) spoon.value = r;
       return null;
     }, [redirectedSpoon]);
 
@@ -76,13 +79,10 @@ class DensityEntry extends HookConsumerWidget {
 
     Future<void> save() async {
       final v = input.value;
-      final gPerMl = spoonMode.value
-          ? (v == null ? null : densityFromVolumeWeight(spoon.value, v))
-          : v;
+      final gPerMl = v == null ? null : densityFromVolumeWeight(spoon.value, v);
       if (gPerMl == null || !(gPerMl > 0)) {
-        error.value = spoonMode.value
-            ? 'weigh it: grams per ${spoon.value.label} must be positive'
-            : 'g/ml must be a positive number';
+        error.value =
+            'weigh it: grams per ${spoon.value.label} must be positive';
         return;
       }
       error.value = null;
@@ -116,121 +116,68 @@ class DensityEntry extends HookConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // A `Wrap`, not a `Row` with a `Spacer` (plan 0020 **G2**). In the
-        // "none yet" state the caption is at its longest and the two phrasing
-        // chips are at their widest, and the four together are wider than a
-        // phone — 55px of debug stripe on the owner's 402pt device. A `Spacer`
-        // cannot give room it has not got; a `Wrap` drops the chips onto a
-        // second line and keeps the spaced-apart look on any width where they
-        // still fit. Each side is one indivisible group, so the caption never
-        // splits from its headline.
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8,
-          runSpacing: 6,
+        // The headline and the stored number. The two phrasing chips that
+        // used to sit opposite them are GONE (plan 0028): the segment existed
+        // to choose between a sentence a person would say and one they would
+        // have to compute, and nobody divides grams by millilitres in their
+        // head. With them go G2's width problem — that fix was about these
+        // four things not fitting a 402pt phone — and the naming problem the
+        // label had ("a spoon weighs…" was cute; "grams per spoon" hid cup).
+        Row(
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(headline, style: ansiLabel()),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    density == null
-                        ? 'none yet — unlocks volume⇄weight'
-                        : '${formatDensity(density)} g/ml',
-                    style: ansiMono(
-                      size: 10,
-                      color: density == null
-                          ? AnsiColors.muted
-                          : AnsiColors.herbDeep,
-                    ),
-                  ),
+            Text(headline, style: ansiLabel()),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                density == null
+                    ? 'none yet — unlocks volume⇄weight'
+                    : '${formatDensity(density)} g/ml',
+                style: ansiMono(
+                  size: 10,
+                  color: density == null
+                      ? AnsiColors.muted
+                      : AnsiColors.herbDeep,
                 ),
-              ],
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnsiModeChip(
-                  label: 'g/ml',
-                  selected: !spoonMode.value,
-                  onTap: () => spoonMode.value = false,
-                ),
-                const SizedBox(width: 6),
-                AnsiModeChip(
-                  label: 'a spoon weighs…',
-                  selected: spoonMode.value,
-                  onTap: () => spoonMode.value = true,
-                ),
-              ],
+              ),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        if (spoonMode.value)
-          // Also a Wrap (G2): "1 · tsp tbsp cup · weighs · [g] · Save" is a
-          // whole sentence of controls, and it had three points of slack at
-          // 402pt — none at all on a 390pt phone.
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              Text('1', style: ansiMono(size: 13)),
-              for (final u in _spoons)
-                AnsiModeChip(
-                  label: u.label,
-                  selected: spoon.value == u,
-                  onTap: () => spoon.value = u,
+        // One self-describing sentence: "1 [tbsp] of this weighs [__] g".
+        // Still a Wrap (G2's lesson stands — it is a row of controls, not a
+        // row with slack), but a shorter one now that the mode is gone.
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            Text('1', style: ansiMono(size: 13)),
+            for (final u in _measures)
+              AnsiModeChip(
+                label: u.label,
+                selected: spoon.value == u,
+                onTap: () => spoon.value = u,
+              ),
+            Text('of this weighs', style: ansiMono(size: 13)),
+            SizedBox(
+              width: 72,
+              child: FTextField(
+                hint: 'g',
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
                 ),
-              Text('weighs', style: ansiMono(size: 13)),
-              SizedBox(
-                width: 72,
-                child: FTextField(
-                  hint: 'g',
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  control: FTextFieldControl.managed(
-                    onChange: (v) =>
-                        input.value = double.tryParse(v.text.trim()),
-                  ),
+                control: FTextFieldControl.managed(
+                  onChange: (v) => input.value = double.tryParse(v.text.trim()),
                 ),
               ),
-              FButton(
-                size: FButtonSizeVariant.sm,
-                onPress: save,
-                child: const Text('Save'),
-              ),
-            ],
-          )
-        else
-          Row(
-            children: [
-              SizedBox(
-                width: 110,
-                child: FTextField(
-                  hint: 'g/ml',
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  control: FTextFieldControl.managed(
-                    onChange: (v) =>
-                        input.value = double.tryParse(v.text.trim()),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              FButton(
-                size: FButtonSizeVariant.sm,
-                onPress: save,
-                child: const Text('Save'),
-              ),
-              const Spacer(),
-            ],
-          ),
+            ),
+            FButton(
+              size: FButtonSizeVariant.sm,
+              onPress: save,
+              child: const Text('Save'),
+            ),
+          ],
+        ),
         if (density != null)
           _RemoveDensity(
             ingredient: ingredient,
@@ -245,11 +192,11 @@ class DensityEntry extends HookConsumerWidget {
               style: ansiMono(size: 10, color: AnsiColors.gone),
             ),
           )
-        else if (spoonMode.value && input.value != null)
+        else if (input.value != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              // The live equivalence: both phrasings are the same fact.
+              // The live equivalence: what the sentence above will store.
               densityFromVolumeWeight(spoon.value, input.value!) == null
                   ? ''
                   : '= ${formatDensity(densityFromVolumeWeight(spoon.value, input.value!)!)} g/ml',
@@ -344,11 +291,19 @@ class AnsiModeChip extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.enabled = true,
+    this.stranded = false,
     super.key,
   });
 
   final String label;
   final bool selected;
+
+  /// Selected, but no longer sayable — the D4c shape: a `cup` default on a
+  /// per-100 g row with no density. Drawn in [AnsiColors.gone] rather than in
+  /// the herb of a healthy selection, so the chip says which unit the line
+  /// underneath is about.
+  final bool stranded;
+
   final VoidCallback onTap;
 
   /// A disabled option still renders — a segment that hides its unavailable
@@ -358,10 +313,14 @@ class AnsiModeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = !enabled
+    final border = stranded
+        ? AnsiColors.gone
+        : !enabled
         ? AnsiColors.line
         : (selected ? AnsiColors.herb : AnsiColors.line);
-    final text = !enabled
+    final text = stranded
+        ? AnsiColors.gone
+        : !enabled
         ? AnsiColors.muted
         : (selected ? AnsiColors.herbDeep : AnsiColors.muted);
     return GestureDetector(
@@ -370,7 +329,9 @@ class AnsiModeChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(
-          color: selected && enabled ? AnsiColors.herbSoft : AnsiColors.surface,
+          color: selected && enabled && !stranded
+              ? AnsiColors.herbSoft
+              : AnsiColors.surface,
           border: Border.all(color: border),
           borderRadius: BorderRadius.circular(999),
         ),

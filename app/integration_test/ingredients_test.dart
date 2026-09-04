@@ -3,7 +3,8 @@
 /// rewrite in the local db → on the SAME form, the four legs that only a real
 /// stack proves:
 ///
-/// - the 7.8 **density entry both ways** — "a spoon weighs N g", then g/ml —
+/// - the 7.8 **density entry both ways** — "1 tbsp of this weighs N g", then
+///   the same sentence against `ml`, which is a g/ml —
 ///   one stored fact, and ADR-0009's unlock of the other family asserted on
 ///   the ROUND-TRIPPED `allowed_units` (as a jsonb array: the connector's
 ///   decode-before-upload, 0028's repair);
@@ -24,7 +25,7 @@
 /// fixture through an overridden `offLookupProvider` — no network. Asserts the
 /// prefilled draft, then the saved row's `off:<barcode>` provenance, macros
 /// and `stub` status SURVIVING the sync round trip (D7b excludes barcode
-/// rows), and the G4 "needs confirm" hint.
+/// rows), and the G4 "needs completing" hint.
 ///
 /// The stubs this file works on are SEEDED through the app's own ingredient
 /// repository — the same `createStub` the add flow's "Create & flesh out"
@@ -61,7 +62,7 @@ import 'package:ansi/features/ingredients/domain/usda_probe.dart' show UsdaBand;
 import 'package:ansi/features/ingredients/presentation/density_entry.dart'
     show AnsiModeChip, DensityEntry;
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart'
-    show IngredientDetailView;
+    show IngredientDetailView, kFormSaveKey;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -91,6 +92,23 @@ void main() {
 
   setUpAll(() async => stack = await SmokeStack.start());
   tearDownAll(() => stack.dispose());
+
+  /// Taps the form's own docked Save, then walks back into [name]'s row.
+  ///
+  /// Two things changed under this helper. The dock is **pinned**, so the
+  /// Save needs no scrolling — and it is **keyed** ([kFormSaveKey]), because
+  /// the density entry and the measures editor each carry their own small
+  /// green Save and `find.text('Save').last` was picking between three of
+  /// them by position. And Save **ends the page**, so anything that goes on
+  /// working the same row re-enters it from the list.
+  Future<void> saveFormAndReopen(WidgetTester tester, String name) async {
+    await tester.tap(find.byKey(kFormSaveKey));
+    await tester.pumpAndSettle();
+    await scrollTo(tester, find.text(name));
+    await tester.tap(find.text(name).first);
+    await tester.pumpAndSettle();
+    await pumpUntilFound(tester, find.text('CANONICAL NAME'));
+  }
 
   testWidgets(
     'ingredients: flesh out a stub (rename · density · a label per serving · '
@@ -255,11 +273,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Scroll to the form's own Save. `.last`: the density and measures
-      // sections carry their own small Save buttons earlier in the list.
-      await scrollTo(tester, find.text('Confirm — it counts from here'));
-      await tester.tap(find.text('Save').last);
-      await tester.pumpAndSettle();
+      // Save ENDS the page since the v2 pass (the picker that pushes this
+      // form awaits its pop), so a leg that goes on working the same row
+      // walks back in through the list, the way a person would.
+      await saveFormAndReopen(tester, renamed);
 
       await waitForDb(
         tester,
@@ -315,10 +332,10 @@ void main() {
         of: find.byType(DensityEntry),
         matching: find.widgetWithText(FButton, 'Save'),
       );
-      await scrollTo(tester, find.text('a spoon weighs…'));
-      await centerOn(tester, find.text('a spoon weighs…'));
-      await tester.tap(find.text('a spoon weighs…'));
-      await tester.pumpAndSettle();
+      // One sentence since the v2 pass — "1 [tbsp] of this weighs [__] g" —
+      // so there is no phrasing mode to enter. `tbsp` is the standing pick.
+      await scrollTo(tester, find.text('of this weighs'));
+      await centerOn(tester, find.text('of this weighs'));
       await tester.enterText(densityField, '15');
       await tester.pumpAndSettle();
       // The live equivalence: both phrasings are the same fact.
@@ -362,15 +379,18 @@ void main() {
             'ADR-0009: a density on a mass-basis row admits the volume family',
       );
 
-      // The other phrasing, the same number. The entry re-rendered after its
-      // save (and slid up under the header), so the g/ml chip is centred and
-      // picked explicitly rather than assumed.
-      final gmlChip = find.descendant(
+      // The other phrasing, the same number — now the same sentence with a
+      // different pick. `ml`'s ratio to base is 1, so "1 ml of this weighs
+      // 1.2 g" IS 1.2 g/ml: that equivalence is what let the separate g/ml
+      // field be deleted rather than merely hidden. The entry re-rendered
+      // after its save (and slid up under the header), so the chip is centred
+      // and picked explicitly rather than assumed.
+      final mlChip = find.descendant(
         of: find.byType(DensityEntry),
-        matching: find.widgetWithText(AnsiModeChip, 'g/ml'),
+        matching: find.widgetWithText(AnsiModeChip, 'ml'),
       );
-      await centerOn(tester, gmlChip);
-      await tester.tap(gmlChip);
+      await centerOn(tester, mlChip);
+      await tester.tap(mlChip);
       await tester.pumpAndSettle();
       await tester.enterText(densityField, '1.2');
       await tester.pumpAndSettle();
@@ -425,9 +445,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.widget<FCheckbox>(tick).value, isTrue);
 
-      await scrollTo(tester, find.text('Confirm — it counts from here'));
-      await tester.tap(find.text('Save').last);
-      await tester.pumpAndSettle();
+      await saveFormAndReopen(tester, renamed);
       await waitForDb(
         tester,
         () async =>
@@ -461,7 +479,7 @@ void main() {
       );
 
       // --- Counts as (seam D1): a stated fact, saved on pick ----------------
-      const countsAsLabel = 'COUNTS AS — WHAT “2 ONIONS” MEANS';
+      const countsAsLabel = 'COUNTS AS';
       const sachetItem = 'sachet · 30 g';
       await scrollTo(tester, find.text(countsAsLabel));
       expect(find.text('One ${renamed.toLowerCase()} is'), findsOneWidget);
@@ -600,9 +618,7 @@ void main() {
         renamedDeclined,
       );
       await tester.pumpAndSettle();
-      await scrollTo(tester, find.text('Confirm — it counts from here'));
-      await tester.tap(find.text('Save').last);
-      await tester.pumpAndSettle();
+      await saveFormAndReopen(tester, renamedDeclined);
       await waitForDb(
         tester,
         () async =>
@@ -785,10 +801,11 @@ void main() {
           )
           .first;
       expect(
-        find.descendant(of: bandRow, matching: find.text('needs confirm')),
+        find.descendant(of: bandRow, matching: find.text('needs completing')),
         findsOneWidget,
         reason:
-            'a prefilled stub must read "needs confirm", not "needs macros" — '
+            'a prefilled stub must read "needs completing", not "needs '
+            'macros" — '
             'it is not missing the numbers, it is missing the human',
       );
       // …and it is NOT flagged as a USDA prefill: this row came from a

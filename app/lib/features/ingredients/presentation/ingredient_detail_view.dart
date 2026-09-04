@@ -77,6 +77,14 @@ import 'usda_pick_sheet.dart';
 /// The pushed route for one vocab row.
 String ingredientDetailRoute(String id) => '/ingredients/$id';
 
+/// The form's own Save, in the pinned dock — as distinct from the small
+/// Saves the density entry and the measures editor carry for their own
+/// immediate writes. Exported so tests name it rather than counting FButtons.
+const kFormSaveKey = ValueKey('form-save');
+
+/// The dock's CTA: `Mark complete` on a stub, absent on a complete row.
+const kFormCompleteKey = ValueKey('form-complete');
+
 class IngredientDetailView extends ConsumerWidget {
   const IngredientDetailView({
     required this.ingredientId,
@@ -99,40 +107,54 @@ class IngredientDetailView extends ConsumerWidget {
     final async = ref.watch(ingredientByIdProvider(ingredientId));
     final ingredient = async.asData?.value;
 
+    // The form owns its own scaffold: the header's `⋯` menu and the pinned
+    // action bar both act on form state (the pending edits, the busy flag,
+    // the one message line), and a scaffold built above them could only
+    // reach that state through callbacks threaded back up.
+    if (ingredient != null) {
+      return _DetailForm(
+        // Keyed by id so pushing a different ingredient rebuilds the form
+        // state instead of inheriting the previous row's typed values.
+        key: ValueKey(ingredientId),
+        ingredient: ingredient,
+        lookup: lookup,
+        cameraPane: cameraPane,
+      );
+    }
     return FScaffold(
       childPad: false,
-      header: FHeader.nested(
-        title: Text(
-          ingredient?.canonicalName ?? 'Ingredient',
-          style: ansiHeaderTitle(),
-          overflow: TextOverflow.ellipsis,
-        ),
-        prefixes: [
-          FHeaderAction.back(
-            onPress: () => context.canPop()
-                ? context.pop()
-                : context.goOnce('/ingredients'),
-          ),
-        ],
-      ),
+      header: _header(context, title: 'Ingredient'),
       child: switch (async) {
         AsyncError(:final error) => _Centered('Could not open it — $error'),
-        AsyncLoading() when ingredient == null => const _Centered('…'),
-        _ when ingredient == null => const _Centered(
+        AsyncLoading() => const _Centered('…'),
+        _ => const _Centered(
           'This ingredient is gone — it was deleted on another device.',
-        ),
-        _ => _DetailForm(
-          // Keyed by id so pushing a different ingredient rebuilds the form
-          // state instead of inheriting the previous row's typed values.
-          key: ValueKey(ingredientId),
-          ingredient: ingredient,
-          lookup: lookup,
-          cameraPane: cameraPane,
         ),
       },
     );
   }
 }
+
+/// The page header, shared by the form and the states that have no row yet.
+///
+/// [suffixes] is where the board frame's `⋯` goes — drawn on the frame since
+/// the section was locked, and built here for the first time: the actions
+/// that are not part of filling the form in (delete, and un-confirming a
+/// complete row) belong behind it rather than stacked under the CTA.
+FHeader _header(
+  BuildContext context, {
+  required String title,
+  List<Widget> suffixes = const [],
+}) => FHeader.nested(
+  title: Text(title, style: ansiHeaderTitle(), overflow: TextOverflow.ellipsis),
+  prefixes: [
+    FHeaderAction.back(
+      onPress: () =>
+          context.canPop() ? context.pop() : context.goOnce('/ingredients'),
+    ),
+  ],
+  suffixes: suffixes,
+);
 
 class _Centered extends StatelessWidget {
   const _Centered(this.message);
@@ -439,404 +461,536 @@ class _DetailForm extends HookConsumerWidget {
       if (applied.source != null) pendingSource.value = applied.source;
     }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 48),
-      children: [
-        // SLOTS, not conditional children. A lookup that succeeds turns a
-        // section on, and an unkeyed insertion in a ListView shifts every
-        // sibling by one — which reconciles each of them against the wrong
-        // element and silently resets its hook state, including the note the
-        // lookup just wrote. Keeping every position occupied keeps the rest
-        // of the form aligned. First: the scan door, and the card its draft
-        // lands on. Offered on a stub only — a confirmed row has nothing
-        // empty for a label to fill, and its numbers are a human's.
-        if (stub)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: _GhostButton(
-              label: 'Scan a barcode to fill this in',
-              onTap: busy.value ? null : scan,
-            ),
-          )
-        else
-          const SizedBox.shrink(),
-        if (scanned.value != null && scanApplied.value != null)
-          _ScanResult(
-            draft: scanned.value!,
-            applied: scanApplied.value!,
-            packAdded: packAdded.value,
-            onAddPack: () async {
-              final pack = scanApplied.value!.packMeasure!;
-              final added = await ref.writeOk(
-                context,
-                'add that measure',
-                () => ref
-                    .read(measureRepositoryProvider)
-                    .addMeasure(
-                      ingredientId: ing.id,
-                      label: 'pack',
-                      amount: pack.amountInBasis,
+    // Leaving the form. A cold deep link lands here with no page beneath, so
+    // there is nothing to pop: fall back to the manager, exactly as the back
+    // chevron and the delete both do.
+    void leave() =>
+        context.canPop() ? context.pop() : context.goOnce('/ingredients');
+
+    // The `⋯` actions and the CTA, so the header and the pinned bar can both
+    // reach them. They live here rather than inside their own widgets because
+    // every one of them reports through this form's single message line.
+    // Completing is the page's terminal act, so it ENDS the page. Nothing
+    // popped before, although `ingredient_picker` pushes this form and
+    // *awaits its pop* before opening the quantity sheet on the units the
+    // form just set — so finishing a row from a recipe line left the person
+    // on a screen that had told them it counts and given them nothing to do,
+    // with a caller waiting behind it.
+    Future<void> completeRow() async {
+      final saved = await save();
+      if (saved == null || !context.mounted) return;
+      final completed = await ref.writeOk(
+        context,
+        'complete ${ing.canonicalName}',
+        () => ref.read(ingredientRepositoryProvider).confirmStub(ing.id),
+      );
+      if (!completed || !context.mounted) return;
+      ref.invalidate(ingredientByIdProvider(ing.id));
+      leave();
+    }
+
+    Future<void> unconfirmRow() async {
+      final undone = await ref.writeOk(
+        context,
+        'unconfirm ${ing.canonicalName}',
+        () => ref.read(ingredientRepositoryProvider).unconfirm(ing.id),
+      );
+      if (!undone || !context.mounted) return;
+      ref.invalidate(ingredientByIdProvider(ing.id));
+      message.value =
+          'Back to a stub — it stops counting until you complete it again.';
+    }
+
+    // The refusal is the interesting state: it names the count, because "used
+    // by 3 recipes" is a thing a user can act on and "failed" is not. It
+    // lands in the message line above the action bar, which is on screen
+    // whatever the scroll position — the old inline refusal could be written
+    // to a part of the page the person had already scrolled past.
+    Future<void> deleteRow() async {
+      final outcome = await ref.write(
+        context,
+        'delete ${ing.canonicalName}',
+        () => ref.read(ingredientRepositoryProvider).softDelete(ing.id),
+      );
+      if (outcome == null || !context.mounted) return;
+      switch (outcome) {
+        case Deleted():
+          ref.invalidate(ingredientByIdProvider(ing.id));
+          if (context.mounted) {
+            context.canPop() ? context.pop() : context.goOnce('/ingredients');
+          }
+        case DeleteRefused(:final recipeCount, :final lineCount):
+          message.value =
+              'Still used by $recipeCount '
+              '${recipeCount == 1 ? 'recipe' : 'recipes'} '
+              '($lineCount ${lineCount == 1 ? 'line' : 'lines'}). '
+              'Change those lines first.';
+        case DeleteMissing():
+          message.value = 'It is already gone.';
+      }
+    }
+
+    // The measures list decides whether "Counts as" has anything to ask, and
+    // it must stay ONE slot either way — see the ListView note below.
+    final measures = measuresAsync.asData?.value ?? const <Measure>[];
+
+    return FScaffold(
+      childPad: false,
+      header: _header(
+        context,
+        title: ing.canonicalName,
+        suffixes: [
+          FPopoverMenu(
+            // `menuBuilder`, not `menu`: an item has to dismiss the menu it
+            // was picked from before it navigates (the recipe view's rule).
+            menuBuilder: (_, controller, _) => [
+              FItemGroup(
+                children: [
+                  if (!stub)
+                    FItem(
+                      prefix: const Icon(FLucideIcons.rotateCcw),
+                      title: const Text('Return it to a stub'),
+                      onPress: () {
+                        unawaited(controller.hide());
+                        unawaited(unconfirmRow());
+                      },
                     ),
-              );
-              if (!added || !context.mounted) return;
-              packAdded.value = true;
-              ref.invalidate(ingredientMeasuresProvider(ing.id));
-            },
-          )
-        else
-          const SizedBox.shrink(),
-
-        const _Label('CANONICAL NAME'),
-        FTextField(
-          control: FTextFieldControl.managed(
-            initial: TextEditingValue(text: ing.canonicalName),
-            onChange: (v) => name.value = v.text,
+                  FItem(
+                    prefix: const Icon(FLucideIcons.trash2),
+                    title: const Text('Delete ingredient'),
+                    onPress: () {
+                      unawaited(controller.hide());
+                      unawaited(deleteRow());
+                    },
+                  ),
+                ],
+              ),
+            ],
+            builder: (context, controller, _) => FHeaderAction(
+              icon: const Icon(FLucideIcons.ellipsis),
+              onPress: controller.toggle,
+            ),
           ),
-        ),
-        const _Note('renaming rewrites the match text'),
-
-        const _Label('ALSO KNOWN AS'),
-        _AliasEditor(ingredientId: ing.id),
-
-        const _Label('CATEGORY · DEFAULT UNIT'),
-        _CategoryPicker(
-          selected: category.value,
-          onPick: (c) => category.value = c,
-        ),
-        const SizedBox(height: 8),
-        _UnitChoiceRow(
-          // Keyed so a test can ask this row — and only this row — which of
-          // its chips D4c has locked.
-          key: const ValueKey('default-unit-row'),
-          ingredient: draftRow,
-          selected: defaultUnit.value,
-          onPick: (u) {
-            defaultUnit.value = u;
-            // Only an admissible unit can be tapped (D4c locks the rest), so
-            // admitting the pick can never strand the row.
-            allowed.value = {...allowed.value, u};
-          },
-        ),
-        // D4c: a stored default the rules no longer support — a cup default
-        // on a per-100 g row with no density. Flagged with its repair rather
-        // than rewritten: how a household buys a thing is not ours to edit.
-        _StrandedDefaultNote(
-          ingredient: draftRow,
-          onFix: () async {
-            final fix = basisDefaultUnitFix(draftRow);
-            defaultUnit.value = fix;
-            allowed.value = {...allowed.value, fix};
-            await save();
-          },
-        ),
-
-        // U-D1: where the numbers came from, at the head of the section that
-        // holds them. A slot again (it renders nothing on a row USDA never
-        // touched), and the two doors are the only place the prefill can be
-        // refused or re-chosen.
-        _UsdaProvenance(
-          ingredient: ing,
-          onDecline: busy.value
-              ? null
-              : () async {
-                  busy.value = true;
-                  try {
-                    // One write (U-D2): the prefilled density and macros come
-                    // out and the row is marked declined. The macro fields
-                    // follow through G1's re-seed (the row's macros moved and
-                    // the draft was theirs), the chips through the density
-                    // effect above.
-                    final cleared = await ref.write(
-                      context,
-                      'undo the USDA fill',
-                      () => ref
-                          .read(ingredientRepositoryProvider)
-                          .declineUsdaPrefill(ing.id),
-                    );
-                    if (cleared == null || !context.mounted) return;
-                    ref.invalidate(ingredientByIdProvider(ing.id));
-                    message.value =
-                        'Cleared — the USDA numbers are gone, and a rename '
-                        'will not bring them back.';
-                  } finally {
-                    if (context.mounted) busy.value = false;
-                  }
-                },
-          onChooseAnother: busy.value
-              ? null
-              : () async {
-                  // Captured BEFORE the sheet: the write after it goes through
-                  // these, never the widget's ref (app/AGENTS.md — the row can
-                  // be unmounted by the time the person picks).
-                  final repo = ref.read(ingredientRepositoryProvider);
-                  final container = ProviderScope.containerOf(
-                    context,
-                    listen: false,
-                  );
-                  final host = hostContextOf(context);
-                  busy.value = true;
-                  try {
-                    // F1: the sheet asks under the STORED name, so pending
-                    // edits are flushed first — the same rule the lookup
-                    // button keeps.
-                    final saved = await save();
-                    if (saved == null || !context.mounted) return;
-                    final pick = await showUsdaPickSheet(
-                      context,
-                      ingredient: saved,
-                    );
-                    if (pick == null) return;
-                    // U-D3: the same apply path as every other fill, with the
-                    // declined guard lifted for a person's own choice — the
-                    // stamp, the label and the score move to the chosen food.
-                    final applied = await container.write(
-                      host,
-                      'use that USDA match',
-                      () => repo.applyUsdaProbe(
-                        saved.id,
-                        source: pick.source,
-                        sourceLabel: pick.description,
-                        sourceScore: pick.score,
-                        densityGPerMl: pick.densityGPerMl,
-                        macros: pick.macros,
-                        explicitPick: true,
-                      ),
-                    );
-                    if (applied == null) return;
-                    container.invalidate(ingredientByIdProvider(saved.id));
-                    if (context.mounted) {
-                      message.value =
-                          'Filled from “${pick.description}” — still a stub '
-                          'until you confirm.';
-                    }
-                  } finally {
-                    if (context.mounted) busy.value = false;
-                  }
-                },
-        ),
-
-        const _Label('MACROS — ENTER THEM AS THE LABEL READS'),
-        // M-D1: one segment, in the section it changes. Per 100 of the basis
-        // is the default; per serving reveals the row below and reads the
-        // same four fields as the label prints them.
-        Row(
-          children: [
-            AnsiModeChip(
-              label: 'per 100 g',
-              selected: !perServing.value && basis.value == MacrosBasis.perG,
-              onTap: () {
-                perServing.value = false;
-                basis.value = MacrosBasis.perG;
-              },
-            ),
-            const SizedBox(width: 6),
-            AnsiModeChip(
-              label: 'per 100 ml',
-              selected: !perServing.value && basis.value == MacrosBasis.perMl,
-              onTap: () {
-                perServing.value = false;
-                basis.value = MacrosBasis.perMl;
-              },
-            ),
-            const SizedBox(width: 6),
-            AnsiModeChip(
-              label: 'per serving',
-              selected: perServing.value,
-              onTap: () => perServing.value = true,
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        // Three slots (the ListView rule above): the serving row, the stored
-        // line and the M-D2 offer hold their positions whether or not the
-        // mode is on, so toggling it cannot shift the fields below onto the
-        // wrong element. The serving unit sets the BASIS — a 14 g serving
-        // reads per 100 g — so the admission chips follow it live.
-        if (perServing.value)
-          ServingRow(
-            key: ValueKey('serving-row-${servingSeed.value}'),
-            draft: serving.value,
-            basis: basis.value,
-            onAmount: (t) =>
-                serving.value = serving.value.copyWith(amountText: t),
-            onName: (t) => serving.value = serving.value.copyWith(name: t),
-            onBasis: (b) => basis.value = b,
-          )
-        else
-          const SizedBox.shrink(),
-        // The key is the row-version (G1): it changes only when the row's own
-        // macros were re-seeded into the draft above, and that is exactly when
-        // the four controllers need rebuilding around their new text.
-        _MacroFields(
-          key: ValueKey('macro-fields-${macroSeed.value}'),
-          draft: macros.value,
-          onChanged: (d) => macros.value = d,
-        ),
-        if (perServing.value)
-          StoredPer100Line(
-            basis: basis.value,
-            serving: serving.value,
-            printed: printed,
-          )
-        else
-          const SizedBox.shrink(),
-        if (offer != null)
-          _ServingOfferLine(
-            offer: offer,
-            taken: servingOffer.value,
-            onToggle: (v) => servingOffer.value = v,
-          )
-        else
-          const SizedBox.shrink(),
-
-        const _Label('DENSITY — OPTIONAL, EITHER WAY, ONE STORED FACT'),
-        DensityEntry(
-          ingredient: ing,
-          redirectedSpoon: redirectedSpoon.value,
-          onSaved: (_) {
-            redirectedSpoon.value = null;
-            ref.invalidate(ingredientByIdProvider(ing.id));
-          },
-        ),
-        _DensityGapNote(ingredient: draftRow),
-
-        const _Label('ALLOWED UNITS — WHAT A LINE MAY SAY'),
-        _AdmissionChips(
-          ingredient: draftRow,
-          selected: allowed.value,
-          onToggle: (u) {
-            final next = {...allowed.value};
-            if (!next.remove(u)) next.add(u);
-            allowed.value = next;
-          },
-        ),
-
-        const _Label('MEASURES — COUNT-LIKE, IN THE BASIS'),
-        // Load-bearing emptiness (D6): an errored measures stream rendered as
-        // `const []` hides rows that exist, and this form's next Save would
-        // then write the narrowed set back. So the error is a state, not a
-        // fact about the ingredient.
-        if (measuresAsync case AsyncError(:final error, :final stackTrace))
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: AnsiErrorState(
-              compact: true,
-              what: 'the measures',
-              error: error,
-              stackTrace: stackTrace,
-              onRetry: () => ref.invalidate(ingredientMeasuresProvider(ing.id)),
-            ),
-          )
-        else
-          MeasuresEditor(
-            ingredient: ing,
-            measures: measuresAsync.asData?.value ?? const [],
-            onDelete: (m) => ref.write(
-              context,
-              'delete that measure',
-              () => ref.read(measureRepositoryProvider).softDeleteMeasure(m.id),
-            ),
-            // Nothing here selects a measure — the form is not a quantity
-            // entry surface; the watched provider re-renders the list.
-            onAdded: (_) {},
-            // A volume-named label is a density in disguise (ADR-0008 §2); the
-            // editor refuses it and the density section above pre-picks that
-            // spoon, which is the whole point of sharing one widget.
-            onVolumeLabel: (u) => redirectedSpoon.value = u,
-            // The piece question wrote `allowed_units` straight through the
-            // repository, so the chips above must follow in the same breath —
-            // otherwise this form's next Save would put `piece` back from a
-            // draft made before the question was asked.
-            onIngredientChanged: (updated) {
-              allowed.value = allowedUnitsFor(updated).toSet();
-              ref.invalidate(ingredientByIdProvider(ing.id));
-            },
-          ),
-
-        // Seam D1's UI (board frame f): what a bare count of this row MEANS.
-        // It sits with the measures because it is a fact ABOUT them, and it
-        // is hidden entirely on a row that has none — there is nothing to
-        // choose and nothing to ask.
-        if ((measuresAsync.asData?.value ?? const []).isNotEmpty) ...[
-          const _Label('COUNTS AS — WHAT “2 ONIONS” MEANS'),
-          _CountsAsRow(ingredient: ing, measures: measuresAsync.asData!.value),
         ],
+      ),
+      // Pinned, so the two commitments this page can make are reachable from
+      // any scroll position — and so the destructive action is no longer one
+      // flick below the confirm CTA.
+      footer: _ActionBar(
+        stub: stub,
+        canComplete: !busy.value && draftMacros != null,
+        // The line the CTA's promise moved into: what a save said, what a
+        // delete refused, or — while the CTA is disabled — what it is waiting
+        // for.
+        message:
+            message.value ??
+            (stub
+                ? (draftMacros == null
+                      ? 'needs macros'
+                      : 'completing it counts it in conversions and macro '
+                            'totals')
+                : null),
+        // `save()` itself stays pure: three callers use it as a FLUSH (the
+        // USDA lookup's F1 rule, Choose another, and the stranded-default
+        // fix) and none of those may navigate. Only the button leaves.
+        onSave: busy.value
+            ? null
+            : () async {
+                final saved = await save();
+                if (saved != null && context.mounted) leave();
+              },
+        onComplete: completeRow,
+      ),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+        children: [
+          // SLOTS, not conditional children — the rule this file has always
+          // kept, now applied one level up: each GROUP is a fixed position,
+          // and a section that turns on turns on inside its group. An unkeyed
+          // insertion in a ListView shifts every sibling by one, which
+          // reconciles each of them against the wrong element and silently
+          // resets its hook state.
+          _StatusStrip(ingredient: ing),
 
-        const _Label('IMPRECISE UNITS'),
-        _ImpreciseLine(ingredient: ing),
+          // The two prefill doors, in one place. They used to sit fifteen
+          // blocks apart — the scanner at the top, "Look up in USDA" below
+          // the CTA — although they are the same offer and are mutually
+          // exclusive with the provenance card that replaces them.
+          if (stub)
+            _FillItIn(
+              onScan: busy.value ? null : scan,
+              usda: isUsdaPrefilled(ing.source) || isUsdaDeclined(ing.source)
+                  ? null
+                  : _UsdaLookup(
+                      ingredient: ing,
+                      flush: save,
+                      onStatus: (text, about) => lookupNote.value = _LookupNote(
+                        text,
+                        _lookupStamp(about ?? ing),
+                      ),
+                    ),
+              note: lookupNote.value?.text,
+            )
+          else
+            const SizedBox.shrink(),
 
-        const SizedBox(height: 20),
-        _StatusLine(ingredient: ing),
+          if (scanned.value != null && scanApplied.value != null)
+            _ScanResult(
+              draft: scanned.value!,
+              applied: scanApplied.value!,
+              packAdded: packAdded.value,
+              onAddPack: () async {
+                final pack = scanApplied.value!.packMeasure!;
+                final added = await ref.writeOk(
+                  context,
+                  'add that measure',
+                  () => ref
+                      .read(measureRepositoryProvider)
+                      .addMeasure(
+                        ingredientId: ing.id,
+                        label: 'pack',
+                        amount: pack.amountInBasis,
+                      ),
+                );
+                if (!added || !context.mounted) return;
+                packAdded.value = true;
+                ref.invalidate(ingredientMeasuresProvider(ing.id));
+              },
+            )
+          else
+            const SizedBox.shrink(),
 
-        // Also a slot, for the same reason the banner above is one: saving
-        // sets this message, and a spread that grows from zero children to
-        // two would shift everything below it — including the lookup
-        // section, whose note would vanish the moment it had something to
-        // say.
-        _FormMessage(text: message.value),
+          // The board's field order is kept exactly (name · aliases ·
+          // category + default unit · macros · density); what changes is that
+          // it is now three named groups instead of twelve equal shouts.
+          _Group(
+            title: 'Identity',
+            children: [
+              const _Label('CANONICAL NAME'),
+              FTextField(
+                control: FTextFieldControl.managed(
+                  initial: TextEditingValue(text: ing.canonicalName),
+                  onChange: (v) => name.value = v.text,
+                ),
+              ),
+              const _Note('renaming rewrites the match text'),
 
-        const SizedBox(height: 12),
-        FButton(onPress: busy.value ? null : save, child: const Text('Save')),
+              const _Label('ALSO KNOWN AS'),
+              _AliasEditor(ingredientId: ing.id),
 
-        const SizedBox(height: 10),
-        if (stub)
-          _ConfirmCta(
-            enabled: !busy.value && draftMacros != null,
-            onConfirm: () async {
-              final saved = await save();
-              if (saved == null || !context.mounted) return;
-              final confirmed = await ref.writeOk(
-                context,
-                'confirm ${ing.canonicalName}',
-                () =>
-                    ref.read(ingredientRepositoryProvider).confirmStub(ing.id),
-              );
-              if (!confirmed || !context.mounted) return;
-              ref.invalidate(ingredientByIdProvider(ing.id));
-              message.value = 'Confirmed — it counts from here.';
-            },
-          )
-        else
-          _UnconfirmAction(
-            onUnconfirm: () async {
-              final undone = await ref.writeOk(
-                context,
-                'unconfirm ${ing.canonicalName}',
-                () => ref.read(ingredientRepositoryProvider).unconfirm(ing.id),
-              );
-              if (!undone || !context.mounted) return;
-              ref.invalidate(ingredientByIdProvider(ing.id));
-              message.value =
-                  'Back to a stub — it stops counting until you '
-                  'confirm it again.';
-            },
+              const _Label('CATEGORY'),
+              _CategoryPicker(
+                selected: category.value,
+                onPick: (c) => category.value = c,
+              ),
+            ],
           ),
 
-        const SizedBox(height: 12),
-        // F1: the button flushes the form's pending edits before it probes,
-        // so a rename typed and not yet saved is the name USDA is asked
-        // about — the exact flow that failed on the owner's device. A slot
-        // again, so that landing a density (which retires the note above)
-        // cannot shift this section and wipe what it just said. Not offered
-        // on a row USDA already filled or a person already refused: there
-        // the provenance line's doors are the way to change the match, and
-        // an automatic probe would have nothing it may write (U-D2).
-        if (stub && !isUsdaPrefilled(ing.source) && !isUsdaDeclined(ing.source))
-          _UsdaLookup(
-            ingredient: ing,
-            flush: save,
-            note: lookupNote.value?.text,
-            onStatus: (text, about) => lookupNote.value = _LookupNote(
-              text,
-              _lookupStamp(about ?? ing),
-            ),
-          )
-        else
-          const SizedBox.shrink(),
+          _Group(
+            title: 'Nutrition',
+            children: [
+              // U-D1: where the numbers came from, at the head of the section
+              // that holds them. A slot again (it renders nothing on a row
+              // USDA never touched), and the two doors are the only place the
+              // prefill can be refused or re-chosen.
+              _UsdaProvenance(
+                ingredient: ing,
+                onDecline: busy.value
+                    ? null
+                    : () async {
+                        busy.value = true;
+                        try {
+                          // One write (U-D2): the prefilled density and macros
+                          // come out and the row is marked declined. The macro
+                          // fields follow through G1's re-seed (the row's
+                          // macros moved and the draft was theirs), the chips
+                          // through the density effect above.
+                          final cleared = await ref.write(
+                            context,
+                            'undo the USDA fill',
+                            () => ref
+                                .read(ingredientRepositoryProvider)
+                                .declineUsdaPrefill(ing.id),
+                          );
+                          if (cleared == null || !context.mounted) return;
+                          ref.invalidate(ingredientByIdProvider(ing.id));
+                          message.value =
+                              'Cleared — the USDA numbers are gone, and a '
+                              'rename will not bring them back.';
+                        } finally {
+                          if (context.mounted) busy.value = false;
+                        }
+                      },
+                onChooseAnother: busy.value
+                    ? null
+                    : () async {
+                        // Captured BEFORE the sheet: the write after it goes
+                        // through these, never the widget's ref
+                        // (app/AGENTS.md — the row can be unmounted by the
+                        // time the person picks).
+                        final repo = ref.read(ingredientRepositoryProvider);
+                        final container = ProviderScope.containerOf(
+                          context,
+                          listen: false,
+                        );
+                        final host = hostContextOf(context);
+                        busy.value = true;
+                        try {
+                          // F1: the sheet asks under the STORED name, so
+                          // pending edits are flushed first — the same rule
+                          // the lookup button keeps.
+                          final saved = await save();
+                          if (saved == null || !context.mounted) return;
+                          final pick = await showUsdaPickSheet(
+                            context,
+                            ingredient: saved,
+                          );
+                          if (pick == null) return;
+                          // U-D3: the same apply path as every other fill,
+                          // with the declined guard lifted for a person's own
+                          // choice — the stamp, the label and the score move
+                          // to the chosen food.
+                          final applied = await container.write(
+                            host,
+                            'use that USDA match',
+                            () => repo.applyUsdaProbe(
+                              saved.id,
+                              source: pick.source,
+                              sourceLabel: pick.description,
+                              sourceScore: pick.score,
+                              densityGPerMl: pick.densityGPerMl,
+                              macros: pick.macros,
+                              explicitPick: true,
+                            ),
+                          );
+                          if (applied == null) return;
+                          container.invalidate(
+                            ingredientByIdProvider(saved.id),
+                          );
+                          if (context.mounted) {
+                            message.value =
+                                'Filled from “${pick.description}” — still a '
+                                'stub until you confirm.';
+                          }
+                        } finally {
+                          if (context.mounted) busy.value = false;
+                        }
+                      },
+              ),
 
-        const SizedBox(height: 24),
-        _DeleteAction(ingredient: ing),
-      ],
+              const _Label('MACROS', hint: 'enter them as the label reads'),
+              // M-D1: one segment, in the section it changes. Per 100 of the
+              // basis is the default; per serving reveals the row below and
+              // reads the same four fields as the label prints them.
+              Row(
+                children: [
+                  AnsiModeChip(
+                    label: 'per 100 g',
+                    selected:
+                        !perServing.value && basis.value == MacrosBasis.perG,
+                    onTap: () {
+                      perServing.value = false;
+                      basis.value = MacrosBasis.perG;
+                    },
+                  ),
+                  const SizedBox(width: 6),
+                  AnsiModeChip(
+                    label: 'per 100 ml',
+                    selected:
+                        !perServing.value && basis.value == MacrosBasis.perMl,
+                    onTap: () {
+                      perServing.value = false;
+                      basis.value = MacrosBasis.perMl;
+                    },
+                  ),
+                  const SizedBox(width: 6),
+                  AnsiModeChip(
+                    label: 'per serving',
+                    selected: perServing.value,
+                    onTap: () => perServing.value = true,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Three slots: the serving row, the stored line and the M-D2
+              // offer hold their positions whether or not the mode is on, so
+              // toggling it cannot shift the fields below onto the wrong
+              // element. The serving unit sets the BASIS — a 14 g serving
+              // reads per 100 g — so the admission chips follow it live.
+              if (perServing.value)
+                ServingRow(
+                  key: ValueKey('serving-row-${servingSeed.value}'),
+                  draft: serving.value,
+                  basis: basis.value,
+                  onAmount: (t) =>
+                      serving.value = serving.value.copyWith(amountText: t),
+                  onName: (t) =>
+                      serving.value = serving.value.copyWith(name: t),
+                  onBasis: (b) => basis.value = b,
+                )
+              else
+                const SizedBox.shrink(),
+              // The key is the row-version (G1): it changes only when the
+              // row's own macros were re-seeded into the draft above, and that
+              // is exactly when the four controllers need rebuilding around
+              // their new text.
+              _MacroFields(
+                key: ValueKey('macro-fields-${macroSeed.value}'),
+                draft: macros.value,
+                onChanged: (d) => macros.value = d,
+              ),
+              if (perServing.value)
+                StoredPer100Line(
+                  basis: basis.value,
+                  serving: serving.value,
+                  printed: printed,
+                )
+              else
+                const SizedBox.shrink(),
+              if (offer != null)
+                _ServingOfferLine(
+                  offer: offer,
+                  taken: servingOffer.value,
+                  onToggle: (v) => servingOffer.value = v,
+                )
+              else
+                const SizedBox.shrink(),
+            ],
+          ),
+
+          // Density, admission, measures, "Counts as" and the imprecise words
+          // are ONE subject — what a line of a recipe may say about this row,
+          // and how much of it that is. They were five top-level sections
+          // reading as five unrelated decisions, although a density unlocks
+          // the chips, a volume-named measure label redirects into the density
+          // entry, and "Counts as" picks one of the measures.
+          // Density, admission, the default unit, measures and "Counts as"
+          // are ONE subject — what a line of a recipe may say about this row,
+          // and how much of it that is. The default unit is here rather than
+          // beside the category because **D4c** makes it the same rule as the
+          // chips: `unitSayableAsDefault` and the chips' own candidate list
+          // are one predicate wearing two hats, and a greyed selector option
+          // and a locked chip explain each other. It also puts the stranded
+          // default's repair — "enter a density below" — one section above the
+          // density, rather than two groups away.
+          _Group(
+            title: 'Units & measures',
+            children: [
+              const _Label('DEFAULT UNIT'),
+              _UnitChoiceRow(
+                // Keyed so a test can ask this row — and only this row —
+                // which of its chips D4c has locked.
+                key: const ValueKey('default-unit-row'),
+                ingredient: draftRow,
+                selected: defaultUnit.value,
+                onPick: (u) {
+                  defaultUnit.value = u;
+                  // Only an admissible unit can be tapped (D4c locks the
+                  // rest), so admitting the pick can never strand the row.
+                  allowed.value = {...allowed.value, u};
+                },
+              ),
+              // D4c: a stored default the rules no longer support — a cup
+              // default on a per-100 g row with no density. Flagged with its
+              // repair rather than rewritten: how a household buys a thing is
+              // not ours to edit.
+              _StrandedDefaultNote(
+                ingredient: draftRow,
+                onFix: () async {
+                  final fix = basisDefaultUnitFix(draftRow);
+                  defaultUnit.value = fix;
+                  allowed.value = {...allowed.value, fix};
+                  await save();
+                },
+              ),
+
+              const _Label('ALLOWED UNITS', hint: 'what a line may say'),
+              _AdmissionChips(
+                ingredient: draftRow,
+                selected: allowed.value,
+                onToggle: (u) {
+                  final next = {...allowed.value};
+                  if (!next.remove(u)) next.add(u);
+                  allowed.value = next;
+                },
+              ),
+              _DensityGapNote(ingredient: draftRow),
+
+              // The entry draws its own DENSITY label; the section used to
+              // carry a second, longer one directly above it.
+              DensityEntry(
+                ingredient: ing,
+                redirectedSpoon: redirectedSpoon.value,
+                onSaved: (_) {
+                  redirectedSpoon.value = null;
+                  ref.invalidate(ingredientByIdProvider(ing.id));
+                },
+              ),
+
+              const _Label('MEASURES', hint: 'count-like, in the basis'),
+              // Load-bearing emptiness (D6): an errored measures stream
+              // rendered as `const []` hides rows that exist, and this form's
+              // next Save would then write the narrowed set back. So the error
+              // is a state, not a fact about the ingredient.
+              if (measuresAsync case AsyncError(
+                :final error,
+                :final stackTrace,
+              ))
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: AnsiErrorState(
+                    compact: true,
+                    what: 'the measures',
+                    error: error,
+                    stackTrace: stackTrace,
+                    onRetry: () =>
+                        ref.invalidate(ingredientMeasuresProvider(ing.id)),
+                  ),
+                )
+              else
+                MeasuresEditor(
+                  ingredient: ing,
+                  measures: measures,
+                  onDelete: (m) => ref.write(
+                    context,
+                    'delete that measure',
+                    () => ref
+                        .read(measureRepositoryProvider)
+                        .softDeleteMeasure(m.id),
+                  ),
+                  // Nothing here selects a measure — the form is not a
+                  // quantity entry surface; the watched provider re-renders
+                  // the list.
+                  onAdded: (_) {},
+                  // A volume-named label is a density in disguise (ADR-0008
+                  // §2); the editor refuses it and the density section above
+                  // pre-picks that spoon, which is the whole point of sharing
+                  // one widget.
+                  onVolumeLabel: (u) => redirectedSpoon.value = u,
+                  // The piece question wrote `allowed_units` straight through
+                  // the repository, so the chips above must follow in the same
+                  // breath — otherwise this form's next Save would put `piece`
+                  // back from a draft made before the question was asked.
+                  onIngredientChanged: (updated) {
+                    allowed.value = allowedUnitsFor(updated).toSet();
+                    ref.invalidate(ingredientByIdProvider(ing.id));
+                  },
+                ),
+
+              // Seam D1's UI (board frame f): what a bare count of this row
+              // MEANS. It sits with the measures because it is a fact ABOUT
+              // them, and it says nothing on a row that has none — there is
+              // nothing to choose and nothing to ask.
+              //
+              // ONE slot, not a two-child spread: the spread this replaces
+              // grew from zero children to two the moment a first measure
+              // landed, shifting every sibling below it — the exact failure
+              // the note at the head of this list warns about.
+              _CountsAsSection(ingredient: ing, measures: measures),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -901,14 +1055,18 @@ class _UsdaProvenance extends StatelessWidget {
         if (score != null) '${UsdaBand.of(score).word} for “$name”',
       ].join(' · ');
     }
-    final tone = declined ? AnsiColors.muted : AnsiColors.aging;
+    // Amber is a call to action, so it is spent only where there is one: an
+    // unconfirmed machine fill. A CONFIRMED row's card is provenance — a
+    // statement of where the numbers came from — and it drew a ⚠ over the
+    // word "confirmed", which reads as an error about a row that is fine.
+    final tone = declined || !stub ? AnsiColors.muted : AnsiColors.aging;
 
     return Container(
       margin: const EdgeInsets.only(top: 20),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AnsiColors.paper,
-        border: Border.all(color: declined ? AnsiColors.line : tone),
+        border: Border.all(color: declined || !stub ? AnsiColors.line : tone),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -917,7 +1075,11 @@ class _UsdaProvenance extends StatelessWidget {
           Row(
             children: [
               Icon(
-                declined ? FLucideIcons.circleOff : FLucideIcons.triangleAlert,
+                declined
+                    ? FLucideIcons.circleOff
+                    : stub
+                    ? FLucideIcons.triangleAlert
+                    : FLucideIcons.database,
                 size: 13,
                 color: tone,
               ),
@@ -979,7 +1141,9 @@ class _MacroFields extends StatelessWidget {
               // Keyed: the four read alike, and a test that targets them by
               // position breaks the moment a field moves.
               key: ValueKey('macro-$label'),
-              hint: label,
+              // No hint: the caption below already names the field, and the
+              // hint said the same word a second time — badly, since "protein"
+              // did not fit a quarter of a phone and rendered as "prot…".
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
@@ -1097,8 +1261,23 @@ class _ScanResult extends StatelessWidget {
   }
 }
 
-/// The ADR-0008 admission section, finally built: selected chips, unselected
-/// but admissible chips, and the dashed locked ones a density would open.
+/// The ADR-0008 admission section: the units this row admits, the ones it
+/// could admit, and — after a divider — the imprecise words its category
+/// earns it.
+///
+/// **The locked units are a line, not chips.** They used to be drawn as
+/// dashed grey pills with a note under them, which is a row of screen to say
+/// what a sentence says better: "cup · tbsp · ml unlock when this row has a
+/// density." D4c's reason for drawing them rather than hiding them was that
+/// *"why can't I pick cup" must have a visible answer* — and a named line
+/// answers it more completely than a dashed chip, because it also says what
+/// to do about it.
+///
+/// **The imprecise words are folded in** (they were a labelled section of
+/// their own, over one read-only string that on most rows said "none"). They
+/// are a fact about the *category* (J3), never about this row, so they are
+/// drawn after a divider, dotted and untappable — the same idiom the quantity
+/// sheet has used for its own chip row since 7.7.
 class _AdmissionChips extends StatelessWidget {
   const _AdmissionChips({
     required this.ingredient,
@@ -1112,59 +1291,83 @@ class _AdmissionChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final candidates = allowedUnitCandidates(
-      ingredient,
-    ).where((c) => c.unit.family != UnitFamily.imprecise).toList();
+    final candidates = allowedUnitCandidates(ingredient).toList();
+    final sayable = [
+      for (final c in candidates)
+        if (!c.locked && c.unit.family != UnitFamily.imprecise) c,
+    ];
+    final locked = [
+      for (final c in candidates)
+        if (c.locked) c.unit.label,
+    ];
+    final imprecise = impreciseUnitsFor(ingredient).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Wrap(
           spacing: 6,
           runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            for (final c in candidates)
+            for (final c in sayable)
               _UnitChip(
                 unit: c.unit,
                 selected: selected.contains(c.unit),
-                locked: c.locked,
                 onTap: () => onToggle(c.unit),
               ),
+            // The divider the quantity sheet draws before the same words.
+            if (imprecise.isNotEmpty) ...[
+              Container(
+                width: 1,
+                height: 18,
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                color: AnsiColors.line,
+              ),
+              for (final u in imprecise) _ImpreciseChip(unit: u),
+            ],
           ],
         ),
-        if (candidates.any((c) => c.locked))
-          _Note(
-            'dashed chips need a density — the '
-            '${_crossFamilyWord(ingredient)} side is the density’s to give',
-          ),
+        if (locked.isNotEmpty)
+          _Note('${locked.join(' · ')} unlock when this row has a density'),
+        if (imprecise.isNotEmpty)
+          const _Note('dotted words come from the category, not from here'),
       ],
     );
   }
+}
+
+/// An imprecise word: read out, never toggled. The category decides these
+/// (J3), so a tap here would be a promise the form cannot keep.
+class _ImpreciseChip extends StatelessWidget {
+  const _ImpreciseChip({required this.unit});
+
+  final Unit unit;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+    decoration: BoxDecoration(
+      color: AnsiColors.surface,
+      border: Border.all(color: AnsiColors.line),
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Text(unit.label, style: ansiMono(size: 11, color: AnsiColors.muted)),
+  );
 }
 
 class _UnitChip extends StatelessWidget {
   const _UnitChip({
     required this.unit,
     required this.selected,
-    required this.locked,
     required this.onTap,
   });
 
   final Unit unit;
   final bool selected;
-  final bool locked;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    if (locked) {
-      return DashedBorderBox(
-        color: AnsiColors.line,
-        child: Text(
-          unit.label,
-          style: ansiMono(size: 11, color: AnsiColors.muted),
-        ),
-      );
-    }
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -1279,23 +1482,29 @@ class _UnitChoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        spacing: 6,
-        children: [
-          for (final u in kAllUnits)
-            AnsiModeChip(
-              label: u.label,
-              selected: u == selected,
-              // A stranded stored default still renders as the selection —
-              // it is the truth about the row, and the note below it is how
-              // it gets fixed.
-              enabled: unitSayableAsDefault(ingredient, u) || u == selected,
-              onTap: () => onPick(u),
-            ),
-        ],
-      ),
+    // Wrapped, not a horizontal scroller. The catalog is wider than a phone,
+    // and the scroller clipped the last chip mid-glyph with nothing to say it
+    // continued — a row of greyed pills running off the edge reads as broken
+    // rather than as "these are locked". D4c's rule is that the unsayable
+    // options stay VISIBLE, so "why can't I pick cup" has an answer; a chip
+    // you cannot see cannot answer anything.
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final u in kAllUnits)
+          AnsiModeChip(
+            label: u.label,
+            // A stranded stored default is still THE selection — that is the
+            // truth about the row — but not a healthy one: `stranded` repaints
+            // it in the "gone" colour, which is what the line under this row
+            // is about. Selection and health are two facts, not one.
+            selected: u == selected,
+            stranded: u == selected && !unitSayableAsDefault(ingredient, u),
+            enabled: unitSayableAsDefault(ingredient, u) || u == selected,
+            onTap: () => onPick(u),
+          ),
+      ],
     );
   }
 }
@@ -1304,6 +1513,16 @@ class _UnitChoiceRow extends StatelessWidget {
 /// support: `cup` on a per-100 g row with no density (the renamed-rice shape
 /// the owner hit). Never rewritten silently; named, with the one tap that
 /// repairs it.
+///
+/// **It stays, and it stops shouting.** This is not the "these units would
+/// unlock" advisory beside the admission chips — it names a unit the row is
+/// *already using*, so hiding it until a density arrives would hide a broken
+/// row from the only person who can fix it, and they would have no reason to
+/// add the density because nobody told them anything was wrong. But **D4d**
+/// already ruled *keep D4c strict, fix the data* — nineteen stranded rows got
+/// a real density — so this is now a rare state, and a rare state should not
+/// own a bordered card with a heading, a body and a button. One line with the
+/// fix in it; the chip above renders in [AnsiColors.gone] to say which unit.
 class _StrandedDefaultNote extends StatelessWidget {
   const _StrandedDefaultNote({required this.ingredient, required this.onFix});
 
@@ -1315,23 +1534,24 @@ class _StrandedDefaultNote extends StatelessWidget {
     if (!defaultUnitNeedsDensity(ingredient)) return const SizedBox.shrink();
     final fix = basisDefaultUnitFix(ingredient);
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.only(top: 7),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 4,
         children: [
           Text(
             '${ingredient.defaultUnit.label} needs a density on this row — '
-            'enter one below, or:',
+            'add one below, or',
             style: ansiMono(size: 10, color: AnsiColors.gone),
           ),
-          const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FButton(
-              size: FButtonSizeVariant.sm,
-              variant: FButtonVariant.outline,
-              onPress: onFix,
-              child: Text('switch default to ${fix.label}'),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onFix,
+            child: Container(
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: AnsiColors.line)),
+              ),
+              child: Text('switch to ${fix.label}', style: ansiMono(size: 10)),
             ),
           ),
         ],
@@ -1484,10 +1704,6 @@ class _AliasEditor extends HookConsumerWidget {
   }
 }
 
-/// Which imprecise words this row admits — gated per word by category
-/// (ADR-0008 §5 as tightened by plan 0020 J3: pinch and dash for the
-/// spice/seasoning/oil classes, handful for greens). A fact about the
-/// category, not a switch on this form, so it is read out rather than offered.
 /// "Counts as" — what a bare count of this row MEANS (seam **D1**, board
 /// frame f).
 ///
@@ -1587,109 +1803,6 @@ class _CountsAsRow extends ConsumerWidget {
   }
 }
 
-class _ImpreciseLine extends StatelessWidget {
-  const _ImpreciseLine({required this.ingredient});
-
-  final Ingredient ingredient;
-
-  @override
-  Widget build(BuildContext context) {
-    final words = impreciseUnitsFor(ingredient).map((u) => u.label).join(' · ');
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Imprecise units', style: ansiMono(size: 11)),
-        // Flexible, never a Spacer: the word list grows and a Row cannot give
-        // room it has not got (the G2 lesson).
-        Flexible(
-          child: Text(
-            words.isEmpty ? 'none — category-gated' : words,
-            textAlign: TextAlign.right,
-            style: ansiMono(size: 10, color: AnsiColors.muted),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// The frame's status line: what this row is doing to everyone's totals.
-class _StatusLine extends StatelessWidget {
-  const _StatusLine({required this.ingredient});
-
-  final Ingredient ingredient;
-
-  @override
-  Widget build(BuildContext context) {
-    final stub = ingredient.status == IngredientStatus.stub;
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: stub ? AnsiColors.muted : AnsiColors.fresh,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            stub
-                ? 'Still a stub — left out of macro totals until confirmed.'
-                : 'Complete — counts in conversions and macro totals.',
-            style: ansiMono(size: 11, color: AnsiColors.muted),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// "Confirm — it counts from here". Gated on macros (D5): density is not
-/// required, and the disabled state says why rather than going quiet.
-class _ConfirmCta extends StatelessWidget {
-  const _ConfirmCta({required this.enabled, required this.onConfirm});
-
-  final bool enabled;
-  final Future<void> Function() onConfirm;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        FButton(
-          onPress: enabled ? onConfirm : null,
-          child: const Text('Confirm — it counts from here'),
-        ),
-        if (!enabled) const _Note('needs macros'),
-      ],
-    );
-  }
-}
-
-/// Confirm is reversible (D5) — the row's macros stay, it just stops
-/// counting.
-class _UnconfirmAction extends StatelessWidget {
-  const _UnconfirmAction({required this.onUnconfirm});
-
-  final Future<void> Function() onUnconfirm;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onUnconfirm,
-      child: Text(
-        'return it to a stub',
-        style: ansiMono(size: 11, color: AnsiColors.muted),
-      ),
-    );
-  }
-}
-
 /// D7's manual half, rebuilt for **D7b**: a real probe, not a re-read.
 ///
 /// `usda_food` still never syncs to a device (ADR-0005), so the app cannot
@@ -1707,7 +1820,6 @@ class _UsdaLookup extends HookConsumerWidget {
   const _UsdaLookup({
     required this.ingredient,
     required this.flush,
-    required this.note,
     required this.onStatus,
   });
 
@@ -1717,12 +1829,6 @@ class _UsdaLookup extends HookConsumerWidget {
   /// save was refused or the row is gone). Called before every probe: a
   /// lookup that reads a name the user has already changed is the F1 bug.
   final Future<Ingredient?> Function() flush;
-
-  /// The status to show, or null for none. Held by the form (**G3**) — this
-  /// widget reports outcomes and renders what it is given, so there is one
-  /// answer to "what does the lookup currently say" and one place that
-  /// retires it.
-  final String? note;
 
   /// Reports a new status and the row it is about — the stored row after the
   /// flush, or the enriched row after an apply. The form stamps the note with
@@ -1786,15 +1892,12 @@ class _UsdaLookup extends HookConsumerWidget {
       }
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _GhostButton(
-          label: busy.value ? 'Looking up…' : 'Look up in USDA',
-          onTap: busy.value ? null : lookUp,
-        ),
-        if (note != null) _Note(note!),
-      ],
+    // The button alone: it sits beside the scanner in the form's one
+    // "fill it in from" row, and the status line it writes is rendered
+    // full-width beneath both of them by the form that owns it (G3).
+    return _GhostButton(
+      label: busy.value ? 'Looking up…' : 'Look up in USDA',
+      onTap: busy.value ? null : lookUp,
     );
   }
 }
@@ -1819,71 +1922,6 @@ String _lookupStamp(Ingredient i) => [
   i.densityGPerMl?.toString() ?? '',
   i.macros?.toString() ?? '',
 ].join('|');
-
-/// Delete, guarded. The refusal is the interesting state: it names the count,
-/// because "used by 3 recipes" is a thing a user can act on and "failed" is
-/// not.
-class _DeleteAction extends HookConsumerWidget {
-  const _DeleteAction({required this.ingredient});
-
-  final Ingredient ingredient;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final refusal = useState<String?>(null);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () async {
-            final outcome = await ref.write(
-              context,
-              'delete ${ingredient.canonicalName}',
-              () => ref
-                  .read(ingredientRepositoryProvider)
-                  .softDelete(ingredient.id),
-            );
-            if (outcome == null || !context.mounted) return;
-            switch (outcome) {
-              case Deleted():
-                ref.invalidate(ingredientByIdProvider(ingredient.id));
-                if (context.mounted) {
-                  context.canPop()
-                      ? context.pop()
-                      : context.goOnce('/ingredients');
-                }
-              case DeleteRefused(:final recipeCount, :final lineCount):
-                refusal.value =
-                    'Still used by $recipeCount '
-                    '${recipeCount == 1 ? 'recipe' : 'recipes'} '
-                    '($lineCount ${lineCount == 1 ? 'line' : 'lines'}). '
-                    'Change those lines first.';
-              case DeleteMissing():
-                refusal.value = 'It is already gone.';
-            }
-          },
-          child: DashedBorderBox(
-            color: AnsiColors.gone,
-            child: Text(
-              'Delete ingredient',
-              textAlign: TextAlign.center,
-              style: ansiMono(size: 12, color: AnsiColors.gone),
-            ),
-          ),
-        ),
-        if (refusal.value != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              refusal.value!,
-              style: ansiMono(size: 11, color: AnsiColors.gone),
-            ),
-          ),
-      ],
-    );
-  }
-}
 
 // --- Small shared pieces -----------------------------------------------------
 
@@ -1952,33 +1990,285 @@ class _DensityGapNote extends StatelessWidget {
   }
 }
 
-/// The form's save/confirm feedback line. Always in the tree so the children
-/// below it keep their positions (and their hook state) when it appears.
-class _FormMessage extends StatelessWidget {
-  const _FormMessage({required this.text});
-
-  final String? text;
-
-  @override
-  Widget build(BuildContext context) {
-    if (text == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Text(text!, style: ansiMono(size: 11, color: AnsiColors.muted)),
-    );
-  }
-}
-
+/// A field's micro-label, with the qualifier that used to be shouted beside
+/// it demoted to [hint].
+///
+/// `ansiLabel` is letter-spaced uppercase mono — a style for a short noun.
+/// Four of this form's labels had grown into whole sentences in it
+/// ("MACROS — ENTER THEM AS THE LABEL READS"), one of which wrapped onto two
+/// lines on a phone, and every one of them read at the same weight as the
+/// group headings above them. The board already ruled this once, on the
+/// density warning: *"why is the message an essay"*.
 class _Label extends StatelessWidget {
-  const _Label(this.text);
+  const _Label(this.text, {this.hint});
 
   final String text;
+
+  /// The sentence-case qualifier, or null. Same words as before, one weight
+  /// down — the label says what the field is, this says how to read it.
+  final String? hint;
 
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: 20, bottom: 6),
-    child: Text(text, style: ansiLabel()),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(text, style: ansiLabel()),
+        if (hint != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child: Text(
+              hint!,
+              style: ansiMono(size: 10, color: AnsiColors.muted),
+            ),
+          ),
+      ],
+    ),
   );
+}
+
+/// One named group of the form: a serif heading and a hairline over a run of
+/// related fields.
+///
+/// The form was eighteen sibling blocks in a flat list, every one of them a
+/// peer of every other. Three groups is the whole hierarchy — the board's
+/// field order is unchanged inside them.
+class _Group extends StatelessWidget {
+  const _Group({required this.title, required this.children});
+
+  final String title;
+
+  /// Fixed slots, exactly like the list that holds the groups: a section that
+  /// turns on renders `SizedBox.shrink()` when it is off rather than leaving
+  /// the column, so its siblings keep their positions and their hook state.
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 26),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(title, style: ansiSerif(size: 17)),
+        const SizedBox(height: 7),
+        Container(height: 1, color: AnsiColors.line),
+        ...children,
+      ],
+    ),
+  );
+}
+
+/// What this row is doing to everyone's totals — at the TOP of the form.
+///
+/// It was the last thing on the page: you had to scroll the whole scroll to
+/// learn that the row you are editing does not count yet, which is the first
+/// thing you want to know and the reason the Confirm button exists.
+class _StatusStrip extends StatelessWidget {
+  const _StatusStrip({required this.ingredient});
+
+  final Ingredient ingredient;
+
+  @override
+  Widget build(BuildContext context) {
+    final stub = ingredient.status == IngredientStatus.stub;
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: AnsiColors.surface,
+        border: Border.all(color: AnsiColors.line),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: stub ? AnsiColors.muted : AnsiColors.fresh,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              stub
+                  ? 'Still a stub — left out of macro totals until confirmed.'
+                  : 'Complete — counts in conversions and macro totals.',
+              style: ansiMono(size: 11, color: AnsiColors.muted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The two doors that fill a stub in from a source, side by side.
+///
+/// They were fifteen blocks apart — the scanner above the name field, "Look
+/// up in USDA" below the confirm CTA — although they answer the same question
+/// and both stop being offered once the row has a USDA provenance card.
+class _FillItIn extends StatelessWidget {
+  const _FillItIn({
+    required this.onScan,
+    required this.usda,
+    required this.note,
+  });
+
+  final Future<void> Function()? onScan;
+
+  /// The lookup button, or null on a row USDA has already filled or a person
+  /// has already refused — there the provenance card's own doors are the way
+  /// to change the match (U-D2).
+  final Widget? usda;
+
+  /// The lookup's status, owned by the form (**G3**) and drawn full width
+  /// under the row rather than inside whichever half wrote it.
+  final String? note;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 18),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('FILL IT IN FROM', style: ansiLabel()),
+        const SizedBox(height: 6),
+        Row(
+          spacing: 8,
+          children: [
+            Expanded(
+              child: _GhostButton(label: 'Scan a barcode', onTap: onScan),
+            ),
+            if (usda != null) Expanded(child: usda!),
+          ],
+        ),
+        if (note != null) _Note(note!),
+      ],
+    ),
+  );
+}
+
+/// The form's two commitments, pinned under the scroll.
+///
+/// Save, Confirm, "return it to a stub", "Look up in USDA" and Delete used to
+/// be five affordances stacked in a column at the end of a very long page —
+/// so the destructive one sat a flick below the confirm CTA, and neither of
+/// the two that actually commit anything was reachable without scrolling to
+/// the bottom. Two of the five moved to the header's `⋯`, one to the top of
+/// the form, and these two stay where a CTA belongs.
+///
+/// **One row, not a stack.** Two full-width buttons is a wall, and
+/// `Confirm — it counts from here` was a sentence pretending to be a label.
+/// The promise moves up into [message] — which is the form's existing feedback
+/// line, the same one that says "Saved.", "Still used by 3 recipes (4 lines)."
+/// and "Filled from …" — leaving `Save` and `Mark complete` to share a row and
+/// be ranked by width and colour instead of by stacking order.
+///
+/// **`Mark complete`, not `Confirm`.** The state is literally called
+/// `complete` ([IngredientStatus.complete]) and the strip at the top of the
+/// form already reads "Complete — counts in conversions and macro totals";
+/// the app was using three words for two states. Not `Finalize`: D5 makes this
+/// reversible, and the `⋯` un-does it.
+class _ActionBar extends StatelessWidget {
+  const _ActionBar({
+    required this.stub,
+    required this.canComplete,
+    required this.message,
+    required this.onSave,
+    required this.onComplete,
+  });
+
+  final bool stub;
+
+  /// Gated on macros (D5): density is not required, and the line above says
+  /// why rather than the button going quiet.
+  final bool canComplete;
+
+  /// The form's one feedback line — a save, a delete refusal with its count,
+  /// a USDA fill, or what completion is still waiting for. On screen at any
+  /// scroll position now that it rides here.
+  final String? message;
+
+  final Future<void> Function()? onSave;
+  final Future<void> Function() onComplete;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (message != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 9),
+            child: Text(
+              message!,
+              style: ansiMono(size: 11, color: AnsiColors.muted),
+            ),
+          ),
+        if (stub)
+          Row(
+            spacing: 8,
+            children: [
+              // Outline and narrow, so the two greens stop competing: on a
+              // stub the act that matters is completing it, and Save is the
+              // way to put the form down without doing that.
+              SizedBox(
+                width: 92,
+                child: FButton(
+                  // Keyed: the density entry and the measures editor each
+                  // carry their own small green Save earlier in the tree, and
+                  // a test reaching for "the form's Save" by text is picking
+                  // between three of them by position.
+                  key: kFormSaveKey,
+                  variant: FButtonVariant.outline,
+                  onPress: onSave,
+                  child: const Text('Save'),
+                ),
+              ),
+              Expanded(
+                child: FButton(
+                  key: kFormCompleteKey,
+                  onPress: canComplete ? onComplete : null,
+                  child: const Text('Mark complete'),
+                ),
+              ),
+            ],
+          )
+        else
+          FButton(
+            key: kFormSaveKey,
+            onPress: onSave,
+            child: const Text('Save'),
+          ),
+      ],
+    ),
+  );
+}
+
+/// "Counts as", as one slot (seam **D1**, board frame f) — the label and the
+/// row together, or nothing at all on a row with no measures.
+class _CountsAsSection extends StatelessWidget {
+  const _CountsAsSection({required this.ingredient, required this.measures});
+
+  final Ingredient ingredient;
+  final List<Measure> measures;
+
+  @override
+  Widget build(BuildContext context) {
+    if (measures.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _Label('COUNTS AS', hint: 'what “2 onions” means'),
+        _CountsAsRow(ingredient: ingredient, measures: measures),
+      ],
+    );
+  }
 }
 
 class _Note extends StatelessWidget {
@@ -2062,11 +2352,6 @@ class _MacroDraft {
     );
   }
 }
-
-/// The side a stored density admits and a deleted density takes back (D4b) —
-/// the opposite of the basis family, which is always sayable (ADR-0008 §1).
-String _crossFamilyWord(Ingredient ingredient) =>
-    ingredient.macrosBasis == MacrosBasis.perMl ? 'weight' : 'volume';
 
 // --- The M-D2 offer ----------------------------------------------------------
 

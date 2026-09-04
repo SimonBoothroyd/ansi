@@ -38,7 +38,6 @@ import 'package:ansi/features/ingredients/presentation/ingredient_list_view.dart
 import 'package:ansi/features/ingredients/presentation/measures_editor.dart';
 import 'package:ansi/features/ingredients/presentation/new_ingredient_sheet.dart';
 import 'package:ansi/features/ingredients/presentation/serving_row.dart';
-import 'package:ansi/shared/dashed_border_box.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -191,25 +190,21 @@ void _tallScreen(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
-/// The labels of every dashed (density-locked) admission chip on screen —
-/// D4b's whole visible contract. Read off [DashedBorderBox] rather than a
-/// key, because the dashed border IS what "locked" means on this form; the
-/// alias/delete affordances share the box but never carry a unit label.
-Set<String> _dashedChipLabels(WidgetTester tester) {
-  final labels = <String>{};
-  for (final box in find.byType(DashedBorderBox).evaluate()) {
-    final texts = find.descendant(
-      of: find.byWidget(box.widget),
-      matching: find.byType(Text),
-    );
-    for (final t in texts.evaluate()) {
-      final data = (t.widget as Text).data;
-      if (data != null && kAllUnits.any((u) => u.label == data)) {
-        labels.add(data);
-      }
+/// The units the admission section says a density would unlock — D4b's whole
+/// visible contract. They used to be dashed chips; since the v2 pass they are
+/// one named line ("cup · tbsp · ml unlock when this row has a density"),
+/// which answers "why can't I pick cup" with the remedy attached rather than
+/// with a grey pill. Parsed off that line, so the test asserts exactly what
+/// the user is told.
+Set<String> _lockedUnitLabels(WidgetTester tester) {
+  for (final t in find.byType(Text).evaluate()) {
+    final data = (t.widget as Text).data;
+    if (data == null || !data.contains('unlock when this row has a density')) {
+      continue;
     }
+    return data.split(' unlock').first.split(' · ').toSet();
   }
-  return labels;
+  return {};
 }
 
 /// The category dropdown. `FSelect.rich` builds a private subclass, so this
@@ -271,8 +266,20 @@ Future<void> _typeMacros(
 
 /// The form's own Save — the last one on the page (the density entry and
 /// the measures editor each draw their own above it).
-Future<void> _saveForm(WidgetTester tester) async {
-  await tester.tap(find.widgetWithText(FButton, 'Save').last);
+/// Taps the form's own Save. Since the v2 pass **Save ends the page** — the
+/// picker that pushes this form awaits its pop — so a test that goes on
+/// asserting form state passes [reopen], the row's canonical name, and the
+/// helper walks back in through the list the way a person would.
+Future<void> _saveForm(WidgetTester tester, {String? reopen}) async {
+  await tester.tap(find.byKey(kFormSaveKey));
+  await tester.pumpAndSettle();
+  if (reopen == null) return;
+  expect(
+    find.text('CANONICAL NAME'),
+    findsNothing,
+    reason: 'Save should have left the form',
+  );
+  await tester.tap(find.text(reopen).first);
   await tester.pumpAndSettle();
 }
 
@@ -353,6 +360,14 @@ Widget _host(
       builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
     ),
   );
+}
+
+/// Opens the flesh-out form's header `⋯` — where the actions that are not
+/// part of filling the form in live (delete, and un-confirming a complete
+/// row), drawn on the board frame since the section was locked.
+Future<void> _openMoreMenu(WidgetTester tester) async {
+  await tester.tap(find.byIcon(FLucideIcons.ellipsis));
+  await tester.pumpAndSettle();
 }
 
 /// The density section on its own, inside the form's own page padding — the
@@ -441,8 +456,8 @@ void main() {
       await tester.pumpAndSettle();
       expect((await repo.byId('mango'))!.canonicalName, 'Mango, ripe');
 
-      // Back out through the form's own chevron, the way the owner did.
-      await tester.tap(find.byType(FHeaderAction).first);
+      // Save is the way back now — it ends the page, which is what the
+      // picker that pushes this form has always awaited.
       await tester.pumpAndSettle();
 
       // The user typed nothing into search, so the list must not be in its
@@ -506,7 +521,7 @@ void main() {
       expect(find.textContaining('60 kcal · 1P 0F 15C'), findsOneWidget);
     });
 
-    testWidgets('G4: a prefilled-but-unconfirmed stub hints NEEDS CONFIRM — '
+    testWidgets('G4: a prefilled-but-unconfirmed stub hints NEEDS COMPLETING — '
         'the hint stops asking for what the row already has', (tester) async {
       _filterSemanticsAssertions();
       // Same row, one difference: the prefill has landed its panel.
@@ -518,7 +533,7 @@ void main() {
 
       // D5's language: the numbers are there, a human standing behind them
       // is what is missing.
-      expect(find.text('needs confirm · usda prefilled'), findsOneWidget);
+      expect(find.text('needs completing · usda prefilled'), findsOneWidget);
       // …while a truly bare stub still says the literal truth.
       expect(find.text('needs macros'), findsOneWidget);
       expect(find.text('2 stubs'), findsOneWidget);
@@ -564,12 +579,7 @@ void main() {
       // G6's trim: the status line one row up already explains what a stub
       // costs, so the CTA's own note says only what it is waiting for.
       expect(find.text('needs macros'), findsOneWidget);
-      final cta = tester.widget<FButton>(
-        find.ancestor(
-          of: find.text('Confirm — it counts from here'),
-          matching: find.byType(FButton),
-        ),
-      );
+      final cta = tester.widget<FButton>(find.byKey(kFormCompleteKey));
       expect(cta.onPress, isNull);
     });
 
@@ -899,14 +909,15 @@ void main() {
         await tester.pump();
       }
 
-      await tester.tap(find.text('Confirm — it counts from here'));
+      await tester.tap(find.byKey(kFormCompleteKey));
       await tester.pumpAndSettle();
 
       final row = await repo.byId('curry');
       expect(row!.status, IngredientStatus.complete);
       expect(row.macros, const Macros(kcal: 108, protein: 6, carb: 19, fat: 1));
       expect(row.densityGPerMl, isNull); // never required (D5)
-      expect(find.text('Confirmed — it counts from here.'), findsOneWidget);
+      // Completing ends the page — the caller that pushed it is waiting.
+      expect(find.text('CANONICAL NAME'), findsNothing);
     });
 
     testWidgets(
@@ -922,7 +933,8 @@ void main() {
           find.text('Complete — counts in conversions and macro totals.'),
           findsOneWidget,
         );
-        await tester.tap(find.text('return it to a stub'));
+        await _openMoreMenu(tester);
+        await tester.tap(find.text('Return it to a stub'));
         await tester.pumpAndSettle();
 
         final row = await repo.byId('mango');
@@ -943,7 +955,10 @@ void main() {
       for (final label in ['piece', 'g', 'cup', 'tbsp', 'tsp', 'ml']) {
         expect(find.text(label), findsWidgets, reason: label);
       }
-      expect(find.textContaining('dashed chips need a density'), findsNothing);
+      expect(
+        find.textContaining('unlock when this row has a density'),
+        findsNothing,
+      );
     });
 
     testWidgets('D4b, the full cycle: locked → a density unlocks → deleting '
@@ -967,24 +982,36 @@ void main() {
       await tester.pumpAndSettle();
 
       // 1. Locked: the cross-family chips are drawn dashed, with the hint.
-      expect(_dashedChipLabels(tester), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
+      expect(_lockedUnitLabels(tester), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
       expect(
-        find.textContaining('dashed chips need a density'),
+        find.textContaining('unlock when this row has a density'),
         findsOneWidget,
       );
       // The basis side is toggleable from the start — it never needed one.
-      expect(_dashedChipLabels(tester), isNot(contains('g')));
-      expect(_dashedChipLabels(tester), isNot(contains('piece')));
+      expect(_lockedUnitLabels(tester), isNot(contains('g')));
+      expect(_lockedUnitLabels(tester), isNot(contains('piece')));
 
-      // 2. Save a density: the same chips come live.
+      // 2. Save a density: the same chips come live. The entry is one
+      // sentence now — "1 __ of this weighs __ g" — so a raw g/ml is typed
+      // against `ml`, whose ratio to base is 1.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DensityEntry),
+          matching: find.text('ml'),
+        ),
+      );
+      await tester.pump();
       await tester.enterText(_densityField, '0.66');
       await tester.pump();
       await tester.tap(find.widgetWithText(FButton, 'Save').first);
       await tester.pumpAndSettle();
 
       expect((await repo.byId('mango'))!.densityGPerMl, 0.66);
-      expect(_dashedChipLabels(tester), isEmpty);
-      expect(find.textContaining('dashed chips need a density'), findsNothing);
+      expect(_lockedUnitLabels(tester), isEmpty);
+      expect(
+        find.textContaining('unlock when this row has a density'),
+        findsNothing,
+      );
 
       // 3. Delete it: the strip leg, in the same write, with the consequence
       // named before it happens.
@@ -1005,7 +1032,7 @@ void main() {
         'g',
         'handful',
       });
-      expect(_dashedChipLabels(tester), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
+      expect(_lockedUnitLabels(tester), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
     });
 
     testWidgets('G6: a density-less row draws the locked chips, and the note '
@@ -1020,7 +1047,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        find.textContaining('dashed chips need a density'),
+        find.textContaining('unlock when this row has a density'),
         findsOneWidget,
       );
       // It used to be three sentences, one of which claimed a family was
@@ -1054,6 +1081,7 @@ void main() {
       await tester.pumpWidget(_host(repo, at: '/ingredients/mango'));
       await tester.pumpAndSettle();
 
+      await _openMoreMenu(tester);
       await tester.tap(find.text('Delete ingredient'));
       await tester.pumpAndSettle();
 
@@ -1072,6 +1100,7 @@ void main() {
       final repo = FakeIngredientRepo(const [_mango]);
       await tester.pumpWidget(_host(repo, at: '/ingredients/mango'));
       await tester.pumpAndSettle();
+      await _openMoreMenu(tester);
       await tester.tap(find.text('Delete ingredient'));
       await tester.pumpAndSettle();
       expect(repo.rows, isEmpty);
@@ -1185,7 +1214,7 @@ void main() {
         find.textContaining('that mapping is the density'),
         findsOneWidget,
       );
-      expect(find.text('weighs'), findsOneWidget);
+      expect(find.text('of this weighs'), findsOneWidget);
     });
 
     // --- plan 0022 / ADR-0010: the one question in the `piece` model --------
@@ -1313,7 +1342,7 @@ void main() {
       expect(allowedUnitsFor(repo.rows.single), isNot(contains(pieces)));
       // But the chip is still drawn, and drawn LIVE (not dashed): a count
       // row needs no density for `piece`, so it is one tap from returning.
-      expect(_dashedChipLabels(tester), isNot(contains('piece')));
+      expect(_lockedUnitLabels(tester), isNot(contains('piece')));
       expect(find.text('piece'), findsWidgets);
     });
 
@@ -1375,7 +1404,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('COUNTS AS — WHAT “2 ONIONS” MEANS'), findsOneWidget);
+      expect(find.text('COUNTS AS'), findsOneWidget);
       expect(find.text('One mango is'), findsOneWidget);
       expect(find.text('— not set'), findsOneWidget);
 
@@ -1412,7 +1441,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('COUNTS AS — WHAT “2 ONIONS” MEANS'), findsNothing);
+      expect(find.text('COUNTS AS'), findsNothing);
       expect(find.text('One mango is'), findsNothing);
     });
 
@@ -1643,9 +1672,7 @@ void main() {
       expect(find.text('none yet — unlocks volume⇄weight'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
-      await tester.tap(find.text('a spoon weighs…'));
-      await tester.pumpAndSettle();
-      expect(find.text('weighs'), findsOneWidget);
+      expect(find.text('of this weighs'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -1665,7 +1692,7 @@ void main() {
       // not ours to edit behind its back.
       expect((await repo.byId('rice'))!.defaultUnit, cup);
 
-      await tester.tap(find.widgetWithText(FButton, 'switch default to g'));
+      await tester.tap(find.text('switch to g'));
       await tester.pumpAndSettle();
 
       expect((await repo.byId('rice'))!.defaultUnit, g);
@@ -1694,6 +1721,13 @@ void main() {
       expect(_defaultUnitChip(tester, 'cup').selected, isTrue);
 
       // A density unlocks the whole selector again.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DensityEntry),
+          matching: find.text('ml'),
+        ),
+      );
+      await tester.pump();
       await tester.enterText(_densityField, '0.75');
       await tester.pump();
       await tester.tap(find.widgetWithText(FButton, 'Save').first);
@@ -2017,7 +2051,7 @@ void main() {
 
     /// Opens the form's scan surface and types [barcode] in.
     Future<void> scanOnForm(WidgetTester tester, String barcode) async {
-      await tester.tap(find.text('Scan a barcode to fill this in'));
+      await tester.tap(find.text('Scan a barcode'));
       await tester.pumpAndSettle();
       await tester.enterText(_scanField, barcode);
       await tester.pump();
@@ -2168,7 +2202,7 @@ void main() {
         _host(FakeIngredientRepo(const [_mango]), at: '/ingredients/mango'),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Scan a barcode to fill this in'), findsNothing);
+      expect(find.text('Scan a barcode'), findsNothing);
     });
   });
 
@@ -2281,15 +2315,15 @@ void main() {
       expect(saved.macros!.kcal, 50);
     });
 
-    testWidgets('M-D2: “1 tbsp = 14 g” is offered as the density — OFF by '
-        'default, and when ticked it lands in the same Save and the volume '
-        'chips unlock', (tester) async {
-      _filterSemanticsAssertions();
-      _tallScreen(tester);
-      final repo = FakeIngredientRepo(const [spread]);
+    /// The shared setup for the two M-D2 legs: a bare per-100 g stub, put
+    /// into per-serving mode with a 14 g "1 tbsp" serving and a label's four.
+    Future<Finder> armTheOffer(
+      WidgetTester tester,
+      FakeIngredientRepo repo,
+    ) async {
       await tester.pumpWidget(_host(repo, at: '/ingredients/spread'));
       await tester.pumpAndSettle();
-      expect(_dashedChipLabels(tester), containsAll(['tbsp', 'ml']));
+      expect(_lockedUnitLabels(tester), containsAll(['tbsp', 'ml']));
 
       await tester.tap(find.text('per serving'));
       await tester.pumpAndSettle();
@@ -2304,33 +2338,52 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The offer, drawn and unticked.
       expect(find.text('THIS SERVING ALSO SAYS'), findsOneWidget);
       final tick = find.byKey(const ValueKey('serving-offer'));
       expect(find.text('1 tbsp weighs 14 g — set as density'), findsOneWidget);
       expect(tester.widget<FCheckbox>(tick).value, isFalse);
+      return tick;
+    }
 
-      // Untouched, Save writes the macros and NOTHING else.
+    testWidgets('M-D2: the offer is OFF by default — an untouched Save writes '
+        'the macros and NOTHING else', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo(const [spread]);
+      await armTheOffer(tester, repo);
+
       await _saveForm(tester);
-      final first = (await repo.byId('spread'))!;
-      expect(first.macros, isNotNull);
-      expect(first.densityGPerMl, isNull);
-      expect(_dashedChipLabels(tester), containsAll(['tbsp', 'ml']));
+      final saved = (await repo.byId('spread'))!;
+      expect(saved.macros, isNotNull);
+      // The whole point: a pack's "about 1 tbsp" is sometimes a guess, and a
+      // density minted from a guess would decide what units the row admits.
+      expect(saved.densityGPerMl, isNull);
+    });
 
-      // Ticked, the same Save lands it through `setDensity` — the density
-      // entry's own spoon arithmetic (ADR-0008 §2), and ADR-0009's unlock.
+    testWidgets('M-D2: ticked, the same Save lands it through setDensity and '
+        'the volume chips unlock', (tester) async {
+      _filterSemanticsAssertions();
+      _tallScreen(tester);
+      final repo = FakeIngredientRepo(const [spread]);
+      final tick = await armTheOffer(tester, repo);
+
       await tester.tap(tick);
       await tester.pumpAndSettle();
       expect(tester.widget<FCheckbox>(tick).value, isTrue);
       expect(find.textContaining('= 0.947 g/ml'), findsOneWidget);
-      await _saveForm(tester);
-      final second = (await repo.byId('spread'))!;
-      expect(second.densityGPerMl, closeTo(14 / tbsp.ratioToBase!, 1e-9));
-      expect(_dashedChipLabels(tester), isNot(contains('tbsp')));
-      expect(_dashedChipLabels(tester), isNot(contains('ml')));
+
+      // One Save: the macros through `saveEdit`, the density through the
+      // density entry's own spoon arithmetic (ADR-0008 §2), and ADR-0009's
+      // unlock. Save ends the page, so we walk back in to read the chips.
+      await _saveForm(tester, reopen: 'Buttery spread');
+      final saved = (await repo.byId('spread'))!;
+      expect(saved.densityGPerMl, closeTo(14 / tbsp.ratioToBase!, 1e-9));
+      expect(_lockedUnitLabels(tester), isNot(contains('tbsp')));
+      expect(_lockedUnitLabels(tester), isNot(contains('ml')));
       expect(find.textContaining('0.947 g/ml'), findsWidgets);
-      // Landed, so unticked — a third Save must not write it again.
-      expect(tester.widget<FCheckbox>(tick).value, isFalse);
+      // Landed, and it cannot be written twice: the reopened form reads the
+      // row's own per-100 macros, so there is no serving and no offer at all.
+      expect(find.text('THIS SERVING ALSO SAYS'), findsNothing);
     });
 
     testWidgets('M-D2: a serving that names a thing — “1 slice = 28 g” — is '
@@ -2438,7 +2491,7 @@ void main() {
       }
 
       Future<void> scanOnForm(WidgetTester tester) async {
-        await tester.tap(find.text('Scan a barcode to fill this in'));
+        await tester.tap(find.text('Scan a barcode'));
         await tester.pumpAndSettle();
         await tester.enterText(_scanField, '0851087000250');
         await tester.pump();

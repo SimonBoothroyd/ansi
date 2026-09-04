@@ -223,7 +223,7 @@ class _ManagerRow extends StatelessWidget {
 /// below already carries.
 ///
 /// **G4** — and once a prefill has put macros there, the hint stops asking
-/// for what the row already has. It reads **needs confirm**, which is D5's
+/// for what the row already has. It reads **needs completing**, which is D5's
 /// own language for the one thing still missing: a human standing behind the
 /// numbers. "needs macros" stays for the truly bare stubs, where it is the
 /// literal truth.
@@ -276,7 +276,7 @@ class _StubBand extends StatelessWidget {
                         if (s.macros == null)
                           'needs macros'
                         else
-                          'needs confirm',
+                          'needs completing',
                         if (isUsdaPrefilled(s.source)) 'usda prefilled',
                       ].join(' · '),
                       style: ansiMono(size: 10, color: AnsiColors.muted),

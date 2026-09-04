@@ -27,7 +27,7 @@ import 'package:ansi/features/ingredients/domain/normalize.dart'
 import 'package:ansi/features/ingredients/presentation/density_entry.dart'
     show AnsiModeChip;
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart'
-    show IngredientDetailView;
+    show IngredientDetailView, kFormSaveKey;
 import 'package:ansi/features/ingredients/presentation/quantity_unit_sheet.dart'
     show QuantityUnitEditor, UnitChipRow;
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
@@ -535,7 +535,7 @@ void main() {
 
       // Set the default unit to kg — which also admits it — and Save the
       // form; the picker is awaiting the form's pop underneath.
-      await scrollTo(tester, find.text('CATEGORY · DEFAULT UNIT'));
+      await scrollTo(tester, find.text('CATEGORY'));
       final kg = find.descendant(
         of: find.byKey(const ValueKey('default-unit-row')),
         matching: find.widgetWithText(AnsiModeChip, 'kg'),
@@ -544,9 +544,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(kg);
       await tester.pump();
-      // `.last`: the density section carries its own small Save above.
-      await scrollTo(tester, find.text('Confirm — it counts from here'));
-      await tester.tap(find.text('Save').last);
+      // The form's own Save, by key: the density entry and the measures
+      // editor each carry their own small green Save, and the dock is pinned
+      // since the v2 pass so it needs no scrolling to reach.
+      await tester.tap(find.byKey(kFormSaveKey));
       await tester.pumpAndSettle();
       await waitForDb(
         tester,
