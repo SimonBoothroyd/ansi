@@ -27,6 +27,7 @@ import '../../../core/words.dart';
 import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
+import '../../../shared/ansi_stepper_row.dart';
 import '../../../shared/format.dart';
 import '../../../shared/write.dart';
 import '../../books/data/book_providers.dart';
@@ -388,24 +389,16 @@ class _ServesStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        FButton.icon(
-          onPress: servings > 1 ? () => onChanged(servings - 1) : null,
-          child: const Icon(FLucideIcons.minus),
+    return AnsiStepperRow(
+      onDecrement: servings > 1 ? () => onChanged(servings - 1) : null,
+      onIncrement: () => onChanged(servings + 1),
+      value: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        child: Text(
+          formatQuantity(servings),
+          style: ansiMono(size: 18, weight: FontWeight.w600),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Text(
-            formatQuantity(servings),
-            style: ansiMono(size: 18, weight: FontWeight.w600),
-          ),
-        ),
-        FButton.icon(
-          onPress: () => onChanged(servings + 1),
-          child: const Icon(FLucideIcons.plus),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -490,42 +483,31 @@ class _StepperRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final value = this.value;
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: ansiSans(size: 15)),
-              if (caption case final caption?)
-                Text(
-                  caption,
-                  style: ansiMono(size: 10, color: AnsiColors.muted),
-                ),
-            ],
-          ),
+    return AnsiStepperRow(
+      leading: Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: ansiSans(size: 15)),
+            if (caption case final caption?)
+              Text(caption, style: ansiMono(size: 10, color: AnsiColors.muted)),
+          ],
         ),
-        FButton.icon(
-          onPress: value == null
-              ? null
-              : () => onChanged(value <= step ? null : value - step),
-          child: const Icon(FLucideIcons.minus),
+      ),
+      onDecrement: value == null
+          ? null
+          : () => onChanged(value <= step ? null : value - step),
+      onIncrement: () => onChanged((value ?? 0) + step),
+      value: SizedBox(
+        width: 100,
+        child: Text(
+          value == null ? unsetText : format(value),
+          textAlign: TextAlign.center,
+          style: value == null
+              ? ansiMono(size: 13, color: AnsiColors.muted)
+              : ansiMono(size: 15, weight: FontWeight.w600),
         ),
-        SizedBox(
-          width: 100,
-          child: Text(
-            value == null ? unsetText : format(value),
-            textAlign: TextAlign.center,
-            style: value == null
-                ? ansiMono(size: 13, color: AnsiColors.muted)
-                : ansiMono(size: 15, weight: FontWeight.w600),
-          ),
-        ),
-        FButton.icon(
-          onPress: () => onChanged((value ?? 0) + step),
-          child: const Icon(FLucideIcons.plus),
-        ),
-      ],
+      ),
     );
   }
 }

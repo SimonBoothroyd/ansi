@@ -26,6 +26,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_stepper_row.dart';
 import '../../../shared/format.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/incomplete_macros.dart';
@@ -656,37 +657,30 @@ class _ScaleControl extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Text(
+        child: AnsiStepperRow(
+          leading: Expanded(
+            child: Text(
               'Scale\nto',
               style: ansiSans(size: 13, color: AnsiColors.muted),
             ),
-            const Spacer(),
-            FButton.icon(
-              onPress: servings > 1 ? () => onChanged(servings - 1) : null,
-              child: const Icon(FLucideIcons.minus),
+          ),
+          onDecrement: servings > 1 ? () => onChanged(servings - 1) : null,
+          onIncrement: () => onChanged(servings + 1),
+          value: Expanded(
+            flex: 3,
+            child: Column(
+              children: [
+                Text(
+                  '${formatQuantity(servings)} servings',
+                  style: ansiSans(size: 17, weight: FontWeight.w700),
+                ),
+                Text(
+                  '·${formatQuantity(factor)}×',
+                  style: ansiMono(size: 13, color: AnsiColors.muted),
+                ),
+              ],
             ),
-            Expanded(
-              flex: 3,
-              child: Column(
-                children: [
-                  Text(
-                    '${formatQuantity(servings)} servings',
-                    style: ansiSans(size: 17, weight: FontWeight.w700),
-                  ),
-                  Text(
-                    '·${formatQuantity(factor)}×',
-                    style: ansiMono(size: 13, color: AnsiColors.muted),
-                  ),
-                ],
-              ),
-            ),
-            FButton.icon(
-              onPress: () => onChanged(servings + 1),
-              child: const Icon(FLucideIcons.plus),
-            ),
-          ],
+          ),
         ),
       ),
     );

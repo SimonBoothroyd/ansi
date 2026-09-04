@@ -22,6 +22,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
+import '../../../shared/ansi_stepper_row.dart';
 import '../domain/method_step.dart';
 
 /// What the sheet resolved to: a span, or the request to unmake one.
@@ -223,30 +224,22 @@ class _Notch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        FButton.icon(
-          size: FButtonSizeVariant.sm,
-          onPress: value <= 0 ? null : () => onChanged(value - step),
-          child: const Icon(FLucideIcons.minus),
+    return AnsiStepperRow(
+      small: true,
+      onDecrement: value <= 0 ? null : () => onChanged(value - step),
+      onIncrement: value >= max ? null : () => onChanged(value + step),
+      value: SizedBox(
+        width: 44,
+        child: Text(
+          '$value',
+          textAlign: TextAlign.center,
+          style: ansiMono(size: 16, weight: FontWeight.w600),
         ),
-        SizedBox(
-          width: 44,
-          child: Text(
-            '$value',
-            textAlign: TextAlign.center,
-            style: ansiMono(size: 16, weight: FontWeight.w600),
-          ),
-        ),
-        FButton.icon(
-          size: FButtonSizeVariant.sm,
-          onPress: value >= max ? null : () => onChanged(value + step),
-          child: const Icon(FLucideIcons.plus),
-        ),
-        const SizedBox(width: 6),
-        Text(suffix, style: ansiMono(size: 12, color: AnsiColors.muted)),
-      ],
+      ),
+      trailing: Padding(
+        padding: const EdgeInsets.only(left: 6),
+        child: Text(suffix, style: ansiMono(size: 12, color: AnsiColors.muted)),
+      ),
     );
   }
 }
