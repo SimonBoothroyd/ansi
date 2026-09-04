@@ -71,8 +71,8 @@ screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md)
   providers. The app does not call Supabase REST directly for synced data.
 - **Run codegen after touching any `@riverpod`, `@freezed`, or JSON type:**
   `make gen` (or `make watch`).
-- **Every file in `core/` or a `domain/` ships with a test** in the mirrored
-  `test/` path.
+- **Every file in `core/` or a `domain/` ships with a test** — `<file>_test.dart`
+  under that feature's directory in `test/`.
 
 ## Code style — docs, comments, structure
 
@@ -107,6 +107,9 @@ reads them.
 - No narration (`// loop over the ingredients`), no history or transcript
   comments (`// changed from X`, `// was broken, now fixed`, `// per review`) —
   git holds the history, and these rot. No commented-out code; delete it.
+- No plan numbers, decision letters or board versions in code comments — they
+  need the chat thread to decode, and the thread is gone. Name the rule, not the
+  ruling. Do not write a number a future edit will falsify.
 - A good comment carries intent a future reader can't recover from the code: an
   invariant, a non-obvious edge case, a link to the spec/ADR that forced the
   shape (`// spec §4: shelf-life split is greedy, O(n log n)`).
@@ -159,31 +162,15 @@ The loop (agents drive it with the iOS Simulator tools; humans use `flutter run`
 4. **Observe** (`control{action:"screenshot"}`) → compare to the design →
    **edit** the Forui/theme code → rebuild → screenshot again. Repeat.
 
-**The smoke test.** `make test-sim` runs `integration_test/` against a booted
-simulator (boot one first — step 1 above), driving the real UI over the real
-step-7 stack with **live sync**. It needs the **local stack running**
-(`make db-up`) and nothing else. Since plan 0026 it is **one file per flow**,
-each independently runnable — `make test-sim FILE=week` runs
-`week_test.dart` alone; `DEVICE=<udid>` targets a specific simulator so
-parallel lanes can each hold one. The seven files: `auth` (the sign-in gate →
-/connecting → Library) · `library` (fold, the pinned title search and its
-`DID YOU MEAN` band, book rename, the refused delete, the reorder sheet) ·
-`recipe_editor` (create/edit a recipe incl. method steps, jsonb + child-diff
-round-trips) · `week` (week/cook/shop, then the usual portion set from
-Library `⋯` ▸ Household and read as a fraction on the meal editor, the lens
-and the Cook tab) · `import` (reconcile → commit, over the local import
-repository — no LLM) · `ingredients` (stub band, rename, add-by-barcode off
-a fixture) · `nested` (yield + component line → plan → cook/shop → gap card
-+ delete refusal). Every file is **self-provisioning**: its `setUpAll`
-creates its OWN throwaway two-person household over HTTP
-(`support/stack.dart`) and signs in programmatically; only `auth_test.dart`
-drives the gate. Prerequisites a flow needs (the week's favourited recipe,
-the library's second book, the manager's stub) are seeded through the app's
-own repositories over the throwaway `PowerSyncDatabase` and round-tripped
-through sync — never by driving another flow's UI. `support/` holds the
-shared boot, waits, finders and the library/editor/week
-drivers. It is deliberately *not* in CI (macOS runners are slow and expensive
-at hobby scale).
+**The smoke test.** `make test-sim` drives the real UI on a booted simulator
+over the real stack with **live sync**, so it needs the local stack running
+(`make db-up`) and nothing else. It is **one file per flow** under
+`integration_test/` — `FILE=week` runs `week_test.dart` alone, `DEVICE=<udid>`
+picks the simulator, and each file's own header says what it drives. Every file
+is **self-provisioning**: it creates its own throwaway household over HTTP and
+seeds what its flow needs through the app's repositories, never by driving
+another flow's UI. `support/` holds the shared boot, waits, finders and drivers.
+Deliberately *not* in CI — macOS runners are slow and expensive at hobby scale.
 
 Notes:
 
@@ -194,8 +181,8 @@ Notes:
   then the Library. A fresh household starts with **no recipes** — drive the
   editor UI (or `tap`/`text`) to create one; the ingredient vocab arrives via
   sync.
-- Design targets for the recipe screens live in `docs/product-specs/`
-  (`design-board.html`); the step-2 mockups were captured under `scratch/`.
+- Design targets for every screen live in `docs/product-specs/` — the design
+  board is the drawn reference for what a screen should look like.
 - **Fonts** must be bundled to render (Spectral / IBM Plex Mono in
   `assets/fonts/`, declared in `pubspec.yaml`); Inter comes from Forui. After
   adding a font, `flutter clean` + rebuild so the iOS bundle picks it up.

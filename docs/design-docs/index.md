@@ -21,6 +21,8 @@ Immutable records of significant choices and their rationale.
 - [ADR-0007](../decisions/0007-shopping-list-thin-overlay.md) — Shopping list persists a thin overlay; cook contributions are derived
 - [ADR-0008](../decisions/0008-unit-admission-model.md) — Units are admitted per ingredient via basis mapping; density is the only volume⇄mass fact
 - [ADR-0009](../decisions/0009-density-unlocks-both-families.md) — A density unlocks the other mass/volume family whatever the default unit's family (amends ADR-0008)
+- [ADR-0010](../decisions/0010-piece-is-an-admission-fact.md) — `piece` is an admission fact, not a runtime guess
+- [ADR-0011](../decisions/0011-one-save-one-write.md) — The flesh-out form defers every child write to one Save
 
 ## Deep design
 

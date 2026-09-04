@@ -21,8 +21,10 @@ batches (bounded by shelf life) and buys each thing once.
 |------------------------------------------|-------|
 | The big-picture map of the system        | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
 | Why a choice was made                     | [`docs/decisions/`](./docs/decisions) (ADRs) |
-| What to build next, and current status    | [`docs/exec-plans/roadmap.md`](./docs/exec-plans/roadmap.md) |
+| What to build next, and what shipped      | [`docs/exec-plans/roadmap.md`](./docs/exec-plans/roadmap.md) |
 | A specific in-flight task's plan          | [`docs/exec-plans/active/`](./docs/exec-plans/active) |
+| Ideas the app hasn't built (not debt)     | [`docs/exec-plans/backlog.md`](./docs/exec-plans/backlog.md) |
+| Debt someone still owes                   | [`docs/exec-plans/tech-debt-tracker.md`](./docs/exec-plans/tech-debt-tracker.md) |
 | Product behaviour (what the app does)     | [`docs/product-specs/`](./docs/product-specs) |
 | The operating principles agents must hold | [`docs/design-docs/core-beliefs.md`](./docs/design-docs/core-beliefs.md) |
 | How each area stands, and its gap         | [`ARCHITECTURE.md`](./ARCHITECTURE.md#where-each-area-stands) |
