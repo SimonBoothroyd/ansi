@@ -14,6 +14,14 @@ Future<void> openAccount(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// The `＋` on the label row for [section] (0028 E2) — the two doors that make
+/// a recipe, on the row that knows where it goes. Scoped by ancestry: an empty
+/// shelf draws a `＋` of its own.
+Finder sectionAdd(String section) => find.descendant(
+  of: find.ancestor(of: find.text(section), matching: find.byType(Row)).first,
+  matching: find.byIcon(FLucideIcons.plus),
+);
+
 /// The Ingredients shelf at the foot of the library (0028 E5) — a card like a
 /// book's, so it is found by its name and opened by tapping it.
 Future<void> openIngredientsShelf(WidgetTester tester) async {

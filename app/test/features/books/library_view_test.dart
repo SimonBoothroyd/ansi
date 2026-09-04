@@ -5,6 +5,7 @@ import 'package:ansi/features/books/domain/book_collapse_store.dart';
 import 'package:ansi/features/books/presentation/library_view.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/shared/ansi_search_field.dart';
+import 'package:ansi/shared/dashed_border_box.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -72,7 +73,7 @@ Finder _card(String name) =>
     find.ancestor(of: find.text(name), matching: find.byType(ClipRRect)).first;
 
 /// The `＋` on the label row for [section] — scoped by ancestry, because the
-/// header, the dashed new-section row and the empty shelf all draw one too.
+/// empty shelf draws one of its own.
 Finder _sectionAdd(String section) => find.descendant(
   of: find.ancestor(of: find.text(section), matching: find.byType(Row)).first,
   matching: find.byIcon(FLucideIcons.plus),
@@ -511,23 +512,35 @@ void main() {
     });
   });
 
-  testWidgets('the dashed new-section row lives INSIDE the card (D5)', (
+  testWidgets('an expanded card carries no dashed furniture (0028 E3)', (
     tester,
   ) async {
     await tester.pumpWidget(_host(_repo(_library)));
     await tester.pumpAndSettle();
 
-    // It is a descendant of the book card, not a sibling floating in the gap.
+    // v2 D5 moved the dashed "new section" row inside the card so its noise
+    // would scale with what is open. It never asked why the row existed while
+    // `New section` sat in the book `⋯` one row above it — so it is gone, and
+    // an open card is books, sections and recipes.
+    expect(find.textContaining('new section'), findsNothing);
     expect(
       find.descendant(
-        of: find.ancestor(
-          of: find.text('Our Cookbook'),
-          matching: find.byType(ClipRRect),
-        ),
-        matching: find.textContaining('new section'),
+        of: _card('Our Cookbook'),
+        matching: find.byType(DashedAction),
       ),
-      findsOneWidget,
+      findsNothing,
     );
+  });
+
+  testWidgets('New section keeps its one door, on the book ⋯ (0028 E3)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_host(_repo(_library)));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
+    await tester.pumpAndSettle();
+    expect(find.text('New section'), findsOneWidget);
   });
 
   testWidgets('an empty shelf offers the two doors in place (D7)', (
@@ -720,8 +733,7 @@ void main() {
       await tester.pumpWidget(_routedHost(_repo(_library), (r) => router = r));
       await tester.pumpAndSettle();
 
-      // Scoped to the label's own row: the header still has a ＋ of its own
-      // until the next slice, and the dashed new-section row has one too.
+      // Scoped to the label's own row: an empty shelf draws a ＋ too.
       await tester.tap(_sectionAdd('Weeknight'));
       await tester.pumpAndSettle();
       expect(find.text('New recipe'), findsOneWidget);
@@ -755,19 +767,21 @@ void main() {
     });
   });
 
-  testWidgets('the add-section affordance uses an icon, not a raw ＋ glyph', (
+  testWidgets('the dashed affordances use icons, not a raw ＋ glyph', (
     tester,
   ) async {
     await tester.pumpWidget(_host(_repo(_library)));
     await tester.pump();
 
-    // U+FF0B is missing from the bundled fonts and renders as tofu.
+    // U+FF0B is missing from the bundled fonts and renders as tofu
+    // ([mise-forui-icons-not-unicode-glyphs]). The rule outlived the row that
+    // prompted it: `new book` is drawn the same way.
     expect(find.textContaining('＋'), findsNothing);
-    expect(find.textContaining('new section'), findsOneWidget);
+    expect(find.textContaining('new book'), findsOneWidget);
   });
 
   group('a write that does not land (the ref.write door)', () {
-    /// `⋯` #0 is the screen header's, #1 the first book's, #2 its section's.
+    /// `⋯` #0 is the first book's, #1 its section's — the header has none.
     Future<void> openSectionMenu(WidgetTester tester) async {
       filterForuiSemanticsAssertions();
       await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(1));

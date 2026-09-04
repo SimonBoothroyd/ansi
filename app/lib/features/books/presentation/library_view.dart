@@ -278,18 +278,12 @@ class _BookCard extends ConsumerWidget {
                     if (book.unsectioned.isNotEmpty)
                       _SectionBlock(book: book, unsectioned: book.unsectioned),
                     if (_isEmpty) _EmptyShelf(book: book),
-                    // D5: the dashed row is the LAST ROW OF THE CARD, not a
-                    // button floating in the gap under every book. It now reads
-                    // as part of *this* book, and the noise scales with what is
-                    // open rather than with how many books exist.
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
-                      child: _AddSectionButton(
-                        onTap: () => unawaited(
-                          promptForNewSection(context, ref, book.id),
-                        ),
-                      ),
-                    ),
+                    // E3: no dashed row here. v2 D5 moved it INSIDE the card
+                    // so its noise would scale with what is open; it never
+                    // asked why the row existed at all while `New section`
+                    // sat in the book `⋯` immediately above it. An expanded
+                    // card is books, sections and recipes — no furniture.
+                    const SizedBox(height: 10),
                   ],
                 ],
               ),
@@ -303,9 +297,9 @@ class _BookCard extends ConsumerWidget {
   bool get _isEmpty => book.sections.isEmpty && book.unsectioned.isEmpty;
 }
 
-/// "＋ new section — name it anything", from the card's dashed row and from the
-/// book `⋯` alike (D5's deliberate redundancy — the ingredients manager offers
-/// add-new from both its header and its footer for the same reason).
+/// "New section", from the book `⋯` — its one door since 0028 E3 retired the
+/// card's dashed twin. The invitation D5 was protecting ("name it anything")
+/// lives in the prompt's own hint, which is where a person actually reads it.
 Future<void> promptForNewSection(
   BuildContext context,
   WidgetRef ref,
@@ -938,21 +932,6 @@ class _RecipeRow extends StatelessWidget {
       ),
     );
   }
-}
-
-/// "Not presets" — the promise the original board frame was built to make, and
-/// the reason the copy is an invitation rather than a label.
-class _AddSectionButton extends StatelessWidget {
-  const _AddSectionButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => DashedAction(
-    icon: FLucideIcons.plus,
-    label: 'new section — name it anything',
-    onTap: onTap,
-  );
 }
 
 /// The vocabulary as a shelf of its own (0028 E5) — the book anatomy exactly:

@@ -555,8 +555,7 @@ void main() {
       reason: 'the household-scoped UPDATE policy let Ada set Jun’s factor',
     );
     // Back off the pushed page rather than closing a sheet.
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    await tapBack(tester);
     expect(find.text('USUAL PORTION'), findsNothing);
 
     // On the Week: the Saturday curry has both eaters and no override, so

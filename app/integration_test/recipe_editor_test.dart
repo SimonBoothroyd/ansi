@@ -47,6 +47,7 @@ import 'package:uuid/uuid.dart';
 
 import 'support/drive.dart';
 import 'support/editor.dart';
+import 'support/library.dart';
 import 'support/stack.dart';
 
 const _uuid = Uuid();
@@ -132,21 +133,19 @@ void main() {
     final db = stack.db;
     await stack.openLibrary(tester);
 
-    await tester.tap(find.textContaining('new section'));
+    // 0028 E3: the section is made from the book's own `⋯` — the dashed row
+    // that used to sit in the card was a second door to this same item.
+    await openBookMenu(tester, 'Our Cookbook');
+    await tester.tap(find.text('New section'));
     await tester.pumpAndSettle();
     await tester.enterText(fieldIn(find.byType(FDialog)), 'Weeknight');
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
     expect(find.text('Weeknight'), findsOneWidget);
 
-    // The app-bar + (an FHeaderAction); the "+ new section" affordance now
-    // carries the same icon, so scope to the header action.
-    await tester.tap(
-      find.descendant(
-        of: find.byType(FHeaderAction),
-        matching: find.byIcon(FLucideIcons.plus),
-      ),
-    );
+    // 0028 E2: and the recipe is made from that section's own `＋`, which is
+    // the whole point — the door knows the shelf, so nothing below has to ask.
+    await tester.tap(sectionAdd('Weeknight'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('New recipe'));
     await tester.pumpAndSettle();
@@ -165,12 +164,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('2 days'), findsOneWidget);
 
-    // File under Our Cookbook · Weeknight (the section select starts on the
-    // Unsectioned bucket).
-    await tester.tap(find.text('Unsectioned'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Weeknight').last);
-    await tester.pumpAndSettle();
+    // FILE UNDER is already Our Cookbook · Weeknight: the `＋` carried
+    // `?book=&section=` (0028 E3), so what used to be two taps on a form is
+    // now a fact the screen opened with. Assert it rather than perform it.
+    expect(find.text('Weeknight'), findsWidgets);
+    expect(find.text('Unsectioned'), findsNothing);
 
     // Garlic through the 7.7 chain, quantified in its synced measure: the
     // chip row offers the vocab measures cloned at onboarding — but first,
@@ -558,7 +556,7 @@ void main() {
             'kg',
         'the form save to land in the local database',
       );
-      await tester.tap(find.byType(FHeaderAction).first);
+      await tapBack(tester);
       // Back pops the form; the picker resolves with the RE-READ row and the
       // editor opens the quantity sheet on it — chips for the units the form
       // set, kg (the default) among them.

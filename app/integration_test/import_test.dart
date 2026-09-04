@@ -112,7 +112,7 @@ Future<void> createIngredientForLine(
   // is the pop the sheet is awaiting — the sheet then resolves the line
   // with the row and closes.
   await pumpUntilFound(tester, find.text('CANONICAL NAME'));
-  await tester.tap(find.byType(FHeaderAction).first);
+  await tapBack(tester);
   await pumpUntilFound(
     tester,
     find.descendant(of: reviewCard(i), matching: find.text(name)),
@@ -429,7 +429,7 @@ void main() {
     // sits OUTSIDE the tab shell (no bottom nav here); the commit REPLACED the
     // spent import flow with it, so the Library tab is still underneath and
     // the header's back action pops straight onto it.
-    await tester.tap(find.byType(FHeaderAction).first);
+    await tapBack(tester);
     await pumpUntilFound(tester, find.text('Our Cookbook'));
     await tester.pumpAndSettle();
     expect(

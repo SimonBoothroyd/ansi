@@ -5,6 +5,7 @@ library;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:forui/forui.dart';
 
 /// The first text field INSIDE [of]. Since Library v2 a pinned search field
 /// is the first `EditableText` in the tree on every screen the Library branch
@@ -118,6 +119,17 @@ Future<void> waitForDb(
     }
     await tester.pump(const Duration(milliseconds: 200));
   }
+}
+
+/// Pops the topmost pushed page from its own header.
+///
+/// A back action renders `arrowLeft`, and only a pushed page has one —
+/// so this never picks up a tab root's own actions. It replaces
+/// `find.byType(FHeaderAction).first`, which depended on tree order: a tab
+/// root sits UNDER a pushed page and its actions come first.
+Future<void> tapBack(WidgetTester tester) async {
+  await tester.tap(find.byIcon(FLucideIcons.arrowLeft).last);
+  await tester.pumpAndSettle();
 }
 
 /// Scrolls the screen's primary list until [finder] matches, then ensures it
