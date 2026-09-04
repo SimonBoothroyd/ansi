@@ -15,6 +15,7 @@ library;
 
 import '../../../core/search/search_query.dart';
 import '../../../core/search/search_rank.dart';
+import '../../ingredients/domain/normalize.dart' show matchTextForms;
 import '../../recipes/domain/recipe.dart' show RecipeSummary;
 import 'book.dart';
 
@@ -99,8 +100,11 @@ List<FiledRecipe> searchLibrary(List<Book> books, String query) {
   return [...leading, ...rest];
 }
 
-/// Whether the query's first token is a prefix of the title's first word.
+/// Whether the query's first token is a prefix of the title's first word —
+/// in the token's own spelling or its singular, so "onions" leads with
+/// *Onion Soup* the way the tier that found it already folds them together.
 bool _startsFirstWord(String title, List<String> tokens) {
   final words = normalizeSearchQuery(title).split(' ');
-  return words.isNotEmpty && words.first.startsWith(tokens.first);
+  if (words.isEmpty) return false;
+  return matchTextForms(tokens.first).any(words.first.startsWith);
 }

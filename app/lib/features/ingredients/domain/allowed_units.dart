@@ -441,7 +441,15 @@ final class MeasureOption extends UnitChoice {
   @override
   String get label {
     final a = measure.amount;
-    final amount = a == a.roundToDouble() ? a.toStringAsFixed(0) : '$a';
+    // At most two decimals, trailing zeros trimmed — the rule every printed
+    // amount in the app follows. A third of a pack is 0.33, not
+    // 0.3333333333333333.
+    final amount = a == a.roundToDouble()
+        ? a.toStringAsFixed(0)
+        : a
+              .toStringAsFixed(2)
+              .replaceAll(RegExp(r'0+$'), '')
+              .replaceAll(RegExp(r'\.$'), '');
     return '${measure.label} ($amount ${measure.basis.baseUnit.label})';
   }
 

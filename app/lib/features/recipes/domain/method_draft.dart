@@ -28,6 +28,8 @@ library;
 
 import 'package:meta/meta.dart';
 
+import '../../../core/search/search_query.dart' show searchTokens;
+import '../../ingredients/domain/normalize.dart' show matchTextForms;
 import 'method_step.dart';
 import 'recipe.dart';
 
@@ -666,25 +668,28 @@ int _seconds(String amount, String unit) {
 ///
 /// It is deliberately NOT the line picker's own matcher: that one is a shared
 /// search rule with its own lane, and this is a fixed word-prefix over ≤30
-/// rows that must not drift when the shared ranking changes.
+/// rows that must not drift when the shared *ranking* changes. It does share
+/// the *tokenizer*, because "jalapeno" and "jalapeño" are one word everywhere
+/// else in the app and there is no reason for them to be two here.
 List<LineItem> prematchLines(List<LineItem> lines, String query) {
-  final tokens = _words(query);
+  final tokens = searchTokens(query);
   if (tokens.isEmpty) return const [];
   return [
     for (final line in lines)
-      if (_matchesAll(_words(line.ingredientName), tokens)) line,
+      if (_matchesAll(searchTokens(line.ingredientName), tokens)) line,
   ];
 }
 
-bool _matchesAll(List<String> words, List<String> tokens) =>
-    tokens.every((token) => words.any((word) => word.startsWith(token)));
-
-List<String> _words(String text) => [
-  for (final word in text.toLowerCase().split(
-    RegExp(r'[^\p{L}\p{N}]+', unicode: true),
-  ))
-    if (word.isNotEmpty) word,
-];
+/// Every token word-prefixes some word, in the token's own spelling or its
+/// singular — the shared tokenizer's rule, so an accent typed or not typed
+/// ("jalapeno" for *Jalapeño Peppers*) and a plural ("tomatoes" for *Tomato*)
+/// fold here exactly as they do in every other search box. Only the
+/// *tokenizing* is shared: the ranking above is still this file's own.
+bool _matchesAll(List<String> words, List<String> tokens) => tokens.every(
+  (token) => matchTextForms(
+    token,
+  ).any((form) => words.any((word) => word.startsWith(form))),
+);
 
 /// A key for a step that survives a rebuild, a sync or a resume — what cook
 /// mode needs to keep saying "you are on step 4" (D8).

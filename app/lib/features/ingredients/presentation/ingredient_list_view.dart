@@ -22,6 +22,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_search_field.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../data/ingredient_providers.dart';
@@ -107,15 +108,11 @@ class IngredientListView extends HookConsumerWidget {
           ),
           Expanded(
             child: switch (vocabulary) {
-              AsyncError(:final error) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    'Could not read the vocabulary — $error',
-                    textAlign: TextAlign.center,
-                    style: ansiMono(size: 12, color: AnsiColors.muted),
-                  ),
-                ),
+              AsyncError(:final error, :final stackTrace) => AnsiErrorState(
+                what: 'your vocabulary',
+                error: error,
+                stackTrace: stackTrace,
+                onRetry: () => ref.invalidate(vocabularyProvider),
               ),
               AsyncLoading() when all.isEmpty => const SizedBox.shrink(),
               _ when all.isEmpty => Center(

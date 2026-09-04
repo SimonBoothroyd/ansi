@@ -272,6 +272,13 @@ class SessionController extends _$SessionController {
       // Let an existing household's books arrive before we seed one, so a
       // second device doesn't create a duplicate default book.
       await db.waitForFirstSync();
+      // The one place core builds a feature's repository itself, and the one
+      // repository write that does not go through the door in
+      // `shared/write.dart`. `bookRepositoryProvider` reads
+      // `currentHouseholdId`, which is derived from the very state this
+      // method is computing and throws until it is set — and a failure here
+      // must land on the connecting screen as a SessionError, which is where
+      // the door would have sent it anyway.
       await SqliteBookRepository(
         db,
         householdId: householdId,

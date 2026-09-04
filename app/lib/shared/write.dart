@@ -8,6 +8,13 @@
 /// The fix is not a longer paragraph in a style guide — it is one helper plus a
 /// mechanical check that nothing skips it (`test/structure/
 /// no_bare_repo_write_test.dart`).
+///
+/// **The one documented exception** is the bootstrap write in
+/// `core/sync/session.dart`: `ensureDefaultBook()` runs while the session is
+/// still being established, before there is a screen to toast onto, and its
+/// failure already lands on the connecting screen as a `SessionError` with a
+/// reason and a retry — the same posture this door gives, reached the only
+/// way it can be reached from there.
 library;
 
 import 'dart:async';

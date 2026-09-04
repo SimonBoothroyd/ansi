@@ -21,6 +21,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_search_field.dart';
 import '../../../shared/write.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
@@ -262,13 +263,10 @@ class _TopUpBody extends HookConsumerWidget {
       children: [
         Text('TOP UP WHICH INGREDIENT?', style: ansiLabel()),
         const SizedBox(height: 10),
-        FTextField(
+        AnsiSearchField(
           autofocus: true,
           hint: 'Search ingredients',
-          control: FTextFieldControl.managed(
-            onChange: (v) => search.run(v.text),
-          ),
-          prefixBuilder: (context, style, _) => const Icon(FLucideIcons.search),
+          onChanged: search.run,
         ),
         const SizedBox(height: 12),
         Expanded(

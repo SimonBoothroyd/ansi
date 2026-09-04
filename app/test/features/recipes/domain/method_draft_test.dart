@@ -630,6 +630,20 @@ void main() {
       expect(prematchLines(lines, 'chicken'), isEmpty);
       expect(prematchLines(lines, '   '), isEmpty);
     });
+
+    test('it folds accents and plurals like every other search box', () {
+      const spiced = [
+        LineItem(id: 'l1', ingredientName: 'Jalapeño Peppers', unit: pieces),
+        LineItem(id: 'l2', ingredientName: 'Tomato', unit: pieces),
+      ];
+      // Typing the tilde is optional everywhere else; selecting the word in a
+      // step and typing it without one used to arrive at the picker matching
+      // nothing.
+      expect(prematchLines(spiced, 'jalapeno').map((l) => l.id), ['l1']);
+      expect(prematchLines(spiced, 'jalapeño').map((l) => l.id), ['l1']);
+      // …and a plural reaches the singular line, the tier-1 rule everywhere.
+      expect(prematchLines(spiced, 'tomatoes').map((l) => l.id), ['l2']);
+    });
   });
 
   group('stableStepKey', () {

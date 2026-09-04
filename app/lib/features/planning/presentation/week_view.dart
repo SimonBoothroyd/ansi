@@ -750,7 +750,7 @@ class _RemoveTarget extends ConsumerWidget {
     return [
       entry.mealSlot.toLowerCase(),
       if (names.isNotEmpty) names.join(' & '),
-      '${formatFraction(portions)} ${portions == 1 ? 'portion' : 'portions'}',
+      formatPortions(portions),
     ].join(' · ');
   }
 }

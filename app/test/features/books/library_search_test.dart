@@ -76,6 +76,26 @@ void main() {
     ]);
   });
 
+  test('a plural query promotes the title it singularly starts', () {
+    // The leading group is "the query starts the first word". Its test read
+    // the raw token, so a plural found the row (tier 1 folds it) and then
+    // sorted it under any other tree-order hit — the one place the fold
+    // stopped halfway.
+    const soup = RecipeSummary(id: 'r5', title: 'Onion Soup', servingsBase: 4);
+    const tart = RecipeSummary(
+      id: 'r6',
+      title: 'Roast Onion Tart',
+      servingsBase: 4,
+    );
+    const library = [
+      Book(id: 'b9', name: 'Our Cookbook', unsectioned: [tart, soup]),
+    ];
+    expect(searchLibrary(library, 'onions').map((h) => h.recipe.title), [
+      'Onion Soup',
+      'Roast Onion Tart',
+    ]);
+  });
+
   test('every row carries its filing, sectioned or not', () {
     final hits = searchLibrary(_library, 'chicken');
     expect(
