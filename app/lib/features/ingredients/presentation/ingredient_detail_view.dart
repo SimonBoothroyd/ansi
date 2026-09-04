@@ -31,7 +31,8 @@
 /// when it names a thing) in the same save (M-D2). A barcode draft whose
 /// panel came per serving lands on that mode (M-D5).
 /// Since plan 0027 (front U) the form **names the USDA match** at the head of
-/// its macros section — the food's description, its FDC id and a band word,
+/// its macros section — the food's description, its FDC id and how much of
+/// the name it answers,
 /// read off the row's own `source_label` / `source_score` so it is true
 /// offline — with two doors beside it: *Not this food* (one write: the
 /// prefilled density and macros come out, `source` becomes `usda_declined`,
@@ -1232,7 +1233,8 @@ class _DetailForm extends HookConsumerWidget {
 /// header says *not confirmed* until a human taps Confirm below.
 ///
 /// Two states, one widget, because they are the same fact at two moments:
-/// - **prefilled** (`usda_fdc:<id>`): the name, the id, the band word, and
+/// - **prefilled** (`usda_fdc:<id>`): the name, the id, how much of the
+///   name the food answers, and
 ///   both doors;
 /// - **declined** (`usda_declined`, after *Not this food*): the refused
 ///   name, what the undo did, and *Choose another* alone — plus the one
@@ -1276,7 +1278,7 @@ class _UsdaProvenance extends StatelessWidget {
       line = [
         ?label,
         'FDC ${usdaFdcId(source) ?? '?'}',
-        if (score != null) '${UsdaBand.of(score).word} for “$name”',
+        if (score != null) UsdaMatchFit.of(score).phraseFor(name),
       ].join(' · ');
     }
     // Amber is a call to action, so it is spent only where there is one: an

@@ -63,7 +63,7 @@ const _mango = Ingredient(
 );
 
 /// A stub the server prefill stamped and named (0027): the match is a close
-/// one, so the form's provenance line reads `close match`.
+/// one, so the form's provenance line says it matches every word.
 const _curryLeaves = Ingredient(
   id: 'curry',
   canonicalName: 'Curry leaves, fresh',
@@ -72,7 +72,7 @@ const _curryLeaves = Ingredient(
   category: 'produce',
   source: 'usda_fdc:11216',
   sourceLabel: 'Curry leaves, raw',
-  sourceScore: 0.91,
+  sourceScore: 1,
 );
 
 /// The D4c shape the owner hit: a cup default on a per-100 g row with no
@@ -632,8 +632,8 @@ void main() {
       expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
       expect(
         find.text(
-          'Curry leaves, raw · FDC 11216 · close match for “Curry leaves, '
-          'fresh”',
+          'Curry leaves, raw · FDC 11216 · matches every word of “Curry '
+          'leaves, fresh”',
         ),
         findsOneWidget,
       );
@@ -646,8 +646,8 @@ void main() {
       expect(find.textContaining('Still a stub'), findsOneWidget);
     });
 
-    testWidgets('U-D1: the band word follows the score — below 0.85 the line '
-        'says a guess; a row filled before 0027 names the id alone', (
+    testWidgets('U-D1 as 0029 re-reads it: a pick covering only part of '
+        'the name says so; a row filled before 0027 names the id alone', (
       tester,
     ) async {
       _filterSemanticsAssertions();
@@ -658,7 +658,7 @@ void main() {
       await tester.pumpWidget(_host(repo, at: '/ingredients/curry'));
       await tester.pumpAndSettle();
       expect(
-        find.textContaining('a guess for “Curry leaves, fresh”'),
+        find.textContaining('matches only part of “Curry leaves, fresh”'),
         findsOneWidget,
       );
 
@@ -791,7 +791,7 @@ void main() {
           description: 'Curry leaves, dried',
           category: 'Spices and Herbs',
           source: 'usda_fdc:11217',
-          score: 0.9,
+          score: 1,
           macros: Macros(kcal: 300, protein: 12, carb: 60, fat: 5),
         ),
         UsdaCandidate(
@@ -826,9 +826,9 @@ void main() {
       expect(find.text('current'), findsOneWidget);
       expect(find.text('Curry leaves, dried'), findsOneWidget);
       expect(find.text('Spices and Herbs'), findsOneWidget);
-      expect(find.text('close match'), findsOneWidget);
+      expect(find.text('all words'), findsOneWidget);
       expect(find.text('Curry powder'), findsOneWidget);
-      expect(find.text('a guess'), findsOneWidget);
+      expect(find.text('some words'), findsOneWidget);
       // Nothing to copy, nothing to pick.
       expect(find.text('Curry, nameless'), findsNothing);
 
@@ -845,14 +845,16 @@ void main() {
       expect(row.canonicalName, 'Curry leaf');
       expect(row.source, 'usda_fdc:11217');
       expect(row.sourceLabel, 'Curry leaves, dried');
-      expect(row.sourceScore, 0.9);
+      expect(row.sourceScore, 1);
       expect(row.macros!.kcal, 300);
       expect(row.densityGPerMl, isNull); // the old fill is replaced whole
       expect(row.status, IngredientStatus.stub);
       // The form followed: the line names the new food, the fields carry
       // its numbers.
       expect(
-        find.textContaining('Curry leaves, dried · FDC 11217 · close match'),
+        find.textContaining(
+          'Curry leaves, dried · FDC 11217 · matches every word',
+        ),
         findsOneWidget,
       );
       expect(_macroFieldText(tester, 'kcal'), '300');
@@ -873,7 +875,7 @@ void main() {
           fdcId: 11217,
           description: 'Curry leaves, dried',
           source: 'usda_fdc:11217',
-          score: 0.9,
+          score: 1,
           macros: Macros(kcal: 300, protein: 12, carb: 60, fat: 5),
         ),
       ]);
@@ -1637,7 +1639,9 @@ void main() {
       // line and its doors are the way the match changes from here.
       expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
       expect(
-        find.textContaining('Curry leaves, raw · FDC 11216 · a guess for '),
+        find.textContaining(
+          'Curry leaves, raw · FDC 11216 · matches only part of ',
+        ),
         findsOneWidget,
       );
       expect(find.text('Look up in USDA'), findsNothing);

@@ -132,7 +132,8 @@ class UsdaPickSheet extends HookConsumerWidget {
   }
 }
 
-/// The candidate rows: description, category, and the band word — with the
+/// The candidate rows: description, category, and whether the row answers
+/// every word of the query — with the
 /// row's own current match tagged rather than offered again, and the food a
 /// person declined tagged so they can see what they said no to.
 ///
@@ -192,7 +193,7 @@ class UsdaCandidateList extends StatelessWidget {
                 ? 'current'
                 : c.description == declinedLabel
                 ? 'declined'
-                : c.band.word,
+                : c.fit.tag,
             enabled: c.fdcId != currentId,
             selected: c.fdcId == selected,
             onTap: () => onPick(c),

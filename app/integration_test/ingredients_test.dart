@@ -59,7 +59,8 @@ import 'package:ansi/features/ingredients/domain/ingredient.dart'
     show usdaDeclinedSource, usdaFdcId;
 import 'package:ansi/features/ingredients/domain/normalize.dart'
     show normalizeMatchText;
-import 'package:ansi/features/ingredients/domain/usda_probe.dart' show UsdaBand;
+import 'package:ansi/features/ingredients/domain/usda_probe.dart'
+    show UsdaMatchFit;
 import 'package:ansi/features/ingredients/presentation/density_entry.dart'
     show AnsiModeChip, DensityEntry;
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart'
@@ -541,16 +542,15 @@ void main() {
       await tester.tap(find.text(usdaName).first);
       await pumpUntilFound(tester, find.text('CANONICAL NAME'));
 
-      // U-D1: the provenance line at the head of the macros section names
-      // the food, its FDC id and the band word — all read off the row the
-      // trigger stamped, printable offline.
+      // U-D1, as 0029 re-reads it: the provenance line at the head of the
+      // macros section names the food, its FDC id and how much of the name
+      // the food answers — all read off the row, printable offline.
       await scrollTo(tester, find.text('Filled from USDA · not confirmed'));
-      final band = UsdaBand.of((filled['source_score'] as num).toDouble()).word;
+      final fit = UsdaMatchFit.of(
+        (filled['source_score'] as num).toDouble(),
+      ).phraseFor(usdaName);
       expect(
-        find.text(
-          '$filledLabel · FDC ${usdaFdcId(filledSource)} · $band for '
-          '“$usdaName”',
-        ),
+        find.text('$filledLabel · FDC ${usdaFdcId(filledSource)} · $fit'),
         findsOneWidget,
       );
       expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);

@@ -26,19 +26,44 @@ import 'package:meta/meta.dart';
 
 import '../../../core/units/macros.dart';
 
-/// How sure the match was, in the two words the form and the pick sheets
-/// print (plan 0027 U-D1: "≥ 0.85 close, 0.5–0.85 a guess" — the import's own
-/// bands). The 0.5 floor is the server's; nothing below it ever arrives.
-enum UsdaBand {
-  close,
-  guess;
+/// Whether a candidate accounts for **every word of the name it was found
+/// for**, or only some of them.
+///
+/// 0027 U-D1 made this a confidence band — "≥ 0.85 close match, below it a
+/// guess" — which is what a score meant when a TRIGGER chose the food and the
+/// number was a trigram similarity. Two things changed under it. A person
+/// picks now (0029), so how sure a machine was is not the useful thing to
+/// say; and `score` is the query's idf-weighted coverage, which is not a
+/// graded confidence at all. Measured over the 267 curated pairs in
+/// `seed_prefill.sql`, it is **bimodal**: 226 of 264 top picks sit at exactly
+/// 1.0 and *nothing* falls between 0.85 and 1.0, so every threshold in that
+/// range asks the same yes/no question. A band with no middle is a boolean
+/// wearing a threshold's clothes.
+///
+/// It is kept, rather than dropped, because it earns its place: a
+/// full-coverage pick is the right food **63%** of the time against **34%**
+/// for a partial one. What changed is only that it now says what it means.
+///
+/// A row stamped before 0029 carries a trigram score, where 1.0 meant an
+/// identical string — which also means every word matched, so the reading
+/// stays true for those rows rather than quietly meaning something else.
+enum UsdaMatchFit {
+  full,
+  partial;
 
-  static UsdaBand of(double score) => score >= 0.85 ? close : guess;
+  static UsdaMatchFit of(double score) => score >= 0.999 ? full : partial;
 
-  /// The band as the screens say it.
-  String get word => switch (this) {
-    close => 'close match',
-    guess => 'a guess',
+  /// The tag the pick sheet puts on a candidate row, where space is one word
+  /// beside a description.
+  String get tag => switch (this) {
+    full => 'all words',
+    partial => 'some words',
+  };
+
+  /// The sentence the form's provenance line prints, naming what was asked.
+  String phraseFor(String name) => switch (this) {
+    full => 'matches every word of “$name”',
+    partial => 'matches only part of “$name”',
   };
 }
 
@@ -126,11 +151,11 @@ class UsdaCandidate {
   final String source;
 
   /// The trigram similarity that cleared the server's 0.5 floor. Shown as a
-  /// [band], stored beside the label, never acted on: the floor is the
+  /// [fit], stored beside the label, never acted on: the floor is the
   /// server's to enforce.
   final double score;
 
-  UsdaBand get band => UsdaBand.of(score);
+  UsdaMatchFit get fit => UsdaMatchFit.of(score);
 
   final double? densityGPerMl;
   final Macros? macros;
