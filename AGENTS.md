@@ -26,6 +26,7 @@ batches (bounded by shelf life) and buys each thing once.
 | Ideas the app hasn't built (not debt)     | [`docs/exec-plans/backlog.md`](./docs/exec-plans/backlog.md) |
 | Debt someone still owes                   | [`docs/exec-plans/tech-debt-tracker.md`](./docs/exec-plans/tech-debt-tracker.md) |
 | Product behaviour (what the app does)     | [`docs/product-specs/`](./docs/product-specs) |
+| What a screen looks like                  | [`docs/product-specs/board/`](./docs/product-specs/board) |
 | The operating principles agents must hold | [`docs/design-docs/core-beliefs.md`](./docs/design-docs/core-beliefs.md) |
 | How each area stands, and its gap         | [`ARCHITECTURE.md`](./ARCHITECTURE.md#where-each-area-stands) |
 | Secrets, auth, RLS                        | [`docs/SECURITY.md`](./docs/SECURITY.md) |
@@ -47,6 +48,27 @@ Subtree rules: [`app/AGENTS.md`](./app/AGENTS.md) ·
    not import `package:flutter`. Enforced mechanically in CI.
 3. **Honest numbers.** A `stub` ingredient (missing density/macros) is excluded
    from conversions and macro totals. Never invent a value to make math work.
+
+## The design board
+
+[`docs/product-specs/board/`](./docs/product-specs/board) is **one hand-written
+HTML file per screen**, plus `index.html` (a status row per view) and
+`board.css`. It says what the app looks like **today** — it is not a history.
+
+- **Replace a screen, never append a version.** A design pass rewrites that
+  file's frames and refreshes its status date. No `v2` section, no second copy.
+- A **proposal** is drawn in the screen's own file, marked `proposed`, until it
+  ships; then the frames it replaces are deleted.
+- **Decisions do not live here.** Rulings, rejected alternatives, owner quotes,
+  sign-offs and test results belong to the exec plan or an ADR, which the
+  status line links.
+- A frame that knowingly differs from the code says so in one `differs:` line.
+- The **status date is a verification date** — the last time somebody read the
+  view against `app/lib`. A brief that touches UI re-verifies the view it
+  touches before bumping it. Frames drawn but never built live in
+  `not-built.html`, each citing its backlog row.
+
+Full rules: [`board/README.md`](./docs/product-specs/board/README.md).
 
 ## Golden rules
 

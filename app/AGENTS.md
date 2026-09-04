@@ -182,8 +182,10 @@ Notes:
   then the Library. A fresh household starts with **no recipes** — drive the
   editor UI (or `tap`/`text`) to create one; the ingredient vocab arrives via
   sync.
-- Design targets for every screen live in `docs/product-specs/` — the design
-  board is the drawn reference for what a screen should look like.
+- Design targets live in `docs/product-specs/board/`, one file per screen — the
+  drawn reference for what a screen looks like. Re-verify the view you touch
+  against the code and refresh its status date (or write its `differs:` line);
+  replace a screen's frames, never append a version. Rules: `board/README.md`.
 - **Fonts** must be bundled to render (Spectral / IBM Plex Mono in
   `assets/fonts/`, declared in `pubspec.yaml`); Inter comes from Forui. After
   adding a font, `flutter clean` + rebuild so the iOS bundle picks it up.
