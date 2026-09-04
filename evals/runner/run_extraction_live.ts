@@ -10,8 +10,7 @@
 //            D3 e2e (photo → transcribe → sanitize) [needs vision + local images]
 //   Paths    photo      — the 12 gitignored images (datasets/extraction/images)
 //            page_text  — reconstructed gold text (always available)
-//            jsonld     — the 36 recipe_urls.txt pages via lane A's jsonld
-//                         (SEAM: wire `blobFromUrl` to lane A when it lands)
+//            jsonld     — the 36 recipe_urls.txt pages via `_shared/jsonld.ts`
 //
 // Each provider whose key is unset is skipped with a note — never a crash. Run:
 //   deno run --allow-read --allow-write --allow-env --allow-net --allow-run=git \
@@ -81,8 +80,8 @@ async function loadImages(gold: GoldRecipe): Promise<Uint8Array[] | null> {
 }
 
 /**
- * The jsonld / page_text web path: URL → `RawBlob`, straight through lane A's
- * `_shared/jsonld.ts` (`fetchRawBlob` = `fetch` + `buildRawBlob`). Lane A owns
+ * The jsonld / page_text web path: URL → `RawBlob`, straight through
+ * `_shared/jsonld.ts` (`fetchRawBlob` = `fetch` + `buildRawBlob`). That file owns
  * the implementation; the eval only calls it, so the harness and production
  * intake read a page the same way.
  *

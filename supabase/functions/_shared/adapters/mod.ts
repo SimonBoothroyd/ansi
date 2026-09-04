@@ -1,5 +1,5 @@
-// Adapter registry + re-exports. Lane D swaps adapters by name to compare
-// providers; lane A wires the chosen one at the tail. The three real adapters
+// Adapter registry + re-exports. The eval harness swaps adapters by name to
+// compare providers; the edge function wires the chosen one. The three real adapters
 // build keyless (their constructors only demand a key when actually
 // instantiated live); the mock needs no key at all.
 
@@ -62,7 +62,7 @@ import { decodeClaudeSanitize } from "./claude.ts";
 import { decodeGeminiSanitize } from "./gemini.ts";
 import { decodeGptSanitize } from "./gpt.ts";
 
-/** The provider adapters lane D benchmarks (the mock is constructed separately). */
+/** The provider adapters the eval harness benchmarks (the mock is constructed separately). */
 export type ProviderName =
   | "claude-haiku"
   | "claude-sonnet"

@@ -1,4 +1,5 @@
-// The two extraction prompts lane D owns and the tail wires in (charter 0018):
+// The two extraction prompts the eval harness measures and the edge function
+// sends (charter 0018):
 //
 //   1. TRANSCRIBE_PROMPT — vision tier. Image(s) → faithful plain text
 //      (`RawBlob.text`). A transcriber, not an interpreter: it copies what is

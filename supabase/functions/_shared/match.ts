@@ -1,5 +1,5 @@
-// The match cascade (docs/product-specs/import-and-matching.md §6; lane B of the
-// step-8 import DAG — see docs/exec-plans/completed/0016-import-matching.md).
+// The match cascade (docs/product-specs/import-and-matching.md §6; the ⑥ stage
+// of the import spine — see docs/exec-plans/completed/0016-import-matching.md).
 //
 // Deterministic, server-side matching (ADR-0004). Consumes sanitized `RawLineItem`s
 // and returns a `MatchedLine` per input line: a confidence band plus the top-N
@@ -8,7 +8,7 @@
 //   1. exact normalized  → `match_text` equality vs ingredient + ingredient_alias
 //   2. trigram           → pg_trgm similarity(); high → auto, mid → suggest (top-3)
 //   3. no match          → band `none`, empty candidates (NO silent auto-stub —
-//                          0014 surfaces `none` to the user; lane C owns the UI)
+//                          0014 surfaces `none` to the user; the app owns the UI)
 //
 // There is deliberately NO embedding tier (back-pocket per 0014's decision log).
 //
@@ -28,7 +28,7 @@ import type {
 } from "./types.ts";
 
 // --- Band calibration (§6) ---------------------------------------------------
-// Starting points from the spec's §6 table, to be tuned by lane D's eval — NOT a
+// Starting points from the spec's §6 table, tuned by the eval harness — NOT a
 // merge gate. `auto` auto-accepts (with an undo affordance); `suggest` shows the
 // top-3 "did you mean?"; below `suggest` is `none` (create-new / stub).
 export const BAND_AUTO_MIN = 0.85;

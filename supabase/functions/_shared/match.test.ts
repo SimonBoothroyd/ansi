@@ -261,7 +261,7 @@ Deno.test("sub-recipe tier — candidates are capped at TOP_N and deterministic"
 // --- Calibration against the household vocab + lane-D eval set ----------------
 // Exercises the cascade over the REAL vocab (evals note: cases.jsonl may be stale
 // vs vocab.jsonl — this asserts a precision FLOOR + reports, it is not a per-case
-// gate). We isolate lane B from lane A extraction by feeding the gold-normalized
+// gate). We isolate the cascade from extraction by feeding the gold-normalized
 // identity (expect_normalized) as the line's ingredient_text.
 
 const REPO = new URL("../../../", import.meta.url); // repo root from _shared/

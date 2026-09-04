@@ -48,7 +48,7 @@ import {
 } from "./http.ts";
 
 export const CLAUDE_HAIKU_MODEL = "claude-haiku-4-5";
-/** Benchmark alternates (lane D): the current Sonnet and Opus tiers. */
+/** Benchmark alternates for the eval harness: the current Sonnet and Opus tiers. */
 export const CLAUDE_SONNET_MODEL = "claude-sonnet-5";
 export const CLAUDE_OPUS_MODEL = "claude-opus-5";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";

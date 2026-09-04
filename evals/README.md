@@ -17,7 +17,7 @@ evaluation harnesses as first-class repo content.
 - `datasets/extraction/gold/` — the blessed structured gold (the oracle, 11
   labelled recipes; read-only). The source photos live in `images/` and are
   gitignored (copyright + EXIF). Scored by the extraction / provider benchmark
-  (lane D) — see `runner/EXTRACTION.md` for the rubric, stages (D1/D2/D3),
+  — see `runner/EXTRACTION.md` for the rubric, stages (D1/D2/D3),
   paths, and the never-invent ledger.
 - `reports/` — regenerable HTML/JSON output from `runner/capture_d2_report.ts`.
   **Gitignored**: it is a rendering of a paid run, not a source artifact.

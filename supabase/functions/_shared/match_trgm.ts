@@ -1,5 +1,5 @@
 // A pg_trgm-compatible trigram similarity in TypeScript, plus an in-memory
-// {@link VocabMatcher} built on it. This is the OFFLINE side of lane B: it lets the
+// {@link VocabMatcher} built on it. This is the OFFLINE side of the cascade: it lets the
 // cascade (match.ts) be tested and band-calibrated against the real household vocab
 // without a live Postgres. The production path uses Postgres `similarity()` (see
 // match_db.ts); this mirrors it closely enough for scoring/calibration.

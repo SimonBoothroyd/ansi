@@ -13,7 +13,7 @@
 //
 // The commit contract (resolved lines + stubs written through PowerSync, with step
 // `line_index` refs remapped to real line_item_ids) is built on the APP side in
-// Dart — it is not a server type and lives with lane C, not here.
+// Dart — it is not a server type and lives with the app, not here.
 
 export type ImageQuality = "ok" | "degraded" | "poor";
 
@@ -27,7 +27,7 @@ export interface TimeRange {
 export type TimeField = number | TimeRange | null;
 
 // --- Extraction input: RawBlob (§3, §4.1–4.2) --------------------------------
-// The union output of intake. Lane A produces `jsonld`/`page_text`; vision
+// The union output of intake. `jsonld.ts` produces `jsonld`/`page_text`; vision
 // transcription produces `transcription`. The sanitize stage consumes only this —
 // it never sees the URL or the image.
 
@@ -117,7 +117,7 @@ export interface ExtractionResult {
   steps: Step[];
 }
 
-// --- The provider seam (lanes A + D) -----------------------------------------
+// --- The provider seam (the edge function + the eval harness) ----------------
 // `unitHints` = our canonical units + accepted imprecise/size words (NOT the
 // ingredient vocab, NOT per-ingredient measures), so ① lands qty/unit in-system.
 
@@ -187,7 +187,7 @@ export interface ExtractAdapter {
   sanitize(blob: RawBlob, hints: UnitHints): Promise<ExtractionResult>; // ①
 }
 
-// --- The match cascade output (§6, lane B) -----------------------------------
+// --- The match cascade output (§6) -------------------------------------------
 // No silent auto-stub: band `none` carries empty candidates; the user resolves it
 // (search / create-new) at reconciliation.
 
@@ -225,7 +225,7 @@ export interface MatchedLine {
   recipe_candidates?: RecipeCandidate[];
 }
 
-// --- Edge fn → app: ReconciliationPayload (lanes B, C) -----------------------
+// --- Edge fn → app: ReconciliationPayload ------------------------------------
 // What the deployed `import-recipe` function returns and the app's reconciliation
 // screen consumes. The Dart side pins this shape through the committed golden
 // fixture (`import-recipe/__fixtures__/reconciliation_payload.golden.json`), so a

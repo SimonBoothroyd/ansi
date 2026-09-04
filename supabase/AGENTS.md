@@ -26,9 +26,11 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
 - **`usda_food` is server-side only** — never synced to the device, never matched
   against at import (ADR-0005). Only resolved `ingredient` rows sync down. It is
   granted to no client role, so the one thing that reads it on a client's behalf
-  — the stub prefill trigger `ingredient_prefill_from_usda` (0014) — is
-  `security definer` by necessity, and copies out only the density/macros it
-  lands on the caller's own row.
+  — `probe_usda`, the search door — is `security definer` by necessity. It
+  WRITES NOTHING: it returns a ranked short-list and a person applies the pick
+  through the app's ordinary write path. The four `usda_search_*` tables are a
+  re-shaping of the same reference set and live under the same rule: RLS on, no
+  grant to any client role, reached only through that door.
 - **The extraction LLM never sees the vocabulary and never matches** — it only
   emits raw structured lines. Matching is deterministic and testable (see
   `evals/`). Design: `docs/product-specs/import-and-matching.md`.
@@ -40,7 +42,12 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
 supabase start            # local stack
 supabase db reset         # re-run migrations + seed
 supabase db lint
-supabase test db          # pgTAP tests (tests/ — RLS, onboarding, token hook,
-                          #             unit admission, nested recipes)
-cd functions && deno test # edge-function tests
+supabase test db          # pgTAP tests — eleven suites in tests/ (RLS + the
+                          #   usda server-only boundary, onboarding, the token
+                          #   hook, unit admission, nested recipes, measures +
+                          #   their rollout, portion factor, template seed,
+                          #   shopping/week, USDA search)
+cd functions && deno task test  # edge-function tests (the task carries the
+                          #   --allow-read the shared-vector and real-vocab
+                          #   suites need; bare `deno test` fails on them)
 ```

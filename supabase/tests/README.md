@@ -58,7 +58,7 @@ assertions in `begin … rollback` so runs leave no residue.
   contribution cascade and household RLS are all unchanged by it.
 - `measure_rollout.sql` — the monotone `ingredient_measure` rollout
   ([`../rollout_measure_refresh.sql`](../rollout_measure_refresh.sql), plan
-  0023 lane B): a template measure the household's matching ingredient lacks
+  0023): a template measure the household's matching ingredient lacks
   is inserted (keyed on ingredient `match_text` + measure `label`; columns
   verbatim; fresh `updated_at`); an existing live measure keeps its own
   weight; the household's own measures are untouched; a soft-deleted label

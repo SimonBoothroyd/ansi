@@ -1,4 +1,4 @@
-# Extraction / provider benchmark (lane D)
+# Extraction / provider benchmark
 
 Turns "which provider" into evidence, and is where the transcription + ①
 sanitize prompts are developed. Scores **Gemini Flash / GPT-5 Mini / Claude
@@ -43,7 +43,7 @@ Contract: `docs/exec-plans/completed/0018-import-benchmark.md` (charter) +
 
 **Paths** — where the input came from: `photo` (the 12 gitignored images),
 `page_text` (reconstructed gold text / a web page's text), `jsonld` (the 36
-`recipe_urls.txt` pages). The web paths run through lane A's `_shared/jsonld.ts`
+`recipe_urls.txt` pages). The web paths run through `_shared/jsonld.ts`
 (`fetchRawBlob` → `buildRawBlob`), wired at `blobFromUrl` in
 `run_extraction_live.ts`. There is no structured gold for those 36 pages, so
 they are an **input** corpus for the ledger and the prose judge, not a scored

@@ -1,4 +1,4 @@
-// Postgres-backed side of the match cascade (lane B) — the parameterized SQL the
+// Postgres-backed side of the match cascade — the parameterized SQL the
 // pure cascade in `match.ts` drives, plus the one §9 write that has to live on
 // the server (the USDA prefill). Server-side only (ADR-0004): all of this runs
 // in the edge function against Postgres via the service role.
@@ -184,19 +184,18 @@ export function sqlRecipeTitleMatcher(
 //
 // The stub WRITE never was: 0014's CommitPayload creates stubs through the
 // PowerSync sync queue (a client insert), and that is the surface that shipped —
-// lane B's server-side `createImportStub` had no production caller and was
-// deleted rather than left as a second, drifting way to write the same row.
+// a server-side `createImportStub` had no production caller and was deleted
+// rather than left as a second, drifting way to write the same row.
 //
-// The USDA PREFILL followed it in 0014_density_admission.sql (plan 0020 D7).
-// It has to run server-side — `usda_food` never syncs to a device (ADR-0005) —
-// and the only surface that sees a stub arriving is the sync queue's INSERT,
-// which no edge function is in the path of. So it is now an `after insert`
-// trigger (`ingredient_prefill_from_usda`, a plpgsql port of the same one
-// trigram query + one guarded update, with the same 0.5 floor and the same
-// "the row STAYS `status='stub'`" contract). `prefillStubFromUsda` was written,
-// unit-tested and callerless from step 8 to step 8.5; it is deleted here for
-// the third time under the same doctrine, rather than kept as a second,
-// drifting way to write the same row.
+// The USDA PREFILL is not here either, and no longer exists anywhere: NOTHING
+// fills a row from `usda_food` on its own. A trigger did for a while, because
+// the reference set never syncs to a device (ADR-0005) and the only surface
+// that sees a stub arriving is the sync queue's INSERT, which no edge function
+// is in the path of. 0029 dropped it: a silent write that names a food nobody
+// chose is a guess wearing a citation. What replaced it is `probe_usda`, a
+// read-only ranked search over the same reference set, which the app offers to
+// a person — and the person applies the pick through the ordinary local write
+// path. So there is no server-side prefill to keep in step with here.
 
 // --- §8: the learning loop ---------------------------------------------------
 //

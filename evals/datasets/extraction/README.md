@@ -1,6 +1,6 @@
 # Extraction fixtures
 
-The dataset for the extraction / provider benchmark (lane D — charter
+The dataset for the extraction / provider benchmark (charter
 `docs/exec-plans/completed/0018-import-benchmark.md`).
 
 - `gold/` — the blessed structured gold: one `<recipe>.json` per source,
@@ -13,7 +13,7 @@ The dataset for the extraction / provider benchmark (lane D — charter
   works keyless from the gold alone (it reconstructs a faithful page text); the
   photos are only needed for the keyed D1/D3 vision stages.
 - The 36 `supabase/seed/scripts/recipe_urls.txt` pages feed the `jsonld` /
-  `page_text` web paths through lane A's `_shared/jsonld.ts` (`fetchRawBlob`),
+  `page_text` web paths through `_shared/jsonld.ts` (`fetchRawBlob`),
   wired at `blobFromUrl` in `runner/run_extraction_live.ts`. There is no
   structured gold for those pages, so they are an **input** corpus for the
   never-invent ledger and the prose judge, not a scored oracle.

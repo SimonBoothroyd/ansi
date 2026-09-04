@@ -3,15 +3,15 @@
 //   intake → RawBlob → ① sanitize (adapter) → §7 normalize → ⑥ match →
 //   ReconciliationPayload
 //
-// This lane (A) owns the wiring; the two model-facing stages are consumed
-// THROUGH their frozen interfaces and injected (`ImportDeps`), so the whole
-// pipeline is offline-testable with fakes:
-//   - `adapter` — the `ExtractAdapter` (lane D). `transcribe` is the vision tier
+// This file owns the wiring; the two model-facing stages are consumed THROUGH
+// their frozen interfaces and injected (`ImportDeps`), so the whole pipeline is
+// offline-testable with fakes:
+//   - `adapter` — the `ExtractAdapter`. `transcribe` is the vision tier
 //     (images → RawBlob); `sanitize` is ①. Always an LLM in prod.
-//   - `matchLines` — the deterministic, server-side match cascade (lane B). It
-//     owns the §7 `normalize` call (normalize.ts's header: match.ts calls it),
-//     so the orchestrator delegates matching rather than re-normalizing.
-//   - `fetchBlob` — URL → RawBlob intake (lane A's own jsonld.ts).
+//   - `matchLines` — the deterministic, server-side match cascade. It owns the
+//     §7 `normalize` call (normalize.ts's header: match.ts calls it), so the
+//     orchestrator delegates matching rather than re-normalizing.
+//   - `fetchBlob` — URL → RawBlob intake (`jsonld.ts`).
 //
 // Never-invent (0014 INVARIANT): the orchestrator moves data, it never fills a
 // value in. `parse_warnings`, `confidence`, ranges, `image_quality`, and the
@@ -38,11 +38,11 @@ import { ImportError } from "../_shared/errors.ts";
 export { ImportError };
 
 /**
- * Match cascade seam (lane B). The orchestrator depends on a PRE-BOUND matcher
- * function — lane B's real `matchLines(lines, matcher)` takes a second
+ * Match cascade seam. The orchestrator depends on a PRE-BOUND matcher
+ * function — the cascade's real `matchLines(lines, matcher)` takes a second
  * `VocabMatcher` (the household-scoped Postgres seam), which is constructed
- * per-request at integration (0019) and closed over here. That keeps lane A
- * decoupled from the DB, and tests inject a plain fake.
+ * per-request at integration (0019) and closed over here. That keeps the
+ * orchestrator decoupled from the DB, and tests inject a plain fake.
  */
 export type MatchLinesFn = (lines: RawLineItem[]) => Promise<MatchedLine[]>;
 

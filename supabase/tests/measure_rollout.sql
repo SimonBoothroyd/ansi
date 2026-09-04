@@ -1,5 +1,5 @@
 -- pgTAP: the monotone `ingredient_measure` rollout
--- (supabase/rollout_measure_refresh.sql, exec plan 0023 lane B).
+-- (supabase/rollout_measure_refresh.sql, exec plan 0023).
 --
 -- The script carries a reseeded template's measures onto EXISTING households
 -- — insert-missing, keyed on (ingredient match_text, measure label). This

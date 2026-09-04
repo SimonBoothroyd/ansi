@@ -36,7 +36,7 @@ Deno.test("normalize — singularization edge cases", () => {
 
 Deno.test("normalize — invariant words that only look plural", () => {
   // The regex guard spares -ss/-us/-is/-ous; "molasses" ends in -sses and
-  // used to come out as `molass` (tracker row, plan 0023 lane D). It is in
+  // used to come out as `molass`, which migration 0022 rewrote. It is in
   // INVARIANT_WORDS now, wherever it sits in the phrase.
   assertEquals(normalize("molasses"), "molasses");
   assertEquals(normalize("Blackstrap Molasses"), "blackstrap molasses");

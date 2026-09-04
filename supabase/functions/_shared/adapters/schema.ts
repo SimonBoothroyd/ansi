@@ -7,7 +7,7 @@
 // Gemini `responseSchema`) consumes `EXTRACTION_JSON_SCHEMA`; each adapter then
 // runs `coerceExtractionResult` (portability normalisation) and
 // `validateExtractionResult` (structural never-invent checks). Keeping this in
-// one place is what makes the providers comparable in lane D.
+// one place is what makes the providers comparable in the eval harness.
 //
 // Two deliberate simplifications make the schema portable across all three
 // structured-output dialects (which disagree on unions):
