@@ -231,6 +231,8 @@ class _DetailForm extends HookConsumerWidget {
     final defaultMeasure = useState<DefaultMeasureChange>(
       const DefaultMeasureUnchanged(),
     );
+    final aliasesAdded = useState<List<IngredientAlias>>(const []);
+    final aliasesRemoved = useState<Set<String>>(const {});
     // The last barcode scan (plan 0025 #8): the draft the card shows, what
     // `applyDraft` decided about it, and whether its pack offer was taken.
     final scanned = useState<IngredientDraft?>(null);
@@ -414,6 +416,11 @@ class _DetailForm extends HookConsumerWidget {
                         ),
                     ],
                     measuresRemoved: measuresRemoved.value,
+                    aliasesAdded: [
+                      for (final a in aliasesAdded.value)
+                        PendingAlias(id: a.id, text: a.text),
+                    ],
+                    aliasesRemoved: aliasesRemoved.value,
                     defaultMeasure: defaultMeasure.value,
                     markComplete: markComplete,
                   ),
@@ -434,10 +441,13 @@ class _DetailForm extends HookConsumerWidget {
         densityChange.value = const DensityUnchanged();
         measuresAdded.value = const [];
         measuresRemoved.value = const {};
+        aliasesAdded.value = const [];
+        aliasesRemoved.value = const {};
         defaultMeasure.value = const DefaultMeasureUnchanged();
         ref
           ..invalidate(ingredientByIdProvider(ing.id))
-          ..invalidate(ingredientMeasuresProvider(ing.id));
+          ..invalidate(ingredientMeasuresProvider(ing.id))
+          ..invalidate(ingredientAliasesProvider(ing.id));
         message.value = 'Saved.';
         return saved;
       } finally {
@@ -786,7 +796,41 @@ class _DetailForm extends HookConsumerWidget {
               const _Note('renaming rewrites the match text'),
 
               const _Label('ALSO KNOWN AS'),
-              _AliasEditor(ingredientId: ing.id),
+              _AliasEditor(
+                aliases: [
+                  // Decorative emptiness, weighed (D6): the add field is the
+                  // point of this section and works with no list at all, and
+                  // an alias that exists but did not load is re-added
+                  // harmlessly — `saveForm` is find-or-create on match_text.
+                  for (final a
+                      in ref
+                              .watch(ingredientAliasesProvider(ing.id))
+                              .asData
+                              ?.value ??
+                          const <IngredientAlias>[])
+                    if (!aliasesRemoved.value.contains(a.id)) a,
+                  ...aliasesAdded.value,
+                ],
+                onAdd: (text) => aliasesAdded.value = [
+                  ...aliasesAdded.value,
+                  // Minted here and kept: `saveForm` inserts under this id.
+                  IngredientAlias(
+                    id: const Uuid().v4(),
+                    text: text.trim(),
+                    source: 'manual',
+                  ),
+                ],
+                onRemove: (id) {
+                  if (aliasesAdded.value.any((a) => a.id == id)) {
+                    aliasesAdded.value = [
+                      for (final a in aliasesAdded.value)
+                        if (a.id != id) a,
+                    ];
+                  } else {
+                    aliasesRemoved.value = {...aliasesRemoved.value, id};
+                  }
+                },
+              ),
 
               const _Label('CATEGORY'),
               _CategoryPicker(
@@ -1671,39 +1715,47 @@ class _StrandedDefaultNote extends StatelessWidget {
 }
 
 /// "Also known as" — the alias chips, addable and removable.
-class _AliasEditor extends HookConsumerWidget {
-  const _AliasEditor({required this.ingredientId});
+///
+/// **Presentational since plan 0029 W5.** It used to watch the aliases
+/// provider and write straight through the repository on every tap; now the
+/// host hands it the list it should draw — the stored ones minus what the
+/// form intends to remove, plus what it intends to add — and takes the two
+/// intents back. Nothing here writes.
+///
+/// The one rule that stays inside is the refusal: an alias whose normalized
+/// match text is empty carries no identity word, and would match everything
+/// and nothing. It is checked here rather than caught, because the repository
+/// throws `ArgumentError` for it and that is a programming error to a linter,
+/// not a sentence for a person.
+class _AliasEditor extends HookWidget {
+  const _AliasEditor({
+    required this.aliases,
+    required this.onAdd,
+    required this.onRemove,
+  });
 
-  final String ingredientId;
+  final List<IngredientAlias> aliases;
+  final ValueChanged<String> onAdd;
+  final ValueChanged<String> onRemove;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final aliases = ref.watch(ingredientAliasesProvider(ingredientId));
+  Widget build(BuildContext context) {
     final adding = useState(false);
     final draft = useState('');
     final error = useState<String?>(null);
 
-    Future<void> add() async {
-      // Checked here rather than caught: the repository throws for this, and
-      // an `ArgumentError` is a programming error to a linter, not a user
-      // message. Same normalizer, so the two verdicts can't disagree.
+    void add() {
+      // Same normalizer as the repository, so the two verdicts cannot
+      // disagree about what carries an identity word.
       if (normalizeMatchText(draft.value).isEmpty) {
         error.value =
             'That alias carries no identity word — it would match '
             'everything and nothing.';
         return;
       }
-      final added = await ref.writeOk(
-        context,
-        'add that alias',
-        () => ref
-            .read(ingredientRepositoryProvider)
-            .addAlias(ingredientId, draft.value),
-      );
-      if (!added || !context.mounted) return;
+      onAdd(draft.value);
       error.value = null;
       adding.value = false;
-      ref.invalidate(ingredientAliasesProvider(ingredientId));
     }
 
     return Column(
@@ -1713,25 +1765,10 @@ class _AliasEditor extends HookConsumerWidget {
           spacing: 6,
           runSpacing: 6,
           children: [
-            // Decorative emptiness, weighed (D6): the add field below is the
-            // point of this section and works with no list at all; an alias
-            // that exists but did not load is re-added harmlessly (the
-            // repository is idempotent on match_text).
-            for (final a in aliases.asData?.value ?? const <IngredientAlias>[])
+            for (final a in aliases)
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () async {
-                  final removed = await ref.writeOk(
-                    context,
-                    'remove that alias',
-                    () => ref
-                        .read(ingredientRepositoryProvider)
-                        .removeAlias(a.id),
-                  );
-                  if (removed && context.mounted) {
-                    ref.invalidate(ingredientAliasesProvider(ingredientId));
-                  }
-                },
+                onTap: () => onRemove(a.id),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
