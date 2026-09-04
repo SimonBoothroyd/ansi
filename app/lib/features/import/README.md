@@ -65,6 +65,8 @@ import/
     import_view.dart             intake screen
     reconciliation_view.dart     the merged Review recipe screen
     recon_line_card.dart         one line: collapsed row ⇄ full edit card
+    recon_amount.dart            the amount label + the two amount sheets
+    recon_resolver.dart          the identity cell + the seeded search sheet
     import_view_models.dart      ImportController + the ImportState machine
 ```
 
@@ -160,7 +162,9 @@ backend.
   fixture (`supabase/functions/import-recipe/__fixtures__/…golden.json`), so a
   TS-side shape change fails on the Dart side too.
 - Widget: `recon_line_card_test` (incl. the 8.6 offer → link → unlink path and
-  the component quantity sheet), `review_header_test` (the shared header on
+  the component quantity sheet), `recon_resolver_test` (the did-you-mean pills
+  and the create-new chain), `recon_amount_test` (what the amount slot
+  prints), `review_header_test` (the shared header on
   the review: notes strip above, the two host notes, prefill, the whole
   header riding the commit). Intake seams: `photo_intake_test`.
 - Seam: `test/features/recipes/recipe_header_form_test` renders every

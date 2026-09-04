@@ -24,7 +24,7 @@ import 'dart:convert';
 
 import 'package:ansi/features/import/presentation/import_view.dart'
     show ImportView;
-import 'package:ansi/features/import/presentation/recon_line_card.dart'
+import 'package:ansi/features/import/presentation/recon_amount.dart'
     show AmountEditor;
 import 'package:ansi/features/ingredients/presentation/ingredient_picker.dart'
     show IngredientResultList;
