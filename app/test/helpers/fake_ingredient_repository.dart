@@ -40,7 +40,11 @@ class ReadOnlyIngredientRepo implements IngredientRepository {
   Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
 
   @override
-  Future<List<IngredientAlias>> aliases(String ingredientId) async => const [];
+  Stream<Ingredient?> watchIngredient(String id) => Stream.value(null);
+
+  @override
+  Stream<List<IngredientAlias>> watchAliases(String ingredientId) =>
+      Stream.value(const []);
 
   @override
   Stream<List<Ingredient>> watchVocabulary() => const Stream.empty();
@@ -101,6 +105,9 @@ class OneRowIngredientRepo extends ReadOnlyIngredientRepo {
 
   @override
   Future<Ingredient?> byId(String id) async => row;
+
+  @override
+  Stream<Ingredient?> watchIngredient(String id) => Stream.value(row);
 
   @override
   Future<Map<String, Ingredient>> byIds(Set<String> ids) async => {
@@ -177,6 +184,12 @@ class FakeIngredientRepo implements IngredientRepository {
 
   @override
   Future<Ingredient?> byId(String id) async => _find(id);
+
+  @override
+  Stream<Ingredient?> watchIngredient(String id) async* {
+    yield _find(id);
+    yield* _changes.stream.map((_) => _find(id));
+  }
 
   @override
   Future<Map<String, Ingredient>> byIds(Set<String> ids) async => {
@@ -444,7 +457,9 @@ class FakeIngredientRepo implements IngredientRepository {
   }
 
   @override
-  Future<List<IngredientAlias>> aliases(String ingredientId) async => [
-    ...?_aliases[ingredientId],
-  ];
+  Stream<List<IngredientAlias>> watchAliases(String ingredientId) async* {
+    List<IngredientAlias> current() => [...?_aliases[ingredientId]];
+    yield current();
+    yield* _changes.stream.map((_) => current());
+  }
 }

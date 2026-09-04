@@ -507,11 +507,9 @@ class _DetailForm extends HookConsumerWidget {
         aliasesAdded.value = const [];
         aliasesRemoved.value = const {};
         defaultMeasure.value = const DefaultMeasureUnchanged();
-        ref
-          ..invalidate(ingredientByIdProvider(saved.id))
-          ..invalidate(ingredientMeasuresProvider(saved.id))
-          ..invalidate(ingredientAliasesProvider(saved.id))
-          ..invalidate(vocabularyProvider);
+        // Nothing is invalidated here: the row, its measures, its aliases and
+        // the vocabulary are all watched queries, so the write that just
+        // landed re-fires them — as another device's write does.
         message.value = 'Saved.';
         return saved;
       } finally {
@@ -662,7 +660,6 @@ class _DetailForm extends HookConsumerWidget {
         () => ref.read(ingredientRepositoryProvider).unconfirm(ing.id),
       );
       if (!undone || !context.mounted) return;
-      ref.invalidate(ingredientByIdProvider(ing.id));
       message.value =
           'Back to a stub — it stops counting until you complete it again.';
     }
@@ -681,7 +678,6 @@ class _DetailForm extends HookConsumerWidget {
       if (outcome == null || !context.mounted) return;
       switch (outcome) {
         case Deleted():
-          ref.invalidate(ingredientByIdProvider(ing.id));
           if (context.mounted) {
             context.canPop() ? context.pop() : context.goOnce('/ingredients');
           }
@@ -928,7 +924,6 @@ class _DetailForm extends HookConsumerWidget {
                                 .declineUsdaPrefill(ing.id),
                           );
                           if (cleared == null || !context.mounted) return;
-                          ref.invalidate(ingredientByIdProvider(ing.id));
                           message.value =
                               'Cleared — the USDA numbers are gone, and a '
                               'rename will not bring them back.';
@@ -1921,9 +1916,8 @@ class _CountsAsRow extends ConsumerWidget {
   /// selection", which is a different thing from "the household chose none".
   static const _ask = '';
 
-  /// Writes the pick and re-reads the row. [ingredientById] is a one-shot
-  /// Future, so nothing re-fires on its own — the same reason the measures
-  /// editor's `piece` answer invalidates it.
+  /// Writes the pick. [ingredientById] is a watched query, so the row the
+  /// section draws follows the write on its own.
   Future<void> _pick(BuildContext context, WidgetRef ref, String? id) async {
     final repo = ref.read(ingredientRepositoryProvider);
     await ref.write(
@@ -1934,7 +1928,6 @@ class _CountsAsRow extends ConsumerWidget {
         (id == null || id == _ask) ? null : id,
       ),
     );
-    if (context.mounted) ref.invalidate(ingredientByIdProvider(ingredient.id));
   }
 
   @override

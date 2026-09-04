@@ -240,6 +240,12 @@ abstract interface class IngredientRepository {
   /// e.g. the edit-top-up sheet filtering its unit picker.
   Future<Ingredient?> byId(String id);
 
+  /// The same row as a watched query — what a screen that STAYS OPEN on one
+  /// ingredient reads. The form saves and then goes on showing the row it
+  /// saved, and another device's edit arrives while it is open; a one-shot
+  /// read leaves both stale until something invalidates it by hand.
+  Stream<Ingredient?> watchIngredient(String id);
+
   /// The live vocab rows for [ids], keyed by id — missing/tombstoned ids are
   /// simply absent. One query for a whole set: the import review validates
   /// every line's unit against its ingredient, and doing that a row at a time
@@ -391,6 +397,8 @@ abstract interface class IngredientRepository {
   /// it. See [DeleteOutcome].
   Future<DeleteOutcome> softDelete(String ingredientId);
 
-  /// The ingredient's live aliases, oldest first.
-  Future<List<IngredientAlias>> aliases(String ingredientId);
+  /// The ingredient's live aliases, oldest first — the form's "Also known as"
+  /// chips. Watched, so an alias the form's own Save just inserted (and one a
+  /// second device added) appears without being invalidated by hand.
+  Stream<List<IngredientAlias>> watchAliases(String ingredientId);
 }

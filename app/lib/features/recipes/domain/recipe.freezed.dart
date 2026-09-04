@@ -20,8 +20,8 @@ mixin _$Recipe {
 /// writes and reads.
  List<String> get steps;/// Tokenized method (step 8 import): text/ref/timer chips rendered by the
 /// fold ([foldMethod]). Non-null only for an imported recipe; the editor's
-/// plain-text [steps] and this are the two shapes the `steps` jsonb holds
-/// ([mise-data-ephemeral] — no back-compat, they don't coexist on one row).
+/// plain-text [steps] and this are the two shapes the `steps` jsonb holds,
+/// and one row carries one of them — never both.
  List<MethodStep>? get methodSteps;/// Fridge shelf life; drives the cook-plan clustering (step 5), set from
 /// the recipe editor's shelf-life inputs.
  int? get keepsForDays; bool get freezable; int? get freezerDays;/// The book/section this recipe is filed under (step 3). [bookId] is set for
@@ -50,10 +50,10 @@ mixin _$Recipe {
 /// first, so the pair bridges mass↔volume *for this recipe only*, the way
 /// an `ingredient_measure` bridges count↔mass — two stated facts, no
 /// density.
- double? get yieldQty2; Unit? get yieldUnit2;/// The printed cook and total times, in seconds (plan 0025 #4). Two typed
-/// facts with no rule between them — a total below the cook time is what
-/// somebody wrote, not an error to refuse. Null is unset: the page never
-/// said, and nothing invents one.
+ double? get yieldQty2; Unit? get yieldUnit2;/// The printed cook and total times, in seconds. Two typed facts with no
+/// rule between them — a total below the cook time is what somebody wrote,
+/// not an error to refuse. Null is unset: the page never said, and nothing
+/// invents one.
  int? get cookTimeSeconds; int? get totalTimeSeconds;
 /// Create a copy of Recipe
 /// with the given fields replaced by the non-null parameter values.
@@ -293,13 +293,13 @@ class _Recipe extends Recipe {
 
 /// Tokenized method (step 8 import): text/ref/timer chips rendered by the
 /// fold ([foldMethod]). Non-null only for an imported recipe; the editor's
-/// plain-text [steps] and this are the two shapes the `steps` jsonb holds
-/// ([mise-data-ephemeral] — no back-compat, they don't coexist on one row).
+/// plain-text [steps] and this are the two shapes the `steps` jsonb holds,
+/// and one row carries one of them — never both.
  final  List<MethodStep>? _methodSteps;
 /// Tokenized method (step 8 import): text/ref/timer chips rendered by the
 /// fold ([foldMethod]). Non-null only for an imported recipe; the editor's
-/// plain-text [steps] and this are the two shapes the `steps` jsonb holds
-/// ([mise-data-ephemeral] — no back-compat, they don't coexist on one row).
+/// plain-text [steps] and this are the two shapes the `steps` jsonb holds,
+/// and one row carries one of them — never both.
 @override List<MethodStep>? get methodSteps {
   final value = _methodSteps;
   if (value == null) return null;
@@ -348,10 +348,10 @@ class _Recipe extends Recipe {
 /// density.
 @override final  double? yieldQty2;
 @override final  Unit? yieldUnit2;
-/// The printed cook and total times, in seconds (plan 0025 #4). Two typed
-/// facts with no rule between them — a total below the cook time is what
-/// somebody wrote, not an error to refuse. Null is unset: the page never
-/// said, and nothing invents one.
+/// The printed cook and total times, in seconds. Two typed facts with no
+/// rule between them — a total below the cook time is what somebody wrote,
+/// not an error to refuse. Null is unset: the page never said, and nothing
+/// invents one.
 @override final  int? cookTimeSeconds;
 @override final  int? totalTimeSeconds;
 

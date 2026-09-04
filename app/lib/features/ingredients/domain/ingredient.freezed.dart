@@ -31,21 +31,20 @@ mixin _$Ingredient {
 /// row's "N measures" capability hint (7.7). Populated by list reads;
 /// 0 where a caller didn't ask for it.
  int get measureCount;/// The row's provenance stamp (`seed`, `manual`, `import_stub`,
-/// `usda_fdc:<fdc_id>` — the server prefill's mark, plan 0020 D7 — or
-/// [usdaDeclinedSource], a person's "not this food", plan 0027 U-D2).
-/// Shown, never interpreted as truth: it says where the numbers came
-/// from, and a machine-supplied one still waits for a human confirm
-/// (D5). Null on a row read by a caller that didn't select it.
- String? get source;/// The name of the USDA food the prefill copied from —
-/// `usda_food.description`, written beside [source] by both prefill
-/// writers (migration 0027, plan 0027 U-D1) so the form can say WHICH
-/// food filled the row, offline. Survives a decline: the form names the
-/// food that was refused. Null on rows filled before 0027 and on rows
-/// nothing filled.
- String? get sourceLabel;/// The trigram score (0.5–1) that earned the match in [sourceLabel],
-/// stored so the band word (`UsdaBand`) is readable offline. Shown, never
-/// acted on — the floor is the server's. Null where the label is null,
-/// and cleared by a decline.
+/// `usda_fdc:<fdc_id>` for a USDA pick, or [usdaDeclinedSource] for a
+/// person's "not this food"). Shown, never interpreted as truth: it says
+/// where the numbers came from, and a machine-supplied one still waits for
+/// a human confirm. Null on a row read by a caller that didn't select it.
+ String? get source;/// The name of the USDA food the row was filled from —
+/// `usda_food.description`, written beside [source] so the form can say
+/// WHICH food filled the row, offline. Survives a decline: the form names
+/// the food that was refused. Null on rows filled before migration 0027 and
+/// on rows nothing filled.
+ String? get sourceLabel;/// How much of the query the matched food's description covered, 0..1 —
+/// the idf-weighted coverage `probe_usda` returns, not a graded confidence.
+/// Stored so `UsdaMatchFit` reads the same offline as it did online. Shown,
+/// never acted on. Null where [sourceLabel] is null, and cleared by a
+/// decline.
  double? get sourceScore;
 /// Create a copy of Ingredient
 /// with the given fields replaced by the non-null parameter values.
@@ -294,23 +293,22 @@ class _Ingredient implements Ingredient {
 /// 0 where a caller didn't ask for it.
 @override@JsonKey() final  int measureCount;
 /// The row's provenance stamp (`seed`, `manual`, `import_stub`,
-/// `usda_fdc:<fdc_id>` — the server prefill's mark, plan 0020 D7 — or
-/// [usdaDeclinedSource], a person's "not this food", plan 0027 U-D2).
-/// Shown, never interpreted as truth: it says where the numbers came
-/// from, and a machine-supplied one still waits for a human confirm
-/// (D5). Null on a row read by a caller that didn't select it.
+/// `usda_fdc:<fdc_id>` for a USDA pick, or [usdaDeclinedSource] for a
+/// person's "not this food"). Shown, never interpreted as truth: it says
+/// where the numbers came from, and a machine-supplied one still waits for
+/// a human confirm. Null on a row read by a caller that didn't select it.
 @override final  String? source;
-/// The name of the USDA food the prefill copied from —
-/// `usda_food.description`, written beside [source] by both prefill
-/// writers (migration 0027, plan 0027 U-D1) so the form can say WHICH
-/// food filled the row, offline. Survives a decline: the form names the
-/// food that was refused. Null on rows filled before 0027 and on rows
-/// nothing filled.
+/// The name of the USDA food the row was filled from —
+/// `usda_food.description`, written beside [source] so the form can say
+/// WHICH food filled the row, offline. Survives a decline: the form names
+/// the food that was refused. Null on rows filled before migration 0027 and
+/// on rows nothing filled.
 @override final  String? sourceLabel;
-/// The trigram score (0.5–1) that earned the match in [sourceLabel],
-/// stored so the band word (`UsdaBand`) is readable offline. Shown, never
-/// acted on — the floor is the server's. Null where the label is null,
-/// and cleared by a decline.
+/// How much of the query the matched food's description covered, 0..1 —
+/// the idf-weighted coverage `probe_usda` returns, not a graded confidence.
+/// Stored so `UsdaMatchFit` reads the same offline as it did online. Shown,
+/// never acted on. Null where [sourceLabel] is null, and cleared by a
+/// decline.
 @override final  double? sourceScore;
 
 /// Create a copy of Ingredient

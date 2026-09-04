@@ -252,25 +252,31 @@ final class IngredientMeasuresFamily extends $Family
   String toString() => r'ingredientMeasuresProvider';
 }
 
-/// One vocab row by id, or null — resolves an ingredient known only by
-/// reference (the edit-top-up sheet's unit filter).
+/// One live vocab row by id, or null — resolves an ingredient known only by
+/// reference (the edit-top-up sheet's unit filter) and keeps the form on the
+/// row it is editing. Watched: a save re-renders it, and so does another
+/// device's edit, without anyone invalidating it by hand.
 
 @ProviderFor(ingredientById)
 const ingredientByIdProvider = IngredientByIdFamily._();
 
-/// One vocab row by id, or null — resolves an ingredient known only by
-/// reference (the edit-top-up sheet's unit filter).
+/// One live vocab row by id, or null — resolves an ingredient known only by
+/// reference (the edit-top-up sheet's unit filter) and keeps the form on the
+/// row it is editing. Watched: a save re-renders it, and so does another
+/// device's edit, without anyone invalidating it by hand.
 
 final class IngredientByIdProvider
     extends
         $FunctionalProvider<
           AsyncValue<Ingredient?>,
           Ingredient?,
-          FutureOr<Ingredient?>
+          Stream<Ingredient?>
         >
-    with $FutureModifier<Ingredient?>, $FutureProvider<Ingredient?> {
-  /// One vocab row by id, or null — resolves an ingredient known only by
-  /// reference (the edit-top-up sheet's unit filter).
+    with $FutureModifier<Ingredient?>, $StreamProvider<Ingredient?> {
+  /// One live vocab row by id, or null — resolves an ingredient known only by
+  /// reference (the edit-top-up sheet's unit filter) and keeps the form on the
+  /// row it is editing. Watched: a save re-renders it, and so does another
+  /// device's edit, without anyone invalidating it by hand.
   const IngredientByIdProvider._({
     required IngredientByIdFamily super.from,
     required String super.argument,
@@ -294,12 +300,12 @@ final class IngredientByIdProvider
 
   @$internal
   @override
-  $FutureProviderElement<Ingredient?> $createElement(
+  $StreamProviderElement<Ingredient?> $createElement(
     $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  ) => $StreamProviderElement(pointer);
 
   @override
-  FutureOr<Ingredient?> create(Ref ref) {
+  Stream<Ingredient?> create(Ref ref) {
     final argument = this.argument as String;
     return ingredientById(ref, argument);
   }
@@ -315,13 +321,15 @@ final class IngredientByIdProvider
   }
 }
 
-String _$ingredientByIdHash() => r'65ff1b2441c16cf7abf6cc93ca241452155f7b67';
+String _$ingredientByIdHash() => r'0223ffcdca1d5872f58038ca2ea9f7bfcc83fdaa';
 
-/// One vocab row by id, or null — resolves an ingredient known only by
-/// reference (the edit-top-up sheet's unit filter).
+/// One live vocab row by id, or null — resolves an ingredient known only by
+/// reference (the edit-top-up sheet's unit filter) and keeps the form on the
+/// row it is editing. Watched: a save re-renders it, and so does another
+/// device's edit, without anyone invalidating it by hand.
 
 final class IngredientByIdFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<Ingredient?>, String> {
+    with $FunctionalFamilyOverride<Stream<Ingredient?>, String> {
   const IngredientByIdFamily._()
     : super(
         retry: null,
@@ -331,8 +339,10 @@ final class IngredientByIdFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// One vocab row by id, or null — resolves an ingredient known only by
-  /// reference (the edit-top-up sheet's unit filter).
+  /// One live vocab row by id, or null — resolves an ingredient known only by
+  /// reference (the edit-top-up sheet's unit filter) and keeps the form on the
+  /// row it is editing. Watched: a save re-renders it, and so does another
+  /// device's edit, without anyone invalidating it by hand.
 
   IngredientByIdProvider call(String id) =>
       IngredientByIdProvider._(argument: id, from: this);
@@ -521,24 +531,27 @@ final class IngredientCategoriesProvider
 String _$ingredientCategoriesHash() =>
     r'd5fe37edf976c197070b3dbeaf98d15d85cf3edb';
 
-/// One ingredient's live aliases — the form's "Also known as" chips.
+/// One ingredient's live aliases — the form's "Also known as" chips. Watched,
+/// so a saved alias appears without a refresh.
 
 @ProviderFor(ingredientAliases)
 const ingredientAliasesProvider = IngredientAliasesFamily._();
 
-/// One ingredient's live aliases — the form's "Also known as" chips.
+/// One ingredient's live aliases — the form's "Also known as" chips. Watched,
+/// so a saved alias appears without a refresh.
 
 final class IngredientAliasesProvider
     extends
         $FunctionalProvider<
           AsyncValue<List<IngredientAlias>>,
           List<IngredientAlias>,
-          FutureOr<List<IngredientAlias>>
+          Stream<List<IngredientAlias>>
         >
     with
         $FutureModifier<List<IngredientAlias>>,
-        $FutureProvider<List<IngredientAlias>> {
-  /// One ingredient's live aliases — the form's "Also known as" chips.
+        $StreamProvider<List<IngredientAlias>> {
+  /// One ingredient's live aliases — the form's "Also known as" chips. Watched,
+  /// so a saved alias appears without a refresh.
   const IngredientAliasesProvider._({
     required IngredientAliasesFamily super.from,
     required String super.argument,
@@ -562,12 +575,12 @@ final class IngredientAliasesProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<IngredientAlias>> $createElement(
+  $StreamProviderElement<List<IngredientAlias>> $createElement(
     $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  ) => $StreamProviderElement(pointer);
 
   @override
-  FutureOr<List<IngredientAlias>> create(Ref ref) {
+  Stream<List<IngredientAlias>> create(Ref ref) {
     final argument = this.argument as String;
     return ingredientAliases(ref, argument);
   }
@@ -583,12 +596,13 @@ final class IngredientAliasesProvider
   }
 }
 
-String _$ingredientAliasesHash() => r'f5cf163b526690fca645745143d2e1fbe395767d';
+String _$ingredientAliasesHash() => r'5edaba8686f515054ab9eaea747e9c135fc35c09';
 
-/// One ingredient's live aliases — the form's "Also known as" chips.
+/// One ingredient's live aliases — the form's "Also known as" chips. Watched,
+/// so a saved alias appears without a refresh.
 
 final class IngredientAliasesFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<List<IngredientAlias>>, String> {
+    with $FunctionalFamilyOverride<Stream<List<IngredientAlias>>, String> {
   const IngredientAliasesFamily._()
     : super(
         retry: null,
@@ -598,7 +612,8 @@ final class IngredientAliasesFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// One ingredient's live aliases — the form's "Also known as" chips.
+  /// One ingredient's live aliases — the form's "Also known as" chips. Watched,
+  /// so a saved alias appears without a refresh.
 
   IngredientAliasesProvider call(String id) =>
       IngredientAliasesProvider._(argument: id, from: this);

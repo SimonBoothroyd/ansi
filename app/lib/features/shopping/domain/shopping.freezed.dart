@@ -22,7 +22,7 @@ mixin _$ShoppingContribution {
  Measure? get measure;/// The persisted `measure_id` of a manual contribution, verbatim — kept
 /// even while [measure] is unresolved (row not yet synced / soft-deleted)
 /// so the edit sheet's re-save never wipes the FK for every device
-/// (mirrors the recipe line's `measureId`). Null for cook lines (derived,
+/// (mirrors the recipe line's [measureId]). Null for cook lines (derived,
 /// never re-saved here).
  String? get measureId;/// Cook day (0=Mon..6=Sun) for a cook contribution — orders the breakdown.
  int? get cookDay;/// The persisted `shopping_list_contribution` id — set only for a `manual`
@@ -243,7 +243,7 @@ class _ShoppingContribution implements ShoppingContribution {
 /// The persisted `measure_id` of a manual contribution, verbatim — kept
 /// even while [measure] is unresolved (row not yet synced / soft-deleted)
 /// so the edit sheet's re-save never wipes the FK for every device
-/// (mirrors the recipe line's `measureId`). Null for cook lines (derived,
+/// (mirrors the recipe line's [measureId]). Null for cook lines (derived,
 /// never re-saved here).
 @override final  String? measureId;
 /// Cook day (0=Mon..6=Sun) for a cook contribution — orders the breakdown.

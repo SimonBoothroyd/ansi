@@ -237,7 +237,7 @@ final class RecipeUsedInFamily extends $Family
 }
 
 /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
-/// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
+/// dropdown can be filtered by [allowedUnitsFor]. The repository only exposes
 /// search (ADR-0004), so this searches by the denormalised name and matches on
 /// id; null when the vocab row can't be resolved (the dropdown then falls back
 /// to the full catalog).
@@ -246,7 +246,7 @@ final class RecipeUsedInFamily extends $Family
 const lineItemIngredientProvider = LineItemIngredientFamily._();
 
 /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
-/// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
+/// dropdown can be filtered by [allowedUnitsFor]. The repository only exposes
 /// search (ADR-0004), so this searches by the denormalised name and matches on
 /// id; null when the vocab row can't be resolved (the dropdown then falls back
 /// to the full catalog).
@@ -260,7 +260,7 @@ final class LineItemIngredientProvider
         >
     with $FutureModifier<Ingredient?>, $FutureProvider<Ingredient?> {
   /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
-  /// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
+  /// dropdown can be filtered by [allowedUnitsFor]. The repository only exposes
   /// search (ADR-0004), so this searches by the denormalised name and matches on
   /// id; null when the vocab row can't be resolved (the dropdown then falls back
   /// to the full catalog).
@@ -316,7 +316,7 @@ String _$lineItemIngredientHash() =>
     r'4c3b527f76234a712182d22f5efadac9b0845b4d';
 
 /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
-/// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
+/// dropdown can be filtered by [allowedUnitsFor]. The repository only exposes
 /// search (ADR-0004), so this searches by the denormalised name and matches on
 /// id; null when the vocab row can't be resolved (the dropdown then falls back
 /// to the full catalog).
@@ -337,7 +337,7 @@ final class LineItemIngredientFamily extends $Family
       );
 
   /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
-  /// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
+  /// dropdown can be filtered by [allowedUnitsFor]. The repository only exposes
   /// search (ADR-0004), so this searches by the denormalised name and matches on
   /// id; null when the vocab row can't be resolved (the dropdown then falls back
   /// to the full catalog).
@@ -366,15 +366,15 @@ final class LineItemIngredientFamily extends $Family
 /// [initialBookId] and [initialSectionId] are the same idea for the FILING
 /// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
 /// over, so the recipe lands on the shelf you tapped instead of in whichever
-/// book `ensureDefaultBook()` returns. They key the family too — the same
+/// book `ensureDefaultBook` returns. They key the family too — the same
 /// blank form filed into two different sections is two drafts.
 ///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-/// every member of that interface was already here, written for the step
-/// cards. The import review's adapter implements the same surface, so the
-/// cards can host on either screen without two of them existing. The same
-/// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
-/// this notifier here and over the import controller at review.
+/// every member of that interface was already here, written for the step cards.
+/// The import review's adapter implements the same surface, so the cards can
+/// host on either screen without two of them existing. The same holds for
+/// [RecipeHeaderHost]: the header form renders over this notifier here and over
+/// the import controller at review.
 
 @ProviderFor(RecipeEditor)
 const recipeEditorProvider = RecipeEditorFamily._();
@@ -391,15 +391,15 @@ const recipeEditorProvider = RecipeEditorFamily._();
 /// [initialBookId] and [initialSectionId] are the same idea for the FILING
 /// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
 /// over, so the recipe lands on the shelf you tapped instead of in whichever
-/// book `ensureDefaultBook()` returns. They key the family too — the same
+/// book `ensureDefaultBook` returns. They key the family too — the same
 /// blank form filed into two different sections is two drafts.
 ///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-/// every member of that interface was already here, written for the step
-/// cards. The import review's adapter implements the same surface, so the
-/// cards can host on either screen without two of them existing. The same
-/// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
-/// this notifier here and over the import controller at review.
+/// every member of that interface was already here, written for the step cards.
+/// The import review's adapter implements the same surface, so the cards can
+/// host on either screen without two of them existing. The same holds for
+/// [RecipeHeaderHost]: the header form renders over this notifier here and over
+/// the import controller at review.
 final class RecipeEditorProvider
     extends $AsyncNotifierProvider<RecipeEditor, Recipe> {
   /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
@@ -414,15 +414,15 @@ final class RecipeEditorProvider
   /// [initialBookId] and [initialSectionId] are the same idea for the FILING
   /// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
   /// over, so the recipe lands on the shelf you tapped instead of in whichever
-  /// book `ensureDefaultBook()` returns. They key the family too — the same
+  /// book `ensureDefaultBook` returns. They key the family too — the same
   /// blank form filed into two different sections is two drafts.
   ///
   /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-  /// every member of that interface was already here, written for the step
-  /// cards. The import review's adapter implements the same surface, so the
-  /// cards can host on either screen without two of them existing. The same
-  /// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
-  /// this notifier here and over the import controller at review.
+  /// every member of that interface was already here, written for the step cards.
+  /// The import review's adapter implements the same surface, so the cards can
+  /// host on either screen without two of them existing. The same holds for
+  /// [RecipeHeaderHost]: the header form renders over this notifier here and over
+  /// the import controller at review.
   const RecipeEditorProvider._({
     required RecipeEditorFamily super.from,
     required (
@@ -479,15 +479,15 @@ String _$recipeEditorHash() => r'e5b6a80f120e9aacd931ccc0763532682c7b06cd';
 /// [initialBookId] and [initialSectionId] are the same idea for the FILING
 /// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
 /// over, so the recipe lands on the shelf you tapped instead of in whichever
-/// book `ensureDefaultBook()` returns. They key the family too — the same
+/// book `ensureDefaultBook` returns. They key the family too — the same
 /// blank form filed into two different sections is two drafts.
 ///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-/// every member of that interface was already here, written for the step
-/// cards. The import review's adapter implements the same surface, so the
-/// cards can host on either screen without two of them existing. The same
-/// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
-/// this notifier here and over the import controller at review.
+/// every member of that interface was already here, written for the step cards.
+/// The import review's adapter implements the same surface, so the cards can
+/// host on either screen without two of them existing. The same holds for
+/// [RecipeHeaderHost]: the header form renders over this notifier here and over
+/// the import controller at review.
 
 final class RecipeEditorFamily extends $Family
     with
@@ -524,15 +524,15 @@ final class RecipeEditorFamily extends $Family
   /// [initialBookId] and [initialSectionId] are the same idea for the FILING
   /// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
   /// over, so the recipe lands on the shelf you tapped instead of in whichever
-  /// book `ensureDefaultBook()` returns. They key the family too — the same
+  /// book `ensureDefaultBook` returns. They key the family too — the same
   /// blank form filed into two different sections is two drafts.
   ///
   /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-  /// every member of that interface was already here, written for the step
-  /// cards. The import review's adapter implements the same surface, so the
-  /// cards can host on either screen without two of them existing. The same
-  /// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
-  /// this notifier here and over the import controller at review.
+  /// every member of that interface was already here, written for the step cards.
+  /// The import review's adapter implements the same surface, so the cards can
+  /// host on either screen without two of them existing. The same holds for
+  /// [RecipeHeaderHost]: the header form renders over this notifier here and over
+  /// the import controller at review.
 
   RecipeEditorProvider call(
     String? recipeId, {
@@ -565,15 +565,15 @@ final class RecipeEditorFamily extends $Family
 /// [initialBookId] and [initialSectionId] are the same idea for the FILING
 /// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
 /// over, so the recipe lands on the shelf you tapped instead of in whichever
-/// book `ensureDefaultBook()` returns. They key the family too — the same
+/// book `ensureDefaultBook` returns. They key the family too — the same
 /// blank form filed into two different sections is two drafts.
 ///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-/// every member of that interface was already here, written for the step
-/// cards. The import review's adapter implements the same surface, so the
-/// cards can host on either screen without two of them existing. The same
-/// holds for [RecipeHeaderHost] (plan 0025 #4): the header form renders over
-/// this notifier here and over the import controller at review.
+/// every member of that interface was already here, written for the step cards.
+/// The import review's adapter implements the same surface, so the cards can
+/// host on either screen without two of them existing. The same holds for
+/// [RecipeHeaderHost]: the header form renders over this notifier here and over
+/// the import controller at review.
 
 abstract class _$RecipeEditor extends $AsyncNotifier<Recipe> {
   late final _$args =

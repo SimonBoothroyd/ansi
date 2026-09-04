@@ -164,16 +164,15 @@ String _$importValidationKeyHash() =>
 /// data across a refresh), never a data-only view that goes null mid-recompute.
 ///
 /// The whole import's vocab and the whole import's measures are each fetched in
-/// ONE repository query — never N round-trips down the line list, and (plan
-/// 0020 **J2**) never through the per-ingredient measure STREAM providers.
-/// Those are autoDispose, PowerSync's `watch` does not emit synchronously, and
-/// an element disposed before its first emission completes `.future` with a
-/// `StateError` — which this loader caught and turned into "no measures", so
-/// "1 clove" of a garlic row that carries a `clove` measure validated against
-/// an empty list and was flagged "Pick a supported unit". A plain read has no
-/// element to lose. Nothing is swallowed now either: a query that genuinely
-/// fails surfaces as the provider's error rather than as a screen full of
-/// wrongly-flagged lines.
+/// ONE repository query — never N round-trips down the line list, and never
+/// through the per-ingredient measure STREAM providers. Those are autoDispose,
+/// PowerSync's `watch` does not emit synchronously, and an element disposed
+/// before its first emission completes `.future` with a [StateError] — which
+/// this loader caught and turned into "no measures", so "1 clove" of a garlic
+/// row that carries a `clove` measure validated against an empty list and was
+/// flagged "Pick a supported unit". A plain read has no element to lose.
+/// Nothing is swallowed now either: a query that genuinely fails surfaces as
+/// the provider's error rather than as a screen full of wrongly-flagged lines.
 
 @ProviderFor(importValidation)
 const importValidationProvider = ImportValidationProvider._();
@@ -191,16 +190,15 @@ const importValidationProvider = ImportValidationProvider._();
 /// data across a refresh), never a data-only view that goes null mid-recompute.
 ///
 /// The whole import's vocab and the whole import's measures are each fetched in
-/// ONE repository query — never N round-trips down the line list, and (plan
-/// 0020 **J2**) never through the per-ingredient measure STREAM providers.
-/// Those are autoDispose, PowerSync's `watch` does not emit synchronously, and
-/// an element disposed before its first emission completes `.future` with a
-/// `StateError` — which this loader caught and turned into "no measures", so
-/// "1 clove" of a garlic row that carries a `clove` measure validated against
-/// an empty list and was flagged "Pick a supported unit". A plain read has no
-/// element to lose. Nothing is swallowed now either: a query that genuinely
-/// fails surfaces as the provider's error rather than as a screen full of
-/// wrongly-flagged lines.
+/// ONE repository query — never N round-trips down the line list, and never
+/// through the per-ingredient measure STREAM providers. Those are autoDispose,
+/// PowerSync's `watch` does not emit synchronously, and an element disposed
+/// before its first emission completes `.future` with a [StateError] — which
+/// this loader caught and turned into "no measures", so "1 clove" of a garlic
+/// row that carries a `clove` measure validated against an empty list and was
+/// flagged "Pick a supported unit". A plain read has no element to lose.
+/// Nothing is swallowed now either: a query that genuinely fails surfaces as
+/// the provider's error rather than as a screen full of wrongly-flagged lines.
 
 final class ImportValidationProvider
     extends
@@ -225,16 +223,15 @@ final class ImportValidationProvider
   /// data across a refresh), never a data-only view that goes null mid-recompute.
   ///
   /// The whole import's vocab and the whole import's measures are each fetched in
-  /// ONE repository query — never N round-trips down the line list, and (plan
-  /// 0020 **J2**) never through the per-ingredient measure STREAM providers.
-  /// Those are autoDispose, PowerSync's `watch` does not emit synchronously, and
-  /// an element disposed before its first emission completes `.future` with a
-  /// `StateError` — which this loader caught and turned into "no measures", so
-  /// "1 clove" of a garlic row that carries a `clove` measure validated against
-  /// an empty list and was flagged "Pick a supported unit". A plain read has no
-  /// element to lose. Nothing is swallowed now either: a query that genuinely
-  /// fails surfaces as the provider's error rather than as a screen full of
-  /// wrongly-flagged lines.
+  /// ONE repository query — never N round-trips down the line list, and never
+  /// through the per-ingredient measure STREAM providers. Those are autoDispose,
+  /// PowerSync's `watch` does not emit synchronously, and an element disposed
+  /// before its first emission completes `.future` with a [StateError] — which
+  /// this loader caught and turned into "no measures", so "1 clove" of a garlic
+  /// row that carries a `clove` measure validated against an empty list and was
+  /// flagged "Pick a supported unit". A plain read has no element to lose.
+  /// Nothing is swallowed now either: a query that genuinely fails surfaces as
+  /// the provider's error rather than as a screen full of wrongly-flagged lines.
   const ImportValidationProvider._()
     : super(
         from: null,
@@ -265,8 +262,8 @@ String _$importValidationHash() => r'2251f1864079a254c0cfbd68cdf98c69585ed88e';
 
 /// The ONE "how many lines still want you" count — the header's "N to review"
 /// and the Save button's "N line(s) need you" are the same number, read from
-/// the same place (they used to be two different rules, and the header's never
-/// decremented). Until the first validation lands it falls back to the
+/// the same place — two rules would let the header stop decrementing while the
+/// button kept counting. Until the first validation lands it falls back to the
 /// structural unresolved count, so the header is never blank or wrong-by-zero.
 
 @ProviderFor(importOutstandingLines)
@@ -274,8 +271,8 @@ const importOutstandingLinesProvider = ImportOutstandingLinesProvider._();
 
 /// The ONE "how many lines still want you" count — the header's "N to review"
 /// and the Save button's "N line(s) need you" are the same number, read from
-/// the same place (they used to be two different rules, and the header's never
-/// decremented). Until the first validation lands it falls back to the
+/// the same place — two rules would let the header stop decrementing while the
+/// button kept counting. Until the first validation lands it falls back to the
 /// structural unresolved count, so the header is never blank or wrong-by-zero.
 
 final class ImportOutstandingLinesProvider
@@ -283,8 +280,8 @@ final class ImportOutstandingLinesProvider
     with $Provider<int> {
   /// The ONE "how many lines still want you" count — the header's "N to review"
   /// and the Save button's "N line(s) need you" are the same number, read from
-  /// the same place (they used to be two different rules, and the header's never
-  /// decremented). Until the first validation lands it falls back to the
+  /// the same place — two rules would let the header stop decrementing while the
+  /// button kept counting. Until the first validation lands it falls back to the
   /// structural unresolved count, so the header is never blank or wrong-by-zero.
   const ImportOutstandingLinesProvider._()
     : super(

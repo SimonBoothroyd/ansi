@@ -333,13 +333,13 @@ final class ViewedWeekProvider
 String _$viewedWeekHash() => r'50ef21a8dbfa2471f53e93b9489410ae325561d8';
 
 /// The household eater roster, live — a portion factor set on either phone
-/// (plan 0027) reaches every Portions row and the Household sheet as it lands.
+/// reaches every Portions row and the Household sheet as it lands.
 
 @ProviderFor(members)
 const membersProvider = MembersProvider._();
 
 /// The household eater roster, live — a portion factor set on either phone
-/// (plan 0027) reaches every Portions row and the Household sheet as it lands.
+/// reaches every Portions row and the Household sheet as it lands.
 
 final class MembersProvider
     extends
@@ -350,7 +350,7 @@ final class MembersProvider
         >
     with $FutureModifier<List<Member>>, $StreamProvider<List<Member>> {
   /// The household eater roster, live — a portion factor set on either phone
-  /// (plan 0027) reaches every Portions row and the Household sheet as it lands.
+  /// reaches every Portions row and the Household sheet as it lands.
   const MembersProvider._()
     : super(
         from: null,
@@ -477,7 +477,7 @@ String _$lastPlannedByRecipeHash() =>
 
 /// Per-recipe macro summaries, indexed by recipe id.
 ///
-/// `watchRecipes()` already carries `macros` on every `RecipeSummary`, so the
+/// `watchRecipes` already carries `macros` on every [RecipeSummary], so the
 /// week needs NO new repository method and no second summation — it reads the
 /// same figure the picker rows and the recipe panel show.
 
@@ -486,7 +486,7 @@ const recipeMacrosByIdProvider = RecipeMacrosByIdProvider._();
 
 /// Per-recipe macro summaries, indexed by recipe id.
 ///
-/// `watchRecipes()` already carries `macros` on every `RecipeSummary`, so the
+/// `watchRecipes` already carries `macros` on every [RecipeSummary], so the
 /// week needs NO new repository method and no second summation — it reads the
 /// same figure the picker rows and the recipe panel show.
 
@@ -500,7 +500,7 @@ final class RecipeMacrosByIdProvider
     with $Provider<Map<String, RecipeMacroSummary>> {
   /// Per-recipe macro summaries, indexed by recipe id.
   ///
-  /// `watchRecipes()` already carries `macros` on every `RecipeSummary`, so the
+  /// `watchRecipes` already carries `macros` on every [RecipeSummary], so the
   /// week needs NO new repository method and no second summation — it reads the
   /// same figure the picker rows and the recipe panel show.
   const RecipeMacrosByIdProvider._()
@@ -541,14 +541,14 @@ final class RecipeMacrosByIdProvider
 
 String _$recipeMacrosByIdHash() => r'bcce65c48ca6eabca10ea29ed99479705f17030d';
 
-/// The roster keyed by id — the portion factors every demand and lens share
-/// is weighted by (plan 0027).
+/// The roster keyed by id — the portion factors every demand and lens share is
+/// weighted by.
 
 @ProviderFor(membersById)
 const membersByIdProvider = MembersByIdProvider._();
 
-/// The roster keyed by id — the portion factors every demand and lens share
-/// is weighted by (plan 0027).
+/// The roster keyed by id — the portion factors every demand and lens share is
+/// weighted by.
 
 final class MembersByIdProvider
     extends
@@ -558,8 +558,8 @@ final class MembersByIdProvider
           Map<String, Member>
         >
     with $Provider<Map<String, Member>> {
-  /// The roster keyed by id — the portion factors every demand and lens share
-  /// is weighted by (plan 0027).
+  /// The roster keyed by id — the portion factors every demand and lens share is
+  /// weighted by.
   const MembersByIdProvider._()
     : super(
         from: null,

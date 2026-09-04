@@ -261,6 +261,15 @@ class SqliteIngredientRepository implements IngredientRepository {
   }
 
   @override
+  Stream<Ingredient?> watchIngredient(String id) => _db
+      .watch(
+        'SELECT i.*, $_measureCount FROM ingredient i '
+        'WHERE i.id = ? AND i.deleted_at IS NULL',
+        parameters: [id],
+      )
+      .map((rows) => rows.isEmpty ? null : _toIngredient(rows.first));
+
+  @override
   Future<Map<String, Ingredient>> byIds(Set<String> ids) async {
     if (ids.isEmpty) return const {};
     // Ids are uuids we minted or synced, never user text; they still ride as
@@ -783,22 +792,23 @@ class SqliteIngredientRepository implements IngredientRepository {
   }
 
   @override
-  Future<List<IngredientAlias>> aliases(String ingredientId) async {
-    final rows = await _db.getAll(
-      'SELECT id, alias_text, source FROM ingredient_alias '
-      'WHERE ingredient_id = ? AND deleted_at IS NULL '
-      'ORDER BY created_at, id',
-      [ingredientId],
-    );
-    return [
-      for (final r in rows)
-        IngredientAlias(
-          id: r['id'] as String,
-          text: r['alias_text'] as String,
-          source: (r['source'] as String?) ?? 'manual',
-        ),
-    ];
-  }
+  Stream<List<IngredientAlias>> watchAliases(String ingredientId) => _db
+      .watch(
+        'SELECT id, alias_text, source FROM ingredient_alias '
+        'WHERE ingredient_id = ? AND deleted_at IS NULL '
+        'ORDER BY created_at, id',
+        parameters: [ingredientId],
+      )
+      .map(_toAliases);
+
+  static List<IngredientAlias> _toAliases(Iterable<Row> rows) => [
+    for (final r in rows)
+      IngredientAlias(
+        id: r['id'] as String,
+        text: r['alias_text'] as String,
+        source: (r['source'] as String?) ?? 'manual',
+      ),
+  ];
 
   Ingredient _toIngredient(Row r) => Ingredient(
     id: r['id'] as String,

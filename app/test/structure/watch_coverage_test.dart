@@ -40,16 +40,14 @@ const _repoSuffix = '_repository_impl.dart';
 /// Tables a given repo reads only from a one-shot Future API that is not part
 /// of any watch stream's load path.
 const _exemptTables = <String, Set<String>>{
-  // The vocab repo's watches (`watchVocabulary`, `watchStubCount`) render the
-  // manager list, which reads `ingredient` and its measure counts and nothing
-  // else. Every table below belongs to a one-shot Future instead: aliases to
-  // `search`/`aliases`, the reference tables to `recentlyUsed` and the delete
-  // guard's own reference count, `ingredient_measure` to `setDefaultMeasure`'s
-  // own-measure check. None of them can make the LIST stale — a new alias
-  // changes no row the list draws, and the measure count the list DOES draw
-  // rides the `ingredient` watch as a correlated subquery.
+  // The vocab repo watches the manager list, one row (`watchIngredient`) and
+  // one row's aliases (`watchAliases`). Every table below belongs to a
+  // one-shot Future instead: the reference tables to `recentlyUsed` and the
+  // delete guard's own reference count, `ingredient_measure` to
+  // `setDefaultMeasure`'s own-measure check. None of them can make a watched
+  // read stale — and the measure count the list and the row BOTH draw rides
+  // the `ingredient` watch as a correlated subquery.
   'lib/features/ingredients/data/ingredient_repository_impl.dart': {
-    'ingredient_alias',
     'ingredient_measure',
     'recipe_line_item',
     'ingredient_group',

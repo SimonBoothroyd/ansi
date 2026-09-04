@@ -20,10 +20,10 @@ mixin _$CommitLine {
 /// it is set the line is a COMPONENT line and [ingredientId] is null; the
 /// repository writes no `measure_id` for it either (measures are an
 /// ingredient concept, and migration 0017 pins both rules).
- String? get subRecipeId; double? get quantity; String? get unit; String? get note;/// The recipe says this line may be left out (plan 0025 / D6b) — seeded
-/// from the extractor's raw flag, toggled at review, written to
-/// `recipe_line_item.optional`. Always false on a component line: an
-/// optional sub-recipe is a week-level question, not a line fact.
+ String? get subRecipeId; double? get quantity; String? get unit; String? get note;/// The recipe says this line may be left out — seeded from the extractor's
+/// raw flag, toggled at review, written to `recipe_line_item.optional`.
+/// Always false on a component line: an optional sub-recipe is a week-level
+/// question, not a line fact.
  bool get optional;
 /// Create a copy of CommitLine
 /// with the given fields replaced by the non-null parameter values.
@@ -237,10 +237,10 @@ class _CommitLine implements CommitLine {
 @override final  double? quantity;
 @override final  String? unit;
 @override final  String? note;
-/// The recipe says this line may be left out (plan 0025 / D6b) — seeded
-/// from the extractor's raw flag, toggled at review, written to
-/// `recipe_line_item.optional`. Always false on a component line: an
-/// optional sub-recipe is a week-level question, not a line fact.
+/// The recipe says this line may be left out — seeded from the extractor's
+/// raw flag, toggled at review, written to `recipe_line_item.optional`.
+/// Always false on a component line: an optional sub-recipe is a week-level
+/// question, not a line fact.
 @override@JsonKey() final  bool optional;
 
 /// Create a copy of CommitLine
@@ -835,12 +835,12 @@ as String,
 /// @nodoc
 mixin _$CommitPayload {
 
- String get title; double get servingsBase; String? get servingsRaw;/// What one batch MAKES, as the review's header states it (8.6 / D2 ·
-/// D9, board frame h) — prefilled from `yield_raw` only when that was a
-/// plain amount + unit, and otherwise whatever the human typed, or
-/// nothing. Both halves or neither: a half-stated yield is half a fact.
-/// The SECOND denomination is the editor's affordance, now at review too
-/// (plan 0025 #4): the same header form, so the same two slots.
+ String get title; double get servingsBase; String? get servingsRaw;/// What one batch MAKES, as the review's header states it (8.6 / D2 · D9,
+/// board frame h) — prefilled from `yield_raw` only when that was a plain
+/// amount + unit, and otherwise whatever the human typed, or nothing. Both
+/// halves or neither: a half-stated yield is half a fact. The SECOND
+/// denomination is the editor's affordance, now at review too: the same
+/// header form, so the same two slots.
  double? get yieldQty; Unit? get yieldUnit; double? get yieldQty2; Unit? get yieldUnit2; int? get cookTimeSeconds; int? get totalTimeSeconds;/// Shelf life, as the header's SHELF LIFE section states it — unset
 /// unless a human set it, because no page prints it.
  int? get keepsForDays; bool get freezable; int? get freezerDays;/// Where the recipe is FILED. Null files into the household's default
@@ -1061,12 +1061,12 @@ class _CommitPayload implements CommitPayload {
 @override final  String title;
 @override final  double servingsBase;
 @override final  String? servingsRaw;
-/// What one batch MAKES, as the review's header states it (8.6 / D2 ·
-/// D9, board frame h) — prefilled from `yield_raw` only when that was a
-/// plain amount + unit, and otherwise whatever the human typed, or
-/// nothing. Both halves or neither: a half-stated yield is half a fact.
-/// The SECOND denomination is the editor's affordance, now at review too
-/// (plan 0025 #4): the same header form, so the same two slots.
+/// What one batch MAKES, as the review's header states it (8.6 / D2 · D9,
+/// board frame h) — prefilled from `yield_raw` only when that was a plain
+/// amount + unit, and otherwise whatever the human typed, or nothing. Both
+/// halves or neither: a half-stated yield is half a fact. The SECOND
+/// denomination is the editor's affordance, now at review too: the same
+/// header form, so the same two slots.
 @override final  double? yieldQty;
 @override final  Unit? yieldUnit;
 @override final  double? yieldQty2;

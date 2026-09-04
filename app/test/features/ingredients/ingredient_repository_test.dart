@@ -851,6 +851,56 @@ void main() {
     );
   });
 
+  group('watchIngredient / watchAliases (a form stays on a live row)', () {
+    test('one row, with the measure count the list draws', () async {
+      final row = await repo.watchIngredient('1').first;
+      expect(row!.canonicalName, 'Onion');
+      expect(row.category, 'vegetables');
+      expect(row.measureCount, 0);
+      expect(await repo.watchIngredient('nope').first, isNull);
+    });
+
+    test('a rename RE-FIRES the watch — nothing invalidates it by hand', () {
+      // The point of the stream: the form saves and goes on showing the row it
+      // saved, and a second device's edit arrives while it is open. A one-shot
+      // read leaves both stale.
+      final seen = <String?>[];
+      final done = expectAsync0(() {});
+      final sub = repo.watchIngredient('1').listen((row) {
+        seen.add(row?.canonicalName);
+        if (seen.length == 2) done();
+      });
+      addTearDown(sub.cancel);
+      expect(
+        repo.saveForm(
+          '1',
+          const IngredientFormEdit(
+            row: IngredientEdit(
+              canonicalName: 'Red onion',
+              defaultUnit: g,
+              macrosBasis: MacrosBasis.perG,
+              allowedUnits: {g, kg},
+            ),
+          ),
+        ),
+        completes,
+      );
+    });
+
+    test('a tombstoned row reads as gone, not as stale', () async {
+      await repo.softDelete('1');
+      expect(await repo.watchIngredient('1').first, isNull);
+    });
+
+    test('the aliases stream says what the row is also called', () async {
+      expect((await repo.watchAliases('2').first).map((a) => a.text), [
+        'scallion',
+        'green onion',
+      ]);
+      expect(await repo.watchAliases('1').first, isEmpty);
+    });
+  });
+
   group('watchCategories (the vocabulary IS the category list)', () {
     test(
       'distinct, trimmed, alphabetical — blanks are not a category',
@@ -1383,7 +1433,7 @@ void main() {
           );
           expect(await repo.softDelete('1'), isA<Deleted>());
           expect(await repo.byId('1'), isNull);
-          expect(await repo.aliases('1'), isEmpty);
+          expect(await repo.watchAliases('1').first, isEmpty);
           final row = await db.get(
             "SELECT deleted_at FROM ingredient WHERE id = '1'",
           );
@@ -1474,7 +1524,7 @@ void main() {
           aliasesRemoved: const {'a-y'},
         ),
       );
-      expect(await repo.aliases('1'), isEmpty);
+      expect(await repo.watchAliases('1').first, isEmpty);
       expect(await _search(repo, 'yellow'), isEmpty);
     });
   });

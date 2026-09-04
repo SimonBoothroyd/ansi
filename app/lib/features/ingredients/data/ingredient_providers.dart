@@ -47,11 +47,13 @@ UsdaProbe usdaProbe(Ref ref) => Env.isConfigured
 Stream<List<Measure>> ingredientMeasures(Ref ref, String ingredientId) =>
     ref.watch(measureRepositoryProvider).watchMeasures(ingredientId);
 
-/// One vocab row by id, or null — resolves an ingredient known only by
-/// reference (the edit-top-up sheet's unit filter).
+/// One live vocab row by id, or null — resolves an ingredient known only by
+/// reference (the edit-top-up sheet's unit filter) and keeps the form on the
+/// row it is editing. Watched: a save re-renders it, and so does another
+/// device's edit, without anyone invalidating it by hand.
 @riverpod
-Future<Ingredient?> ingredientById(Ref ref, String id) =>
-    ref.watch(ingredientRepositoryProvider).byId(id);
+Stream<Ingredient?> ingredientById(Ref ref, String id) =>
+    ref.watch(ingredientRepositoryProvider).watchIngredient(id);
 
 /// The whole live vocabulary, canonical-name ordered — the manager list
 /// (step 8.5). Watched, so a sync or another screen's edit re-renders it.
@@ -78,7 +80,8 @@ Stream<int> vocabularyCount(Ref ref) =>
 Stream<List<String>> ingredientCategories(Ref ref) =>
     ref.watch(ingredientRepositoryProvider).watchCategories();
 
-/// One ingredient's live aliases — the form's "Also known as" chips.
+/// One ingredient's live aliases — the form's "Also known as" chips. Watched,
+/// so a saved alias appears without a refresh.
 @riverpod
-Future<List<IngredientAlias>> ingredientAliases(Ref ref, String id) =>
-    ref.watch(ingredientRepositoryProvider).aliases(id);
+Stream<List<IngredientAlias>> ingredientAliases(Ref ref, String id) =>
+    ref.watch(ingredientRepositoryProvider).watchAliases(id);
