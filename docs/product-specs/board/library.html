@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Library</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/books</code> · <a href="../../exec-plans/active/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a></p>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/books</code> · <a href="../../exec-plans/completed/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a> · <a href="../../exec-plans/active/0037-library-rows.md">plan 0037</a></p>
     <p class="view-blurb">The app’s home shelf — books, sections, rows; the field is the header, and every control hangs off a row that already existed.</p>
 </header>
 
@@ -38,12 +38,27 @@
                 </div>
                 <div class="sec">
                     <div class="sec-lab sec-lab3"><span class="lbl">Weeknight</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
-                    <div class="lib-row"><span class="t">Weeknight Chicken Curry</span><span class="star">★</span><span class="sv">serves 4</span><span class="rm">⋯</span></div>
-                    <div class="lib-row"><span class="t">Miso Salmon</span><span class="sv">serves 2</span><span class="rm">⋯</span></div>
+                    <div class="lib-row" style="align-items:flex-start">
+                        <span class="t" style="white-space:normal">Weeknight Chicken Curry
+                            <span class="lib-stats">serves 4 · 520 kcal · 28 g protein</span>
+                        </span>
+                        <span class="star">★</span><span class="rm">⋯</span>
+                    </div>
+                    <div class="lib-row" style="align-items:flex-start">
+                        <span class="t" style="white-space:normal">Miso Salmon
+                            <span class="lib-stats">serves 2</span>
+                        </span>
+                        <span class="rm">⋯</span>
+                    </div>
                 </div>
                 <div class="sec">
                     <div class="sec-lab sec-lab3" style="color:var(--muted)"><span class="lbl">Unsectioned</span><span class="ctl3"><span class="p">＋</span></span></div>
-                    <div class="lib-row"><span class="t">House Ragù</span><span class="sv">serves 6</span><span class="rm">⋯</span></div>
+                    <div class="lib-row" style="align-items:flex-start">
+                        <span class="t" style="white-space:normal">House Ragù
+                            <span class="lib-stats">serves 6 · 610 kcal · 34 g protein</span>
+                        </span>
+                        <span class="rm">⋯</span>
+                    </div>
                 </div>
             </div>
 
@@ -58,15 +73,18 @@
 
             <div class="lib-newbook">＋ new book</div>
 
-            <div class="book-card" style="margin-top:14px">
-                <div class="book-top">
-                    <div class="lib-bhead">
-                        <div class="bn-wrap"><div class="bn">Ingredients</div><div class="bc">308 ingredients · 3 stubs</div></div>
-                        <div class="ctl"><span>›</span></div>
-                    </div>
+            <div class="lib-vocab">
+                <span class="ic">▤</span>
+                <div style="flex:1;min-width:0">
+                    <div class="nm">Ingredients</div>
+                    <div class="ct">308 ingredients · 3 stubs</div>
                 </div>
+                <span class="go">›</span>
             </div>
-            <p class="conv-note" style="margin-top:12px">the vocabulary is a <b>shelf</b>, drawn like one — after the books, because it is a different kind of shelf, and with a <b>›</b> because it opens rather than folds</p>
+            <p class="conv-note" style="margin-top:14px">the vocabulary is a <b>shelf</b>, and it is <b>no card at all</b> — a rule and a row under the books. A book is a container that <b>folds</b>; the vocabulary is a <b>place you go</b>, so nothing here invites the fold, the <b>⋯</b> or the reorder a book header carries</p>
+            <p class="conv-note">the hairline runs <b>edge to edge</b> while the books are inset — a rule that stopped where a card stops would be drawing a card. It keeps its <b>place</b> (after the books), its <b>count line</b> and its <b>›</b>; the <b>▤</b> stands in for the vocabulary’s own icon, the way every nav glyph on this board stands in for one</p>
+            <p class="conv-note">a recipe row’s second line is <b>serves + per-serving macros</b>, in the muted mono every derived number wears — the title gets the whole first line back. <i>Miso Salmon</i> has a stub in it, so it says <b>serves 2 and nothing else</b>: no dash, no <span style="font-family:'IBM Plex Mono',monospace">incomplete</span> badge, no nag. Honest numbers, or silence</p>
+            <p class="conv-note">no <b>›</b> on a recipe row: the whole row was already the door, and the chevron was competing with <b>⋯</b> for the same corner</p>
             <p class="conv-note">the <b>👥</b> beside the field is the one control in this header: it <b>opens the account page</b> — the household, this device, sign out. It is a <b>link</b>, so it can never grow a second item</p>
             <p class="conv-note">an open card is books, sections and recipes. Every control on it hangs off a row that <b>already existed</b></p>
             <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
@@ -84,7 +102,7 @@
             <p class="conv-note" style="margin-top:10px">the same two items, <b>word for word</b> — moved from a header that could not know the answer to a row that does</p>
             <p class="lib-mcap">either door → the editor opens filed</p>
             <div class="lib-file3"><span class="bc3">Baking · Slow Sundays</span><span class="ed">change ›</span></div>
-            <p class="conv-note" style="margin-top:10px">today both land in <span style="font-family:'IBM Plex Mono',monospace">books.first.id</span> — whichever book sorts first — and say nothing about it</p>
+            <p class="conv-note" style="margin-top:10px">a door that carries <b>no</b> filing still lands in <span style="font-family:'IBM Plex Mono',monospace">books.first.id</span> — whichever book sorts first — and says nothing about it. That is what these two stopped doing</p>
             <p class="lib-mcap">and the book's own unfiled shelf</p>
             <div class="lib-foot" style="margin-top:6px"><span class="fi">＋</span><span class="fl"><span class="fs">Unsectioned ▸ ＋ → Baking · Unsectioned</span></span></div>
             <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
@@ -107,7 +125,12 @@
                 </div>
                 <div class="sec">
                     <div class="sec-lab sec-lab3"><span class="lbl">Weeknight</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
-                    <div class="lib-row"><span class="t">House Ragù</span><span class="sv">serves 6</span><span class="rm">⋯</span></div>
+                    <div class="lib-row" style="align-items:flex-start">
+                        <span class="t" style="white-space:normal">House Ragù
+                            <span class="lib-stats">serves 6 · 610 kcal · 34 g protein</span>
+                        </span>
+                        <span class="rm">⋯</span>
+                    </div>
                 </div>
             </div>
             <div class="lib-menu">
@@ -167,23 +190,25 @@
                 <span class="id3">👥</span>
             </div>
             <p class="list-h">3 recipes</p>
-            <div class="res-row">
+            <div class="res-row" style="align-items:flex-start">
                 <div style="flex:1;min-width:0"><div class="res-nm" style="font-family:'Spectral',serif;font-size:15px;font-weight:500">Weeknight Chicken Curry</div>
-                    <span class="res-cat">Our Cookbook · Weeknight</span></div>
-                <span class="sv" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">serves 4</span>
-                <span style="color:var(--muted);font-size:12px;margin-left:9px">›</span></div>
-            <div class="res-row">
+                    <span class="res-cat">Our Cookbook · Weeknight</span>
+                    <span class="lib-stats">serves 4 · 520 kcal · 28 g protein</span></div>
+                <span class="rm">⋯</span></div>
+            <div class="res-row" style="align-items:flex-start">
                 <div style="flex:1;min-width:0"><div class="res-nm" style="font-family:'Spectral',serif;font-size:15px;font-weight:500">Roast Chicken &amp; Bread Sauce</div>
-                    <span class="res-cat">Our Cookbook · Slow Sundays</span></div>
-                <span class="sv" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">serves 6</span>
-                <span style="color:var(--muted);font-size:12px;margin-left:9px">›</span></div>
-            <div class="res-row">
+                    <span class="res-cat">Our Cookbook · Slow Sundays</span>
+                    <span class="lib-stats">serves 6 · 705 kcal · 52 g protein</span></div>
+                <span class="rm">⋯</span></div>
+            <div class="res-row" style="align-items:flex-start">
                 <div style="flex:1;min-width:0"><div class="res-nm" style="font-family:'Spectral',serif;font-size:15px;font-weight:500">Chicken Stock</div>
-                    <span class="res-cat">Baking · Unsectioned</span></div>
-                <span class="sv" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">serves 8</span>
-                <span style="color:var(--muted);font-size:12px;margin-left:9px">›</span></div>
+                    <span class="res-cat">Baking · Unsectioned</span>
+                    <span class="lib-stats">serves 8</span></div>
+                <span class="rm">⋯</span></div>
             <p class="conv-note" style="margin-top:14px">clearing the field restores the tree <b>exactly</b> as it was — folds included. While a query is live the fold state is ignored, because there is no tree to fold</p>
             <p class="conv-note">the filing line is the whole reason this is flat: two <b>Ragù</b>s in two books are otherwise the same row twice</p>
+            <p class="conv-note">the count head is the honest one — <b>3 recipes</b> on a spelling match, and <b>DID YOU MEAN</b> when every hit is a guess. A list is all spellings or all guesses, never mixed</p>
+            <p class="conv-note">a result is <b>the same row</b> the tree draws — the filing line, then the stats line, then the row’s own <b>⋯</b>. One row shape, so <i>Chicken Stock</i>’s stub says <b>serves 8</b> here exactly as it would on the shelf</p>
             <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
         </div></div>
     </div>
@@ -208,7 +233,7 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>First run</b> · a synced household arrives with a book, a vocabulary and no recipes</p>
+        <p class="frame-name"><b>First run</b> · a synced household arrives with a book, a vocabulary and no recipes<br><span style="color:var(--gone)">differs:</span> the empty shelf’s two doors carry <b>no</b> filing — unlike the section <b>＋</b> above, they open <code>/recipes/new</code> and <code>/import</code> bare, so a recipe made from an empty <i>Baking</i> lands in whichever book sorts first</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar lib-abar3">
                 <div class="lib-hfield"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span></div>

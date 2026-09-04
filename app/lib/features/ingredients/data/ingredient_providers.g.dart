@@ -398,20 +398,23 @@ final class VocabularyProvider
 
 String _$vocabularyHash() => r'046e543cc9d9714ff1e38d324815ec14206b688f';
 
-/// How many rows still read `stub` — the Library menu's badge, so the
-/// fleshing-out queue is discoverable without hunting for it (D8).
+/// How many rows still read `stub` — the second half of the Ingredients
+/// shelf's count line, so the fleshing-out queue is discoverable without
+/// hunting for it (D8).
 
 @ProviderFor(stubCount)
 const stubCountProvider = StubCountProvider._();
 
-/// How many rows still read `stub` — the Library menu's badge, so the
-/// fleshing-out queue is discoverable without hunting for it (D8).
+/// How many rows still read `stub` — the second half of the Ingredients
+/// shelf's count line, so the fleshing-out queue is discoverable without
+/// hunting for it (D8).
 
 final class StubCountProvider
     extends $FunctionalProvider<AsyncValue<int>, int, Stream<int>>
     with $FutureModifier<int>, $StreamProvider<int> {
-  /// How many rows still read `stub` — the Library menu's badge, so the
-  /// fleshing-out queue is discoverable without hunting for it (D8).
+  /// How many rows still read `stub` — the second half of the Ingredients
+  /// shelf's count line, so the fleshing-out queue is discoverable without
+  /// hunting for it (D8).
   const StubCountProvider._()
     : super(
         from: null,
@@ -439,20 +442,23 @@ final class StubCountProvider
 
 String _$stubCountHash() => r'3bd615a3ce89b74c3fee12845369124dd30463ca';
 
-/// How many rows the vocabulary holds, for the Library's Ingredients card
-/// (0028 E5) — the shelf says what is on it, as a book card does.
+/// How many rows the vocabulary holds, for the Library's Ingredients shelf —
+/// the shelf says outright what is on it, which a badge or a dot could only
+/// gesture at.
 
 @ProviderFor(vocabularyCount)
 const vocabularyCountProvider = VocabularyCountProvider._();
 
-/// How many rows the vocabulary holds, for the Library's Ingredients card
-/// (0028 E5) — the shelf says what is on it, as a book card does.
+/// How many rows the vocabulary holds, for the Library's Ingredients shelf —
+/// the shelf says outright what is on it, which a badge or a dot could only
+/// gesture at.
 
 final class VocabularyCountProvider
     extends $FunctionalProvider<AsyncValue<int>, int, Stream<int>>
     with $FutureModifier<int>, $StreamProvider<int> {
-  /// How many rows the vocabulary holds, for the Library's Ingredients card
-  /// (0028 E5) — the shelf says what is on it, as a book card does.
+  /// How many rows the vocabulary holds, for the Library's Ingredients shelf —
+  /// the shelf says outright what is on it, which a badge or a dot could only
+  /// gesture at.
   const VocabularyCountProvider._()
     : super(
         from: null,

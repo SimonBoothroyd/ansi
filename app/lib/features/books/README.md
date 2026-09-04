@@ -24,6 +24,23 @@ books/
     text_prompt.dart       shared name/rename dialog
 ```
 
+## What the Library's rows say
+
+- **A recipe row** is a title on its own line, then a muted mono stats line:
+  `serves 4 · 520 kcal · 28 g protein`. The macros are read straight off
+  `RecipeSummary.macros`, which the same watch already computes — a second line
+  costs no query. **A recipe whose macros are incomplete prints the serves and
+  stops**: no dash, no `incomplete` badge, no nag (invariant 3 — honest
+  numbers, or silence; the picker row wears the badge, because that is where a
+  person is choosing what to cook). The row has no `›`: the whole row is the
+  door, and the `⋯` owns that corner. A search result is the same row with its
+  `Book · Section` filing line above the stats.
+- **The Ingredients shelf** at the foot is a **rule and a row, not a card** — a
+  hairline, the uppercase micro-label in herb ink, the counts, and a `›`. A
+  book is a container that folds; the vocabulary is a place you go, so nothing
+  about it invites the fold, the `⋯` or the reorder a book header carries. It
+  keeps its position after the books and never renders a zero count.
+
 ## Model notes
 
 - **Sections are rows** (`book_section`), not a label on the recipe, so they

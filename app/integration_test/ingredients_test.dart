@@ -208,10 +208,10 @@ void main() {
       expect(afterUpload['macros'], isNull);
 
       // --- Library ▸ the Ingredients shelf ---------------------------------
-      // 0028 E5: the vocabulary is a shelf at the foot of the library, drawn
-      // like a book and carrying its own counts — not a row in a menu. It
-      // sits below the books, so scroll to it the way a person would.
-      await scrollTo(tester, find.text('Ingredients'));
+      // The vocabulary is a shelf at the foot of the library, carrying its own
+      // counts — not a row in a menu, and no longer drawn as a book: a rule and
+      // a row. It sits below the books, so scroll to it the way a person would.
+      await scrollTo(tester, ingredientsShelf);
       await openIngredientsShelf(tester);
       await pumpUntilFound(tester, find.text('Needs fleshing out'));
 

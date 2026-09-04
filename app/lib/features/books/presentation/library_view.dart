@@ -585,6 +585,28 @@ String bookCountLine(Book book) {
   ].join(' · ');
 }
 
+/// What a recipe row says under its title — `serves 4 · 520 kcal · 28 g
+/// protein`, or `serves 2` on its own.
+///
+/// **Honest numbers, or silence** (invariant 3). A recipe whose macros are
+/// incomplete prints the serves and stops: no `—`, no `incomplete` badge, no
+/// nag. The badge belongs where a person is *choosing* what to cook — the
+/// picker row wears one and says which lines it is waiting on — and a browsing
+/// row that nagged on every stub is the exact thing this line's ancestor was
+/// refused for. Silence here costs nothing: the recipe page says why.
+///
+/// `kcal` and `protein` are the two the recipe page's per-serving panel leads
+/// with, so the two surfaces agree about what matters; carb and fat stay on the
+/// page. [RecipeSummary.macros] is already per-serving and already computed in
+/// the same watch the library reads, so this line costs no query.
+String recipeStatsLine(RecipeSummary recipe) {
+  final serves = 'serves ${formatQuantity(recipe.servingsBase)}';
+  final perServing = recipe.macros?.perServing;
+  if (perServing == null) return serves;
+  return '$serves · ${perServing.kcal.round()} kcal · '
+      '${perServing.protein.round()} g protein';
+}
+
 /// One section (or the synthetic Unsectioned bucket, when [section] is null)
 /// and its recipe rows.
 class _SectionBlock extends ConsumerWidget {
@@ -805,7 +827,8 @@ class _SectionMenu extends ConsumerWidget {
   }
 }
 
-/// One recipe: title · (★ when favourited) · serves N · ›.
+/// One recipe: the title on its own line, then [recipeStatsLine] under it, with
+/// the ★ and the `⋯` in the corner.
 ///
 /// The star REPORTS ONLY (D6). [RecipeSummary.favorite] has existed since 0011
 /// and the picker has a Favorites tab, so a library that cannot show a star
@@ -813,10 +836,18 @@ class _SectionMenu extends ConsumerWidget {
 /// on the recipe page, and this row keeps its single tap target. Absent when
 /// false, never a hollow outline on every line: the stub badge's rule.
 ///
-/// Refused here on purpose: a "keeps 4 d" chip (shelf life is a *planning*
-/// fact, which is why the picker row carries it and a browsing row doesn't)
-/// and a macro badge (on honest numbers most rows would show a number nobody
-/// asked for, or an `incomplete` nag).
+/// **The macro badge this row once refused is now its second line, and the
+/// refusal is superseded.** What was refused was a *badge on every row* — "on
+/// honest numbers most rows would show a number nobody asked for, or an
+/// `incomplete` nag". A second line that simply says less when it knows less is
+/// a different object: it never nags, and it buys the title the whole first
+/// line back, which is what the number was costing. See [recipeStatsLine].
+///
+/// Still refused: a "keeps 4 d" chip — shelf life is a *planning* fact, which
+/// is why the picker row carries it and a browsing row doesn't.
+///
+/// No `›`: the whole row was already the door, and the chevron was competing
+/// with the `⋯` for the same corner.
 ///
 /// [filing] is set only on a search result, where the tree that would have said
 /// where this lives is not on screen.
@@ -862,6 +893,11 @@ class _RecipeRow extends StatelessWidget {
                       '${filing.book} · ${filing.section ?? 'Unsectioned'}',
                       style: ansiMono(size: 10, color: AnsiColors.muted),
                     ),
+                  const SizedBox(height: 2),
+                  Text(
+                    recipeStatsLine(recipe),
+                    style: ansiMono(size: 10, color: AnsiColors.muted),
+                  ),
                 ],
               ),
             ),
@@ -869,16 +905,6 @@ class _RecipeRow extends StatelessWidget {
               const Icon(FLucideIcons.star, size: 13, color: AnsiColors.aging),
               const SizedBox(width: 6),
             ],
-            Text(
-              'serves ${formatQuantity(recipe.servingsBase)}',
-              style: ansiMono(size: 11, color: AnsiColors.muted),
-            ),
-            const SizedBox(width: 8),
-            const Icon(
-              FLucideIcons.chevronRight,
-              size: 16,
-              color: AnsiColors.muted,
-            ),
             _RecipeRowMenu(
               recipe: recipe,
               bookId: bookId,
@@ -976,8 +1002,7 @@ class _RecipeRowMenu extends ConsumerWidget {
   }
 }
 
-/// The vocabulary as a shelf of its own — the book anatomy exactly: a name, a
-/// count line, one control.
+/// The vocabulary as a shelf of its own — **a rule and a row, not a card**.
 ///
 /// It is not reference data filed under a menu. `shopping_list_entry` has
 /// carried `ingredient_id` beside `free_text` since 0006, under a check that
@@ -986,7 +1011,12 @@ class _RecipeRowMenu extends ConsumerWidget {
 /// plans with. A count line says what is on the shelf outright, which is what
 /// a badge or a dot could only gesture at.
 ///
-/// A `›` rather than a fold: 300 rows do not belong inside a card.
+/// **It borrows nothing from the book card.** A book is a container that folds;
+/// the vocabulary is a place you go — so there is no card here, and nothing
+/// invites the fold, the `⋯` or the reorder a book header carries. A hairline,
+/// the app's uppercase micro-label in herb ink, the count line, and a `›` (a
+/// fold would put 300 rows inside a card). Its position, after the books, is
+/// part of the claim: a different kind of shelf, drawn a different way.
 class _IngredientsShelf extends ConsumerWidget {
   const _IngredientsShelf();
 
@@ -1002,43 +1032,53 @@ class _IngredientsShelf extends ConsumerWidget {
     ].join(' · ');
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+      // The rule runs edge to edge, while the books are inset: a hairline that
+      // stopped where a card stops would be drawing a card.
+      padding: const EdgeInsets.only(top: 22),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => context.pushOnce(kIngredientsRoute),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: ColoredBox(
-            color: AnsiColors.herb,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            border: Border(top: BorderSide(color: AnsiColors.line)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
+            child: Row(
+              children: [
+                // The vocabulary's own glyph. Not the nav's `library` icon:
+                // the shelf is a door out of the Library, not a second badge
+                // for it.
+                const Icon(
+                  FLucideIcons.carrot,
+                  size: 15,
+                  color: AnsiColors.herb,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'INGREDIENTS',
+                        style: ansiLabel(color: AnsiColors.herbDeep),
+                      ),
+                      if (line.isNotEmpty) ...[
+                        const SizedBox(height: 3),
                         Text(
-                          'Ingredients',
-                          style: ansiSerif(size: 18, color: AnsiColors.paper),
+                          line,
+                          style: ansiMono(size: 10, color: AnsiColors.muted),
                         ),
-                        if (line.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            line,
-                            style: ansiMono(size: 11, color: AnsiColors.paper),
-                          ),
-                        ],
                       ],
-                    ),
+                    ],
                   ),
-                  const Icon(
-                    FLucideIcons.chevronRight,
-                    size: 16,
-                    color: AnsiColors.paper,
-                  ),
-                ],
-              ),
+                ),
+                const Icon(
+                  FLucideIcons.chevronRight,
+                  size: 16,
+                  color: AnsiColors.muted,
+                ),
+              ],
             ),
           ),
         ),

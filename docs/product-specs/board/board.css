@@ -532,13 +532,22 @@
   .lib-bhead .bn-wrap{flex:1;min-width:0;}
   .lib-bhead .ctl{flex:none;display:flex;align-items:center;gap:12px;color:#fff;opacity:.92;font-size:14px;padding-top:3px;}
 
-  /* a library recipe row — title · (★ when favourited) · serves · chevron */
+  /* a library recipe row — the title on its own line, its stats under it,
+     and (★ when favourited) + ⋯ in the corner */
   .lib-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px dotted var(--line);}
   .lib-row:last-child{border-bottom:none;}
   .lib-row .t{flex:1;min-width:0;font-family:'Spectral',serif;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .lib-row .star{flex:none;color:var(--aging);font-size:11px;}
-  .lib-row .sv{flex:none;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
   .lib-row .ci{flex:none;color:var(--muted);font-size:12px;}
+  /* the second line: serves, plus the per-serving macros when they are honest */
+  .lib-stats{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px;}
+
+  /* the vocabulary shelf: a rule and a row under the books, never a card */
+  .lib-vocab{margin:22px 0 0;border-top:1px solid var(--line);padding:14px 20px 0;display:flex;align-items:center;gap:10px;}
+  .lib-vocab .ic{flex:none;color:var(--herb);font-size:14px;}
+  .lib-vocab .nm{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--herb-deep);}
+  .lib-vocab .ct{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;}
+  .lib-vocab .go{flex:none;color:var(--muted);font-size:13px;}
 
   /* the “＋ new section” row, moved INSIDE the card (D5) */
   
@@ -594,7 +603,7 @@
   .sec-lab3 .ctl3 .p{color:var(--herb);font-size:14px;}
 
   /* the ⋯ the recipe row gains for "Move to…" (E8) */
-  .lib-row .rm{flex:none;color:var(--muted);font-size:13px;padding-left:2px;}
+  .lib-row .rm,.res-row .rm{flex:none;color:var(--muted);font-size:13px;padding-left:2px;}
 
   /* the library's footer: the rare things, visible instead of hidden */
   .lib-foot{margin:8px 20px 0;display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:var(--frame);font-size:13px;}

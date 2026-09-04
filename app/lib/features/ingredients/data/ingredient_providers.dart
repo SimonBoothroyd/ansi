@@ -61,14 +61,16 @@ Stream<Ingredient?> ingredientById(Ref ref, String id) =>
 Stream<List<Ingredient>> vocabulary(Ref ref) =>
     ref.watch(ingredientRepositoryProvider).watchVocabulary();
 
-/// How many rows still read `stub` — the Library menu's badge, so the
-/// fleshing-out queue is discoverable without hunting for it (D8).
+/// How many rows still read `stub` — the second half of the Ingredients
+/// shelf's count line, so the fleshing-out queue is discoverable without
+/// hunting for it (D8).
 @riverpod
 Stream<int> stubCount(Ref ref) =>
     ref.watch(ingredientRepositoryProvider).watchStubCount();
 
-/// How many rows the vocabulary holds, for the Library's Ingredients card
-/// (0028 E5) — the shelf says what is on it, as a book card does.
+/// How many rows the vocabulary holds, for the Library's Ingredients shelf —
+/// the shelf says outright what is on it, which a badge or a dot could only
+/// gesture at.
 @riverpod
 Stream<int> vocabularyCount(Ref ref) =>
     ref.watch(ingredientRepositoryProvider).watchVocabularyCount();

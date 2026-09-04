@@ -22,10 +22,13 @@ Finder sectionAdd(String section) => find.descendant(
   matching: find.byIcon(FLucideIcons.plus),
 );
 
-/// The Ingredients shelf at the foot of the library (0028 E5) — a card like a
-/// book's, so it is found by its name and opened by tapping it.
+/// The Ingredients shelf at the foot of the library — a rule and a row under
+/// the books, not a card, so its name is the uppercase micro-label.
+Finder get ingredientsShelf => find.text('INGREDIENTS');
+
+/// Opens it. The whole row is the door.
 Future<void> openIngredientsShelf(WidgetTester tester) async {
-  await tester.tap(find.text('Ingredients'));
+  await tester.tap(ingredientsShelf);
   await tester.pumpAndSettle();
 }
 

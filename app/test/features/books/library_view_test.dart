@@ -1,10 +1,14 @@
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/theme/ansi_tokens.dart';
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/books/domain/book_collapse_store.dart';
 import 'package:ansi/features/books/presentation/library_view.dart';
+import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:ansi/shared/ansi_search_field.dart';
 import 'package:ansi/shared/dashed_border_box.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +20,7 @@ import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/editor_harness.dart';
 import '../../helpers/fake_book_repository.dart';
+import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/forui_semantics.dart';
 import '../../helpers/pump_app.dart';
 
@@ -81,6 +86,31 @@ Finder _sectionAdd(String section) => find.descendant(
   of: find.ancestor(of: find.text(section), matching: find.byType(Row)).first,
   matching: find.byIcon(FLucideIcons.plus),
 );
+
+/// A vocabulary that only ever answers its two counts — what the Ingredients
+/// shelf reads, and nothing else.
+class _CountingVocab extends ReadOnlyIngredientRepo {
+  const _CountingVocab({required this.total, required this.stubs});
+
+  final int total;
+  final int stubs;
+
+  @override
+  Stream<int> watchVocabularyCount() => Stream.value(total);
+
+  @override
+  Stream<int> watchStubCount() => Stream.value(stubs);
+}
+
+/// Honest per-serving macros — the board's own numbers, carried unrounded so
+/// the row is shown doing the rounding.
+const _honest = RecipeMacroSummary(
+  perServing: Macros(kcal: 520.4, protein: 27.6, carb: 41.2, fat: 18.3),
+);
+
+/// One stub line in it, so `perServing` is null — the summary a recipe wears
+/// when the numbers behind it are not all there (invariant 3).
+const _incomplete = RecipeMacroSummary(stubLines: 1);
 
 const _library = [
   Book(
@@ -164,6 +194,8 @@ Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) =>
         '/recipes/new': (_, _) => const FScaffold(child: Text('editor screen')),
         '/recipes/:id': (_, _) => const FScaffold(child: Text('recipe screen')),
         '/account': (_, _) => const FScaffold(child: Text('account screen')),
+        '/ingredients': (_, _) =>
+            const FScaffold(child: Text('vocabulary screen')),
       },
     );
 
@@ -757,10 +789,211 @@ void main() {
     expect(find.byIcon(FLucideIcons.star), findsOneWidget);
     // …and it reports only: the row keeps a single tap target.
     expect(find.text('Romesco Aioli'), findsOneWidget);
-    // Refused on a browsing row (D6): no shelf-life chip, no macro badge.
+    // Still refused on a browsing row: shelf life is a planning fact, which is
+    // why the picker row carries it and this one doesn't.
     expect(find.textContaining('keeps'), findsNothing);
+    // A summary these rows don't carry says the serves and stops — the macro
+    // half of the line appears only when the numbers behind it are honest.
+    expect(find.text('serves 4'), findsOneWidget);
     expect(find.textContaining('kcal'), findsNothing);
     expect(find.text('incomplete'), findsNothing);
+  });
+
+  group('the recipe row’s second line', () {
+    const shelf = [
+      Book(
+        id: 'b1',
+        name: 'Our Cookbook',
+        sections: [
+          BookSection(
+            id: 's1',
+            name: 'Weeknight',
+            recipes: [
+              RecipeSummary(
+                id: 'r1',
+                title: 'Weeknight Chicken Curry',
+                servingsBase: 4,
+                favorite: true,
+                macros: _honest,
+              ),
+              RecipeSummary(
+                id: 'r2',
+                title: 'Miso Salmon',
+                servingsBase: 2,
+                macros: _incomplete,
+              ),
+            ],
+          ),
+        ],
+      ),
+    ];
+
+    testWidgets('serves and the honest per-serving macros, under the title', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_host(_repo(shelf)));
+      await tester.pumpAndSettle();
+
+      // The title has the whole first line back; the number that used to
+      // squeeze it is a muted mono line of its own.
+      expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
+      expect(find.text('serves 4 · 520 kcal · 28 g protein'), findsOneWidget);
+    });
+
+    testWidgets('an incomplete summary says serves and nothing else — no '
+        'dash, no badge, no nag', (tester) async {
+      await tester.pumpWidget(_host(_repo(shelf)));
+      await tester.pumpAndSettle();
+
+      // Honest numbers, or silence (invariant 3). The picker's badge belongs
+      // where a person is choosing what to cook; a browsing row that nagged on
+      // every stub is what the old refusal was protecting against.
+      expect(find.text('serves 2'), findsOneWidget);
+      expect(find.text('incomplete'), findsNothing);
+      expect(find.textContaining('serves 2 ·'), findsNothing);
+      expect(find.textContaining('—'), findsNothing);
+    });
+
+    testWidgets('the › is gone; the whole row is still the door', (
+      tester,
+    ) async {
+      late GoRouter router;
+      await tester.pumpWidget(_routedHost(_repo(shelf), (r) => router = r));
+      await tester.pumpAndSettle();
+
+      // The book is open, so the only chevron it could hold is a row's — and
+      // the chevron was competing with the `⋯` for the same corner.
+      expect(
+        find.descendant(
+          of: _card('Our Cookbook'),
+          matching: find.byIcon(FLucideIcons.chevronRight),
+        ),
+        findsNothing,
+      );
+
+      await tester.tap(find.text('Miso Salmon'));
+      await tester.pumpAndSettle();
+      expect(router.state.uri.toString(), '/recipes/r2');
+    });
+
+    testWidgets('a search row keeps its filing line and gains the same '
+        'stats line', (tester) async {
+      await tester.pumpWidget(_host(_repo(shelf)));
+      await tester.pumpAndSettle();
+      filterForuiSemanticsAssertions();
+      await tester.enterText(find.byType(TextField).first, 'curry');
+      await tester.pumpAndSettle();
+
+      // One row shape: the filing says where it lives, the stats line says the
+      // same thing it says in the tree.
+      expect(find.text('Our Cookbook · Weeknight'), findsOneWidget);
+      expect(find.text('serves 4 · 520 kcal · 28 g protein'), findsOneWidget);
+      expect(find.byIcon(FLucideIcons.chevronRight), findsNothing);
+    });
+  });
+
+  group('the Ingredients shelf', () {
+    List<Override> withVocab(int total, int stubs) => [
+      ..._repo(_library),
+      ingredientRepositoryProvider.overrideWithValue(
+        _CountingVocab(total: total, stubs: stubs),
+      ),
+    ];
+
+    /// The shelf's own row — the one the label sits in.
+    Finder shelfRow() => find
+        .ancestor(of: find.text('INGREDIENTS'), matching: find.byType(Row))
+        .first;
+
+    testWidgets('is a rule and a row, not a card', (tester) async {
+      await tester.pumpWidget(_host(withVocab(308, 3)));
+      await tester.pumpAndSettle();
+
+      // A book is a container that folds; the vocabulary is a place you go.
+      // The serif book name is gone — this is the app's micro-label.
+      expect(find.text('INGREDIENTS'), findsOneWidget);
+      expect(find.text('Ingredients'), findsNothing);
+      expect(find.text('308 ingredients · 3 stubs'), findsOneWidget);
+
+      // No filled card behind it…
+      final fills = tester
+          .widgetList<ColoredBox>(
+            find.ancestor(
+              of: find.text('INGREDIENTS'),
+              matching: find.byType(ColoredBox),
+            ),
+          )
+          .map((b) => b.color);
+      expect(fills, isNot(contains(AnsiColors.herb)));
+
+      // …just a hairline above it.
+      final decorations = tester
+          .widgetList<DecoratedBox>(
+            find.ancestor(
+              of: find.text('INGREDIENTS'),
+              matching: find.byType(DecoratedBox),
+            ),
+          )
+          .map((d) => d.decoration)
+          .whereType<BoxDecoration>();
+      expect(
+        decorations.any(
+          (d) =>
+              d.color == null &&
+              d.borderRadius == null &&
+              d.border == const Border(top: BorderSide(color: AnsiColors.line)),
+        ),
+        isTrue,
+        reason: 'the rule the shelf hangs under',
+      );
+    });
+
+    testWidgets('carries a › and none of a book’s furniture', (tester) async {
+      await tester.pumpWidget(_host(withVocab(308, 3)));
+      await tester.pumpAndSettle();
+
+      // It opens rather than folds, and nothing about it invites the `⋯` or
+      // the reorder a book header carries.
+      expect(
+        find.descendant(
+          of: shelfRow(),
+          matching: find.byIcon(FLucideIcons.chevronRight),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: shelfRow(),
+          matching: find.byIcon(FLucideIcons.ellipsis),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: shelfRow(),
+          matching: find.byIcon(FLucideIcons.chevronDown),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('never says "0 ingredients", and the whole row opens it', (
+      tester,
+    ) async {
+      late GoRouter router;
+      await tester.pumpWidget(_routedHost(withVocab(0, 0), (r) => router = r));
+      await tester.pumpAndSettle();
+
+      // The stub badge's rule: a zero that renders looks like a bug.
+      expect(find.text('INGREDIENTS'), findsOneWidget);
+      expect(find.textContaining('0 ingredient'), findsNothing);
+      expect(find.textContaining('0 stub'), findsNothing);
+
+      await tester.tap(find.text('INGREDIENTS'));
+      await tester.pumpAndSettle();
+      expect(router.state.uri.toString(), '/ingredients');
+      expect(find.text('vocabulary screen'), findsOneWidget);
+    });
   });
 
   testWidgets('the star survives into a search result row', (tester) async {
