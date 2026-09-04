@@ -94,9 +94,9 @@ class _FakePlanningRepo implements PlanningRepository {
   Stream<Map<String, DateTime>> watchLastPlanned() => Stream.value(const {});
 }
 
-/// A planner whose removal is REAL to the stream: `removeEntry` re-emits the
-/// week without the entry, which is what makes the entry sheet's own
-/// auto-dismiss fire on top of its explicit pop.
+/// A planner whose writes are REAL to the stream: `removeEntry` re-emits the
+/// week without the entry and `addEntry` re-emits it with one, which is what
+/// lets a test watch the `−` and its undo round-trip (E3).
 class _LivePlanningRepo extends _FakePlanningRepo {
   _LivePlanningRepo(WeekPlan week) : _week = week, super(week: week);
 
@@ -115,6 +115,36 @@ class _LivePlanningRepo extends _FakePlanningRepo {
       entries: [..._week.entries.where((e) => e.id != entryId)],
     );
     _ctrl.add(_week);
+  }
+
+  @override
+  Future<String> addEntry({
+    required DateTime weekStart,
+    required int dayOfWeek,
+    required String mealSlot,
+    required String recipeId,
+    required List<String> eaterIds,
+    int? portions,
+  }) async {
+    // A NEW id, as the real repository gives: the undo puts the meal back, it
+    // does not resurrect the row.
+    final id = 'e${_week.entries.length + 1}-undone';
+    _week = _week.copyWith(
+      entries: [
+        ..._week.entries,
+        PlanEntry(
+          id: id,
+          dayOfWeek: dayOfWeek,
+          mealSlot: mealSlot,
+          recipeId: recipeId,
+          recipeTitle: 'Weeknight Chicken Curry',
+          eaterIds: eaterIds,
+          portions: portions,
+        ),
+      ],
+    );
+    _ctrl.add(_week);
+    return id;
   }
 }
 
@@ -221,7 +251,11 @@ Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
     overrides: _withCook(overrides, null),
     child: MaterialApp.router(
       routerConfig: router,
-      builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
+      // The toaster the real app installs beside FTheme (`app.dart`): the
+      // week's undo toast (E3) needs an FToasterState ancestor, and without
+      // one `showFToast` has nowhere to render.
+      builder: (context, child) =>
+          FTheme(data: ansiThemeData(), child: FToaster(child: child!)),
     ),
   );
 }
@@ -429,7 +463,8 @@ void main() {
       // The chrome the old page hid — above all the switcher, the one control
       // that gets you OUT of an empty week.
       expect(find.byType(WeekSwitcher), findsOneWidget);
-      expect(find.text('Edit'), findsOneWidget);
+      // E1: no `Edit` — the mode is gone, so there is no chrome for it.
+      expect(find.text('Edit'), findsNothing);
       expect(find.text('Everyone'), findsOneWidget);
 
       // Seven day cards, each with its own quiet add door, plus the one
@@ -681,9 +716,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Edit'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Add a meal').first);
+    await tester.tap(find.text('add a meal').first);
     await tester.pumpAndSettle();
     expect(find.text('Search recipes'), findsOneWidget, reason: 'the picker');
 
@@ -697,7 +730,7 @@ void main() {
     expect(find.text('Add to plan'), findsOneWidget, reason: 'confirm sheet');
   });
 
-  testWidgets('presentation is the resting state — no add doors, no chevrons', (
+  testWidgets('one state: no Edit, and every day carries its add line (E1/E5)', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -712,38 +745,14 @@ void main() {
 
     expect(find.text('Thursday'), findsOneWidget);
     expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
-    // The affordance layer is OFF: no dashed add rows anywhere.
-    expect(find.text('Add a meal'), findsNothing);
-    expect(find.text('Edit'), findsOneWidget);
-    // A day with nothing on it still says so, and that line is its add door.
+    // E1: the mode and its one control are gone — there is nothing to toggle.
+    expect(find.text('Edit'), findsNothing);
+    expect(find.text('Done'), findsNothing);
+    // E5: one line per day, in two wordings — the day with the meal invites
+    // another, the days without say they are empty. Both are the same door.
+    expect(find.text('add a meal'), findsWidgets);
     expect(find.text('nothing planned'), findsWidgets);
-  });
-
-  testWidgets('Edit puts the affordances back and Done takes them away', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _host([
-        planningRepositoryProvider.overrideWithValue(
-          _FakePlanningRepo(week: _plannedWeek()),
-        ),
-        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
-      ]),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Edit'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Done'), findsOneWidget);
-    // One per day — the ListView only builds the ones on screen.
-    expect(find.text('Add a meal'), findsWidgets);
-    // The quiet line is a presentation-mode thing; edit has the real door.
-    expect(find.text('nothing planned'), findsNothing);
-
-    await tester.tap(find.text('Done'));
-    await tester.pumpAndSettle();
-    expect(find.text('Edit'), findsOneWidget);
+    // v2's dashed edit-only door is not resurrected under a new name.
     expect(find.text('Add a meal'), findsNothing);
   });
 
@@ -816,8 +825,8 @@ void main() {
     expect(find.textContaining('batch of'), findsNothing);
   });
 
-  testWidgets('the mode decides the tap: recipe in presentation, entry sheet '
-      'in edit (D7)', (tester) async {
+  testWidgets('the row has three targets: title \u2192 recipe, cluster \u2192 '
+      'editor, \u2212 \u2192 gone (E2/E7/E3)', (tester) async {
     ignoreForuiSemanticsAssertion();
     late GoRouter router;
     await tester.pumpWidget(
@@ -830,6 +839,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // E2 — the title opens the recipe it names, with no mode in the way.
     await tester.tap(find.text('Weeknight Chicken Curry'));
     await tester.pumpAndSettle();
     expect(router.state.uri.toString(), '/recipes/r1');
@@ -837,51 +847,53 @@ void main() {
 
     router.go('/week');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Edit'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Weeknight Chicken Curry'));
-    await tester.pumpAndSettle();
 
-    // The sheet, not the recipe — and it carries what the retired `...` menu
-    // and the eaters dialog used to hold, in one place.
+    // E7 — the avatar/portions cluster opens the editor, and the editor holds
+    // exactly two fields: no day \u00b7 slot, no route to the recipe, no
+    // remove. Those are the row's other two targets, not this sheet's job.
+    await tester.tap(find.byType(EaterAvatarStack).first);
+    await tester.pumpAndSettle();
     expect(router.state.uri.toString(), '/week');
-    expect(find.text('This meal'), findsOneWidget);
-    expect(find.text('Remove from the week'), findsOneWidget);
     expect(find.text("WHO'S EATING"), findsOneWidget);
-    expect(find.text('DAY \u00b7 SLOT'), findsOneWidget);
+    expect(find.text('PORTIONS'), findsOneWidget);
+    expect(find.text('DAY \u00b7 SLOT'), findsNothing);
+    expect(find.text('Remove from the week'), findsNothing);
+    expect(find.textContaining('Open '), findsNothing);
   });
 
-  testWidgets('removing the last meal from the sheet pops it exactly once', (
+  testWidgets('the \u2212 removes the meal and the toast puts it back (E3)', (
     tester,
   ) async {
     ignoreForuiSemanticsAssertion();
-    late GoRouter router;
     await tester.pumpWidget(
       _routedHost([
         planningRepositoryProvider.overrideWithValue(
           _LivePlanningRepo(_plannedWeek()),
         ),
         recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
-      ], (r) => router = r),
+      ], (_) {}),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Edit'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Weeknight Chicken Curry'));
-    await tester.pumpAndSettle();
-    expect(find.text('Remove from the week'), findsOneWidget);
+    expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
 
-    // The explicit pop and the "entry is gone" auto-dismiss must not stack:
-    // a second pop on the root navigator would take the page under the sheet
-    // with it (go_router asserts "popped the last page off the stack"), which
-    // pumpAndSettle would surface here as an uncaught error.
-    await tester.tap(find.text('Remove from the week'));
+    // No confirm dialog stands between the tap and the removal (E3 refuses
+    // one): the meal goes, and the undo is what makes that safe.
+    await tester.tap(find.byIcon(FLucideIcons.minus).first);
     await tester.pumpAndSettle();
-
-    expect(find.text('This meal'), findsNothing);
     expect(find.text('Weeknight Chicken Curry'), findsNothing);
-    expect(router.state.uri.toString(), '/week');
     expect(find.text('Add the first meal'), findsOneWidget);
+
+    // The toast names what went and what would come back — an undo you
+    // cannot audit is a promise, not a control.
+    expect(
+      find.text('Removed Weeknight Chicken Curry from Thursday.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('dinner'), findsWidgets);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
   });
 
   group('the portion factor, said everywhere (plan 0027 P-D4/D5)', () {
@@ -889,6 +901,8 @@ void main() {
       perServing: Macros(kcal: 500, protein: 30, carb: 40, fat: 20),
     );
 
+    // E7: the editor is opened by tapping the avatar/portions cluster, not
+    // by tapping the meal — the row's title is the recipe's door now.
     Future<void> openEntrySheet(WidgetTester tester, {int? portions}) async {
       ignoreForuiSemanticsAssertion();
       late GoRouter router;
@@ -909,11 +923,9 @@ void main() {
       await tester.pumpAndSettle();
       router.go('/week');
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Edit'));
+      await tester.tap(find.byType(EaterAvatarStack).first);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Weeknight Chicken Curry'));
-      await tester.pumpAndSettle();
-      expect(find.text('This meal'), findsOneWidget);
+      expect(find.text("WHO'S EATING"), findsOneWidget);
     }
 
     testWidgets('the Portions row says the fraction and who makes it up', (

@@ -1,6 +1,6 @@
 /// Sim smoke — WEEK → COOK → SHOP: the redesigned week — an empty week is a
 /// STATE of the screen (never the retired blank-week page), copy-last-week
-/// from its inline chip, Edit/Done's two modes, removal and edit-eaters
+/// from its inline chip, the row's three targets, removal + undo and eaters
 /// through the entry sheet (the per-row `⋯` and the eaters dialog are both
 /// retired), the two-step add flow (recipe picker v2 — Favorites tab included
 /// → confirm v2 with the full batch prose → portions), and the `Everyone`
@@ -38,6 +38,8 @@ import 'package:ansi/features/cook_plan/presentation/cook_view.dart'
 import 'package:ansi/features/planning/domain/planning.dart' show mondayOf;
 import 'package:ansi/features/planning/presentation/week_view.dart'
     show WeekView;
+import 'package:ansi/features/planning/presentation/week_widgets.dart'
+    show EaterAvatarStack;
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/shopping/presentation/shopping_view.dart'
@@ -257,11 +259,11 @@ void main() {
 
     // Week tab → the current week with nothing in it. Since the redesign
     // that is a STATE of this screen, not a page of its own (D5): the
-    // switcher, the mode action, the lens and all seven day cards are present,
+    // switcher, the lens and all seven day cards are present,
     // and `copy last week` is a chip beside the one primary door.
     await tapTab(tester, FLucideIcons.calendarDays);
     await pumpUntilFound(tester, find.text('Add the first meal'));
-    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('Edit'), findsNothing); // the mode is gone (E1)
     expect(find.text('Everyone'), findsOneWidget); // was "Shared" (D8)
     expect(find.text('Monday'), findsOneWidget);
     expect(find.text('nothing planned'), findsWidgets);
@@ -276,27 +278,29 @@ void main() {
       'the copied entry in the current week',
     );
 
-    // Remove the copied meal through the ENTRY SHEET — the per-row `⋯` and
-    // the standalone eaters dialog are both retired into it (D7). The seeded
-    // entry sits on Thursday.
-    await enterWeekEditMode(tester);
+    // Remove the copied meal with the row's own `−` (E3) — no mode, no
+    // sheet, and no confirm dialog between the tap and the removal. The
+    // seeded entry sits on Thursday.
     await scrollTo(tester, find.text('Thursday'));
     await tester.tap(
       find.descendant(
         of: dayCard('Thursday'),
-        matching: find.text('Chicken Curry'),
+        matching: find.byIcon(FLucideIcons.minus),
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('This meal'), findsOneWidget);
-    await tester.tap(find.text('Remove from the week'));
-    await tester.pumpAndSettle();
-    // The NEW assertion, and the more valuable one: the screen does NOT
-    // change. Removing the last meal used to teleport you off the grid
-    // mid-edit, because the blank-week page fired on `entries.isEmpty` too.
-    // The first-meal bar sits at the TOP of the (lazy) list, and we are
-    // scrolled to Thursday — scroll back up rather than wait for a widget the
-    // viewport has not built.
+    // The undo toast is what buys the missing confirm, and it names what
+    // would come back rather than just saying something happened.
+    expect(
+      find.textContaining('Removed Chicken Curry from Thursday'),
+      findsOneWidget,
+    );
+    expect(find.text('Undo'), findsOneWidget);
+    // The screen does NOT change underneath it. Removing the last meal used
+    // to teleport you off the grid, because the blank-week page fired on
+    // `entries.isEmpty` too. The first-meal bar sits at the TOP of the (lazy)
+    // list and we are scrolled to Thursday — scroll back up rather than wait
+    // for a widget the viewport has not built.
     expect(find.text('Thursday'), findsOneWidget);
     await scrollTo(tester, find.text('Add the first meal'), delta: -300);
     expect(find.text('Add the first meal'), findsOneWidget);
@@ -306,10 +310,9 @@ void main() {
       'the copied entry to be tombstoned',
     );
 
-    // Two-step add flow (Monday): picker → confirm → portions override. Back
-    // to the resting state first, so the picker's own "Add a meal" header is
-    // the only one on screen.
-    await leaveWeekEditMode(tester);
+    // Two-step add flow (Monday): picker → confirm → portions override. The
+    // picker's own "Add a meal" header is the only capitalised one on screen
+    // — the day cards' door is the lower-case `add a meal` line (E5).
     await tester.tap(find.text('Add the first meal'));
     await tester.pumpAndSettle();
     expect(find.text('Add a meal'), findsOneWidget); // picker header
@@ -335,11 +338,10 @@ void main() {
 
     // Second meal on Wednesday — within the 2-day fridge window, so the
     // confirm sheet cues that it cooks in Monday's batch.
-    await enterWeekEditMode(tester);
     await scrollTo(tester, find.text('Wednesday'));
     final add = find.descendant(
       of: dayCard('Wednesday'),
-      matching: find.text('Add a meal'),
+      matching: find.text('nothing planned'),
     );
     await tester.ensureVisible(add);
     await tester.pumpAndSettle();
@@ -366,15 +368,15 @@ void main() {
           rows.last['portions'] == null;
     }, 'both planned entries with the portions override');
 
-    // Edit who's eating on the Wednesday meal: drop Jun. It lives in the
-    // entry sheet now (D7) — and the sheet writes through on the tap, so
-    // there is nothing to save, only a dismissal.
-    await enterWeekEditMode(tester);
+    // Edit who's eating on the Wednesday meal: drop Jun. E7 — the eaters are
+    // changed by tapping the avatars that DRAW them, not by tapping the meal
+    // (that opens the recipe) and not through a mode. The sheet writes
+    // through on the tap, so there is nothing to save, only a dismissal.
     await scrollTo(tester, find.text('Wednesday'));
     await tester.tap(
       find.descendant(
         of: dayCard('Wednesday'),
-        matching: find.text('Chicken Curry'),
+        matching: find.byType(EaterAvatarStack),
       ),
     );
     await tester.pumpAndSettle();
@@ -400,7 +402,6 @@ void main() {
     ], reason: 'plan_entry.eaters must survive live sync as a real JSON array');
 
     // The lens DIMS, it no longer removes (D8) — and `Shared` is `Everyone`.
-    await leaveWeekEditMode(tester);
     await scrollTo(tester, find.text('Everyone'), delta: -150);
     await tester.tap(find.text('Jun'));
     await tester.pumpAndSettle();
@@ -577,7 +578,6 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('This meal'), findsOneWidget);
     expect(find.text('1¾ portions'), findsOneWidget);
     expect(find.text('Ada 1 · Jun ¾ — their usual'), findsOneWidget);
     expect(find.textContaining('1.75'), findsNothing);
@@ -587,7 +587,6 @@ void main() {
     // Under Jun's lens the Sunday total is ¾ of a 579 kcal serving, and the
     // denominator names the share (P-D5). The curry's own days stay refused
     // — count lines without a measure resolve to no total, whoever looks.
-    await leaveWeekEditMode(tester);
     await scrollTo(tester, find.text('Everyone'), delta: -300);
     await tester.tap(find.text('Jun'));
     await tester.pumpAndSettle();
