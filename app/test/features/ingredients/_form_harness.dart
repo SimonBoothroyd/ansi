@@ -105,7 +105,7 @@ class RecordingProbe extends UsdaProbe {
   RecordingProbe(UsdaCandidate? answer) : answers = [?answer];
 
   /// A short-list, best first — what the Choose-another sheet and the
-  /// New-ingredient leg ask for.
+  /// create form ask for.
   RecordingProbe.list(this.answers);
 
   final List<UsdaCandidate> answers;

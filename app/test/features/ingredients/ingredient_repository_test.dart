@@ -319,7 +319,7 @@ void main() {
     expect(onion.category, 'vegetables');
   });
 
-  test('maps macros with their stored basis (0011)', () async {
+  test('maps macros with their stored basis', () async {
     await db.execute(
       "UPDATE ingredient SET macros = ?, macros_basis = 'ml' WHERE id = '1'",
       ['{"kcal":40,"protein":1,"carb":9,"fat":0}'],
@@ -330,7 +330,7 @@ void main() {
     expect(onion.macrosBasis, MacrosBasis.perMl);
   });
 
-  test('counts distinct live measure labels for the row hint (7.7)', () async {
+  test('counts distinct live measure labels for the row hint', () async {
     for (final (mid, label, deleted) in [
       ('m1', 'onion, medium', null),
       ('m2', 'onion, large', null),
@@ -490,9 +490,9 @@ void main() {
     });
   });
 
-  group('clearDensity (D4b: the one leg where the admission list shrinks)', () {
-    test('the density goes and the cross-family units go with it, in one '
-        'write — the basis family stays', () async {
+  group('clearDensity (the one leg where the admission list shrinks)', () {
+    test('the density goes and the cross-family units go with it, in one write '
+        '— the basis family stays', () async {
       // A piece-default per-g row: the mango shape, where the volume chips
       // exist only because of the number being deleted.
       await db.execute(
@@ -539,8 +539,8 @@ void main() {
       },
     );
 
-    test('THE FLOUR SHAPE under D4c: the density gives the volume family and '
-        'takes it back — the row’s own default unit included', () async {
+    test('THE FLOUR SHAPE: the density gives the volume family and takes it '
+        'back — the row’s own default unit included', () async {
       await db.execute(
         "UPDATE ingredient SET default_unit = 'cup' WHERE id = '5'",
       );
@@ -569,7 +569,7 @@ void main() {
     );
   });
 
-  group('stopOfferingPiece (plan 0022 / ADR-0010: `piece` is an admission)', () {
+  group('stopOfferingPiece (ADR-0010: `piece` is an admission)', () {
     setUp(() async {
       // The garlic shape: a count row whose measure (a clove) names the thing.
       await db.execute(
@@ -577,8 +577,8 @@ void main() {
       );
     });
 
-    test('`piece` comes out of a row still on the derived fallback — the '
-        'list is materialized first, so there is something to remove '
+    test('`piece` comes out of a row still on the derived fallback — the list '
+        'is materialized first, so there is something to remove '
         'from', () async {
       final row = await db.get(
         "SELECT allowed_units FROM ingredient WHERE id = '1'",
@@ -599,8 +599,8 @@ void main() {
       );
     });
 
-    test('every other admission the row carries survives — this takes one '
-        'word away, not the curation around it', () async {
+    test('every other admission the row carries survives — this takes one word '
+        'away, not the curation around it', () async {
       await db.execute('UPDATE ingredient SET allowed_units = ? WHERE id = ?', [
         jsonEncode(['piece', 'g', 'cup', 'to_taste']),
         '1',
@@ -639,7 +639,7 @@ void main() {
     });
   });
 
-  group('setDefaultMeasure (0023 / seam D1: what "2 onions" means)', () {
+  group('setDefaultMeasure (what "2 onions" means)', () {
     setUp(() async {
       await db.execute(
         'INSERT INTO ingredient_measure '
@@ -714,7 +714,7 @@ void main() {
     });
   });
 
-  group('declineUsdaPrefill (U-D2: not this food)', () {
+  group('declineUsdaPrefill (not this food)', () {
     // A USDA pick reaches the row the way the form sends it (plan 0029 W5):
     // the stamp, the label, the score and the numbers in one save, with the
     // admission list the draft already unlocked.
@@ -745,8 +745,8 @@ void main() {
 
     test(
       'ONE write takes out exactly what the prefill wrote — density (and the '
-      'units it unlocked, D4b), macros, the stamp — keeps the name, and a '
-      'rename after it does not refill',
+      'units it unlocked), macros, the stamp — keeps the name, and a rename '
+      'after it does not refill',
       () async {
         final filled = await prefill(
           density: 0.35,
@@ -808,8 +808,8 @@ void main() {
       expect(await repo.declineUsdaPrefill('nope'), isNull);
     });
 
-    test('declining a CONFIRMED prefill returns it to a stub — a row with '
-        'no macros never asserts complete (D5)', () async {
+    test('declining a CONFIRMED prefill returns it to a stub — a row with no '
+        'macros never asserts complete', () async {
       await prefill(
         macros: const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
         markComplete: true,
@@ -851,7 +851,7 @@ void main() {
     );
   });
 
-  group('watchCategories (F3: the vocabulary IS the category list)', () {
+  group('watchCategories (the vocabulary IS the category list)', () {
     test(
       'distinct, trimmed, alphabetical — blanks are not a category',
       () async {
@@ -876,7 +876,7 @@ void main() {
     });
   });
 
-  group('saveForm (plan 0029 W3 / ADR-0011: the form writes ONCE)', () {
+  group('saveForm (ADR-0011: the form writes ONCE)', () {
     test('one call lands the row, a density, a measure, an alias and "Counts '
         'as" — the four writes the form used to make separately', () async {
       final saved = await repo.saveForm(
@@ -955,8 +955,8 @@ void main() {
       );
     });
 
-    test('a volume-named measure label is refused here too — batching does '
-        'not soften the ADR-0008 §2 contract', () async {
+    test('a volume-named measure label is refused here too — batching does not '
+        'soften the ADR-0008 §2 contract', () async {
       await expectLater(
         repo.saveForm(
           '1',
@@ -1000,8 +1000,8 @@ void main() {
       expect(live.single['basis_amount'], 125);
     });
 
-    test('markComplete flips the status IN THE SAME transaction as the save '
-        '(W5b) — no path leaves a row saved-but-not-marked', () async {
+    test('markComplete flips the status IN THE SAME transaction as the save — '
+        'no path leaves a row saved-but-not-marked', () async {
       final saved = await repo.saveForm(
         '3', // the seeded stub
         IngredientFormEdit(
@@ -1017,8 +1017,8 @@ void main() {
       expect(row['status'], 'complete');
     });
 
-    test('an alias that already matches is not duplicated — find-or-create, '
-        'as `addAlias` has always been', () async {
+    test('an alias that already matches is not duplicated — find-or-create, as '
+        '`addAlias` has always been', () async {
       await repo.saveForm(
         '2', // seeded with 'scallion'
         IngredientFormEdit(
@@ -1058,7 +1058,7 @@ void main() {
       );
     });
 
-    test('C1: a NULL id creates the row — and its children land in the same '
+    test('a NULL id creates the row — and its children land in the same '
         'transaction, which is what lets the sheet stop existing', () async {
       final created = await repo.saveForm(
         null,
@@ -1112,8 +1112,8 @@ void main() {
       expect(alias['ingredient_id'], created.id);
     });
 
-    test('C1: a create that refuses leaves NO row behind — the sheet could '
-        'only ever leave a half-made one', () async {
+    test('a create that refuses leaves NO row behind — the sheet could only '
+        'ever leave a half-made one', () async {
       final before = await db.get('SELECT COUNT(*) AS n FROM ingredient');
       await expectLater(
         repo.saveForm(
@@ -1137,14 +1137,17 @@ void main() {
       );
     });
 
-    test('C1: markComplete on a create still needs macros — a new row with '
-        'none stays a stub', () async {
-      final bare = await repo.saveForm(
-        null,
-        IngredientFormEdit(row: _edit(name: 'Bare'), markComplete: true),
-      );
-      expect(bare!.status, IngredientStatus.stub);
-    });
+    test(
+      'markComplete on a create still needs macros — a new row with none stays '
+      'a stub',
+      () async {
+        final bare = await repo.saveForm(
+          null,
+          IngredientFormEdit(row: _edit(name: 'Bare'), markComplete: true),
+        );
+        expect(bare!.status, IngredientStatus.stub);
+      },
+    );
 
     test('a row that is gone answers null rather than throwing', () async {
       expect(
@@ -1157,9 +1160,9 @@ void main() {
     });
   });
 
-  group('the form writes the row half (D5/D6, ADR-0011)', () {
+  group('the form writes the row half (ADR-0011)', () {
     test('a RENAME rewrites match_text with the server phrase rules — the '
-        'hazard plan 0020 D6 names', () async {
+        'hazard the search normalizer cannot see', () async {
       final saved = await repo.saveForm(
         '1',
         IngredientFormEdit(row: _edit(name: 'Curry leaves')),
@@ -1178,8 +1181,8 @@ void main() {
     });
 
     test(
-      'provenance is patch-shaped: null keeps the stored stamp, a value '
-      'writes it in the same statement as the macros (plan 0025 #8)',
+      'provenance is patch-shaped: null keeps the stored stamp, a value writes '
+      'it in the same statement as the macros',
       () async {
         final before = (await db.get(
           "SELECT source FROM ingredient WHERE id = '1'",
@@ -1241,29 +1244,26 @@ void main() {
       });
     });
 
-    test(
-      'macros round-trip with their basis, unconverted (7.7/0011)',
-      () async {
-        final saved = await repo.saveForm(
-          '1',
-          IngredientFormEdit(
-            row: _edit(
-              name: 'Coconut milk',
-              macros: const Macros(kcal: 197, protein: 2, carb: 3, fat: 20),
-              basis: MacrosBasis.perMl,
-            ),
+    test('macros round-trip with their basis, unconverted', () async {
+      final saved = await repo.saveForm(
+        '1',
+        IngredientFormEdit(
+          row: _edit(
+            name: 'Coconut milk',
+            macros: const Macros(kcal: 197, protein: 2, carb: 3, fat: 20),
+            basis: MacrosBasis.perMl,
           ),
-        );
-        expect(
-          saved!.macros,
-          const Macros(kcal: 197, protein: 2, carb: 3, fat: 20),
-        );
-        expect(saved.macrosBasis, MacrosBasis.perMl);
-      },
-    );
+        ),
+      );
+      expect(
+        saved!.macros,
+        const Macros(kcal: 197, protein: 2, carb: 3, fat: 20),
+      );
+      expect(saved.macrosBasis, MacrosBasis.perMl);
+    });
 
     test('clearing the macros of a COMPLETE row returns it to stub — a row is '
-        'never left asserting a number it no longer has (D5)', () async {
+        'never left asserting a number it no longer has', () async {
       await db.execute(
         "UPDATE ingredient SET status = 'complete', "
         'macros = \'{"kcal":1,"protein":1,"carb":1,"fat":1}\' '
@@ -1294,7 +1294,7 @@ void main() {
     );
   });
 
-  group('mark complete / unconfirm (D5: macros gate, density does not)', () {
+  group('mark complete / unconfirm (macros gate, density does not)', () {
     test('a stub with macros but NO density marks complete', () async {
       final confirmed = await repo.saveForm(
         '3',

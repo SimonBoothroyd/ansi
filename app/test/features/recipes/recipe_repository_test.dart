@@ -106,7 +106,7 @@ void main() {
   });
 
   test('optional survives save → load, and a flipped flag is a child-diff '
-      'UPDATE on the same row (plan 0025 #6)', () async {
+      'UPDATE on the same row', () async {
     final recipe = _sampleRecipe();
     final sauce = recipe.groups[0];
     await repo.saveRecipe(
@@ -321,7 +321,7 @@ void main() {
     expect(list.firstWhere((r) => r.id == 'r2').servingsBase, 4);
   });
 
-  test('summaries carry a computed per-serving macro summary (7.7)', () async {
+  test('summaries carry a computed per-serving macro summary', () async {
     // Rice and Onion carry per-100 g macros, but the sample's Onion line is
     // a bare count (unbridgeable without a measure) — so the summary must be
     // honestly incomplete, never a partial total. Its Salt line says "to
@@ -416,60 +416,65 @@ void main() {
     expect(results, hasLength(2)); // the vocab edit re-fired the summaries
   });
 
-  test('the recipe aggregate carries the same macro summary as its '
-      'list row (step 9 panel)', () async {
-    for (final id in ['ing-rice', 'ing-onion']) {
-      await db.execute('UPDATE ingredient SET macros = ? WHERE id = ?', [
-        '{"kcal":130,"protein":2.7,"carb":28,"fat":0.3}',
-        id,
-      ]);
-    }
-    await repo.saveRecipe(_sampleRecipe());
-    await repo.saveRecipe(
-      const Recipe(
-        id: 'r-rice',
-        title: 'Plain rice',
-        servingsBase: 2,
-        groups: [
-          IngredientGroup(
-            id: 'gr1',
-            items: [
-              LineItem(
-                id: 'ri1',
-                ingredientId: 'ing-rice',
-                ingredientName: 'Rice',
-                unit: g,
-                quantity: 150,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  test(
+    'the recipe aggregate carries the same macro summary as its list row',
+    () async {
+      for (final id in ['ing-rice', 'ing-onion']) {
+        await db.execute('UPDATE ingredient SET macros = ? WHERE id = ?', [
+          '{"kcal":130,"protein":2.7,"carb":28,"fat":0.3}',
+          id,
+        ]);
+      }
+      await repo.saveRecipe(_sampleRecipe());
+      await repo.saveRecipe(
+        const Recipe(
+          id: 'r-rice',
+          title: 'Plain rice',
+          servingsBase: 2,
+          groups: [
+            IngredientGroup(
+              id: 'gr1',
+              items: [
+                LineItem(
+                  id: 'ri1',
+                  ingredientId: 'ing-rice',
+                  ingredientName: 'Rice',
+                  unit: g,
+                  quantity: 150,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
 
-    // The panel and the picker row must never disagree about the same
-    // recipe: both read the one summation over the same rows.
-    final rows = {
-      for (final r in await repo.watchRecipes().first) r.id: r.macros,
-    };
-    for (final id in ['r1', 'r-rice']) {
-      final page = (await repo.watchRecipe(id).first)!.macros;
-      expect(page, rows[id], reason: id);
-    }
+      // The panel and the picker row must never disagree about the same
+      // recipe: both read the one summation over the same rows.
+      final rows = {
+        for (final r in await repo.watchRecipes().first) r.id: r.macros,
+      };
+      for (final id in ['r1', 'r-rice']) {
+        final page = (await repo.watchRecipe(id).first)!.macros;
+        expect(page, rows[id], reason: id);
+      }
 
-    final complete = (await repo.watchRecipe('r-rice').first)!.macros!;
-    expect(complete.incomplete, isFalse);
-    expect(complete.perServing!.kcal, closeTo(97.5, 1e-9)); // 130 × 1.5 / 2
-    final incomplete = (await repo.watchRecipe('r1').first)!.macros!;
-    expect(incomplete.incomplete, isTrue);
-    expect(incomplete.impreciseLines, 1); // Salt, to taste — excluded by rule
-    expect(incomplete.stubLines, 0);
-    expect(incomplete.countLinesWithoutMeasure, 1); // Onion: count, no measure
-    expect(incomplete.unconvertibleLines, 0);
-    // The two surfaces agreeing INCLUDES the names now (seam D5): a picker
-    // row and the page must call the same line the same thing.
-    expect(incomplete.notes.map((n) => n.name), ['Onion', 'Salt']);
-  });
+      final complete = (await repo.watchRecipe('r-rice').first)!.macros!;
+      expect(complete.incomplete, isFalse);
+      expect(complete.perServing!.kcal, closeTo(97.5, 1e-9)); // 130 × 1.5 / 2
+      final incomplete = (await repo.watchRecipe('r1').first)!.macros!;
+      expect(incomplete.incomplete, isTrue);
+      expect(incomplete.impreciseLines, 1); // Salt, to taste — excluded by rule
+      expect(incomplete.stubLines, 0);
+      expect(
+        incomplete.countLinesWithoutMeasure,
+        1,
+      ); // Onion: count, no measure
+      expect(incomplete.unconvertibleLines, 0);
+      // The two surfaces agreeing INCLUDES the names now (seam D5): a picker
+      // row and the page must call the same line the same thing.
+      expect(incomplete.notes.map((n) => n.name), ['Onion', 'Salt']);
+    },
+  );
 
   test('a recipe page with no lines is incomplete, never ~0 kcal', () async {
     await repo.saveRecipe(
@@ -570,29 +575,26 @@ void main() {
     expect((await repo.watchRecipes().first).single.favorite, isFalse);
   });
 
-  test(
-    'setFiling re-shelves without touching anything else (0028 E8)',
-    () async {
-      await repo.saveRecipe(_sampleRecipe());
-      final before = (await repo.watchRecipe('r1').first)!;
+  test('setFiling re-shelves without touching anything else', () async {
+    await repo.saveRecipe(_sampleRecipe());
+    final before = (await repo.watchRecipe('r1').first)!;
 
-      await repo.setFiling('r1', 'b9', 's9');
-      final moved = (await repo.watchRecipe('r1').first)!;
-      expect(moved.bookId, 'b9');
-      expect(moved.sectionId, 's9');
+    await repo.setFiling('r1', 'b9', 's9');
+    final moved = (await repo.watchRecipe('r1').first)!;
+    expect(moved.bookId, 'b9');
+    expect(moved.sectionId, 's9');
 
-      // A narrow write, not a save: re-shelving a recipe must not become an
-      // edit of every field it holds — including ones the mover never loaded.
-      expect(moved.title, before.title);
-      expect(moved.servingsBase, before.servingsBase);
-      expect(moved.groups.length, before.groups.length);
-      expect(moved.groups.first.items.length, before.groups.first.items.length);
+    // A narrow write, not a save: re-shelving a recipe must not become an
+    // edit of every field it holds — including ones the mover never loaded.
+    expect(moved.title, before.title);
+    expect(moved.servingsBase, before.servingsBase);
+    expect(moved.groups.length, before.groups.length);
+    expect(moved.groups.first.items.length, before.groups.first.items.length);
 
-      // Null files it unsectioned, which is what crossing a book always means.
-      await repo.setFiling('r1', 'b9', null);
-      expect((await repo.watchRecipe('r1').first)!.sectionId, isNull);
-    },
-  );
+    // Null files it unsectioned, which is what crossing a book always means.
+    await repo.setFiling('r1', 'b9', null);
+    expect((await repo.watchRecipe('r1').first)!.sectionId, isNull);
+  });
 
   test('saveRecipe replaces children rather than duplicating them', () async {
     await repo.saveRecipe(_sampleRecipe());
@@ -774,7 +776,7 @@ void main() {
     expect(row['deleted_at'], isNotNull);
   });
 
-  group('nested recipes (step 8.6)', () {
+  group('nested recipes', () {
     /// The Romesco Aioli: serves 4, makes 1 cup, keeps 5 days, one line.
     Future<void> seedAioli({
       double? yieldQty = 1,
@@ -1002,8 +1004,8 @@ void main() {
       expect(loaded.yields, isEmpty);
     });
 
-    test('watchRecipe joins the target title AND its yields, so the batch '
-        'math resolves on the loaded line', () async {
+    test('watchRecipe joins the target title AND its yields, so the batch math '
+        'resolves on the loaded line', () async {
       await seedAioli();
       await repo.saveRecipe(parent());
 
@@ -1063,7 +1065,7 @@ void main() {
     );
 
     test(
-      'a dangling link degrades to plain text and derives nothing (D5)',
+      'a dangling link degrades to plain text and derives nothing',
       () async {
         await seedAioli();
         await repo.saveRecipe(parent());
@@ -1174,7 +1176,7 @@ void main() {
       expect(aioli.yields, [(qty: 1.0, unit: cup)]);
     });
 
-    group('usedIn (D9 — the tab rows and the delete refusal, one query)', () {
+    group('usedIn (the tab rows and the delete refusal, one query)', () {
       test('is empty for a recipe nothing points at', () async {
         await seedAioli();
         expect(await repo.usedIn('aioli'), isEmpty);
@@ -1258,7 +1260,7 @@ void main() {
       });
     });
 
-    group('componentLinkWouldCycle (D5, the client half)', () {
+    group('componentLinkWouldCycle (the client half)', () {
       test('a fresh link is allowed', () async {
         await seedAioli();
         await repo.saveRecipe(parent());
@@ -1315,7 +1317,7 @@ void main() {
     });
   });
 
-  group('cook and total times (plan 0025 #4)', () {
+  group('cook and total times', () {
     test('round-trip through saveRecipe, on insert and on update', () async {
       await repo.saveRecipe(
         _sampleRecipe().copyWith(cookTimeSeconds: 2100, totalTimeSeconds: 4200),

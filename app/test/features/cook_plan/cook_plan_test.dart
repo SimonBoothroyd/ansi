@@ -332,8 +332,8 @@ void main() {
       expect(wholeBatchNudgeFor(s), isNull);
     });
 
-    test('a fractional demand (plan 0027 P-D4) is scaled and nudged exactly '
-        'as a whole one — never rounded up first', () {
+    test('a fractional demand is scaled and nudged exactly as a whole one — '
+        'never rounded up first', () {
       // A 1 and a ¾ eater of a serves-4 recipe: ×0.4375 → cook ×1, 2¼ over.
       final s = session(portions: 1.75);
       expect(s.totalPortions, 1.75);
@@ -373,7 +373,7 @@ void main() {
     });
   });
 
-  group('component expansion (step 8.6 / D3)', () {
+  group('component expansion', () {
     // Sausage Sliders (serves 8) with "¼ cup Romesco Aioli"; the aioli makes
     // 1 cup and keeps 5 days. The exec plan's own worked example.
     ComponentRecipe sliders({List<ComponentLine> components = const []}) => (
@@ -765,7 +765,7 @@ void main() {
       expect(plan.unresolvedComponentsByParent, {'sliders': 1, 'toasts': 1});
     });
 
-    test('a dangling link derives nothing AND flags nothing (D5)', () {
+    test('a dangling link derives nothing AND flags nothing', () {
       final plan = buildCookPlan(
         [
           _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),

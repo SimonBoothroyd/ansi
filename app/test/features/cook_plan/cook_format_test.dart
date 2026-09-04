@@ -180,8 +180,7 @@ void main() {
       );
     });
 
-    test('a fractional demand leaves a fractional, glyph-printed leftover '
-        '(plan 0027 P-D4)', () {
+    test('a fractional demand leaves a fractional, glyph-printed leftover', () {
       // 1¾ portions of a serves-4 recipe: ×0.44 → cook ×1, 2¼ left over.
       final nudge = wholeBatchNudgeFor(
         _session(cookDay: 0, covers: [_meal(0, 'Dinner', 1.75)], servings: 4),
@@ -194,7 +193,7 @@ void main() {
     });
   });
 
-  test('a component session covers plans, not portions (step 8.6 / D3)', () {
+  test('a component session covers plans, not portions', () {
     const session = CookSession(
       recipeId: 'aioli',
       recipeTitle: 'Romesco Aioli',
@@ -212,7 +211,7 @@ void main() {
     expect(coversLine(session), 'covers Sausage Sliders');
   });
 
-  group('the component card (step 8.6 / D3, board frame f)', () {
+  group('the component card', () {
     const session = CookSession(
       recipeId: 'aioli',
       recipeTitle: 'Romesco Aioli',
@@ -288,7 +287,7 @@ void main() {
     });
   });
 
-  group('the gap card (step 8.6 / D3)', () {
+  group('the gap card', () {
     ComponentGap gap(
       UnresolvedComponentAmount reason, {
       double? quantity = 0.25,

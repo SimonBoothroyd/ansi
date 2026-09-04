@@ -28,7 +28,7 @@ import '../../helpers/forui_semantics.dart';
 import '_form_harness.dart';
 
 void main() {
-  group('the macros section’s per-serving mode (plan 0027 front M)', () {
+  group('the macros section’s per-serving mode', () {
     /// A bare stub by name, per-100 g, no density — the row a US label
     /// lands on. Its volume chips are dashed until a density arrives.
     const spread = Ingredient(
@@ -39,8 +39,8 @@ void main() {
       source: 'manual',
     );
 
-    testWidgets('M-D1 + M-D3: the label typed as printed, the row stored per '
-        '100 — unrounded, previewed live, and refused without the serving '
+    testWidgets('the label typed as printed, the row stored per 100 — '
+        'unrounded, previewed live, and refused without the serving '
         'weight', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
@@ -149,8 +149,8 @@ void main() {
       return tick;
     }
 
-    testWidgets('M-D2: the offer is OFF by default — an untouched Save writes '
-        'the macros and NOTHING else', (tester) async {
+    testWidgets('the offer is OFF by default — an untouched Save writes the '
+        'macros and NOTHING else', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [spread]);
@@ -164,36 +164,37 @@ void main() {
       expect(saved.densityGPerMl, isNull);
     });
 
-    testWidgets('M-D2: ticked, the same Save lands it through setDensity and '
-        'the volume chips unlock', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      final repo = FakeIngredientRepo(const [spread]);
-      final tick = await armTheOffer(tester, repo);
+    testWidgets(
+      'ticked, the same Save lands it through setDensity and the volume chips '
+      'unlock',
+      (tester) async {
+        filterForuiSemanticsAssertions();
+        tallScreen(tester);
+        final repo = FakeIngredientRepo(const [spread]);
+        final tick = await armTheOffer(tester, repo);
 
-      await tester.tap(tick);
-      await tester.pumpAndSettle();
-      expect(tester.widget<FCheckbox>(tick).value, isTrue);
-      expect(find.textContaining('= 0.947 g/ml'), findsOneWidget);
+        await tester.tap(tick);
+        await tester.pumpAndSettle();
+        expect(tester.widget<FCheckbox>(tick).value, isTrue);
+        expect(find.textContaining('= 0.947 g/ml'), findsOneWidget);
 
-      // One Save: the macros through the row's own write, the density through
-      // density entry's own spoon arithmetic (ADR-0008 §2), and ADR-0009's
-      // unlock. Save ends the page, so we walk back in to read the chips.
-      await saveForm(tester, reopen: 'Buttery spread');
-      final saved = (await repo.byId('spread'))!;
-      expect(saved.densityGPerMl, closeTo(14 / tbsp.ratioToBase!, 1e-9));
-      expect(lockedUnitLabels(tester), isNot(contains('tbsp')));
-      expect(lockedUnitLabels(tester), isNot(contains('ml')));
-      expect(find.textContaining('0.947 g/ml'), findsWidgets);
-      // Landed, and it cannot be written twice: the reopened form reads the
-      // row's own per-100 macros, so there is no serving and no offer at all.
-      expect(find.text('THIS SERVING ALSO SAYS'), findsNothing);
-    });
+        // One Save: the macros through the row's own write, the density through
+        // density entry's own spoon arithmetic (ADR-0008 §2), and ADR-0009's
+        // unlock. Save ends the page, so we walk back in to read the chips.
+        await saveForm(tester, reopen: 'Buttery spread');
+        final saved = (await repo.byId('spread'))!;
+        expect(saved.densityGPerMl, closeTo(14 / tbsp.ratioToBase!, 1e-9));
+        expect(lockedUnitLabels(tester), isNot(contains('tbsp')));
+        expect(lockedUnitLabels(tester), isNot(contains('ml')));
+        expect(find.textContaining('0.947 g/ml'), findsWidgets);
+        // Landed, and it cannot be written twice: the reopened form reads the
+        // row's own per-100 macros, so there is no serving and no offer at all.
+        expect(find.text('THIS SERVING ALSO SAYS'), findsNothing);
+      },
+    );
 
-    testWidgets('M-D2: a serving that names a thing — “1 slice = 28 g” — is '
-        'offered as a measure, through the measures editor’s write', (
-      tester,
-    ) async {
+    testWidgets('a serving that names a thing — “1 slice = 28 g” — is offered '
+        'as a measure, through the measures editor’s write', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [spread]);
@@ -227,8 +228,8 @@ void main() {
       expect((await repo.byId('spread'))!.densityGPerMl, isNull);
     });
 
-    test('servingOfferFor: a spoon with a mass is a density per spoon, a '
-        'spoon with a volume is nothing, a thing is a measure of one', () {
+    test('servingOfferFor: a spoon with a mass is a density per spoon, a spoon '
+        'with a volume is nothing, a thing is a measure of one', () {
       const g14 = ServingDraft(amountText: '14', name: '1 tbsp');
       final density = servingOfferFor(g14, MacrosBasis.perG)! as DensityOffer;
       expect(density.unit, tbsp);
@@ -272,196 +273,188 @@ void main() {
     });
   });
 
-  group(
-    'a per-serving barcode panel lands on the selector (plan 0027 M-D5)',
-    () {
-      const bare = Ingredient(
-        id: 'bare',
-        canonicalName: 'Peanut butter',
-        defaultUnit: g,
-        status: IngredientStatus.stub,
-        source: 'manual',
+  group('a per-serving barcode panel lands on the selector', () {
+    const bare = Ingredient(
+      id: 'bare',
+      canonicalName: 'Peanut butter',
+      defaultUnit: g,
+      status: IngredientStatus.stub,
+      source: 'manual',
+    );
+
+    OffLookup lookupAnswering(String body) =>
+        OffLookup(client: MockClient((_) async => http.Response(body, 200)));
+
+    /// The peanut-butter fixture with OFF's numeric serving removed — the
+    /// pack whose serving is prose only.
+    String withoutServingQuantity() {
+      final body =
+          jsonDecode(offFixture('peanut_butter_per_serving'))
+              as Map<String, Object?>;
+      (body['product']! as Map<String, Object?>)
+        ..remove('serving_quantity')
+        ..remove('serving_quantity_unit');
+      return jsonEncode(body);
+    }
+
+    Future<void> scanOnForm(WidgetTester tester) async {
+      await tester.tap(find.text('Scan a barcode'));
+      await tester.pumpAndSettle();
+      await tester.enterText(scanField, '0851087000250');
+      await tester.pump();
+      await tester.tap(find.text('Look up'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('on the form: per-serving mode opens, the four as printed, the '
+        'serving prefilled from serving_quantity — and Save stores per '
+        '100', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const [bare]);
+      await tester.pumpWidget(
+        host(
+          repo,
+          at: '/ingredients/bare',
+          lookup: lookupAnswering(offFixture('peanut_butter_per_serving')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await scanOnForm(tester);
+
+      expect(find.text('One serving is'), findsOneWidget);
+      expect(fieldText(tester, servingAmountField), '32');
+      expect(fieldText(tester, servingNameField), '2 Tbsp');
+      expect(macroFieldText(tester, 'kcal'), '180');
+      expect(macroFieldText(tester, 'fat'), '14');
+      expect(
+        find.textContaining('stored per 100 g: 563 kcal · 19P 44F 31C'),
+        findsOneWidget,
+      );
+      // The card says what it read, and the M-D2 offer reads the pack's own
+      // "2 Tbsp (32 g)" as a spoon.
+      expect(
+        find.textContaining('panel read per serving of 32 g'),
+        findsOneWidget,
+      );
+      expect(find.text('1 tbsp weighs 16 g — set as density'), findsOneWidget);
+      // Nothing written until Save.
+      expect((await repo.byId('bare'))!.macros, isNull);
+
+      await saveForm(tester);
+      final saved = (await repo.byId('bare'))!;
+      expect(saved.macros!.kcal, 562.5);
+      expect(saved.macros!.protein, 18.75);
+      expect(saved.macrosBasis, MacrosBasis.perG);
+      expect(saved.source, 'off:0851087000250');
+      expect(saved.status, IngredientStatus.stub);
+      expect(saved.densityGPerMl, isNull, reason: 'the offer was not taken');
+    });
+
+    testWidgets('on the form, no numeric serving: the amount is empty and '
+        'flagged with the pack’s words, never parsed out of them', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const [bare]);
+      await tester.pumpWidget(
+        host(
+          repo,
+          at: '/ingredients/bare',
+          lookup: lookupAnswering(withoutServingQuantity()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await scanOnForm(tester);
+
+      expect(fieldText(tester, servingAmountField), isEmpty);
+      expect(
+        find.text('the pack says “2 Tbsp (32 g)” — type the serving weight'),
+        findsOneWidget,
+      );
+      expect(macroFieldText(tester, 'kcal'), '180');
+      await saveForm(tester);
+      expect(find.textContaining('One serving is how much?'), findsOneWidget);
+      expect((await repo.byId('bare'))!.macros, isNull);
+
+      await tester.enterText(servingAmountField, '32');
+      await tester.pumpAndSettle();
+      await saveForm(tester);
+      expect((await repo.byId('bare'))!.macros!.kcal, 562.5);
+    });
+
+    testWidgets('creating by barcode: the serving row under the card, '
+        'prefilled — and Save stores the per-100 derivation', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const []);
+      await tester.pumpWidget(
+        addHost(repo, body: offFixture('peanut_butter_per_serving')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Scan a barcode'));
+      await tester.pumpAndSettle();
+      await tester.enterText(scanField, '0851087000250');
+      await tester.pump();
+      await tester.tap(find.text('Look up'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('180 kcal · 6P 14F 10C'), findsOneWidget);
+      expect(
+        find.textContaining('panel read per serving of 32 g (“2 Tbsp (32 g)”)'),
+        findsOneWidget,
+      );
+      expect(fieldText(tester, servingAmountField), '32');
+      expect(
+        find.textContaining('stored per 100 g: 563 kcal · 19P 44F 31C'),
+        findsOneWidget,
       );
 
-      OffLookup lookupAnswering(String body) =>
-          OffLookup(client: MockClient((_) async => http.Response(body, 200)));
+      await saveForm(tester);
 
-      /// The peanut-butter fixture with OFF's numeric serving removed — the
-      /// pack whose serving is prose only.
-      String withoutServingQuantity() {
-        final body =
-            jsonDecode(offFixture('peanut_butter_per_serving'))
-                as Map<String, Object?>;
-        (body['product']! as Map<String, Object?>)
-          ..remove('serving_quantity')
-          ..remove('serving_quantity_unit');
-        return jsonEncode(body);
-      }
+      final created = repo.rows.single;
+      expect(created.macros!.kcal, 562.5);
+      expect(created.macros!.carb, 31.25);
+      expect(created.macrosBasis, MacrosBasis.perG);
+      expect(created.source, 'off:0851087000250');
+      expect(created.status, IngredientStatus.stub);
+    });
 
-      Future<void> scanOnForm(WidgetTester tester) async {
-        await tester.tap(find.text('Scan a barcode'));
-        await tester.pumpAndSettle();
-        await tester.enterText(scanField, '0851087000250');
-        await tester.pump();
-        await tester.tap(find.text('Look up'));
-        await tester.pumpAndSettle();
-      }
+    testWidgets('creating by barcode, no numeric serving: flagged, and no '
+        'panel is stored unless the weight is typed', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const []);
+      await tester.pumpWidget(addHost(repo, body: withoutServingQuantity()));
+      await tester.pumpAndSettle();
 
-      testWidgets('on the form: per-serving mode opens, the four as printed, '
-          'the serving prefilled from serving_quantity — and Save stores per '
-          '100', (tester) async {
-        filterForuiSemanticsAssertions();
-        tallScreen(tester);
-        final repo = FakeIngredientRepo(const [bare]);
-        await tester.pumpWidget(
-          host(
-            repo,
-            at: '/ingredients/bare',
-            lookup: lookupAnswering(offFixture('peanut_butter_per_serving')),
-          ),
-        );
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Scan a barcode'));
+      await tester.pumpAndSettle();
+      await tester.enterText(scanField, '0851087000250');
+      await tester.pump();
+      await tester.tap(find.text('Look up'));
+      await tester.pumpAndSettle();
 
-        await scanOnForm(tester);
+      expect(fieldText(tester, servingAmountField), isEmpty);
 
-        expect(find.text('One serving is'), findsOneWidget);
-        expect(fieldText(tester, servingAmountField), '32');
-        expect(fieldText(tester, servingNameField), '2 Tbsp');
-        expect(macroFieldText(tester, 'kcal'), '180');
-        expect(macroFieldText(tester, 'fat'), '14');
-        expect(
-          find.textContaining('stored per 100 g: 563 kcal · 19P 44F 31C'),
-          findsOneWidget,
-        );
-        // The card says what it read, and the M-D2 offer reads the pack's own
-        // "2 Tbsp (32 g)" as a spoon.
-        expect(
-          find.textContaining('panel read per serving of 32 g'),
-          findsOneWidget,
-        );
-        expect(
-          find.text('1 tbsp weighs 16 g — set as density'),
-          findsOneWidget,
-        );
-        // Nothing written until Save.
-        expect((await repo.byId('bare'))!.macros, isNull);
+      // Without the weight there is nothing to divide by, so Save REFUSES
+      // and says which number is missing — the sheet used to warn about it
+      // in advance, and the form's own guard is the better place for it:
+      // it cannot be ignored, and it names the field.
+      await tester.tap(find.byKey(kFormSaveKey));
+      await tester.pumpAndSettle();
+      expect(repo.rows, isEmpty);
+      expect(find.textContaining('One serving is how much?'), findsOneWidget);
 
-        await saveForm(tester);
-        final saved = (await repo.byId('bare'))!;
-        expect(saved.macros!.kcal, 562.5);
-        expect(saved.macros!.protein, 18.75);
-        expect(saved.macrosBasis, MacrosBasis.perG);
-        expect(saved.source, 'off:0851087000250');
-        expect(saved.status, IngredientStatus.stub);
-        expect(saved.densityGPerMl, isNull, reason: 'the offer was not taken');
-      });
+      await tester.enterText(servingAmountField, '32');
+      await tester.pumpAndSettle();
 
-      testWidgets('on the form, no numeric serving: the amount is empty and '
-          'flagged with the pack’s words, never parsed out of them', (
-        tester,
-      ) async {
-        filterForuiSemanticsAssertions();
-        tallScreen(tester);
-        final repo = FakeIngredientRepo(const [bare]);
-        await tester.pumpWidget(
-          host(
-            repo,
-            at: '/ingredients/bare',
-            lookup: lookupAnswering(withoutServingQuantity()),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        await scanOnForm(tester);
-
-        expect(fieldText(tester, servingAmountField), isEmpty);
-        expect(
-          find.text('the pack says “2 Tbsp (32 g)” — type the serving weight'),
-          findsOneWidget,
-        );
-        expect(macroFieldText(tester, 'kcal'), '180');
-        await saveForm(tester);
-        expect(find.textContaining('One serving is how much?'), findsOneWidget);
-        expect((await repo.byId('bare'))!.macros, isNull);
-
-        await tester.enterText(servingAmountField, '32');
-        await tester.pumpAndSettle();
-        await saveForm(tester);
-        expect((await repo.byId('bare'))!.macros!.kcal, 562.5);
-      });
-
-      testWidgets('creating by barcode: the serving row under the card, '
-          'prefilled — and Save stores the per-100 derivation', (tester) async {
-        filterForuiSemanticsAssertions();
-        tallScreen(tester);
-        final repo = FakeIngredientRepo(const []);
-        await tester.pumpWidget(
-          addHost(repo, body: offFixture('peanut_butter_per_serving')),
-        );
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('Scan a barcode'));
-        await tester.pumpAndSettle();
-        await tester.enterText(scanField, '0851087000250');
-        await tester.pump();
-        await tester.tap(find.text('Look up'));
-        await tester.pumpAndSettle();
-
-        expect(find.text('180 kcal · 6P 14F 10C'), findsOneWidget);
-        expect(
-          find.textContaining(
-            'panel read per serving of 32 g (“2 Tbsp (32 g)”)',
-          ),
-          findsOneWidget,
-        );
-        expect(fieldText(tester, servingAmountField), '32');
-        expect(
-          find.textContaining('stored per 100 g: 563 kcal · 19P 44F 31C'),
-          findsOneWidget,
-        );
-
-        await saveForm(tester);
-
-        final created = repo.rows.single;
-        expect(created.macros!.kcal, 562.5);
-        expect(created.macros!.carb, 31.25);
-        expect(created.macrosBasis, MacrosBasis.perG);
-        expect(created.source, 'off:0851087000250');
-        expect(created.status, IngredientStatus.stub);
-      });
-
-      testWidgets('creating by barcode, no numeric serving: flagged, and no '
-          'panel is stored unless the weight is typed', (tester) async {
-        filterForuiSemanticsAssertions();
-        tallScreen(tester);
-        final repo = FakeIngredientRepo(const []);
-        await tester.pumpWidget(addHost(repo, body: withoutServingQuantity()));
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('Scan a barcode'));
-        await tester.pumpAndSettle();
-        await tester.enterText(scanField, '0851087000250');
-        await tester.pump();
-        await tester.tap(find.text('Look up'));
-        await tester.pumpAndSettle();
-
-        expect(fieldText(tester, servingAmountField), isEmpty);
-
-        // Without the weight there is nothing to divide by, so Save REFUSES
-        // and says which number is missing — the sheet used to warn about it
-        // in advance, and the form's own guard is the better place for it:
-        // it cannot be ignored, and it names the field.
-        await tester.tap(find.byKey(kFormSaveKey));
-        await tester.pumpAndSettle();
-        expect(repo.rows, isEmpty);
-        expect(find.textContaining('One serving is how much?'), findsOneWidget);
-
-        await tester.enterText(servingAmountField, '32');
-        await tester.pumpAndSettle();
-
-        await saveForm(tester);
-        expect(repo.rows.single.macros!.kcal, 562.5);
-      });
-    },
-  );
+      await saveForm(tester);
+      expect(repo.rows.single.macros!.kcal, 562.5);
+    });
+  });
 }

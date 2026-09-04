@@ -209,9 +209,8 @@ void main() {
     expect(find.text('Sign out'), findsNothing);
   });
 
-  testWidgets('the header is a field and a link — no menus at all (0028 E1)', (
-    tester,
-  ) async {
+  testWidgets('the header is a field and a link — no menus at '
+      'all', (tester) async {
     await tester.pumpWidget(_host(_repo(_library)));
     await tester.pump();
 
@@ -228,7 +227,7 @@ void main() {
     expect(find.byType(FHeaderAction), findsOneWidget);
   });
 
-  testWidgets('the household control opens /account (0028 E6)', (tester) async {
+  testWidgets('the household control opens /account', (tester) async {
     late GoRouter router;
     await tester.pumpWidget(_routedHost(_repo(_library), (r) => router = r));
     await tester.pumpAndSettle();
@@ -271,7 +270,7 @@ void main() {
     expect(repo.renamedTo, 'Weeknights');
   });
 
-  group('the recipe row ⋯ (0028 E8)', () {
+  group('the recipe row ⋯', () {
     testWidgets('Move to… re-files through the narrow write', (tester) async {
       filterForuiSemanticsAssertions();
       final host = _repoWithRecipes(const [
@@ -327,9 +326,7 @@ void main() {
       expect(host.recipes.saved, isEmpty);
     });
 
-    testWidgets('the ★ still only reports on the row — D6 kept', (
-      tester,
-    ) async {
+    testWidgets('the ★ still only reports on the row', (tester) async {
       filterForuiSemanticsAssertions();
       late GoRouter router;
       final host = _repoWithRecipes(_library);
@@ -364,7 +361,7 @@ void main() {
     });
   });
 
-  group('folding a book (D3)', () {
+  group('folding a book', () {
     testWidgets('the chevron hides the contents and keeps the count', (
       tester,
     ) async {
@@ -447,7 +444,7 @@ void main() {
     });
   });
 
-  group('the book ⋯ (D4)', () {
+  group('the book ⋯', () {
     /// Opens the FIRST book card's overflow: `⋯` #0 is the screen header's,
     /// #1 is this book's, and anything after belongs to its sections.
     Future<void> openBookMenu(WidgetTester tester) async {
@@ -478,8 +475,8 @@ void main() {
       expect(repo.renamedTo, 'Weeknights');
     });
 
-    testWidgets('deleting a book that holds recipes is refused with the '
-        'count and a door', (tester) async {
+    testWidgets('deleting a book that holds recipes is refused with the count '
+        'and a door', (tester) async {
       final repo = _RecordingBookRepo(const [
         ..._library,
         Book(id: 'b2', name: 'Baking'),
@@ -607,9 +604,7 @@ void main() {
     });
   });
 
-  testWidgets('an expanded card carries no dashed furniture (0028 E3)', (
-    tester,
-  ) async {
+  testWidgets('an expanded card carries no dashed furniture', (tester) async {
     await tester.pumpWidget(_host(_repo(_library)));
     await tester.pumpAndSettle();
 
@@ -627,9 +622,7 @@ void main() {
     );
   });
 
-  testWidgets('New section keeps its one door, on the book ⋯ (0028 E3)', (
-    tester,
-  ) async {
+  testWidgets('New section keeps its one door, on the book ⋯', (tester) async {
     await tester.pumpWidget(_host(_repo(_library)));
     await tester.pumpAndSettle();
 
@@ -638,9 +631,7 @@ void main() {
     expect(find.text('New section'), findsOneWidget);
   });
 
-  testWidgets('an empty shelf offers the two doors in place (D7)', (
-    tester,
-  ) async {
+  testWidgets('an empty shelf offers the two doors in place', (tester) async {
     await tester.pumpWidget(
       _host(_repo(const [Book(id: 'b1', name: 'Our Cookbook')])),
     );
@@ -651,7 +642,7 @@ void main() {
     expect(find.text('import one'), findsOneWidget);
   });
 
-  group('pinned search (D2)', () {
+  group('pinned search', () {
     Future<void> type(WidgetTester tester, String query) async {
       filterForuiSemanticsAssertions();
       await tester.enterText(find.byType(TextField).first, query);
@@ -739,9 +730,8 @@ void main() {
     });
   });
 
-  testWidgets('a favourited recipe reports a ★; the rest show none (D6)', (
-    tester,
-  ) async {
+  testWidgets('a favourited recipe reports a ★; the rest show '
+      'none', (tester) async {
     await tester.pumpWidget(
       _host(
         _repo(const [
@@ -801,9 +791,7 @@ void main() {
     expect(find.text('Our Cookbook · Unsectioned'), findsOneWidget);
   });
 
-  testWidgets('no books at all points at a door on screen (D7·1)', (
-    tester,
-  ) async {
+  testWidgets('no books at all points at a door on screen', (tester) async {
     final repo = _RecordingBookRepo(const []);
     await tester.pumpWidget(
       _host([bookRepositoryProvider.overrideWithValue(repo)]),
@@ -820,7 +808,7 @@ void main() {
     expect(find.text('new book'), findsOneWidget);
   });
 
-  group('the section ＋ (0028 E2) files from the tap', () {
+  group('the section ＋ files from the tap', () {
     testWidgets('a section door carries its book AND its section', (
       tester,
     ) async {

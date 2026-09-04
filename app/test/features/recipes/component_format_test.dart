@@ -115,11 +115,11 @@ void main() {
     });
   });
 
-  test('usedInTabLabel carries the count (D9)', () {
+  test('usedInTabLabel carries the count', () {
     expect(usedInTabLabel(2), 'Used in · 2');
   });
 
-  test('deleteRefusalText names the count, the way 8.5 does (D5)', () {
+  test('deleteRefusalText names the count, and the one way out of it', () {
     expect(
       deleteRefusalText(recipes: 2, lines: 3),
       'Used in 2 recipes (3 lines). Change those lines first.',

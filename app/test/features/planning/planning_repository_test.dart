@@ -72,14 +72,16 @@ void main() {
       expect(members.map((m) => m.displayName), ['Ada']);
     });
 
-    test('a member row without a factor reads 1 — the column’s own default '
-        '(plan 0027 P-D6)', () async {
-      await _insertMember(db, 'm1', 'Ada', 0);
-      expect((await repo.watchMembers().first).single.portionFactor, 1);
-    });
+    test(
+      'a member row without a factor reads 1 — the column’s own default',
+      () async {
+        await _insertMember(db, 'm1', 'Ada', 0);
+        expect((await repo.watchMembers().first).single.portionFactor, 1);
+      },
+    );
 
-    test('setPortionFactor writes the one client-owned column and '
-        'watchMembers re-emits it (P-D1/D3)', () async {
+    test('setPortionFactor writes the one client-owned column and watchMembers '
+        're-emits it', () async {
       await _insertMember(db, 'm1', 'Ada', 0);
       await _insertMember(db, 'm2', 'Jun', 1);
       final stream = StreamIterator(repo.watchMembers());
@@ -296,7 +298,7 @@ void main() {
     });
   });
 
-  group('watchLastPlanned (7.7 picker recency)', () {
+  group('watchLastPlanned — picker recency', () {
     test('maps each recipe to its most recent planned date', () async {
       await _insertRecipe(db, 'r1', 'Curry');
       await _insertRecipe(db, 'r2', 'Salad');

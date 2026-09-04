@@ -341,7 +341,7 @@ void main() {
     });
 
     test('a component contribution gains one segment — deepest recipe first, '
-        'then the plan it serves (step 8.6 / D4)', () {
+        'then the plan it serves', () {
       expect(
         cookLabel(
           _cook(
@@ -816,8 +816,8 @@ void main() {
       expect(item.totals.single.amount, 3); // counts sum honestly
     });
 
-    test('a component contributes through the pipeline, provenance naming '
-        'both levels (step 8.6 / D4)', () {
+    test('a component contributes through the pipeline, provenance naming both '
+        'levels', () {
       // 240 g of almonds in a 1-cup aioli, at ¼ batch for Saturday's sliders.
       final list = build(
         cook: [
@@ -884,8 +884,8 @@ void main() {
       ]);
     });
 
-    test('optional lines ride through as the per-recipe echo, untouched — '
-        'the drop itself happened at the seam (D6b)', () {
+    test('optional lines ride through as the per-recipe echo, untouched — the '
+        'drop itself happened at the seam', () {
       final list = build(
         cook: [_cook('flour', 100, g)],
         meta: {'flour': metaFor('Flour', 'baking')},

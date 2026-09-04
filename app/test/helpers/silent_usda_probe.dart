@@ -1,5 +1,5 @@
 /// The offline / unconfigured USDA answer: nothing, without throwing — what
-/// the New-ingredient sheet's D7b probe gets in a widget test that is not
+/// the create form's background probe gets in a widget test that is not
 /// about enrichment.
 library;
 

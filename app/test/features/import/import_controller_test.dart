@@ -215,7 +215,7 @@ void main() {
     expect(fake.committed, isNull);
   });
 
-  group('the header draft (plan 0025 #4)', () {
+  group('the header draft', () {
     test('is seeded from the payload — servings and times prefilled, shelf '
         'life unset, filed into the default book', () async {
       await controller().startImport(const ImportFromUrl('x'));

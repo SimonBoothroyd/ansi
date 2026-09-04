@@ -15,7 +15,7 @@ void main() {
       );
     });
 
-    test('pint and quart are exact US customary (plan 0025 D2a)', () {
+    test('pint and quart are exact US customary', () {
       // Both are defined off the US gallon like every other volume entry:
       // 1 qt = 2 pt = 4 cup = 946.352946 ml, 1 pt = 473.176473 ml.
       expect(
@@ -106,7 +106,7 @@ void main() {
     });
 
     test('pt and qt are catalogue ids, ordered after cup in the volume '
-        'block (plan 0025)', () {
+        'block', () {
       expect(unitById('pt'), pint);
       expect(unitById('qt'), quart);
       expect(pint.family, UnitFamily.volume);

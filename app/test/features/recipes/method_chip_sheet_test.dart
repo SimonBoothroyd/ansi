@@ -54,9 +54,7 @@ void main() {
     expect(find.text('GOES IN AS'), findsNothing);
   });
 
-  testWidgets('tapping a chip opens the chip sheet, seeded (frame c)', (
-    tester,
-  ) async {
+  testWidgets('tapping a chip opens the chip sheet, seeded', (tester) async {
     await openEditor(tester);
     await tapAt(tester, 13); // inside "fennel bulb", [10, 21)
 
@@ -91,9 +89,8 @@ void main() {
     expect(ref.refs, ['l1']);
   });
 
-  testWidgets('the switch writes the amount rule and nothing else (D9)', (
-    tester,
-  ) async {
+  testWidgets('the switch writes the amount rule and nothing '
+      'else', (tester) async {
     final repo = await openEditor(tester);
     await tapAt(tester, 13);
 
@@ -137,9 +134,7 @@ void main() {
     expect((step.tokens.first as MethodText).s, startsWith('Halve the fennel'));
   });
 
-  testWidgets('tapping a timer opens the stepper, seeded (frame d)', (
-    tester,
-  ) async {
+  testWidgets('tapping a timer opens the stepper, seeded', (tester) async {
     await openEditor(tester);
     // "25–30 min" sits at [36, 45) of the step's sentence.
     await tapAt(tester, 39);

@@ -146,7 +146,7 @@ List<String> _recordSystemNavigation(WidgetTester tester) {
 }
 
 void main() {
-  group('back (D3-b)', () {
+  group('back', () {
     testWidgets('on a non-Library tab, back goes to the Library tab', (
       tester,
     ) async {
@@ -278,7 +278,7 @@ void main() {
     });
   });
 
-  group('state (D7)', () {
+  group('state', () {
     testWidgets('a tab keeps its state across a switch', (tester) async {
       final router = _router();
       await _pump(tester, router);

@@ -91,7 +91,7 @@ void main() {
     });
   });
 
-  group('sourceKind (7.7 humanized provenance)', () {
+  group('sourceKind — humanized provenance', () {
     Measure withSource(String? source) =>
         Measure(id: 'm', label: 'x', amount: 1, source: source);
 
@@ -125,7 +125,7 @@ void main() {
     );
   });
 
-  group('basis-aware measures (ADR-0008, 0012)', () {
+  group('basis-aware measures (ADR-0008)', () {
     // A per-ml ingredient's measure maps to VOLUME: "can (400 ml) = 400 ml".
     const can = Measure(
       id: 'm-can',
@@ -164,7 +164,8 @@ void main() {
       );
     });
 
-    test('the default basis stays per-g (every pre-0012 caller)', () {
+    test('the default basis stays per-g — every caller that names no '
+        'basis', () {
       const clove = Measure(id: 'm', label: 'clove', amount: 3);
       expect(clove.basis, MacrosBasis.perG);
       expect(convertMeasure(2, clove, to: g), Ok(Quantity(6, g)));

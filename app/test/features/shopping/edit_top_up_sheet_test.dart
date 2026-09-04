@@ -93,8 +93,8 @@ class _EmptyMeasureRepo implements MeasureRepository {
 }
 
 void main() {
-  testWidgets('saving an unresolved-measure top-up keeps its measure_id '
-      '(review A1)', (tester) async {
+  testWidgets('saving an unresolved-measure top-up keeps its '
+      'measure_id', (tester) async {
     // The measure row hasn't synced: the contribution arrives with
     // `measure` null but `measureId` set. An unrelated Save (say, a quantity
     // tweak) must NOT wipe the FK — that would destroy the reference for

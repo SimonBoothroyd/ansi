@@ -259,7 +259,7 @@ void main() {
     });
   });
 
-  group('closesComponentCycle (D5, the client half of the guard)', () {
+  group('closesComponentCycle (the client half of the guard)', () {
     test('a recipe cannot be a component of itself', () {
       expect(
         closesComponentCycle(from: 'a', to: 'a', componentsOf: (_) => const []),

@@ -66,7 +66,7 @@ void main() {
     );
   });
 
-  group('recipe_candidates — the additive 8.6 field (D6)', () {
+  group('recipe_candidates — the additive field', () {
     // The server OMITS the field entirely when a line hits no recipe title,
     // and when no recipe-title matcher is wired at all. An absent field must
     // therefore decode exactly as it did before the field existed.

@@ -146,7 +146,7 @@ void main() {
   });
 
   testWidgets('RecipeView tags an optional line after its note, in the '
-      'identity column (plan 0025 / D6b)', (tester) async {
+      'identity column', (tester) async {
     const recipe = Recipe(
       id: '3',
       title: 'Curry',
@@ -228,7 +228,7 @@ void main() {
   });
 
   testWidgets('the editor draws the second MAKES denomination, with the ✕ that '
-      'drops it (8.6, board frame h)', (tester) async {
+      'drops it', (tester) async {
     filterForuiSemanticsAssertions();
 
     const butter = Recipe(
@@ -264,30 +264,33 @@ void main() {
     expect(find.text('Another denomination'), findsNothing);
   });
 
-  testWidgets('the recipe page prints the stated times as chips, and only '
-      'the stated ones (plan 0025 #4)', (tester) async {
-    await tester.pumpWidget(
-      _host(const RecipeView(recipeId: '1'), [
-        recipeRepositoryProvider.overrideWithValue(
-          _FakeRecipeRepo(
-            _recipe.copyWith(cookTimeSeconds: 2100, totalTimeSeconds: 4200),
+  testWidgets(
+    'the recipe page prints the stated times as chips, and only the stated '
+    'ones',
+    (tester) async {
+      await tester.pumpWidget(
+        _host(const RecipeView(recipeId: '1'), [
+          recipeRepositoryProvider.overrideWithValue(
+            _FakeRecipeRepo(
+              _recipe.copyWith(cookTimeSeconds: 2100, totalTimeSeconds: 4200),
+            ),
           ),
-        ),
-      ]),
-    );
-    await tester.pump();
-    expect(find.text('cook 35 min'), findsOneWidget);
-    expect(find.text('1 h 10 min total'), findsOneWidget);
+        ]),
+      );
+      await tester.pump();
+      expect(find.text('cook 35 min'), findsOneWidget);
+      expect(find.text('1 h 10 min total'), findsOneWidget);
 
-    await tester.pumpWidget(
-      _host(const RecipeView(recipeId: '1'), [
-        recipeRepositoryProvider.overrideWithValue(
-          _FakeRecipeRepo(_recipe.copyWith(cookTimeSeconds: 2100)),
-        ),
-      ]),
-    );
-    await tester.pump();
-    expect(find.text('cook 35 min'), findsOneWidget);
-    expect(find.textContaining('total'), findsNothing);
-  });
+      await tester.pumpWidget(
+        _host(const RecipeView(recipeId: '1'), [
+          recipeRepositoryProvider.overrideWithValue(
+            _FakeRecipeRepo(_recipe.copyWith(cookTimeSeconds: 2100)),
+          ),
+        ]),
+      );
+      await tester.pump();
+      expect(find.text('cook 35 min'), findsOneWidget);
+      expect(find.textContaining('total'), findsNothing);
+    },
+  );
 }

@@ -127,10 +127,9 @@ void main() {
     expect(find.textContaining('Ada & Jun'), findsOneWidget);
   });
 
-  testWidgets('D6: the picker row prints the bare-count reason in the shared '
-      'words — the same sentence the panel and the confirm sheet render', (
-    tester,
-  ) async {
+  testWidgets('the picker row prints the bare-count reason in the shared words '
+      '— the same sentence the panel and the confirm sheet '
+      'render', (tester) async {
     const potatoes = RecipeSummary(
       id: 'r4',
       title: 'Roast Potatoes',
@@ -170,7 +169,7 @@ void main() {
     expect(curryY, lessThan(saladY));
   });
 
-  testWidgets('search matches word boundaries via the 7.4 normalizer', (
+  testWidgets('search matches word boundaries via the shared normalizer', (
     tester,
   ) async {
     filterForuiSemanticsAssertions();

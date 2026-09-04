@@ -142,7 +142,7 @@ void main() {
     expect(items[0].ingredientId, items[1].ingredientId);
   });
 
-  test('a LINKED line previews as the component it is about to be (8.6)', () {
+  test('a LINKED line previews as the component it is about to be', () {
     final payload = ReconciliationPayload(
       title: 'Sausage Sliders',
       servingsBase: 8,
@@ -170,7 +170,7 @@ void main() {
     expect(item.unit, cup);
   });
 
-  group('a resolved measure (plan 0025 #5)', () {
+  group('a resolved measure', () {
     const avocado = Measure(id: 'm-avocado', label: 'avocado', amount: 150);
 
     test(
@@ -301,8 +301,8 @@ void main() {
     });
   });
 
-  test('the preview carries optional onto the line, as the page will tag it '
-      '(plan 0025 / D6b)', () {
+  test('the preview carries optional onto the line, as the page will tag '
+      'it', () {
     final payload = ReconciliationPayload(
       title: 'T',
       groups: [

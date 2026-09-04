@@ -21,36 +21,36 @@ import '../../helpers/forui_semantics.dart';
 import '_form_harness.dart';
 
 void main() {
-  testWidgets('U-D1: a machine prefill is NAMED at the head of the macros '
-      'section — the food, its FDC id, the band word — reads not '
-      'confirmed, and offers both doors', (tester) async {
-    filterForuiSemanticsAssertions();
-    tallScreen(tester);
-    await tester.pumpWidget(
-      host(FakeIngredientRepo(const [curryLeaves]), at: '/ingredients/curry'),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
-    expect(
-      find.text(
-        'Curry leaves, raw · FDC 11216 · matches every word of “Curry '
-        'leaves, fresh”',
-      ),
-      findsOneWidget,
-    );
-    expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
-    expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
-    // The old lookup button has no job on a row USDA already filled: the
-    // doors are how the match changes.
-    expect(find.text('Look up in USDA'), findsNothing);
-    // D5 still: the status line says what a stub costs.
-    expect(find.textContaining('Still a stub'), findsOneWidget);
-  });
+  testWidgets(
+    'a machine prefill is NAMED at the head of the macros section — the food, '
+    'its FDC id, the band word — reads not confirmed, and offers both doors',
+    (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(FakeIngredientRepo(const [curryLeaves]), at: '/ingredients/curry'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
+      expect(
+        find.text(
+          'Curry leaves, raw · FDC 11216 · matches every word of “Curry '
+          'leaves, fresh”',
+        ),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
+      expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
+      // The old lookup button has no job on a row USDA already filled: the
+      // doors are how the match changes.
+      expect(find.text('Look up in USDA'), findsNothing);
+      // D5 still: the status line says what a stub costs.
+      expect(find.textContaining('Still a stub'), findsOneWidget);
+    },
+  );
 
-  testWidgets('U-D1 as 0029 re-reads it: a pick covering only part of '
-      'the name says so; a row filled before 0027 names the id alone', (
-    tester,
-  ) async {
+  testWidgets('a pick covering only part of the name says so; a row filled '
+      'before the match was named carries the id alone', (tester) async {
     filterForuiSemanticsAssertions();
     tallScreen(tester);
     final repo = FakeIngredientRepo([curryLeaves.copyWith(sourceScore: 0.62)]);
@@ -82,8 +82,9 @@ void main() {
     expect(find.textContaining('for “Old prefill”'), findsNothing);
   });
 
-  testWidgets('U-D1: a CONFIRMED prefill still names its match, and says '
-      'confirmed', (tester) async {
+  testWidgets('a CONFIRMED prefill still names its match, and says confirmed', (
+    tester,
+  ) async {
     filterForuiSemanticsAssertions();
     tallScreen(tester);
     final repo = FakeIngredientRepo([
@@ -98,36 +99,38 @@ void main() {
     expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
   });
 
-  testWidgets('U-D2: a DECLINED row names the food it refused, says the '
-      'numbers were cleared, offers Choose another alone, and warns that a '
-      'rename will not refill it', (tester) async {
-    filterForuiSemanticsAssertions();
-    tallScreen(tester);
-    final repo = FakeIngredientRepo([
-      curryLeaves.copyWith(source: usdaDeclinedSource),
-    ]);
-    await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
-    await tester.pumpAndSettle();
-    expect(find.text('USDA · declined'), findsOneWidget);
-    expect(
-      find.text(
-        'Curry leaves, raw — not this food · the filled numbers were '
-        'cleared',
-      ),
-      findsOneWidget,
-    );
-    expect(find.widgetWithText(FButton, 'Not this food'), findsNothing);
-    expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
-    expect(
-      find.text('renaming this row will not refill it — you said no once'),
-      findsOneWidget,
-    );
-    expect(find.text('Look up in USDA'), findsNothing);
-  });
+  testWidgets(
+    'a DECLINED row names the food it refused, says the numbers were cleared, '
+    'offers Choose another alone, and warns that a rename will not refill it',
+    (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo([
+        curryLeaves.copyWith(source: usdaDeclinedSource),
+      ]);
+      await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+      await tester.pumpAndSettle();
+      expect(find.text('USDA · declined'), findsOneWidget);
+      expect(
+        find.text(
+          'Curry leaves, raw — not this food · the filled numbers were '
+          'cleared',
+        ),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(FButton, 'Not this food'), findsNothing);
+      expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
+      expect(
+        find.text('renaming this row will not refill it — you said no once'),
+        findsOneWidget,
+      );
+      expect(find.text('Look up in USDA'), findsNothing);
+    },
+  );
 
-  testWidgets('U-D2: tapping Not this food clears the prefilled numbers '
-      'from the row AND the open form, and the line turns into the '
-      'declined one', (tester) async {
+  testWidgets('tapping Not this food clears the prefilled numbers from the row '
+      'AND the open form, and the line turns into the declined '
+      'one', (tester) async {
     filterForuiSemanticsAssertions();
     tallScreen(tester);
     final repo = FakeIngredientRepo([
@@ -171,10 +174,10 @@ void main() {
     );
   });
 
-  testWidgets('U-D3: Choose another asks for FIVE under the name in the '
-      'FIELD — writing nothing to get there — lists them with their band '
-      'word (the current match tagged, a nameless one left out), and a pick '
-      'replaces the fill through the explicit apply', (tester) async {
+  testWidgets('Choose another asks for FIVE under the name in the FIELD — '
+      'writing nothing to get there — lists them with their band word (the '
+      'current match tagged, a nameless one left out), and a pick replaces the '
+      'fill through the explicit apply', (tester) async {
     filterForuiSemanticsAssertions();
     tallScreen(tester);
     final repo = FakeIngredientRepo([
@@ -257,8 +260,8 @@ void main() {
     expect(macroFieldText(tester, 'kcal'), '300');
   });
 
-  testWidgets('U-D3: on a DECLINED row the refused food is tagged and the '
-      'pick lands despite the decline — a person’s own choice', (tester) async {
+  testWidgets('on a DECLINED row the refused food is tagged and the pick lands '
+      'despite the decline — a person’s own choice', (tester) async {
     filterForuiSemanticsAssertions();
     tallScreen(tester);
     final repo = FakeIngredientRepo([
@@ -292,8 +295,8 @@ void main() {
     expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
   });
 
-  testWidgets('U-D3 offline: the sheet says nothing came back, and closing '
-      'it changes nothing', (tester) async {
+  testWidgets('offline: the sheet says nothing came back, and closing it '
+      'changes nothing', (tester) async {
     filterForuiSemanticsAssertions();
     tallScreen(tester);
     final repo = FakeIngredientRepo(const [curryLeaves]);

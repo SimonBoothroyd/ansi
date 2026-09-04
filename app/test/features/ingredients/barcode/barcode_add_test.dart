@@ -19,8 +19,8 @@ const _foundBody = '''
 "proteins_100g":6.3,"carbohydrates_100g":57.5,"fat_100g":30.9}}}
 ''';
 
-/// A host with a button that opens the surface exactly the way the
-/// New-ingredient form's Source ▸ Barcode segment will.
+/// A host with a button that opens the surface exactly the way the create
+/// form's Source ▸ Barcode segment will.
 Widget _host({
   required OffLookup lookup,
   required void Function(IngredientDraft?) onResult,

@@ -97,8 +97,8 @@ void main() {
     expect(find.textContaining('0 g'), findsNothing);
   });
 
-  testWidgets('D6: a bare count reads "needs a weight" on the panel too — the '
-      'one incomplete reason that names its own fix', (tester) async {
+  testWidgets('a bare count reads "needs a weight" on the panel too — the one '
+      'incomplete reason that names its own fix', (tester) async {
     const summary = RecipeMacroSummary(countLinesWithoutMeasure: 1);
     await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
 
@@ -170,8 +170,8 @@ void main() {
     expect(find.text('41 g'), findsOneWidget);
   });
 
-  testWidgets('the panel is derived from the watched aggregate, not a '
-      'one-shot read', (tester) async {
+  testWidgets('the panel is derived from the watched aggregate, not a one-shot '
+      'read', (tester) async {
     final controller = StreamController<Recipe?>();
     addTearDown(controller.close);
     await tester.pumpWidget(
@@ -307,8 +307,8 @@ void main() {
     expect(find.textContaining('excluded by rule'), findsOneWidget);
   });
 
-  testWidgets('a real total names its optional lines too (D6b), and says '
-      'where the switch is', (tester) async {
+  testWidgets('a real total names its optional lines too, and says where the '
+      'switch is', (tester) async {
     const summary = RecipeMacroSummary(
       perServing: Macros(kcal: 418, protein: 16, carb: 54, fat: 13),
       optionalLines: 2,

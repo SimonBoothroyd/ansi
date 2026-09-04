@@ -25,9 +25,9 @@ Ingredient _ing(
 void main() {
   group('allowedUnitsFor — ADR-0008 derived defaults (mirrors the pgTAP '
       'default_allowed_units vectors)', () {
-    test('THE YEAST SHAPE, under D4c: tsp default /g with NO density admits '
-        'the basis base and nothing else — being sold by the spoon does not '
-        'make spoons convertible', () {
+    test('THE YEAST SHAPE: tsp default /g with NO density admits the basis '
+        'base and nothing else — being sold by the spoon does not make spoons '
+        'convertible', () {
       final units = allowedUnitsFor(_ing(tsp, category: 'baking'));
       expect(units, [g]);
       // Before D4c this read [tsp, tbsp, g]: the default unit's own family
@@ -40,16 +40,16 @@ void main() {
       ]);
     });
 
-    test('the flour shape: cup default /g with density — kitchen volume + '
-        'g AND kg (cup-scale justifies the big sibling)', () {
+    test('the flour shape: cup default /g with density — kitchen volume + g '
+        'AND kg (cup-scale justifies the big sibling)', () {
       final units = allowedUnitsFor(
         _ing(cup, density: 0.59, category: 'baking'),
       );
       expect(units, [cup, tbsp, ml, l, pint, quart, g, kg]);
     });
 
-    test('the olive-oil shape: tbsp default /g oil — mates + g + the oil '
-        'class imprecise words (J3: no handful of oil)', () {
+    test('the olive-oil shape: tbsp default /g oil — mates + g + the oil class '
+        'imprecise words (no handful of oil)', () {
       final units = allowedUnitsFor(
         _ing(tbsp, density: 0.91, category: 'fats & oils'),
       );
@@ -58,15 +58,16 @@ void main() {
     });
 
     test('the egg shape: count default /g — piece + basis base, and produce '
-        'earns handful and nothing else (J3)', () {
+        'earns handful and nothing else', () {
       final units = allowedUnitsFor(_ing(pieces, category: 'produce'));
       expect(units, [pieces, g, handful]);
       expect(units, isNot(contains(pinch)));
       expect(units, isNot(contains(dash)));
     });
 
-    test('the salt shape: the seasoning category admits the whole tail — '
-        'which D4c leaves alone, being no part of the mass⇄volume duality', () {
+    test('the salt shape: the seasoning category admits the whole tail — which '
+        'the density rule leaves alone, being no part of the mass⇄volume '
+        'duality', () {
       final units = allowedUnitsFor(_ing(tsp, category: 'spices & seasoning'));
       expect(units, [g, pinch, dash, handful, toTaste]);
     });
@@ -78,8 +79,8 @@ void main() {
       expect(units, [g, pinch, dash, handful, toTaste]);
     });
 
-    test('a per-ml liquid: volume default IS the basis family — no gram '
-        'leg without a density; with one, mass unlocks', () {
+    test('a per-ml liquid: volume default IS the basis family — no gram leg '
+        'without a density; with one, mass unlocks', () {
       expect(allowedUnitsFor(_ing(cup, basis: MacrosBasis.perMl)), [
         cup,
         tbsp,
@@ -94,8 +95,8 @@ void main() {
       );
     });
 
-    test('a mass default /g with density unlocks kitchen volume, after '
-        'the default family', () {
+    test('a mass default /g with density unlocks kitchen volume, after the '
+        'default family', () {
       // Oats: grams AND cups are both honest — and the unlocked family
       // trails the default's own (the choice builder pushes it below the
       // measures too).
@@ -104,25 +105,27 @@ void main() {
       expect(units, isNot(contains(pieces)));
     });
 
-    test('THE MANGO VECTOR (ADR-0008 as amended, plan 0020 D4): a piece '
-        'default with a density admits the volume workhorses — "1 cup diced '
-        'mango" is a real line', () {
-      final units = allowedUnitsFor(
-        _ing(pieces, density: 0.66, category: 'produce'),
-      );
-      expect(units, [pieces, g, tsp, tbsp, cup, ml, pint, handful]);
-      // `kg` stays out: the big metric sibling rides the same magnitude gate
-      // the mass/volume legs use, and a piece default is not big-scale. It is
-      // the board frame's dashed chip. `qt` rides with `l`, so it stays out
-      // with it (D2b); `pt` rides with `cup`, so it came in.
-      expect(units, isNot(contains(kg)));
-      expect(units, isNot(contains(l)));
-      expect(units, isNot(contains(quart)));
-    });
+    test(
+      'THE MANGO VECTOR (ADR-0008 as amended): a piece default with a density '
+      'admits the volume workhorses — "1 cup diced mango" is a real line',
+      () {
+        final units = allowedUnitsFor(
+          _ing(pieces, density: 0.66, category: 'produce'),
+        );
+        expect(units, [pieces, g, tsp, tbsp, cup, ml, pint, handful]);
+        // `kg` stays out: the big metric sibling rides the same magnitude gate
+        // the mass/volume legs use, and a piece default is not big-scale. It is
+        // the board frame's dashed chip. `qt` rides with `l`, so it stays out
+        // with it (D2b); `pt` rides with `cup`, so it came in.
+        expect(units, isNot(contains(kg)));
+        expect(units, isNot(contains(l)));
+        expect(units, isNot(contains(quart)));
+      },
+    );
 
     test('without a density a count default still admits nothing but its own '
-        'piece and the basis base — the amendment unlocks on the density, '
-        'not on the family', () {
+        'piece and the basis base — the amendment unlocks on the density, not '
+        'on the family', () {
       expect(allowedUnitsFor(_ing(pieces, category: 'produce')), [
         pieces,
         g,
@@ -131,8 +134,8 @@ void main() {
     });
 
     test('an imprecise default with a density unlocks both families too, and '
-        'keeps its whole tail INCLUDING handful (the mirror divergence plan '
-        '0020 D4 pins: the SQL leg was missing it)', () {
+        'keeps its whole tail INCLUDING handful (the mirror divergence: the '
+        'SQL leg was missing it)', () {
       final units = allowedUnitsFor(
         _ing(pinch, density: 1, category: 'spices & seasoning'),
       );
@@ -150,10 +153,9 @@ void main() {
       ]);
     });
 
-    group('pint and quart (plan 0025 D2b) — quart rides with litre, pint '
-        'rides with cup', () {
-      test('the broth shape: a cup default admits a pint, and a quart with '
-          'it — "1 quart broth" lands on a chip', () {
+    group('pint and quart — quart rides with litre, pint rides with cup', () {
+      test('the broth shape: a cup default admits a pint, and a quart with it '
+          '— "1 quart broth" lands on a chip', () {
         final broth = allowedUnitsFor(
           _ing(cup, basis: MacrosBasis.perMl, category: 'pantry'),
         );
@@ -228,8 +230,8 @@ void main() {
         expect(defaultUnitNeedsDensity(_ing(quart)), isTrue);
       });
 
-      test('a density buys a mass row a pint but never a quart — the cross '
-          'leg names cup, not l', () {
+      test('a density buys a mass row a pint but never a quart — the cross leg '
+          'names cup, not l', () {
         final oats = densityUnlockedUnits(_ing(g, density: 0.4));
         expect(oats, contains(pint));
         expect(oats, isNot(contains(quart)));
@@ -250,8 +252,8 @@ void main() {
       }
     });
 
-    test('D4c: the default unit is admitted when its family is — and a row '
-        'whose default falls outside says so rather than smuggling it in', () {
+    test('the default unit is admitted when its family is — and a row whose '
+        'default falls outside says so rather than smuggling it in', () {
       // `batch` is deliberately absent: it is a sub-recipe denomination,
       // never an ingredient's unit (step 8.6 / D2) — hence
       // [kIngredientUnits] rather than [kAllUnits].
@@ -273,7 +275,7 @@ void main() {
       }
     });
 
-    test('D4c: what may be picked as a default mirrors the same rule, and the '
+    test('what may be picked as a default mirrors the same rule, and the '
         'one-tap fix is the basis family’s natural unit', () {
       final perG = _ing(cup);
       expect(unitSayableAsDefault(perG, g), isTrue);
@@ -290,7 +292,7 @@ void main() {
     });
   });
 
-  group('impreciseUnitsFor — the per-word category gate (J3)', () {
+  group('impreciseUnitsFor — the per-word category gate', () {
     // Owner ruling off the Pixel field test: "a dash of kale" is not how
     // anyone cooks. pinch and dash belong to the spice/seasoning/oil classes;
     // handful belongs to greens — which `produce` is the nearest category the
@@ -346,7 +348,7 @@ void main() {
     });
   });
 
-  group('allowedUnitsFor — the explicit list (0012) wins over the rule', () {
+  group('allowedUnitsFor — the explicit list wins over the rule', () {
     test('an explicit list is honored verbatim as a set, in chip order', () {
       // A flesh-out-form edit ("this household says flour in cups and
       // grams only") must never be second-guessed by the derived rule.
@@ -356,16 +358,16 @@ void main() {
       expect(units, [cup, g, toTaste]);
     });
 
-    test('ordering fronts the default and demotes the other family, '
-        'whatever order the list arrived in', () {
+    test('ordering fronts the default and demotes the other family, whatever '
+        'order the list arrived in', () {
       final units = allowedUnitsFor(
         _ing(tsp, density: 0.4, allowed: const [kg, tbsp, g, tsp]),
       );
       expect(units, [tsp, tbsp, g, kg]);
     });
 
-    test('D4c: what an explicit list CANNOT do is admit a unit no density '
-        'supports — the number, not the list, says what is sayable', () {
+    test('what an explicit list CANNOT do is admit a unit no density supports '
+        '— the number, not the list, says what is sayable', () {
       // The shape a pre-D4c server materialization leaves behind (and an
       // older client, and a deleted density the list did not follow).
       final stale = _ing(tsp, allowed: const [kg, tbsp, g, tsp]);
@@ -378,8 +380,8 @@ void main() {
       );
     });
 
-    test('an empty explicit list falls back to the derived defaults '
-        '(a row must never render zero chips)', () {
+    test('an empty explicit list falls back to the derived defaults (a row '
+        'must never render zero chips)', () {
       final units = allowedUnitsFor(_ing(tsp, allowed: const []));
       expect(units, [g]);
     });
@@ -389,8 +391,8 @@ void main() {
     const large = Measure(id: 'm1', label: 'potato, large', amount: 299);
     const medium = Measure(id: 'm2', label: 'potato, medium', amount: 213.5);
 
-    test('slots measure options after the default set, before imprecise, '
-        'in order', () {
+    test('slots measure options after the default set, before imprecise, in '
+        'order', () {
       final choices = allowedUnitChoicesFor(_ing(pieces), const [
         medium,
         large,
@@ -439,10 +441,10 @@ void main() {
       expect(choices.whereType<MeasureOption>(), hasLength(1));
     });
 
-    group('plan 0022 / ADR-0010: piece is an admission, so the chip row '
-        'simply never offers it where the list refuses it', () {
-      test('the avocado shape: a curated list without `piece` gives a chip '
-          'row with the measure and no `piece` anywhere', () {
+    group('ADR-0010: piece is an admission, so the chip row simply never '
+        'offers it where the list refuses it', () {
+      test('the avocado shape: a curated list without `piece` gives a chip row '
+          'with the measure and no `piece` anywhere', () {
         const avocadoMeasure = Measure(
           id: 'm-avo',
           label: 'avocado',
@@ -622,7 +624,7 @@ void main() {
     });
 
     test('a piece default with no density locks BOTH families beyond its own '
-        'basis base — the D4 unlock is what opens them', () {
+        'basis base — a density is what opens them', () {
       final mangoWithoutDensity = _ing(pieces, category: 'produce');
       expect(selectedOf(mangoWithoutDensity), {'piece', 'g', 'handful'});
       expect(lockedOf(mangoWithoutDensity), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
@@ -650,9 +652,9 @@ void main() {
       expect(lockedOf(curated), isNot(contains('fl_oz')));
     });
 
-    test('D4b: a stored list that still names the cross-family units draws '
-        'them LOCKED once the density is gone — the number, not the list, '
-        'says what is sayable', () {
+    test('a stored list that still names the cross-family units draws them '
+        'LOCKED once the density is gone — the number, not the list, says what '
+        'is sayable', () {
       // The shape a device leaves behind when the density is deleted
       // somewhere the list did not follow (an older client, a server edit).
       final stale = _ing(pieces, allowed: const [pieces, g, cup, ml]);
@@ -661,8 +663,7 @@ void main() {
       expect(selectedOf(stale), {'piece', 'g'});
     });
 
-    test('D4b: the basis family is never locked, whichever way the panel '
-        'reads', () {
+    test('the basis family is never locked, whichever way the panel reads', () {
       final perMl = _ing(ml, basis: MacrosBasis.perMl);
       expect(lockedOf(perMl), {'g'});
       expect(selectedOf(perMl), containsAll(<String>['ml', 'l']));
@@ -673,7 +674,7 @@ void main() {
     });
   });
 
-  group('densityStrippedUnits — what deleting a density takes back (D4b)', () {
+  group('densityStrippedUnits — what deleting a density takes back', () {
     test('the mango shape: the volume leg goes, piece and the basis base '
         'stay', () {
       final mango = _ing(pieces, density: 0.66, category: 'produce');
@@ -682,9 +683,8 @@ void main() {
       expect(densityStrippedUnits(mango), isNot(contains(pieces)));
     });
 
-    test('THE FLOUR SHAPE, under D4c: the volume family goes — including the '
-        'row’s own default unit, which the density was the only thing '
-        'admitting', () {
+    test('THE FLOUR SHAPE: the volume family goes — including the row’s own '
+        'default unit, which the density was the only thing admitting', () {
       final flour = _ing(cup, density: 0.59, category: 'baking');
       expect(densityStrippedUnits(flour), {cup, tbsp, ml, l, pint, quart});
       // Mass is its basis family and survives, density or not.

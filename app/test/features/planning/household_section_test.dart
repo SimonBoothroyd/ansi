@@ -55,8 +55,8 @@ Finder _chip(String name, String label) => find.descendant(
 );
 
 void main() {
-  testWidgets('lists every member with their factor on file selected, and '
-      'says what a meal for both now counts as (frame a)', (tester) async {
+  testWidgets('lists every member with their factor on file selected, and says '
+      'what a meal for both now counts as', (tester) async {
     await _open(tester);
 
     expect(find.text('USUAL PORTION'), findsOneWidget);
@@ -80,8 +80,8 @@ void main() {
     );
   });
 
-  testWidgets('a pick writes through for THAT member — either may set either '
-      '(P-D3) — and the sheet shows the write land', (tester) async {
+  testWidgets('a pick writes through for THAT member — either may set either — '
+      'and the sheet shows the write land', (tester) async {
     final repo = await _open(tester);
 
     await tester.tap(_chip('Jun', '×½'));
@@ -97,37 +97,39 @@ void main() {
     expect(find.textContaining('counts as 1¾ portions'), findsOneWidget);
   });
 
-  testWidgets('… opens the custom stepper: quarter steps, each a write, '
-      'clamped to ¼..3 (P-D2)', (tester) async {
-    final repo = await _open(tester);
+  testWidgets(
+    '… opens the custom stepper: quarter steps, each a write, clamped to ¼..3',
+    (tester) async {
+      final repo = await _open(tester);
 
-    // No stepper until asked.
-    expect(find.byIcon(FLucideIcons.plus), findsNothing);
-    await tester.tap(_chip('Jun', '…'));
-    await tester.pumpAndSettle();
-    expect(find.byIcon(FLucideIcons.plus), findsOneWidget);
-    expect(find.text('quarter steps, ¼ to 3'), findsOneWidget);
+      // No stepper until asked.
+      expect(find.byIcon(FLucideIcons.plus), findsNothing);
+      await tester.tap(_chip('Jun', '…'));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(FLucideIcons.plus), findsOneWidget);
+      expect(find.text('quarter steps, ¼ to 3'), findsOneWidget);
 
-    // Opening custom writes nothing; stepping does, a quarter at a time.
-    expect(repo.factorWrites, isEmpty);
-    await tester.tap(find.byIcon(FLucideIcons.plus));
-    await tester.pumpAndSettle();
-    expect(repo.factorWrites, [('m2', 1.0)]);
-    await tester.tap(find.byIcon(FLucideIcons.plus));
-    await tester.pumpAndSettle();
-    expect(repo.factorWrites.last, ('m2', 1.25));
+      // Opening custom writes nothing; stepping does, a quarter at a time.
+      expect(repo.factorWrites, isEmpty);
+      await tester.tap(find.byIcon(FLucideIcons.plus));
+      await tester.pumpAndSettle();
+      expect(repo.factorWrites, [('m2', 1.0)]);
+      await tester.tap(find.byIcon(FLucideIcons.plus));
+      await tester.pumpAndSettle();
+      expect(repo.factorWrites.last, ('m2', 1.25));
 
-    // Down to the floor: ¼ is the last step, and the − then goes inert.
-    for (var i = 0; i < 4; i++) {
+      // Down to the floor: ¼ is the last step, and the − then goes inert.
+      for (var i = 0; i < 4; i++) {
+        await tester.tap(find.byIcon(FLucideIcons.minus));
+        await tester.pumpAndSettle();
+      }
+      expect(repo.factorWrites.last, ('m2', 0.25));
       await tester.tap(find.byIcon(FLucideIcons.minus));
       await tester.pumpAndSettle();
-    }
-    expect(repo.factorWrites.last, ('m2', 0.25));
-    await tester.tap(find.byIcon(FLucideIcons.minus));
-    await tester.pumpAndSettle();
-    expect(repo.factorWrites.last, ('m2', 0.25), reason: 'clamped at ¼');
-    expect(repo.factorWrites.where((w) => w.$2 < 0.25), isEmpty);
-  });
+      expect(repo.factorWrites.last, ('m2', 0.25), reason: 'clamped at ¼');
+      expect(repo.factorWrites.where((w) => w.$2 < 0.25), isEmpty);
+    },
+  );
 
   testWidgets('a value that is not a pick opens in custom mode, showing the '
       'value on file rather than the nearest chip', (tester) async {

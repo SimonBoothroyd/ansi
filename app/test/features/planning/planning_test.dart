@@ -63,7 +63,7 @@ void main() {
     });
   });
 
-  group('demandPortions (plan 0027 P-D1)', () {
+  group('demandPortions', () {
     const ada = Member(id: 'ada', displayName: 'Ada');
     const jun = Member(id: 'jun', displayName: 'Jun', portionFactor: 0.75);
     const roster = {'ada': ada, 'jun': jun};
@@ -95,7 +95,7 @@ void main() {
       expect(demandPortions(entry(eaters: const [], portions: 3), roster), 3);
     });
 
-    test('with every factor at 1 it is the head-count to the digit (P-D6)', () {
+    test('with every factor at 1 it is the head-count to the digit', () {
       final e = entry();
       expect(demandPortions(e, const {}), e.portionsOrDefault);
       expect(demandPortions(e, {'ada': ada}), e.portionsOrDefault);
@@ -111,7 +111,7 @@ void main() {
     });
   });
 
-  group('isValidPortionFactor (P-D2)', () {
+  group('isValidPortionFactor', () {
     test('accepts the picks and every quarter step in range', () {
       for (final pick in kPortionFactorPicks) {
         expect(isValidPortionFactor(pick), isTrue, reason: '$pick');
@@ -121,7 +121,7 @@ void main() {
       expect(isValidPortionFactor(3), isTrue);
     });
 
-    test('refuses out-of-range and off-step values (the 0026 check)', () {
+    test('refuses out-of-range and off-step values', () {
       expect(isValidPortionFactor(0), isFalse);
       expect(isValidPortionFactor(3.25), isFalse);
       expect(isValidPortionFactor(0.83), isFalse);

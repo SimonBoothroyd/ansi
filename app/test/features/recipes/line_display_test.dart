@@ -126,7 +126,7 @@ void main() {
     expect(rows[0].notes, ['toasted']);
   });
 
-  test('a component line is its own row, keyed by its target (step 8.6)', () {
+  test('a component line is its own row, keyed by its target', () {
     final rows = groupLineUses([
       _item('a', 'garlic', 'Garlic', quantity: 2, unit: pieces),
       const LineItem(

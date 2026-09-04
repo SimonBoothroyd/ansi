@@ -377,7 +377,7 @@ void main() {
     });
   });
 
-  group('amountRuleFor — D9, and only for a chip being made', () {
+  group('amountRuleFor — and only for a chip being made', () {
     final steps = [
       toDraft(
         const MethodStep(
@@ -440,7 +440,7 @@ void main() {
     });
   });
 
-  group('relabelRefs — D3', () {
+  group('relabelRefs', () {
     test('only the chips pointing at the line move; prose is untouched', () {
       final steps = [
         toDraft(
@@ -532,7 +532,7 @@ void main() {
     });
   });
 
-  group('flattenMethod — D5', () {
+  group('flattenMethod', () {
     test('the prose equals what the cards were showing', () {
       final gold = _gold();
       final flat = flattenMethod(gold.steps, lineById: gold.lineById);
@@ -549,7 +549,7 @@ void main() {
     });
   });
 
-  group('step list operations — D7', () {
+  group('step list operations', () {
     final steps = [
       const MethodDraftStep(id: 'a', text: 'one'),
       const MethodDraftStep(id: 'b', text: 'two'),
@@ -660,7 +660,7 @@ void main() {
     });
   });
 
-  group('the wire format is untouched by the D9 rename', () {
+  group('the wire format is untouched by the rename', () {
     test('a ref still reads and writes "mention"', () {
       const ref = MethodRef(
         refs: ['a'],

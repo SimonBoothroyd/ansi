@@ -16,7 +16,7 @@ LineItem _line(String id, {bool optional = false, SubRecipeTarget? sub}) =>
     );
 
 void main() {
-  group('effectiveLines — the one seam every derivation runs over (D6b)', () {
+  group('effectiveLines — the one seam every derivation runs over', () {
     test(
       'nothing optional: every line kept, in stored order, nothing dropped',
       () {

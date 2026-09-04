@@ -129,8 +129,8 @@ void main() {
       expect(labelsOf(step), ['flour']);
     });
 
-    test('a blank-labelled collective stays label-less — the names ride on '
-        'the constituents instead (J1)', () {
+    test('a blank-labelled collective stays label-less — the names ride on the '
+        'constituents instead', () {
       const step = MethodStep(
         tokens: [
           MethodRef(refs: ['flour', 'eggs', 'ghost'], label: '   '),
@@ -176,8 +176,8 @@ void main() {
       expect(constituentsOf(step), [<String>[]]);
     });
 
-    test('a blank-labelled collective carries them too — they ARE its chips '
-        '(J1)', () {
+    test('a blank-labelled collective carries them too — they ARE its '
+        'chips', () {
       const step = MethodStep(
         tokens: [
           MethodRef(refs: ['flour', 'eggs'], label: ''),

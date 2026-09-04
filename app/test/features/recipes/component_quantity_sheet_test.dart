@@ -101,7 +101,7 @@ void main() {
   });
 
   testWidgets('a stored unit outside the offer stays selectable, flagged, and '
-      'reads its honest unresolved line (the 7.7 rule)', (tester) async {
+      'reads its honest unresolved line', (tester) async {
     filterForuiSemanticsAssertions();
     // An imported line printed "2 tbsp" of a butter that only says 250 g.
     await tester.pumpWidget(

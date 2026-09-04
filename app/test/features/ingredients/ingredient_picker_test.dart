@@ -1,9 +1,9 @@
 /// The picker's result list — the "did you mean" band and the honest empty
-/// state — plus its add-new footer, which since plan 0025 D3 is one chain:
-/// the New-ingredient sheet (name prefilled from the query) → the flesh-out
-/// form pushed over the picker → back → the picker resolves with the row AS
-/// THE FORM LEFT IT. No stub is minted before anyone has said anything, and
-/// there is no "use it" door that skips the form.
+/// state — plus its add-new footer, which is one chain: the flesh-out form,
+/// its name prefilled from the query, pushed over the picker → back → the
+/// picker resolves with the row AS THE FORM LEFT IT. No stub is minted before
+/// anyone has said anything, and there is no "use it" door that skips the
+/// form.
 // The pumped ProviderScope IS the root scope of each test's tree.
 // ignore_for_file: scoped_providers_should_specify_dependencies
 library;
@@ -233,7 +233,7 @@ void main() {
     });
   });
 
-  group('the add-new chain (plan 0025 D3, frames c1–c4)', () {
+  group('the add-new chain', () {
     testWidgets('sheet (name prefilled) → form → back → the picker resolves '
         'with the row as the form left it', (tester) async {
       filterForuiSemanticsAssertions();
@@ -282,8 +282,8 @@ void main() {
       expect(find.text('flesh out now'), findsNothing);
     });
 
-    testWidgets('closing the sheet without creating leaves the picker where '
-        'it was, with nothing written', (tester) async {
+    testWidgets('closing the sheet without creating leaves the picker where it '
+        'was, with nothing written', (tester) async {
       filterForuiSemanticsAssertions();
       final repo = FakeIngredientRepo(const []);
       final picked = <Ingredient?>[];

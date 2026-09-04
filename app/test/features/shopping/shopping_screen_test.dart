@@ -87,9 +87,8 @@ Widget _host(List<Override> overrides) => ProviderScope(
 );
 
 void main() {
-  testWidgets('an empty list is a quiet line INSIDE the list chrome (D5b)', (
-    tester,
-  ) async {
+  testWidgets('an empty list is a quiet line INSIDE the list '
+      'chrome', (tester) async {
     await tester.pumpWidget(
       _host([
         shoppingRepositoryProvider.overrideWithValue(
@@ -212,9 +211,7 @@ void main() {
     expect(find.textContaining('add item or top up'), findsOneWidget);
   });
 
-  testWidgets('a nested contribution names both levels (step 8.6 / D4)', (
-    tester,
-  ) async {
+  testWidgets('a nested contribution names both levels', (tester) async {
     // The provenance segment the domain builds for a component session: the
     // sub-recipe's own line, then the plan it is cooked for.
     final list = ShoppingList(
@@ -286,9 +283,8 @@ void main() {
     expect(find.text('Couldn’t tick Paper towels.'), findsOneWidget);
   });
 
-  testWidgets('an unresolved component makes the list’s silence legible (D4)', (
-    tester,
-  ) async {
+  testWidgets('an unresolved component makes the list’s silence '
+      'legible', (tester) async {
     final list = ShoppingList(
       groups: [
         ShoppingGroup(
@@ -319,7 +315,7 @@ void main() {
   });
 
   testWidgets('an optional line that left the list is named by its recipe, '
-      'muted — a rule, not a defect (D6b)', (tester) async {
+      'muted — a rule, not a defect', (tester) async {
     final list = ShoppingList(
       groups: [
         ShoppingGroup(

@@ -24,7 +24,7 @@ import '../../../helpers/forui_semantics.dart';
 import '../_form_harness.dart';
 
 void main() {
-  group('the form scans a barcode into itself (plan 0025 #8)', () {
+  group('the form scans a barcode into itself', () {
     /// A bare stub created by name — no numbers, `manual` provenance: the
     /// row the picker's add-new chain lands on the form.
     const bare = Ingredient(

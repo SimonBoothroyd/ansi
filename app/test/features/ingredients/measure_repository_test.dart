@@ -83,7 +83,7 @@ void main() {
     expect(measures.last.sortOrder, 1);
   });
 
-  group('duplicate labels merge on read (0011 — no unique index)', () {
+  group('duplicate labels merge on read (no unique index)', () {
     test('the oldest live row is canonical; newer dupes are hidden', () async {
       // Two offline devices both added "half can": every device must show
       // the same single chip — the oldest row by (created_at, id).
@@ -209,7 +209,7 @@ void main() {
     });
   });
 
-  group('the editor write path (0011)', () {
+  group('the editor write path', () {
     test(
       'addMeasure writes a manual-sourced row after the existing ones',
       () async {
@@ -258,8 +258,9 @@ void main() {
       expect(row['deleted_at'], isNotNull);
     });
 
-    test("softDeleteMeasure clears a default that pointed at it — the FK's "
-        'set-null only sees a HARD delete (0023 / seam D1)', () async {
+    test('softDeleteMeasure '
+        "clears a default that pointed at it — the FK's set-null only sees a "
+        'HARD delete', () async {
       await _seedIngredient(db);
       final added = await repo.addMeasure(
         ingredientId: 'coconut',
@@ -390,7 +391,7 @@ void main() {
     expect(results.last.single.label, 'potato, large');
   });
 
-  group('basis-aware reads (0012)', () {
+  group('basis-aware reads', () {
     test('a per-ml ingredient denominates its measures in ml', () async {
       await db.execute(
         'INSERT INTO ingredient (id, household_id, canonical_name, '
@@ -425,7 +426,7 @@ void main() {
     });
   });
 
-  group('measuresByIngredients — the batched read (J2)', () {
+  group('measuresByIngredients — the batched read', () {
     test('keys every asked-for ingredient that has measures, with the same '
         'order and duplicate merge as the watch', () async {
       await _seedMeasure(

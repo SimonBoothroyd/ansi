@@ -75,7 +75,7 @@ void main() {
     expect(find.text('1'), findsWidgets); // the fennel line's live quantity
   });
 
-  testWidgets('reorder, delete and add a step (D7)', (tester) async {
+  testWidgets('reorder, delete and add a step', (tester) async {
     filterForuiSemanticsAssertions();
     final repo = FakeRecipeRepo(importedRecipe);
     await tester.pumpWidget(
@@ -111,9 +111,7 @@ void main() {
     expect(find.text('Step 3'), findsNothing);
   });
 
-  testWidgets('the editor writes methodSteps for EVERY recipe (D8)', (
-    tester,
-  ) async {
+  testWidgets('the editor writes methodSteps for EVERY recipe', (tester) async {
     filterForuiSemanticsAssertions();
     final repo = FakeRecipeRepo(legacyRecipe);
     await tester.pumpWidget(

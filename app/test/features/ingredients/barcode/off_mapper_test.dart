@@ -186,7 +186,7 @@ void main() {
       expect(draftFromOffBody(loadFixture('unknown_not_found')), isNull);
     });
 
-    group('a per-serving panel (plan 0027 M-D5)', () {
+    group('a per-serving panel', () {
       // Constructed variants of the peanut-butter fixture's shape, for the
       // serving-quantity legs a single capture cannot cover.
       Map<String, Object?> body(Map<String, Object?> product) => {
@@ -213,8 +213,8 @@ void main() {
       };
       const printed = Macros(kcal: 210, protein: 6, carb: 18, fat: 13);
 
-      test('no numeric serving: the four ride through, the amount is left '
-          'for the person — never parsed out of the free text', () {
+      test('no numeric serving: the four ride through, the amount is left for '
+          'the person — never parsed out of the free text', () {
         final draft = draftFromOffBody(
           body({'serving_size': '1 serving (40 g)'}),
         )!;
@@ -242,8 +242,8 @@ void main() {
         expect(draft.servingPanel!.servingBasis, MacrosBasis.perMl);
       });
 
-      test('a serving in a unit that is neither g nor ml, or a zero one, is '
-          'no serving amount at all', () {
+      test('a serving in a unit that is neither g nor ml, or a zero one, is no '
+          'serving amount at all', () {
         for (final product in [
           {'serving_quantity': 1, 'serving_quantity_unit': 'oz'},
           {'serving_quantity': 0, 'serving_quantity_unit': 'g'},
@@ -272,8 +272,8 @@ void main() {
       });
     });
 
-    test('a half-filled panel is no panel — three numbers and a zero is a '
-        'lie the totals would then tell', () {
+    test('a half-filled panel is no panel — three numbers and a zero is a lie '
+        'the totals would then tell', () {
       final draft = draftFromOffBody({
         'status': 1,
         'product': <String, Object?>{

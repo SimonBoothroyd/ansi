@@ -59,7 +59,7 @@ Future<void> substitute(WidgetTester tester, String name) async {
 }
 
 void main() {
-  testWidgets('a line row says what depends on it (D6)', (tester) async {
+  testWidgets('a line row says what depends on it', (tester) async {
     await openEditor(tester);
     expect(find.text('used in 1 step'), findsOneWidget);
   });
@@ -77,9 +77,8 @@ void main() {
     expect(line.ingredientId, 'ing-new');
   });
 
-  testWidgets('the chips take the new name and the steps are flagged (D3)', (
-    tester,
-  ) async {
+  testWidgets('the chips take the new name and the steps are '
+      'flagged', (tester) async {
     final repo = await openEditor(tester);
     await substitute(tester, 'Fennel bulb');
 

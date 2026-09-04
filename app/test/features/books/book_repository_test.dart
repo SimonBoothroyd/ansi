@@ -128,25 +128,22 @@ void main() {
     expect(b.unsectioned.map((r) => r.title), ['Cookies']);
   });
 
-  test(
-    'the library summary carries what a batch makes (step 8.6 / D2)',
-    () async {
-      final book = await repo.ensureDefaultBook();
-      await _insertRecipe(db, 'r1', 'Romesco Aioli', bookId: book.id);
-      await db.execute(
-        'UPDATE recipe SET yield_qty = 1, yield_unit = ?, yield_qty_2 = 250, '
-        'yield_unit_2 = ? WHERE id = ?',
-        ['cup', 'g', 'r1'],
-      );
+  test('the library summary carries what a batch makes', () async {
+    final book = await repo.ensureDefaultBook();
+    await _insertRecipe(db, 'r1', 'Romesco Aioli', bookId: book.id);
+    await db.execute(
+      'UPDATE recipe SET yield_qty = 1, yield_unit = ?, yield_qty_2 = 250, '
+      'yield_unit_2 = ? WHERE id = ?',
+      ['cup', 'g', 'r1'],
+    );
 
-      final aioli = (await repo.watchLibrary().first).single.unsectioned.single;
+    final aioli = (await repo.watchLibrary().first).single.unsectioned.single;
 
-      // The editor's line picker offers its "Your recipes" rows off this tree
-      // and hands the pick straight to the batch-math sheet, so a summary
-      // without the yield makes a recipe that states one read "no yield yet".
-      expect(aioli.yields, [(qty: 1.0, unit: cup), (qty: 250.0, unit: g)]);
-    },
-  );
+    // The editor's line picker offers its "Your recipes" rows off this tree
+    // and hands the pick straight to the batch-math sheet, so a summary
+    // without the yield makes a recipe that states one read "no yield yet".
+    expect(aioli.yields, [(qty: 1.0, unit: cup), (qty: 250.0, unit: g)]);
+  });
 
   test('createSection appends and reorderSections reorders', () async {
     final book = await repo.ensureDefaultBook();
@@ -270,7 +267,7 @@ void main() {
     },
   );
 
-  test('the library tree reports a favourited recipe (D6)', () async {
+  test('the library tree reports a favourited recipe', () async {
     final book = await repo.ensureDefaultBook();
     await _insertRecipe(db, 'r1', 'Romesco Aioli', bookId: book.id);
     await _insertRecipe(db, 'r2', 'Toast', bookId: book.id);

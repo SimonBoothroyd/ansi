@@ -187,7 +187,7 @@ void main() {
     expect(find.text('Romesco Aioli'), findsNothing);
   });
 
-  testWidgets('a cycle-forming target is not offered (D5)', (tester) async {
+  testWidgets('a cycle-forming target is not offered', (tester) async {
     await _open(tester, editingRecipeId: 'sliders', cycles: {'toasts'});
     await tester.enterText(find.byType(TextField).first, 'rom');
     await tester.pumpAndSettle();
@@ -282,10 +282,8 @@ void main() {
     expect((picked! as PickedIngredient).ingredient.id, 'i-roma');
   });
 
-  testWidgets('add-new is the one chain (plan 0025 D3): sheet → form → back, '
-      'and the editor gets an ingredient carrying the units the form set', (
-    tester,
-  ) async {
+  testWidgets('add-new is the one chain: sheet → form → back, and the editor '
+      'gets an ingredient carrying the units the form set', (tester) async {
     // The editor's `_addLine` awaits this picker and then opens the quantity
     // sheet on whatever comes back — so the picker must not resolve until
     // the form has popped, and must resolve with the re-read row.

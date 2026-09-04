@@ -114,8 +114,9 @@ void main() {
     return container;
   }
 
-  test("a measure-word unit validates against the ingredient's real measures "
-      '— it is not flagged "Pick a supported unit" (J2)', () async {
+  test('a '
+      "measure-word unit validates against the ingredient's real measures — it "
+      'is not flagged "Pick a supported unit"', () async {
     final container = await reviewing();
     final byLine = await container.read(importValidationProvider.future);
 
@@ -123,8 +124,9 @@ void main() {
     expect(byLine[0]!.isClean, isTrue);
   });
 
-  test("the measure is offered as a chip, and the line's own parsed unit "
-      'leads the ranking (J2)', () async {
+  test('the '
+      "measure is offered as a chip, and the line's own parsed unit leads the "
+      'ranking', () async {
     final container = await reviewing();
     final byLine = await container.read(importValidationProvider.future);
     final tokens = byLine[0]!.unitChoices.map((c) => c.token).toList();
@@ -153,8 +155,8 @@ void main() {
     expect(after[0]!.unitChoices.map((c) => c.token), contains('clove'));
   });
 
-  test('J3b: a printed imprecise word on a freshly created row validates — '
-      'the Save gate cannot lock on a unit the editor never offers', () async {
+  test('a printed imprecise word on a freshly created row validates — the Save '
+      'gate cannot lock on a unit the editor never offers', () async {
     final container = await reviewing();
     // The user takes "create new" on the no-match line, exactly as scenario 4
     // does: the sheet writes a plain `g` stub with NO category (the form is

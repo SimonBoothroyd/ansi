@@ -169,7 +169,7 @@ void main() {
   });
 
   test('a member’s portion factor drives the demand, the override still wins, '
-      'and a factor change re-derives the plan (plan 0027 P-D1/D4)', () async {
+      'and a factor change re-derives the plan', () async {
     final now = DateTime.now().toUtc().toIso8601String();
     for (final (id, name, order, factor) in [
       ('a', 'Ada', 0, 1.0),
@@ -256,7 +256,7 @@ void main() {
     expect(stream.current.recipes.single.sessions, hasLength(2));
   });
 
-  group('nested recipes (step 8.6 / D3)', () {
+  group('nested recipes', () {
     Future<void> planSliders({
       int day = 5,
       List<String> eaters = const ['a'],
@@ -342,8 +342,8 @@ void main() {
       },
     );
 
-    test('adding a component line re-fires the watch (the line-item tables '
-        'are watch triggers since 8.6)', () async {
+    test('adding a component line re-fires the watch — the line-item tables '
+        'are watch triggers too', () async {
       await _insertRecipe(db, 'sliders', 'Sausage Sliders', servings: 1);
       await _insertRecipe(
         db,
@@ -365,7 +365,7 @@ void main() {
       expect(stream.current.recipes, hasLength(2));
     });
 
-    test('a deleted target derives nothing and flags nothing (D5)', () async {
+    test('a deleted target derives nothing and flags nothing', () async {
       await _insertRecipe(db, 'sliders', 'Sausage Sliders', servings: 1);
       await _insertRecipe(db, 'aioli', 'Romesco Aioli', servings: 4);
       await _setYield(db, 'aioli', 1, cup);
@@ -382,8 +382,8 @@ void main() {
     });
   });
 
-  test('an optional line does not change the cook plan (plan 0025 / D6b): a '
-      'batch is a batch whether the lime comes', () async {
+  test('an optional line does not change the cook plan: a batch is a batch '
+      'whether the lime comes', () async {
     await _insertRecipe(db, 'curry', 'Chicken Curry', keepsForDays: 3);
     await _insertRecipe(db, 'plain', 'Plain Curry', keepsForDays: 3);
     // One ordinary and one optional ingredient line on the first recipe only;

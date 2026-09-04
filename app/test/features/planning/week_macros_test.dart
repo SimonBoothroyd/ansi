@@ -97,8 +97,8 @@ void main() {
     expect(macros.considered, 0);
   });
 
-  test('a lens under which this person eats nothing is empty, not refused '
-      'and not zero', () {
+  test('a lens under which this person eats nothing is empty, not refused and '
+      'not zero', () {
     final macros = _sum([
       _entry(id: 'a', eaters: ['jun']),
     ], lens: 'ada');
@@ -144,8 +144,8 @@ void main() {
     expect(macros.excluded.single.label, '(deleted recipe)');
   });
 
-  test('the week is the same function over a wider set, never a sum of '
-      'rounded days', () {
+  test('the week is the same function over a wider set, never a sum of rounded '
+      'days', () {
     final week = [
       _entry(id: 'a'),
       _entry(id: 'b', day: 1, portions: 3),
@@ -201,7 +201,7 @@ void main() {
     }
   });
 
-  group('the portion factor (plan 0027 P-D5)', () {
+  group('the portion factor', () {
     // Ada eats a portion, Jun three-quarters of one.
     const roster = {
       'ada': Member(id: 'ada', displayName: 'Ada'),

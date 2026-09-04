@@ -35,7 +35,7 @@ void main() {
       expect(applied.fillsSomething, isTrue);
     });
 
-    test('a per-ml panel stays per ml — stored as the label reads (7.7)', () {
+    test('a per-ml panel stays per ml — stored as the label reads', () {
       const oat = IngredientDraft(
         suggestedName: 'Oat drink',
         source: DraftSource.barcode,
@@ -160,7 +160,7 @@ void main() {
     });
   });
 
-  group('a per-serving panel (plan 0027 M-D5) takes the macros slot', () {
+  group('a per-serving panel takes the macros slot', () {
     const printed = Macros(kcal: 180, protein: 6, carb: 10, fat: 14);
     const panel = DraftServingPanel(
       printed: printed,
@@ -177,8 +177,8 @@ void main() {
       packSize: DraftPackSize(454, g),
     );
 
-    test('on an empty target it lands as printed, with the serving’s basis '
-        '— never converted here', () {
+    test('on an empty target it lands as printed, with the serving’s basis — '
+        'never converted here', () {
       final applied = applyDraft(peanutButter, target: const DraftTarget());
       expect(applied.servingPanel, panel);
       expect(applied.macros, isNull);
@@ -188,8 +188,8 @@ void main() {
       expect(applied.packMeasure!.amountInBasis, 454);
     });
 
-    test('a panel a human already typed stays, and is named — the same rule '
-        'as a per-100 panel', () {
+    test('a panel a human already typed stays, and is named — the same rule as '
+        'a per-100 panel', () {
       final applied = applyDraft(
         peanutButter,
         target: const DraftTarget(hasMacros: true),

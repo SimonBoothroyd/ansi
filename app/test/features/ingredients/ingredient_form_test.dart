@@ -27,7 +27,7 @@ import '../../helpers/silent_usda_probe.dart';
 import '_form_harness.dart';
 
 void main() {
-  group('the flesh-out form — frames (b) and (c)', () {
+  group('the flesh-out form', () {
     testWidgets('a stub without macros: the CTA is refused with its reason, '
         'and the status line says it is out of the totals', (tester) async {
       filterForuiSemanticsAssertions();
@@ -48,8 +48,8 @@ void main() {
       expect(cta.onPress, isNull);
     });
 
-    testWidgets('typing the four macros arms the CTA, and confirming flips '
-        'the row to complete — density never asked for', (tester) async {
+    testWidgets('typing the four macros arms the CTA, and confirming flips the '
+        'row to complete — density never asked for', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [curryLeaves]);
@@ -101,8 +101,8 @@ void main() {
       },
     );
 
-    testWidgets('THE MANGO CHIPS (D4): a piece default with a density admits '
-        'cup, and nothing is dashed', (tester) async {
+    testWidgets('THE MANGO CHIPS: a piece default with a density admits cup, '
+        'and nothing is dashed', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -118,10 +118,8 @@ void main() {
       );
     });
 
-    testWidgets('D4b, the full cycle: locked → a density unlocks → deleting '
-        'it strips again, with the basis family live throughout', (
-      tester,
-    ) async {
+    testWidgets('the full cycle: locked → a density unlocks → deleting it '
+        'strips again, with the basis family live throughout', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       // A piece-default per-g row with no density: mass is its basis family
@@ -193,8 +191,8 @@ void main() {
       expect(lockedUnitLabels(tester), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
     });
 
-    testWidgets('G6: a density-less row draws the locked chips, and the note '
-        'above them is ONE line naming exactly those units', (tester) async {
+    testWidgets('a density-less row draws the locked chips, and the note above '
+        'them is ONE line naming exactly those units', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -214,8 +212,8 @@ void main() {
       expect(find.textContaining('That blocks nothing'), findsNothing);
     });
 
-    testWidgets('G6: a row with a density says nothing at all there — a note '
-        'with no news is noise', (tester) async {
+    testWidgets('a row with a density says nothing at all there — a note with '
+        'no news is noise', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -261,7 +259,7 @@ void main() {
       expect(repo.rows, isEmpty);
     });
 
-    testWidgets('renaming rewrites the match text (D6) and says so on the '
+    testWidgets('renaming rewrites the match text and says so on the '
         'form', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
@@ -281,8 +279,8 @@ void main() {
       expect(repo.matchTextById['curry'], 'curry leaf dried');
     });
 
-    testWidgets('F2: measures are EDITABLE here — the shared 7.7 editor, not '
-        'a read-only note', (tester) async {
+    testWidgets('measures are EDITABLE here — the shared editor, not a '
+        'read-only note', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final measures = FakeMeasureRepo(const [
@@ -353,8 +351,8 @@ void main() {
       expect(asked.measuresRemoved, {'m-usda'});
     });
 
-    testWidgets('F2: a volume-named measure label is still refused and '
-        'redirected into the density entry (ADR-0008 §2)', (tester) async {
+    testWidgets('a volume-named measure label is still refused and redirected '
+        'into the density entry (ADR-0008 §2)', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final measures = FakeMeasureRepo();
@@ -425,8 +423,8 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('the FIRST measure asks whether `piece` stays offered, and '
-        'the default answer takes it out of allowed_units', (tester) async {
+    testWidgets('the FIRST measure asks whether `piece` stays offered, and the '
+        'default answer takes it out of allowed_units', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [mango]);
@@ -647,8 +645,9 @@ void main() {
       expect(find.text('One mango is'), findsNothing);
     });
 
-    testWidgets("F3: the category is a dropdown of the household's own "
-        'categories — free text is gone', (tester) async {
+    testWidgets('the '
+        "category is a dropdown of the household's own categories — free text "
+        'is gone', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [mango, curryLeaves, yeast]);
@@ -677,8 +676,8 @@ void main() {
       expect((await repo.byId('yeast'))!.category, 'produce');
     });
 
-    testWidgets('F3: a category nothing else carries is still offered, and a '
-        'new one can be coined', (tester) async {
+    testWidgets('a category nothing else carries is still offered, and a new '
+        'one can be coined', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       // Its own category is unique to it — the dropdown must not orphan it.
@@ -760,9 +759,9 @@ void main() {
       expect(find.text('Look up in USDA'), findsNothing);
     });
 
-    testWidgets('G1: a successful lookup lands its numbers in the OPEN form’s '
-        'macro fields — the row filling up is not the same as the form '
-        'showing it', (tester) async {
+    testWidgets('a successful lookup lands its numbers in the OPEN form’s '
+        'macro fields — the row filling up is not the same as the form showing '
+        'it', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo([curryLeaves.copyWith(source: 'manual')]);
@@ -801,7 +800,7 @@ void main() {
       );
     });
 
-    testWidgets('G1: numbers the user is part-way through typing are never '
+    testWidgets('numbers the user is part-way through typing are never '
         'clobbered — a pending edit outranks the row', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
@@ -832,9 +831,8 @@ void main() {
       );
     });
 
-    testWidgets('G1: a pick the user dismisses changes nothing at all', (
-      tester,
-    ) async {
+    testWidgets('a pick the user dismisses changes nothing at '
+        'all', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo([curryLeaves.copyWith(source: 'manual')]);
@@ -869,8 +867,8 @@ void main() {
     // (see the U-D3 test's "Curry, nameless"). There is no status to go
     // stale, so there is nothing to retire.
 
-    testWidgets('G2: the density row fits a phone — in its "none yet" state, '
-        'and in the spoon phrasing', (tester) async {
+    testWidgets('the density row fits a phone — in its "none yet" state, and '
+        'in the spoon phrasing', (tester) async {
       filterForuiSemanticsAssertions();
       phoneWidth(tester);
       // The section on its own, at the width the form gives it. Scoped
@@ -889,8 +887,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('D4c: a cup default on a per-100 g row with no density is '
-        'FLAGGED with its repair, never rewritten', (tester) async {
+    testWidgets('a cup default on a per-100 g row with no density is FLAGGED '
+        'with its repair, never rewritten', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [blackRice]);
@@ -912,8 +910,8 @@ void main() {
       expect(find.textContaining('needs a density on this row'), findsNothing);
     });
 
-    testWidgets('D4c: the default-unit selector locks the other family while '
-        'no density bridges it', (tester) async {
+    testWidgets('the default-unit selector locks the other family while no '
+        'density bridges it', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -966,7 +964,7 @@ void main() {
     });
   });
 
-  group('creating an ingredient — the form IS the add flow (plan 0029 C2)', () {
+  group('creating an ingredient — the form IS the add flow', () {
     testWidgets('the ＋ opens a form with no row behind it: it says so, it '
         'offers no ⋯, and backing out writes nothing', (tester) async {
       filterForuiSemanticsAssertions();

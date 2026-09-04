@@ -92,7 +92,7 @@ void main() {
     });
 
     test('an auto line locks its ingredient even while its RANGE is unpicked '
-        '(ingredient lock ⟂ amount — round-3 #4)', () {
+        '(ingredient lock ⟂ amount)', () {
       final r = initialResolution(
         0,
         _line(
@@ -140,9 +140,9 @@ void main() {
     });
   });
 
-  group('create-new at review is an ordinary match (plan 0025 D3)', () {
-    test('a row the review just created commits by id like any other — '
-        'there is no stub leg, so nothing coalesces at commit', () {
+  group('create-new at review is an ordinary match', () {
+    test('a row the review just created commits by id like any other — there '
+        'is no stub leg, so nothing coalesces at commit', () {
       // Two identical no-match lines: the first creates "Aleppo chilli
       // flakes" (sheet → form → back), the second finds that row in the
       // search. Both arrive here as the same id, as corrections (the raw text
@@ -254,7 +254,7 @@ void main() {
     });
   });
 
-  group('sheetChoiceUnit (round-1 fix: measure chip → label, not piece)', () {
+  group('sheetChoiceUnit — a measure chip reads as its label, never piece', () {
     test('a catalog unit chip rides its id', () {
       expect(
         sheetChoiceUnit(
@@ -613,7 +613,7 @@ void main() {
 
   // --- Step 8.6 / D6: a recipe is OFFERED at review, never auto-linked ------
 
-  group('linking a line to a household recipe (D6)', () {
+  group('linking a line to a household recipe', () {
     ReconciliationPayload aioliPayload() => _payload([
       const ReconLine(
         raw: RawLineItem(
@@ -649,7 +649,7 @@ void main() {
       },
     );
 
-    test('linking clears any ingredient match — one identity, D1s XOR', () {
+    test('linking clears any ingredient match — one identity, never two', () {
       final linked = initialResolution(0, aioliPayload().flatLines[0])
           .resolveToIngredient('v-aioli', 'Aioli', correction: true)
           .linkToRecipe('r-aioli', 'Romesco Aioli');
@@ -756,8 +756,8 @@ void main() {
         expect(commit.corrections, isEmpty);
       });
 
-      test('an amount-less linked line is refused at the seam, not hoped '
-          'about in the view', () {
+      test('an amount-less linked line is refused at the seam, not hoped about '
+          'in the view', () {
         final payload = aioliPayload();
         final resolutions = [
           initialResolution(
@@ -946,7 +946,7 @@ void main() {
     });
   });
 
-  group('optional (plan 0025 #6): a line fact that survives the review', () {
+  group('optional: a line fact that survives the review', () {
     test("seeded from the extractor's raw flag", () {
       expect(
         initialResolution(0, _line('lime', optional: true)).optional,

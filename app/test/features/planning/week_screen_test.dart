@@ -236,7 +236,7 @@ WeekPlan _batchedWeek() => WeekPlan(
 );
 
 void main() {
-  group('the week switcher (D2/D3)', () {
+  group('the week switcher', () {
     final monday = mondayOf(DateTime.now());
     String titleFor(int weeksAhead) {
       final t = formatWeekTitle(
@@ -269,8 +269,8 @@ void main() {
     });
 
     testWidgets('another week shows no banner and no pill — the switcher in '
-        'every header is the signal, and its menu is the way home (0025 '
-        'D7a)', (tester) async {
+        'every header is the signal, and its menu is the way '
+        'home', (tester) async {
       await _pumpWeek(
         tester,
         planning: _FakePlanningRepo(week: _plannedWeek()),
@@ -329,7 +329,7 @@ void main() {
     });
   });
 
-  group('the empty week is a state of this screen, not a page (D5)', () {
+  group('the empty week is a state of this screen, not a page', () {
     final last = WeekPlan(
       id: 'w0',
       weekStart: DateTime.utc(2026, 8, 17),
@@ -423,7 +423,7 @@ void main() {
     });
   });
 
-  group('honest macros (D4)', () {
+  group('honest macros', () {
     const complete = RecipeMacroSummary(
       perServing: Macros(kcal: 500, protein: 30, carb: 40, fat: 20),
     );
@@ -505,7 +505,7 @@ void main() {
       expect(find.textContaining('kcal'), findsNothing);
     });
 
-    testWidgets('the lens DIMS rather than removes (D8)', (tester) async {
+    testWidgets('the lens DIMS rather than removes', (tester) async {
       await _pumpWeek(
         tester,
         planning: _FakePlanningRepo(week: _plannedWeek()),
@@ -575,27 +575,23 @@ void main() {
     expect(find.text('Add to plan'), findsOneWidget, reason: 'confirm sheet');
   });
 
-  testWidgets(
-    'one state: no Edit, and every day carries its add line (E1/E5)',
-    (tester) async {
-      await _pumpWeek(
-        tester,
-        planning: _FakePlanningRepo(week: _plannedWeek()),
-      );
+  testWidgets('one state: no Edit, and every day carries its add line', (
+    tester,
+  ) async {
+    await _pumpWeek(tester, planning: _FakePlanningRepo(week: _plannedWeek()));
 
-      expect(find.text('Thursday'), findsOneWidget);
-      expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
-      // E1: the mode and its one control are gone — there is nothing to toggle.
-      expect(find.text('Edit'), findsNothing);
-      expect(find.text('Done'), findsNothing);
-      // E5: one line per day, in two wordings — the day with the meal invites
-      // another, the days without say they are empty. Both are the same door.
-      expect(find.text('add a meal'), findsWidgets);
-      expect(find.text('nothing planned'), findsWidgets);
-      // v2's dashed edit-only door is not resurrected under a new name.
-      expect(find.text('Add a meal'), findsNothing);
-    },
-  );
+    expect(find.text('Thursday'), findsOneWidget);
+    expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
+    // E1: the mode and its one control are gone — there is nothing to toggle.
+    expect(find.text('Edit'), findsNothing);
+    expect(find.text('Done'), findsNothing);
+    // E5: one line per day, in two wordings — the day with the meal invites
+    // another, the days without say they are empty. Both are the same door.
+    expect(find.text('add a meal'), findsWidgets);
+    expect(find.text('nothing planned'), findsWidgets);
+    // v2's dashed edit-only door is not resurrected under a new name.
+    expect(find.text('Add a meal'), findsNothing);
+  });
 
   testWidgets('the portions chip appears only when portions differ from the '
       'eater count', (tester) async {
@@ -610,39 +606,45 @@ void main() {
     expect(find.text('3 portions'), findsOneWidget);
   });
 
-  testWidgets('the cook marker is read off the cook plan, and a single-meal '
-      'cook gets none (D6)', (tester) async {
-    // One recipe, two meals two days apart, keeping 4 days → ONE session
-    // covering both: Monday cooks, Wednesday comes out of that batch.
-    final plan = FakeCookPlanRepository.of([
-      const PlannedRecipe(
-        recipeId: 'r1',
-        title: 'Weeknight Chicken Curry',
-        servingsBase: 2,
-        keepsForDays: 4,
-        meals: [
-          CoveredMeal(dayOfWeek: 0, mealSlot: 'Dinner', portions: 2),
-          CoveredMeal(dayOfWeek: 2, mealSlot: 'Dinner', portions: 2),
-        ],
-      ),
-    ]);
-    await _pumpWeek(
-      tester,
-      planning: _FakePlanningRepo(week: _batchedWeek()),
-      cook: plan,
-    );
+  testWidgets(
+    'the cook marker is read off the cook plan, and a single-meal cook gets '
+    'none',
+    (tester) async {
+      // One recipe, two meals two days apart, keeping 4 days → ONE session
+      // covering both: Monday cooks, Wednesday comes out of that batch.
+      final plan = FakeCookPlanRepository.of([
+        const PlannedRecipe(
+          recipeId: 'r1',
+          title: 'Weeknight Chicken Curry',
+          servingsBase: 2,
+          keepsForDays: 4,
+          meals: [
+            CoveredMeal(dayOfWeek: 0, mealSlot: 'Dinner', portions: 2),
+            CoveredMeal(dayOfWeek: 2, mealSlot: 'Dinner', portions: 2),
+          ],
+        ),
+      ]);
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _batchedWeek()),
+        cook: plan,
+      );
 
-    expect(find.textContaining('batch of 4'), findsOneWidget);
-    expect(find.text('from Monday\u2019s batch'), findsOneWidget);
+      expect(find.textContaining('batch of 4'), findsOneWidget);
+      expect(find.text('from Monday\u2019s batch'), findsOneWidget);
 
-    // A week whose only meal cooks for itself says nothing — "cooks today" on
-    // every row would be noise.
-    await _pumpWeek(tester, planning: _FakePlanningRepo(week: _plannedWeek()));
-    expect(find.textContaining('batch of'), findsNothing);
-  });
+      // A week whose only meal cooks for itself says nothing — "cooks today" on
+      // every row would be noise.
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _plannedWeek()),
+      );
+      expect(find.textContaining('batch of'), findsNothing);
+    },
+  );
 
   testWidgets('the row has three targets: title \u2192 recipe, cluster \u2192 '
-      'editor, \u2212 \u2192 gone (E2/E7/E3)', (tester) async {
+      'editor, \u2212 \u2192 gone', (tester) async {
     filterForuiSemanticsAssertions();
     late GoRouter router;
     await _pumpWeek(
@@ -673,9 +675,8 @@ void main() {
     expect(find.textContaining('Open '), findsNothing);
   });
 
-  testWidgets('the \u2212 removes the meal and the toast puts it back (E3)', (
-    tester,
-  ) async {
+  testWidgets('the \u2212 removes the meal and the toast puts it '
+      'back', (tester) async {
     filterForuiSemanticsAssertions();
     await _pumpWeek(
       tester,
@@ -704,7 +705,7 @@ void main() {
     expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
   });
 
-  group('the portion factor, said everywhere (plan 0027 P-D4/D5)', () {
+  group('the portion factor, said everywhere', () {
     const complete = RecipeMacroSummary(
       perServing: Macros(kcal: 500, protein: 30, carb: 40, fat: 20),
     );
@@ -740,8 +741,8 @@ void main() {
       expect(find.textContaining('1.75'), findsNothing);
     });
 
-    testWidgets('an override stays whole and its small print names the '
-        'figure it replaced', (tester) async {
+    testWidgets('an override stays whole and its small print names the figure '
+        'it replaced', (tester) async {
       await openEntrySheet(tester, portions: 3);
       // Twice: the grid's chip behind the sheet, and the sheet's own row.
       expect(find.text('3 portions'), findsNWidgets(2));

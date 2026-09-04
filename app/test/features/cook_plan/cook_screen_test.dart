@@ -79,7 +79,7 @@ PlannedRecipe _recipe(
 
 void main() {
   testWidgets('the week switcher is the whole title, and its menu speaks in '
-      'cooks (0025 D7a/D7c)', (tester) async {
+      'cooks', (tester) async {
     await tester.pumpWidget(
       _host([
         cookPlanRepositoryProvider.overrideWithValue(
@@ -125,7 +125,7 @@ void main() {
   });
 
   testWidgets('a fractional demand reads as a fraction on the session row and '
-      'in the whole-batch nudge (plan 0027 P-D4)', (tester) async {
+      'in the whole-batch nudge', (tester) async {
     // A 1 and a ¾ eater of a serves-2 recipe: ×0.88 → cook ×1, ¼ over.
     await tester.pumpWidget(
       _host([
@@ -150,9 +150,8 @@ void main() {
     expect(find.textContaining('1.75'), findsNothing);
   });
 
-  testWidgets('an empty plan is a quiet line INSIDE the screen (D5b)', (
-    tester,
-  ) async {
+  testWidgets('an empty plan is a quiet line INSIDE the '
+      'screen', (tester) async {
     await tester.pumpWidget(
       _host([
         cookPlanRepositoryProvider.overrideWithValue(
@@ -215,7 +214,7 @@ void main() {
     expect(find.textContaining("Saturday's share"), findsOneWidget);
   });
 
-  group('component sessions (step 8.6 / D3, board frame f)', () {
+  group('component sessions', () {
     testWidgets('a component card reads in batches, names its parents, and '
         'says what is left over', (tester) async {
       await tester.pumpWidget(

@@ -218,8 +218,8 @@ void main() {
     expect(find.textContaining('deleted — back to'), findsNothing);
   });
 
-  testWidgets('the add form redirects a volume-unit label into density '
-      'entry, plural included', (tester) async {
+  testWidgets('the add form redirects a volume-unit label into density entry, '
+      'plural included', (tester) async {
     filterForuiSemanticsAssertions();
     await tester.pumpWidget(
       _host(repo: _FakeMeasureRepo(const []), onDone: (_) {}),
@@ -251,8 +251,8 @@ void main() {
     expect(find.text('cup'), findsOneWidget);
   });
 
-  testWidgets('the Optional row is offered only to a recipe-line host (D6a) — '
-      'a shopping top-up has no such fact', (tester) async {
+  testWidgets('the Optional row is offered only to a recipe-line host — a '
+      'shopping top-up has no such fact', (tester) async {
     filterForuiSemanticsAssertions();
     await tester.pumpWidget(
       _host(repo: _FakeMeasureRepo(const [_large]), onDone: (_) {}),
@@ -263,7 +263,7 @@ void main() {
   });
 
   testWidgets('the Optional switch rides Done, with both consequences named '
-      'under it (frame e1)', (tester) async {
+      'under it', (tester) async {
     filterForuiSemanticsAssertions();
     QuantitySaved? saved;
     await tester.pumpWidget(

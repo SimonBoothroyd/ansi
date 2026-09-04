@@ -113,7 +113,7 @@ void main() {
     expect(find.text('2 tbsp'), findsOneWidget);
   });
 
-  testWidgets('the chip pushes the target recipe (D7)', (tester) async {
+  testWidgets('the chip pushes the target recipe', (tester) async {
     await tester.pumpWidget(
       _host(_FakeRecipeRepo({'sliders': _sliders(), 'aioli': _aioliRecipe})),
     );
@@ -127,9 +127,8 @@ void main() {
     expect(find.text('serves 4'), findsOneWidget);
   });
 
-  testWidgets('a dangling link reads as the text it stored, and says so (D5)', (
-    tester,
-  ) async {
+  testWidgets('a dangling link reads as the text it stored, and says '
+      'so', (tester) async {
     await tester.pumpWidget(
       _host(
         _FakeRecipeRepo({
@@ -178,9 +177,8 @@ void main() {
     expect(find.text('· 16 tbsp'), findsOneWidget);
   });
 
-  testWidgets('a recipe used in nothing keeps the two-tab page (D9)', (
-    tester,
-  ) async {
+  testWidgets('a recipe used in nothing keeps the two-tab '
+      'page', (tester) async {
     await tester.pumpWidget(
       _host(_FakeRecipeRepo({'sliders': _aioliRecipe.copyWith(id: 'sliders')})),
     );
@@ -230,8 +228,8 @@ void main() {
     expect(find.text('0.25 cup'), findsOneWidget);
   });
 
-  testWidgets('delete is refused with the count while something points here '
-      '(D5)', (tester) async {
+  testWidgets('delete is refused with the count while something points '
+      'here', (tester) async {
     filterForuiSemanticsAssertions();
     final repo = _FakeRecipeRepo(
       {'sliders': _aioliRecipe.copyWith(id: 'sliders')},

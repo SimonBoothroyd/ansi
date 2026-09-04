@@ -352,7 +352,7 @@ void main() {
   });
 
   testWidgets('an auto line locks its ingredient even with an unpicked range; '
-      'only the amount is flagged (round-3 #4)', (tester) async {
+      'only the amount is flagged', (tester) async {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
@@ -380,7 +380,7 @@ void main() {
   });
 
   testWidgets('an unsupported unit is flagged (not shown ok) and offers valid '
-      'unit chips that apply on tap (round-3 #1b/#2)', (tester) async {
+      'unit chips that apply on tap', (tester) async {
     filterForuiSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
@@ -535,8 +535,9 @@ void main() {
     expect(find.text('Pick a supported unit'), findsNothing);
   });
 
-  testWidgets("the amount sheet's Optional switch writes the line fact back "
-      'onto the resolution (plan 0025 / D6a)', (tester) async {
+  testWidgets('the '
+      "amount sheet's Optional switch writes the line fact back onto the "
+      'resolution', (tester) async {
     filterForuiSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
@@ -763,8 +764,8 @@ void main() {
     expect(find.text('Pick a supported unit'), findsNothing);
   });
 
-  testWidgets('a default the user never touched commits as a tapped chip '
-      'would — the label rides through, with no provenance of its own', (
+  testWidgets('a default the user never touched commits as a tapped chip would '
+      '— the label rides through, with no provenance of its own', (
     tester,
   ) async {
     filterForuiSemanticsAssertions();
@@ -1020,7 +1021,7 @@ void main() {
     });
   });
 
-  group('crossReferenceFlag (board frame e)', () {
+  group('crossReferenceFlag', () {
     test('a printed page reference is surfaced, in its own words', () {
       expect(crossReferenceFlag('Romesco Aioli (page 38)'), '(page 38)');
       expect(crossReferenceFlag('Garlic Butter (p. 17)'), '(p. 17)');
@@ -1034,7 +1035,7 @@ void main() {
     });
   });
 
-  group('amountLabel (round-3 #1a)', () {
+  group('amountLabel', () {
     test('an imprecise unit reads as the clean unit, never the raw phrase', () {
       const r = LineResolution(
         lineIndex: 0,
@@ -1136,10 +1137,10 @@ void main() {
     });
   });
 
-  group('create-new at review is the one add flow (plan 0025 D3, frame d)', () {
-    testWidgets('the footer opens the New-ingredient sheet with the line’s '
-        'text, walks the form pushed over the search sheet, and resolves the '
-        'line to the re-read row as an existing ingredient', (tester) async {
+  group('create-new at review is the one add flow', () {
+    testWidgets('the footer opens the form seeded with the line’s text, pushed '
+        'over the search sheet, and resolves the line to the re-read row as an '
+        'existing ingredient', (tester) async {
       filterForuiSemanticsAssertions();
       final repo = FakeIngredientRepo(const []);
       final picks = <ReconcilePick?>[];

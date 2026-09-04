@@ -144,63 +144,56 @@ void main() {
     return (payload: p, resolutions: resolutions);
   }
 
-  test(
-    'commit writes the optional flag the review carried (plan 0025 #6)',
-    () async {
-      const p = ReconciliationPayload(
-        title: 'Optional Lime',
-        servingsBase: 2,
-        groups: [
-          ReconGroup(
-            lines: [
-              ReconLine(
-                raw: RawLineItem(
-                  ingredientText: 'onion',
-                  qty: 1,
-                  unit: 'piece',
+  test('commit writes the optional flag the review carried', () async {
+    const p = ReconciliationPayload(
+      title: 'Optional Lime',
+      servingsBase: 2,
+      groups: [
+        ReconGroup(
+          lines: [
+            ReconLine(
+              raw: RawLineItem(ingredientText: 'onion', qty: 1, unit: 'piece'),
+              band: MatchBand.auto,
+              candidates: [
+                MatchCandidate(
+                  ingredientId: 'ing-onion',
+                  canonicalName: 'Onion',
                 ),
-                band: MatchBand.auto,
-                candidates: [
-                  MatchCandidate(
-                    ingredientId: 'ing-onion',
-                    canonicalName: 'Onion',
-                  ),
-                ],
+              ],
+            ),
+            ReconLine(
+              raw: RawLineItem(
+                ingredientText: 'lime, to serve',
+                optional: true,
               ),
-              ReconLine(
-                raw: RawLineItem(
-                  ingredientText: 'lime, to serve',
-                  optional: true,
-                ),
-                band: MatchBand.none,
-              ),
-            ],
-          ),
-        ],
-      );
-      final recipeId = await repo.commit(
-        buildCommit(
-          p,
-          [
-            initialResolution(0, p.flatLines[0]),
-            initialResolution(
-              1,
-              p.flatLines[1],
-            ).resolveToIngredient('ing-onion', 'Onion'),
+              band: MatchBand.none,
+            ),
           ],
-          header: _header(p),
-          issuesByLine: null,
         ),
-      );
-      final rows = await db.getAll(
-        'SELECT li.optional FROM recipe_line_item li '
-        'JOIN ingredient_group g ON g.id = li.group_id '
-        'WHERE g.recipe_id = ? ORDER BY li.sort_order',
-        [recipeId],
-      );
-      expect(rows.map((r) => r['optional']), [0, 1]);
-    },
-  );
+      ],
+    );
+    final recipeId = await repo.commit(
+      buildCommit(
+        p,
+        [
+          initialResolution(0, p.flatLines[0]),
+          initialResolution(
+            1,
+            p.flatLines[1],
+          ).resolveToIngredient('ing-onion', 'Onion'),
+        ],
+        header: _header(p),
+        issuesByLine: null,
+      ),
+    );
+    final rows = await db.getAll(
+      'SELECT li.optional FROM recipe_line_item li '
+      'JOIN ingredient_group g ON g.id = li.group_id '
+      'WHERE g.recipe_id = ? ORDER BY li.sort_order',
+      [recipeId],
+    );
+    expect(rows.map((r) => r['optional']), [0, 1]);
+  });
 
   test('commit writes the recipe, groups, and non-null line items', () async {
     final c = resolvedCommit();
@@ -325,8 +318,8 @@ void main() {
   });
 
   test(
-    'the commit creates no ingredient — two lines on one created row point '
-    'at it, and the vocabulary is exactly what it was (plan 0025 D3)',
+    'the commit creates no ingredient — two lines on one created row point at '
+    'it, and the vocabulary is exactly what it was',
     () async {
       final before = (await db.getAll('SELECT id FROM ingredient')).length;
       final c = resolvedCommit();
@@ -376,7 +369,7 @@ void main() {
     expect(aliases.single['ingredient_id'], 'ing-onion');
   });
 
-  test('D6: a correction alias carries the SERVER phrase rules, not the '
+  test('a correction alias carries the SERVER phrase rules, not the '
       'character-level search normalizer', () async {
     // The last D6 residual: import's commit was still writing `match_text`
     // with `normalizeSearchQuery`, so an alias it wrote carried text the
@@ -574,7 +567,7 @@ void main() {
     expect(parm.candidates.single.ingredientId, 'ing-parm');
   });
 
-  group('the unattended re-match seam (D6)', () {
+  group('the unattended re-match seam', () {
     test('it sees ALIASES, not just the ingredient name', () async {
       // The learning loop absorbs a household's own phrasing as an alias. Until
       // now this seam searched `ingredient.match_text` alone, so everything it
@@ -594,8 +587,8 @@ void main() {
       expect(garlic.candidates.single.canonicalName, 'Allium Sativum');
     });
 
-    test('it ranks the candidates the way the PICKER ranks them — an alias '
-        'the query IS beats a longer name the query merely prefixes', () async {
+    test('it ranks the candidates the way the PICKER ranks them — an alias the '
+        'query IS beats a longer name the query merely prefixes', () async {
       // The divergence this seam used to carry: the SQL ordered by name
       // length, so the shorter canonical name won whatever the surfaces said.
       // "Parmesan" IS one row's alias (tier 0, an exact surface) and only
@@ -643,7 +636,7 @@ void main() {
 
   // --- Step 8.6 / D6: a review-linked line persists as a component ----------
 
-  group('a linked line commits as a component (8.6 / D1 · D6)', () {
+  group('a linked line commits as a component', () {
     /// One aioli line offered a household recipe, plus one plain line beside
     /// it so the ordinary path is asserted in the same write.
     const linkedPayload = ReconciliationPayload(
@@ -713,8 +706,8 @@ void main() {
       );
     }
 
-    test('sub_recipe_id set, ingredient_id null, measure_id null — the 0017 '
-        'XOR and its measure fence', () async {
+    test('sub_recipe_id set, ingredient_id null, measure_id null — the XOR and '
+        'its measure fence', () async {
       final recipeId = await commitLinked();
       final lines = await db.getAll(
         'SELECT li.* FROM recipe_line_item li '
@@ -793,7 +786,7 @@ void main() {
     });
   });
 
-  group('the header at review (plan 0025 #4)', () {
+  group('the header at review', () {
     test('commit writes every header column the editor writes: title, both '
         'yields, times, shelf life, filing', () async {
       await db.execute(
@@ -862,8 +855,8 @@ void main() {
       expect((loaded.bookName, loaded.sectionName), ('Weeknights', 'Quick'));
     });
 
-    test('a header that states nothing writes nulls and an unfrozen row — '
-        'and still files into the default book', () async {
+    test('a header that states nothing writes nulls and an unfrozen row — and '
+        'still files into the default book', () async {
       final c = resolvedCommit();
       final recipeId = await repo.commit(
         buildCommit(

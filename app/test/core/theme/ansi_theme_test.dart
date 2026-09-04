@@ -38,13 +38,13 @@ void main() {
     expect(selected, greaterThanOrEqualTo(7));
   });
 
-  test('unselected muted on surface is 4.97:1 — AA, unchanged by D7d', () {
+  test('unselected muted on surface is 4.97:1 — AA', () {
     expect(unselected, closeTo(4.97, 0.01));
     expect(unselected, greaterThanOrEqualTo(4.5));
   });
 
-  test('selected vs unselected is 1.88:1 — the two states are told apart '
-      '(≥ 1.8:1)', () {
+  test('selected vs unselected is 1.88:1 — the two states are told apart (≥ '
+      '1.8:1)', () {
     expect(between, closeTo(1.88, 0.01));
     expect(between, greaterThanOrEqualTo(1.8));
   });

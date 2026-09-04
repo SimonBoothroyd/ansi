@@ -96,9 +96,8 @@ void main() {
     expect((step.tokens.last as MethodText).s, '.');
   });
 
-  testWidgets('a second mention of the same line hides its amount (D9)', (
-    tester,
-  ) async {
+  testWidgets('a second mention of the same line hides its '
+      'amount', (tester) async {
     final repo = await openEditor(tester);
     // Chip "fennel" in step 2's sentence… there is none, so use step 1's
     // existing fennel chip plus a new chip on the same line in step 2.

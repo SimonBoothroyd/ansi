@@ -57,7 +57,7 @@ void main() {
     }
   });
 
-  group('incompleteNote is untouched by the imprecise bucket (D6)', () {
+  group('incompleteNote is untouched by the imprecise bucket', () {
     test('an imprecise line changes nothing a surface prints', () {
       const withImprecise = RecipeMacroSummary(
         stubLines: 2,
@@ -88,7 +88,7 @@ void main() {
     });
   });
 
-  group('incompleteLineNote (D5): a word for every reason', () {
+  group('incompleteLineNote: a word for every reason', () {
     test('every reason has one, and no two fixable reasons share it', () {
       final words = {
         for (final reason in MacroLineReason.values)
@@ -125,7 +125,7 @@ void main() {
     });
   });
 
-  group('notCountedNote (D6): the exclusion, named', () {
+  group('notCountedNote: the exclusion, named', () {
     test("the board's own sentence", () {
       expect(
         notCountedNote([
@@ -140,7 +140,7 @@ void main() {
       );
     });
 
-    test("D6b's sentence — optional lines are counted, then named", () {
+    test('optional lines are counted, then named', () {
       expect(
         notCountedNote([
           _note(MacroLineReason.optional, name: 'Lime'),

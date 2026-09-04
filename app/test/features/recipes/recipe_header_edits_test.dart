@@ -17,7 +17,7 @@ void main() {
     expect(_blank.withServings(-3).servingsBase, 1);
   });
 
-  group('the yield (step 8.6 / D2)', () {
+  group('the yield', () {
     test('both halves or neither', () {
       expect(_blank.withYield(250, g).yields, [(qty: 250.0, unit: g)]);
       expect(_blank.withYield(250, null).yields, isEmpty);

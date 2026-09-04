@@ -161,7 +161,7 @@ void main() {
     expect(find.text('ingredient'), findsNothing);
   });
 
-  group('a blank-labelled collective renders as a run of chips (J1)', () {
+  group('a blank-labelled collective renders as a run of chips', () {
     testWidgets('seven refs wrap across lines at phone width, in order, with '
         'no label chip and no parentheses', (tester) async {
       tester.view.physicalSize = const Size(390, 844);

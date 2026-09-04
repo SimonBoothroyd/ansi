@@ -15,11 +15,10 @@ import '../../helpers/forui_semantics.dart';
 import '_form_harness.dart';
 
 void main() {
-  group('the vocabulary list — frame (a)', () {
+  group('the vocabulary list', () {
     testWidgets('the stub band sits on top of the whole vocabulary, and its '
-        'hint reads NEEDS MACROS (D5 overruled "needs density · macros")', (
-      tester,
-    ) async {
+        'hint reads NEEDS MACROS, not "needs density · '
+        'macros"', (tester) async {
       filterForuiSemanticsAssertions();
       await tester.pumpWidget(
         host(FakeIngredientRepo(const [mango, curryLeaves, yeast])),
@@ -35,10 +34,8 @@ void main() {
       expect(find.text('Nutritional yeast'), findsWidgets);
     });
 
-    testWidgets('J4: the list comes back from the detail route still showing '
-        'the band and the header — a round-trip is not a search', (
-      tester,
-    ) async {
+    testWidgets('the list comes back from the detail route still showing the '
+        'band and the header — a round-trip is not a search', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [mango, curryLeaves, yeast]);
@@ -69,10 +66,9 @@ void main() {
       expect(find.text('Mango, ripe'), findsWidgets);
     });
 
-    testWidgets('J4: typing still collapses the list into results, and '
-        'clearing the field brings the band and the header straight back', (
-      tester,
-    ) async {
+    testWidgets('typing still collapses the list into results, and clearing '
+        'the field brings the band and the header straight '
+        'back', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -95,8 +91,8 @@ void main() {
       expect(find.text('All ingredients · 3'), findsOneWidget);
     });
 
-    testWidgets('rows are the 7.7 picker rows: honest hints, no zeros for a '
-        'stub, and a missing density named as an advisory', (tester) async {
+    testWidgets('rows are the picker rows: honest hints, no zeros for a stub, '
+        'and a missing density named as an advisory', (tester) async {
       filterForuiSemanticsAssertions();
       await tester.pumpWidget(
         host(FakeIngredientRepo(const [mango, curryLeaves, yeast])),
@@ -123,8 +119,8 @@ void main() {
       expect(find.textContaining('60 kcal · 1P 0F 15C'), findsOneWidget);
     });
 
-    testWidgets('G4: a prefilled-but-unconfirmed stub hints NEEDS COMPLETING — '
-        'the hint stops asking for what the row already has', (tester) async {
+    testWidgets('a prefilled-but-unconfirmed stub hints NEEDS COMPLETING — the '
+        'hint stops asking for what the row already has', (tester) async {
       filterForuiSemanticsAssertions();
       // Same row, one difference: the prefill has landed its panel.
       final prefilled = curryLeaves.copyWith(macros: usdaAnswer.macros);

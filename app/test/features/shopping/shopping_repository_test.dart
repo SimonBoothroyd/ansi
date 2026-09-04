@@ -152,7 +152,7 @@ void main() {
   });
 
   test('the list scales by the same fractional demand the cook plan derives '
-      '(plan 0027 P-D1 — shopping otherwise untouched)', () async {
+      '(shopping otherwise untouched)', () async {
     final now = DateTime.now().toUtc().toIso8601String();
     for (final (id, name, order, factor) in [
       ('a', 'Ada', 0, 1.0),
@@ -179,36 +179,39 @@ void main() {
     expect(flour.totals.single.amount, closeTo(87.5, 1e-9));
   });
 
-  test('an optional line is left off the list, and its recipe says which '
-      '(plan 0025 / D6b)', () async {
-    await _insertIngredient(db, 'lime', 'Lime', 'produce', 'piece');
-    await _insertRecipe(
-      db,
-      'curry',
-      'Curry',
-      lines: [('onion', 3, pieces), ('lime', 1, pieces)],
-    );
-    await db.execute('UPDATE recipe_line_item SET optional = 1 WHERE id = ?', [
-      'curry-li1',
-    ]);
-    await planning.addEntry(
-      weekStart: _week,
-      dayOfWeek: 0,
-      mealSlot: 'Dinner',
-      recipeId: 'curry',
-      eaterIds: ['a', 'b'],
-    );
+  test(
+    'an optional line is left off the list, and its recipe says which',
+    () async {
+      await _insertIngredient(db, 'lime', 'Lime', 'produce', 'piece');
+      await _insertRecipe(
+        db,
+        'curry',
+        'Curry',
+        lines: [('onion', 3, pieces), ('lime', 1, pieces)],
+      );
+      await db.execute(
+        'UPDATE recipe_line_item SET optional = 1 WHERE id = ?',
+        ['curry-li1'],
+      );
+      await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'curry',
+        eaterIds: ['a', 'b'],
+      );
 
-    final list = await repo.watchShoppingList(_week).first;
-    // No lime item anywhere — and no invented quantity in its place.
-    expect(list.groups.expand((g) => g.items).map((i) => i.ingredientId), [
-      'onion',
-    ]);
-    final echo = list.optionalLines.single;
-    expect(echo.recipeId, 'curry');
-    expect(echo.recipeTitle, 'Curry');
-    expect(echo.names, ['Lime']);
-  });
+      final list = await repo.watchShoppingList(_week).first;
+      // No lime item anywhere — and no invented quantity in its place.
+      expect(list.groups.expand((g) => g.items).map((i) => i.ingredientId), [
+        'onion',
+      ]);
+      final echo = list.optionalLines.single;
+      expect(echo.recipeId, 'curry');
+      expect(echo.recipeTitle, 'Curry');
+      expect(echo.names, ['Lime']);
+    },
+  );
 
   test('merges a shared ingredient across recipes with provenance', () async {
     await _insertRecipe(db, 'curry', 'Curry', lines: [('onion', 3, pieces)]);
@@ -682,8 +685,8 @@ void main() {
     );
   });
 
-  test('a recognised non-count unit beside a measure is a note, never '
-      'invented mass', () async {
+  test('a recognised non-count unit beside a measure is a note, never invented '
+      'mass', () async {
     // The other two-thirds of the invented-mass leak (review N2): a measure
     // row stores a count unit by design, so 'g' or 'to_taste' beside a
     // resolving measure_id is contradictory data. It must surface as a
@@ -735,7 +738,7 @@ void main() {
     expect(labels, contains('measure beside non-count unit "to taste"'));
   });
 
-  group('nested recipes (step 8.6 / D4)', () {
+  group('nested recipes', () {
     /// Sliders (serves 1) with 500 g flour and ¼ cup of the aioli; the aioli
     /// (makes 1 cup) is 240 g of almonds.
     Future<void> seed({bool withYield = true}) async {
@@ -863,7 +866,7 @@ void main() {
     });
   });
 
-  group('the overlay is scoped to a week (0018 / D3)', () {
+  group('the overlay is scoped to a week', () {
     final nextWeek = DateTime.utc(2026, 8, 31);
 
     /// Plans one Curry meal on [week] so the ingredient is derived onto that

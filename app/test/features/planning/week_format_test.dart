@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   final today = DateTime.utc(2026, 8, 27);
 
-  group('the cook marker (D6) — a read of the cook plan', () {
+  group('the cook marker — a read of the cook plan', () {
     /// One recipe planned on [days], all Dinner, 2 portions each.
     CookPlan planFor(
       List<int> days, {
@@ -118,7 +118,7 @@ void main() {
     });
   });
 
-  group('formatWeekTitle (D2 — the week is a position)', () {
+  group('formatWeekTitle (the week is a position)', () {
     // today is Thursday 27 Aug 2026; this week's Monday is 24 Aug.
     test('names the three weeks around today, with the date', () {
       expect(formatWeekTitle(DateTime.utc(2026, 8, 24), today), (
@@ -172,7 +172,7 @@ void main() {
     });
   });
 
-  group('formatDerivedWeekSuffix (D3 — Cook and Shop say which week)', () {
+  group('formatDerivedWeekSuffix (Cook and Shop say which week)', () {
     test('is null on the current week — the header stays the screen name', () {
       expect(formatDerivedWeekSuffix(DateTime.utc(2026, 8, 24), today), isNull);
     });
@@ -202,7 +202,7 @@ void main() {
     });
   });
 
-  group('formatLastPlanned (7.7 picker recency)', () {
+  group('formatLastPlanned — picker recency', () {
     test('same day is today', () {
       expect(formatLastPlanned(DateTime.utc(2026, 8, 27), today), 'today');
     });

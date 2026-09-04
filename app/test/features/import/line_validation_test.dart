@@ -88,8 +88,8 @@ void main() {
       expect(tokens, isNot(contains('ml')));
     });
 
-    test('J3: pinch and dash are NOT unioned onto every match — the review '
-        'offered "a dash of kale" because they were', () {
+    test('pinch and dash are NOT unioned onto every match — the review offered '
+        '"a dash of kale" because they were', () {
       // A line that printed a real volume unit: nothing pulls an imprecise
       // word in through the J3b printed leg.
       final tokens = acceptableUnitTokens(_kale, const [], parsedUnit: 'cup');
@@ -99,8 +99,9 @@ void main() {
       expect(tokens, containsAll(<String>['handful', 'to_taste']));
     });
 
-    test("J3b: a line's OWN printed imprecise word is admitted whatever the "
-        'category — never-invent cuts both ways', () {
+    test('a '
+        "line's OWN printed imprecise word is admitted whatever the category — "
+        'never-invent cuts both ways', () {
       // THE SCENARIO-4 SHAPE. A row created at review is a plain `g` stub
       // with NO category until the form gives it one, so it earns no
       // imprecise word at all; the source printed "a pinch of chilli flakes".
@@ -135,16 +136,23 @@ void main() {
       );
     });
 
-    test('J3b admits exactly the printed word, not the rest of the tail', () {
-      // "A pinch of kale" would be honoured if a source really printed it —
-      // but it still buys kale no `dash`, which is the offer J3 closed.
-      final tokens = acceptableUnitTokens(_kale, const [], parsedUnit: 'pinch');
-      expect(tokens, contains('pinch'));
-      expect(tokens, isNot(contains('dash')));
-    });
+    test(
+      'the admission is exactly the printed word, not the rest of the tail',
+      () {
+        // "A pinch of kale" would be honoured if a source really printed it —
+        // but it still buys kale no `dash`, which is the offer J3 closed.
+        final tokens = acceptableUnitTokens(
+          _kale,
+          const [],
+          parsedUnit: 'pinch',
+        );
+        expect(tokens, contains('pinch'));
+        expect(tokens, isNot(contains('dash')));
+      },
+    );
 
-    test('J3b does NOT extend to mass/volume: a printed unit the converter '
-        'cannot resolve still flags (D4c)', () {
+    test('the printed-word admission does NOT extend to mass/volume: a printed '
+        'unit the converter cannot resolve still flags', () {
       // The pass is for imprecise WORDS, which cost the converter nothing.
       // "1 cup" of a density-less row is a different animal entirely.
       expect(
@@ -157,8 +165,8 @@ void main() {
     });
 
     test('so no imprecise unit can flag on the import surface at all — the '
-        'only reachable states are printed (admitted by J3b) and tapped '
-        '(offered, therefore admitted)', () {
+        'only reachable states are printed (admitted as the line’s own word) '
+        'and tapped (offered, therefore admitted)', () {
       // Worth pinning as a property: the gate lives in what is OFFERED. A
       // word the editor never shows is a word the user cannot pick, so a
       // flag on one could only ever be unclearable.
@@ -177,7 +185,7 @@ void main() {
       expect(allowedUnitsFor(_kale), isNot(contains(pinch)));
     });
 
-    test('J3: a seasoning still earns the whole tail', () {
+    test('a seasoning still earns the whole tail', () {
       const salt = Ingredient(
         id: 'i-salt',
         canonicalName: 'Salt',
@@ -226,8 +234,9 @@ void main() {
       expect(issues, [LineIssue.unitNotAllowed]);
     });
 
-    test("D4b: deleting an ingredient's density degrades a line already "
-        'saying a cross-family unit — flagged, never rewritten', () {
+    test('deleting '
+        "an ingredient's density degrades a line already saying a cross-family "
+        'unit — flagged, never rewritten', () {
       // The mango shape before and after the density is deleted. The line is
       // byte-identical in both calls: nothing rewrites what the user wrote,
       // and the only thing that changes is whether the unit is still
@@ -266,9 +275,8 @@ void main() {
       );
     });
 
-    test('D4c: a line saying a unit only the DEFAULT unit used to admit '
-        'degrades the same way — a stale allowed list does not make it '
-        'sayable', () {
+    test('a line saying a unit only the DEFAULT unit used to admit degrades '
+        'the same way — a stale allowed list does not make it sayable', () {
       // The renamed-rice shape: cup default, per-100 g macros, no density,
       // and an `allowed_units` list materialized under the looser pre-D4c
       // rule (the server still writes those, and this is what stops one from
@@ -388,8 +396,8 @@ void main() {
       expect(visible, contains('to_taste'));
     });
 
-    test('J3b: a pinch line on a food that earns no pinch is still offered '
-        'its own printed word, and that word leads', () {
+    test('a pinch line on a food that earns no pinch is still offered its own '
+        'printed word, and that word leads', () {
       // Built the way the review screen builds it — WITH the line's unit.
       // This supersedes the J3-only reading, where an ungated row dropped the
       // printed word and fronted `to taste` instead: that left the line
@@ -410,7 +418,7 @@ void main() {
     });
 
     test('the owner’s garlic, exactly as the cloud carries it: the printed '
-        '"clove" leads, measures beat generic, imprecise last (J2)', () {
+        '"clove" leads, measures beat generic, imprecise last', () {
       // Piece default, an explicit [piece, g] list, a `clove` measure, no
       // density — and a line that printed "1 clove". The Pixel screenshot read
       // "g piece pinch dash handful (+1 more)", which is precisely this
@@ -553,8 +561,7 @@ void main() {
     });
   });
 
-  group('arrivalMeasure (seam D2: the default answers a number and no '
-      'thing)', () {
+  group('arrivalMeasure (the default answers a number and no thing)', () {
     // The 21 rows the owner ruled on are DATA; what is defended here is the
     // rule that spends them.
     const potatoWithDefault = Ingredient(
@@ -621,8 +628,8 @@ void main() {
       expect(arrivalMeasure(_potato, _potatoSizes, unit: null), isNull);
     });
 
-    test('no default and exactly ONE measure ⇒ that one (D3: the promise '
-        'ADR-0010 consequence 4 made, kept on the LINE)', () {
+    test('no default and exactly ONE measure ⇒ that one (the promise ADR-0010 '
+        'consequence 4 made, kept on the LINE)', () {
       expect(
         arrivalMeasure(_avocado, const [_avocadoMeasure], unit: 'piece'),
         _avocadoMeasure,
@@ -739,8 +746,8 @@ void main() {
       );
     });
 
-    test('plan 0022: THREE measures pre-select nothing — which size a '
-        '`piece` meant is not the machine’s to decide', () {
+    test('THREE measures pre-select nothing — which size a `piece` meant is '
+        'not the machine’s to decide', () {
       expect(preselectedMeasure(_potato, _potatoSizes, unit: 'piece'), isNull);
       // …while the same shape with ONE measure still fires: there is nothing
       // else the line could have meant.
@@ -751,7 +758,7 @@ void main() {
     });
   });
 
-  group('plan 0022 / ADR-0010: a `piece` line on a measured row', () {
+  group('ADR-0010: a `piece` line on a measured row', () {
     LineResolution pieceLine(String ingredientId) => LineResolution(
       lineIndex: 0,
       band: MatchBand.auto,
@@ -790,8 +797,8 @@ void main() {
       expect(chips.map((c) => c.token), isNot(contains('piece')));
     });
 
-    test('ranks the measures in front: a refused `piece` takes no rank at '
-        'all, and its family has nobody else to lift', () {
+    test('ranks the measures in front: a refused `piece` takes no rank at all, '
+        'and its family has nobody else to lift', () {
       final ranked = rankedUnitChips(
         acceptableUnitChips(_potato, _potatoSizes, parsedUnit: 'piece'),
         parsedUnit: 'piece',

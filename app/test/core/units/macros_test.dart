@@ -46,7 +46,7 @@ void main() {
     });
   });
 
-  group('Macros.per100From (plan 0027 M-D1/M-D3)', () {
+  group('Macros.per100From', () {
     test('a 14 g serving at 100 kcal reads 714.29 kcal per 100 g, '
         'unrounded', () {
       final per100 = Macros.per100From(
@@ -64,8 +64,8 @@ void main() {
       expect(per100.kcal, isNot(714));
     });
 
-    test('an ml basis scales the same way — the basis names the unit, not '
-        'the arithmetic', () {
+    test('an ml basis scales the same way — the basis names the unit, not the '
+        'arithmetic', () {
       final per100 = Macros.per100From(
         serving: 240,
         basis: MacrosBasis.perMl,
