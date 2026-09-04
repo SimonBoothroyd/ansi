@@ -49,18 +49,29 @@ const _aliasText =
     'WHERE a.ingredient_id = i.id AND a.deleted_at IS NULL) AS alias_text';
 
 class SqliteImportRepository implements ImportRepository {
-  const SqliteImportRepository(this._db, {required String householdId})
-    : _householdId = householdId;
+  const SqliteImportRepository(
+    this._db, {
+    required String householdId,
+    String payloadJson = cannedReconciliationPayloadJson,
+  }) : _householdId = householdId,
+       _payloadJson = payloadJson;
 
   final SqliteConnection _db;
   final String _householdId;
+
+  /// Which canned payload `startImport` serves. Defaults to
+  /// [cannedReconciliationPayloadJson]; a smoke scenario driving a different
+  /// recipe (see [wildGarlicPastaPayloadJson]) passes its own. Only the
+  /// extract+match hop is fixed — the candidates are still re-resolved against
+  /// the real local vocab below.
+  final String _payloadJson;
 
   @override
   Future<ReconciliationPayload> startImport(ImportSource source) async {
     // The canned stand-in ignores the source and returns a fixed payload, with
     // candidate ids re-pointed at whatever the local vocab actually holds.
     final payload = ReconciliationPayload.fromJson(
-      jsonDecode(cannedReconciliationPayloadJson) as Map<String, Object?>,
+      jsonDecode(_payloadJson) as Map<String, Object?>,
     );
     final groups = [
       for (final group in payload.groups)
