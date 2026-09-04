@@ -365,6 +365,18 @@ Widget _host(
 /// Opens the flesh-out form's header `⋯` — where the actions that are not
 /// part of filling the form in live (delete, and un-confirming a complete
 /// row), drawn on the board frame since the section was locked.
+/// Opens `Fill it in from ▸ Look up in USDA` and picks [description] from
+/// the short-list it shows. The button used to run one probe and apply the
+/// best hit sight-unseen; it now opens the same five-candidate search that
+/// `Choose another ›` opens, so every one of these flows has a human pick in
+/// the middle of it.
+Future<void> _lookUpUsdaAndPick(WidgetTester tester, String description) async {
+  await tester.tap(find.text('Look up in USDA'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(description));
+  await tester.pumpAndSettle();
+}
+
 Future<void> _openMoreMenu(WidgetTester tester) async {
   await tester.tap(find.byIcon(FLucideIcons.ellipsis));
   await tester.pumpAndSettle();
@@ -738,10 +750,10 @@ void main() {
       );
     });
 
-    testWidgets('U-D3: Choose another flushes the form, asks for FIVE under '
-        'the stored name, lists them with their band word (the current match '
-        'tagged, a nameless one left out), and a pick replaces the fill '
-        'through the explicit apply', (tester) async {
+    testWidgets('U-D3: Choose another asks for FIVE under the name in the '
+        'FIELD — writing nothing to get there — lists them with their band '
+        'word (the current match tagged, a nameless one left out), and a pick '
+        'replaces the fill through the explicit apply', (tester) async {
       _filterSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo([
@@ -802,7 +814,14 @@ void main() {
       await tester.pumpAndSettle();
 
       final row = (await repo.byId('curry'))!;
-      expect(row.canonicalName, 'Curry leaf');
+      // The rename was NOT flushed to get here (F1 is retired): looking
+      // something up writes nothing, so the typed name is still only in the
+      // field and the stored row keeps the name it had.
+      expect(row.canonicalName, _curryLeaves.canonicalName);
+      expect(
+        tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+        'Curry leaf',
+      );
       expect(row.source, 'usda_fdc:11217');
       expect(row.sourceLabel, 'Curry leaves, dried');
       expect(row.sourceScore, 0.9);
@@ -1504,9 +1523,9 @@ void main() {
       expect((await repo.byId('yeast'))!.category, 'store cupboard');
     });
 
-    testWidgets('F1 + D7b, THE OWNER’S FLOW: rename then look up — the save '
-        'is flushed, USDA is asked about the NEW name, and the answer is '
-        'applied', (tester) async {
+    testWidgets('THE OWNER’S FLOW, rebuilt: rename then look up — USDA is '
+        'asked about the name in the FIELD, and nothing is written to get '
+        'there', (tester) async {
       _filterSemanticsAssertions();
       _tallScreen(tester);
       final plain = _curryLeaves.copyWith(source: 'manual');
@@ -1521,15 +1540,19 @@ void main() {
       await tester.enterText(find.byType(TextField).first, 'Chicken Breast');
       await tester.pump();
 
-      await tester.tap(find.text('Look up in USDA'));
-      await tester.pumpAndSettle();
+      await _lookUpUsdaAndPick(tester, 'Curry leaves, raw');
 
-      // The rename was flushed first, so the question was about the new name.
+      // The bug F1 was written for cannot recur: the query is the field, so
+      // there is no stored name to go stale — and, unlike the flush, asking
+      // costs no write. The rename is still the user's to save.
       expect(probe.asked.single, normalizeMatchText('Chicken Breast'));
       final row = (await repo.byId('curry'))!;
-      expect(row.canonicalName, 'Chicken Breast');
-      expect(repo.matchTextById['curry'], normalizeMatchText('Chicken Breast'));
-      // …and the answer landed, without completing the row (D5).
+      expect(row.canonicalName, _curryLeaves.canonicalName);
+      expect(
+        repo.matchTextById['curry'],
+        isNot(normalizeMatchText('Chicken Breast')),
+      );
+      // …and the picked answer landed, without completing the row (D5).
       expect(row.densityGPerMl, 0.35);
       expect(row.macros, const Macros(kcal: 108, protein: 6, carb: 19, fat: 1));
       expect(row.source, 'usda_fdc:11216');
@@ -1566,8 +1589,7 @@ void main() {
       await tester.enterText(_measureLabelField, 'small bunch');
       await tester.pump();
 
-      await tester.tap(find.text('Look up in USDA'));
-      await tester.pumpAndSettle();
+      await _lookUpUsdaAndPick(tester, 'Curry leaves, raw');
 
       // The row got the numbers…
       expect(
@@ -1605,20 +1627,27 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Half a panel: the save refuses it, so the lookup never runs…
+      // Half a panel in flight. The lookup no longer saves the form to run
+      // (F1 is retired), so an incoherent draft no longer BLOCKS it — the
+      // question is the name in the field and costs nothing. What still
+      // holds is G1's own rule: the pick's numbers reach the fields, and the
+      // half-typed one they replace was the row's to replace.
       await tester.enterText(_macroField('kcal'), '999');
       await tester.pump();
-      await tester.tap(find.text('Look up in USDA'));
-      await tester.pumpAndSettle();
 
-      expect(probe.asked, isEmpty);
-      expect(find.textContaining('Save this form first'), findsOneWidget);
-      // …and the number in flight is still in flight.
-      expect(_macroFieldText(tester, 'kcal'), '999');
+      await _lookUpUsdaAndPick(tester, 'Curry leaves, raw');
+
+      // The pick is an explicit act on the macros, so it wins the macro
+      // fields outright…
+      expect(_macroFieldText(tester, 'kcal'), '108');
+      // …and an edit in a field the fill has no opinion about is untouched.
+      expect(
+        tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+        _curryLeaves.canonicalName,
+      );
     });
 
-    testWidgets('G3: a lookup status is retired the moment the row moves on — '
-        'no superseded sentence under a banner that has changed', (
+    testWidgets('G1: a pick the user dismisses changes nothing at all', (
       tester,
     ) async {
       _filterSemanticsAssertions();
@@ -1626,35 +1655,36 @@ void main() {
       final repo = FakeIngredientRepo([
         _curryLeaves.copyWith(source: 'manual'),
       ]);
-      // A candidate with a name but nothing to copy — the note the owner saw
-      // linger.
-      final probe = _RecordingProbe(
-        const UsdaCandidate(
-          fdcId: 11216,
-          description: 'Curry leaves, raw',
-          source: 'usda_fdc:11216',
-          score: 0.7,
-        ),
-      );
+      final probe = _RecordingProbe(_usdaAnswer);
       await tester.pumpWidget(
         _host(repo, at: '/ingredients/curry', probe: probe),
       );
       await tester.pumpAndSettle();
 
+      await tester.enterText(_macroField('kcal'), '999');
+      await tester.pump();
       await tester.tap(find.text('Look up in USDA'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('no numbers for it'), findsOneWidget);
-
-      // Now the row changes underneath the note — a density lands, and it
-      // stays a stub, so the section itself is still on screen.
-      await tester.enterText(_densityField, '0.35');
-      await tester.pump();
-      await tester.tap(find.widgetWithText(FButton, 'Save').first);
+      // Close the short-list without choosing.
+      await tester.tap(find.byIcon(FLucideIcons.x).first);
       await tester.pumpAndSettle();
 
-      expect(find.text('Look up in USDA'), findsOneWidget);
-      expect(find.textContaining('no numbers for it'), findsNothing);
+      // Asked, and nothing else: no write, and the number in flight is still
+      // in flight. This is what replaces F1's "Save this form first" state —
+      // there is nothing to save first any more.
+      expect(probe.asked, isNotEmpty);
+      expect((await repo.byId('curry'))!.macros, isNull);
+      expect(_macroFieldText(tester, 'kcal'), '999');
     });
+
+    // **G3 is retired with `_UsdaLookup`.** Its test pinned a lookup STATUS
+    // sentence — "USDA has that name but no numbers for it" — and the rule
+    // that a later edit to the row must retire it, because the sentence was
+    // the only feedback an automatic probe gave. The fill door is a search
+    // now: the feedback is the short-list you are looking at, and a candidate
+    // with nothing to copy is left out of it rather than reported afterwards
+    // (see the U-D3 test's "Curry, nameless"). There is no status to go
+    // stale, so there is nothing to retire.
 
     testWidgets('G2: the density row fits a phone — in its "none yet" state, '
         'and in the spoon phrasing', (tester) async {
@@ -1737,8 +1767,8 @@ void main() {
       expect(find.textContaining('needs a density on this row'), findsNothing);
     });
 
-    testWidgets('F1: offline says what it is waiting on and never raises an '
-        'error — the trigger is still the backstop', (tester) async {
+    testWidgets('offline: the short-list says nothing came back and never '
+        'raises an error — the trigger is still the backstop', (tester) async {
       _filterSemanticsAssertions();
       _tallScreen(tester);
       final plain = _curryLeaves.copyWith(source: 'manual');
@@ -1752,13 +1782,10 @@ void main() {
       await tester.tap(find.text('Look up in USDA'));
       await tester.pumpAndSettle();
 
-      expect(
-        find.textContaining(
-          'the server runs the same lookup when this row '
-          'syncs up',
-        ),
-        findsOneWidget,
-      );
+      // The short-list's own empty state, which covers offline and "nothing
+      // close enough" together — a person cannot act differently on the two,
+      // and the server trigger re-runs the same probe on upload either way.
+      expect(find.textContaining('nothing came back for'), findsOneWidget);
       // No dialog, and the row is untouched.
       expect(find.byType(FDialog), findsNothing);
       expect((await repo.byId('curry'))!.macros, isNull);

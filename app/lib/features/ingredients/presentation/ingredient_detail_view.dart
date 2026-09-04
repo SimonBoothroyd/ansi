@@ -61,7 +61,6 @@ import '../../books/presentation/text_prompt.dart';
 import '../../recipes/presentation/format.dart';
 import '../barcode/barcode_add.dart';
 import '../data/ingredient_providers.dart';
-import '../data/usda_enrichment.dart';
 import '../domain/allowed_units.dart';
 import '../domain/apply_draft.dart';
 import '../domain/ingredient.dart';
@@ -213,11 +212,6 @@ class _DetailForm extends HookConsumerWidget {
     final servingOffer = useState(false);
     final allowed = useState(allowedUnitsFor(ing).toSet());
     final message = useState<String?>(null);
-    // The USDA lookup's status note, owned HERE rather than inside the button
-    // (plan 0020 **G3**): one piece of state, stamped with the row it was
-    // written about, so a later change to that row retires it instead of
-    // leaving a superseded sentence under a banner that has moved on.
-    final lookupNote = useState<_LookupNote?>(null);
     final busy = useState(false);
     // Set when the measures editor refused a volume-named label and handed
     // back the resolved spoon — the density entry pre-picks it (F2: one
@@ -292,19 +286,6 @@ class _DetailForm extends HookConsumerWidget {
       perServing.value = false;
       return null;
     }, [rowMacros]);
-
-    // G3's other half: the lookup note is about ONE version of the row, and
-    // anything that moves the row on — a confirm, an unconfirm, a density
-    // landing, another device's write arriving — makes it a stale sentence.
-    // Retiring it here means there is exactly one place that decides, rather
-    // than a note the button forgot to clear.
-    final stamp = _lookupStamp(ing);
-    useEffect(() {
-      if (lookupNote.value != null && lookupNote.value!.forStamp != stamp) {
-        lookupNote.value = null;
-      }
-      return null;
-    }, [stamp]);
 
     // A `complete` row is one whose macros the household stands behind — the
     // form's own draft is what the CTA acts on, so the gate reads the draft.
@@ -459,6 +440,84 @@ class _DetailForm extends HookConsumerWidget {
         servingOffer.value = false;
       }
       if (applied.source != null) pendingSource.value = applied.source;
+    }
+
+    // **The USDA search — one door, two entry points.**
+    //
+    // `Fill it in from ▸ Look up in USDA` and the provenance card's
+    // `Choose another ›` are the same act: ask USDA about this row and let a
+    // human pick. It used to be two different things — the fill button ran
+    // `probe.probe`, applied the single best hit sight-unseen and reported it
+    // in a status sentence, while only `Choose another` showed the five.
+    //
+    // It asks about **the name in the field**, not the stored row, which is
+    // what retires **F1**: the lookup no longer has to save the form first to
+    // avoid probing a stale name, because a query taken from the field cannot
+    // be stale. Nothing is written until a candidate is picked.
+    Future<void> pickUsda() async {
+      // Captured BEFORE the sheet: the write after it goes through these,
+      // never the widget's ref (app/AGENTS.md — the row can be unmounted by
+      // the time the person picks).
+      final repo = ref.read(ingredientRepositoryProvider);
+      final container = ProviderScope.containerOf(context, listen: false);
+      final host = hostContextOf(context);
+      busy.value = true;
+      try {
+        final pick = await showUsdaPickSheet(
+          context,
+          ingredient: ing,
+          name: name.value.trim().isEmpty ? ing.canonicalName : name.value,
+        );
+        if (pick == null) return;
+        // U-D3: the same apply path as every other fill, with the declined
+        // guard lifted for a person's own choice — the stamp, the label and
+        // the score move to the chosen food. Still a stub (U-D4).
+        final applied = await container.write(
+          host,
+          'use that USDA match',
+          () => repo.applyUsdaProbe(
+            ing.id,
+            source: pick.source,
+            sourceLabel: pick.description,
+            sourceScore: pick.score,
+            densityGPerMl: pick.densityGPerMl,
+            macros: pick.macros,
+            explicitPick: true,
+          ),
+        );
+        if (applied == null) return;
+        container.invalidate(ingredientByIdProvider(ing.id));
+        if (!context.mounted) return;
+        // **An explicit pick outranks a half-typed panel.**
+        //
+        // G1's guard — "the row re-seeds the draft only while the draft still
+        // says exactly what the row last put there" — was written for the
+        // AUTOMATIC fill, where the row moving underneath a person who is
+        // typing must not steal their keystrokes. A pick is not that: it is
+        // someone choosing this food's numbers on purpose, and leaving the
+        // fields showing what they had typed would both look like the pick
+        // did nothing AND let the next Save write the stale draft back over
+        // the fill.
+        //
+        // So the draft is set from the applied row and re-seeded in the same
+        // breath — `seededMacros` moves with it, so G1's effect sees a draft
+        // that already matches the row and stands down. This is exactly what
+        // the barcode scan does with `applyDraft`; the two explicit fills now
+        // behave alike.
+        if (applied.macros != null) {
+          basis.value = applied.macrosBasis;
+          final filled = _MacroDraft.from(applied.macros);
+          macros.value = filled;
+          seededMacros.value = filled;
+          macroSeed.value++;
+          perServing.value = false;
+        }
+        message.value =
+            'Filled from “${pick.description}” — still a stub until you '
+            'mark it complete.';
+      } finally {
+        if (context.mounted) busy.value = false;
+      }
     }
 
     // Leaving the form. A cold deep link lands here with no page beneath, so
@@ -621,15 +680,10 @@ class _DetailForm extends HookConsumerWidget {
               onScan: busy.value ? null : scan,
               usda: isUsdaPrefilled(ing.source) || isUsdaDeclined(ing.source)
                   ? null
-                  : _UsdaLookup(
-                      ingredient: ing,
-                      flush: save,
-                      onStatus: (text, about) => lookupNote.value = _LookupNote(
-                        text,
-                        _lookupStamp(about ?? ing),
-                      ),
+                  : _GhostButton(
+                      label: 'Look up in USDA',
+                      onTap: busy.value ? null : pickUsda,
                     ),
-              note: lookupNote.value?.text,
             )
           else
             const SizedBox.shrink(),
@@ -721,61 +775,7 @@ class _DetailForm extends HookConsumerWidget {
                           if (context.mounted) busy.value = false;
                         }
                       },
-                onChooseAnother: busy.value
-                    ? null
-                    : () async {
-                        // Captured BEFORE the sheet: the write after it goes
-                        // through these, never the widget's ref
-                        // (app/AGENTS.md — the row can be unmounted by the
-                        // time the person picks).
-                        final repo = ref.read(ingredientRepositoryProvider);
-                        final container = ProviderScope.containerOf(
-                          context,
-                          listen: false,
-                        );
-                        final host = hostContextOf(context);
-                        busy.value = true;
-                        try {
-                          // F1: the sheet asks under the STORED name, so
-                          // pending edits are flushed first — the same rule
-                          // the lookup button keeps.
-                          final saved = await save();
-                          if (saved == null || !context.mounted) return;
-                          final pick = await showUsdaPickSheet(
-                            context,
-                            ingredient: saved,
-                          );
-                          if (pick == null) return;
-                          // U-D3: the same apply path as every other fill,
-                          // with the declined guard lifted for a person's own
-                          // choice — the stamp, the label and the score move
-                          // to the chosen food.
-                          final applied = await container.write(
-                            host,
-                            'use that USDA match',
-                            () => repo.applyUsdaProbe(
-                              saved.id,
-                              source: pick.source,
-                              sourceLabel: pick.description,
-                              sourceScore: pick.score,
-                              densityGPerMl: pick.densityGPerMl,
-                              macros: pick.macros,
-                              explicitPick: true,
-                            ),
-                          );
-                          if (applied == null) return;
-                          container.invalidate(
-                            ingredientByIdProvider(saved.id),
-                          );
-                          if (context.mounted) {
-                            message.value =
-                                'Filled from “${pick.description}” — still a '
-                                'stub until you confirm.';
-                          }
-                        } finally {
-                          if (context.mounted) busy.value = false;
-                        }
-                      },
+                onChooseAnother: busy.value ? null : pickUsda,
               ),
 
               const _Label('MACROS', hint: 'enter them as the label reads'),
@@ -1803,125 +1803,22 @@ class _CountsAsRow extends ConsumerWidget {
   }
 }
 
-/// D7's manual half, rebuilt for **D7b**: a real probe, not a re-read.
-///
-/// `usda_food` still never syncs to a device (ADR-0005), so the app cannot
-/// search it — but since migration 0016 it can *ask* the server for one
-/// candidate through a read-only RPC and apply the answer locally. The button
-/// used to re-read the row and report whether the sync round trip had
-/// finished, which is a truthful description of doing nothing.
-///
-/// **F1 — it flushes first.** The failing flow the owner found was
-/// rename-then-lookup on a saved stub: the rename sat unsaved in the form
-/// while the button probed the OLD name. So the button saves any pending
-/// edits, then probes under the name that is now stored. That is also why the
-/// helper copy names what the wait is — an RPC round trip, not a sync one.
-class _UsdaLookup extends HookConsumerWidget {
-  const _UsdaLookup({
-    required this.ingredient,
-    required this.flush,
-    required this.onStatus,
-  });
-
-  final Ingredient ingredient;
-
-  /// Saves the form's pending edits and returns the stored row (null when the
-  /// save was refused or the row is gone). Called before every probe: a
-  /// lookup that reads a name the user has already changed is the F1 bug.
-  final Future<Ingredient?> Function() flush;
-
-  /// Reports a new status and the row it is about — the stored row after the
-  /// flush, or the enriched row after an apply. The form stamps the note with
-  /// that version, so a later change to the row supersedes it.
-  final void Function(String text, Ingredient? about) onStatus;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final busy = useState(false);
-
-    Future<void> lookUp() async {
-      busy.value = true;
-      onStatus('Saving, then asking USDA…', null);
-      try {
-        final saved = await flush();
-        if (!context.mounted) return;
-        if (saved == null) {
-          onStatus(
-            'Save this form first — the lookup asks about the stored name.',
-            null,
-          );
-          return;
-        }
-        final result = await enrichFromUsda(
-          saved,
-          probe: ref.read(usdaProbeProvider),
-          repository: ref.read(ingredientRepositoryProvider),
-        );
-        if (!context.mounted) return;
-        ref.invalidate(ingredientByIdProvider(ingredient.id));
-        // Stamped against the row the outcome is ABOUT: the enriched row when
-        // one was written, otherwise the row as the flush left it. Reporting
-        // the pre-lookup row would retire the note the instant its own write
-        // arrived.
-        // G6's trim reaches here too: the banner above already says "check
-        // it / nothing counts until you confirm", so the note says what
-        // happened and stops. What survives is what only this sentence can
-        // tell you — the name that was asked about, and the offline fallback.
-        onStatus(switch (result.outcome) {
-          UsdaEnrichment.applied => 'USDA FoodData Central filled this in.',
-          UsdaEnrichment.nothingToCopy =>
-            'USDA has that name but no numbers for it — fill it in by hand.',
-          // Offline and "no confident match" are one state on purpose: the
-          // user cannot act differently on them, and the server trigger
-          // re-runs the same probe when this row uploads either way. Never a
-          // dialog for a network miss.
-          UsdaEnrichment.noAnswer =>
-            'Nothing came back for “${saved.canonicalName}” — if you are '
-                'offline, the server runs the same lookup when this row syncs '
-                'up.',
-          UsdaEnrichment.notBare =>
-            'Nothing to fill in — this row already has numbers.',
-          // Unreachable from this button (it is not offered on a declined
-          // row), stated anyway so the enum stays exhaustive here.
-          UsdaEnrichment.declined =>
-            'You said this wasn’t the USDA food — Choose another to pick '
-                'one.',
-        }, result.row ?? saved);
-      } finally {
-        if (context.mounted) busy.value = false;
-      }
-    }
-
-    // The button alone: it sits beside the scanner in the form's one
-    // "fill it in from" row, and the status line it writes is rendered
-    // full-width beneath both of them by the form that owns it (G3).
-    return _GhostButton(
-      label: busy.value ? 'Looking up…' : 'Look up in USDA',
-      onTap: busy.value ? null : lookUp,
-    );
-  }
-}
-
-/// A lookup status and the row version it was written about (**G3**).
-///
-/// The stamp is deliberately narrow — the facts a lookup status can talk
-/// about, and nothing else — so an unrelated edit (a category, a measure)
-/// does not wipe a note that is still true.
-class _LookupNote {
-  const _LookupNote(this.text, this.forStamp);
-
-  final String text;
-  final String forStamp;
-}
-
-/// The row version a lookup status is pinned to.
-String _lookupStamp(Ingredient i) => [
-  i.canonicalName,
-  i.status.name,
-  i.source ?? '',
-  i.densityGPerMl?.toString() ?? '',
-  i.macros?.toString() ?? '',
-].join('|');
+// **Retired here: `_UsdaLookup`, `_LookupNote` and `_lookupStamp`.**
+//
+// The button ran `probe.probe` — ONE best candidate, applied sight-unseen —
+// and reported the outcome in a status sentence, which is why **G3** had to
+// own that sentence and stamp it with the row version so a later edit could
+// retire it. `Fill it in from ▸ Look up in USDA` now opens the same
+// five-candidate search that `Choose another ›` opens, so there is no
+// automatic guess to narrate and no stale sentence to retire.
+//
+// **F1 goes with it.** The flush existed because the probe asked about the
+// row's STORED name, so a rename sitting unsaved meant it asked about the old
+// one. The search asks about the name in the FIELD, which cannot be stale —
+// so nothing has to be written before you may look something up.
+//
+// `probe.probe` itself stays where an automatic best guess belongs: D7b's
+// probe-at-birth and the server-side trigger. It is no longer a button.
 
 // --- Small shared pieces -----------------------------------------------------
 
@@ -2111,22 +2008,14 @@ class _StatusStrip extends StatelessWidget {
 /// up in USDA" below the confirm CTA — although they answer the same question
 /// and both stop being offered once the row has a USDA provenance card.
 class _FillItIn extends StatelessWidget {
-  const _FillItIn({
-    required this.onScan,
-    required this.usda,
-    required this.note,
-  });
+  const _FillItIn({required this.onScan, required this.usda});
 
   final Future<void> Function()? onScan;
 
-  /// The lookup button, or null on a row USDA has already filled or a person
-  /// has already refused — there the provenance card's own doors are the way
-  /// to change the match (U-D2).
+  /// The USDA door, or null on a row USDA has already filled or a person has
+  /// already refused — there the provenance card's own `Choose another ›` is
+  /// the way to change the match (U-D2), and it opens this same search.
   final Widget? usda;
-
-  /// The lookup's status, owned by the form (**G3**) and drawn full width
-  /// under the row rather than inside whichever half wrote it.
-  final String? note;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -2145,7 +2034,6 @@ class _FillItIn extends StatelessWidget {
             if (usda != null) Expanded(child: usda!),
           ],
         ),
-        if (note != null) _Note(note!),
       ],
     ),
   );

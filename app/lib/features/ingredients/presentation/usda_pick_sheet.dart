@@ -28,27 +28,46 @@ import '../domain/ingredient.dart';
 import '../domain/normalize.dart';
 import '../domain/usda_probe.dart';
 
-/// Opens the short-list for [ingredient] and resolves with the pick, or null
-/// when the sheet was closed without one. Probes under the row's stored
-/// name — the caller flushes pending edits first (F1), for the same reason
-/// the lookup button does.
+/// Opens the short-list and resolves with the pick, or null when the sheet
+/// was closed without one.
+///
+/// [name] is what to ASK about — the form passes the text in its name field,
+/// not the stored row. That is what retired **F1**: the lookup used to have
+/// to save the form first, because it probed the row's stored name and a
+/// rename sitting unsaved meant it asked about the old one. A query taken
+/// from the field cannot be stale, so nothing has to be written before you
+/// may look something up.
+///
+/// [ingredient] is still needed, but only to TAG: the row's current match is
+/// marked rather than offered again, and a food the household declined is
+/// marked as refused.
 Future<UsdaCandidate?> showUsdaPickSheet(
   BuildContext context, {
   required Ingredient ingredient,
+  required String name,
 }) => showAnsiSheet<UsdaCandidate>(
   context: context,
-  builder: (_) => UsdaPickSheet(ingredient: ingredient),
+  builder: (_) => UsdaPickSheet(ingredient: ingredient, name: name),
 );
 
 class UsdaPickSheet extends HookConsumerWidget {
-  const UsdaPickSheet({required this.ingredient, super.key});
+  const UsdaPickSheet({
+    required this.ingredient,
+    required this.name,
+    super.key,
+  });
 
+  /// Tagging only — the current match, and a declined food. Never the query.
   final Ingredient ingredient;
+
+  /// The question. The form's own name field, so a rename that has not been
+  /// saved is still what USDA is asked about.
+  final String name;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final probe = ref.read(usdaProbeProvider);
-    final matchText = normalizeMatchText(ingredient.canonicalName);
+    final matchText = normalizeMatchText(name);
     // The probe's default limit IS "the next five" (U-D3).
     final candidates = useFuture(
       useMemoized(() => probe.search(matchText), [matchText]),
@@ -79,7 +98,7 @@ class UsdaPickSheet extends HookConsumerWidget {
               ),
               Expanded(
                 child: Text(
-                  'USDA · for “${ingredient.canonicalName}”',
+                  'USDA · for “$name”',
                   textAlign: TextAlign.center,
                   overflow: TextOverflow.ellipsis,
                   style: ansiSerif(size: 18),
@@ -97,7 +116,7 @@ class UsdaPickSheet extends HookConsumerWidget {
           else
             UsdaCandidateList(
               candidates: candidates.data ?? const [],
-              queryName: ingredient.canonicalName,
+              queryName: name,
               current: ingredient,
               onPick: (c) => Navigator.of(context).pop(c),
             ),
