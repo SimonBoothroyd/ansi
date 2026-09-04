@@ -219,6 +219,93 @@ function cap(s: string, max: number): string {
   return s.length <= max ? s : s.slice(0, max);
 }
 
+/**
+ * Words a title leaves lower-case unless they open or close it.
+ *
+ * `à` and `la` are here for *Chicken à la King*, which a shouting cookbook
+ * page prints as CHICKEN A LA KING.
+ */
+const SMALL_WORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "as",
+  "at",
+  "but",
+  "by",
+  "for",
+  "in",
+  "of",
+  "on",
+  "or",
+  "the",
+  "to",
+  "with",
+  "à",
+  "la",
+]);
+
+const isLetter = (c: string) => c.toLowerCase() !== c.toUpperCase();
+
+/**
+ * Title-cases a title that carries **no case information of its own**.
+ *
+ * A photographed page shouts: WILD GARLIC PASTA, and a scraped one sometimes
+ * whispers. Neither is a decision the page made about capitalisation — it is
+ * the absence of one — so we supply the ordinary one. A title that already
+ * carries MIXED case is left exactly alone: the page that prints *PIZZA alla
+ * Norma* meant it, and second-guessing that is inventing.
+ *
+ * The words, their order and their punctuation are the page's throughout.
+ * Casing is not inventing; nothing else here is touched.
+ *
+ * A word that begins with a digit is left as it is — `400g` is a measurement,
+ * not a word to capitalise. A hyphenated compound is ONE word, so a shouted
+ * SLOW-COOKED becomes *Slow-cooked*.
+ *
+ * This is deliberately code rather than a line in the extraction prompt: a
+ * model instruction is a probabilistic fix for a deterministic problem, and it
+ * costs a re-scored eval every time it is tuned.
+ */
+export function titleCaseIfUncased(title: string): string {
+  const letters = [...title].filter(isLetter);
+  if (letters.length === 0) return title;
+  const upper = letters.every((c) => c === c.toUpperCase());
+  const lower = letters.every((c) => c === c.toLowerCase());
+  if (!upper && !lower) return title;
+
+  // The capture group keeps the runs of whitespace, so the joined result is
+  // spaced exactly as the page spaced it.
+  const parts = title.split(/(\s+)/);
+  const words: number[] = [];
+  parts.forEach((p, i) => {
+    if (p.trim() !== "") words.push(i);
+  });
+  const first = words[0];
+  const last = words[words.length - 1];
+  return parts
+    .map((part, i) =>
+      i !== first && i !== last && SMALL_WORDS.has(part.toLowerCase())
+        ? part.toLowerCase()
+        : capitaliseWord(part)
+    )
+    .join("");
+}
+
+/** Lower-cases a word and raises its first letter, if a letter opens it. */
+function capitaliseWord(word: string): string {
+  const lower = word.toLowerCase();
+  for (let i = 0; i < lower.length; i++) {
+    const c = lower[i];
+    if (isLetter(c)) {
+      return lower.slice(0, i) + c.toUpperCase() + lower.slice(i + 1);
+    }
+    // A digit before any letter means this is an amount, not a word.
+    if (c >= "0" && c <= "9") return lower;
+  }
+  return lower;
+}
+
 function asRecord(v: unknown): Record<string, unknown> {
   if (v === null || typeof v !== "object" || Array.isArray(v)) {
     throw new ExtractionParseError("expected an object", v);
@@ -414,7 +501,10 @@ export function coerceExtractionResult(raw: unknown): ExtractionResult {
     : [];
   const servings = numOrNull(o.servings_base);
   return {
-    title: cap(String(o.title ?? ""), CAPS.title),
+    // The single choke point every import passes through, URL and photo
+    // alike — so a shouted page arrives cased like a title wherever it came
+    // from, and only ever from here.
+    title: titleCaseIfUncased(cap(String(o.title ?? ""), CAPS.title)),
     servings_base: servings === null ? null : Math.round(servings),
     servings_raw: strOrNull(o.servings_raw, CAPS.servings_raw),
     yield_raw: strOrNull(o.yield_raw, CAPS.yield_raw),

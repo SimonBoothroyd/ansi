@@ -25,6 +25,7 @@ import type {
   ReconciliationPayload,
 } from "../_shared/types.ts";
 import { fixedMock } from "../_shared/adapters/mock.ts";
+import { titleCaseIfUncased } from "../_shared/adapters/schema.ts";
 import { matchLines } from "../_shared/match.ts";
 import {
   inMemoryVocabMatcher,
@@ -206,7 +207,14 @@ Deno.test("URL import over the REAL vocab — line order and step refs survive",
 Deno.test("URL import over the REAL vocab — recipe-level fields pass through", async () => {
   const { gold, payload } = await importGold("gumbo");
   // Never-invent: the orchestrator moves data, it never fills a value in.
-  assertEquals(payload.title, gold.title);
+  //
+  // The title is the ONE field the sanitizer may recase, and only when the
+  // page carried no case of its own: this gold's `gumbo z'fungi` is all
+  // lower, so it arrives title-cased. The words, their order and their
+  // punctuation are still the page's, which is what the comparison below
+  // checks.
+  assertEquals(payload.title, titleCaseIfUncased(gold.title));
+  assertEquals(payload.title.toLowerCase(), gold.title.toLowerCase());
   assertEquals(payload.servings_base, gold.servings_base);
   assertEquals(payload.servings_raw, gold.servings_raw);
   assertEquals(payload.total_time_seconds, gold.total_time_seconds);
