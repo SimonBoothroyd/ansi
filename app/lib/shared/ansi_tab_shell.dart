@@ -1,5 +1,5 @@
 /// The app's tab shell: one [AnsiBottomNav], four branch Navigators, and the
-/// opacity-only cross-fade between them (design board: Navigation v2, D1/D1.1).
+/// opacity-only cross-fade between them.
 ///
 /// The bar lives here rather than on the four tab screens, so a tab switch
 /// cannot animate it: the root Navigator's page list does not change, no route

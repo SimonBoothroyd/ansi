@@ -42,10 +42,8 @@ bool isFatalPostgrestError(PostgrestException e) {
 /// makes Postgres store a jsonb **string** (`jsonb_typeof` = `string`), and
 /// when the row syncs back down every reader that expects an array/object
 /// crashes — or, quieter and worse, every server-side rule that asks
-/// `allowed_units ? unit` answers false. `allowed_units` was missing from this
-/// map from 0012 until 2026-09-03 (found by pgTAP over smoke-created rows;
-/// repaired server-side by 0028). Decode these columns to native structures
-/// before upload.
+/// `allowed_units ? unit` answers false. Every jsonb column a client writes
+/// belongs in this map; decode them to native structures before upload.
 const Map<String, Set<String>> jsonbColumnsByTable = {
   'recipe': {'steps'},
   'plan_entry': {'eaters'},
@@ -77,9 +75,8 @@ Map<String, dynamic> _decodeJsonbColumns(
 /// connector maps the DELETE to a server-side tombstone, so without
 /// `deleted_at: null` the following upsert would leave the tombstone in place
 /// and the row would stay deleted on every other device. A PUT means the row
-/// is live locally, so clearing the tombstone is always correct (and it
-/// self-heals rows tombstoned by the old behaviour). An explicit local
-/// `deleted_at` value in the op still wins over the default.
+/// is live locally, so clearing the tombstone is always correct. An explicit
+/// local `deleted_at` value in the op still wins over the default.
 @visibleForTesting
 Map<String, dynamic> putPayload(CrudEntry op) => {
   'deleted_at': null,

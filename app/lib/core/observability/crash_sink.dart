@@ -1,13 +1,10 @@
 /// The one seam between "something threw" and "someone finds out".
 ///
-/// `bootstrap.dart`'s zone handler used to be a `debugPrint` with a
-/// `TODO(observability)` over it. In a release build on a phone there is no
-/// console, so it was functionally `catch {}` — and it was where every one of
-/// the 37 unguarded repository writes ended up.
-///
-/// It is only tolerable to make this visible *after* those writes went through
-/// `guardedWrite`. Now whatever still reaches here is a genuine bug rather than
-/// an ordinary failure, so its signal-to-noise is worth a toast.
+/// `bootstrap.dart`'s zone handler ends here. Making it visible is only
+/// tolerable because every user-initiated repository write already goes through
+/// the app's one write door (`shared/write.dart`) — so whatever still reaches
+/// here is a genuine bug rather than an ordinary failure, and its
+/// signal-to-noise is worth a toast.
 ///
 /// **No reporting service, deliberately.** Sentry or Crashlytics is a network
 /// dependency, a privacy surface, a build-time key and a vendor, for a
@@ -58,9 +55,10 @@ class NoopCrashSink implements CrashSink {
 ///
 /// Primary, not destructive — it reads as information rather than alarm,
 /// because the app did keep going and the user may not have been the one who
-/// caused it. A full-screen error page would be a regression: the app already
-/// filters two framework assertions in `integration_test/app_test.dart`, and
-/// those are noise, not catastrophe.
+/// caused it. A full-screen error page would be a regression: the smoke tests
+/// already filter a family of framework assertions
+/// (`integration_test/support/drive.dart`), and those are noise, not
+/// catastrophe.
 class ToastCrashSink implements CrashSink {
   ToastCrashSink(this._anchor, {DateTime Function() clock = DateTime.now})
     : _clock = clock;

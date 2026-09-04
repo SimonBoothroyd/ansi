@@ -4,8 +4,7 @@
 /// PostgREST code (22xxx data, 23xxx integrity, 42xxx access — `42501` is RLS
 /// denied). Dropping is the right engineering call: a poison write must not
 /// wedge the queue forever. But it leaves the row on this phone and on no
-/// server and no other device, and until now the only trace was a `debugPrint`
-/// beside a comment reading *"never let it be silent"*.
+/// server and no other device, so it must never be silent.
 ///
 /// [DroppedWriteSink] is where the connector speaks instead. The default
 /// implementation persists to the same [SharedPreferences] store the household

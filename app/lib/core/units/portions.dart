@@ -13,8 +13,8 @@
 /// is a quarter, so those cover every demand the household can state; a value
 /// that is NOT a quarter (a person's share under an override — `3 × ¾ ⁄ 1¾ =
 /// 1.29`, or a leftover against a `serves 2.5` recipe) prints as a trimmed
-/// decimal rather than a glyph the fonts might lack
-/// ([[mise-forui-icons-not-unicode-glyphs]]).
+/// decimal, because the bundled faces (Spectral, Inter, IBM Plex Mono) carry
+/// no other vulgar-fraction glyph.
 library;
 
 /// `1¾`, `½`, `2`, `1.29` — a count with its quarter as a glyph, a whole

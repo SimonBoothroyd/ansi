@@ -6,10 +6,10 @@
 ///
 /// Model (spec §4):
 ///
-/// - [UnitFamily] — `mass`, `volume`, `count`, `imprecise`.
+/// - [UnitFamily] — `mass`, `volume`, `count`, `imprecise`, `batch`.
 /// - [Unit] — an id, a label, its [UnitFamily], and (mass/volume only) a fixed
 ///   [Unit.ratioToBase] into the family's canonical base: **grams** for mass,
-///   **ml** for volume. `count` and `imprecise` have no ratio.
+///   **ml** for volume. `count`, `imprecise` and `batch` have no ratio.
 /// - [Quantity] — an [Quantity.amount] paired with a [Unit].
 /// - [convert] — moves a [Quantity] to another [Unit], across the mass↔volume
 ///   boundary via an ingredient's `density_g_per_ml`. Returns a [Result] so a
@@ -29,7 +29,7 @@ import '../result/result.dart';
 ///   each other only when a density is supplied.
 /// - [count] (e.g. "3 eggs") has no ratio; it converts only to itself.
 /// - [imprecise] ("pinch", "dash", "to taste") never converts and never scales.
-/// - [batch] is the sub-recipe denomination (step 8.6 / D2) — "1 batch of the
+/// - [batch] is the sub-recipe denomination (step 8.6) — "1 batch of the
 ///   aioli". It is a family of one ([batches]) and converts to nothing: a
 ///   batch reaches grams or cups only through the target recipe's stated
 ///   *yield*, which is `features/recipes/domain/component_math.dart`'s job,
@@ -54,7 +54,7 @@ class Unit {
 
   /// How many canonical base units one of this unit is worth — grams for
   /// [UnitFamily.mass], ml for [UnitFamily.volume]. `null` for the ratio-less
-  /// [UnitFamily.count] and [UnitFamily.imprecise].
+  /// [UnitFamily.count], [UnitFamily.imprecise] and [UnitFamily.batch].
   final double? ratioToBase;
 
   @override

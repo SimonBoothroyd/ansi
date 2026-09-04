@@ -1,13 +1,11 @@
 /// The one door every user-initiated repository write goes through.
 ///
-/// The audit that produced this file found 38 UI→repository writes, 37 of them
-/// with no failure surface at all and 8 not even awaited: a throw cleared a
-/// `busy` flag, escaped to the zone handler, and became a `debugPrint` on a
-/// console no phone has. The user saw a spinner stop and nothing else.
-///
-/// The fix is not a longer paragraph in a style guide — it is one helper plus a
-/// mechanical check that nothing skips it (`test/structure/
-/// no_bare_repo_write_test.dart`).
+/// A write that throws must say so instead of stopping a spinner: without this
+/// door a throw clears a `busy` flag, escapes to the zone handler, and becomes
+/// a `debugPrint` on a console no phone has, leaving the user with a spinner
+/// that stopped and nothing else. The rule is held mechanically rather than by
+/// a paragraph in a style guide — `test/structure/no_bare_repo_write_test.dart`
+/// fails the build for a call site that skips it.
 ///
 /// **The one documented exception** is the bootstrap write in
 /// `core/sync/session.dart`: `ensureDefaultBook()` runs while the session is
@@ -148,12 +146,11 @@ Future<bool> guardedWriteOk(
 ///
 /// Why a row can be gone: every list here is a viewport, and on a phone the
 /// sheet's keyboard shrinks it, so the card that opened the sheet scrolls out
-/// and unmounts while the sheet is still up. Riverpod 3 throws on a
-/// `WidgetRef` used after that (owner report 2026-09-03 #1), and a
-/// `context.mounted` bail avoids the throw only by dropping the write the user
-/// just confirmed. The overlay sits below the app's one `FTheme` and
-/// `FToaster` and inside the root navigator, so every `showAnsi*` door and
-/// `showAnsiFailureToast` work from it. Held by
+/// and unmounts while the sheet is still up. Riverpod 3 throws when a
+/// `WidgetRef` outlives its widget, and a `context.mounted` bail avoids the
+/// throw only by dropping the write the user just confirmed. The overlay sits
+/// below the app's one `FTheme` and `FToaster` and inside the root navigator,
+/// so every `showAnsi*` door and `showAnsiFailureToast` work from it. Held by
 /// `test/structure/no_ref_after_await_test.dart`.
 HostContext hostContextOf(BuildContext context) =>
     HostContext(Navigator.of(context, rootNavigator: true).overlay!.context);

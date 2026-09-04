@@ -1,9 +1,8 @@
 /// The app's one search field.
 ///
-/// `PickerShell`, the ingredients manager and the Library each hand-rolled the
-/// same `FTextField` + magnifier prefix; this is that anatomy, once. Reuse the
-/// FIELD, not a shell — `PickerShell` stays a *sheet* shell, and the Library's
-/// search is a field on a screen you are already looking at.
+/// The `FTextField` + magnifier-prefix anatomy every search surface shares,
+/// once. Reuse the FIELD, not a shell — `PickerShell` stays a *sheet* shell,
+/// and the Library's search is a field on a screen you are already looking at.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -21,8 +20,8 @@ class AnsiSearchField extends StatelessWidget {
   final String hint;
 
   /// Drive the field from a controller when the SCREEN branches on what the
-  /// field says (the ingredients manager's pattern, plan 0020 J4) rather than
-  /// on a query stored somewhere else.
+  /// field says (the ingredients manager's pattern) rather than on a query
+  /// stored somewhere else.
   final TextEditingController? controller;
 
   final ValueChanged<String>? onChanged;

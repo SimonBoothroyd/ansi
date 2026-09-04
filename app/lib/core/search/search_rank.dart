@@ -4,9 +4,9 @@
 /// name*. Every place on the phone that searches typed text calls it: the
 /// ingredient picker's SQL fallback, the planning recipe picker, the editor's
 /// "Your recipes" section, and (tiers 0/1 only) the import re-match seam. The
-/// corpus a caller passes differs; the rule never does. Four sites used to
-/// carry three different rules, and they failed in opposite directions —
-/// `docs/design-docs/search-and-matching.md` has the audit.
+/// corpus a caller passes differs; the rule never does — one rule per site is
+/// how they end up failing in opposite directions
+/// (`docs/design-docs/search-and-matching.md`).
 ///
 /// **Three tiers, first hit wins.** A tier-2 hit can never outrank a tier-0 or
 /// tier-1 hit whatever the scores say — that is what makes "did you mean"
@@ -56,12 +56,11 @@ typedef SearchHit = ({SearchTier tier, double score});
 
 /// Shortest token that may be *guessed at* when the query is one word.
 ///
-/// Owner ruling, 2026-09-02 (was 5). Four characters is where the phone starts
-/// guessing: it finds `almnd` → Almonds, `nion` → Onion and `aoli` → Romesco
-/// Aioli, and measured over the 308-row seed vocabulary it lifts right-family
-/// recall at rank 1 from 80 % to 93 %. The price is real words landing on the
-/// wrong food (`beef` → Beets), which is tolerable only because they appear
-/// under a "did you mean" header.
+/// Four characters is where the phone starts guessing: it finds `almnd` →
+/// Almonds, `nion` → Onion and `aoli` → Romesco Aioli, and measured over the
+/// 308-row seed vocabulary it lifts right-family recall at rank 1 from 80 % to
+/// 93 %. The price is real words landing on the wrong food (`beef` → Beets),
+/// which is tolerable only because they appear under a "did you mean" header.
 const int kMinFuzzTokenLenSingle = 4;
 
 /// Shortest token that may be guessed at when the query has two or more words.

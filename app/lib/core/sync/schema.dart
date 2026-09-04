@@ -1,15 +1,10 @@
 /// PowerSync client-side schema — the local SQLite mirror.
 ///
-/// Every table here is **synced** (step 7): `bootstrap` calls `db.connect()`
-/// with the `AnsiConnector` once a user is signed in, so local writes queue for
+/// Every table here is **synced**: the session controller connects the database
+/// with `AnsiConnector` once a user is signed in, so local writes queue for
 /// upload and the server's rows stream down. Each table mirrors its migration
 /// and is scoped to the household (the sync rules in `docker/powersync.yaml`
 /// filter every bucket to the JWT's `household_id`).
-///
-/// `ingredient`/`ingredient_alias`/`household_member`/`household` used to be
-/// `Table.localOnly` (bootstrap-seeded before auth existed); step 7 flipped
-/// them to synced, fed by the server (`ensure_onboarded` seeds the vocab),
-/// and dropped the seeders. The vocab now carries server-resolved macros.
 ///
 /// Every table gets an implicit `id` TEXT primary key — do not declare it.
 /// `usda_food` and the match indexes never live on-device (ADR-0004/0005).
@@ -158,10 +153,10 @@ const schema = Schema([
     Column.text('default_measure_id'),
     Column.text('status'),
     Column.text('source'),
-    // The USDA food a prefill copied from, and the trigram score that earned
-    // it (0027, plan 0027 U-D1) — written beside `source` by both prefill
-    // writers so the form can name the match offline. Null where nothing
-    // filled the row or the fill predates 0027.
+    // The USDA food a prefill copied from, and how much of the query its
+    // description covered (0027) — written beside `source` by the prefill
+    // writers so the form can name the match offline. Null where nothing filled
+    // the row or the fill predates 0027.
     Column.text('source_label'),
     Column.real('source_score'),
     Column.text('match_text'),
@@ -191,12 +186,11 @@ const schema = Schema([
   // Household members — synced (step 7). Created server-side at onboarding
   // (`ensure_onboarded`, migration 0007); the client reads them (eaters on a
   // plan_entry reference these ids) and writes exactly one column,
-  // `portion_factor` (0026, plan 0027 P-D3 — the Household sheet; the server
-  // grants UPDATE on that column alone). `auth_user_id` stays server-only:
-  // the sync rule for this table selects an explicit column list that
-  // excludes it (docker/powersync.yaml) — what a rule SELECTs is exactly what
-  // ships to the device, so omitting the column here alone would not keep it
-  // off the wire.
+  // `portion_factor` (0026 — the Household sheet; the server grants UPDATE on
+  // that column alone). `auth_user_id` stays server-only: the sync rule for
+  // this table selects an explicit column list that excludes it
+  // (docker/powersync.yaml) — what a rule SELECTs is exactly what ships to the
+  // device, so omitting the column here alone would not keep it off the wire.
   Table('household_member', [
     Column.text('household_id'),
     Column.text('display_name'),

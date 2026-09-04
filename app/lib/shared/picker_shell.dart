@@ -1,7 +1,6 @@
 /// The shared picker-sheet shell (step 7.7): one selection anatomy for the
 /// ingredient and recipe pickers — sheet chrome, a close affordance, a
-/// TOP-anchored search field (Simon's frame review kept search at the top,
-/// like the shipped pickers), a slot for source tabs / context strips above
+/// TOP-anchored search field, a slot for source tabs / context strips above
 /// the list, and a footer slot (add-new, the eating footer).
 library;
 

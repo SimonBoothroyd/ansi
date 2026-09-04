@@ -2,23 +2,21 @@
 ///
 /// Under the tab shell (`ansi_tab_shell.dart`) a tab screen sits inside its
 /// **branch** Navigator, and Forui's `showFSheet`/`showFDialog` default to
-/// `useRootNavigator: false` (forui 0.22.3: `modal_sheet.dart:75`,
-/// `dialog.dart:61`). A modal opened that way is pushed *inside* the branch, so
-/// its barrier stops at the branch's bounds and the bottom nav bar stays lit
-/// and tappable beside it — you can switch tabs behind an open sheet (board:
-/// Navigation v2, D2).
+/// `useRootNavigator: false`. A modal opened that way is pushed *inside* the
+/// branch, so its barrier stops at the branch's bounds and the bottom nav bar
+/// stays lit and tappable beside it — you can switch tabs behind an open sheet.
 ///
 /// So every modal in the app goes on the **root** Navigator, above the shell.
-/// One wrapper each rather than 16 call-site edits, and a structural test
-/// (`test/shared/ansi_modals_test.dart`) fails the build if a view reaches for
-/// the Forui function directly again.
+/// One wrapper each rather than the same two arguments at every call site, and
+/// a structural test (`test/shared/ansi_modals_test.dart`) fails the build if a
+/// view reaches for the Forui function directly again.
 ///
-/// The app's sheet geometry is baked in here too, because all 11 sheets asked
-/// for the same thing: bottom-up, no height cap, safe-area padded.
+/// The app's sheet geometry is baked in here too, because every sheet asks for
+/// the same thing: bottom-up, no height cap, safe-area padded.
 ///
-/// **Popping from inside.** The modal is now the top route of the root
-/// Navigator, so `Navigator.of(context).pop(result)` from the builder's context
-/// still dismisses the modal itself — it is the nearest route either way. What
+/// **Popping from inside.** The modal is the top route of the root Navigator,
+/// so `Navigator.of(context).pop(result)` from the builder's context still
+/// dismisses the modal itself — it is the nearest route either way. What
 /// changes is only which Navigator owns it.
 library;
 

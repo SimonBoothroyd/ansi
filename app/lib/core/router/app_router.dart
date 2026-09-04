@@ -140,12 +140,10 @@ GoRouter router(Ref ref) {
           initialSectionId: state.uri.queryParameters['section'],
         ),
       ),
-      // The vocabulary manager (step 8.5, plan 0020 D8) — pushed like
-      // `/import`, not a fifth tab: the four tabs are the loop, and a
-      // vocabulary is reference data. `/account` — the household, this device,
-      // the session. Pushed like `/ingredients`, and for the same reason: the
-      // four tabs are the loop, and neither a vocabulary nor an account is a
-      // phase of it.
+      // `/account` (the household, this device, the session) and
+      // `/ingredients` (the vocabulary manager) are pushed like `/import`,
+      // never a fifth tab: the four tabs are the loop, and neither an account
+      // nor a vocabulary is a phase of it.
       GoRoute(
         path: '/account',
         name: 'account',
@@ -177,9 +175,9 @@ GoRouter router(Ref ref) {
       ),
       // `?title=` prefills the draft — what the Library's "nothing matches"
       // state hands over, so a search for a recipe you were about to write
-      // becomes the recipe (Library v2 / D7·5). `?book=&section=` file it —
-      // what a section's `＋` hands over (0028 E3), so the recipe lands on the
-      // shelf that was tapped instead of in the default book.
+      // becomes the recipe. `?book=&section=` file it — what a section's `＋`
+      // hands over, so the recipe lands on the shelf that was tapped instead of
+      // in the default book.
       GoRoute(
         path: '/recipes/new',
         name: 'recipe-new',

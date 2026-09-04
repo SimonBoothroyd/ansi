@@ -3,9 +3,8 @@
 /// render-time text matching, ADR-0004).
 ///
 /// The recipe page and the import review screen show the same method with the
-/// same chips; they used to carry two near-identical private copies of this
-/// widget, which drifted. The only thing that legitimately varies between them
-/// is the prose type size, so that is the only knob.
+/// same chips. The only thing that legitimately varies between them is the
+/// prose type size, so that is the only knob.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -71,10 +70,10 @@ class MethodStepText extends StatelessWidget {
   /// Garlic` — full-size chips, no parentheses (there is no label to bracket),
   /// any step-named portion riding on the first.
   ///
-  /// The names used to be joined into ONE chip label, which the line breaker
-  /// could not split: a seven-ingredient catch-all ran straight off the screen
-  /// on the owner's phone. Same mechanics as [_constituentSpans] — one span per
-  /// chip, real text between them.
+  /// One span per chip with real text between them, never one chip label
+  /// holding every name: a chip is one atomic box to the line breaker, so a
+  /// seven-ingredient catch-all would run straight off a phone screen instead
+  /// of wrapping. Same mechanics as [_constituentSpans].
   Iterable<InlineSpan> _collectiveRun(
     List<String> names,
     String? amount,

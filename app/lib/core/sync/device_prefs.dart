@@ -16,9 +16,8 @@ abstract final class DevicePrefs {
   /// RPC.
   static const householdIdPrefix = 'ansi.household_id.';
 
-  /// `+ bookId` → `true` while that book is folded shut on this device
-  /// (Library v2 / D3). Absent means expanded: a household's first book must
-  /// not arrive folded.
+  /// `+ bookId` → `true` while that book is folded shut on this device.
+  /// Absent means expanded: a household's first book must not arrive folded.
   static const bookCollapsedPrefix = 'ansi.book_collapsed.';
 
   /// Every prefix above, in the order sign-out sweeps them.

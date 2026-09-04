@@ -48,8 +48,8 @@ class _NavItem extends StatelessWidget {
         label.toUpperCase(),
         // Colour and weight are deliberately absent: Forui resolves the
         // selected variant (muted → primary, 400 → 700) into an ancestor
-        // DefaultTextStyle, and a Text's own value would win over it — which
-        // is why the selected label used to stay grey while its icon greened.
+        // DefaultTextStyle, and a Text's own value would win over it, leaving
+        // the label grey while its icon greened.
         style: ansiMonoInherit(size: 10, letterSpacing: 0.5),
       ),
     );

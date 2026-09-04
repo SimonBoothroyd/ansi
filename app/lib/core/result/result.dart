@@ -1,4 +1,4 @@
-/// A tiny typed result: either a [Ok] value or an [Err] failure.
+/// A tiny typed result: either an [Ok] value or an [Err] failure.
 ///
 /// **Where it is used, and where it deliberately is not.** It is the return
 /// type of the app's TOTAL PURE computations — `core/units` (conversion,
@@ -71,6 +71,10 @@ final class Err<T> extends Result<T> {
 @immutable
 class Failure {
   const Failure(this.code, this.message);
+
+  /// `namespace/reason` — the namespace is the module that refused
+  /// (`unit/no_density`, `measure/invalid_amount`), so a caller can branch on
+  /// the reason without matching on [message], which is prose and may change.
   final String code;
   final String message;
 

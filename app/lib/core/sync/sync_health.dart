@@ -1,11 +1,10 @@
 /// Whether this phone's writes are reaching the other one — as ONE provider,
 /// quiet until it is not.
 ///
-/// PowerSync has always published `connected · uploading · lastSyncedAt ·
-/// hasSynced · uploadError · downloadError`, and `getUploadQueueStats()` has
-/// always known the queue depth. Until this file nothing in the app read any
-/// of it, so there was no surface anywhere that could tell someone their week
-/// had not left the device.
+/// PowerSync publishes `connected · uploading · lastSyncedAt · hasSynced ·
+/// uploadError · downloadError`, and `getUploadQueueStats()` knows the queue
+/// depth. This file is the one place that reads them, so there is exactly one
+/// answer anywhere in the app to "has my week left the device".
 ///
 /// **Four states, and only four** ([SyncHealth]). The distinction that matters
 /// most is between *waiting* and *stalled*: this app is offline-first by

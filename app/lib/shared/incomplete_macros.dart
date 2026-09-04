@@ -19,12 +19,12 @@ import '../features/recipes/domain/recipe_macros.dart';
 /// `1 sub-recipe unresolved` — never an empty string (a reasonless badge
 /// would leave a dangling separator).
 ///
-/// **"needs a weight" is its own reason** (plan 0022 **D6**), not part of
-/// "unconvertible". A bare count — "2 pieces", no measure behind it — is the
-/// one incomplete cause a household can fix in two taps, and calling it a
-/// failed conversion described the wrong problem: nothing was ever weighed.
-/// Under the ADR-0010 admission model those taps are unambiguous, because the
-/// row's chip row holds its measures and (mostly) not `piece`.
+/// **"needs a weight" is its own reason**, not part of "unconvertible". A bare
+/// count — "2 pieces", no measure behind it — is the one incomplete cause a
+/// household can fix in two taps, and calling it a failed conversion described
+/// the wrong problem: nothing was ever weighed. Under the ADR-0010 admission
+/// model those taps are unambiguous, because the row's chip row holds its
+/// measures and (mostly) not `piece`.
 String incompleteNote(RecipeMacroSummary summary) {
   if (summary.noLines) return 'no ingredients yet';
   // Seam D6's one guard: every line was imprecise, so nothing was weighed.
@@ -91,11 +91,11 @@ List<MacroLineNote> fixableNotes(RecipeMacroSummary summary) => [
     if (!byRuleReasons.contains(note.reason)) note,
 ];
 
-/// `not counted: Parsley · handful, Sesame seeds · to taste` — the exclusion
-/// D6 prints UNDER the total, every time (seam **D6**) — and, one reason
-/// wider since plan 0025 (D6b), `not counted · 2 optional lines: Lime,
-/// Coriander`. When both kinds coincide it is ONE line with both reasons:
-/// `not counted: Parsley · handful · 2 optional lines: Lime, Coriander`.
+/// `not counted: Parsley · handful, Sesame seeds · to taste` — the exclusion a
+/// real total prints UNDER itself, every time — and, one reason wider, `not
+/// counted · 2 optional lines: Lime, Coriander`. When both kinds coincide it is
+/// ONE line with both reasons: `not counted: Parsley · handful · 2 optional
+/// lines: Lime, Coriander`.
 ///
 /// This sentence is the whole honesty argument: nothing is invented, because
 /// zero grams were claimed; and nothing is silent, because a reader can see

@@ -55,8 +55,7 @@ class Macros {
     );
   }
 
-  /// The per-100 macros a label printed per serving asserts — plan 0027
-  /// M-D1/M-D3.
+  /// The per-100 macros a label printed per serving asserts.
   ///
   /// A US Nutrition Facts panel reads "1 Tbsp (14 g) · 100 kcal"; the row
   /// stores per 100 of its [basis], so the four [printed] figures are scaled

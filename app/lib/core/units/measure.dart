@@ -75,9 +75,9 @@ class Measure {
   /// curated hand rows, null for rows predating the column.
   final String? source;
 
-  /// [source] classified for display. The raw machine string stays in the
-  /// data; anything user-facing shows the humanized kind (plan 0011, frame-b
-  /// review): "USDA portion" / "borrowed" / "typical" / "yours".
+  /// [source] classified for display. The raw machine string stays in the data;
+  /// anything user-facing shows the humanized kind: "USDA portion" /
+  /// "borrowed" / "typical" / "yours".
   MeasureSourceKind get sourceKind {
     final s = source;
     if (s == null) return MeasureSourceKind.unknown;
