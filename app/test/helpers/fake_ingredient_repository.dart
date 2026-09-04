@@ -384,10 +384,12 @@ class FakeIngredientRepo implements IngredientRepository {
       macrosBasis: edit.macrosBasis,
       allowedUnits: edit.allowedUnits.toList(),
       measureCount: current.measureCount,
-      // Patch-shaped, like the real write: a null keeps the stored stamp.
+      // Patch-shaped, like the real write: a null keeps the stored stamp —
+      // so a save that is not about the match cannot erase which food filled
+      // the row.
       source: edit.source ?? current.source,
-      sourceLabel: current.sourceLabel,
-      sourceScore: current.sourceScore,
+      sourceLabel: edit.sourceLabel ?? current.sourceLabel,
+      sourceScore: edit.sourceScore ?? current.sourceScore,
     );
     _replace(updated);
     return updated;
@@ -401,11 +403,26 @@ class FakeIngredientRepo implements IngredientRepository {
   /// form asked for* separately from what the row ended up looking like.
   @override
   Future<Ingredient?> saveForm(
-    String ingredientId,
+    String? ingredientId,
     IngredientFormEdit edit,
   ) async {
     savedForms.add(edit);
-    final row = await saveEdit(ingredientId, edit.row);
+    var targetId = ingredientId;
+    // C1: a null id creates. The fake mints one and seeds a bare stub, so the
+    // rest of this method is the same for a create and an edit — which is the
+    // property the real transaction has too.
+    if (ingredientId == null) {
+      final created = Ingredient(
+        id: 'new-${rows.length + 1}',
+        canonicalName: edit.row.canonicalName.trim(),
+        defaultUnit: edit.row.defaultUnit,
+        status: IngredientStatus.stub,
+        macrosBasis: edit.row.macrosBasis,
+      );
+      rows.add(created);
+      targetId = created.id;
+    }
+    final row = await saveEdit(targetId!, edit.row);
     if (row == null) return null;
     var updated = row;
     switch (edit.density) {

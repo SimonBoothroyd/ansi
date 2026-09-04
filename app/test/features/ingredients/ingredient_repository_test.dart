@@ -1339,6 +1339,79 @@ void main() {
       );
     });
 
+    test('C1: a NULL id creates the row — and its children land in the same '
+        'transaction, which is what lets the sheet stop existing', () async {
+      final created = await repo.saveForm(
+        null,
+        IngredientFormEdit(
+          row: _edit(name: 'Black garlic', category: 'pantry'),
+          density: const DensitySet(0.9),
+          measuresAdded: const [
+            PendingMeasure(id: 'nm-1', label: 'clove', amount: 5),
+          ],
+          aliasesAdded: const [PendingAlias(id: 'na-1', text: 'aged garlic')],
+        ),
+      );
+
+      expect(created, isNotNull);
+      expect(created!.canonicalName, 'Black garlic');
+      // Born a stub whatever arrived (D5): filling a form in never promotes.
+      expect(created.status, IngredientStatus.stub);
+      expect(created.densityGPerMl, 0.9);
+      // The server's own phrase rules, so the next import's cascade finds it.
+      final row = await db.get(
+        'SELECT match_text FROM ingredient WHERE id = ?',
+        [created.id],
+      );
+      expect(row['match_text'], normalizeMatchText('Black garlic'));
+      // The children point at the row that was minted in the same statement
+      // batch — no window in which the row exists without them.
+      final measure = await db.get(
+        'SELECT ingredient_id FROM ingredient_measure WHERE id = ?',
+        ['nm-1'],
+      );
+      expect(measure['ingredient_id'], created.id);
+      final alias = await db.get(
+        'SELECT ingredient_id FROM ingredient_alias WHERE id = ?',
+        ['na-1'],
+      );
+      expect(alias['ingredient_id'], created.id);
+    });
+
+    test('C1: a create that refuses leaves NO row behind — the sheet could '
+        'only ever leave a half-made one', () async {
+      final before = await db.get('SELECT COUNT(*) AS n FROM ingredient');
+      await expectLater(
+        repo.saveForm(
+          null,
+          IngredientFormEdit(
+            row: _edit(name: 'Doomed'),
+            measuresAdded: const [
+              PendingMeasure(id: 'nm-2', label: 'clove', amount: 0),
+            ],
+          ),
+        ),
+        throwsArgumentError,
+      );
+      final after = await db.get('SELECT COUNT(*) AS n FROM ingredient');
+      expect(after['n'], before['n']);
+      expect(
+        await db.getOptional(
+          "SELECT id FROM ingredient WHERE canonical_name = 'Doomed'",
+        ),
+        isNull,
+      );
+    });
+
+    test('C1: markComplete on a create still needs macros — a new row with '
+        'none stays a stub', () async {
+      final bare = await repo.saveForm(
+        null,
+        IngredientFormEdit(row: _edit(name: 'Bare'), markComplete: true),
+      );
+      expect(bare!.status, IngredientStatus.stub);
+    });
+
     test('a row that is gone answers null rather than throwing', () async {
       expect(
         await repo.saveForm(

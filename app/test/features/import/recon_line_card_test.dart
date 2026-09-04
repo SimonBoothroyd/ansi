@@ -348,7 +348,7 @@ class _FakeIngredientRepo
   final Ingredient row;
 
   @override
-  Future<Ingredient?> saveForm(String ingredientId, IngredientFormEdit edit) =>
+  Future<Ingredient?> saveForm(String? ingredientId, IngredientFormEdit edit) =>
       throw UnimplementedError();
 
   @override

@@ -175,6 +175,8 @@ class IngredientEdit {
     this.category,
     this.macros,
     this.source,
+    this.sourceLabel,
+    this.sourceScore,
   });
 
   final String canonicalName;
@@ -187,6 +189,13 @@ class IngredientEdit {
 
   final String? category;
   final Macros? macros;
+
+  /// What the provenance is called and how sure the match was — written
+  /// beside [source] and patch-shaped for the same reason. A USDA pick fills
+  /// these into the draft rather than writing them itself (plan 0029 W5), so
+  /// the food that filled a row and the numbers it filled land together.
+  final String? sourceLabel;
+  final double? sourceScore;
 
   /// A provenance to stamp (`off:<barcode>`), or null to keep the stored one.
   ///
@@ -443,11 +452,18 @@ abstract interface class IngredientRepository {
   /// fields, the density, measures added and removed, aliases, "Counts as",
   /// and — when [IngredientFormEdit.markComplete] — the status flip.
   ///
-  /// Returns the row as the write left it, or null if it is gone. Throws
-  /// [ArgumentError] on the same contracts the individual writes throw on: a
-  /// blank name, a non-positive measure amount, an alias with no identity
-  /// word. Nothing is written when it throws.
-  Future<Ingredient?> saveForm(String ingredientId, IngredientFormEdit edit);
+  /// **A null [ingredientId] creates the row** (plan 0029 **C1**). That is
+  /// the whole reason the form defers: with nothing written until Save, a
+  /// form with no row yet is coherent, and its children — measures, aliases —
+  /// are inserted in the same transaction as the row they belong to. It is
+  /// also what lets the New-ingredient sheet stop existing, since its only
+  /// remaining job was to be the stage where nothing has been written.
+  ///
+  /// Returns the row as the write left it, or null if an existing row is
+  /// gone. Throws [ArgumentError] on the same contracts the individual writes
+  /// throw on: a blank name, a non-positive measure amount, an alias with no
+  /// identity word. Nothing is written when it throws.
+  Future<Ingredient?> saveForm(String? ingredientId, IngredientFormEdit edit);
 
   /// Flips a `stub` to `complete` — the human confirm of D5.
   ///

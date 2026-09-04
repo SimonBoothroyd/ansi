@@ -843,15 +843,14 @@ void main() {
       await tester.tap(find.text('Curry leaves, dried'));
       await tester.pumpAndSettle();
 
+      // The pick is the DRAFT (plan 0029 W5) — it fills the fields and the
+      // provenance it will stamp, and the form's one Save lands all of it.
+      await _saveForm(tester, reopen: 'Curry leaf');
       final row = (await repo.byId('curry'))!;
-      // The rename was NOT flushed to get here (F1 is retired): looking
-      // something up writes nothing, so the typed name is still only in the
-      // field and the stored row keeps the name it had.
-      expect(row.canonicalName, _curryLeaves.canonicalName);
-      expect(
-        tester.widget<TextField>(find.byType(TextField).first).controller!.text,
-        'Curry leaf',
-      );
+      // Looking something up wrote nothing (F1 is retired) — and the Save
+      // that follows carries the rename and the pick together, because to
+      // the person they were always one act.
+      expect(row.canonicalName, 'Curry leaf');
       expect(row.source, 'usda_fdc:11217');
       expect(row.sourceLabel, 'Curry leaves, dried');
       expect(row.sourceScore, 0.9);
@@ -865,10 +864,6 @@ void main() {
         findsOneWidget,
       );
       expect(_macroFieldText(tester, 'kcal'), '300');
-      expect(
-        find.textContaining('Filled from “Curry leaves, dried”'),
-        findsOneWidget,
-      );
     });
 
     testWidgets('U-D3: on a DECLINED row the refused food is tagged and the '
@@ -901,6 +896,9 @@ void main() {
       await tester.tap(find.text('Curry leaves, dried'));
       await tester.pumpAndSettle();
 
+      // The pick is the DRAFT (plan 0029 W5) — it fills the fields and the
+      // provenance it will stamp, and the form's one Save lands all of it.
+      await _saveForm(tester, reopen: _curryLeaves.canonicalName);
       final row = (await repo.byId('curry'))!;
       expect(row.source, 'usda_fdc:11217');
       expect(row.sourceLabel, 'Curry leaves, dried');
@@ -1621,15 +1619,21 @@ void main() {
       await _lookUpUsdaAndPick(tester, 'Curry leaves, raw');
 
       // The bug F1 was written for cannot recur: the query is the field, so
-      // there is no stored name to go stale — and, unlike the flush, asking
-      // costs no write. The rename is still the user's to save.
+      // there is no stored name to go stale — and asking costs no write.
       expect(probe.asked.single, normalizeMatchText('Chicken Breast'));
-      final row = (await repo.byId('curry'))!;
-      expect(row.canonicalName, _curryLeaves.canonicalName);
       expect(
-        repo.matchTextById['curry'],
-        isNot(normalizeMatchText('Chicken Breast')),
+        (await repo.byId('curry'))!.macros,
+        isNull,
+        reason: 'a pick fills the draft; Save writes it (plan 0029 W5)',
       );
+
+      // One Save carries the rename AND the pick — to the person they were
+      // always one act, and now they are one write. Save ends the page, so
+      // walk back in to read what the form says afterwards.
+      await _saveForm(tester, reopen: 'Chicken Breast');
+      final row = (await repo.byId('curry'))!;
+      expect(row.canonicalName, 'Chicken Breast');
+      expect(repo.matchTextById['curry'], normalizeMatchText('Chicken Breast'));
       // …and the picked answer landed, without completing the row (D5).
       expect(row.densityGPerMl, 0.35);
       expect(row.macros, const Macros(kcal: 108, protein: 6, carb: 19, fat: 1));
@@ -1669,11 +1673,9 @@ void main() {
 
       await _lookUpUsdaAndPick(tester, 'Curry leaves, raw');
 
-      // The row got the numbers…
-      expect(
-        (await repo.byId('curry'))!.macros,
-        const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
-      );
+      // The FIELDS got the numbers at once — which is G1's whole subject —
+      // while the row waits for Save.
+      expect((await repo.byId('curry'))!.macros, isNull);
       // …and so did the fields, without leaving the screen. This is G1: the
       // controllers are seeded once at build, so before the row-version key
       // they went on showing the blanks they were born with.

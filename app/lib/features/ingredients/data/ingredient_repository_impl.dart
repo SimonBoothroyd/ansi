@@ -620,7 +620,7 @@ class SqliteIngredientRepository implements IngredientRepository {
 
   @override
   Future<Ingredient?> saveForm(
-    String ingredientId,
+    String? ingredientId,
     IngredientFormEdit edit,
   ) async {
     // **Validate everything BEFORE opening the transaction.** The contract is
@@ -682,10 +682,28 @@ class SqliteIngredientRepository implements IngredientRepository {
     final macrosJson = _macrosJson(macros);
     final now = DateTime.now().toUtc().toIso8601String();
 
+    // C1: a form with no row yet mints one here, so the row and its children
+    // are inserted in the same transaction — a create that half-lands stops
+    // being representable, which the sheet's four-calls-under-one-guard never
+    // managed.
+    final creating = ingredientId == null;
+    final id = ingredientId ?? _uuid.v4();
+
     final ok = await _db.writeTransaction((tx) async {
+      if (creating) {
+        // Born a stub whatever arrived, exactly as `createStub` does (D5):
+        // filling a form in never promotes a row — only `markComplete`, which
+        // is a human tapping the CTA.
+        await tx.execute(
+          'INSERT INTO ingredient (id, household_id, canonical_name, '
+          'default_unit, status, match_text, created_at, updated_at) '
+          "VALUES (?, ?, ?, 'g', 'stub', ?, ?, ?)",
+          [id, _householdId, name, normalizeMatchText(name), now, now],
+        );
+      }
       final row = await tx.getOptional(
         'SELECT status FROM ingredient WHERE id = ? AND deleted_at IS NULL',
-        [ingredientId],
+        [id],
       );
       if (row == null) return false;
       // D5, both directions in one place now. Clearing the macros of a
@@ -705,8 +723,13 @@ class SqliteIngredientRepository implements IngredientRepository {
         'UPDATE ingredient SET canonical_name = ?, match_text = ?, '
         'category = ?, default_unit = ?, macros = ?, macros_basis = ?, '
         'allowed_units = ?, status = ?, '
-        // Provenance is patch-shaped (see [IngredientEdit.source]).
-        'source = COALESCE(?, source), updated_at = ? WHERE id = ?',
+        // Provenance is patch-shaped (see [IngredientEdit.source]): a null
+        // keeps what is stored, so a save that is not about the match cannot
+        // erase which food filled the row.
+        'source = COALESCE(?, source), '
+        'source_label = COALESCE(?, source_label), '
+        'source_score = COALESCE(?, source_score), '
+        'updated_at = ? WHERE id = ?',
         [
           name,
           // The rename hazard (D6): the stored name and its match_text are
@@ -720,8 +743,10 @@ class SqliteIngredientRepository implements IngredientRepository {
           jsonEncode([for (final u in edit.row.allowedUnits) u.id]),
           status,
           edit.row.source,
+          edit.row.sourceLabel,
+          edit.row.sourceScore,
           now,
-          ingredientId,
+          id,
         ],
       );
 
@@ -730,13 +755,13 @@ class SqliteIngredientRepository implements IngredientRepository {
           await tx.execute(
             'UPDATE ingredient SET density_g_per_ml = ?, updated_at = ? '
             'WHERE id = ?',
-            [gPerMl, now, ingredientId],
+            [gPerMl, now, id],
           );
         case DensityCleared():
           await tx.execute(
             'UPDATE ingredient SET density_g_per_ml = NULL, updated_at = ? '
             'WHERE id = ?',
-            [now, ingredientId],
+            [now, id],
           );
         case DensityUnchanged():
           break;
@@ -746,7 +771,7 @@ class SqliteIngredientRepository implements IngredientRepository {
         await tx.execute(
           'UPDATE ingredient SET default_measure_id = ?, updated_at = ? '
           'WHERE id = ?',
-          [measureId, now, ingredientId],
+          [measureId, now, id],
         );
       }
 
@@ -771,7 +796,7 @@ class SqliteIngredientRepository implements IngredientRepository {
         final maxRow = await tx.get(
           'SELECT COALESCE(MAX(sort_order), -1) AS m FROM ingredient_measure '
           'WHERE ingredient_id = ? AND deleted_at IS NULL',
-          [ingredientId],
+          [id],
         );
         var sortOrder = (maxRow['m'] as int) + 1;
         for (final m in edit.measuresAdded) {
@@ -786,7 +811,7 @@ class SqliteIngredientRepository implements IngredientRepository {
             [
               m.id,
               _householdId,
-              ingredientId,
+              id,
               m.label.trim(),
               m.amount,
               sortOrder++,
@@ -806,29 +831,20 @@ class SqliteIngredientRepository implements IngredientRepository {
           'SELECT id FROM ingredient_alias '
           'WHERE ingredient_id = ? AND match_text = ? AND deleted_at IS NULL '
           'LIMIT 1',
-          [ingredientId, a.matchText],
+          [id, a.matchText],
         );
         if (existing != null) continue;
         await tx.execute(
           'INSERT INTO ingredient_alias '
           '(id, household_id, ingredient_id, alias_text, match_text, source, '
           'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [
-            a.id,
-            _householdId,
-            ingredientId,
-            a.text,
-            a.matchText,
-            'manual',
-            now,
-            now,
-          ],
+          [a.id, _householdId, id, a.text, a.matchText, 'manual', now, now],
         );
       }
       return true;
     });
     if (!ok) return null;
-    return byId(ingredientId);
+    return byId(id);
   }
 
   @override

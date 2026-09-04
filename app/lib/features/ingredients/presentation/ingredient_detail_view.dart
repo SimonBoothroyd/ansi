@@ -231,6 +231,8 @@ class _DetailForm extends HookConsumerWidget {
     final defaultMeasure = useState<DefaultMeasureChange>(
       const DefaultMeasureUnchanged(),
     );
+    final pendingSourceLabel = useState<String?>(null);
+    final pendingSourceScore = useState<double?>(null);
     final aliasesAdded = useState<List<IngredientAlias>>(const []);
     final aliasesRemoved = useState<Set<String>>(const {});
     // The last barcode scan (plan 0025 #8): the draft the card shows, what
@@ -399,6 +401,8 @@ class _DetailForm extends HookConsumerWidget {
                           : category.value.trim(),
                       macros: draftMacros,
                       source: pendingSource.value,
+                      sourceLabel: pendingSourceLabel.value,
+                      sourceScore: pendingSourceScore.value,
                     ),
                     density: density,
                     measuresAdded: [
@@ -437,6 +441,8 @@ class _DetailForm extends HookConsumerWidget {
         // Landed, so the draft empties: a second Save must not write any of
         // it twice. This is the one place the draft is discarded on purpose.
         pendingSource.value = null;
+        pendingSourceLabel.value = null;
+        pendingSourceScore.value = null;
         servingOffer.value = false;
         densityChange.value = const DensityUnchanged();
         measuresAdded.value = const [];
@@ -507,21 +513,18 @@ class _DetailForm extends HookConsumerWidget {
     //
     // `Fill it in from ▸ Look up in USDA` and the provenance card's
     // `Choose another ›` are the same act: ask USDA about this row and let a
-    // human pick. It used to be two different things — the fill button ran
-    // `probe.probe`, applied the single best hit sight-unseen and reported it
-    // in a status sentence, while only `Choose another` showed the five.
+    // human pick. It asks about **the name in the field**, not the stored
+    // row, which is why the lookup no longer has to save the form first to
+    // avoid probing a stale name (F1, retired).
     //
-    // It asks about **the name in the field**, not the stored row, which is
-    // what retires **F1**: the lookup no longer has to save the form first to
-    // avoid probing a stale name, because a query taken from the field cannot
-    // be stale. Nothing is written until a candidate is picked.
+    // **And a pick writes nothing** (plan 0029 W5). It fills the draft — the
+    // macros, the density, and which food they came from — and the form's own
+    // Save lands the lot. That is also what lets it work on a row that does
+    // not exist yet (C1), and it deletes the "an explicit pick outranks a
+    // half-typed panel" reconciliation: with one write model there is no row
+    // moving underneath a draft to reconcile against. The pick simply is the
+    // draft.
     Future<void> pickUsda() async {
-      // Captured BEFORE the sheet: the write after it goes through these,
-      // never the widget's ref (app/AGENTS.md — the row can be unmounted by
-      // the time the person picks).
-      final repo = ref.read(ingredientRepositoryProvider);
-      final container = ProviderScope.containerOf(context, listen: false);
-      final host = hostContextOf(context);
       busy.value = true;
       try {
         final pick = await showUsdaPickSheet(
@@ -529,53 +532,29 @@ class _DetailForm extends HookConsumerWidget {
           ingredient: ing,
           name: name.value.trim().isEmpty ? ing.canonicalName : name.value,
         );
-        if (pick == null) return;
-        // U-D3: the same apply path as every other fill, with the declined
-        // guard lifted for a person's own choice — the stamp, the label and
-        // the score move to the chosen food. Still a stub (U-D4).
-        final applied = await container.write(
-          host,
-          'use that USDA match',
-          () => repo.applyUsdaProbe(
-            ing.id,
-            source: pick.source,
-            sourceLabel: pick.description,
-            sourceScore: pick.score,
-            densityGPerMl: pick.densityGPerMl,
-            macros: pick.macros,
-            explicitPick: true,
-          ),
-        );
-        if (applied == null) return;
-        container.invalidate(ingredientByIdProvider(ing.id));
-        if (!context.mounted) return;
-        // **An explicit pick outranks a half-typed panel.**
-        //
-        // G1's guard — "the row re-seeds the draft only while the draft still
-        // says exactly what the row last put there" — was written for the
-        // AUTOMATIC fill, where the row moving underneath a person who is
-        // typing must not steal their keystrokes. A pick is not that: it is
-        // someone choosing this food's numbers on purpose, and leaving the
-        // fields showing what they had typed would both look like the pick
-        // did nothing AND let the next Save write the stale draft back over
-        // the fill.
-        //
-        // So the draft is set from the applied row and re-seeded in the same
-        // breath — `seededMacros` moves with it, so G1's effect sees a draft
-        // that already matches the row and stands down. This is exactly what
-        // the barcode scan does with `applyDraft`; the two explicit fills now
-        // behave alike.
-        if (applied.macros != null) {
-          basis.value = applied.macrosBasis;
-          final filled = _MacroDraft.from(applied.macros);
+        if (pick == null || !context.mounted) return;
+        pendingSource.value = pick.source;
+        pendingSourceLabel.value = pick.description;
+        pendingSourceScore.value = pick.score;
+        // A pick replaces the old fill WHOLE (U-D3), so a food with no
+        // density of its own clears the one the previous food supplied —
+        // otherwise the row would keep a number that came from a match the
+        // household has just rejected.
+        densityChange.value = pick.densityGPerMl != null
+            ? DensitySet(pick.densityGPerMl!)
+            : const DensityCleared();
+        if (pick.macros != null) {
+          final filled = _MacroDraft.from(pick.macros);
           macros.value = filled;
+          // Re-seeded in the same breath, so G1's effect sees a draft that
+          // already matches what it would have written and stands down.
           seededMacros.value = filled;
           macroSeed.value++;
           perServing.value = false;
         }
         message.value =
-            'Filled from “${pick.description}” — still a stub until you '
-            'mark it complete.';
+            'Filled from “${pick.description}” — nothing is saved until you '
+            'tap Save.';
       } finally {
         if (context.mounted) busy.value = false;
       }
@@ -1019,7 +998,12 @@ class _DetailForm extends HookConsumerWidget {
               // The entry draws its own DENSITY label; the section used to
               // carry a second, longer one directly above it.
               DensityEntry(
-                ingredient: ing,
+                // `draftRow`, not the stored row: the headline shows the
+                // density the form is HOLDING, and "Remove it? tsp · tbsp …
+                // lock again" names the units the draft would strip. Reading
+                // the row here would show a number the person has already
+                // replaced, or none where they have just typed one.
+                ingredient: draftRow,
                 redirectedSpoon: redirectedSpoon.value,
                 // Lane A moves the write OUT of the widget; this host still
                 // commits on tap, exactly as before. Lane B is where the form

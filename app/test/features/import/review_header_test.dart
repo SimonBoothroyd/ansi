@@ -59,7 +59,7 @@ class _FakeIngredientRepo
     with IngredientManagerStubs
     implements IngredientRepository {
   @override
-  Future<Ingredient?> saveForm(String ingredientId, IngredientFormEdit edit) =>
+  Future<Ingredient?> saveForm(String? ingredientId, IngredientFormEdit edit) =>
       throw UnimplementedError();
 
   @override
