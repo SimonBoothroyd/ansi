@@ -227,50 +227,6 @@ void main() {
       expect(asked.density, isA<DensityUnchanged>());
       expect((await repo.byId('spread'))!.densityGPerMl, isNull);
     });
-
-    test('servingOfferFor: a spoon with a mass is a density per spoon, a spoon '
-        'with a volume is nothing, a thing is a measure of one', () {
-      const g14 = ServingDraft(amountText: '14', name: '1 tbsp');
-      final density = servingOfferFor(g14, MacrosBasis.perG)! as DensityOffer;
-      expect(density.unit, tbsp);
-      expect(density.gPerMl, closeTo(14 / tbsp.ratioToBase!, 1e-9));
-      // "2 Tbsp = 32 g" — per spoon, the way the pack's own line reads.
-      final two =
-          servingOfferFor(
-                const ServingDraft(amountText: '32', name: '2 Tbsp'),
-                MacrosBasis.perG,
-              )!
-              as DensityOffer;
-      expect(two.gramsPerUnit, 16);
-      expect(two.sentence, '1 tbsp weighs 16 g — set as density');
-      // A spoon of ml is a volume of itself — not a density.
-      expect(servingOfferFor(g14, MacrosBasis.perMl), isNull);
-      // A thing is a measure; a count above one has no singular to name.
-      final slice =
-          servingOfferFor(
-                const ServingDraft(amountText: '28', name: 'slice'),
-                MacrosBasis.perG,
-              )!
-              as MeasureOffer;
-      expect(slice.label, 'slice');
-      expect(slice.amount, 28);
-      expect(
-        servingOfferFor(
-          const ServingDraft(amountText: '56', name: '2 slices'),
-          MacrosBasis.perG,
-        ),
-        isNull,
-      );
-      // Nothing to offer from nothing.
-      expect(
-        servingOfferFor(const ServingDraft(amountText: '14'), MacrosBasis.perG),
-        isNull,
-      );
-      expect(
-        servingOfferFor(const ServingDraft(name: '1 tbsp'), MacrosBasis.perG),
-        isNull,
-      );
-    });
   });
 
   group('a per-serving barcode panel lands on the selector', () {

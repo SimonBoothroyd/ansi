@@ -412,3 +412,19 @@ List<LineIssue> lineIssues(
 /// result of [lineIssues] across the whole import.
 bool allLinesValid(Map<int, List<LineIssue>> issuesByLine) =>
     issuesByLine.values.every((i) => i.isEmpty);
+
+/// The printed CROSS-REFERENCE a line carries — `"(page 38)"` — or null.
+///
+/// One more honest-import flag: the server strips it before matching (the way
+/// parentheticals already are), so saying so on the card is what keeps the
+/// stripping from looking like a misreading — the identity text still says
+/// "(page 38)" and the chip below says which recipe that turned out to be.
+/// The pattern mirrors the server's stripping, so the two agree about what
+/// counts as a reference rather than as an ordinary parenthetical.
+String? crossReferenceFlag(String ingredientText) {
+  final match = RegExp(
+    r'\((?:see\s+)?p(?:age|g)?\.?\s*\d+\)',
+    caseSensitive: false,
+  ).firstMatch(ingredientText);
+  return match?.group(0);
+}

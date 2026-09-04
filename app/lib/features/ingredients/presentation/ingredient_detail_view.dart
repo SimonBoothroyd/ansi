@@ -65,6 +65,7 @@ import '../domain/apply_draft.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/normalize.dart';
+import '../domain/serving_offer.dart';
 import '../domain/usda_probe.dart';
 import 'density_entry.dart';
 import 'draft_card.dart';
@@ -396,7 +397,11 @@ class _DetailForm extends HookConsumerWidget {
             printed: printed,
           );
     final offer = perServing.value
-        ? servingOfferFor(serving.value, basis.value)
+        ? servingOfferFor(
+            amount: serving.value.amount,
+            name: serving.value.name,
+            basis: basis.value,
+          )
         : null;
     final stub = ing.status == IngredientStatus.stub;
 
@@ -2420,101 +2425,30 @@ class _MacroDraft {
   }
 }
 
-// --- The M-D2 offer ----------------------------------------------------------
-
-/// What a serving's name and weight also say about the row: a density when the
-/// pack measured a spoon, a measure when it named a thing. Computed, never
-/// written — the form writes it only when ticked.
-sealed class ServingOffer {
-  const ServingOffer();
-
+/// How the M-D2 offer reads on screen. The arithmetic is
+/// [servingOfferFor]'s; these are the only two sentences it needs, and they
+/// stay here because a domain rule does not own words.
+extension ServingOfferSentences on ServingOffer {
   /// The tick's label: "1 tbsp weighs 14 g — set as density".
-  String get sentence;
+  String get sentence => switch (this) {
+    DensityOffer(:final unit, :final gramsPerUnit) =>
+      '1 ${unit.label} weighs ${formatQuantity(gramsPerUnit)} g — set as '
+          'density',
+    MeasureOffer(:final label, :final amount, :final basis) =>
+      '1 $label = ${formatQuantity(amount)} ${basis.baseUnit.label} — add as '
+          'a measure',
+  };
 
   /// The note under a taken tick: what Save will do with it.
-  String get whenTaken;
-}
-
-/// "1 tbsp = 14 g" — a volume-named weight IS a density (ADR-0008 §2), so
-/// it lands through the same `setDensity` the density entry's spoon phrasing
-/// uses, and the volume chips unlock exactly as they would there (ADR-0009).
-class DensityOffer extends ServingOffer {
-  const DensityOffer({
-    required this.unit,
-    required this.gramsPerUnit,
-    required this.gPerMl,
-  });
-
-  final Unit unit;
-  final double gramsPerUnit;
-  final double gPerMl;
-
-  @override
-  String get sentence =>
-      '1 ${unit.label} weighs ${formatQuantity(gramsPerUnit)} g — set as '
-      'density';
-
-  @override
-  String get whenTaken =>
+  String get whenTaken => switch (this) {
+    DensityOffer(:final gPerMl) =>
       '= ${formatDensity(gPerMl)} g/ml, written with this Save through the '
-      'density entry — the volume chips unlock as they do when a density is '
-      'typed by hand';
-}
-
-/// "1 slice = 28 g" — a count-like human unit mapped into the basis
-/// (ADR-0008 §3), added through the measures editor's own write.
-class MeasureOffer extends ServingOffer {
-  const MeasureOffer({
-    required this.label,
-    required this.amount,
-    required this.basis,
-  });
-
-  final String label;
-
-  /// In [basis]'s base unit — what `addMeasure` stores.
-  final double amount;
-  final MacrosBasis basis;
-
-  @override
-  String get sentence =>
-      '1 $label = ${formatQuantity(amount)} ${basis.baseUnit.label} — add as '
-      'a measure';
-
-  @override
-  String get whenTaken =>
+          'density entry — the volume chips unlock as they do when a density '
+          'is typed by hand',
+    MeasureOffer() =>
       'lands in the measures below with this Save — rename it or bin it '
-      'there';
-}
-
-/// The offer a serving row makes, or null when it makes none.
-///
-/// The name is read as an optional count and a word ("2 Tbsp", "slice").
-/// A spoon word with a **mass** serving is a density — per spoon, so "2 Tbsp
-/// = 32 g" offers 16 g a tablespoon; a spoon with an ml serving is a volume
-/// of itself and offers nothing. Any other word is a measure of one — a
-/// count above one would need a singular nobody typed ("2 slices"), so it
-/// is not offered rather than guessed at.
-ServingOffer? servingOfferFor(ServingDraft serving, MacrosBasis basis) {
-  final amount = serving.amount;
-  final name = serving.name.trim();
-  if (amount == null || name.isEmpty) return null;
-  final m = RegExp(r'^(\d+(?:[.,]\d+)?)\s+(.+)$').firstMatch(name);
-  final count = m == null
-      ? 1.0
-      : double.tryParse(m.group(1)!.replaceAll(',', '.'));
-  final word = (m == null ? name : m.group(2)!).trim();
-  if (count == null || !(count > 0) || word.isEmpty) return null;
-  final volume = volumeUnitFromLabel(word);
-  if (volume != null) {
-    if (basis != MacrosBasis.perG) return null;
-    final perUnit = amount / count;
-    final gPerMl = densityFromVolumeWeight(volume, perUnit);
-    if (gPerMl == null) return null;
-    return DensityOffer(unit: volume, gramsPerUnit: perUnit, gPerMl: gPerMl);
-  }
-  if (count != 1) return null;
-  return MeasureOffer(label: word, amount: amount, basis: basis);
+          'there',
+  };
 }
 
 /// `60` not `60.0`, `0.66` unchanged — seeds a numeric field with what a

@@ -209,21 +209,6 @@ String? attentionLabel(List<LineIssue> issues, {bool hasRecipeOffer = false}) {
 String rawLineText(RawLineItem raw) =>
     joinSourceLine(raw.rawAmount, raw.ingredientText);
 
-/// The printed CROSS-REFERENCE a line carries — `"(page 38)"` — or null.
-///
-/// The board's frame (e) shows it as one more honest-import flag: the server
-/// strips it before matching (the way parentheticals already are), so saying
-/// so on the card is what keeps the stripping from looking like a
-/// misreading — the identity text still says "(page 38)" and the chip below
-/// says which recipe that turned out to be.
-String? crossReferenceFlag(String ingredientText) {
-  final match = RegExp(
-    r'\((?:see\s+)?p(?:age|g)?\.?\s*\d+\)',
-    caseSensitive: false,
-  ).firstMatch(ingredientText);
-  return match?.group(0);
-}
-
 /// The compact three-part row: amount · ingredient · notes, a pencil, and (when
 /// still open) a clear "needs you" label. Tapping anywhere expands it.
 class _Collapsed extends StatelessWidget {

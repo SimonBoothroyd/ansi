@@ -103,6 +103,8 @@ ingredients/
     usda_probe.dart          the probe interface + its offline contract
     measure_repository.dart  named per-ingredient measures
     apply_draft.dart         the one rule for landing a barcode draft on a form
+    serving_offer.dart       what a serving's "1 tbsp = 14 g" also says — a
+                             density (ADR-0008 §2) or a measure (§3)
   data/
     ingredient_repository_impl.dart  SqliteIngredientRepository — read + write
     measure_repository_impl.dart     measures, with merge-on-read for dup labels

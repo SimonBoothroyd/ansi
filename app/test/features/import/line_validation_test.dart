@@ -837,4 +837,18 @@ void main() {
       );
     });
   });
+
+  group('crossReferenceFlag', () {
+    test('a printed page reference is surfaced, in its own words', () {
+      expect(crossReferenceFlag('Romesco Aioli (page 38)'), '(page 38)');
+      expect(crossReferenceFlag('Garlic Butter (p. 17)'), '(p. 17)');
+      expect(crossReferenceFlag('Pretzel Buns (see page 97)'), '(see page 97)');
+    });
+
+    test('an ordinary parenthetical is NOT a cross-reference', () {
+      expect(crossReferenceFlag('tomatoes (400 g tin)'), isNull);
+      expect(crossReferenceFlag('parsley (optional)'), isNull);
+      expect(crossReferenceFlag('onion'), isNull);
+    });
+  });
 }
