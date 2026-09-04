@@ -786,21 +786,85 @@ class _MeasureManager extends HookConsumerWidget {
           ingredient: ingredient,
           measures: measures,
           onDelete: onDelete,
+          // This host has no Save: it commits on tap, as it always has.
+          onAdd: (label, amount) async {
+            final outcome = await ref.write(
+              context,
+              'add that measure',
+              () async {
+                try {
+                  return MeasureAdded(
+                    await ref
+                        .read(measureRepositoryProvider)
+                        .addMeasure(
+                          ingredientId: ingredient.id,
+                          label: label,
+                          amount: amount,
+                        ),
+                  );
+                  // The repository's validation contract IS ArgumentError
+                  // (documented on addMeasure), so catching it is the point.
+                  // ignore: avoid_catching_errors
+                } on ArgumentError catch (e) {
+                  return MeasureRefused('${e.message}');
+                }
+              },
+            );
+            return outcome ?? const MeasureNotAdded();
+          },
           onAdded: onAdded,
           onVolumeLabel: (u) => redirected.value = u,
-          // The piece question's "no" answer changed `allowed_units` under
+          // The piece question's "no" answer changes `allowed_units` under
           // us; the sheet's chip row reads the row it holds, so it takes the
           // updated one by the same door a density write uses.
-          onIngredientChanged: onIngredientChanged,
+          onStopOfferingPiece: (added) async {
+            final repo = ref.read(ingredientRepositoryProvider);
+            final changed = await ref.write(
+              context,
+              'stop offering “piece”',
+              () async {
+                await repo.stopOfferingPiece(ingredient.id);
+                return repo.setDefaultMeasure(ingredient.id, added.id);
+              },
+            );
+            if (changed != null) onIngredientChanged(changed);
+            return changed;
+          },
           autofocus: true,
         ),
         const SizedBox(height: 14),
         DensityEntry(
           ingredient: ingredient,
           redirectedSpoon: redirected.value,
-          onSaved: (updated) {
+          // This host has no Save of its own — you are managing the
+          // vocabulary in the middle of picking a unit for a line — so it
+          // commits on tap, and its button goes on saying `Save` because that
+          // is what it does (plan 0029 W2/R3).
+          onSave: (gPerMl) async {
+            final updated = await ref.write(
+              context,
+              'save that density',
+              () => ref
+                  .read(ingredientRepositoryProvider)
+                  .setDensity(ingredient.id, gPerMl),
+            );
+            if (updated == null) return false;
             redirected.value = null;
             onIngredientChanged(updated);
+            return true;
+          },
+          onRemove: () async {
+            final updated = await ref.write(
+              context,
+              'remove that density',
+              () => ref
+                  .read(ingredientRepositoryProvider)
+                  .clearDensity(ingredient.id),
+            );
+            if (updated == null) return false;
+            redirected.value = null;
+            onIngredientChanged(updated);
+            return true;
           },
         ),
       ],

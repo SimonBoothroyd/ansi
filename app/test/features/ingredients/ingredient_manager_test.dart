@@ -400,7 +400,11 @@ Widget _densityHost(Ingredient ingredient) => ProviderScope(
           child: DensityEntry(
             ingredient: ingredient,
             redirectedSpoon: null,
-            onSaved: (_) {},
+            // The G2 host measures LAYOUT, so the seam is inert here: the
+            // widget no longer knows a repository, and this stands in for the
+            // host that would land the write.
+            onSave: (_) async => true,
+            onRemove: () async => true,
           ),
         ),
       ),

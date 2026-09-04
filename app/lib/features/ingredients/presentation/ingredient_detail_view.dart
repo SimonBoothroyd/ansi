@@ -921,9 +921,36 @@ class _DetailForm extends HookConsumerWidget {
               DensityEntry(
                 ingredient: ing,
                 redirectedSpoon: redirectedSpoon.value,
-                onSaved: (_) {
+                // Lane A moves the write OUT of the widget; this host still
+                // commits on tap, exactly as before. Lane B is where the form
+                // starts holding it in a draft until its own Save — at which
+                // point only this function and `saveLabel` change, and the
+                // quantity sheet's copy stays as it is.
+                onSave: (gPerMl) async {
+                  final updated = await ref.write(
+                    context,
+                    'save that density',
+                    () => ref
+                        .read(ingredientRepositoryProvider)
+                        .setDensity(ing.id, gPerMl),
+                  );
+                  if (updated == null) return false;
                   redirectedSpoon.value = null;
                   ref.invalidate(ingredientByIdProvider(ing.id));
+                  return true;
+                },
+                onRemove: () async {
+                  final updated = await ref.write(
+                    context,
+                    'remove that density',
+                    () => ref
+                        .read(ingredientRepositoryProvider)
+                        .clearDensity(ing.id),
+                  );
+                  if (updated == null) return false;
+                  redirectedSpoon.value = null;
+                  ref.invalidate(ingredientByIdProvider(ing.id));
+                  return true;
                 },
               ),
 
@@ -958,6 +985,57 @@ class _DetailForm extends HookConsumerWidget {
                         .read(measureRepositoryProvider)
                         .softDeleteMeasure(m.id),
                   ),
+                  // Lane A moves the write out of the editor; this host still
+                  // commits on tap. Lane B swaps only this function and the
+                  // label for "add it to the draft".
+                  onAdd: (label, amount) async {
+                    final outcome = await ref.write(
+                      context,
+                      'add that measure',
+                      () async {
+                        try {
+                          return MeasureAdded(
+                            await ref
+                                .read(measureRepositoryProvider)
+                                .addMeasure(
+                                  ingredientId: ing.id,
+                                  label: label,
+                                  amount: amount,
+                                ),
+                          );
+                          // The repository's validation contract IS
+                          // ArgumentError (documented on addMeasure), so
+                          // catching it here is the point, not a slip.
+                          // ignore: avoid_catching_errors
+                        } on ArgumentError catch (e) {
+                          return MeasureRefused('${e.message}');
+                        }
+                      },
+                    );
+                    return outcome ?? const MeasureNotAdded();
+                  },
+                  onStopOfferingPiece: (added) async {
+                    final repo = ref.read(ingredientRepositoryProvider);
+                    final changed = await ref.write(
+                      context,
+                      'stop offering “piece”',
+                      () async {
+                        await repo.stopOfferingPiece(ing.id);
+                        // The second half of the answer the question always
+                        // implied (seam D1): saying "'tomato, medium' says it
+                        // better than piece" also says what a bare "1 tomato"
+                        // MEANS, so the same act sets it.
+                        return repo.setDefaultMeasure(ing.id, added.id);
+                      },
+                    );
+                    if (changed == null) return null;
+                    // The chips must follow in the same breath — otherwise
+                    // this form's next Save would put `piece` back from a
+                    // draft made before the question was asked.
+                    allowed.value = allowedUnitsFor(changed).toSet();
+                    ref.invalidate(ingredientByIdProvider(ing.id));
+                    return changed;
+                  },
                   // Nothing here selects a measure — the form is not a
                   // quantity entry surface; the watched provider re-renders
                   // the list.
@@ -967,14 +1045,6 @@ class _DetailForm extends HookConsumerWidget {
                   // pre-picks that spoon, which is the whole point of sharing
                   // one widget.
                   onVolumeLabel: (u) => redirectedSpoon.value = u,
-                  // The piece question wrote `allowed_units` straight through
-                  // the repository, so the chips above must follow in the same
-                  // breath — otherwise this form's next Save would put `piece`
-                  // back from a draft made before the question was asked.
-                  onIngredientChanged: (updated) {
-                    allowed.value = allowedUnitsFor(updated).toSet();
-                    ref.invalidate(ingredientByIdProvider(ing.id));
-                  },
                 ),
 
               // Seam D1's UI (board frame f): what a bare count of this row
