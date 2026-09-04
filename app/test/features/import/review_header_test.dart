@@ -313,7 +313,9 @@ void main() {
     // Total, and the fridge window, read "not set" in the stepper's own
     // muted voice — nothing is invented for either.
     expect(find.text('not set'), findsNWidgets(2));
-    expect(find.text('Our Cookbook'), findsOneWidget);
+    // 0028 E9: the review states its filing on one line, and it is filed
+    // from the start — a blank a human has to fill is never honest.
+    expect(find.text('OUR COOKBOOK · UNSECTIONED'), findsOneWidget);
     final header = _state(container).header;
     expect(header.cookTimeSeconds, 2100);
     expect(header.totalTimeSeconds, isNull);

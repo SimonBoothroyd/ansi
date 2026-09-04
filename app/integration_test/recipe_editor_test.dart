@@ -165,10 +165,10 @@ void main() {
     expect(find.text('2 days'), findsOneWidget);
 
     // FILE UNDER is already Our Cookbook · Weeknight: the `＋` carried
-    // `?book=&section=` (0028 E3), so what used to be two taps on a form is
-    // now a fact the screen opened with. Assert it rather than perform it.
-    expect(find.text('Weeknight'), findsWidgets);
-    expect(find.text('Unsectioned'), findsNothing);
+    // `?book=&section=` (0028 E3), and E9 states it as one line instead of
+    // asking. What used to be two taps on a form is a fact the screen opened
+    // with — assert it rather than perform it.
+    expect(find.text('OUR COOKBOOK · WEEKNIGHT'), findsOneWidget);
 
     // Garlic through the 7.7 chain, quantified in its synced measure: the
     // chip row offers the vocab measures cloned at onboarding — but first,

@@ -117,7 +117,40 @@ void main() {
         expect(find.text('Freezes'), findsOneWidget);
         expect(find.text('Cook'), findsOneWidget);
         expect(find.text('Total'), findsOneWidget);
-        expect(find.text('Our Cookbook'), findsOneWidget);
+        // 0028 E9: FILE UNDER is one line stating where the recipe lives —
+        // the recipe page's own eyebrow — not two selects to answer.
+        expect(find.text('OUR COOKBOOK · UNSECTIONED'), findsOneWidget);
+        expect(find.text('change'), findsOneWidget);
+      });
+    }
+  });
+
+  group('FILE UNDER is a fact you can change (0028 E9), on', () {
+    for (final MapEntry(key: name, value: hostOf) in _hosts.entries) {
+      testWidgets(name, (tester) async {
+        ignoreSemanticsAsserts();
+        tallSurface(tester);
+        final container = _container();
+        final host = await hostOf(container);
+        await tester.pumpWidget(_form(container, host));
+        await tester.pumpAndSettle();
+
+        // The line opens the picker rather than being one: the two selects
+        // are absent until asked for.
+        expect(find.text('Weeknights'), findsNothing);
+
+        await tester.tap(find.text('OUR COOKBOOK · UNSECTIONED'));
+        await tester.pumpAndSettle();
+        expect(find.text('File under'), findsOneWidget);
+
+        // And it still writes — the reason E9 demoted the control instead of
+        // deleting it: this same form renders for every existing recipe, and
+        // two creation doors have no shelf to inherit.
+        await tester.tap(find.text('Our Cookbook').last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Weeknights').last);
+        await tester.pumpAndSettle();
+        expect(host.header.bookId, 'b2');
       });
     }
   });

@@ -14,6 +14,8 @@
 /// editor supplies none.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -22,6 +24,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/write.dart';
 import '../../books/data/book_providers.dart';
 import '../../books/presentation/book_view_models.dart';
@@ -213,7 +216,7 @@ class RecipeHeaderForm extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _Label(section.label),
-            _FilingPicker(recipe: recipe, host: host),
+            _FilingLine(recipe: recipe, host: host),
           ],
         ),
       };
@@ -524,6 +527,119 @@ class _StepperRow extends StatelessWidget {
     );
   }
 }
+
+/// Where the recipe is filed, as ONE LINE that opens the picker (0028 E9).
+///
+/// It used to be two selects a person answered on the way in. Since E2 the
+/// door that opened this screen usually knows the answer already — a section's
+/// `＋` carries `?book=&section=` — so the form should state a fact, not ask a
+/// question. It is still a control, because two creation doors have no shelf
+/// to inherit (the Week picker's `＋ new recipe`, and the no-hits state, where
+/// a live query has replaced the tree) and because this same form renders for
+/// every EXISTING recipe, where it is the filing you came to change.
+///
+/// The words are the recipe page's own eyebrow — `BOOK · SECTION` in herb
+/// caps — so the editor states filing exactly as the reader already saw it.
+class _FilingLine extends ConsumerWidget {
+  const _FilingLine({required this.recipe, required this.host});
+
+  final Recipe recipe;
+  final RecipeHeaderHost host;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The same weighed emptiness the picker had (D6): with no books there is
+    // nothing to file into, and `ensureDefaultBook` means that cannot persist.
+    final books = ref.watch(libraryProvider).asData?.value ?? const [];
+    if (books.isEmpty) return const SizedBox.shrink();
+
+    final book = books.firstWhere(
+      (b) => b.id == (recipe.bookId ?? books.first.id),
+      orElse: () => books.first,
+    );
+    final section = book.sections
+        .where((s) => s.id == recipe.sectionId)
+        .firstOrNull;
+    final crumb = '${book.name} · ${section?.name ?? 'Unsectioned'}';
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => unawaited(_showFilingSheet(context, recipe, host)),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AnsiColors.surface,
+          border: Border.all(color: AnsiColors.line),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  crumb.toUpperCase(),
+                  style: ansiLabel(color: AnsiColors.herb),
+                ),
+              ),
+              Text(
+                'change',
+                style: ansiMono(size: 11, color: AnsiColors.muted),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                FLucideIcons.chevronRight,
+                size: 14,
+                color: AnsiColors.muted,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The picker, on the root navigator so it covers the tab bar like every other
+/// sheet the app opens.
+Future<void> _showFilingSheet(
+  BuildContext context,
+  Recipe recipe,
+  RecipeHeaderHost host,
+) => showAnsiSheet<void>(
+  context: context,
+  builder: (_) => Container(
+    decoration: const BoxDecoration(
+      color: AnsiColors.paper,
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      border: Border(top: BorderSide(color: AnsiColors.line)),
+    ),
+    padding: EdgeInsets.fromLTRB(
+      20,
+      12,
+      20,
+      MediaQuery.viewInsetsOf(context).bottom + 20,
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'File under',
+                textAlign: TextAlign.center,
+                style: ansiSerif(size: 20),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _FilingPicker(recipe: recipe, host: host),
+      ],
+    ),
+  ),
+);
 
 /// Picks the book + section the recipe is filed under. Book choices come from
 /// the Library; the section list follows the chosen book, plus an "Unsectioned"
