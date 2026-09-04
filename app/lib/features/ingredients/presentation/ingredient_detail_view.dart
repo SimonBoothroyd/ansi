@@ -34,7 +34,7 @@
 /// the row's own `source_label` / `source_score` so it is true offline — with
 /// two doors beside it: *Not this food* (the prefilled density and macros come
 /// out and `source` becomes `usda_declined`) and *Choose another ▸* (the next
-/// candidates, a pick applied through the same `applyUsdaProbe`). Neither
+/// candidates, a pick landing in the draft like any other edit). Neither
 /// confirms anything.
 library;
 
