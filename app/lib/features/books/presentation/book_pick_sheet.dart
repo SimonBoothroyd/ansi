@@ -14,6 +14,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_select_row.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../domain/book.dart';
 
@@ -63,33 +64,11 @@ class _BookPickSheetState extends State<_BookPickSheet> {
       children: [
         const SizedBox(height: 14),
         for (final book in widget.candidates)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
+          AnsiSelectRow(
+            label: book.name,
+            labelSize: 17,
+            selected: book.id == _target?.id,
             onTap: () => setState(() => _target = book),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: AnsiColors.surface,
-                border: Border.all(
-                  color: book.id == _target?.id
-                      ? AnsiColors.herb
-                      : AnsiColors.line,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Expanded(child: Text(book.name, style: ansiSerif(size: 17))),
-                  if (book.id == _target?.id)
-                    const Icon(
-                      FLucideIcons.check,
-                      size: 16,
-                      color: AnsiColors.herb,
-                    ),
-                ],
-              ),
-            ),
           ),
         const SizedBox(height: 6),
         // Honest, one sentence, before the tap — never a silent data shuffle.

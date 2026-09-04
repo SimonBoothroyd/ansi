@@ -19,6 +19,7 @@ import 'package:forui/forui.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_select_row.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../domain/book.dart';
 
@@ -94,11 +95,12 @@ class _RecipeMoveSheetState extends State<_RecipeMoveSheet> {
                   ),
                   // Every shelf inside the book, the bucket first: a book
                   // with no sections still has exactly one place to land.
-                  _ShelfRow(
+                  AnsiSelectRow(
                     label: 'Unsectioned',
                     selected:
                         target?.bookId == book.id && target?.sectionId == null,
-                    here: _isHere(book.id, null),
+                    note: _isHere(book.id, null) ? 'here now' : null,
+                    enabled: !_isHere(book.id, null),
                     onTap: () => setState(
                       () => _target = (
                         bookId: book.id,
@@ -108,10 +110,11 @@ class _RecipeMoveSheetState extends State<_RecipeMoveSheet> {
                     ),
                   ),
                   for (final section in book.sections)
-                    _ShelfRow(
+                    AnsiSelectRow(
                       label: section.name,
                       selected: target?.sectionId == section.id,
-                      here: _isHere(book.id, section.id),
+                      note: _isHere(book.id, section.id) ? 'here now' : null,
+                      enabled: !_isHere(book.id, section.id),
                       onTap: () => setState(
                         () => _target = (
                           bookId: book.id,
@@ -143,61 +146,6 @@ class _RecipeMoveSheetState extends State<_RecipeMoveSheet> {
           child: const Text('Move'),
         ),
       ],
-    );
-  }
-}
-
-/// One shelf. The one the recipe is already on says so and cannot be picked —
-/// a "move" that moves nothing is a tap that lies about what it did.
-class _ShelfRow extends StatelessWidget {
-  const _ShelfRow({
-    required this.label,
-    required this.selected,
-    required this.here,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final bool here;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: here ? null : onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        decoration: BoxDecoration(
-          color: AnsiColors.surface,
-          border: Border.all(
-            color: selected ? AnsiColors.herb : AnsiColors.line,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: ansiSerif(
-                  size: 15,
-                  color: here ? AnsiColors.muted : AnsiColors.ink,
-                ),
-              ),
-            ),
-            if (here)
-              Text(
-                'here now',
-                style: ansiMono(size: 10, color: AnsiColors.muted),
-              ),
-            if (selected)
-              const Icon(FLucideIcons.check, size: 16, color: AnsiColors.herb),
-          ],
-        ),
-      ),
     );
   }
 }
