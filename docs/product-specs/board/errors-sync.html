@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Errors &amp; sync health</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
+    <h1 class="view-title">Errors &amp; sync health</h1>
+    <p class="view-status">built · differs: the failure toast has a second line no caller fills — see the frame · <code>shared/</code> · <code>core/sync</code> · <a href="../../design-docs/errors-and-sync-health.md">errors-and-sync-health.md</a></p>
+    <p class="view-blurb">A toast reports an act · a banner reports a state · the Shop list says where you stand. Nothing ever announces being offline — a queue is the app working.</p>
+</header>
+
+<div class="board">
+
+    <div class="frame">
+        <p class="frame-name"><b>A write didn’t work</b> · one toast surface, every screen, bottom-centre above the bar</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar lib-abar3">
+                <div class="lib-hfield"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span></div>
+                <span class="id3">👥</span>
+            </div>
+            <div class="book-card">
+                <div class="book-top"><div class="bn">Our Cookbook</div><div class="bc">14 recipes · 3 sections</div></div>
+                <div class="sec"><div class="sec-lab">Weeknights</div><div class="sec-items">Weeknight Curry · Sausage Sliders · Miso Salmon</div></div>
+                <div class="sec"><div class="sec-lab">Small plates</div><div class="sec-items">Romesco Toasts · Pretzel Buns</div></div>
+                <div class="sec"><div class="sec-lab">Sauces</div><div class="sec-items">Romesco Aioli · Garlic Butter</div></div>
+            </div>
+            <div style="height:26px"></div>
+            <div class="er-toast">
+                <span class="ti">✕</span>
+                <div class="tb"><div class="tt">Couldn't delete that section.</div></div>
+                <span class="ta">Retry</span>
+            </div>
+            <div class="er-tspace"></div>
+            <div class="nav">
+                <span class="ni on"><span class="ic">▤</span>Library</span>
+                <span class="ni"><span class="ic">▦</span>Week</span>
+                <span class="ni"><span class="ic">◍</span>Cook</span>
+                <span class="ni"><span class="ic">▤</span>Shop</span>
+            </div>
+        </div></div>
+        <p class="er-no"><b>Not</b> a toast for: a successful write (the list re-rendering is the confirmation) · being offline · a form's own validation, which the form already shows inline and keeps.</p>
+        <p class="differs-note"><b>differs:</b> the toast takes an optional second line (<code>reassurance</code>) and no call site under <code>features/</code> passes one, so it never renders. Drawn without it — either the callers gain one or the parameter goes.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Stuck</b> · the persistent banner, two causes and two sentences — only ever one at a time, and never for a queue on its own</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span></div>
+            <div class="er-banner">
+                <span class="bi">⚠</span>
+                <div class="bb"><div class="bt">Changes aren't reaching the other phone.</div>
+                    <div class="bd">7 changes have been waiting since 14:02. Ansi keeps trying.</div></div>
+                <span class="ba">Try now</span>
+            </div>
+            <div class="lensrow"><span class="lbl">for</span><span class="pchip on">Everyone</span><span class="pchip"><span class="av a">A</span>Ada</span><span class="pchip"><span class="av j">J</span>Jun</span></div>
+            <div class="day2">
+                <div class="day2-name">Monday</div>
+                <div class="srow"><span class="slab">Dinner</span><span class="sname">Weeknight Curry</span><div class="avs"><span class="av a">S</span><span class="av j">J</span></div></div>
+                <div class="srow empty"><span class="slab">Lunch</span><span class="sname">nothing yet</span><span class="plus">＋</span></div>
+            </div>
+            <div class="day2">
+                <div class="day2-name">Tuesday</div>
+                <div class="srow"><span class="slab">Dinner</span><span class="sname">Sausage Sliders</span><div class="avs"><span class="av a">S</span></div></div>
+            </div>
+            <p class="conv-note" style="margin-top:14px">— the second cause, on the same strip —</p>
+            <div class="er-banner lost" style="border-top:1px solid #E7C3BA;margin-top:8px">
+                <span class="bi">●</span>
+                <div class="bb"><div class="bt">One change couldn't be saved to the server.</div>
+                    <div class="bd">A recipe edit from 14:02 was refused and won't sync. It's still on this phone.</div></div>
+                <span class="ba">What happened</span>
+            </div>
+        </div></div>
+        <p class="er-no"><b>Never</b> says “offline”, and <b>never</b> appears for a non-empty queue on its own. A queue is the app working. Frame (d) states it; nothing announces it.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>A screen couldn’t load</b> · one shared state: the reason, a retry, and a way to copy the details</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span></div>
+            <div class="er-state">
+                <div class="eh">Couldn't load the week.</div>
+                <div class="er">the local database didn't answer — this is on the phone, not the network</div>
+                <div class="eb">Try again</div>
+                <div class="ed">Copy details</div>
+            </div>
+            <div class="nav">
+                <span class="ni"><span class="ic">▤</span>Library</span>
+                <span class="ni on"><span class="ic">▦</span>Week</span>
+                <span class="ni"><span class="ic">◍</span>Cook</span>
+                <span class="ni"><span class="ic">▤</span>Shop</span>
+            </div>
+        </div></div>
+    </div>
+
+</div>
+
+<p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>
