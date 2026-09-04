@@ -112,7 +112,7 @@ Deno.test("URL import over the REAL vocab — band mix is sane", async () => {
   );
 
   // A household stocked with a 300-row vocab should recognise a good share of a
-  // mainstream recipe (currently 19/32). A FLOOR, not equality — the vocab is
+  // mainstream recipe (currently 21/32). A FLOOR, not equality — the vocab is
   // edited over time and this must not become a chore, so it sits well below
   // today's number with room for ordinary drift. What it catches is a COLLAPSE:
   // if the cascade or §7 normalize regresses, `auto` goes to near zero.

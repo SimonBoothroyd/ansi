@@ -129,7 +129,7 @@ The column list is generated from the migrations —
 - Seed from USDA FoodData Central **Foundation Foods + SR Legacy** (CC0).
   Density from FDC volume food portions parsed out of the full portion text
   (7.8 took coverage to 211/291), fallback FAO/INFOODS Density DB v2.0, then
-  step 8.5's D4d hand pass — **300/311 today**; the 11-row tail is audited and
+  step 8.5's D4d hand pass — **308/319 today**; the 11-row tail is audited and
   tracked, not accidental (tracker).
 
 ### Ingredient measure (steps 7.6–7.8)
@@ -265,7 +265,7 @@ its steps.
     (`handful ≈ 25 g`, with provenance), not an engine special case.
   *Reality check, resolved:* this read `incomplete` on most real
   recipes when density coverage was 7/291; 7.8's FDC-spoons→density work, the
-  FAO fallback and 8.5's D4d pass took it to **300/311**, so most recipes now
+  FAO fallback and 8.5's D4d pass took it to **308/319**, so most recipes now
   read as numbers and the residual `incomplete` is the honest 11-row tail.
 
 #### The method (step 8 tokens · the 0022 editor)
@@ -490,7 +490,7 @@ books, their user-named sections, and the recipes filed under each.
   the book `⋯`'s item, which it always was.
 - **The vocabulary is a shelf, not a menu item.** An Ingredients card closes
   the library with the book anatomy exactly — a name, a count line
-  (`311 ingredients · 3 stubs`), one control — and a `›` rather than a fold,
+  (`319 ingredients · 3 stubs`), one control — and a `›` rather than a fold,
   because 300 rows do not belong inside a card. It is not reference data filed
   under a menu: `shopping_list_entry` has carried `ingredient_id` beside
   `free_text` since `0006`, under a check that exactly one is set, so a top-up

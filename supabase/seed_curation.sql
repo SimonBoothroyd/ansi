@@ -658,15 +658,15 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is nu
 -- is a pgTAP assertion (supabase/tests/unit_admission.sql), not a
 -- second stored copy of the rule.
 
--- coconut milk: count-default (sold by the can) but recipes also speak cups/tbsp of it, and its density makes volume honest
+-- coconut milk canned: count-default (sold by the can) but recipes also speak cups/tbsp of it, and its density makes volume honest
 update ingredient set allowed_units = allowed_units || '["cup"]'::jsonb
-where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut milk' and not allowed_units ? 'cup';
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut milk canned' and not allowed_units ? 'cup';
 
 update ingredient set allowed_units = allowed_units || '["tbsp"]'::jsonb
-where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut milk' and not allowed_units ? 'tbsp';
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut milk canned' and not allowed_units ? 'tbsp';
 
 update ingredient set allowed_units = allowed_units || '["ml"]'::jsonb
-where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut milk' and not allowed_units ? 'ml';
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut milk canned' and not allowed_units ? 'ml';
 
 -- liquid smoke: dash-default, but the recipes that measure it say 1/2 tsp — g alone is no way to say that
 update ingredient set allowed_units = allowed_units || '["tsp"]'::jsonb
@@ -926,11 +926,11 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'tbsp')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'tomato canned whole';
 
--- baked bean: beans by the tbsp exist in salads; by the tsp they do not
+-- baked bean canned: beans by the tbsp exist in salads; by the tsp they do not
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
    where e <> 'tsp')
-where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'baked bean';
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'baked bean canned';
 
 -- black bean canned: beans by the tbsp exist; by the tsp they do not
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
@@ -1483,11 +1483,11 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'piece')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'hazelnut';
 
--- hot chili: piece-curation A (owner 2026-09-02): the measure names the thing itself (chili) — piece would be a guess
+-- red chili fresh: piece-curation A (owner 2026-09-02): the measure names the thing itself (chili) — piece would be a guess
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
    where e <> 'piece')
-where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'hot chili';
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'red chili fresh';
 
 -- jalapeno: piece-curation A (owner 2026-09-02): the measure names the thing itself (jalapeño) — piece would be a guess
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
@@ -1735,11 +1735,11 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'piece')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'active yeast dry';
 
--- baked bean: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+-- baked bean canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
    where e <> 'piece')
-where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'baked bean';
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'baked bean canned';
 
 -- black bean canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
@@ -1783,11 +1783,11 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'piece')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cilantro';
 
--- coconut milk: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
+-- coconut milk canned: piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
    from jsonb_array_elements_text(allowed_units) e
    where e <> 'piece')
-where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut milk';
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'coconut milk canned';
 
 -- corn: piece-curation B (owner 2026-09-02): the natural count is ear — piece is only a worse way of saying it
 update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
@@ -2188,6 +2188,64 @@ update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb
    where e <> 'tbsp')
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pea';
 
+-- lentil cooked: pulses by the tbsp exist; by the tsp they do not (the ruling the canned and dried pulses already carry)
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'lentil cooked';
+
+-- pasta cooked: cooked pasta is measured by the cup or weighed; a spoon of it is not a thing
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pasta cooked';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'pasta cooked';
+
+-- white rice cooked: cooked rice by the tbsp exists (a garnish, a sushi portion); by the tsp it does not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'white rice cooked';
+
+-- brown rice cooked: same ruling as cooked white rice
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'brown rice cooked';
+
+-- quinoa cooked: same ruling as cooked white rice
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'quinoa cooked';
+
+-- edamame: podded beans by the tbsp exist in a salad; by the tsp they do not
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'edamame';
+
+-- corn frozen: frozen corn is poured by the cup, not spooned — the ruling frozen peas already carry
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'corn frozen';
+
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tbsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'corn frozen';
+
+-- sweetcorn canned: the canned-family ruling: by the tbsp yes, by the tsp no
+update ingredient set allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+   from jsonb_array_elements_text(allowed_units) e
+   where e <> 'tsp')
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sweetcorn canned';
+
 -- active yeast dry: seam D1 (owner 2026-09-03, 'lgtm'): sole count
 update ingredient i set default_measure_id = m.id
   from ingredient_measure m
@@ -2254,7 +2312,7 @@ update ingredient i set default_measure_id = m.id
    and i.match_text = 'avocado'
    and i.deleted_at is null;
 
--- baked bean: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+-- baked bean canned: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
 update ingredient i set default_measure_id = m.id
   from ingredient_measure m
  where m.ingredient_id = i.id
@@ -2262,7 +2320,7 @@ update ingredient i set default_measure_id = m.id
    and m.deleted_at is null
    and m.label = 'can (16 oz)'
    and i.household_id = '00000000-0000-0000-0000-0000000000aa'
-   and i.match_text = 'baked bean'
+   and i.match_text = 'baked bean canned'
    and i.deleted_at is null;
 
 -- banana: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
@@ -2485,7 +2543,7 @@ update ingredient i set default_measure_id = m.id
    and i.match_text = 'cinnamon stick'
    and i.deleted_at is null;
 
--- coconut milk: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
+-- coconut milk canned: seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)
 update ingredient i set default_measure_id = m.id
   from ingredient_measure m
  where m.ingredient_id = i.id
@@ -2493,7 +2551,7 @@ update ingredient i set default_measure_id = m.id
    and m.deleted_at is null
    and m.label = 'can (400 ml)'
    and i.household_id = '00000000-0000-0000-0000-0000000000aa'
-   and i.match_text = 'coconut milk'
+   and i.match_text = 'coconut milk canned'
    and i.deleted_at is null;
 
 -- corn: seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium
@@ -2826,7 +2884,7 @@ update ingredient i set default_measure_id = m.id
    and i.match_text = 'hazelnut'
    and i.deleted_at is null;
 
--- hot chili: seam D1 (owner 2026-09-03, 'lgtm'): sole count
+-- red chili fresh: seam D1 (owner 2026-09-03, 'lgtm'): sole count
 update ingredient i set default_measure_id = m.id
   from ingredient_measure m
  where m.ingredient_id = i.id
@@ -2834,7 +2892,7 @@ update ingredient i set default_measure_id = m.id
    and m.deleted_at is null
    and m.label = 'chili'
    and i.household_id = '00000000-0000-0000-0000-0000000000aa'
-   and i.match_text = 'hot chili'
+   and i.match_text = 'red chili fresh'
    and i.deleted_at is null;
 
 -- instant yeast: seam D1 (owner 2026-09-03, 'lgtm'): sole count
@@ -3705,7 +3763,7 @@ begin
       'seed_curation R3: % of 133 curated default measures landed (a default_measure label no longer names a live measure)', landed;
   end if;
 
-  raise notice 'seed_curation: allowed_units refreshed; 13 macro + 80 density + 201 allowed-unit overrides + 12 FAO density fills; 133 default count measures; R1 (volume default => density), R2 (kitchen density band) and R3 (every curated default landed) hold';
+  raise notice 'seed_curation: allowed_units refreshed; 13 macro + 80 density + 209 allowed-unit overrides + 12 FAO density fills; 133 default count measures; R1 (volume default => density), R2 (kitchen density band) and R3 (every curated default landed) hold';
 end $$;
 
 commit;

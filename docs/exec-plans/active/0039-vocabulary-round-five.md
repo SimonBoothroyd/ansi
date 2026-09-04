@@ -1,7 +1,7 @@
 # Exec plan: the vocabulary — the words imports actually use, and the cooked/canned basis
 
-- **Status:** Fronts A + B built; Front D's table written and **awaiting the
-  owner's ruling**; Front C's statement written and **not run**
+- **Status:** Fronts A, B and D built; Front C's statement written, rehearsed
+  and **not run** — the owner's leg
 - **Owner:** Simon (rulings) · agent lane (build)
 - **Roadmap step:** 8.14 — field test, round five
 - **Created:** 2026-09-04
@@ -183,7 +183,7 @@ naming and alias convenience over the generic dried-lentil food. That is why
 Front D proposes **renaming** it (`Dried French Green Lentils`) rather than
 splitting it — there is no second set of numbers to split into.
 
-### Front D — display names say what the thing is · TABLE WRITTEN, NOT APPLIED
+### Front D — display names say what the thing is · RULED AND APPLIED
 
 **Ruled (owner): a review pass over the whole vocabulary.** The lentil row is
 not a one-off — several display names prefer brevity to clarity, and a name a
@@ -216,7 +216,9 @@ cook has to *guess at* is the same defect as a wrong number.
 
 All **311** rows were read against D-D1, with each row's FDC link and its
 record's own description beside it (that pairing is what turns "the name is
-vague" into "the name contradicts the numbers"). **Nothing below is applied.**
+vague" into "the name contradicts the numbers"). The table was put to the
+owner and **approved as proposed**; what follows is the table as ruled,
+followed by what applying it did.
 
 #### D-1 · Renames — 6 rows
 
@@ -244,7 +246,26 @@ rename:
 > it (`doppio zero flour`, `tipo 00 flour`, `pizza flour`).
 
 This one **does** change what an existing line matches, which is why it is a
-ruling rather than a patch.
+ruling rather than a patch. **Ruled (owner, 2026-09-04): agreed — `flour` goes
+to `All-Purpose Flour`.**
+
+**What happens to a line that already points at the old key.** Nothing
+dangles, because a rename is **not** a new row: the operator statement updates
+`canonical_name` and `match_text` **in place**, so the ingredient's `id` never
+changes and every `recipe_line_item`, `shopping_list_entry`, measure and
+default-measure that referenced it still does. A saved line that once read
+"500 g 00 flour" keeps its link and now displays **Doppio Zero Flour** —
+which is what that row always was, only badly named; the cook can see it and
+re-pick if they meant plain flour. (Verified in the rehearsal: the fixture's
+recipe line follows the row to its new name.) Only *future* matching moves:
+`flour` — and, because the normalizer strips digits, the literal string
+`00 flour` too — now resolves to `All-Purpose Flour`.
+
+The one thing the statement will **not** do is overwrite a household's own
+learning. If this household has already taught itself an alias on the key
+`flour` pointing somewhere other than All-Purpose Flour, the statement leaves
+it alone and says so in a notice, because an `import_correction` is a fact the
+household owns.
 
 #### D-2 · Splits — 6, one of them already built
 
@@ -311,6 +332,85 @@ owner rather than fixed under a naming plan.
 | `Applesauce` | FDC 167772 *unsweetened*; the name does not say so, and sweetened is ~2× the carbs |
 | `King Oyster Mushroom` | already known and recorded in `curation_overrides.jsonl` — the link resolves to plain oyster mushrooms, 5–10× lighter |
 
+**Ruled: out of scope, and none of the eight is made wrong by a rename or a
+split.** Each was re-checked against the applied table: not one of the eight
+rows was renamed, split, or re-linked, so every mismatch reads exactly as it
+did. Two *new* observations the splits themselves created, recorded here for
+the same queue rather than fixed:
+
+- **`Edamame`** links FDC 168411, whose description is *Edamame, **frozen**,
+  prepared*. FDC has no fresh-podded edamame record at all, so the plain row's
+  numbers come from a frozen one. That is the honest best available and it is
+  the shelled cooked bean a recipe line means — but the plain row's macros do
+  carry a form its name does not. `Frozen Edamame` keeps the *unprepared*
+  record (168410) and is unchanged.
+- **`Canned Sweetcorn`** carries drained-solids macros (169214) and **no can
+  measure**. That is a gap, not the drained/undrained bug: nothing multiplies
+  the wrong basis, there is simply no can to count yet. Adding one is a
+  `gen-measures` job (or an `add_measure` override) beyond the approved table.
+
+#### D-5 · One thing the sweep found that is not about food
+
+`supabase/seed/scripts/gen_measures.ts` contains a **literal NUL byte** — it
+builds a composite key as `` `${matchText}\0${label}` `` with the zero byte
+written into the source rather than escaped. `file` calls the result `data`,
+so **plain `grep` and `rg` skip it silently**: a search for `coconut milk`
+across the repo returns nothing from the one file that holds its measure
+constant. It cost this lane a wrong answer before `grep -a` found it. Escaping
+the byte (`\0`) changes nothing about the key and makes the generator
+searchable again — a one-character fix for whoever next opens that file.
+
+#### D-6 · What applying the table did
+
+All six renames and all six splits landed through the pipeline inputs and were
+regenerated with `deno task gen-seed` — no generated SQL was hand-written
+except `seed_measures.sql`, whose three re-keyed tuples were applied by hand
+(the documented path when the FDC bundles are absent) and re-sorted so a real
+`gen-measures` run reproduces the file byte for byte.
+
+A rename moves a row's **key**, so it moves everything keyed by it:
+`usda_links.jsonl` (5 links re-keyed), `curation_overrides.jsonl` (9 overrides
+re-keyed — densities, allowed-unit rulings and two `default_measure` rulings),
+`seed_measures.sql` (3 measure tuples and its match_text existence list), and
+`gen_measures.ts`'s own `TYPICAL` constant (the 400 ml coconut-milk can).
+`Ground Cloves` needed none of that: both spellings normalise to
+`clove ground`, so it is a pure display change.
+
+**Every rename kept its old surface form**, which the generated `seed.sql`
+proves — `french green lentils` → `french green lentil`, `hot chilies` →
+`hot chili`, `coconut milk` → `coconut milk`, `baked beans` → `baked bean` are
+all now alias rows on the renamed ingredient. The single exception is the
+ruled one: `00 flour` normalises to `flour`, which `All-Purpose Flour` now
+holds.
+
+The eight new rows all link an FDC record of their **own** form, so each takes
+that record's macros and density from the ordinary prefill — no borrows, no
+label numbers, nothing hand-typed:
+
+| Row | Key | FDC | kcal/100 g | density |
+|---|---|---|---|---|
+| `Edamame` | `edamame` | 168411 | 121 | 0.6551 |
+| `Canned Sweetcorn` | `sweetcorn canned` | 169214 | 67 | 0.6932 |
+| `Frozen Corn` | `corn frozen` | 168398 | 88 | 0.5748 |
+| `Cooked Lentils` | `lentil cooked` | 172421 | 116 | 0.8369 |
+| `Cooked Pasta` | `pasta cooked` | 169737 | 158 | 0.5241 |
+| `Cooked White Rice` | `white rice cooked` | 168930 | 130 | 0.7862 |
+| `Cooked Brown Rice` | `brown rice cooked` | 169704 | 123 | 0.8538 |
+| `Cooked Quinoa` | `quinoa cooked` | 168917 | 120 | 0.7820 |
+
+Each carries the unit ruling its nearest sibling already carries (no `tsp` on
+a pulse or a grain; no `tsp`/`tbsp` on cooked pasta or frozen corn, mirroring
+frozen peas). R1 and R2 both hold: every one is cup- or oz-default with a
+density inside the kitchen band.
+
+**B-D3 is superseded, on purpose.** It ruled that an unlinked "cooked lentils"
+line stays a stub rather than borrowing the dried row's macros — and that
+still holds, because nothing infers. What changed is that the line is no
+longer unlinked: `Cooked Lentils` links 172421 directly, so the line now bands
+`auto` onto a row whose numbers are its own. It is not an alias of
+`Canned Lentils` — a pan of home-cooked lentils is not a drained tin — the two
+rows simply rest on the same FDC record, one by link and one by borrow.
+
 ### Front C — the household gets it · WRITTEN, NOT RUN
 
 - **C-D1** Every change above lands as an **operator statement** applied to the
@@ -319,16 +419,19 @@ owner rather than fixed under a naming plan.
 - **C-D2** The statement is written into the plan, run by the owner, and the
   readback recorded — the same shape as the `0026–0031` cloud readback.
 
-It covers **Fronts A and B only** — Front D adds nothing until its table is
-ruled on. It is re-runnable (every write is guarded), it touches exactly one
-household, and it never deletes. Paste the live household's id into the first
-line and run it in the Supabase SQL editor.
+It covers **all three built fronts** in two parts: Part 1 adds Fronts A and
+B's rows and words, Part 2 applies Front D's renames and splits. Both are
+re-runnable (every write is guarded), both touch exactly one household, and
+neither deletes anything. Paste the live household's id into the first line of
+each part and run them in order in the Supabase SQL editor.
 
-**It has been rehearsed, not run.** The statement below was executed verbatim
-against a throwaway household on the local stack inside a transaction that
-**rolled back** — so it is known to parse, to do what the readback claims, and
-to be re-runnable (a second pass inserted nothing). Nothing has been written
-to the live household; that is the owner's leg.
+**It has been rehearsed, not run.** Both parts were executed verbatim against
+a throwaway household on the local stack inside a transaction that **rolled
+back** — so each is known to parse, to do what its readback claims, and to be
+re-runnable (a second pass renamed 0 of 6 and inserted nothing). Nothing has
+been written to the live household; that is the owner's leg.
+
+#### Part 1 — Fronts A and B
 
 ```sql
 -- Round-five vocabulary → one live household. Re-runnable; adds only.
@@ -509,6 +612,241 @@ Read the admitted units as the proof the removals landed: no `tsp` or `piece`
 on the canned lentils, no `pinch`/`dash`/`handful` on the extra virgin oil
 (`to_taste` survives — it is the finishing oil), no `tsp`/`tbsp` on the peas.
 
+#### Part 2 — Front D
+
+Run after Part 1, with the same household id. The renames are **in place** —
+the row's `id` never changes, so nothing that already points at it dangles
+(see the `00 Flour` note above).
+
+```sql
+-- Round-five display-name sweep → the same live household. Re-runnable.
+begin;
+
+-- Part 2 — Front D: the display-name sweep. Re-runnable; renames in place.
+do $$
+declare
+  hh    uuid := '00000000-0000-0000-0000-000000000000';  -- ← the live household
+  clash text;
+  n     int;
+begin
+  -- 1. THE SIX RENAMES, IN PLACE --------------------------------------------
+  -- A rename is NOT a new row: the id stays, so every recipe line, shopping
+  -- entry and measure that already points at the row follows it to its new
+  -- name. `clove ground` is the display-only one — both spellings normalise
+  -- to the same key, so only its canonical_name moves.
+  update ingredient i
+     set canonical_name = r.new_name, match_text = r.new_mt, updated_at = now()
+    from (values
+      ('french green lentil', 'french green lentil dried',
+         'Dried French Green Lentils'),
+      ('flour',              'doppio zero flour',  'Doppio Zero Flour'),
+      ('coconut milk',       'coconut milk canned', 'Canned Coconut Milk'),
+      ('hot chili',          'red chili fresh',     'Fresh Red Chili'),
+      ('baked bean',         'baked bean canned',   'Canned Baked Beans'),
+      ('clove ground',       'clove ground',        'Ground Cloves')
+    ) as r(old_mt, new_mt, new_name)
+   where i.household_id = hh and i.deleted_at is null
+     and i.match_text = r.old_mt
+     and (i.canonical_name, i.match_text) is distinct from (r.new_name, r.new_mt)
+     and not exists (select 1 from ingredient x
+                      where x.household_id = hh and x.deleted_at is null
+                        and x.match_text = r.new_mt and x.id <> i.id);
+  get diagnostics n = row_count;
+  raise notice 'renamed % of 6 rows (a row already renamed, absent, or blocked '
+               'by an existing row on the new key is skipped)', n;
+
+  -- 2. THE OLD SURFACE FORMS, KEPT AS ALIASES (D-D3) ------------------------
+  insert into ingredient_alias (household_id, ingredient_id, alias_text,
+                                match_text, source)
+  select hh, i.id, a.alias_text, a.match_text, 'seed'
+    from ingredient i
+    join (values
+      ('french green lentil dried', 'French green lentils', 'french green lentil'),
+      ('french green lentil dried', 'puy lentils',          'puy lentil'),
+      ('french green lentil dried', 'lentilles vertes',     'lentille verte'),
+      ('doppio zero flour',         'tipo 00 flour',        'tipo flour'),
+      ('doppio zero flour',         'pizza flour',          'pizza flour'),
+      ('coconut milk canned',       'coconut milk',         'coconut milk'),
+      ('red chili fresh',           'hot chilies',          'hot chili'),
+      ('red chili fresh',           'red chilli',           'red chilli'),
+      ('red chili fresh',           'fresh chilli',         'chilli fresh'),
+      ('red chili fresh',           'birds eye chilli',     'bird eye chilli'),
+      ('baked bean canned',         'baked beans',          'baked bean')
+    ) as a(ing_match, alias_text, match_text) on i.match_text = a.ing_match
+   where i.household_id = hh and i.deleted_at is null
+     and not exists (select 1 from ingredient_alias x
+                      where x.household_id = hh and x.match_text = a.match_text
+                        and x.deleted_at is null);
+
+  -- 3. THE `flour` HANDOVER --------------------------------------------------
+  -- The one rename that cannot keep its own old surface form: "00 flour"
+  -- normalises to the bare key `flour`, which is exactly the key it gives up.
+  -- The key goes to All-Purpose Flour — unless this household has taught
+  -- itself something about `flour`, in which case that correction is a fact
+  -- the household owns and this statement refuses to overwrite it.
+  select string_agg(i.canonical_name, ', ') into clash
+    from ingredient_alias a
+    join ingredient i on i.id = a.ingredient_id
+   where a.household_id = hh and a.match_text = 'flour'
+     and a.deleted_at is null and i.match_text <> 'all purpose flour';
+  if clash is not null then
+    raise notice 'this household already points the key `flour` at % — LEFT '
+                 'ALONE, so All-Purpose Flour does not take it. That alias is '
+                 'something the household taught itself; decide which row '
+                 'should own the key, then re-run.', clash;
+  else
+    insert into ingredient_alias (household_id, ingredient_id, alias_text,
+                                  match_text, source)
+    select hh, i.id, 'flour', 'flour', 'seed'
+      from ingredient i
+     where i.household_id = hh and i.deleted_at is null
+       and i.match_text = 'all purpose flour'
+       and not exists (select 1 from ingredient_alias x
+                        where x.household_id = hh and x.match_text = 'flour'
+                          and x.deleted_at is null);
+  end if;
+
+  -- 4. THE EIGHT NEW ROWS ----------------------------------------------------
+  -- Every one links an FDC record of its OWN form, so macros and density are
+  -- that record's, not a borrow.
+  insert into ingredient (household_id, canonical_name, category, default_unit,
+                          density_g_per_ml, macros, macros_basis, status,
+                          source, match_text)
+  select hh, r.name, r.category, r.unit, r.density, r.macros::jsonb, 'g',
+         'complete', 'usda_fdc:' || r.fdc, r.mt
+    from (values
+      ('Edamame', 'produce', 'cup', 0.6551, 168411,
+       '{"kcal":121,"protein":11.91,"fat":5.2,"carb":8.91,"fiber":5.2}', 'edamame'),
+      ('Canned Sweetcorn', 'pantry', 'oz', 0.6932, 169214,
+       '{"kcal":67,"protein":2.29,"fat":1.22,"carb":14.34,"fiber":2}',
+       'sweetcorn canned'),
+      ('Frozen Corn', 'produce', 'cup', 0.5748, 168398,
+       '{"kcal":88,"protein":3.02,"fat":0.78,"carb":20.71,"fiber":2.1}',
+       'corn frozen'),
+      ('Cooked Lentils', 'pantry', 'cup', 0.8369, 172421,
+       '{"kcal":116,"protein":9.02,"fat":0.38,"carb":20.13,"fiber":7.9}',
+       'lentil cooked'),
+      ('Cooked Pasta', 'grains', 'cup', 0.5241, 169737,
+       '{"kcal":158,"protein":5.8,"fat":0.93,"carb":30.86,"fiber":1.8}',
+       'pasta cooked'),
+      ('Cooked White Rice', 'grains', 'cup', 0.7862, 168930,
+       '{"kcal":130,"protein":2.38,"fat":0.21,"carb":28.59}',
+       'white rice cooked'),
+      ('Cooked Brown Rice', 'grains', 'cup', 0.8538, 169704,
+       '{"kcal":123,"protein":2.74,"fat":0.97,"carb":25.58,"fiber":1.6}',
+       'brown rice cooked'),
+      ('Cooked Quinoa', 'grains', 'cup', 0.782, 168917,
+       '{"kcal":120,"protein":4.4,"fat":1.92,"carb":21.3,"fiber":2.8}',
+       'quinoa cooked')
+    ) as r(name, category, unit, density, fdc, macros, mt)
+   where not exists (select 1 from ingredient x
+                      where x.household_id = hh and x.match_text = r.mt
+                        and x.deleted_at is null);
+
+  -- 5. THEIR ALIASES ---------------------------------------------------------
+  insert into ingredient_alias (household_id, ingredient_id, alias_text,
+                                match_text, source)
+  select hh, i.id, a.alias_text, a.match_text, 'seed'
+    from ingredient i
+    join (values
+      ('edamame',           'shelled edamame',     'edamame shelled'),
+      ('edamame',           'soy beans',           'soy bean'),
+      ('sweetcorn canned',  'canned corn',         'corn canned'),
+      ('sweetcorn canned',  'sweetcorn',           'sweetcorn'),
+      ('corn frozen',       'frozen sweetcorn',    'sweetcorn frozen'),
+      ('corn frozen',       'frozen corn kernels', 'corn kernel frozen'),
+      ('lentil cooked',     'boiled lentils',      'boiled lentil'),
+      ('pasta cooked',      'cooked spaghetti',    'spaghetti cooked'),
+      ('white rice cooked', 'cooked rice',         'rice cooked'),
+      ('white rice cooked', 'steamed rice',        'steamed rice')
+    ) as a(ing_match, alias_text, match_text) on i.match_text = a.ing_match
+   where i.household_id = hh and i.deleted_at is null
+     and not exists (select 1 from ingredient_alias x
+                      where x.household_id = hh and x.match_text = a.match_text
+                        and x.deleted_at is null);
+
+  -- 6. THE UNIT RULINGS ON THE NEW ROWS -------------------------------------
+  update ingredient set
+    allowed_units = (select coalesce(jsonb_agg(e), '[]'::jsonb)
+                       from jsonb_array_elements_text(allowed_units) e
+                      where e <> all (r.units)),
+    updated_at = now()
+    from (values ('lentil cooked',     array['tsp']),
+                 ('pasta cooked',      array['tsp', 'tbsp']),
+                 ('white rice cooked', array['tsp']),
+                 ('brown rice cooked', array['tsp']),
+                 ('quinoa cooked',     array['tsp']),
+                 ('edamame',           array['tsp']),
+                 ('corn frozen',       array['tsp', 'tbsp']),
+                 ('sweetcorn canned',  array['tsp']))
+         as r(mt, units)
+   where ingredient.household_id = hh and ingredient.match_text = r.mt
+     and ingredient.deleted_at is null
+     and ingredient.allowed_units ?| r.units;
+end $$;
+
+commit;
+```
+
+**Readback** — run after, with the same household id:
+
+```sql
+select i.canonical_name, i.match_text, i.status, i.default_unit,
+       i.density_g_per_ml, i.macros->>'kcal' as kcal, i.allowed_units,
+       (select count(*) from ingredient_alias a
+         where a.ingredient_id = i.id and a.deleted_at is null) as aliases
+  from ingredient i
+ where i.household_id = '00000000-0000-0000-0000-000000000000'  -- ← same id
+   and i.deleted_at is null
+   and i.match_text in ('french green lentil dried', 'doppio zero flour',
+                        'all purpose flour', 'coconut milk canned',
+                        'red chili fresh', 'baked bean canned', 'clove ground',
+                        'edamame', 'sweetcorn canned', 'corn frozen',
+                        'lentil cooked', 'pasta cooked', 'white rice cooked',
+                        'brown rice cooked', 'quinoa cooked')
+ order by i.canonical_name;
+
+-- who owns the bare key `flour` now (expect: All-Purpose Flour)
+select i.canonical_name as flour_key_owner
+  from ingredient_alias a join ingredient i on i.id = a.ingredient_id
+ where a.household_id = '00000000-0000-0000-0000-000000000000'  -- ← same id
+   and a.match_text = 'flour' and a.deleted_at is null;
+```
+
+The rehearsal's readback (a bare fixture household, so the renamed rows show as
+stubs — the fixture never had their macros; in the live household they keep
+whatever they already carried, because a rename touches only the name and the
+key):
+
+| name | key | status | unit | density | kcal | aliases |
+|---|---|---|---|---|---|---|
+| All-Purpose Flour | `all purpose flour` | stub | cup | — | — | 1 |
+| Canned Baked Beans | `baked bean canned` | stub | oz | — | — | 1 |
+| Canned Coconut Milk | `coconut milk canned` | stub | piece | — | — | 1 |
+| Canned Sweetcorn | `sweetcorn canned` | complete | oz | 0.6932 | 67 | 2 |
+| Cooked Brown Rice | `brown rice cooked` | complete | cup | 0.8538 | 123 | 0 |
+| Cooked Lentils | `lentil cooked` | complete | cup | 0.8369 | 116 | 1 |
+| Cooked Pasta | `pasta cooked` | complete | cup | 0.5241 | 158 | 1 |
+| Cooked Quinoa | `quinoa cooked` | complete | cup | 0.7820 | 120 | 0 |
+| Cooked White Rice | `white rice cooked` | complete | cup | 0.7862 | 130 | 2 |
+| Doppio Zero Flour | `doppio zero flour` | stub | cup | — | — | 2 |
+| Dried French Green Lentils | `french green lentil dried` | stub | cup | — | — | 3 |
+| Edamame | `edamame` | complete | cup | 0.6551 | 121 | 2 |
+| Fresh Red Chili | `red chili fresh` | stub | piece | — | — | 4 |
+| Frozen Corn | `corn frozen` | complete | cup | 0.5748 | 88 | 2 |
+| Ground Cloves | `clove ground` | stub | pinch | — | — | 0 |
+
+…and the three things the rehearsal existed to prove:
+
+- `renamed 6 of 6 rows` on the first pass, **`renamed 0 of 6`** on the second,
+  with the ingredient and alias counts unchanged — it is re-runnable.
+- the fixture's recipe line, saved as *"500 g 00 flour"*, still resolves
+  through the same `ingredient_id` and now reads **Doppio Zero Flour**. No
+  dangling line, no orphan.
+- `flour_key_owner` comes back **All-Purpose Flour**, and re-running does not
+  double-insert it or fire the household-learning guard.
+
+
 ## Acceptance criteria
 
 - [x] `green onion` resolves, and `extra virgin olive oil` resolves to its
@@ -518,21 +856,24 @@ on the canned lentils, no `pinch`/`dash`/`handful` on the extra virgin oil
       refused; no dried row silently absorbs a wet weight.
 - [x] Where drained-ness matters, the screen says so (B-D2) — verified in the
       two widgets that render a measure, no change needed.
-- [ ] Front D's rename table is written, ruled and applied; every renamed row
+- [x] Front D's rename table is written, ruled and applied; every renamed row
       keeps its old surface form as an alias and nothing that matched before
-      stops matching (asserted over the gold). — **table written, awaiting the
-      ruling; nothing applied.**
+      stops matching (asserted over the gold) — the one ruled exception is
+      `00 flour`, whose old surface form IS the key it gives up.
 - [ ] The live household has the new words — statement run, readback recorded.
       **(Front C is the owner's leg.)**
 - [x] Docs: the seed README's row/coverage counts, `ARCHITECTURE.md`, the
       product spec, `import-and-matching.md`, the two board frames that print a
-      vocabulary count, and `scripts/cloud_verify.sh`'s expectation.
+      vocabulary count, `scripts/cloud_verify.sh`'s expectation, and the
+      real-vocab import test's stated auto count.
 
 ## Measurements
 
-The vocabulary went from **308 → 311** rows; macro coverage **272 → 275**
-`complete`; density coverage **297 → 300** (the 11-row audited bare tail is
-unchanged). `seed.sql` emits 311 ingredients and 116 aliases.
+The vocabulary went from **308 → 311** rows after Fronts A+B, then
+**311 → 319** after Front D; macro coverage **272 → 275 → 283** `complete`;
+density coverage **297 → 300 → 308** (the 11-row audited bare tail is unchanged
+throughout — every new row links an FDC record that has both). `seed.sql` now
+emits 319 ingredients and 138 aliases.
 
 **The four phrases, through the real cascade** (`match.ts` + `match_trgm.ts`
 over `vocab.jsonl` — the same engine `score_matching.ts` uses):
@@ -567,10 +908,107 @@ over `vocab.jsonl` — the same engine `score_matching.ts` uses):
 
 Three new rows and six new alias keys, and not one of the 426 calibration
 cases changed band. That is the honest reading: the mined corpus is American
-recipe pages, so it contains none of the phrases this plan adds — the change
+recipe pages, so it contains none of the phrases Fronts A+B add — the change
 is **provably non-regressive** and its benefit is invisible to this eval by
 construction. `gen_matching_cases.ts` was re-run so the labels are recomputed
 against the new vocabulary; it produced a byte-identical `cases.jsonl`.
+
+### Front D
+
+Front D was the one that could genuinely move the numbers — a rename moves a
+row's key, and `flour` is a word the corpus actually uses. It did move the
+calibration set, and here is exactly how.
+
+**Nine of the 426 cases were relabelled.** Eight are the same row under its new
+name (the oracle following the rename, which is what a rename means):
+
+| Line | Was | Now |
+|---|---|---|
+| "1 small hot pepper…" | Hot Chili | Fresh Red Chili |
+| "1 hot chili pepper…" | Hot Chili | Fresh Red Chili |
+| "2 small (or 1 large) hot chili…" | Hot Chili | Fresh Red Chili |
+| "1-2 hot chilies or big pinch red pepper flakes" | Hot Chili + Red Pepper Flakes | Fresh Red Chili + Red Pepper Flakes |
+| "1 (13.5 ounces) can full-fat coconut milk…" | Coconut Milk | Canned Coconut Milk |
+| "1 can full-fat coconut milk…" | Coconut Milk | Canned Coconut Milk |
+| "1 pound French green lentils…" | French Green Lentils | Dried French Green Lentils |
+| "Pinch ground clove (optional)" | Ground Clove | Ground Cloves |
+
+The ninth is substantive and is the split showing up in the oracle:
+*"12 ounces (340 g) shelled frozen edamame, defrosted"* now covers
+**`["Frozen Edamame", "Edamame"]`** where it covered only `Frozen Edamame`.
+Its band stays `suggest`, which is right — that line genuinely names both rows
+now, and a human picks.
+
+**No band moved, and no calibration number moved:**
+
+| | After A+B | After D |
+|---|---|---|
+| normalization | 17/17 exact | 17/17 exact |
+| identity lane band agreement | 96.9 % (413/426) | 96.9 % (413/426) |
+| · auto | P 100.0 % · R 98.5 % | P 100.0 % · R 98.5 % |
+| · suggest | P 86.2 % · R 80.6 % | P 86.2 % · R 80.6 % |
+| · none | P 40.0 % · R 85.7 % | P 40.0 % · R 85.7 % |
+| · auto top-1 ingredient | 100.0 % (382/382) | 100.0 % (382/382) |
+| · dangerous auto-accepts | 0 | 0 |
+| raw-line lane | 62.2 % (265/426) | 62.2 % (265/426) |
+| extraction D2 oracle / degraded | F1 100.0 % / 92.8 % | F1 100.0 % / 92.8 % |
+| vocab size the run reports | 311 rows | 319 rows |
+
+One number is worth reporting **before** the relabel, because it is the honest
+size of a rename's blast radius: run against the *stale* labels, `auto top-1
+ingredient` fell from 100.0 % to **98.2 % (375/382)** — seven lines "wrong"
+purely because the oracle still said `Hot Chili` and `Coconut Milk`. Bands and
+dangerous-accepts were untouched even then. Regenerating the labels restored
+100.0 %.
+
+**And one real gain, outside the calibration set.** The edge-function test that
+imports the `gumbo` gold over the real vocabulary moved from
+`auto=20 suggest=4 none=7+1` to **`auto=21 suggest=4 none=7`**: that recipe's
+*"cooked rice"* line, which had nothing to land on, now bands `auto` onto
+`Cooked White Rice`. The cooked/dry split earned its keep on a real page the
+day it landed. (The test's floor assertion is unchanged; its stated "currently
+19/32" comment was refreshed to 21/32.)
+
+**Every phrase the sweep was supposed to fix, through the real cascade:**
+
+| Phrase | Before Front D | After |
+|---|---|---|
+| `flour` | `auto` → **00 Flour** (an Italian pizza flour) | `auto` → **All-Purpose Flour** |
+| `00 flour` | `auto` → 00 Flour | `auto` → **All-Purpose Flour** (the ruled consequence) |
+| `doppio zero flour` / `tipo 00 flour` / `pizza flour` | `none` | `auto` → **Doppio Zero Flour** |
+| `french green lentils` / `puy lentils` | `auto` → French Green Lentils / `none` | `auto` → **Dried French Green Lentils** |
+| `coconut milk` / `tinned coconut milk` | `auto` → Coconut Milk / `suggest` (0.684) | `auto` → **Canned Coconut Milk** |
+| `hot chili` / `red chilli` | `auto` → Hot Chili / `none` | `auto` → **Fresh Red Chili** |
+| `baked beans` | `auto` → Baked Beans | `auto` → **Canned Baked Beans** |
+| `ground clove` / `ground cloves` | `auto` → Ground Clove | `auto` → **Ground Cloves** |
+| `edamame` | `none` | `auto` → **Edamame** |
+| `sweetcorn` / `canned corn` | `none` | `auto` → **Canned Sweetcorn** |
+| `frozen corn` | `none` | `auto` → **Frozen Corn** |
+| `cooked lentils` | `none` (B-D3) | `auto` → **Cooked Lentils** |
+| `cooked pasta` | `none` | `auto` → **Cooked Pasta** |
+| `cooked rice` / `cooked white rice` | `none` / `suggest` → White Rice (0.611 — the dry row) | `auto` → **Cooked White Rice** |
+| `cooked brown rice` / `cooked quinoa` | `suggest` → Brown Rice (0.611 — the dry row) / `none` | `auto` → **Cooked Brown Rice** / **Cooked Quinoa** |
+| `lentils` (bare) | `none` | `suggest` → Dried French Green Lentils (0.636) |
+| `pasta`, `quinoa`, `corn`, `frozen edamame`, `frozen peas`, `olive oil`, `dried lentils` | `auto` | `auto`, **unchanged** |
+
+Two of those deserve a second look rather than a tick:
+
+- **`lentils` on its own moved from `none` to `suggest`.** Four lentil rows now
+  raise its trigram score to 0.636, over the suggest floor. That is an
+  improvement — a bare "lentils" line is genuinely ambiguous and now offers a
+  human something to pick — but it is a band change caused by vocabulary size,
+  not by a threshold, and it is exactly the case the tracker's open `none`
+  top-N question is about.
+- **`sweetcorn` bare now lands on `Canned Sweetcorn`.** For a British kitchen
+  that is usually right (the tin is the default sense), but a cob-of-sweetcorn
+  line would need `corn`. Recorded, not adjusted.
+
+Worth noticing what the split *replaced*, not just what it filled: before
+Front D, "cooked white rice" and "cooked brown rice" banded **`suggest` at
+0.611 onto the DRY rows** — the cascade was already offering a cook the raw
+grain for a cooked line, which is the lentil defect with a softer landing. It
+is not that those lines had nothing; it is that what they had was wrong by a
+factor of nearly three. They are `auto` onto their own rows now.
 
 ## Approach
 
@@ -617,16 +1055,47 @@ against the new vocabulary; it produced a byte-identical `cases.jsonl`.
   inserts nothing. It has **not** been run against the live household — the
   owner's leg, by C-D2.
 
+- 2026-09-04 — Owner ruled all three open items. (1) The bare key **`flour`**
+  goes to `All-Purpose Flour`, as recommended; `00 Flour` becomes
+  `Doppio Zero Flour` and gives the key up. (2) Front D's table is **approved
+  as proposed** — all six renames and all six splits with the FDC targets
+  listed, every rename keeping its old surface form as an alias except the
+  `00 Flour` case; the eight basis mismatches stay out of scope and the
+  "considered and left alone" list stands. (3) The **240 g** drained-lentil
+  weight **stays as it is**, marked `seed:typical`, for the owner to check
+  against a real tin.
+- 2026-09-04 — Build lane, Front D applied. Six renames (five moving a key, one
+  display-only), eight new rows, 5 links and 9 curation overrides re-keyed, 3
+  measure tuples and `gen_measures.ts`'s own TYPICAL constant re-keyed. Nine
+  calibration cases relabelled and no band moved; the gumbo real-vocab import
+  gained one `auto` line ("cooked rice"). None of the eight recorded basis
+  mismatches is made wrong by a rename or a split — two NEW observations the
+  splits created are recorded beside them instead (`Edamame`'s FDC record is
+  still a frozen one; `Canned Sweetcorn` has drained macros but no can
+  measure yet).
+- 2026-09-04 — Build lane, Front C Part 2. Rehearsed the same way: 6 of 6
+  renames on the first pass, 0 of 6 on the second, the fixture's saved
+  "500 g 00 flour" line following its row to Doppio Zero Flour with no
+  dangling reference, and `flour` ending up owned by All-Purpose Flour. The
+  statement refuses to take the `flour` key if the household has already
+  taught itself an alias on it — an `import_correction` is the household's own
+  fact, not this statement's to overwrite.
+
 ## Notes / open questions
 
 - The tracker's other wild-garlic row — *does a `none` line keep its top-N as
   offers?* — is deliberately **not** here. It is a band/threshold question
   about the cascade, and it wants its own decision (and eval re-calibration),
   not a vocabulary errand.
-- **`lentils` on its own still bands `none`.** With three lentil rows it is
-  genuinely ambiguous, so `none` is defensible — but the *better* answer is
-  `suggest` with all three as candidates, which is the same top-N question the
-  tracker row above asks. Left there on purpose.
+- **`lentils` on its own now bands `suggest`** (it was `none` before this
+  plan). Four lentil rows push its trigram score to 0.636. It is the better
+  answer, but it arrived as a side effect of vocabulary size rather than a
+  ruling, and the tracker's open top-N question still governs what a `none`
+  line should offer.
+- **`gen_measures.ts` is invisible to `grep`.** It carries a literal NUL byte
+  as a composite-key separator, so the file reads as binary and plain
+  `grep`/`rg` skip it without a word. See D-5 — escaping it (`\0`) is a
+  one-character fix.
 - `docs/design-docs/search-and-matching.md` and two Dart doc comments still say
   "the 308-row seed vocabulary". They are describing **a measurement that was
   taken** on 308 rows, so the number was left alone rather than edited into a
