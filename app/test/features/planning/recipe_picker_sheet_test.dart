@@ -64,6 +64,8 @@ class _FakeRecipeRepo implements RecipeRepository {
   Future<void> deleteRecipe(String id) async {}
   @override
   Future<void> setFavorite(String id, bool favorite) async {}
+  @override
+  Future<void> setFiling(String id, String bookId, String? sectionId) async {}
 
   @override
   Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
@@ -105,7 +107,6 @@ class _FakePlanningRepo implements PlanningRepository {
   }) async => 'e';
   @override
   Future<void> setEaters(String entryId, List<String> eaterIds) async {}
-
 
   @override
   Future<void> setPortions(String entryId, int? portions) async {}

@@ -22,6 +22,7 @@ import '../../account/presentation/account_view.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/presentation/ingredient_list_view.dart'
     show kIngredientsRoute;
+import '../../recipes/data/recipe_providers.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/format.dart';
 import '../data/book_providers.dart';
@@ -29,6 +30,7 @@ import '../domain/book.dart';
 import '../domain/library_search.dart';
 import 'book_pick_sheet.dart';
 import 'book_view_models.dart';
+import 'recipe_move_sheet.dart';
 import 'text_prompt.dart';
 
 class LibraryView extends HookConsumerWidget {
@@ -700,7 +702,8 @@ class _SectionBlock extends ConsumerWidget {
               ),
             )
           else
-            for (final r in _recipes) _RecipeRow(recipe: r),
+            for (final r in _recipes)
+              _RecipeRow(recipe: r, bookId: book.id, sectionId: section?.id),
         ],
       ),
     );
@@ -881,10 +884,22 @@ class _SectionMenu extends ConsumerWidget {
 /// [filing] is set only on a search result, where the tree that would have said
 /// where this lives is not on screen.
 class _RecipeRow extends StatelessWidget {
-  const _RecipeRow({required this.recipe, this.filing});
+  const _RecipeRow({
+    required this.recipe,
+    this.filing,
+    this.bookId,
+    this.sectionId,
+  });
 
   final RecipeSummary recipe;
   final Filing? filing;
+
+  /// Where this row is filed, when the tree knows — the shelf "Move to…"
+  /// marks as `here now` and refuses to move to. A search result carries the
+  /// filing's NAMES but not its ids, so both are null there and every shelf
+  /// is offered.
+  final String? bookId;
+  final String? sectionId;
 
   @override
   Widget build(BuildContext context) {
@@ -927,7 +942,104 @@ class _RecipeRow extends StatelessWidget {
               size: 16,
               color: AnsiColors.muted,
             ),
+            _RecipeRowMenu(
+              recipe: recipe,
+              bookId: bookId,
+              sectionId: sectionId,
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The recipe row's own `⋯` (0028 E8, ruled by the owner over a long-press —
+/// which keeps D6 whole and is found by nobody).
+///
+/// This AMENDS Library v2's D6, which kept the row a single tap target. D6's
+/// actual rule survives: the ★ still only REPORTS on the row, and the toggle
+/// lives in here, one deliberate tap away — so the row's own tap still means
+/// exactly one thing, open the recipe.
+class _RecipeRowMenu extends ConsumerWidget {
+  const _RecipeRowMenu({
+    required this.recipe,
+    required this.bookId,
+    required this.sectionId,
+  });
+
+  final RecipeSummary recipe;
+  final String? bookId;
+  final String? sectionId;
+
+  Future<void> _move(BuildContext context, WidgetRef ref) async {
+    // The row can be unmounted under the sheet (a fold, or a sync landing), so
+    // the write goes through handles captured before the await.
+    final container = ProviderScope.containerOf(context, listen: false);
+    final host = hostContextOf(context);
+    final books = ref.read(libraryProvider).asData?.value ?? const [];
+    if (books.isEmpty) return;
+
+    final target = await showRecipeMoveSheet(
+      // The host outlives the row — see [hostContextOf].
+      // ignore: use_build_context_synchronously
+      host.context,
+      title: recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
+      books: books,
+      currentBookId: bookId,
+      currentSectionId: sectionId,
+    );
+    if (target == null) return;
+    await container.write(
+      host,
+      'move that recipe',
+      () => container
+          .read(recipeRepositoryProvider)
+          .setFiling(recipe.id, target.bookId, target.sectionId),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return FPopoverMenu(
+      menuBuilder: (_, controller, _) => [
+        FItemGroup(
+          children: [
+            FItem(
+              prefix: const Icon(FLucideIcons.arrowRight),
+              title: const Text('Move to…'),
+              onPress: () {
+                unawaited(controller.hide());
+                unawaited(_move(context, ref));
+              },
+            ),
+            FItem(
+              prefix: Icon(
+                recipe.favorite ? FLucideIcons.starOff : FLucideIcons.star,
+              ),
+              title: Text(recipe.favorite ? 'Unfavorite' : 'Favorite'),
+              onPress: () {
+                unawaited(controller.hide());
+                unawaited(
+                  ref.write(
+                    context,
+                    recipe.favorite ? 'unfavourite it' : 'favourite it',
+                    () => ref
+                        .read(recipeRepositoryProvider)
+                        .setFavorite(recipe.id, !recipe.favorite),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ],
+      builder: (context, controller, _) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: controller.toggle,
+        child: const Padding(
+          padding: EdgeInsets.only(left: 8),
+          child: Icon(FLucideIcons.ellipsis, size: 15, color: AnsiColors.muted),
         ),
       ),
     );

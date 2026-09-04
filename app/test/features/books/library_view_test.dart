@@ -3,6 +3,7 @@ import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/books/domain/book_collapse_store.dart';
 import 'package:ansi/features/books/presentation/library_view.dart';
+import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/shared/ansi_search_field.dart';
 import 'package:ansi/shared/dashed_border_box.dart';
@@ -13,6 +14,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
+import '../../helpers/editor_harness.dart';
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/forui_semantics.dart';
 
@@ -115,6 +117,21 @@ List<Override> _repo(List<Book> books) => [
   bookRepositoryProvider.overrideWithValue(_FakeBookRepo(books)),
 ];
 
+/// The library, plus a recipe repository that records the narrow writes the
+/// row's `⋯` performs (0028 E8).
+({List<Override> overrides, FakeRecipeRepo recipes}) _repoWithRecipes(
+  List<Book> books,
+) {
+  final recipes = FakeRecipeRepo(null);
+  return (
+    overrides: [
+      ..._repo(books),
+      recipeRepositoryProvider.overrideWithValue(recipes),
+    ],
+    recipes: recipes,
+  );
+}
+
 /// [_host], but the Library can be taken out of the tree while one of its
 /// prompts is up — the phone's keyboard-shrinks-the-list case, made exact.
 Widget _toggleHost(List<Override> overrides, ValueNotifier<bool> show) =>
@@ -147,6 +164,10 @@ Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
       GoRoute(
         path: '/recipes/new',
         builder: (_, _) => const FScaffold(child: Text('editor screen')),
+      ),
+      GoRoute(
+        path: '/recipes/:id',
+        builder: (_, _) => const FScaffold(child: Text('recipe screen')),
       ),
       GoRoute(
         path: '/account',
@@ -267,6 +288,99 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(repo.renamedTo, 'Weeknights');
+  });
+
+  group('the recipe row ⋯ (0028 E8)', () {
+    testWidgets('Move to… re-files through the narrow write', (tester) async {
+      filterForuiSemanticsAssertions();
+      final host = _repoWithRecipes(const [
+        ..._library,
+        Book(
+          id: 'b2',
+          name: 'Baking',
+          sections: [BookSection(id: 's2', name: 'Slow Sundays')],
+        ),
+      ]);
+      await tester.pumpWidget(_host(host.overrides));
+      await tester.pumpAndSettle();
+
+      // The row's own `⋯` — the book's and the section's come first in the
+      // card, so this one is found under the recipe's title row.
+      await tester.tap(
+        find
+            .descendant(
+              of: find.ancestor(
+                of: find.text('Chicken Curry'),
+                matching: find.byType(Row),
+              ),
+              matching: find.byIcon(FLucideIcons.ellipsis),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Move to…'), findsOneWidget);
+
+      await tester.tap(find.text('Move to…'));
+      await tester.pumpAndSettle();
+
+      // The shelf it is on now says so and cannot be picked.
+      expect(find.text('here now'), findsOneWidget);
+      // It says what it will do before it acts — the bulk move's grammar in
+      // the singular.
+      // The library card behind the sheet prints the same section label, so
+      // pick the one inside the sheet.
+      await tester.tap(find.text('Slow Sundays').last);
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('moves to Baking · Slow Sundays'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Move'));
+      await tester.pumpAndSettle();
+
+      expect(host.recipes.filed?.id, 'r1');
+      expect(host.recipes.filed?.bookId, 'b2');
+      expect(host.recipes.filed?.sectionId, 's2');
+      // Never a whole-recipe save: a move is not an edit of every field.
+      expect(host.recipes.saved, isEmpty);
+    });
+
+    testWidgets('the ★ still only reports on the row — D6 kept', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      late GoRouter router;
+      final host = _repoWithRecipes(_library);
+      await tester.pumpWidget(_routedHost(host.overrides, (r) => router = r));
+      await tester.pumpAndSettle();
+
+      // Tapping the row itself opens the recipe; it never toggles anything.
+      await tester.tap(find.text('Chicken Curry'));
+      await tester.pumpAndSettle();
+      expect(router.state.uri.toString(), '/recipes/r1');
+      expect(host.recipes.favorited, isNull);
+      router.pop();
+      await tester.pumpAndSettle();
+
+      // The toggle lives in the menu, one deliberate tap away.
+      await tester.tap(
+        find
+            .descendant(
+              of: find.ancestor(
+                of: find.text('Chicken Curry'),
+                matching: find.byType(Row),
+              ),
+              matching: find.byIcon(FLucideIcons.ellipsis),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Favorite'));
+      await tester.pumpAndSettle();
+      expect(host.recipes.favorited?.id, 'r1');
+      expect(host.recipes.favorited?.favorite, isTrue);
+    });
   });
 
   group('folding a book (D3)', () {

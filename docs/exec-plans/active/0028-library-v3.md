@@ -35,10 +35,10 @@ re-shelved without entering the editor; `/account` exists.
 - [x] E6 — `/account` route: household members + usual portions (today's sheet),
       sync health's quiet line, Sign out with its confirm.
 - [x] E7 — the dashed `＋ new book` footer row exists at last.
-- [ ] E8 — a `⋯` on the recipe row with **Move to…** and the favourite toggle;
+- [x] E8 — a `⋯` on the recipe row with **Move to…** and the favourite toggle;
       re-filing writes through a narrow `setFiling(id, bookId, sectionId)`,
       never `saveRecipe`. The target sheet says what it will do before it acts.
-- [ ] E9 — the editor's FILE UNDER is one breadcrumb line (`BOOK · SECTION`,
+- [x] E9 — the editor's FILE UNDER is one breadcrumb line (`BOOK · SECTION`,
       `change ›`) opening the shipped picker.
 - [x] Every test that drives a removed affordance is moved **by the slice that
       removes it** — see "Test moves", below. No slice lands red.
@@ -65,11 +65,16 @@ Lane A owns `library_view.dart` and must land before B/C touch it.
    the Ingredients shelf and the `＋ new book` row · `780933e` the dashed
    new-section row, which the header commit had claimed and not done.
    1688 host tests green, analyzer clean.
-2. **Lane B — the editor seam** (E9 + reading `?book=&section=`). Depends on A
-   only for the query-parameter contract, which lands in A's second slice.
-3. **Lane C — Move to…** (E8). `setFiling` on `RecipeRepository` beside
-   `setFavorite`, the row `⋯`, the target sheet, the announced sentence. The
-   refusal grammar is `moveBookContents`' in the singular.
+2. **Lane B — the editor seam** (E9). ✅ **Landed 2026-09-03** on
+   `lane/0028-e8-e9`: FILE UNDER is one `BOOK · SECTION` line with `change ›`,
+   opening the shipped picker in a sheet. (Reading `?book=&section=` shipped
+   early, with lane A's second slice.)
+3. **Lane C — Move to…** (E8). ✅ **Landed 2026-09-03** on the same branch:
+   `setFiling(id, bookId, sectionId)` beside `setFavorite`, a `⋯` on the recipe
+   row holding *Move to…* and the favourite toggle, and
+   `recipe_move_sheet.dart` — every shelf in every book, the current one marked
+   `here now` and unpickable, and the sentence said before the tap that does
+   it. The bulk move's grammar in the singular.
 4. **Lane D — `/account`** (E6). ✅ **Landed 2026-09-03 on `main`** (`b6b1248`) — and
    moved to the FRONT of the order, not the back: building it first gives the
    header link a real destination on day one, so `week_test`'s usual-portion
@@ -118,6 +123,9 @@ structural `no_bare_repo_write_test` already forces `setFiling` through
 - **A `git stash -u` in the shared checkout swept another agent's work.**
   Restored the same day; the lane moved into a worktree, and the rule is in
   agent memory. No repository state was lost.
+- **The row `⋯` needed a route in the host test.** Tapping the row opens the
+  recipe, which the unrouted `_host` cannot do — the D6 assertion (the row's
+  own tap means one thing) only holds if the tap is allowed to navigate.
 - **OPEN — no simulator run yet.** Every smoke leg that touched the header
   moved (`library`, `week`, `ingredients`, `recipe_editor`) and none has been
   driven on a device. This is the one acceptance criterion still outstanding

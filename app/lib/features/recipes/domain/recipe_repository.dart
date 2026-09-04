@@ -82,6 +82,16 @@ abstract interface class RecipeRepository {
   // ignore: avoid_positional_boolean_parameters — a set-flag pair reads fine.
   Future<void> setFavorite(String id, bool favorite);
 
+  /// Re-files one recipe (0028 E8) — the Library's "Move to…".
+  ///
+  /// A narrow write, like [setFavorite] and unlike [saveRecipe]: re-shelving
+  /// is a LIBRARY act, and routing it through a whole-recipe save would make
+  /// moving a recipe an edit of every field it holds — including fields the
+  /// mover never loaded. [sectionId] null files it unsectioned, which is what
+  /// crossing a book boundary always means: a section belongs to the book it
+  /// was named in.
+  Future<void> setFiling(String id, String bookId, String? sectionId);
+
   /// The live recipes that list [recipeId] as a component, one row per
   /// referencing LINE (step 8.6 / D9). Its length is the count the "Used in ·
   /// N" tab shows *and* the count the delete refusal speaks — one query, two

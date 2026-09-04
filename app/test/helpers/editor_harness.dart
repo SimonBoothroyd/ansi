@@ -48,8 +48,22 @@ class FakeRecipeRepo implements RecipeRepository {
   @override
   Future<void> deleteRecipe(String id) async {}
 
+  /// What the last `setFavorite` asked for — the Library row's menu toggles
+  /// through this rather than through a whole-recipe save.
+  ({String id, bool favorite})? favorited;
+
+  /// What the last `setFiling` asked for (0028 E8).
+  ({String id, String bookId, String? sectionId})? filed;
+
   @override
-  Future<void> setFavorite(String id, bool favorite) async {}
+  Future<void> setFavorite(String id, bool favorite) async {
+    favorited = (id: id, favorite: favorite);
+  }
+
+  @override
+  Future<void> setFiling(String id, String bookId, String? sectionId) async {
+    filed = (id: id, bookId: bookId, sectionId: sectionId);
+  }
 
   @override
   Future<List<RecipeUse>> usedIn(String recipeId) async => const [];

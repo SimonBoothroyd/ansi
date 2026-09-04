@@ -425,6 +425,8 @@ class _FakeRecipeRepo implements RecipeRepository {
 
   @override
   Future<void> setFavorite(String id, bool favorite) async {}
+  @override
+  Future<void> setFiling(String id, String bookId, String? sectionId) async {}
 
   @override
   Future<List<RecipeUse>> usedIn(String recipeId) async => const [];

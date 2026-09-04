@@ -570,6 +570,30 @@ void main() {
     expect((await repo.watchRecipes().first).single.favorite, isFalse);
   });
 
+  test(
+    'setFiling re-shelves without touching anything else (0028 E8)',
+    () async {
+      await repo.saveRecipe(_sampleRecipe());
+      final before = (await repo.watchRecipe('r1').first)!;
+
+      await repo.setFiling('r1', 'b9', 's9');
+      final moved = (await repo.watchRecipe('r1').first)!;
+      expect(moved.bookId, 'b9');
+      expect(moved.sectionId, 's9');
+
+      // A narrow write, not a save: re-shelving a recipe must not become an
+      // edit of every field it holds — including ones the mover never loaded.
+      expect(moved.title, before.title);
+      expect(moved.servingsBase, before.servingsBase);
+      expect(moved.groups.length, before.groups.length);
+      expect(moved.groups.first.items.length, before.groups.first.items.length);
+
+      // Null files it unsectioned, which is what crossing a book always means.
+      await repo.setFiling('r1', 'b9', null);
+      expect((await repo.watchRecipe('r1').first)!.sectionId, isNull);
+    },
+  );
+
   test('saveRecipe replaces children rather than duplicating them', () async {
     await repo.saveRecipe(_sampleRecipe());
 

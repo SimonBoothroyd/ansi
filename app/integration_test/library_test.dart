@@ -25,6 +25,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import 'support/drive.dart';
@@ -164,6 +165,57 @@ void main() {
       tester.getTopLeft(find.text('Bread')).dy,
       lessThan(tester.getTopLeft(find.text('Our Cookbook')).dy),
       reason: 'the Library redraws in the new order',
+    );
+
+    // ------------------------------------------------------------------------
+    // Move to… off the RECIPE row's own ⋯ (0028 E8): re-shelving is a library
+    // act, so it happens where the shelves are visible — and on a narrow
+    // `setFiling` write, never a whole-recipe save. "Sourdough" leaves Bread
+    // for the default book, and the new filing round-trips.
+    // ------------------------------------------------------------------------
+    await tester.tap(
+      find
+          .descendant(
+            of: find.ancestor(
+              of: find.text('Sourdough'),
+              matching: find.byType(Row),
+            ),
+            matching: find.byIcon(FLucideIcons.ellipsis),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Move to…'));
+    await pumpUntilFound(tester, find.text('here now'));
+    // The shelf it is on now is marked and refuses to be picked; the target
+    // says what will happen before the tap that does it.
+    await tester.tap(find.text('Our Cookbook').last);
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('moves to Our Cookbook · Unsectioned'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Move'));
+    await tester.pumpAndSettle();
+    await stack.waitForSyncRoundTrip(tester);
+
+    final filed = await db.get(
+      'SELECT b.name AS book, r.section_id AS section FROM recipe r '
+      'JOIN book b ON b.id = r.book_id WHERE r.title = ?',
+      ['Sourdough'],
+    );
+    expect(filed['book'], 'Our Cookbook');
+    expect(filed['section'], isNull);
+    final onServer = await Supabase.instance.client
+        .from('recipe')
+        .select('book_id')
+        .eq('title', 'Sourdough')
+        .single();
+    expect(onServer['book_id'], isNotNull);
+    expect(
+      find.text('no recipes yet'),
+      findsOneWidget,
+      reason: 'Bread is bare',
     );
   });
 }

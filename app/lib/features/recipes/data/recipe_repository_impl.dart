@@ -776,6 +776,16 @@ class SqliteRecipeRepository implements RecipeRepository {
   }
 
   @override
+  Future<void> setFiling(String id, String bookId, String? sectionId) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _db.execute(
+      'UPDATE recipe SET book_id = ?, section_id = ?, updated_at = ? '
+      'WHERE id = ?',
+      [bookId, sectionId, now, id],
+    );
+  }
+
+  @override
   Future<void> deleteRecipe(String id) async {
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.execute(

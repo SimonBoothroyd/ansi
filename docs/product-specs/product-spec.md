@@ -465,8 +465,16 @@ books, their user-named sections, and the recipes filed under each.
   it was named in) and says so before it acts. Deleting the household's only
   book is refused separately — `ensureDefaultBook()` would re-mint one, and a
   book that reappears is worse than a refusal.
-- **A recipe row is title · ★ (only when favourited) · serves N · ›.** The star
-  reports; toggling stays on the recipe page. No shelf-life chip and no macro
+- **A recipe row is title · ★ (only when favourited) · serves N · › · `⋯`.**
+  The star still only **reports** — it is drawn on the row and toggled from the
+  row's menu, never by touching the row, so the row's own tap still means
+  exactly one thing: open the recipe. The menu is *Move to…* and the favourite
+  toggle. **Move to…** re-files one recipe where the shelves are visible rather
+  than through the editor: every shelf in every book, the one it is on marked
+  `here now` and unpickable, and the sentence said before it acts — the delete
+  refusal's "Move them to…" grammar in the singular. It writes through a narrow
+  `setFiling`, never a whole-recipe save: moving a recipe is not an edit of
+  every field it holds. No shelf-life chip and no macro
   badge: shelf life is a planning fact, and on honest numbers a macro badge is
   a number nobody asked for or an `incomplete` nag on most rows.
 - **Empty states are honest.** A count of zero reads "no recipes yet", never
@@ -476,6 +484,14 @@ books, their user-named sections, and the recipes filed under each.
   hits echoes the query as typed — never "did you mean", which no matcher backs
   yet — over `＋ new recipe called "…"`, which carries the query into the
   editor as the title (`/recipes/new?title=`), and `⤓ import a recipe instead`.
+
+**The recipe header's FILE UNDER** is one line, not a question: `BOOK · SECTION`
+in the recipe page's own eyebrow words, with `change ›` opening the shipped book
++ section picker. A recipe made from a section's `＋` opens already filed there,
+so the form states a fact. The control stays because the same form renders for
+every existing recipe, and because two creation doors have no shelf to inherit —
+the Week picker's `＋ new recipe` and the no-hits state — where a wrong default
+is now visible and one tap from right.
 
 **Pickers (step 7.7 — design board "Pickers v2", shipped):** one selection
 anatomy, two contents. Both pickers share a sheet shell (top-anchored search,

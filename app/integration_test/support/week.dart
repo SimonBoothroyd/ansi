@@ -29,8 +29,7 @@ Future<void> addMealOn(WidgetTester tester, String day, String recipe) async {
     of: dayCard(day),
     matching: find.byWidgetPredicate(
       (w) =>
-          w is Text &&
-          (w.data == 'add a meal' || w.data == 'nothing planned'),
+          w is Text && (w.data == 'add a meal' || w.data == 'nothing planned'),
     ),
   );
   await tester.ensureVisible(add);
