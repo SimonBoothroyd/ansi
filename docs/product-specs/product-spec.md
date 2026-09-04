@@ -519,23 +519,44 @@ source-tab slot, footer slot):
   inside that window, so this joins Monday's batch instead of a second
   cook").
 
-**The Week screen (week redesign, design board "Week · v2"):** one screen with
-**two modes**, because the mode changes what a tap means.
+**The Week screen (week v3, design board "Week · v3"):** one screen, one
+state. v2 split it into a presentation mode and an edit mode because "the mode
+changes what a tap means"; v3 deletes the mode, because a row's three targets
+say what each tap means without one.
 
-- **Presentation is the resting state** and answers "what are we eating". A
-  dish row is two lines: the title with its eaters and — only when the override
-  differs from the eater count — a portions chip; beneath it the **cook
-  marker**, read back off `buildCookPlan` for the same week (`cooks today ·
-  batch of 4` with the mini fresh→gone bar · `from Monday's batch` · `Tuesday's
-  freezer share ❄`). A single-meal cook gets **no marker** — "cooks today" on
-  every row is noise, and an absent second line collapses the row back to one.
-  Tapping a row opens the recipe.
-- **Edit** puts the affordance layer back: a dashed `＋ Add a meal` under every
-  day and a `›` on every row. Tapping a row opens the **entry sheet** — the
-  confirm sheet in its editing role, same controls in the same order (day ·
-  slot, who's eating, portions, open recipe, remove from the week), so adding
-  and editing are one thing learned once. It replaces the per-row `⋯` menu and
-  the standalone eaters dialog, neither of which could hold all four.
+- **A dish row is two lines:** the title with its eaters and — only when the
+  override differs from the eater count — a portions chip; beneath it the
+  **cook marker**, read back off `buildCookPlan` for the same week (`cooks
+  today · batch of 4` with the mini fresh→gone bar · `from Monday's batch` ·
+  `Tuesday's freezer share ❄`). A single-meal cook gets **no marker** — "cooks
+  today" on every row is noise, and an absent second line collapses the row
+  back to one. The marker and the day's macro line are **never hidden**: v2's
+  edit mode suppressed both, which blanked the numbers you were editing
+  against.
+- **A row's controls are the facts the row prints (E7).** The **title** opens
+  the recipe it names. The **portions chip + eater avatars are one target**,
+  opening a compact editor holding exactly those two fields — one target and
+  not two, because the chip is drawn only when an override differs, so a
+  chip-only tap would be missing from most rows and could never *set* a first
+  override. The **`−`** removes the meal. Day · slot is not a printed value —
+  a row's *position* is its day — so a meal is **moved by removing it and
+  adding it again** through the picker's "already this week" quick picks.
+- **Remove is undone, not confirmed (E3).** The `−` is muted, not red, and
+  there is no confirm dialog: it would tax every removal to prevent a rare
+  mis-tap. What makes it safe is an **undo toast** naming what would come back
+  ("dinner · Ada & Jun · 1¾ portions"), because an undo you cannot audit is a
+  promise rather than a control. This is the one deliberate exception to "no
+  success toasts" — the toast is not reporting success, it is carrying the
+  undo.
+- **One add door, in every state (E5).** `＋ add a meal` is the last row of
+  every day card, sitting with the meals and **above** the day's total,
+  because it adds a *meal*, not a number. On an empty day it is the same line
+  saying `nothing planned`. It replaced v2's dashed edit-only box and its
+  separate emptiness line, which were one door wearing two hats.
+- **The test a target must pass** is not "is the row's tap unambiguous" but
+  **"is the target drawn"**. That is why there is no long-press anywhere on
+  this screen, and why the `›` went: it was drawn, but it announced *the row
+  navigates* and so competed with the row itself.
 - **The lens** (`Everyone · Ada · Jun`) sits with the numbers and **dims** the
   meals a person is not eating rather than removing them: a day somebody else
   cooks for themselves is not an empty day.

@@ -236,27 +236,6 @@ void main() {
       },
     );
 
-    test('setDaySlot moves a meal inside its own week', () async {
-      await _insertRecipe(db, 'r1', 'Curry');
-      final id = await repo.addEntry(
-        weekStart: _thisWeek,
-        dayOfWeek: 0,
-        mealSlot: 'Dinner',
-        recipeId: 'r1',
-        eaterIds: ['m1'],
-      );
-
-      await repo.setDaySlot(entryId: id, dayOfWeek: 4, mealSlot: 'Lunch');
-
-      final week = await repo.watchWeek(_thisWeek).first;
-      final entry = week!.entries.single;
-      expect(entry.dayOfWeek, 4);
-      expect(entry.mealSlot, 'Lunch');
-      // Same row — the entry sheet MOVES a meal, it does not remove and
-      // re-add one (which would lose its id, and with it any sync history).
-      expect(entry.id, id);
-    });
-
     test('setPortions writes an override and can hand it back', () async {
       await _insertRecipe(db, 'r1', 'Curry');
       final id = await repo.addEntry(

@@ -149,8 +149,7 @@ modal: it is the nearest route either way. Only the owning Navigator changed.
 A modal on the root navigator sits directly above the shell's one page, so a
 second pop is no longer a harmless no-op: it takes the shell with it, and
 go_router asserts *"popped the last page off the stack"*. The trap is a sheet
-that closes itself when its data disappears (the Week entry sheet: the entry is
-removed, so the sheet has nothing to show) **and** also pops explicitly from
+that closes itself when its data disappears **and** also pops explicitly from
 the action that removed it. Rule: an auto-dismiss fires only while the sheet is
 still the current route —
 
@@ -158,9 +157,19 @@ still the current route —
 if (ModalRoute.of(context)?.isCurrent ?? false) Navigator.of(context).pop();
 ```
 
-— and the explicit pop stays. `entry_sheet.dart` is the reference; a widget
-test with a live removal (`week_screen_test.dart`, "pops it exactly once")
-fails on the unguarded code.
+— and the explicit pop stays.
+
+**No sheet in the app is currently in this shape.** The reference case was the
+Week's `entry_sheet.dart`, which held both a live view of one plan entry and a
+`Remove from the week` action; week v3 (E4) deleted it, and the removal moved
+onto the row's own `−` where there is no sheet to pop. Its replacement,
+`meal_editor_sheet.dart`, draws nothing when its entry vanishes and never pops
+itself — one half of the trap, so the two halves can no longer meet.
+
+The rule stays written down because the shape is easy to reintroduce: the
+moment a sheet gains *both* a live read of a row and the action that deletes
+that row, it is back. Pair it with a widget test that removes the row while
+the sheet is open.
 
 
 ### A tab root leaves the keyboard inset to the shell

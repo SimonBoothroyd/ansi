@@ -1,30 +1,40 @@
 /// The Week — the meal-planning screen, and the INPUT to the derived
 /// cook-plan / shopping pipeline (steps 5–6).
 ///
-/// **One screen, two modes** (week redesign, D1). Presentation is the resting
-/// state and answers "what are we eating": each dish row carries its cook
-/// marker, its eaters and — when it differs from the eater count — its
-/// portions. Edit puts the affordance layer back on: a dashed `＋ Add a meal`
-/// under every day, and a `›` on every row.
+/// **One screen, one state** (week v3, E1). v2 split it into a presentation
+/// mode and an edit mode on the claim that "the mode changes what a tap
+/// means". Three things ate that claim: D5b had already given presentation
+/// its own add doors, so edit's exclusive door was down to "a day that
+/// already has a meal"; edit *blanked the numbers you were editing against*,
+/// suppressing the cook markers and swapping each day's macro line out for
+/// its add row; and neither tap was ever destructive, which is the only thing
+/// a mode is really for. `WeekMode` and its `Edit`/`Done` action are gone.
 ///
-/// The mode earns its existence because it changes **what a tap means** (D7):
-/// in presentation a row opens the recipe, in edit it opens the entry sheet.
-/// That is the whole justification — one widget tree, one macro path, a
-/// density switch rather than a second screen.
+/// **A row's controls are the facts the row prints** (E7). The title opens
+/// the recipe it names. The portions chip and eater avatars are ONE target —
+/// they open `meal_editor_sheet.dart`, holding exactly those two fields. The
+/// `−` removes the meal, with an undo toast rather than a confirm (E3): a
+/// destructive control on every row of a resting screen is defensible only
+/// because the act is trivially reversible, so the screen makes it so.
+/// Day · slot is deliberately absent — a row does not print a day as a value,
+/// its *position* is its day — so a meal is moved by removing it and adding
+/// it again through the picker's "already this week" quick picks.
 ///
-/// **The numbers are honest** (D4). Each day card foots with its own macro
-/// line and that line's denominator; the list foots with the week band. The
-/// lens above the cards rescopes both — and DIMS the meals a person is not
-/// eating rather than deleting them (D8), because a day somebody else cooks
-/// for themselves is not an empty day.
+/// **One add door, in every state** (E5). `＋ add a meal` is the last row of
+/// every day card, sitting with the meals and above the day's total, because
+/// it adds a *meal*, not a number. On an empty day it is the same line saying
+/// `nothing planned`. It retired v2's dashed edit-only door and its separate
+/// emptiness line, which were one widget wearing two hats.
+///
+/// **The numbers are honest** (D4) and never hidden (E6). Each day card foots
+/// with its own macro line and that line's denominator; the list foots with
+/// the week band. The lens above the cards rescopes both — and DIMS the meals
+/// a person is not eating rather than deleting them (D8), because a day
+/// somebody else cooks for themselves is not an empty day.
 ///
 /// **There is no blank-week page** (D5). A week with nothing in it is this
-/// same screen with nothing in it: header, switcher, mode action, lens row,
-/// seven day cards and the week band all render, exactly as they do for a full
-/// week. The old `_EmptyWeek` hid the switcher — the one control that gets you
-/// OUT of an empty week — swapped the screen out on a data condition, and
-/// fired on `entries.isEmpty` too, so removing your last meal teleported you
-/// off the grid mid-edit.
+/// same screen with nothing in it: header, switcher, lens row, seven day
+/// cards and the week band all render, exactly as they do for a full week.
 ///
 /// The week itself is a position, not a singleton — see `week_header.dart`
 /// (D2) and `week_view_models.dart` (D3).
@@ -39,8 +49,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/portions.dart';
 import '../../../shared/ansi_error_state.dart';
-import '../../../shared/dashed_border_box.dart';
+import '../../../shared/ansi_toast.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
 import '../../cook_plan/domain/cook_plan.dart';
@@ -48,7 +59,7 @@ import '../../cook_plan/presentation/cook_view_models.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'confirm_meal_sheet.dart';
-import 'entry_sheet.dart';
+import 'meal_editor_sheet.dart';
 import 'recipe_picker_sheet.dart';
 import 'week_format.dart';
 import 'week_header.dart';
@@ -57,15 +68,6 @@ import 'week_view_models.dart';
 import 'week_widgets.dart';
 
 const _kDefaultSlot = 'Dinner';
-
-/// Which layer of the one screen is showing (D1).
-enum WeekMode {
-  /// The resting state: what we are eating.
-  presentation,
-
-  /// The affordances: add doors, row chevrons, the entry sheet.
-  edit,
-}
 
 /// The two-step add flow: pick a recipe, then confirm slot/eaters/portions.
 Future<void> _addMealFlow(
@@ -125,7 +127,6 @@ class WeekView extends HookConsumerWidget {
     // null = Everyone; a member id = that person's lens (D8: it dims, it does
     // not remove).
     final lens = useState<String?>(null);
-    final mode = useState(WeekMode.presentation);
     final scope =
         roster
             .where((m) => m.id == lens.value)
@@ -150,14 +151,6 @@ class WeekView extends HookConsumerWidget {
               ? null
               : formatMealCount(week.asData!.value?.entries.length ?? 0),
         ),
-        suffixes: [
-          _ModeAction(
-            mode: mode.value,
-            onTap: () => mode.value = mode.value == WeekMode.presentation
-                ? WeekMode.edit
-                : WeekMode.presentation,
-          ),
-        ],
       ),
       child: week.when(
         loading: () => const Center(child: FCircularProgress()),
@@ -195,7 +188,6 @@ class WeekView extends HookConsumerWidget {
                   roster: roster,
                   lens: lens.value,
                   scope: scope,
-                  mode: mode.value,
                   cookPlan: cookPlan,
                   todayDayOfWeek: todayDayOfWeek,
                 ),
@@ -206,36 +198,6 @@ class WeekView extends HookConsumerWidget {
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-/// `Edit` / `Done` — the one control that swaps the affordance layer (D1).
-/// Text, not an icon: it names the state you are entering, which no glyph
-/// does.
-class _ModeAction extends StatelessWidget {
-  const _ModeAction({required this.mode, required this.onTap});
-
-  final WeekMode mode;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final editing = mode == WeekMode.edit;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        child: Text(
-          editing ? 'Done' : 'Edit',
-          style: ansiSans(
-            size: 14,
-            color: AnsiColors.herbDeep,
-            weight: editing ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
       ),
     );
   }
@@ -344,7 +306,6 @@ class _DayCard extends ConsumerWidget {
     required this.roster,
     required this.lens,
     required this.scope,
-    required this.mode,
     required this.cookPlan,
     required this.todayDayOfWeek,
   });
@@ -355,7 +316,6 @@ class _DayCard extends ConsumerWidget {
   final List<Member> roster;
   final String? lens;
   final String scope;
-  final WeekMode mode;
   final CookPlan? cookPlan;
   final int? todayDayOfWeek;
 
@@ -460,57 +420,21 @@ class _DayCard extends ConsumerWidget {
             group: group,
             roster: roster,
             lens: lens,
-            mode: mode,
             cookPlan: cookPlan,
             todayDayOfWeek: todayDayOfWeek,
           ),
-        if (mode == WeekMode.edit)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _addMealFlow(
-                context,
-                weekStart: weekStart,
-                dayOfWeek: dayOfWeek,
-              ),
-              child: DashedBorderBox(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      FLucideIcons.plus,
-                      size: 12,
-                      color: AnsiColors.herb,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      'Add a meal',
-                      textAlign: TextAlign.center,
-                      style: ansiMono(
-                        size: 11,
-                        color: AnsiColors.herb,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          )
-        else if (visible.isEmpty)
-          // Presentation mode, nothing on this day: a quiet line where the
-          // content would be, which is ITSELF the add door — so the first
-          // meal lands on the day you pointed at (D5b).
-          NothingPlannedLine(
-            onTap: () => _addMealFlow(
-              context,
-              weekStart: weekStart,
-              dayOfWeek: dayOfWeek,
-            ),
-          )
-        else
-          // The day's own honest total, with its denominator (D4).
+        // E5: one add door, always, as the card's last ROW — with the meals
+        // it extends, above the day's total. On an empty day it is the same
+        // line saying `nothing planned`, so the first meal lands on the day
+        // you pointed at (D5b) and there is no second widget to keep in step.
+        AddMealLine(
+          empty: visible.isEmpty,
+          onTap: () =>
+              _addMealFlow(context, weekStart: weekStart, dayOfWeek: dayOfWeek),
+        ),
+        // The day's own honest total, with its denominator (D4). Absent on an
+        // empty day: `no meals` is a state, never `0 kcal`.
+        if (visible.isNotEmpty)
           DayMacroLine(
             macros: ref.watch(dayMacrosProvider(dayOfWeek, lens)),
             scope: scope,
@@ -527,7 +451,6 @@ class _SlotGroup extends StatelessWidget {
     required this.group,
     required this.roster,
     required this.lens,
-    required this.mode,
     required this.cookPlan,
     required this.todayDayOfWeek,
   });
@@ -535,7 +458,6 @@ class _SlotGroup extends StatelessWidget {
   final List<PlanEntry> group;
   final List<Member> roster;
   final String? lens;
-  final WeekMode mode;
   final CookPlan? cookPlan;
   final int? todayDayOfWeek;
 
@@ -572,7 +494,6 @@ class _SlotGroup extends StatelessWidget {
                     roster: roster,
                     // D8: a meal this person is not eating is dimmed, not gone.
                     dimmed: lens != null && !e.eaterIds.contains(lens),
-                    mode: mode,
                     cookPlan: cookPlan,
                     todayDayOfWeek: todayDayOfWeek,
                   ),
@@ -585,21 +506,31 @@ class _SlotGroup extends StatelessWidget {
   }
 }
 
-/// A single dish within a slot.
+/// A single dish within a slot — and, since v3, three targets on one row.
 ///
 /// Two lines, not one column of cells (D6, owner-ruled): the title with its
 /// eaters (and a portions chip when the override differs) on the first, the
 /// cook marker on the second — absent entirely for a single-meal cook, which
 /// collapses the row back to one line.
 ///
-/// The tap is the mode's whole justification (D7): presentation opens the
-/// recipe, edit opens the entry sheet.
-class _DishRow extends StatelessWidget {
+/// **A row's controls are the facts the row prints** (E7):
+///
+/// * the **title** opens the recipe it names;
+/// * the **portions chip + avatars** are ONE target — they open the meal
+///   editor holding exactly those two fields. One target, not two, because
+///   the chip is conditional: a chip-only tap would be missing from most rows
+///   and could never *set* a first override;
+/// * the **`−`** removes the meal, with an undo toast (E3).
+///
+/// This is not the old `›`, which was drawn but announced "the row navigates"
+/// and so competed with the row itself. The test a target has to pass is not
+/// "is the row's tap unambiguous" but **"is the target drawn"** — which is
+/// also why there is no long-press anywhere on this screen.
+class _DishRow extends ConsumerWidget {
   const _DishRow({
     required this.entry,
     required this.roster,
     required this.dimmed,
-    required this.mode,
     required this.cookPlan,
     required this.todayDayOfWeek,
   });
@@ -607,16 +538,16 @@ class _DishRow extends StatelessWidget {
   final PlanEntry entry;
   final List<Member> roster;
   final bool dimmed;
-  final WeekMode mode;
   final CookPlan? cookPlan;
   final int? todayDayOfWeek;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final deleted = entry.recipeTitle == null;
-    final editing = mode == WeekMode.edit;
     final plan = cookPlan;
-    final marker = (editing || plan == null)
+    // E6: the marker is never suppressed — there is no mode left to suppress
+    // it in, and the cook consequence is most worth reading while planning.
+    final marker = plan == null
         ? null
         : cookMarkerFor(
             plan,
@@ -632,28 +563,24 @@ class _DishRow extends StatelessWidget {
     });
     final showPortions = override != null && (override - usual).abs() > 1e-9;
 
-    void onTap() {
-      if (editing) {
-        showEntrySheet(context, entry: entry);
-      } else {
-        // A deleted recipe has no page to open, so the row stays inert.
-        context.pushOnce('/recipes/${entry.recipeId}');
-      }
-    }
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: (deleted && !editing) ? null : onTap,
-      child: Opacity(
-        opacity: dimmed ? 0.38 : 1,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Opacity(
+      opacity: dimmed ? 0.38 : 1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Expanded(
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  // A deleted recipe has no page to open, so the title is
+                  // inert — the row's other two targets still work, because
+                  // the meal is still a real row on the week.
+                  onTap: deleted
+                      ? null
+                      : () => context.pushOnce('/recipes/${entry.recipeId}'),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Text(
                       entry.recipeTitle ?? '(deleted recipe)',
                       style: deleted
@@ -665,47 +592,190 @@ class _DishRow extends StatelessWidget {
                             ),
                     ),
                   ),
-                  if (showPortions) ...[
-                    const SizedBox(width: 8),
-                    PortionsChip(portions: override),
-                  ],
-                  const SizedBox(width: 8),
-                  EaterAvatarStack(
-                    roster: roster,
-                    eaterIds: entry.eaterIds.toSet(),
-                  ),
-                  if (editing) ...[
-                    const SizedBox(width: 6),
-                    const Icon(
-                      FLucideIcons.chevronRight,
-                      size: 15,
-                      color: AnsiColors.muted,
-                    ),
-                  ],
-                ],
-              ),
-              if (marker != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 3),
-                  child: CookMarkerLine(
-                    marker: marker,
-                    todayDayOfWeek: todayDayOfWeek,
-                  ),
                 ),
+              ),
+              _EatersTarget(
+                entry: entry,
+                roster: roster,
+                portions: showPortions ? override : null,
+              ),
+              _RemoveTarget(entry: entry, roster: roster),
             ],
           ),
+          if (marker != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: CookMarkerLine(
+                marker: marker,
+                todayDayOfWeek: todayDayOfWeek,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The portions chip and the eater avatars as ONE tap target (E7), opening
+/// the meal editor.
+///
+/// When a meal has neither — nobody eating and no override — the cluster
+/// would otherwise be empty, which is both an untappable target and a silent
+/// rendering of a real data condition (the macro lens excludes such an entry
+/// with a reason). It says `nobody` instead: the state, named, and something
+/// to aim at.
+class _EatersTarget extends StatelessWidget {
+  const _EatersTarget({
+    required this.entry,
+    required this.roster,
+    required this.portions,
+  });
+
+  final PlanEntry entry;
+  final List<Member> roster;
+  final int? portions;
+
+  @override
+  Widget build(BuildContext context) {
+    final nobody = entry.eaterIds.isEmpty && portions == null;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => showMealEditorSheet(context, entry: entry),
+      child: Padding(
+        // Vertical padding is the hit area, not decoration: the avatars are
+        // 24 pt tall and this brings the target to ~44.
+        padding: const EdgeInsets.fromLTRB(8, 10, 4, 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (portions != null) ...[
+              PortionsChip(portions: portions!),
+              const SizedBox(width: 8),
+            ],
+            if (nobody)
+              Text('nobody', style: ansiMono(size: 10, color: AnsiColors.muted))
+            else
+              EaterAvatarStack(
+                roster: roster,
+                eaterIds: entry.eaterIds.toSet(),
+              ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// The quiet line a day with no meals shows in presentation mode — and the
-/// door that fills it. See D5b: every empty region carries the affordance
-/// that would fill it, and the first tap lands where the user pointed.
-class NothingPlannedLine extends StatelessWidget {
-  const NothingPlannedLine({required this.onTap, super.key});
+/// The `−` (E3): removes the meal, and hands back an undo.
+///
+/// Muted, not red. A destructive glyph on every row of a resting screen
+/// shouts, and the colour was never what made this safe — the undo is. There
+/// is deliberately no confirm dialog: it would tax every removal to prevent a
+/// rare mis-tap, and everything needed to put the meal back is in hand.
+class _RemoveTarget extends ConsumerWidget {
+  const _RemoveTarget({required this.entry, required this.roster});
 
+  final PlanEntry entry;
+  final List<Member> roster;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => unawaited(_remove(context, ref)),
+      child: const Padding(
+        padding: EdgeInsets.fromLTRB(8, 10, 4, 10),
+        child: Icon(FLucideIcons.minus, size: 16, color: AnsiColors.muted),
+      ),
+    );
+  }
+
+  Future<void> _remove(BuildContext context, WidgetRef ref) async {
+    final repo = ref.read(planningRepositoryProvider);
+    final weekStart = ref.read(viewedWeekStartProvider);
+    // Captured BEFORE the write: the undo fires from a toast up to six
+    // seconds later, by which time this row is certainly gone — it is the row
+    // that was just removed. `ref` and this context are unusable by then; the
+    // container and the root overlay are not (`shared/write.dart`).
+    final container = ProviderScope.containerOf(context, listen: false);
+    final host = hostContextOf(context);
+    final removed = await ref.writeOk(
+      context,
+      'remove that meal',
+      () => repo.removeEntry(entry.id),
+    );
+    if (!removed) return;
+    showAnsiUndoToast(
+      // The host outlives the row — and the row is the one just removed.
+      // ignore: use_build_context_synchronously
+      host.context,
+      what:
+          'Removed ${entry.recipeTitle ?? 'that meal'} from '
+          '${kWeekdayFull[entry.dayOfWeek]}.',
+      // What would come back, in the words the row used: an undo you cannot
+      // audit is a promise, not a control.
+      detail: _undoDetail(),
+      onUndo: () => unawaited(
+        // The same door every other post-await write goes through
+        // (`shared/write.dart`), so a failed undo says so instead of
+        // vanishing.
+        container.write(
+          host,
+          'put that meal back',
+          // A new row with the same facts — the id was the removed one's, and
+          // nothing downstream keys on it (the cook plan and the list both
+          // re-derive from the week).
+          () => repo.addEntry(
+            weekStart: weekStart,
+            dayOfWeek: entry.dayOfWeek,
+            mealSlot: entry.mealSlot,
+            recipeId: entry.recipeId,
+            eaterIds: entry.eaterIds,
+            portions: entry.portions,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _undoDetail() {
+    final names = [
+      for (final m in roster)
+        if (entry.eaterIds.contains(m.id)) m.displayName,
+    ];
+    final demand = eatersDemand(entry.eaterIds, {
+      for (final m in roster) m.id: m,
+    });
+    final portions = entry.portions?.toDouble() ?? demand;
+    return [
+      entry.mealSlot.toLowerCase(),
+      if (names.isNotEmpty) names.join(' & '),
+      '${formatFraction(portions)} ${portions == 1 ? 'portion' : 'portions'}',
+    ].join(' · ');
+  }
+}
+
+/// The one add door a day card has (E5) — its last row, in every state.
+///
+/// v2 had two widgets here: a dashed `＋ Add a meal` box that existed only in
+/// edit mode, and a separate `nothing planned` line that existed only in
+/// presentation on an empty day. They were the same door wearing two hats,
+/// and keeping them in step was a standing cost. This is one widget whose
+/// only variation is its wording, so the affordance that fills a region is
+/// always on the region (D5b, stated strictly).
+///
+/// It sits with the MEALS, above the day's total: it adds a *meal*, not a
+/// number, so it belongs to the list it extends, and the macro line stays
+/// what closes the card.
+///
+/// Deliberately not the dashed box in both states: seven permanent dashed
+/// rectangles is the noise v2 built a whole mode to escape. The quiet mono
+/// line carries the same door at a fraction of the weight.
+class AddMealLine extends StatelessWidget {
+  const AddMealLine({required this.empty, required this.onTap, super.key});
+
+  /// Whether the day has no meals — the wording, and nothing else, changes.
+  final bool empty;
   final VoidCallback onTap;
 
   @override
@@ -714,17 +784,24 @@ class NothingPlannedLine extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: AnsiColors.line)),
         ),
         child: Row(
           children: [
-            const Icon(FLucideIcons.plus, size: 11, color: AnsiColors.muted),
+            Icon(
+              FLucideIcons.plus,
+              size: 11,
+              color: empty ? AnsiColors.muted : AnsiColors.herb,
+            ),
             const SizedBox(width: 6),
             Text(
-              'nothing planned',
-              style: ansiMono(size: 11, color: AnsiColors.muted),
+              empty ? 'nothing planned' : 'add a meal',
+              style: ansiMono(
+                size: 11,
+                color: empty ? AnsiColors.muted : AnsiColors.herb,
+              ),
             ),
           ],
         ),

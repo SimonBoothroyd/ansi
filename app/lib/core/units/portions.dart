@@ -4,7 +4,7 @@
 /// (plan 0027, front P): "my wife eats ¾ what I do" makes a meal for both
 /// `1¾ portions`, and the ruling (P-D4) is that the fraction is PRINTED as one
 /// — `½ ¾ ¼` glyphs, never `1.75`, never rounded silently to a whole. Every
-/// surface that says a portion count — the entry sheet, the cook session row,
+/// surface that says a portion count — the meal editor, the cook session row,
 /// the whole-batch nudge, the per-person macro lens — goes through
 /// [formatFraction] / [formatPortions] so they cannot drift into three
 /// spellings of the same number.

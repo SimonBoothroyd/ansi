@@ -11,9 +11,14 @@
 /// (spec §8); a null override means "track |eaters|". The sheet does the
 /// write itself and pops.
 ///
-/// Its four controls now live in `meal_fields.dart`, because the week
-/// redesign's entry sheet (D7) is this sheet in its EDITING role and must not
-/// be allowed to drift from it. Behaviour here is unchanged by that move.
+/// Its controls live in `meal_fields.dart` because a second sheet uses two of
+/// them: `meal_editor_sheet.dart` (week v3, E7) sets who's eating and how many
+/// portions on a meal already on the week. Hoisting them is what stops the add
+/// path and the edit path drifting apart.
+///
+/// The `Day · Slot` dropdown is this sheet's alone. v3 took day and slot out of
+/// the editor — a row does not print a day as a value, its *position* is its
+/// day — so this is the only place a meal's day is chosen, on the way in.
 library;
 
 import 'package:flutter/widgets.dart';
