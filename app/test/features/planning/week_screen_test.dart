@@ -71,7 +71,6 @@ class _FakePlanningRepo implements PlanningRepository {
   @override
   Future<void> setEaters(String entryId, List<String> eaterIds) async {}
 
-
   @override
   Future<void> setPortions(String entryId, int? portions) async {}
 
@@ -248,8 +247,10 @@ Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
       // The toaster the real app installs beside FTheme (`app.dart`): the
       // week's undo toast (E3) needs an FToasterState ancestor, and without
       // one `showFToast` has nowhere to render.
-      builder: (context, child) =>
-          FTheme(data: ansiThemeData(), child: FToaster(child: child!)),
+      builder: (context, child) => FTheme(
+        data: ansiThemeData(),
+        child: FToaster(child: child!),
+      ),
     ),
   );
 }
@@ -724,31 +725,32 @@ void main() {
     expect(find.text('Add to plan'), findsOneWidget, reason: 'confirm sheet');
   });
 
-  testWidgets('one state: no Edit, and every day carries its add line (E1/E5)', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _host([
-        planningRepositoryProvider.overrideWithValue(
-          _FakePlanningRepo(week: _plannedWeek()),
-        ),
-        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
-      ]),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'one state: no Edit, and every day carries its add line (E1/E5)',
+    (tester) async {
+      await tester.pumpWidget(
+        _host([
+          planningRepositoryProvider.overrideWithValue(
+            _FakePlanningRepo(week: _plannedWeek()),
+          ),
+          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        ]),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Thursday'), findsOneWidget);
-    expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
-    // E1: the mode and its one control are gone — there is nothing to toggle.
-    expect(find.text('Edit'), findsNothing);
-    expect(find.text('Done'), findsNothing);
-    // E5: one line per day, in two wordings — the day with the meal invites
-    // another, the days without say they are empty. Both are the same door.
-    expect(find.text('add a meal'), findsWidgets);
-    expect(find.text('nothing planned'), findsWidgets);
-    // v2's dashed edit-only door is not resurrected under a new name.
-    expect(find.text('Add a meal'), findsNothing);
-  });
+      expect(find.text('Thursday'), findsOneWidget);
+      expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
+      // E1: the mode and its one control are gone — there is nothing to toggle.
+      expect(find.text('Edit'), findsNothing);
+      expect(find.text('Done'), findsNothing);
+      // E5: one line per day, in two wordings — the day with the meal invites
+      // another, the days without say they are empty. Both are the same door.
+      expect(find.text('add a meal'), findsWidgets);
+      expect(find.text('nothing planned'), findsWidgets);
+      // v2's dashed edit-only door is not resurrected under a new name.
+      expect(find.text('Add a meal'), findsNothing);
+    },
+  );
 
   testWidgets('the portions chip appears only when portions differ from the '
       'eater count', (tester) async {

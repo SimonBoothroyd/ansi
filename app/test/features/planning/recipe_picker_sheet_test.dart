@@ -106,7 +106,6 @@ class _FakePlanningRepo implements PlanningRepository {
   @override
   Future<void> setEaters(String entryId, List<String> eaterIds) async {}
 
-
   @override
   Future<void> setPortions(String entryId, int? portions) async {}
 
