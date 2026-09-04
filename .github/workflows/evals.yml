@@ -18,7 +18,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          # Pinned, not `v2.x`, and to the same version backend.yml pins: local
+          # and CI move together, so a Deno release can never turn a green
+          # working tree red on its own.
+          deno-version: v2.9.5
       - name: Run matching eval
         working-directory: evals
         run: ./runner/run.sh

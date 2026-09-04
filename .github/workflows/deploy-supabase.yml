@@ -66,7 +66,11 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned, not `latest`, and to the same version backend.yml pins: the
+          # CLI decides how migrations and seeds are applied, and this is the
+          # job that touches production — a float here means the deploy can use
+          # a CLI no test run ever exercised.
+          version: 2.115.0
 
       # Same early-guard idea as release.yml: name what is missing before the
       # CLI fails with a generic auth error two steps later.
@@ -136,6 +140,13 @@ jobs:
           else
             echo "usda_food already populated — skipping seed_usda.sql"
           fi
+          # Unconditional, and after seed_usda: the BM25 index is derived from
+          # usda_food, so it is stale the moment those rows change — and on the
+          # empty-table path the migration built it over nothing, which makes
+          # usda_probe raise "usda_search index is empty" and kills the USDA
+          # sheet. A sub-second truncate+rebuild is cheaper than reasoning about
+          # whether this run needed it. Same order config.toml documents.
+          supabase db query --linked -f supabase/seed_usda_index.sql
           supabase db query --linked -f supabase/seed_prefill.sql
           supabase db query --linked -f supabase/seed_measures.sql
           supabase db query --linked -f supabase/seed_curation.sql
