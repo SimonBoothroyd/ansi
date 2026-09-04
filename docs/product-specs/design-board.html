@@ -1895,7 +1895,7 @@
                 <div class="frow"><div class="seg"><span class="segopt on">g / ml</span><span class="segopt">a spoon weighs…</span></div></div>
                 <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace">0.66 g/ml <span style="color:var(--muted)">· fao_infoods_v2</span></div></div>
                 <div class="frow" style="margin-top:-4px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--gone)">remove the density</span></div>
-                <p class="conv-note" style="margin:-2px 20px 12px">Tapping it asks once, in <b>one computed line</b>: <b style="color:var(--ink)">“Remove it? tsp · tbsp · cup · ml lock again.”</b> — this row’s own stripped units, named. Where nothing is derived from the number it reads <b style="color:var(--ink)">“Remove it? Nothing locks — this row’s units come from its basis.”</b> <b>D4c’s helper trim</b>: it shipped as a paragraph explaining the model, and “why is the message an essay” is the correct response to a warning that makes you read three sentences to learn which four chips are leaving. <span style="color:var(--muted)">Ruled 2026-08-31; the shipped copy is still the long form.</span></p>
+                <p class="conv-note" style="margin:-2px 20px 12px">Tapping it asks once, in <b>one computed line</b>: <b style="color:var(--ink)">“Remove it? tsp · tbsp · cup · ml lock again.”</b> — this row’s own stripped units, named. Where nothing is derived from the number it reads <b style="color:var(--ink)">“Remove it? Nothing locks — this row’s units come from its basis.”</b> <b>D4c’s helper trim</b>: it shipped as a paragraph explaining the model, and “why is the message an essay” is the correct response to a warning that makes you read three sentences to learn which four chips are leaving. </p>
                 <p class="flabel">Allowed units — what a line may say</p>
                 <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
                     <span class="uchip on">piece</span><span class="uchip on">g</span>
@@ -2016,6 +2016,355 @@
             </div></div>
         </div>
     </div>
+
+        <!-- ===== INGREDIENT DETAIL V2 (PROPOSED — plan 0028 design pass, 2026-09-03) ===== -->
+<div class="section-head">
+    <span class="ey">Ingredient detail · v2</span>
+    <span class="proposed-tag">proposed · for sign-off</span>
+    <span class="rule"></span>
+    <span class="sub">The flesh-out form stops being a list of equals</span>
+</div>
+
+<div class="locknote prop">
+    <p class="lk-h">Proposed — a design pass on the shipped form, 2026-09-03 (rev 6)</p>
+    <p>The owner, driving it: <b>“the new ingredient page has now become very cluttered and kind of daunting.”</b> This section changes <i>arrangement and weight</i> only. <b>Nothing here removes a capability, a field, a rule or a guard</b> — every affordance the shipped form has is still one tap away, and the frames below name where each one went.</p>
+    <p>What went wrong is <b>arithmetic, not any single decision</b>. Every ruling this section shipped — D4b, D4c, F1–F3, D7b, G1–G6, the 0025 scan door, 0027’s per-serving mode and the two USDA doors — correctly added <i>one</i> block to <i>one</i> flat scroll, and each was right on its own. The form now draws <b>twelve uppercase labels</b>, five of them whole sentences shouted in a letter-spaced micro-label style meant for a short noun (one of which wraps onto two lines on a phone); it ends in <b>four stacked actions</b> on a stub, with <span style="font-family:'IBM Plex Mono',monospace">Delete ingredient</span> one flick below <span style="font-family:'IBM Plex Mono',monospace">Confirm</span>. Nobody drew that. It accumulated.</p>
+    <div class="ledger">
+        <span class="k">kept</span><span><b>Every rule.</b> Macros alone gate <span style="font-family:'IBM Plex Mono',monospace">complete</span> (D5); confirming stays a human act; D4c still locks the other family and flags a stranded default with its one-tap fix; the delete refusal still names its recipe count; the density is still one stored fact entered two ways, and clearing it still asks once, naming the units that lock again; the measures editor is still the shared 7.7 one, volume-label redirect and all.</span>
+        <span class="k ch">changed</span><span><b>Three named groups instead of twelve equal shouts</b> — <i>Identity</i>, <i>Nutrition</i>, <i>Units &amp; measures</i>, in the <span style="font-family:'IBM Plex Mono',monospace">.grp-h</span> serif the board already uses for a group header. The five sentence-labels drop a level: a short caps noun with the qualifier beneath it in sentence case. <b>The status line moves to the top</b>, where the first question — <i>does this row count yet?</i> — is asked. <b>The two prefill doors meet</b>: the scanner and “Look up in USDA” were fifteen blocks apart although they answer the same question and are both replaced by the provenance card.</span>
+        <span class="k ch">changed (rev 2)</span><span><b>The default unit joins the admission chips</b>, and <b>the imprecise section stops existing</b>. Both are answers to owner questions, and both turned out to be settled by the code rather than by taste — frame (c). This is the one place the board’s <i>kept</i> field order moves: <span style="font-family:'IBM Plex Mono',monospace">category + default unit</span> splits, and the default unit travels to the group that governs it.</span>
+        <span class="k ch">changed (rev 3)</span><span><b>Two warnings that read alike are pulled apart.</b> The <i>dashed locked chips</i> become one line that names the units — same answer to “why can’t I pick cup”, in a fifth of the space. The <i>stranded-default flag</i> stays, because it is not about a unit you might want but about the unit this row <b>already uses</b> — but it stops being an amber card and becomes one quiet line beside the chip it is about. <b>The density’s two-phrasing segment goes altogether</b> (owner, rev 5): nobody divides grams by millilitres in their head, so a mode that exists to offer that is a choice with one real answer. One sentence replaces it — <i>1 <b>tbsp</b> of this weighs <b>__</b> g</i> — with <span style="font-family:'IBM Plex Mono',monospace">ml</span> in the picker so a known g/ml is still typeable, exactly. <b><span style="font-family:'IBM Plex Mono',monospace">Confirm</span></b> becomes <b><span style="font-family:'IBM Plex Mono',monospace">Mark complete</span></b> — the word the state is actually called.</span>
+        <span class="k ch">built at last</span><span><b>The <span style="font-family:'IBM Plex Mono',monospace">⋯</span> this frame has drawn since the section was locked.</b> The shipped abar draws <span style="font-family:'IBM Plex Mono',monospace">‹ Mango ⋯</span> and the code never built the menu, so the actions that are not part of <i>filling the form in</i> — delete, and un-confirming a complete row — had nowhere to live but the bottom of the scroll. Same <span style="font-family:'IBM Plex Mono',monospace">FPopoverMenu</span> as the recipe view’s and the book’s.</span>
+        <span class="k ch">new</span><span><b>A dock for the two commitments</b> (<span style="font-family:'IBM Plex Mono',monospace">.dock</span>, the idiom the pickers already use) — <b>one row, not a stack</b>: a message line, then <span style="font-family:'IBM Plex Mono',monospace">Save</span> ghost beside <span style="font-family:'IBM Plex Mono',monospace">Confirm</span> primary. The sentence that used to be inside the button moves to the line above it, which is also where a save result or a delete refusal lands — on screen whatever the scroll position.</span>
+        <span class="k ch">fixed in passing</span><span><b>Save and Mark complete end the page.</b> Neither navigated, although <span style="font-family:'IBM Plex Mono',monospace">ingredient_picker.dart</span> pushes this form and <i>awaits its pop</i> before opening the quantity sheet — so finishing a row from a recipe line left the person on a page with nothing more to do and no sign that anything was waiting.</span>
+        <span class="k ch">doc bug</span><span>The shipped <b>Ingredient detail</b> frame carries a muted note: <i>“Ruled 2026-08-31; the shipped copy is still the long form”</i>, about the density-removal warning. <b>It is stale</b> — <span style="font-family:'IBM Plex Mono',monospace">_RemoveDensity</span> already asks in the one computed line the ruling called for. Drop that sentence in the same merge.</span>
+    </div>
+    <p class="src">Draws the same code the “Ingredients manager · v1” frames re-trace: <b>ingredient_detail_view.dart</b>, with <b>density_entry.dart</b> and <b>measures_editor.dart</b> embedded. Drawn against All-Purpose Flour (complete, USDA-filled) and Black Rice (stub) on iPhone, 2026-09-03.</p>
+</div>
+
+<div class="board">
+
+    <!-- ============================ (a) BEFORE ============================ -->
+    <div class="frame">
+        <p class="frame-name"><b>Before</b> · what ships today — every block a peer of every other, and the page’s own verdict at the bottom</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Black Rice</span><span class="dots" style="opacity:.25">⋯</span></div>
+            <div class="frow"><div class="fin" style="text-align:center;font-family:'IBM Plex Mono',monospace;font-size:12px">Scan a barcode to fill this in</div></div>
+            <p class="flabel">Canonical name</p>
+            <div class="frow"><div class="fin big">Black Rice</div></div>
+            <p class="flabel">Also known as</p>
+            <div class="frow"><div class="chips"><span class="chip add">＋ alias</span></div></div>
+            <p class="flabel">Category · default unit</p>
+            <div class="frow" style="display:flex;gap:10px"><div class="fin" style="flex:1">grains ▾</div><div class="fin" style="width:66px;text-align:center">New</div></div>
+            <div class="frow"><div class="uchips" style="overflow:hidden"><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">mg</span><span class="uchip" style="color:var(--muted)">oz</span><span class="uchip" style="color:var(--muted)">lb</span><span class="uchip" style="color:var(--muted)">ml</span><span class="uchip" style="color:var(--muted)">l</span><span class="uchip" style="color:var(--muted)">tsp</span><span class="uchip" style="color:var(--muted)">tbs</span></div></div>
+            <p class="conv-note" style="margin:-6px 20px 10px"><b style="color:var(--gone)">clipped</b>, and a whole group away from the chips that obey the same rule.</p>
+            <p class="flabel">Macros — enter them as the label reads</p>
+            <div class="frow"><div class="seg"><span class="segopt on">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt">per serving</span></div></div>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv" style="color:var(--muted)">kcal</div><div class="mil">kcal</div></div><div class="mi"><div class="miv" style="color:var(--muted)">prot…</div><div class="mil">protein</div></div><div class="mi"><div class="miv" style="color:var(--muted)">carb</div><div class="mil">carb</div></div><div class="mi"><div class="miv" style="color:var(--muted)">fat</div><div class="mil">fat</div></div></div></div>
+            <p class="conv-note" style="margin:-6px 20px 10px"><b style="color:var(--gone)">said twice</b> — hint inside the box, caption under it, and “protein” does not fit.</p>
+            <p class="flabel">Density — optional, either way, one stored fact</p>
+            <p class="flabel" style="margin-top:-2px">Density <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0">0.78 g/ml</span></p>
+            <p class="conv-note" style="margin:-2px 20px 10px"><b style="color:var(--gone)">two headings, one section</b> — and the outer one is the longest sentence on the page.</p>
+            <p class="flabel">Allowed units — what a line may say</p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible"><span class="uchip on">cup</span><span class="uchip on">tbsp</span><span class="uchip on">ml</span><span class="uchip on">l</span><span class="uchip on">g</span><span class="uchip on">kg</span></div></div>
+            <p class="flabel">Measures — count-like, in the basis</p>
+            <p class="flabel">＋ add measure</p>
+            <p class="flabel">Imprecise units</p>
+            <div class="frow"><div style="display:flex;justify-content:space-between;font-size:12px"><span>Imprecise units</span><span style="color:var(--muted)">none — category-gated</span></div></div>
+            <p class="conv-note" style="margin:-6px 20px 10px"><b style="color:var(--gone)">a labelled section for one read-only string</b>, which on most rows says “none”.</p>
+            <div class="status-line"><span class="sdot"></span><span>Still a stub — left out of macro totals until confirmed.</span></div>
+            <div class="savebtn">Save</div>
+            <div class="savebtn off">Confirm — it counts from here</div>
+            <p class="conv-note" style="margin:2px 20px 0">needs macros</p>
+            <div class="frow" style="margin-top:10px"><div class="fin" style="text-align:center;font-family:'IBM Plex Mono',monospace;font-size:12px">Look up in USDA</div></div>
+            <div class="frow"><div class="fin" style="text-align:center;border-style:dashed;border-color:var(--gone);color:var(--gone);font-family:'IBM Plex Mono',monospace;font-size:12px">Delete ingredient</div></div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">The two structural faults.</b> ① <b>The page’s verdict is its footer.</b> You scroll the whole form to learn that the row does not count yet — the first thing you want to know, told last. ② <b>Four actions in a stack, ranked by nothing.</b> <span style="font-family:'IBM Plex Mono',monospace">Delete ingredient</span> sits one flick under <span style="font-family:'IBM Plex Mono',monospace">Confirm</span>, and neither of the two that actually commit anything is reachable without scrolling to the end.</p>
+    </div>
+
+    <!-- ============================ (b) AFTER ============================= -->
+    <div class="frame">
+        <p class="frame-name"><b>After</b> · the same row, three groups — nothing removed, the hierarchy put back</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Black Rice</span><span class="dots">⋯</span></div>
+
+            <div class="state" style="margin-top:4px">
+                <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot"></span><span>Still a stub — left out of macro totals until confirmed.</span></div>
+            </div>
+
+            <p class="flabel">Fill it in from</p>
+            <div class="frow" style="display:flex;gap:8px">
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Scan a barcode</div>
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Look up in USDA</div>
+            </div>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Identity</p></div>
+            <p class="flabel">Canonical name</p>
+            <div class="frow"><div class="fin big">Black Rice</div></div>
+            <p class="conv-note" style="margin:-8px 20px 12px">renaming rewrites the match text</p>
+            <p class="flabel">Also known as</p>
+            <div class="frow"><div class="chips"><span class="chip add">＋ alias</span></div></div>
+            <p class="flabel">Category</p>
+            <div class="frow" style="display:flex;gap:10px"><div class="fin" style="flex:1">grains ▾</div><div class="fin" style="width:60px;text-align:center">New</div></div>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Nutrition</p></div>
+            <div class="state warn">
+                <div class="sh"><span>⚠</span><span style="font-size:13px">Filled from USDA · not confirmed</span></div>
+                <div class="sb" style="font-family:'IBM Plex Mono',monospace;font-size:10px">Rice, black, raw · FDC 169761 · close match for “Black Rice”</div>
+                <div style="display:flex;gap:8px;margin-top:9px"><span class="ghostbtn" style="margin-top:0">Not this food</span><span class="ghostbtn" style="margin-top:0">Choose another ›</span></div>
+            </div>
+            <p class="flabel" style="margin-bottom:2px">Macros</p>
+            <p class="conv-note" style="margin:0 20px 6px">enter them as the label reads</p>
+            <div class="frow"><div class="seg"><span class="segopt on">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt">per serving</span></div></div>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv">&nbsp;</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">&nbsp;</div><div class="mil">protein</div></div><div class="mi"><div class="miv">&nbsp;</div><div class="mil">carb</div></div><div class="mi"><div class="miv">&nbsp;</div><div class="mil">fat</div></div></div></div>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
+            <p class="flabel">Default unit</p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
+                <span class="uchip on">cup</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">ml</span><span class="uchip" style="color:var(--muted)">l</span><span class="uchip" style="color:var(--muted)">tsp</span><span class="uchip" style="color:var(--muted)">tbsp</span><span class="uchip" style="color:var(--muted)">piece</span>
+            </div></div>
+            <p class="flabel" style="margin-bottom:2px">Allowed units</p>
+            <p class="conv-note" style="margin:0 20px 6px">what a line may say</p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible"><span class="uchip on">cup</span><span class="uchip on">tbsp</span><span class="uchip on">ml</span><span class="uchip on">l</span><span class="uchip on">g</span><span class="uchip on">kg</span><span class="uchip-sep" style="height:22px;margin:0 2px"></span><span class="uchip impr">pinch</span></div></div>
+            <p class="flabel">Density <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--herb-deep)">0.78 g/ml</span></p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">1</span>
+                <span class="uchip">tsp</span><span class="uchip on">tbsp</span><span class="uchip">cup</span><span class="uchip">ml</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">of this weighs</span>
+                <span class="fin" style="width:56px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">g</span>
+            </div></div>
+            <div class="frow" style="margin-top:-6px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--gone)">remove the density</span></div>
+            <p class="flabel" style="margin-bottom:2px">Measures</p>
+            <p class="conv-note" style="margin:0 20px 6px">count-like, in the basis</p>
+            <div class="frow"><div class="fin" style="color:var(--muted);font-size:12.5px">No measures yet — name one below.</div></div>
+            <div class="frow"><div class="chips"><span class="chip add">＋ add measure</span></div></div>
+
+            <div class="dock">
+                <p class="conv-note" style="margin:0 0 9px">needs macros</p>
+                <div style="display:flex;gap:8px">
+                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
+                    <span class="btn primary" style="margin:0;flex:1;opacity:.45">Mark complete</span>
+                </div>
+            </div>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">Same fields, same rules, one section fewer.</b> What moved: the verdict to the top, the two prefill doors into one row, the default unit down to the chips that govern it, delete and un-confirm behind the <span style="font-family:'IBM Plex Mono',monospace">⋯</span>, and the two commitments into a dock. What shrank: five shouted sentences to five nouns with the sentence one weight down, three duplicated labels deleted, and the imprecise section folded into the chip row it was always describing.</p>
+        <p class="rc-note"><b style="color:var(--ink)">Why these three groups.</b> <i>Identity</i> and <i>Nutrition</i> are the two questions people arrive with — what is this called, what is it worth. Everything else is <b>one subject</b>: what a line of a recipe may say about this row, and how much of it that is. Those sections are mechanically interlinked — a density unlocks the chips (D4b), the default unit obeys the same predicate as the chips (D4c), a volume-named measure label is refused and redirected <i>into</i> the density entry (ADR-0008 §2), and “Counts as” picks one of the measures (seam D1). Drawn as five top-level sections they read as five unrelated decisions to make.</p>
+    </div>
+
+    <!-- ============ (c) Q1+Q2 · THE UNITS GROUP, CLOSE UP ============ -->
+    <div class="frame">
+        <p class="frame-name"><b>Units &amp; measures, close up</b> · answering “should default and allowed units be together?” and “do we need an imprecise section?” — the code answers both</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div style="margin:16px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
+
+            <p class="flabel">Default unit</p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
+                <span class="uchip" style="background:transparent;border-color:var(--gone);border-style:dotted;color:var(--gone)">cup</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">ml</span><span class="uchip" style="color:var(--muted)">tsp</span><span class="uchip" style="color:var(--muted)">piece</span><span class="uchip impr">pinch</span>
+            </div></div>
+            <p class="conv-note" style="margin:-6px 20px 12px"><span style="color:var(--gone)">cup</span> needs a density on this row — add one below, or <b style="color:var(--ink);border-bottom:1px solid var(--line)">switch to g</b></p>
+
+            <p class="flabel" style="margin-bottom:2px">Allowed units</p>
+            <p class="conv-note" style="margin:0 20px 6px">what a line may say</p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
+                <span class="uchip on">g</span><span class="uchip on">kg</span><span class="uchip on">piece</span>
+                <span class="uchip-sep" style="height:22px;margin:0 2px"></span>
+                <span class="uchip impr">pinch</span><span class="uchip impr">dash</span>
+            </div></div>
+            <p class="conv-note" style="margin-top:2px">cup · tbsp · ml unlock when this row has a density · dotted words come from the category</p>
+
+            <p class="lib-mcap" style="margin-top:20px">Q5 · two warnings that read alike — one goes, one stays and gets quiet</p>
+            <p class="conv-note" style="margin:6px 20px 0"><b>“Hide the locked units until there is a density” — yes.</b> Six dashed grey chips plus a note is a lot of screen to say something a sentence says better: <b style="color:var(--ink)">“cup · tbsp · ml unlock when this row has a density.”</b> That still answers <i>“why can’t I pick cup”</i> — D4c’s whole reason for drawing them rather than hiding them — and it answers it <b>by name and with the remedy</b>, which a dashed chip cannot. Same information, one line instead of a row.</p>
+            <p class="conv-note" style="margin:8px 20px 0"><b>The other one is not the same warning, and it cannot be hidden.</b> <span style="font-family:'IBM Plex Mono',monospace">cup needs a density on this row</span> is not about a unit you <i>might</i> want — it is about the unit this row <b>already uses</b>. The stored default <i>is</i> <span style="font-family:'IBM Plex Mono',monospace">cup</span>, recipe lines may already say cup, and they will read <b style="color:var(--ink)">Pick a supported unit</b> on the next import review. Hiding it until a density arrives means the app knows the row is broken and says nothing — and the person has no reason to add a density, because they have not been told anything is wrong. <span style="color:var(--muted)">D4c: “never silently rewritten; named, with the one tap that repairs it.”</span></p>
+            <p class="conv-note" style="margin:8px 20px 0"><b>But it should stop shouting.</b> D4d already ruled <i>keep D4c strict, fix the data</i> — nineteen stranded rows got a real density — so this is now a <b>rare</b> state, and a rare state should not own an amber card with a heading, a body and a button. Above: the <span style="color:var(--gone)">cup</span> chip is drawn in the “gone” colour, dotted, because it is selected and not sayable; one line under the row names the problem and carries the fix inline. Roughly 90 px becomes roughly 20.</p>
+
+            <p class="lib-mcap" style="margin-top:20px">Q1 · yes, together</p>
+            <p class="conv-note" style="margin:6px 20px 0"><b>They are the same rule.</b> <span style="font-family:'IBM Plex Mono',monospace">unitSayableAsDefault()</span> and the chips’ own candidate list are one predicate wearing two hats — D4c is precisely the ruling that <i>“the chips, and the default-unit selector itself, lock the other family’s options”</i>, and this frame’s own annotation already says <i>“a default unit is a claim about what a line may say, so it obeys the same rule the chips do”</i>. They were a whole group apart, so the greyed-out chip and the dashed chip that explain each other could not be seen together.</p>
+            <p class="conv-note" style="margin:8px 20px 0"><b>And the flag gets its repair back.</b> The stranded-default warning reads <i>“cup needs a density on this row — enter one below, or…”</i>. Today <i>below</i> is two groups away. Here the density entry is the next section.</p>
+
+            <p class="lib-mcap" style="margin-top:20px">Q2 · no, fold it in</p>
+            <p class="conv-note" style="margin:6px 20px 0"><b>The imprecise section is a labelled heading over one read-only derived string</b> — “pinch · dash · to taste”, or on most rows “none — category-gated”. It is not editable and never was: the words are a fact about the <i>category</i> (J3), not about this row.</p>
+            <p class="conv-note" style="margin:8px 20px 0"><b>The app already draws them as chips.</b> The quantity sheet renders imprecise units in the same row as everything else, after a thin divider, dotted — and the board’s CSS has carried <span style="font-family:'IBM Plex Mono',monospace">.uchip.impr</span> and <span style="font-family:'IBM Plex Mono',monospace">.uchip-sep</span> for exactly that since 7.7. The form <i>has</i> the data and deliberately filters it out (<span style="font-family:'IBM Plex Mono',monospace">where(family != imprecise)</span>), then re-renders it as prose two sections later. Folding it back after a divider is a <b>simplification</b>: one section and one filter both go, the words land where the person is already reading what a line may say, and a row with none renders nothing at all instead of a heading saying “none”.</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">Order within the group:</b> default unit → allowed units → density → measures → counts as. It follows the copy that already exists — the stranded flag says “enter one <i>below</i>”, the dashed chips say “need a density” — and it keeps density next to measures, which is where the volume-label redirect throws you. <span style="color:var(--muted)">This is the one place the board’s <i>kept</i> field order changes, and it needs the owner’s yes: <span style="font-family:'IBM Plex Mono',monospace">category + default unit</span> stops being one line.</span></p>
+    </div>
+
+    <!-- ============ (d) Q3 + Q8 · THE DENSITY ENTRY, ONE SENTENCE ============ -->
+    <div class="frame">
+        <p class="frame-name"><b>The density entry</b> · answering “what does the edit look like, and how is it cleared?” — and “do we need a distinguisher at all?”</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+
+            <p class="lib-mcap" style="margin-top:16px">① none yet · one control, no mode</p>
+            <p class="flabel" style="margin-top:8px">Density <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0">none yet — unlocks volume⇄weight</span></p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">1</span>
+                <span class="uchip">tsp</span><span class="uchip on">tbsp</span><span class="uchip">cup</span><span class="uchip">ml</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">of this weighs</span>
+                <span class="fin" style="width:56px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">g</span>
+                <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Save</span>
+            </div></div>
+
+            <p class="lib-mcap" style="margin-top:18px">② typed · the stored fact echoed, never demanded</p>
+            <div class="frow" style="margin-top:8px"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">1</span>
+                <span class="uchip">tsp</span><span class="uchip on">tbsp</span><span class="uchip">cup</span><span class="uchip">ml</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">of this weighs</span>
+                <span class="fin" style="width:56px;padding:7px 10px;font-family:'IBM Plex Mono',monospace">15</span>
+                <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Save</span>
+            </div></div>
+            <p class="conv-note" style="margin:-4px 20px 0">= 1.01 g/ml</p>
+
+            <p class="lib-mcap" style="margin-top:18px">③ and a known density is the same sentence</p>
+            <div class="frow" style="margin-top:8px"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">1</span>
+                <span class="uchip">tsp</span><span class="uchip">tbsp</span><span class="uchip">cup</span><span class="uchip on">ml</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">of this weighs</span>
+                <span class="fin" style="width:56px;padding:7px 10px;font-family:'IBM Plex Mono',monospace">0.66</span>
+                <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Save</span>
+            </div></div>
+            <p class="conv-note" style="margin:-4px 20px 0">= 0.66 g/ml</p>
+            <p class="conv-note" style="margin:6px 20px 0"><b>ml is in the picker, so the old g/ml field is not removed — it is absorbed.</b> <span style="font-family:'IBM Plex Mono',monospace">densityFromVolumeWeight</span> is <span style="font-family:'IBM Plex Mono',monospace">grams / ratioToBase</span>, and ml’s ratio is 1 — so “1 ml of this weighs 0.66 g” <i>is</i> 0.66 g/ml, exactly, with no second control and no rounding.</p>
+
+            <p class="lib-mcap" style="margin-top:18px">④ stored</p>
+            <p class="flabel" style="margin-top:8px">Density <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--herb-deep)">0.528 g/ml</span> <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--muted)">· fao_infoods_v2</span></p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">1</span>
+                <span class="uchip">tsp</span><span class="uchip on">tbsp</span><span class="uchip">cup</span><span class="uchip">ml</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">of this weighs</span>
+                <span class="fin" style="width:56px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">g</span>
+            </div></div>
+            <div class="frow" style="margin-top:-6px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--gone)">remove the density</span></div>
+            <p class="conv-note" style="margin:2px 20px 0">The number lives in the <b>headline</b>, in herb, with its provenance; the row below stays empty and is how you <i>replace</i> it. Saving a new one overwrites — there is no separate “edit”.</p>
+
+            <p class="lib-mcap" style="margin-top:18px">⑤ clearing it — the one write that makes the allowed list shrink</p>
+            <div class="frow" style="margin-top:8px"><div class="fin" style="border-color:var(--aging);background:#FDF8EC">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">Remove it? tsp · tbsp · cup · ml lock again.</div>
+                <div style="display:flex;gap:10px;align-items:center;margin-top:9px">
+                    <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 12px">Remove</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted)">keep it</span>
+                </div>
+            </div></div>
+            <p class="conv-note" style="margin:4px 20px 0">Tapping <span style="color:var(--gone)">remove the density</span> asks once, <b>naming this row’s own units</b> — never “are you sure”. Where nothing was derived from the number it reads <b style="color:var(--ink)">“Remove it? Nothing about what a line may say changes.”</b> Confirming is <b>one write</b>: the number goes and the cross-family chips it was the only reason to admit lock again (D4b). A line already saying one of them is left exactly as written and reads <b style="color:var(--ink)">Pick a supported unit</b> on the import review.</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">Q8 — “do we need a distinguisher? nobody will do the division themselves.”</b> <b>They won’t, and we don’t.</b> Two rounds went into naming a segment (<span style="font-family:'IBM Plex Mono',monospace">a spoon weighs…</span> → <span style="font-family:'IBM Plex Mono',monospace">grams per spoon</span> → <span style="font-family:'IBM Plex Mono',monospace">g per spoon or cup</span>) that exists to choose between a phrasing a person would use and one they would have to compute. <b>The segment goes.</b> What is left is one self-describing sentence — <i>1 <b>tbsp</b> of this weighs <b>__</b> g</i> — with the stored fact echoed under it as you type.</p>
+        <p class="rc-note"><b style="color:var(--ink)">Nothing is lost, because ml joins the picker.</b> The one real user of the g/ml field was somebody copying a reference value, and that is now <i>1 ml of this weighs 0.66 g</i> — the same arithmetic, exactly, since ml’s ratio to base is 1. <span style="color:var(--muted)">ADR-0008 says density is “enterable two equivalent ways”. That stays true; the two ways stop being two <i>controls</i> and become two picks in one row. The ADR wants a sentence noting it, not an amendment.</span></p>
+        <p class="rc-note"><b style="color:var(--ink)">Three problems dissolve with it.</b> ① <b>G2’s width</b> — the tightest row on the page loses two chips, and the caption-plus-segment overflow that fix exists for stops being reachable. ② <b>The naming problem</b>, entirely: there is no mode label left to get right. ③ <b>The measures-editor redirect</b> — typing “cup” as a measure label lands here with cup pre-picked, and no longer has to flip a mode to do it. <span style="color:var(--muted)">And the phrasing already <i>is</i> the app’s voice: M-D2’s serving offer says “1 tbsp weighs 14 g — set as density”, never “set 0.947 g/ml”.</span></p>
+        <p class="rc-note"><b style="color:var(--ink)">Board correction.</b> The shipped frame’s muted annotation — <i>“Ruled 2026-08-31; the shipped copy is still the long form”</i> — is out of date: <span style="font-family:'IBM Plex Mono',monospace">_RemoveDensity</span> already asks in one computed line naming the stripped units. Delete that sentence when this merges.</p>
+    </div>
+
+    <!-- ============ (e) Q4 · THE DOCK AND THE ⋯ ============ -->
+    <div class="frame">
+        <p class="frame-name"><b>The dock, and the <span style="font-family:'IBM Plex Mono',monospace">⋯</span></b> · answering “the buttons look janky, esp. with the text as written”</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+
+            <p class="lib-mcap" style="margin-top:16px">v1 · two full-width buttons and an orphan line</p>
+            <div class="dock" style="margin-top:8px">
+                <span class="btn ghost" style="margin:0 0 8px">Save</span>
+                <span class="btn primary" style="margin:0;opacity:.45">Confirm — it counts from here</span><!-- v1, for contrast -->
+                <p class="conv-note" style="margin:4px 0 0;text-align:center">needs macros</p>
+            </div>
+            <p class="conv-note" style="margin:8px 20px 0"><b style="color:var(--gone)">Janky, and the owner is right.</b> Two stacked full-width buttons are a wall; a sentence with an em-dash inside a button is a sentence pretending to be a label; and “needs macros” floats under it belonging to nothing in particular. Roughly 150 px of phone to say two things.</p>
+
+            <p class="lib-mcap" style="margin-top:20px">v2 · one line, one row</p>
+            <div class="dock" style="margin-top:8px">
+                <p class="conv-note" style="margin:0 0 9px">needs macros</p>
+                <div style="display:flex;gap:8px">
+                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
+                    <span class="btn primary" style="margin:0;flex:1;opacity:.45">Mark complete</span>
+                </div>
+            </div>
+            <p class="conv-note" style="margin:8px 20px 0"><b>The sentence moves out of the button and into the line above it</b> — which is the form’s existing message slot, so it is the same line that already says <i>“Saved.”</i>, <i>“Still used by 3 recipes (4 lines).”</i> and <i>“Filled from ‘Rice, black, raw’ — still a stub until you confirm.”</i> One line, one row, about 95 px, and the ranking is carried by width and colour instead of by stacking order.</p>
+
+            <p class="lib-mcap" style="margin-top:18px">armed</p>
+            <div class="dock" style="margin-top:8px">
+                <p class="conv-note" style="margin:0 0 9px">it counts in conversions and macro totals from here</p>
+                <div style="display:flex;gap:8px">
+                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
+                    <span class="btn primary" style="margin:0;flex:1">Mark complete</span>
+                </div>
+            </div>
+
+            <p class="lib-mcap" style="margin-top:18px">a complete row · one commitment</p>
+            <div class="dock" style="margin-top:8px"><span class="btn primary" style="margin:0">Save</span></div>
+
+            <p class="lib-mcap" style="margin-top:20px">and the <span style="font-family:'IBM Plex Mono',monospace">⋯</span>, built at last</p>
+            <div class="lib-menu" style="margin-top:8px">
+                <div class="mi"><span class="ic">↺</span><span class="lb">Return it to a stub</span></div>
+                <div class="mi danger"><span class="ic">🗑</span><span class="lb">Delete ingredient</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">On a stub the first item is absent — there is nothing to un-confirm. <b>Confirm does not move here</b>: it is the page’s whole purpose and stays in the dock. Only the two actions that are <i>not</i> part of filling the form in go behind the menu, which is how <span style="font-family:'IBM Plex Mono',monospace">Delete ingredient</span> stops sitting one flick under <span style="font-family:'IBM Plex Mono',monospace">Confirm</span>.</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">Both buttons close the page.</b> Neither does today — the only two navigations in the whole form are the back chevron and delete. Save writes <i>“Saved.”</i> into the message line and stays; Mark complete writes <i>“Confirmed — it counts from here.”</i> and stays. <b>That is a dead end with a caller waiting on the other side of it:</b> <span style="font-family:'IBM Plex Mono',monospace">ingredient_picker.dart</span> pushes this form, <b><i>awaits its pop</i></b>, then re-reads the row and opens the quantity sheet on the units the form just set. So the whole “add an ingredient to a recipe line” flow is blocked until the person works out that they should press <span style="font-family:'IBM Plex Mono',monospace">‹</span>. You finish the row, you are told it counts, and nothing happens.</p>
+        <p class="rc-note"><b style="color:var(--ink)">The wiring detail that will get miswired.</b> <span style="font-family:'IBM Plex Mono',monospace">save()</span> is also used as a <b>flush</b> by three callers — the USDA lookup (F1: the probe must ask about the <i>stored</i> name), <i>Choose another</i>, and the stranded-default one-tap fix — and none of those may navigate. So <span style="font-family:'IBM Plex Mono',monospace">save()</span> stays pure and <b>the button handler pops</b>. <span style="color:var(--muted)">Note that “back = discard my changes” is only true under write-on-save; today half this form has already written, which is very likely why Save does not <i>feel</i> like a commit point.</span></p>
+        <p class="rc-note"><b style="color:var(--ink)">Q7 — “finalize / complete over confirm?”</b> <b style="color:var(--ink)">Complete, as a verb: <span style="font-family:'IBM Plex Mono',monospace">Mark complete</span>.</b> The state is <i>literally called</i> <span style="font-family:'IBM Plex Mono',monospace">complete</span> — <span style="font-family:'IBM Plex Mono',monospace">IngredientStatus.complete</span>, and the strip at the top of the form already reads <i>“Complete — counts in conversions and macro totals.”</i> Today the app uses <b>three words for two states</b>: the list hints <span style="font-family:'IBM Plex Mono',monospace">needs confirm</span>, the button says <span style="font-family:'IBM Plex Mono',monospace">Confirm</span>, the status says <span style="font-family:'IBM Plex Mono',monospace">Complete</span>. One word, used as the verb, collapses that — and it pairs exactly with the <span style="font-family:'IBM Plex Mono',monospace">⋯</span>’s inverse, <i>Return it to a stub</i>.</p>
+        <p class="rc-note"><b style="color:var(--ink)">Not <span style="font-family:'IBM Plex Mono',monospace">Finalize</span>.</b> It promises irreversibility, and D5 makes this explicitly reversible — the row’s macros stay, it just stops counting. A button that says <i>finalize</i> above a menu item that un-does it is a worse lie than the one we are fixing.</p>
+        <p class="rc-note"><b style="color:var(--ink)">Knock-on, and it wants a yes.</b> The list view’s stub hint reads <span style="font-family:'IBM Plex Mono',monospace">needs confirm</span> — a <b>G4-ruled string</b>. If the verb becomes <i>complete</i>, that hint should follow (<span style="font-family:'IBM Plex Mono',monospace">needs completing</span>), or the two screens go back to using different words for the same act. Either is defensible; leaving it unsaid is not. <span style="color:var(--muted)">Test churn: the old CTA string is asserted by three sim tests and several widget tests.</span></p>
+    </div>
+
+    <!-- ==================== (f) THE SMALL REPAIRS ==================== -->
+    <div class="frame">
+        <p class="frame-name"><b>Four small repairs</b> · found by reading the screen rather than the code — none of them anybody’s decision</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <p class="flabel" style="margin-top:14px">① the default-unit row, clipped</p>
+            <div class="frow"><div class="uchips" style="overflow:hidden"><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">mg</span><span class="uchip" style="color:var(--muted)">oz</span><span class="uchip" style="color:var(--muted)">lb</span><span class="uchip" style="color:var(--muted)">ml</span><span class="uchip" style="color:var(--muted)">l</span><span class="uchip" style="color:var(--muted)">tsp</span><span class="uchip" style="color:var(--muted)">tbs</span></div></div>
+            <p class="conv-note" style="margin:-6px 20px 14px">→ <b>Wrap it.</b> Every catalog unit stays drawn and stays disabled, exactly as D4c requires; it just no longer runs off the bezel with nothing to say it continued.</p>
+
+            <p class="flabel">② the macro fields, naming themselves twice</p>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv" style="color:var(--muted);font-size:12px">prot…</div><div class="mil">protein</div></div><div class="mi"><div class="miv">&nbsp;</div><div class="mil">protein</div></div></div></div>
+            <p class="conv-note" style="margin:-6px 20px 14px">→ <b>Drop the hint.</b> The caption already names the field, and the hint said the same word again — badly, since “protein” does not fit a quarter of a phone.</p>
+
+            <p class="flabel">③ two headings, one density</p>
+            <p class="conv-note" style="margin:6px 20px 14px">→ <b>Delete the outer one.</b> The entry draws its own <span style="font-family:'IBM Plex Mono',monospace">DENSITY</span> with the stored number beside it — see frame (d).</p>
+
+            <p class="flabel">④ a ⚠ over the word “confirmed”</p>
+            <div class="state warn"><div class="sh"><span>⚠</span><span style="font-size:13px">Filled from USDA · confirmed</span></div></div>
+            <p class="conv-note" style="margin:8px 20px 14px">→ <b>Spend amber where there is a call to action.</b> An unconfirmed machine fill is one; a confirmed row’s card is provenance — a statement of where the numbers came from — and it currently draws a warning triangle over a row that is fine.</p>
+        </div></div>
+        <p class="rc-note">All four are repairs to what the screen <i>says</i>, not to what it does. None changes a stored fact, a guard or a rule, and none needs a ruling — they are listed separately so the arrangement questions can be judged on their own.</p>
+    </div>
+
+    <!-- ==================== (g) THE RULINGS ==================== -->
+    <div class="frame">
+        <p class="frame-name"><b>Ruled</b> · every open question answered, 2026-09-03 — this section is ready to build</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <p class="lib-mcap" style="margin-top:16px">ruled — rev 2</p>
+
+            <p class="flabel" style="margin-top:10px">R1 · the field order moves ✓</p>
+            <p class="conv-note" style="margin:0 20px 12px">The default unit leaves <span style="font-family:'IBM Plex Mono',monospace">category + default unit</span> and joins the admission chips, because <span style="font-family:'IBM Plex Mono',monospace">unitSayableAsDefault()</span> and the chips are one rule (D4c). <b>The only board-level change in the pass</b> — this section’s ledger moves it from <i>kept</i> to <i>changed</i>.</p>
+
+            <p class="flabel">R2 · the dock exists ✓</p>
+            <p class="conv-note" style="margin:0 20px 12px">~95 px, permanently, for Save + the CTA and the message line. Delete and un-confirm go behind the <span style="font-family:'IBM Plex Mono',monospace">⋯</span>.</p>
+
+            <p class="flabel">R3 · the CTA is short ✓</p>
+            <p class="conv-note" style="margin:0 20px 12px">The promise leaves the button for the line above it, which is what lets Save and the CTA share one row.</p>
+
+            <p class="flabel">R4 · <b style="color:var(--ink)">Units &amp; measures</b> ✓</p>
+            <p class="conv-note" style="margin:0 20px 12px">The owner’s words: <i>“for Units &amp; measures I think I prefer that rather than slightly more cutesy phrases.”</i> <span style="font-family:'IBM Plex Mono',monospace">What a line may say</span> is retired as a heading — it survives where it already lives, as the hint under <b>Allowed units</b>.</p>
+
+            <p class="lib-mcap" style="margin-top:20px">ruled — rev 3 / rev 5</p>
+
+            <p class="flabel" style="margin-top:10px">R5 · the stranded-default flag stays, quietly ✓</p>
+            <p class="conv-note" style="margin:0 20px 12px">The <i>locked-chip</i> warning goes — one line naming the units replaces six dashed chips. The <i>stranded default</i> stays, because it names a unit the row is <b>already using</b> and hiding it would hide a broken row from the only person who can fix it. It stops being an amber card: the chip is drawn dotted in the “gone” colour and one line under the row carries the fix inline. ~90 px becomes ~20.</p>
+
+            <p class="flabel">R6 · <span style="font-family:'IBM Plex Mono',monospace">needs completing</span> ✓</p>
+            <p class="conv-note" style="margin:0 20px 12px">The CTA is <b>Mark complete</b> — the word the state is actually called (<span style="font-family:'IBM Plex Mono',monospace">IngredientStatus.complete</span>), reversible by the <span style="font-family:'IBM Plex Mono',monospace">⋯</span>’s <i>Return it to a stub</i>, and <b>not</b> <span style="font-family:'IBM Plex Mono',monospace">Finalize</span>, which would promise an irreversibility D5 denies. The list view’s <b>G4</b> hint follows it: <span style="font-family:'IBM Plex Mono',monospace">needs confirm</span> → <span style="font-family:'IBM Plex Mono',monospace">needs completing</span>, so both screens use one word for one act. <span style="color:var(--muted)">Three words for two states becomes one.</span></p>
+
+            <p class="flabel">R7 · the density segment is deleted ✓</p>
+            <p class="conv-note" style="margin:0 20px 12px">Owner, rev 4: <i>“grams per spoon hides intent of things like cup”</i> — it did. Owner, rev 5: <i>“do we need a distinguisher? I don’t think anyone will ever really do the division themselves.”</i> — <b>no.</b> Two rounds of naming a segment ended in deleting it: one sentence, <i>1 <b>tbsp</b> of this weighs <b>__</b> g</i>, with <span style="font-family:'IBM Plex Mono',monospace">ml</span> among the picks so a known density stays exact. <b>The best answer to the label question turned out to be that there is no label.</b> Frame (d).</p>
+
+            <p class="flabel">R8 · Save and Mark complete close the page ✓</p>
+            <p class="conv-note" style="margin:0 20px 12px">Neither does today, and the picker <b>awaits the pop</b> before it opens the quantity sheet — so the add-to-a-recipe-line flow currently ends in a screen the person has to guess their way out of. Both buttons pop. <span style="font-family:'IBM Plex Mono',monospace">save()</span> stays pure for its three flush callers; the button handler navigates.</p>
+
+            <p class="flabel">Follow-up · one doc line</p>
+            <p class="conv-note" style="margin:0 20px 12px"><b>ADR-0008</b> says density is “enterable two equivalent ways”. Still true — the two ways stop being two <i>controls</i> and become two picks in one row — so it wants a clarifying sentence, not an amendment. <span style="color:var(--muted)">Worth the owner’s eye, since it is an ADR and not a frame.</span></p>
+
+            <p class="flabel">Cost</p>
+            <p class="conv-note" style="margin:0 20px 8px">One file rearranged (<span style="font-family:'IBM Plex Mono',monospace">ingredient_detail_view.dart</span>), four widgets retired into the dock and the menu, one filter and one amber card deleted, and about twenty-five widget-test finders updated for affordances and strings that moved (the CTA, the list’s <span style="font-family:'IBM Plex Mono',monospace">needs confirm</span> hint, the scan label, the folded imprecise section) — <b>no behaviour change, so no new test</b> beyond the finders, plus the sim smoke’s scroll targets. This section merges into the board in the same change, and the stale density annotation on the shipped frame goes with it.</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">One thing this pass deliberately does not do.</b> It does not touch the <b>New ingredient sheet</b> — the other screen “the new ingredient page” could have meant — nor rebalance what lives on the sheet versus the form. The sheet has its own three-source segment and its own walls of helper prose; it deserves its own frame rather than riding along here.</p>
+    </div>
+
+</div>
+
 
     <!-- ===== NESTED RECIPES V1 (PROPOSED — drawn from exec plan 0021, 2026-09-01) ===== -->
     <div class="section-head"><span class="ey">Nested recipes · v1</span><span class="proposed-tag">locked · signed off 2026-09-01, shipped 2026-09-02 — sim-covered by scenario 6 (exec plan 0021)</span><span class="rule"></span><span class="sub">A recipe as an ingredient — one line, one yield, and everything that derives from it</span></div>
