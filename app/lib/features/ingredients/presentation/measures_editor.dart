@@ -24,27 +24,58 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
-import '../../../shared/write.dart';
 import '../../recipes/presentation/format.dart';
-import '../data/ingredient_providers.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 
-class MeasuresEditor extends HookConsumerWidget {
+/// What the host did when the editor asked it to add a measure.
+///
+/// A value rather than an exception, because the two failures belong on two
+/// different surfaces (plan 0029 W1): a **refusal** is the repository's
+/// documented validation contract and belongs inline under the field, while a
+/// write that did not happen has already been reported by the host's own
+/// guard and must not be said twice.
+sealed class AddMeasureOutcome {
+  const AddMeasureOutcome();
+}
+
+/// It landed — or, once the form defers (lane B), it is in the draft and will.
+/// Either way the editor may treat [measure] as real: it has an id, the
+/// `piece` question can be asked about it, and it can be handed to `onAdded`.
+class MeasureAdded extends AddMeasureOutcome {
+  const MeasureAdded(this.measure);
+
+  final Measure measure;
+}
+
+/// The repository refused it, in words meant for the person: shown under the
+/// field, not in a toast.
+class MeasureRefused extends AddMeasureOutcome {
+  const MeasureRefused(this.reason);
+
+  final String reason;
+}
+
+/// Nothing was written and the host has already said so.
+class MeasureNotAdded extends AddMeasureOutcome {
+  const MeasureNotAdded();
+}
+
+class MeasuresEditor extends HookWidget {
   const MeasuresEditor({
     required this.ingredient,
     required this.measures,
     required this.onDelete,
+    required this.onAdd,
     required this.onAdded,
     required this.onVolumeLabel,
-    required this.onIngredientChanged,
+    required this.onStopOfferingPiece,
     this.autofocus = false,
     super.key,
   });
@@ -61,6 +92,19 @@ class MeasuresEditor extends HookConsumerWidget {
 
   /// A measure was authored. The quantity sheet selects it; the flesh-out
   /// form has nothing to select and ignores it.
+  /// **The host decides when a measure lands** (plan 0029 W1, ADR-0011).
+  /// This widget validates the label and the amount — including the ADR-0008
+  /// §2 volume-label redirect — and then asks. It does not know a repository.
+  ///
+  /// The quantity sheet's host writes immediately; the flesh-out form's host
+  /// will hold it in a draft until Save (lane B). The outcome is a value
+  /// rather than an exception because the two failures belong on two
+  /// different surfaces: a **refusal** is the repository's documented
+  /// validation contract and belongs inline under the field, while a write
+  /// that simply did not happen has already been reported by the host's own
+  /// guard and must not be repeated here.
+  final Future<AddMeasureOutcome> Function(String label, double amount) onAdd;
+
   final ValueChanged<Measure> onAdded;
 
   /// A volume-named label was refused and resolved to that catalog unit —
@@ -72,7 +116,15 @@ class MeasuresEditor extends HookConsumerWidget {
   /// measure says it better". Hosts that hold their own copy of the row (the
   /// quantity sheet's `live`) or of the admission set (the flesh-out form's
   /// chips) reconcile here, so neither writes `piece` back on its next save.
-  final ValueChanged<Ingredient> onIngredientChanged;
+  /// The `piece` answer (ADR-0010), asked at the only moment it is obvious
+  /// and landed by the host — it is two writes today (`stopOfferingPiece`
+  /// then `setDefaultMeasure`) and the host owns both. Returns the row as the
+  /// answer left it, or null if nothing was written.
+  ///
+  /// **Lane B trap:** on the form this stops being a write and becomes part
+  /// of the draft, and the admission chips must then follow the DRAFT rather
+  /// than a row that has not been saved.
+  final Future<Ingredient?> Function(Measure added) onStopOfferingPiece;
 
   /// The quantity sheet opens straight into this state with the keyboard up;
   /// the flesh-out form must not steal focus from a screen the user is
@@ -80,7 +132,7 @@ class MeasuresEditor extends HookConsumerWidget {
   final bool autofocus;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final label = useState('');
     final amount = useState<double?>(null);
     final error = useState<String?>(null);
@@ -112,74 +164,42 @@ class MeasuresEditor extends HookConsumerWidget {
         return;
       }
       error.value = null;
-      // Two different failures, two different surfaces. A *refusal* is the
-      // repository's validation contract (documented on addMeasure as an
-      // ArgumentError) and belongs inline under the field, in the form's own
-      // words. Anything else is a write that did not happen, and belongs in
-      // the shared toast — so the refusal is turned into a value here and the
-      // guard sees only the second kind.
-      final outcome = await ref.write(context, 'add that measure', () async {
-        try {
-          return (
-            measure: await ref
-                .read(measureRepositoryProvider)
-                .addMeasure(
-                  ingredientId: ingredient.id,
-                  label: name,
-                  amount: weight,
-                ),
-            refusal: null,
-          );
-          // The repository's validation contract IS ArgumentError (documented
-          // on addMeasure), so catching it here is the point, not a slip.
-          // ignore: avoid_catching_errors
-        } on ArgumentError catch (e) {
-          return (measure: null, refusal: '${e.message}');
-        }
-      });
-      // The host can be dismissed while the write is in flight — touching
-      // its state after that throws (every sibling path guards).
-      if (outcome == null || !context.mounted) return;
-      final refusal = outcome.refusal;
-      if (refusal != null) {
-        error.value = refusal;
-        return;
+      final outcome = await onAdd(name, weight);
+      // The host can be dismissed while the write is in flight — touching its
+      // state after that throws (every sibling path guards).
+      if (!context.mounted) return;
+      switch (outcome) {
+        // The repository's documented validation contract, in the form's own
+        // words, under the field that caused it.
+        case MeasureRefused(:final reason):
+          error.value = reason;
+          return;
+        // The host's guard has already said so; saying it twice is worse than
+        // saying it once.
+        case MeasureNotAdded():
+          return;
+        case MeasureAdded(:final measure):
+          // Plan 0022 / ADR-0010 — the one question in the `piece` model,
+          // asked at the only moment its answer is obvious. `piece` means "a
+          // whole one of these, and we have nothing better to call it";
+          // `listed` being empty a moment ago is exactly what said that, and
+          // this measure is what stops it being true. Adding a SECOND measure
+          // asks nothing: the row has already answered, whichever way.
+          if (listed.isEmpty && allowedUnitsFor(ingredient).contains(pieces)) {
+            final stop = await _askStopOfferingPiece(
+              context,
+              ingredient,
+              measure,
+            );
+            // No answer (barrier tap, back) keeps `piece`: an admission is
+            // the household's, and silence is not consent to remove one.
+            if ((stop ?? false) && context.mounted) {
+              await onStopOfferingPiece(measure);
+            }
+            if (!context.mounted) return;
+          }
+          onAdded(measure);
       }
-      final added = outcome.measure!;
-      // Plan 0022 / ADR-0010 — the one question in the `piece` model, asked at
-      // the only moment its answer is obvious. `piece` means "a whole one of
-      // these, and we have nothing better to call it"; `listed` being empty a
-      // moment ago is exactly what said that, and this measure is what stops
-      // it being true. Adding a SECOND measure asks nothing: the row has
-      // already answered, whichever way.
-      if (listed.isEmpty && allowedUnitsFor(ingredient).contains(pieces)) {
-        // Resolved before the dialog's await, not after: the host can be
-        // dismissed while the question is open, and a `ref.read` on a
-        // disposed ref throws.
-        final ingredients = ref.read(ingredientRepositoryProvider);
-        final stop = await _askStopOfferingPiece(context, ingredient, added);
-        // No answer (barrier tap, back) keeps `piece`: an admission is the
-        // household's, and silence is not consent to remove one.
-        if ((stop ?? false) && context.mounted) {
-          final changed = await ref.write(
-            context,
-            'stop offering “piece”',
-            () async {
-              await ingredients.stopOfferingPiece(ingredient.id);
-              // The second half of the answer the question always implied
-              // (seam D1). The moment a household says "'tomato, medium' says
-              // it better than piece", they have also said what a bare "1
-              // tomato" MEANS — so the same act sets it, in the same write.
-              // "Keep both" leaves it unset, which is the honest reading of
-              // "both words are sayable here".
-              return ingredients.setDefaultMeasure(ingredient.id, added.id);
-            },
-          );
-          if (changed != null) onIngredientChanged(changed);
-        }
-        if (!context.mounted) return;
-      }
-      onAdded(added);
     }
 
     return Column(

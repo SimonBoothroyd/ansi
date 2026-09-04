@@ -18,22 +18,21 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
-import '../../../shared/write.dart';
 import '../../recipes/presentation/format.dart';
-import '../data/ingredient_providers.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 
-class DensityEntry extends HookConsumerWidget {
+class DensityEntry extends HookWidget {
   const DensityEntry({
     required this.ingredient,
     required this.redirectedSpoon,
-    required this.onSaved,
+    required this.onSave,
+    required this.onRemove,
+    this.saveLabel = 'Save',
     this.headline = 'DENSITY',
     super.key,
   });
@@ -43,7 +42,30 @@ class DensityEntry extends HookConsumerWidget {
   /// Set when the add-measure form redirected a volume-named label here —
   /// pre-picks that spoon and switches to the spoon phrasing.
   final Unit? redirectedSpoon;
-  final ValueChanged<Ingredient> onSaved;
+
+  /// **The host decides when a density lands** (plan 0029 W1, ADR-0011). This
+  /// widget validates the input and computes the one stored number; it does
+  /// not know a repository. The quantity sheet's host writes immediately —
+  /// it has no Save and that is correct there — and the flesh-out form's host
+  /// holds it in a draft until the form's own Save.
+  ///
+  /// Returns whether it landed, which is all this widget needs in order to
+  /// clear its own error and confirmation state. Everything else — the write,
+  /// the invalidation, retiring a redirect — belongs to the host.
+  ///
+  /// This is deliberately **not** a boolean mode on the widget: two behaviours
+  /// behind a flag inside one shared widget is exactly how the form came to
+  /// have two persistence models at once.
+  final Future<bool> Function(double gPerMl) onSave;
+
+  /// The mirror write (D4b): the number goes and the cross-family units it
+  /// was the only reason to admit lock again. Same rule — the host lands it.
+  final Future<bool> Function() onRemove;
+
+  /// What the inline button says. It reads `Save` in a host that writes on
+  /// tap and `Add`/`Save` as the host chooses — because a button that says
+  /// Save while writing nothing is the confusion this plan is removing.
+  final String saveLabel;
 
   /// The section's micro-label. The flesh-out form says "DENSITY — OPTIONAL"
   /// (plan 0020 D5: macros gate completion, density does not).
@@ -57,7 +79,7 @@ class DensityEntry extends HookConsumerWidget {
   static const _measures = [tsp, tbsp, cup, ml];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final spoon = useState<Unit>(tbsp);
     final input = useState<double?>(null);
     final error = useState<String?>(null);
@@ -86,31 +108,18 @@ class DensityEntry extends HookConsumerWidget {
         return;
       }
       error.value = null;
-      final updated = await ref.write(
-        context,
-        'save that density',
-        () => ref
-            .read(ingredientRepositoryProvider)
-            .setDensity(ingredient.id, gPerMl),
-      );
-      if (!context.mounted || updated == null) return;
+      final landed = await onSave(gPerMl);
+      if (!context.mounted || !landed) return;
       confirmingRemoval.value = false;
-      onSaved(updated);
     }
 
     // D4b's strip leg from the user's side: the number goes, and the units it
     // was the only reason to admit go with it, in one write.
     Future<void> remove() async {
-      final updated = await ref.write(
-        context,
-        'remove that density',
-        () =>
-            ref.read(ingredientRepositoryProvider).clearDensity(ingredient.id),
-      );
-      if (!context.mounted || updated == null) return;
+      final landed = await onRemove();
+      if (!context.mounted || !landed) return;
       confirmingRemoval.value = false;
       error.value = null;
-      onSaved(updated);
     }
 
     return Column(
@@ -174,7 +183,7 @@ class DensityEntry extends HookConsumerWidget {
             FButton(
               size: FButtonSizeVariant.sm,
               onPress: save,
-              child: const Text('Save'),
+              child: Text(saveLabel),
             ),
           ],
         ),
