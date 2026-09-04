@@ -34,7 +34,7 @@ Two workflows do the mechanical parts:
 >   pass — guard · android · ios green, signed APK + AAB on the Release,
 >   Play upload skipped by design — see above), `v0.3.0` (2026-09-03, field
 >   test round two) and `v0.4.0` (2026-09-03, field test round three — run
->   33758932599, same three jobs green, APK 92 MB + AAB 80 MB on the Release) and `v0.5.0` (2026-09-04, the state-of-the-world sweep — plan 0030, run 33903706382, APK 93 MB + AAB 80 MB on the Release, after the 0026–0031 cloud push).
+>   33758932599, same three jobs green, APK 92 MB + AAB 80 MB on the Release) and `v0.5.0` (2026-09-04, the state-of-the-world sweep — plan 0030, run 33903706382, APK 93 MB + AAB 80 MB on the Release, after the 0026–0031 cloud push) and `v0.5.1` (2026-09-04, the import review fixes from the wild-garlic hunt — run 33912875394, APK 93 MB + AAB 80 MB, no migrations so no cloud step).
 
 ## What syncs how
 
