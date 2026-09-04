@@ -58,7 +58,6 @@ Future<T?> guardedWrite<T>(
   WidgetRef ref, {
   required String what,
   required Future<T> Function() action,
-  String? reassurance,
   bool retryable = true,
 }) {
   // Resolved BEFORE the await, and carried by hand from here on. `ref` is
@@ -71,7 +70,6 @@ Future<T?> guardedWrite<T>(
     crashes,
     what: what,
     action: action,
-    reassurance: reassurance,
     retryable: retryable,
   );
 }
@@ -81,7 +79,6 @@ Future<T?> _attempt<T>(
   CrashSink crashes, {
   required String what,
   required Future<T> Function() action,
-  String? reassurance,
   bool retryable = true,
 }) async {
   try {
@@ -95,16 +92,9 @@ Future<T?> _attempt<T>(
     showAnsiFailureToast(
       context,
       what: what,
-      reassurance: reassurance,
       onRetry: retryable
           ? () => unawaited(
-              _attempt(
-                context,
-                crashes,
-                what: what,
-                action: action,
-                reassurance: reassurance,
-              ),
+              _attempt(context, crashes, what: what, action: action),
             )
           : null,
     );
@@ -123,7 +113,6 @@ Future<bool> guardedWriteOk(
   WidgetRef ref, {
   required String what,
   required Future<void> Function() action,
-  String? reassurance,
   bool retryable = true,
 }) async =>
     await guardedWrite<bool>(
@@ -134,7 +123,6 @@ Future<bool> guardedWriteOk(
         await action();
         return true;
       },
-      reassurance: reassurance,
       retryable: retryable,
     ) ??
     false;
@@ -172,14 +160,12 @@ Future<T?> guardedWriteFrom<T>(
   HostContext host, {
   required String what,
   required Future<T> Function() action,
-  String? reassurance,
   bool retryable = true,
 }) => _attempt(
   host.context,
   container.read(crashSinkProvider),
   what: what,
   action: action,
-  reassurance: reassurance,
   retryable: retryable,
 );
 
@@ -189,7 +175,6 @@ Future<bool> guardedWriteOkFrom(
   HostContext host, {
   required String what,
   required Future<void> Function() action,
-  String? reassurance,
   bool retryable = true,
 }) async =>
     await guardedWriteFrom<bool>(
@@ -200,7 +185,6 @@ Future<bool> guardedWriteOkFrom(
         await action();
         return true;
       },
-      reassurance: reassurance,
       retryable: retryable,
     ) ??
     false;
@@ -213,14 +197,12 @@ extension AnsiContainerWrite on ProviderContainer {
     HostContext host,
     String what,
     Future<T> Function() action, {
-    String? reassurance,
     bool retryable = true,
   }) => guardedWriteFrom(
     this,
     host,
     what: what,
     action: action,
-    reassurance: reassurance,
     retryable: retryable,
   );
 
@@ -228,14 +210,12 @@ extension AnsiContainerWrite on ProviderContainer {
     HostContext host,
     String what,
     Future<void> Function() action, {
-    String? reassurance,
     bool retryable = true,
   }) => guardedWriteOkFrom(
     this,
     host,
     what: what,
     action: action,
-    reassurance: reassurance,
     retryable: retryable,
   );
 }
@@ -247,14 +227,12 @@ extension AnsiWrite on WidgetRef {
     BuildContext context,
     String what,
     Future<T> Function() action, {
-    String? reassurance,
     bool retryable = true,
   }) => guardedWrite(
     context,
     this,
     what: what,
     action: action,
-    reassurance: reassurance,
     retryable: retryable,
   );
 
@@ -262,14 +240,12 @@ extension AnsiWrite on WidgetRef {
     BuildContext context,
     String what,
     Future<void> Function() action, {
-    String? reassurance,
     bool retryable = true,
   }) => guardedWriteOk(
     context,
     this,
     what: what,
     action: action,
-    reassurance: reassurance,
     retryable: retryable,
   );
 }

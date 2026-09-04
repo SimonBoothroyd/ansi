@@ -36,13 +36,15 @@ final ansiToastAnchor = GlobalKey(debugLabel: 'ansi toast anchor');
 /// "Couldn't ___." — "save the recipe", "add Tuesday's dinner", "delete that
 /// section". Never a table name, never a method name.
 ///
+/// One line and a Retry: [what] is the whole message. A failure that needs a
+/// paragraph is a state, and a state is the sync banner's.
+///
 /// [onRetry] runs the same write again. It is offered by default because a
 /// local write that threw once usually succeeds on a second attempt; pass null
 /// only where re-running would be wrong.
 void showAnsiFailureToast(
   BuildContext context, {
   required String what,
-  String? reassurance,
   VoidCallback? onRetry,
 }) {
   showFToast(
@@ -52,9 +54,6 @@ void showAnsiFailureToast(
     duration: _toastDuration,
     icon: const Icon(FLucideIcons.circleAlert),
     title: Text('Couldn’t $what.'),
-    description: reassurance == null
-        ? null
-        : Text(reassurance, style: ansiMonoInherit(size: 11)),
     suffixBuilder: onRetry == null
         ? null
         : (context, entry) => FButton(
