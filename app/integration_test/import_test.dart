@@ -26,6 +26,8 @@ import 'package:ansi/features/import/presentation/import_view.dart'
     show ImportView;
 import 'package:ansi/features/import/presentation/recon_amount.dart'
     show AmountEditor;
+import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart'
+    show kFormSaveKey;
 import 'package:ansi/features/ingredients/presentation/ingredient_picker.dart'
     show IngredientResultList;
 import 'package:ansi/shared/picker_shell.dart' show PickerShell;
@@ -109,13 +111,11 @@ Future<void> createIngredientForLine(
   final create = find.textContaining('as a new ingredient');
   expect(create, findsOneWidget, reason: 'the create-new footer for line $i');
   await tester.tap(create);
-  await pumpUntilFound(tester, find.text('Create & flesh out'));
-  await tester.tap(find.text('Create & flesh out'));
-  // The form lands OVER the review's sheet; back is the only exit, and it
-  // is the pop the sheet is awaiting — the sheet then resolves the line
-  // with the row and closes.
+  // ONE push: the form IS the create surface, and it lands OVER the review's
+  // sheet. Its Save is the pop the sheet is awaiting — it writes the row and
+  // the sheet resolves the line with it. Backing out would write nothing.
   await pumpUntilFound(tester, find.text('CANONICAL NAME'));
-  await tapBack(tester);
+  await tester.tap(find.byKey(kFormSaveKey));
   await pumpUntilFound(
     tester,
     find.descendant(of: reviewCard(i), matching: find.text(name)),
@@ -187,17 +187,10 @@ void main() {
           'line re-points at it and the "did you mean" pill carries its name',
     );
 
-    // The Library's header ＋ menu → Import a recipe.
-    await tester.tap(
-      find
-          .descendant(
-            of: find.byType(FHeaderAction),
-            matching: find.byIcon(FLucideIcons.plus),
-          )
-          .first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Import a recipe'));
+    // The bare default book's own empty shelf carries the two doors — the
+    // Library header has no `＋`, because a door that makes a recipe is the
+    // one that knows the shelf it goes on.
+    await tester.tap(find.text('import one'));
     await tester.pumpAndSettle();
 
     expect(find.text('Import a recipe'), findsWidgets); // the header

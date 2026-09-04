@@ -18,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 
 import 'drive.dart';
+import 'library.dart';
 
 /// The +1 button of the labelled `_StepperRow` in the recipe editor.
 Finder stepperPlus(String label) => find.descendant(
@@ -25,18 +26,20 @@ Finder stepperPlus(String label) => find.descendant(
   matching: find.byIcon(FLucideIcons.plus),
 );
 
-/// Opens the Library ▸ ＋ ▸ New recipe editor with [title] typed in.
+/// Opens the New recipe editor with [title] typed in.
+///
+/// The Library header carries no `＋` any more: a door that makes a recipe
+/// knows the shelf it lands on. A bare book offers its two doors on the empty
+/// shelf itself; once the book holds something they are the `＋` on the
+/// Unsectioned row, which opens the same two-item menu.
 Future<void> startRecipe(WidgetTester tester, String title) async {
-  await tester.tap(
-    find
-        .descendant(
-          of: find.byType(FHeaderAction),
-          matching: find.byIcon(FLucideIcons.plus),
-        )
-        .first,
-  );
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('New recipe'));
+  if (find.text('Nothing on this shelf yet').evaluate().isNotEmpty) {
+    await tester.tap(find.text('new recipe'));
+  } else {
+    await tester.tap(sectionAdd('Unsectioned'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New recipe'));
+  }
   await pumpUntilFound(tester, find.text('New recipe'));
   await tester.pumpAndSettle();
   await tester.enterText(fieldIn(find.byType(RecipeEditorView)), title);
