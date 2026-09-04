@@ -294,6 +294,12 @@ abstract interface class IngredientRepository {
   /// so confirming one decrements it without a refresh.
   Stream<int> watchStubCount();
 
+  /// How many live rows the vocabulary holds — the Library's Ingredients card
+  /// says what is on that shelf, the way a book says "42 recipes" (0028 E5).
+  /// A count, not the list: the Library must not carry 300 rows to print one
+  /// number.
+  Stream<int> watchVocabularyCount();
+
   /// The household's distinct live categories, alphabetical — the flesh-out
   /// form's category dropdown (plan 0020 **F3**).
   ///

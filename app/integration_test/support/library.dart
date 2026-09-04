@@ -6,12 +6,18 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 
-/// Opens the Library header's `⋯` — Ingredients · Account · New book ·
-/// Reorder books (0028 E6 moved the session and the sync line to `/account`).
-/// `.first`: the header's is the first ellipsis in the tree; every book card
-/// and section carries one of its own after it.
-Future<void> openLibraryMenu(WidgetTester tester) async {
-  await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
+/// Opens `/account` from the Library header (0028 E1/E6) — the one control
+/// left up there, and a link rather than a menu: the household, this device
+/// and the session all live on the page it opens.
+Future<void> openAccount(WidgetTester tester) async {
+  await tester.tap(find.byIcon(FLucideIcons.users));
+  await tester.pumpAndSettle();
+}
+
+/// The Ingredients shelf at the foot of the library (0028 E5) — a card like a
+/// book's, so it is found by its name and opened by tapping it.
+Future<void> openIngredientsShelf(WidgetTester tester) async {
+  await tester.tap(find.text('Ingredients'));
   await tester.pumpAndSettle();
 }
 

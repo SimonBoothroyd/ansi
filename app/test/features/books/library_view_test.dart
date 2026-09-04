@@ -3,8 +3,8 @@ import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/books/domain/book_collapse_store.dart';
 import 'package:ansi/features/books/presentation/library_view.dart';
-import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/shared/ansi_search_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -65,6 +65,11 @@ class _RecordingBookRepo extends FakeBookRepository {
     required String toBookId,
   }) async => moved = (from: fromBookId, to: toBookId);
 }
+
+/// The book card for [name] — the nearest `ClipRRect` above its herb header,
+/// which is the card's own clip (the sim helpers scope the same way).
+Finder _card(String name) =>
+    find.ancestor(of: find.text(name), matching: find.byType(ClipRRect)).first;
 
 /// The `＋` on the label row for [section] — scoped by ancestry, because the
 /// header, the dashed new-section row and the empty shelf all draw one too.
@@ -166,7 +171,7 @@ void main() {
     await tester.pumpWidget(_host(_repo(_library)));
     await tester.pump();
 
-    expect(find.text('Library'), findsOneWidget);
+    expect(find.text('Library'), findsNothing, reason: 'E1: no screen name');
     expect(find.text('Our Cookbook'), findsOneWidget);
     expect(find.text('2 recipes · 1 section'), findsOneWidget);
     expect(find.text('Weeknight'), findsOneWidget);
@@ -183,49 +188,49 @@ void main() {
     expect(find.text('No books yet'), findsOneWidget);
   });
 
-  testWidgets('the + menu is the two doors that make a recipe, and no more', (
+  testWidgets('the ＋ is the two doors that make a recipe, and no more', (
     tester,
   ) async {
     await tester.pumpWidget(_host(_repo(_library)));
     await tester.pump();
 
-    await tester.tap(find.byIcon(FLucideIcons.plus).first);
+    // v2 D1's promise, kept verbatim on the row that now carries it (0028 E2).
+    await tester.tap(_sectionAdd('Weeknight'));
     await tester.pumpAndSettle();
 
     expect(find.text('New recipe'), findsOneWidget);
     expect(find.text('Import a recipe'), findsOneWidget);
-    // D1: creation only. Navigation and the account action moved to `⋯`.
-    expect(find.text('Ingredients'), findsNothing);
+    // Creation only. Nothing that changes the shape of the library, and
+    // nothing that ends a session, has ever belonged behind a plus.
     expect(find.text('New book'), findsNothing);
     expect(find.text('Sign out'), findsNothing);
   });
 
-  testWidgets('the ⋯ menu changes the shape of the library', (tester) async {
+  testWidgets('the header is a field and a link — no menus at all (0028 E1)', (
+    tester,
+  ) async {
     await tester.pumpWidget(_host(_repo(_library)));
     await tester.pump();
 
-    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
-    await tester.pumpAndSettle();
+    // The screen name is gone: the lit tab says where you are, the rule Week,
+    // Cook and Shop already ship.
+    expect(find.text('Library'), findsNothing);
+    expect(find.byType(AnsiSearchField), findsOneWidget);
+    expect(find.byIcon(FLucideIcons.users), findsOneWidget);
 
-    expect(find.text('Ingredients'), findsOneWidget);
-    expect(find.text('Account'), findsOneWidget);
-    expect(find.text('New book'), findsOneWidget);
-    expect(find.text('New recipe'), findsNothing);
-    // 0028 E6: the session and the sync line are the account page's now, and
-    // a menu that held sign-out was the whole complaint behind v2 D1.
-    expect(find.text('Sign out'), findsNothing);
+    // Nothing in this header opens a menu: one action, and it is the link.
+    // `FHeaderAction` only ever appears in a header, so counting it says the
+    // header's whole contract without reaching into the body, which still has
+    // a `⋯` per book and a `＋` per section.
+    expect(find.byType(FHeaderAction), findsOneWidget);
   });
 
-  testWidgets('Account opens the page, not a sheet (plan 0028 E6)', (
-    tester,
-  ) async {
+  testWidgets('the household control opens /account (0028 E6)', (tester) async {
     late GoRouter router;
     await tester.pumpWidget(_routedHost(_repo(_library), (r) => router = r));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Account'));
+    await tester.tap(find.byIcon(FLucideIcons.users));
     await tester.pumpAndSettle();
 
     expect(router.state.uri.toString(), '/account');
@@ -246,7 +251,7 @@ void main() {
       _toggleHost([bookRepositoryProvider.overrideWithValue(repo)], show),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(1));
+    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rename'));
     await tester.pumpAndSettle();
@@ -261,80 +266,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(repo.renamedTo, 'Weeknights');
-  });
-
-  testWidgets('Reorder books is absent on a one-book library', (tester) async {
-    await tester.pumpWidget(_host(_repo(_library)));
-    await tester.pump();
-    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Reorder books'), findsNothing);
-  });
-
-  testWidgets('Reorder books appears once there is an order', (tester) async {
-    await tester.pumpWidget(
-      _host(_repo(const [..._library, Book(id: 'b2', name: 'Baking')])),
-    );
-    await tester.pump();
-    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Reorder books'), findsOneWidget);
-  });
-
-  testWidgets('a stub dot rides ⋯ while the vocabulary needs work (D8)', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _host([
-        ..._repo(_library),
-        stubCountProvider.overrideWith((ref) => Stream.value(3)),
-      ]),
-    );
-    await tester.pump();
-
-    expect(find.byKey(kStubDotKey), findsOneWidget);
-
-    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
-    await tester.pumpAndSettle();
-    expect(find.text('3 stubs'), findsOneWidget);
-  });
-
-  testWidgets('the dot is absent — not grey — at zero stubs', (tester) async {
-    await tester.pumpWidget(
-      _host([
-        ..._repo(_library),
-        stubCountProvider.overrideWith((ref) => Stream.value(0)),
-      ]),
-    );
-    await tester.pump();
-
-    expect(find.byKey(kStubDotKey), findsNothing);
-  });
-
-  testWidgets('the reorder sheet moves a book with the sections’ idiom', (
-    tester,
-  ) async {
-    final repo = _RecordingBookRepo(const [
-      ..._library,
-      Book(id: 'b2', name: 'Baking'),
-    ]);
-    await tester.pumpWidget(
-      _host([bookRepositoryProvider.overrideWithValue(repo)]),
-    );
-    await tester.pump();
-
-    await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Reorder books'));
-    await tester.pumpAndSettle();
-
-    // Move "Baking" up: the second row's up-arrow.
-    await tester.tap(find.byIcon(FLucideIcons.arrowUp).last);
-    await tester.pumpAndSettle();
-
-    expect(repo.reordered, ['b2', 'b1']);
   });
 
   group('folding a book (D3)', () {
@@ -375,7 +306,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Chicken Curry'), findsNothing);
-      expect(find.byIcon(FLucideIcons.chevronRight), findsOneWidget);
+      // Scoped to the card: the Ingredients shelf carries a `›` of its own.
+      expect(
+        find.descendant(
+          of: _card('Our Cookbook'),
+          matching: find.byIcon(FLucideIcons.chevronRight),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a book with nothing in it says so, never "0 recipes"', (
@@ -418,7 +356,7 @@ void main() {
     /// #1 is this book's, and anything after belongs to its sections.
     Future<void> openBookMenu(WidgetTester tester) async {
       filterForuiSemanticsAssertions();
-      await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(1));
+      await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
       await tester.pumpAndSettle();
     }
 
@@ -564,7 +502,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(1));
+      await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Move down'));
       await tester.pumpAndSettle();
@@ -832,7 +770,7 @@ void main() {
     /// `⋯` #0 is the screen header's, #1 the first book's, #2 its section's.
     Future<void> openSectionMenu(WidgetTester tester) async {
       filterForuiSemanticsAssertions();
-      await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(2));
+      await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(1));
       await tester.pumpAndSettle();
     }
 
@@ -873,7 +811,7 @@ void main() {
       await tester.pumpAndSettle();
 
       filterForuiSemanticsAssertions();
-      await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(1));
+      await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Rename'));
       await tester.pumpAndSettle();
@@ -898,7 +836,7 @@ void main() {
       await tester.pumpAndSettle();
 
       filterForuiSemanticsAssertions();
-      await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(1));
+      await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete book'));
       await tester.pumpAndSettle();
@@ -928,12 +866,15 @@ void main() {
     });
   });
 
-  testWidgets('the + menu closes behind the page it opens', (tester) async {
+  testWidgets('a section ＋ closes behind the page it opens', (tester) async {
     late GoRouter router;
     await tester.pumpWidget(_routedHost(_repo(_library), (r) => router = r));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(FLucideIcons.plus).first);
+    // The rule the quickfix lane held for the header menus (0022) still holds
+    // now that the doors live on the shelf: every item hides itself before it
+    // navigates, so backing out never reveals a menu left hanging open.
+    await tester.tap(_sectionAdd('Weeknight'));
     await tester.pumpAndSettle();
     expect(find.text('Import a recipe'), findsOneWidget);
 
@@ -941,12 +882,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('import screen'), findsOneWidget);
 
-    // Backing out of the pushed page must not reveal a menu left hanging open.
     router.pop();
     await tester.pumpAndSettle();
 
-    expect(find.text('Library'), findsOneWidget);
     expect(find.text('Import a recipe'), findsNothing);
-    expect(find.text('Sign out'), findsNothing);
   });
 }

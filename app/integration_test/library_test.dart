@@ -147,16 +147,13 @@ void main() {
     expect(kept['c'], 2);
 
     // ------------------------------------------------------------------------
-    // Reorder books, off the header ⋯: the sheet moves "Bread" above the
-    // default book, and the new order round-trips.
+    // Reorder, off the BOOK's own ⋯ (0028 E4): the sheet that used to do this
+    // from the header was a second user interface for `_BookMenu._move` —
+    // the same splice and `reorderBooks` — so it was deleted rather than
+    // moved. "Bread" goes above the default book, and the order round-trips.
     // ------------------------------------------------------------------------
-    await openLibraryMenu(tester);
-    await tester.tap(find.text('Reorder books'));
-    await pumpUntilFound(tester, find.byIcon(FLucideIcons.arrowUp));
-    // The second row's up-arrow — Bread sits under Our Cookbook.
-    await tester.tap(find.byIcon(FLucideIcons.arrowUp).last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(FLucideIcons.x).last);
+    await openBookMenu(tester, 'Bread');
+    await tester.tap(find.text('Move up'));
     await tester.pumpAndSettle();
     await stack.waitForSyncRoundTrip(tester);
     final order = await db.getAll(

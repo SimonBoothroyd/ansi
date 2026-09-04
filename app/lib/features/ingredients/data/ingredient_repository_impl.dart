@@ -604,6 +604,11 @@ class SqliteIngredientRepository implements IngredientRepository {
       .map((rows) => (rows.first['n'] as int?) ?? 0);
 
   @override
+  Stream<int> watchVocabularyCount() => _db
+      .watch('SELECT COUNT(*) AS n FROM ingredient WHERE deleted_at IS NULL')
+      .map((rows) => (rows.first['n'] as int?) ?? 0);
+
+  @override
   Stream<List<String>> watchCategories() => _db
       .watch(
         'SELECT DISTINCT TRIM(category) AS c FROM ingredient '

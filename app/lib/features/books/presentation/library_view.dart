@@ -28,7 +28,6 @@ import '../data/book_providers.dart';
 import '../domain/book.dart';
 import '../domain/library_search.dart';
 import 'book_pick_sheet.dart';
-import 'book_reorder_sheet.dart';
 import 'book_view_models.dart';
 import 'text_prompt.dart';
 
@@ -53,25 +52,23 @@ class LibraryView extends HookConsumerWidget {
       // lines tall after the sign-in keyboard).
       resizeToAvoidBottomInset: false,
       childPad: false,
+      // E1: no screen name — the lit tab says where you are, the rule Week,
+      // Cook and Shop already ship. The field D2 pinned under the header takes
+      // the slot instead, and the one control left is a LINK, not a menu: a
+      // control that navigates has nowhere to put a sixth item, which is the
+      // whole difference between this and the `⋯` it replaces.
       header: FHeader.nested(
-        title: Text('Library', style: ansiHeaderTitle()),
-        // D1: `⋯` then `＋`. The plus keeps the rightmost, thumb-reachable
-        // slot it already owns, so the muscle memory that exists ("plus, top
-        // right, new recipe") gets shorter rather than relocated.
+        title: AnsiSearchField(hint: 'Search recipes', controller: field),
         suffixes: [
-          _OverflowMenu(books: library.asData?.value ?? const []),
-          const _AddMenu(),
+          FHeaderAction(
+            icon: const Icon(FLucideIcons.users),
+            onPress: () => context.pushOnce(kAccountRoute),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Pinned under the header, not a sheet: the Library is where you
-          // already are (D2).
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-            child: AnsiSearchField(hint: 'Search recipes', controller: field),
-          ),
           Expanded(
             child: library.when(
               loading: () => const Center(child: FCircularProgress()),
@@ -91,6 +88,18 @@ class LibraryView extends HookConsumerWidget {
                   padding: const EdgeInsets.only(top: 4, bottom: 28),
                   children: [
                     for (final b in books) _BookCard(book: b, books: books),
+                    // E7: the dashed row the v2 board drew and the build
+                    // missed. It closes the books.
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                      child: DashedAction(
+                        icon: FLucideIcons.bookPlus,
+                        label: 'new book',
+                        onTap: () => unawaited(promptForNewBook(context, ref)),
+                      ),
+                    ),
+                    // E5: and then a different kind of shelf.
+                    const _IngredientsShelf(),
                   ],
                 ),
               },
@@ -180,148 +189,6 @@ class _NoHits extends StatelessWidget {
           onTap: () => context.pushOnce('/import'),
         ),
       ],
-    );
-  }
-}
-
-/// The herb dot on `⋯` while the vocabulary holds stubs (D8). A shape, not a
-/// string, so tests name it rather than hunting for a `DecoratedBox`.
-const kStubDotKey = Key('library-stub-dot');
-
-/// `＋` — the two doors that make a recipe, and nothing else (D1).
-///
-/// A plus on a library of recipes promises exactly one thing: type it, or
-/// import it. Everything that changes the *shape* of the library lives in
-/// [_OverflowMenu] next door.
-class _AddMenu extends StatelessWidget {
-  const _AddMenu();
-
-  @override
-  Widget build(BuildContext context) {
-    return FPopoverMenu(
-      // `menuBuilder`, not `menu`: the items need the controller so each can
-      // dismiss the menu before it navigates. Picking an item is always the
-      // end of the menu's business.
-      menuBuilder: (_, controller, _) => [
-        FItemGroup(
-          children: [
-            FItem(
-              prefix: const Icon(FLucideIcons.cookingPot),
-              title: const Text('New recipe'),
-              onPress: () {
-                unawaited(controller.hide());
-                context.pushOnce('/recipes/new');
-              },
-            ),
-            FItem(
-              prefix: const Icon(FLucideIcons.download),
-              title: const Text('Import a recipe'),
-              onPress: () {
-                unawaited(controller.hide());
-                context.pushOnce('/import');
-              },
-            ),
-          ],
-        ),
-      ],
-      builder: (context, controller, _) => FHeaderAction(
-        icon: const Icon(FLucideIcons.plus),
-        onPress: controller.toggle,
-      ),
-    );
-  }
-}
-
-/// `⋯` — change the shape of the library, plus the one account action (D1).
-///
-/// Ingredients sits at the top with its stub badge: that is where the shipped
-/// "Ingredients manager · v1" board frame always said the door was, and the
-/// code only ever put it under `＋` because `＋` was the only menu there was.
-class _OverflowMenu extends ConsumerWidget {
-  const _OverflowMenu({required this.books});
-
-  /// The library as currently loaded — "Reorder books" is offered only when
-  /// there is an order to change.
-  final List<Book> books;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final stubsAsync = ref.watch(stubCountProvider);
-    final stubs = stubsAsync.asData?.value ?? 0;
-
-    return FPopoverMenu(
-      menuBuilder: (_, controller, _) => [
-        FItemGroup(
-          children: [
-            FItem(
-              prefix: const Icon(FLucideIcons.carrot),
-              title: const Text('Ingredients'),
-              suffix: const _StubCountBadge(),
-              onPress: () {
-                unawaited(controller.hide());
-                context.pushOnce(kIngredientsRoute);
-              },
-            ),
-            // The household, this device and the session are one page now
-            // (plan 0028 E6) — the route v2 D1 deferred until a second
-            // setting appeared, which the usual portion is.
-            FItem(
-              prefix: const Icon(FLucideIcons.users),
-              title: const Text('Account'),
-              onPress: () {
-                unawaited(controller.hide());
-                context.pushOnce(kAccountRoute);
-              },
-            ),
-            FItem(
-              prefix: const Icon(FLucideIcons.bookPlus),
-              title: const Text('New book'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(promptForNewBook(context, ref));
-              },
-            ),
-            if (books.length >= 2)
-              FItem(
-                prefix: const Icon(FLucideIcons.arrowUpDown),
-                title: const Text('Reorder books'),
-                onPress: () {
-                  unawaited(controller.hide());
-                  unawaited(showBookReorderSheet(context));
-                },
-              ),
-          ],
-        ),
-      ],
-      builder: (context, controller, _) => Stack(
-        clipBehavior: Clip.none,
-        children: [
-          FHeaderAction(
-            icon: const Icon(FLucideIcons.ellipsis),
-            onPress: controller.toggle,
-          ),
-          // D8: the badge climbs one level, so the door advertises itself
-          // without being opened. Absent — not grey — at zero, the same rule
-          // the badge inside the menu already documents.
-          //
-          // Drawn on an ERRORED count too (D6): a dot cannot say "unknown", but
-          // hiding it would answer "nothing to flesh out" on a question the app
-          // could not answer. It points at the door; the badge inside says so.
-          if (stubs > 0 || stubsAsync.hasError)
-            const Positioned(
-              key: kStubDotKey,
-              top: 2,
-              right: 2,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AnsiColors.herb,
-                  shape: BoxShape.circle,
-                ),
-                child: SizedBox.square(dimension: 6),
-              ),
-            ),
-        ],
-      ),
     );
   }
 }
@@ -1088,6 +955,79 @@ class _AddSectionButton extends StatelessWidget {
   );
 }
 
+/// The vocabulary as a shelf of its own (0028 E5) — the book anatomy exactly:
+/// a name, a count line, one control.
+///
+/// It is not reference data filed under a menu. `shopping_list_entry` has
+/// carried `ingredient_id` beside `free_text` since 0006, under a check that
+/// exactly one is set — a top-up IS an ingredient put on a list with no recipe
+/// anywhere near it — so the vocabulary is already something the household
+/// plans with. Plan 0020 D8's badge and Library v2's dot were both proxies for
+/// "there is something over here"; a count line says it outright, and both
+/// proxies delete.
+///
+/// A `›` rather than a fold: 300 rows do not belong inside a card.
+class _IngredientsShelf extends ConsumerWidget {
+  const _IngredientsShelf();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final total = ref.watch(vocabularyCountProvider).asData?.value;
+    final stubs = ref.watch(stubCountProvider).asData?.value ?? 0;
+    // Never "0 ingredients": the stub badge's rule — a zero that renders looks
+    // like a bug — and the count is absent, not zero, until it has loaded.
+    final line = [
+      if (total != null && total > 0)
+        '$total ${total == 1 ? 'ingredient' : 'ingredients'}',
+      if (stubs > 0) '$stubs ${stubs == 1 ? 'stub' : 'stubs'}',
+    ].join(' · ');
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => context.pushOnce(kIngredientsRoute),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: ColoredBox(
+            color: AnsiColors.herb,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Ingredients',
+                          style: ansiSerif(size: 18, color: AnsiColors.paper),
+                        ),
+                        if (line.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            line,
+                            style: ansiMono(size: 11, color: AnsiColors.paper),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    FLucideIcons.chevronRight,
+                    size: 16,
+                    color: AnsiColors.paper,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// No books at all (D7·1) — nearly unreachable, since `ensureDefaultBook()`
 /// runs at bootstrap, but it stays honest and points at something ON SCREEN.
 /// The old copy said "Add one with the ＋ above", which after D1 is no longer
@@ -1141,37 +1081,4 @@ Future<void> promptForNewBook(BuildContext context, WidgetRef ref) async {
     'create that book',
     () => container.read(bookRepositoryProvider).createBook(name),
   );
-}
-
-/// How many vocab rows still read `stub`, on the Library menu's Ingredients
-/// item (plan 0020 D8). Absent — not a `0` — when there is nothing to flesh
-/// out: a badge that always shows a number stops meaning anything.
-class _StubCountBadge extends ConsumerWidget {
-  const _StubCountBadge();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(stubCountProvider);
-    // Load-bearing emptiness (D6): a `?? 0` here rendered an errored stream as
-    // "nothing to flesh out" on the one honest work-queue the app has. The
-    // count and the not-knowing are different facts, so they look different.
-    if (async.hasError) {
-      return FBadge(
-        variant: FBadgeVariant.secondary,
-        child: Text(
-          'stubs unknown',
-          style: ansiMono(size: 10, color: AnsiColors.aging),
-        ),
-      );
-    }
-    final count = async.asData?.value ?? 0;
-    if (count == 0) return const SizedBox.shrink();
-    return FBadge(
-      variant: FBadgeVariant.secondary,
-      child: Text(
-        '$count stub${count == 1 ? '' : 's'}',
-        style: ansiMono(size: 10, color: AnsiColors.muted),
-      ),
-    );
-  }
 }

@@ -526,8 +526,7 @@ void main() {
     // ------------------------------------------------------------------------
     await tapTab(tester, FLucideIcons.library);
     await pumpUntilFound(tester, find.text('Our Cookbook'));
-    await openLibraryMenu(tester);
-    await tester.tap(find.text('Account'));
+    await openAccount(tester);
     await pumpUntilFound(tester, find.text('USUAL PORTION'));
     // Both at ×1: a meal for both is still two portions.
     expect(find.textContaining('counts as 2 portions'), findsOneWidget);

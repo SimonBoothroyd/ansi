@@ -1,4 +1,5 @@
-/// Sim smoke — INGREDIENTS MANAGER: Library ▸ ⋯ ▸ Ingredients → the stub band
+/// Sim smoke — INGREDIENTS MANAGER: Library ▸ the Ingredients shelf → the
+/// stub band
 /// over the real vocab → open a stub, rename it, and prove the D6 match_text
 /// rewrite in the local db → on the SAME form, the four legs that only a real
 /// stack proves:
@@ -70,6 +71,7 @@ import 'package:integration_test/integration_test.dart';
 
 import 'off_fixture.dart';
 import 'support/drive.dart';
+import 'support/library.dart';
 import 'support/stack.dart';
 
 /// The text field inside a keyed form control (`macro-kcal`,
@@ -215,18 +217,12 @@ void main() {
       // Filled, never completed: confirming is a human act (plan 0020 D5).
       expect(filled['status'], 'stub');
 
-      // --- Library ▸ ⋯ ▸ Ingredients ---------------------------------------
-      // Library v2 (D1/D8): Ingredients moved from ＋ to the ⋯ beside it.
-      await tester.tap(
-        find
-            .descendant(
-              of: find.byType(FHeaderAction),
-              matching: find.byIcon(FLucideIcons.ellipsis),
-            )
-            .first,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Ingredients'));
+      // --- Library ▸ the Ingredients shelf ---------------------------------
+      // 0028 E5: the vocabulary is a shelf at the foot of the library, drawn
+      // like a book and carrying its own counts — not a row in a menu. It
+      // sits below the books, so scroll to it the way a person would.
+      await scrollTo(tester, find.text('Ingredients'));
+      await openIngredientsShelf(tester);
       await pumpUntilFound(tester, find.text('Needs fleshing out'));
 
       // The band and the header count what the local database really holds.

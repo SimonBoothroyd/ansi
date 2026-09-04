@@ -168,11 +168,14 @@ void main() {
     test('$path — watch SQL covers every load-path table', () {
       final strings = _mergedStrings(source);
 
-      // The watch queries: the first merged string after each `.watch(`.
+      // The watch queries: the first merged string at or after each
+      // `.watch(`. AT, not after: a one-line `.watch('SELECT …')` opens its
+      // literal at exactly `m.end`, and a strict `>` skipped it and analysed
+      // whatever string came next in the file instead.
       final watchSqls = <String>[];
       for (final m in '.watch('.allMatches(source)) {
         final s = strings
-            .where((s) => s.offset > m.end)
+            .where((s) => s.offset >= m.end)
             .reduce((a, b) => a.offset < b.offset ? a : b);
         watchSqls.add(s.text);
       }

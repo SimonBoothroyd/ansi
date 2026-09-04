@@ -65,6 +65,12 @@ Stream<List<Ingredient>> vocabulary(Ref ref) =>
 Stream<int> stubCount(Ref ref) =>
     ref.watch(ingredientRepositoryProvider).watchStubCount();
 
+/// How many rows the vocabulary holds, for the Library's Ingredients card
+/// (0028 E5) — the shelf says what is on it, as a book card does.
+@riverpod
+Stream<int> vocabularyCount(Ref ref) =>
+    ref.watch(ingredientRepositoryProvider).watchVocabularyCount();
+
 /// The household's distinct live categories — the flesh-out form's category
 /// dropdown (F3). Watched: a category coined on one row is offered on the
 /// next without a refresh.

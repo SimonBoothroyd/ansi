@@ -429,6 +429,47 @@ final class StubCountProvider
 
 String _$stubCountHash() => r'3bd615a3ce89b74c3fee12845369124dd30463ca';
 
+/// How many rows the vocabulary holds, for the Library's Ingredients card
+/// (0028 E5) — the shelf says what is on it, as a book card does.
+
+@ProviderFor(vocabularyCount)
+const vocabularyCountProvider = VocabularyCountProvider._();
+
+/// How many rows the vocabulary holds, for the Library's Ingredients card
+/// (0028 E5) — the shelf says what is on it, as a book card does.
+
+final class VocabularyCountProvider
+    extends $FunctionalProvider<AsyncValue<int>, int, Stream<int>>
+    with $FutureModifier<int>, $StreamProvider<int> {
+  /// How many rows the vocabulary holds, for the Library's Ingredients card
+  /// (0028 E5) — the shelf says what is on it, as a book card does.
+  const VocabularyCountProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'vocabularyCountProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$vocabularyCountHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<int> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<int> create(Ref ref) {
+    return vocabularyCount(ref);
+  }
+}
+
+String _$vocabularyCountHash() => r'e23a92e9cfd96bf3bb6db3cfb7208b89b79955fd';
+
 /// The household's distinct live categories — the flesh-out form's category
 /// dropdown (F3). Watched: a category coined on one row is offered on the
 /// next without a refresh.

@@ -59,6 +59,9 @@ mixin IngredientManagerStubs implements IngredientRepository {
   Stream<int> watchStubCount() => Stream.value(0);
 
   @override
+  Stream<int> watchVocabularyCount() => Stream.value(0);
+
+  @override
   Future<Ingredient?> saveEdit(String ingredientId, IngredientEdit edit) =>
       throw UnimplementedError();
 
@@ -137,6 +140,12 @@ class FakeIngredientRepo implements IngredientRepository {
     int count() => rows.where((r) => r.status == IngredientStatus.stub).length;
     yield count();
     yield* _changes.stream.map((_) => count());
+  }
+
+  @override
+  Stream<int> watchVocabularyCount() async* {
+    yield rows.length;
+    yield* _changes.stream.map((_) => rows.length);
   }
 
   @override
