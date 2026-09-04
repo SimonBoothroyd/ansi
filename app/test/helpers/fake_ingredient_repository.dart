@@ -1,17 +1,16 @@
 /// Test doubles for [IngredientRepository].
 ///
-/// Step 8.5 grew the interface a write half (rename, allowed units, confirm,
-/// delete, aliases). Screens that only *read* the vocab shouldn't have to
-/// restate nine unused methods, so [IngredientManagerStubs] supplies them as
-/// loud no-ops; screens that exercise the manager use [FakeIngredientRepo],
-/// an in-memory implementation that keeps the D5/D6 semantics honest (a
-/// rename rewrites `match_text`, confirming without macros throws, delete is
-/// refused while a reference count is set).
+/// The interface carries a write half (the form, density, default measure,
+/// delete). Screens that only *read* the vocab shouldn't have to restate it,
+/// so [IngredientManagerStubs] supplies those members as loud no-ops; screens
+/// that exercise the manager use [FakeIngredientRepo], an in-memory
+/// implementation that keeps the D5/D6 semantics honest (a rename rewrites
+/// `match_text`, a form completes only with macros, delete is refused while a
+/// reference count is set).
 library;
 
 import 'dart:async';
 
-import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
@@ -35,17 +34,6 @@ mixin IngredientManagerStubs implements IngredientRepository {
   ) => throw UnimplementedError();
 
   @override
-  Future<Ingredient?> applyUsdaProbe(
-    String ingredientId, {
-    required String source,
-    String? sourceLabel,
-    double? sourceScore,
-    double? densityGPerMl,
-    Macros? macros,
-    bool explicitPick = false,
-  }) => throw UnimplementedError();
-
-  @override
   Future<Ingredient?> declineUsdaPrefill(String ingredientId) =>
       throw UnimplementedError();
 
@@ -62,21 +50,8 @@ mixin IngredientManagerStubs implements IngredientRepository {
   Stream<int> watchVocabularyCount() => Stream.value(0);
 
   @override
-  Future<Ingredient?> saveEdit(String ingredientId, IngredientEdit edit) =>
-      throw UnimplementedError();
-
-  @override
-  Future<Ingredient?> confirmStub(String ingredientId) =>
-      throw UnimplementedError();
-
-  @override
   Future<Ingredient?> unconfirm(String ingredientId) =>
       throw UnimplementedError();
-
-  @override
-  Future<({int lineCount, int recipeCount})> recipeReferences(
-    String ingredientId,
-  ) async => (recipeCount: 0, lineCount: 0);
 
   @override
   Future<DeleteOutcome> softDelete(String ingredientId) =>
@@ -84,13 +59,6 @@ mixin IngredientManagerStubs implements IngredientRepository {
 
   @override
   Future<List<IngredientAlias>> aliases(String ingredientId) async => const [];
-
-  @override
-  Future<IngredientAlias> addAlias(String ingredientId, String text) =>
-      throw UnimplementedError();
-
-  @override
-  Future<void> removeAlias(String aliasId) => throw UnimplementedError();
 }
 
 /// An in-memory vocabulary with the step-8.5 write semantics, for widget
@@ -175,28 +143,6 @@ class FakeIngredientRepo implements IngredientRepository {
 
   @override
   Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
-
-  @override
-  Future<Ingredient> createStub(
-    String name, {
-    String source = 'manual',
-    Macros? macros,
-    MacrosBasis macrosBasis = MacrosBasis.perG,
-  }) async {
-    final created = Ingredient(
-      id: 'created-${rows.length}',
-      canonicalName: name,
-      defaultUnit: g,
-      status: IngredientStatus.stub,
-      macros: macros,
-      macrosBasis: macrosBasis,
-      source: source,
-    );
-    rows.add(created);
-    matchTextById[created.id] = normalizeMatchText(name);
-    _changes.add(null);
-    return created;
-  }
 
   @override
   Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async {
@@ -285,60 +231,6 @@ class FakeIngredientRepo implements IngredientRepository {
   }
 
   @override
-  Future<Ingredient?> applyUsdaProbe(
-    String ingredientId, {
-    required String source,
-    String? sourceLabel,
-    double? sourceScore,
-    double? densityGPerMl,
-    Macros? macros,
-    bool explicitPick = false,
-  }) async {
-    if (densityGPerMl == null && macros == null) return null;
-    final current = _find(ingredientId);
-    if (current == null) return null;
-    // The same guards the real repo re-checks inside its transaction (D7b):
-    // a bare stub only, so a machine's numbers never land on a row someone
-    // has filled in — a declined row, or a fill that is still the prefill's
-    // own, only for a person's own pick (plan 0027 U-D2/U-D3).
-    final bare =
-        current.status == IngredientStatus.stub &&
-        current.densityGPerMl == null &&
-        current.macros == null;
-    if (explicitPick) {
-      if (!bare && !isUsdaPrefilled(current.source)) return null;
-    } else if (!bare || isUsdaDeclined(current.source)) {
-      return null;
-    }
-    // Rebuilt field-by-field: a pick with no density must CLEAR one, and
-    // freezed reads a null as "unchanged". The admission list follows the
-    // density both ways, as the real write's does.
-    final units = {...current.allowedUnits ?? allowedUnitsFor(current)};
-    if (current.densityGPerMl != null && densityGPerMl == null) {
-      units.removeAll(densityStrippedUnits(current));
-    }
-    if (densityGPerMl != null) units.addAll(densityUnlockedUnits(current));
-    final updated = Ingredient(
-      id: current.id,
-      canonicalName: current.canonicalName,
-      defaultUnit: current.defaultUnit,
-      status: IngredientStatus.stub,
-      category: current.category,
-      densityGPerMl: densityGPerMl,
-      macros: macros,
-      macrosBasis: current.macrosBasis,
-      allowedUnits: units.toList(),
-      defaultMeasureId: current.defaultMeasureId,
-      measureCount: current.measureCount,
-      source: source,
-      sourceLabel: sourceLabel,
-      sourceScore: sourceScore,
-    );
-    _replace(updated);
-    return updated;
-  }
-
-  @override
   Future<Ingredient?> declineUsdaPrefill(String ingredientId) async {
     final current = _find(ingredientId);
     if (current == null || !isUsdaPrefilled(current.source)) return null;
@@ -365,8 +257,12 @@ class FakeIngredientRepo implements IngredientRepository {
     return updated;
   }
 
-  @override
-  Future<Ingredient?> saveEdit(String ingredientId, IngredientEdit edit) async {
+  /// The row half of a form save: the fields, the rename's `match_text`, and
+  /// D5's reversibility (clearing the macros of a complete row returns it to
+  /// `stub`). Private, because the real repository has one write door too —
+  /// the form — and a test that could write half a form would be testing a
+  /// shape production cannot make.
+  Ingredient? _writeRow(String ingredientId, IngredientEdit edit) {
     final current = _find(ingredientId);
     if (current == null) return null;
     matchTextById[ingredientId] = normalizeMatchText(edit.canonicalName);
@@ -395,9 +291,9 @@ class FakeIngredientRepo implements IngredientRepository {
     return updated;
   }
 
-  /// The whole form in one act (plan 0029 W3). Mirrors `saveEdit` and then
-  /// applies the rest, so a test can assert that ONE call did all of it —
-  /// which is the property the real transaction exists to give.
+  /// The whole form in one act: the row, then the density, the default
+  /// measure and the status flip, so a test can assert that ONE call did all
+  /// of it — which is the property the real transaction exists to give.
   ///
   /// [savedForms] records what it was handed, so a test can pin *what the
   /// form asked for* separately from what the row ended up looking like.
@@ -422,7 +318,7 @@ class FakeIngredientRepo implements IngredientRepository {
       rows.add(created);
       targetId = created.id;
     }
-    final row = await saveEdit(targetId!, edit.row);
+    final row = _writeRow(targetId!, edit.row);
     if (row == null) return null;
     var updated = row;
     switch (edit.density) {
@@ -430,7 +326,7 @@ class FakeIngredientRepo implements IngredientRepository {
         updated = updated.copyWith(densityGPerMl: gPerMl);
       case DensityCleared():
         // copyWith reads null as "unchanged" (freezed), so the clear is built
-        // field-by-field — the same reason `saveEdit` above does.
+        // field-by-field — the same reason `_writeRow` above does.
         updated = Ingredient(
           id: updated.id,
           canonicalName: updated.canonicalName,
@@ -476,16 +372,6 @@ class FakeIngredientRepo implements IngredientRepository {
   }
 
   @override
-  Future<Ingredient?> confirmStub(String ingredientId) async {
-    final current = _find(ingredientId);
-    if (current == null) return null;
-    if (current.macros == null) throw StateError('no macros');
-    final updated = current.copyWith(status: IngredientStatus.complete);
-    _replace(updated);
-    return updated;
-  }
-
-  @override
   Future<Ingredient?> unconfirm(String ingredientId) async {
     final current = _find(ingredientId);
     if (current == null) return null;
@@ -495,15 +381,10 @@ class FakeIngredientRepo implements IngredientRepository {
   }
 
   @override
-  Future<({int lineCount, int recipeCount})> recipeReferences(
-    String ingredientId,
-  ) async => references[ingredientId] ?? (recipeCount: 0, lineCount: 0);
-
-  @override
   Future<DeleteOutcome> softDelete(String ingredientId) async {
     final current = _find(ingredientId);
     if (current == null) return const DeleteMissing();
-    final refs = await recipeReferences(ingredientId);
+    final refs = references[ingredientId] ?? (recipeCount: 0, lineCount: 0);
     if (refs.lineCount > 0) {
       return DeleteRefused(
         recipeCount: refs.recipeCount,
@@ -519,24 +400,4 @@ class FakeIngredientRepo implements IngredientRepository {
   Future<List<IngredientAlias>> aliases(String ingredientId) async => [
     ...?_aliases[ingredientId],
   ];
-
-  @override
-  Future<IngredientAlias> addAlias(String ingredientId, String text) async {
-    final alias = IngredientAlias(
-      id: 'alias-${text.hashCode}',
-      text: text.trim(),
-      source: 'manual',
-    );
-    (_aliases[ingredientId] ??= []).add(alias);
-    _changes.add(null);
-    return alias;
-  }
-
-  @override
-  Future<void> removeAlias(String aliasId) async {
-    for (final list in _aliases.values) {
-      list.removeWhere((a) => a.id == aliasId);
-    }
-    _changes.add(null);
-  }
 }

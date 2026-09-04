@@ -4,7 +4,6 @@
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
-import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/books/domain/book_repository.dart';
@@ -108,19 +107,6 @@ class FakeIngredientRepo
 
   @override
   Future<Map<String, Ingredient>> byIds(Set<String> ids) async => const {};
-
-  @override
-  Future<Ingredient> createStub(
-    String name, {
-    String source = 'manual',
-    Macros? macros,
-    MacrosBasis macrosBasis = MacrosBasis.perG,
-  }) async => Ingredient(
-    id: 'stub-1',
-    canonicalName: name,
-    defaultUnit: g,
-    status: IngredientStatus.stub,
-  );
 }
 
 class FakeBookRepo implements BookRepository {
@@ -146,16 +132,6 @@ class FakeBookRepo implements BookRepository {
 
   @override
   Future<void> deleteSection(String sectionId) async {}
-
-  @override
-  Future<void> assignRecipe(
-    String recipeId, {
-    required String bookId,
-    String? sectionId,
-  }) async {}
-
-  @override
-  Future<int> countBooks() => throw UnimplementedError();
 
   @override
   Future<int> countRecipesIn(String bookId) => throw UnimplementedError();

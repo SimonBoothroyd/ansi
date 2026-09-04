@@ -116,9 +116,6 @@ class SqlitePlanningRepository implements PlanningRepository {
     return week.entries.isEmpty ? null : week;
   }
 
-  @override
-  Future<List<Member>> members() => loadMembers(_db);
-
   // The same SELECT as [loadMembers], written out rather than shared through
   // a constant: the watch-coverage structural test reads the literal after
   // `.watch(` to learn which tables this stream is triggered by.

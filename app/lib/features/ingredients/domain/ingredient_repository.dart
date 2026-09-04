@@ -246,28 +246,6 @@ abstract interface class IngredientRepository {
   /// is a DB round-trip per line on every edit.
   Future<Map<String, Ingredient>> byIds(Set<String> ids);
 
-  /// Creates a stub vocab row named [name] and returns it. The picker's
-  /// "can't find it? add new" affordance, and the add sheet's create.
-  ///
-  /// Defaults to a bare manual stub — no density, no macros, which is what
-  /// keeps it out of conversions until it is fleshed out (invariant 3). A
-  /// prefilling source overrides them:
-  /// - [source] is the row's provenance for the `source` column: `manual`,
-  ///   or `off:<barcode>` from a barcode draft's `sourceValue` (D1).
-  /// - [macros]/[macrosBasis] are what that source supplied, stored in the
-  ///   basis the label read them in rather than converted (7.7). Null macros
-  ///   stay null — a source with no panel writes no numbers, never zeros.
-  ///
-  /// Never a density: a barcode carries none, and one is not derivable from
-  /// a pack size. The row is a `stub` whatever arrives with it — machine
-  /// numbers do not complete an ingredient (D5: confirming is a human act).
-  Future<Ingredient> createStub(
-    String name, {
-    String source = 'manual',
-    Macros? macros,
-    MacrosBasis macrosBasis = MacrosBasis.perG,
-  });
-
   /// Stores [gPerMl] as the ingredient's density — the single volume⇄mass
   /// fact (ADR-0008; both entry styles resolve to this one number) — and
   /// extends its explicit `allowed_units` with the units the density
@@ -339,54 +317,6 @@ abstract interface class IngredientRepository {
   /// null when [ingredientId] doesn't resolve.
   Future<Ingredient?> setDefaultMeasure(String ingredientId, String? measureId);
 
-  /// Writes a USDA probe result into the row's NULL fields — plan 0020
-  /// **D7b**, the local half of "enrichment should not wait for sync".
-  ///
-  /// Two guards, both load-bearing:
-  /// - the row must still be a **`stub`**, and
-  /// - it must be **bare** — no density and no macros. A row someone has
-  ///   filled in is never overwritten.
-  ///
-  /// They were written to mirror the server trigger's WHEN clause (0014/0015)
-  /// so the two writes could race harmlessly. 0029 dropped that trigger, so
-  /// what they answer for now is another **device** editing the same
-  /// household between the search and the apply. Both re-checked inside the
-  /// write, not just by the caller. Returns null when either guard fails, or
-  /// when the id doesn't resolve.
-  ///
-  /// A landing density also extends `allowed_units` with what it unlocks, in
-  /// the same write — the same rule [setDensity] follows, because it is the
-  /// same event (ADR-0009).
-  ///
-  /// [sourceLabel] and [sourceScore] — the food's name and the score that
-  /// earned it (plan 0027 U-D1) — are written in the same statement as
-  /// [source], exactly as the trigger writes them, so a row never carries a
-  /// stamp without the name behind it.
-  ///
-  /// **The declined guard** (U-D2/U-D3): a row whose `source` is
-  /// [usdaDeclinedSource] is refused too — a person said "not this food",
-  /// and no automatic path re-fills it. [explicitPick] — a candidate a
-  /// person chose from the *Choose another* sheet — lifts exactly two
-  /// things: that guard, and the bare-row guard **where the numbers are the
-  /// prefill's own** (`source` still `usda_fdc:`; both prefill writers are
-  /// fill-null-only, so on such a row they authored both numbers). Then the
-  /// old fill is replaced whole — density (its D4b strip applied, the new
-  /// density's unlock unioned), macros, stamp, label, score — and the row
-  /// reads `stub` whatever it was. A row with numbers a person supplied is
-  /// still never overwritten, pick or no pick.
-  ///
-  /// The row stays `stub`: a machine's numbers never complete an ingredient
-  /// (D5, and the trigger's own contract).
-  Future<Ingredient?> applyUsdaProbe(
-    String ingredientId, {
-    required String source,
-    String? sourceLabel,
-    double? sourceScore,
-    double? densityGPerMl,
-    Macros? macros,
-    bool explicitPick = false,
-  });
-
   /// *Not this food* — undoes a USDA prefill in ONE write (plan 0027
   /// **U-D2**): the density goes through the same strip [clearDensity] runs
   /// (D4b — the units it alone unlocked come out), the macros go, and
@@ -407,8 +337,9 @@ abstract interface class IngredientRepository {
   /// `manual` among them — and `usda_declined` was deliberately not, so
   /// declining once meant the next rename left the row alone. 0029 dropped
   /// that trigger; no rename refills anything now. The value stays because it
-  /// is still how a row says "not from USDA", and only an explicit pick
-  /// ([applyUsdaProbe] with `explicitPick`) writes over it.
+  /// is still how a row says "not from USDA", and only a food a person picks
+  /// themselves — saved with the form, which stamps [IngredientEdit.source]
+  /// in the same write as the numbers it explains — writes over it.
   Future<Ingredient?> declineUsdaPrefill(String ingredientId);
 
   // --- The manager's write half (step 8.5) -----------------------------------
@@ -438,19 +369,6 @@ abstract interface class IngredientRepository {
   /// are what free text left behind, and they are not a category.
   Stream<List<String>> watchCategories();
 
-  /// Applies [edit] to [ingredientId] in one write and returns the updated
-  /// row (null when the id doesn't resolve).
-  ///
-  /// Two things happen here that nowhere else does:
-  /// - **A rename rewrites `match_text`** through `normalizeMatchText`, the
-  ///   server's own phrase rules (plan 0020 D6). Leaving the old value would
-  ///   be a silent matching regression — the next import searches for a name
-  ///   nothing carries.
-  /// - **Clearing the macros of a `complete` row returns it to `stub`** (D5):
-  ///   a row is never left asserting a number it no longer has. Filling them
-  ///   in does NOT promote — that takes [confirmStub], a human act.
-  Future<Ingredient?> saveEdit(String ingredientId, IngredientEdit edit);
-
   /// Applies a whole form in ONE transaction (plan 0029 W3): the row's
   /// fields, the density, measures added and removed, aliases, "Counts as",
   /// and — when [IngredientFormEdit.markComplete] — the status flip.
@@ -468,25 +386,9 @@ abstract interface class IngredientRepository {
   /// identity word. Nothing is written when it throws.
   Future<Ingredient?> saveForm(String? ingredientId, IngredientFormEdit edit);
 
-  /// Flips a `stub` to `complete` — the human confirm of D5.
-  ///
-  /// Gated on macros being present (with their basis); density is NOT
-  /// required, because an ingredient whose lines only ever speak its own
-  /// basis family never needs one. Returns null when the id doesn't resolve;
-  /// throws [StateError] when the row has no macros — the CTA is disabled
-  /// there, and the rule holds at the repository too.
-  Future<Ingredient?> confirmStub(String ingredientId);
-
   /// Returns a `complete` row to `stub` — confirm is reversible (D5). The
   /// macros stay stored; the row simply stops counting until re-confirmed.
   Future<Ingredient?> unconfirm(String ingredientId);
-
-  /// Live recipe lines naming [ingredientId], as (recipes, lines). The
-  /// delete guard's evidence, readable on its own so a screen can warn before
-  /// the user commits to the action.
-  Future<({int recipeCount, int lineCount})> recipeReferences(
-    String ingredientId,
-  );
 
   /// Soft-deletes the vocab row — but only when no live recipe line points at
   /// it (the signed rule, plan 0020's open question). See [DeleteOutcome].
@@ -494,16 +396,4 @@ abstract interface class IngredientRepository {
 
   /// The ingredient's live aliases, oldest first.
   Future<List<IngredientAlias>> aliases(String ingredientId);
-
-  /// Adds a `manual` alias, its `match_text` written with the server's phrase
-  /// rules so the cascade can find it. A duplicate (same normalized text on
-  /// the same ingredient) is a no-op returning the existing row — local
-  /// tables are VIEWS, so this is an existence check plus a plain INSERT,
-  /// never an UPSERT.
-  ///
-  /// Throws [ArgumentError] for an alias that normalizes to nothing.
-  Future<IngredientAlias> addAlias(String ingredientId, String text);
-
-  /// Soft-deletes one alias.
-  Future<void> removeAlias(String aliasId);
 }

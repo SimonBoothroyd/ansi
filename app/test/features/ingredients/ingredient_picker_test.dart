@@ -9,9 +9,11 @@
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -102,15 +104,18 @@ Widget _chainHost(
                 onPress: () async {
                   // What ONE Save does now: the row and everything the form
                   // set, together — so the row that pops IS the finished one.
-                  final made = await repo.createStub(
-                    state.uri.queryParameters['name'] ?? '',
+                  final saved = await repo.saveForm(
+                    null,
+                    IngredientFormEdit(
+                      row: IngredientEdit(
+                        canonicalName: state.uri.queryParameters['name'] ?? '',
+                        defaultUnit: g,
+                        macrosBasis: MacrosBasis.perG,
+                        allowedUnits: {g, kg, tbsp},
+                      ),
+                      density: const DensitySet(1),
+                    ),
                   );
-                  final saved = made.copyWith(
-                    allowedUnits: [g, kg, tbsp],
-                    densityGPerMl: 1,
-                  );
-                  repo.rows[repo.rows.indexWhere((r) => r.id == made.id)] =
-                      saved;
                   if (context.mounted) context.pop(saved);
                 },
                 child: const Text('create'),

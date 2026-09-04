@@ -108,16 +108,6 @@ class _FakeBookRepo implements BookRepository {
   @override
   Future<void> deleteSection(String sectionId) async {}
   @override
-  Future<void> assignRecipe(
-    String recipeId, {
-    required String bookId,
-    String? sectionId,
-  }) async {}
-
-  @override
-  Future<int> countBooks() => throw UnimplementedError();
-
-  @override
   Future<int> countRecipesIn(String bookId) => throw UnimplementedError();
 
   @override
@@ -144,10 +134,7 @@ class _FakePlanningRepo implements PlanningRepository {
   @override
   Future<WeekPlan?> mostRecentWeekBefore(DateTime weekStart) async => null;
   @override
-  Future<List<Member>> members() async => const [];
-
-  @override
-  Stream<List<Member>> watchMembers() => Stream.fromFuture(members());
+  Stream<List<Member>> watchMembers() => Stream.value(const []);
 
   @override
   Future<void> setPortionFactor(String memberId, double factor) async {}

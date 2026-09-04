@@ -366,14 +366,6 @@ class _FakeIngredientRepo
   Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
 
   @override
-  Future<Ingredient> createStub(
-    String name, {
-    String source = 'manual',
-    Macros? macros,
-    MacrosBasis macrosBasis = MacrosBasis.perG,
-  }) async => row;
-
-  @override
   Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>
       null;
 }
@@ -1491,11 +1483,17 @@ void main() {
                 onPress: () async {
                   // What ONE Save does (plan 0029 C2): the row and everything
                   // the form set, then pop with it.
-                  final made = await repo.createStub(
-                    state.uri.queryParameters['name'] ?? '',
+                  final saved = await repo.saveForm(
+                    null,
+                    IngredientFormEdit(
+                      row: IngredientEdit(
+                        canonicalName: state.uri.queryParameters['name'] ?? '',
+                        defaultUnit: g,
+                        macrosBasis: MacrosBasis.perG,
+                        allowedUnits: {g, kg},
+                      ),
+                    ),
                   );
-                  final saved = made.copyWith(allowedUnits: [g, kg]);
-                  repo.rows[0] = saved;
                   if (context.mounted) context.pop(saved);
                 },
                 child: const Text('create'),

@@ -30,9 +30,6 @@ class FakePlanningRepository implements PlanningRepository {
   Future<WeekPlan?> mostRecentWeekBefore(DateTime weekStart) async => null;
 
   @override
-  Future<List<Member>> members() async => roster;
-
-  @override
   Stream<List<Member>> watchMembers() async* {
     yield roster;
     yield* _roster.stream;

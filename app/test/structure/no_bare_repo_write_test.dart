@@ -26,17 +26,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// Interface methods that *read*. Everything else a repository declares is a
 /// write and must go through the guard.
 const _readVerbs = {
-  'countBooks',
   'countRecipesIn',
   'search',
   'recentlyUsed',
   'byId',
   'byIds',
-  'members',
   'aliases',
   'measuresByIngredients',
   'usedIn',
-  'recipeReferences',
   'mostRecentWeekBefore',
   'componentLinkWouldCycle',
 };
@@ -167,7 +164,7 @@ void main() {
         'saveRecipe',
         'addEntry',
         'setEntryChecked',
-        'createStub',
+        'saveForm',
       }),
       reason: 'the derivation stopped seeing known write methods',
     );

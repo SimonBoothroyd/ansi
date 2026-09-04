@@ -8,7 +8,6 @@
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
-import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
@@ -76,14 +75,6 @@ class _FakeIngredientRepo
 
   @override
   Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
-
-  @override
-  Future<Ingredient> createStub(
-    String name, {
-    String source = 'manual',
-    Macros? macros,
-    MacrosBasis macrosBasis = MacrosBasis.perG,
-  }) async => _onion;
 
   @override
   Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>

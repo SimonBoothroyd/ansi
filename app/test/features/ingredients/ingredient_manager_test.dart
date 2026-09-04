@@ -2277,7 +2277,7 @@ void main() {
       expect(tester.widget<FCheckbox>(tick).value, isTrue);
       expect(find.textContaining('= 0.947 g/ml'), findsOneWidget);
 
-      // One Save: the macros through `saveEdit`, the density through the
+      // One Save: the macros through the row's own write, the density through
       // density entry's own spoon arithmetic (ADR-0008 §2), and ADR-0009's
       // unlock. Save ends the page, so we walk back in to read the chips.
       await _saveForm(tester, reopen: 'Buttery spread');

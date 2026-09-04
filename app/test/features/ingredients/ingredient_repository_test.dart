@@ -436,68 +436,6 @@ void main() {
     expect(await repo.recentlyUsed(), isEmpty);
   });
 
-  test('createStub writes a findable manual stub (7.7 add-new)', () async {
-    final created = await repo.createStub('  Curry Leaves ');
-    expect(created.canonicalName, 'Curry Leaves');
-    expect(created.status, IngredientStatus.stub);
-
-    final found = (await _search(repo, 'curry')).single;
-    expect(found.id, created.id);
-    expect(found.status, IngredientStatus.stub);
-    final row = await db.get(
-      'SELECT household_id, source, match_text, status FROM ingredient '
-      'WHERE id = ?',
-      [created.id],
-    );
-    expect(row['household_id'], 'h');
-    expect(row['source'], 'manual');
-    // The SERVER's phrase rules, not just the character ones (plan 0020 D6):
-    // singularized, so this is byte-identical to the `match_text` an import
-    // would have written for the same phrase — which is the whole point.
-    expect(row['match_text'], 'curry leaf');
-    expect(row['status'], 'stub');
-    // A bare create carries no panel — a NULL column, not four zeros.
-    expect(row['macros'], isNull);
-  });
-
-  test(
-    "createStub carries a barcode draft's provenance and panel (D1)",
-    () async {
-      final created = await repo.createStub(
-        'Coconut milk, canned',
-        source: 'off:5000159407236',
-        macros: const Macros(kcal: 197, protein: 2, carb: 3, fat: 20),
-        macrosBasis: MacrosBasis.perMl,
-      );
-      final row = await db.get(
-        'SELECT source, macros, macros_basis, status, density_g_per_ml '
-        'FROM ingredient WHERE id = ?',
-        [created.id],
-      );
-      // The `source` column gets the draft's own `off:<barcode>` value…
-      expect(row['source'], 'off:5000159407236');
-      // …the panel is stored in the basis the label read it in (7.7)…
-      expect(Macros.tryParse(row['macros'] as String?)?.kcal, 197);
-      expect(row['macros_basis'], 'ml');
-      // …and none of it completes the row, or invents a density OFF never had.
-      expect(row['status'], 'stub');
-      expect(row['density_g_per_ml'], isNull);
-    },
-  );
-
-  test('createStub with no panel writes no macros at all', () async {
-    final created = await repo.createStub(
-      'NESQUIK Cacao',
-      source: 'off:3033710065967',
-    );
-    final row = await db.get(
-      'SELECT source, macros FROM ingredient WHERE id = ?',
-      [created.id],
-    );
-    expect(row['source'], 'off:3033710065967');
-    expect(row['macros'], isNull);
-  });
-
   group('setDensity (ADR-0008: the single volume⇄mass fact)', () {
     test(
       'writes the density and extends allowed_units in the same write',
@@ -801,146 +739,45 @@ void main() {
     });
   });
 
-  group('applyUsdaProbe (D7b: the local half of the enrichment)', () {
-    test('fills a bare stub and extends allowed_units with what the density '
-        'unlocks — the same event, the same rule as setDensity', () async {
-      // id '3' is the seeded stub, default_unit 'g'.
-      final applied = await repo.applyUsdaProbe(
-        '3',
-        source: 'usda_fdc:11216',
-        sourceLabel: 'Olive oil, salad or cooking',
-        sourceScore: 0.88,
-        densityGPerMl: 0.35,
-        macros: const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
-      );
-      expect(applied, isNotNull);
-      expect(applied!.densityGPerMl, 0.35);
-      expect(applied.macros!.kcal, 108);
-      expect(applied.source, 'usda_fdc:11216');
-      // U-D1: the label and the score land in the same write as the stamp,
-      // and read back off the row.
-      expect(applied.sourceLabel, 'Olive oil, salad or cooking');
-      expect(applied.sourceScore, closeTo(0.88, 1e-6));
-      final stored = await db.get(
-        'SELECT source, source_label, source_score FROM ingredient '
-        'WHERE id = ?',
-        ['3'],
-      );
-      expect(stored['source_label'], 'Olive oil, salad or cooking');
-      expect(stored['source_score'], closeTo(0.88, 1e-6));
-      // Still a stub: confirming is a human act (D5).
-      expect(applied.status, IngredientStatus.stub);
-      expect(applied.allowedUnits!.map((u) => u.id).toSet(), {
-        'g',
-        'kg',
-        'tsp',
-        'tbsp',
-        'cup',
-        'pt',
-        'ml',
-      });
-    });
-
-    test('REFUSES a row that already has numbers — the guard is re-checked '
-        'here, not just by the caller', () async {
-      await repo.setDensity('3', 0.9);
-      expect(
-        await repo.applyUsdaProbe('3', source: 'usda_fdc:1', densityGPerMl: 2),
-        isNull,
-      );
-      expect((await repo.byId('3'))!.densityGPerMl, 0.9);
-      expect((await repo.byId('3'))!.source, 'seed');
-    });
-
-    test('refuses a complete row, and an unknown id', () async {
-      // id '1' (Onion) is complete.
-      expect(
-        await repo.applyUsdaProbe('1', source: 'usda_fdc:1', densityGPerMl: 1),
-        isNull,
-      );
-      expect(
-        await repo.applyUsdaProbe(
-          'nope',
-          source: 'usda_fdc:1',
-          densityGPerMl: 1,
-        ),
-        isNull,
-      );
-    });
-
-    test('a candidate with nothing to copy writes nothing — the source is '
-        'not churned for a name match', () async {
-      expect(await repo.applyUsdaProbe('3', source: 'usda_fdc:1'), isNull);
-      expect((await repo.byId('3'))!.source, 'seed');
-    });
-
-    test('macros without a density leave the allowed list alone', () async {
-      final applied = await repo.applyUsdaProbe(
-        '3',
-        source: 'usda_fdc:2',
-        macros: const Macros(kcal: 1, protein: 2, carb: 3, fat: 4),
-      );
-      expect(applied!.macros!.kcal, 1);
-      expect(applied.densityGPerMl, isNull);
-      // Nothing unlocked, because nothing bridged: the row had no explicit
-      // list and still has none.
-      expect(applied.allowedUnits, isNull);
-    });
-
-    test('U-D2/U-D3: a DECLINED row refuses an automatic apply, and takes an '
-        'explicit pick — which stamps the new id and label', () async {
-      await db.execute(
-        "UPDATE ingredient SET source = 'usda_declined', "
-        "source_label = 'Olive oil, refused' WHERE id = ?",
-        ['3'],
-      );
-      // The automatic path (a creation probe, a lookup): nothing lands.
-      expect(
-        await repo.applyUsdaProbe(
-          '3',
-          source: 'usda_fdc:9',
-          sourceLabel: 'Olive oil, guessed again',
-          sourceScore: 0.7,
-          densityGPerMl: 0.9,
-        ),
-        isNull,
-      );
-      final untouched = (await repo.byId('3'))!;
-      expect(untouched.source, 'usda_declined');
-      expect(untouched.densityGPerMl, isNull);
-      expect(untouched.sourceLabel, 'Olive oil, refused');
-
-      // A person's own pick from the Choose-another sheet: lands, and the
-      // stamp, the label and the score all move to the chosen food.
-      final picked = await repo.applyUsdaProbe(
-        '3',
-        source: 'usda_fdc:9',
-        sourceLabel: 'Olive oil, chosen',
-        sourceScore: 0.7,
-        densityGPerMl: 0.9,
-        explicitPick: true,
-      );
-      expect(picked, isNotNull);
-      expect(picked!.source, 'usda_fdc:9');
-      expect(picked.sourceLabel, 'Olive oil, chosen');
-      expect(picked.sourceScore, closeTo(0.7, 1e-6));
-      expect(picked.densityGPerMl, 0.9);
-      expect(picked.status, IngredientStatus.stub);
-    });
-
-    test(
-      'U-D2 declineUsdaPrefill: ONE write takes out exactly what the '
-      'prefill wrote — density (and the units it unlocked, D4b), macros, '
-      'the stamp — keeps the name, and a rename after it does not refill',
-      () async {
-        final filled = (await repo.applyUsdaProbe(
-          '3',
+  group('declineUsdaPrefill (U-D2: not this food)', () {
+    // A USDA pick reaches the row the way the form sends it (plan 0029 W5):
+    // the stamp, the label, the score and the numbers in one save, with the
+    // admission list the draft already unlocked.
+    Future<Ingredient> prefill({
+      double? density,
+      Macros? macros,
+      Set<Unit> allowed = const {g, kg},
+      bool markComplete = false,
+    }) async => (await repo.saveForm(
+      '3',
+      IngredientFormEdit(
+        row: IngredientEdit(
+          canonicalName: 'Olive Oil',
+          defaultUnit: g,
+          macrosBasis: MacrosBasis.perG,
+          allowedUnits: allowed,
+          macros: macros,
           source: 'usda_fdc:11216',
           sourceLabel: 'Olive oil, salad or cooking',
           sourceScore: 0.88,
-          densityGPerMl: 0.35,
+        ),
+        density: density == null
+            ? const DensityUnchanged()
+            : DensitySet(density),
+        markComplete: markComplete,
+      ),
+    ))!;
+
+    test(
+      'ONE write takes out exactly what the prefill wrote — density (and the '
+      'units it unlocked, D4b), macros, the stamp — keeps the name, and a '
+      'rename after it does not refill',
+      () async {
+        final filled = await prefill(
+          density: 0.35,
           macros: const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
-        ))!;
+          allowed: const {g, kg, cup},
+        );
         expect(filled.allowedUnits!.map((u) => u.id), contains('cup'));
 
         final declined = await repo.declineUsdaPrefill('3');
@@ -967,140 +804,47 @@ void main() {
         // The Dart half of "a rename does not refill": the rename write itself
         // touches neither the numbers nor the stamp (the server half — the
         // 0015 WHEN clause skipping usda_declined — is pinned in pgTAP).
-        final renamed = (await repo.saveEdit(
+        final renamed = (await repo.saveForm(
           '3',
-          IngredientEdit(
-            canonicalName: 'Olive oil, extra virgin',
-            defaultUnit: g,
-            macrosBasis: MacrosBasis.perG,
-            allowedUnits: declined.allowedUnits!.toSet(),
+          IngredientFormEdit(
+            row: IngredientEdit(
+              canonicalName: 'Olive oil, extra virgin',
+              defaultUnit: g,
+              macrosBasis: MacrosBasis.perG,
+              allowedUnits: declined.allowedUnits!.toSet(),
+            ),
           ),
         ))!;
         expect(renamed.source, 'usda_declined');
         expect(renamed.sourceLabel, 'Olive oil, salad or cooking');
         expect(renamed.densityGPerMl, isNull);
         expect(renamed.macros, isNull);
-        // …and the automatic apply path now refuses the row.
-        expect(
-          await repo.applyUsdaProbe(
-            '3',
-            source: 'usda_fdc:11216',
-            densityGPerMl: 0.35,
-          ),
-          isNull,
-        );
       },
     );
 
-    test(
-      'declineUsdaPrefill refuses a row the prefill does not author — a '
-      'seeded row, a barcode row, an unknown id — and writes nothing',
-      () async {
-        // id '1' is a seed row with source 'seed'.
-        expect(await repo.declineUsdaPrefill('1'), isNull);
-        expect((await repo.byId('1'))!.source, 'seed');
-        await repo.setDensity('3', 0.9);
-        expect(await repo.declineUsdaPrefill('3'), isNull);
-        expect((await repo.byId('3'))!.densityGPerMl, 0.9);
-        expect(await repo.declineUsdaPrefill('nope'), isNull);
-      },
-    );
+    test('refuses a row the prefill does not author — a seeded row, a barcode '
+        'row, an unknown id — and writes nothing', () async {
+      // id '1' is a seed row with source 'seed'.
+      expect(await repo.declineUsdaPrefill('1'), isNull);
+      expect((await repo.byId('1'))!.source, 'seed');
+      await repo.setDensity('3', 0.9);
+      expect(await repo.declineUsdaPrefill('3'), isNull);
+      expect((await repo.byId('3'))!.densityGPerMl, 0.9);
+      expect(await repo.declineUsdaPrefill('nope'), isNull);
+    });
 
     test('declining a CONFIRMED prefill returns it to a stub — a row with '
         'no macros never asserts complete (D5)', () async {
-      await repo.applyUsdaProbe(
-        '3',
-        source: 'usda_fdc:11216',
-        sourceLabel: 'Olive oil, salad or cooking',
+      await prefill(
         macros: const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
+        markComplete: true,
       );
-      await repo.confirmStub('3');
       expect((await repo.byId('3'))!.status, IngredientStatus.complete);
 
       final declined = (await repo.declineUsdaPrefill('3'))!;
       expect(declined.status, IngredientStatus.stub);
       expect(declined.macros, isNull);
     });
-
-    test('U-D3: an explicit pick REPLACES a fill that is still the prefill’s '
-        'own — density, macros, stamp, label, score — and the admission '
-        'list follows the density both ways', () async {
-      await repo.applyUsdaProbe(
-        '3',
-        source: 'usda_fdc:11216',
-        sourceLabel: 'Olive oil, salad or cooking',
-        sourceScore: 0.88,
-        densityGPerMl: 0.35,
-        macros: const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
-      );
-      // A pick with macros and NO density: the old density's unlock goes
-      // with it (D4b), exactly as clearDensity would have taken it.
-      final picked = (await repo.applyUsdaProbe(
-        '3',
-        source: 'usda_fdc:9',
-        sourceLabel: 'Olive oil, chosen',
-        sourceScore: 0.7,
-        macros: const Macros(kcal: 50, protein: 1, carb: 2, fat: 3),
-        explicitPick: true,
-      ))!;
-      expect(picked.source, 'usda_fdc:9');
-      expect(picked.sourceLabel, 'Olive oil, chosen');
-      expect(picked.sourceScore, closeTo(0.7, 1e-6));
-      expect(picked.densityGPerMl, isNull);
-      expect(picked.macros!.kcal, 50);
-      expect(picked.status, IngredientStatus.stub);
-      expect(picked.allowedUnits!.map((u) => u.id).toSet(), {'g', 'kg'});
-
-      // And a pick WITH a density unlocks again.
-      final again = (await repo.applyUsdaProbe(
-        '3',
-        source: 'usda_fdc:10',
-        sourceLabel: 'Olive oil, dense',
-        densityGPerMl: 0.9,
-        explicitPick: true,
-      ))!;
-      expect(again.densityGPerMl, 0.9);
-      expect(again.macros, isNull);
-      expect(again.allowedUnits!.map((u) => u.id), contains('cup'));
-    });
-
-    test('an explicit pick on a CONFIRMED prefill replaces it and returns '
-        'the row to a stub — choosing is not confirming (U-D4)', () async {
-      await repo.applyUsdaProbe(
-        '3',
-        source: 'usda_fdc:11216',
-        macros: const Macros(kcal: 108, protein: 6, carb: 19, fat: 1),
-      );
-      await repo.confirmStub('3');
-      final picked = (await repo.applyUsdaProbe(
-        '3',
-        source: 'usda_fdc:9',
-        sourceLabel: 'Olive oil, chosen',
-        macros: const Macros(kcal: 50, protein: 1, carb: 2, fat: 3),
-        explicitPick: true,
-      ))!;
-      expect(picked.status, IngredientStatus.stub);
-      expect(picked.macros!.kcal, 50);
-    });
-
-    test(
-      'an explicit pick still never overwrites numbers a person supplied '
-      '— the bare-stub guard is lifted only for the prefill’s own fill',
-      () async {
-        await repo.setDensity('3', 0.9);
-        expect(
-          await repo.applyUsdaProbe(
-            '3',
-            source: 'usda_fdc:9',
-            sourceLabel: 'Olive oil, chosen',
-            densityGPerMl: 0.5,
-            explicitPick: true,
-          ),
-          isNull,
-        );
-        expect((await repo.byId('3'))!.densityGPerMl, 0.9);
-      },
-    );
   });
 
   // --- The manager's write half (step 8.5, plan 0020) ------------------------
@@ -1344,7 +1088,15 @@ void main() {
       final created = await repo.saveForm(
         null,
         IngredientFormEdit(
-          row: _edit(name: 'Black garlic', category: 'pantry'),
+          row: _edit(
+            name: 'Black garlic',
+            category: 'pantry',
+            // A barcode draft's own provenance and panel, in the basis the
+            // label read them in (D1/7.7).
+            macros: const Macros(kcal: 197, protein: 2, carb: 3, fat: 20),
+            basis: MacrosBasis.perMl,
+            source: 'off:5000159407236',
+          ),
           density: const DensitySet(0.9),
           measuresAdded: const [
             PendingMeasure(id: 'nm-1', label: 'clove', amount: 5),
@@ -1360,10 +1112,17 @@ void main() {
       expect(created.densityGPerMl, 0.9);
       // The server's own phrase rules, so the next import's cascade finds it.
       final row = await db.get(
-        'SELECT match_text FROM ingredient WHERE id = ?',
+        'SELECT match_text, source, macros, macros_basis FROM ingredient '
+        'WHERE id = ?',
         [created.id],
       );
       expect(row['match_text'], normalizeMatchText('Black garlic'));
+      // The provenance and the panel land on a CREATE too — the `source`
+      // column gets the draft's own `off:<barcode>` value, and the numbers
+      // stay in the basis they were read in rather than being converted.
+      expect(row['source'], 'off:5000159407236');
+      expect(Macros.tryParse(row['macros'] as String?)?.kcal, 197);
+      expect(row['macros_basis'], 'ml');
       // The children point at the row that was minted in the same statement
       // batch — no window in which the row exists without them.
       final measure = await db.get(
@@ -1423,10 +1182,13 @@ void main() {
     });
   });
 
-  group('saveEdit', () {
+  group('the form writes the row half (D5/D6, ADR-0011)', () {
     test('a RENAME rewrites match_text with the server phrase rules — the '
         'hazard plan 0020 D6 names', () async {
-      final saved = await repo.saveEdit('1', _edit(name: 'Curry leaves'));
+      final saved = await repo.saveForm(
+        '1',
+        IngredientFormEdit(row: _edit(name: 'Curry leaves')),
+      );
       expect(saved!.canonicalName, 'Curry leaves');
       final row = await db.get(
         "SELECT canonical_name, match_text FROM ingredient WHERE id = '1'",
@@ -1447,7 +1209,7 @@ void main() {
         final before = (await db.get(
           "SELECT source FROM ingredient WHERE id = '1'",
         ))['source'];
-        await repo.saveEdit('1', _edit(name: 'Onion'));
+        await repo.saveForm('1', IngredientFormEdit(row: _edit(name: 'Onion')));
         expect(
           (await db.get(
             "SELECT source FROM ingredient WHERE id = '1'",
@@ -1457,17 +1219,25 @@ void main() {
         );
 
         const panel = Macros(kcal: 539, protein: 6.3, carb: 57.5, fat: 30.9);
-        final stamped = await repo.saveEdit(
+        final stamped = await repo.saveForm(
           '1',
-          _edit(name: 'Onion', macros: panel, source: 'off:3017620422003'),
+          IngredientFormEdit(
+            row: _edit(
+              name: 'Onion',
+              macros: panel,
+              source: 'off:3017620422003',
+            ),
+          ),
         );
         expect(stamped!.source, 'off:3017620422003');
         expect(stamped.macros, panel);
 
         // …and the next plain save leaves the stamp where it is.
-        final again = await repo.saveEdit(
+        final again = await repo.saveForm(
           '1',
-          _edit(name: 'Onion', macros: panel),
+          IngredientFormEdit(
+            row: _edit(name: 'Onion', macros: panel),
+          ),
         );
         expect(again!.source, 'off:3017620422003');
       },
@@ -1475,9 +1245,11 @@ void main() {
 
     test('writes the explicit allowed_units list verbatim — an editor that '
         'recomputed it would silently discard a curated set', () async {
-      final saved = await repo.saveEdit(
+      final saved = await repo.saveForm(
         '1',
-        _edit(name: 'Onion', allowed: {pieces, g, toTaste}),
+        IngredientFormEdit(
+          row: _edit(name: 'Onion', allowed: {pieces, g, toTaste}),
+        ),
       );
       expect(saved!.allowedUnits!.map((u) => u.id).toSet(), {
         'piece',
@@ -1497,12 +1269,14 @@ void main() {
     test(
       'macros round-trip with their basis, unconverted (7.7/0011)',
       () async {
-        final saved = await repo.saveEdit(
+        final saved = await repo.saveForm(
           '1',
-          _edit(
-            name: 'Coconut milk',
-            macros: const Macros(kcal: 197, protein: 2, carb: 3, fat: 20),
-            basis: MacrosBasis.perMl,
+          IngredientFormEdit(
+            row: _edit(
+              name: 'Coconut milk',
+              macros: const Macros(kcal: 197, protein: 2, carb: 3, fat: 20),
+              basis: MacrosBasis.perMl,
+            ),
           ),
         );
         expect(
@@ -1520,7 +1294,10 @@ void main() {
         'macros = \'{"kcal":1,"protein":1,"carb":1,"fat":1}\' '
         "WHERE id = '1'",
       );
-      final saved = await repo.saveEdit('1', _edit(name: 'Onion'));
+      final saved = await repo.saveForm(
+        '1',
+        IngredientFormEdit(row: _edit(name: 'Onion')),
+      );
       expect(saved!.status, IngredientStatus.stub);
       expect(saved.macros, isNull);
     });
@@ -1528,77 +1305,71 @@ void main() {
     test(
       'filling the macros in does NOT promote — confirming is a human act',
       () async {
-        final saved = await repo.saveEdit(
-          '1',
-          _edit(
-            name: 'Onion',
-            macros: const Macros(kcal: 40, protein: 1, carb: 9, fat: 0),
-          ),
-        );
-        expect(saved!.status, IngredientStatus.complete); // it started complete
-        final stub = await repo.saveEdit(
+        final stub = await repo.saveForm(
           '3', // Olive Oil, seeded as a stub
-          _edit(
-            name: 'Olive Oil',
-            macros: const Macros(kcal: 884, protein: 0, carb: 0, fat: 100),
+          IngredientFormEdit(
+            row: _edit(
+              name: 'Olive Oil',
+              macros: const Macros(kcal: 884, protein: 0, carb: 0, fat: 100),
+            ),
           ),
         );
         expect(stub!.status, IngredientStatus.stub);
       },
     );
-
-    test('refuses a blank name and null for an unknown id', () async {
-      await expectLater(
-        repo.saveEdit('1', _edit(name: '   ')),
-        throwsArgumentError,
-      );
-      expect(await repo.saveEdit('nope', _edit(name: 'x')), isNull);
-    });
   });
 
-  group('confirm / unconfirm (D5: macros gate, density does not)', () {
-    test('a stub with macros but NO density confirms', () async {
-      await repo.saveEdit(
+  group('mark complete / unconfirm (D5: macros gate, density does not)', () {
+    test('a stub with macros but NO density marks complete', () async {
+      final confirmed = await repo.saveForm(
         '3',
-        _edit(
-          name: 'Olive Oil',
-          macros: const Macros(kcal: 884, protein: 0, carb: 0, fat: 100),
+        IngredientFormEdit(
+          row: _edit(
+            name: 'Olive Oil',
+            macros: const Macros(kcal: 884, protein: 0, carb: 0, fat: 100),
+          ),
+          markComplete: true,
         ),
       );
-      final confirmed = await repo.confirmStub('3');
       expect(confirmed!.status, IngredientStatus.complete);
       expect(confirmed.densityGPerMl, isNull);
       expect(await repo.watchStubCount().first, 0);
     });
 
     test(
-      'a stub with a density but no macros is REFUSED — the gate is macros',
+      'a row with a density but no macros stays a stub — the gate is macros',
       () async {
-        await repo.setDensity('3', 0.91);
-        await expectLater(repo.confirmStub('3'), throwsStateError);
-        expect((await repo.byId('3'))!.status, IngredientStatus.stub);
+        final saved = await repo.saveForm(
+          '3',
+          IngredientFormEdit(
+            row: _edit(name: 'Olive Oil'),
+            density: const DensitySet(0.91),
+            markComplete: true,
+          ),
+        );
+        expect(saved!.status, IngredientStatus.stub);
       },
     );
 
-    test('confirm is reversible', () async {
-      await repo.saveEdit(
+    test('marking complete is reversible', () async {
+      await repo.saveForm(
         '3',
-        _edit(
-          name: 'Olive Oil',
-          macros: const Macros(kcal: 884, protein: 0, carb: 0, fat: 100),
+        IngredientFormEdit(
+          row: _edit(
+            name: 'Olive Oil',
+            macros: const Macros(kcal: 884, protein: 0, carb: 0, fat: 100),
+          ),
+          markComplete: true,
         ),
       );
-      await repo.confirmStub('3');
       final back = await repo.unconfirm('3');
       expect(back!.status, IngredientStatus.stub);
       // The macros stay — unconfirming stops it counting, it doesn't erase
       // what someone typed.
       expect(back.macros, isNotNull);
-      expect(await repo.confirmStub('3'), isNotNull);
     });
 
     test('null for an unknown id', () async {
-      expect(await repo.confirmStub('nope'), isNull);
       expect(await repo.unconfirm('nope'), isNull);
     });
   });
@@ -1626,7 +1397,15 @@ void main() {
       test(
         'an unreferenced row tombstones, and takes its aliases with it',
         () async {
-          await repo.addAlias('1', 'yellow onion');
+          await repo.saveForm(
+            '1',
+            IngredientFormEdit(
+              row: _edit(name: 'Onion'),
+              aliasesAdded: const [
+                PendingAlias(id: 'a-del', text: 'yellow onion'),
+              ],
+            ),
+          );
           expect(await repo.softDelete('1'), isA<Deleted>());
           expect(await repo.byId('1'), isNull);
           expect(await repo.aliases('1'), isEmpty);
@@ -1660,10 +1439,6 @@ void main() {
           await db.execute(
             "UPDATE recipe SET deleted_at = '2026-01-01' WHERE id = 'r1'",
           );
-          expect(await repo.recipeReferences('1'), (
-            recipeCount: 0,
-            lineCount: 0,
-          ));
           expect(await repo.softDelete('1'), isA<Deleted>());
         },
       );
@@ -1677,33 +1452,31 @@ void main() {
     },
   );
 
-  group('aliases', () {
+  group('aliases (written by the form, the only door there is)', () {
+    Future<void> addAlias(String ingredientId, String id, String text) =>
+        repo.saveForm(
+          ingredientId,
+          IngredientFormEdit(
+            row: _edit(name: ingredientId == '1' ? 'Onion' : 'Spring Onion'),
+            aliasesAdded: [PendingAlias(id: id, text: text)],
+          ),
+        );
+
     test(
       'an alias is stored with the server-rule match_text and is findable',
       () async {
-        final alias = await repo.addAlias('1', 'Yellow Onions');
-        expect(alias.text, 'Yellow Onions');
-        expect(alias.source, 'manual');
+        await addAlias('1', 'a-y', 'Yellow Onions');
         final row = await db.get(
-          'SELECT match_text, household_id FROM ingredient_alias WHERE id = ?',
-          [alias.id],
+          'SELECT alias_text, match_text, household_id, source '
+          'FROM ingredient_alias WHERE id = ?',
+          ['a-y'],
         );
-        expect(
-          row['match_text'],
-          'yellow onion',
-        ); // singularized, as the server
+        expect(row['alias_text'], 'Yellow Onions');
+        expect(row['source'], 'manual');
+        // Singularized, as the server writes it.
+        expect(row['match_text'], 'yellow onion');
         expect(row['household_id'], 'h');
         expect((await _search(repo, 'yellow')).single.id, '1');
-      },
-    );
-
-    test(
-      'adding the same alias twice is a no-op, not a duplicate row',
-      () async {
-        final first = await repo.addAlias('1', 'Yellow Onions');
-        final second = await repo.addAlias('1', 'yellow onion');
-        expect(second.id, first.id);
-        expect(await repo.aliases('1'), hasLength(1));
       },
     );
 
@@ -1711,15 +1484,21 @@ void main() {
       'refuses an alias with no identity word — it would match everything',
       () async {
         await expectLater(
-          repo.addAlias('1', 'a handful of'),
+          addAlias('1', 'a-empty', 'a handful of'),
           throwsArgumentError,
         );
       },
     );
 
     test('removing an alias tombstones it and it stops matching', () async {
-      final alias = await repo.addAlias('1', 'Yellow Onions');
-      await repo.removeAlias(alias.id);
+      await addAlias('1', 'a-y', 'Yellow Onions');
+      await repo.saveForm(
+        '1',
+        IngredientFormEdit(
+          row: _edit(name: 'Onion'),
+          aliasesRemoved: const {'a-y'},
+        ),
+      );
       expect(await repo.aliases('1'), isEmpty);
       expect(await _search(repo, 'yellow'), isEmpty);
     });

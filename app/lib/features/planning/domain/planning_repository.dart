@@ -19,15 +19,13 @@ abstract interface class PlanningRepository {
   /// there is no earlier planned week.
   Future<WeekPlan?> mostRecentWeekBefore(DateTime weekStart);
 
-  /// Every household member (the eater roster), ordered for display. Members
-  /// are server-owned — created at onboarding (`ensure_onboarded`, migration
-  /// 0007) and synced down; the one thing the app writes on them is the
-  /// portion factor ([setPortionFactor]).
-  Future<List<Member>> members();
-
-  /// [members], reacting to local writes and the partner's synced ones — the
-  /// Household sheet's segment and every Portions row read it, so a factor
-  /// set on either phone shows on both without a re-open.
+  /// Every household member (the eater roster), ordered for display, live —
+  /// the Household sheet's segment and every Portions row read it, so a
+  /// factor set on either phone shows on both without a re-open.
+  ///
+  /// Members are server-owned — created at onboarding (`ensure_onboarded`,
+  /// migration 0007) and synced down; the one thing the app writes on them is
+  /// the portion factor ([setPortionFactor]).
   Stream<List<Member>> watchMembers();
 
   /// Sets a member's usual portion (plan 0027 P-D1/D3): a multiple of one

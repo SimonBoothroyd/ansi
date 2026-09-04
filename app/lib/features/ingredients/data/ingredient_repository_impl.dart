@@ -275,51 +275,6 @@ class SqliteIngredientRepository implements IngredientRepository {
   }
 
   @override
-  Future<Ingredient> createStub(
-    String name, {
-    String source = 'manual',
-    Macros? macros,
-    MacrosBasis macrosBasis = MacrosBasis.perG,
-  }) async {
-    final id = _uuid.v4();
-    final now = DateTime.now().toUtc().toIso8601String();
-    final trimmed = name.trim();
-    // The server's OWN phrase rules, ported (plan 0020 D6). Before the port
-    // this wrote the character-level normalization only, so a locally created
-    // stub carried a `match_text` the server would never have written and the
-    // next import's cascade missed it.
-    final matchText = normalizeMatchText(trimmed);
-    await _db.execute(
-      'INSERT INTO ingredient (id, household_id, canonical_name, '
-      'default_unit, status, source, match_text, macros, macros_basis, '
-      'created_at, updated_at) '
-      "VALUES (?, ?, ?, 'g', 'stub', ?, ?, ?, ?, ?, ?)",
-      [
-        id,
-        _householdId,
-        trimmed,
-        source,
-        matchText,
-        // A source with no panel writes NULL, not zeros (invariant 3) — and
-        // `status` stays 'stub' regardless of what arrived (D5).
-        _macrosJson(macros),
-        macrosBasis.dbValue,
-        now,
-        now,
-      ],
-    );
-    return Ingredient(
-      id: id,
-      canonicalName: trimmed,
-      defaultUnit: g,
-      status: IngredientStatus.stub,
-      macros: macros,
-      macrosBasis: macrosBasis,
-      source: source,
-    );
-  }
-
-  @override
   Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async {
     // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
     if (!(gPerMl > 0)) {
@@ -501,89 +456,6 @@ class SqliteIngredientRepository implements IngredientRepository {
     });
     if (!wrote) return null;
     return byId(ingredientId);
-  }
-
-  @override
-  Future<Ingredient?> applyUsdaProbe(
-    String ingredientId, {
-    required String source,
-    String? sourceLabel,
-    double? sourceScore,
-    double? densityGPerMl,
-    Macros? macros,
-    bool explicitPick = false,
-  }) async {
-    if (densityGPerMl == null && macros == null) return null;
-    final now = DateTime.now().toUtc().toIso8601String();
-    final applied = await _db.writeTransaction((tx) async {
-      final row = await tx.getOptional(
-        'SELECT i.*, $_measureCount FROM ingredient i '
-        'WHERE i.id = ? AND i.deleted_at IS NULL',
-        [ingredientId],
-      );
-      if (row == null) return false;
-      final current = _toIngredient(row);
-      final bare =
-          current.status == IngredientStatus.stub &&
-          current.densityGPerMl == null &&
-          current.macros == null;
-      // The guards re-checked inside the transaction, not just by the caller:
-      // the row can change between the probe and this write (another device
-      // editing the same household). They used to mirror the 0014/0015
-      // trigger's WHEN clause, which is what made THAT race benign; 0029
-      // dropped the trigger, so the guards now answer only for other devices
-      // — a bare stub, and not one a person declined (plan 0027 U-D2). A
-      // person's own pick (U-D3) may also replace a fill that is still the
-      // prefill's own; nothing ever replaces numbers a person supplied.
-      final replacingOwnFill = explicitPick && isUsdaPrefilled(current.source);
-      if (explicitPick) {
-        if (!bare && !replacingOwnFill) return false;
-      } else if (!bare || isUsdaDeclined(current.source)) {
-        return false;
-      }
-      // The admission list follows the density both ways (ADR-0009 / D4b):
-      // an old density's unlock comes out with it, a landing density's goes
-      // in — the same events `clearDensity` and `setDensity` are. A row with
-      // no explicit list and no density arriving stays on the derived
-      // fallback.
-      List<Unit>? units;
-      if (current.densityGPerMl != null || densityGPerMl != null) {
-        final next = {
-          ...current.allowedUnits ?? defaultAllowedUnitSet(current),
-        };
-        if (current.densityGPerMl != null && densityGPerMl == null) {
-          next.removeAll(densityStrippedUnits(current));
-        }
-        if (densityGPerMl != null) next.addAll(densityUnlockedUnits(current));
-        units = next.toList();
-      } else {
-        units = current.allowedUnits;
-      }
-      // Label and score in the same statement as the stamp — the trigger's
-      // shape (0027), so a row never says `usda_fdc:<id>` without being able
-      // to say which food and how sure. The row reads `stub` whatever it
-      // was: a fill is never confirmed by the act of choosing it (U-D4).
-      await tx.execute(
-        'UPDATE ingredient SET density_g_per_ml = ?, macros = ?, '
-        'allowed_units = ?, source = ?, source_label = ?, source_score = ?, '
-        "status = 'stub', updated_at = ? WHERE id = ?",
-        [
-          densityGPerMl,
-          _macrosJson(macros),
-          if (units == null)
-            null
-          else
-            jsonEncode([for (final u in units) u.id]),
-          source,
-          sourceLabel,
-          sourceScore,
-          now,
-          ingredientId,
-        ],
-      );
-      return true;
-    });
-    return applied ? byId(ingredientId) : null;
   }
 
   // --- The manager's write half (step 8.5) -----------------------------------
@@ -849,74 +721,6 @@ class SqliteIngredientRepository implements IngredientRepository {
   }
 
   @override
-  Future<Ingredient?> saveEdit(String ingredientId, IngredientEdit edit) async {
-    final name = edit.canonicalName.trim();
-    if (name.isEmpty) {
-      throw ArgumentError.value(
-        edit.canonicalName,
-        'canonicalName',
-        'must not be blank',
-      );
-    }
-    final macros = edit.macros;
-    final macrosJson = _macrosJson(macros);
-    final now = DateTime.now().toUtc().toIso8601String();
-    final updated = await _db.writeTransaction((tx) async {
-      final row = await tx.getOptional(
-        'SELECT status FROM ingredient WHERE id = ? AND deleted_at IS NULL',
-        [ingredientId],
-      );
-      if (row == null) return false;
-      // D5's reversibility: clearing the macros of a complete row returns it
-      // to `stub` rather than leaving it asserting a number it no longer has.
-      // Filling them in never promotes — that is [confirmStub], a human act.
-      final status = macros == null ? 'stub' : row['status'] as String;
-      await tx.execute(
-        'UPDATE ingredient SET canonical_name = ?, match_text = ?, '
-        'category = ?, default_unit = ?, macros = ?, macros_basis = ?, '
-        'allowed_units = ?, status = ?, '
-        // Provenance is patch-shaped (see [IngredientEdit.source]): a null
-        // keeps what is stored, a value stamps it in the same statement as
-        // the macros it explains.
-        'source = COALESCE(?, source), updated_at = ? WHERE id = ?',
-        [
-          name,
-          // The rename hazard (D6): the stored name and its match_text are
-          // written together or the cascade searches for a name nothing
-          // carries.
-          normalizeMatchText(name),
-          edit.category,
-          edit.defaultUnit.id,
-          macrosJson,
-          edit.macrosBasis.dbValue,
-          jsonEncode([for (final u in edit.allowedUnits) u.id]),
-          status,
-          edit.source,
-          now,
-          ingredientId,
-        ],
-      );
-      return true;
-    });
-    return updated ? byId(ingredientId) : null;
-  }
-
-  @override
-  Future<Ingredient?> confirmStub(String ingredientId) async {
-    final current = await byId(ingredientId);
-    if (current == null) return null;
-    if (current.macros == null) {
-      // The CTA is disabled without macros; the gate holds here too, so a
-      // future caller can't promote a row into every macro total by mistake.
-      throw StateError(
-        'cannot confirm "${current.canonicalName}" — it has no macros '
-        '(plan 0020 D5: macros are the gate, density is not)',
-      );
-    }
-    return _setStatus(ingredientId, 'complete');
-  }
-
-  @override
   Future<Ingredient?> unconfirm(String ingredientId) =>
       _setStatus(ingredientId, 'stub');
 
@@ -929,8 +733,9 @@ class SqliteIngredientRepository implements IngredientRepository {
     return byId(ingredientId);
   }
 
-  @override
-  Future<({int recipeCount, int lineCount})> recipeReferences(
+  /// Live recipe lines naming [ingredientId], as (recipes, lines) — the
+  /// delete guard's evidence, and the numbers a refusal names.
+  Future<({int recipeCount, int lineCount})> _recipeReferences(
     String ingredientId,
   ) async {
     // A line's recipe is reached through its group, and both must be live —
@@ -954,7 +759,7 @@ class SqliteIngredientRepository implements IngredientRepository {
   Future<DeleteOutcome> softDelete(String ingredientId) async {
     final current = await byId(ingredientId);
     if (current == null) return const DeleteMissing();
-    final refs = await recipeReferences(ingredientId);
+    final refs = await _recipeReferences(ingredientId);
     if (refs.lineCount > 0) {
       return DeleteRefused(
         recipeCount: refs.recipeCount,
@@ -994,53 +799,6 @@ class SqliteIngredientRepository implements IngredientRepository {
           source: (r['source'] as String?) ?? 'manual',
         ),
     ];
-  }
-
-  @override
-  Future<IngredientAlias> addAlias(String ingredientId, String text) async {
-    final trimmed = text.trim();
-    final matchText = normalizeMatchText(trimmed);
-    if (matchText.isEmpty) {
-      throw ArgumentError.value(
-        text,
-        'text',
-        'an alias must carry at least one identity word',
-      );
-    }
-    final now = DateTime.now().toUtc().toIso8601String();
-    final id = _uuid.v4();
-    // Find-or-create, not blind insert (the import cascade's rule): two
-    // identically matching aliases on one ingredient are noise that can only
-    // ever tie.
-    final existing = await _db.getOptional(
-      'SELECT id, alias_text, source FROM ingredient_alias '
-      'WHERE ingredient_id = ? AND match_text = ? AND deleted_at IS NULL '
-      'LIMIT 1',
-      [ingredientId, matchText],
-    );
-    if (existing != null) {
-      return IngredientAlias(
-        id: existing['id'] as String,
-        text: existing['alias_text'] as String,
-        source: (existing['source'] as String?) ?? 'manual',
-      );
-    }
-    await _db.execute(
-      'INSERT INTO ingredient_alias (id, household_id, ingredient_id, '
-      'alias_text, match_text, source, created_at, updated_at) '
-      "VALUES (?, ?, ?, ?, ?, 'manual', ?, ?)",
-      [id, _householdId, ingredientId, trimmed, matchText, now, now],
-    );
-    return IngredientAlias(id: id, text: trimmed, source: 'manual');
-  }
-
-  @override
-  Future<void> removeAlias(String aliasId) async {
-    final now = DateTime.now().toUtc().toIso8601String();
-    await _db.execute(
-      'UPDATE ingredient_alias SET deleted_at = ?, updated_at = ? WHERE id = ?',
-      [now, now, aliasId],
-    );
   }
 
   Ingredient _toIngredient(Row r) => Ingredient(

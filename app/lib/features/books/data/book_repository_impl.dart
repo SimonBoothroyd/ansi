@@ -196,14 +196,6 @@ class SqliteBookRepository implements BookRepository {
   }
 
   @override
-  Future<int> countBooks() async {
-    final row = await _db.get(
-      'SELECT COUNT(*) AS n FROM book WHERE deleted_at IS NULL',
-    );
-    return row['n'] as int;
-  }
-
-  @override
   Future<void> moveBookContents({
     required String fromBookId,
     required String toBookId,
@@ -283,19 +275,6 @@ class SqliteBookRepository implements BookRepository {
     await _db.execute(
       'UPDATE book_section SET deleted_at = ?, updated_at = ? WHERE id = ?',
       [now, now, sectionId],
-    );
-  }
-
-  @override
-  Future<void> assignRecipe(
-    String recipeId, {
-    required String bookId,
-    String? sectionId,
-  }) async {
-    await _db.execute(
-      'UPDATE recipe SET book_id = ?, section_id = ?, updated_at = ? '
-      'WHERE id = ?',
-      [bookId, sectionId, _now(), recipeId],
     );
   }
 

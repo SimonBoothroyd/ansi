@@ -6,11 +6,13 @@
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/ingredients/domain/search_rank.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
@@ -335,11 +337,17 @@ void main() {
           builder: (context, state) => FScaffold(
             child: FButton(
               onPress: () async {
-                final made = await repo.createStub(
-                  state.uri.queryParameters['name'] ?? '',
+                final saved = await repo.saveForm(
+                  null,
+                  IngredientFormEdit(
+                    row: IngredientEdit(
+                      canonicalName: state.uri.queryParameters['name'] ?? '',
+                      defaultUnit: g,
+                      macrosBasis: MacrosBasis.perG,
+                      allowedUnits: {g, kg},
+                    ),
+                  ),
                 );
-                final saved = made.copyWith(allowedUnits: [g, kg]);
-                repo.rows[repo.rows.length - 1] = saved;
                 if (context.mounted) context.pop(saved);
               },
               child: const Text('create'),

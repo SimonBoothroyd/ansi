@@ -7,9 +7,11 @@
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/shopping/presentation/add_shopping_item_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,11 +53,17 @@ Widget _host(FakeIngredientRepo repo) {
             onPress: () async {
               // What ONE Save does (plan 0029 C2): the row and everything the
               // form set, then pop with it.
-              final made = await repo.createStub(
-                state.uri.queryParameters['name'] ?? '',
+              final saved = await repo.saveForm(
+                null,
+                IngredientFormEdit(
+                  row: IngredientEdit(
+                    canonicalName: state.uri.queryParameters['name'] ?? '',
+                    defaultUnit: g,
+                    macrosBasis: MacrosBasis.perG,
+                    allowedUnits: {g, kg},
+                  ),
+                ),
               );
-              final saved = made.copyWith(allowedUnits: [g, kg]);
-              repo.rows[repo.rows.length - 1] = saved;
               if (context.mounted) context.pop(saved);
             },
             child: const Text('create'),

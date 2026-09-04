@@ -61,7 +61,10 @@ void main() {
     await _insertRecipe(db, 'r1', 'Curry');
     final book = await repo.ensureDefaultBook();
     final section = await repo.createSection(book.id, 'Weeknight');
-    await repo.assignRecipe('r1', bookId: book.id, sectionId: section);
+    await db.execute(
+      'UPDATE recipe SET book_id = ?, section_id = ? WHERE id = ?',
+      [book.id, section, 'r1'],
+    );
     await _insertRecipe(db, 'r2', 'Toast');
 
     await repo.ensureDefaultBook();
@@ -111,18 +114,6 @@ void main() {
     expect(b.sections.single.name, 'Weeknight');
     expect(b.sections.single.recipes.map((r) => r.title), ['Curry']);
     expect(b.unsectioned.map((r) => r.title), ['Toast']);
-  });
-
-  test('assignRecipe files a recipe into a section', () async {
-    final book = await repo.ensureDefaultBook();
-    final sweet = await repo.createSection(book.id, 'Sweet');
-    await _insertRecipe(db, 'r1', 'Cookies', bookId: book.id);
-
-    await repo.assignRecipe('r1', bookId: book.id, sectionId: sweet);
-
-    final b = (await repo.watchLibrary().first).single;
-    expect(b.unsectioned, isEmpty);
-    expect(b.sections.single.recipes.map((r) => r.title), ['Cookies']);
   });
 
   test('deleteSection returns its recipes to Unsectioned', () async {
@@ -220,7 +211,7 @@ void main() {
 
     expect(await repo.countRecipesIn(book.id), 1);
     expect(await repo.countRecipesIn(other), 1);
-    expect(await repo.countBooks(), 2);
+    expect(await repo.watchLibrary().first, hasLength(2));
   });
 
   test('deleteBook soft-deletes the book and its sections', () async {
@@ -239,7 +230,7 @@ void main() {
 
     // A second delete is a harmless no-op — the tombstone is already there.
     await repo.deleteBook(book.id);
-    expect(await repo.countBooks(), 1);
+    expect(await repo.watchLibrary().first, hasLength(1));
   });
 
   test(
@@ -303,6 +294,6 @@ void main() {
     final second = await repo.ensureDefaultBook();
 
     expect(second.id, isNot(first.id));
-    expect(await repo.countBooks(), 1);
+    expect(await repo.watchLibrary().first, hasLength(1));
   });
 }

@@ -35,9 +35,6 @@ abstract interface class BookRepository {
   /// true *now* (the `usedIn` precedent), never the cached Library tree.
   Future<int> countRecipesIn(String bookId);
 
-  /// How many live books there are — what the last-book delete refusal asks.
-  Future<int> countBooks();
-
   /// Re-files every live recipe in [fromBookId] into [toBookId], clearing their
   /// `section_id`: sections belong to the book they were named in, so a moved
   /// recipe lands unsectioned rather than pointing at a shelf it left.
@@ -66,12 +63,4 @@ abstract interface class BookRepository {
   /// Soft-deletes a section; its recipes fall back to the Unsectioned bucket
   /// (their `section_id` is untouched but the library join drops deleted rows).
   Future<void> deleteSection(String sectionId);
-
-  /// Files a recipe into a book and (optionally) a section. A null [sectionId]
-  /// clears the section (Unsectioned).
-  Future<void> assignRecipe(
-    String recipeId, {
-    required String bookId,
-    String? sectionId,
-  });
 }

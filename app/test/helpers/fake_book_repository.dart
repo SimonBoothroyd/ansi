@@ -35,9 +35,6 @@ class FakeBookRepository implements BookRepository {
   Future<int> countRecipesIn(String bookId) async => 0;
 
   @override
-  Future<int> countBooks() async => books.length;
-
-  @override
   Future<void> moveBookContents({
     required String fromBookId,
     required String toBookId,
@@ -60,13 +57,6 @@ class FakeBookRepository implements BookRepository {
 
   @override
   Future<void> deleteSection(String sectionId) async {}
-
-  @override
-  Future<void> assignRecipe(
-    String recipeId, {
-    required String bookId,
-    String? sectionId,
-  }) async {}
 }
 
 /// A [FakeBookRepository] whose writes refuse the first [failures] calls.

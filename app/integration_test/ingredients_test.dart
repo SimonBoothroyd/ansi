@@ -29,14 +29,14 @@
 /// rows), and the G4 "needs completing" hint.
 ///
 /// The stubs this file works on are SEEDED through the app's own ingredient
-/// repository — the same `createStub` the add flow's "Create & flesh out"
-/// calls (a `manual` stub with the raw name and a server-rule `match_text`)
+/// repository — the same `saveForm(null, …)` the add form's one Save calls
+/// (a `manual` stub with the raw name and a server-rule `match_text`)
 /// — and round-tripped through sync before the manager opens. The import
 /// file drives the UI that creates the same row. The USDA stub is seeded that
 /// way ON PURPOSE rather than through the manager's ＋: the sheet's Manual and
 /// USDA legs run the client's own birth probe over the same RPC, which would
 /// fill the row before it ever uploaded and leave nothing for the trigger to
-/// prove. Through `createStub` the only writer of `source_label` on the local
+/// prove. Seeded that way, the only writer of `source_label` on the local
 /// row is the server.
 ///
 /// Scanning from the camera is not exercised: `mobile_scanner` refuses
@@ -50,13 +50,19 @@ library;
 
 import 'dart:convert';
 
-import 'package:ansi/core/units/units.dart' show densityFromVolumeWeight, tbsp;
+import 'package:ansi/core/units/macros.dart' show MacrosBasis;
+import 'package:ansi/core/units/units.dart'
+    show densityFromVolumeWeight, g, tbsp;
 import 'package:ansi/features/ingredients/barcode/barcode_scan_sheet.dart'
     show BarcodeScanSheet;
 import 'package:ansi/features/ingredients/data/ingredient_repository_impl.dart';
 import 'package:ansi/features/ingredients/data/measure_repository_impl.dart';
+import 'package:ansi/features/ingredients/domain/allowed_units.dart'
+    show defaultAllowedUnitSet;
 import 'package:ansi/features/ingredients/domain/ingredient.dart'
-    show usdaDeclinedSource, usdaFdcId;
+    show Ingredient, IngredientStatus, usdaDeclinedSource, usdaFdcId;
+import 'package:ansi/features/ingredients/domain/ingredient_repository.dart'
+    show IngredientEdit, IngredientFormEdit;
 import 'package:ansi/features/ingredients/domain/normalize.dart'
     show normalizeMatchText;
 import 'package:ansi/features/ingredients/domain/usda_probe.dart'
@@ -131,7 +137,7 @@ void main() {
         householdId: stack.householdId,
       );
       const stubName = 'Aleppo chilli flakes';
-      final chilli = await ingredients.createStub(stubName);
+      final chilli = (await ingredients.saveForm(null, _bareStub(stubName)))!;
       // A measure on it, so the form draws its Counts-as row (hidden on a row
       // with none — there is nothing to choose). Not a volume word: those
       // are a density in disguise and the repository refuses them.
@@ -144,10 +150,13 @@ void main() {
       // density AND macros, so the fill exercises 0014's unlock too) and the
       // household vocab does not carry. Before the upload it is provably
       // bare: the phone holds no reference set (ADR-0004/0005) and
-      // `createStub` writes no label, so a label on this row after the round
+      // the seed writes no label, so a label on this row after the round
       // trip can only be the server trigger's.
       const usdaName = 'Radicchio';
-      final radicchio = await ingredients.createStub(usdaName);
+      final radicchio = (await ingredients.saveForm(
+        null,
+        _bareStub(usdaName),
+      ))!;
       expect(
         (await db.get(
           "SELECT count(*) AS c FROM sqlite_master WHERE name = 'usda_food'",
@@ -816,3 +825,24 @@ void main() {
     },
   );
 }
+
+/// A bare manual stub as the add form's one Save creates it (ADR-0011): the
+/// name, its server-rule `match_text`, and the admission set the form itself
+/// opens on — nothing else. No density, no macros, no label, so anything of
+/// those on the row afterwards came from the server.
+IngredientFormEdit _bareStub(String name) => IngredientFormEdit(
+  row: IngredientEdit(
+    canonicalName: name,
+    defaultUnit: g,
+    macrosBasis: MacrosBasis.perG,
+    allowedUnits: defaultAllowedUnitSet(
+      Ingredient(
+        id: '',
+        canonicalName: name,
+        defaultUnit: g,
+        status: IngredientStatus.stub,
+      ),
+    ),
+    source: 'manual',
+  ),
+);

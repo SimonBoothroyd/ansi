@@ -57,7 +57,7 @@ void main() {
       // synced table directly, as sync would.
       await _insertMember(db, 'm2', 'Jun', 1);
       await _insertMember(db, 'm1', 'Ada', 0);
-      final members = await repo.members();
+      final members = await repo.watchMembers().first;
       expect(members.map((m) => m.displayName), ['Ada', 'Jun']);
     });
 
@@ -68,18 +68,18 @@ void main() {
         "UPDATE household_member SET deleted_at = '2026-01-01T00:00:00Z' "
         "WHERE id = 'm2'",
       );
-      final members = await repo.members();
+      final members = await repo.watchMembers().first;
       expect(members.map((m) => m.displayName), ['Ada']);
     });
 
     test('a member row without a factor reads 1 — the column’s own default '
         '(plan 0027 P-D6)', () async {
       await _insertMember(db, 'm1', 'Ada', 0);
-      expect((await repo.members()).single.portionFactor, 1);
+      expect((await repo.watchMembers().first).single.portionFactor, 1);
     });
 
-    test('setPortionFactor writes the one client-owned column, members() '
-        'reads it back and watchMembers re-emits (P-D1/D3)', () async {
+    test('setPortionFactor writes the one client-owned column and '
+        'watchMembers re-emits it (P-D1/D3)', () async {
       await _insertMember(db, 'm1', 'Ada', 0);
       await _insertMember(db, 'm2', 'Jun', 1);
       final stream = StreamIterator(repo.watchMembers());
@@ -91,7 +91,6 @@ void main() {
       await repo.setPortionFactor('m2', 0.75);
       expect(await stream.moveNext(), isTrue);
       expect(stream.current.map((m) => m.portionFactor), [1, 0.75]);
-      expect((await repo.members()).last.portionFactor, 0.75);
       await stream.cancel();
 
       // Nothing else on the row moved: the server grants UPDATE on
