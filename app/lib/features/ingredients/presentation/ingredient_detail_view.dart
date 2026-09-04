@@ -47,6 +47,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
@@ -217,6 +218,19 @@ class _DetailForm extends HookConsumerWidget {
     // back the resolved spoon — the density entry pre-picks it (F2: one
     // shared editor, so the redirect works here exactly as in the sheet).
     final redirectedSpoon = useState<Unit?>(null);
+    // **The draft (plan 0029 W5).** Everything the form intends and has not
+    // written. Held as DELTAS rather than as replacement lists, which is what
+    // answers D6's hazard structurally: a save that only inserts its adds and
+    // tombstones its named removes never needs the whole list, so a measures
+    // stream that failed to load cannot become a narrowed set written back.
+    // The one place emptiness is still load-bearing — the `piece` question —
+    // checks that the list actually loaded before it reads it as empty.
+    final densityChange = useState<DensityChange>(const DensityUnchanged());
+    final measuresAdded = useState<List<Measure>>(const []);
+    final measuresRemoved = useState<Set<String>>(const {});
+    final defaultMeasure = useState<DefaultMeasureChange>(
+      const DefaultMeasureUnchanged(),
+    );
     // The last barcode scan (plan 0025 #8): the draft the card shows, what
     // `applyDraft` decided about it, and whether its pack offer was taken.
     final scanned = useState<IngredientDraft?>(null);
@@ -228,23 +242,46 @@ class _DetailForm extends HookConsumerWidget {
     final pendingSource = useState<String?>(null);
     final measuresAsync = ref.watch(ingredientMeasuresProvider(ing.id));
 
+    // The density AS THE FORM HOLDS IT. Nothing has been written, so the
+    // chips, the gap note and the entry's own headline all read the draft —
+    // and `allowed_units` follows it here, in the form, which is why
+    // `saveForm` writes the set as given instead of re-deriving it (W3).
+    final densityValue = switch (densityChange.value) {
+      DensitySet(:final gPerMl) => gPerMl,
+      DensityCleared() => null,
+      DensityUnchanged() => ing.densityGPerMl,
+    };
     // The row as the FORM currently reads it: the stored facts with the two
     // draft choices the D4c admission rule turns on — the default unit and
     // the macros basis — folded in. Every "what may this row say" question
     // below asks this rather than the stored row, so flipping the basis chip
     // moves the locks and the flag with it instead of leaving them answering
     // for a row nobody is looking at.
-    final draftRow = ingredient.copyWith(
-      defaultUnit: defaultUnit.value,
-      macrosBasis: basis.value,
-    );
+    // `copyWith` reads a null as "unchanged" (freezed), so a CLEARED density
+    // has to be built field-by-field — the same reason the repository's own
+    // clear does not go through copyWith.
+    final draftRow = densityValue == null
+        ? Ingredient(
+            id: ingredient.id,
+            canonicalName: ingredient.canonicalName,
+            defaultUnit: defaultUnit.value,
+            status: ingredient.status,
+            category: ingredient.category,
+            macros: ingredient.macros,
+            macrosBasis: basis.value,
+            allowedUnits: ingredient.allowedUnits,
+            measureCount: ingredient.measureCount,
+            source: ingredient.source,
+            sourceLabel: ingredient.sourceLabel,
+            sourceScore: ingredient.sourceScore,
+            defaultMeasureId: ingredient.defaultMeasureId,
+          )
+        : ingredient.copyWith(
+            defaultUnit: defaultUnit.value,
+            macrosBasis: basis.value,
+            densityGPerMl: densityValue,
+          );
 
-    // A density write lands through the repository and re-renders this screen
-    // via the watched provider; the local allowed-set follows both ways, so
-    // the chips never lag the number they are derived from (D4b). Saving one
-    // unions what it unlocks; deleting one strips it again, which is the only
-    // place this list shrinks.
-    final densityValue = ing.densityGPerMl;
     useEffect(() {
       final next = {...allowed.value};
       if (densityValue != null) {
@@ -308,7 +345,7 @@ class _DetailForm extends HookConsumerWidget {
         : null;
     final stub = ing.status == IngredientStatus.stub;
 
-    Future<Ingredient?> save() async {
+    Future<Ingredient?> save({bool markComplete = false}) async {
       if (name.value.trim().isEmpty) {
         message.value =
             'A name is the one field an ingredient can’t go '
@@ -329,65 +366,79 @@ class _DetailForm extends HookConsumerWidget {
       }
       busy.value = true;
       try {
-        // The keepAlive repo providers, not a throwaway notifier: these
-        // survive the await.
-        final ingredients = ref.read(ingredientRepositoryProvider);
-        final measures = ref.read(measureRepositoryProvider);
-        // M-D2: the opt-in, taken. It writes through the entry paths that
-        // already exist — `setDensity` (the same unlock the density entry's
-        // spoon phrasing lands) or `addMeasure` — as part of this one save.
+        // M-D2: the opt-in, taken. It rides the same one write as everything
+        // else now — it used to be the exception that already deferred to
+        // Save, which is why the plan named it the model to copy.
         final taken = servingOffer.value ? offer : null;
-        // Wrapped in a record so the guard's own "it threw" null stays
-        // distinct from the repository's "the row is gone" null: a failed
-        // write must not be reported as a deleted ingredient.
+        final offeredDensity = taken is DensityOffer ? taken.gPerMl : null;
+        final offeredMeasure = taken is MeasureOffer ? taken : null;
+        final density = offeredDensity != null
+            ? DensitySet(offeredDensity)
+            : densityChange.value;
+        // **One call.** The row's fields, the density, every measure added
+        // and removed, "Counts as" and — when the CTA asked — the status
+        // flip, in a single transaction (W3/W5b). Nothing here can half-land.
         final outcome = await ref.write(
           context,
           'save ${ing.canonicalName}',
-          () async {
-            final row = await ingredients.saveEdit(
-              ing.id,
-              IngredientEdit(
-                canonicalName: name.value,
-                defaultUnit: defaultUnit.value,
-                macrosBasis: basis.value,
-                allowedUnits: allowed.value,
-                category: category.value.trim().isEmpty
-                    ? null
-                    : category.value.trim(),
-                macros: draftMacros,
-                source: pendingSource.value,
-              ),
-            );
-            if (row != null) {
-              switch (taken) {
-                case DensityOffer(:final gPerMl):
-                  await ingredients.setDensity(ing.id, gPerMl);
-                case MeasureOffer(:final label, :final amount):
-                  await measures.addMeasure(
-                    ingredientId: ing.id,
-                    label: label,
-                    amount: amount,
-                  );
-                case null:
-                  break;
-              }
-            }
-            return (
-              row: row,
-              measureAdded: row != null && taken is MeasureOffer,
-            );
-          },
+          () async => (
+            row: await ref
+                .read(ingredientRepositoryProvider)
+                .saveForm(
+                  ing.id,
+                  IngredientFormEdit(
+                    row: IngredientEdit(
+                      canonicalName: name.value,
+                      defaultUnit: defaultUnit.value,
+                      macrosBasis: basis.value,
+                      allowedUnits: allowed.value,
+                      category: category.value.trim().isEmpty
+                          ? null
+                          : category.value.trim(),
+                      macros: draftMacros,
+                      source: pendingSource.value,
+                    ),
+                    density: density,
+                    measuresAdded: [
+                      for (final m in measuresAdded.value)
+                        PendingMeasure(
+                          id: m.id,
+                          label: m.label,
+                          amount: m.amount,
+                        ),
+                      if (offeredMeasure != null)
+                        PendingMeasure(
+                          id: const Uuid().v4(),
+                          label: offeredMeasure.label,
+                          amount: offeredMeasure.amount,
+                        ),
+                    ],
+                    measuresRemoved: measuresRemoved.value,
+                    defaultMeasure: defaultMeasure.value,
+                    markComplete: markComplete,
+                  ),
+                ),
+            measureAdded: offeredMeasure != null,
+          ),
         );
         if (outcome == null || !context.mounted) return null;
         final saved = outcome.row;
-        pendingSource.value = null; // stamped now, or the row is gone
-        // Landed, so untick: the next Save must not add it twice.
-        if (taken != null) servingOffer.value = false;
-        ref.invalidate(ingredientByIdProvider(ing.id));
-        if (outcome.measureAdded) {
-          ref.invalidate(ingredientMeasuresProvider(ing.id));
+        if (saved == null) {
+          message.value = 'It is no longer here.';
+          return null;
         }
-        message.value = saved == null ? 'It is no longer here.' : 'Saved.';
+        // Landed, so the draft empties: a second Save must not write any of
+        // it twice. This is the one place the draft is discarded on purpose.
+        pendingSource.value = null;
+        servingOffer.value = false;
+        densityChange.value = const DensityUnchanged();
+        measuresAdded.value = const [];
+        measuresRemoved.value = const {};
+        defaultMeasure.value = const DefaultMeasureUnchanged();
+        ref
+          ..invalidate(ingredientByIdProvider(ing.id))
+          ..invalidate(ingredientMeasuresProvider(ing.id));
+        message.value = 'Saved.';
         return saved;
       } finally {
         if (context.mounted) busy.value = false;
@@ -535,16 +586,13 @@ class _DetailForm extends HookConsumerWidget {
     // form just set — so finishing a row from a recipe line left the person
     // on a screen that had told them it counts and given them nothing to do,
     // with a caller waiting behind it.
+    // **W5b — one transaction, not two writes.** "A 1-2 combo of save and
+    // mark" (owner) is what it always read like, but it WAS two: `save()`
+    // then `confirmStub()`, so a failure between them left the row saved and
+    // not marked, under an error implying neither happened.
     Future<void> completeRow() async {
-      final saved = await save();
+      final saved = await save(markComplete: true);
       if (saved == null || !context.mounted) return;
-      final completed = await ref.writeOk(
-        context,
-        'complete ${ing.canonicalName}',
-        () => ref.read(ingredientRepositoryProvider).confirmStub(ing.id),
-      );
-      if (!completed || !context.mounted) return;
-      ref.invalidate(ingredientByIdProvider(ing.id));
       leave();
     }
 
@@ -589,9 +637,17 @@ class _DetailForm extends HookConsumerWidget {
       }
     }
 
-    // The measures list decides whether "Counts as" has anything to ask, and
-    // it must stay ONE slot either way — see the ListView note below.
-    final measures = measuresAsync.asData?.value ?? const <Measure>[];
+    // What the row's measures ARE, as the form holds them: the loaded ones
+    // minus what it intends to remove, plus what it intends to add. A pending
+    // one is indistinguishable from a stored one on screen, and carries the
+    // id it will keep — which is what lets "Counts as" and the `piece`
+    // question point at a measure that does not exist yet.
+    final loadedMeasures = measuresAsync.asData?.value;
+    final measures = [
+      for (final m in loadedMeasures ?? const <Measure>[])
+        if (!measuresRemoved.value.contains(m.id)) m,
+      ...measuresAdded.value,
+    ];
 
     return FScaffold(
       childPad: false,
@@ -926,30 +982,19 @@ class _DetailForm extends HookConsumerWidget {
                 // starts holding it in a draft until its own Save — at which
                 // point only this function and `saveLabel` change, and the
                 // quantity sheet's copy stays as it is.
+                // Nothing is written here any more: it goes in the draft and
+                // the form's Save lands it (W5). The chips follow it because
+                // `draftRow` carries the draft density and the admission
+                // effect keys on it.
+                saveLabel: 'Add',
                 onSave: (gPerMl) async {
-                  final updated = await ref.write(
-                    context,
-                    'save that density',
-                    () => ref
-                        .read(ingredientRepositoryProvider)
-                        .setDensity(ing.id, gPerMl),
-                  );
-                  if (updated == null) return false;
+                  densityChange.value = DensitySet(gPerMl);
                   redirectedSpoon.value = null;
-                  ref.invalidate(ingredientByIdProvider(ing.id));
                   return true;
                 },
                 onRemove: () async {
-                  final updated = await ref.write(
-                    context,
-                    'remove that density',
-                    () => ref
-                        .read(ingredientRepositoryProvider)
-                        .clearDensity(ing.id),
-                  );
-                  if (updated == null) return false;
+                  densityChange.value = const DensityCleared();
                   redirectedSpoon.value = null;
-                  ref.invalidate(ingredientByIdProvider(ing.id));
                   return true;
                 },
               ),
@@ -978,63 +1023,58 @@ class _DetailForm extends HookConsumerWidget {
                 MeasuresEditor(
                   ingredient: ing,
                   measures: measures,
-                  onDelete: (m) => ref.write(
-                    context,
-                    'delete that measure',
-                    () => ref
-                        .read(measureRepositoryProvider)
-                        .softDeleteMeasure(m.id),
-                  ),
+                  // It adds to the draft here; the docked Save lands it (R3).
+                  addLabel: 'Add',
+                  onDelete: (m) async {
+                    // A pending add is simply dropped; a stored one is named
+                    // for tombstoning. Either way nothing is written yet.
+                    if (measuresAdded.value.any((p) => p.id == m.id)) {
+                      measuresAdded.value = [
+                        for (final p in measuresAdded.value)
+                          if (p.id != m.id) p,
+                      ];
+                    } else {
+                      measuresRemoved.value = {...measuresRemoved.value, m.id};
+                    }
+                    // "Counts as" cannot point at a measure that is going.
+                    if (defaultMeasure.value case DefaultMeasureSet(
+                      :final measureId,
+                    ) when measureId == m.id) {
+                      defaultMeasure.value = const DefaultMeasureSet(null);
+                    } else if (ing.defaultMeasureId == m.id) {
+                      defaultMeasure.value = const DefaultMeasureSet(null);
+                    }
+                  },
                   // Lane A moves the write out of the editor; this host still
                   // commits on tap. Lane B swaps only this function and the
                   // label for "add it to the draft".
                   onAdd: (label, amount) async {
-                    final outcome = await ref.write(
-                      context,
-                      'add that measure',
-                      () async {
-                        try {
-                          return MeasureAdded(
-                            await ref
-                                .read(measureRepositoryProvider)
-                                .addMeasure(
-                                  ingredientId: ing.id,
-                                  label: label,
-                                  amount: amount,
-                                ),
-                          );
-                          // The repository's validation contract IS
-                          // ArgumentError (documented on addMeasure), so
-                          // catching it here is the point, not a slip.
-                          // ignore: avoid_catching_errors
-                        } on ArgumentError catch (e) {
-                          return MeasureRefused('${e.message}');
-                        }
-                      },
+                    // Minted here, kept forever: `saveForm` inserts under this
+                    // id, so the measure the person is looking at is already
+                    // the measure the database will hold. The editor has
+                    // already refused a blank label, a volume-named one and a
+                    // non-positive amount — the same three the repository
+                    // refuses — so there is nothing left to be refused by.
+                    final pending = Measure(
+                      id: const Uuid().v4(),
+                      label: label.trim(),
+                      amount: amount,
+                      basis: basis.value,
+                      sortOrder: measures.length,
                     );
-                    return outcome ?? const MeasureNotAdded();
+                    measuresAdded.value = [...measuresAdded.value, pending];
+                    return MeasureAdded(pending);
                   },
                   onStopOfferingPiece: (added) async {
-                    final repo = ref.read(ingredientRepositoryProvider);
-                    final changed = await ref.write(
-                      context,
-                      'stop offering “piece”',
-                      () async {
-                        await repo.stopOfferingPiece(ing.id);
-                        // The second half of the answer the question always
-                        // implied (seam D1): saying "'tomato, medium' says it
-                        // better than piece" also says what a bare "1 tomato"
-                        // MEANS, so the same act sets it.
-                        return repo.setDefaultMeasure(ing.id, added.id);
-                      },
-                    );
-                    if (changed == null) return null;
-                    // The chips must follow in the same breath — otherwise
-                    // this form's next Save would put `piece` back from a
-                    // draft made before the question was asked.
-                    allowed.value = allowedUnitsFor(changed).toSet();
-                    ref.invalidate(ingredientByIdProvider(ing.id));
-                    return changed;
+                    // **The lane B trap, answered.** This used to write
+                    // `allowed_units` behind the form's back and hand the row
+                    // back so the chips could follow. Now the answer IS the
+                    // draft: `piece` leaves the admission set the form holds,
+                    // and the same act says what a bare "1 tomato" means
+                    // (seam D1). Both land on Save, together.
+                    allowed.value = {...allowed.value}..remove(pieces);
+                    defaultMeasure.value = DefaultMeasureSet(added.id);
+                    return null;
                   },
                   // Nothing here selects a measure — the form is not a
                   // quantity entry surface; the watched provider re-renders

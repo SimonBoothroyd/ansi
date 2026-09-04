@@ -29,6 +29,7 @@ import 'package:ansi/features/ingredients/barcode/barcode_scan_sheet.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/ingredients/domain/measure_repository.dart';
 import 'package:ansi/features/ingredients/domain/normalize.dart';
 import 'package:ansi/features/ingredients/domain/usda_probe.dart';
@@ -376,6 +377,31 @@ Future<void> _lookUpUsdaAndPick(WidgetTester tester, String description) async {
   await tester.tap(find.text(description));
   await tester.pumpAndSettle();
 }
+
+/// Puts a density in the form's DRAFT (plan 0029 W5). The entry's inline
+/// button reads `Add` on this host, because on this host it writes nothing —
+/// the form's own Save is what lands it. `ml`'s ratio to base is 1, so
+/// picking it makes the typed number a raw g/ml.
+Future<void> _draftDensity(WidgetTester tester, String gPerMl) async {
+  await tester.tap(
+    find.descendant(of: find.byType(DensityEntry), matching: find.text('ml')),
+  );
+  await tester.pump();
+  await tester.enterText(_densityField, gPerMl);
+  await tester.pump();
+  await tester.tap(find.widgetWithText(FButton, 'Add').first);
+  await tester.pumpAndSettle();
+}
+
+/// The `FakeIngredientRepo` the pumped host is using — so a test can read
+/// [FakeIngredientRepo.savedForms], which is what the form ASKED for, as
+/// distinct from what the row ended up being.
+FakeIngredientRepo _repoOf(WidgetTester tester) =>
+    ProviderScope.containerOf(
+          tester.element(find.byType(IngredientDetailView)),
+          listen: false,
+        ).read(ingredientRepositoryProvider)
+        as FakeIngredientRepo;
 
 Future<void> _openMoreMenu(WidgetTester tester) async {
   await tester.tap(find.byIcon(FLucideIcons.ellipsis));
@@ -1014,27 +1040,24 @@ void main() {
       expect(_lockedUnitLabels(tester), isNot(contains('g')));
       expect(_lockedUnitLabels(tester), isNot(contains('piece')));
 
-      // 2. Save a density: the same chips come live. The entry is one
-      // sentence now — "1 __ of this weighs __ g" — so a raw g/ml is typed
-      // against `ml`, whose ratio to base is 1.
-      await tester.tap(
-        find.descendant(
-          of: find.byType(DensityEntry),
-          matching: find.text('ml'),
-        ),
-      );
-      await tester.pump();
-      await tester.enterText(_densityField, '0.66');
-      await tester.pump();
-      await tester.tap(find.widgetWithText(FButton, 'Save').first);
-      await tester.pumpAndSettle();
+      // 2. A density in the draft: the chips come live IMMEDIATELY, because
+      // they read what the form holds — but nothing is written until Save
+      // (W5). That split is the whole point of lane B.
+      await _draftDensity(tester, '0.66');
 
-      expect((await repo.byId('mango'))!.densityGPerMl, 0.66);
+      expect(
+        (await repo.byId('mango'))!.densityGPerMl,
+        isNull,
+        reason: 'the density is in the draft, not the database, until Save',
+      );
       expect(_lockedUnitLabels(tester), isEmpty);
       expect(
         find.textContaining('unlock when this row has a density'),
         findsNothing,
       );
+
+      await _saveForm(tester, reopen: 'Mango');
+      expect((await repo.byId('mango'))!.densityGPerMl, 0.66);
 
       // 3. Delete it: the strip leg, in the same write, with the consequence
       // named before it happens.
@@ -1043,6 +1066,10 @@ void main() {
       expect(find.textContaining('lock again'), findsOneWidget);
       await tester.tap(find.widgetWithText(FButton, 'Remove'));
       await tester.pumpAndSettle();
+      // Same rule on the way out: the chips lock again at once, the row keeps
+      // its number until Save.
+      expect(_lockedUnitLabels(tester), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
+      await _saveForm(tester, reopen: 'Mango');
 
       final after = (await repo.byId('mango'))!;
       expect(after.densityGPerMl, isNull);
@@ -1184,21 +1211,41 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byType(MeasuresEditor),
-          matching: find.widgetWithText(FButton, 'Save'),
+          matching: find.widgetWithText(FButton, 'Add'),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(measures.rows.last.label, 'half cheek');
-      expect(measures.rows.last.amount, 90);
-
-      // …and delete one.
-      await tester.tap(find.byIcon(FLucideIcons.trash2).first);
-      await tester.pumpAndSettle();
+      // On screen at once, and NOT written (plan 0029 W5): a pending measure
+      // is indistinguishable from a stored one here, which is what lets the
+      // `piece` question and "Counts as" point at it before it exists.
+      expect(
+        find.descendant(
+          of: find.byType(MeasureRow),
+          matching: find.text('half cheek'),
+        ),
+        findsOneWidget,
+      );
       expect(
         measures.rows.map((m) => m.label),
-        isNot(contains('mango, medium')),
+        isNot(contains('half cheek')),
+        reason: 'nothing is written until the form is saved',
       );
+
+      // …and delete one. Also draft-only: it leaves the list, and the stored
+      // row is untouched until Save.
+      await tester.tap(find.byIcon(FLucideIcons.trash2).first);
+      await tester.pumpAndSettle();
+      expect(find.text('mango, medium'), findsNothing);
+      expect(measures.rows.map((m) => m.label), contains('mango, medium'));
+
+      // One Save carries both, and the form asked for exactly them.
+      final repo = _repoOf(tester);
+      await _saveForm(tester);
+      final asked = repo.savedForms.single;
+      expect(asked.measuresAdded.single.label, 'half cheek');
+      expect(asked.measuresAdded.single.amount, 90);
+      expect(asked.measuresRemoved, {'m-usda'});
     });
 
     testWidgets('F2: a volume-named measure label is still refused and '
@@ -1225,7 +1272,9 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byType(MeasuresEditor),
-          matching: find.widgetWithText(FButton, 'Save'),
+          // `Add` on this host: the tap fills the draft, and the form's own
+          // docked Save is what writes (plan 0029 R3).
+          matching: find.widgetWithText(FButton, 'Add'),
         ),
       );
       await tester.pumpAndSettle();
@@ -1263,7 +1312,9 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byType(MeasuresEditor),
-          matching: find.widgetWithText(FButton, 'Save'),
+          // `Add` on this host: the tap fills the draft, and the form's own
+          // docked Save is what writes (plan 0029 R3).
+          matching: find.widgetWithText(FButton, 'Add'),
         ),
       );
       await tester.pumpAndSettle();
@@ -1296,10 +1347,23 @@ void main() {
       await tester.tap(find.text('No — “mango, medium” says it'));
       await tester.pumpAndSettle();
 
-      expect(allowedUnitsFor(repo.rows.single), isNot(contains(pieces)));
+      // The answer IS the draft now (plan 0029 W5): `piece` leaves the chips
+      // the form holds at once, and the row keeps it until Save. That is the
+      // lane B trap answered — the chips follow the draft, not a row nobody
+      // has written.
+      expect(allowedUnitsFor(repo.rows.single), contains(pieces));
+
+      await _saveForm(tester);
+      final asked = repo.savedForms.single;
+      expect(asked.row.allowedUnits, isNot(contains(pieces)));
       // Nothing else went with it — one word, not a re-curation.
-      expect(allowedUnitsFor(repo.rows.single), contains(g));
-      expect(measures.rows.single.label, 'mango, medium');
+      expect(asked.row.allowedUnits, contains(g));
+      // …and the same act said what a bare "1 mango" means (seam D1).
+      expect(
+        (asked.defaultMeasure as DefaultMeasureSet).measureId,
+        asked.measuresAdded.single.id,
+      );
+      expect(asked.measuresAdded.single.label, 'mango, medium');
     });
 
     testWidgets('“Keep both” leaves the admission exactly as it was — and so '
@@ -1359,10 +1423,13 @@ void main() {
       await tester.tap(find.byIcon(FLucideIcons.trash2).first);
       await tester.pumpAndSettle();
 
-      expect(measures.rows, isEmpty);
+      // The measure leaves the list at once; the row is written on Save.
+      expect(find.byType(MeasureRow), findsNothing);
+      // Save ends the page, so walk back in to read the chips.
+      await _saveForm(tester, reopen: 'Mango');
       // No automatic re-add: the household said no, and a deletion is not
       // them changing their mind.
-      expect(allowedUnitsFor(repo.rows.single), isNot(contains(pieces)));
+      expect(repo.savedForms.last.row.allowedUnits, isNot(contains(pieces)));
       // But the chip is still drawn, and drawn LIVE (not dashed): a count
       // row needs no density for `piece`, so it is one tap from returning.
       expect(_lockedUnitLabels(tester), isNot(contains('piece')));
@@ -1392,8 +1459,15 @@ void main() {
       await tester.tap(find.text('No — “mango, medium” says it'));
       await tester.pumpAndSettle();
 
-      expect(repo.rows.single.defaultMeasureId, measures.rows.single.id);
-      expect(allowedUnitsFor(repo.rows.single), isNot(contains(pieces)));
+      // Both halves ride the form's one Save now, and they ride it together —
+      // which is the point seam D1 was always making.
+      await _saveForm(tester);
+      final asked = repo.savedForms.single;
+      expect(
+        (asked.defaultMeasure as DefaultMeasureSet).measureId,
+        asked.measuresAdded.single.id,
+      );
+      expect(asked.row.allowedUnits, isNot(contains(pieces)));
     });
 
     testWidgets('“Keep both” leaves Counts as unset — the honest reading of '
@@ -1754,18 +1828,9 @@ void main() {
       // about the row, and the note is how it gets fixed.
       expect(_defaultUnitChip(tester, 'cup').selected, isTrue);
 
-      // A density unlocks the whole selector again.
-      await tester.tap(
-        find.descendant(
-          of: find.byType(DensityEntry),
-          matching: find.text('ml'),
-        ),
-      );
-      await tester.pump();
-      await tester.enterText(_densityField, '0.75');
-      await tester.pump();
-      await tester.tap(find.widgetWithText(FButton, 'Save').first);
-      await tester.pumpAndSettle();
+      // A density unlocks the whole selector again — off the DRAFT, before
+      // anything is written (plan 0029 W5).
+      await _draftDensity(tester, '0.75');
 
       expect(_defaultUnitChip(tester, 'ml').enabled, isTrue);
       expect(find.textContaining('needs a density on this row'), findsNothing);
@@ -2443,10 +2508,14 @@ void main() {
       expect(measures.rows, isEmpty, reason: 'a tick writes nothing yet');
 
       await _saveForm(tester);
-      expect(measures.rows.single.label, 'slice');
-      expect(measures.rows.single.amount, 28);
+      // The offer rides the form's ONE write now, so what it asked for is
+      // where the assertion lives (plan 0029 W3).
+      final asked = repo.savedForms.single;
+      expect(asked.measuresAdded.single.label, 'slice');
+      expect(asked.measuresAdded.single.amount, 28);
       expect((await repo.byId('spread'))!.macros!.kcal, closeTo(285.71, 0.01));
       // No density from a slice — that offer is a spoon's alone.
+      expect(asked.density, isA<DensityUnchanged>());
       expect((await repo.byId('spread'))!.densityGPerMl, isNull);
     });
 

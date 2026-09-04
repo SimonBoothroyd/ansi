@@ -76,6 +76,7 @@ class MeasuresEditor extends HookWidget {
     required this.onAdded,
     required this.onVolumeLabel,
     required this.onStopOfferingPiece,
+    this.addLabel = 'Save',
     this.autofocus = false,
     super.key,
   });
@@ -125,6 +126,13 @@ class MeasuresEditor extends HookWidget {
   /// of the draft, and the admission chips must then follow the DRAFT rather
   /// than a row that has not been saved.
   final Future<Ingredient?> Function(Measure added) onStopOfferingPiece;
+
+  /// What the add form's button says (plan 0029 **R3**). `Save` in a host
+  /// that commits on tap — the quantity sheet — and `Add` on the flesh-out
+  /// form, where the tap only puts it in the draft. A button reading Save
+  /// that saves nothing is the confusion this plan exists to remove, and it
+  /// would give the form's own docked Save a rival again.
+  final String addLabel;
 
   /// The quantity sheet opens straight into this state with the keyboard up;
   /// the flesh-out form must not steal focus from a screen the user is
@@ -217,6 +225,7 @@ class MeasuresEditor extends HookWidget {
           for (final m in listed) MeasureRow(measure: m, onDelete: onDelete),
         const SizedBox(height: 12),
         _AddMeasureForm(
+          addLabel: addLabel,
           label: label,
           amount: amount,
           amountHint: baseLabel,
@@ -340,6 +349,7 @@ class MeasureRow extends StatelessWidget {
 
 class _AddMeasureForm extends StatelessWidget {
   const _AddMeasureForm({
+    required this.addLabel,
     required this.label,
     required this.amount,
     required this.amountHint,
@@ -348,6 +358,7 @@ class _AddMeasureForm extends StatelessWidget {
     required this.onSave,
   });
 
+  final String addLabel;
   final ValueNotifier<String> label;
   final ValueNotifier<double?> amount;
 
@@ -402,7 +413,7 @@ class _AddMeasureForm extends StatelessWidget {
             FButton(
               size: FButtonSizeVariant.sm,
               onPress: onSave,
-              child: const Text('Save'),
+              child: Text(addLabel),
             ),
           ],
         ),
