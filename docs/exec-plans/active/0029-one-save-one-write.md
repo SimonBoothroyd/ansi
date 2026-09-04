@@ -1,6 +1,7 @@
 # Exec plan: one save, one write — and the New-ingredient sheet dissolves
 
-- **Status:** proposed (awaiting owner sign-off)
+- **Status:** proposed — the three open questions are **ruled** (owner,
+  2026-09-03); the plan itself still wants a go-ahead
 - **Owner:** Simon
 - **Decision record:** [ADR-0011](../../decisions/0011-one-save-one-write.md)
 - **Follows:** plan 0028's design pass on the flesh-out form (three groups, the
@@ -43,6 +44,8 @@ plan then deletes. The owner's call: *"save on write now, then collapse."*
 - [ ] **W5** — nothing on the form writes on tap except `Mark complete` and
       `Delete ingredient`. Aliases, measures, density, "Counts as", the `piece`
       answer, the USDA decline and the USDA pick all land through Save.
+- [ ] **W5b** — `Mark complete` performs the compound save **and** the status
+      flip in one transaction (R2). No path leaves a row saved-but-not-marked.
 - [ ] **W6** — `Back` discards. A row opened, edited and backed out of is
       byte-identical in the database.
 - [ ] **C1** — the form accepts **no row id**: children are held in memory and
@@ -53,6 +56,8 @@ plan then deletes. The owner's call: *"save on write now, then collapse."*
 - [ ] **C3** — the barcode door and the USDA search live only on the form. A
       new row created by scan is byte-identical to one created by name and then
       scanned (the 0025 #8 promise, now structurally true).
+- [ ] **C1b** — backing out of a **new** row with anything typed prompts (R1);
+      backing out of an **existing** row discards silently.
 - [ ] **C4** — the picker's flow still resolves: it pushes the form and awaits
       its pop, and Save/`Mark complete` pop (plan 0028), so the quantity sheet
       opens on the units the form just set.
@@ -94,15 +99,35 @@ Lanes A and B are one worktree; C follows.
   possible to lose a whole row by backing out. Needs a prompt, or the row is
   cheap enough to lose — owner's call, listed below.
 
-## Open questions for the owner
+## Rulings (owner, 2026-09-03)
 
-- **Q1** — on a *new* row (C1), does `Back` with a typed name prompt, or just
-  discard? On an existing row, discard is the point.
-- **Q2** — does `Mark complete` stay an immediate write, or fold into Save so
-  there is genuinely one write? (ADR-0011 proposes immediate: it is a statement
-  about a row, not a field edit.)
-- **Q3** — the measures editor's inline `Save` needs a new word under W1.
-  `Add` is the obvious one.
+- **R1 — a dirty new row prompts on Back.** *"prompt is good."* C1 makes it
+  possible to lose a whole typed row by backing out, so it asks. An **existing**
+  row still discards silently: that is what W6 is for, and there is a stored
+  version to go back to. The prompt is therefore about *creation*, not about
+  editing, and it fires only when the draft would otherwise leave nothing
+  behind.
+
+- **R2 — `Mark complete` is one transaction, not two writes.** The owner:
+  *"it's a 1-2 combo of save and mark basically."* It already reads that way in
+  code (`completeRow` awaits `save()` then `confirmStub()`) — but as **two**
+  writes, so a failure between them leaves the row saved and not completed,
+  under an error implying neither happened. Under W3 the compound save and the
+  status flip go in the **same** `writeTransaction`. ADR-0011's "confirm stays
+  immediate" is refined by this: still its own button, still not a field edit,
+  but no longer two writes.
+
+- **R3 — the inline button keeps `Save` where it saves, and becomes `Add` where
+  it does not.** The owner's reasoning — *"save, because this form is also the
+  ingredient editor"* — is right about the **quantity sheet**, whose host does
+  commit on tap: `Save` is accurate there and stays. On the **form** under W1
+  the same tap adds to a pending list and writes nothing, and a button reading
+  `Save` that does not save is the exact confusion this plan exists to remove
+  (it would also give the dock's Save a rival again, which plan 0028 just
+  fixed). Since the host **already** supplies the commit function (W1), it
+  supplies the verb with it: `(commit, label)` from one seam, not a mode flag
+  on the widget. Quantity sheet → `(write now, "Save")`. Form →
+  `(add to draft, "Add")`. *Reversible: say the word and it is `Save` in both.*
 
 ## Docs that move with it
 

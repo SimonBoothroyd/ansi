@@ -81,9 +81,13 @@ New-ingredient sheet's remaining job (capture a name before a row exists)
 disappears, and with it the last duplicate of the barcode and USDA legs the
 form already has.
 
-**Confirm and delete stay immediate.** They are not field edits: `Mark
-complete` is a statement about a row that already exists, and delete ends it.
-Both keep their own buttons and their own writes.
+**Confirm and delete keep their own buttons — but confirm stops writing
+twice.** They are not field edits: `Mark complete` is a statement about a row,
+and delete ends it. `Mark complete` is nonetheless a *save-and-mark* combination
+(owner, 2026-09-03), and today it is two sequential writes — `save()` then
+`confirmStub()` — so a failure between them leaves the row saved and not
+completed under an error implying neither happened. It becomes the compound
+save and the status flip in **one** transaction. Delete stays as it is.
 
 ## Consequences
 
