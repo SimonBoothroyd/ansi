@@ -38,8 +38,8 @@ abstract class Recipe with _$Recipe {
 
     /// Tokenized method (step 8 import): text/ref/timer chips rendered by the
     /// fold ([foldMethod]). Non-null only for an imported recipe; the editor's
-    /// plain-text [steps] and this are the two shapes the `steps` jsonb holds
-    /// ([mise-data-ephemeral] — no back-compat, they don't coexist on one row).
+    /// plain-text [steps] and this are the two shapes the `steps` jsonb holds,
+    /// and one row carries one of them — never both.
     List<MethodStep>? methodSteps,
 
     /// Fridge shelf life; drives the cook-plan clustering (step 5), set from

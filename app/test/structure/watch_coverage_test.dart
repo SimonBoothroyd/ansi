@@ -1,5 +1,5 @@
 /// Structural test: every table a repository's load path reads must be a
-/// trigger of its watch query ([[mise-powersync-watch-left-join]]).
+/// trigger of its watch query.
 ///
 /// PowerSync derives a watch's trigger tables from `EXPLAIN` on the watched
 /// SQL — and SQLite drops a LEFT JOIN whose columns are never selected, so a

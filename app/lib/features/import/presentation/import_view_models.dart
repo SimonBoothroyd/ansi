@@ -174,8 +174,8 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     _starting = true;
     state = const ImportLoading();
     try {
-      // Both keepAlive repositories are resolved BEFORE the first await, and
-      // never `ref.read` after one ([mise-riverpod-notifier-ref-after-async]).
+      // Both keepAlive repositories are resolved BEFORE the first await: this
+      // notifier can be disposed across the gap, and `ref` goes with it.
       final importRepo = ref.read(importRepositoryProvider);
       final bookRepo = ref.read(bookRepositoryProvider);
       final payload = await importRepo.startImport(source);
@@ -230,8 +230,8 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     final Map<String, List<Measure>> measuresById;
     try {
       // Both repositories are resolved BEFORE the first await and read straight
-      // off their keepAlive providers — never a stream provider, and never a
-      // `ref.read` after an await ([mise-riverpod-notifier-ref-after-async]).
+      // off their keepAlive providers — never a stream provider, and never
+      // through a `ref` the async gap may have disposed.
       final vocabRepo = ref.read(ingredientRepositoryProvider);
       final measureRepo = ref.read(measureRepositoryProvider);
       vocab = await vocabRepo.byIds(matchedIds);
@@ -454,8 +454,7 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
   // BOTH repositories are resolved before the first await. They are keepAlive,
   // but `Ref` is not: this provider is autoDispose and can be disposed while
   // its own build is still in flight (the user backs out of the review, or a
-  // recompute lands), after which `ref.read` THROWS
-  // ([mise-riverpod-notifier-ref-after-async]).
+  // recompute lands), after which `ref.read` THROWS.
   final vocabRepo = ref.read(ingredientRepositoryProvider);
   final measureRepo = ref.read(measureRepositoryProvider);
   final vocab = await vocabRepo.byIds(matchedIds);

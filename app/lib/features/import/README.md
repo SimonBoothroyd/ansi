@@ -125,7 +125,7 @@ import/
   reads every column off the draft and the INSERT writes the same list the
   editor's save does (a structural test pins the two equal).
 - **Writes are view-safe**: local PowerSync tables are SQLite views, so every
-  statement is a plain INSERT — never UPSERT ([[mise-powersync-views-no-upsert]]).
+  statement is a plain INSERT — a view rejects `ON CONFLICT`.
 - **Filing into the default book is load-bearing.** The Library renders books and
   skips book-less recipes, so a commit that left `book_id` null saved the recipe
   somewhere nothing showed it.

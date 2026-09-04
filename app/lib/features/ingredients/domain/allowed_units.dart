@@ -123,12 +123,12 @@ Set<Unit> impreciseUnitsFor(Ingredient ingredient) {
 ///   anything a macro total reads, so it does not admit spoons until the number
 ///   that bridges them exists;
 /// - the opposite mass/volume family **only** when the ingredient carries a
-///   density ([densityUnlockedUnits] — without one, [convert] would fail
-///   with `unit/no_density`); since the plan-0020 D4 amendment this fires
-///   for a count/imprecise default too ("1 cup diced mango");
-/// - the imprecise units per [kImpreciseCategoryGates] — gated word by word
-///   since J3, so greens earn `handful` without earning `pinch` (and for
-///   imprecise-default rows, their own word).
+///   density ([densityUnlockedUnits] — without one, [convert] would fail with
+///   `unit/no_density`); this fires for a count/imprecise default too ("1 cup
+///   diced mango");
+/// - the imprecise units per [kImpreciseCategoryGates] — gated word by word, so
+///   greens earn `handful` without earning `pinch` (and for imprecise-default
+///   rows, their own word).
 ///
 /// A count-default ingredient (eggs, tins) offers count + the basis base:
 /// a gram line of a per-g count food computes macros directly, while

@@ -312,12 +312,12 @@ class SqliteImportRepository implements ImportRepository {
       // Find-or-create, not blind insert: correcting "yellow onion" onto Onion
       // on every import would otherwise pile up a duplicate alias row per
       // import, all of them matching identically. Local tables are VIEWS, so
-      // this is an existence check + a plain INSERT, never an UPSERT
-      // ([mise-powersync-views-no-upsert]). The D6 rule: the alias is written
-      // with the SERVER's phrase normalizer (`normalizeMatchText`, the
-      // plan-0020 port), not the character-level search normalizer, because
-      // the cascade that will one day match on it searches by those rules —
-      // "ripe tomatoes, chopped" is `ripe tomato chopped` to the server.
+      // this is an existence check + a plain INSERT: a view rejects
+      // `ON CONFLICT`. The alias is written with the SERVER's phrase
+      // normalizer (`normalizeMatchText`), not the character-level search
+      // normalizer, because the cascade that will one day match on it searches
+      // by those rules — "ripe tomatoes, chopped" is `ripe tomato chopped` to
+      // the server.
       for (final c in payload.corrections) {
         final matchText = normalizeMatchText(c.aliasText);
         final existing = await tx.getOptional(

@@ -545,10 +545,10 @@ class SqliteRecipeRepository implements RecipeRepository {
     );
   }
 
-  /// Reads the `steps` jsonb, which holds one of two shapes ([mise-data-
-  /// ephemeral], no coexistence): a legacy array of plain-text strings (the
-  /// editor) or an array of tokenized step objects (import, step 8). A string
-  /// element ⇒ plain text; an object with `tokens` ⇒ tokenized.
+  /// Reads the `steps` jsonb, which holds one of two shapes and never both at
+  /// once: an array of plain-text strings (the editor) or an array of tokenized
+  /// step objects (import, step 8). A string element ⇒ plain text; an object
+  /// with `tokens` ⇒ tokenized.
   (List<String>, List<MethodStep>?) _parseSteps(String? raw) {
     final decoded = jsonDecode(raw ?? '[]');
     if (decoded is! List || decoded.isEmpty) return (const [], null);
@@ -562,8 +562,8 @@ class SqliteRecipeRepository implements RecipeRepository {
     );
   }
 
-  /// What the `steps` jsonb is written as. The column holds ONE of two shapes
-  /// ([mise-data-ephemeral], see [_parseSteps]), and a recipe carries whichever
+  /// What the `steps` jsonb is written as. The column holds ONE of the two
+  /// shapes [_parseSteps] reads, and a recipe carries whichever
   /// one it was loaded with: an imported recipe's [Recipe.methodSteps] is the
   /// tokenized shape and its plain [Recipe.steps] is empty, so serializing the
   /// plain list unconditionally would erase the imported method on the first
