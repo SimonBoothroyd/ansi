@@ -41,6 +41,10 @@ part 'ingredient_view_models.g.dart';
 
 const _uuid = Uuid();
 
+/// A stored double as editable text: `60` not `60.0`, and every other digit
+/// kept exactly as stored.
+String _seed(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : '$v';
+
 /// The four macro inputs as typed TEXT, so "half filled in" is a state the form
 /// can name rather than a silent zero.
 @freezed
@@ -52,16 +56,20 @@ abstract class MacroDraft with _$MacroDraft {
     @Default('') String fat,
   }) = _MacroDraft;
 
-  /// Seeds the four fields with what a person would have typed:
-  /// [formatNumber], the one rule for printing a number, so a field never
-  /// opens on `0.3333333333333333`.
+  /// Seeds the four fields from a stored panel.
+  ///
+  /// **Lossless, deliberately.** These are not printed numbers — they are the
+  /// editable text a Save reads back, so `60` must not open as `60.0` and a
+  /// USDA-derived `285.7142857` must not open as `285.71`. Rounding here would
+  /// make opening a row and saving it untouched a silent edit of its macros.
+  /// [formatNumber] is the rule for a number the app only *shows*.
   factory MacroDraft.from(Macros? m) => m == null
       ? const MacroDraft()
       : MacroDraft(
-          kcal: formatNumber(m.kcal),
-          protein: formatNumber(m.protein),
-          carb: formatNumber(m.carb),
-          fat: formatNumber(m.fat),
+          kcal: _seed(m.kcal),
+          protein: _seed(m.protein),
+          carb: _seed(m.carb),
+          fat: _seed(m.fat),
         );
 
   const MacroDraft._();

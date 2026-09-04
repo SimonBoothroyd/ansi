@@ -129,6 +129,31 @@ void main() {
       expect(at().servingOfferTaken, isFalse);
     });
 
+    test('the seeded fields are LOSSLESS — opening a row and saving it '
+        'untouched writes back exactly what was stored', () async {
+      // A USDA-derived panel is unrounded (`Macros.per100From` divides). The
+      // four fields are editable text a Save reads back, not a printed number,
+      // so seeding them through the display rule would make merely opening the
+      // form and tapping Save a silent edit of the row's macros.
+      const derived = Macros(
+        kcal: 285.7142857,
+        protein: 6.5,
+        carb: 19,
+        fat: 1.0666,
+      );
+      final repo = FakeIngredientRepo([_mango.copyWith(macros: derived)]);
+      final (:form, :at) = await _open(repo, id: 'mango');
+
+      expect(at().macros.kcal, '285.7142857');
+      expect(at().macros.protein, '6.5');
+      expect(at().macros.carb, '19', reason: 'a whole number loses its .0');
+      expect(at().macros.fat, '1.0666');
+
+      await form.save();
+
+      expect(repo.savedForms.single.row.macros, derived);
+    });
+
     test('a USDA pick fills the draft and writes nothing', () async {
       final repo = FakeIngredientRepo([_mango]);
       final (:form, :at) = await _open(repo, id: 'mango');
