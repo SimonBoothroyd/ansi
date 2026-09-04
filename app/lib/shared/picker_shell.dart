@@ -1,17 +1,15 @@
-/// The shared picker-sheet shell (step 7.7): one selection anatomy for the
-/// ingredient and recipe pickers — sheet chrome, a close affordance, a
-/// TOP-anchored search field, a slot for source tabs / context strips above
-/// the list, and a footer slot (add-new, the eating footer).
+/// One selection anatomy for the ingredient and recipe pickers: an
+/// [AnsiSheetShell] with a TOP-anchored search field, a slot for source tabs /
+/// context strips above the list, and a footer slot (add-new, the eating
+/// footer).
 library;
 
-import 'dart:math' as math;
-
 import 'package:flutter/widgets.dart';
-import 'package:forui/forui.dart';
 
 import '../core/theme/ansi_theme.dart';
 import '../core/theme/ansi_tokens.dart';
 import 'ansi_search_field.dart';
+import 'ansi_sheet_shell.dart';
 
 class PickerShell extends StatelessWidget {
   const PickerShell({
@@ -51,69 +49,22 @@ class PickerShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.sizeOf(context).height * heightFactor,
-      decoration: const BoxDecoration(
-        color: AnsiColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: AnsiColors.line)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 12,
-          // Clear the keyboard (viewInsets) OR the home indicator (safe-area
-          // padding) — whichever is present.
-          bottom:
-              math.max(
-                MediaQuery.viewInsetsOf(context).bottom,
-                MediaQuery.paddingOf(context).bottom,
-              ) +
-              12,
+    return AnsiSheetShell(
+      title: title,
+      subtitle: subtitle,
+      heightFactor: heightFactor,
+      children: [
+        const SizedBox(height: 12),
+        AnsiSearchField(
+          autofocus: searchAutofocus,
+          hint: searchHint,
+          onChanged: onQueryChanged,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => Navigator.of(context).pop(),
-                  child: const Icon(FLucideIcons.x, size: 22),
-                ),
-                Expanded(
-                  child: Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: ansiSerif(size: 20),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 22),
-              ],
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                subtitle!,
-                textAlign: TextAlign.center,
-                style: ansiMono(size: 11, color: AnsiColors.muted),
-              ),
-            ],
-            const SizedBox(height: 12),
-            AnsiSearchField(
-              autofocus: searchAutofocus,
-              hint: searchHint,
-              onChanged: onQueryChanged,
-            ),
-            if (aboveList != null) ...[const SizedBox(height: 12), aboveList!],
-            const SizedBox(height: 12),
-            Expanded(child: body),
-            if (footer != null) ...[const SizedBox(height: 8), footer!],
-          ],
-        ),
-      ),
+        if (aboveList != null) ...[const SizedBox(height: 12), aboveList!],
+        const SizedBox(height: 12),
+        Expanded(child: body),
+        if (footer != null) ...[const SizedBox(height: 8), footer!],
+      ],
     );
   }
 }

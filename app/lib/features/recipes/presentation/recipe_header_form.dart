@@ -24,6 +24,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/format.dart';
 import '../../../shared/write.dart';
 import '../../books/data/book_providers.dart';
@@ -606,37 +607,13 @@ Future<void> _showFilingSheet(
   RecipeHeaderHost host,
 ) => showAnsiSheet<void>(
   context: context,
-  builder: (_) => Container(
-    decoration: const BoxDecoration(
-      color: AnsiColors.paper,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      border: Border(top: BorderSide(color: AnsiColors.line)),
-    ),
-    padding: EdgeInsets.fromLTRB(
-      20,
-      12,
-      20,
-      MediaQuery.viewInsetsOf(context).bottom + 20,
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'File under',
-                textAlign: TextAlign.center,
-                style: ansiSerif(size: 20),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _FilingPicker(recipe: recipe, host: host),
-      ],
-    ),
+  builder: (_) => AnsiSheetShell(
+    title: 'File under',
+    dismiss: AnsiSheetDismiss.none,
+    children: [
+      const SizedBox(height: 16),
+      _FilingPicker(recipe: recipe, host: host),
+    ],
   ),
 );
 

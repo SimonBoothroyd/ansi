@@ -20,8 +20,6 @@
 /// off-filter admission.
 library;
 
-import 'dart:math' as math;
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -34,6 +32,7 @@ import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/format.dart';
 import '../../../shared/write.dart';
 import '../data/ingredient_providers.dart';
@@ -189,74 +188,69 @@ class QuantityUnitEditor extends HookConsumerWidget {
       }
     }
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AnsiColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: AnsiColors.line)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 12,
-          bottom:
-              math.max(
-                MediaQuery.viewInsetsOf(context).bottom,
-                MediaQuery.paddingOf(context).bottom,
-              ) +
-              12,
-        ),
-        // Load-bearing emptiness (D6): an errored measures stream read as "no
-        // measures" silently narrows which units this line may be written in
-        // (ADR-0008) — the user's honest "2 half-cans" is simply not offered,
-        // with no hint that anything went wrong. So it is said out loud,
-        // instead of the chips it would otherwise quietly remove.
-        child: measuresAsync.hasError
-            ? AnsiErrorState(
-                what: 'this ingredient’s measures',
-                error: measuresAsync.error!,
-                stackTrace: measuresAsync.stackTrace,
-                onRetry: () =>
-                    ref.invalidate(ingredientMeasuresProvider(ingredient.id)),
-              )
-            : managing.value
-            ? _MeasureManager(
-                ingredient: live.value,
-                measures: measures,
-                onBack: () => managing.value = false,
-                onDelete: deleteMeasure,
-                onAdded: (m) {
-                  choice.value = MeasureOption(m);
-                  unitPicked.value = true;
-                  managing.value = false;
-                },
-                onIngredientChanged: (i) => live.value = i,
-              )
-            : _QuantitySurface(
-                ingredient: live.value,
-                measures: measures,
-                quantity: quantity,
-                choice: choice,
-                unitPicked: unitPicked,
-                stored: stored.value,
-                deletedNote: deletedNote.value,
-                pendingMeasure: pendingMeasure,
-                requireQuantity: requireQuantity,
-                optional: initialOptional == null ? null : optional,
-                confirmLabel: confirmLabel,
-                onManage: () => managing.value = true,
-                onDone: () => onDone(
-                  QuantitySaved(
-                    quantity: quantity.value,
-                    choice: choice.value,
-                    unitPicked: unitPicked.value,
-                    optional: optional.value,
-                  ),
-                ),
-                onRemove: onRemove,
+    // Load-bearing emptiness (D6): an errored measures stream read as "no
+    // measures" silently narrows which units this line may be written in
+    // (ADR-0008) — the user's honest "2 half-cans" is simply not offered,
+    // with no hint that anything went wrong. So it is said out loud, instead
+    // of the chips it would otherwise quietly remove.
+    if (measuresAsync.hasError) {
+      return AnsiSheetShell(
+        dismiss: AnsiSheetDismiss.none,
+        children: [
+          AnsiErrorState(
+            what: 'this ingredient’s measures',
+            error: measuresAsync.error!,
+            stackTrace: measuresAsync.stackTrace,
+            onRetry: () =>
+                ref.invalidate(ingredientMeasuresProvider(ingredient.id)),
+          ),
+        ],
+      );
+    }
+
+    return AnsiSheetShell(
+      title: managing.value ? 'Measures' : null,
+      subtitle: managing.value ? live.value.canonicalName : null,
+      dismiss: managing.value ? AnsiSheetDismiss.back : AnsiSheetDismiss.x,
+      onDismiss: managing.value ? () => managing.value = false : null,
+      children: [
+        if (managing.value)
+          _MeasureManager(
+            ingredient: live.value,
+            measures: measures,
+            onDelete: deleteMeasure,
+            onAdded: (m) {
+              choice.value = MeasureOption(m);
+              unitPicked.value = true;
+              managing.value = false;
+            },
+            onIngredientChanged: (i) => live.value = i,
+          )
+        else
+          _QuantitySurface(
+            ingredient: live.value,
+            measures: measures,
+            quantity: quantity,
+            choice: choice,
+            unitPicked: unitPicked,
+            stored: stored.value,
+            deletedNote: deletedNote.value,
+            pendingMeasure: pendingMeasure,
+            requireQuantity: requireQuantity,
+            optional: initialOptional == null ? null : optional,
+            confirmLabel: confirmLabel,
+            onManage: () => managing.value = true,
+            onDone: () => onDone(
+              QuantitySaved(
+                quantity: quantity.value,
+                choice: choice.value,
+                unitPicked: unitPicked.value,
+                optional: optional.value,
               ),
-      ),
+            ),
+            onRemove: onRemove,
+          ),
+      ],
     );
   }
 }
@@ -317,15 +311,6 @@ class _QuantitySurface extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => Navigator.of(context).pop(),
-              child: const Icon(FLucideIcons.x, size: 22),
-            ),
-          ],
-        ),
         const SizedBox(height: 6),
         Row(
           children: [
@@ -726,7 +711,6 @@ class _MeasureManager extends HookConsumerWidget {
   const _MeasureManager({
     required this.ingredient,
     required this.measures,
-    required this.onBack,
     required this.onDelete,
     required this.onAdded,
     required this.onIngredientChanged,
@@ -734,7 +718,6 @@ class _MeasureManager extends HookConsumerWidget {
 
   final Ingredient ingredient;
   final List<Measure> measures;
-  final VoidCallback onBack;
 
   /// Deletion runs through the editor so it can reconcile the selection —
   /// see [QuantityUnitEditor].
@@ -755,29 +738,6 @@ class _MeasureManager extends HookConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onBack,
-              child: const Icon(FLucideIcons.chevronLeft, size: 22),
-            ),
-            Expanded(
-              child: Text(
-                'Measures',
-                textAlign: TextAlign.center,
-                style: ansiSerif(size: 20),
-              ),
-            ),
-            const SizedBox(width: 22),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          ingredient.canonicalName,
-          textAlign: TextAlign.center,
-          style: ansiMono(size: 11, color: AnsiColors.muted),
-        ),
         const SizedBox(height: 14),
         MeasuresEditor(
           ingredient: ingredient,

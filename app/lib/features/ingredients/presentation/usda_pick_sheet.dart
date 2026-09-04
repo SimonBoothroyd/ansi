@@ -12,12 +12,12 @@ library;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_sheet_shell.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/ingredient.dart';
 import '../domain/normalize.dart';
@@ -66,61 +66,30 @@ class UsdaPickSheet extends HookConsumerWidget {
       useMemoized(() => probe.search(matchText), [matchText]),
     );
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AnsiColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: AnsiColors.line)),
-      ),
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 12,
-        bottom: MediaQuery.viewInsetsOf(context).bottom + 20,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => Navigator.of(context).pop(),
-                child: const Icon(FLucideIcons.x, size: 22),
-              ),
-              Expanded(
-                child: Text(
-                  'USDA · for “$name”',
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  style: ansiSerif(size: 18),
-                ),
-              ),
-              const SizedBox(width: 22),
-            ],
-          ),
-          const SizedBox(height: 14),
-          if (candidates.connectionState != ConnectionState.done)
-            Text(
-              'asking the server…',
-              style: ansiMono(size: 11, color: AnsiColors.muted),
-            )
-          else
-            UsdaCandidateList(
-              candidates: candidates.data ?? const [],
-              queryName: name,
-              current: ingredient,
-              onPick: (c) => Navigator.of(context).pop(c),
-            ),
-          const SizedBox(height: 12),
+    return AnsiSheetShell(
+      title: 'USDA · for “$name”',
+      titleSize: 18,
+      children: [
+        const SizedBox(height: 14),
+        if (candidates.connectionState != ConnectionState.done)
           Text(
-            'picking one fills density + macros from it and names it on the '
-            'form — still a stub until you confirm',
-            style: ansiMono(size: 10, color: AnsiColors.muted),
+            'asking the server…',
+            style: ansiMono(size: 11, color: AnsiColors.muted),
+          )
+        else
+          UsdaCandidateList(
+            candidates: candidates.data ?? const [],
+            queryName: name,
+            current: ingredient,
+            onPick: (c) => Navigator.of(context).pop(c),
           ),
-        ],
-      ),
+        const SizedBox(height: 12),
+        Text(
+          'picking one fills density + macros from it and names it on the '
+          'form — still a stub until you confirm',
+          style: ansiMono(size: 10, color: AnsiColors.muted),
+        ),
+      ],
     );
   }
 }

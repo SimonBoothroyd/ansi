@@ -26,8 +26,6 @@
 /// silently rewritten.
 library;
 
-import 'dart:math' as math;
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -36,6 +34,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/format.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart' show UnitChip;
 import '../domain/component_math.dart';
@@ -108,139 +107,105 @@ class ComponentQuantityEditor extends HookWidget {
       yields: yields,
     );
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AnsiColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: AnsiColors.line)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 12,
-          bottom:
-              math.max(
-                MediaQuery.viewInsetsOf(context).bottom,
-                MediaQuery.paddingOf(context).bottom,
-              ) +
-              12,
+    return AnsiSheetShell(
+      children: [
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: RecipeChip(title: target.title, size: 16),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        const SizedBox(height: 4),
+        Text(
+          yields.isEmpty
+              ? 'no yield set · your recipe'
+              : '${yields.map(yieldText).join(' · ')} · your recipe',
+          style: ansiMono(size: 11, color: AnsiColors.muted),
+        ),
+        const SizedBox(height: 16),
+        Text('QUANTITY', style: ansiLabel()),
+        const SizedBox(height: 8),
+        Row(
           children: [
-            Row(
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => Navigator.of(context).pop(),
-                  child: const Icon(FLucideIcons.x, size: 22),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: RecipeChip(title: target.title, size: 16),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              yields.isEmpty
-                  ? 'no yield set · your recipe'
-                  : '${yields.map(yieldText).join(' · ')} · your recipe',
-              style: ansiMono(size: 11, color: AnsiColors.muted),
-            ),
-            const SizedBox(height: 16),
-            Text('QUANTITY', style: ansiLabel()),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                SizedBox(
-                  width: 132,
-                  child: FTextField(
-                    autofocus: true,
-                    hint: 'qty',
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    control: FTextFieldControl.managed(
-                      initial: TextEditingValue(
-                        text: formatQuantity(quantity.value),
-                      ),
-                      onChange: (v) => quantity.value = v.text.trim().isEmpty
-                          ? null
-                          : double.tryParse(v.text.trim()),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    unit.value.label,
-                    style: ansiMono(size: 15, color: AnsiColors.herbDeep),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Text(
-              note ??
-                  (yields.isEmpty
-                      ? 'no yield set — amounts in batches only'
-                      : ''),
-              textAlign: TextAlign.center,
-              style: ansiMono(size: 11, color: AnsiColors.muted),
-            ),
-            const SizedBox(height: 8),
             SizedBox(
-              height: 34,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final u in offer.chips)
-                      UnitChip(
-                        label: u.label,
-                        suffix: u == offer.offFilter ? 'not in filter' : null,
-                        selected: unit.value == u,
-                        onTap: () => unit.value = u,
-                      ),
-                  ],
+              width: 132,
+              child: FTextField(
+                autofocus: true,
+                hint: 'qty',
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                control: FTextFieldControl.managed(
+                  initial: TextEditingValue(
+                    text: formatQuantity(quantity.value),
+                  ),
+                  onChange: (v) => quantity.value = v.text.trim().isEmpty
+                      ? null
+                      : double.tryParse(v.text.trim()),
                 ),
               ),
             ),
-            // The no-yield state is not an error state: the link, the page and
-            // scaling all work: only the derived numbers wait, one tap away.
-            if (yields.isEmpty && onSetYield != null) ...[
-              const SizedBox(height: 10),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onSetYield,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AnsiColors.line),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'Set the yield',
-                    textAlign: TextAlign.center,
-                    style: ansiMono(size: 12),
-                  ),
-                ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                unit.value.label,
+                style: ansiMono(size: 15, color: AnsiColors.herbDeep),
+                overflow: TextOverflow.ellipsis,
               ),
-            ],
-            const SizedBox(height: 14),
-            FButton(
-              onPress: () =>
-                  onDone((quantity: quantity.value, unit: unit.value)),
-              child: const Text('Done'),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 18),
+        Text(
+          note ??
+              (yields.isEmpty ? 'no yield set — amounts in batches only' : ''),
+          textAlign: TextAlign.center,
+          style: ansiMono(size: 11, color: AnsiColors.muted),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 34,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final u in offer.chips)
+                  UnitChip(
+                    label: u.label,
+                    suffix: u == offer.offFilter ? 'not in filter' : null,
+                    selected: unit.value == u,
+                    onTap: () => unit.value = u,
+                  ),
+              ],
+            ),
+          ),
+        ),
+        // The no-yield state is not an error state: the link, the page and
+        // scaling all work: only the derived numbers wait, one tap away.
+        if (yields.isEmpty && onSetYield != null) ...[
+          const SizedBox(height: 10),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onSetYield,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                border: Border.all(color: AnsiColors.line),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Set the yield',
+                textAlign: TextAlign.center,
+                style: ansiMono(size: 12),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 14),
+        FButton(
+          onPress: () => onDone((quantity: quantity.value, unit: unit.value)),
+          child: const Text('Done'),
+        ),
+      ],
     );
   }
 

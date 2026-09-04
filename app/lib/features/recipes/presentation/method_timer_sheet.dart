@@ -14,8 +14,6 @@
 /// "6 min 30 s" on purpose, and so does this.
 library;
 
-import 'dart:math' as math;
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -23,6 +21,7 @@ import 'package:forui/forui.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_sheet_shell.dart';
 import '../domain/method_step.dart';
 
 /// What the sheet resolved to: a span, or the request to unmake one.
@@ -94,113 +93,82 @@ class _TimerSheet extends HookWidget {
     final end = high.value;
     final reads = formatTimerRange(low.value, end ?? low.value);
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AnsiColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: AnsiColors.line)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 12,
-          bottom:
-              math.max(
-                MediaQuery.viewInsetsOf(context).bottom,
-                MediaQuery.paddingOf(context).bottom,
-              ) +
-              12,
+    return AnsiSheetShell(
+      title: 'Timer',
+      titleSize: 18,
+      centerTitle: false,
+      children: [
+        const SizedBox(height: 14),
+        Text('FROM', style: ansiLabel()),
+        const SizedBox(height: 6),
+        _DurationStepper(
+          seconds: low.value,
+          onChanged: (v) {
+            low.value = v;
+            final e = high.value;
+            if (e != null && e < v) high.value = v;
+          },
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        const SizedBox(height: 14),
+        Row(
           children: [
-            Row(
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => Navigator.of(context).pop(),
-                  child: const Icon(FLucideIcons.x, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Text('Timer', style: ansiSerif(size: 18)),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Text('FROM', style: ansiLabel()),
-            const SizedBox(height: 6),
-            _DurationStepper(
-              seconds: low.value,
-              onChanged: (v) {
-                low.value = v;
-                final e = high.value;
-                if (e != null && e < v) high.value = v;
-              },
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Text('TO', style: ansiLabel()),
-                const SizedBox(width: 6),
-                Text(
-                  '· optional',
-                  style: ansiMono(size: 11, color: AnsiColors.muted),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            if (end == null)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: FButton(
-                  variant: FButtonVariant.ghost,
-                  size: FButtonSizeVariant.sm,
-                  prefix: const Icon(FLucideIcons.plus),
-                  onPress: () => high.value = low.value + 300,
-                  child: const Text('Add an end'),
-                ),
-              )
-            else
-              Row(
-                children: [
-                  Expanded(
-                    child: _DurationStepper(
-                      seconds: end,
-                      onChanged: (v) =>
-                          high.value = v < low.value ? low.value : v,
-                    ),
-                  ),
-                  FButton.icon(
-                    variant: FButtonVariant.ghost,
-                    onPress: () => high.value = null,
-                    child: const Icon(FLucideIcons.x),
-                  ),
-                ],
-              ),
-            const SizedBox(height: 18),
-            Text('GOES IN AS', style: ansiLabel()),
-            const SizedBox(height: 6),
+            Text('TO', style: ansiLabel()),
+            const SizedBox(width: 6),
             Text(
-              '$prosePrefix$reads$proseSuffix',
-              style: ansiSans(size: 14, height: 1.4),
+              '· optional',
+              style: ansiMono(size: 11, color: AnsiColors.muted),
             ),
-            const SizedBox(height: 16),
-            FButton(
-              onPress: () => onDone(TimerSet(low.value, end ?? low.value)),
-              child: Text(removable ? 'Save' : 'Insert'),
-            ),
-            if (removable) ...[
-              const SizedBox(height: 8),
-              FButton(
-                variant: FButtonVariant.ghost,
-                onPress: () => onDone(const TimerRemoved()),
-                child: const Text('Remove timer · keeps the words'),
-              ),
-            ],
           ],
         ),
-      ),
+        const SizedBox(height: 6),
+        if (end == null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FButton(
+              variant: FButtonVariant.ghost,
+              size: FButtonSizeVariant.sm,
+              prefix: const Icon(FLucideIcons.plus),
+              onPress: () => high.value = low.value + 300,
+              child: const Text('Add an end'),
+            ),
+          )
+        else
+          Row(
+            children: [
+              Expanded(
+                child: _DurationStepper(
+                  seconds: end,
+                  onChanged: (v) => high.value = v < low.value ? low.value : v,
+                ),
+              ),
+              FButton.icon(
+                variant: FButtonVariant.ghost,
+                onPress: () => high.value = null,
+                child: const Icon(FLucideIcons.x),
+              ),
+            ],
+          ),
+        const SizedBox(height: 18),
+        Text('GOES IN AS', style: ansiLabel()),
+        const SizedBox(height: 6),
+        Text(
+          '$prosePrefix$reads$proseSuffix',
+          style: ansiSans(size: 14, height: 1.4),
+        ),
+        const SizedBox(height: 16),
+        FButton(
+          onPress: () => onDone(TimerSet(low.value, end ?? low.value)),
+          child: Text(removable ? 'Save' : 'Insert'),
+        ),
+        if (removable) ...[
+          const SizedBox(height: 8),
+          FButton(
+            variant: FButtonVariant.ghost,
+            onPress: () => onDone(const TimerRemoved()),
+            child: const Text('Remove timer · keeps the words'),
+          ),
+        ],
+      ],
     );
   }
 }

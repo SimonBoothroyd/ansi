@@ -10,8 +10,6 @@
 /// re-derives from the overlay change.
 library;
 
-import 'dart:math' as math;
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -22,6 +20,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_search_field.dart';
+import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/write.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
@@ -45,71 +44,31 @@ class _AddShoppingItemSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final topUp = useState(false); // false = free-text item, true = top up
 
-    return Container(
-      height: MediaQuery.sizeOf(context).height * 0.82,
-      decoration: const BoxDecoration(
-        color: AnsiColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: AnsiColors.line)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 12,
-          // Clear the keyboard (viewInsets) OR the home indicator (safe-area
-          // padding) — whichever is present — so the bottom action button is
-          // never tucked under the home-indicator gesture area.
-          bottom:
-              math.max(
-                MediaQuery.viewInsetsOf(context).bottom,
-                MediaQuery.paddingOf(context).bottom,
-              ) +
-              12,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return AnsiSheetShell(
+      title: 'Add to list',
+      heightFactor: 0.82,
+      children: [
+        const SizedBox(height: 14),
+        Row(
           children: [
-            Row(
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => Navigator.of(context).pop(),
-                  child: const Icon(FLucideIcons.x, size: 22),
-                ),
-                Expanded(
-                  child: Text(
-                    'Add to list',
-                    textAlign: TextAlign.center,
-                    style: ansiSerif(size: 20),
-                  ),
-                ),
-                const SizedBox(width: 22),
-              ],
+            _ModeTab(
+              label: 'Non-food item',
+              selected: !topUp.value,
+              onTap: () => topUp.value = false,
             ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                _ModeTab(
-                  label: 'Non-food item',
-                  selected: !topUp.value,
-                  onTap: () => topUp.value = false,
-                ),
-                const SizedBox(width: 8),
-                _ModeTab(
-                  label: 'Top up an ingredient',
-                  selected: topUp.value,
-                  onTap: () => topUp.value = true,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: topUp.value ? const _TopUpBody() : const _FreeTextBody(),
+            const SizedBox(width: 8),
+            _ModeTab(
+              label: 'Top up an ingredient',
+              selected: topUp.value,
+              onTap: () => topUp.value = true,
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: topUp.value ? const _TopUpBody() : const _FreeTextBody(),
+        ),
+      ],
     );
   }
 }

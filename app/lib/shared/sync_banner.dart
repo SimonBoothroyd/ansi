@@ -21,6 +21,7 @@ import '../core/sync/sync_health.dart';
 import '../core/theme/ansi_theme.dart';
 import '../core/theme/ansi_tokens.dart';
 import 'ansi_modals.dart';
+import 'ansi_sheet_shell.dart';
 import 'sync_words.dart';
 
 class AnsiSyncBanner extends ConsumerWidget {
@@ -93,47 +94,40 @@ class _DroppedWriteSheet extends ConsumerWidget {
   final List<DroppedWrite> drops;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => Container(
-    decoration: const BoxDecoration(
-      color: AnsiColors.paper,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      border: Border(top: BorderSide(color: AnsiColors.line)),
-    ),
-    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('What happened', style: ansiSerif(size: 20)),
-        const SizedBox(height: 8),
-        Text(
-          'The server refused these writes outright, so Ansi stopped trying '
-          'rather than wedge everything behind them. They are still on this '
-          'phone, and they are not on the other one. Re-saving what they '
-          'changed is what puts them back.',
-          style: ansiSans(size: 13, color: AnsiColors.muted),
-        ),
-        const SizedBox(height: 16),
-        for (final drop in drops.reversed)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              '${clockTime(drop.at)}  ${drop.table} · ${drop.op} · '
-              '${drop.rowId}\n${drop.code}: ${drop.message}',
-              style: ansiMono(size: 11),
-            ),
+  Widget build(BuildContext context, WidgetRef ref) => AnsiSheetShell(
+    title: 'What happened',
+    centerTitle: false,
+    dismiss: AnsiSheetDismiss.none,
+    topPadding: 16,
+    children: [
+      const SizedBox(height: 8),
+      Text(
+        'The server refused these writes outright, so Ansi stopped trying '
+        'rather than wedge everything behind them. They are still on this '
+        'phone, and they are not on the other one. Re-saving what they '
+        'changed is what puts them back.',
+        style: ansiSans(size: 13, color: AnsiColors.muted),
+      ),
+      const SizedBox(height: 16),
+      for (final drop in drops.reversed)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            '${clockTime(drop.at)}  ${drop.table} · ${drop.op} · '
+            '${drop.rowId}\n${drop.code}: ${drop.message}',
+            style: ansiMono(size: 11),
           ),
-        const SizedBox(height: 8),
-        FButton(
-          variant: FButtonVariant.outline,
-          onPress: () {
-            ref.read(droppedWritesProvider.notifier).acknowledge();
-            Navigator.of(context).pop();
-          },
-          child: const Text('I’ve seen this'),
         ),
-      ],
-    ),
+      const SizedBox(height: 8),
+      FButton(
+        variant: FButtonVariant.outline,
+        onPress: () {
+          ref.read(droppedWritesProvider.notifier).acknowledge();
+          Navigator.of(context).pop();
+        },
+        child: const Text('I’ve seen this'),
+      ),
+    ],
   );
 }
 

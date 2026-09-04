@@ -26,9 +26,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/ansi_theme.dart';
-import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/write.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../recipes/domain/recipe.dart';
@@ -127,78 +126,61 @@ class _ConfirmMealSheet extends HookConsumerWidget {
       if (added != null && context.mounted) Navigator.of(context).pop();
     }
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AnsiColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: AnsiColors.line)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 16,
-          bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
+    return AnsiSheetShell(
+      title: 'Add to plan',
+      titleSize: 22,
+      centerTitle: false,
+      dismiss: AnsiSheetDismiss.none,
+      topPadding: 16,
+      children: [
+        const SizedBox(height: 14),
+        MealRecipeCard(recipe: recipe),
+        if (hint != null) ...[
+          const SizedBox(height: 10),
+          MealBatchBanner(hint: hint, recipe: recipe, newDay: dayState.value),
+        ],
+        const SizedBox(height: 18),
+        const MealFieldLabel('Slot'),
+        const SizedBox(height: 6),
+        MealDaySlotPicker(
+          day: dayState.value,
+          slot: slotState.value,
+          onChanged: (day, s) {
+            dayState.value = day;
+            slotState.value = s;
+          },
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Add to plan', style: ansiSerif(size: 22)),
-            const SizedBox(height: 14),
-            MealRecipeCard(recipe: recipe),
-            if (hint != null) ...[
-              const SizedBox(height: 10),
-              MealBatchBanner(
-                hint: hint,
-                recipe: recipe,
-                newDay: dayState.value,
-              ),
-            ],
-            const SizedBox(height: 18),
-            const MealFieldLabel('Slot'),
-            const SizedBox(height: 6),
-            MealDaySlotPicker(
-              day: dayState.value,
-              slot: slotState.value,
-              onChanged: (day, s) {
-                dayState.value = day;
-                slotState.value = s;
-              },
-            ),
-            const SizedBox(height: 18),
-            const MealFieldLabel("Who's eating"),
-            const SizedBox(height: 6),
-            members.when(
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (list) => MealEaterPicker(
-                members: list,
-                selected: eaters.value,
-                onToggle: (id) {
-                  final next = {...eaters.value};
-                  next.contains(id) ? next.remove(id) : next.add(id);
-                  eaters.value = next;
-                },
-              ),
-            ),
-            const SizedBox(height: 18),
-            const MealFieldLabel('Portions'),
-            const SizedBox(height: 6),
-            MealPortionsStepper(
-              portionsOverride: portionsOverride.value,
-              eaterIds: eaters.value.toList(),
-              roster: members.asData?.value ?? const [],
-              onChanged: (v) => portionsOverride.value = v < 1 ? 1 : v,
-            ),
-            const SizedBox(height: 20),
-            FButton(
-              onPress: add,
-              child: Text('Add to ${kWeekdayFull[dayState.value]}'),
-            ),
-          ],
+        const SizedBox(height: 18),
+        const MealFieldLabel("Who's eating"),
+        const SizedBox(height: 6),
+        members.when(
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (list) => MealEaterPicker(
+            members: list,
+            selected: eaters.value,
+            onToggle: (id) {
+              final next = {...eaters.value};
+              next.contains(id) ? next.remove(id) : next.add(id);
+              eaters.value = next;
+            },
+          ),
         ),
-      ),
+        const SizedBox(height: 18),
+        const MealFieldLabel('Portions'),
+        const SizedBox(height: 6),
+        MealPortionsStepper(
+          portionsOverride: portionsOverride.value,
+          eaterIds: eaters.value.toList(),
+          roster: members.asData?.value ?? const [],
+          onChanged: (v) => portionsOverride.value = v < 1 ? 1 : v,
+        ),
+        const SizedBox(height: 20),
+        FButton(
+          onPress: add,
+          child: Text('Add to ${kWeekdayFull[dayState.value]}'),
+        ),
+      ],
     );
   }
 }

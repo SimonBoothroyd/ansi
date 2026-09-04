@@ -25,9 +25,8 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/ansi_theme.dart';
-import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/write.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
@@ -69,100 +68,60 @@ class _MealEditorSheet extends ConsumerWidget {
     // still the way out.
     if (entry == null) return const SizedBox.shrink();
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AnsiColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: AnsiColors.line)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 16,
-          bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      entry.recipeTitle ?? 'This meal',
-                      style: ansiSerif(size: 22),
-                    ),
-                  ),
-                  // Every control writes through, so there is nothing to save
-                  // — but a sheet still needs a visible way out.
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 4,
-                      ),
-                      child: Text(
-                        'Close',
-                        style: ansiSans(size: 14, color: AnsiColors.herbDeep),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              // Which meal this is, since the sheet no longer carries the
-              // picked-recipe card: the row you tapped, named back to you.
-              Text(
-                '${kWeekdayFull[entry.dayOfWeek]} · '
-                '${entry.mealSlot.toLowerCase()}',
-                style: ansiMono(size: 11, color: AnsiColors.muted),
-              ),
-              const SizedBox(height: 18),
-              const MealFieldLabel("Who's eating"),
-              const SizedBox(height: 6),
-              members.when(
-                loading: () => const SizedBox.shrink(),
-                error: (_, _) => const SizedBox.shrink(),
-                data: (list) => MealEaterPicker(
-                  members: list,
-                  selected: entry.eaterIds.toSet(),
-                  onToggle: (id) {
-                    final next = {...entry.eaterIds};
-                    next.contains(id) ? next.remove(id) : next.add(id);
-                    unawaited(
-                      ref.write(
-                        context,
-                        'change who is eating',
-                        () => repo.setEaters(entry.id, next.toList()),
-                      ),
-                    );
-                  },
+    return AnsiSheetShell(
+      // Every control writes through, so there is nothing to save — "Close" is
+      // the honest way out.
+      title: entry.recipeTitle ?? 'This meal',
+      // Which meal this is, since the sheet no longer carries the picked-recipe
+      // card: the row you tapped, named back to you.
+      subtitle:
+          '${kWeekdayFull[entry.dayOfWeek]} · '
+          '${entry.mealSlot.toLowerCase()}',
+      titleSize: 22,
+      centerTitle: false,
+      dismiss: AnsiSheetDismiss.close,
+      topPadding: 16,
+      scrollable: true,
+      children: [
+        const SizedBox(height: 18),
+        const MealFieldLabel("Who's eating"),
+        const SizedBox(height: 6),
+        members.when(
+          loading: () => const SizedBox.shrink(),
+          error: (_, _) => const SizedBox.shrink(),
+          data: (list) => MealEaterPicker(
+            members: list,
+            selected: entry.eaterIds.toSet(),
+            onToggle: (id) {
+              final next = {...entry.eaterIds};
+              next.contains(id) ? next.remove(id) : next.add(id);
+              unawaited(
+                ref.write(
+                  context,
+                  'change who is eating',
+                  () => repo.setEaters(entry.id, next.toList()),
                 ),
-              ),
-              const SizedBox(height: 18),
-              const MealFieldLabel('Portions'),
-              const SizedBox(height: 6),
-              MealPortionsStepper(
-                portionsOverride: entry.portions,
-                eaterIds: entry.eaterIds,
-                roster: members.asData?.value ?? const [],
-                onChanged: (v) => unawaited(
-                  ref.write(
-                    context,
-                    'change the portions',
-                    () => repo.setPortions(entry.id, v < 1 ? 1 : v),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
+              );
+            },
           ),
         ),
-      ),
+        const SizedBox(height: 18),
+        const MealFieldLabel('Portions'),
+        const SizedBox(height: 6),
+        MealPortionsStepper(
+          portionsOverride: entry.portions,
+          eaterIds: entry.eaterIds,
+          roster: members.asData?.value ?? const [],
+          onChanged: (v) => unawaited(
+            ref.write(
+              context,
+              'change the portions',
+              () => repo.setPortions(entry.id, v < 1 ? 1 : v),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }

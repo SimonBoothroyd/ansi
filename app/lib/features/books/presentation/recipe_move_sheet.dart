@@ -19,6 +19,7 @@ import 'package:forui/forui.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_sheet_shell.dart';
 import '../domain/book.dart';
 
 /// A shelf a recipe can be moved to, and how to say it out loud.
@@ -73,107 +74,75 @@ class _RecipeMoveSheetState extends State<_RecipeMoveSheet> {
   @override
   Widget build(BuildContext context) {
     final target = _target;
-    return Container(
-      decoration: const BoxDecoration(
-        color: AnsiColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: AnsiColors.line)),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => Navigator.of(context).pop(),
-                child: const Icon(FLucideIcons.x, size: 22),
-              ),
-              Expanded(
-                child: Text(
-                  'Move to…',
-                  textAlign: TextAlign.center,
-                  style: ansiSerif(size: 20),
-                ),
-              ),
-              const SizedBox(width: 22),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '“${widget.title}”',
-            textAlign: TextAlign.center,
-            style: ansiMono(size: 11, color: AnsiColors.muted),
-          ),
-          const SizedBox(height: 14),
-          Flexible(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final book in widget.books) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4, bottom: 6),
-                      child: Text(
-                        book.name,
-                        style: ansiSerif(size: 15, color: AnsiColors.herbDeep),
+    return AnsiSheetShell(
+      title: 'Move to…',
+      subtitle: '“${widget.title}”',
+      children: [
+        const SizedBox(height: 14),
+        Flexible(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final book in widget.books) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, bottom: 6),
+                    child: Text(
+                      book.name,
+                      style: ansiSerif(size: 15, color: AnsiColors.herbDeep),
+                    ),
+                  ),
+                  // Every shelf inside the book, the bucket first: a book
+                  // with no sections still has exactly one place to land.
+                  _ShelfRow(
+                    label: 'Unsectioned',
+                    selected:
+                        target?.bookId == book.id && target?.sectionId == null,
+                    here: _isHere(book.id, null),
+                    onTap: () => setState(
+                      () => _target = (
+                        bookId: book.id,
+                        sectionId: null,
+                        label: '${book.name} · Unsectioned',
                       ),
                     ),
-                    // Every shelf inside the book, the bucket first: a book
-                    // with no sections still has exactly one place to land.
+                  ),
+                  for (final section in book.sections)
                     _ShelfRow(
-                      label: 'Unsectioned',
-                      selected:
-                          target?.bookId == book.id &&
-                          target?.sectionId == null,
-                      here: _isHere(book.id, null),
+                      label: section.name,
+                      selected: target?.sectionId == section.id,
+                      here: _isHere(book.id, section.id),
                       onTap: () => setState(
                         () => _target = (
                           bookId: book.id,
-                          sectionId: null,
-                          label: '${book.name} · Unsectioned',
+                          sectionId: section.id,
+                          label: '${book.name} · ${section.name}',
                         ),
                       ),
                     ),
-                    for (final section in book.sections)
-                      _ShelfRow(
-                        label: section.name,
-                        selected: target?.sectionId == section.id,
-                        here: _isHere(book.id, section.id),
-                        onTap: () => setState(
-                          () => _target = (
-                            bookId: book.id,
-                            sectionId: section.id,
-                            label: '${book.name} · ${section.name}',
-                          ),
-                        ),
-                      ),
-                  ],
                 ],
-              ),
+              ],
             ),
           ),
-          const SizedBox(height: 10),
-          // Honest, one sentence, before the tap — the bulk move's grammar in
-          // the singular.
-          Text(
-            target == null
-                ? 'Pick a shelf.'
-                : '“${widget.title}” moves to ${target.label}.',
-            textAlign: TextAlign.center,
-            style: ansiSans(size: 13, color: AnsiColors.muted),
-          ),
-          const SizedBox(height: 12),
-          FButton(
-            onPress: target == null
-                ? null
-                : () => Navigator.of(context).pop(target),
-            child: const Text('Move'),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 10),
+        // Honest, one sentence, before the tap — the bulk move's grammar in
+        // the singular.
+        Text(
+          target == null
+              ? 'Pick a shelf.'
+              : '“${widget.title}” moves to ${target.label}.',
+          textAlign: TextAlign.center,
+          style: ansiSans(size: 13, color: AnsiColors.muted),
+        ),
+        const SizedBox(height: 12),
+        FButton(
+          onPress: target == null
+              ? null
+              : () => Navigator.of(context).pop(target),
+          child: const Text('Move'),
+        ),
+      ],
     );
   }
 }

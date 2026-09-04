@@ -27,6 +27,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_sheet_shell.dart';
 import 'ingredient_draft.dart';
 import 'off_lookup.dart';
 
@@ -102,103 +103,69 @@ class BarcodeScanSheet extends HookWidget {
     final code = normalizeBarcode(typed.value);
     final failed = failure.value;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AnsiColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: AnsiColors.line)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 12,
-            bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onDismiss,
-                    child: const Icon(FLucideIcons.x, size: 22),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Scan a barcode',
-                      textAlign: TextAlign.center,
-                      style: ansiSerif(size: 20),
-                    ),
-                  ),
-                  const SizedBox(width: 22),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _CameraFrame(
-                child: (cameraPane ?? _defaultCameraPane)(
-                  context,
-                  (c) => run(c, fromCamera: true),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text('OR TYPE THE NUMBER', style: ansiLabel()),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: FTextField(
-                      hint: '13 digits',
-                      keyboardType: TextInputType.number,
-                      control: FTextFieldControl.managed(
-                        onChange: (v) => typed.value = v.text,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  FButton(
-                    size: FButtonSizeVariant.sm,
-                    onPress: code == null || busy.value
-                        ? null
-                        : () => run(code, fromCamera: false),
-                    child: const Text('Look up'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (busy.value)
-                Text(
-                  'Looking it up…',
-                  style: ansiMono(size: 11, color: AnsiColors.muted),
-                )
-              else if (typed.value.trim().isNotEmpty && code == null)
-                Text(
-                  'a barcode is 8 to 14 digits',
-                  style: ansiMono(size: 11, color: AnsiColors.muted),
-                ),
-              if (failed != null) ...[
-                const SizedBox(height: 12),
-                BarcodeFailurePanel(
-                  failure: failed,
-                  onRetry: () => run(failed.barcode, fromCamera: false),
-                  onAddByHand: () => onResolved(
-                    IngredientDraft.blank(barcode: failed.barcode),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 14),
-              Text(
-                'Product data from Open Food Facts · ODbL',
-                textAlign: TextAlign.center,
-                style: ansiMono(size: 10, color: AnsiColors.muted),
-              ),
-            ],
+    return AnsiSheetShell(
+      title: 'Scan a barcode',
+      onDismiss: onDismiss,
+      scrollable: true,
+      children: [
+        const SizedBox(height: 14),
+        _CameraFrame(
+          child: (cameraPane ?? _defaultCameraPane)(
+            context,
+            (c) => run(c, fromCamera: true),
           ),
         ),
-      ),
+        const SizedBox(height: 16),
+        Text('OR TYPE THE NUMBER', style: ansiLabel()),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: FTextField(
+                hint: '13 digits',
+                keyboardType: TextInputType.number,
+                control: FTextFieldControl.managed(
+                  onChange: (v) => typed.value = v.text,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FButton(
+              size: FButtonSizeVariant.sm,
+              onPress: code == null || busy.value
+                  ? null
+                  : () => run(code, fromCamera: false),
+              child: const Text('Look up'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (busy.value)
+          Text(
+            'Looking it up…',
+            style: ansiMono(size: 11, color: AnsiColors.muted),
+          )
+        else if (typed.value.trim().isNotEmpty && code == null)
+          Text(
+            'a barcode is 8 to 14 digits',
+            style: ansiMono(size: 11, color: AnsiColors.muted),
+          ),
+        if (failed != null) ...[
+          const SizedBox(height: 12),
+          BarcodeFailurePanel(
+            failure: failed,
+            onRetry: () => run(failed.barcode, fromCamera: false),
+            onAddByHand: () =>
+                onResolved(IngredientDraft.blank(barcode: failed.barcode)),
+          ),
+        ],
+        const SizedBox(height: 14),
+        Text(
+          'Product data from Open Food Facts · ODbL',
+          textAlign: TextAlign.center,
+          style: ansiMono(size: 10, color: AnsiColors.muted),
+        ),
+      ],
     );
   }
 }
