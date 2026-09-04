@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
+    <h1 class="view-title">Library</h1>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/books</code> · <a href="../../exec-plans/active/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a></p>
+    <p class="view-blurb">The app’s home shelf — books, sections, rows; the field is the header, and every control hangs off a row that already existed.</p>
+</header>
+
+<div class="board">
+
+    <div class="frame">
+        <p class="frame-name"><b>Library home</b> · one field, no menus, no dashed rows; the <b>👥</b> is a link to <code>/account</code></p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar lib-abar3">
+                <div class="lib-hfield"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span></div>
+                <span class="id3">👥</span>
+            </div>
+
+            <div class="book-card" style="margin-top:2px">
+                <div class="book-top">
+                    <div class="lib-bhead">
+                        <div class="bn-wrap"><div class="bn">Our Cookbook</div><div class="bc">42 recipes · 3 sections</div></div>
+                        <div class="ctl"><span>⌄</span><span>⋯</span></div>
+                    </div>
+                </div>
+                <div class="sec">
+                    <div class="sec-lab sec-lab3"><span class="lbl">Weeknight</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
+                    <div class="lib-row"><span class="t">Weeknight Chicken Curry</span><span class="star">★</span><span class="sv">serves 4</span><span class="rm">⋯</span></div>
+                    <div class="lib-row"><span class="t">Miso Salmon</span><span class="sv">serves 2</span><span class="rm">⋯</span></div>
+                </div>
+                <div class="sec">
+                    <div class="sec-lab sec-lab3" style="color:var(--muted)"><span class="lbl">Unsectioned</span><span class="ctl3"><span class="p">＋</span></span></div>
+                    <div class="lib-row"><span class="t">House Ragù</span><span class="sv">serves 6</span><span class="rm">⋯</span></div>
+                </div>
+            </div>
+
+            <div class="book-card">
+                <div class="book-top">
+                    <div class="lib-bhead">
+                        <div class="bn-wrap"><div class="bn">Baking</div><div class="bc">9 recipes · 2 sections</div></div>
+                        <div class="ctl"><span>›</span><span>⋯</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lib-newbook">＋ new book</div>
+
+            <div class="book-card" style="margin-top:14px">
+                <div class="book-top">
+                    <div class="lib-bhead">
+                        <div class="bn-wrap"><div class="bn">Ingredients</div><div class="bc">308 ingredients · 3 stubs</div></div>
+                        <div class="ctl"><span>›</span></div>
+                    </div>
+                </div>
+            </div>
+            <p class="conv-note" style="margin-top:12px">the vocabulary is a <b>shelf</b>, drawn like one — after the books, because it is a different kind of shelf, and with a <b>›</b> because it opens rather than folds</p>
+            <p class="conv-note">the <b>👥</b> beside the field is the one control in this header: it <b>opens the account page</b> — the household, this device, sign out. It is a <b>link</b>, so it can never grow a second item</p>
+            <p class="conv-note">an open card is books, sections and recipes. Every control on it hangs off a row that <b>already existed</b></p>
+            <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>＋ on a section</b> · two doors, opening where the filing is already known</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <p class="lib-mcap" style="margin-top:8px">＋ on <i>Baking ▸ Slow Sundays</i></p>
+            <div class="lib-menu">
+                <div class="mi"><span class="ic">◍</span><span class="lb">New recipe</span></div>
+                <div class="mi"><span class="ic">⤓</span><span class="lb">Import a recipe</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">v2 D1's menu, <b>word for word</b> — the same two items, moved from a header that could not know the answer to a row that does</p>
+            <p class="lib-mcap">either door → the editor opens filed</p>
+            <div class="lib-file3"><span class="bc3">Baking · Slow Sundays</span><span class="ed">change ›</span></div>
+            <p class="conv-note" style="margin-top:10px">today both land in <span style="font-family:'IBM Plex Mono',monospace">books.first.id</span> — whichever book sorts first — and say nothing about it</p>
+            <p class="lib-mcap">and the book's own unfiled shelf</p>
+            <div class="lib-foot" style="margin-top:6px"><span class="fi">＋</span><span class="fl"><span class="fs">Unsectioned ▸ ＋ → Baking · Unsectioned</span></span></div>
+            <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>A recipe row’s ⋯</b> · Move to… and Favorite; the star reports, it never files</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar lib-abar3">
+                <div class="lib-hfield"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span></div>
+                <span class="id3">👥</span>
+            </div>
+            <div class="book-card" style="margin-top:2px">
+                <div class="book-top">
+                    <div class="lib-bhead">
+                        <div class="bn-wrap"><div class="bn">Our Cookbook</div><div class="bc">42 recipes · 3 sections</div></div>
+                        <div class="ctl"><span>⌄</span><span>⋯</span></div>
+                    </div>
+                </div>
+                <div class="sec">
+                    <div class="sec-lab sec-lab3"><span class="lbl">Weeknight</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
+                    <div class="lib-row"><span class="t">House Ragù</span><span class="sv">serves 6</span><span class="rm">⋯</span></div>
+                </div>
+            </div>
+            <div class="lib-menu">
+                <div class="mi"><span class="ic">→</span><span class="lb">Move to…</span></div>
+                <div class="mi"><span class="ic">★</span><span class="lb">Favorite</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">then a target: the books, each with its sections — <b>“House Ragù moves to Baking · Slow Sundays”</b>, said before it acts, the “Move them to…” grammar in the singular</p>
+            <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>A book’s ⋯</b> · rename, section, order — and two deletes: a refusal with a door, and a plain confirm on an empty shelf</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar lib-abar3">
+                <div class="lib-hfield"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span></div>
+                <span class="id3">👥</span>
+            </div>
+            <div class="book-card" style="margin-top:8px">
+                <div class="book-top">
+                    <div class="lib-bhead">
+                        <div class="bn-wrap"><div class="bn">Our Cookbook</div><div class="bc">42 recipes · 3 sections</div></div>
+                        <div class="ctl"><span>⌄</span><span style="opacity:1">⋯</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="lib-menu">
+                <div class="mi"><span class="ic">✎</span><span class="lb">Rename</span></div>
+                <div class="mi"><span class="ic">＋</span><span class="lb">New section</span></div>
+                <div class="mi"><span class="ic">↑</span><span class="lb">Move up</span></div>
+                <div class="mi"><span class="ic">↓</span><span class="lb">Move down</span></div>
+                <div class="rule"></div>
+                <div class="mi danger"><span class="ic">🗑</span><span class="lb">Delete book</span></div>
+            </div>
+            <p class="lib-mcap">then, on a book that holds recipes</p>
+            <div class="lib-dlg">
+                <div class="dh">Can’t delete “Our Cookbook” yet</div>
+                <div class="db">It holds <b style="color:var(--ink)">42 recipes</b>. Move them to another book first, or delete them.</div>
+                <div class="acts"><span class="b p">Move them to…</span><span class="b g">Cancel</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">“Move them to…” picks a target book, then says what it will do: <b>“42 recipes will move to Baking, unsectioned.”</b> Sections belong to the book they were named in — nothing is silently re-filed</p>
+            <p class="conv-note">on your <b>only</b> book the refusal is different and simpler: <i>“This is your only book — every recipe needs a shelf.”</i></p>
+            <p class="lib-mcap">and on an empty book, a plain confirm</p>
+            <div class="lib-dlg">
+                <div class="dh">Delete “Baking”?</div>
+                <div class="db">The shelf is empty, so nothing goes with it.</div>
+                <div class="acts"><span class="b p">Delete</span><span class="b g">Cancel</span></div>
+            </div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Search · active</b> · the tree gives way to flat rows that say where each one lives</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar lib-abar3">
+                <div class="lib-hfield"><span class="mag">⌕</span><span>chicken<span class="care"></span></span><span style="margin-left:auto;color:var(--muted);font-size:12px">✕</span></div>
+                <span class="id3">👥</span>
+            </div>
+            <p class="list-h">3 recipes</p>
+            <div class="res-row">
+                <div style="flex:1;min-width:0"><div class="res-nm" style="font-family:'Spectral',serif;font-size:15px;font-weight:500">Weeknight Chicken Curry</div>
+                    <span class="res-cat">Our Cookbook · Weeknight</span></div>
+                <span class="sv" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">serves 4</span>
+                <span style="color:var(--muted);font-size:12px;margin-left:9px">›</span></div>
+            <div class="res-row">
+                <div style="flex:1;min-width:0"><div class="res-nm" style="font-family:'Spectral',serif;font-size:15px;font-weight:500">Roast Chicken &amp; Bread Sauce</div>
+                    <span class="res-cat">Our Cookbook · Slow Sundays</span></div>
+                <span class="sv" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">serves 6</span>
+                <span style="color:var(--muted);font-size:12px;margin-left:9px">›</span></div>
+            <div class="res-row">
+                <div style="flex:1;min-width:0"><div class="res-nm" style="font-family:'Spectral',serif;font-size:15px;font-weight:500">Chicken Stock</div>
+                    <span class="res-cat">Baking · Unsectioned</span></div>
+                <span class="sv" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">serves 8</span>
+                <span style="color:var(--muted);font-size:12px;margin-left:9px">›</span></div>
+            <p class="conv-note" style="margin-top:14px">clearing the field restores the tree <b>exactly</b> as it was — folds included. While a query is live the fold state is ignored, because there is no tree to fold</p>
+            <p class="conv-note">the filing line is the whole reason this is flat: two <b>Ragù</b>s in two books are otherwise the same row twice</p>
+            <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Search · nothing matched</b> · two doors, both minting from the query</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar lib-abar3">
+                <div class="lib-hfield"><span class="mag">⌕</span><span>romes<span class="care"></span></span><span style="margin-left:auto;color:var(--muted);font-size:12px">✕</span></div>
+                <span class="id3">👥</span>
+            </div>
+            <div class="lib-nohit">
+                <div class="empty-ic" style="margin-bottom:10px">⌕</div>
+                <div class="h">Nothing matches <q>romes</q></div>
+            </div>
+            <div class="addnew" style="margin-top:2px">＋ new recipe called “romes”</div>
+            <div class="addnew" style="margin-top:8px">⤓ import a recipe instead</div>
+            <p class="conv-note" style="margin-top:14px">the typed query becomes the new recipe’s <b>title</b> — the ingredient picker’s “can’t find it? add a new ingredient” move, which mints from the query rather than dropping you on an empty form</p>
+            <p class="conv-note">a one-word typo lands here too, until the tracker’s single-token fuzzy row is paid. A dead end with two doors is not a dead end</p>
+            <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>First run</b> · a synced household arrives with a book, a vocabulary and no recipes</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar lib-abar3">
+                <div class="lib-hfield"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span></div>
+                <span class="id3">👥</span>
+            </div>
+            <div class="book-card" style="margin-top:0">
+                <div class="book-top">
+                    <div class="lib-bhead">
+                        <div class="bn-wrap"><div class="bn">Our Cookbook</div><div class="bc">no recipes yet</div></div>
+                        <div class="ctl"><span>⌄</span><span>⋯</span></div>
+                    </div>
+                </div>
+                <div class="lib-inempty"><div class="h">Nothing on this shelf yet</div></div>
+                <div class="lib-doors"><span class="d">＋ new recipe</span><span class="d">⤓ import one</span></div>
+                </div>
+            <div class="lib-newbook">＋ new book</div>
+            <p class="conv-note" style="margin-top:12px">the count reads <b>no recipes yet</b>, never <span style="font-family:'IBM Plex Mono',monospace">0 recipes</span> — the stub badge’s rule: a zero that renders looks like a bug</p>
+            <p class="conv-note">a new section is made from the book’s <b>⋯</b>; the only dashed row on this screen is <b>＋ new book</b></p>
+            <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+    </div>
+
+</div>
+
+<p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>
