@@ -168,13 +168,6 @@ class _FakePlanningRepo implements PlanningRepository {
   Future<int> copyLastWeek(DateTime weekStart) async => 0;
 
   @override
-  Future<void> setDaySlot({
-    required String entryId,
-    required int dayOfWeek,
-    required String mealSlot,
-  }) => throw UnimplementedError();
-
-  @override
   Future<void> setPortions(String entryId, int? portions) =>
       throw UnimplementedError();
 }

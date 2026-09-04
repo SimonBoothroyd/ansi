@@ -15,8 +15,8 @@ planning/
                   mealSlotRank) + planning_repository.dart — PURE DART
   data/           SqlitePlanningRepository over the local PowerSync views;
                   providers
-  presentation/   WeekView (day-card grid; presentation + edit modes; an
-                  empty week is a STATE of it, not a page),
+  presentation/   WeekView (day-card grid; ONE state since v3 — the mode is
+                  gone; an empty week is a STATE of it, not a page),
                   week_header (the week switcher and its returns),
                   recipe_picker_sheet + confirm_meal_sheet (the two-step add
                   flow), entry_sheet (what a row opens in edit mode),

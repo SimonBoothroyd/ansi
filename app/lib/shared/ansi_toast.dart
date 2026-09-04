@@ -118,8 +118,8 @@ void showAnsiProblemToast(
 void showAnsiUndoToast(
   BuildContext context, {
   required String what,
-  String? detail,
   required VoidCallback onUndo,
+  String? detail,
 }) {
   showFToast(
     context: context,
