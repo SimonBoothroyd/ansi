@@ -9,8 +9,9 @@
 
 begin;
 -- 14 tables x (select isolation + cross-household insert rejection)
--- + current_household_id + 4 recipe.favorite checks + 2 usda_food checks.
-select plan(35);
+-- + current_household_id + 4 recipe.favorite checks + 2 usda_food checks
+-- + 2 household column-grant checks + 4 usda_search_* denials.
+select plan(41);
 
 -- Two households, one member each, and one row per household in every
 -- household-scoped table (A-side ids aaaaaaaa-…, B-side bbbbbbbb-…).
@@ -181,6 +182,28 @@ select lives_ok(
   'favoriting another household''s recipe does not error (RLS filters it)'
 );
 
+-- The household column grants (0008). `authenticated` may rename its own
+-- household and soft-delete it, and nothing else: a household that could flip
+-- its own `is_template` would become the clone source every future onboarder
+-- copies from, and one that could rewrite its `id` could walk into another's
+-- rows. Both are refused by the column grant, not by RLS, so they raise 42501
+-- rather than filtering to zero rows — which is why they need naming here: a
+-- single later `grant update on household` reopens both in silence.
+select throws_ok(
+  $$ update household set is_template = true
+     where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' $$,
+  '42501',
+  'permission denied for table household',
+  'a household cannot mark itself a template (the onboarding clone source)'
+);
+select throws_ok(
+  $$ update household set id = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
+     where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' $$,
+  '42501',
+  'permission denied for table household',
+  'a household cannot rewrite its own id'
+);
+
 -- usda_food is server-side only (ADR-0005): denied to clients…
 select throws_ok(
   $$ select count(*) from usda_food $$,
@@ -188,6 +211,18 @@ select throws_ok(
   'permission denied for table usda_food',
   'usda_food is denied to the authenticated (client) role'
 );
+
+-- …and so is the search index derived from it (0029, RLS added in 0030): same
+-- reference set in a different shape, so the same posture — no grant, no
+-- policy, reached only through the security-definer probe.
+select throws_ok(
+  format('select count(*) from %I', tbl),
+  '42501',
+  'permission denied for table ' || tbl,
+  tbl || ' is denied to the authenticated (client) role'
+) from (values ('usda_search_doc'), ('usda_search_stats'),
+               ('usda_search_term'), ('usda_search_token')) as s(tbl)
+  order by tbl;
 
 -- …but reachable server-side.
 reset role;

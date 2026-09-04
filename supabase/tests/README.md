@@ -30,8 +30,8 @@ assertions in `begin … rollback` so runs leave no residue.
   survive); that every piece-default produce row with a density admits
   cup/tbsp/ml (this assertion REPLACED the seed-level produce patch — one
   source of the fact, per ADR-0009); the density→`allowed_units` union
-  trigger; the USDA stub prefill trigger, including that a stub insert
-  survives a prefill that throws; and the plan-0022 /
+  trigger; the USDA search door (`probe_usda` — read-only, ranked, capped,
+  and offering weak rows rather than withholding them); and the plan-0022 /
   [ADR-0010](../../docs/decisions/0010-piece-is-an-admission-fact.md) `piece`
   guard — no seeded ingredient carrying a measure admits `piece`, while the
   derived rule still gives a measure-less count row its fallback. That pass is
