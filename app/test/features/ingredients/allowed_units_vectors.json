@@ -1,0 +1,112 @@
+{
+  "_doc": [
+    "SHARED VECTORS for the ADR-0008 derived unit-admission rule, as amended by",
+    "ADR-0009 (a density unlocks both families) and ADR-0010 (piece is an",
+    "admission fact).",
+    "",
+    "Two implementations claim to apply the same rule: the Dart one the app",
+    "offers chips from (lib/features/ingredients/domain/allowed_units.dart,",
+    "`allowedUnitsFor`) and the SQL one the server materializes allowed_units",
+    "with (default_allowed_units(), migration 0021). Each shape below is a real",
+    "row somebody types — a jar of yeast, a bag of flour, one avocado — written",
+    "once so neither side can drift alone.",
+    "",
+    "Who reads this file:",
+    "  - app/test/features/ingredients/allowed_units_test.dart loops it directly.",
+    "  - supabase/seed/scripts/gen_admission_vectors.ts renders it as the",
+    "    generated `values` block in supabase/tests/unit_admission.sql, and the",
+    "    test beside that script fails if the committed block has drifted.",
+    "",
+    "`expect` is in the app's DISPLAY order, which is what allowedUnitsFor",
+    "returns. The SQL function emits its own order (the mango shape puts `pt`",
+    "before `ml`; the app's chip order does not), so the generated pgTAP block",
+    "compares the two lists as SETS. Membership is the mirror; order is each",
+    "side's own business.",
+    "",
+    "`basis` is the macros basis — 'g' for per-100 g rows, 'ml' for per-100 ml.",
+    "`density` is g per ml, or null for a row that has none yet."
+  ],
+  "vectors": [
+    {
+      "shape": "yeast",
+      "why": "a spoon default with no density admits the basis base and nothing else — being sold by the spoon does not make spoons convertible",
+      "defaultUnit": "tsp",
+      "basis": "g",
+      "density": null,
+      "category": "baking",
+      "expect": ["g"]
+    },
+    {
+      "shape": "flour",
+      "why": "a cup default with a density earns the kitchen volumes AND kg — cup-scale justifies the big metric sibling",
+      "defaultUnit": "cup",
+      "basis": "g",
+      "density": 0.59,
+      "category": "baking",
+      "expect": ["cup", "tbsp", "ml", "l", "pt", "qt", "g", "kg"]
+    },
+    {
+      "shape": "olive-oil",
+      "why": "a spoon default with a density: its mates, the basis base, and the oil class's imprecise words — nobody takes a handful of oil",
+      "defaultUnit": "tbsp",
+      "basis": "g",
+      "density": 0.91,
+      "category": "fats & oils",
+      "expect": ["tbsp", "tsp", "cup", "ml", "pt", "g", "pinch", "dash", "to_taste"]
+    },
+    {
+      "shape": "egg",
+      "why": "a count default with no density: its own piece, the basis base, and the one imprecise word produce earns",
+      "defaultUnit": "piece",
+      "basis": "g",
+      "density": null,
+      "category": "produce",
+      "expect": ["piece", "g", "handful"]
+    },
+    {
+      "shape": "salt",
+      "why": "the seasoning category admits the whole imprecise tail, and the spoons still need a density like everyone else's",
+      "defaultUnit": "tsp",
+      "basis": "g",
+      "density": null,
+      "category": "spices & seasoning",
+      "expect": ["g", "pinch", "dash", "handful", "to_taste"]
+    },
+    {
+      "shape": "mango",
+      "why": "a count default WITH a density admits the volume workhorses — \"1 cup diced mango\" is a real line — but not the big metric siblings",
+      "defaultUnit": "piece",
+      "basis": "g",
+      "density": 0.66,
+      "category": "produce",
+      "expect": ["piece", "g", "tsp", "tbsp", "cup", "ml", "pt", "handful"]
+    },
+    {
+      "shape": "avocado",
+      "why": "the same rule under the row ADR-0010's curation pass trims: the DERIVED list still offers piece, which is exactly what a curated list then takes away",
+      "defaultUnit": "piece",
+      "basis": "g",
+      "density": 0.634,
+      "category": "produce",
+      "expect": ["piece", "g", "tsp", "tbsp", "cup", "ml", "pt", "handful"]
+    },
+    {
+      "shape": "broth",
+      "why": "a per-ml row's volume default IS its basis family, so it stands alone — no gram leg until a density arrives",
+      "defaultUnit": "cup",
+      "basis": "ml",
+      "density": null,
+      "category": "pantry",
+      "expect": ["cup", "tbsp", "ml", "l", "pt", "qt"]
+    },
+    {
+      "shape": "milk",
+      "why": "the same per-ml row once it has a density: mass unlocks behind the basis family",
+      "defaultUnit": "cup",
+      "basis": "ml",
+      "density": 1.03,
+      "category": "dairy",
+      "expect": ["cup", "tbsp", "ml", "l", "pt", "qt", "g", "kg"]
+    }
+  ]
+}

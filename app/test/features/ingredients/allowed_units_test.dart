@@ -1,9 +1,43 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+/// One row of `allowed_units_vectors.json` — the file the pgTAP mirror reads
+/// too, through `supabase/seed/scripts/gen_admission_vectors.ts`.
+class _Vector {
+  _Vector(Map<String, dynamic> json)
+    : shape = json['shape'] as String,
+      why = json['why'] as String,
+      ingredient = _ing(
+        unitById(json['defaultUnit'] as String)!,
+        density: (json['density'] as num?)?.toDouble(),
+        category: json['category'] as String?,
+        basis: json['basis'] == 'ml' ? MacrosBasis.perMl : MacrosBasis.perG,
+      ),
+      expect = [
+        for (final id in json['expect'] as List) unitById(id as String)!,
+      ];
+
+  final String shape;
+  final String why;
+  final Ingredient ingredient;
+  final List<Unit> expect;
+}
+
+List<_Vector> _sharedVectors() {
+  final file = File('test/features/ingredients/allowed_units_vectors.json');
+  final decoded = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+  return [
+    for (final v in decoded['vectors'] as List)
+      _Vector(v as Map<String, dynamic>),
+  ];
+}
 
 Ingredient _ing(
   Unit defaultUnit, {
@@ -25,14 +59,29 @@ Ingredient _ing(
 void main() {
   group('allowedUnitsFor — ADR-0008 derived defaults (mirrors the pgTAP '
       'default_allowed_units vectors)', () {
-    test('THE YEAST SHAPE: tsp default /g with NO density admits the basis '
-        'base and nothing else — being sold by the spoon does not make spoons '
-        'convertible', () {
-      final units = allowedUnitsFor(_ing(tsp, category: 'baking'));
-      expect(units, [g]);
-      // Before D4c this read [tsp, tbsp, g]: the default unit's own family
-      // was an admission source, so a row could offer a unit no number on it
-      // could resolve. A density is what buys the spoons back.
+    // The shapes themselves live in allowed_units_vectors.json, which the
+    // pgTAP suite reads too — through gen_admission_vectors.ts, which renders
+    // it as the generated `values` block in tests/unit_admission.sql. One
+    // file, so neither mirror can move without the other failing. What is
+    // written out below the loop is what a vector cannot carry: a refusal, or
+    // a second row read against the first.
+    final vectors = _sharedVectors();
+
+    test('the vector file actually loaded', () {
+      // An emptied or unfound fixture would make every case below vacuous.
+      expect(vectors, hasLength(9));
+    });
+
+    for (final v in vectors) {
+      test('the ${v.shape} shape: ${v.why}', () {
+        expect(allowedUnitsFor(v.ingredient), v.expect);
+      });
+    }
+
+    test('a density is what buys the yeast shape its spoons back', () {
+      // Before D4c this read [tsp, tbsp, g] with no density at all: the
+      // default unit's own family was an admission source, so a row could
+      // offer a unit no number on it could resolve.
       expect(allowedUnitsFor(_ing(tsp, density: 0.4, category: 'baking')), [
         tsp,
         tbsp,
@@ -40,36 +89,16 @@ void main() {
       ]);
     });
 
-    test('the flour shape: cup default /g with density — kitchen volume + g '
-        'AND kg (cup-scale justifies the big sibling)', () {
-      final units = allowedUnitsFor(
-        _ing(cup, density: 0.59, category: 'baking'),
-      );
-      expect(units, [cup, tbsp, ml, l, pint, quart, g, kg]);
-    });
-
-    test('the olive-oil shape: tbsp default /g oil — mates + g + the oil class '
-        'imprecise words (no handful of oil)', () {
-      final units = allowedUnitsFor(
+    test('what the shapes refuse: no handful of oil, no pinch of egg', () {
+      // The per-word category gate, read from the other side — the vectors
+      // say what is admitted, and these are the words that stayed out.
+      final oil = allowedUnitsFor(
         _ing(tbsp, density: 0.91, category: 'fats & oils'),
       );
-      expect(units, [tbsp, tsp, cup, ml, pint, g, pinch, dash, toTaste]);
-      expect(units, isNot(contains(handful)));
-    });
-
-    test('the egg shape: count default /g — piece + basis base, and produce '
-        'earns handful and nothing else', () {
-      final units = allowedUnitsFor(_ing(pieces, category: 'produce'));
-      expect(units, [pieces, g, handful]);
-      expect(units, isNot(contains(pinch)));
-      expect(units, isNot(contains(dash)));
-    });
-
-    test('the salt shape: the seasoning category admits the whole tail — which '
-        'the density rule leaves alone, being no part of the mass⇄volume '
-        'duality', () {
-      final units = allowedUnitsFor(_ing(tsp, category: 'spices & seasoning'));
-      expect(units, [g, pinch, dash, handful, toTaste]);
+      expect(oil, isNot(contains(handful)));
+      final egg = allowedUnitsFor(_ing(pieces, category: 'produce'));
+      expect(egg, isNot(contains(pinch)));
+      expect(egg, isNot(contains(dash)));
     });
 
     test('an imprecise default keeps its whole tail + the basis base', () {
@@ -77,22 +106,6 @@ void main() {
         _ing(pinch, category: 'spices & seasoning'),
       );
       expect(units, [g, pinch, dash, handful, toTaste]);
-    });
-
-    test('a per-ml liquid: volume default IS the basis family — no gram leg '
-        'without a density; with one, mass unlocks', () {
-      expect(allowedUnitsFor(_ing(cup, basis: MacrosBasis.perMl)), [
-        cup,
-        tbsp,
-        ml,
-        l,
-        pint,
-        quart,
-      ]);
-      expect(
-        allowedUnitsFor(_ing(cup, basis: MacrosBasis.perMl, density: 1.03)),
-        [cup, tbsp, ml, l, pint, quart, g, kg],
-      );
     });
 
     test('a mass default /g with density unlocks kitchen volume, after the '
@@ -105,23 +118,18 @@ void main() {
       expect(units, isNot(contains(pieces)));
     });
 
-    test(
-      'THE MANGO VECTOR (ADR-0008 as amended): a piece default with a density '
-      'admits the volume workhorses — "1 cup diced mango" is a real line',
-      () {
-        final units = allowedUnitsFor(
-          _ing(pieces, density: 0.66, category: 'produce'),
-        );
-        expect(units, [pieces, g, tsp, tbsp, cup, ml, pint, handful]);
-        // `kg` stays out: the big metric sibling rides the same magnitude gate
-        // the mass/volume legs use, and a piece default is not big-scale. It is
-        // the board frame's dashed chip. `qt` rides with `l`, so it stays out
-        // with it (D2b); `pt` rides with `cup`, so it came in.
-        expect(units, isNot(contains(kg)));
-        expect(units, isNot(contains(l)));
-        expect(units, isNot(contains(quart)));
-      },
-    );
+    test('what the mango shape leaves out: the big metric siblings', () {
+      final units = allowedUnitsFor(
+        _ing(pieces, density: 0.66, category: 'produce'),
+      );
+      // `kg` stays out: the big metric sibling rides the same magnitude gate
+      // the mass/volume legs use, and a piece default is not big-scale. It is
+      // the board frame's dashed chip. `qt` rides with `l`, so it stays out
+      // with it; `pt` rides with `cup`, so it came in.
+      expect(units, isNot(contains(kg)));
+      expect(units, isNot(contains(l)));
+      expect(units, isNot(contains(quart)));
+    });
 
     test('without a density a count default still admits nothing but its own '
         'piece and the basis base — the amendment unlocks on the density, not '
@@ -154,15 +162,9 @@ void main() {
     });
 
     group('pint and quart — quart rides with litre, pint rides with cup', () {
-      test('the broth shape: a cup default admits a pint, and a quart with it '
-          '— "1 quart broth" lands on a chip', () {
-        final broth = allowedUnitsFor(
-          _ing(cup, basis: MacrosBasis.perMl, category: 'pantry'),
-        );
-        expect(broth, containsAll(<Unit>[pint, quart]));
-        // …behind the metric jugs in chip order, never fronted over them.
-        expect(broth, [cup, tbsp, ml, l, pint, quart]);
-      });
+      // The cup-default case is the shared `broth` vector above: it already
+      // pins that a pint and a quart come in, behind the metric jugs in chip
+      // order rather than fronted over them.
 
       test('a litre default admits a quart', () {
         expect(allowedUnitsFor(_ing(l, basis: MacrosBasis.perMl)), [
