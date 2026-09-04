@@ -45,7 +45,8 @@ are repeated here so a lane needs nothing outside the repo.
 - **U-D1** A provenance line at the head of the form's macros/density section:
   "Filled from USDA · *description* · FDC id · close match | a guess" (band from
   the score: ≥ 0.85 close, 0.5–0.85 a guess), with *Not this food* and *Choose
-  another ▸*. The description is a new synced column `ingredient.source_label`,
+  another ▸*. **The two band words are superseded — see the decision log,
+  2026-09-04.** The line itself, and both doors, shipped and stand. The description is a new synced column `ingredient.source_label`,
   written by both prefill writers (the trigger and `applyUsdaProbe`) from
   `usda_probe` widened to return `description`.
 - **U-D2** *Not this food* is one write: `clearDensity` (so the D4b strip of
@@ -220,7 +221,8 @@ never `db-reset` the shared stack; sims are the orchestrator's at landing.
   when every factor is 1); a fractional usual never earns a chip — the
   avatars are the who, the sheet says the how much.
 - 2026-09-03 — **Lane U, one column beyond U-D5's letter: `source_score`
-  beside `source_label`.** U-D1's band word ("close match" ≥ 0.85, "a guess"
+  beside `source_label`.** (The band *words* are superseded — see 2026-09-04
+  below; the column is not.) U-D1's band word ("close match" ≥ 0.85, "a guess"
   below) is a function of the score, and the row did not carry one — so a
   trigger-filled row (the common case) could not print the band offline. The
   two alternatives were worse: asking `probe_usda` when the form opens is
@@ -287,6 +289,21 @@ never `db-reset` the shared stack; sims are the orchestrator's at landing.
   by `0028_allowed_units_jsonb_repair.sql`, held by
   `test/structure/jsonb_columns_test.dart`; pgTAP 327/327 after (`ceebc66`).
   `0028` rides to cloud with `0026`/`0027`.
+- 2026-09-04 — **U-D1's band words are superseded.** `UsdaBand` and its
+  `close match` (≥ 0.85) / `a guess` (0.5–0.85) cut are replaced by
+  `UsdaMatchFit`: **`all words` / `some words`**, cut at **full coverage**
+  (`score >= 0.999`), reading *matches every word of "…"* / *matches only part
+  of "…"*. Two things changed under U-D1. Plan 0029 dropped the prefill
+  trigger, so a `usda_fdc:` stamp now always means a **person** picked from
+  the search — there is no machine's confidence left to report. And the score
+  turned out not to be a confidence at all: measured over **267 curated
+  pairs**, a full-coverage pick is the right food **63 %** of the time against
+  **34 %** for a partial one — a real signal — but the score is **bimodal**,
+  with 226 of 264 sitting at exactly 1.0 and **nothing between 0.85 and 1.0**,
+  so 0.85 was a boolean in a threshold's clothes. The band therefore reports
+  **coverage of the name you typed**, not confidence, and it is cut where the
+  data actually splits. The reasoning in full:
+  [`completed/0032-ingredient-detail-v2.md`](../completed/0032-ingredient-detail-v2.md).
 
 ## Step-done checklist
 
