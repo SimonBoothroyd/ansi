@@ -594,6 +594,30 @@ void main() {
       expect(garlic.candidates.single.canonicalName, 'Allium Sativum');
     });
 
+    test('it ranks the candidates the way the PICKER ranks them — an alias '
+        'the query IS beats a longer name the query merely prefixes', () async {
+      // The divergence this seam used to carry: the SQL ordered by name
+      // length, so the shorter canonical name won whatever the surfaces said.
+      // "Parmesan" IS one row's alias (tier 0, an exact surface) and only
+      // word-prefixes the other's name (tier 1) — the picker offers the alias
+      // row first, and the commit must write the same one.
+      await _seedIngredient(db, 'ing-parm', 'Parmesan cheese');
+      await _seedIngredient(db, 'ing-grana', 'Aged Italian Hard Cheese');
+      await _seedAlias(db, 'ing-grana', 'parmesan');
+
+      final result = await repo.startImport(const ImportFromUrl('x'));
+      final parm = result.flatLines.firstWhere(
+        (l) => l.raw.ingredientText == 'Parmesan, grated',
+      );
+      expect(parm.candidates.single.ingredientId, 'ing-grana');
+      expect(parm.candidates.single.canonicalName, 'Aged Italian Hard Cheese');
+
+      // …which is the row the picker puts first, over the same vocabulary.
+      final picker = SqliteIngredientRepository(db, householdId: 'h');
+      final offered = await picker.search('Parmesan');
+      expect(offered.rows.first.id, 'ing-grana');
+    });
+
     test('it never guesses, even where the picker would', () async {
       // "Parmezan cheese" is ONE edit from the canned candidate "Parmesan", so
       // the picker offers it under a "did you mean" header. This seam commits

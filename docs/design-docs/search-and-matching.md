@@ -138,10 +138,14 @@ This is the most important line in the document, and it is what stops the next
 unification pass from "finishing the job" and breaking it.
 
 `_findVocabRow` in `import_repository_impl.dart` re-resolves a candidate name
-against the vocabulary **unattended**: `LIMIT 1`, at commit time, writing the
+against the vocabulary **unattended**: one row, at commit time, writing the
 answer into a saved recipe. It gets **tiers 0 and 1 only, forever**. A guess
 there is a wrong ingredient on a line nobody reviewed — the never-invent
 invariant, and what ADR-0004 exiles.
+
+Within those two tiers it ranks with `searchRank`, exactly as the pickers do —
+the SQL `LIKE` pass only selects the candidates — so the seam nobody reviews
+and the list everybody sees cannot disagree about which row is the best match.
 
 It *does* search aliases, for the same reason the picker does: the learning
 loop's absorbed phrasing ("coco milk" → Coconut Milk) is a **spelling the

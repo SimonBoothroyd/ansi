@@ -20,18 +20,34 @@ library;
 
 import 'dart:convert';
 
+import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/units/units.dart';
 import '../../ingredients/domain/normalize.dart';
 import '../../ingredients/domain/search_query.dart';
+import '../../ingredients/domain/search_rank.dart';
 import '../domain/commit_payload.dart';
 import '../domain/import_repository.dart';
 import '../domain/reconciliation_payload.dart';
 import 'canned_payload.dart';
 
 const _uuid = Uuid();
+
+/// How many LIKE candidates are ranked. A commit resolves one name against a
+/// household's own vocabulary, where a token-subset match returning more than
+/// a handful of rows is already unusual; the cap is here so a pathological
+/// name cannot walk the whole table.
+const _page = 30;
+
+/// A row's live aliases' `match_text`, newline-separated so each stays a
+/// phrase of its own — the rule's tier 0 asks whether the query IS an alias,
+/// which a space-joined blob could never answer. `match_text` cannot contain a
+/// newline (the normalizer collapses all whitespace), so the split is exact.
+const _aliasText =
+    '(SELECT GROUP_CONCAT(a.match_text, char(10)) FROM ingredient_alias a '
+    'WHERE a.ingredient_id = i.id AND a.deleted_at IS NULL) AS alias_text';
 
 class SqliteImportRepository implements ImportRepository {
   const SqliteImportRepository(this._db, {required String householdId})
@@ -81,20 +97,26 @@ class SqliteImportRepository implements ImportRepository {
     return line.copyWith(candidates: resolved);
   }
 
-  /// The live vocab row a candidate [name] resolves to: an exact
-  /// canonical-name hit, else the top word-prefix match over the ingredient's
-  /// `match_text` **or any of its live aliases** (every token of [name], raw
-  /// or singularized), else null.
+  /// The live vocab row a candidate [name] resolves to: the best hit of the
+  /// SAME ranking the pickers use ([searchRank]) over the rows a word-prefix
+  /// LIKE pass selects — the ingredient's `match_text` **or any of its live
+  /// aliases**, every token raw or singularized — else null.
   ///
   /// **Tiers 0 and 1 only — never the typo tier**, and that asymmetry is a
   /// rule, not an omission. This is the one search seam with no human in the
-  /// loop: it picks `LIMIT 1` at commit time and writes the answer into a
+  /// loop: it picks one row at commit time and writes the answer into a
   /// saved recipe. A guess here is a wrong ingredient on a line nobody
   /// reviewed, which is what ADR-0004 exiles and what the never-invent
   /// invariant refuses. **Tier 2 is retrieval for a human to pick, never a
   /// resolution** — the pickers may guess because someone is looking at the
   /// list; this may not, and must not "have the job finished" for it by a
   /// later unification pass.
+  ///
+  /// What the ranking buys: the SQL knows which rows *could* match, and
+  /// nothing more. Ordered by name length instead, `tom` committed `Tomato`
+  /// where the picker offered `Cherry Tomato` first — its alias `tom` is an
+  /// exact surface — so the seam nobody reviews answered differently from the
+  /// one everybody sees. One rule now decides both.
   ///
   /// Aliases matter here for the same reason they matter in the picker: the
   /// learning loop's absorbed phrasing ("coco milk" → Coconut Milk) is a
@@ -104,18 +126,6 @@ class SqliteImportRepository implements ImportRepository {
   Future<({String id, String canonicalName})?> _findVocabRow(
     String name,
   ) async {
-    final exact = await _db.getOptional(
-      'SELECT id, canonical_name FROM ingredient '
-      'WHERE deleted_at IS NULL AND LOWER(canonical_name) = LOWER(?) LIMIT 1',
-      [name],
-    );
-    if (exact != null) {
-      return (
-        id: exact['id'] as String,
-        canonicalName: exact['canonical_name'] as String,
-      );
-    }
-
     final tokens = searchTokens(name);
     if (tokens.isEmpty) return null;
     final where = StringBuffer('i.deleted_at IS NULL');
@@ -137,15 +147,44 @@ class SqliteImportRepository implements ImportRepository {
       );
       params.addAll([...patterns, ...patterns]);
     }
-    final row = await _db.getOptional(
-      'SELECT i.id, i.canonical_name FROM ingredient i WHERE $where '
-      'ORDER BY length(i.canonical_name), i.canonical_name LIMIT 1',
+    // This pass SELECTS a page; it does not rank. The page is bounded and
+    // ordered the way the picker's is, so the rows the cap keeps are the same
+    // rows it would keep.
+    final rows = await _db.getAll(
+      'SELECT i.id, i.canonical_name, i.match_text, $_aliasText '
+      'FROM ingredient i WHERE $where '
+      'ORDER BY length(i.canonical_name), i.canonical_name LIMIT $_page',
       params,
     );
-    if (row == null) return null;
+
+    final ranked = <({SearchHit hit, Row row})>[];
+    for (final r in rows) {
+      final hit = searchRank(name, [
+        (r['match_text'] as String?) ?? '',
+        ...((r['alias_text'] as String?) ?? '').split('\n'),
+        normalizeSearchQuery(r['canonical_name'] as String),
+      ]);
+      if (hit == null) continue;
+      ranked.add((hit: hit, row: r));
+    }
+    if (ranked.isEmpty) return null;
+    ranked.sort((a, b) {
+      final byTier = a.hit.tier.index.compareTo(b.hit.tier.index);
+      if (byTier != 0) return byTier;
+      final byScore = b.hit.score.compareTo(a.hit.score);
+      if (byScore != 0) return byScore;
+      final an = a.row['canonical_name'] as String;
+      final bn = b.row['canonical_name'] as String;
+      final byLength = an.length.compareTo(bn.length);
+      return byLength != 0 ? byLength : an.compareTo(bn);
+    });
+    final best = ranked.first;
+    // The whole asymmetry, in one line: a typo hit is an offer, and there is
+    // nobody here to accept it.
+    if (best.hit.tier == SearchTier.typo) return null;
     return (
-      id: row['id'] as String,
-      canonicalName: row['canonical_name'] as String,
+      id: best.row['id'] as String,
+      canonicalName: best.row['canonical_name'] as String,
     );
   }
 
