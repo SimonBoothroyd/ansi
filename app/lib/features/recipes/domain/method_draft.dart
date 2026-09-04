@@ -301,6 +301,22 @@ int? spanAt(MethodDraftStep draft, int offset) {
   return null;
 }
 
+/// The index of the span that **ends** at [offset], or null.
+///
+/// The companion to [spanAt] for the one caret that is ambiguous. iOS does not
+/// leave the caret where the finger landed: a tap snaps it to the edge of the
+/// word it fell in — the word's END, unless the tap was on its first
+/// character. A tap on a short chip therefore arrives as a caret at
+/// `span.end`, which [spanAt] rightly calls "beside the chip". Only the
+/// caret's affinity tells the two apart, so only a caller that has it (the
+/// step card's tap) should ask this.
+int? spanEndingAt(MethodDraftStep draft, int offset) {
+  for (var i = 0; i < draft.spans.length; i++) {
+    if (draft.spans[i].end == offset) return i;
+  }
+  return null;
+}
+
 // --- editing rules -----------------------------------------------------------
 
 /// Re-anchors [draft]'s spans after the text became [newText].

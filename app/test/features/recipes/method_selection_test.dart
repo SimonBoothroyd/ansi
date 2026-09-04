@@ -152,6 +152,26 @@ void main() {
     expect(timer.highSeconds, 1800);
   });
 
+  testWidgets('the selection is spent: a real tap on the new chip opens '
+      'its sheet', (tester) async {
+    await openEditor(tester);
+    await selectAndShowToolbar(tester, 1, 15, 19); // "buns"
+    await tester.tap(find.text('To ingredient'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chip as “Pretzel Buns”'));
+    await tester.pumpAndSettle();
+
+    // A REAL tap, not the field's `onTap` called by hand: a selection left
+    // over the words swallows it, and the chip sheet never opens.
+    final field = methodFields().at(1);
+    final editable = tester.state<EditableTextState>(field).renderEditable;
+    final caret = editable.getLocalRectForCaret(const TextPosition(offset: 17));
+    await tester.tapAt(editable.localToGlobal(caret.center));
+    await tester.pumpAndSettle();
+
+    expect(find.text('POINTS AT'), findsOneWidget);
+  });
+
   testWidgets('To timer over prose it cannot read opens the stepper empty', (
     tester,
   ) async {

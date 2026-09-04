@@ -200,6 +200,18 @@ void main() {
     });
   });
 
+  group('spanEndingAt', () {
+    test('names the span whose closing edge the caret sits on', () {
+      final draft = _draft();
+      final fennel = draft.spans[0];
+      expect(spanEndingAt(draft, fennel.end), 0);
+      expect(spanEndingAt(draft, draft.spans[1].end), 1);
+      expect(spanEndingAt(draft, fennel.start), isNull);
+      expect(spanEndingAt(draft, fennel.end - 1), isNull);
+      expect(spanEndingAt(draft, 0), isNull);
+    });
+  });
+
   group('editing rules', () {
     test('an edit before a chip shifts it; the text is the new text', () {
       final draft = _draft();

@@ -303,7 +303,7 @@ class MethodStepCard extends HookConsumerWidget {
           label: 'To ingredient',
           onPressed: () {
             state.hideToolbar();
-            unawaited(_selectionToIngredient(context, selection));
+            unawaited(_selectionToIngredient(context, controller, selection));
           },
         ),
         ContextMenuButtonItem(
@@ -327,6 +327,7 @@ class MethodStepCard extends HookConsumerWidget {
   /// obvious.
   Future<void> _selectionToIngredient(
     BuildContext context,
+    MethodSpanController controller,
     TextSelection selection,
   ) async {
     final word = step.text.substring(selection.start, selection.end);
@@ -349,6 +350,12 @@ class MethodStepCard extends HookConsumerWidget {
       end: selection.end,
       refs: [lineId],
     );
+    // The words are a chip now, so the selection that made one is spent. It
+    // has to be dropped by hand because this path is the one that changes no
+    // text (the timer path rewrites the words, and a text change reseats the
+    // caret on its own) — and a live selection swallows the next tap inside
+    // it, which on the new chip is the tap that opens its sheet.
+    controller.selection = TextSelection.collapsed(offset: selection.end);
   }
 
   /// Parses ONLY the selected substring, and seeds the stepper with it.
@@ -390,7 +397,16 @@ class MethodStepCard extends HookConsumerWidget {
   ) async {
     final selection = controller.selection;
     if (!selection.isCollapsed) return;
-    final index = spanAt(step, selection.baseOffset);
+    // A caret at a chip's closing edge is either a tap ON the chip (iOS snaps
+    // the caret to the end of the tapped word) or a tap on the prose that
+    // starts there. The affinity is what tells them apart: upstream is the
+    // word that ends here — the chip — and downstream is the one that begins.
+    final offset = selection.baseOffset;
+    final index =
+        spanAt(step, offset) ??
+        (selection.affinity == TextAffinity.upstream
+            ? spanEndingAt(step, offset)
+            : null);
     if (index == null) return;
     switch (step.spans[index]) {
       case RefSpan(:final refs, :final amountRule):
