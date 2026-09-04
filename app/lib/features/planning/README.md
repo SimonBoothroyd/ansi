@@ -19,10 +19,12 @@ planning/
                   gone; an empty week is a STATE of it, not a page),
                   week_header (the week switcher and its returns),
                   recipe_picker_sheet + confirm_meal_sheet (the two-step add
-                  flow), entry_sheet (what a row opens in edit mode),
+                  flow), meal_editor_sheet (who's eating + portions,
+                  opened by a row's avatar/portions cluster — v3 E7; it
+                  replaced entry_sheet, which was a hub behind a mode),
                   meal_fields (the controls both sheets share),
-                  household_sheet (the members' usual portions, off the
-                  Library ⋯ — plan 0027 P-D3),
+                  household_section (the members' usual portions, a section
+                  of /account — plan 0027 P-D3, moved there by 0028 E6),
                   week_widgets (Pill, EaterAvatar, EaterAvatarStack,
                   PortionsChip, CookMarkerLine), week_format
 ```

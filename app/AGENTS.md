@@ -170,7 +170,7 @@ parallel lanes can each hold one. The seven files: `auth` (the sign-in gate →
 `DID YOU MEAN` band, book rename, the refused delete, the reorder sheet) ·
 `recipe_editor` (create/edit a recipe incl. method steps, jsonb + child-diff
 round-trips) · `week` (week/cook/shop, then the usual portion set from
-Library `⋯` ▸ Household and read as a fraction on the entry sheet, the lens
+Library `⋯` ▸ Household and read as a fraction on the meal editor, the lens
 and the Cook tab) · `import` (reconcile → commit, over the local import
 repository — no LLM) · `ingredients` (stub band, rename, add-by-barcode off
 a fixture) · `nested` (yield + component line → plan → cook/shop → gap card

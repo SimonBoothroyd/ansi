@@ -79,7 +79,8 @@ are repeated here so a lane needs nothing outside the repo.
 - **P-D3** Set from a *Household* row in the Library `⋯` menu → a sheet
   listing the members with their segment; either member may set either.
 - **P-D4** Demand is fractional and printed as a fraction (½ ¾ ¼ glyphs, never
-  1.75) everywhere: the entry sheet's Portions row ("1¾ portions — Ada 1 · Jun
+  1.75) everywhere: the entry sheet's Portions row (`meal_editor_sheet`
+  since week v3; same row, same words) ("1¾ portions — Ada 1 · Jun
   ¾"; the override stepper stays whole and its small print reads "overrides
   the eaters' 1¾"), `CookSession.portions` becomes a double, batches = demand
   ÷ `servings_base` as today, the whole-batch nudge speaks the fraction.
@@ -113,7 +114,11 @@ are repeated here so a lane needs nothing outside the repo.
         usual"; Cook's "covers Sat dinner · 1¾ portions", "×0.88" and the
         ¼-portion nudge; Monday's override + Wednesday's lone eater still 4)
         and P-D5 (Jun's lens: "434 kcal" · "1 meal · Jun · ¾ of 1¾
-        portions"). `make test-sim FILE=week` on the iPhone 17: **39 s of test time, 1:16 wall** (24 s of it the Xcode build) — the 3d leg adds about five seconds to the file.
+        portions"). *(Week v3, 2026-09-03: the "entry sheet" this leg
+        opens is now `meal_editor_sheet`, reached by tapping a row's
+        avatar/portions cluster instead of `Edit` then the meal — the
+        leg was rewritten in place, the assertions are unchanged.)*
+        `make test-sim FILE=week` on the iPhone 17: **39 s of test time, 1:16 wall** (24 s of it the Xcode build) — the 3d leg adds about five seconds to the file.
 - [x] Docs: `docs/QUALITY.md` rows (Ingredients manager, Barcode add,
       Planning, Cook-plan), `app/AGENTS.md` if a rule changes, ADR-0009's
       density leg unaffected, the roadmap 8.11 row flipped, cloud ledger
@@ -136,7 +141,7 @@ those two lines at landing) and `docs/QUALITY.md`.
   not reset — see the decision log); sim leg left to the landing.
 - **Lane P** — front P. Migration `0026`. Slices: domain (demand, weights,
   fraction formatting, identity test) → data (column, member entity, repo) →
-  Household sheet → entry sheet / cook / lens copy. ✅ **Built 2026-09-03**
+  Household sheet → entry sheet / cook / lens copy (the entry sheet became `meal_editor_sheet` under week v3, same Portions row). ✅ **Built 2026-09-03**
   (`828573d` domain · `2b08ed4` wire · `75de314` Household sheet · `da7fbba`
   the fraction everywhere), `make ci` green in the lane; pgTAP run against
   the shared local stack with `0026` applied *inside* the test transaction

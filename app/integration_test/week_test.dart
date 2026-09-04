@@ -1,8 +1,9 @@
-/// Sim smoke — WEEK → COOK → SHOP: the redesigned week — an empty week is a
-/// STATE of the screen (never the retired blank-week page), copy-last-week
-/// from its inline chip, the row's three targets, removal + undo and eaters
-/// through the entry sheet (the per-row `⋯` and the eaters dialog are both
-/// retired), the two-step add flow (recipe picker v2 — Favorites tab included
+/// Sim smoke — WEEK → COOK → SHOP: the week — an empty week is a STATE of the
+/// screen (never the retired blank-week page), copy-last-week from its inline
+/// chip, a row's **three targets** (title → the recipe, avatar cluster → the
+/// meal editor, `−` → gone with an undo toast) — the mode, the per-row `⋯`
+/// and the eaters dialog are all retired — the two-step add flow (recipe
+/// picker v2 — Favorites tab included
 /// → confirm v2 with the full batch prose → portions), and the `Everyone`
 /// lens DIMMING rather than removing; one cook session covering two close
 /// meals and a split for a far one; the rolled-up shopping list with
@@ -562,7 +563,7 @@ void main() {
     expect(find.text('USUAL PORTION'), findsNothing);
 
     // On the Week: the Saturday curry has both eaters and no override, so
-    // its entry sheet speaks the fraction (P-D4) — never 1.75. The screen
+    // its meal editor speaks the fraction (P-D4) — never 1.75. The screen
     // is as 3b left it — in edit mode, scrolled to Saturday — so neither
     // `Edit` nor the lens row at the top of the lazy list is in the tree;
     // anchor on the view itself.
