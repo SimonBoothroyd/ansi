@@ -39,6 +39,17 @@ is admitted only via an explicit mapping into that basis.**
    of this weighs N g"** (`1 tbsp = 15 g` ⇒ `15 / 14.787` g/ml). A
    volume-named weight mapping *is* a density — so volume-named measures
    never exist as measures, and no conflict between the two is possible.
+
+   *Amended 2026-09-04 (plan 0028 design pass + [ADR-0011](./0011-one-save-one-write.md)).*
+   The two ways stopped being two **controls**: nobody divides grams by
+   millilitres in their head, so the phrasing segment was a choice with one
+   real answer and it is deleted. What remains is one sentence — *"1 `[tsp]`
+   `[tbsp]` `[cup]` `[ml]` of this weighs `__` g"* — and `ml`'s ratio to base
+   is 1, so a known g/ml is still typeable **exactly**, as a different pick in
+   the same row. Both ways are unchanged in what they store. What did change
+   is *when*: on the flesh-out form the density now lands through that form's
+   own Save, in the one transaction with everything else (ADR-0011); the
+   quantity sheet, which has no Save, still writes it on tap.
 3. **Measures are count-like human units only** (sachet, can, block,
    small/medium/large, cm, …), each mapped to an amount **in the basis
    unit** (not always grams — a /ml ingredient's measures map to ml).

@@ -1813,12 +1813,14 @@
         <p class="lk-h">Re-traced from shipped code + owner rulings — 2026-08-31</p>
         <p>These frames were drawn as a proposal, then the step was <b>built</b>: three lanes (server · manager UI · barcode) converged, and a polish pass landed on top. They are now redrawn from what actually runs (<b>ingredient_list_view.dart</b>, <b>ingredient_detail_view.dart</b>, <b>density_entry.dart</b>, <b>measures_editor.dart</b>, <b>new_ingredient_sheet.dart</b>, <b>barcode/</b>) <i>and</i> from the rulings the owner made driving it on a real device — <b>D4b</b>, <b>F1</b>–<b>F3</b>, <b>D7b</b>, demo batch <b>G1</b>–<b>G4</b> and, last and loudest, <b>D4c</b>. The older frames they extend (“New ingredient”, “Barcode add”, “Fleshing-out queue”, plus 7.7’s macros basis and 7.8’s allowed units) stand where they were right; every divergence is named on the frame it lands on.</p>
         <div class="ledger">
-            <span class="k">kept</span><span>Open Food Facts as the product source, ODbL credit on the row · barcode entered from the new-ingredient form’s <b>Source</b> segment · the form’s field order (name · aliases · category + default unit · macros · density) · density both ways, one stored fact · dashed chips that unlock with a density · a <b>pushed</b> screen with a back chevron, not a fifth tab.</span>
+            <span class="k">kept</span><span>Open Food Facts as the product source, ODbL credit on the row · density both ways, one stored fact · a <b>pushed</b> screen with a back chevron, not a fifth tab.</span>
+            <span class="k ch">since retired</span><span><b>The <span style="font-family:'IBM Plex Mono',monospace">Source</span> segment</b> — the barcode was entered from a three-legged mode on the add sheet; the sheet is deleted (0029) and two doors are not a mode, so the form carries them as <i>Fill it in from ▸ Scan a barcode · Look up in USDA</i>. <b>The field order</b> (name · aliases · category + default unit · macros · density) — the default unit left <span style="font-family:'IBM Plex Mono',monospace">category + default unit</span> to join the admission chips, because D4c makes them one rule (v2, owner-ruled). <b>Dashed chips</b> — the density-locked units are one named line now, which answers “why can’t I pick cup” with the remedy attached.</span>
             <span class="k ch">changed</span><span><b>The stub queue is a band, not a screen</b> — it sits on top of the full vocabulary list, because a vocabulary you can only see when it is broken is not a vocabulary you can edit. <b>Macros alone gate <span style="font-family:'IBM Plex Mono',monospace">complete</span></b>, not “density + macros”. <b>Confirming is a human act</b> — a USDA or barcode prefill fills the fields and leaves the row a stub until someone says yes. <b>A barcode prefills a draft</b>; it no longer “imports as complete”, because Open Food Facts is volunteer-entered and often has no panel at all.</span>
             <span class="k ch">built</span><span>The ADR-0008 amendment shipped: a <b>piece-default ingredient with a density admits volume units</b> (drawn on Mango) and the seed’s 49-row produce patch is retired. <b>Renaming rewrites the match text</b> and re-fires the server probe on bare stubs. A <b>typed barcode</b> sits under the scanner permanently. <b>D4b</b> split the chips into a basis half and a density-derived half that strips again when the density is deleted; <b>F1</b>/<b>F2</b>/<b>F3</b>/<b>D7b</b> made the lookup honest, the measures editable, the category a dropdown, and enrichment synchronous.</span>
             <span class="k ch">ruled since</span><span><b>D4c — the default unit’s family is not an admission source.</b> With no density a row admits its <b>basis family</b> and nothing across the divide: the chips, <i>and the default-unit selector itself</i>, lock the other family’s options. A row whose stored default already violates that (cup default, per-100 g, no density) is <b>flagged with a one-tap fix</b>, never silently rewritten. With it: the form’s helper prose <b>shrinks to one computed line</b> naming what is actually locked — “why is the message an essay”. Also ruled: <b>G4</b>, a prefilled stub’s list hint reads <span style="font-family:'IBM Plex Mono',monospace">usda prefilled · needs confirm</span>, not “needs macros”.</span>
             <span class="k ch">shipped</span><span><b>Step 8.5 closed out 2026-09-01 — every frame here is running code, and the flow is walked on a real stack.</b> <span style="font-family:'IBM Plex Mono',monospace">make test-sim</span> scenario 5 drives this section end to end: Library ▸ ＋ ▸ Ingredients → the stub band over the synced vocabulary → open a stub, rename it (the match text is rewritten, and filling the form in does <i>not</i> promote the row) → add-new by <b>barcode</b> → the prefilled draft → a saved row whose <span style="font-family:'IBM Plex Mono',monospace">off:</span> provenance survives the sync round trip, still a stub. The owner’s last field test also ruled <b>J3</b>/<b>J3b</b> (imprecise words are gated per word by category, but a line’s own <i>printed</i> word is always admissible) and <b>D4d</b> — <b>keep D4c strict, fix the data</b>: 19 stranded rows got a real density instead. <b>Not drawn from hardware:</b> the camera pane of frame (d) and everything downstream of a lens — a Simulator has no camera, so those states are verified on a phone, not here.</span>
         </div>
+        <p style="border-top:1px solid #CBDECB;padding-top:10px"><b>Superseded 2026-09-04 — the add sheet is gone.</b> Frames <b>(d) Add · scan a barcode</b>, <b>(e) Barcode result</b> and <b>When it doesn’t work</b> below draw the <b>New-ingredient sheet</b>, which <b>no longer exists</b>: <span style="font-family:'IBM Plex Mono',monospace">new_ingredient_sheet.dart</span> was deleted by exec plan <b>0029</b> under <b>ADR-0011</b>. Every add-new in the app — this list’s <span style="font-family:'IBM Plex Mono',monospace">＋</span>, the editor picker’s footer, the shopping top-up, the import review’s create-new — now opens <span style="font-family:'IBM Plex Mono',monospace">/ingredients/new</span>: the flesh-out form itself, with no row behind it. The <b>capabilities</b> those frames drew all survive on the form — the barcode door, the typed fallback, the three honest failures, the pack-size offer, and the USDA search (which the form gained as <i>Fill it in from ▸ Look up in USDA</i>) — so they are kept here as the record of what shipped, not deleted. <b>Read them beside “Ingredient detail · v2” frame (h)</b>, which draws the create state that replaced them. Frame <b>(d)’s Source segment</b> in particular is retired: two doors are not a mode.</p>
         <p class="src">Exec plan + decision log: <b>docs/exec-plans/completed/0020-ingredients-manager.md</b>. The log’s tail is the law these frames draw; where the shipped code has not caught up yet the frame says so in <span style="color:var(--muted)">muted type</span>.</p>
     </div>
 
@@ -1869,7 +1871,7 @@
         <div class="flow"><span>tap a row</span><span class="arrow">→</span></div>
 
         <div class="frame">
-            <p class="frame-name"><b>Ingredient detail</b> · the flesh-out form, finally built — “New ingredient” + the 7.7 basis frame + the 7.8 admission frame, one scroll</p>
+            <p class="frame-name"><b>Ingredient detail</b> <b style="color:var(--gone)">· RE-DRAWN 2026-09-03 as “Ingredient detail · v2” — this frame is the arrangement that section replaced</b> · the flesh-out form, finally built — “New ingredient” + the 7.7 basis frame + the 7.8 admission frame, one scroll</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">‹</span><span class="ttl">Mango</span><span class="dots">⋯</span></div>
                 <p class="flabel">Canonical name</p>
@@ -1952,7 +1954,7 @@
         </div>
 
         <div class="frame">
-            <p class="frame-name"><b>Add · scan a barcode</b> · re-traces “Barcode add” (was tagged <i>stretch</i>) — same camera, same source, now with a typed fallback under it</p>
+            <p class="frame-name"><b>Add · scan a barcode</b> · re-traces “Barcode add” (was tagged <i>stretch</i>) — same camera, same source, now with a typed fallback under it <b style="color:var(--gone)">· SUPERSEDED 2026-09-04: this sheet is deleted; the camera, the typed fallback and the Source segment’s three legs live on the form — see “Ingredient detail · v2” frame (h)</b></p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">✕</span><span class="ttl">New ingredient</span><span class="dots"></span></div>
                 <p class="flabel">Source</p>
@@ -1970,7 +1972,7 @@
         <div class="flow"><span>found</span><span class="arrow">→</span></div>
 
         <div class="frame">
-            <p class="frame-name"><b>Barcode result</b> · prefills a draft — the one place these frames overrule the original: it no longer “imports as complete”</p>
+            <p class="frame-name"><b>Barcode result</b> <b style="color:var(--gone)">· SUPERSEDED 2026-09-04 (the sheet is deleted; the draft, the card and the pack-size offer are the form’s now — and the offer lands in the form’s draft, so a row CREATED by scan carries its pack size before the row exists)</b> · prefills a draft — the one place these frames overrule the original: it no longer “imports as complete”</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">‹</span><span class="ttl">New ingredient</span><span class="dots"></span></div>
                 <p class="flabel">Found · Open Food Facts</p>
@@ -1991,7 +1993,7 @@
         </div>
 
         <div class="frame">
-            <p class="frame-name"><b>When it doesn’t work</b> · three honest states — every one of them lands back on a form you can still finish by hand</p>
+            <p class="frame-name"><b>When it doesn’t work</b> <b style="color:var(--gone)">· SUPERSEDED 2026-09-04 (same three states, on the form)</b> · three honest states — every one of them lands back on a form you can still finish by hand</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">✕</span><span class="ttl">New ingredient</span><span class="dots"></span></div>
                 <p class="flabel">Camera is off</p>
@@ -2020,13 +2022,14 @@
         <!-- ===== INGREDIENT DETAIL V2 (PROPOSED — plan 0028 design pass, 2026-09-03) ===== -->
 <div class="section-head">
     <span class="ey">Ingredient detail · v2</span>
-    <span class="proposed-tag">proposed · for sign-off</span>
+    <span class="proposed-tag">built · 2026-09-03, one save 2026-09-04</span>
     <span class="rule"></span>
     <span class="sub">The flesh-out form stops being a list of equals</span>
 </div>
 
 <div class="locknote prop">
-    <p class="lk-h">Proposed — a design pass on the shipped form, 2026-09-03 (rev 6)</p>
+    <p class="lk-h">Built — the design pass shipped 2026-09-03; one save, one write followed on 2026-09-04</p>
+    <p><b>Every frame below is running code.</b> The arrangement landed the day it was drawn, and the question it opened — <i>“the whole write on edit seems bizarre, rather than write on save?”</i> — became <b>ADR-0011</b> and <b>exec plan 0029</b>, which landed the next day and took the <b>New-ingredient sheet</b> with it. Frame (h) draws what replaced it. Where a frame below still argues in the future tense, read it as the case that was made rather than a thing still to decide.</p>
     <p>The owner, driving it: <b>“the new ingredient page has now become very cluttered and kind of daunting.”</b> This section changes <i>arrangement and weight</i> only. <b>Nothing here removes a capability, a field, a rule or a guard</b> — every affordance the shipped form has is still one tap away, and the frames below name where each one went.</p>
     <p>What went wrong is <b>arithmetic, not any single decision</b>. Every ruling this section shipped — D4b, D4c, F1–F3, D7b, G1–G6, the 0025 scan door, 0027’s per-serving mode and the two USDA doors — correctly added <i>one</i> block to <i>one</i> flat scroll, and each was right on its own. The form now draws <b>twelve uppercase labels</b>, five of them whole sentences shouted in a letter-spaced micro-label style meant for a short noun (one of which wraps onto two lines on a phone); it ends in <b>four stacked actions</b> on a stub, with <span style="font-family:'IBM Plex Mono',monospace">Delete ingredient</span> one flick below <span style="font-family:'IBM Plex Mono',monospace">Confirm</span>. Nobody drew that. It accumulated.</p>
     <div class="ledger">
@@ -2320,6 +2323,43 @@
             <p class="conv-note" style="margin:8px 20px 14px">→ <b>Spend amber where there is a call to action.</b> An unconfirmed machine fill is one; a confirmed row’s card is provenance — a statement of where the numbers came from — and it currently draws a warning triangle over a row that is fine.</p>
         </div></div>
         <p class="rc-note">All four are repairs to what the screen <i>says</i>, not to what it does. None changes a stored fact, a guard or a rule, and none needs a ruling — they are listed separately so the arrangement questions can be judged on their own.</p>
+    </div>
+
+    <!-- ============ (h) ONE SAVE, AND THE SHEET'S OBITUARY ============ -->
+    <div class="frame">
+        <p class="frame-name"><b>Creating one</b> · the same form, with no row behind it — <b>ADR-0011</b> / plan 0029, built 2026-09-04. This is what deleted the New-ingredient sheet</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">New ingredient</span><span class="dots" style="opacity:.25"></span></div>
+
+            <div class="state" style="margin-top:4px">
+                <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot"></span><span>New — nothing is saved until you tap Save.</span></div>
+            </div>
+
+            <p class="flabel">Fill it in from</p>
+            <div class="frow" style="display:flex;gap:8px">
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Scan a barcode</div>
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Look up in USDA</div>
+            </div>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Identity</p></div>
+            <p class="flabel">Canonical name</p>
+            <div class="frow"><div class="fin big" style="color:var(--muted)">e.g. Curry leaves, fresh</div></div>
+
+            <p class="lib-mcap" style="margin-top:20px">and the dock, on a row that is not there yet</p>
+            <div class="dock" style="margin-top:8px">
+                <p class="conv-note" style="margin:0 0 9px">needs macros</p>
+                <div style="display:flex;gap:8px">
+                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
+                    <span class="btn primary" style="margin:0;flex:1;opacity:.45">Mark complete</span>
+                </div>
+            </div>
+            <p class="conv-note" style="margin-top:10px"><b>No <span style="font-family:'IBM Plex Mono',monospace">⋯</span> at all.</b> There is nothing to delete and nothing to un-confirm on a row that does not exist. And the strip says <i>new</i> rather than calling itself a stub — a stub is a thing a SAVED row is.</p>
+        </div></div>
+        <p class="rc-note"><b style="color:var(--ink)">The sheet could not be deleted until the form stopped writing on tap.</b> It existed for one structural reason: it was the stage where <i>nothing had been written</i> — dismiss it and no row existed — and the form could not take that over while its aliases, measures, density and “Counts as” all wrote the moment you tapped them and therefore all needed a row id. ADR-0011 removed that, and this frame is what was left.</p>
+        <p class="rc-note"><b style="color:var(--ink)">What the two-step cost, and no longer does.</b> ① The row existed from the moment you tapped <span style="font-family:'IBM Plex Mono',monospace">Create</span>, so backing out of the form left a stub behind. ② The sheet’s own <span style="font-family:'IBM Plex Mono',monospace">create()</span> ran <b>four repository calls under one error guard</b> — commented “one act to the person who tapped Create” — but a guard is not a transaction: a failure after the row was made left it without its pack measure, under a message implying neither had happened. ③ The picker had to push a second screen and then <b>re-read</b>, because the row the sheet handed it predated everything the form then did to it. The form pops with the row its one Save produced, so there is nothing to re-read.</p>
+        <p class="rc-note"><b style="color:var(--ink)">One write, and what shape the draft has to be.</b> <span style="font-family:'IBM Plex Mono',monospace">saveForm</span> applies the row, the density, measures added and removed, aliases, “Counts as” and — when the CTA asked — the status flip, in a single <span style="font-family:'IBM Plex Mono',monospace">writeTransaction</span>; a null id creates, so a row and its children are inserted together. The draft is held as <b>deltas</b>, not as replacement lists, and that is what answers <b>D6</b> structurally rather than by care: a save that only inserts its adds and tombstones its named removes never needs the whole list, so a measures stream that failed to load cannot become a narrowed set written back. <span style="color:var(--muted)">The one place emptiness stays load-bearing is the <span style="font-family:'IBM Plex Mono',monospace">piece</span> question, which reads “no measures yet” and must not read it off a list that merely has not arrived.</span></p>
+        <p class="rc-note"><b style="color:var(--ink)">Two behaviours behind one seam, and never a flag.</b> <span style="font-family:'IBM Plex Mono',monospace">DensityEntry</span> and <span style="font-family:'IBM Plex Mono',monospace">MeasuresEditor</span> are shared with the <b>quantity sheet</b>, which has no Save and where writing on tap is right. So they stopped calling repositories at all: they report intent, and the <b>host</b> supplies both the commit and the verb — <span style="font-family:'IBM Plex Mono',monospace">(write now, “Save”)</span> in the quantity sheet, <span style="font-family:'IBM Plex Mono',monospace">(add to the draft, “Add”)</span> here. A boolean on the widget is how the form came to have two persistence models at once, which is the thing being removed.</p>
+        <p class="rc-note"><b style="color:var(--ink)">Found by building it.</b> A USDA pick with no density of its own must <b>clear</b> the previous food’s — U-D3 says a pick replaces the fill whole, and a row keeping a number from a match the household just rejected is that fill <i>not</i> being replaced. <span style="font-family:'IBM Plex Mono',monospace">DensityEntry</span> was reading the stored row, so its headline showed a number already replaced. And <b>a barcode scan never seeded the name</b>: <span style="font-family:'IBM Plex Mono',monospace">applyDraft</span> returns one only where the target’s was empty, which on an existing row it never is — dead code until the form became the create surface, where it was the difference between a scan that fills the form in and a Save that refuses for want of a name.</p>
     </div>
 
     <!-- ==================== (g) THE RULINGS ==================== -->
