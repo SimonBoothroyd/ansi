@@ -17,6 +17,8 @@
 /// no other vulgar-fraction glyph.
 library;
 
+import 'number_format.dart';
+
 /// `1¾`, `½`, `2`, `1.29` — a count with its quarter as a glyph, a whole
 /// number plain, and anything else as at most two trimmed decimals. Never
 /// `1.75`, never `2.0`.
@@ -33,10 +35,8 @@ String formatFraction(double value) {
       return '$sign${whole == 0 ? '' : whole}$glyph';
     }
   }
-  // Not a quarter: at most two decimals, trimmed.
-  final fixed = abs.toStringAsFixed(2);
-  return sign +
-      fixed.replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+  // Not a quarter: the printed-number rule, with the sign back in front.
+  return '$sign${formatNumber(abs)}';
 }
 
 /// `1 portion`, `¾ portion`, `1¾ portions`, `4 portions` — [formatFraction]

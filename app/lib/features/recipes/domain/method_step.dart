@@ -29,6 +29,7 @@ library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import 'recipe.dart';
 
@@ -293,15 +294,6 @@ String? _formatPortion(StepPortion portion, double factor) {
   // A relative word ("half", "for garnish") renders as written — never a made-
   // up number.
   return portion.qualifier;
-}
-
-/// Formats a number for a chip: no trailing `.0`, at most two decimals.
-String formatNumber(double amount) {
-  if (amount == amount.roundToDouble()) return amount.toStringAsFixed(0);
-  return amount
-      .toStringAsFixed(2)
-      .replaceAll(RegExp(r'0+$'), '')
-      .replaceAll(RegExp(r'\.$'), '');
 }
 
 /// Formats a timer span. Whole minutes read as "6 min" / "6–8 min"; an

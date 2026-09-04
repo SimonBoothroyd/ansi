@@ -38,11 +38,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/number_format.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/method_step_text.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../domain/method_draft.dart';
-import '../domain/method_step.dart';
 import '../domain/recipe.dart';
 import 'component_quantity_sheet.dart';
 import 'line_target_picker.dart';

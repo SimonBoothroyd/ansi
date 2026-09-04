@@ -4,16 +4,12 @@
 /// import review and the ingredient form.
 library;
 
-/// Formats a scaled quantity for display: no trailing `.0`, at most two
-/// decimals, and an empty string for a numberless line ("to taste").
-String formatQuantity(double? amount) {
-  if (amount == null) return '';
-  if (amount == amount.roundToDouble()) return amount.toStringAsFixed(0);
-  return amount
-      .toStringAsFixed(2)
-      .replaceAll(RegExp(r'0+$'), '')
-      .replaceAll(RegExp(r'\.$'), '');
-}
+import '../core/units/number_format.dart';
+
+/// [formatNumber] for a quantity that may not be there: an empty string for a
+/// numberless line ("to taste"), the trimmed number otherwise.
+String formatQuantity(double? amount) =>
+    amount == null ? '' : formatNumber(amount);
 
 /// Formats a density (g/ml) for display: at most three significant digits,
 /// trailing zeros trimmed (1.03958 → "1.04", 0.5 → "0.5", 1 → "1") — the

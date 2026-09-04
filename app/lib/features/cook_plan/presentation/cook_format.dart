@@ -4,6 +4,7 @@ library;
 
 import 'dart:math' as math;
 
+import '../../../core/units/number_format.dart';
 import '../../../core/units/portions.dart';
 import '../../../shared/format.dart';
 import '../../planning/presentation/week_format.dart';
@@ -11,14 +12,8 @@ import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/component_format.dart';
 import '../domain/cook_plan.dart';
 
-/// The batch multiplier, e.g. `×1`, `×1.5`, `×0.75`. Trims trailing zeros.
-String formatScale(double factor) {
-  final s = factor
-      .toStringAsFixed(2)
-      .replaceAll(RegExp(r'0+$'), '')
-      .replaceAll(RegExp(r'\.$'), '');
-  return '×$s';
-}
+/// The batch multiplier, e.g. `×1`, `×1.5`, `×0.75`.
+String formatScale(double factor) => '×${formatNumber(factor)}';
 
 /// The week menu row's trailing label on the Cook tab — what that week holds in
 /// this tab's own derivation, `2 cooks` / `1 cook` / `nothing to cook`, never
