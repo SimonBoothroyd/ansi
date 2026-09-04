@@ -1157,6 +1157,199 @@ void main() {
     });
   });
 
+  group('saveForm (plan 0029 W3 / ADR-0011: the form writes ONCE)', () {
+    test('one call lands the row, a density, a measure, an alias and "Counts '
+        'as" — the four writes the form used to make separately', () async {
+      final saved = await repo.saveForm(
+        '1',
+        IngredientFormEdit(
+          row: _edit(
+            name: 'Onion',
+            macros: const Macros(kcal: 40, protein: 1, carb: 9, fat: 0),
+            allowed: const {g, cup},
+          ),
+          density: const DensitySet(0.6),
+          measuresAdded: const [
+            PendingMeasure(id: 'm-1', label: 'medium', amount: 110),
+          ],
+          aliasesAdded: const [PendingAlias(id: 'a-1', text: 'brown onion')],
+          defaultMeasure: const DefaultMeasureSet('m-1'),
+        ),
+      );
+
+      expect(saved!.densityGPerMl, 0.6);
+      expect(saved.defaultMeasureId, 'm-1');
+      final measure = await db.get(
+        'SELECT label, basis_amount, source FROM ingredient_measure '
+        "WHERE id = 'm-1'",
+      );
+      expect(measure['label'], 'medium');
+      expect(measure['basis_amount'], 110);
+      expect(measure['source'], 'manual');
+      final alias = await db.get(
+        "SELECT alias_text, match_text FROM ingredient_alias WHERE id = 'a-1'",
+      );
+      expect(alias['alias_text'], 'brown onion');
+      // The server phrase rules, exactly as `addAlias` would have written it.
+      expect(alias['match_text'], normalizeMatchText('brown onion'));
+      // The admission set is written AS THE FORM HOLDS IT: the draft has
+      // already applied what the density unlocked, so the repository does not
+      // re-derive it and give one fact two owners.
+      expect(saved.allowedUnits, containsAll(const [g, cup]));
+    });
+
+    test('nothing is written when it refuses — the guarantee the sheet had '
+        'never had, with four calls under one error guard', () async {
+      await expectLater(
+        repo.saveForm(
+          '1',
+          IngredientFormEdit(
+            row: _edit(name: 'Onion, renamed'),
+            density: const DensitySet(0.6),
+            // Refused by the same contract `addMeasure` holds. It is the LAST
+            // thing in the intent, so a partial application would already
+            // have renamed the row and written the density by the time it
+            // was reached.
+            measuresAdded: const [
+              PendingMeasure(id: 'm-2', label: 'medium', amount: 0),
+            ],
+          ),
+        ),
+        throwsArgumentError,
+      );
+
+      final row = await db.get(
+        'SELECT canonical_name, density_g_per_ml FROM ingredient '
+        "WHERE id = '1'",
+      );
+      expect(
+        row['canonical_name'],
+        'Onion',
+        reason: 'the rename must not land',
+      );
+      expect(row['density_g_per_ml'], isNull);
+      expect(
+        await db.getOptional(
+          "SELECT id FROM ingredient_measure WHERE id = 'm-2'",
+        ),
+        isNull,
+      );
+    });
+
+    test('a volume-named measure label is refused here too — batching does '
+        'not soften the ADR-0008 §2 contract', () async {
+      await expectLater(
+        repo.saveForm(
+          '1',
+          IngredientFormEdit(
+            row: _edit(name: 'Onion'),
+            measuresAdded: const [
+              PendingMeasure(id: 'm-3', label: 'cup', amount: 240),
+            ],
+          ),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('removals are applied before adds, so a label freed in this save can '
+        'be re-added in it', () async {
+      await repo.saveForm(
+        '1',
+        IngredientFormEdit(
+          row: _edit(name: 'Onion'),
+          measuresAdded: const [
+            PendingMeasure(id: 'm-a', label: 'medium', amount: 100),
+          ],
+        ),
+      );
+      await repo.saveForm(
+        '1',
+        IngredientFormEdit(
+          row: _edit(name: 'Onion'),
+          measuresRemoved: const {'m-a'},
+          measuresAdded: const [
+            PendingMeasure(id: 'm-b', label: 'medium', amount: 125),
+          ],
+        ),
+      );
+      final live = await db.getAll(
+        'SELECT id, basis_amount FROM ingredient_measure '
+        "WHERE ingredient_id = '1' AND deleted_at IS NULL",
+      );
+      expect(live.map((r) => r['id']), ['m-b']);
+      expect(live.single['basis_amount'], 125);
+    });
+
+    test('markComplete flips the status IN THE SAME transaction as the save '
+        '(W5b) — no path leaves a row saved-but-not-marked', () async {
+      final saved = await repo.saveForm(
+        '3', // the seeded stub
+        IngredientFormEdit(
+          row: _edit(
+            name: 'Olive Oil',
+            macros: const Macros(kcal: 40, protein: 1, carb: 9, fat: 0),
+          ),
+          markComplete: true,
+        ),
+      );
+      expect(saved!.status, IngredientStatus.complete);
+      final row = await db.get("SELECT status FROM ingredient WHERE id = '3'");
+      expect(row['status'], 'complete');
+    });
+
+    test('an alias that already matches is not duplicated — find-or-create, '
+        'as `addAlias` has always been', () async {
+      await repo.saveForm(
+        '2', // seeded with 'scallion'
+        IngredientFormEdit(
+          row: _edit(name: 'Spring Onion'),
+          aliasesAdded: const [PendingAlias(id: 'a-dup', text: 'Scallion')],
+        ),
+      );
+      final rows = await db.getAll(
+        "SELECT id FROM ingredient_alias WHERE ingredient_id = '2' "
+        'AND match_text = ? AND deleted_at IS NULL',
+        [normalizeMatchText('scallion')],
+      );
+      expect(rows, hasLength(1));
+      expect(rows.single['id'], isNot('a-dup'));
+    });
+
+    test('DensityCleared strips the density; a blank name refuses', () async {
+      await repo.saveForm(
+        '1',
+        IngredientFormEdit(
+          row: _edit(name: 'Onion'),
+          density: const DensitySet(0.6),
+        ),
+      );
+      final cleared = await repo.saveForm(
+        '1',
+        IngredientFormEdit(
+          row: _edit(name: 'Onion'),
+          density: const DensityCleared(),
+        ),
+      );
+      expect(cleared!.densityGPerMl, isNull);
+
+      await expectLater(
+        repo.saveForm('1', IngredientFormEdit(row: _edit(name: '  '))),
+        throwsArgumentError,
+      );
+    });
+
+    test('a row that is gone answers null rather than throwing', () async {
+      expect(
+        await repo.saveForm(
+          'nope',
+          IngredientFormEdit(row: _edit(name: 'Ghost')),
+        ),
+        isNull,
+      );
+    });
+  });
+
   group('saveEdit', () {
     test('a RENAME rewrites match_text with the server phrase rules — the '
         'hazard plan 0020 D6 names', () async {

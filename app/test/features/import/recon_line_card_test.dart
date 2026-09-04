@@ -348,6 +348,10 @@ class _FakeIngredientRepo
   final Ingredient row;
 
   @override
+  Future<Ingredient?> saveForm(String ingredientId, IngredientFormEdit edit) =>
+      throw UnimplementedError();
+
+  @override
   Future<Ingredient?> byId(String id) async => row;
 
   @override

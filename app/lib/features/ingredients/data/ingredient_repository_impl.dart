@@ -619,6 +619,219 @@ class SqliteIngredientRepository implements IngredientRepository {
       .map((rows) => [for (final r in rows) r['c'] as String]);
 
   @override
+  Future<Ingredient?> saveForm(
+    String ingredientId,
+    IngredientFormEdit edit,
+  ) async {
+    // **Validate everything BEFORE opening the transaction.** The contract is
+    // that nothing is written when this throws, and the cheapest way to mean
+    // it is to refuse before a single statement runs. These are the same
+    // lines `addMeasure` and `addAlias` hold — batching does not soften them.
+    final name = edit.row.canonicalName.trim();
+    if (name.isEmpty) {
+      throw ArgumentError.value(
+        edit.row.canonicalName,
+        'canonicalName',
+        'must not be blank',
+      );
+    }
+    for (final m in edit.measuresAdded) {
+      final label = m.label.trim();
+      if (label.isEmpty) {
+        throw ArgumentError.value(m.label, 'label', 'must not be empty');
+      }
+      if (isVolumeUnitLabel(label)) {
+        throw ArgumentError.value(
+          m.label,
+          'label',
+          'names a volume unit — density owns volume conversion',
+        );
+      }
+      // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
+      if (!(m.amount > 0)) {
+        throw ArgumentError.value(
+          m.amount,
+          'amount',
+          'must be a positive number',
+        );
+      }
+    }
+    final aliases = <({String id, String text, String matchText})>[];
+    for (final a in edit.aliasesAdded) {
+      final trimmed = a.text.trim();
+      final matchText = normalizeMatchText(trimmed);
+      if (matchText.isEmpty) {
+        throw ArgumentError.value(
+          a.text,
+          'text',
+          'an alias must carry at least one identity word',
+        );
+      }
+      aliases.add((id: a.id, text: trimmed, matchText: matchText));
+    }
+    final density = edit.density;
+    if (density is DensitySet && !(density.gPerMl > 0)) {
+      throw ArgumentError.value(
+        density.gPerMl,
+        'gPerMl',
+        'must be a positive number',
+      );
+    }
+
+    final macros = edit.row.macros;
+    final macrosJson = _macrosJson(macros);
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    final ok = await _db.writeTransaction((tx) async {
+      final row = await tx.getOptional(
+        'SELECT status FROM ingredient WHERE id = ? AND deleted_at IS NULL',
+        [ingredientId],
+      );
+      if (row == null) return false;
+      // D5, both directions in one place now. Clearing the macros of a
+      // complete row returns it to `stub` rather than leaving it asserting a
+      // number it no longer has; filling them in never promotes on its own —
+      // only `markComplete`, which is a human tapping the CTA (W5b).
+      final status = macros == null
+          ? 'stub'
+          : edit.markComplete
+          ? 'complete'
+          : row['status'] as String;
+
+      // The row itself. `allowed_units` is written AS THE FORM HOLDS IT: the
+      // draft has already applied whatever the density unlocked or stripped,
+      // so re-deriving here would give two owners to one fact.
+      await tx.execute(
+        'UPDATE ingredient SET canonical_name = ?, match_text = ?, '
+        'category = ?, default_unit = ?, macros = ?, macros_basis = ?, '
+        'allowed_units = ?, status = ?, '
+        // Provenance is patch-shaped (see [IngredientEdit.source]).
+        'source = COALESCE(?, source), updated_at = ? WHERE id = ?',
+        [
+          name,
+          // The rename hazard (D6): the stored name and its match_text are
+          // written together or the cascade searches for a name nothing
+          // carries.
+          normalizeMatchText(name),
+          edit.row.category,
+          edit.row.defaultUnit.id,
+          macrosJson,
+          edit.row.macrosBasis.dbValue,
+          jsonEncode([for (final u in edit.row.allowedUnits) u.id]),
+          status,
+          edit.row.source,
+          now,
+          ingredientId,
+        ],
+      );
+
+      switch (density) {
+        case DensitySet(:final gPerMl):
+          await tx.execute(
+            'UPDATE ingredient SET density_g_per_ml = ?, updated_at = ? '
+            'WHERE id = ?',
+            [gPerMl, now, ingredientId],
+          );
+        case DensityCleared():
+          await tx.execute(
+            'UPDATE ingredient SET density_g_per_ml = NULL, updated_at = ? '
+            'WHERE id = ?',
+            [now, ingredientId],
+          );
+        case DensityUnchanged():
+          break;
+      }
+
+      if (edit.defaultMeasure case DefaultMeasureSet(:final measureId)) {
+        await tx.execute(
+          'UPDATE ingredient SET default_measure_id = ?, updated_at = ? '
+          'WHERE id = ?',
+          [measureId, now, ingredientId],
+        );
+      }
+
+      // Removals first, so a label freed in this same save can be re-added in
+      // it without the two rows coexisting even momentarily.
+      for (final id in edit.measuresRemoved) {
+        await tx.execute(
+          'UPDATE ingredient_measure SET deleted_at = ?, updated_at = ? '
+          'WHERE id = ?',
+          [now, now, id],
+        );
+      }
+      for (final id in edit.aliasesRemoved) {
+        await tx.execute(
+          'UPDATE ingredient_alias SET deleted_at = ?, updated_at = ? '
+          'WHERE id = ?',
+          [now, now, id],
+        );
+      }
+
+      if (edit.measuresAdded.isNotEmpty) {
+        final maxRow = await tx.get(
+          'SELECT COALESCE(MAX(sort_order), -1) AS m FROM ingredient_measure '
+          'WHERE ingredient_id = ? AND deleted_at IS NULL',
+          [ingredientId],
+        );
+        var sortOrder = (maxRow['m'] as int) + 1;
+        for (final m in edit.measuresAdded) {
+          // A plain INSERT, never ON CONFLICT (view-backed local tables
+          // reject UPSERT), and no label-collision check — a duplicate merges
+          // on read instead of failing anywhere.
+          await tx.execute(
+            'INSERT INTO ingredient_measure '
+            '(id, household_id, ingredient_id, label, basis_amount, '
+            'sort_order, source, created_at, updated_at) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+              m.id,
+              _householdId,
+              ingredientId,
+              m.label.trim(),
+              m.amount,
+              sortOrder++,
+              'manual',
+              now,
+              now,
+            ],
+          );
+        }
+      }
+
+      for (final a in aliases) {
+        // Find-or-create, not blind insert (the import cascade's rule): two
+        // identically matching aliases on one ingredient are noise that can
+        // only ever tie.
+        final existing = await tx.getOptional(
+          'SELECT id FROM ingredient_alias '
+          'WHERE ingredient_id = ? AND match_text = ? AND deleted_at IS NULL '
+          'LIMIT 1',
+          [ingredientId, a.matchText],
+        );
+        if (existing != null) continue;
+        await tx.execute(
+          'INSERT INTO ingredient_alias '
+          '(id, household_id, ingredient_id, alias_text, match_text, source, '
+          'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            a.id,
+            _householdId,
+            ingredientId,
+            a.text,
+            a.matchText,
+            'manual',
+            now,
+            now,
+          ],
+        );
+      }
+      return true;
+    });
+    if (!ok) return null;
+    return byId(ingredientId);
+  }
+
+  @override
   Future<Ingredient?> saveEdit(String ingredientId, IngredientEdit edit) async {
     final name = edit.canonicalName.trim();
     if (name.isEmpty) {

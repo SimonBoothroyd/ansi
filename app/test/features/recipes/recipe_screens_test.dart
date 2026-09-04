@@ -67,6 +67,10 @@ class _FakeIngredientRepo
     with IngredientManagerStubs
     implements IngredientRepository {
   @override
+  Future<Ingredient?> saveForm(String ingredientId, IngredientFormEdit edit) =>
+      throw UnimplementedError();
+
+  @override
   Future<IngredientMatches> search(String query, {int limit = 30}) async =>
       (rows: const <Ingredient>[], guessed: false);
 

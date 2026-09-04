@@ -105,6 +105,8 @@ class FakeIngredientRepo implements IngredientRepository {
          for (final e in aliasesById.entries) e.key: [...e.value],
        };
 
+  /// Every [IngredientFormEdit] this fake was handed, in order.
+  final List<IngredientFormEdit> savedForms = [];
   final List<Ingredient> rows;
   final Map<String, List<IngredientAlias>> _aliases;
 
@@ -387,6 +389,71 @@ class FakeIngredientRepo implements IngredientRepository {
       sourceLabel: current.sourceLabel,
       sourceScore: current.sourceScore,
     );
+    _replace(updated);
+    return updated;
+  }
+
+  /// The whole form in one act (plan 0029 W3). Mirrors `saveEdit` and then
+  /// applies the rest, so a test can assert that ONE call did all of it —
+  /// which is the property the real transaction exists to give.
+  ///
+  /// [savedForms] records what it was handed, so a test can pin *what the
+  /// form asked for* separately from what the row ended up looking like.
+  @override
+  Future<Ingredient?> saveForm(
+    String ingredientId,
+    IngredientFormEdit edit,
+  ) async {
+    savedForms.add(edit);
+    final row = await saveEdit(ingredientId, edit.row);
+    if (row == null) return null;
+    var updated = row;
+    switch (edit.density) {
+      case DensitySet(:final gPerMl):
+        updated = updated.copyWith(densityGPerMl: gPerMl);
+      case DensityCleared():
+        // copyWith reads null as "unchanged" (freezed), so the clear is built
+        // field-by-field — the same reason `saveEdit` above does.
+        updated = Ingredient(
+          id: updated.id,
+          canonicalName: updated.canonicalName,
+          defaultUnit: updated.defaultUnit,
+          status: updated.status,
+          category: updated.category,
+          macros: updated.macros,
+          macrosBasis: updated.macrosBasis,
+          allowedUnits: updated.allowedUnits,
+          measureCount: updated.measureCount,
+          source: updated.source,
+          sourceLabel: updated.sourceLabel,
+          sourceScore: updated.sourceScore,
+          defaultMeasureId: updated.defaultMeasureId,
+        );
+      case DensityUnchanged():
+        break;
+    }
+    if (edit.defaultMeasure case DefaultMeasureSet(:final measureId)) {
+      updated = measureId == null
+          ? Ingredient(
+              id: updated.id,
+              canonicalName: updated.canonicalName,
+              defaultUnit: updated.defaultUnit,
+              status: updated.status,
+              category: updated.category,
+              densityGPerMl: updated.densityGPerMl,
+              macros: updated.macros,
+              macrosBasis: updated.macrosBasis,
+              allowedUnits: updated.allowedUnits,
+              measureCount: updated.measureCount,
+              source: updated.source,
+              sourceLabel: updated.sourceLabel,
+              sourceScore: updated.sourceScore,
+            )
+          : updated.copyWith(defaultMeasureId: measureId);
+    }
+    if (edit.markComplete && updated.macros != null) {
+      updated = updated.copyWith(status: IngredientStatus.complete);
+    }
     _replace(updated);
     return updated;
   }

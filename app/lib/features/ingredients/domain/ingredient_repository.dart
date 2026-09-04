@@ -11,6 +11,7 @@
 /// guarded soft-delete.
 library;
 
+import 'package:meta/meta.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import 'ingredient.dart';
@@ -43,6 +44,121 @@ final class DeleteRefused extends DeleteOutcome {
 /// Refused: the id resolves to nothing live (already deleted, never synced).
 final class DeleteMissing extends DeleteOutcome {
   const DeleteMissing();
+}
+
+/// What the flesh-out form asks for, as ONE intent (plan 0029 **W3**,
+/// `docs/decisions/0011-one-save-one-write.md`).
+///
+/// The form writes once, on Save, so everything it changed has to travel
+/// together: the row's own fields, the density, the measures added and
+/// removed, the aliases, and what a bare count means. `saveForm` applies the
+/// lot in a single transaction, which is what makes partial success stop
+/// being representable — the old sheet's `create()` ran four repository calls
+/// under one error guard and could leave a row without its pack measure.
+///
+/// **Ids are minted by the caller.** Measures and aliases already carry
+/// client-generated uuids, so a draft can name a row before it exists and the
+/// save inserts it under that id. That is also what lets the form work with
+/// no ingredient id at all (lane C).
+@immutable
+class IngredientFormEdit {
+  const IngredientFormEdit({
+    required this.row,
+    this.density = const DensityUnchanged(),
+    this.measuresAdded = const [],
+    this.measuresRemoved = const {},
+    this.aliasesAdded = const [],
+    this.aliasesRemoved = const {},
+    this.defaultMeasure = const DefaultMeasureUnchanged(),
+    this.markComplete = false,
+  });
+
+  /// The row's own scalar fields — the half that already went through Save.
+  final IngredientEdit row;
+
+  /// **The form owns the admission set, and it owns the density with it.**
+  /// The old `setDensity` unioned `allowed_units` itself and the form's chips
+  /// followed the row afterwards; under one write the draft has already
+  /// applied that unlock (or strip), so `row.allowedUnits` is authoritative
+  /// and this is written beside it rather than deriving it.
+  final DensityChange density;
+
+  final List<PendingMeasure> measuresAdded;
+  final Set<String> measuresRemoved;
+  final List<PendingAlias> aliasesAdded;
+  final Set<String> aliasesRemoved;
+
+  /// Seam D1's "Counts as" — three-valued, because *unset* ("Ask me each
+  /// time") is a real answer and distinct from "not touched".
+  final DefaultMeasureChange defaultMeasure;
+
+  /// `Mark complete` is a save-and-mark combination (owner, 2026-09-03), and
+  /// it used to be two writes — a failure between them left the row saved and
+  /// not marked, under an error implying neither. One transaction now.
+  final bool markComplete;
+}
+
+/// A measure the form intends to add, already carrying the id it will keep.
+@immutable
+class PendingMeasure {
+  const PendingMeasure({
+    required this.id,
+    required this.label,
+    required this.amount,
+  });
+
+  final String id;
+  final String label;
+
+  /// In the ingredient's basis unit. Refused if not positive, exactly as
+  /// `addMeasure` refuses it — the contract does not soften for being batched.
+  final double amount;
+}
+
+/// An alias the form intends to add, already carrying its id.
+@immutable
+class PendingAlias {
+  const PendingAlias({required this.id, required this.text});
+
+  final String id;
+  final String text;
+}
+
+/// The density, three-valued: untouched, set, or deliberately removed. The
+/// removal is D4b's strip leg and the one place the allowed list shrinks.
+sealed class DensityChange {
+  const DensityChange();
+}
+
+class DensityUnchanged extends DensityChange {
+  const DensityUnchanged();
+}
+
+class DensitySet extends DensityChange {
+  const DensitySet(this.gPerMl);
+
+  final double gPerMl;
+}
+
+class DensityCleared extends DensityChange {
+  const DensityCleared();
+}
+
+/// "Counts as", three-valued for the same reason: `DefaultMeasureSet(null)`
+/// is the household choosing *Ask me each time*, which is not the same as
+/// never having been asked.
+sealed class DefaultMeasureChange {
+  const DefaultMeasureChange();
+}
+
+class DefaultMeasureUnchanged extends DefaultMeasureChange {
+  const DefaultMeasureUnchanged();
+}
+
+class DefaultMeasureSet extends DefaultMeasureChange {
+  const DefaultMeasureSet(this.measureId);
+
+  final String? measureId;
 }
 
 /// The editable facts of one vocab row — everything the flesh-out form saves
@@ -322,6 +438,16 @@ abstract interface class IngredientRepository {
   ///   a row is never left asserting a number it no longer has. Filling them
   ///   in does NOT promote — that takes [confirmStub], a human act.
   Future<Ingredient?> saveEdit(String ingredientId, IngredientEdit edit);
+
+  /// Applies a whole form in ONE transaction (plan 0029 W3): the row's
+  /// fields, the density, measures added and removed, aliases, "Counts as",
+  /// and — when [IngredientFormEdit.markComplete] — the status flip.
+  ///
+  /// Returns the row as the write left it, or null if it is gone. Throws
+  /// [ArgumentError] on the same contracts the individual writes throw on: a
+  /// blank name, a non-positive measure amount, an alias with no identity
+  /// word. Nothing is written when it throws.
+  Future<Ingredient?> saveForm(String ingredientId, IngredientFormEdit edit);
 
   /// Flips a `stub` to `complete` — the human confirm of D5.
   ///
