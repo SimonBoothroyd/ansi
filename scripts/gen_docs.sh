@@ -6,12 +6,17 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Optional first argument: write somewhere other than the committed file. The
+# freshness check in check_docs.sh regenerates to a temp path and diffs.
+export GEN_DOCS_OUT="${1:-docs/generated/db-schema.md}"
+
 python3 - <<'PY'
+import os
 import re
 from pathlib import Path
 
 MIGRATIONS = sorted(Path("supabase/migrations").glob("*.sql"))
-OUT = Path("docs/generated/db-schema.md")
+OUT = Path(os.environ["GEN_DOCS_OUT"])
 
 # Keywords that end the "type" part of a column definition.
 TYPE_STOP = {"not", "null", "default", "references", "primary", "unique",
