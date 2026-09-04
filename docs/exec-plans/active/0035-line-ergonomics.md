@@ -1,0 +1,150 @@
+# Exec plan: line ergonomics — reorder and move, on both line lists
+
+- **Status:** draft
+- **Owner:** Simon (rulings) · agent lane (build)
+- **Roadmap step:** 8.14 — field test, round five
+- **Created:** 2026-09-04
+
+## Goal
+
+An ingredient line can be moved — within its group and between groups — on the
+**recipe editor** and on the **import review**, without deleting and re-adding
+it. Done means: on a fresh import whose extractor mis-ordered two lines, and on
+a saved recipe, the cook can put the list in the order the recipe reads, and
+every method chip still points where it did.
+
+## What is true today
+
+- Nothing anywhere reorders a line. The only fix is delete + re-add, which also
+  re-points every chip that referenced it — the cost the backlog row named.
+- The storage is ready: `recipe_line_item.sort_order` exists
+  (`app/lib/core/sync/schema.dart:82`) and `saveRecipe` already persists a
+  changed `group_id`, so moving a line between groups needs no migration.
+- **Drag is buildable without Material.** `ReorderableList`,
+  `SliverReorderableList` and `ReorderableDragStartListener` are exported from
+  `package:flutter/widgets.dart` (verified in the pinned SDK:
+  `packages/flutter/lib/widgets.dart:116`). Only `ReorderableListView` — the
+  styled one — is Material, and it is not what this uses. The Forui-only rule
+  holds.
+- The backlog row said **buttons, not drag**. The owner has ruled the other
+  way; this plan supersedes that line, and the row's reasoning is answered in
+  A-D4 rather than ignored.
+
+## Fronts
+
+Every ruling below is settled.
+
+### Front A — drag to reorder
+
+- **A-D1** **Drag, ruled by the owner.** One flat reorderable list per recipe:
+  group headings are items in it too, so a line dragged under a heading is
+  filed under that heading — that is how "move to a section" and "reorder"
+  become **one gesture** rather than two features.
+- **A-D2** The handle is explicit — a grip glyph on the line, not
+  long-press-anywhere. A list of tappable rows that also opens on hold is how
+  a scroll becomes an accidental move.
+- **A-D3** Headings do not drag in v1. Reordering *sections* is a second
+  question (and the editor has no such control today either); a line moving
+  between them is what was asked for.
+- **A-D4** The backlog row's objection was that a drag target inside a
+  scrolling list of **expandable cards** is a fight. So: a card that is open
+  does not drag — the grip appears on collapsed rows only, and an open card
+  collapses when a drag starts elsewhere. That keeps the drag surface a list of
+  uniform rows, which is the shape drag is good at.
+- **A-D5** Persistence is the existing save: `sort_order` from list position,
+  `group_id` from the heading above. No new write path, no migration.
+
+### Front B — what a move must not break
+
+- **B-D1** A moved line keeps its id, so every method chip that pointed at it
+  still does. Pinned by a test, because this is the whole reason the feature is
+  worth building.
+- **B-D2** An empty group left behind is kept, not swept: the heading is the
+  human's, and a section that empties while you rearrange is not a bug to fix
+  behind them. Deleting it is A-D1's `🗑` in
+  [plan 0034](./0034-import-review-editable.md).
+- **B-D3** **Ruled (owner, 2026-09-04): drag is the whole path.** No *Move to
+  section…* on the `⋯`, no ▲▼. One gesture, one affordance, nothing to keep in
+  sync. (If a two-person household ever needs a non-drag path, it is one menu
+  row away — but it is not built on speculation.)
+
+### Front D — one line layout, on every surface
+
+**Ruled (owner, 2026-09-04):** *"on the recipe editor it's ingredient — unit,
+we should pick one layout."* The two surfaces disagree today, and the drag
+list needs uniform rows anyway.
+
+- **D-D1** The editor stacks its line — identity on top, then *used in N
+  steps*, then the amount control below
+  (`recipe_editor_view.dart:380-402`). The review card and the recipe page
+  print the **three-part inline line**: amount · identity · note
+  (`line_display.dart`, the review's `l3` row).
+- **D-D2** **The inline line wins**, because it is what the recipe page — the
+  screen a cook actually reads — already prints, and it is the one both other
+  surfaces share. The editor adopts it: `[amount] [name] [note]` on one line,
+  the amount cell opening the quantity sheet and the name cell opening the
+  identity picker, exactly the two doors it has now.
+- **D-D3** *used in N steps* moves to a second muted line under the name, and
+  only when N > 0 — it is a fact about the line, not a control.
+- **D-D4** The payoff is structural, not cosmetic: uniform single-line rows are
+  the shape drag is good at (A-D4), and the editor stops teaching a layout the
+  rest of the app contradicts.
+
+### Front C — the same on the review
+
+- **C-D1** The review's line cards get the same list over the review's own
+  state (a `LineResolution` order, not the payload's), and `buildCommit` writes
+  `sort_order` from that order rather than from the flat index.
+- **C-D2** The never-renumber rule is unchanged: a moved line keeps its
+  **index** (its identity for chips and refs) and changes only its position.
+  Order and identity stop being the same number — the one structural change in
+  this plan, and the thing to test hardest.
+
+## Acceptance criteria
+
+- [ ] A line can be dragged to a new position inside its group, on both screens.
+- [ ] A line can be dragged under another heading — including one just added at
+      review — keeping its id.
+- [ ] Nothing Material is imported: the drag comes from `package:flutter/widgets.dart`.
+- [ ] The editor's line renders as the inline three-part line, matching the
+      review and the recipe page — one layout, asserted by a shared widget test.
+- [ ] Method chips survive both moves — asserted, not assumed.
+- [ ] `sort_order` round-trips: reopen the recipe and the order is what was left.
+- [ ] Tests: `recipe_view_models_test` (editor moves), `import_controller_test`
+      + `line_resolution_test` (review moves, C-D2's index/position split),
+      `recipe_repository_test` (sort_order persistence), and a sim leg that
+      reorders and re-reads.
+- [ ] Docs: the backlog row retires; `recipe-editor.html` and
+      `import-review.html` re-drawn; `app/lib/features/recipes/README.md`.
+
+## Approach
+
+1. Editor first (Fronts A and B) — it owns the save path and the chip rules,
+   and it is where the drag surface is proved.
+2. Review second (Front C), hosting the same list widget; the index/position
+   split is designed and tested before the UI is wired.
+
+## Decision log
+
+- 2026-09-04 — Filed from the owner's round-five note ("Both import and edit,
+  can't reorder ingredients"), promoting the backlog row that predicted it.
+- 2026-09-04 — Owner: **"prefer drag"**. The backlog row's *buttons, not drag*
+  is superseded; its objection is answered by A-D4 (a grip on collapsed rows
+  only) rather than dropped. Reorder and *move to a section* collapse into one
+  gesture, which is also what [plan 0034](./0034-import-review-editable.md)
+  A-D5 needs for a newly added heading.
+
+## Notes / open questions
+
+- Nothing is open. Front D arrived with the drag ruling and belongs here: the
+  same rows, in one shape.
+
+## Step-done checklist
+
+- [ ] Roadmap row updated.
+- [ ] `ARCHITECTURE.md` standing table matches for `features/recipes` + `import`.
+- [ ] `app/AGENTS.md` current focus still true.
+- [ ] `make test-sim` run, result recorded here.
+- [ ] Backlog row retired; tech-debt rows added for anything cut.
+- [ ] No migration — say so in the roadmap row.
+- [ ] `make ci` green.

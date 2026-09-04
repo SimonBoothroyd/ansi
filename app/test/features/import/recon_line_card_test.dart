@@ -1046,6 +1046,70 @@ void main() {
       });
     },
   );
+
+  group('the expanded card heads with what the line IS (C-D1)', () {
+    /// The card's HEADING specifically — the identity chip below it prints
+    /// the same word one point smaller, so plain `find.text` cannot tell the
+    /// heading from the thing it is supposed to agree with.
+    Finder heading(String text) => find.byWidgetPredicate(
+      (w) => w is Text && w.data == text && w.style?.fontSize == 15,
+    );
+
+    Future<ProviderContainer> reviewing(ReconciliationPayload payload) async {
+      final container = ProviderContainer(
+        overrides: [
+          bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
+          importRepositoryProvider.overrideWithValue(FakeImportRepo(payload)),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container
+          .read(importControllerProvider.notifier)
+          .startImport(const ImportFromUrl('x'));
+      return container;
+    }
+
+    testWidgets('a re-matched line reads as its new identity, and '
+        '"from source" still prints the page’s words', (tester) async {
+      filterForuiSemanticsAssertions();
+      final container = await reviewing(_auto);
+      // The move the owner reported: the page said "spaghetti", the cook
+      // re-matched it to something else entirely.
+      container
+          .read(importControllerProvider.notifier)
+          .updateResolution(
+            0,
+            (r) => r.resolveToIngredient('ing-kale', 'Kale', correction: true),
+          );
+
+      await tester.pumpWidget(_host(container));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.pencil));
+      await tester.pumpAndSettle();
+
+      expect(heading('Kale'), findsOneWidget);
+      // The old words are NOT the heading any more…
+      expect(heading('spaghetti'), findsNothing);
+      // …but they are still on the card, where the page's words belong.
+      expect(find.text('from source:  200g spaghetti'), findsOneWidget);
+    });
+
+    testWidgets('an untouched line still heads with the page’s own words', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      final container = await reviewing(_none);
+      await tester.pumpWidget(_host(container));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.pencil));
+      await tester.pumpAndSettle();
+
+      // No identity yet, so the heading falls back to the source text — and
+      // the `from source:` line under it prints the amount too.
+      expect(heading('mystery spice'), findsOneWidget);
+      expect(find.text('from source:  a pinch mystery spice'), findsOneWidget);
+    });
+  });
 }
 
 /// [_host], but the card can be removed from the tree mid-flow — the state

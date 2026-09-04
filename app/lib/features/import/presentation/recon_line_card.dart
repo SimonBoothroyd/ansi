@@ -138,7 +138,7 @@ class _DroppedLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = resolution.chosenName ?? line.raw.ingredientText;
+    final name = resolution.displayName;
     return Row(
       children: [
         const Icon(FLucideIcons.trash2, size: 14, color: AnsiColors.muted),
@@ -210,6 +210,9 @@ String? attentionLabel(List<LineIssue> issues, {bool hasRecipeOffer = false}) {
 String rawLineText(RawLineItem raw) =>
     joinSourceLine(raw.rawAmount, raw.ingredientText);
 
+/// What a review-minted line prints where every other line prints its source.
+const kAddedHereNote = 'added here — not on the page';
+
 /// The compact three-part row: amount · ingredient · notes, a pencil, and (when
 /// still open) a clear "needs you" label. Tapping anywhere expands it.
 class _Collapsed extends StatelessWidget {
@@ -229,7 +232,7 @@ class _Collapsed extends StatelessWidget {
   Widget build(BuildContext context) {
     final raw = line.raw;
     final imprecise = isImpreciseAmount(resolution);
-    final name = resolution.chosenName ?? raw.ingredientText;
+    final name = resolution.displayName;
     final notes = resolution.notes?.trim();
     final amount = amountLabel(resolution, raw);
     final label = attentionLabel(
@@ -263,12 +266,7 @@ class _Collapsed extends StatelessWidget {
                 Expanded(
                   child: Row(
                     children: [
-                      Flexible(
-                        child: RecipeChip(
-                          title: resolution.linkedRecipeTitle ?? name,
-                          size: 14,
-                        ),
-                      ),
+                      Flexible(child: RecipeChip(title: name, size: 14)),
                       if (notes != null && notes.isNotEmpty) ...[
                         const SizedBox(width: 8),
                         Flexible(
@@ -315,6 +313,16 @@ class _Collapsed extends StatelessWidget {
               const Icon(FLucideIcons.pencil, size: 14, color: AnsiColors.herb),
             ],
           ),
+          // The board's `l3-note`: a line the page never printed says so on
+          // the compact row too, not only once it is opened.
+          if (resolution.addedAtReview)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, left: 96),
+              child: Text(
+                kAddedHereNote,
+                style: ansiMono(size: 10, color: AnsiColors.muted),
+              ),
+            ),
           if (label != null) ...[
             const SizedBox(height: 6),
             _AttentionTag(label: label),
@@ -400,9 +408,12 @@ class _Expanded extends ConsumerWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // The line's CURRENT identity, the same rule the collapsed row
+            // reads (C-D1) — not the source text, which sits on the
+            // `from source:` line directly underneath.
             Expanded(
               child: Text(
-                line.raw.ingredientText,
+                resolution.displayName,
                 style: ansiSans(size: 15, weight: FontWeight.w600),
               ),
             ),
@@ -434,8 +445,18 @@ class _Expanded extends ConsumerWidget {
           ],
         ),
         // Always show the source line as written — the reference the owner
-        // wants while fixing a photo import (round-2 #3).
-        if (reference.isNotEmpty)
+        // wants while fixing a photo import (round-2 #3). A line the REVIEW
+        // minted has no source, and says that in the same slot rather than
+        // leaving a silence: the honesty rule cuts both ways.
+        if (resolution.addedAtReview)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              kAddedHereNote,
+              style: ansiMono(size: 11, color: AnsiColors.muted),
+            ),
+          )
+        else if (reference.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Text(

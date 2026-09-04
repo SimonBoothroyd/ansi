@@ -9,9 +9,17 @@
 ///
 /// The METHOD is editable here too: the editor's own step cards, hosted over
 /// the review's draft by [ImportMethodEditing]. Chips key on the preview's
-/// `line-<i>` ids and convert back to line indexes at commit; the only thing
-/// the review cannot do is mint a brand-new line.
+/// `line-<i>` ids and convert back to line indexes at commit.
+///
+/// The **structure** is the human's as well: a section can be renamed, added
+/// and deleted (which never deletes its lines — they move into the section
+/// above), and a line the page forgot can be added, taking a flat index past
+/// the payload's last. All of that rides `ImportReconciling.sections`; the
+/// payload stays the server's word about the page, so `from source:` never
+/// starts lying.
 library;
+
+import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
@@ -19,12 +27,18 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/units.dart';
+import '../../ingredients/presentation/quantity_unit_sheet.dart';
+import '../../recipes/domain/recipe.dart';
+import '../../recipes/presentation/component_quantity_sheet.dart';
+import '../../recipes/presentation/line_target_picker.dart';
 import '../../recipes/presentation/method_editor.dart';
 import '../../recipes/presentation/recipe_header_form.dart';
 import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
 import '../domain/preview_recipe.dart';
 import '../domain/reconciliation_payload.dart';
+import '../domain/review_groups.dart';
 import 'import_method_editing.dart';
 import 'import_view_models.dart';
 import 'recon_line_card.dart';
@@ -38,7 +52,6 @@ class ReconciliationBody extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(importControllerProvider.notifier);
     final payload = state.payload;
-    final flat = payload.flatLines;
     final byIndex = {for (final r in state.resolutions) r.lineIndex: r};
     // Per-line validity (matched? range picked? unit in the ingredient's
     // allowed set?) + inline unit chips — drives each card's flag, its unit
@@ -67,6 +80,7 @@ class ReconciliationBody extends HookConsumerWidget {
       payload,
       state.resolutions,
       servingsBase: state.servings,
+      sections: state.sections,
       measureByLine: {
         if (byLine != null)
           for (final e in byLine.entries)
@@ -79,36 +93,35 @@ class ReconciliationBody extends HookConsumerWidget {
       preview: recipe,
     );
 
+    // The sections are the HUMAN's, not the payload's (front A): renamed,
+    // deleted and added here, holding flat line indexes. `lineAt` is what
+    // covers a line the review minted, whose index the payload has no entry
+    // for.
     final rows = <Widget>[];
-    var flatIndex = 0;
-    for (final group in payload.groups) {
-      if (group.name != null && group.name!.isNotEmpty) {
-        rows.add(
-          Padding(
-            padding: const EdgeInsets.only(top: 16, bottom: 2),
-            child: Text(
-              group.name!,
-              style: ansiSerif(
-                size: 18,
-                color: AnsiColors.herbDeep,
-              ).copyWith(fontStyle: FontStyle.italic),
-            ),
-          ),
-        );
-      }
-      for (final _ in group.lines) {
-        final i = flatIndex;
+    for (final group in state.sections) {
+      rows.add(
+        _SectionHeading(
+          key: ValueKey('review-section-${group.id}'),
+          group: group,
+          removable: state.sections.length > 1,
+        ),
+      );
+      for (final i in group.lines) {
+        final resolution = byIndex[i];
+        if (resolution == null) continue;
         rows.add(
           ReviewLineCard(
             key: ValueKey('review-line-$i'),
-            line: flat[i],
-            resolution: byIndex[i]!,
+            line: state.lineAt(i),
+            resolution: resolution,
             validation: byLine?[i],
           ),
         );
-        flatIndex++;
       }
     }
+    // The two doors sit TIGHT under the last line: they belong to the list,
+    // not to the screen, and a gap reads as a section break that is not there.
+    rows.add(_ListDoors(recipe: recipe, sections: state.sections));
 
     // Save is gated on EVERY line being valid: matched, range picked, and a
     // unit inside the matched ingredient's allowed set (round-2 #2). While
@@ -125,6 +138,11 @@ class ReconciliationBody extends HookConsumerWidget {
     final sourceStated = source != null && source.isNotEmpty;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+      // Once you start dragging the list you have finished typing, and a
+      // field left focused off the top of the screen asks to be scrolled back
+      // to on every keyboard metrics change — which is enough to throw the
+      // page to the title while a line further down is being corrected.
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [
         // The never-invent strip sits ABOVE the form: with the title an
         // editable field now, it reads as "about the whole import" before the
@@ -190,6 +208,152 @@ class ReconciliationBody extends HookConsumerWidget {
         ),
       ],
     );
+  }
+}
+
+/// One section's heading: the name as an editable field, and the bin.
+///
+/// **Deleting a heading never deletes its lines** — they move into the
+/// section above, which is why the bin needs no confirm. Dropping food is
+/// what each line's own bin already does.
+///
+/// A single UNNAMED section shows no row at all: that is the ordinary shape
+/// of a recipe that never divided its ingredients, and an empty field over
+/// the first line would be furniture. `＋ section` is the way out of it, and
+/// the moment there are two, both are nameable.
+class _SectionHeading extends ConsumerWidget {
+  const _SectionHeading({
+    required this.group,
+    required this.removable,
+    super.key,
+  });
+
+  final ReviewGroup group;
+  final bool removable;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!removable && (group.name == null || group.name!.isEmpty)) {
+      return const SizedBox.shrink();
+    }
+    final controller = ref.read(importControllerProvider.notifier);
+    return Padding(
+      padding: const EdgeInsets.only(top: 14, bottom: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: FTextField(
+              hint: 'Section name (optional)',
+              control: FTextFieldControl.managed(
+                initial: TextEditingValue(text: group.name ?? ''),
+                onChange: (v) => controller.setSectionName(group.id, v.text),
+              ),
+            ),
+          ),
+          if (removable) ...[
+            const SizedBox(width: 8),
+            Semantics(
+              label: 'Delete section',
+              button: true,
+              child: FButton.icon(
+                variant: FButtonVariant.ghost,
+                onPress: () => controller.removeSection(group.id),
+                child: const Icon(FLucideIcons.trash2, size: 16),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The list's own two doors, tight under the last line: add a line the page
+/// forgot, and add a section to put lines in.
+///
+/// A line added here lands in the LAST section, which is what makes
+/// `＋ section` then `＋ ingredient` read as one gesture.
+class _ListDoors extends ConsumerWidget {
+  const _ListDoors({required this.recipe, required this.sections});
+
+  final Recipe recipe;
+  final List<ReviewGroup> sections;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Padding(
+    padding: const EdgeInsets.only(top: 4),
+    child: Row(
+      children: [
+        Expanded(
+          child: FButton(
+            variant: FButtonVariant.outline,
+            size: FButtonSizeVariant.sm,
+            prefix: const Icon(FLucideIcons.plus),
+            onPress: () => unawaited(_addLine(context, ref)),
+            child: const Text('ingredient'),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: FButton(
+            variant: FButtonVariant.outline,
+            size: FButtonSizeVariant.sm,
+            prefix: const Icon(FLucideIcons.plus),
+            onPress: ref.read(importControllerProvider.notifier).addSection,
+            child: const Text('section'),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  /// The editor's own two-step chain — the target picker, then the quantity
+  /// sheet — landing on the review's `addLine` instead of the editor's.
+  Future<void> _addLine(BuildContext context, WidgetRef ref) async {
+    // Read through the container, not this widget's `ref`: the picker's
+    // keyboard shrinks the review under it, and the doors can be unmounted by
+    // the time a row is tapped. A `WidgetRef` used after unmount throws
+    // (Riverpod 3) and the pick would be lost.
+    final container = ProviderScope.containerOf(context, listen: false);
+    final controller = container.read(importControllerProvider.notifier);
+    final groupId = sections.last.id;
+    final picked = await showLineTargetPicker(
+      context,
+      editingRecipeId: recipe.id,
+    );
+    if (picked == null || !context.mounted) return;
+    switch (picked) {
+      case PickedIngredient(:final ingredient):
+        final result = await showQuantityUnitSheet(
+          context,
+          ingredient: ingredient,
+        );
+        controller.addLine(
+          groupId,
+          name: ingredient.canonicalName,
+          ingredientId: ingredient.id,
+          quantity: result is QuantitySaved ? result.quantity : null,
+          unit: result is QuantitySaved
+              ? sheetChoiceUnit(
+                  choice: result.choice,
+                  unitPicked: true,
+                  currentUnit: null,
+                )
+              : ingredient.defaultUnit.id,
+        );
+      case PickedSubRecipe(:final target):
+        final result = await showComponentQuantitySheet(
+          context,
+          target: target,
+        );
+        controller.addLine(
+          groupId,
+          name: target.title,
+          recipeId: target.id,
+          quantity: result?.quantity,
+          unit: (result?.unit ?? batches).id,
+        );
+    }
   }
 }
 

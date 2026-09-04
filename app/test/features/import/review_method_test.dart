@@ -10,6 +10,7 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
+import 'package:ansi/features/import/domain/preview_recipe.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart'
     hide Step;
 import 'package:ansi/features/import/domain/reconciliation_payload.dart'
@@ -19,7 +20,6 @@ import 'package:ansi/features/import/presentation/import_method_editing.dart';
 import 'package:ansi/features/import/presentation/import_view_models.dart';
 import 'package:ansi/features/import/presentation/reconciliation_view.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
-import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/method_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -202,23 +202,34 @@ void main() {
     );
   });
 
-  test('the review host refuses to mint a line, and says why', () {
-    final payload = _payload();
+  testWidgets('the chip picker’s add-a-line door is OPEN at review, and the '
+      'line it mints is chippable at once', (tester) async {
+    filterForuiSemanticsAssertions();
+    _tallViewport(tester);
+    final repo = FakeImportRepo(_payload());
+    final container = await _reviewing(repo);
+    await tester.pumpWidget(_host(container));
+    await tester.pumpAndSettle();
+
+    final state = container.read(importControllerProvider) as ImportReconciling;
     final host = ImportMethodEditing(
-      controller: ProviderContainer().read(importControllerProvider.notifier),
-      state: ImportReconciling(
-        payload: payload,
-        resolutions: const [],
-        header: const Recipe(id: 'draft', title: 'T', servingsBase: 4),
+      controller: container.read(importControllerProvider.notifier),
+      state: state,
+      preview: buildPreviewRecipe(
+        state.payload,
+        state.resolutions,
+        servingsBase: state.servings,
+        sections: state.sections,
       ),
-      preview: const Recipe(id: 'preview', title: 'T', servingsBase: 4),
     );
-    expect(host.canAddLine, isFalse);
-    expect(host.addLineReason, isNotNull);
-    expect(host.ensureGroupId, throwsUnsupportedError);
-    expect(() => host.addLineItem('g', onionByWeight), throwsUnsupportedError);
-    // …and the two review-only simplifications the interface allows.
-    expect(host.substitution(), isNull);
-    expect(host.relabels(), isEmpty);
+    expect(host.canAddLine, isTrue);
+    expect(host.addLineReason, isNull);
+
+    // The chain the picker's footer runs: a group to land in, then the line.
+    final before = host.lineById().keys.toSet();
+    host.addLineItem(host.ensureGroupId(), garlic, quantity: 2);
+    final added = host.lineById().keys.toSet().difference(before);
+    expect(added, hasLength(1), reason: 'pickOrAddLine finds it by this diff');
+    expect(host.lineById()[added.single]!.ingredientName, 'Garlic');
   });
 }
