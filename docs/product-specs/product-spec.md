@@ -48,9 +48,19 @@ Single shared household dataset; both members full read/write; everything scoped
 
 ## 4. Core data model
 
+The authoritative column list for every table is generated from the migrations
+into [`../generated/db-schema.md`](../generated/db-schema.md) (`make docs`,
+diffed by `make docs-check`). This section says what the tables *mean* and
+which facts are load-bearing; where the two disagree, the generated file is
+right.
+
 ### Household & members
 - `household: id · name`
-- `household_member: id · household_id · display_name · auth_user_id` — the two named people. `eaters[]` on a meal references these.
+- `household_member: id · household_id · display_name · auth_user_id ·
+  portion_factor` — the two named people. `eaters[]` on a meal references
+  these. `portion_factor` is that person's usual portion (¼–3, ×1 by
+  default), set from the household roster on `/account`; it is what makes
+  demand fractional.
 
 ### Unit system (build FIRST — everything depends on it)
 - Families: `mass`, `volume`, `count`, `imprecise` (pinch, dash, to taste)
@@ -87,7 +97,18 @@ Single shared household dataset; both members full read/write; everything scoped
   `allowed_units` with the family it unlocks, in the same write.
 
 ### Ingredient
-`id · canonical_name · aliases[] · category · density_g_per_ml (nullable) · macros {kcal, protein, carb, fat} (nullable) · macros_basis ('g' | 'ml', step 7.7) · allowed_units (jsonb unit-id array, step 7.8) · default_measure_id (nullable FK, 0023) · default_unit · status (complete | stub) · source`
+The column list is generated from the migrations —
+[`../generated/db-schema.md`](../generated/db-schema.md), kept honest by
+`make docs-check`. What the columns *mean*:
+
+- **Aliases are rows, not a column.** `ingredient_alias` holds the other
+  names a household calls a row (`ingredient_alias.alias`, per household,
+  soft-deleted like everything else); the matcher searches them beside the
+  canonical name.
+- **`source_label` / `source_score` say which food the numbers came from.**
+  When a person picks a USDA food, the pick stores that food's description
+  and the query's coverage of it alongside `source = usda_fdc:<id>`, so the
+  form can name the food offline and say how well it fits the name typed.
 - `source` is **provenance, and it is load-bearing**: `seed` (the template
   vocab), `manual` (typed in the picker or the manager), `import_stub` (created
   at an import commit), `usda_fdc:<id>` (a food picked from the USDA search),
@@ -112,7 +133,9 @@ Single shared household dataset; both members full read/write; everything scoped
   tracked, not accidental (tracker).
 
 ### Ingredient measure (steps 7.6–7.8)
-`ingredient_measure: id · household_id · ingredient_id · label · basis_amount (> 0, in the ingredient's macros_basis unit — 0012) · sort_order · source`
+An `ingredient_measure` row names one countable thing and says what it weighs:
+`basis_amount` is `> 0` and denominated in the ingredient's `macros_basis`
+(g or ml, 0012), which is what lets a count bridge to the numbers.
 - Per-household, synced, user-editable rows — households disagree about what
   "1 portion" is, and import (step 8) will create them from labels. The
   starter set is GENERATED from FDC food portions
@@ -120,13 +143,20 @@ Single shared household dataset; both members full read/write; everything scoped
   the vocab at onboarding (backfill gated run-once by
   `household.backfilled_at`, 0011 — deleting your measures never resurrects
   them).
-- **In-app measure editor (7.7; density entry 7.8):** the quantity sheet's
-  manage state authors `source = 'manual'` rows ("half can = 200 g"),
-  soft-deletes unwanted ones, and holds the DENSITY entry (g/ml ⇄ "a spoon
-  weighs…"). Labels that merely name a volume unit are redirected into that
-  density entry — density owns volume conversion. Provenance is shown
-  humanized (USDA portion / borrowed / typical / yours), never as raw
-  machine strings.
+- **In-app measure editor (7.7; density entry 7.8):** authors
+  `source = 'manual'` rows ("half can = 200 g"), soft-deletes unwanted ones,
+  and sits beside the DENSITY entry (g/ml ⇄ "1 tbsp of this weighs N g").
+  Labels that merely name a volume unit are redirected into that density
+  entry — density owns volume conversion. Provenance is shown humanized
+  (USDA portion / borrowed / typical / yours), never as raw machine strings.
+  - **The editor reports intent; the host decides when it becomes a write**
+    ([ADR-0011](../decisions/0011-one-save-one-write.md)). The same two
+    widgets serve two screens with two persistence models, and neither is a
+    flag on the widget: in the **quantity sheet** the host writes on tap and
+    the verb is *Save*; on the **flesh-out form** the host adds to a draft,
+    the verb is *Add*, and nothing reaches the database until one Save
+    applies the row, its measures, its density, its aliases and "Counts as"
+    in a single transaction.
 - **No unique label index** (0011, the shopping-entry doctrine): two offline
   devices adding the same label must never fail upload — duplicate live
   `(ingredient_id, label)` rows merge deterministically on read (oldest row
@@ -168,10 +198,14 @@ Single shared household dataset; both members full read/write; everything scoped
   - Household-owned from the moment the vocabulary clones: the flesh-out
     form's **"Counts as"** row sets it, "Ask me each time" clears it, and the
     measures editor's ask-once `piece` question sets it as the second half of
-    the same answer. Soft-deleting the measure clears it.
+    the same answer. Soft-deleting the measure clears it. On the form the row
+    records the choice in the draft and one Save commits it with everything
+    else (ADR-0011); in the quantity sheet the same choice is written on tap.
 
 ### Recipe
-`id · title · book_id · section (user-defined label) · servings_base · favorite (step 7.7) · ingredient_groups[] · steps[]`
+A recipe is a title filed under a book and a user-defined section, with a
+`servings_base` it scales from, a `favorite` flag, its ingredient groups and
+its steps.
 - **ingredient_group:** `name · line_items[]`
 - **line_item:** `ingredient_id · quantity · unit · optional (0025)`
 - Scaling = quantity × factor (imprecise units left as-is).
@@ -277,6 +311,13 @@ are, and only visibly. Removing a referenced line asks first and leaves each
 chip's word as plain text, and `save()` prunes dangling refs regardless: **a
 saved method never refs a line the recipe does not have.**
 
+**A chip's label is the printed word, and it wins over the line's name.** A
+labelled chip never looks its line up to render: the step says `salt` over a
+`Kosher salt` line and `aioli` over `Romesco Aioli`, because the prose is what
+someone wrote. What a chip takes from its line automatically is the
+**amount**; the word changes only through the visible, one-tap-undoable
+relabel above, and never on a quantity, unit, measure or note edit.
+
 **Convert to plain text** (the METHOD header's `⋯`) is the one lossy act and
 the one-way exit: each step keeps its own prose byte-identically, only the links
 go. There is no re-chip — tokenization happens only inside the import call.
@@ -302,11 +343,16 @@ go. There is no re-chip — tokenization happens only inside the import call.
 - `plan_entry: id · week_plan_id · day_of_week · meal_slot (user-definable) · recipe_id · eaters[] (→ household_member ids) · portions (nullable override)`
   - You just say *what you want to eat* per meal — no batch/leftover thinking here.
   - **Multiple entries per (day, slot) allowed** → different breakfasts, office-lunch-for-one, etc.
-  - Demand for an entry = the `portions` override, else `|eaters|` (spec §8's big/small appetites, resolved).
+  - **Demand for an entry, in three rules** (`demandPortions`): the
+    whole-number `portions` override wins when one is set; otherwise demand
+    is **Σ of the eaters' `portion_factor`** — so a 1 and a ¾ eater want
+    `1¾`, not `2`; and an eater the roster no longer holds counts as one
+    portion, exactly as the head-count did. Demand is a `double` and is
+    printed as a fraction everywhere, never rounded.
 
 ### Batch cook plan (DERIVED) — the second view
 Groups the week's `plan_entry` rows **by recipe**, then splits each group into **cook sessions** bounded by shelf life:
-- `cook_session (derived): recipe_id · covers[] (plan_entry ids) · cook_day (default = earliest covered day, user-adjustable) · total_portions (Σ eaters over covered) · scale_factor (total_portions / recipe.servings_base)`
+- `cook_session (derived): recipe_id · covers[] (plan_entry ids) · cook_day (default = earliest covered day, user-adjustable) · total_portions (Σ demandPortions over covered — a double) · scale_factor (total_portions / recipe.servings_base)`
 - **Clustering rule (greedy, not a solver):** sort the days a dish appears; start a session at the first; include each later day within `keeps_for_days`; open a new session when one falls outside. O(n log n).
 - **"Same dish too far apart" → two things to cook**, each labelled why ("keeps 4 days"). Replaces manual leftover linking — batching is derived from demand, not hand-assigned.
 - **Scaling helpers apply to the session batch (step 7.6):** a fractional `scale_factor` gets a **whole-batch nudge** on the session card ("cook ×1 instead — covers 4 portions · 1 left over") — display-level advice the cook can toggle per session; the honest raw factor stays what everything (the shopping list included) scales by. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
@@ -354,22 +400,24 @@ structurally enforced: [`../design-docs/navigation.md`](../design-docs/navigatio
 reports a state*. Every write reached from a widget goes through one guarded
 door, so an action that didn't happen says so in the user's own noun and offers
 Retry; a screen that couldn't load says what, why and Try again. Sync health is
-one provider read by three quiet surfaces — the shell's banner, a line in the
-Library `⋯` menu, and, because Shop is the one screen two phones drive at once
-in a supermarket, a line under the shopping list's header in that screen's own
-noun (*2 ticks waiting*). Being **offline is never reported**: the app
+one provider read by three quiet surfaces — the shell's banner, a line on the
+`/account` screen under the household roster, and, because Shop is the one
+screen two phones drive simultaneously, in a supermarket, walking apart, a
+line under the shopping list's header in that screen's own noun (*2 ticks
+waiting*). Being **offline is never reported**: the app
 distinguishes *waiting* (the offline-first design working, always muted) from
 *stalled past five minutes* and from a write the server **refused and
 discarded**, which is the only place data is lost and now the only red one. The
 words, the thresholds and the seven things the app deliberately stays quiet
 about: [`../design-docs/errors-and-sync-health.md`](../design-docs/errors-and-sync-health.md).
 
-**Import (webpage):** parse schema.org/Recipe JSON-LD first (no AI). LLM fallback for messy pages.
-**Import (photo):** vision model → structured lines. Both feed one reconciliation screen.
-**Reconciliation screen (matching, not free text):**
-- Confident auto-match → shown with an "undo / wrong match" affordance to correct it
-- Medium confidence → "did you mean?" suggestions
-- No match → "add new" → creates a **stub**, surfaced for fleshing out
+**Import (webpage or photo):** paste a URL or a set of photos and get one
+reviewable recipe. How the page or the photos become lines, how a line is
+matched to the vocabulary, and what the review commits:
+[`import-and-matching.md`](./import-and-matching.md).
+
+**The review screen** is one always-editable list — the match decides only how
+a line starts, never whether it can be changed:
 - **A line that named a number and no thing arrives on the row's curated
   default measure, unflagged** (plan 0024 seam D2). "2 red peppers" comes in
   as `2 × pepper, medium`, the card is clean, Save is not gated, the raw
@@ -411,10 +459,14 @@ about: [`../design-docs/errors-and-sync-health.md`](../design-docs/errors-and-sy
 it counts toward conversions or macro totals. It surfaces as a **band on top of
 the whole vocabulary** in the ingredients manager (`/ingredients`), not as a
 separate queue screen — a vocabulary you can only see when it is broken is not a
-vocabulary you can edit. Arriving stubs are **prefilled server-side** from
-`usda_food` by a database trigger (never a client lookup — ADR-0005), and a
-rename re-runs it; a barcode scan prefills the same way from Open Food Facts.
-Prefilling is never promotion: **macros gate `complete`, density does not, and
+vocabulary you can edit. **Nothing prefills a stub.** A row is matched to the
+USDA reference set only when a person opens the form's `Fill it in from ▸ Look
+up in USDA`, searches it and picks a food; the pick fills the *draft* — the
+description, the density and the macros — and one Save writes the row with
+everything else on the form ([ADR-0011](../decisions/0011-one-save-one-write.md)).
+A barcode scan fills the draft the same way from Open Food Facts. The phone
+never reads the reference set directly (ADR-0005): the search is a read-only
+server function. Filling in is never promotion: **macros gate `complete`, density does not, and
 confirming is an explicit human act** in the flesh-out form (reversible —
 a `complete` row can be un-confirmed).
 
@@ -484,8 +536,7 @@ books, their user-named sections, and the recipes filed under each.
   `0 recipes`. An empty shelf offers the two doors in place — it has no section
   labels to hang a `＋` from, so the dashed pair stays exactly where it has
   always been. A search with no
-  hits echoes the query as typed — never "did you mean", which no matcher backs
-  yet — over `＋ new recipe called "…"`, which carries the query into the
+  hits echoes the query as typed, over `＋ new recipe called "…"`, which carries the query into the
   editor as the title (`/recipes/new?title=`), and `⤓ import a recipe instead`.
 
 **The recipe header's FILE UNDER** is one line, not a question: `BOOK · SECTION`
@@ -544,7 +595,8 @@ changes what a tap means"; v3 deletes the mode, because a row's three targets
 say what each tap means without one.
 
 - **A dish row is two lines:** the title with its eaters and — only when the
-  override differs from the eater count — a portions chip; beneath it the
+  override differs from the eaters' factor-weighted demand — a portions chip;
+  beneath it the
   **cook marker**, read back off `buildCookPlan` for the same week (`cooks
   today · batch of 4` with the mini fresh→gone bar · `from Monday's batch` ·
   `Tuesday's freezer share ❄`). A single-meal cook gets **no marker** — "cooks
@@ -602,7 +654,7 @@ it is the sum of what is planned, not a daily target — a week that only plans
 dinners averages a dinner.
 
 **House rule — a screen never swaps itself out for a data condition (D5b).**
-Chrome (header, switcher, tabs, mode, lens, primary doors) always renders.
+Chrome (header, switcher, tabs, lens, primary doors) always renders.
 Emptiness is expressed *inside* the screen's own structure — a quiet line where
 the content would be, on the row, card or section that is empty — and every
 empty region carries the affordance that would fill it. A full-bleed
