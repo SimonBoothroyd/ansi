@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 
 import '../core/theme/ansi_theme.dart';
 import '../core/theme/ansi_tokens.dart';
+import 'ansi_chip.dart';
 import 'ansi_search_field.dart';
 import 'ansi_sheet_shell.dart';
 
@@ -104,26 +105,12 @@ class PickerTabs extends StatelessWidget {
       children: [
         for (final (i, label) in labels.indexed) ...[
           if (i > 0) const SizedBox(width: 8),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
+          AnsiChip(
+            label: label,
+            selected: index == i,
             onTap: () => onChanged(i),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-              decoration: BoxDecoration(
-                color: index == i ? AnsiColors.ink : AnsiColors.surface,
-                border: Border.all(
-                  color: index == i ? AnsiColors.ink : AnsiColors.line,
-                ),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                label,
-                style: ansiMono(
-                  size: 12,
-                  color: index == i ? AnsiColors.surface : AnsiColors.muted,
-                ),
-              ),
-            ),
+            tone: AnsiChipTone.ink,
+            mono: true,
           ),
         ],
       ],

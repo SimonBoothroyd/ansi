@@ -44,6 +44,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
+import '../../../shared/ansi_chip.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_toast.dart';
 import '../../../shared/guarded_navigation.dart';
@@ -221,7 +222,7 @@ class _LensRow extends StatelessWidget {
         children: [
           Text('for', style: ansiMono(size: 10, color: AnsiColors.muted)),
           const SizedBox(width: 8),
-          _LensChip(
+          AnsiChip(
             label: 'Everyone',
             selected: lens.value == null,
             onTap: () => lens.value = null,
@@ -229,60 +230,14 @@ class _LensRow extends StatelessWidget {
           for (final (i, m) in roster.indexed)
             Padding(
               padding: const EdgeInsets.only(left: 8),
-              child: _LensChip(
+              child: AnsiChip(
                 label: m.displayName,
                 selected: lens.value == m.id,
-                avatar: EaterAvatar(member: m, color: memberColor(i)),
+                icon: EaterAvatar(member: m, color: memberColor(i)),
                 onTap: () => lens.value = m.id,
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _LensChip extends StatelessWidget {
-  const _LensChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.avatar,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Widget? avatar;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(avatar == null ? 12 : 5, 5, 12, 5),
-        decoration: BoxDecoration(
-          color: selected ? AnsiColors.herbSoft : AnsiColors.surface,
-          border: Border.all(
-            color: selected ? AnsiColors.herb : AnsiColors.line,
-          ),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (avatar != null) ...[avatar!, const SizedBox(width: 6)],
-            Text(
-              label,
-              style: ansiSans(
-                size: 13,
-                color: selected ? AnsiColors.ink : AnsiColors.muted,
-                weight: selected ? FontWeight.w600 : FontWeight.w400,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

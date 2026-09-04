@@ -18,6 +18,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_chip.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_search_field.dart';
 import '../../../shared/ansi_sheet_shell.dart';
@@ -51,16 +52,22 @@ class _AddShoppingItemSheet extends HookConsumerWidget {
         const SizedBox(height: 14),
         Row(
           children: [
-            _ModeTab(
+            AnsiChip(
               label: 'Non-food item',
               selected: !topUp.value,
               onTap: () => topUp.value = false,
+              tone: AnsiChipTone.ink,
+              mono: true,
+              expand: true,
             ),
             const SizedBox(width: 8),
-            _ModeTab(
+            AnsiChip(
               label: 'Top up an ingredient',
               selected: topUp.value,
               onTap: () => topUp.value = true,
+              tone: AnsiChipTone.ink,
+              mono: true,
+              expand: true,
             ),
           ],
         ),
@@ -69,47 +76,6 @@ class _AddShoppingItemSheet extends HookConsumerWidget {
           child: topUp.value ? const _TopUpBody() : const _FreeTextBody(),
         ),
       ],
-    );
-  }
-}
-
-class _ModeTab extends StatelessWidget {
-  const _ModeTab({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 9),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected ? AnsiColors.ink : AnsiColors.surface,
-            border: Border.all(
-              color: selected ? AnsiColors.ink : AnsiColors.line,
-            ),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: ansiMono(
-              size: 11.5,
-              color: selected ? AnsiColors.surface : AnsiColors.muted,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

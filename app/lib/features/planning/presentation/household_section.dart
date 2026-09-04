@@ -25,6 +25,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
+import '../../../shared/ansi_chip.dart';
 import '../../../shared/write.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
@@ -142,7 +143,8 @@ class PortionFactorSegment extends HookWidget {
             for (final pick in kPortionFactorPicks)
               Padding(
                 padding: const EdgeInsets.only(right: 6),
-                child: _FactorChip(
+                child: AnsiChip(
+                  mono: true,
                   label: '×${formatFraction(pick)}',
                   selected: !custom.value && (pick - value).abs() < 1e-9,
                   onTap: () {
@@ -151,7 +153,8 @@ class PortionFactorSegment extends HookWidget {
                   },
                 ),
               ),
-            _FactorChip(
+            AnsiChip(
+              mono: true,
               label: '…',
               selected: custom.value,
               onTap: () => custom.value = true,
@@ -190,44 +193,6 @@ class PortionFactorSegment extends HookWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _FactorChip extends StatelessWidget {
-  const _FactorChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? AnsiColors.herbSoft : AnsiColors.surface,
-          border: Border.all(
-            color: selected ? AnsiColors.herb : AnsiColors.line,
-          ),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          label,
-          style: ansiMono(
-            size: 12,
-            color: selected ? AnsiColors.ink : AnsiColors.muted,
-            weight: selected ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
-      ),
     );
   }
 }
