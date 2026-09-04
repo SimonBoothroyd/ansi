@@ -185,6 +185,22 @@ void main() {
     expect(_sum([_entry(id: 'a', recipeId: 'stub')]).perDayAverage, isNull);
   });
 
+  test('an empty roster falls back to one portion per eater — the documented '
+      'default a device with no members synced yet still has to answer', () {
+    for (final entry in [
+      _entry(id: 'a'),
+      _entry(id: 'b', eaters: const ['ada']),
+      _entry(id: 'c', portions: 3),
+      _entry(id: 'd', eaters: const []),
+    ]) {
+      expect(
+        demandPortions(entry, const {}),
+        entry.portionsOrDefault,
+        reason: entry.id,
+      );
+    }
+  });
+
   group('the portion factor (plan 0027 P-D5)', () {
     // Ada eats a portion, Jun three-quarters of one.
     const roster = {

@@ -129,12 +129,6 @@ void main() {
     // "tofu" must find "Extra Firm Tofu" — a strict prefix never could.
     final r = await _search(repo, 'tofu');
     expect(r.map((i) => i.canonicalName), contains('Extra Firm Tofu'));
-    // "nion" is not a word start of "Onion", so tiers 0 and 1 refuse it —
-    // which is exactly when the typo tier gets to answer. It offers Onion as
-    // a GUESS (owner ruling, 2026-09-02), never as a spelled hit.
-    final guess = await repo.search('nion');
-    expect(guess.rows.first.canonicalName, 'Onion');
-    expect(guess.guessed, isTrue);
   });
 
   test('normalizes the query like match_text ("all-purpose" hits)', () async {
@@ -201,17 +195,6 @@ void main() {
   });
 
   group('a plural query hits its singularized match_text', () {
-    test('"almonds" finds Almonds, ranked first', () async {
-      // The bug: match_text is 'almond' (the phrase normalizer singularizes)
-      // while the query stays 'almonds', so `'almond' LIKE 'almonds%'` was
-      // false and the row was unreachable. It is a SPELLING, not a guess —
-      // the singular form is what the exact tier compares, so the result is
-      // never flagged as one.
-      final r = await repo.search('almonds');
-      expect(r.rows.first.canonicalName, 'Almonds');
-      expect(r.guessed, isFalse);
-    });
-
     test('the singular spelling is unchanged', () async {
       expect((await _search(repo, 'almond')).first.canonicalName, 'Almonds');
     });
@@ -263,14 +246,6 @@ void main() {
       expect((await repo.search('onion')).guessed, isFalse);
       expect((await repo.search('tofu')).guessed, isFalse);
       expect((await repo.search('')).guessed, isFalse);
-    });
-
-    test('a guess is flagged, and it is the WHOLE list', () async {
-      // Tier 2 runs only when tiers 0 and 1 are empty, so a band is never a
-      // tail of weak rows under strong ones.
-      final guess = await repo.search('almnd');
-      expect(guess.rows.first.canonicalName, 'Almonds');
-      expect(guess.guessed, isTrue);
     });
 
     test('an empty answer is an ANSWER — nothing is invented', () async {

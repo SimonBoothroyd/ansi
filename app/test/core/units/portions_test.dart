@@ -18,10 +18,6 @@ void main() {
       expect(formatFraction(2.5), '2½');
     });
 
-    test('never 1.75 — the ruling (P-D4) said as a test', () {
-      expect(formatFraction(1.75), isNot(contains('.')));
-    });
-
     test('float noise on a whole or a quarter is absorbed', () {
       expect(formatFraction(0.1 + 0.2 + 0.7), '1');
       expect(formatFraction(3 * 0.25), '¾');

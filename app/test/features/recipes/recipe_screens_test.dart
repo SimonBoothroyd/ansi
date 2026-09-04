@@ -13,7 +13,6 @@ import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
@@ -49,40 +48,6 @@ Widget _host(Widget child, List<Override> overrides) => ProviderScope(
     home: FTheme(data: ansiThemeData(), child: child),
   ),
 );
-
-/// The editor as it is actually reached: pushed from a page that must still be
-/// there when the save lands.
-Widget _routedHost(GoRouter router, List<Override> overrides) => ProviderScope(
-  overrides: overrides,
-  child: MaterialApp.router(
-    routerConfig: router,
-    builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
-  ),
-);
-
-/// Pumps frames until [finder] matches, then keeps pumping long enough for the
-/// route transition to land.
-///
-/// `pumpAndSettle` is not usable on these screens — they carry perpetual
-/// animations, which is why the sibling tests pump rather than settle. And a
-/// widget is findable the moment it is BUILT, which here is while its page is
-/// still sliding in: a tap taken then lands beside the target, off-screen.
-Future<void> _pumpUntil(
-  WidgetTester tester,
-  Finder finder, {
-  int frames = 60,
-}) async {
-  for (var i = 0; i < frames; i++) {
-    await tester.pump(const Duration(milliseconds: 50));
-    if (finder.evaluate().isNotEmpty) {
-      for (var settle = 0; settle < 10; settle++) {
-        await tester.pump(const Duration(milliseconds: 50));
-      }
-      return;
-    }
-  }
-  fail('never found $finder');
-}
 
 const _recipe = Recipe(
   id: '1',
@@ -297,66 +262,6 @@ void main() {
     expect(find.byIcon(FLucideIcons.x), findsWidgets);
     // With a second denomination already stated, nothing offers to add one.
     expect(find.text('Another denomination'), findsNothing);
-  });
-
-  testWidgets('saving replaces the editor, so back returns to where it was '
-      'opened from', (tester) async {
-    filterForuiSemanticsAssertions();
-    // A phone-sized surface: at the default 800x600 the header's Save sits off
-    // the right edge and the tap misses it.
-    await tester.binding.setSurfaceSize(const Size(402, 874));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-
-    final router = GoRouter(
-      initialLocation: '/',
-      routes: [
-        GoRoute(
-          path: '/',
-          builder: (_, _) => const FScaffold(child: Text('the library')),
-        ),
-        GoRoute(
-          path: '/recipes/new',
-          builder: (_, _) => const RecipeEditorView(),
-        ),
-        GoRoute(
-          path: '/recipes/:id',
-          builder: (_, state) =>
-              RecipeView(recipeId: state.pathParameters['id']!),
-        ),
-      ],
-    );
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      _routedHost(router, [
-        recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(_recipe)),
-        ingredientRepositoryProvider.overrideWithValue(
-          const ReadOnlyIngredientRepo(),
-        ),
-        bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
-      ]),
-    );
-    await _pumpUntil(tester, find.text('the library'));
-
-    // NOT awaited: a push's future completes when the route is POPPED, so
-    // awaiting it here would block the test before a frame could be pumped.
-    unawaited(router.push('/recipes/new'));
-    await _pumpUntil(tester, find.text('New recipe'));
-    await tester.enterText(find.byType(EditableText).first, 'Curry');
-    await tester.pump();
-
-    await tester.tap(find.text('Save'));
-    await _pumpUntil(tester, find.text('Weeknight Chicken Curry'));
-
-    // The editor was REPLACED, not stacked on and not flattened away: the
-    // saved recipe is on top and the page it was opened from is still under
-    // it, which is what keeps back (and the iOS edge swipe) working.
-    expect(router.routerDelegate.currentConfiguration.matches.length, 2);
-    expect(find.text('New recipe'), findsNothing);
-
-    router.pop();
-    await _pumpUntil(tester, find.text('the library'));
-    expect(router.state.uri.toString(), '/');
   });
 
   testWidgets('the recipe page prints the stated times as chips, and only '

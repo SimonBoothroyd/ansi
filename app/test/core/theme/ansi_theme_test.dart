@@ -32,8 +32,6 @@ void main() {
   final selected = _contrast(AnsiColors.herbDeep, AnsiColors.surface);
   final unselected = _contrast(AnsiColors.muted, AnsiColors.surface);
   final between = _contrast(AnsiColors.herbDeep, AnsiColors.muted);
-  final before = _contrast(AnsiColors.herb, AnsiColors.surface);
-  final betweenBefore = _contrast(AnsiColors.herb, AnsiColors.muted);
 
   test('selected herbDeep on surface is 9.34:1 — AAA at any size (≥ 7:1)', () {
     expect(selected, closeTo(9.34, 0.01));
@@ -45,12 +43,10 @@ void main() {
     expect(unselected, greaterThanOrEqualTo(4.5));
   });
 
-  test("selected vs unselected is 1.88:1 (≥ 1.8:1), up from herb's 1.31:1", () {
+  test('selected vs unselected is 1.88:1 — the two states are told apart '
+      '(≥ 1.8:1)', () {
     expect(between, closeTo(1.88, 0.01));
     expect(between, greaterThanOrEqualTo(1.8));
-    // The state the owner found too close, for the record.
-    expect(before, closeTo(6.50, 0.01));
-    expect(betweenBefore, closeTo(1.31, 0.01));
   });
 
   test('the theme resolves the selected bar item to herbDeep and leaves the '

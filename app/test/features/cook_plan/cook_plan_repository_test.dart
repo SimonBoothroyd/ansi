@@ -108,60 +108,48 @@ void main() {
     expect((await repo.watchCookPlan(_week).first).isEmpty, isTrue);
   });
 
-  test('groups meals by recipe and splits past the fridge window', () async {
-    await _insertRecipe(db, 'curry', 'Chicken Curry', keepsForDays: 3);
-    // Mon + Sat of the same recipe, keeps 3 → two cook sessions.
-    await planning.addEntry(
-      weekStart: _week,
-      dayOfWeek: 0,
-      mealSlot: 'Dinner',
-      recipeId: 'curry',
-      eaterIds: ['a', 'b'],
-    );
-    await planning.addEntry(
-      weekStart: _week,
-      dayOfWeek: 5,
-      mealSlot: 'Dinner',
-      recipeId: 'curry',
-      eaterIds: ['a', 'b'],
-    );
-
-    final plan = await repo.watchCookPlan(_week).first;
-    final curry = plan.recipes.single;
-    expect(curry.title, 'Chicken Curry');
-    expect(curry.isSplit, isTrue);
-    expect(curry.sessions.map((s) => s.cookDay), [0, 5]);
-    expect(curry.totalPortions, 4);
-  });
-
-  test('a freezable far meal merges into one frozen session', () async {
+  test('every shelf-life column reaches the plan — the clustering itself is '
+      "cook_plan_test's subject, not SQL's", () async {
     await _insertRecipe(
       db,
       'ragu',
       'House Ragù',
+      servings: 3,
       keepsForDays: 3,
       freezable: true,
+      freezerDays: 30,
     );
     await planning.addEntry(
       weekStart: _week,
-      dayOfWeek: 1, // Tue
-      mealSlot: 'Dinner',
-      recipeId: 'ragu',
-      eaterIds: ['a', 'b'],
-    );
-    await planning.addEntry(
-      weekStart: _week,
-      dayOfWeek: 5, // Sat
+      dayOfWeek: 1,
       mealSlot: 'Dinner',
       recipeId: 'ragu',
       eaterIds: ['a', 'b'],
     );
 
-    final plan = await repo.watchCookPlan(_week).first;
-    final ragu = plan.recipes.single;
-    expect(ragu.isSplit, isFalse);
-    expect(ragu.usesFreezer, isTrue);
-    expect(ragu.sessions.single.frozenDays, [5]);
+    final ragu = (await repo.watchCookPlan(_week).first).recipes.single;
+    expect(ragu.recipeId, 'ragu');
+    expect(ragu.title, 'House Ragù');
+    expect(ragu.servingsBase, 3);
+    expect(ragu.keepsForDays, 3);
+    expect(ragu.freezable, isTrue);
+    expect(ragu.freezerDays, 30);
+    // A recipe with no shelf life reads as unknown, not as zero — the
+    // difference between "never split" and "split every day".
+    await _insertRecipe(db, 'soup', 'Soup');
+    await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 2,
+      mealSlot: 'Dinner',
+      recipeId: 'soup',
+      eaterIds: ['a'],
+    );
+    final soup = (await repo.watchCookPlan(_week).first).recipes.firstWhere(
+      (r) => r.recipeId == 'soup',
+    );
+    expect(soup.keepsForDays, isNull);
+    expect(soup.freezable, isFalse);
+    expect(soup.freezerDays, isNull);
   });
 
   test('a portions override drives the batch size', () async {
