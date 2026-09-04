@@ -27,8 +27,11 @@ library;
 
 import 'package:meta/meta.dart';
 
+import '../../../core/result/result.dart';
 import '../../../core/units/macros.dart';
+import '../../../core/units/measure.dart';
 import '../../../core/units/portions.dart';
+import '../../../core/units/units.dart';
 import '../../recipes/domain/recipe_macros.dart';
 import 'planning.dart';
 
@@ -48,6 +51,14 @@ enum MealExclusion {
   /// there is no demand to multiply — and, under a person's lens, nothing to
   /// divide by. Never a division by zero, never a silent zero.
   noEaters,
+
+  /// The meal is a bare INGREDIENT (step 8.14) whose one portion cannot be
+  /// weighed honestly — a stub row with no macros, a row this device has never
+  /// synced, an amount that never reached the row's basis, or no amount at
+  /// all. The reason WORDS come from the excluded meal's `lineReason`, through
+  /// the shared `incompleteLineNote` — so a snack says `stub ingredient` in
+  /// exactly the words a stub recipe LINE says it (A-D5 / B-D3).
+  ingredientNotCounted,
 }
 
 /// One meal left out of a total, and why. `label` is the dish's title as the
@@ -57,6 +68,11 @@ typedef ExcludedMeal = ({
   String label,
   MealExclusion reason,
   RecipeMacroSummary? summary,
+
+  /// Set only for [MealExclusion.ingredientNotCounted]: the per-line reason
+  /// whose wording an excluded SNACK borrows, so the week's refusal and a
+  /// recipe page's refusal are one vocabulary.
+  MacroLineReason? lineReason,
 });
 
 /// The honest total of a set of planned meals.
@@ -135,6 +151,81 @@ String? portionShareLine(MealSetMacros macros, {required String? lensName}) {
       '${formatPortions(macros.demand)}';
 }
 
+/// One portion of an INGREDIENT meal, weighed — or the reason it cannot be
+/// (step 8.14 / B-D3).
+///
+/// The rule is the recipe summation's own, applied to one amount instead of a
+/// line: the row must have macros, the entry must state an amount, and that
+/// amount must reach the row's basis unit (a measure through its stored
+/// weight, a cross-basis amount through the density). Nothing is invented at
+/// any step — a stub contributes nothing and says so, in the words a stub LINE
+/// uses.
+///
+/// The returned macros are what ONE portion is worth; the caller multiplies by
+/// the entry's demand, exactly as it multiplies a recipe's per-serving figure
+/// (A-D3 — a snack carries eaters and multiplies).
+typedef PortionMacros = ({Macros? perPortion, MacroLineReason? reason});
+
+PortionMacros ingredientPortionMacros(
+  PlanEntry entry,
+  IngredientNutrition? nutrition,
+) {
+  final macros = nutrition?.macros;
+  if (nutrition == null || macros == null) {
+    return (
+      perPortion: null,
+      reason: nutrition == null
+          ? MacroLineReason.unknownIngredient
+          : MacroLineReason.stubIngredient,
+    );
+  }
+  final quantity = entry.quantity;
+  final unit = entry.unit;
+  if (quantity == null || unit == null) {
+    return (perPortion: null, reason: MacroLineReason.noAmount);
+  }
+
+  final to = nutrition.basis.baseUnit;
+  final measure = entry.measure;
+  final Result<Quantity> converted;
+  if (measure != null) {
+    converted = convertMeasure(
+      quantity,
+      measure,
+      to: to,
+      densityGPerMl: nutrition.densityGPerMl,
+    );
+  } else if (entry.measureId != null) {
+    // An unresolved measure reads as its honest count fallback — a count
+    // cannot join a mass/volume total, so the snack is unweighable until the
+    // measure row syncs in. Nothing is broken to fix, so it is NOT
+    // `needsWeight`: something does weigh it, this device just cannot see it.
+    return (perPortion: null, reason: MacroLineReason.needsWeight);
+  } else {
+    converted = convert(
+      Quantity(quantity, unit),
+      to: to,
+      densityGPerMl: nutrition.densityGPerMl,
+    );
+  }
+
+  return switch (converted) {
+    Ok(:final value) => (
+      perPortion: macros.scaledBy(value.amount / 100),
+      reason: null,
+    ),
+    // A bare count with nothing weighing it is the one reason a household can
+    // fix in two taps (pick a measure), so it keeps its own word — the same
+    // split the recipe panel makes.
+    Err() => (
+      perPortion: null,
+      reason: unit.family == UnitFamily.count
+          ? MacroLineReason.needsWeight
+          : MacroLineReason.needsDensity,
+    ),
+  };
+}
+
 /// Sums `perServing × servings` over [entries].
 ///
 /// * **Everyone** ([lensMemberId] null) — `servings = demandPortions`, the
@@ -150,10 +241,14 @@ String? portionShareLine(MealSetMacros macros, {required String? lensName}) {
 ///   shrink the denominator.
 ///
 /// [summaryFor] hands back a recipe's per-serving summary (null when the
-/// recipe is gone or not loaded); [membersById] carries the factors (an
-/// absent member counts 1, as [eatersDemand] says). Day and week totals come
-/// from this one function over two entry sets, so a week is never a sum of
-/// rounded days.
+/// recipe is gone or not loaded); a bare INGREDIENT meal is weighed from the
+/// nutrition it already carries (step 8.14), so no second lookup can go
+/// missing. [membersById] carries the factors (an absent member counts 1, as
+/// [eatersDemand] says). Day and week totals come from this one function over
+/// two entry sets, so a week is never a sum of rounded days.
+///
+/// A snack multiplies exactly like a dish (A-D3): its stated amount is ONE
+/// portion, and the same `servings` figure scales it.
 MealSetMacros sumPlannedMacros(
   Iterable<PlanEntry> entries, {
   required RecipeMacroSummary? Function(String recipeId) summaryFor,
@@ -179,7 +274,9 @@ MealSetMacros sumPlannedMacros(
     }
     considered++;
 
-    final label = entry.recipeTitle ?? '(deleted recipe)';
+    final label =
+        entry.title ??
+        (entry.isIngredient ? '(deleted ingredient)' : '(deleted recipe)');
     final factorsSum = eatersDemand(eaters, membersById);
     final demand = demandPortions(entry, membersById);
     if (demand <= 0 ||
@@ -189,38 +286,62 @@ MealSetMacros sumPlannedMacros(
         label: label,
         reason: MealExclusion.noEaters,
         summary: null,
+        lineReason: null,
       ));
       continue;
     }
 
-    final summary = entry.recipeTitle == null
-        ? null
-        : summaryFor(entry.recipeId);
-    if (summary == null) {
-      excluded.add((
-        entryId: entry.id,
-        label: label,
-        reason: MealExclusion.recipeMissing,
-        summary: null,
-      ));
-      continue;
-    }
-    final perServing = summary.perServing;
-    if (perServing == null) {
-      excluded.add((
-        entryId: entry.id,
-        label: label,
-        reason: MealExclusion.incomplete,
-        summary: summary,
-      ));
-      continue;
+    // The explicit branch (B-D2). A meal names a recipe or an ingredient, and
+    // the two are weighed differently — a recipe hands over a per-SERVING
+    // summary somebody else computed, a bare ingredient is weighed here from
+    // its own stated amount. Neither may fall through: a null `recipe_id` is
+    // an ingredient meal, never a meal to skip.
+    final Macros? perPortion;
+    if (entry.isIngredient) {
+      final weighed = ingredientPortionMacros(entry, entry.nutrition);
+      if (weighed.perPortion == null) {
+        excluded.add((
+          entryId: entry.id,
+          label: label,
+          reason: MealExclusion.ingredientNotCounted,
+          summary: null,
+          lineReason: weighed.reason,
+        ));
+        continue;
+      }
+      perPortion = weighed.perPortion;
+    } else {
+      final summary = entry.recipeTitle == null
+          ? null
+          : summaryFor(entry.recipeId!);
+      if (summary == null) {
+        excluded.add((
+          entryId: entry.id,
+          label: label,
+          reason: MealExclusion.recipeMissing,
+          summary: null,
+          lineReason: null,
+        ));
+        continue;
+      }
+      if (summary.perServing == null) {
+        excluded.add((
+          entryId: entry.id,
+          label: label,
+          reason: MealExclusion.incomplete,
+          summary: summary,
+          lineReason: null,
+        ));
+        continue;
+      }
+      perPortion = summary.perServing;
     }
 
     final servings = lensMemberId == null
         ? demand
         : (membersById[lensMemberId]?.portionFactor ?? 1) *
               (entry.portions == null ? 1 : demand / factorsSum);
-    final part = perServing.scaledBy(servings);
+    final part = perPortion!.scaledBy(servings);
     total = total == null ? part : total + part;
     counted++;
     days.add(entry.dayOfWeek);

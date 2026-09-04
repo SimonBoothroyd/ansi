@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
+import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/planning_repository.dart';
@@ -24,6 +27,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/fake_cook_plan_repository.dart';
+import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
@@ -133,6 +137,12 @@ List<Override> _withCook(List<Override> extra, CookPlanRepository? cook) => [
   cookPlanRepositoryProvider.overrideWithValue(
     cook ?? FakeCookPlanRepository(),
   ),
+  // Since step 8.14 the add door searches the VOCABULARY as well as the
+  // recipes (C-D1), so every host here answers for it — with nothing, which
+  // is the honest answer for a suite about dishes.
+  ingredientRepositoryProvider.overrideWithValue(
+    const ReadOnlyIngredientRepo(),
+  ),
   ...extra,
 ];
 
@@ -203,6 +213,34 @@ WeekPlan _plannedWeek({int? portions, List<String> eaters = const ['m1']}) =>
         ),
       ],
     );
+
+/// A week holding one SNACK — a bare ingredient, not a dish (step 8.14). Its
+/// vocab numbers ride on the entry, as the repository loads them.
+WeekPlan _snackWeek({
+  List<String> eaters = const ['m1'],
+  double? quantity = 1,
+  Unit? unit = pieces,
+  Measure? measure = const Measure(id: 'mz', label: 'bar', amount: 60),
+  Macros? macros = const Macros(kcal: 350, protein: 33, carb: 30, fat: 11),
+}) => WeekPlan(
+  id: 'w',
+  weekStart: DateTime.utc(2026, 8, 24),
+  entries: [
+    PlanEntry(
+      id: 'e1',
+      dayOfWeek: 3,
+      mealSlot: 'Snack',
+      ingredientId: 'i1',
+      ingredientName: 'Protein bar',
+      quantity: quantity,
+      unit: unit,
+      measureId: measure?.id,
+      measure: measure,
+      nutrition: (macros: macros, basis: MacrosBasis.perG, densityGPerMl: null),
+      eaterIds: eaters,
+    ),
+  ],
+);
 
 /// Ada eats a portion, Jun three-quarters of one (plan 0027).
 const _factoredRoster = [
@@ -563,7 +601,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('add a meal').first);
     await tester.pumpAndSettle();
-    expect(find.text('Search recipes'), findsOneWidget, reason: 'the picker');
+    expect(
+      find.text('Search recipes and ingredients'),
+      findsOneWidget,
+      reason: 'the picker',
+    );
 
     show.value = false;
     await tester.pumpAndSettle();
@@ -787,6 +829,65 @@ void main() {
       expect(find.text('375 kcal'), findsWidgets);
       expect(find.text('1 meal · Jun · ¾ of 1¾ portions'), findsWidgets);
       expect(find.text('875 kcal'), findsNothing);
+    });
+  });
+
+  // --- A row that is visibly not a recipe (step 8.14 / A-D5) ----------------
+
+  group('a snack row', () {
+    testWidgets('prints its amount where a cook marker would sit, and draws '
+        'no shelf-life chip or batch hint', (tester) async {
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _snackWeek()),
+        recipes: _recipesRepo(null),
+        // A plan that WOULD mark a recipe row, so an absent marker is the
+        // snack's own rule and not an empty derivation.
+        cook: FakeCookPlanRepository(),
+      );
+
+      expect(find.text('Protein bar'), findsOneWidget);
+      expect(find.text('1 bar · 60 g'), findsOneWidget);
+      expect(find.byType(CookMarkerLine), findsNothing);
+      expect(find.textContaining('keeps'), findsNothing);
+      expect(find.textContaining('batch'), findsNothing);
+    });
+
+    testWidgets('counts in the day total, multiplied by its eaters', (
+      tester,
+    ) async {
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _snackWeek(eaters: ['m1', 'm2'])),
+        recipes: _recipesRepo(null),
+      );
+      // 60 g of a 350 kcal/100 g bar = 210 per portion, two eaters.
+      expect(find.text('420 kcal'), findsWidgets);
+    });
+
+    testWidgets('a stub row draws no number and says so in a stub '
+        'line’s own words', (tester) async {
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _snackWeek(macros: null)),
+        recipes: _recipesRepo(null),
+      );
+      expect(find.textContaining('0 kcal'), findsNothing);
+      expect(find.textContaining('stub ingredient'), findsWidgets);
+    });
+
+    testWidgets('an amount-less snack names that state rather than nothing', (
+      tester,
+    ) async {
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(
+          week: _snackWeek(quantity: null, unit: null, measure: null),
+        ),
+        recipes: _recipesRepo(null),
+      );
+      expect(find.text('no amount'), findsOneWidget);
+      expect(find.textContaining('no amount'), findsWidgets);
     });
   });
 }

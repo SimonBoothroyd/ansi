@@ -19,6 +19,13 @@
 /// The `Day · Slot` dropdown is this sheet's alone. The editor holds no day and
 /// no slot — a row does not print a day as a value, its *position* is its day —
 /// so this is the only place a meal's day is chosen, on the way in.
+///
+/// Since step 8.14 it places EITHER kind of meal — a recipe, or a bare
+/// ingredient whose amount the quantity sheet already settled ([MealTarget]).
+/// The slot, the eaters and the portions stepper are identical for both,
+/// because a snack carries eaters and multiplies like any other entry (A-D3);
+/// what differs is the card at the top and which repository door the write
+/// goes through.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -26,24 +33,57 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/units/measure.dart';
+import '../../../core/units/units.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/write.dart';
 import '../../cook_plan/domain/cook_plan.dart';
+import '../../ingredients/domain/ingredient.dart';
 import '../../recipes/domain/recipe.dart';
 import '../data/planning_providers.dart';
 import 'meal_fields.dart';
 import 'week_view_models.dart';
 
-/// Opens the confirm sheet for [recipe] on [dayOfWeek], pre-selecting [slot].
+/// What this sheet is about to place on the week — the `plan_entry` XOR, at
+/// the door that writes it (step 8.14 / B-D1).
+sealed class MealTarget {
+  const MealTarget();
+}
+
+/// A dish. Its amount is its portions; the batch cue applies.
+final class RecipeMeal extends MealTarget {
+  const RecipeMeal(this.recipe);
+
+  final RecipeSummary recipe;
+}
+
+/// A bare ingredient — a protein bar, a yoghurt. Its amount is ONE portion of
+/// it, already settled by the shipped quantity sheet (A-D2) and carried here so
+/// this sheet only has to ask the questions both kinds share.
+final class SnackMeal extends MealTarget {
+  const SnackMeal({
+    required this.ingredient,
+    this.quantity,
+    this.unit,
+    this.measure,
+  });
+
+  final Ingredient ingredient;
+  final double? quantity;
+  final Unit? unit;
+  final Measure? measure;
+}
+
+/// Opens the confirm sheet for [target] on [dayOfWeek], pre-selecting [slot].
 Future<void> showConfirmMealSheet(
   BuildContext context, {
   required DateTime weekStart,
   required int dayOfWeek,
   required String slot,
-  required RecipeSummary recipe,
+  required MealTarget target,
 }) {
   return showAnsiSheet<void>(
     context: context,
@@ -51,7 +91,7 @@ Future<void> showConfirmMealSheet(
       weekStart: weekStart,
       dayOfWeek: dayOfWeek,
       slot: slot,
-      recipe: recipe,
+      target: target,
     ),
   );
 }
@@ -61,13 +101,13 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     required this.weekStart,
     required this.dayOfWeek,
     required this.slot,
-    required this.recipe,
+    required this.target,
   });
 
   final DateTime weekStart;
   final int dayOfWeek;
   final String slot;
-  final RecipeSummary recipe;
+  final MealTarget target;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -79,23 +119,30 @@ class _ConfirmMealSheet extends HookConsumerWidget {
 
     final members = ref.watch(membersProvider);
 
-    // Days this recipe is already planned this week → the batch cue, live
-    // against the currently selected day.
-    final plannedDays = ref
-        .watch(viewedWeekProvider)
-        .asData
-        ?.value
-        ?.entries
-        .where((e) => e.recipeId == recipe.id)
-        .map((e) => e.dayOfWeek)
-        .toList();
-    final hint = batchHintFor(
-      plannedDays: plannedDays ?? const [],
-      newDay: dayState.value,
-      keepsForDays: recipe.keepsForDays,
-      freezable: recipe.freezable,
-      freezerDays: recipe.freezerDays,
-    );
+    // The batch cue is a RECIPE fact — how long a cooked dish keeps, and
+    // whether this day could share a batch with another. A snack is not
+    // cooked (A-D4), so there is no batch to hint at and the card carries its
+    // amount instead: the absence is the ruling, not an oversight.
+    final recipe = target is RecipeMeal ? (target as RecipeMeal).recipe : null;
+    final plannedDays = recipe == null
+        ? null
+        : ref
+              .watch(viewedWeekProvider)
+              .asData
+              ?.value
+              ?.entries
+              .where((e) => e.recipeId == recipe.id)
+              .map((e) => e.dayOfWeek)
+              .toList();
+    final hint = recipe == null
+        ? null
+        : batchHintFor(
+            plannedDays: plannedDays ?? const [],
+            newDay: dayState.value,
+            keepsForDays: recipe.keepsForDays,
+            freezable: recipe.freezable,
+            freezerDays: recipe.freezerDays,
+          );
 
     useEffect(() {
       members.whenData((list) {
@@ -110,19 +157,32 @@ class _ConfirmMealSheet extends HookConsumerWidget {
       // The sheet closes only on a write that landed: a throw must not skip
       // the pop and leave it open and inert, the most confusing possible
       // outcome.
+      final repo = ref.read(planningRepositoryProvider);
       final added = await ref.write(
         context,
         "add ${kWeekdayFull[dayState.value]}'s meal",
-        () => ref
-            .read(planningRepositoryProvider)
-            .addEntry(
+        () => switch (target) {
+          RecipeMeal(:final recipe) => repo.addEntry(
+            weekStart: weekStart,
+            dayOfWeek: dayState.value,
+            mealSlot: slotState.value,
+            recipeId: recipe.id,
+            eaterIds: eaters.value.toList(),
+            portions: portionsOverride.value,
+          ),
+          SnackMeal(:final ingredient, :final quantity, :final unit) =>
+            repo.addIngredientEntry(
               weekStart: weekStart,
               dayOfWeek: dayState.value,
               mealSlot: slotState.value,
-              recipeId: recipe.id,
+              ingredientId: ingredient.id,
               eaterIds: eaters.value.toList(),
+              quantity: quantity,
+              unit: unit,
+              measureId: (target as SnackMeal).measure?.id,
               portions: portionsOverride.value,
             ),
+        },
       );
       if (added != null && context.mounted) Navigator.of(context).pop();
     }
@@ -135,10 +195,13 @@ class _ConfirmMealSheet extends HookConsumerWidget {
       topPadding: 16,
       children: [
         const SizedBox(height: 14),
-        MealRecipeCard(recipe: recipe),
+        switch (target) {
+          RecipeMeal(:final recipe) => MealRecipeCard(recipe: recipe),
+          final SnackMeal snack => MealSnackCard(snack: snack),
+        },
         if (hint != null) ...[
           const SizedBox(height: 10),
-          MealBatchBanner(hint: hint, recipe: recipe, newDay: dayState.value),
+          MealBatchBanner(hint: hint, recipe: recipe!, newDay: dayState.value),
         ],
         const SizedBox(height: 18),
         const AnsiMicroLabel('Slot'),

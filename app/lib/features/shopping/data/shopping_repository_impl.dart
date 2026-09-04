@@ -6,6 +6,12 @@
 /// session scale factor. It overlays the persisted check-off + manual/free-text
 /// rows and hands everything to the pure [buildShoppingList].
 ///
+/// Since step 8.14 it derives from the week's **entries** as well as its
+/// sessions. A planned meal can be a bare ingredient — a protein bar — which is
+/// bought but never cooked (A-D4), so it belongs to no session at all; a
+/// derivation that only ever walked sessions would leave a hole in a list
+/// somebody shops from. `_derivePlannedIngredients` is that second walk.
+///
 /// The watch query references every table the load path reads AND selects a
 /// column from each — the two shopping tables and the `ingredient` vocab
 /// (aisle/density/name) via a `LEFT JOIN … ON 1=1` — so PowerSync's
@@ -112,13 +118,17 @@ class SqliteShoppingRepository implements ShoppingRepository {
     final (cook, unresolved, optional) = await _deriveCookContributions(
       weekKey,
     );
+    // The week's OWN entries, not only its cook sessions (step 8.14 / A-D4).
+    final planned = await _derivePlannedIngredients(weekKey);
     final (entries, manual) = await _loadOverlay(weekKey);
     final meta = await _loadIngredientMeta({
       ...cook.map((c) => c.ingredientId),
+      ...planned.map((p) => p.ingredientId),
       ...entries.map((e) => e.ingredientId).whereType<String>(),
     });
     return buildShoppingList(
       cook: cook,
+      planned: planned,
       entries: entries,
       manual: manual,
       meta: meta,
@@ -126,6 +136,82 @@ class SqliteShoppingRepository implements ShoppingRepository {
       unresolvedComponents: unresolved,
       optionalLines: optional,
     );
+  }
+
+  /// The week's bare-INGREDIENT meals as shopping contributions (step 8.14 /
+  /// A-D4).
+  ///
+  /// This is the one piece of real plumbing the ruling asks for: a snack is
+  /// never cooked, so it appears in no cook session, and a list derived only
+  /// from sessions would be quietly short of the thing somebody planned to
+  /// eat. So the derivation walks **entries** here, beside
+  /// [_deriveCookContributions]'s walk of the plan.
+  ///
+  /// The amount is multiplied by the entry's demand — Σ of the eaters' portion
+  /// factors, the `portions` override winning — which is the same demand every
+  /// other derivation reads (A-D3: a snack two people are having is bought
+  /// twice). An entry that states no amount contributes nothing; one whose
+  /// unit or measure will not resolve degrades to a visible note in the
+  /// breakdown rather than an invented number, exactly as a cook line does.
+  Future<List<PlanIngredientInput>> _derivePlannedIngredients(
+    String weekKey,
+  ) async {
+    final rows = await _db.getAll(
+      'SELECT pe.day_of_week, pe.meal_slot, pe.eaters, pe.portions, '
+      'pe.quantity, pe.unit, i.id AS ingredient_id, '
+      'pe.measure_id, im.label AS measure_label, '
+      'im.basis_amount AS measure_amount, i.macros_basis AS measure_basis, '
+      'im.sort_order AS measure_sort, im.source AS measure_source '
+      'FROM week_plan wp '
+      'JOIN plan_entry pe ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
+      // The explicit branch: an entry with no ingredient is a RECIPE meal,
+      // already covered by the cook derivation. The inner join to a live vocab
+      // row is what makes a deleted/unsynced ingredient drop out honestly —
+      // there is nothing to buy and nothing truthful to say about how much.
+      'JOIN ingredient i '
+      'ON i.id = pe.ingredient_id AND i.deleted_at IS NULL '
+      'LEFT JOIN ingredient_measure im '
+      'ON im.id = pe.measure_id AND im.deleted_at IS NULL '
+      'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL '
+      'AND pe.ingredient_id IS NOT NULL '
+      'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
+      [weekKey],
+    );
+    if (rows.isEmpty) return const <PlanIngredientInput>[];
+
+    final members = {for (final m in await loadMembers(_db)) m.id: m};
+    return [
+      for (final row in rows)
+        () {
+          final eaters = (jsonDecode(row['eaters'] as String? ?? '[]') as List)
+              .cast<String>();
+          final demand =
+              (row['portions'] as int?)?.toDouble() ??
+              eatersDemand(eaters, members);
+          // An unknown persisted unit id stays null (rawUnit keeps the string)
+          // — never a `pieces` fallback, which would let the total sum an
+          // invented unit (invariant 3).
+          final rawUnit = row['unit'] as String?;
+          final unit = rawUnit == null ? null : unitById(rawUnit);
+          final quantity = (row['quantity'] as num?)?.toDouble();
+          return (
+            ingredientId: row['ingredient_id'] as String,
+            // The stated amount is ONE portion; the week's demand multiplies
+            // it. A count in a measure scales linearly, so the same product is
+            // the measure amount too.
+            quantity: quantity == null ? null : quantity * demand,
+            unit: unit,
+            rawUnit: rawUnit,
+            // A measure beside an UNRECOGNISED unit is dropped: the quantity's
+            // semantics are unknown, so pricing it through the measure's
+            // weight would sum an invented number. The row surfaces as the
+            // unrecognised-unit note instead.
+            measure: unit == null ? null : _toMeasure(row),
+            dayOfWeek: row['day_of_week'] as int,
+            mealSlot: row['meal_slot'] as String,
+          );
+        }(),
+    ];
   }
 
   /// Runs the cook plan for the week, then expands each session's recipe line
@@ -161,6 +247,10 @@ class SqliteShoppingRepository implements ShoppingRepository {
       'JOIN plan_entry pe ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
       'JOIN recipe r ON r.id = pe.recipe_id AND r.deleted_at IS NULL '
       'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL '
+      // The explicit branch (step 8.14 / B-D2). A bare-ingredient meal has no
+      // recipe to expand; it reaches the list through
+      // [_derivePlannedIngredients] instead, never by falling through here.
+      'AND pe.recipe_id IS NOT NULL '
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [weekKey],
     );

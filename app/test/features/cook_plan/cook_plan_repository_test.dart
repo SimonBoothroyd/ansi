@@ -108,6 +108,60 @@ void main() {
     expect((await repo.watchCookPlan(_week).first).isEmpty, isTrue);
   });
 
+  // A-D4, the half of the ruling that lives here: nothing about a protein bar
+  // is cooked, so it opens no session and joins no batch. (The other half —
+  // that the SHOPPING list does include it — is pinned in
+  // `shopping_repository_test.dart`.)
+  group('a planned INGREDIENT meal', () {
+    setUp(() async {
+      await db.execute(
+        'INSERT INTO ingredient (id, household_id, canonical_name, '
+        'default_unit, match_text, status, created_at, updated_at) '
+        "VALUES ('bar', 'h', 'Protein bar', 'g', 'protein bar', 'complete', "
+        "'2026-01-01', '2026-01-01')",
+      );
+    });
+
+    test('opens no cook session at all', () async {
+      await planning.addIngredientEntry(
+        weekStart: _week,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'bar',
+        eaterIds: const ['a', 'b'],
+        quantity: 60,
+        unit: g,
+      );
+      final plan = await repo.watchCookPlan(_week).first;
+      expect(plan.isEmpty, isTrue);
+      expect(plan.recipes, isEmpty);
+    });
+
+    test('it does not disturb the dishes planned beside it', () async {
+      await _insertRecipe(db, 'ragu', 'House Ragù');
+      await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'ragu',
+        eaterIds: const ['a', 'b'],
+      );
+      await planning.addIngredientEntry(
+        weekStart: _week,
+        dayOfWeek: 0,
+        mealSlot: 'Snack',
+        ingredientId: 'bar',
+        eaterIds: const ['a', 'b'],
+        quantity: 60,
+        unit: g,
+      );
+      final plan = await repo.watchCookPlan(_week).first;
+      expect(plan.recipes.map((r) => r.title), ['House Ragù']);
+      // The snack's demand is NOT folded into the dish's batch.
+      expect(plan.recipes.single.totalPortions, 2);
+    });
+  });
+
   test('every shelf-life column reaches the plan — the clustering itself is '
       "cook_plan_test's subject, not SQL's", () async {
     await _insertRecipe(

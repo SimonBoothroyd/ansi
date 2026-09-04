@@ -7,6 +7,7 @@ const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const _potatoLarge = Measure(id: 'm1', label: 'potato, large', amount: 299);
 const _can400 = Measure(id: 'm2', label: 'can (400 ml)', amount: 400);
+const _proteinBar = Measure(id: 'm3', label: 'bar', amount: 60);
 
 CookContributionInput _cook(
   String ingredientId,
@@ -28,6 +29,26 @@ CookContributionInput _cook(
   cookDay: cookDay,
   batched: batched,
   forParents: forParents,
+);
+
+/// A planned INGREDIENT meal's contribution — the week's own entry, already
+/// multiplied by its demand (step 8.14 / A-D4).
+PlanIngredientInput _planned(
+  String ingredientId,
+  double qty,
+  Unit? unit, {
+  String? rawUnit,
+  Measure? measure,
+  int day = 0,
+  String slot = 'Snack',
+}) => (
+  ingredientId: ingredientId,
+  quantity: qty,
+  unit: unit,
+  rawUnit: rawUnit ?? unit?.id,
+  measure: measure,
+  dayOfWeek: day,
+  mealSlot: slot,
 );
 
 ManualContributionInput _manual(
@@ -388,6 +409,7 @@ void main() {
   group('buildShoppingList', () {
     ShoppingList build({
       List<CookContributionInput> cook = const [],
+      List<PlanIngredientInput> planned = const [],
       List<ShoppingEntryInput> entries = const [],
       Map<String, List<ManualContributionInput>> manual = const {},
       Map<String, IngredientMetaInput> meta = const {},
@@ -395,6 +417,7 @@ void main() {
       List<OptionalLinesNote> optionalLines = const [],
     }) => buildShoppingList(
       cook: cook,
+      planned: planned,
       entries: entries,
       manual: manual,
       meta: meta,
@@ -910,6 +933,76 @@ void main() {
         meta: {'flour': metaFor('Flour', 'baking')},
       );
       expect(list.unresolvedComponents, isEmpty);
+    });
+
+    // --- A planned ingredient is bought, though nothing cooks it (8.14) -----
+
+    group('a planned INGREDIENT meal', () {
+      test('lands on the list with no cook session behind it at all', () {
+        final list = build(
+          planned: [_planned('bar', 2, pieces, measure: _proteinBar, day: 1)],
+          meta: {'bar': metaFor('Protein bar', 'snacks')},
+        );
+        final item = list.groups.single.items.single;
+        expect(item.name, 'Protein bar');
+        // Two bars of 60 g, priced through the measure's stored weight.
+        expect(item.totals.single.amount, 120);
+        expect(item.totals.single.unit, g);
+        final c = item.contributions.single;
+        expect(c.source, ContributionSource.planEntry);
+        // The provenance says WHEN, not what — the item's name is the what.
+        expect(c.label, 'Snack · Tue');
+      });
+
+      test('it sums with a cook contribution of the same ingredient', () {
+        final list = build(
+          cook: [_cook('yoghurt', 200, g, recipe: 'Curry')],
+          planned: [_planned('yoghurt', 170, g, day: 3)],
+          meta: {'yoghurt': metaFor('Greek yoghurt', 'dairy')},
+        );
+        final item = list.groups.single.items.single;
+        expect(item.totals.single.amount, 370);
+        // The breakdown interleaves by day: the Monday cook, then Thursday.
+        expect(item.contributions.map((c) => c.label), [
+          'Curry',
+          'Snack · Thu',
+        ]);
+      });
+
+      test('an unrecognised unit is a note, never a number in the total', () {
+        final list = build(
+          planned: [_planned('bar', 2, null, rawUnit: 'scoop')],
+          meta: {'bar': metaFor('Protein bar', 'snacks')},
+        );
+        final item = list.groups.single.items.single;
+        expect(item.totals, isEmpty);
+        expect(
+          item.contributions.single.label,
+          contains('not counted (unrecognised unit "scoop")'),
+        );
+      });
+
+      test('an invalid measure is a note too, not invented grams', () {
+        const broken = Measure(id: 'm9', label: 'bar', amount: 0);
+        final list = build(
+          planned: [_planned('bar', 2, pieces, measure: broken)],
+          meta: {'bar': metaFor('Protein bar', 'snacks')},
+        );
+        final item = list.groups.single.items.single;
+        expect(item.totals, isEmpty);
+        expect(
+          item.contributions.single.label,
+          contains('not counted (invalid measure "bar")'),
+        );
+      });
+
+      test('a stale checked row with only a removed snack drops off', () {
+        final list = build(
+          entries: [_entry('e1', ingredientId: 'bar', checked: true)],
+          meta: {'bar': metaFor('Protein bar', 'snacks')},
+        );
+        expect(list.groups, isEmpty);
+      });
     });
   });
 }

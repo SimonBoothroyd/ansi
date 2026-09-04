@@ -7,6 +7,8 @@
 library;
 
 import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/week_macros.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
@@ -45,6 +47,39 @@ RecipeMacroSummary? _summaries(String id) => switch (id) {
 
 MealSetMacros _sum(List<PlanEntry> entries, {String? lens}) =>
     sumPlannedMacros(entries, summaryFor: _summaries, lensMemberId: lens);
+
+/// A snack meal: a bare ingredient with a stated amount (step 8.14). The vocab
+/// row's numbers ride on the entry, exactly as `recipeTitle` does.
+PlanEntry _snack({
+  required String id,
+  String? name = 'Protein bar',
+  double? quantity = 60,
+  Unit? unit = g,
+  Measure? measure,
+  String? measureId,
+  Macros? macros = const Macros(kcal: 350, protein: 33, carb: 30, fat: 11),
+  MacrosBasis basis = MacrosBasis.perG,
+  double? density,
+  bool knownRow = true,
+  int day = 0,
+  List<String> eaters = const ['ada', 'jun'],
+  int? portions,
+}) => PlanEntry(
+  id: id,
+  dayOfWeek: day,
+  mealSlot: 'Snack',
+  ingredientId: 'i1',
+  ingredientName: name,
+  quantity: quantity,
+  unit: unit,
+  measureId: measureId ?? measure?.id,
+  measure: measure,
+  nutrition: knownRow
+      ? (macros: macros, basis: basis, densityGPerMl: density)
+      : null,
+  eaterIds: eaters,
+  portions: portions,
+);
 
 void main() {
   test('every meal complete: the total is whole and nothing is excluded', () {
@@ -278,5 +313,100 @@ void main() {
         );
       },
     );
+  });
+
+  // --- A slot takes an ingredient (step 8.14) --------------------------------
+
+  group('a bare INGREDIENT meal', () {
+    test('counts, and multiplies by its eaters like any other entry', () {
+      // 60 g of a 350 kcal/100 g bar is 210 kcal per PORTION; two eaters each
+      // have one (A-D3 — a snack is shared, so it multiplies).
+      final macros = _sum([_snack(id: 'a')]);
+      expect(macros.total!.kcal, closeTo(420, 1e-9));
+      expect(macros.total!.protein, closeTo(39.6, 1e-9));
+      expect(macros.counted, 1);
+      expect(macros.excluded, isEmpty);
+      expect(macros.demand, 2);
+    });
+
+    test('a measure-quantified amount is priced through its stored weight', () {
+      const bar = Measure(id: 'm1', label: 'bar', amount: 60);
+      final macros = _sum([
+        _snack(id: 'a', quantity: 1, unit: pieces, measure: bar),
+      ]);
+      expect(macros.total!.kcal, closeTo(420, 1e-9));
+    });
+
+    test('it sums BESIDE recipes — one week, one total', () {
+      final macros = _sum([_entry(id: 'a'), _snack(id: 'b', day: 1)]);
+      expect(macros.total!.kcal, closeTo(200 + 420, 1e-9));
+      expect(macros.counted, 2);
+      expect(macros.considered, 2);
+      expect(macros.daysContributing, 2);
+    });
+
+    test('a STUB row contributes nothing, in a stub LINE’s own words', () {
+      final macros = _sum([_snack(id: 'a', macros: null)]);
+      expect(macros.total, isNull);
+      expect(macros.isRefused, isTrue);
+      final left = macros.excluded.single;
+      expect(left.label, 'Protein bar');
+      expect(left.reason, MealExclusion.ingredientNotCounted);
+      expect(left.lineReason, MacroLineReason.stubIngredient);
+    });
+
+    test('a row this device has never synced is named apart from a stub', () {
+      final left = _sum([
+        _snack(id: 'a', name: null, knownRow: false),
+      ]).excluded.single;
+      expect(left.label, '(deleted ingredient)');
+      expect(left.lineReason, MacroLineReason.unknownIngredient);
+    });
+
+    test('no amount is a refusal with its own reason, never a zero', () {
+      final left = _sum([
+        _snack(id: 'a', quantity: null, unit: null),
+      ]).excluded.single;
+      expect(left.lineReason, MacroLineReason.noAmount);
+    });
+
+    test('a bare count with nothing weighing it asks for a weight', () {
+      final left = _sum([
+        _snack(id: 'a', quantity: 1, unit: pieces),
+      ]).excluded.single;
+      expect(left.lineReason, MacroLineReason.needsWeight);
+    });
+
+    test('a cross-basis amount without a density asks for one', () {
+      final left = _sum([
+        _snack(id: 'a', quantity: 200, unit: ml),
+      ]).excluded.single;
+      expect(left.lineReason, MacroLineReason.needsDensity);
+    });
+
+    test('a cross-basis amount WITH a density resolves', () {
+      final macros = _sum([
+        _snack(
+          id: 'a',
+          quantity: 200,
+          unit: ml,
+          density: 1.03,
+          eaters: ['ada'],
+        ),
+      ]);
+      expect(macros.total!.kcal, closeTo(350 * 2.06, 1e-6));
+    });
+
+    test('an unresolved measure waits rather than degrading to a count', () {
+      final left = _sum([
+        _snack(id: 'a', quantity: 1, unit: pieces, measureId: 'gone'),
+      ]).excluded.single;
+      expect(left.lineReason, MacroLineReason.needsWeight);
+    });
+
+    test('a snack nobody is eating is excluded for that, not for its row', () {
+      final left = _sum([_snack(id: 'a', eaters: const [])]).excluded.single;
+      expect(left.reason, MealExclusion.noEaters);
+    });
   });
 }

@@ -9,10 +9,19 @@
 /// editor's "Your recipes" section makes. When nothing was spelled right the
 /// typo tier answers and the list arrives under a `DID YOU MEAN` header.
 ///
-/// Planning search stays recipes-only in v1 (decision); foods-as-ad-hoc-meals
-/// is revisited with step 8. Resolves to the chosen recipe, or null if
-/// dismissed; the caller then opens the confirm sheet.
+/// **One door, two kinds of thing** (step 8.14 / C-D1). Under the recipe rows
+/// sits an `INGREDIENTS` section, exactly as the editor's line picker grew a
+/// "Your recipes" one — because adding a meal is one act, and a separate `＋`
+/// would force a cook to know, *before searching*, whether the thing they want
+/// is a recipe. The section appears only once something is typed: with an
+/// empty query this is the shipped browse surface, unchanged.
+///
+/// Resolves to a [PickedMeal] — a recipe or a bare ingredient — or null if
+/// dismissed; the caller then opens the quantity sheet (ingredients only) and
+/// the confirm sheet.
 library;
+
+import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -33,6 +42,9 @@ import '../../../shared/picker_shell.dart';
 import '../../books/domain/book.dart';
 import '../../books/domain/library_search.dart';
 import '../../books/presentation/book_view_models.dart';
+import '../../ingredients/domain/ingredient.dart';
+import '../../ingredients/presentation/ingredient_picker.dart'
+    show IngredientRow, useIngredientSearch;
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/planning.dart';
@@ -40,14 +52,32 @@ import 'week_format.dart';
 import 'week_view_models.dart';
 import 'week_widgets.dart';
 
-/// Opens the recipe picker for a meal on [dayOfWeek] in [slot]. Resolves to the
-/// chosen recipe, or null if dismissed.
-Future<RecipeSummary?> showRecipePickerSheet(
+/// What the picker resolved to — the two things a plan slot can hold (the
+/// `plan_entry` XOR, step 8.14 / B-D1).
+sealed class PickedMeal {
+  const PickedMeal();
+}
+
+final class PickedRecipe extends PickedMeal {
+  const PickedRecipe(this.recipe);
+
+  final RecipeSummary recipe;
+}
+
+final class PickedIngredientMeal extends PickedMeal {
+  const PickedIngredientMeal(this.ingredient);
+
+  final Ingredient ingredient;
+}
+
+/// Opens the meal picker for a meal on [dayOfWeek] in [slot]. Resolves to the
+/// chosen recipe or ingredient, or null if dismissed.
+Future<PickedMeal?> showRecipePickerSheet(
   BuildContext context, {
   required int dayOfWeek,
   required String slot,
 }) {
-  return showAnsiSheet<RecipeSummary>(
+  return showAnsiSheet<PickedMeal>(
     context: context,
     builder: (_) => _RecipePickerSheet(dayOfWeek: dayOfWeek, slot: slot),
   );
@@ -63,6 +93,10 @@ class _RecipePickerSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final query = useState('');
     final tab = useState(0); // 0 = Recent, 1 = Books, 2 = Favorites
+    // The SAME search the ingredient pickers run — one rule over the
+    // vocabulary, so this section and the line picker's cannot disagree about
+    // what "prot" hits.
+    final ingredientSearch = useIngredientSearch(ref, context);
 
     // Decorative emptiness, weighed (D6): every one of these decorates the
     // picker's rows — the filing breadcrumb, the eater avatars, the "last
@@ -98,14 +132,19 @@ class _RecipePickerSheet extends HookConsumerWidget {
     // Distinct recipes already planned this week, with the earliest day.
     final alreadyThisWeek = <String, ({String title, int day})>{};
     for (final e in week?.entries ?? const <PlanEntry>[]) {
+      // These are RECIPE quick picks. A snack is a meal too, but it is not a
+      // dish this list can re-plan, so it is skipped by name rather than by
+      // its null title (step 8.14 / B-D2).
+      if (e.isIngredient) continue;
       if (e.recipeTitle == null) continue;
-      final existing = alreadyThisWeek[e.recipeId];
+      final recipeId = e.recipeId!;
+      final existing = alreadyThisWeek[recipeId];
       if (existing == null || e.dayOfWeek < existing.day) {
-        alreadyThisWeek[e.recipeId] = (title: e.recipeTitle!, day: e.dayOfWeek);
+        alreadyThisWeek[recipeId] = (title: e.recipeTitle!, day: e.dayOfWeek);
       }
     }
 
-    void pick(RecipeSummary r) => Navigator.of(context).pop(r);
+    void pick(RecipeSummary r) => Navigator.of(context).pop(PickedRecipe(r));
 
     Widget row(RecipeSummary r, {Filing? explicitFiling}) => _RecipeRow(
       recipe: r,
@@ -114,12 +153,46 @@ class _RecipePickerSheet extends HookConsumerWidget {
       onPick: pick,
     );
 
+    // The second section (C-D1). Only under a typed query: with an empty one
+    // the vocabulary's recents feed would bury the recipe list this screen is
+    // primarily for, and nobody opened "add a meal" to browse ingredients.
+    final ingredientHits = query.value.trim().isEmpty
+        ? const <Ingredient>[]
+        : ingredientSearch.results;
+    final ingredientSection = <Widget>[
+      if (ingredientHits.isNotEmpty) ...[
+        // The vocabulary's own tier band: these rows can be guesses while the
+        // recipe titles above are spellings, or the reverse.
+        if (ingredientSearch.guessed)
+          const Padding(
+            padding: EdgeInsets.only(top: 14),
+            child: DidYouMeanHeader(),
+          ),
+        Padding(
+          padding: EdgeInsets.only(
+            top: ingredientSearch.guessed ? 0 : 14,
+            bottom: 4,
+          ),
+          child: Text('INGREDIENTS', style: ansiLabel()),
+        ),
+        for (final (i, ing) in ingredientHits.indexed) ...[
+          if (i > 0) Container(height: 1, color: AnsiColors.line),
+          IngredientRow(
+            ingredient: ing,
+            onPick: (picked) =>
+                Navigator.of(context).pop(PickedIngredientMeal(picked)),
+          ),
+        ],
+      ],
+    ];
+
     final body = switch (tab.value) {
       1 => _BooksList(
         library: library,
         recipes: recipes,
         matches: matches,
         row: row,
+        trailing: ingredientSection,
       ),
       2 => _FavoritesList(
         recipes: [
@@ -127,6 +200,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
             if (r.favorite && matches(r.title)) r,
         ],
         row: row,
+        trailing: ingredientSection,
       ),
       _ => _RecentList(
         recipes: _recentOrder(
@@ -134,14 +208,19 @@ class _RecipePickerSheet extends HookConsumerWidget {
           lastPlanned,
         ),
         row: row,
+        trailing: ingredientSection,
       ),
     };
 
     return PickerShell(
       title: 'Add a meal',
       subtitle: 'to · ${kWeekdayFull[dayOfWeek]}, $slot',
-      searchHint: 'Search recipes',
-      onQueryChanged: (q) => query.value = q,
+      // One field searches both corpora — that is what makes it one door.
+      searchHint: 'Search recipes and ingredients',
+      onQueryChanged: (q) {
+        query.value = q;
+        unawaited(ingredientSearch.run(q));
+      },
       aboveList: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -352,14 +431,23 @@ List<RecipeSummary> _recentOrder(
 }
 
 class _RecentList extends StatelessWidget {
-  const _RecentList({required this.recipes, required this.row});
+  const _RecentList({
+    required this.recipes,
+    required this.row,
+    this.trailing = const [],
+  });
 
   final List<RecipeSummary> recipes;
   final Widget Function(RecipeSummary r, {Filing? explicitFiling}) row;
 
+  /// The ingredients section, in the same scroll view (C-D1).
+  final List<Widget> trailing;
+
   @override
   Widget build(BuildContext context) {
-    if (recipes.isEmpty) {
+    // Only an empty list AND no second section is an empty screen: an
+    // ingredient hit is still an answer to what was typed.
+    if (recipes.isEmpty && trailing.isEmpty) {
       return Center(
         child: Text(
           'No recipes yet — add one below.',
@@ -367,19 +455,24 @@ class _RecentList extends StatelessWidget {
         ),
       );
     }
-    return ListView(children: [for (final r in recipes) row(r)]);
+    return ListView(children: [for (final r in recipes) row(r), ...trailing]);
   }
 }
 
 class _FavoritesList extends StatelessWidget {
-  const _FavoritesList({required this.recipes, required this.row});
+  const _FavoritesList({
+    required this.recipes,
+    required this.row,
+    this.trailing = const [],
+  });
 
   final List<RecipeSummary> recipes;
   final Widget Function(RecipeSummary r, {Filing? explicitFiling}) row;
+  final List<Widget> trailing;
 
   @override
   Widget build(BuildContext context) {
-    if (recipes.isEmpty) {
+    if (recipes.isEmpty && trailing.isEmpty) {
       return Center(
         child: Text(
           'No favorites yet — star a recipe from its page.',
@@ -387,7 +480,7 @@ class _FavoritesList extends StatelessWidget {
         ),
       );
     }
-    return ListView(children: [for (final r in recipes) row(r)]);
+    return ListView(children: [for (final r in recipes) row(r), ...trailing]);
   }
 }
 
@@ -397,12 +490,14 @@ class _BooksList extends StatelessWidget {
     required this.recipes,
     required this.matches,
     required this.row,
+    this.trailing = const [],
   });
 
   final List<Book> library;
   final List<RecipeSummary> recipes;
   final bool Function(String title) matches;
   final Widget Function(RecipeSummary r, {Filing? explicitFiling}) row;
+  final List<Widget> trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -427,6 +522,7 @@ class _BooksList extends StatelessWidget {
                 explicitFiling: (book: b.name, section: null),
               ),
         ],
+        ...trailing,
       ],
     );
   }

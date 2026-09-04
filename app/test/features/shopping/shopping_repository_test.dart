@@ -1006,4 +1006,157 @@ void main() {
       }
     });
   });
+
+  // --- A planned ingredient is bought, though nothing cooks it (8.14 / A-D4) -
+
+  group('a planned INGREDIENT meal', () {
+    setUp(() async {
+      await _insertIngredient(db, 'bar', 'Protein bar', 'snacks', 'g');
+      await db.execute(
+        'INSERT INTO ingredient_measure (id, household_id, ingredient_id, '
+        'label, basis_amount, sort_order, created_at, updated_at) '
+        "VALUES ('mz', 'h', 'bar', 'bar', 60, 0, '2026-01-01', '2026-01-01')",
+      );
+    });
+
+    test(
+      'reaches the list from the WEEK, with no cook session at all',
+      () async {
+        await planning.addIngredientEntry(
+          weekStart: _week,
+          dayOfWeek: 1,
+          mealSlot: 'Snack',
+          ingredientId: 'bar',
+          eaterIds: const ['a'],
+          quantity: 1,
+          unit: pieces,
+          measureId: 'mz',
+        );
+
+        final list = await repo.watchShoppingList(_week).first;
+        final item = list.groups.single.items.single;
+        expect(item.name, 'Protein bar');
+        expect(item.totals.single.amount, 60); // one bar, through its weight
+        final c = item.contributions.single;
+        expect(c.source, ContributionSource.planEntry);
+        expect(c.label, 'Snack · Tue');
+      },
+    );
+
+    test('two eaters buy two — the demand multiplies it (A-D3)', () async {
+      await planning.addIngredientEntry(
+        weekStart: _week,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'bar',
+        eaterIds: const ['a', 'b'],
+        quantity: 1,
+        unit: pieces,
+        measureId: 'mz',
+      );
+      final item = (await repo.watchShoppingList(_week).first)
+          .groups
+          .single
+          .items
+          .single;
+      expect(item.totals.single.amount, 120);
+    });
+
+    test(
+      'a portions override wins over the eater count, as everywhere else',
+      () async {
+        await planning.addIngredientEntry(
+          weekStart: _week,
+          dayOfWeek: 1,
+          mealSlot: 'Snack',
+          ingredientId: 'bar',
+          eaterIds: const ['a'],
+          quantity: 30,
+          unit: g,
+          portions: 3,
+        );
+        final item = (await repo.watchShoppingList(_week).first)
+            .groups
+            .single
+            .items
+            .single;
+        expect(item.totals.single.amount, 90);
+      },
+    );
+
+    test('an entry that states no amount contributes nothing', () async {
+      await planning.addIngredientEntry(
+        weekStart: _week,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'bar',
+        eaterIds: const ['a'],
+      );
+      final item = (await repo.watchShoppingList(_week).first)
+          .groups
+          .single
+          .items
+          .single;
+      expect(item.totals, isEmpty);
+      expect(item.contributions.single.quantity, isNull);
+    });
+
+    test(
+      'a deleted vocab row drops out — nothing to buy, nothing to say',
+      () async {
+        await planning.addIngredientEntry(
+          weekStart: _week,
+          dayOfWeek: 1,
+          mealSlot: 'Snack',
+          ingredientId: 'bar',
+          eaterIds: const ['a'],
+          quantity: 60,
+          unit: g,
+        );
+        await db.execute(
+          "UPDATE ingredient SET deleted_at = '2026-01-01T00:00:00Z' "
+          "WHERE id = 'bar'",
+        );
+        expect((await repo.watchShoppingList(_week).first).isEmpty, isTrue);
+      },
+    );
+
+    test(
+      'it sums into the SAME line as a recipe that uses it — bought once',
+      () async {
+        await _insertRecipe(
+          db,
+          'flapjack',
+          'Flapjacks',
+          lines: [('bar', 100, g)],
+        );
+        await planning.addEntry(
+          weekStart: _week,
+          dayOfWeek: 0,
+          mealSlot: 'Dinner',
+          recipeId: 'flapjack',
+          eaterIds: const ['a', 'b'],
+        );
+        await planning.addIngredientEntry(
+          weekStart: _week,
+          dayOfWeek: 3,
+          mealSlot: 'Snack',
+          ingredientId: 'bar',
+          eaterIds: const ['a'],
+          quantity: 60,
+          unit: g,
+        );
+        final item = (await repo.watchShoppingList(_week).first)
+            .groups
+            .single
+            .items
+            .single;
+        expect(item.totals.single.amount, 160);
+        expect(item.contributions.map((c) => c.source), [
+          ContributionSource.cookSession,
+          ContributionSource.planEntry,
+        ]);
+      },
+    );
+  });
 }

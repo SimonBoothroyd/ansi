@@ -70,6 +70,12 @@ String exclusionNote(ExcludedMeal meal) => switch (meal.reason) {
     meal.summary == null ? 'incomplete' : incompleteNote(meal.summary!),
   MealExclusion.recipeMissing => 'recipe unavailable',
   MealExclusion.noEaters => 'no eaters',
+  // A snack says `stub ingredient` in the exact words a stub recipe LINE says
+  // it (step 8.14 / B-D3) — one vocabulary, not a second one for the week.
+  MealExclusion.ingredientNotCounted =>
+    meal.lineReason == null
+        ? 'not counted'
+        : incompleteLineNote(meal.lineReason!),
 };
 
 /// `left out: Sausage Sliders · 1 stub line` — every exclusion NAMED, never

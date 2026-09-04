@@ -15,6 +15,9 @@ import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/units/macros.dart';
+import '../../../core/units/measure.dart';
+import '../../../core/units/units.dart';
 import '../domain/planning.dart';
 import '../domain/planning_repository.dart';
 
@@ -48,10 +51,16 @@ class SqlitePlanningRepository implements PlanningRepository {
     // class, see docs). The rows are ignored; each fire re-assembles the week.
     return _db
         .watch(
-          'SELECT wp.id, pe.id, r.title FROM week_plan wp '
+          'SELECT wp.id, pe.id, r.title, i.canonical_name, im.label '
+          'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
           'LEFT JOIN recipe r ON r.id = pe.recipe_id '
+          // A meal can be a bare ingredient (step 8.14), so its vocab row and
+          // its measure are read by [_assembleWeek] too — and an unselected
+          // LEFT JOIN is an undetected table, so both contribute a column.
+          'LEFT JOIN ingredient i ON i.id = pe.ingredient_id '
+          'LEFT JOIN ingredient_measure im ON im.id = pe.measure_id '
           'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
           parameters: [key],
         )
@@ -73,9 +82,22 @@ class SqlitePlanningRepository implements PlanningRepository {
     final id = wp['id'] as String;
     final entryRows = await _db.getAll(
       'SELECT pe.id, pe.day_of_week, pe.meal_slot, pe.recipe_id, pe.eaters, '
-      'pe.portions, r.title AS recipe_title '
+      'pe.portions, pe.ingredient_id, pe.quantity, pe.unit, pe.measure_id, '
+      'r.title AS recipe_title, i.canonical_name AS ingredient_name, '
+      'i.macros, i.density_g_per_ml, '
+      'im.label AS measure_label, im.basis_amount AS measure_amount, '
+      'i.macros_basis AS measure_basis, im.sort_order AS measure_sort, '
+      'im.source AS measure_source '
       'FROM plan_entry pe '
       'LEFT JOIN recipe r ON r.id = pe.recipe_id AND r.deleted_at IS NULL '
+      // The other half of the XOR (step 8.14): a meal that names an
+      // ingredient instead of a dish, with the measure its amount is counted
+      // in. A row that has not synced (or was deleted) leaves the name null —
+      // a real answer the surfaces print their own words for.
+      'LEFT JOIN ingredient i '
+      'ON i.id = pe.ingredient_id AND i.deleted_at IS NULL '
+      'LEFT JOIN ingredient_measure im '
+      'ON im.id = pe.measure_id AND im.deleted_at IS NULL '
       'WHERE pe.week_plan_id = ? AND pe.deleted_at IS NULL '
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [id],
@@ -86,19 +108,62 @@ class SqlitePlanningRepository implements PlanningRepository {
       // round-trips equal to mondayOf's output (which is UTC).
       weekStart: DateTime.parse('${wp['week_start_date']}T00:00:00Z'),
       label: wp['label'] as String?,
-      entries: [
-        for (final e in entryRows)
-          PlanEntry(
-            id: e['id'] as String,
-            dayOfWeek: e['day_of_week'] as int,
-            mealSlot: e['meal_slot'] as String,
-            recipeId: e['recipe_id'] as String,
-            recipeTitle: e['recipe_title'] as String?,
-            eaterIds: (jsonDecode(e['eaters'] as String? ?? '[]') as List)
-                .cast<String>(),
-            portions: e['portions'] as int?,
+      entries: [for (final e in entryRows) _entryFrom(e)],
+    );
+  }
+
+  /// One [PlanEntry] from a row of [_assembleWeek]'s SELECT.
+  ///
+  /// An unknown persisted unit id stays NULL rather than falling back to
+  /// `pieces` — a fallback would let a total sum an invented unit (invariant
+  /// 3), exactly as the recipe line reader refuses to.
+  PlanEntry _entryFrom(Row e) => PlanEntry(
+    id: e['id'] as String,
+    dayOfWeek: e['day_of_week'] as int,
+    mealSlot: e['meal_slot'] as String,
+    recipeId: e['recipe_id'] as String?,
+    recipeTitle: e['recipe_title'] as String?,
+    ingredientId: e['ingredient_id'] as String?,
+    ingredientName: e['ingredient_name'] as String?,
+    quantity: (e['quantity'] as num?)?.toDouble(),
+    unit: unitById(e['unit'] as String? ?? ''),
+    measureId: e['measure_id'] as String?,
+    measure: _toMeasure(e),
+    // Gated on the JOINED row, not on `pe.ingredient_id`: a vocab row this
+    // device cannot see (deleted, or not yet synced) leaves the nutrition
+    // null, which the week names as "not in your ingredients yet" — a
+    // different answer from a row that is present but a stub.
+    nutrition: e['ingredient_name'] == null
+        ? null
+        : (
+            // `tryParse` returns null for absent OR malformed macros, which is
+            // the same answer either way: the row is a stub, and the week says
+            // so rather than inventing the missing keys.
+            macros: Macros.tryParse(e['macros'] as String?),
+            basis: MacrosBasis.fromDb(e['measure_basis'] as String?),
+            densityGPerMl: (e['density_g_per_ml'] as num?)?.toDouble(),
           ),
-      ],
+    eaterIds: (jsonDecode(e['eaters'] as String? ?? '[]') as List)
+        .cast<String>(),
+    portions: e['portions'] as int?,
+  );
+
+  /// The resolved [Measure] of a row selected with the measure aliases, or
+  /// null when the entry has none (or its measure row is missing — an honest
+  /// degradation to the stored count unit, never invented grams). The basis is
+  /// the MEASURED ingredient's own `macros_basis` (ADR-0008).
+  Measure? _toMeasure(Row row) {
+    final id = row['measure_id'] as String?;
+    final label = row['measure_label'] as String?;
+    final amount = (row['measure_amount'] as num?)?.toDouble();
+    if (id == null || label == null || amount == null) return null;
+    return Measure(
+      id: id,
+      label: label,
+      amount: amount,
+      basis: MacrosBasis.fromDb(row['measure_basis'] as String?),
+      sortOrder: (row['measure_sort'] as int?) ?? 0,
+      source: row['measure_source'] as String?,
     );
   }
 
@@ -145,7 +210,10 @@ class SqlitePlanningRepository implements PlanningRepository {
         'FROM plan_entry pe '
         'JOIN week_plan wp ON wp.id = pe.week_plan_id '
         'AND wp.deleted_at IS NULL '
-        'WHERE pe.deleted_at IS NULL '
+        // The explicit branch (step 8.14 / B-D2): this map is the RECIPE
+        // picker's "last planned" recency, so an ingredient meal is filtered
+        // out by name rather than by grouping silently under a null key.
+        'WHERE pe.deleted_at IS NULL AND pe.recipe_id IS NOT NULL '
         'GROUP BY pe.recipe_id',
       )
       .map(
@@ -183,7 +251,57 @@ class SqlitePlanningRepository implements PlanningRepository {
     required String recipeId,
     required List<String> eaterIds,
     int? portions,
+  }) => _insertEntry(
+    weekStart: weekStart,
+    dayOfWeek: dayOfWeek,
+    mealSlot: mealSlot,
+    recipeId: recipeId,
+    eaterIds: eaterIds,
+    portions: portions,
+  );
+
+  @override
+  Future<String> addIngredientEntry({
+    required DateTime weekStart,
+    required int dayOfWeek,
+    required String mealSlot,
+    required String ingredientId,
+    required List<String> eaterIds,
+    double? quantity,
+    Unit? unit,
+    String? measureId,
+    int? portions,
+  }) => _insertEntry(
+    weekStart: weekStart,
+    dayOfWeek: dayOfWeek,
+    mealSlot: mealSlot,
+    ingredientId: ingredientId,
+    eaterIds: eaterIds,
+    portions: portions,
+    quantity: quantity,
+    unit: unit?.id,
+    measureId: measureId,
+  );
+
+  /// The one INSERT both add paths share. Exactly one of [recipeId] /
+  /// [ingredientId] is set — the server's `plan_entry_target_xor` refuses
+  /// anything else, and this is where the app keeps its side of that bargain.
+  Future<String> _insertEntry({
+    required DateTime weekStart,
+    required int dayOfWeek,
+    required String mealSlot,
+    required List<String> eaterIds,
+    String? recipeId,
+    String? ingredientId,
+    double? quantity,
+    String? unit,
+    String? measureId,
+    int? portions,
   }) async {
+    assert(
+      (recipeId == null) != (ingredientId == null),
+      'a plan entry names a recipe OR an ingredient (0033 XOR)',
+    );
     final key = _weekKey(weekStart);
     final id = _uuid.v4();
     final now = _now();
@@ -197,8 +315,9 @@ class SqlitePlanningRepository implements PlanningRepository {
       final order = (orderRow['m'] as int) + 1;
       await tx.execute(
         'INSERT INTO plan_entry (id, household_id, week_plan_id, day_of_week, '
-        'meal_slot, recipe_id, eaters, portions, sort_order, created_at, '
-        'updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'meal_slot, recipe_id, ingredient_id, quantity, unit, measure_id, '
+        'eaters, portions, sort_order, created_at, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           id,
           _householdId,
@@ -206,6 +325,10 @@ class SqlitePlanningRepository implements PlanningRepository {
           dayOfWeek,
           mealSlot.trim(),
           recipeId,
+          ingredientId,
+          quantity,
+          unit,
+          measureId,
           jsonEncode(eaterIds),
           portions,
           order,
@@ -253,10 +376,14 @@ class SqlitePlanningRepository implements PlanningRepository {
       final entries = source.entries;
       for (var i = 0; i < entries.length; i++) {
         final e = entries[i];
+        // Copies the whole meal, whichever kind it is (step 8.14): a snack is
+        // an ordinary entry, so it is copied with its amount rather than
+        // dropped for having no recipe.
         await tx.execute(
           'INSERT INTO plan_entry (id, household_id, week_plan_id, '
-          'day_of_week, meal_slot, recipe_id, eaters, portions, sort_order, '
-          'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'day_of_week, meal_slot, recipe_id, ingredient_id, quantity, unit, '
+          'measure_id, eaters, portions, sort_order, created_at, updated_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             _uuid.v4(),
             _householdId,
@@ -264,6 +391,10 @@ class SqlitePlanningRepository implements PlanningRepository {
             e.dayOfWeek,
             e.mealSlot,
             e.recipeId,
+            e.ingredientId,
+            e.quantity,
+            e.unit?.id,
+            e.measureId,
             jsonEncode(e.eaterIds),
             e.portions,
             i,
