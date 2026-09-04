@@ -99,13 +99,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('produce · has density · 3 measures'), findsOneWidget);
-      expect(
-        find.text('pantry · no density — volume units locked'),
-        findsOneWidget,
-      );
-      // The stub carries both: the advisory (no density) and the blocker
-      // (needs macros). D5 keeps them distinct.
+      // The join reaching the screen, once. Which clauses a row earns is a
+      // table in ingredient_row_hints_test.dart — this is the stub, carrying
+      // both the advisory (no density) and the blocker (needs macros), which
+      // stay distinct sentences.
       expect(
         find.text(
           'produce · no density — volume units locked · needs macros — '

@@ -239,6 +239,28 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
+/// The muted second line under a vocabulary row: the category, what the row
+/// can convert, how many measures it carries, and whether its macros are
+/// still missing — joined with ` · `, and empty when there is nothing to say.
+///
+/// Every clause is a fact already on the row, never a judgement about it: a
+/// row with no density is described, not scolded, and a stub says what it is
+/// short of rather than showing a line of zeros.
+///
+/// [advisoryDensityGap] makes a missing density a clause of its own. Only a
+/// screen that can fix it asks for it — the manager list passes true, the
+/// picker leaves it false, because an advisory nobody can act on is noise.
+String vocabRowHints(Ingredient ing, {bool advisoryDensityGap = false}) => [
+  if (ing.category != null) ing.category!,
+  if (ing.densityGPerMl != null)
+    'has density'
+  else if (advisoryDensityGap)
+    'no density — volume units locked',
+  if (ing.measureCount > 0)
+    '${ing.measureCount} ${ing.measureCount == 1 ? 'measure' : 'measures'}',
+  if (ing.status == IngredientStatus.stub) 'needs macros — no zeros shown',
+].join(' · ');
+
 /// One dense, information-honest result row: name (+`stub` badge), category
 /// and capability hints, and a per-100 macro line for complete rows.
 ///
@@ -271,16 +293,7 @@ class IngredientRow extends StatelessWidget {
     final ing = ingredient;
     final stub = ing.status == IngredientStatus.stub;
     final macros = ing.macros;
-    final hints = [
-      if (ing.category != null) ing.category!,
-      if (ing.densityGPerMl != null)
-        'has density'
-      else if (advisoryDensityGap)
-        'no density — volume units locked',
-      if (ing.measureCount > 0)
-        '${ing.measureCount} ${ing.measureCount == 1 ? 'measure' : 'measures'}',
-      if (stub) 'needs macros — no zeros shown',
-    ].join(' · ');
+    final hints = vocabRowHints(ing, advisoryDensityGap: advisoryDensityGap);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
