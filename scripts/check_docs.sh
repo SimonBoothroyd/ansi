@@ -17,7 +17,8 @@ fail=0
 
 echo "• required files"
 for f in AGENTS.md ARCHITECTURE.md README.md docs/README.md \
-         docs/exec-plans/roadmap.md docs/design-docs/core-beliefs.md; do
+         docs/exec-plans/roadmap.md docs/exec-plans/backlog.md \
+         docs/design-docs/core-beliefs.md docs/product-specs/board/index.html; do
   if [ -f "$f" ]; then echo "  ✓ $f"; else echo "  ✗ missing: $f"; fail=1; fi
 done
 
