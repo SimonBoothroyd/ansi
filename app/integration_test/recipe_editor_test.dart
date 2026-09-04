@@ -461,8 +461,9 @@ void main() {
       expect(ref['refs'], [seeded.garlicLineId]);
       expect(ref['label'], 'garlic cloves');
       final timer = byType['timer']!;
-      expect(timer['lowSeconds'], 600);
-      expect(timer['highSeconds'], 600);
+      // The stored keys are the frozen snake_case contract, not the Dart names.
+      expect(timer['low_seconds'], 600);
+      expect(timer['high_seconds'], 600);
       // …and the recipe page renders them.
       await tester.tap(find.text('Method'));
       await tester.pumpAndSettle();
@@ -501,8 +502,8 @@ void main() {
 
       // ----------------------------------------------------------------------
       // Create-new from inside the editor: the one add chain —
-      // picker footer → New ingredient → Create & flesh out → the form OVER
-      // the picker → back → the quantity sheet on the units the form set.
+      // picker footer → the form OVER the picker → its one Save → the
+      // quantity sheet on the units the form set.
       // ----------------------------------------------------------------------
       await editRecipeFromPage(tester);
       await scrollTo(tester, find.text('Add ingredient'));
@@ -520,18 +521,21 @@ void main() {
       );
       await pumpUntilFound(tester, find.textContaining('add "$name"'));
       await tester.tap(find.textContaining('add "$name"'));
-      await pumpUntilFound(tester, find.text('Create & flesh out'));
-      await tester.tap(find.text('Create & flesh out'));
-      // The ingredient form lands over the still-open picker.
+      // ONE push: the form IS the create surface, and it lands over the
+      // still-open picker with the typed name already in it.
       await pumpUntilFound(tester, find.text('CANONICAL NAME'));
       expect(find.byType(IngredientDetailView), findsOneWidget);
-      final created = await db.get(
-        'SELECT id, status, source, allowed_units FROM ingredient '
-        'WHERE canonical_name = ? AND deleted_at IS NULL',
-        [name],
+      expect(
+        await db.getOptional(
+          'SELECT id FROM ingredient WHERE canonical_name = ? '
+          'AND deleted_at IS NULL',
+          [name],
+        ),
+        isNull,
+        reason:
+            'the form writes nothing until its Save — back out and '
+            'nothing exists',
       );
-      expect(created['status'], 'stub');
-      expect(created['allowed_units'], isNull, reason: 'born bare');
 
       // Set the default unit to kg — which also admits it — and Save the
       // form; the picker is awaiting the form's pop underneath.
@@ -546,22 +550,29 @@ void main() {
       await tester.pump();
       // The form's own Save, by key: the density entry and the measures
       // editor each carry their own small green Save, and the dock is pinned
-      // since the v2 pass so it needs no scrolling to reach.
+      // so it needs no scrolling to reach.
       await tester.tap(find.byKey(kFormSaveKey));
       await tester.pumpAndSettle();
       await waitForDb(
         tester,
         () async =>
-            (await db.get('SELECT default_unit FROM ingredient WHERE id = ?', [
-              created['id'],
-            ]))['default_unit'] ==
+            (await db.getOptional(
+              'SELECT default_unit FROM ingredient '
+              'WHERE canonical_name = ? AND deleted_at IS NULL',
+              [name],
+            ))?['default_unit'] ==
             'kg',
-        'the form save to land in the local database',
+        'the form save to make the row in the local database',
       );
-      await tapBack(tester);
-      // Back pops the form; the picker resolves with the RE-READ row and the
-      // editor opens the quantity sheet on it — chips for the units the form
-      // set, kg (the default) among them.
+      final created = await db.get(
+        'SELECT id, status FROM ingredient '
+        'WHERE canonical_name = ? AND deleted_at IS NULL',
+        [name],
+      );
+      expect(created['status'], 'stub', reason: 'a save is not a completion');
+      // The save POPS the form, the picker resolves with the row it made and
+      // the editor opens the quantity sheet on it — chips for the units the
+      // form set, kg (the default) among them.
       await pumpUntilFound(tester, find.byType(QuantityUnitEditor));
       final chip = find.descendant(
         of: find.byType(UnitChipRow),
@@ -580,10 +591,10 @@ void main() {
       await scrollTo(tester, find.text('Save'), delta: -150);
       await saveRecipe(tester);
 
-      // After the round trip: the stub row survives as written (a manual,
-      // bare stub whose match_text is the normalizer's), `allowed_units` is a
-      // REAL json array — the connector fix, not a jsonb string — and the
-      // line points at it.
+      // After the round trip: the stub row survives as written (a bare stub
+      // whose match_text is the normalizer's), `allowed_units` is a REAL json
+      // array — the connector fix, not a jsonb string — and the line points
+      // at it.
       await stack.waitForSyncRoundTrip(tester);
       final row = await db.get(
         'SELECT status, source, match_text, '
@@ -591,7 +602,9 @@ void main() {
         [created['id']],
       );
       expect(row['status'], 'stub');
-      expect(row['source'], 'manual');
+      // Nothing matched it, so nothing stamped it: the server stopped
+      // guessing a source, and a row with none reads as manual.
+      expect(row['source'], isNull);
       expect(row['match_text'], normalizeMatchText(name));
       expect(row['shape'], 'array');
       final line = await db.get(
