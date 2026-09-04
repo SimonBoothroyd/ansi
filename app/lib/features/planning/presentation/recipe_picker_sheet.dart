@@ -26,6 +26,7 @@ import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/format.dart';
+import '../../../shared/freshness_bar.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../../shared/picker_shell.dart';
@@ -555,16 +556,7 @@ class _Pill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (freshness) ...[
-            Container(
-              width: 16,
-              height: 5,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(3),
-                gradient: const LinearGradient(
-                  colors: [AnsiColors.fresh, AnsiColors.aging, AnsiColors.gone],
-                ),
-              ),
-            ),
+            const FreshnessBar(width: 16, height: 5),
             const SizedBox(width: 5),
           ],
           Text(text, style: ansiMono(size: 9.5, color: AnsiColors.herbDeep)),

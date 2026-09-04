@@ -41,6 +41,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_more_trigger.dart';
 import '../../../shared/method_step_text.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../domain/method_draft.dart';
@@ -96,11 +97,10 @@ class MethodEditor extends StatelessWidget {
                     ],
                   ),
                 ],
-                builder: (_, controller, _) => FButton.icon(
-                  variant: FButtonVariant.ghost,
-                  size: FButtonSizeVariant.sm,
-                  onPress: controller.toggle,
-                  child: const Icon(FLucideIcons.ellipsis, size: 16),
+                builder: (_, controller, _) => AnsiMoreTrigger(
+                  onTap: controller.toggle,
+                  size: 16,
+                  compact: true,
                 ),
               ),
             ],

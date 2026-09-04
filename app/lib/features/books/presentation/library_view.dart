@@ -15,6 +15,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_more_trigger.dart';
 import '../../../shared/ansi_search_field.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/format.dart';
@@ -425,15 +426,8 @@ class _BookMenu extends ConsumerWidget {
           ],
         ),
       ],
-      builder: (context, controller, _) => FButton.icon(
-        variant: FButtonVariant.ghost,
-        onPress: controller.toggle,
-        child: const Icon(
-          FLucideIcons.ellipsis,
-          size: 18,
-          color: AnsiColors.surface,
-        ),
-      ),
+      builder: (context, controller, _) =>
+          AnsiMoreTrigger(onTap: controller.toggle, color: AnsiColors.surface),
     );
   }
 }
@@ -805,11 +799,8 @@ class _SectionMenu extends ConsumerWidget {
           ],
         ),
       ],
-      builder: (context, controller, _) => FButton.icon(
-        variant: FButtonVariant.ghost,
-        onPress: controller.toggle,
-        child: const Icon(FLucideIcons.ellipsis, size: 18),
-      ),
+      builder: (context, controller, _) =>
+          AnsiMoreTrigger(onTap: controller.toggle),
     );
   }
 }
@@ -977,13 +968,9 @@ class _RecipeRowMenu extends ConsumerWidget {
           ],
         ),
       ],
-      builder: (context, controller, _) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      builder: (context, controller, _) => AnsiMoreTrigger.inline(
         onTap: controller.toggle,
-        child: const Padding(
-          padding: EdgeInsets.only(left: 8),
-          child: Icon(FLucideIcons.ellipsis, size: 15, color: AnsiColors.muted),
-        ),
+        color: AnsiColors.muted,
       ),
     );
   }

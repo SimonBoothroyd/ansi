@@ -28,6 +28,7 @@ import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_stepper_row.dart';
 import '../../../shared/format.dart';
+import '../../../shared/freshness_bar.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../../shared/method_step_text.dart';
@@ -429,19 +430,7 @@ class _Chip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (freshness) ...[
-            Container(
-              width: 22,
-              height: 6,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(3),
-                gradient: const LinearGradient(
-                  colors: [AnsiColors.fresh, AnsiColors.aging, AnsiColors.gone],
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
+          if (freshness) ...[const FreshnessBar(), const SizedBox(width: 8)],
           Text(text, style: ansiMono(size: 11, color: AnsiColors.herbDeep)),
         ],
       ),
