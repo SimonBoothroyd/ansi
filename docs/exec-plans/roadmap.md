@@ -53,7 +53,7 @@ and where to read about it.
 | — | Smoke split — one integration file per flow, each self-provisioning | 🟢 | [0026](./completed/0026-smoke-split.md) |
 | — | Debt pass — the server-side rule divergences, the measures rollout | 🟢 | [0023](./completed/0023-debt-pass.md) |
 | — | One save, one write — the New-ingredient sheet dissolves, and nothing matches to USDA on its own | 🟡 cloud push pending | [0029](./completed/0029-one-save-one-write.md) · [ADR-0011](../decisions/0011-one-save-one-write.md) |
-| — | State-of-the-world sweep — comments, docs, board, tests, UI anatomy | 🟡 active | [0030](./active/0030-state-of-the-world-sweep.md) |
+| — | State-of-the-world sweep — comments, docs, board, tests, UI anatomy | 🟡 built, cloud push pending (`0030`/`0031`) | [0030](./completed/0030-state-of-the-world-sweep.md) |
 | 10 | Web UI (near-free with Flutter) | ⚪ stretch | — |
 | 11 | Anti-waste extras — freezer batching, monotony warnings, package-size flags | ⚪ stretch | — |
 

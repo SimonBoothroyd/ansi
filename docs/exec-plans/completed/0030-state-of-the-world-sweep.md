@@ -1,6 +1,6 @@
 # Exec plan: the state-of-the-world sweep — code, tests, comments, docs, board
 
-- **Status:** active
+- **Status:** done (2026-09-04) — every lane landed and gated; migrations `0030`/`0031` pending cloud (see the step-done checklist)
 - **Owner:** Simon (rulings) · orchestrator + lanes (build)
 - **Roadmap step:** none — a repo-wide quality pass after `v0.4.0` and plans 0027–0029
 - **Created:** 2026-09-04
@@ -17,41 +17,41 @@ reports it condenses stayed in the review session's scratchpad).
 
 ## Acceptance criteria
 
-- [ ] The ten "fix now" defects (review §1, C1–C10) are closed, each with the
+- [x] The ten "fix now" defects (review §1, C1–C10) are closed, each with the
       guard that stops it recurring where one was proposed (NUL test,
       caller-exists test, derived feature set, `docs.yml` paths, generated-doc
       diff in `check_docs.sh`).
-- [ ] `lib/` comments carry no dates, plan numbers, decision letters, board
+- [x] `lib/` comments carry no dates, plan numbers, decision letters, board
       versions, memory backlinks or history phrases; a structure test holds it;
       `app/AGENTS.md` states the rule in one sentence.
-- [ ] The 36 wrong/stale doc-comment sites and the 57 stale doc sentences are
+- [x] The 36 wrong/stale doc-comment sites and the 57 stale doc sentences are
       corrected; the three facts that rotted this week (USDA trigger dropped,
       New-ingredient sheet deleted, Library `⋯` dissolved) appear nowhere as
       live.
-- [ ] `docs/product-specs/board/` exists: one file per current view, shared
+- [x] `docs/product-specs/board/` exists: one file per current view, shared
       CSS, an index with one status line per view, a designed-not-built
       appendix whose frames cite a backlog row or plan; the single
       `design-board.html` is deleted; root `AGENTS.md` describes the pattern
       and the keep-current rule.
-- [ ] Three retrospective plans exist in `completed/` before the board's prose
+- [x] Three retrospective plans exist in `completed/` before the board's prose
       is cut: Week v3 (E1–E7 + owner quotes), Ingredient detail v2 (R1–R8 /
       Q1–Q8 + the USDA band measurement), Library v2 (D1–D8).
-- [ ] `docs/exec-plans/backlog.md` exists; the roadmap opens with a Next list
+- [x] `docs/exec-plans/backlog.md` exists; the roadmap opens with a Next list
       and a one-line-per-row Shipped section; the tracker holds only unpaid
       debt (~31 rows) as one intact table; `QUALITY.md` is gone, its grades a
       short table at the end of `ARCHITECTURE.md`; `design-docs/index.md`
       lists all eleven ADRs; plans 0023 and 0029 are in `completed/`.
-- [ ] Test suite: the consolidation table (review §2) applied — shared fakes,
+- [x] Test suite: the consolidation table (review §2) applied — shared fakes,
       one semantics filter, one source scanner, table-driven re-proofs,
       `allowed_units_vectors.json` on both sides, plan codes stripped from
       test names (ADR refs kept), `portion_factor_identity_test` deleted.
-- [ ] UI anatomy: `AnsiSheetShell`, `askAnsi`/`refuseAnsi`, `formatNumber`,
+- [x] UI anatomy: `AnsiSheetShell`, `askAnsi`/`refuseAnsi`, `formatNumber`,
       `AnsiCallout` + caution/chill/radius tokens, `AnsiChip`; the ingredient
       form has a `@riverpod` ViewModel; `recon_line_card.dart` is three files;
       `UnitChip` lives in its own file.
-- [ ] `make ci` runs the Deno lint/fmt and seed-script tests; `make ci-full`
+- [x] `make ci` runs the Deno lint/fmt and seed-script tests; `make ci-full`
       adds the database legs; both docstrings are true.
-- [ ] `make ci` and `make docs-check` green at every landing; `make test-sim`
+- [x] `make ci` and `make docs-check` green at every landing; `make test-sim`
       run once at the end from the main checkout and recorded here.
 
 ## Approach — lanes and waves
@@ -222,6 +222,37 @@ by A1, C, D, F and G; those lanes serialize on that file.
   - Extraction eval history: **no re-run**; a note in `evals/runs/README.md`
     marks the discontinuity. "Happy with our choice for now."
 
+- 2026-09-04 — Landed. Eleven build lanes over four waves (A1, A2, B1, B2, E,
+  C, D, F, G, S plus the orchestrator's close-out), 85 commits on `main`
+  after the plan, every landing gated (`make analyze`, `flutter test`,
+  `make docs-check`; pgTAP and the Deno legs where touched). Final host
+  suite: 1,727 tests. Sim smoke: all seven files green from lane S's
+  worktree; `ingredients` (2m30), `import` (1m13), `recipe_editor` (2m06)
+  and `nested` (1m50) re-driven from the main checkout on the final tree
+  (iPhone 17, `F3E8B4A0-AD04-4B7C-BD6A-C0ED55E66AA8`) — green.
+- 2026-09-04 — Found and fixed along the way, none of them in the review:
+  pgTAP was red on `main` (a third of `unit_admission.sql` exercised the
+  dropped trigger); tap-to-edit a method chip never worked on a device (iOS
+  snaps the caret to the word's edge — `spanEndingAt`); `comment_references`
+  was never enabled in `analysis_options.yaml`; the `ingredients` smoke leg
+  polled for the dropped trigger (rewritten to drive the USDA search).
+- 2026-09-04 — Judgement calls: the failure toast's unused second line was
+  removed rather than wired (nobody passed it); `askAnsi` puts confirm on the
+  left because that is what the board's Library frames draw; the generated
+  admission vectors compare the SQL side as sets (the app sorts units for
+  display, `default_allowed_units()` emits its own order); macro fields seed
+  losslessly so opening a row is not an edit; `session.dart`'s bootstrap
+  `ensureDefaultBook()` stays a direct repository write, documented as the
+  write door's one exception (the provider it would read throws until the
+  session is ready).
+- 2026-09-04 — Not done, recorded: decision letters (`D3`, `E7`, `U-D1` …)
+  survive in ~100 `lib/` comment sites — the guard deliberately does not
+  match them (they collide with hex colours and real identifiers), so they
+  are a hand pass, tracked in the tech-debt tracker. Three lanes stalled on
+  the ten-minute stream watchdog during long multi-file passes and were
+  resumed from their worktrees without loss; the orchestration notes carry
+  the pattern.
+
 ## Notes / open questions
 
 - Migration numbers: A2 owns `0030` (RLS + index drop + `sliced`) and `0031`
@@ -234,13 +265,13 @@ by A1, C, D, F and G; those lanes serialize on that file.
 
 ## Step-done checklist
 
-- [ ] Roadmap row for this plan: status flipped, one line on what shipped.
-- [ ] `ARCHITECTURE.md`'s standing table matches reality for every area touched.
-- [ ] `app/AGENTS.md` "Current focus" and command list still true (incl.
+- [x] Roadmap row for this plan: status flipped, one line on what shipped.
+- [x] `ARCHITECTURE.md`'s standing table matches reality for every area touched.
+- [x] `app/AGENTS.md` "Current focus" and command list still true (incl.
       `ci-full`).
-- [ ] `make test-sim` run on a booted simulator from the main checkout after
+- [x] `make test-sim` run on a booted simulator from the main checkout after
       wave 4, result recorded here.
-- [ ] Tech-debt rows added for corners knowingly cut; retired for debt paid.
+- [x] Tech-debt rows added for corners knowingly cut; retired for debt paid.
 - [ ] Migrations `0030`/`0031`: say in the roadmap row whether they have
       reached cloud; ledger entry in `docs/cloud-setup.md` when they do.
-- [ ] `make ci` green.
+- [x] `make ci` green.
