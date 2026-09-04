@@ -147,6 +147,12 @@ It *does* search aliases, for the same reason the picker does: the learning
 loop's absorbed phrasing ("coco milk" → Coconut Milk) is a **spelling the
 household taught us**, not a guess.
 
+And it gets the tiers it is allowed **from the same rule, not from a second
+copy of it**: the seam selects its candidates with a LIKE pass in SQL and then
+orders them with `searchRank`, so `tom` commits the row the picker would have
+offered first — and it refuses tier 2, which is the one place the shared rule
+is deliberately given less of itself.
+
 The asymmetry is pinned by a test that asserts both halves at once: the same
 query against the same row is offered by the picker as a labelled guess and
 refused by the seam.

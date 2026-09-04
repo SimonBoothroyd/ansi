@@ -1,4 +1,4 @@
-**Status:** Shipped (step 8) · re-traced against the tree 2026-08-31 · **Scope:** Ansi v1 · **Supersedes:** spec §5 (Import) mechanics
+**Status:** Shipped (step 8) · **Scope:** Ansi v1 · **Supersedes:** spec §5 (Import) mechanics
 **One-liner:** Imports run online, so matching is a server-side job — the phone never fuzzy-matches. Extraction proposes, a human confirms, and corrections quietly grow the vocabulary.
 
 > §3, §4, §6, §8 and §9 were rewritten at the step-8 close-out to describe **what
@@ -84,9 +84,9 @@ flowchart TD
     G --> H[ReconciliationPayload → the app]
     H --> I["Review recipe — one editable screen §8"]
     I -->|Save| J[Commit through PowerSync]
-    I -.create-new.-> K[New-ingredient sheet → flesh-out form → back; the line resolves to the row §9]
+    I -.create-new.-> K[flesh-out form at /ingredients/new?name=… → one Save → back; the line resolves to the row §9]
     J -.correction.-> L[Raw string written back as an alias]
-    K -.on arrival, DB trigger.-> M[USDA FDC lookup prefills density/macros — row stays 'stub']
+    K -.a person picks.-> M[USDA search fills the draft — the row is written by that same Save, still a stub]
 ```
 
 The stages, and who owns each:
@@ -336,8 +336,8 @@ Steps render with inline ingredient chips, and cook mode highlights the same ref
 
 Separate the thing you **match against** from the thing you **search when creating**:
 
-- **`ingredient`** — the household's curated, lean vocabulary (~150–300 rows in practice). This is the match target and the only ingredient data that syncs to devices. Seeded small; grows through the one add flow — the New-ingredient sheet and the flesh-out form — wherever it is opened, the import review included (§9).
-- **`usda_food`** — the full USDA FoodData Central reference (Foundation Foods + SR Legacy, CC0), read-only, **server-side only**. Used for the "create a new ingredient" probe and for background stub prefill (§9). **Never matched against during import.**
+- **`ingredient`** — the household's curated, lean vocabulary (the seeded template alone is 308 rows). This is the match target and the only ingredient data that syncs to devices. Seeded small; grows through the one add flow — the **flesh-out form** at `/ingredients/new`, wherever it is opened, the import review included (§9).
+- **`usda_food`** — the full USDA FoodData Central reference (Foundation Foods + SR Legacy, CC0), read-only, **server-side only**. Reached by one read-only function, `probe_usda`, when a person opens the form's USDA search (§9). Nothing reads it in the background, and it is **never matched against during import.**
 
 Matching against 8,000 SR Legacy rows — where "chicken thigh" appears fifteen ways — produces constant wrong matches. Matching against the couple hundred ingredients the household actually uses is high-precision and easy. USDA is a lookup for *creation*, not a match target.
 
@@ -345,48 +345,29 @@ Matching against 8,000 SR Legacy rows — where "chicken thigh" appears fifteen 
 
 Extends spec §4's `ingredient`. Aliases become their own table (not the `aliases[]` array) so they can be trigram-indexed and so corrections write back cleanly.
 
-```sql
--- household vocabulary: match target + syncs to device
-create table ingredient (
-  id              uuid primary key,
-  household_id    uuid not null references household(id),
-  canonical_name  text not null,
-  category        text,
-  default_unit    text not null,
-  density_g_per_ml numeric,          -- nullable; stub until set
-  macros          jsonb,             -- {kcal, protein, carb, fat}; nullable
-  status          text not null,     -- 'complete' | 'stub'
-  source          text,              -- 'seed' | 'manual' | 'usda_fdc:<id>' | 'off:<barcode>' ('import_stub' on rows minted before plan 0025 D3)
-  match_text      text not null      -- normalized form of canonical_name (see §7)
-);
+The columns of record are generated from the migrations into
+[`../generated/db-schema.md`](../generated/db-schema.md) (`make docs`, diffed
+by `make docs-check`); what matters here is the shape:
 
-create table ingredient_alias (
-  id            uuid primary key,
-  ingredient_id uuid not null references ingredient(id) on delete cascade,
-  alias_text    text not null,       -- as originally seen/entered
-  match_text    text not null,       -- normalized form
-  source        text not null        -- 'seed' | 'import_correction' | 'manual'
-);
-
--- read-only reference; server-side only; NOT synced, NOT matched at import
-create table usda_food (
-  fdc_id        int primary key,
-  description   text not null,
-  category      text,
-  density_g_per_ml numeric,
-  macros        jsonb,
-  match_text    text not null
-);
-
--- trigram indexes power the fuzzy cascade
-create index ing_match_trgm   on ingredient       using gin (match_text gin_trgm_ops);
-create index alias_match_trgm on ingredient_alias using gin (match_text gin_trgm_ops);
-create index usda_match_trgm  on usda_food        using gin (match_text gin_trgm_ops);
-
--- optional, only if embeddings earn their place (see §6)
--- alter table ingredient add column embedding vector(384);
--- create index ing_embed_hnsw on ingredient using hnsw (embedding vector_cosine_ops);
-```
+- **`ingredient`** carries the household's own row — its name, category,
+  default unit, density, macros and `macros_basis`, its explicit
+  `allowed_units` and `default_measure_id`, its `status` (`complete` | `stub`)
+  and its `match_text`. `source` is provenance: `seed` · `manual` ·
+  `usda_fdc:<id>` · `off:<barcode>` · `usda_declined` (a USDA fill a person
+  unlinked) · `import_stub` on rows minted before plan 0025 D3. `source_label`
+  and `source_score` name the picked food and how much of the typed name it
+  covered.
+- **`ingredient_alias`** is the alias table (`alias_text` as originally seen,
+  `match_text` normalized, `source` one of `seed` · `import_correction` ·
+  `manual`), trigram-indexed so corrections write back cleanly.
+- **`usda_food`** is the read-only reference — `fdc_id`, `description`,
+  category, density, macros, `match_text` — not synced and not matched at
+  import. Since plan 0029 it is searched through the BM25 index tables
+  (`usda_search_token` / `_term` / `_doc` / `_stats`), which are server-only
+  in the same way.
+- Trigram GIN indexes on `ingredient.match_text` and
+  `ingredient_alias.match_text` power the fuzzy cascade. **No embedding
+  column exists**, and §6 says why none is planned.
 
 `match_text` is computed by the normalization function on write (§7), not a pure generated column — normalization is more than lowercasing.
 
@@ -396,7 +377,7 @@ create index usda_match_trgm  on usda_food        using gin (match_text gin_trgm
 |---|---|---|
 | `ingredient` (resolved rows) | Yes | Browse, cook, manual "Add ingredient" search |
 | `ingredient_alias` | Yes | Improves offline typo-tolerant search; small |
-| `usda_food` | No | Server-only reference for creation + prefill |
+| `usda_food` (+ the `usda_search_*` index tables) | No | Server-only reference, read only by `probe_usda` for the create-a-new-ingredient search |
 | Match indexes | No | Server-only; matching is online |
 
 ---
@@ -516,7 +497,7 @@ habit `default_allowed_units()` and `defaultAllowedUnitSet` already keep. Since
 the 8.5 close-out **every** client writer calls it, import's own commit
 included — `SqliteImportRepository.commit` writes `normalizeMatchText` for the
 correction alias, and a row created at review is written by the same
-`createStub` the manager's sheet uses (§9), so it lands the same `match_text`
+`saveForm` the manager's form uses (§9), so it lands the same `match_text`
 the server would have written.
 
 ---
@@ -555,8 +536,8 @@ On Save, one local transaction writes the recipe (filed into the default book �
 the Library renders books, so a book-less recipe would save into a place nothing
 shows it), its groups and line items, and any correction aliases; step refs are
 remapped from `line_index` to the created `line_item_id`s (§4.6). It creates no
-ingredient: a line that needed a new one got it at review, through the
-New-ingredient sheet and the flesh-out form (§9). Local PowerSync tables are
+ingredient: a line that needed a new one got it at review, on the flesh-out
+form (§9). Local PowerSync tables are
 SQLite **views**, so every write is a plain INSERT — never `ON CONFLICT`.
 
 **The learning loop — nearly free, and the highest-value low-effort feature in the
@@ -585,12 +566,16 @@ band `none` line
 the USER chooses "create new"        ← no silent auto-stub (§6)
    │
    ▼
-the New-ingredient sheet (manual · USDA · barcode), name prefilled from
-the line's text — the SAME sheet the manager's ＋ opens (plan 0025 D3)
-   │  · `createStub`: status='stub', source='manual' (or `off:<barcode>`),
-   │    match_text by the server's phrase rules; probed at birth (D7b)
+the flesh-out form at `/ingredients/new?name=…`, name prefilled from the
+line's text — the SAME door the manager's ＋ opens
+   │  · nothing is written yet, and nothing is probed at birth: the form
+   │    holds a draft, and USDA is reached only through
+   │    *Fill it in from ▸ Look up in USDA*, where a pick fills the draft
    ▼
-the flesh-out form, pushed OVER the review's sheet and awaited
+one Save writes the row and its children in a single transaction
+   │  · `saveForm(null, …)`: status='stub', source='manual' (or
+   │    `usda_fdc:<id>` / `off:<barcode>` when the draft was filled in),
+   │    match_text by the server's phrase rules
    │  · back is the only exit; confirming is optional and human (D5)
    ▼
 the line resolves to that row — the ordinary matched state, by id
@@ -602,12 +587,10 @@ the line resolves to that row — the ordinary matched state, by id
    │    of the whole vocabulary at `/ingredients` — not a separate queue
    │    screen, and no table (`status='stub'` is the whole mechanism)
    │
-   └──► NOTHING fills it on arrival. The `ingredient_usda_prefill` trigger
-        (0014, + 0015's rename leg) did until 0029; it is dropped. A stub
-        reaches USDA only through *Fill it in from ▸ Look up in USDA* on the
-        flesh-out form, where a person picks from the short-list. It STAYS
-        'stub' either way — confirming was always a human act (D5), and
-        matching is one now too.
+   └──► NOTHING fills it on arrival. A stub reaches USDA only through
+        *Fill it in from ▸ Look up in USDA* on the flesh-out form, where a
+        person picks from the short-list. It STAYS 'stub' either way —
+        confirming is a human act (D5), and so is matching.
    │
    ▼
 user opens the stub in the manager → edits/fills density + macros →
@@ -616,42 +599,35 @@ user opens the stub in the manager → edits/fills density + macros →
 
 **No path creates an ingredient without landing on the flesh-out form**
 (owner ruling, plan 0025 D3: "move away from allowing stubs; ideally only the
-seeded rows are stubs"). Until 2026-09-03 the review deferred creation to the
-commit, which minted one `source='import_stub'` row per unmatched name,
-coalesced by `normalizeMatchText` — `CommitStub`, `CommitLine.stubKey`,
-`LineResolution.createStubName` and the repository's stub INSERT. All of it is
-gone: a resolution now carries an id or nothing, so there is nothing to
-coalesce and nothing for the commit to create. What a row backed out of
-unconfirmed still is: a `stub`, honestly badged, named by the macro panel —
-D3 forbids minting one *as a side effect*, not a human leaving a form early.
-`import_stub` survives only as a legacy `source` value on rows minted before
-the change.
+seeded rows are stubs"). **The commit mints nothing.** A line resolution
+carries an ingredient id or nothing, so there is neither a stub to coalesce
+nor a row for the commit to create. What a person backing out of the form
+unconfirmed leaves behind is a `stub`, honestly badged and named by the macro
+panel — D3 forbids minting one *as a side effect*, not a human leaving a form
+early. `import_stub` survives only as a legacy `source` value on rows minted
+before that ruling.
 
-**The prefill, precisely** (step 8.5, plan 0020 D7). It is an `after insert or
-update of canonical_name` trigger on `ingredient` — a plpgsql port of
-`prefillStubFromUsda`, whose TypeScript original was deleted in the same change
-rather than left as a second way to write the row. It must be server-side
-(`usda_food` never syncs — ADR-0005), and a trigger is the only thing that sees
-a stub arriving through the PowerSync **upload queue**, which is the surface
-that actually creates stubs. Four properties are load-bearing:
+**What fills a row in, precisely.** Nothing does on its own. `usda_food`
+never syncs (ADR-0005), so the reference set is reached by one read-only
+server function, `probe_usda`, and only when a person opens the form's
+*Look up in USDA*: it ranks candidates with BM25 over the `usda_search_*`
+index tables (plan 0029) and returns a short list to pick from. A pick fills
+the **draft** — description, density, macros — and the form's one Save writes
+it, stamping `source = usda_fdc:<id>` with `source_label` and `source_score`
+([ADR-0011](../decisions/0011-one-save-one-write.md)). A barcode scan fills
+the draft the same way from Open Food Facts.
 
-- **It can never fail the upload.** One indexed trigram probe (`usda_match_trgm`)
-  with a 0.5 floor, wrapped in an exception block that swallows and logs. A stub
-  whose prefill fails is just an un-enriched stub.
-- **It fires for a BARE stub only** — no density, no macros, and
-  `source in ('manual','import_stub')` (or null). That excludes `source='seed'`
-  (so the seed's audited "honestly density-less" tail is never overwritten by a
-  guess, and the onboarding clone pays no probe per row) and `off:<barcode>`
-  (so Open Food Facts provenance is not replaced by a USDA id).
-- **A rename re-runs it** (0015): fix "curry leafs" → "Curry leaves, fresh" and
-  the lookup happens again — the bare-stub guard is what makes that safe.
-- **A landed density extends `allowed_units`** through the companion
-  `ingredient_density_unlocks_units` trigger (ADR-0009), so the unlocked family
-  is not left locked by a list materialized before the density existed.
+One server-side companion survives from the trigger era and still matters:
+
+- **A landed density extends `allowed_units`** through the
+  `ingredient_density_unlocks_units` trigger
+  ([ADR-0009](../decisions/0009-density-unlocks-both-families.md)), so the
+  unlocked family is not left locked by a list materialized before the density
+  existed. It fires wherever the density came from.
 
 **Confirming is a human act** (plan 0020 D5). Nothing promotes a row to
 `complete` on its own — not a trigram hit, not a barcode scan. **Macros are the
-gate; density is not**: the Confirm CTA is disabled without macros and the
+gate; density is not**: the `Mark complete` CTA is disabled without macros and the
 repository refuses the same call, while a row with macros and no density
 confirms fine (density controls what units are *sayable*, not whether the
 numbers are honest). The reverse is available too — a `complete` row can be
@@ -663,7 +639,8 @@ ledger) and both wrote the identical row. The client won because the decision to
 create is the *user's*, taken at review — and since D3 it is taken *on the form*,
 one row at a time, through the same repository write the manager uses. A
 server-side create would mean a round trip mid-review and two places that can
-mint the same row. The server keeps only the enrichment leg.
+mint the same row. The server writes nothing to `ingredient` at all: its half
+is the read-only `probe_usda` search and the density trigger above.
 
 Until a stub is complete it is left out of unit conversions and macro totals (the
 spec's "honest numbers" rule) — a stub line is a real, plannable, shoppable line
@@ -675,8 +652,8 @@ that simply reports `incomplete` instead of a fabricated number.
 
 The dividing line is **not fuzzy vs. exact** — both sides tolerate typos. It's **who acts on the result**:
 
-- **Retrieval for a human to pick** (offline, easy). The manual "Add ingredient" screen. Typo tolerance is welcome — "chikn" should surface "Chicken thigh" in the list. It only has to rank the right row into a short, visible set; the human filters, so nothing needs calibration. Over the ~150–300 synced household rows this is trivial: SQLite FTS5 with the trigram tokenizer, or even an in-memory edit-distance pass in Dart. Works offline.
-- **Automated matching that commits a decision** (online, hard). Import reconciliation. Auto-accepts above a threshold, produces confidence bands, may use embeddings, and runs against the larger/ambiguous corpus. This is the part that must stay server-side.
+- **Retrieval for a human to pick** (offline, easy). The manual "Add ingredient" screen. Typo tolerance is welcome — "chikn" should surface "Chicken thigh" in the list. It only has to rank the right row into a short, visible set; the human filters, so nothing needs calibration. Over the few hundred synced household rows (308 seeded) this is trivial: SQLite FTS5 with the trigram tokenizer, or even an in-memory edit-distance pass in Dart. Works offline.
+- **Automated matching that commits a decision** (online, hard). Import reconciliation. Auto-accepts above a threshold, produces confidence bands, and runs against the larger/ambiguous corpus (exact → trigram → none; there is no embedding tier). This is the part that must stay server-side.
 
 | | Human picks (manual add) | Machine proposes (import) |
 |---|---|---|
@@ -684,7 +661,7 @@ The dividing line is **not fuzzy vs. exact** — both sides tolerate typos. It's
 | **Online?** | Works offline | Always online |
 | **Approx. matching?** | Yes — the shared `searchRank` typo tier, guarded per token and run only when exact/prefix find nothing | Yes — full ranked cascade |
 | **Acts unattended?** | No — human picks from a list | Starts a line resolved above the `auto` threshold, but a human still confirms every import |
-| **Corpus** | The ~150–300 synced household `ingredient` + `ingredient_alias` rows | The same household vocab, server-side (`usda_food` is never a match target — ADR-0005) |
+| **Corpus** | The few hundred synced household `ingredient` + `ingredient_alias` rows | The same household vocab, server-side (`usda_food` is never a match target — ADR-0005) |
 | **Where** | `features/ingredients` picker, over local SQLite | `_shared/match.ts` + `match_db.ts`, over Postgres `pg_trgm` |
 
 The shipped `none` path shortens the distance between the two columns: an
