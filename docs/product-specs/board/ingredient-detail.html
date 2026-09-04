@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Ingredient detail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
+    <h1 class="view-title">Ingredient detail</h1>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a></p>
+    <p class="view-blurb">One form, three groups — Identity, Nutrition, Units &amp; measures — under a dock that carries the form’s one message and its two commitments. It is also the create screen: <code>/ingredients/new</code> is this form with no row behind it.</p>
+</header>
+
+<div class="board">
+
+    <div class="frame">
+        <p class="frame-name"><b>The form</b> · three groups, a status line at the top and a dock at the bottom; the USDA card appears only <i>after</i> a pick</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Black Rice</span><span class="dots">⋯</span></div>
+
+            <div class="state" style="margin-top:4px">
+                <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot"></span><span>Still a stub — left out of macro totals until confirmed.</span></div>
+            </div>
+
+            <p class="flabel">Fill it in from</p>
+            <div class="frow" style="display:flex;gap:8px">
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Scan a barcode</div>
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Look up in USDA</div>
+            </div>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Identity</p></div>
+            <p class="flabel">Canonical name</p>
+            <div class="frow"><div class="fin big">Black Rice</div></div>
+            <p class="conv-note" style="margin:-8px 20px 12px">renaming rewrites the match text</p>
+            <p class="flabel">Also known as</p>
+            <div class="frow"><div class="chips"><span class="chip add">＋ alias</span></div></div>
+            <p class="flabel">Category</p>
+            <div class="frow" style="display:flex;gap:10px"><div class="fin" style="flex:1">grains ▾</div><div class="fin" style="width:60px;text-align:center">New</div></div>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Nutrition</p></div>
+            <div class="state">
+                <div class="sh" style="font-weight:400"><span style="font-size:13px">Filled from USDA</span></div>
+                <div class="sb" style="font-family:'IBM Plex Mono',monospace;font-size:10px">Rice, black, unenriched, raw · FDC 2710825 · matches every word of “Black Rice”</div>
+                <div style="display:flex;gap:8px;margin-top:9px"><span class="ghostbtn" style="margin-top:0">Not this food</span><span class="ghostbtn" style="margin-top:0">Choose another ›</span></div>
+            </div>
+            <p class="conv-note" style="margin:-6px 20px 12px"><b>Not drawn on arrival.</b> This card appears only <i>after</i> a pick — a stub you have not searched has no card, and the <span style="font-family:'IBM Plex Mono',monospace">Fill it in from</span> row above is the whole offer.</p>
+            <p class="flabel" style="margin-bottom:2px">Macros</p>
+            <p class="conv-note" style="margin:0 20px 6px">enter them as the label reads</p>
+            <div class="frow"><div class="seg"><span class="segopt on">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt">per serving</span></div></div>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv">&nbsp;</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">&nbsp;</div><div class="mil">protein</div></div><div class="mi"><div class="miv">&nbsp;</div><div class="mil">carb</div></div><div class="mi"><div class="miv">&nbsp;</div><div class="mil">fat</div></div></div></div>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
+            <p class="flabel">Default unit</p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
+                <span class="uchip on">cup</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">ml</span><span class="uchip" style="color:var(--muted)">l</span><span class="uchip" style="color:var(--muted)">tsp</span><span class="uchip" style="color:var(--muted)">tbsp</span><span class="uchip" style="color:var(--muted)">piece</span>
+            </div></div>
+            <p class="flabel" style="margin-bottom:2px">Allowed units</p>
+            <p class="conv-note" style="margin:0 20px 6px">what a line may say</p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible"><span class="uchip on">cup</span><span class="uchip on">tbsp</span><span class="uchip on">ml</span><span class="uchip on">l</span><span class="uchip on">g</span><span class="uchip on">kg</span><span class="uchip-sep" style="height:22px;margin:0 2px"></span><span class="uchip impr">pinch</span></div></div>
+            <p class="flabel">Density <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--herb-deep)">0.78 g/ml</span></p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">1</span>
+                <span class="uchip">tsp</span><span class="uchip on">tbsp</span><span class="uchip">cup</span><span class="uchip">ml</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">of this weighs</span>
+                <span class="fin" style="width:56px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">g</span>
+            </div></div>
+            <div class="frow" style="margin-top:-6px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--gone)">remove the density</span></div>
+            <p class="flabel" style="margin-bottom:2px">Measures</p>
+            <p class="conv-note" style="margin:0 20px 6px">count-like, in the basis</p>
+            <div class="frow"><div class="fin" style="color:var(--muted);font-size:12.5px">No measures yet — name one below.</div></div>
+            <div class="frow"><div class="chips"><span class="chip add">＋ add measure</span></div></div>
+
+            <div class="dock">
+                <p class="conv-note" style="margin:0 0 9px">needs macros</p>
+                <div style="display:flex;gap:8px">
+                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
+                    <span class="btn primary" style="margin:0;flex:1;opacity:.45">Mark complete</span>
+                </div>
+            </div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Units &amp; measures, close up</b> · the default unit is one of the admitted chips, and the imprecise words follow the row after a divider — not a section of their own</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div style="margin:16px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
+
+            <p class="flabel">Default unit</p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
+                <span class="uchip" style="background:transparent;border-color:var(--gone);border-style:dotted;color:var(--gone)">cup</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">ml</span><span class="uchip" style="color:var(--muted)">tsp</span><span class="uchip" style="color:var(--muted)">piece</span><span class="uchip impr">pinch</span>
+            </div></div>
+            <p class="conv-note" style="margin:-6px 20px 12px"><span style="color:var(--gone)">cup</span> needs a density on this row — add one below, or <b style="color:var(--ink);border-bottom:1px solid var(--line)">switch to g</b></p>
+
+            <p class="flabel" style="margin-bottom:2px">Allowed units</p>
+            <p class="conv-note" style="margin:0 20px 6px">what a line may say</p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
+                <span class="uchip on">g</span><span class="uchip on">kg</span><span class="uchip on">piece</span>
+                <span class="uchip-sep" style="height:22px;margin:0 2px"></span>
+                <span class="uchip impr">pinch</span><span class="uchip impr">dash</span>
+            </div></div>
+            <p class="conv-note" style="margin-top:2px">cup · tbsp · ml unlock when this row has a density · dotted words come from the category</p>
+
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The density entry</b> · one self-describing sentence, five states; <code>ml</code> is in the unit list on purpose</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+
+            <p class="lib-mcap" style="margin-top:16px">① none yet · one control, no mode</p>
+            <p class="flabel" style="margin-top:8px">Density <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0">none yet — unlocks volume⇄weight</span></p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">1</span>
+                <span class="uchip">tsp</span><span class="uchip on">tbsp</span><span class="uchip">cup</span><span class="uchip">ml</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">of this weighs</span>
+                <span class="fin" style="width:56px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">g</span>
+                <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Save</span>
+            </div></div>
+
+            <p class="lib-mcap" style="margin-top:18px">② typed · the stored fact echoed, never demanded</p>
+            <div class="frow" style="margin-top:8px"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">1</span>
+                <span class="uchip">tsp</span><span class="uchip on">tbsp</span><span class="uchip">cup</span><span class="uchip">ml</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">of this weighs</span>
+                <span class="fin" style="width:56px;padding:7px 10px;font-family:'IBM Plex Mono',monospace">15</span>
+                <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Save</span>
+            </div></div>
+            <p class="conv-note" style="margin:-4px 20px 0">= 1.01 g/ml</p>
+
+            <p class="lib-mcap" style="margin-top:18px">③ and a known density is the same sentence</p>
+            <div class="frow" style="margin-top:8px"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">1</span>
+                <span class="uchip">tsp</span><span class="uchip">tbsp</span><span class="uchip">cup</span><span class="uchip on">ml</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">of this weighs</span>
+                <span class="fin" style="width:56px;padding:7px 10px;font-family:'IBM Plex Mono',monospace">0.66</span>
+                <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Save</span>
+            </div></div>
+            <p class="conv-note" style="margin:-4px 20px 0">= 0.66 g/ml</p>
+            <p class="conv-note" style="margin:6px 20px 0"><b>ml is in the picker, so the old g/ml field is not removed — it is absorbed.</b> <span style="font-family:'IBM Plex Mono',monospace">densityFromVolumeWeight</span> is <span style="font-family:'IBM Plex Mono',monospace">grams / ratioToBase</span>, and ml’s ratio is 1 — so “1 ml of this weighs 0.66 g” <i>is</i> 0.66 g/ml, exactly, with no second control and no rounding.</p>
+
+            <p class="lib-mcap" style="margin-top:18px">④ stored</p>
+            <p class="flabel" style="margin-top:8px">Density <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--herb-deep)">0.528 g/ml</span> <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--muted)">· fao_infoods_v2</span></p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">1</span>
+                <span class="uchip">tsp</span><span class="uchip on">tbsp</span><span class="uchip">cup</span><span class="uchip">ml</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">of this weighs</span>
+                <span class="fin" style="width:56px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">g</span>
+            </div></div>
+            <div class="frow" style="margin-top:-6px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--gone)">remove the density</span></div>
+            <p class="conv-note" style="margin:2px 20px 0">The number lives in the <b>headline</b>, in herb, with its provenance; the row below stays empty and is how you <i>replace</i> it. Saving a new one overwrites — there is no separate “edit”.</p>
+
+            <p class="lib-mcap" style="margin-top:18px">⑤ clearing it — the one write that makes the allowed list shrink</p>
+            <div class="frow" style="margin-top:8px"><div class="fin" style="border-color:var(--aging);background:#FDF8EC">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">Remove it? tsp · tbsp · cup · ml lock again.</div>
+                <div style="display:flex;gap:10px;align-items:center;margin-top:9px">
+                    <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 12px">Remove</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted)">keep it</span>
+                </div>
+            </div></div>
+            <p class="conv-note" style="margin:4px 20px 0">Tapping <span style="color:var(--gone)">remove the density</span> asks once, <b>naming this row’s own units</b> — never “are you sure”. Where nothing was derived from the number it reads <b style="color:var(--ink)">“Remove it? Nothing about what a line may say changes.”</b> Confirming is <b>one write</b>: the number goes and the cross-family chips it was the only reason to admit lock again (D4b). A line already saying one of them is left exactly as written and reads <b style="color:var(--ink)">Pick a supported unit</b> on the import review.</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The dock, and the ⋯</b> · one message line over one row of buttons; only the two acts that are <i>not</i> filling the form in go behind the menu</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+
+            <p class="lib-mcap" style="margin-top:16px">on a stub · one line, one row</p>
+            <div class="dock" style="margin-top:8px">
+                <p class="conv-note" style="margin:0 0 9px">needs macros</p>
+                <div style="display:flex;gap:8px">
+                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
+                    <span class="btn primary" style="margin:0;flex:1;opacity:.45">Mark complete</span>
+                </div>
+            </div>
+            <p class="conv-note" style="margin:8px 20px 0">the sentence lives above the buttons, not inside one — that line is the form’s one message slot, the same line that says <i>“Saved.”</i>, <i>“Still used by 3 recipes (4 lines).”</i> and what completion is still waiting for. It rides the dock, so it is on screen at any scroll position</p>
+
+            <p class="lib-mcap" style="margin-top:18px">armed</p>
+            <div class="dock" style="margin-top:8px">
+                <p class="conv-note" style="margin:0 0 9px">it counts in conversions and macro totals from here</p>
+                <div style="display:flex;gap:8px">
+                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
+                    <span class="btn primary" style="margin:0;flex:1">Mark complete</span>
+                </div>
+            </div>
+
+            <p class="lib-mcap" style="margin-top:18px">a complete row · one commitment</p>
+            <div class="dock" style="margin-top:8px"><span class="btn primary" style="margin:0">Save</span></div>
+
+            <p class="lib-mcap" style="margin-top:20px">and the <span style="font-family:'IBM Plex Mono',monospace">⋯</span>, built at last</p>
+            <div class="lib-menu" style="margin-top:8px">
+                <div class="mi"><span class="ic">↺</span><span class="lb">Return it to a stub</span></div>
+                <div class="mi danger"><span class="ic">🗑</span><span class="lb">Delete ingredient</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">On a stub the first item is absent — there is nothing to un-confirm. <b>Confirm does not move here</b>: it is the page’s whole purpose and stays in the dock. Only the two actions that are <i>not</i> part of filling the form in go behind the menu, which is how <span style="font-family:'IBM Plex Mono',monospace">Delete ingredient</span> stops sitting one flick under <span style="font-family:'IBM Plex Mono',monospace">Confirm</span>.</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Creating one</b> · <code>/ingredients/new</code> is the same form with no row behind it — it writes nothing until Save, and pops with the row it made</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">New ingredient</span><span class="dots" style="opacity:.25"></span></div>
+
+            <div class="state" style="margin-top:4px">
+                <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot"></span><span>New — nothing is saved until you tap Save.</span></div>
+            </div>
+
+            <p class="flabel">Fill it in from</p>
+            <div class="frow" style="display:flex;gap:8px">
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Scan a barcode</div>
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Look up in USDA</div>
+            </div>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Identity</p></div>
+            <p class="flabel">Canonical name</p>
+            <div class="frow"><div class="fin big" style="color:var(--muted)">e.g. Curry leaves, fresh</div></div>
+
+            <p class="lib-mcap" style="margin-top:20px">and the dock, on a row that is not there yet</p>
+            <div class="dock" style="margin-top:8px">
+                <p class="conv-note" style="margin:0 0 9px">needs macros</p>
+                <div style="display:flex;gap:8px">
+                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
+                    <span class="btn primary" style="margin:0;flex:1;opacity:.45">Mark complete</span>
+                </div>
+            </div>
+            <p class="conv-note" style="margin-top:10px"><b>No <span style="font-family:'IBM Plex Mono',monospace">⋯</span> at all.</b> There is nothing to delete and nothing to un-confirm on a row that does not exist. And the strip says <i>new</i> rather than calling itself a stub — a stub is a thing a SAVED row is.</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Filled from a USDA pick</b> · the card names the food, its FDC id and how much of the typed name it matched — and stays <i>not confirmed</i> until a human says so</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Kale</span><span class="dots">⋯</span></div>
+            <div class="state" style="margin-top:10px">
+                <div class="sh" style="font-weight:400"><span style="font-size:13px">Filled from USDA · not confirmed</span></div>
+                <div class="sb" style="font-family:'IBM Plex Mono',monospace;font-size:10px">Kale, raw · FDC 168421 · matches every word of “Kale”</div>
+                <div style="display:flex;gap:8px;margin-top:9px"><span class="ghostbtn" style="margin-top:0">Not this food</span><span class="ghostbtn" style="margin-top:0">Choose another ›</span></div>
+            </div>
+            <p class="flabel">Density (volume ↔ weight)</p>
+            <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace">0.42 g / ml <span style="color:var(--muted)">· USDA</span></div></div>
+            <p class="flabel">Macros per 100 g</p>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv">35</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">2.9 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">4.4 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">1.5 g</div><div class="mil">fat</div></div></div></div>
+            <div class="state" style="margin-top:16px">
+                <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot"></span><span>Still a stub — left out of macro totals until confirmed.</span></div>
+            </div>
+            <div class="dock">
+                <p class="conv-note" style="margin:0 0 9px">it counts in conversions and macro totals from here</p>
+                <div style="display:flex;gap:8px">
+                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
+                    <span class="btn primary" style="margin:0;flex:1">Mark complete</span>
+                </div>
+            </div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Not this food</b> · exactly what the probe wrote comes out; what a human typed stays, and renaming will not refill it</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Kale</span><span class="dots">⋯</span></div>
+            <div class="state" style="margin-top:10px">
+                <div class="sh" style="font-weight:400"><span style="font-size:13px">USDA · declined</span></div>
+                <div class="sb" style="font-family:'IBM Plex Mono',monospace;font-size:10px">Kale, raw — not this food · the filled numbers were cleared</div>
+                <div style="display:flex;gap:8px;margin-top:9px"><span class="ghostbtn" style="margin-top:0">Choose another ›</span></div>
+            </div>
+            <p class="flabel">Density (volume ↔ weight)</p>
+            <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">— g / ml</div></div>
+            <p class="flabel">Units this row admits</p>
+            <div class="frow"><div class="chips"><span class="chip">g</span><span class="chip">kg</span><span class="chip" style="border-style:dashed;color:var(--muted)">ml · needs a density</span></div></div>
+            <p class="flabel">Macros per 100 g</p>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">kcal</div></div><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">protein</div></div><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">carb</div></div><div class="mi"><div class="miv" style="color:var(--muted)">—</div><div class="mil">fat</div></div></div></div>
+            <p class="conv-note">renaming this row will <b>not</b> refill it — you said no once</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Choose another</b> · the short list, each row tagged by how much of the name it covers</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <div class="c-h">USDA · for “kale”</div>
+            <div class="srow"><span class="sname">Kale, raw</span><span class="slab" style="color:var(--muted)">declined</span></div>
+            <div class="srow"><span class="sname"><b>Kale, frozen, cooked, boiled</b></span><span class="slab" style="color:var(--herb)">all words</span></div>
+            <div class="srow"><span class="sname">Kale, cooked, boiled, drained</span><span class="slab" style="color:var(--herb)">all words</span></div>
+            <div class="srow"><span class="sname">Kale, scotch, raw</span><span class="slab" style="color:var(--muted)">some words</span></div>
+            <div class="srow"><span class="sname">Kale chips</span><span class="slab" style="color:var(--muted)">some words</span></div>
+            <p class="conv-note">picking one fills density + macros from it and names it on the form — still a stub until you confirm</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Macros, per serving</b> · the label typed as printed; the row is stored per 100 as every row is, and the form says what it did</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Buttery Spread</span><span class="dots">⋯</span></div>
+            <p class="flabel">Macros</p>
+            <div class="frow"><div class="seg"><span class="segopt">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt on">per serving</span></div></div>
+            <p class="flabel">One serving is</p>
+            <div class="frow" style="display:flex;gap:10px"><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace">14</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace">g ▾</div><div class="fin" style="flex:1;color:var(--muted)">as the pack calls it — “1 tbsp”</div></div>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv">100</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">0 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">0 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">11 g</div><div class="mil">fat</div></div></div></div>
+            <div class="status-line"><span class="sdot"></span>stored per 100 g:&nbsp;<b style="color:var(--ink)">714 kcal · 0 P · 79 F · 0 C</b></div>
+            <p class="conv-note">from a 14 g serving — the label’s rounding scales with it (0 g here means under 0.5 g on the pack)</p>
+            <p class="flabel">This serving also says</p>
+            <div class="frow"><div class="chips"><span class="chip">☐ 1 tbsp weighs 14 g — set as density</span></div></div>
+            <div class="savebtn">Save</div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The serving is a density fact</b> · opt-in, same save — one stored fact, two phrasings</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Buttery Spread</span><span class="dots">⋯</span></div>
+            <p class="flabel">This serving also says</p>
+            <div class="frow"><div class="chips"><span class="chip" style="border-color:var(--herb);color:var(--herb)">☑ 1 tbsp weighs 14 g — set as density</span></div></div>
+            <p class="flabel">Density (volume ↔ weight)</p>
+            <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace">0.95 g / ml <span style="color:var(--muted)">· from “1 tbsp weighs 14 g”</span></div></div>
+            <p class="flabel">Units this row admits</p>
+            <div class="frow"><div class="chips"><span class="chip">g</span><span class="chip">kg</span><span class="chip" style="border-style:dashed">tsp</span><span class="chip" style="border-style:dashed">tbsp</span><span class="chip" style="border-style:dashed">ml</span></div></div>
+            <p class="conv-note">the dashed chips unlock exactly as they do when a density is typed by hand (ADR-0009) — one stored fact, two phrasings</p>
+            <div class="savebtn">Save</div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>A scanned per-serving panel</b> · lands on the same selector instead of a refusal</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">✕</span><span class="ttl">Scanned</span><span class="dots"></span></div>
+            <p class="flabel">Matched · Open Food Facts</p>
+            <div class="matched"><div class="mnm">Buttery Spread, 425 g</div><div class="msrc">earth balance · barcode 0337xxxx · ODbL</div></div>
+            <p class="flabel">Macros</p>
+            <div class="frow"><div class="seg"><span class="segopt">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt on">per serving</span></div></div>
+            <p class="flabel">One serving is</p>
+            <div class="frow" style="display:flex;gap:10px"><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">—</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace">g ▾</div><div class="fin" style="flex:1;color:var(--muted)">the pack says “1 Tbsp (14 g)” — type the weight</div></div>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv">100</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">0 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">0 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">11 g</div><div class="mil">fat</div></div></div></div>
+            <div class="status-line"><span class="sdot"></span>Saves as a <b style="color:var(--ink)">&nbsp;stub</b>&nbsp;— the serving weight is what is missing.</div>
+            <div class="savebtn">Save to queue</div>
+        </div></div>
+    </div>
+
+</div>
+
+<p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>
