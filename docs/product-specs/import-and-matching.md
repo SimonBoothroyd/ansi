@@ -38,7 +38,7 @@ Keep two paths mentally separate; they are different problems (see §10):
 - **Machine proposes → human confirms** = import reconciliation. Online. Fuzzy.
 - **Human picks directly** = the "Add ingredient" search screen during manual recipe editing. Offline. Exact/prefix lookup over a small synced set.
 
-### ADR-0004, reaffirmed by the step-8 build (2026-08-31)
+### ADR-0004, reaffirmed by the step-8 build
 
 Step 8 changed the *shape* of extraction — one forced LLM path, and the LLM now
 also does within-recipe step→line alignment — which touches ADR-0004's wording
@@ -547,9 +547,7 @@ or accepts a suggestion), the original raw string is written back as a new
 a few weeks the vocabulary absorbs the household's actual phrasing ("coco milk" →
 Coconut milk, canned) and matching improves with zero ML.
 
-> The **design board's** "Import & recipe view · v3" frames were re-traced from
-> the shipped code on 2026-08-31 and are current again (locked). Two shipped
-> details beyond the bullets above: the review header's zero-state reads
+> Two shipped details beyond the bullets above: the review header's zero-state reads
 > **"looks good"** (not "0 to review"), and the Save button carries a third
 > label — **"Nothing left to save"** — when every line has been dropped; each
 > line also shows a `low confidence NN%` badge when the extractor's own
