@@ -21,10 +21,10 @@ import 'package:forui/forui.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/format.dart';
 import '../../../shared/picker_shell.dart';
 import '../domain/method_draft.dart';
 import '../domain/recipe.dart';
-import 'format.dart';
 import 'recipe_chip.dart';
 
 /// What the picker resolved to.

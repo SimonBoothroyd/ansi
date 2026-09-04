@@ -28,9 +28,9 @@ import 'package:forui/forui.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/format.dart';
 import '../domain/line_display.dart';
 import '../domain/recipe.dart';
-import 'format.dart';
 import 'recipe_chip.dart';
 
 class RecipeIngredientLine extends StatelessWidget {

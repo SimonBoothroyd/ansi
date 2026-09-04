@@ -10,7 +10,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../recipes/presentation/format.dart';
+import '../../../shared/format.dart';
 import '../barcode/barcode_add.dart';
 import '../domain/apply_draft.dart';
 import 'macros_format.dart';

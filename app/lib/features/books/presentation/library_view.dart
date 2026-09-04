@@ -16,6 +16,7 @@ import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_search_field.dart';
 import '../../../shared/dashed_border_box.dart';
+import '../../../shared/format.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
 import '../../account/presentation/account_view.dart';
@@ -24,7 +25,6 @@ import '../../ingredients/presentation/ingredient_list_view.dart'
     show kIngredientsRoute;
 import '../../recipes/data/recipe_providers.dart';
 import '../../recipes/domain/recipe.dart';
-import '../../recipes/presentation/format.dart';
 import '../data/book_providers.dart';
 import '../domain/book.dart';
 import '../domain/library_search.dart';

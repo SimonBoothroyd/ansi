@@ -1,4 +1,7 @@
-/// Display formatting for recipe quantities.
+/// Display formatting for quantities and amounts — the recipe lines it was
+/// written for, and the six other features that print a number beside a
+/// unit: the Library, the week, the shopping list, the cook plan, the
+/// import review and the ingredient form.
 library;
 
 /// Formats a scaled quantity for display: no trailing `.0`, at most two

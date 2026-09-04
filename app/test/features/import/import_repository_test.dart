@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ansi/core/search/search_query.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/import/data/import_repository_impl.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
@@ -8,7 +9,6 @@ import 'package:ansi/features/import/domain/line_resolution.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:ansi/features/ingredients/data/ingredient_repository_impl.dart';
 import 'package:ansi/features/ingredients/domain/normalize.dart';
-import 'package:ansi/features/ingredients/domain/search_query.dart';
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';

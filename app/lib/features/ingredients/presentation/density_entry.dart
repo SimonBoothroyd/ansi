@@ -22,7 +22,7 @@ import 'package:forui/forui.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
-import '../../recipes/presentation/format.dart';
+import '../../../shared/format.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 

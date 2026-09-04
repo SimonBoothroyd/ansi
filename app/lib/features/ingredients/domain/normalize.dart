@@ -32,7 +32,8 @@
 /// move a word into a strip set to make one match work.
 library;
 
-import 'search_query.dart' show foldDiacritics, normalizeSearchQuery;
+import '../../../core/search/search_query.dart'
+    show foldDiacritics, normalizeSearchQuery;
 
 /// Articles and filler words carrying no identity.
 const _filler = {'a', 'an', 'the', 'of', 'or', 'and', 'desired'};

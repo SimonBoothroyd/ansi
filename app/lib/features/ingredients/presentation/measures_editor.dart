@@ -30,7 +30,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
-import '../../recipes/presentation/format.dart';
+import '../../../shared/format.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 

@@ -1,4 +1,4 @@
-import 'package:ansi/features/recipes/presentation/format.dart';
+import 'package:ansi/shared/format.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

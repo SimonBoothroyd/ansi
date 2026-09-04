@@ -5,10 +5,10 @@ library;
 import 'dart:math' as math;
 
 import '../../../core/units/portions.dart';
+import '../../../shared/format.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/component_format.dart';
-import '../../recipes/presentation/format.dart';
 import '../domain/cook_plan.dart';
 
 /// The batch multiplier, e.g. `×1`, `×1.5`, `×0.75`. Trims trailing zeros.

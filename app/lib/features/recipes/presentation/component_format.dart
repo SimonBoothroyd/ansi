@@ -9,8 +9,8 @@
 library;
 
 import '../../../core/units/units.dart';
+import '../../../shared/format.dart';
 import '../domain/component_math.dart';
-import 'format.dart';
 
 /// A component line's amount as printed: `"0.25 cup"`, `"1 batch"`, `"8"` for
 /// a bare count. The same voice `amountOfLineItem` speaks on the recipe page.

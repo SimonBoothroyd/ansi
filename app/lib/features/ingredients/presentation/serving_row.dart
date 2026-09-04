@@ -14,7 +14,7 @@ import 'package:forui/forui.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
-import '../../recipes/presentation/format.dart';
+import '../../../shared/format.dart';
 import '../barcode/barcode_add.dart' show DraftServingPanel;
 import 'density_entry.dart' show AnsiModeChip;
 import 'macros_format.dart';

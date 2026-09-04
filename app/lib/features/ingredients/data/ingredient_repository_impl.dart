@@ -24,14 +24,14 @@ import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/search/search_query.dart';
+import '../../../core/search/search_rank.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/normalize.dart';
-import '../domain/search_query.dart';
-import '../domain/search_rank.dart';
 
 const _uuid = Uuid();
 

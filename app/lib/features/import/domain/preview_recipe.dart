@@ -9,9 +9,9 @@
 /// repository at commit; this recipe exists only to be looked at.
 library;
 
+import '../../../core/search/search_query.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
-import '../../ingredients/domain/search_query.dart';
 import '../../recipes/domain/method_step.dart';
 import '../../recipes/domain/recipe.dart';
 import 'line_resolution.dart';

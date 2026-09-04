@@ -24,10 +24,10 @@ import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/search/search_query.dart';
+import '../../../core/search/search_rank.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/domain/normalize.dart';
-import '../../ingredients/domain/search_query.dart';
-import '../../ingredients/domain/search_rank.dart';
 import '../domain/commit_payload.dart';
 import '../domain/import_repository.dart';
 import '../domain/reconciliation_payload.dart';

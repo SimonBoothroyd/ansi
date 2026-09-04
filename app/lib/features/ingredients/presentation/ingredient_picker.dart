@@ -23,6 +23,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/search/search_query.dart';
+import '../../../core/search/search_rank.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
@@ -32,8 +34,6 @@ import '../../../shared/picker_shell.dart';
 import '../../../shared/write.dart' show hostContextOf;
 import '../data/ingredient_providers.dart';
 import '../domain/ingredient.dart';
-import '../domain/search_query.dart';
-import '../domain/search_rank.dart';
 import 'ingredient_detail_view.dart' show newIngredientRoute;
 import 'macros_format.dart';
 

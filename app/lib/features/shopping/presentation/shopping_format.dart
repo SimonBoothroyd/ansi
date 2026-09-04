@@ -3,7 +3,7 @@
 library;
 
 import '../../../core/units/units.dart';
-import '../../recipes/presentation/format.dart' show formatQuantity;
+import '../../../shared/format.dart' show formatQuantity;
 import '../domain/shopping.dart';
 
 /// Formats one [Quantity] for the list, e.g. "500 g", "1.5 kg", "5 piece".

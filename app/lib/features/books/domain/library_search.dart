@@ -13,8 +13,8 @@
 /// row anatomy. It ships as its own slice.
 library;
 
-import '../../ingredients/domain/search_query.dart';
-import '../../ingredients/domain/search_rank.dart';
+import '../../../core/search/search_query.dart';
+import '../../../core/search/search_rank.dart';
 import '../../recipes/domain/recipe.dart' show RecipeSummary;
 import 'book.dart';
 

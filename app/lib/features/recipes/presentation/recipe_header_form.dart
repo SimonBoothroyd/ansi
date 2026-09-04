@@ -25,13 +25,13 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/format.dart';
 import '../../../shared/write.dart';
 import '../../books/data/book_providers.dart';
 import '../../books/presentation/book_view_models.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../domain/method_step.dart';
 import '../domain/recipe.dart';
-import 'format.dart';
 
 /// The header's sections, each with the eyebrow it renders under.
 enum RecipeHeaderSection {

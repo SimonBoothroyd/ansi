@@ -5,6 +5,7 @@
 // ignore_for_file: scoped_providers_should_specify_dependencies
 library;
 
+import 'package:ansi/core/search/search_rank.dart';
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
@@ -13,7 +14,6 @@ import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
-import 'package:ansi/features/ingredients/domain/search_rank.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_repository.dart';

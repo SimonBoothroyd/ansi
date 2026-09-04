@@ -9,9 +9,9 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ansi/core/search/search_query.dart';
+import 'package:ansi/core/search/search_rank.dart';
 import 'package:ansi/features/ingredients/domain/normalize.dart';
-import 'package:ansi/features/ingredients/domain/search_query.dart';
-import 'package:ansi/features/ingredients/domain/search_rank.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// One corpus row, reduced to what the rule actually sees.

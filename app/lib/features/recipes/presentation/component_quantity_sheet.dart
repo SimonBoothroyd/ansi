@@ -36,12 +36,12 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/format.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart' show UnitChip;
 import '../domain/component_math.dart';
 import '../domain/component_units.dart';
 import '../domain/recipe.dart';
 import 'component_format.dart';
-import 'format.dart';
 import 'recipe_chip.dart';
 
 /// What the component sheet resolved to: the amount and the unit it counts.

@@ -28,7 +28,12 @@
 /// seam is given tiers 0/1 and nothing more.
 library;
 
-import 'normalize.dart' show matchTextForms, normalizeMatchText;
+// The phrase normalizer is the server's rule ported to Dart, and it still
+// lives beside the vocabulary it writes `match_text` for. The ranking
+// needs its tokenizer, so this one edge points at the feature; the rest
+// of the search rule has no feature above it.
+import '../../features/ingredients/domain/normalize.dart'
+    show matchTextForms, normalizeMatchText;
 import 'search_query.dart';
 
 /// The tier a hit came from. Declaration order IS the ranking: a lower tier
