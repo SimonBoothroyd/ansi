@@ -41,7 +41,7 @@ ImportRepository importRepository(Ref ref) {
 }
 
 /// Extraction with no backend to extract with. `commit` still works — a recipe
-/// already reconciled writes locally — but `startImport` refuses rather than
+/// already reconciled writes locally — but [startImport] refuses rather than
 /// inventing a recipe.
 class _UnconfiguredImport implements ImportRepository {
   const _UnconfiguredImport(this._commit);

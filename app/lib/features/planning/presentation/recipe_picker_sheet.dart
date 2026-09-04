@@ -5,7 +5,7 @@
 /// · per-serving macros or an `incomplete` badge — never zeros), and the
 /// "Eating" footer naming the household the meal is planned for.
 ///
-/// Search is the shared `searchRank` rule over titles — the same call the
+/// Search is the shared [searchRank] rule over titles — the same call the
 /// editor's "Your recipes" section makes. When nothing was spelled right the
 /// typo tier answers and the list arrives under a `DID YOU MEAN` header.
 ///

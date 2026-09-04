@@ -7,7 +7,7 @@
 /// autocorrect and backspace therefore behave exactly as in any text field,
 /// because nothing exotic lives in `value.text`.
 ///
-/// **Not `WidgetSpan`.** Flutter renders inline widgets inside an editable only
+/// **Not [WidgetSpan].** Flutter renders inline widgets inside an editable only
 /// when each span owns exactly one U+FFFC character; a mismatch is a framework
 /// assertion, the placeholder leaks into every string read back, and backspace
 /// across a span differs by platform. The real pills live in the card's
@@ -31,7 +31,7 @@ class MethodSpanController extends TextEditingController {
   ///
   /// A no-op when nothing moved — the notifier rebuilds the whole form on
   /// every keystroke, and Forui registers its `onChange` as a plain listener,
-  /// so an unconditional `notifyListeners` here would round-trip forever.
+  /// so an unconditional [notifyListeners] here would round-trip forever.
   void sync(MethodDraftStep next) {
     if (next == _draft) return;
     final textChanged = next.text != _draft.text;
@@ -103,7 +103,7 @@ const chipTextStyle = TextStyle(
 );
 
 /// The timer skin: the paper pill's OUTLINE, drawn as a stroked text
-/// background because a `TextStyle` carries one `Paint` and the outline is
+/// background because a [TextStyle] carries one [Paint] and the outline is
 /// what distinguishes a timer from an ingredient at a glance.
 final timerTextStyle = ansiMonoInherit(size: 14).copyWith(
   color: AnsiColors.ink,

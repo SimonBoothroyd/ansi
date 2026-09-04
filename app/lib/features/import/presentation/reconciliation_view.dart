@@ -8,7 +8,7 @@
 /// degraded image, a truncated source, and each line's own flags.
 ///
 /// The METHOD is editable here too: the editor's own step cards, hosted over
-/// the review's draft by `ImportMethodEditing`. Chips key on the preview's
+/// the review's draft by [ImportMethodEditing]. Chips key on the preview's
 /// `line-<i>` ids and convert back to line indexes at commit; the only thing
 /// the review cannot do is mint a brand-new line.
 library;

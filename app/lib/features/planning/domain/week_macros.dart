@@ -18,7 +18,7 @@
 /// NAMED, not counted.
 ///
 /// This file computes nothing about a recipe. The per-serving figure is
-/// already produced by `summarizeRecipeMacros`, and re-deriving it here would
+/// already produced by [summarizeRecipeMacros], and re-deriving it here would
 /// create exactly the "three surfaces that can drift" problem
 /// `shared/incomplete_macros.dart` exists to prevent. The excluded meal
 /// carries its [RecipeMacroSummary] so the UI prints the shared

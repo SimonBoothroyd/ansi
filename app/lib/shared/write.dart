@@ -2,13 +2,13 @@
 ///
 /// A write that throws must say so instead of stopping a spinner: without this
 /// door a throw clears a `busy` flag, escapes to the zone handler, and becomes
-/// a `debugPrint` on a console no phone has, leaving the user with a spinner
+/// a [debugPrint] on a console no phone has, leaving the user with a spinner
 /// that stopped and nothing else. The rule is held mechanically rather than by
 /// a paragraph in a style guide — `test/structure/no_bare_repo_write_test.dart`
 /// fails the build for a call site that skips it.
 ///
 /// **The one documented exception** is the bootstrap write in
-/// `core/sync/session.dart`: `ensureDefaultBook()` runs while the session is
+/// `core/sync/session.dart`: `ensureDefaultBook` runs while the session is
 /// still being established, before there is a screen to toast onto, and its
 /// failure already lands on the connecting screen as a `SessionError` with a
 /// reason and a retry — the same posture this door gives, reached the only
@@ -150,7 +150,7 @@ Future<bool> guardedWriteOk(
 /// `WidgetRef` outlives its widget, and a `context.mounted` bail avoids the
 /// throw only by dropping the write the user just confirmed. The overlay sits
 /// below the app's one `FTheme` and `FToaster` and inside the root navigator,
-/// so every `showAnsi*` door and `showAnsiFailureToast` work from it. Held by
+/// so every `showAnsi*` door and [showAnsiFailureToast] work from it. Held by
 /// `test/structure/no_ref_after_await_test.dart`.
 HostContext hostContextOf(BuildContext context) =>
     HostContext(Navigator.of(context, rootNavigator: true).overlay!.context);

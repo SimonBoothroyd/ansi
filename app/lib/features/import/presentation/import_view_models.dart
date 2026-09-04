@@ -210,7 +210,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
   /// seam **D2**, the one moment the fact is spent.
   ///
   /// It runs where the resolutions are BUILT (on arrival, and again after a
-  /// re-match), never inside `importValidation`: a validation pass has to stay
+  /// re-match), never inside [importValidation]: a validation pass has to stay
   /// a pure read, or the map that gates Save starts mutating the state it is
   /// validating. What it writes is the measure's LABEL — the same token a
   /// tapped chip writes — so nothing downstream learns a new word.
@@ -435,7 +435,7 @@ String importValidationKey(Ref ref) {
 /// ONE repository query — never N round-trips down the line list, and never
 /// through the per-ingredient measure STREAM providers. Those are autoDispose,
 /// PowerSync's `watch` does not emit synchronously, and an element disposed
-/// before its first emission completes `.future` with a `StateError` — which
+/// before its first emission completes `.future` with a [StateError] — which
 /// this loader caught and turned into "no measures", so "1 clove" of a garlic
 /// row that carries a `clove` measure validated against an empty list and was
 /// flagged "Pick a supported unit". A plain read has no element to lose.

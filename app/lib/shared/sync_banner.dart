@@ -77,7 +77,7 @@ String _readableTable(String table) => switch (table) {
 };
 
 /// The detail behind "What happened": the table, the operation and the server's
-/// own code — the same string the connector's `debugPrint` carries, shown to
+/// own code — the same string the connector's [debugPrint] carries, shown to
 /// the person it happened to instead of to a console nobody is reading.
 Future<void> showDroppedWriteSheet(
   BuildContext context,

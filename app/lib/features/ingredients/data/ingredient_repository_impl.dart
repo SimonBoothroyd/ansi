@@ -1,7 +1,7 @@
 /// [IngredientRepository] over the local SQLite vocab (server-synced since
 /// step 7 — `ensure_onboarded` clones the household's starter vocab).
 ///
-/// Search is `searchRank`'s three tiers, split across SQL and Dart because
+/// Search is [searchRank]'s three tiers, split across SQL and Dart because
 /// each half is better at one of them:
 ///
 /// * **SQL selects, Dart ranks.** The word-boundary `LIKE` pass IS tiers 0 and
@@ -36,7 +36,7 @@ import '../domain/normalize.dart';
 const _uuid = Uuid();
 
 /// The volume-unit names the chip row refuses as measure labels
-/// (`isVolumeUnitLabel` — ids, display labels, and their simple s plurals),
+/// ([isVolumeUnitLabel] — ids, display labels, and their simple s plurals),
 /// lowercased for the SQL filter below. Static catalog values, no user input.
 final _volumeLabelList = [
   for (final u in kAllUnits)
@@ -186,7 +186,7 @@ class SqliteIngredientRepository implements IngredientRepository {
     );
   }
 
-  /// [rows] in `searchRank` order, capped at [limit].
+  /// [rows] in [searchRank] order, capped at [limit].
   List<Ingredient> _rank(String query, List<Row> rows, {required int limit}) =>
       [for (final r in _rankHits(query, rows).take(limit)) r.ingredient];
 
@@ -348,7 +348,7 @@ class SqliteIngredientRepository implements IngredientRepository {
   /// D4b: the admission list as it reads once [current]'s density is gone —
   /// the cross-family units go with the number they were derived from. The
   /// basis family and the default unit's family survive (see
-  /// `densityStrippedUnits`); curated units outside the derived rules are
+  /// [densityStrippedUnits]); curated units outside the derived rules are
   /// untouched. Read by [clearDensity] and [declineUsdaPrefill], which are
   /// the two places a density is ever deleted.
   static Set<Unit> _strippedOfDensity(Ingredient current) =>

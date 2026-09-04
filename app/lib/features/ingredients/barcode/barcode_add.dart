@@ -18,9 +18,9 @@
 ///   draft's macros can be null, and null means *absent*, not zero. The
 ///   caller confirms (D5: macros gate `complete`, and confirming is a human
 ///   act).
-/// * The draft carries its own provenance: `IngredientDraft.sourceValue` is
+/// * The draft carries its own provenance: [IngredientDraft.sourceValue] is
 ///   the `off:<barcode>` value for the row's `source` column, and
-///   `IngredientDraft.attribution` is the ODbL credit the form must show
+///   [IngredientDraft.attribution] is the ODbL credit the form must show
 ///   beside anything OFF supplied.
 ///
 /// Wiring it into a host is one import and one await; nothing else in this

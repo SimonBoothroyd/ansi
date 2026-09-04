@@ -568,7 +568,7 @@ class _AddItemButton extends StatelessWidget {
 ///
 /// Shop was already closest to the house rule — it tells its two causes apart
 /// and keeps `Add an item`, which works with no plan at all. All that changed
-/// is that it stopped replacing the screen; the `_AddItemButton` below is now
+/// is that it stopped replacing the screen; the [_AddItemButton] below is now
 /// permanently on screen rather than being swapped away with everything else.
 class _NothingToBuyLine extends ConsumerWidget {
   const _NothingToBuyLine();

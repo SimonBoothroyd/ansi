@@ -8,7 +8,7 @@
 /// chip skin is painted by [MethodSpanController].
 ///
 /// The card that has focus grows two things: the insert toolbar, and a
-/// **"Reads as"** preview rendered by the shipped `MethodStepText` — the same
+/// **"Reads as"** preview rendered by the shipped [MethodStepText] — the same
 /// fold the recipe page runs, so the live amounts are visible while you write
 /// and the editor never has to fake a number.
 ///
@@ -283,7 +283,7 @@ class MethodStepCard extends HookConsumerWidget {
   /// behind the `▸`. This is the shipped path, not a Material intrusion —
   /// Forui's own default builder is already
   /// `AdaptiveTextSelectionToolbar.editableText`, and we hand it one more
-  /// `ContextMenuButtonItem` each.
+  /// [ContextMenuButtonItem] each.
   Widget _selectionToolbar(
     BuildContext context,
     EditableTextState state,
@@ -508,7 +508,7 @@ class MethodStepCard extends HookConsumerWidget {
 
 /// Opens the line picker over this recipe's own lines and returns the id of
 /// the line the chip should point at — running the shipped
-/// `showLineTargetPicker` → quantity-sheet chain when the footer is taken, so
+/// [showLineTargetPicker] → quantity-sheet chain when the footer is taken, so
 /// adding an ingredient and chipping it is ONE act.
 ///
 /// [canAddLine] false (the import review, seam D4) disables that door and
@@ -570,7 +570,7 @@ Future<String?> pickOrAddLine(
 }
 
 /// D5's confirm (design board frame g). It counts what dies and promises what
-/// does not: `flattenMethod` emits each step's own prose, byte-identical to
+/// does not: [flattenMethod] emits each step's own prose, byte-identical to
 /// what the card was already showing, so **no sentence changes**.
 ///
 /// It lives in the METHOD header's ⋯, not behind a red button: converting is

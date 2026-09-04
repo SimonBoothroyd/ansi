@@ -327,7 +327,7 @@ Future<void> promptForNewSection(
 
 /// The book header's `⋯` — [_SectionMenu]'s menu one level up (D4).
 ///
-/// Same `FPopoverMenu`, same items in the same order, so nothing new is
+/// Same [FPopoverMenu], same items in the same order, so nothing new is
 /// learned. Reorder is deliberately the sections' clunky Move up / Move down:
 /// books do not get drag-and-drop while sections still lack it.
 class _BookMenu extends ConsumerWidget {
@@ -868,7 +868,7 @@ class _SectionMenu extends ConsumerWidget {
 
 /// One recipe: title · (★ when favourited) · serves N · ›.
 ///
-/// The star REPORTS ONLY (D6). `RecipeSummary.favorite` has existed since 0011
+/// The star REPORTS ONLY (D6). [RecipeSummary.favorite] has existed since 0011
 /// and the picker has a Favorites tab, so a library that cannot show a star
 /// makes the recipe page's star feel like it went nowhere — but toggling stays
 /// on the recipe page, and this row keeps its single tap target. Absent when
@@ -1113,7 +1113,7 @@ class _IngredientsShelf extends ConsumerWidget {
   }
 }
 
-/// No books at all (D7·1) — nearly unreachable, since `ensureDefaultBook()`
+/// No books at all (D7·1) — nearly unreachable, since `ensureDefaultBook`
 /// runs at bootstrap, but it stays honest and points at something ON SCREEN.
 /// The old copy said "Add one with the ＋ above", which after D1 is no longer
 /// where books are made.

@@ -4,7 +4,7 @@
 /// per-100 macro line for complete rows, a `stub` badge — never zeros), and
 /// the add-new affordance.
 ///
-/// Search is the shared `searchRank` rule, in the repository. When nothing was
+/// Search is the shared [searchRank] rule, in the repository. When nothing was
 /// spelled right the guarded typo tier answers instead, and those rows arrive
 /// under a `DID YOU MEAN` header — the phone offers a guess for a human to
 /// pick, it never resolves on one (ADR-0004).

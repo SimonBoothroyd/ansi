@@ -67,7 +67,7 @@ class ReviewLineCard extends HookConsumerWidget {
   final ReconLine line;
   final LineResolution resolution;
 
-  /// The line's validity + unit chips (from `importValidation`). Null while
+  /// The line's validity + unit chips (from [importValidation]). Null while
   /// validation is still loading — the card falls back to the structural
   /// check (matched? range picked?) so it always renders something sane.
   final LineValidation? validation;

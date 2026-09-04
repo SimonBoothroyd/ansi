@@ -6,13 +6,13 @@
 /// This adapter satisfies [MethodEditing] over the review's own state. It owns
 /// no state itself: it derives the drafts from the preview recipe when nobody
 /// has typed, and every mutator re-seats the whole list through
-/// `ImportController.setMethodDraft`. That keeps the review's single source of
+/// [ImportController.setMethodDraft]. That keeps the review's single source of
 /// truth where it already was — the controller — and means a rebuild between
 /// two keystrokes cannot lose one.
 ///
 /// **Chips key on the preview's ids** (`previewLineId(i) == 'line-<i>'`), so
 /// `MethodStepText`'s "Reads as" fold shows live amounts with no extra
-/// plumbing, and `stepsFromDrafts` parses them back to line indexes at commit.
+/// plumbing, and [stepsFromDrafts] parses them back to line indexes at commit.
 library;
 
 import '../../../core/units/units.dart';

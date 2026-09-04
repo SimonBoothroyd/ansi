@@ -21,6 +21,9 @@ linter:
   rules:
     # Project conventions on top of very_good_analysis:
     public_member_api_docs: false   # relax for app code (not a published package)
+    # A doc reference in [square brackets] must resolve to something real, so a
+    # renamed or deleted identifier fails the build instead of rotting in prose.
+    comment_references: true
     prefer_relative_imports: true
     always_use_package_imports: false
     sort_pub_dependencies: false    # pubspec deps are grouped by purpose, not A–Z

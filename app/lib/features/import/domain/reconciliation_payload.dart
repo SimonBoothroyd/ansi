@@ -2,7 +2,7 @@
 ///
 /// PURE DART (invariant 2): no `package:flutter`. These types mirror the frozen
 /// server contract in `supabase/functions/_shared/types.ts`
-/// (`ReconciliationPayload` and friends) one-for-one — the real `import-recipe`
+/// ([ReconciliationPayload] and friends) one-for-one — the real `import-recipe`
 /// edge function returns this shape, and the canned test payload parses into
 /// it. Field names are camelCase here and serialize to the contract's
 /// snake_case via `build.yaml`'s `field_rename`.
@@ -91,7 +91,7 @@ class TimeFieldConverter implements JsonConverter<TimeRange?, Object?> {
 }
 
 /// One extracted ingredient line, ingredient-blind and unit-aware. Identity
-/// (`ingredientText`) is preserved as-written; only [qty]/[unit] are normalized
+/// ([ingredientText]) is preserved as-written; only [qty]/[unit] are normalized
 /// toward our vocab, and an unmappable amount is preserved + flagged.
 @freezed
 abstract class RawLineItem with _$RawLineItem {

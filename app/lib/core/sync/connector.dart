@@ -96,7 +96,7 @@ class AnsiConnector extends PowerSyncBackendConnector {
 
   final SupabaseClient _supabase;
 
-  /// Where a discarded transaction is reported. The `debugPrint` below stays
+  /// Where a discarded transaction is reported. The [debugPrint] below stays
   /// beside it, not instead of it — a console line is for whoever is attached,
   /// and this is for the person it happened to.
   final DroppedWriteSink _onDropped;

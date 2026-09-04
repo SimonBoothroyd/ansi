@@ -9,7 +9,7 @@
 ///
 /// Repositories do **not** return it: they throw, and the write door
 /// (`shared/write.dart`) turns a throw into a toast with a reason and a
-/// retry. That split is on purpose. Threading `Result` through 71 repository
+/// retry. That split is on purpose. Threading [Result] through 71 repository
 /// methods would buy nothing the door does not already give and would put the
 /// failure surface back in each of 40 call sites.
 ///

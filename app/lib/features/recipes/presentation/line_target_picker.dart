@@ -9,7 +9,7 @@
 /// a separate "＋ sub-recipe" row would force the user to know, before
 /// searching, whether the thing they want is a recipe.
 ///
-/// The "Your recipes" search is the shared `searchRank` rule over titles — the
+/// The "Your recipes" search is the shared [searchRank] rule over titles — the
 /// same call the planning picker makes, pinned by a cross-picker test. When
 /// nothing was spelled right the section arrives under a `DID YOU MEAN`
 /// header; a link is still one human tap away, never a resolution.

@@ -2,7 +2,7 @@
 ///
 /// It replaces six copies of the same shrug — *"Could not load the library."*,
 /// *"Could not load the week."*, and four more — each of which threw the
-/// exception it had been handed into a `debugPrint` and offered the user no
+/// exception it had been handed into a [debugPrint] and offered the user no
 /// reason and no way out.
 ///
 /// Three things, in this order, because that is the order a person asks them

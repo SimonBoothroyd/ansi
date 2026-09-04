@@ -47,7 +47,7 @@ abstract interface class BookRepository {
   ///
   /// A book is a shelf, not a container: this never cascades to recipes.
   /// Callers must refuse the delete when [countRecipesIn] is non-zero, and when
-  /// it is the household's last book — `ensureDefaultBook` would re-mint one on
+  /// it is the household's last book — [ensureDefaultBook] would re-mint one on
   /// the next launch, and a book that reappears is worse than a refusal.
   Future<void> deleteBook(String bookId);
 

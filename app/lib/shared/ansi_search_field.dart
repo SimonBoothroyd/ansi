@@ -1,6 +1,6 @@
 /// The app's one search field.
 ///
-/// The `FTextField` + magnifier-prefix anatomy every search surface shares,
+/// The [FTextField] + magnifier-prefix anatomy every search surface shares,
 /// once. Reuse the FIELD, not a shell — `PickerShell` stays a *sheet* shell,
 /// and the Library's search is a field on a screen you are already looking at.
 library;

@@ -52,7 +52,7 @@ const _weekdayShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const _uuid = Uuid();
 
 /// A recipe line as the shopping list needs it. `line` is the domain
-/// [LineItem] the `effectiveLines` seam rules on (id, name, `optional`);
+/// [LineItem] the [effectiveLines] seam rules on (id, name, `optional`);
 /// `unit` is null when the persisted id isn't a known unit — `rawUnit` keeps
 /// the string for the breakdown's unconverted note, and the domain line's
 /// `pieces` fallback is never read here. `measure` is resolved when the line
@@ -139,12 +139,12 @@ class SqliteShoppingRepository implements ShoppingRepository {
   /// component session is a cook session, so the sub-recipe's own ingredient
   /// lines flow through this same pipeline, scaled by its batch factor, and
   /// carry one extra provenance segment naming the plan they serve. The
-  /// component LINE itself never becomes an item — `_loadLineItems` skips any
+  /// component LINE itself never becomes an item — [_loadLineItems] skips any
   /// row without an `ingredient_id`, which is exactly the component rows (you
   /// buy almonds, not aioli). The second return value is the per-parent
   /// "N components unresolved" echo built from the plan's gaps.
   ///
-  /// Each recipe's lines pass through the `effectiveLines` seam before any
+  /// Each recipe's lines pass through the [effectiveLines] seam before any
   /// session expands them — this is where lines meet the week, so it is where
   /// the per-week override will join later — and the third return value is the
   /// per-recipe "N optional lines not listed" echo built from what the seam

@@ -1,11 +1,11 @@
 /// Per-line reconciliation state + the pure logic that turns a resolved
-/// `ReconciliationPayload` into a `CommitPayload` — PURE DART (invariant 2).
+/// [ReconciliationPayload] into a [CommitPayload] — PURE DART (invariant 2).
 ///
-/// A `LineResolution` captures the user's decision for one flattened line:
+/// A [LineResolution] captures the user's decision for one flattened line:
 /// which vocabulary ingredient it resolved to, and — for a printed **range** —
 /// which number the user picked. `none` lines start unresolved; the human
 /// resolves them (spec §8). The invariant is enforced at the seam:
-/// `buildCommit` throws unless every line is resolved AND valid, so a partial
+/// [buildCommit] throws unless every line is resolved AND valid, so a partial
 /// import can never reach PowerSync.
 ///
 /// A line resolves to a row that EXISTS. "Create new" at review is not a
@@ -255,8 +255,8 @@ class LineResolution {
   /// Spends the ingredient's curated default measure on this line: the same
   /// write [pickUnit] makes, marked as ours rather than the user's (seam D2).
   ///
-  /// The label is what a tapped chip would have written, so `lineIssues`,
-  /// `sheetChoiceUnit` and `buildCommit` see nothing new — the card is clean
+  /// The label is what a tapped chip would have written, so [lineIssues],
+  /// [sheetChoiceUnit] and [buildCommit] see nothing new — the card is clean
   /// for the ordinary reason, and the saved row is an ordinary measure line.
   LineResolution applyDefaultUnit(String label) =>
       copyWith(unit: label, unitFromDefault: true);

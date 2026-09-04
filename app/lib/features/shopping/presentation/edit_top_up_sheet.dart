@@ -6,7 +6,7 @@
 /// affordance. **Save** edits the contribution in place; **Remove**
 /// soft-deletes just that top-up (the item's cook contributions and
 /// check-off stay). Writes through the keep-alive
-/// `shoppingRepositoryProvider`.
+/// [shoppingRepositoryProvider].
 ///
 /// A top-up whose stored `measure_id` doesn't resolve (row unsynced or
 /// soft-deleted) renders as its honest count fallback with a pending note,

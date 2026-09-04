@@ -94,15 +94,15 @@ final class SyncRefused extends SyncHealth {
 /// be pinned by a unit test rather than by a running sync engine.
 ///
 /// **Which clock the stall runs on.** `ps_crud` carries no timestamps, so the
-/// age of the oldest queued op is not knowable; two things are. `lastSyncedAt`
+/// age of the oldest queued op is not knowable; two things are. [lastSyncedAt]
 /// says when anything last got through, and [uploadFailingSince] says when the
 /// current run of upload errors began. The stall clock takes the **earlier**
 /// of the two, which is what makes both cases right:
 ///
 /// * A cold start with a three-day-old queue has a three-day-old
-///   `lastSyncedAt`, so the banner shows immediately rather than five minutes
+///   [lastSyncedAt], so the banner shows immediately rather than five minutes
 ///   after launch.
-/// * An app whose downloads are healthy keeps refreshing `lastSyncedAt`, so
+/// * An app whose downloads are healthy keeps refreshing [lastSyncedAt], so
 ///   the failing-uploads clock governs and the threshold does its job.
 SyncHealth deriveSyncHealth({
   required int queued,

@@ -6,7 +6,7 @@
 ///   * **Top up** — search the vocab, pick an ingredient, add a manual quantity
 ///     → a `manual` contribution merged into that ingredient's total.
 ///
-/// Both write through the keep-alive `shoppingRepositoryProvider`; the list
+/// Both write through the keep-alive [shoppingRepositoryProvider]; the list
 /// re-derives from the overlay change.
 library;
 

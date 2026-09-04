@@ -3,7 +3,7 @@
 ///
 /// `startImport` calls `supabase.functions.invoke('import-recipe', …)` — a URL
 /// goes up as `{url}`, picked photos are read from disk and base64-encoded as
-/// `{images: [...]}` — and parses the returned `ReconciliationPayload` into its
+/// `{images: [...]}` — and parses the returned [ReconciliationPayload] into its
 /// Dart mirror, which feeds the existing reconciliation UI unchanged. The
 /// function is auth-scoped: `supabase_flutter` attaches the signed-in user's
 /// access token, whose `household_id` claim scopes matching to the household.

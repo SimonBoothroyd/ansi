@@ -49,7 +49,7 @@ Future<List<RecipeUse>> recipeUsedIn(Ref ref, String id) {
 }
 
 /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
-/// dropdown can be filtered by `allowedUnitsFor`. The repository only exposes
+/// dropdown can be filtered by [allowedUnitsFor]. The repository only exposes
 /// search (ADR-0004), so this searches by the denormalised name and matches on
 /// id; null when the vocab row can't be resolved (the dropdown then falls back
 /// to the full catalog).
@@ -80,7 +80,7 @@ Future<Ingredient?> lineItemIngredient(
 /// [initialBookId] and [initialSectionId] are the same idea for the FILING
 /// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
 /// over, so the recipe lands on the shelf you tapped instead of in whichever
-/// book `ensureDefaultBook()` returns. They key the family too — the same
+/// book `ensureDefaultBook` returns. They key the family too — the same
 /// blank form filed into two different sections is two drafts.
 ///
 /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:

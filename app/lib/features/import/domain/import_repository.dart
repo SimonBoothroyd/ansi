@@ -2,7 +2,7 @@
 /// depends only on this; the data layer implements it.
 ///
 /// `startImport` is the "edge function" seam: it runs the server-side
-/// extract→match pipeline and returns a `ReconciliationPayload`. In the app it
+/// extract→match pipeline and returns a [ReconciliationPayload]. In the app it
 /// is the real `import-recipe` invoke (`EdgeImportRepository`); the canned
 /// `SqliteImportRepository.startImport` is the test/dev stand-in, named
 /// explicitly by whoever wants it. `commit` is always real — it writes the

@@ -159,7 +159,7 @@ abstract class ShoppingContribution with _$ShoppingContribution {
     /// The persisted `measure_id` of a manual contribution, verbatim — kept
     /// even while [measure] is unresolved (row not yet synced / soft-deleted)
     /// so the edit sheet's re-save never wipes the FK for every device
-    /// (mirrors the recipe line's `measureId`). Null for cook lines (derived,
+    /// (mirrors the recipe line's [measureId]). Null for cook lines (derived,
     /// never re-saved here).
     String? measureId,
 

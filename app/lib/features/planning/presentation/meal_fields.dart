@@ -6,7 +6,7 @@
 /// eating and how many portions on one already on it. Hoisting them is the only
 /// way the two stay the same controls in the same order: two copies would drift
 /// the first time one of them was touched (the same argument that hoisted
-/// `MethodStepText` and `incompleteNote`).
+/// `MethodStepText` and [incompleteNote]).
 ///
 /// Not every control is shared. [MealDaySlotPicker] is the confirm sheet's
 /// alone: a row does not print a day as a value (its *position* is its day), so
@@ -276,7 +276,7 @@ class MealPortionsStepper extends StatelessWidget {
   final int? portionsOverride;
 
   /// Who is eating, and the household roster to read their factors and names
-  /// from. An eater the roster lacks counts one, as `eatersDemand` says.
+  /// from. An eater the roster lacks counts one, as [eatersDemand] says.
   final List<String> eaterIds;
   final List<Member> roster;
   final ValueChanged<int> onChanged;

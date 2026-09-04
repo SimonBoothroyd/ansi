@@ -16,7 +16,7 @@
 /// - **Delete is refused while a live recipe line points here**, with the
 ///   count — a line's ingredient is never allowed to dangle.
 ///
-/// The form scans a barcode into itself, through the same `applyDraft` rule
+/// The form scans a barcode into itself, through the same [applyDraft] rule
 /// every draft lands by: fields that are EMPTY fill, a value the human already
 /// typed stays (and the card says which), provenance becomes `off:<barcode>`
 /// only where the row had none, and nothing confirms the row.
@@ -1595,7 +1595,7 @@ class _UnitChip extends StatelessWidget {
 ///
 /// Free text is gone. A typed category is only useful if it is the *same*
 /// string every other row uses — the imprecise-unit gate reads it by exact
-/// match (`kImpreciseCategoryGates`), and so does the list's grouping — and
+/// match ([kImpreciseCategoryGates]), and so does the list's grouping — and
 /// free text guarantees "Produce", "produce" and "produce " will coexist.
 /// The options come from the vocabulary itself, so there is no second place
 /// that has an opinion about which categories exist.
@@ -1916,7 +1916,7 @@ class _CountsAsRow extends ConsumerWidget {
   /// selection", which is a different thing from "the household chose none".
   static const _ask = '';
 
-  /// Writes the pick and re-reads the row. `ingredientById` is a one-shot
+  /// Writes the pick and re-reads the row. [ingredientById] is a one-shot
   /// Future, so nothing re-fires on its own — the same reason the measures
   /// editor's `piece` answer invalidates it.
   Future<void> _pick(BuildContext context, WidgetRef ref, String? id) async {
@@ -2038,7 +2038,7 @@ class _GhostButton extends StatelessWidget {
 }
 
 /// The advisory under the density entry. A slot rather than a conditional
-/// child: it retires the moment a density lands, and in a `ListView` a child
+/// child: it retires the moment a density lands, and in a [ListView] a child
 /// that disappears shifts every sibling below it onto the wrong element —
 /// silently resetting their hook state, which is how the lookup's own note
 /// vanished exactly when it had good news.
@@ -2066,7 +2066,7 @@ class _DensityGapNote extends StatelessWidget {
 
 /// A field's micro-label, with any qualifier demoted to [hint].
 ///
-/// `ansiLabel` is letter-spaced uppercase mono — a style for a short noun. A
+/// [ansiLabel] is letter-spaced uppercase mono — a style for a short noun. A
 /// label that grows into a sentence in it ("MACROS — ENTER THEM AS THE LABEL
 /// READS") wraps onto two lines on a phone and reads at the same weight as the
 /// group heading above it, so the sentence goes in [hint] instead.

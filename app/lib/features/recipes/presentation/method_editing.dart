@@ -65,7 +65,7 @@ abstract interface class MethodEditing {
   });
 
   /// Marks `[start, end)` of [stepId] as a timer, rewriting its words to
-  /// `formatTimerRange`'s own output.
+  /// [formatTimerRange]'s own output.
   void timerRange(
     String stepId, {
     required int start,

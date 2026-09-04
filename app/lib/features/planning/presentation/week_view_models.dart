@@ -12,7 +12,7 @@
 /// [viewedWeek] streams that week's meals off the repository.
 ///
 /// Mutations don't need their own notifier — views call the keep-alive
-/// `planningRepositoryProvider` directly, which stays valid across the async
+/// [planningRepositoryProvider] directly, which stays valid across the async
 /// gaps a picker sheet introduces — a throwaway notifier does not, because
 /// Riverpod disposes it underneath the call.
 library;
@@ -133,7 +133,7 @@ Stream<Map<String, DateTime>> lastPlannedByRecipe(Ref ref) =>
 
 /// Per-recipe macro summaries, indexed by recipe id.
 ///
-/// `watchRecipes()` already carries `macros` on every `RecipeSummary`, so the
+/// `watchRecipes` already carries `macros` on every [RecipeSummary], so the
 /// week needs NO new repository method and no second summation — it reads the
 /// same figure the picker rows and the recipe panel show.
 @riverpod

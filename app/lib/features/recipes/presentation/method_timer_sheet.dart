@@ -10,7 +10,7 @@
 ///
 /// Steppers, not a free-text field: "1h30", "an hour or so" and "overnight"
 /// all fail a parser silently, and a wrong countdown is worse than none. The
-/// sheet also never rounds a ragged value away — `formatTimerRange` keeps
+/// sheet also never rounds a ragged value away — [formatTimerRange] keeps
 /// "6 min 30 s" on purpose, and so does this.
 library;
 

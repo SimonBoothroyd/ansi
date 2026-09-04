@@ -3,10 +3,10 @@
 ///
 /// Two vocabularies meet here, and neither moves:
 ///
-/// - the **payload** (`reconciliation_payload.dart`) keys a `StepToken.ref` on
+/// - the **payload** (`reconciliation_payload.dart`) keys a [StepToken.ref] on
 ///   `refs: List<int>` — flattened LINE INDEXES, which is what `buildCommit`
 ///   walks and what the repository turns into `line_item_id`s;
-/// - the **editor** (`method_draft.dart`) keys a `RefSpan` on
+/// - the **editor** (`method_draft.dart`) keys a [RefSpan] on
 ///   `refs: List<String>` — and on the review screen those strings are the
 ///   preview's synthetic ids, `previewLineId(i) == 'line-<i>'`, which is what
 ///   lets `MethodStepText`'s "Reads as" fold show live amounts with no extra

@@ -12,7 +12,7 @@
 ///    reasons, and **no number at all**, exactly as `RecipeMacroPanel`
 ///    refuses.
 /// 3. **partial** — the four cells, the denominator (`1 of 2 meals`), and a
-///    `left out:` line NAMING each excluded meal in `incompleteNote`'s exact
+///    `left out:` line NAMING each excluded meal in [incompleteNote]'s exact
 ///    words.
 /// 4. **whole** — the four cells and the plain denominator (`2 meals`).
 ///
