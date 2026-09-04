@@ -200,7 +200,7 @@ class MeasuresEditor extends HookWidget {
             );
             // No answer (barrier tap, back) keeps `piece`: an admission is
             // the household's, and silence is not consent to remove one.
-            if ((stop ?? false) && context.mounted) {
+            if (stop && context.mounted) {
               await onStopOfferingPiece(measure);
             }
             if (!context.mounted) return;
@@ -240,58 +240,34 @@ class MeasuresEditor extends HookWidget {
 /// The board's frame (c): "you added a measure — stop offering piece?".
 ///
 /// Returns true when the user says the measure says it better (`piece` comes
-/// out), false when they keep both, and null when they dismiss — which keeps
-/// `piece`, because an admission is the household's and silence is not
-/// consent to take one away (the D3 refusal of the silent write).
-Future<bool?> _askStopOfferingPiece(
+/// out) and false when they keep both — or dismiss, which keeps `piece`,
+/// because an admission is the household's and silence is not consent to take
+/// one away (the D3 refusal of the silent write).
+Future<bool> _askStopOfferingPiece(
   BuildContext context,
   Ingredient ingredient,
   Measure added,
 ) {
   final amount =
       '${formatQuantity(added.amount)} ${added.basis.baseUnit.label}';
-  return showAnsiDialog<bool>(
-    context: context,
-    builder: (context, style, animation) => FDialog(
-      title: Text(
+  return askAnsi(
+    context,
+    title:
         'You added “${added.label}”. Still offer “piece” for '
         '${ingredient.canonicalName}?',
-        style: ansiSerif(size: 18),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'A line can say 1 ${added.label} ($amount, so it counts toward '
-            'macros and the shopping total) or 1 piece (an honest count with '
-            'no weight). Offering both means a line can be either, and later '
-            'nobody can tell which was meant.',
-            style: ansiSans(size: 14, color: AnsiColors.muted),
-          ),
-          const SizedBox(height: 10),
-          // Seam D1: the two questions were always one.
-          Text(
-            'Answering No also sets Counts as: ${added.label} — the measure '
-            'you just named becomes what a bare '
-            '“1 ${ingredient.canonicalName.toLowerCase()}” means. Both are '
-            'one tap from changing, on this page.',
-            style: ansiMono(size: 11, color: AnsiColors.muted),
-          ),
-        ],
-      ),
-      actions: [
-        FButton(
-          onPress: () => Navigator.of(context).pop(true),
-          child: Text('No — “${added.label}” says it'),
-        ),
-        FButton(
-          variant: FButtonVariant.outline,
-          onPress: () => Navigator.of(context).pop(false),
-          child: const Text('Keep both'),
-        ),
-      ],
-    ),
+    body:
+        'A line can say 1 ${added.label} ($amount, so it counts toward '
+        'macros and the shopping total) or 1 piece (an honest count with '
+        'no weight). Offering both means a line can be either, and later '
+        'nobody can tell which was meant.',
+    // The two questions were always one.
+    caveat:
+        'Answering No also sets Counts as: ${added.label} — the measure '
+        'you just named becomes what a bare '
+        '“1 ${ingredient.canonicalName.toLowerCase()}” means. Both are '
+        'one tap from changing, on this page.',
+    confirm: 'No — “${added.label}” says it',
+    cancel: 'Keep both',
   );
 }
 

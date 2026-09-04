@@ -252,54 +252,29 @@ class _RecipeBody extends HookConsumerWidget {
     );
     if (uses == null) return;
     if (uses.isNotEmpty) {
-      await showAnsiDialog<void>(
+      await refuseAnsi(
         // The host outlives the row — see [hostContextOf].
         // ignore: use_build_context_synchronously
-        context: host.context,
-        builder: (context, style, animation) => FDialog(
-          animation: animation,
-          title: Text('Can’t delete this recipe', style: ansiSerif(size: 20)),
-          body: Text(
-            deleteRefusalText(
-              recipes: uses.map((u) => u.recipeId).toSet().length,
-              lines: uses.length,
-            ),
-          ),
-          actions: [
-            FButton(
-              variant: FButtonVariant.outline,
-              onPress: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
+        host.context,
+        title: 'Can’t delete this recipe',
+        body: deleteRefusalText(
+          recipes: uses.map((u) => u.recipeId).toSet().length,
+          lines: uses.length,
         ),
       );
       return;
     }
 
-    final ok = await showAnsiDialog<bool>(
+    final ok = await askAnsi(
       // The host outlives the row — see [hostContextOf].
       // ignore: use_build_context_synchronously
-      context: host.context,
-      builder: (context, style, animation) => FDialog(
-        animation: animation,
-        title: Text('Delete recipe?', style: ansiSerif(size: 20)),
-        body: const Text('This removes it from your recipes.'),
-        actions: [
-          FButton(
-            variant: FButtonVariant.destructive,
-            onPress: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
-          ),
-          FButton(
-            variant: FButtonVariant.outline,
-            onPress: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
+      host.context,
+      title: 'Delete recipe?',
+      body: 'This removes it from your recipes.',
+      confirm: 'Delete',
+      destructive: true,
     );
-    if (ok ?? false) {
+    if (ok) {
       final deleted = await container.writeOk(
         host,
         'delete that recipe',

@@ -23,6 +23,9 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
+import '../core/theme/ansi_theme.dart';
+import '../core/theme/ansi_tokens.dart';
+
 /// Shows a modal sheet above the whole shell, bottom-up by default.
 ///
 /// [side] is the only geometry left open: `FLayout.btt` is what every sheet in
@@ -53,3 +56,110 @@ Future<T?> showAnsiDialog<T>({
   builder,
 }) =>
     showFDialog<T>(context: context, useRootNavigator: true, builder: builder);
+
+/// Asks a yes/no question and waits for the answer: true when the reader took
+/// [confirm], false when they took [cancel] **or dismissed** — silence is not
+/// consent, so every caller reads a dismissal as the no.
+///
+/// The board draws one confirm dialog: serif 20 over sans 13 muted, the
+/// affirmative on the **left** and the way out beside it. Passing the wording
+/// rather than a widget tree is what keeps the nine questions the app asks
+/// looking like one question asked nine times.
+///
+/// [destructive] paints the confirm red — for a delete, not for every write.
+/// [caveat] is the mono aside some questions carry under the prose ("this
+/// can't be undone here"), with [caveatLabel] naming it above.
+Future<bool> askAnsi(
+  BuildContext context, {
+  required String title,
+  required String body,
+  required String confirm,
+  String cancel = 'Cancel',
+  bool destructive = false,
+  String? caveat,
+  String? caveatLabel,
+}) async {
+  final answered = await showAnsiDialog<bool>(
+    context: context,
+    builder: (context, style, animation) => FDialog(
+      animation: animation,
+      title: Text(title, style: ansiSerif(size: 20)),
+      body: _dialogBody(body, caveat: caveat, caveatLabel: caveatLabel),
+      actions: [
+        FButton(
+          variant: destructive
+              ? FButtonVariant.destructive
+              : FButtonVariant.primary,
+          onPress: () => Navigator.of(context).pop(true),
+          child: Text(confirm),
+        ),
+        FButton(
+          variant: FButtonVariant.outline,
+          onPress: () => Navigator.of(context).pop(false),
+          child: Text(cancel),
+        ),
+      ],
+    ),
+  );
+  return answered ?? false;
+}
+
+/// A refusal that names why, and returns true when the reader took the [door].
+///
+/// A refusal without a door is a wall in front of the one action that clears
+/// it, so the door is the point: the dialog that says a book still holds 42
+/// recipes is also the way to move them. With no door it is an OK-only note.
+Future<bool> refuseAnsi(
+  BuildContext context, {
+  required String title,
+  required String body,
+  String? door,
+}) async {
+  final took = await showAnsiDialog<bool>(
+    context: context,
+    builder: (context, style, animation) => FDialog(
+      animation: animation,
+      title: Text(title, style: ansiSerif(size: 20)),
+      body: _dialogBody(body),
+      actions: [
+        if (door != null)
+          FButton(
+            onPress: () => Navigator.of(context).pop(true),
+            child: Text(door),
+          ),
+        FButton(
+          variant: FButtonVariant.outline,
+          onPress: () => Navigator.of(context).pop(false),
+          child: Text(door == null ? 'OK' : 'Cancel'),
+        ),
+      ],
+    ),
+  );
+  return took ?? false;
+}
+
+Widget _dialogBody(String body, {String? caveat, String? caveatLabel}) =>
+    Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(body, style: ansiSans(size: 13, color: AnsiColors.muted)),
+          if (caveatLabel != null) ...[
+            const SizedBox(height: 12),
+            Text(caveatLabel, style: ansiLabel()),
+          ],
+          if (caveat != null) ...[
+            SizedBox(height: caveatLabel == null ? 10 : 4),
+            Text(
+              caveat,
+              style: ansiMono(
+                size: 11,
+                color: AnsiColors.muted,
+              ).copyWith(height: 1.5),
+            ),
+          ],
+        ],
+      ),
+    );

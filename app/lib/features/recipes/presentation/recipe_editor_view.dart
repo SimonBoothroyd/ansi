@@ -489,33 +489,17 @@ Future<void> removeLineWithChips(
     notifier.removeLineItem(item.id);
     return;
   }
-  final confirmed = await showAnsiDialog<bool>(
-    context: context,
-    builder: (dialogContext, style, animation) => FDialog(
-      title: Text(
+  final confirmed = await askAnsi(
+    context,
+    title:
         '$steps ${steps == 1 ? 'step mentions' : 'steps mention'} '
         '${item.ingredientName}.',
-        style: ansiSerif(size: 18),
-      ),
-      body: Text(
+    body:
         'Remove those chips too? Their words stay in the sentences — only '
         'the links go.',
-        style: ansiSans(size: 14, color: AnsiColors.muted),
-      ),
-      actions: [
-        FButton(
-          variant: FButtonVariant.outline,
-          onPress: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Cancel'),
-        ),
-        FButton(
-          onPress: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Remove'),
-        ),
-      ],
-    ),
+    confirm: 'Remove',
   );
-  if (confirmed ?? false) notifier.removeLineItem(item.id);
+  if (confirmed) notifier.removeLineItem(item.id);
 }
 
 /// A component line in the editor (step 8.6 / D1, board frame a's identity

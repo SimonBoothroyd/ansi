@@ -582,53 +582,23 @@ Future<void> _confirmFlatten(
 ) async {
   final counts = notifier.methodLinkCounts();
   if (counts.chips == 0 && counts.timers == 0) return;
-  final confirmed = await showAnsiDialog<bool>(
-    context: context,
-    builder: (dialogContext, style, animation) => FDialog(
-      title: Text(
-        'Convert the method to plain text?',
-        style: ansiSerif(size: 18),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '${counts.chips} ingredient '
-            '${counts.chips == 1 ? 'chip' : 'chips'} and '
-            '${counts.timers} ${counts.timers == 1 ? 'timer' : 'timers'} '
-            'become ordinary words. Every sentence reads exactly the same — '
-            'only the links go.',
-            style: ansiSans(size: 14, color: AnsiColors.muted),
-          ),
-          const SizedBox(height: 12),
-          Text('This can’t be undone here', style: ansiLabel()),
-          const SizedBox(height: 4),
-          Text(
-            'Chips are written at import, or added one at a time from a '
-            'selection. Nothing on the phone can re-chip a method — matching '
-            'is online-only, and only at import.',
-            style: ansiMono(
-              size: 11,
-              color: AnsiColors.muted,
-            ).copyWith(height: 1.5),
-          ),
-        ],
-      ),
-      actions: [
-        FButton(
-          variant: FButtonVariant.outline,
-          onPress: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Cancel'),
-        ),
-        FButton(
-          onPress: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Convert to plain text'),
-        ),
-      ],
-    ),
+  final confirmed = await askAnsi(
+    context,
+    title: 'Convert the method to plain text?',
+    body:
+        '${counts.chips} ingredient '
+        '${counts.chips == 1 ? 'chip' : 'chips'} and '
+        '${counts.timers} ${counts.timers == 1 ? 'timer' : 'timers'} '
+        'become ordinary words. Every sentence reads exactly the same — '
+        'only the links go.',
+    caveatLabel: 'This can’t be undone here',
+    caveat:
+        'Chips are written at import, or added one at a time from a '
+        'selection. Nothing on the phone can re-chip a method — matching '
+        'is online-only, and only at import.',
+    confirm: 'Convert to plain text',
   );
-  if (confirmed ?? false) notifier.convertMethodToPlainText();
+  if (confirmed) notifier.convertMethodToPlainText();
 }
 
 /// *"2 steps mentioned the sausage — their chips now read meatballs."*

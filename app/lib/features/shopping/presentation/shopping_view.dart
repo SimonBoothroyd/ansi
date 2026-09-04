@@ -643,30 +643,15 @@ Future<void> _confirmRemove(
   final container = ProviderScope.containerOf(context, listen: false);
   final host = hostContextOf(context);
   final entryId = item.entryId;
-  final remove = await showAnsiDialog<bool>(
-    context: context,
-    builder: (context, style, animation) => FDialog(
-      title: Text('Remove ${item.name}?', style: ansiSerif(size: 18)),
-      body: Text(
-        item.isFreeText
-            ? 'This non-food item will be removed from the list.'
-            : 'This removes ${item.name} and your top-up from the list.',
-        style: ansiSans(size: 14, color: AnsiColors.muted),
-      ),
-      actions: [
-        FButton(
-          variant: FButtonVariant.outline,
-          onPress: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
-        ),
-        FButton(
-          onPress: () => Navigator.of(context).pop(true),
-          child: const Text('Remove'),
-        ),
-      ],
-    ),
+  final remove = await askAnsi(
+    context,
+    title: 'Remove ${item.name}?',
+    body: item.isFreeText
+        ? 'This non-food item will be removed from the list.'
+        : 'This removes ${item.name} and your top-up from the list.',
+    confirm: 'Remove',
   );
-  if (!(remove ?? false) || entryId == null) return;
+  if (!remove || entryId == null) return;
   await container.write(
     host,
     'remove ${item.name}',

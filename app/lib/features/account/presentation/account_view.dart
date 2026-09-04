@@ -100,31 +100,12 @@ class _Eyebrow extends StatelessWidget {
 /// Asks before signing out: sign-out disconnects sync and clears this device's
 /// local copy of the household data (it stays on the server).
 Future<bool> confirmSignOut(BuildContext context) async {
-  final confirmed = await showAnsiDialog<bool>(
-    context: context,
-    builder: (context, style, animation) => FDialog(
-      animation: animation,
-      title: Text('Sign out?', style: ansiSerif(size: 20)),
-      body: Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Text(
-          'This removes the synced data from this device. It stays in your '
-          'household and comes back when you sign in again.',
-          style: ansiSans(size: 13, color: AnsiColors.muted),
-        ),
-      ),
-      actions: [
-        FButton(
-          onPress: () => Navigator.of(context).pop(true),
-          child: const Text('Sign out'),
-        ),
-        FButton(
-          variant: FButtonVariant.outline,
-          onPress: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
-        ),
-      ],
-    ),
+  return askAnsi(
+    context,
+    title: 'Sign out?',
+    body:
+        'This removes the synced data from this device. It stays in your '
+        'household and comes back when you sign in again.',
+    confirm: 'Sign out',
   );
-  return confirmed ?? false;
 }

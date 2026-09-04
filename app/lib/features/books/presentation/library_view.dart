@@ -464,7 +464,7 @@ Future<void> confirmDeleteBook(
     // Separate on purpose: `ensureDefaultBook()` would re-mint a book on the
     // next launch, and a book that reappears after you delete it is worse than
     // being told no.
-    await _refuse(
+    await refuseAnsi(
       host.context,
       title: 'Can’t delete “${book.name}”',
       body: 'This is your only book — every recipe needs a shelf.',
@@ -475,7 +475,7 @@ Future<void> confirmDeleteBook(
   final held = await repo.countRecipesIn(book.id);
 
   if (held > 0) {
-    final move = await _refuse(
+    final move = await refuseAnsi(
       // The host outlives the row — see [hostContextOf].
       // ignore: use_build_context_synchronously
       host.context,
@@ -507,73 +507,20 @@ Future<void> confirmDeleteBook(
     return;
   }
 
-  final confirmed = await showAnsiDialog<bool>(
+  final confirmed = await askAnsi(
     // The host outlives the row — see [hostContextOf].
     // ignore: use_build_context_synchronously
-    context: host.context,
-    builder: (context, style, animation) => FDialog(
-      animation: animation,
-      title: Text('Delete “${book.name}”?', style: ansiSerif(size: 20)),
-      body: Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Text(
-          'The shelf is empty, so nothing goes with it.',
-          style: ansiSans(size: 13, color: AnsiColors.muted),
-        ),
-      ),
-      actions: [
-        FButton(
-          onPress: () => Navigator.of(context).pop(true),
-          child: const Text('Delete'),
-        ),
-        FButton(
-          variant: FButtonVariant.outline,
-          onPress: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
-        ),
-      ],
-    ),
+    host.context,
+    title: 'Delete “${book.name}”?',
+    body: 'The shelf is empty, so nothing goes with it.',
+    confirm: 'Delete',
   );
-  if (!(confirmed ?? false)) return;
+  if (!confirmed) return;
   await container.write(
     host,
     'delete “${book.name}”',
     () => repo.deleteBook(book.id),
   );
-}
-
-/// A refusal that names why. Returns true when the reader took the [door] —
-/// a refusal without one is a wall in front of the one action that clears it.
-Future<bool> _refuse(
-  BuildContext context, {
-  required String title,
-  required String body,
-  String? door,
-}) async {
-  final took = await showAnsiDialog<bool>(
-    context: context,
-    builder: (context, style, animation) => FDialog(
-      animation: animation,
-      title: Text(title, style: ansiSerif(size: 20)),
-      body: Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Text(body, style: ansiSans(size: 13, color: AnsiColors.muted)),
-      ),
-      actions: [
-        if (door != null)
-          FButton(
-            onPress: () => Navigator.of(context).pop(true),
-            child: Text(door),
-          ),
-        FButton(
-          variant: FButtonVariant.outline,
-          onPress: () => Navigator.of(context).pop(false),
-          child: Text(door == null ? 'OK' : 'Cancel'),
-        ),
-      ],
-    ),
-  );
-  return took ?? false;
 }
 
 /// The first-run shelf (D7·2): the app opens on this, so it offers the two
