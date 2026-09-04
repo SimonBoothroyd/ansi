@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
+    <h1 class="view-title">Account</h1>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/account</code> · <code>features/planning</code> · <a href="../../exec-plans/active/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/active/0027-field-test-round-four.md">plan 0027</a> · <a href="../../decisions/0006-sync-auth-and-onboarding.md">ADR-0006</a></p>
+    <p class="view-blurb">A pushed page behind the 👥 in the Library header — the household, this device, the session. It exists because a second setting appeared, which is the trigger it was deferred on.</p>
+</header>
+
+<div class="board">
+
+    <div class="frame">
+        <p class="frame-name"><b>The page</b> · three sections; a control that navigates has nowhere to put a sixth item, which is the whole difference between this and the menu it replaced</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Account</span><span style="width:14px"></span></div>
+
+            <p class="lib-mcap" style="margin-top:2px">household · who eats here, and how much</p>
+            <div class="lib-menu">
+                <div class="acc-row"><span class="who">Ada</span><span class="pf">×1</span><span style="color:var(--muted);font-size:12px">›</span></div>
+                <div class="acc-row"><span class="who">Jun</span><span class="pf">×¾</span><span style="color:var(--muted);font-size:12px">›</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">a <b>usual portion</b> belongs to the person, and it is spent wherever a head-count used to be. Tapping a row opens a stepper — <i>set Jun’s usual portion</i></p>
+
+            <p class="lib-mcap">this device</p>
+            <div class="lib-menu">
+                <div class="acc-row"><span class="who" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">Synced · just now</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">the quiet half of sync health lives here — the <b>loud</b> half stays where it is, a shell banner over whatever you are doing</p>
+
+            <p class="lib-mcap">session</p>
+            <div class="lib-menu">
+                <div class="mi"><span class="ic">⇥</span><span class="lb">Sign out</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">keeps its confirm — “this removes the synced data from this device”</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Household</b> · a usual portion belongs to the <i>person</i>, and it is spent wherever a head-count used to be — the cook plan, the shop and the macro lens all read it</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Account</span><span style="width:14px"></span></div>
+            <p class="lib-mcap" style="margin-top:2px">household</p>
+            <p class="clabel" style="margin-top:8px">Usual portion</p>
+            <div class="eater-row"><span class="lab"><b>Ada</b></span><span class="eaters"><span class="ep on a">A</span></span></div>
+            <div class="frow"><div class="seg"><span class="segopt">×½</span><span class="segopt">×¾</span><span class="segopt on">×1</span><span class="segopt">×1¼</span><span class="segopt">×1½</span><span class="segopt">…</span></div></div>
+            <div class="eater-row"><span class="lab"><b>Jun</b></span><span class="eaters"><span class="ep on j">J</span></span></div>
+            <div class="frow"><div class="seg"><span class="segopt">×½</span><span class="segopt on">×¾</span><span class="segopt">×1</span><span class="segopt">×1¼</span><span class="segopt">×1½</span><span class="segopt">…</span></div></div>
+            <p class="conv-note">a meal for both counts as <b>1¾ portions</b> — the cook plan, the shop and the macro lens all read it that way</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Sync health · this device</b> · one quiet line under the household — three states, drawn stacked; only one shows at a time</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Account</span><span style="width:14px"></span></div>
+            <p class="lib-mcap" style="margin-top:2px">this device</p>
+            <div class="lib-menu">
+                <div class="acc-row"><span class="who" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">Synced · 2 min ago</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:12px">— the same row, waiting — and <b>not tappable</b>: a row that does nothing must not look like it does</p>
+            <div class="lib-menu" style="margin-top:6px">
+                <div class="acc-row"><span class="who" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">3 changes waiting</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:12px">— and stuck, where it becomes tappable, and the shell banner appears over whatever you are doing —</p>
+            <div class="lib-menu" style="margin-top:6px">
+                <div class="acc-row"><span class="who" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--gone)">Changes aren’t reaching the other phone · since 14:02</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:14px">the row is <b>one line and only the line</b> — no second detail, no chevron. The words <b>offline</b>, <b>unsynced</b> and <b>pending</b> appear nowhere, and there is no cloud-with-a-slash</p>
+        </div></div>
+    </div>
+
+</div>
+
+<p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>
