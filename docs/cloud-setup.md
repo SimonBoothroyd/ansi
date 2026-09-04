@@ -480,16 +480,17 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
-> **Pending cloud (plan 0027):** migration **`0026_portion_factor.sql`**
-> (`household_member.portion_factor`, default 1 — row-preserving — plus the
-> table's first client UPDATE policy and a column-narrow grant) is on `main`
-> but **not yet pushed**. It ships with `0027_usda_source_label.sql` in one
-> `deploy-supabase` run; both touch the **sync streams** (`household_member`
-> gains `portion_factor` in its explicit column list, `ingredient` gains
-> `source_label`), so the streams are redeployed in the same pass. Readback:
-> `select column_default from information_schema.columns where table_name =
-> 'household_member' and column_name = 'portion_factor';` → `1`. Replace this
-> note with the ledger entry once it lands.
+> **One errand clears the backlog.** Everything below `0025` is unpushed and
+> goes in a **single** `deploy-supabase` run: `0026` portion factor · `0027`
+> USDA source label · `0028` `allowed_units` repair · `0029` USDA search
+> ranking (with `seed_usda_index.sql` in the seed order) · and `0030`/`0031`
+> from the state-of-the-world sweep (RLS on the four search-index tables and
+> its pgTAP legs; the `tinned` → `canned` `match_text` rewrite). The sync
+> streams are redeployed in the same pass — `household_member` gains
+> `portion_factor` in its explicit column list. Two plans (0027 and 0029)
+> close on this push. The sections below carry each migration's readback;
+> replace them with one ledger entry once it lands.
+
 ### PENDING — plan 0029 (one save, one write): 0029 USDA search ranking
 
 - **`0029_usda_search_ranking.sql` is merged and NOT yet on cloud.** It drops

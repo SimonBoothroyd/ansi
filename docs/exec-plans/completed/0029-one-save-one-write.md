@@ -1,6 +1,8 @@
 # Exec plan: one save, one write — and the New-ingredient sheet dissolves
 
-- **Status:** **done** (2026-09-03) — all three lanes landed; `new_ingredient_sheet.dart` is deleted
+- **Status:** done — all three lanes landed, client and server;
+  `new_ingredient_sheet.dart` is deleted. Migration `0029` is **pending cloud**
+  (`docs/cloud-setup.md`).
 - **Owner:** Simon
 - **Decision record:** [ADR-0011](../../decisions/0011-one-save-one-write.md)
 - **Follows:** plan 0028's design pass on the flesh-out form (three groups, the
@@ -217,4 +219,27 @@ Lanes A and B are one worktree; C follows.
 - The board's **"Ingredient detail · v2"** section (plan 0028) gains a frame
   for the create state, and its "New ingredient sheet" note is replaced by the
   sheet's obituary.
-- `docs/QUALITY.md` — the ingredients row notes the single write path.
+- `ARCHITECTURE.md`'s standing table — the ingredients row notes the single
+  write path.
+
+## Decision log
+
+- 2026-09-04 — **R1's dirty-new-row prompt is dropped.** The owner: it guards
+  against a rare case that loses little time. Nothing tracks dirty state and
+  there is no `PopScope` outside the shell, so there is nothing to unwind;
+  the idea is recorded in [`backlog.md`](../backlog.md) as not planned, so it
+  is not re-proposed blind.
+
+## Step-done checklist
+
+- [x] Roadmap: a row names the single write path and the deleted sheet.
+- [x] `ARCHITECTURE.md`'s standing table is true for the ingredients manager.
+- [x] `app/AGENTS.md` "Current focus" and command list still true.
+- [ ] `make test-sim FILE=ingredients` re-run: the form is now the create
+      surface, and the leg rides with plan 0028's outstanding sim run.
+- [x] Tech-debt rows added for corners cut, retired for debt paid.
+- [ ] **Migration `0029` reaches cloud**, with a ledger entry in
+      `docs/cloud-setup.md` — it rides with `0026`–`0031` in one
+      `deploy-supabase` run, and `seed_usda_index.sql` runs after any change
+      to `usda_food`.
+- [x] `make ci` green.

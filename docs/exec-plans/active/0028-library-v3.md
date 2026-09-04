@@ -42,16 +42,17 @@ re-shelved without entering the editor; `/account` exists.
       `change ›`) opening the shipped picker.
 - [x] Every test that drives a removed affordance is moved **by the slice that
       removes it** — see "Test moves", below. No slice lands red.
-- [ ] Tests cover the new logic (the narrow write, the query-param seeding, the
+- [x] Tests cover the new logic (the narrow write, the query-param seeding, the
       filing shown on the editor line).
-- [ ] Docs updated: `ARCHITECTURE.md`'s standing table (books, recipes),
+- [x] Docs updated: `ARCHITECTURE.md`'s standing table (books, recipes),
       `product-spec.md`
       Library section rewritten to v3, board tag flipped to `shipped`.
-- [ ] `make test-sim` on a booted simulator for **all three affected files** —
-      `library`, `week` (the usual-portion leg reaches Household through the
-      header) and `ingredients` (its whole entry path is that menu) — one
-      simulator, serially; results recorded here.
-- [ ] `make ci` green.
+- [ ] `make test-sim` on a booted simulator for the three files still
+      outstanding — `library`, `ingredients` and `recipe_editor` — one
+      simulator, serially; results recorded here. The `week` leg has run: it
+      found the undo toast eating the next tap and the editor opening on a
+      tapped dish, both fixed.
+- [x] `make ci` green.
 
 ## Approach
 
@@ -127,10 +128,11 @@ structural `no_bare_repo_write_test` already forces `setFiling` through
 - **The row `⋯` needed a route in the host test.** Tapping the row opens the
   recipe, which the unrouted `_host` cannot do — the D6 assertion (the row's
   own tap means one thing) only holds if the tap is allowed to navigate.
-- **OPEN — no simulator run yet.** Every smoke leg that touched the header
-  moved (`library`, `week`, `ingredients`, `recipe_editor`) and none has been
-  driven on a device. This is the one acceptance criterion still outstanding
-  for the lanes that have landed.
+- **OPEN — three sim legs.** Four smoke files moved with the header. `week`
+  has been driven and found two real bugs (the undo toast eating the next tap,
+  the editor opening on a tapped dish); `library`, `ingredients` and
+  `recipe_editor` have not. This is the one acceptance criterion still
+  outstanding.
 - **Not ours:** `lib/shared/ansi_toast.dart:122` carries an
   `always_put_required_named_parameters_first` info on `main`. Another agent's
   area; left alone deliberately.
@@ -196,11 +198,11 @@ Append-only.
 
 ## Step-done checklist
 
-- [ ] Roadmap row updated (8.12), naming what shipped and what was deferred.
-- [ ] `ARCHITECTURE.md`'s standing table is true for books and recipes.
-- [ ] `app/AGENTS.md` "Current focus" still true.
+- [x] Roadmap row updated (8.12), naming what shipped and what was deferred.
+- [x] `ARCHITECTURE.md`'s standing table is true for books and recipes.
+- [x] `app/AGENTS.md` "Current focus" still true.
 - [ ] `make test-sim` run on a booted simulator; result recorded above.
-- [ ] Tech-debt rows added for corners cut, retired/narrowed for debt paid.
-- [ ] No migrations in this step — say so in the roadmap row rather than
+- [x] Tech-debt rows added for corners cut, retired/narrowed for debt paid.
+- [x] No migrations in this step — say so in the roadmap row rather than
       leaving a reader to wonder about a cloud push.
-- [ ] `make ci` green.
+- [x] `make ci` green.

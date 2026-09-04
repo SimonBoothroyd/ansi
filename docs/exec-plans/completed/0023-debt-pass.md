@@ -1,6 +1,6 @@
 # Exec plan: 0023 — debt pass (durable-data edition)
 
-- **Status:** active — code landed on main 2026-09-03; awaiting the cloud push (0021/0022 via deploy-supabase) and its ledger entry
+- **Status:** done — the code and the cloud push both landed; ledger entry in `docs/cloud-setup.md`
 - **Owner:** orchestrator (Claude) + four build lanes; Simon rules any real choice
 - **Roadmap step:** between 9 and the stretch steps — no feature; pays tracker rows
 - **Created:** 2026-09-03
@@ -139,9 +139,9 @@ assigned here, not minted: **0021 = lane C, 0022 = lane D**.
 
 ## Step-done checklist
 
-- [ ] Roadmap: no row (debt pass); note in the tracker header date if useful.
+- [x] Roadmap: a Shipped row names the debt pass.
 - [x] `docs/QUALITY.md` grades still true for ingredients / planning / seed.
 - [x] `make test-sim` not required (no UI path changed) — lane A is provider-only.
 - [x] Tech-debt rows retired/narrowed: midnight, SQL admission mirror, singularizer, alias check, canned-tomato (narrowed to "bundles"), plus a NEW row if any lane cuts a corner.
-- [ ] Migrations 0021/0022 reach cloud via `deploy-supabase`; ledger entry in cloud-setup.md.
+- [x] Migrations 0021/0022 reach cloud via `deploy-supabase`; ledger entry in cloud-setup.md.
 - [x] `make ci` green.
