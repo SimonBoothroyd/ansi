@@ -1017,6 +1017,9 @@
         .view-foot{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
         .view-foot a{color:var(--herb);text-decoration:none;}
         .view-foot a:hover{text-decoration:underline;}
+        /* the bottom bar's selected item is herbDeep — one bar, one colour */
+        .nv-i.on .g,.nv-i.on .l{color:var(--herb-deep);}
+
         /* the stub band's closing line, inside the phone */
         .stub-foot{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin:6px 20px 0;}
 

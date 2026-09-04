@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Navigation &amp; the shell</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
+    <h1 class="view-title">Navigation &amp; the shell</h1>
+    <p class="view-status">built · matches code 2026-09-04 · <code>core/router</code> · <code>shared/ansi_tab_shell.dart</code> · <a href="../../design-docs/navigation.md">navigation.md</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a></p>
+    <p class="view-blurb">One bar that never moves, one place a tap can go, and one stated rule for back. The bar is the fixed point in every transition.</p>
+</header>
+
+<div class="board">
+
+    <div class="frame" style="width:380px">
+        <p class="frame-name"><b>The bar</b> · one instance, four states, drawn at 1.6× so the selected state is legible</p>
+        <div class="nv-anat">
+            <div class="nv-bar">
+                <div class="nv-i on"><span class="g">▤</span><span class="l">Library</span></div>
+                <div class="nv-i"><span class="g">▦</span><span class="l">Week</span></div>
+                <div class="nv-i"><span class="g">◍</span><span class="l">Cook</span></div>
+                <div class="nv-i"><span class="g">⬓</span><span class="l">Shop</span></div>
+            </div>
+            <div class="nv-call">
+                <span class="n">selected</span><span>icon and label <b>herb-deep</b>, weight 700. The label inherits its colour rather than stating one — a Text’s own style would beat Forui’s selected variant, which is how the label once stayed grey under a green icon.</span>
+                <span class="n">unselected</span><span>icon and label <b>muted</b>, weight 400. Unchanged.</span>
+                <span class="n">the tick</span><span>selected ⇄ unselected animates over the <b>same 120 ms</b> as the content cross-fade. This is the only motion in a tab switch, and it is under the finger — which is why it is enough.</span>
+                <span class="n">icons</span><span>the shipped Lucide set, unchanged: <span style="font-family:'IBM Plex Mono',monospace">library · calendarDays · cookingPot · shoppingBasket</span>. The glyphs here are board stand-ins — the app never draws a unicode glyph.</span>
+                <span class="n">re-tap</span><span>tapping the tab you are already on sends that branch back to its root — the way out of a pushed page without reaching for back.</span>
+                <span class="n">chrome</span><span>hairline top border, paper ground, bottom safe-area padding. Identical to today — the bar’s <i>looks</i> are not what front 3 was about.</span>
+            </div>
+            <div class="nv-swatch">
+                <span class="nv-tok">selected <b>#21502C</b></span><span class="nv-tok">rest <b>#66736A</b></span><span class="nv-tok">label <b>mono 10 / +0.5</b></span><span class="nv-tok">icon <b>24</b></span><span class="nv-tok">tick <b>120 ms</b></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="frame" style="width:660px">
+        <p class="frame-name"><b>Three beats</b> · what moves and what refuses to — a tab switch is directionless, a push is directional, and the edge-swipe tracks the finger</p>
+        <div class="nv-story">
+
+            <div class="nv-beat">
+                <p class="bh">1 · switch a tab</p>
+                <div class="nv-mini">
+                    <div class="m-top"></div>
+                    <div class="m-body">
+                        <div class="nv-pane a fade-out"><span class="ln w70"></span><span class="ln"></span><span class="ln w45"></span><span class="ln w90"></span></div>
+                        <div class="nv-pane b fade-in"><span class="ln w45"></span><span class="ln w90"></span><span class="ln"></span><span class="ln w70"></span></div>
+                        <span class="nv-ghost">library ⇢ week · in place</span>
+                    </div>
+                    <div class="m-bar"><i></i><i class="on"></i><i></i><i></i></div>
+                </div>
+                <p class="bn">Content <b>cross-fades in place</b>. Nothing translates, so Library→Shop and Shop→Library are the same animation — there is no “wrong direction” left to have. The <b>bar does not move, fade or rebuild</b>; only the selected item ticks from muted to herb.</p>
+                <span class="bt">120 ms · opacity only</span>
+            </div>
+
+            <div class="nv-beat">
+                <p class="bh">2 · push a recipe</p>
+                <div class="nv-mini">
+                    <div class="m-top"></div>
+                    <div class="m-body">
+                        <div class="nv-pane a"><span class="ln w70"></span><span class="ln"></span><span class="ln w45"></span></div>
+                    </div>
+                    <div class="nv-pane cover push"><span class="ln w45"></span><span class="ln w90"></span><span class="ln"></span><span class="ln w70"></span></div>
+                </div>
+                <p class="bn">A recipe, the editor, import and the ingredients manager <b>cover the bar</b> — they are pushed above the whole shell, not inside a tab. Here the slide is <b>correct and wanted</b>: it comes in from the side the back gesture pulls it out from. Cupertino on iOS, predictive-back on Android — each platform’s own.</p>
+                <span class="bt">platform default · full-screen</span>
+            </div>
+
+            <div class="nv-beat">
+                <p class="bh">3 · gesture back</p>
+                <div class="nv-mini">
+                    <div class="m-top"></div>
+                    <div class="m-body">
+                        <div class="nv-pane a"><span class="ln w70"></span><span class="ln"></span><span class="ln w45"></span></div>
+                    </div>
+                    <div class="nv-pane cover" style="left:16%"><span class="ln w45"></span><span class="ln w90"></span><span class="ln"></span></div>
+                    <div class="nv-drag"></div><span class="nv-arrowr">›</span>
+                </div>
+                <p class="bn">Drag from the left edge and the recipe follows your finger, the tab underneath showing through — <b>iOS already does this and it keeps working</b>, because a pushed page still sits on a page that can be popped. Android gets the same peek once <span style="font-family:'IBM Plex Mono',monospace">enableOnBackInvokedCallback</span> is set; without it back is a discrete jump with no preview.</p>
+                <span class="bt">interactive · tracks the finger</span>
+            </div>
+
+        </div>
+        <p class="conv-note">The <b>pushed page never sees the bar</b> (beat 2), which is the already-locked <span style="font-family:'IBM Plex Mono',monospace">/ingredients</span> rule generalised — <i>“a pushed route, so no bottom nav”</i>, Ingredients manager v1.</p>
+    </div>
+
+    <div class="frame nv-wide" style="width:820px">
+        <p class="frame-name"><b>What back does, where</b> · every screen state the app can be in; the rule is stated, not inherited from whatever a <code>go</code> left on the stack</p>
+        <table class="nv-tbl">
+            <thead>
+                <tr><th style="width:22%">You are on…</th><th style="width:26%">Android back<br>(button or edge gesture)</th><th style="width:26%">iOS left-edge swipe</th><th style="width:26%">What changes in v2</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="k">Library tab</td>
+                    <td><span class="ok">leaves the app</span> — correct: this is home</td>
+                    <td>nothing (iOS has no gesture at a stack root)</td>
+                    <td>Unchanged in rule. Gains a <b>preview of the launcher</b> during the drag once the manifest flag is set.</td>
+                </tr>
+                <tr>
+                    <td class="k">Week · Cook · Shop tab</td>
+                    <td class="bad">leaves the app<span class="was">accidental — nothing was ever stacked behind it</span></td>
+                    <td>nothing</td>
+                    <td>→ the <b>Library tab</b>; a second back leaves. Leaving takes <b>two</b> backs from any tab, and exactly two.</td>
+                </tr>
+                <tr>
+                    <td class="k">A pushed page<span class="was">recipe · editor · import · ingredients</span></td>
+                    <td><span class="ok">pops to the tab</span></td>
+                    <td><span class="ok">works today</span> — interactive, tracks the finger</td>
+                    <td>Unchanged, and it is the reason pushed pages stay on the root stack. Android’s pop gains the real predictive animation.</td>
+                </tr>
+                <tr>
+                    <td class="k">A page landed on after a save / import commit / delete</td>
+                    <td class="bad">leaves the app<span class="was">the save ran <span style="font-family:'IBM Plex Mono',monospace">context.go</span>, which flattened the stack</span></td>
+                    <td class="bad">nothing — the gesture is gone on a page that looks exactly like a pushed one</td>
+                    <td><b>Fixed</b>: those three calls become a <b>replace within the stack</b>, so the page below survives and both gestures work. Not a D3 option — a bug in three call sites.</td>
+                </tr>
+                <tr>
+                    <td class="k">A modal sheet<span class="was">17 sheets — picker, quantity, add item…</span></td>
+                    <td><span class="ok">dismisses the sheet</span></td>
+                    <td>n/a — the sheet’s own downward drag dismisses</td>
+                    <td>Sheets must move to the <b>root</b> navigator, or the bar would sit outside their barrier and stay tappable. One shared wrapper, not 17 edits.</td>
+                </tr>
+                <tr>
+                    <td class="k">A dialog<span class="was">7 dialogs — confirm, rename, eaters</span></td>
+                    <td><span class="ok">dismisses the dialog</span></td>
+                    <td>n/a</td>
+                    <td>Same root-navigator wrapper.</td>
+                </tr>
+                <tr>
+                    <td class="k">An open popover menu<span class="was">the Library <span style="font-family:'IBM Plex Mono',monospace">＋</span>, the recipe <span style="font-family:'IBM Plex Mono',monospace">⋯</span></span></td>
+                    <td class="bad">skips the menu and acts on the screen behind it<span class="was">a popover is an overlay, not a route</span></td>
+                    <td>n/a</td>
+                    <td>The menu closes itself the moment an item is chosen, so there is no state where an open menu can be backed through.</td>
+                </tr>
+                <tr>
+                    <td class="k">A cold deep link straight to a recipe</td>
+                    <td>leaves the app — there is genuinely nothing behind it</td>
+                    <td>nothing, correctly</td>
+                    <td>Unchanged. The header’s existing “pop if you can, else go to the Library” fallback is doing real work here and stays.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="frame" style="width:440px">
+        <p class="frame-name"><b>The route tree</b> · four tab branches under the shell, and the pushed routes that sit above the bar</p>
+        <div class="nv-tree">
+            <div><span class="rt">root navigator</span></div>
+            <div>├─ <b>/sign-in</b> <span style="opacity:.7">· gate, no bar</span></div>
+            <div>├─ <b>/connecting</b> <span style="opacity:.7">· gate, no bar</span></div>
+            <div>├─ <span class="sh">SHELL — the one bar lives here</span></div>
+            <div>│&nbsp;&nbsp;&nbsp;├─ branch 0 · <b class="hi">/</b> Library</div>
+            <div>│&nbsp;&nbsp;&nbsp;├─ branch 1 · <b class="hi">/week</b></div>
+            <div>│&nbsp;&nbsp;&nbsp;├─ branch 2 · <b class="hi">/cook</b></div>
+            <div>│&nbsp;&nbsp;&nbsp;└─ branch 3 · <b class="hi">/shop</b></div>
+            <div>├─ <b>/recipes/new</b> ┐</div>
+            <div>├─ <b>/recipes/:id</b> │</div>
+            <div>├─ <b>/recipes/:id/edit</b> ├ <span style="opacity:.8">pushed over the</span></div>
+            <div>├─ <b>/import</b> │ <span style="opacity:.8">shell — cover the bar</span></div>
+            <div>├─ <b>/ingredients</b> │</div>
+            <div>├─ <b>/ingredients/new</b> │</div>
+            <div>├─ <b>/ingredients/:id</b> │</div>
+            <div>└─ <b>/account</b> ┘</div>
+        </div>
+        <p class="conv-note">Keeping the Library at <b>/</b> rather than renaming it <span style="font-family:'IBM Plex Mono',monospace">/library</span> is deliberate: every existing link, every <span style="font-family:'IBM Plex Mono',monospace">?from=</span> in flight and the redirect’s own <span style="font-family:'IBM Plex Mono',monospace">loc == '/'</span> case keep working untouched.</p>
+    </div>
+
+</div>
+
+<p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>
