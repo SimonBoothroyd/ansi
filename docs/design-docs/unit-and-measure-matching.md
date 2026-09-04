@@ -1,10 +1,9 @@
 # Unit & measure matching — how amounts are interpreted end to end
 
-_Mechanics explainer. **Re-traced 2026-08-31, after step 8 shipped** (first
-traced 2026-08-30, before the import path landed; ADR-0008 accepted 2026-08-29;
-migrations 0009/0010/0012; step 7.7 quantity sheet). Moved here from
-`docs/references/` — that directory is vendored dependency snapshots, and this is
-first-class knowledge about our own system._
+_Mechanics explainer, traced to the code (ADR-0008; migrations 0009/0010/0012;
+the quantity sheet). It lives here rather than in `docs/references/` — that
+directory is vendored dependency snapshots, and this is first-class knowledge
+about our own system._
 
 This is a reading of the code as it stands, written to answer three owner
 questions:

@@ -1,6 +1,6 @@
 # PowerSync `watch()` — how a query decides what re-fires it
 
-_Mechanics explainer. Traced against `powersync_core` 1.8.0 on 2026-08-31._
+_Mechanics explainer, traced against `powersync_core` 1.8.0._
 
 Every reactive read in the app is a `db.watch(sql)` stream. PowerSync decides
 which tables should re-fire that stream by running **`EXPLAIN` on the SQL** and
