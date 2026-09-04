@@ -11,8 +11,9 @@
 /// `hostContextOf(context)` BEFORE the await, go through them after — and a
 /// shape is exactly what a paragraph fails to hold and a scan holds.
 ///
-/// **What it checks.** In every `.dart` under `lib/features/**/presentation`
-/// and `lib/shared`, for each `await show…(` / `await promptForText(` /
+/// **What it checks.** In every `.dart` under a feature's widget-bearing
+/// directories (everything but `domain/` and `data/`) and under
+/// `lib/shared`, for each `await show…(` / `await promptForText(` /
 /// `await _refuse(` / `await _confirm…(` (an awaited modal), any `ref.read(`,
 /// `ref.watch(`, `ref.write(`, `ref.writeOk(` or `ref.listen(` that follows it
 /// **inside the same function body** is a violation. The fix shape —
@@ -80,6 +81,23 @@ String _blank(String source) {
   }
   return out.toString();
 }
+
+/// Every directory under `lib/features/` that can hold a widget: a feature's
+/// subdirectories except `domain/` and `data/`, which are pure Dart and SQL.
+///
+/// Derived from the tree rather than listed, so a new feature — or a second
+/// widget directory beside `presentation/`, the way `ingredients/barcode/` is
+/// — is scanned the day it appears rather than the day someone remembers.
+List<Directory> _widgetDirs() =>
+    Directory('lib/features')
+        .listSync()
+        .whereType<Directory>()
+        .expand((feature) => feature.listSync().whereType<Directory>())
+        .where(
+          (d) => !const {'domain', 'data'}.contains(d.path.split('/').last),
+        )
+        .toList()
+      ..sort((a, b) => a.path.compareTo(b.path));
 
 /// Brace depth at every offset of [source] (depth AFTER the character).
 List<int> _depths(String source) {
@@ -161,16 +179,17 @@ void g(WidgetRef ref) {
 
   test('no view reads through ref after an awaited modal', () {
     final files = [
-      ...Directory('lib/features')
-          .listSync(recursive: true)
-          .whereType<File>()
-          .where(
-            (f) =>
-                f.path.endsWith('.dart') &&
-                f.path.contains('/presentation/') &&
-                !f.path.endsWith('.g.dart') &&
-                !f.path.endsWith('.freezed.dart'),
-          ),
+      ..._widgetDirs().expand(
+        (d) => d
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where(
+              (f) =>
+                  f.path.endsWith('.dart') &&
+                  !f.path.endsWith('.g.dart') &&
+                  !f.path.endsWith('.freezed.dart'),
+            ),
+      ),
       ...Directory(
         'lib/shared',
       ).listSync().whereType<File>().where((f) => f.path.endsWith('.dart')),
