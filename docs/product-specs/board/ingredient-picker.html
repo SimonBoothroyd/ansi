@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Ingredient picker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
+    <h1 class="view-title">Ingredient picker</h1>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/ingredients</code> · <code>shared/picker_shell.dart</code> · <a href="../../decisions/0005-two-tier-vocabulary.md">ADR-0005</a> · <a href="../../design-docs/search-and-matching.md">search &amp; matching</a></p>
+    <p class="view-blurb">One selection anatomy: a centred title, a pinned search, honest rows that never show a stub’s zeros — and a footer that mints from the query.</p>
+</header>
+
+<div class="board">
+
+        <div class="frame" id="pv2-a">
+            <p class="frame-name"><b>The picker</b> · search at the top, honest rows below; a stub says what it needs instead of printing zeros. The footer is one push to <code>/ingredients/new</code> — the form, with the query as its name</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Add to “for the curry”</span><span class="dots"></span></div>
+                <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Search ingredients</span><span class="care"></span></div></div>
+                <p class="list-h">Recent</p>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Coconut milk, canned</div>
+                        <span class="res-cat">Dairy alt · has density · 2 measures</span>
+                        <div class="mline">197 kcal · 2P 20F 3C <span class="per">/100 g</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Yellow onion</div>
+                        <span class="res-cat">Produce · 3 measures</span>
+                        <div class="mline">40 kcal · 1P 0F 9C <span class="per">/100 g</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Curry leaves, fresh <span class="res-badge">stub</span></div>
+                        <span class="res-cat">Produce · needs macros — no zeros shown</span></div>
+                    <span class="rplus">＋</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Chicken thigh, boneless</div>
+                        <span class="res-cat">Meat · 3 measures</span>
+                        <div class="mline">179 kcal · 24P 9F 0C <span class="per">/100 g</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="addnew">＋ can’t find it? type a name to add it</div>
+            </div></div>
+        </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>“Did you mean”</b> · the band appears only when nothing was spelled right, so it is the whole list and never a tail on real results — and a query too short for the rule says so</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">✕</span><span class="ttl">Add to “for the curry”</span><span class="dots"></span></div>
+            <div class="field"><div class="search"><span class="mag">⌕</span><span>almnd</span><span class="care"></span></div></div>
+
+            <p class="dym-h">did you mean</p>
+            <div class="res-row dym">
+                <div style="flex:1;min-width:0"><div class="res-nm">Almonds</div>
+                    <span class="res-cat">Nuts &amp; seeds · has density · 2 measures</span>
+                    <div class="mline">579 kcal · 21P 50F 22C <span class="per">/100 g</span></div></div>
+                <span class="dym-score">0.83</span><span class="rplus">＋</span></div>
+            <div class="res-row dym">
+                <div style="flex:1;min-width:0"><div class="res-nm">Almond Milk</div>
+                    <span class="res-cat">Plant milk · has density</span></div>
+                <span class="dym-score">0.83</span><span class="rplus">＋</span></div>
+            <div class="res-row dym">
+                <div style="flex:1;min-width:0"><div class="res-nm">Almond Flour</div>
+                    <span class="res-cat">Baking · has density</span></div>
+                <span class="dym-score">0.83</span><span class="rplus">＋</span></div>
+
+            <p class="conv-note">nothing was spelled right, so <b>every</b> row here is a guess — the band is the whole list, never a tail on real results</p>
+            <div class="addnew">＋ can’t find it? add "almnd" as a new ingredient</div>
+
+            <p class="flabel" style="margin-top:18px">the same field, typing <b style="text-transform:none;letter-spacing:0;color:var(--ink)">nion</b></p>
+            <div class="field"><div class="search"><span class="mag">⌕</span><span>nion</span><span class="care"></span></div></div>
+            <p class="dym-h">did you mean</p>
+            <div class="res-row dym">
+                <div style="flex:1;min-width:0"><div class="res-nm">Onion</div>
+                    <span class="res-cat">Produce · has density · 3 measures</span></div>
+                <span class="dym-score">0.80</span><span class="rplus">＋</span></div>
+            <div class="res-row dym">
+                <div style="flex:1;min-width:0"><div class="res-nm">Red Onion</div>
+                    <span class="res-cat">Produce · has density</span></div>
+                <span class="dym-score">0.80</span><span class="rplus">＋</span></div>
+            <div class="addnew">＋ can’t find it? add "nion" as a new ingredient</div>
+
+            <p class="flabel" style="margin-top:18px">and typing <b style="text-transform:none;letter-spacing:0;color:var(--ink)">tfu</b></p>
+            <div class="field"><div class="search"><span class="mag">⌕</span><span>tfu</span><span class="care"></span></div></div>
+            <div class="refusal">No match for "tfu".<br>Too few letters to guess from — try spelling it out.</div>
+            <div class="addnew">＋ can’t find it? add "tfu" as a new ingredient</div>
+        </div></div>
+    </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>“Your recipes” in the editor’s picker</b> · one section under the ingredient results, nothing else moves</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Add to “for the sliders”</span><span class="dots"></span></div>
+                <div class="field"><div class="search"><span class="mag">⌕</span><span>rom</span><span class="care"></span></div></div>
+                <p class="list-h">Ingredients</p>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Roma tomato</div>
+                        <span class="res-cat">Produce · has density · 2 measures</span>
+                        <div class="mline">18 kcal · 1P 0F 4C <span class="per">/100 g</span></div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Romano beans <span class="res-badge">stub</span></div>
+                        <span class="res-cat">Produce · needs macros — no zeros shown</span></div>
+                    <span class="rplus">＋</span></div>
+                <p class="list-h">Your recipes</p>
+                <div class="res-row">
+                    <div class="rthumb" style="width:26px;height:26px;border-radius:8px;font-size:13px">↪</div>
+                    <div style="flex:1;min-width:0"><div class="res-nm">Romesco Aioli</div>
+                        <span class="res-cat">Our Cookbook · Sauces</span>
+                        <div class="mline">makes 1 cup</div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="res-row">
+                    <div class="rthumb" style="width:26px;height:26px;border-radius:8px;font-size:13px">↪</div>
+                    <div style="flex:1;min-width:0"><div class="res-nm">Romesco Toasts</div>
+                        <span class="res-cat">Our Cookbook · Small plates</span>
+                        <div class="mline" style="color:var(--muted)">no yield yet</div></div>
+                    <span class="rplus">＋</span></div>
+                <div class="addnew">＋ can’t find it? type a name to add it</div>
+            </div></div>
+        </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The tiers, in one place</b> · one <code>searchRank</code> over ingredients, recipe titles and the planner’s meal picker — the corpus differs, the rule never does</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">✕</span><span class="ttl">Add to “for the sliders”</span><span class="dots"></span></div>
+            <div class="field"><div class="search"><span class="mag">⌕</span><span>aoli</span><span class="care"></span></div></div>
+
+            <p class="dym-h">did you mean</p>
+            <p class="list-h" style="margin-top:2px">Your recipes</p>
+            <div class="res-row dym">
+                <div class="rthumb" style="width:26px;height:26px;border-radius:8px;font-size:13px">↪</div>
+                <div style="flex:1;min-width:0"><div class="res-nm">Romesco Aioli</div>
+                    <span class="res-cat">Our Cookbook · Sauces</span>
+                    <div class="mline">makes 1 cup</div></div>
+                <span class="dym-score">0.80</span><span class="rplus">＋</span></div>
+
+            <div class="tiers">
+                <div class="tierbox"><b>tier 0 · exact</b>the query IS the name<br><span style="color:var(--ink)">onion → Onion</span></div>
+                <div class="tierbox"><b>tier 1 · prefix</b>every token starts a word, raw or singular<br><span style="color:var(--ink)">pasta tomato → Weeknight Tomato Pasta</span></div>
+                <div class="tierbox t2"><b>tier 2 · typo</b>only when 0 and 1 are empty · 4+ chars alone<br><span style="color:#7A5A16">aoli → Romesco Aioli</span></div>
+            </div>
+            <p class="conv-note">one <span style="font-family:'IBM Plex Mono',monospace">searchRank</span> — ingredients, recipe titles, the planner’s meal picker. The corpus differs; <b>the rule never does</b></p>
+        </div></div>
+    </div>
+
+</div>
+
+<p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>
