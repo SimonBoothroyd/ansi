@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Import review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
+    <h1 class="view-title">Import review</h1>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../import-and-matching.md">import &amp; matching</a></p>
+    <p class="view-blurb">One form with two doors, then the whole import on one editable screen: the editor’s own header, a card per line, the method as step cards, and a Save gate that counts the same number the header does.</p>
+</header>
+
+<div class="board">
+
+        <div class="frame">
+            <p class="frame-name"><b>Intake</b> · one form, two doors — a link, or photos; no source tabs, and a failure comes back to this same form with the reason under it</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Import a recipe</span><span class="dots"></span></div>
+                <p class="rc-note" style="margin-top:4px">Paste a recipe link, or import from photos. We read the ingredients and steps, then <b style="color:var(--ink)">you confirm each match</b> — nothing is guessed for you.</p>
+                <p class="flabel" style="margin-top:16px">Recipe URL</p>
+                <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">https://…</span><span class="care"></span></div></div>
+                <div class="savebtn">Import from link</div>
+                <div class="ghostbtn" style="margin:20px 20px 0;justify-content:center;width:calc(100% - 40px);padding:13px">◻ Import from photos</div>
+                <p class="conv-note" style="margin-top:14px">link button stays disabled on an empty field</p>
+                <p class="rc-note">Photos run <b style="color:var(--ink)">pick → crop each page → import the set</b>; cancelling every page starts nothing. Failures come back to this same form with the error under it, never a dead end.</p>
+            </div></div>
+        </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The review header</b> · the editor’s <code>RecipeHeaderForm</code>, hosted here — with what only the review knows drawn <i>around</i> it through the note slot, never as a second copy of it</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">2 to review</span></div>
+            <div class="srcnotes" style="margin-top:2px">
+                <div class="sn-h"><span>⚠</span><span>What we could not read</span></div>
+                <div class="sn">· No amount printed for the coriander.</div>
+                <div class="sn">· Serves was not printed.</div>
+            </div>
+            <p class="flabel">Title</p>
+            <div class="frow"><div class="fin big">Weeknight Chicken Curry <span class="l3-pen" style="float:right;font-size:12px">✎</span></div></div>
+            <p class="flabel">Serves <span style="color:var(--aging);text-transform:none;letter-spacing:0;font-size:10px">not printed — set it</span></p>
+            <div class="qtyrow" style="margin:0 20px 12px"><div class="stepper"><span class="s">–</span><span class="qv">4</span><span class="s">+</span></div></div>
+            <p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
+            <div class="frow" style="margin-bottom:6px"><div class="srcline" style="margin:0">from source:  SERVES 4 · MAKES ABOUT 1.8 KG</div></div>
+            <div class="qtyrow" style="margin:0 20px 6px"><div class="stepper"><span class="s"></span><span class="qv">1.8</span><span class="s"></span></div><div class="unitsel"><span>kg</span><span style="color:var(--muted)">▾</span></div></div>
+            <div class="frow"><span class="ghostbtn" style="margin-top:0;color:var(--herb);border-style:dashed">＋ Another denomination</span></div>
+            <p class="flabel">Times</p>
+            <div class="portion" style="margin-bottom:8px"><div class="pl">Cook</div><div class="pstepper"><span class="s">–</span><span class="qv">35 min</span><span class="s">+</span></div></div>
+            <div class="portion" style="margin-bottom:12px"><div class="pl">Total</div><div class="pstepper"><span class="s">–</span><span class="qv">50 min</span><span class="s">+</span></div></div>
+            <p class="flabel">Shelf life</p>
+            <div class="portion" style="margin-bottom:8px"><div class="pl">Keeps in the fridge</div><div class="pstepper"><span class="s" style="color:var(--line)">–</span><span class="qv unset">not set</span><span class="s">+</span></div></div>
+            <div class="crow" style="margin-bottom:12px"><span class="cl">Freezes</span><span class="fsw off"></span></div>
+            <p class="flabel">File under</p>
+            <div class="lib-file3" style="margin:0 20px 8px"><span class="bc3">Our Cookbook · Unsectioned</span><span class="ed">change ›</span></div>
+            <div class="tsec" style="margin-top:4px"><span class="tl">Ingredients</span><span class="tc">9</span><span class="rule"></span></div>
+            <div class="lcard">
+                <div class="l3 edit"><span class="l3-amt">1 avocado</span><span class="l3-body"><span class="l3-id">Avocado</span><span class="l3-note">sliced, to serve</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from source:  1 avocado, sliced, to serve</div>
+            </div>
+            <div class="lcard attn">
+                <div class="chead"><span class="cn">coriander</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from source:  coriander, to serve (optional)</div>
+                <div class="lflags"><span class="lflag">no amount</span><span class="lflag">optional</span></div>
+                <div class="attn-tag"><span>⚠</span><span>Set an amount</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:2px">the cards, the never-invent flags, the Save gate and the method step cards — exactly as shipped (seam v2 a–c)</p>
+        </div></div>
+    </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>The line cards</b> · bands only where a line starts; the header count, the card flags and the Save gate all read one number</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">3 to review</span></div>
+                <p class="conv-note" style="margin:8px 20px 2px">above the cards sits the editor’s own header form — title, serves, makes, times, shelf life, filing (previous frame)</p>
+                <div class="srcnotes">
+                    <div class="sn-h"><span>⚠</span><span>What we could not read</span></div>
+                    <div class="sn">· The photo was hard to read — amounts especially.</div>
+                    <div class="sn">· No amount printed for the chilli flakes.</div>
+                </div>
+                <div class="tsec"><span class="tl">Ingredients</span><span class="tc">8</span><span class="rule"></span></div>
+
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">6</span><span class="l3-body"><span class="l3-id">Chicken thigh, boneless</span></span><span class="l3-pen">✎</span></div>
+                </div>
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Chopped tomatoes</span><span class="l3-note">drained</span></span><span class="l3-pen">✎</span></div>
+                </div>
+
+                <div class="lcard attn">
+                    <div class="chead"><span class="cn">garlic cloves</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                    <div class="srcline">from source:  2–3 cloves garlic</div>
+                    <div class="attn-tag"><span>⚠</span><span>Match an ingredient</span></div>
+                    <p class="flabel" style="margin:9px 0 6px">Did you mean</p>
+                    <div class="suggests" style="margin-top:0"><span class="sug">Garlic</span><span class="sug">Garlic granules</span></div>
+                    <div class="ghostbtn">⌕ Something else</div>
+                    <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip off">2–3 cloves</span></span></div>
+                    <div class="lockhint">Match an ingredient first — then the amount and notes unlock.</div>
+                </div>
+
+                <div class="lcard attn">
+                    <div class="chead"><span class="cn">Aleppo chilli flakes</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                    <div class="srcline">from source:  a good pinch Aleppo chilli flakes</div>
+                    <div class="lflags"><span class="lflag">optional</span><span class="lflag">low confidence 41%</span></div>
+                    <div class="attn-tag"><span>⚠</span><span>Match an ingredient</span></div>
+                    <div class="ghostbtn">⌕ Find or create ingredient</div>
+                </div>
+
+                <div class="lcard attn">
+                    <div class="l3 edit"><span class="l3-amt">2–3 tbsp</span><span class="l3-body"><span class="l3-id">Rose harissa</span></span><span class="l3-pen">✎</span></div>
+                    <div class="attn-tag"><span>⚠</span><span>Set the amount</span></div>
+                    <div class="lockhint">auto-matched and still flagged — a printed range needs a picked number</div>
+                </div>
+
+                <div class="savebtn off">3 line(s) need you</div>
+                <p class="conv-note" style="text-align:center;margin-top:8px">header count · card flags · Save all read one map</p>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Expanded edit card</b> · in place, no new screen — re-match, amount, unit fold, notes, bin</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">1 to review</span></div>
+                <div class="lcard" style="margin-top:12px">
+                    <div class="l3 edit"><span class="l3-amt">2</span><span class="l3-body"><span class="l3-id">Red onion</span><span class="l3-note">thinly sliced</span></span><span class="l3-pen">✎</span></div>
+                </div>
+                <div class="lcard attn">
+                    <div class="chead"><span class="cn">butter beans</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                    <div class="srcline">from source:  2 × 400 g tin butter beans, drained</div>
+                    <div class="lflags"><span class="lflag">unit “tin” needs a look</span></div>
+                    <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
+                    <div class="chosen"><span class="ck">✓</span><span class="cnm">Butter beans</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                    <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 can <span class="pen">✎</span></span></span></div>
+                    <div class="erow"><span class="elab">Unit</span><span class="ebody"><div class="suggests" style="margin-top:4px"><span class="sug pick">can</span><span class="sug">g</span><span class="sug">ml</span><span class="sug">tsp</span><span class="sug">tbsp</span><span class="sug quiet">+7 more</span></div></span></div>
+                    <div class="erow"><span class="elab">Notes</span><span class="ebody"><div class="notesin">drained</div></span></div>
+                </div>
+                <p class="conv-note">five chips, then a fold — the admission set runs past a dozen and reads as a wall. The fold <b>never hides the current pick</b>: it opens on one.</p>
+                <p class="rc-note">Tapping the amount opens the <b style="color:var(--ink)">7.7 quantity + unit sheet</b>, seeded from the raw line — a range opens on its printed low endpoint, and an inadmissible unit on an ingredient with measures opens <b style="color:var(--ink)">pre-selected on that measure</b> (“can”), so resolving is one confirm tap. The flag stands until that tap.</p>
+                <div class="lcard" style="background:var(--paper)">
+                    <div class="erow" style="margin-top:0"><span class="elab">Notes</span><span class="ebody"><div class="notesin hint">e.g. finely chopped, to serve</div></span></div>
+                    <div class="lockhint">unmatched line: amount + notes stay greyed — a unit is meaningless with no ingredient to admit it</div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>A dropped line</b> · stays on screen, greyed and reversible; out of the flag count and out of the Save gate</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount ok">looks good</span></div>
+                <div class="tsec" style="margin-top:12px"><span class="tl">Ingredients</span><span class="tc">7</span><span class="rule"></span></div>
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">2 can</span><span class="l3-body"><span class="l3-id">Butter beans</span><span class="l3-note">drained</span></span><span class="l3-pen">✎</span></div>
+                </div>
+                <div class="lcard gone">
+                    <div class="drop">
+                        <span class="dbin">🗑</span>
+                        <span class="dbody"><span class="dn">Aleppo chilli flakes</span><div class="dsub">removed — this line will not be saved</div></span>
+                        <span class="undo">↺ undo</span>
+                    </div>
+                </div>
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Smoked paprika</span></span><span class="l3-pen">✎</span></div>
+                </div>
+                <div class="grp" style="margin-top:14px"><p class="grp-h">to serve</p></div>
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Lemon</span><span class="l3-note">juiced</span></span><span class="l3-pen">✎</span></div>
+                </div>
+                <div class="savebtn">Save recipe</div>
+                <p class="rc-note">A dropped line is nobody’s problem: <b style="color:var(--ink)">no flag, out of the Save gate, out of the count</b> (8 → 7) — counting it would contradict the card that says it is leaving. Drop them all and Save reads “Nothing left to save”.</p>
+            </div></div>
+        </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>A curated default, spent in the open</b> · the line is not flagged, and the fact is said on the card at the moment it is spent</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount ok">1 to review</span></div>
+            <div class="r-hero"><h2 class="r-title" style="font-size:26px;margin-top:2px">Charred Pepper Traybake</h2></div>
+            <div class="tsec" style="margin-top:6px"><span class="tl">Ingredients</span><span class="tc">6</span><span class="rule"></span></div>
+
+            <div class="lcard">
+                <div class="chead"><span class="cn">red peppers</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from source:  2 red peppers, deseeded</div>
+                <div class="chosen"><span class="ck">✓</span><span class="cnm">Red bell pepper</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                <div class="dflt"><span>counts as <b>pepper, medium</b></span><span class="gm">· 119 g</span><span class="tap">tap a chip to change</span></div>
+                <div class="suggests" style="margin-top:7px"><span class="sug pick"><span class="srcdot usda"></span>pepper, medium</span><span class="sug"><span class="srcdot usda"></span>pepper, large</span><span class="sug"><span class="srcdot usda"></span>pepper, small</span><span class="sug">g</span><span class="sug">cup</span></div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 pepper, medium <span class="gm">· 238 g</span> <span class="pen">✎</span></span></span></div>
+                <div class="lockhint">no amber, no “pick a supported unit”, nothing held up. The chips stay <b>visible</b>: the choice made for you is on screen beside the ones you could make instead.</div>
+            </div>
+
+            <div class="lcard">
+                <div class="l3 edit"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from source:  3 onions, thinly sliced</div>
+                <div class="lockhint">collapsed, clean — 110 g each. Under 8.7 this line read “Pick a supported unit”.</div>
+            </div>
+
+            <div class="lcard">
+                <div class="l3 edit"><span class="l3-amt">1 cucumber</span><span class="l3-body"><span class="l3-id">Cucumber</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from source:  1 cucumber</div>
+                <div class="lockhint"><b>D3</b> — the row has exactly one measure, and 8.7 said that “pre-selects”. It pre-selected the <i>sheet</i>, never the line, so this card stayed amber until somebody opened and confirmed it. Now it never opens.</div>
+            </div>
+
+            <div class="lcard attn">
+                <div class="chead"><span class="cn">bunch of cilantro</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from source:  1 bunch cilantro, chopped</div>
+                <div class="lflags"><span class="lflag">unit “bunch” needs a look</span></div>
+                <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
+                <div class="chosen"><span class="ck">✓</span><span class="cnm">Cilantro</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                <p class="chip-note">the source named a thing we don’t carry — the default does not answer this</p>
+                <div class="suggests" style="margin-top:0"><span class="sug"><span class="srcdot usda"></span>sprig</span><span class="sug">g</span><span class="sug">cup</span><span class="sug">tbsp</span><span class="sug impr">handful</span></div>
+                <div class="lockhint">cilantro’s default IS <b>sprig</b> (1 measure, 2.22 g) — and it is deliberately <b>not</b> applied: a bunch is ~25 sprigs. The scope rule is <b>the default answers a line that named a number and no thing; it never overrules a line that named a thing.</b></div>
+            </div>
+
+            <div class="savebtn off">1 line(s) need you</div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>No default, still flagged</b> · a fragment set has no honest answer, so the line waits</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">1 to review</span></div>
+            <div class="lcard attn">
+                <div class="chead"><span class="cn">broccoli</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from source:  1 broccoli, cut into florets</div>
+                <div class="lflags"><span class="lflag">unit “piece” needs a look</span></div>
+                <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
+                <div class="chosen"><span class="ck">✓</span><span class="cnm">Broccoli</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                <p class="chip-note">three different things — <b>you</b> pick; we don’t</p>
+                <div class="suggests" style="margin-top:0"><span class="sug"><span class="srcdot usda"></span>whole</span><span class="sug"><span class="srcdot usda"></span>spear</span><span class="sug"><span class="srcdot typ"></span>crown</span><span class="sug">g</span><span class="sug">cup</span></div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip off">1 — <span class="pen">✎</span></span></span></div>
+                <div class="lockhint">608 g · 31 g · 150 g. <b>default_measure_id is null on this row, and null is a real answer</b> — the model can say “I don’t know”, which a rule never can.</div>
+            </div>
+            <div class="lcard">
+                <div class="l3 edit"><span class="l3-amt">1 head</span><span class="l3-body"><span class="l3-id">Napa cabbage</span><span class="l3-note">shredded</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from source:  1 napa cabbage, shredded</div>
+                <div class="lockhint">the counter-case, one row down: napa cabbage carries a <b>single</b> measure (<b>head</b>, 950 g) so it <i>does</i> get a default — while plain <b>cabbage</b> (head vs leaf) gets none. Same food, two answers, because the vocabulary differs. That is the argument for a curated fact over a rule.</div>
+            </div>
+            <div class="savebtn off">1 line(s) need you</div>
+            <p class="conv-note" style="text-align:center;margin-top:8px">9 of the 141 seeded rows land here — and they are the rows that should</p>
+        </div></div>
+    </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>A recipe offered, never auto-linked</b> · the did-you-mean idiom with one new chip in it; ignore the offer and the line commits as plain text</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">2 to review</span></div>
+                <div class="lcard attn">
+                    <div class="chead"><span class="cn">Romesco Aioli</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                    <div class="srcline">from source:  ¼ cup Romesco Aioli (page 38)</div>
+                    <div class="lflags"><span class="lflag">cross-reference “(page 38)”</span></div>
+                    <div class="attn-tag"><span>⚠</span><span>Match an ingredient — or link your recipe</span></div>
+                    <p class="flabel" style="margin:9px 0 6px">Did you mean</p>
+                    <div class="suggests" style="margin-top:0"><span class="sug pick">↪ your recipe · Romesco Aioli</span><span class="sug">Aioli, jarred</span></div>
+                    <div class="ghostbtn">⌕ Something else</div>
+                    <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip off">¼ cup</span></span></div>
+                    <div class="lockhint">Nothing links itself — the chip is an offer. Ignore it and this line commits as plain text, exactly as today.</div>
+                </div>
+                <p class="flabel" style="margin:14px 20px 6px">The same card, once you tap the chip</p>
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">0.25 cup</span><span class="l3-body"><span class="ichip">↪ Romesco Aioli</span></span><span class="l3-pen">✎</span></div>
+                    <div class="lockhint">linked — no ingredient match needed, no allowed-units gate. Valid for Save the moment its amount is set.</div>
+                </div>
+                <div class="lcard">
+                    <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id" style="font-weight:400;color:var(--muted)">Italian Sausage (page 45)</span></span><span class="l3-pen">✎</span></div>
+                    <div class="lockhint">offered, declined — commits byte-identical to today’s plain line</div>
+                </div>
+                <div class="savebtn">Save recipe</div>
+            </div></div>
+        </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The method, as step cards</b> · the editor’s own card, its controller and its “Reads as” fold — fully editable here, not read-only</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount ok">looks good</span></div>
+            <div class="tsec" style="margin-top:6px"><span class="tl">Method</span><span class="tc">4</span><span class="rule"></span><span class="ci" style="color:var(--muted);font-size:12px">⋯</span></div>
+            <div class="mstep">
+                <div class="mstep-h"><span class="n">Step 1</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
+                <div class="mstep-in">Heat the oven to 220°C. Toss the <span class="echip">red peppers</span> and <span class="echip">onions</span> with the <span class="echip">olive oil</span> on a large tray.</div>
+            </div>
+            <div class="mstep on">
+                <div class="mstep-h"><span class="n">Step 2</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
+                <div class="mstep-in">Roast for <span class="echip tmr">25–30 min</span>, turning once, until the edges are properly <span class="sel">charred</span>.</div>
+                <div class="seltb"><span>Cut</span><span>Copy</span><span class="k">To ingredient</span><span class="k">To timer</span><span>▸</span></div>
+                <div class="mstep-tools"><span class="mtool k">＋ ingredient</span><span class="mtool">⏱ timer</span></div>
+                <div class="mstep-pv"><span class="pvl">Reads as</span>Roast for <span class="ichip tmr">⏱ 25–30 min</span>, turning once, until the edges are properly charred.</div>
+            </div>
+            <div class="mstep">
+                <div class="mstep-h"><span class="n">Step 3</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
+                <div class="mstep-in">Scatter over the <span class="echip">cilantro</span> and serve.</div>
+            </div>
+            <div class="addstep">＋ Add a step</div>
+            <p class="conv-note">the same card, the same controller, the same “Reads as” fold — the recipe editor’s, unchanged</p>
+            <div class="savebtn">Save recipe</div>
+        </div></div>
+    </div>
+
+</div>
+
+<p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>
