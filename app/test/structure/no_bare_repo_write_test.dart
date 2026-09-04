@@ -23,6 +23,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/source_scan.dart';
+
 /// Interface methods that *read*. Everything else a repository declares is a
 /// write and must go through the guard.
 const _readVerbs = {
@@ -67,45 +69,6 @@ const _allowed = <String, String>{
 /// return type, a name, an open paren.
 final _declaration = RegExp(r'^  Future<.*>\s+(\w+)\s*\(', multiLine: true);
 
-/// Line comments blanked so prose naming a write method cannot trip the check.
-String _stripComments(String source) => source
-    .split('\n')
-    .map((line) {
-      final i = line.indexOf('//');
-      return i < 0 ? line : line.substring(0, i);
-    })
-    .join('\n');
-
-/// Every directory under `lib/features/` that can hold a widget: a feature's
-/// subdirectories except `domain/` and `data/`, which are pure Dart and SQL.
-///
-/// Derived from the tree rather than listed, so a new feature — or a second
-/// widget directory beside `presentation/`, the way `ingredients/barcode/` is
-/// — is scanned the day it appears rather than the day someone remembers.
-List<Directory> _widgetDirs() =>
-    Directory('lib/features')
-        .listSync()
-        .whereType<Directory>()
-        .expand((feature) => feature.listSync().whereType<Directory>())
-        .where(
-          (d) => !const {'domain', 'data'}.contains(d.path.split('/').last),
-        )
-        .toList()
-      ..sort((a, b) => a.path.compareTo(b.path));
-
-List<File> _dartFiles(Directory dir) =>
-    dir
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where(
-          (f) =>
-              f.path.endsWith('.dart') &&
-              !f.path.endsWith('.g.dart') &&
-              !f.path.endsWith('.freezed.dart'),
-        )
-        .toList()
-      ..sort((a, b) => a.path.compareTo(b.path));
-
 /// Whether the invocation starting at [index] is lexically an argument of a
 /// `ref.write(` / `guardedWrite(` call.
 ///
@@ -141,13 +104,13 @@ void main() {
         .whereType<Directory>()
         .map((f) => Directory('${f.path}/domain'))
         .where((d) => d.existsSync())
-        .expand(_dartFiles)
+        .expand(dartFiles)
         .where((f) => f.path.endsWith('_repository.dart'));
 
     writeMethods = {
       for (final file in interfaces)
         for (final m in _declaration.allMatches(
-          _stripComments(file.readAsStringSync()),
+          blankNonCode(file.readAsStringSync()),
         ))
           m.group(1)!,
     }..removeAll(_readVerbs);
@@ -180,10 +143,10 @@ void main() {
     var guarded = 0;
     var scanned = 0;
 
-    for (final dir in _widgetDirs()) {
-      for (final file in _dartFiles(dir)) {
+    for (final dir in widgetDirs()) {
+      for (final file in dartFiles(dir)) {
         scanned++;
-        final source = _stripComments(file.readAsStringSync());
+        final source = blankNonCode(file.readAsStringSync());
         final path = file.path;
         for (final m in RegExp(r'\.(\w+)\s*\(').allMatches(source)) {
           final name = m.group(1)!;

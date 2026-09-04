@@ -22,8 +22,8 @@
 /// - Each member body is scanned on its own. For every `state =` assignment, if
 ///   an `await` appears in the same body before it AND no `ref.mounted` appears
 ///   between that await and the assignment, it is a violation.
-/// - Comments and string literals are blanked out first (see [_blank]), so
-///   prose about `await` or `ref.mounted` can neither trip nor silence it.
+/// - Comments and string literals are blanked out first (see [blankNonCode]),
+///   so prose about `await` or `ref.mounted` can neither trip nor silence it.
 /// - It cannot follow a `state =` hidden behind a helper (`_set(...)`) called
 ///   after an await, and it takes `ref.mounted` anywhere after the await as a
 ///   guard rather than proving it guards THIS statement. Both are deliberate:
@@ -35,82 +35,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// Dart files that can hold a notifier (generated output excluded).
-List<File> _sourceFiles([String root = 'lib']) =>
-    Directory(root)
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where(
-          (f) =>
-              f.path.endsWith('.dart') &&
-              !f.path.endsWith('.g.dart') &&
-              !f.path.endsWith('.freezed.dart'),
-        )
-        .toList()
-      ..sort((a, b) => a.path.compareTo(b.path));
-
-/// Blanks comments and string literals to spaces in one left-to-right pass,
-/// keeping every offset stable so reported positions still line up with the
-/// file. A single pass (rather than two regex sweeps) is what makes it safe
-/// both ways round: a `//` inside a string literal is not a comment, and an
-/// apostrophe inside a comment does not open a string.
-String _blank(String source) {
-  final out = StringBuffer();
-  var i = 0;
-  while (i < source.length) {
-    // Comments.
-    if (source.startsWith('//', i)) {
-      final nl = source.indexOf('\n', i);
-      final end = nl < 0 ? source.length : nl;
-      out.write(' ' * (end - i));
-      i = end;
-      continue;
-    }
-    if (source.startsWith('/*', i)) {
-      final close = source.indexOf('*/', i + 2);
-      final end = close < 0 ? source.length : close + 2;
-      out.write(' ' * (end - i));
-      i = end;
-      continue;
-    }
-    // String literals, longest opener first. A leading r/R makes it raw (no
-    // escapes); the opening quote run is 3 or 1 characters.
-    var j = i;
-    var raw = false;
-    if (source[j] == 'r' || source[j] == 'R') {
-      if (j + 1 < source.length &&
-          (source[j + 1] == "'" || source[j + 1] == '"')) {
-        raw = true;
-        j++;
-      }
-    }
-    if (j < source.length && (source[j] == "'" || source[j] == '"')) {
-      final quote = source[j];
-      final triple = source.startsWith(quote * 3, j);
-      final closer = triple ? quote * 3 : quote;
-      var k = j + closer.length;
-      while (k < source.length) {
-        if (!raw && source[k] == r'\') {
-          k += 2;
-          continue;
-        }
-        if (!triple && source[k] == '\n') break; // unterminated; bail safely
-        if (source.startsWith(closer, k)) {
-          k += closer.length;
-          break;
-        }
-        k++;
-      }
-      final end = k > source.length ? source.length : k;
-      out.write(' ' * (end - i));
-      i = end;
-      continue;
-    }
-    out.write(source[i]);
-    i++;
-  }
-  return out.toString();
-}
+import '../helpers/source_scan.dart';
 
 /// An `@riverpod class Foo extends _$Foo` header. The lowercase annotation is
 /// the auto-dispose one; `@Riverpod(keepAlive: true)` doesn't match.
@@ -156,12 +81,9 @@ final _stateWrite = RegExp(r'\bstate\s*=(?!=)');
 final _await = RegExp(r'\bawait\b');
 final _mounted = RegExp(r'\bref\.mounted\b');
 
-int _line(String source, int offset) =>
-    '\n'.allMatches(source.substring(0, offset)).length + 1;
-
 void main() {
   test('no `state =` after an await without a ref.mounted guard', () {
-    final files = _sourceFiles();
+    final files = dartFiles(Directory('lib'));
     expect(files, isNotEmpty, reason: 'no lib sources found — broken glob?');
 
     final violations = <String>[];
@@ -169,7 +91,7 @@ void main() {
 
     for (final file in files) {
       final raw = file.readAsStringSync();
-      final source = _blank(raw);
+      final source = blankNonCode(raw);
       for (final m in _autoDisposeNotifier.allMatches(source)) {
         final body = _blockAfter(source, m.end);
         if (body == null) continue;
@@ -185,7 +107,7 @@ void main() {
             if (lastGuard > lastAwait) continue;
             violations.add(
               '${file.path}:'
-              '${_line(source, member.offset + write.start)} '
+              '${lineOf(source, member.offset + write.start)} '
               'in ${m.group(1)} — `state =` after an await with no '
               '`ref.mounted` guard between them',
             );

@@ -23,34 +23,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/source_scan.dart';
+
 /// Declarations on an interface: two-space indent, a return type, a name, an
 /// open paren. Getters, fields and constructors do not match.
 final _declaration = RegExp(
   r'^  (?:Future|Stream)<.*>\s+(\w+)\s*\(',
   multiLine: true,
 );
-
-/// Line comments blanked so a doc naming a method cannot count as its caller.
-String _stripComments(String source) => source
-    .split('\n')
-    .map((line) {
-      final i = line.indexOf('//');
-      return i < 0 ? line : line.substring(0, i);
-    })
-    .join('\n');
-
-List<File> _dartFiles(Directory dir) =>
-    dir
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where(
-          (f) =>
-              f.path.endsWith('.dart') &&
-              !f.path.endsWith('.g.dart') &&
-              !f.path.endsWith('.freezed.dart'),
-        )
-        .toList()
-      ..sort((a, b) => a.path.compareTo(b.path));
 
 void main() {
   test('every declared repository method has a caller in lib/', () {
@@ -59,7 +39,7 @@ void main() {
         .whereType<Directory>()
         .map((f) => Directory('${f.path}/domain'))
         .where((d) => d.existsSync())
-        .expand(_dartFiles)
+        .expand(dartFiles)
         .where((f) => f.path.endsWith('_repository.dart'))
         .toList();
     expect(interfaces, isNotEmpty, reason: 'no interfaces found — moved?');
@@ -71,19 +51,19 @@ void main() {
     final declared = <String, String>{};
     for (final file in interfaces) {
       for (final m in _declaration.allMatches(
-        _stripComments(file.readAsStringSync()),
+        blankNonCode(file.readAsStringSync()),
       )) {
         declared[m.group(1)!] = file.path;
       }
     }
 
     final callers = <String>{};
-    for (final file in _dartFiles(Directory('lib'))) {
+    for (final file in dartFiles(Directory('lib'))) {
       if (file.path.endsWith('_repository.dart') ||
           file.path.endsWith('_repository_impl.dart')) {
         continue;
       }
-      final source = _stripComments(file.readAsStringSync());
+      final source = blankNonCode(file.readAsStringSync());
       for (final m in RegExp(r'\.(\w+)\s*\(').allMatches(source)) {
         callers.add(m.group(1)!);
       }

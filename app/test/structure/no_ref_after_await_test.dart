@@ -38,66 +38,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/source_scan.dart';
+
 final _awaitedModal = RegExp(
   r'\bawait\s+(?:show\w*|promptForText|_refuse|_confirm\w*)\s*(?:<[^<>()]*>)?\s*\(',
 );
 final _refUse = RegExp(
   r'\bref\.(?:read|watch|write|writeOk|listen)\s*(?:<[^<>()]*>)?\s*\(',
 );
-
-/// Blanks `//` comments and the contents of simple single-line string
-/// literals, keeping every other character (and so every offset) in place.
-String _blank(String source) {
-  final out = StringBuffer();
-  var i = 0;
-  while (i < source.length) {
-    final c = source[i];
-    if (c == '/' && i + 1 < source.length && source[i + 1] == '/') {
-      while (i < source.length && source[i] != '\n') {
-        out.write(' ');
-        i++;
-      }
-      continue;
-    }
-    if (c == "'" || c == '"') {
-      final quote = c;
-      out.write(quote);
-      i++;
-      while (i < source.length && source[i] != quote && source[i] != '\n') {
-        // An escape and the character it escapes are both blanked, so an
-        // escaped quote cannot end the literal early.
-        final skip = source[i] == r'\' && i + 1 < source.length ? 2 : 1;
-        out.write(' ' * skip);
-        i += skip;
-      }
-      if (i < source.length) {
-        out.write(source[i]);
-        i++;
-      }
-      continue;
-    }
-    out.write(c);
-    i++;
-  }
-  return out.toString();
-}
-
-/// Every directory under `lib/features/` that can hold a widget: a feature's
-/// subdirectories except `domain/` and `data/`, which are pure Dart and SQL.
-///
-/// Derived from the tree rather than listed, so a new feature — or a second
-/// widget directory beside `presentation/`, the way `ingredients/barcode/` is
-/// — is scanned the day it appears rather than the day someone remembers.
-List<Directory> _widgetDirs() =>
-    Directory('lib/features')
-        .listSync()
-        .whereType<Directory>()
-        .expand((feature) => feature.listSync().whereType<Directory>())
-        .where(
-          (d) => !const {'domain', 'data'}.contains(d.path.split('/').last),
-        )
-        .toList()
-      ..sort((a, b) => a.path.compareTo(b.path));
 
 /// Brace depth at every offset of [source] (depth AFTER the character).
 List<int> _depths(String source) {
@@ -115,7 +63,7 @@ List<int> _depths(String source) {
 /// The `ref.` uses that follow an awaited modal inside its function body, as
 /// `line:col` strings, for one file's [source].
 List<String> violationsIn(String source) {
-  final text = _blank(source);
+  final text = blankNonCode(source);
   final depths = _depths(text);
   final found = <String>[];
   for (final m in _awaitedModal.allMatches(text)) {
@@ -179,20 +127,8 @@ void g(WidgetRef ref) {
 
   test('no view reads through ref after an awaited modal', () {
     final files = [
-      ..._widgetDirs().expand(
-        (d) => d
-            .listSync(recursive: true)
-            .whereType<File>()
-            .where(
-              (f) =>
-                  f.path.endsWith('.dart') &&
-                  !f.path.endsWith('.g.dart') &&
-                  !f.path.endsWith('.freezed.dart'),
-            ),
-      ),
-      ...Directory(
-        'lib/shared',
-      ).listSync().whereType<File>().where((f) => f.path.endsWith('.dart')),
+      ...widgetDirs().expand(dartFiles),
+      ...dartFiles(Directory('lib/shared')),
     ]..sort((a, b) => a.path.compareTo(b.path));
     expect(files, isNotEmpty);
 

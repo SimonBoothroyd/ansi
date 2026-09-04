@@ -14,13 +14,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/source_scan.dart';
+
 void main() {
   test('no .dart file under lib/ contains a NUL byte', () {
     final offenders = <String>[];
     var scanned = 0;
 
-    for (final file in Directory('lib').listSync(recursive: true)) {
-      if (file is! File || !file.path.endsWith('.dart')) continue;
+    for (final file in dartFiles(Directory('lib'), includeGenerated: true)) {
       scanned++;
       final bytes = file.readAsBytesSync();
       final at = bytes.indexOf(0);

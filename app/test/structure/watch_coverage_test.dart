@@ -30,6 +30,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/source_scan.dart';
+
 /// Where the covered repositories live, relative to `app/` (the cwd of
 /// `flutter test`).
 const _repoGlobDir = 'lib/features';
@@ -64,15 +66,6 @@ const _excluded = <String, String>{};
 
 /// A single- or double-quoted Dart string literal.
 final _literal = RegExp('"(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\'');
-
-/// A `//` comment (incl. `///` docs) to end-of-line. Blanked before literal
-/// extraction so an apostrophe in prose ("PowerSync's") can't open a fake
-/// string; replaced with spaces to keep every offset stable. (No string in
-/// these files contains `//`, so the blunt line-level strip is safe.)
-final _lineComment = RegExp(r'//[^\n]*');
-
-String _blankComments(String source) =>
-    source.replaceAllMapped(_lineComment, (m) => ' ' * (m.end - m.start));
 
 /// `FROM x` / `JOIN x`, optionally `x alias`. Interpolated names (`\$table`)
 /// don't match the identifier class and are skipped by design.
@@ -152,7 +145,7 @@ void main() {
   });
 
   for (final path in impls) {
-    final source = _blankComments(File(path).readAsStringSync());
+    final source = blankComments(File(path).readAsStringSync());
     final reason = _excluded[path];
     if (reason != null) {
       test('$path — excluded from the watch rule', () {

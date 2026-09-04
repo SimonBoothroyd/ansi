@@ -12,6 +12,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 
+import '../helpers/source_scan.dart';
+
 /// A two-branch shell whose branch pages open a modal, mirroring the app's own
 /// shape: a `StatefulShellRoute` with a footer that must end up OUTSIDE the
 /// modal's barrier.
@@ -151,43 +153,22 @@ void main() {
       r'\bshowF(Sheet|Dialog|PersistentSheet)\s*(<[^(]*>)?\s*\(',
     );
 
-    /// Line comments blanked, so the wrapper's own prose and a doc comment
-    /// naming `showFSheet(` cannot trip the check. A `//` inside a string
-    /// truncates that line — which can hide a call, never invent one.
-    String stripComments(String source) => source
-        .split('\n')
-        .map((l) {
-          final i = l.indexOf('//');
-          return i < 0 ? l : l.substring(0, i);
-        })
-        .join('\n');
-
     test('modals go through showAnsiSheet/showAnsiDialog', () {
-      final files =
-          Directory('lib')
-              .listSync(recursive: true)
-              .whereType<File>()
-              .where(
-                (f) =>
-                    f.path.endsWith('.dart') &&
-                    !f.path.endsWith('.g.dart') &&
-                    !f.path.endsWith('.freezed.dart') &&
-                    f.path != wrapper,
-              )
-              .toList()
-            ..sort((a, b) => a.path.compareTo(b.path));
+      final files = dartFiles(
+        Directory('lib'),
+      ).where((f) => f.path != wrapper).toList();
       expect(files, isNotEmpty, reason: 'no lib sources found — broken glob?');
 
       final violations = <String>[];
       var wrapped = 0;
 
       for (final file in files) {
-        final source = stripComments(file.readAsStringSync());
+        final source = blankNonCode(file.readAsStringSync());
         wrapped += RegExp(
           r'\bshowAnsi(Sheet|Dialog)\s*(<[^(]*>)?\s*\(',
         ).allMatches(source).length;
         for (final m in bare.allMatches(source)) {
-          final line = '\n'.allMatches(source.substring(0, m.start)).length + 1;
+          final line = lineOf(source, m.start);
           violations.add('${file.path}:$line — ${m.group(0)}');
         }
       }

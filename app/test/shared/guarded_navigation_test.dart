@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import '../helpers/source_scan.dart';
+
 /// A three-route app that hands the most recently built page's [BuildContext]
 /// back to the test, so a call can be made exactly where a widget would make
 /// it — from the page the user is looking at.
@@ -233,31 +235,14 @@ void main() {
           'opened from; saving an existing recipe pops back onto its page',
     };
 
-    /// Line comments blanked, so a doc comment naming `context.push(` cannot
-    /// trip the check. A `//` inside a string literal would truncate the rest
-    /// of that line — that can only hide a call, never invent one.
-    String stripComments(String source) => source
-        .split('\n')
-        .map((l) {
-          final i = l.indexOf('//');
-          return i < 0 ? l : l.substring(0, i);
-        })
-        .join('\n');
-
     test('views navigate through the tap guard, not bare context.push/go', () {
       final files = [
         for (final root in scannedRoots)
-          ...Directory(root)
-              .listSync(recursive: true)
-              .whereType<File>()
-              .where(
-                (f) =>
-                    f.path.endsWith('.dart') &&
-                    !f.path.endsWith('.g.dart') &&
-                    !f.path.endsWith('.freezed.dart') &&
-                    (f.path.startsWith('lib/shared/') ||
-                        f.path.contains('/presentation/')),
-              ),
+          ...dartFiles(Directory(root)).where(
+            (f) =>
+                f.path.startsWith('lib/shared/') ||
+                f.path.contains('/presentation/'),
+          ),
       ]..sort((a, b) => a.path.compareTo(b.path));
       expect(files, isNotEmpty, reason: 'no view sources found — broken glob?');
 
@@ -270,13 +255,13 @@ void main() {
       var guardedCalls = 0;
 
       for (final file in files) {
-        final source = stripComments(file.readAsStringSync());
+        final source = blankNonCode(file.readAsStringSync());
         guardedCalls += RegExp(
           r'\bcontext\.(pushOnce(For)?(<[^>]*>)?|goOnce)\s*\(',
         ).allMatches(source).length;
         if (exceptions.containsKey(file.path)) continue;
         for (final m in bare.allMatches(source)) {
-          final line = '\n'.allMatches(source.substring(0, m.start)).length + 1;
+          final line = lineOf(source, m.start);
           violations.add('${file.path}:$line — ${m.group(0)}');
         }
       }
@@ -305,7 +290,7 @@ void main() {
         expect(
           RegExp(
             r'\bcontext\.(push|go|replace)(Replacement)?(Named)?\s*\(',
-          ).hasMatch(stripComments(file.readAsStringSync())),
+          ).hasMatch(blankNonCode(file.readAsStringSync())),
           isTrue,
           reason: '$path no longer navigates bare ($why) — drop the exception',
         );
