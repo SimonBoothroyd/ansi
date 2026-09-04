@@ -19,11 +19,13 @@
 ///    their base letter ("Jalapeño" → `jalapeno`, so a line printed without
 ///    the tilde still matches — plan 0023 D5);
 /// 2. split trailing comma modifier(s) off the head;
-/// 3. drop non-identity words — quantities, filler, measures/containers,
-///    sizes, prep adverbs and prep verbs;
+/// 3. drop non-identity words — quantities (including an amount fused to its
+///    unit, "400g"), filler, measures/containers, sizes, prep adverbs and
+///    prep verbs;
 /// 4. KEEP form/state words that DO change identity (fresh, ground, canned)
 ///    and move them after the noun, so "fresh ginger" and "ginger, fresh"
-///    both land on "ginger fresh";
+///    both land on "ginger fresh"; a British surface form folds onto the one
+///    the vocabulary stores first (tinned → canned);
 /// 5. singularize what remains.
 ///
 /// The §7 own-goal is over-stripping: "ground ginger" ≠ "fresh ginger". Never
@@ -193,6 +195,27 @@ const _fractionGlyphs = '¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞';
 /// Purely a quantity token: digits, unicode fractions, ranges.
 final _quantity = RegExp('^[0-9$_fractionGlyphs/.,\\-–—]+\$');
 
+/// An amount fused to its unit in one token: "400g", "1.5kg", "½oz".
+/// [_measures] lists the unit words bare and [_quantity] needs the WHOLE token
+/// to be numeric, so a printed "400g tin of black beans" used to keep `400g`
+/// as a noun and matched nothing at all. Only the unambiguous mass/volume
+/// abbreviations: a bare "l" or "g" after a number can only be a unit, while a
+/// longer suffix would start eating real words.
+final _fusedAmount = RegExp(
+  '^[0-9$_fractionGlyphs/.,\\-–—]+(g|kg|mg|ml|l|oz|lb)\$',
+);
+
+/// British surface forms folded onto the word the vocabulary stores. "tinned"
+/// and "canned" name the same thing on the same shelf, but only "canned" is a
+/// state word — so "tinned chickpeas" used to key as `tinned chickpea`, a
+/// leading noun nothing else produces, and missed `chickpea canned` by enough
+/// to lose the auto band.
+///
+/// A word added here changes what is STORED: pair it with a migration that
+/// rewrites the old form in place (`0031_tinned_is_canned.sql` is the model),
+/// mirror it in `normalize.ts`, and extend the shared vectors.
+const _synonyms = {'tinned': 'canned'};
+
 /// Everything a word may keep: unicode letters/numbers, `/`, fraction glyphs
 /// (kept so [_quantity] can still recognise "1/2" and "½").
 final _punctuation = RegExp('[^\\p{L}\\p{N}/$_fractionGlyphs]', unicode: true);
@@ -265,7 +288,7 @@ void _classify(
   for (final raw in segment.split(_whitespace)) {
     final word = raw.replaceAll(_punctuation, '');
     if (word.isEmpty) continue;
-    if (_quantity.hasMatch(word)) continue;
+    if (_quantity.hasMatch(word) || _fusedAmount.hasMatch(word)) continue;
     if (word == 'clove' || word == 'cloves') {
       if (alliumPresent) continue; // the garlic-clove measure
       nouns.add(word); // the spice
@@ -289,10 +312,14 @@ void _classify(
         _prepVerbs.contains(word)) {
       continue;
     }
-    if (_stateWords.contains(word)) {
-      states.add(word);
+    // Fold last, so the synonym is classified as the word it folds ONTO: this
+    // is what puts "tinned" in the trailing state run rather than leaving it
+    // leading the nouns.
+    final identity = _synonyms[word] ?? word;
+    if (_stateWords.contains(identity)) {
+      states.add(identity);
     } else {
-      nouns.add(word);
+      nouns.add(identity);
     }
   }
 }

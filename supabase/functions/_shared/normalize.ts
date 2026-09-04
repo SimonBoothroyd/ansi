@@ -15,12 +15,14 @@
 //      ("Jalapeño" -> "jalapeno"), so a line printed without its accents still
 //      matches the row that has them (plan 0023 D5).
 //   2. split the trailing comma modifier(s) off the head.
-//   3. drop non-identity words: quantities (2, ½, 2–3), articles/filler (a, of),
-//      measures/containers (can, handful, clove), sizes (large), prep adverbs
-//      (finely) and prep verbs (diced, grated) — none change what the thing IS.
+//   3. drop non-identity words: quantities (2, ½, 2–3) including an amount
+//      fused to its unit (400g), articles/filler (a, of), measures/containers
+//      (can, handful, clove), sizes (large), prep adverbs (finely) and prep
+//      verbs (diced, grated) — none change what the thing IS.
 //   4. KEEP form/state words that DO change identity (fresh, ground, canned,
 //      boneless) and move them after the noun, so "fresh ginger" and "ginger,
-//      fresh" both land on "ginger fresh".
+//      fresh" both land on "ginger fresh". A British surface form folds onto
+//      the one the vocabulary stores first (tinned -> canned).
 //   5. singularize the remaining nouns (onions → onion, leaves → leaf).
 //
 // The own-goal §7 warns about is over-stripping: "ground ginger" ≠ "fresh
@@ -244,6 +246,35 @@ const STATE_WORDS = new Set([
 const QUANTITY = /^[\d¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞/.,\-–—]+$/;
 
 /**
+ * An amount fused to its unit in one token: "400g", "1.5kg", "½oz". MEASURES
+ * lists the unit words bare, and QUANTITY needs the WHOLE token to be numeric,
+ * so a printed "400g tin of black beans" used to keep `400g` as a noun and
+ * matched nothing at all — the review card then offered a fresh stub for an
+ * ingredient the vocabulary already had. Extraction normally splits the amount
+ * off, but the same normalizer writes `match_text` for a name a person typed,
+ * where nothing splits anything.
+ *
+ * Only the unambiguous mass/volume abbreviations: a bare "l" or "g" after a
+ * number cannot be anything but a unit, while a longer suffix would start
+ * eating real words.
+ */
+const FUSED_AMOUNT = /^[\d¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞/.,\-–—]+(?:g|kg|mg|ml|l|oz|lb)$/;
+
+/**
+ * British surface forms folded onto the word the vocabulary stores. "tinned"
+ * and "canned" name the same thing on the same shelf, but only "canned" is a
+ * STATE_WORD — so "tinned chickpeas" used to key as `tinned chickpea`, a
+ * leading noun nothing else produces, and missed `chickpea canned` by enough
+ * to lose the auto band. Folding here makes the two phrasings land on one row
+ * instead of asking every household to write the alias by hand.
+ *
+ * A word added here changes what is STORED: pair it with a migration that
+ * rewrites the old form in place (0031 is the model) and extend the shared
+ * vectors, exactly as the INVARIANT_WORDS rule below requires.
+ */
+const SYNONYMS: Record<string, string> = { tinned: "canned" };
+
+/**
  * Singular words the suffix rules would mangle because they END like a
  * plural. The regex guard below (`-ss`, `-us`, `-is`, `-ous`) already spares
  * boneless, asparagus and hummus; this set is for the words it cannot see —
@@ -368,7 +399,7 @@ function classify(
     // only punctuation; fraction glyphs are kept for the QUANTITY test.
     const word = raw.replace(/[^\p{L}\p{N}/¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞]/gu, "");
     if (!word) continue;
-    if (QUANTITY.test(word)) continue;
+    if (QUANTITY.test(word) || FUSED_AMOUNT.test(word)) continue;
     if (word === "clove" || word === "cloves") {
       if (alliumPresent) continue; // garlic-clove measure
       nouns.push(word); // the spice
@@ -389,8 +420,12 @@ function classify(
       FILLER.has(word) || MEASURES.has(word) || SIZES.has(word) ||
       PREP_ADVERBS.has(word) || PREP_VERBS.has(word)
     ) continue;
-    if (STATE_WORDS.has(word)) states.push(word);
-    else nouns.push(word);
+    // Fold last, so the synonym is classified as the word it folds ONTO: this
+    // is what puts "tinned" in the trailing state run rather than leaving it
+    // leading the nouns.
+    const identity = SYNONYMS[word] ?? word;
+    if (STATE_WORDS.has(identity)) states.push(identity);
+    else nouns.push(identity);
   }
 }
 

@@ -73,11 +73,23 @@
 
     { "from": "a cut word is identity inside a canned phrase", "in": "Canned Diced Tomatoes", "out": "tomato canned diced" },
     { "from": "a cut word is identity inside a canned phrase", "in": "canned chopped tomatoes", "out": "tomato canned chopped" },
-    { "from": "a cut word is identity inside a canned phrase", "in": "tinned chopped tomatoes", "out": "tinned tomato chopped" },
+    { "from": "a cut word is identity inside a canned phrase", "in": "tinned chopped tomatoes", "out": "tomato canned chopped" },
     { "from": "a cut word is identity inside a canned phrase", "in": "Canned Crushed Tomatoes", "out": "tomato canned" },
     { "from": "a cut word is identity inside a canned phrase", "in": "diced tomatoes", "out": "tomato" },
     { "from": "a cut word is identity inside a canned phrase", "in": "2 diced tomatoes", "out": "tomato" },
     { "from": "a cut word is identity inside a canned phrase", "in": "1  (28-ounce) can fire-roasted, chopped tomatoes", "out": "fire tomato roasted" },
-    { "from": "a cut word is identity inside a canned phrase", "in": "1 onion, diced", "out": "onion" }
+    { "from": "a cut word is identity inside a canned phrase", "in": "1 onion, diced", "out": "onion" },
+
+    { "from": "tinned folds onto canned", "in": "tinned chickpeas", "out": "chickpea canned" },
+    { "from": "tinned folds onto canned", "in": "canned chickpeas", "out": "chickpea canned" },
+    { "from": "tinned folds onto canned", "in": "1 tin of tinned black beans", "out": "black bean canned" },
+    { "from": "tinned folds onto canned", "in": "tinned diced tomatoes", "out": "tomato canned diced" },
+
+    { "from": "an amount fused to its unit is still an amount", "in": "400g tin of black beans", "out": "black bean" },
+    { "from": "an amount fused to its unit is still an amount", "in": "400g tin chickpeas", "out": "chickpea" },
+    { "from": "an amount fused to its unit is still an amount", "in": "1.5kg potatoes", "out": "potato" },
+    { "from": "an amount fused to its unit is still an amount", "in": "½oz dried porcini", "out": "porcini dried" },
+    { "from": "an amount fused to its unit is still an amount", "in": "2 lb ground beef", "out": "beef ground" },
+    { "from": "an amount fused to its unit is still an amount", "in": "2lb ground beef", "out": "beef ground" }
   ]
 }

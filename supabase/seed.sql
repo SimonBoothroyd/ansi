@@ -445,8 +445,6 @@ join (values
   ('water', 'filtered water', 'filtered water'),
   ('water', 'warm water', 'warm water'),
   ('tomato canned diced', 'canned chopped tomatoes', 'tomato canned chopped'),
-  ('tomato canned diced', 'tinned chopped tomatoes', 'tinned tomato chopped'),
-  ('tomato canned diced', 'tinned diced tomatoes', 'tinned tomato diced'),
   ('beet', 'beetroot', 'beetroot'),
   ('vegetable broth', 'veggie broth', 'veggie broth'),
   ('vegetable broth', 'vegetable stock', 'vegetable stock'),

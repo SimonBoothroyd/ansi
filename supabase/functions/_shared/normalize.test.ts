@@ -78,13 +78,38 @@ Deno.test("normalize — stick is identity only next to cinnamon", () => {
   assertEquals(normalize("cinnamon"), "cinnamon"); // bare word → the alias row
 });
 
+Deno.test("normalize — tinned folds onto canned", () => {
+  // "tinned" is the same shelf product as "canned", but only "canned" is a
+  // state word: without the fold the British phrasing kept a leading noun
+  // nothing else produces and missed the row by a whole band.
+  assertEquals(normalize("tinned chickpeas"), "chickpea canned");
+  assertEquals(normalize("canned chickpeas"), "chickpea canned");
+  assertEquals(normalize("1 tin of tinned black beans"), "black bean canned");
+  // The cut word still trails behind it, in the order the phrase printed.
+  assertEquals(normalize("tinned diced tomatoes"), "tomato canned diced");
+});
+
+Deno.test("normalize — an amount fused to its unit is still an amount", () => {
+  // The token is not wholly numeric, so QUANTITY misses it, and MEASURES
+  // lists the unit words bare — "400g" used to survive as a noun and take
+  // the whole line down to no candidates at all.
+  assertEquals(normalize("400g tin of black beans"), "black bean");
+  assertEquals(normalize("400g tin chickpeas"), "chickpea");
+  assertEquals(normalize("1.5kg potatoes"), "potato");
+  assertEquals(normalize("\u00bdoz dried porcini"), "porcini dried");
+  // Split or fused, the same key.
+  assertEquals(normalize("2 lb ground beef"), "beef ground");
+  assertEquals(normalize("2lb ground beef"), "beef ground");
+});
+
 Deno.test("normalize — a cut word is identity inside a canned phrase", () => {
   // The gold conventions' ruling (_SCHEMA.md): chopped / crushed / diced
   // tomatoes in a can are DIFFERENT PRODUCTS, so the cut cannot be stripped
   // as prep the way it is on a fresh tomato.
   assertEquals(normalize("Canned Diced Tomatoes"), "tomato canned diced");
   assertEquals(normalize("canned chopped tomatoes"), "tomato canned chopped");
-  assertEquals(normalize("tinned chopped tomatoes"), "tinned tomato chopped");
+  // British phrasing folds onto the stored word, so it lands on the same row.
+  assertEquals(normalize("tinned chopped tomatoes"), "tomato canned chopped");
   // It trails like any other state word, so word order doesn't matter.
   assertEquals(normalize("diced tomatoes, canned"), "tomato diced canned");
 
