@@ -13,8 +13,8 @@
 ///
 /// Mutations don't need their own notifier — views call the keep-alive
 /// `planningRepositoryProvider` directly, which stays valid across the async
-/// gaps a picker sheet introduces (see the step-3 notifier-lifecycle note,
-/// `[[mise-riverpod-notifier-ref-after-async]]`).
+/// gaps a picker sheet introduces — a throwaway notifier does not, because
+/// Riverpod disposes it underneath the call.
 library;
 
 import 'dart:async';

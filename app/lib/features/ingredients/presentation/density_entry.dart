@@ -43,11 +43,11 @@ class DensityEntry extends HookWidget {
   /// pre-picks that spoon and switches to the spoon phrasing.
   final Unit? redirectedSpoon;
 
-  /// **The host decides when a density lands** (plan 0029 W1, ADR-0011). This
-  /// widget validates the input and computes the one stored number; it does
-  /// not know a repository. The quantity sheet's host writes immediately —
-  /// it has no Save and that is correct there — and the flesh-out form's host
-  /// holds it in a draft until the form's own Save.
+  /// **The host decides when a density lands** (ADR-0011). This widget
+  /// validates the input and computes the one stored number; it does not know a
+  /// repository. The quantity sheet's host writes immediately — it has no Save
+  /// and that is correct there — and the flesh-out form's host holds it in a
+  /// draft until the form's own Save.
   ///
   /// Returns whether it landed, which is all this widget needs in order to
   /// clear its own error and confirmation state. Everything else — the write,
@@ -68,7 +68,7 @@ class DensityEntry extends HookWidget {
   final String saveLabel;
 
   /// The section's micro-label. The flesh-out form says "DENSITY — OPTIONAL"
-  /// (plan 0020 D5: macros gate completion, density does not).
+  /// (macros gate completion, density does not).
   final String headline;
 
   /// What "1 __ of this weighs" offers. `ml` is in the list on purpose: its

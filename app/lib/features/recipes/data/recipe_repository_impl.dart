@@ -223,7 +223,8 @@ class SqliteRecipeRepository implements RecipeRepository {
           // A component line's target (step 8.6): its title is on the line and
           // its yields drive the batch math, so a rename or a yield edit on
           // the TARGET must re-fire this page. Selecting a column keeps the
-          // join alive ([[mise-powersync-watch-left-join]]).
+          // join alive: SQLite drops a LEFT JOIN with no selected column, and
+          // PowerSync then never registers that table as a trigger.
           'LEFT JOIN recipe sub ON sub.id = li.sub_recipe_id '
           'LEFT JOIN book b ON b.id = r.book_id '
           'LEFT JOIN book_section s ON s.id = r.section_id '

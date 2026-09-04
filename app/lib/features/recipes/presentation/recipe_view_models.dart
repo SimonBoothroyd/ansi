@@ -144,7 +144,7 @@ class RecipeEditor extends _$RecipeEditor
   /// the child-diff write twice concurrently.
   bool _saving = false;
 
-  // --- the header (plan 0025 #4) ----------------------------------------
+  // --- the header ---------------------------------------------------
   //
   // Every rule — both halves of a yield or neither, the other-family lock,
   // no freezer window on a dish that does not freeze — is `RecipeHeaderEdits`,
@@ -288,9 +288,9 @@ class RecipeEditor extends _$RecipeEditor
     (i) => i.copyWith(unit: pieces, measureId: measure.id, measure: measure),
   );
 
-  /// Marks the line optional, or not (plan 0025 / D6a — the quantity sheet's
-  /// switch). A fact about the line, never about its amount: the quantity
-  /// and unit are untouched, and what changes is what a total covers.
+  /// Marks the line optional, or not (the quantity sheet's switch). A fact
+  /// about the line, never about its amount: the quantity and unit are
+  /// untouched, and what changes is what a total covers.
   void setLineItemOptional(String itemId, {required bool optional}) =>
       _mapItem(itemId, (i) => i.copyWith(optional: optional));
 
@@ -300,8 +300,8 @@ class RecipeEditor extends _$RecipeEditor
   /// The id is the load-bearing part twice over. It makes `saveRecipe`'s child
   /// diff issue an UPDATE rather than a soft-delete + INSERT — and it is what
   /// keeps every chip that references this line pointing at it. Delete +
-  /// re-add, the only route the editor used to offer, minted a fresh
-  /// `line_item_id` and left every chip silently dangling.
+  /// re-add would mint a fresh `line_item_id` and leave every chip silently
+  /// dangling.
   ///
   /// The measure goes with the old ingredient: "potato, medium = 213 g" says
   /// nothing about a fennel bulb.
@@ -374,8 +374,8 @@ class RecipeEditor extends _$RecipeEditor
   Substitution? substitution() => _substitution;
   Substitution? _substitution;
 
-  /// What every relabelled chip used to say, so "keep the old word" is one
-  /// tap. Same session lifetime as [substitution].
+  /// Each relabelled chip's previous word, so "keep the old word" is one tap.
+  /// Same session lifetime as [substitution].
   @override
   List<ChipRelabel> relabels() => List.unmodifiable(_relabels);
   final List<ChipRelabel> _relabels = [];

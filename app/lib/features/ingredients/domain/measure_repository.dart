@@ -7,12 +7,12 @@
 /// adds the write path: the in-app measure editor authors `manual`-sourced
 /// rows and soft-deletes unwanted ones.
 ///
-/// **Duplicate labels merge on read** (plan 0011 decision): no unique index
-/// guards `(ingredient_id, label)` — one would make an offline duplicate fail
-/// upload and drop the whole crud transaction (the shopping-entry doctrine).
-/// Instead every device converges on the same canonical row per label: the
-/// *oldest* live one (`created_at`, then `id`). Newer duplicates are hidden,
-/// never deleted — a referencing line item still resolves them by id.
+/// **Duplicate labels merge on read**: no unique index guards `(ingredient_id,
+/// label)` — one would make an offline duplicate fail upload and drop the whole
+/// crud transaction (the shopping-entry doctrine). Instead every device
+/// converges on the same canonical row per label: the *oldest* live one
+/// (`created_at`, then `id`). Newer duplicates are hidden, never deleted — a
+/// referencing line item still resolves them by id.
 library;
 
 import '../../../core/units/measure.dart';

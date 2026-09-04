@@ -31,10 +31,10 @@ abstract class Member with _$Member {
 
     /// The person's usual portion as a multiple of one recipe serving: `0.75`
     /// for someone who eats three-quarters of a serving. A standing fact about
-    /// the person, spent wherever a head-count used to be — the cook plan, the
+    /// the person, spent wherever a demand is counted — the cook plan, the
     /// shopping list and the macro lens all read it through [demandPortions].
-    /// Quarter steps from 0.25 to 3; the default `1` keeps every number exactly
-    /// what it was before the factor existed (P-D6).
+    /// Quarter steps from 0.25 to 3; the default `1` makes a member weigh
+    /// exactly one head.
     @Default(1.0) double portionFactor,
   }) = _Member;
 
@@ -121,10 +121,10 @@ abstract class WeekPlan with _$WeekPlan {
   }) = _WeekPlan;
 
   /// The entries on [dayOfWeek] (0=Monday..6=Sunday), ordered by meal slot then
-  /// their stored order. Used to fill one day column of the grid. [entries] is
-  /// assumed to already carry the repository's within-slot order (sort_order,
-  /// created_at); this decorates with the source index for a stable sort, since
-  /// Dart's [List.sort] is not guaranteed stable.
+  /// their stored order — one day column of the grid. [entries] is assumed to
+  /// already carry the repository's within-slot order (sort_order, created_at);
+  /// this decorates with the source index for a stable sort, since Dart's
+  /// [List.sort] is not guaranteed stable.
   List<PlanEntry> entriesForDay(int dayOfWeek) {
     final day = entries.where((e) => e.dayOfWeek == dayOfWeek).toList();
     final indexed = [for (var i = 0; i < day.length; i++) (i, day[i])]

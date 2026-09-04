@@ -1,12 +1,11 @@
 /// The barcode path's hand-off type — PURE DART (invariant 2).
 ///
-/// An [IngredientDraft] is a *sketch*, never a row. Plan 0020 D1 settles that
-/// an Open Food Facts lookup **prefills a draft and never completes an
-/// ingredient**: OFF is volunteer-entered, so a product with a blank or
-/// absurd panel is ordinary. Everything a lookup could not establish stays
-/// null here — never zero, never guessed (invariant 3, honest numbers) — and
-/// the human confirms what survives into the row (D5: macros gate `complete`,
-/// and confirming is a human act).
+/// An [IngredientDraft] is a *sketch*, never a row: an Open Food Facts lookup
+/// **prefills a draft and never completes an ingredient**. OFF is
+/// volunteer-entered, so a product with a blank or absurd panel is ordinary.
+/// Everything a lookup could not establish stays null here — never zero, never
+/// guessed (invariant 3, honest numbers) — and the human confirms what survives
+/// into the row: macros gate `complete`, and confirming is a human act.
 ///
 /// The type is deliberately decoupled from the manager's form: plain fields,
 /// no Flutter, no repository. The form reads them as initial values.
@@ -203,8 +202,8 @@ class IngredientDraft {
   /// The pack size, when OFF's free-text `quantity` parsed. Null otherwise.
   final DraftPackSize? packSize;
 
-  /// The value for the ingredient row's `source` column (plan 0020 D1:
-  /// `off:<barcode>`), or `manual`.
+  /// The value for the ingredient row's `source` column (`off:<barcode>`), or
+  /// `manual`.
   String get sourceValue => switch (source) {
     DraftSource.barcode when barcode != null => 'off:$barcode',
     DraftSource.barcode || DraftSource.manual => 'manual',

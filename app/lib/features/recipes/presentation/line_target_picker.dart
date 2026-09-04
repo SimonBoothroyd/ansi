@@ -105,10 +105,8 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
     final books = ref.watch(libraryProvider).asData?.value ?? const [];
     final refusal = useState<String?>(null);
 
-    // The shared rule, over titles — the same call the planning picker makes.
-    // This section used to carry a rule of its own (the WHOLE query had to
-    // prefix the title, and `[^a-z0-9]+` split words, so an accented letter
-    // was a word break); the two pickers disagreed one screen apart.
+    // The shared rule, over titles — the same call the planning picker makes,
+    // so two pickers one screen apart cannot disagree about what hits.
     //
     // Only the best tier is offered: if any title was spelled right, no guess
     // is shown beside it.
@@ -228,7 +226,7 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
             ),
         ],
       ),
-      // The add-new chain: sheet → flesh-out form → back, and only then does
+      // The add-new chain: the ingredient form, then back, and only then does
       // this sheet resolve — so the editor's `_addLine` continues into the
       // quantity sheet AFTER the form, on the units the form set. The row
       // handed over is the re-read one.

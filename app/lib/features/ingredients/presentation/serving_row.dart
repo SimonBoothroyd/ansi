@@ -1,11 +1,11 @@
-/// The macros section's **per-serving** mode — the pieces both hosts draw: the
-/// serving row ("One serving is 14 g · 1 Tbsp on the pack") and the stored-line
-/// preview under the four fields.
+/// The macros section's **per-serving** mode: the serving row ("One serving is
+/// 14 g · 1 Tbsp on the pack") and the stored-line preview under the four
+/// fields.
 ///
-/// The flesh-out form owns the mode; the New-ingredient sheet draws the row
-/// under a barcode draft whose panel came per serving (M-D5). The arithmetic
-/// is [Macros.per100From] and the row stores per 100 like every row — this
-/// file is only how the person sees the derivation before Save (M-D3).
+/// The ingredient form owns the mode, and a barcode draft whose panel came per
+/// serving lands on it. The arithmetic is [Macros.per100From] and the row
+/// stores per 100 like every row — this file is only how the person sees the
+/// derivation before Save.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -101,7 +101,7 @@ class ServingRow extends StatelessWidget {
   final ValueChanged<String> onAmount;
   final ValueChanged<MacrosBasis> onBasis;
 
-  /// Null hides the name field (the add sheet makes no M-D2 offer).
+  /// Null hides the name field, for a host that makes no serving offer.
   final ValueChanged<String>? onName;
 
   bool get withName => onName != null;

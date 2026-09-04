@@ -41,7 +41,7 @@ class MethodSpanController extends TextEditingController {
       notifyListeners();
       return;
     }
-    // The text was changed from outside the field (a sheet, a relabel). Put
+    // Something outside the field rewrote the text (a sheet, a relabel). Put
     // the caret where the edit left off rather than at the start.
     final offset = _carryCaret(next.text);
     value = TextEditingValue(

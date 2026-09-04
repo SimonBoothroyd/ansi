@@ -1,4 +1,4 @@
-/// **The barcode path's one public door.** Step 8.5, plan 0020 D1–D3.
+/// **The barcode path's one public door** (step 8.5).
 ///
 /// ## Contract
 ///
@@ -23,9 +23,8 @@
 ///   `IngredientDraft.attribution` is the ODbL credit the form must show
 ///   beside anything OFF supplied.
 ///
-/// Wiring it into the New-ingredient form's **Source ▸ Barcode** segment is
-/// one import and one await; nothing else in this directory needs to be
-/// referenced from outside it.
+/// Wiring it into a host is one import and one await; nothing else in this
+/// directory needs to be referenced from outside it.
 ///
 /// ## What lives behind this door
 ///

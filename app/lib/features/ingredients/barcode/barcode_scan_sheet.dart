@@ -1,5 +1,5 @@
-/// The scan surface — board frames "Add · scan a barcode" and "When it
-/// doesn't work" (step 8.5, plan 0020 D3).
+/// The scan surface — board frames "Add · scan a barcode" and "When it doesn't
+/// work" (step 8.5).
 ///
 /// Two ways in, side by side and permanently: the camera reticle, and a typed
 /// number beneath it. The typed field is not a courtesy — it is the

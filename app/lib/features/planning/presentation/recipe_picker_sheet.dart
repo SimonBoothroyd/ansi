@@ -9,9 +9,9 @@
 /// editor's "Your recipes" section makes. When nothing was spelled right the
 /// typo tier answers and the list arrives under a `DID YOU MEAN` header.
 ///
-/// Planning search stays recipes-only in v1 (decision, plan 0011);
-/// foods-as-ad-hoc-meals is revisited with step 8. Resolves to the chosen
-/// recipe, or null if dismissed; the caller then opens the confirm sheet.
+/// Planning search stays recipes-only in v1 (decision); foods-as-ad-hoc-meals
+/// is revisited with step 8. Resolves to the chosen recipe, or null if
+/// dismissed; the caller then opens the confirm sheet.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -75,10 +75,10 @@ class _RecipePickerSheet extends HookConsumerWidget {
         const <String, DateTime>{};
     final filing = filingByRecipe(library);
 
-    // The shared rule, over titles — the same call the editor's "Your
-    // recipes" section makes, so the two pickers cannot disagree about what
-    // hits (they used to, in opposite directions). An empty query still
-    // matches everything: this list is a browse surface as well as a search.
+    // The shared rule, over titles — the same call the editor's "Your recipes"
+    // section makes, so the two pickers cannot disagree about what hits. An
+    // empty query still matches everything: this list is a browse surface as
+    // well as a search.
     //
     // Only the BEST tier is shown. If any title was spelled right, no guess is
     // offered beside it; if none was, the whole list is a guess and says so.

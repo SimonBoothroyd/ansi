@@ -1,10 +1,8 @@
 /// `/account` — the household, this device, and the session.
 ///
-/// Library v2's D1 deferred this route with its own trigger written into it:
-/// *"a screen whose only content is a Sign-out button exists to hold a
-/// divider. Take that route the moment a second setting appears, and Sign out
-/// moves there whole."* Household arrived one day later, so the screen has
-/// three things to hold and none of them is a divider.
+/// A screen whose only content is a Sign-out button would exist to hold a
+/// divider; this one holds the household roster, the device's sync health and
+/// the session, so it earns the route.
 ///
 /// A pushed page, not a fifth tab: the four tabs are a loop — find, plan,
 /// cook, buy — and the moment the bar carries something that is not a phase of

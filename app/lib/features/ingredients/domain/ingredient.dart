@@ -51,49 +51,43 @@ abstract class Ingredient with _$Ingredient {
     @Default(0) int measureCount,
 
     /// The row's provenance stamp (`seed`, `manual`, `import_stub`,
-    /// `usda_fdc:<fdc_id>` — the server prefill's mark, plan 0020 D7 — or
-    /// [usdaDeclinedSource], a person's "not this food", plan 0027 U-D2).
-    /// Shown, never interpreted as truth: it says where the numbers came
-    /// from, and a machine-supplied one still waits for a human confirm
-    /// (D5). Null on a row read by a caller that didn't select it.
+    /// `usda_fdc:<fdc_id>` for a USDA pick, or [usdaDeclinedSource] for a
+    /// person's "not this food"). Shown, never interpreted as truth: it says
+    /// where the numbers came from, and a machine-supplied one still waits for
+    /// a human confirm. Null on a row read by a caller that didn't select it.
     String? source,
 
-    /// The name of the USDA food the prefill copied from —
-    /// `usda_food.description`, written beside [source] by both prefill
-    /// writers (migration 0027, plan 0027 U-D1) so the form can say WHICH
-    /// food filled the row, offline. Survives a decline: the form names the
-    /// food that was refused. Null on rows filled before 0027 and on rows
-    /// nothing filled.
+    /// The name of the USDA food the row was filled from —
+    /// `usda_food.description`, written beside [source] so the form can say
+    /// WHICH food filled the row, offline. Survives a decline: the form names
+    /// the food that was refused. Null on rows filled before migration 0027 and
+    /// on rows nothing filled.
     String? sourceLabel,
 
-    /// The trigram score (0.5–1) that earned the match in [sourceLabel],
-    /// stored so the band word (`UsdaBand`) is readable offline. Shown, never
-    /// acted on — the floor is the server's. Null where the label is null,
-    /// and cleared by a decline.
+    /// How much of the query the matched food's description covered, 0..1 —
+    /// the idf-weighted coverage `probe_usda` returns, not a graded confidence.
+    /// Stored so `UsdaMatchFit` reads the same offline as it did online. Shown,
+    /// never acted on. Null where [sourceLabel] is null, and cleared by a
+    /// decline.
     double? sourceScore,
   }) = _Ingredient;
 }
 
 /// Whether [source] marks a row filled from USDA — `usda_fdc:<fdc_id>`.
 ///
-/// Since 0029 that stamp always means **a person picked that food** from the
-/// search: the server trigger that used to write it is dropped. Rows stamped
-/// before 0029 carry it from the old automatic prefill and are not
-/// distinguishable here, which is deliberate — they were not re-matched. The
-/// list's stub band and the form's provenance line both read this rather than
-/// guessing from the presence of macros.
+/// The stamp means **a person picked that food** from the search; nothing
+/// writes it on the row's behalf. Rows carrying it from before migration 0029's
+/// automatic prefill are not distinguishable here, which is deliberate — they
+/// were not re-matched. The list's stub band and the form's provenance line
+/// both read this rather than guessing from the presence of macros.
 bool isUsdaPrefilled(String? source) =>
     source?.startsWith('usda_fdc:') ?? false;
 
 /// The `source` a person's *Not this food* leaves behind.
 ///
-/// Its own value rather than a reset to `manual` because the rename trigger's
-/// WHEN clause (0015) listed the sources it could refill — `manual` among
-/// them — and this one was deliberately not on the list, so a food refused
-/// once was never offered again by a machine. 0029 dropped that trigger and
-/// with it the original reason, but the value stays: it is still how a row
-/// says "not from USDA" after someone unlinks a pick, and rows in the wild
-/// already carry it.
+/// Its own value rather than a reset to `manual`, because it is how a row says
+/// "a person unlinked a USDA pick here" — a distinct fact from "nobody ever
+/// linked one", and one the form's provenance line reads.
 const usdaDeclinedSource = 'usda_declined';
 
 /// Whether [source] is [usdaDeclinedSource].

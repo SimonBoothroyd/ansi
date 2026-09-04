@@ -1,44 +1,41 @@
-/// The ingredient detail / flesh-out form (`/ingredients/:id`) — design board
-/// "Ingredients manager · v1" frames (b) and (c), which fold the original
-/// "New ingredient" frame together with 7.7's macros-basis frame and 7.8's
-/// allowed-units frame into one scroll.
+/// The ingredient form (`/ingredients/:id`, and `/ingredients/new` for a row
+/// that does not exist yet) — the app's one door to making or fleshing out a
+/// vocabulary entry.
 ///
 /// It is an **editor**, not a one-way queue: a `complete` row opens here too.
-/// What it owns, in the frame's order — canonical name (a rename rewrites
-/// `match_text`, D6), aliases, category + default unit, macros with their
-/// basis, density (the shared 7.8 [DensityEntry]), and the explicit ADR-0008
-/// `allowed_units` list.
+/// What it owns, in order — canonical name (a rename rewrites `match_text`),
+/// aliases, category + default unit, macros with their basis, density (the
+/// shared [DensityEntry]), and the explicit ADR-0008 `allowed_units` list.
 ///
-/// Two rules the screen exists to enforce:
-/// - **Macros gate completion, density does not** (D5). Confirming is a
-///   human act; a USDA or barcode prefill fills fields and stops.
+/// Three rules the screen exists to enforce:
+/// - **Nothing is written until Save** (ADR-0011). Everything the form intends
+///   sits in a draft, so a form with no row behind it is coherent and backing
+///   out of one leaves nothing to clean up.
+/// - **Macros gate completion, density does not.** Confirming is a human act; a
+///   USDA or barcode prefill fills fields and stops.
 /// - **Delete is refused while a live recipe line points here**, with the
 ///   count — a line's ingredient is never allowed to dangle.
 ///
-/// Since plan 0025 #8 the form scans a barcode into itself: the same
-/// `scanBarcodeForDraft` door the add sheet uses, landed through the same
-/// `applyDraft` rule — fields that are EMPTY fill, a value the human already
+/// The form scans a barcode into itself, through the same `applyDraft` rule
+/// every draft lands by: fields that are EMPTY fill, a value the human already
 /// typed stays (and the card says which), provenance becomes `off:<barcode>`
-/// only where the row had none, and nothing confirms the row. Since the form
-/// and the add sheet are one form, a row created by name and then scanned
-/// ends up exactly where a row created by scan would.
+/// only where the row had none, and nothing confirms the row.
 ///
-/// Since plan 0027 (front M) the macros section has a **per serving** mode:
-/// the four fields take a label's figures as printed, a serving row says what
-/// they describe, and the row still stores per 100 of the basis — derived
-/// unrounded ([Macros.per100From], M-D3) and previewed live. The serving's
-/// "1 tbsp = 14 g" is offered, opt-in, as this row's density (or a measure
-/// when it names a thing) in the same save (M-D2). A barcode draft whose
-/// panel came per serving lands on that mode (M-D5).
-/// Since plan 0027 (front U) the form **names the USDA match** at the head of
-/// its macros section — the food's description, its FDC id and how much of
-/// the name it answers,
-/// read off the row's own `source_label` / `source_score` so it is true
-/// offline — with two doors beside it: *Not this food* (one write: the
-/// prefilled density and macros come out, `source` becomes `usda_declined`,
-/// and the rename trigger leaves the row alone from then on) and *Choose
-/// another ▸* (the next five candidates, a pick applied through the same
-/// `applyUsdaProbe`). Neither confirms anything (U-D4).
+/// The macros section has a **per serving** mode: the four fields take a
+/// label's figures as printed, a serving row says what they describe, and the
+/// row still stores per 100 of the basis — derived unrounded
+/// ([Macros.per100From]) and previewed live. The serving's "1 tbsp = 14 g" is
+/// offered, opt-in, as this row's density (or a measure when it names a thing)
+/// in the same save. A barcode draft whose panel came per serving lands on that
+/// mode.
+///
+/// The form also **names the USDA match** at the head of that section — the
+/// food's description, its FDC id and how much of the name it answers, read off
+/// the row's own `source_label` / `source_score` so it is true offline — with
+/// two doors beside it: *Not this food* (the prefilled density and macros come
+/// out and `source` becomes `usda_declined`) and *Choose another ▸* (the next
+/// candidates, a pick applied through the same `applyUsdaProbe`). Neither
+/// confirms anything.
 library;
 
 import 'dart:async';
@@ -79,9 +76,8 @@ import 'usda_pick_sheet.dart';
 String ingredientDetailRoute(String id) => '/ingredients/$id';
 
 /// The pushed route for a row that does not exist yet — the one door to making
-/// an ingredient, now that the New-ingredient sheet is gone. [name] prefills
-/// the field, which is what a picker hands over so the words already typed into
-/// its search become the row.
+/// an ingredient. [name] prefills the field, which is what a picker hands over
+/// so the words already typed into its search become the row.
 ///
 /// It pops with the created [Ingredient], or null if the person backed out —
 /// so a caller that is waiting on the row (the editor's picker) gets it.
@@ -108,12 +104,10 @@ class IngredientDetailView extends ConsumerWidget {
 
   /// The row to edit, or **null to create one**.
   ///
-  /// This form is the only door to making an ingredient now. The
-  /// New-ingredient sheet existed because it was the stage where nothing had
-  /// been written — dismiss it and no row existed — and the form could not
-  /// take that over while half of it wrote on tap. Since ADR-0011 it writes
-  /// once, on Save, so a form with no row is coherent and saveForm(null, …)
-  /// makes the row and its children in one transaction.
+  /// This form is the only door to making an ingredient. Under ADR-0011 it
+  /// writes once, on Save, so a form with no row behind it is coherent —
+  /// dismiss it and nothing exists — and `saveForm(null, …)` makes the row and
+  /// its children in one transaction.
   final String? ingredientId;
 
   /// What the name field opens with on a create — the picker passes what was
@@ -124,7 +118,7 @@ class IngredientDetailView extends ConsumerWidget {
   /// Forwarded to the form's barcode scan. Both exist for tests and are null
   /// in app code — the router builds this page with neither, and the scan
   /// then takes the real Open Food Facts client from its provider and the
-  /// real camera preview, exactly as the add sheet does.
+  /// real camera preview.
   final OffLookup? lookup;
   final BarcodeCameraPane? cameraPane;
 
@@ -252,9 +246,9 @@ class _DetailForm extends HookConsumerWidget {
     final seededMacros = useState<_MacroDraft>(_MacroDraft.from(ing.macros));
     // Bumped on every re-seed, and used as the macro fields' key. See G1.
     final macroSeed = useState(0);
-    // Plan 0027 M-D1: the macros section's per-serving mode. The four fields
-    // then hold the label's figures AS PRINTED and the serving row says what
-    // they describe; what is stored is still per 100 of the basis (M-D3).
+    // The macros section's per-serving mode: the four fields then hold the
+    // label's figures AS PRINTED and the serving row says what they describe,
+    // and what is stored is still per 100 of the basis.
     final perServing = useState(false);
     final serving = useState(const ServingDraft());
     // Bumped when a scan seeds the serving row, and used as its key — the
@@ -270,13 +264,13 @@ class _DetailForm extends HookConsumerWidget {
     // back the resolved spoon — the density entry pre-picks it (F2: one
     // shared editor, so the redirect works here exactly as in the sheet).
     final redirectedSpoon = useState<Unit?>(null);
-    // **The draft (plan 0029 W5).** Everything the form intends and has not
-    // written. Held as DELTAS rather than as replacement lists, which is what
-    // answers D6's hazard structurally: a save that only inserts its adds and
-    // tombstones its named removes never needs the whole list, so a measures
-    // stream that failed to load cannot become a narrowed set written back.
-    // The one place emptiness is still load-bearing — the `piece` question —
-    // checks that the list actually loaded before it reads it as empty.
+    // **The draft.** Everything the form intends and has not written. Held as
+    // DELTAS rather than as replacement lists, which is what answers D6's
+    // hazard structurally: a save that only inserts its adds and tombstones its
+    // named removes never needs the whole list, so a measures stream that
+    // failed to load cannot become a narrowed set written back. The one place
+    // emptiness is still load-bearing — the `piece` question — checks that the
+    // list actually loaded before it reads it as empty.
     final densityChange = useState<DensityChange>(const DensityUnchanged());
     final measuresAdded = useState<List<Measure>>(const []);
     final measuresRemoved = useState<Set<String>>(const {});
@@ -427,9 +421,8 @@ class _DetailForm extends HookConsumerWidget {
       }
       busy.value = true;
       try {
-        // M-D2: the opt-in, taken. It rides the same one write as everything
-        // else now — it used to be the exception that already deferred to
-        // Save, which is why the plan named it the model to copy.
+        // The serving offer, taken: it rides the same one write as everything
+        // else the form is holding.
         final taken = servingOffer.value ? offer : null;
         final offeredDensity = taken is DensityOffer ? taken.gPerMl : null;
         final offeredMeasure = taken is MeasureOffer ? taken : null;
@@ -588,13 +581,12 @@ class _DetailForm extends HookConsumerWidget {
     // row, which is why the lookup no longer has to save the form first to
     // avoid probing a stale name (F1, retired).
     //
-    // **And a pick writes nothing** (plan 0029 W5). It fills the draft — the
-    // macros, the density, and which food they came from — and the form's own
-    // Save lands the lot. That is also what lets it work on a row that does
-    // not exist yet (C1), and it deletes the "an explicit pick outranks a
-    // half-typed panel" reconciliation: with one write model there is no row
-    // moving underneath a draft to reconcile against. The pick simply is the
-    // draft.
+    // **And a pick writes nothing**. It fills the draft — the macros, the
+    // density, and which food they came from — and the form's own Save lands
+    // the lot. That is also what lets it work on a row that does not exist yet
+    // (C1), and it deletes the "an explicit pick outranks a half-typed panel"
+    // reconciliation: with one write model there is no row moving underneath a
+    // draft to reconcile against. The pick simply is the draft.
     Future<void> pickUsda() async {
       busy.value = true;
       try {
@@ -649,10 +641,9 @@ class _DetailForm extends HookConsumerWidget {
     // form just set — so finishing a row from a recipe line left the person
     // on a screen that had told them it counts and given them nothing to do,
     // with a caller waiting behind it.
-    // **W5b — one transaction, not two writes.** "A 1-2 combo of save and
-    // mark" (owner) is what it always read like, but it WAS two: `save()`
-    // then `confirmStub()`, so a failure between them left the row saved and
-    // not marked, under an error implying neither happened.
+    // Save and mark in ONE transaction: split across two writes, a failure
+    // between them leaves the row saved and not marked, under an error
+    // implying neither happened.
     Future<void> completeRow() async {
       final saved = await save(markComplete: true);
       if (saved == null || !context.mounted) return;
@@ -795,10 +786,9 @@ class _DetailForm extends HookConsumerWidget {
           // resets its hook state.
           _StatusStrip(ingredient: ing, creating: creating),
 
-          // The two prefill doors, in one place. They used to sit fifteen
-          // blocks apart — the scanner at the top, "Look up in USDA" below
-          // the CTA — although they are the same offer and are mutually
-          // exclusive with the provenance card that replaces them.
+          // The two prefill doors, in one place: they are the same offer, and
+          // both are mutually exclusive with the provenance card that replaces
+          // them.
           if (stub)
             _FillItIn(
               onScan: busy.value ? null : scan,
@@ -1024,19 +1014,13 @@ class _DetailForm extends HookConsumerWidget {
             ],
           ),
 
-          // Density, admission, measures, "Counts as" and the imprecise words
-          // are ONE subject — what a line of a recipe may say about this row,
-          // and how much of it that is. They were five top-level sections
-          // reading as five unrelated decisions, although a density unlocks
-          // the chips, a volume-named measure label redirects into the density
-          // entry, and "Counts as" picks one of the measures.
           // Density, admission, the default unit, measures and "Counts as"
           // are ONE subject — what a line of a recipe may say about this row,
-          // and how much of it that is. The default unit is here rather than
-          // beside the category because **D4c** makes it the same rule as the
-          // chips: `unitSayableAsDefault` and the chips' own candidate list
-          // are one predicate wearing two hats, and a greyed selector option
-          // and a locked chip explain each other. It also puts the stranded
+          // and how much of it that is. The default unit sits here rather than
+          // beside the category because it obeys the same rule as the chips:
+          // `unitSayableAsDefault` and the chips' own candidate list are one
+          // predicate wearing two hats, so a greyed selector option and a
+          // locked chip explain each other. It also puts the stranded
           // default's repair — "enter a density below" — one section above the
           // density, rather than two groups away.
           _Group(
@@ -1045,7 +1029,7 @@ class _DetailForm extends HookConsumerWidget {
               const _Label('DEFAULT UNIT'),
               _UnitChoiceRow(
                 // Keyed so a test can ask this row — and only this row —
-                // which of its chips D4c has locked.
+                // which of its chips are locked.
                 key: const ValueKey('default-unit-row'),
                 ingredient: draftRow,
                 selected: defaultUnit.value,
@@ -1082,8 +1066,8 @@ class _DetailForm extends HookConsumerWidget {
               ),
               _DensityGapNote(ingredient: draftRow),
 
-              // The entry draws its own DENSITY label; the section used to
-              // carry a second, longer one directly above it.
+              // The entry draws its own DENSITY label, so the section does
+              // not repeat one above it.
               DensityEntry(
                 // `draftRow`, not the stored row: the headline shows the
                 // density the form is HOLDING, and "Remove it? tsp · tbsp …
@@ -1092,13 +1076,8 @@ class _DetailForm extends HookConsumerWidget {
                 // replaced, or none where they have just typed one.
                 ingredient: draftRow,
                 redirectedSpoon: redirectedSpoon.value,
-                // Lane A moves the write OUT of the widget; this host still
-                // commits on tap, exactly as before. Lane B is where the form
-                // starts holding it in a draft until its own Save — at which
-                // point only this function and `saveLabel` change, and the
-                // quantity sheet's copy stays as it is.
-                // Nothing is written here any more: it goes in the draft and
-                // the form's Save lands it (W5). The chips follow it because
+                // Nothing is written here: the density goes in the draft and
+                // the form's Save lands it. The chips follow it because
                 // `draftRow` carries the draft density and the admission
                 // effect keys on it.
                 saveLabel: 'Add',
@@ -1160,9 +1139,8 @@ class _DetailForm extends HookConsumerWidget {
                       defaultMeasure.value = const DefaultMeasureSet(null);
                     }
                   },
-                  // Lane A moves the write out of the editor; this host still
-                  // commits on tap. Lane B swaps only this function and the
-                  // label for "add it to the draft".
+                  // Nothing is written here: the measure goes in the draft and
+                  // the form's Save inserts it.
                   onAdd: (label, amount) async {
                     // Minted here, kept forever: `saveForm` inserts under this
                     // id, so the measure the person is looking at is already
@@ -1181,12 +1159,10 @@ class _DetailForm extends HookConsumerWidget {
                     return MeasureAdded(pending);
                   },
                   onStopOfferingPiece: (added) async {
-                    // **The lane B trap, answered.** This used to write
-                    // `allowed_units` behind the form's back and hand the row
-                    // back so the chips could follow. Now the answer IS the
-                    // draft: `piece` leaves the admission set the form holds,
-                    // and the same act says what a bare "1 tomato" means
-                    // (seam D1). Both land on Save, together.
+                    // The answer IS the draft, never a write behind the
+                    // form's back: `piece` leaves the admission set the form
+                    // holds, and the same act says what a bare "1 tomato"
+                    // means. Both land on Save, together.
                     allowed.value = {...allowed.value}..remove(pieces);
                     defaultMeasure.value = DefaultMeasureSet(added.id);
                     return null;
@@ -1222,8 +1198,8 @@ class _DetailForm extends HookConsumerWidget {
 
 // --- Sections ----------------------------------------------------------------
 
-/// The USDA provenance line (plan 0027 **U-D1**, board frames a and b): which
-/// food filled this row, how sure the match was, and the two doors.
+/// The USDA provenance line (board frames a and b): which food filled this row,
+/// how sure the match was, and the two doors.
 ///
 /// Read off the row's own `source_label` / `source_score`, never off a live
 /// probe — the form is offline-first, and after a rename a fresh probe would
@@ -1491,19 +1467,15 @@ class _ScanResult extends StatelessWidget {
 /// could admit, and — after a divider — the imprecise words its category
 /// earns it.
 ///
-/// **The locked units are a line, not chips.** They used to be drawn as
-/// dashed grey pills with a note under them, which is a row of screen to say
-/// what a sentence says better: "cup · tbsp · ml unlock when this row has a
-/// density." D4c's reason for drawing them rather than hiding them was that
-/// *"why can't I pick cup" must have a visible answer* — and a named line
-/// answers it more completely than a dashed chip, because it also says what
-/// to do about it.
+/// **The locked units are a line, not chips**: "cup · tbsp · ml unlock when
+/// this row has a density." *"Why can't I pick cup"* must have a visible
+/// answer, and a named line answers it more completely than a row of dashed
+/// pills, because it also says what to do about it.
 ///
-/// **The imprecise words are folded in** (they were a labelled section of
-/// their own, over one read-only string that on most rows said "none"). They
-/// are a fact about the *category* (J3), never about this row, so they are
-/// drawn after a divider, dotted and untappable — the same idiom the quantity
-/// sheet has used for its own chip row since 7.7.
+/// **The imprecise words are folded in.** They are a fact about the
+/// *category*, never about this row, so they are drawn after a divider, dotted
+/// and untappable — the same idiom the quantity sheet uses for its own chip
+/// row.
 class _AdmissionChips extends StatelessWidget {
   const _AdmissionChips({
     required this.ingredient,
@@ -1623,8 +1595,8 @@ class _UnitChip extends StatelessWidget {
 ///
 /// Free text is gone. A typed category is only useful if it is the *same*
 /// string every other row uses — the imprecise-unit gate reads it by exact
-/// match (`kImpreciseGatedCategories`), and so does the list's grouping — and
-/// free text guaranteed "Produce", "produce" and "produce " would coexist.
+/// match (`kImpreciseCategoryGates`), and so does the list's grouping — and
+/// free text guarantees "Produce", "produce" and "produce " will coexist.
 /// The options come from the vocabulary itself, so there is no second place
 /// that has an opinion about which categories exist.
 class _CategoryPicker extends ConsumerWidget {
@@ -1788,11 +1760,9 @@ class _StrandedDefaultNote extends StatelessWidget {
 
 /// "Also known as" — the alias chips, addable and removable.
 ///
-/// **Presentational since plan 0029 W5.** It used to watch the aliases
-/// provider and write straight through the repository on every tap; now the
-/// host hands it the list it should draw — the stored ones minus what the
-/// form intends to remove, plus what it intends to add — and takes the two
-/// intents back. Nothing here writes.
+/// **Presentational.** The host hands it the list it should draw — the stored
+/// aliases minus what the form intends to remove, plus what it intends to add —
+/// and takes the two intents back. Nothing here writes.
 ///
 /// The one rule that stays inside is the refusal: an alias whose normalized
 /// match text is empty carries no identity word, and would match everything
@@ -2022,22 +1992,11 @@ class _CountsAsRow extends ConsumerWidget {
   }
 }
 
-// **Retired here: `_UsdaLookup`, `_LookupNote` and `_lookupStamp`.**
-//
-// The button ran `probe.probe` — ONE best candidate, applied sight-unseen —
-// and reported the outcome in a status sentence, which is why **G3** had to
-// own that sentence and stamp it with the row version so a later edit could
-// retire it. `Fill it in from ▸ Look up in USDA` now opens the same
-// five-candidate search that `Choose another ›` opens, so there is no
-// automatic guess to narrate and no stale sentence to retire.
-//
-// **F1 goes with it.** The flush existed because the probe asked about the
-// row's STORED name, so a rename sitting unsaved meant it asked about the old
-// one. The search asks about the name in the FIELD, which cannot be stale —
-// so nothing has to be written before you may look something up.
-//
-// `probe.probe` itself stays where an automatic best guess belongs: D7b's
-// probe-at-birth and the server-side trigger. It is no longer a button.
+// `Fill it in from ▸ Look up in USDA` opens the same candidate search that
+// `Choose another ›` opens: a person picks, so there is no automatic guess to
+// narrate and no status sentence to keep from going stale. The search asks
+// about the name in the FIELD rather than the stored one, so nothing has to be
+// written before you may look something up.
 
 // --- Small shared pieces -----------------------------------------------------
 
@@ -2084,11 +2043,10 @@ class _GhostButton extends StatelessWidget {
 /// silently resetting their hook state, which is how the lookup's own note
 /// vanished exactly when it had good news.
 ///
-/// **G6 — one line, computed.** It used to be three sentences, and the middle
-/// one was wrong for a volume-default row: it named a family as locked from
-/// the basis alone rather than from what is actually dashed below. It now
-/// reads the same candidate list the chips do and names those units, or says
-/// nothing at all when nothing is locked.
+/// **One line, computed.** It reads the same candidate list the chips do and
+/// names those units, or says nothing at all when nothing is locked — never a
+/// family inferred from the basis alone, which is wrong for a volume-default
+/// row.
 class _DensityGapNote extends StatelessWidget {
   const _DensityGapNote({required this.ingredient});
 
@@ -2106,15 +2064,12 @@ class _DensityGapNote extends StatelessWidget {
   }
 }
 
-/// A field's micro-label, with the qualifier that used to be shouted beside
-/// it demoted to [hint].
+/// A field's micro-label, with any qualifier demoted to [hint].
 ///
-/// `ansiLabel` is letter-spaced uppercase mono — a style for a short noun.
-/// Four of this form's labels had grown into whole sentences in it
-/// ("MACROS — ENTER THEM AS THE LABEL READS"), one of which wrapped onto two
-/// lines on a phone, and every one of them read at the same weight as the
-/// group headings above them. The board already ruled this once, on the
-/// density warning: *"why is the message an essay"*.
+/// `ansiLabel` is letter-spaced uppercase mono — a style for a short noun. A
+/// label that grows into a sentence in it ("MACROS — ENTER THEM AS THE LABEL
+/// READS") wraps onto two lines on a phone and reads at the same weight as the
+/// group heading above it, so the sentence goes in [hint] instead.
 class _Label extends StatelessWidget {
   const _Label(this.text, {this.hint});
 
@@ -2266,19 +2221,18 @@ class _FillItIn extends StatelessWidget {
 
 /// The form's two commitments, pinned under the scroll.
 ///
-/// Save, Confirm, "return it to a stub", "Look up in USDA" and Delete used to
-/// be five affordances stacked in a column at the end of a very long page —
-/// so the destructive one sat a flick below the confirm CTA, and neither of
-/// the two that actually commit anything was reachable without scrolling to
-/// the bottom. Two of the five moved to the header's `⋯`, one to the top of
-/// the form, and these two stay where a CTA belongs.
+/// Only the two acts that commit anything are pinned here; everything else the
+/// form can do — returning a row to a stub, looking it up, deleting it — lives
+/// in the header's `⋯` or at the top of the form. Stacked in a column at the
+/// end of a very long page, a destructive affordance sits a flick below the
+/// confirm CTA and neither commitment is reachable without scrolling.
 ///
-/// **One row, not a stack.** Two full-width buttons is a wall, and
-/// `Confirm — it counts from here` was a sentence pretending to be a label.
-/// The promise moves up into [message] — which is the form's existing feedback
-/// line, the same one that says "Saved.", "Still used by 3 recipes (4 lines)."
-/// and "Filled from …" — leaving `Save` and `Mark complete` to share a row and
-/// be ranked by width and colour instead of by stacking order.
+/// **One row, not a stack.** Two full-width buttons is a wall, and a label like
+/// `Confirm — it counts from here` is a sentence pretending to be one. The
+/// promise goes in [message] — the form's existing feedback line, the same one
+/// that says "Saved.", "Still used by 3 recipes (4 lines)." and "Filled from …"
+/// — leaving `Save` and `Mark complete` to share a row and be ranked by width
+/// and colour instead of by stacking order.
 ///
 /// **`Mark complete`, not `Confirm`.** The state is literally called
 /// `complete` ([IngredientStatus.complete]) and the strip at the top of the

@@ -2,9 +2,9 @@
 ///
 /// The whole aggregate is already in memory (the Library screen streams
 /// `List<Book>`), so a search is a fold over it rather than SQL. A live query
-/// replaces the tree with these flat rows (Library v2 / D2): filing is the
-/// subtitle precisely *because* the tree is not on screen — two recipes called
-/// "Ragù" in two books are otherwise the same row twice.
+/// replaces the tree with these flat rows: filing is the subtitle precisely
+/// *because* the tree is not on screen — two recipes called "Ragù" in two books
+/// are otherwise the same row twice.
 ///
 /// **Titles only in v1, said out loud.** "Recipes with almonds" is a different
 /// query shape — a `recipe_line_item → ingredient` join, and after 8.6 a

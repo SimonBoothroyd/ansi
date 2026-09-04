@@ -10,8 +10,8 @@
 /// column from each — the two shopping tables and the `ingredient` vocab
 /// (aisle/density/name) via a `LEFT JOIN … ON 1=1` — so PowerSync's
 /// `EXPLAIN`-based detection registers all of them as triggers. An unselected
-/// LEFT JOIN would be dropped and its table silently missed
-/// ([[mise-powersync-watch-left-join]]); selecting a column from each keeps it.
+/// LEFT JOIN is dropped by SQLite before `EXPLAIN` sees it, and its table is
+/// then silently missed; selecting a column from each keeps it.
 /// `test/core/sync/watch_coverage_test.dart` pins this structurally.
 ///
 /// Writes go through the local VIEWS, so no UPSERT (a view rejects
@@ -144,11 +144,11 @@ class SqliteShoppingRepository implements ShoppingRepository {
   /// buy almonds, not aioli). The second return value is the per-parent
   /// "N components unresolved" echo built from the plan's gaps.
   ///
-  /// Since plan 0025 (D6b) each recipe's lines pass through the
-  /// `effectiveLines` seam before any session expands them — this is where
-  /// lines meet the week, so it is where the per-week override will join
-  /// later — and the third return value is the per-recipe "N optional lines
-  /// not listed" echo built from what the seam dropped.
+  /// Each recipe's lines pass through the `effectiveLines` seam before any
+  /// session expands them — this is where lines meet the week, so it is where
+  /// the per-week override will join later — and the third return value is the
+  /// per-recipe "N optional lines not listed" echo built from what the seam
+  /// dropped.
   Future<
     (
       List<CookContributionInput>,

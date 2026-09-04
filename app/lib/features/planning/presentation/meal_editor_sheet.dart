@@ -1,20 +1,15 @@
-/// What the dish row's **portions chip + eater avatars** open (week v3, E7):
-/// who is eating this meal, and how many portions to cook.
+/// What the dish row's **portions chip + eater avatars** open: who is eating
+/// this meal, and how many portions to cook.
 ///
-/// **A field editor, not a hub.** The `entry_sheet.dart` it replaces was
-/// reached by tapping *the meal* and answered "everything about this meal" —
-/// day · slot, eaters, portions, open the recipe, remove it — which is why it
-/// needed an edit mode to hide it, and why deleting it was worth doing. This
-/// is reached by tapping *the values it edits* and holds nothing else: there
-/// is no route to the recipe in here (that is the row's title) and no remove
-/// (that is the row's `−`).
+/// **A field editor, not a hub.** It is reached by tapping *the values it
+/// edits* and holds nothing else: there is no route to the recipe in here (that
+/// is the row's title) and no remove (that is the row's `−`).
 ///
 /// The rule it comes from: **a row's controls are the facts the row prints.**
 /// Day · slot is not one of them — a row does not print a day as a value, its
-/// *position* is its day — so moving a meal stays remove-and-re-add through
-/// the picker's "already this week" quick picks. `setDaySlot` went with the
-/// entry sheet: with no screen left to call it, a repository method for it was
-/// dead code with a passing test, which is worse than no method at all.
+/// *position* is its day — so moving a meal is remove-and-re-add through the
+/// picker's "already this week" quick picks, and no repository method exists
+/// for it.
 ///
 /// Both controls come from `meal_fields.dart`, which is the whole reason that
 /// file exists: the confirm sheet sets these two fields when a meal is made,

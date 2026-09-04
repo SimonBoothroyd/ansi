@@ -1,13 +1,10 @@
-/// "Household" — who eats here and how much, as a section of `/account`
-/// (plan 0028 E6; the roster and the segment are plan 0027 front P, board
-/// frame a).
+/// "Household" — who eats here and how much, as a section of `/account`.
 ///
 /// A usual portion belongs to the person, not to Tuesday's curry, so it is
-/// stated once here and spent wherever a head-count used to be — the entry
-/// sheet's Portions row, the cook plan, the shopping list, the macro lens. The
-/// override on an entry remains the place for the exception ("cook 3
-/// tonight"). Either member may set either's (P-D3): the rows are the whole
-/// roster, not "me".
+/// stated once here and spent wherever a demand is counted — the entry sheet's
+/// Portions row, the cook plan, the shopping list, the macro lens. The override
+/// on an entry is the place for the exception ("cook 3 tonight"). Either member
+/// may set either's: the rows are the whole roster, not "me".
 ///
 /// The segment (P-D2) is the five quick picks ×½ · ×¾ · ×1 · ×1¼ · ×1½ and a
 /// `…` that opens a stepper in quarter steps from ¼ to 3 — nobody knows they

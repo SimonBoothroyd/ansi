@@ -4,12 +4,11 @@
 ///
 /// **Every line has exactly one identity** (migration 0017's
 /// `line_item_identity_xor`): either an existing `ingredientId` — a row the
-/// vocabulary already holds, including one the review just created through the
-/// New-ingredient sheet and the flesh-out form — or a `subRecipeId`, the
-/// household recipe a review-linked line points at (step
-/// 8.6 / D1 · D6). The commit creates no ingredient of its own: the
-/// `import_stub` leg that minted a coalesced row per unmatched name retired
-/// with D3, so no line can arrive here without a real id.
+/// vocabulary already holds, including one the review just created in the
+/// ingredient form — or a `subRecipeId`, the household recipe a review-linked
+/// line points at (step 8.6). The commit creates no ingredient of its own:
+/// there is no stub leg minting a coalesced row per unmatched name, so no line
+/// can arrive here without a real id.
 ///
 /// Step refs are still by **line index** here (`steps`); the repository assigns
 /// `line_item_id`s in the flattened line order and remaps the refs on write

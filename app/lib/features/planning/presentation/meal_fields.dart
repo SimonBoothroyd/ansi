@@ -2,16 +2,15 @@
 /// combined `Day · Slot` dropdown, the eater row and the portions stepper.
 ///
 /// They live here because **two** sheets use them: `confirm_meal_sheet.dart`
-/// places a NEW meal on the week, and `meal_editor_sheet.dart` (week v3, E7)
-/// changes who's eating and how many portions on one already on it. Hoisting
-/// them is the only way the two stay the same controls in the same order:
-/// two copies would drift the first time one of them was touched (the same
-/// argument that hoisted `MethodStepText` and `incompleteNote`).
+/// places a NEW meal on the week, and `meal_editor_sheet.dart` changes who's
+/// eating and how many portions on one already on it. Hoisting them is the only
+/// way the two stay the same controls in the same order: two copies would drift
+/// the first time one of them was touched (the same argument that hoisted
+/// `MethodStepText` and `incompleteNote`).
 ///
 /// Not every control is shared. [MealDaySlotPicker] is the confirm sheet's
-/// alone — v3 took day and slot out of the editor, because a row does not
-/// print a day as a value (its *position* is its day), so a meal's day is
-/// chosen on the way in and changed by remove-and-re-add.
+/// alone: a row does not print a day as a value (its *position* is its day), so
+/// a meal's day is chosen on the way in and changed by remove-and-re-add.
 ///
 /// [MealBatchBanner] rides along for the same reason: both sheets say the same
 /// sentence about a meal joining an existing batch.
@@ -258,12 +257,12 @@ class MealEaterPicker extends StatelessWidget {
   }
 }
 
-/// Portions: the eaters' usual — Σ of their portion factors, said as a
-/// fraction (`1¾ portions — Ada 1 · Jun ¾`, plan 0027 P-D4) — or the
-/// whole-number [override] for big/small appetites (spec §8), whose small
-/// print reads *overrides the eaters' 1¾* so the figure it replaced is never
-/// hidden. The stepper itself stays whole: from a fractional usual, `+` goes
-/// to the next whole number and `−` to the previous one.
+/// Portions: the eaters' usual — Σ of their portion factors, said as a fraction
+/// (`1¾ portions — Ada 1 · Jun ¾`) — or the whole-number [override] for
+/// big/small appetites (spec §8), whose small print reads *overrides the
+/// eaters' 1¾* so the figure it replaced is never hidden. The stepper itself
+/// stays whole: from a fractional usual, `+` goes to the next whole number and
+/// `−` to the previous one.
 class MealPortionsStepper extends StatelessWidget {
   const MealPortionsStepper({
     required this.portionsOverride,
@@ -364,10 +363,9 @@ class _StepButton extends StatelessWidget {
   }
 }
 
-/// The batch-awareness cue, in full prose (v2 — the app used to truncate
-/// this to a one-liner): names the dish, the day it already cooks, the
-/// shelf-life window that makes it one batch, and the freezer hop when
-/// that's how the meal is reached.
+/// The batch-awareness cue, in full prose rather than a one-liner: it names the
+/// dish, the day it already cooks, the shelf-life window that makes it one
+/// batch, and the freezer hop when that's how the meal is reached.
 class MealBatchBanner extends StatelessWidget {
   const MealBatchBanner({
     required this.hint,

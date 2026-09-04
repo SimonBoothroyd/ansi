@@ -23,10 +23,10 @@
 /// fix its reason implies. Invariant 3 is unchanged: nothing new is included
 /// in any total; the refusal just says what it is waiting on.
 ///
-/// **And a real total says what it left out** (seam D6). Imprecise lines are
-/// excluded by rule, and `not counted: Parsley · handful` prints beneath the
-/// cells, every time — as do optional lines since plan 0025 (D6b), one reason
-/// wider on the same line: `not counted · 2 optional lines: Lime, Coriander`.
+/// **And a real total says what it left out.** Imprecise lines are excluded by
+/// rule, and `not counted: Parsley · handful` prints beneath the cells, every
+/// time — as do optional lines, one reason wider on the same line: `not
+/// counted · 2 optional lines: Lime, Coriander`.
 library;
 
 import 'package:flutter/widgets.dart';

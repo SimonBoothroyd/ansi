@@ -35,11 +35,11 @@ const _kitchenOrder = {
 /// (or admitted stored) unit: they are label-reading granularity, not
 /// kitchen granularity.
 ///
-/// **Quart rides with litre, pint rides with cup** (plan 0025 D2b): a mates
-/// list that names `l` names `qt`, one that names `cup` names `pt` — the two
-/// are the same magnitude in the other customary system, so a broth that may
-/// be said in cups and litres may be said in pints and quarts. `qt` and `pt`
-/// as defaults mate the same way, one rung each side.
+/// **Quart rides with litre, pint rides with cup**: a mates list that names `l`
+/// names `qt`, one that names `cup` names `pt` — the two are the same magnitude
+/// in the other customary system, so a broth that may be said in cups and
+/// litres may be said in pints and quarts. `qt` and `pt` as defaults mate the
+/// same way, one rung each side.
 const _kitchenMates = <Unit, Set<Unit>>{
   tsp: {tsp, tbsp},
   tbsp: {tbsp, tsp, cup, ml, pint},
@@ -66,14 +66,13 @@ const _crossKitchen = {
 };
 
 /// Which categories admit which imprecise word (ADR-0008 §5: category-gated,
-/// not universal — tightened per-WORD by plan 0020 **J3**).
+/// not universal, and gated per WORD).
 ///
-/// The gate used to be one set of categories admitting all four words, so
-/// anything that earned `pinch` earned `handful` too. It was also bypassed
-/// entirely on the import surface, which is how "a dash of kale" came to be
-/// offered on the owner's phone. Owner ruling: **pinch and dash are for the
-/// spice/seasoning/oil classes; handful is for greens** — that is how cooks
-/// actually talk.
+/// One set of categories admitting all four words would mean anything earning
+/// `pinch` earns `handful` too, which is how "a dash of kale" becomes
+/// offerable. **Pinch and dash are for the spice/seasoning/oil classes;
+/// handful is for greens** — that is how cooks actually talk. Every surface
+/// reads this map, the import review included.
 ///
 /// Keys are the vocab's ACTUAL category values (`produce`, `pantry`, `spices &
 /// seasoning`, `grains`, `baking`, `fats & oils`, `dairy`, `proteins`). It has
@@ -116,13 +115,13 @@ Set<Unit> impreciseUnitsFor(Ingredient ingredient) {
 /// - the **basis family** ([Ingredient.macrosBasis]: /g → weights, /ml →
 ///   volumes) — the canonical dimension is always sayable, so yeast (tsp
 ///   default, per-g macros) admits `g`;
-/// - the default unit's family, trimmed to kitchen magnitudes near the
-///   default ([_kitchenMates] — no `l` for a tsp-default ingredient), **but
-///   only when that family IS the basis family, or a density is stored**
-///   (plan 0020 **D4c**): being the unit a shop sells the thing in does not
-///   make a dimension convertible. A tsp-default per-100 g row with no
-///   density cannot honestly say "2 tsp" of anything a macro total reads, so
-///   it does not admit spoons until the number that bridges them exists;
+/// - the default unit's family, trimmed to kitchen magnitudes near the default
+///   ([_kitchenMates] — no `l` for a tsp-default ingredient), **but only when
+///   that family IS the basis family, or a density is stored**: being the unit
+///   a shop sells the thing in does not make a dimension convertible. A
+///   tsp-default per-100 g row with no density cannot honestly say "2 tsp" of
+///   anything a macro total reads, so it does not admit spoons until the number
+///   that bridges them exists;
 /// - the opposite mass/volume family **only** when the ingredient carries a
 ///   density ([densityUnlockedUnits] — without one, [convert] would fail
 ///   with `unit/no_density`); since the plan-0020 D4 amendment this fires
@@ -175,7 +174,7 @@ Set<Unit> _derivedSet(Ingredient ingredient, {required bool density}) {
   }
 
   // Density leg: a stored density unlocks the other mass/volume family —
-  // whatever the default unit's family (ADR-0008 as amended, plan 0020 D4).
+  // whatever the default unit's family (ADR-0008 as amended).
   if (density) {
     units.addAll(_densityCrossLeg(ingredient));
   }
@@ -189,13 +188,13 @@ Set<Unit> _derivedSet(Ingredient ingredient, {required bool density}) {
 /// The cross-family workhorses a density bridges to, by default unit — the
 /// raw ADR-0008 §2 leg, before [_derivedSet] folds it in.
 ///
-/// **ADR-0008 as amended (plan 0020 D4).** A density is a property of the
-/// substance, not of how the shop sells it: a mango is bought by the piece
-/// and still has a cup. So the unlock does not depend on the default unit's
-/// family. A count- or imprecise-default row has no "other" family, so it
-/// bridges to BOTH families' workhorses — the big metric siblings staying
-/// behind the same `big` gate the mass/volume legs use, which is why Mango's
-/// `kg` chip stays locked on the board frame while `cup` opens.
+/// **ADR-0008 as amended.** A density is a property of the substance, not of
+/// how the shop sells it: a mango is bought by the piece and still has a cup.
+/// So the unlock does not depend on the default unit's family. A count- or
+/// imprecise-default row has no "other" family, so it bridges to BOTH families'
+/// workhorses — the big metric siblings staying behind the same `big` gate the
+/// mass/volume legs use, which is why Mango's `kg` chip stays locked on the
+/// board frame while `cup` opens.
 ///
 /// Not the public answer to "what does a density buy this row": that is
 /// [densityUnlockedUnits], which since D4c also counts the default unit's
@@ -257,10 +256,10 @@ Set<Unit> densityUnlockedUnits(Ingredient ingredient) => _derivedSet(
 Set<Unit> densityStrippedUnits(Ingredient ingredient) =>
     densityUnlockedUnits(ingredient);
 
-/// Whether [ingredient]'s stored default unit is one its own admission rules
-/// no longer support: a mass/volume default on the far side of the basis
-/// family, with no density to bridge it (plan 0020 **D4c** — the renamed-rice
-/// shape, `cup` default on a per-100 g row).
+/// Whether [ingredient]'s stored default unit is one its own admission rules no
+/// longer support: a mass/volume default on the far side of the basis family,
+/// with no density to bridge it (the renamed-rice shape, `cup` default on a
+/// per-100 g row).
 ///
 /// The form draws this as a flag with a one-tap fix ([basisDefaultUnitFix]).
 /// It is never repaired silently: a default unit is a statement about how the
@@ -461,12 +460,11 @@ final class MeasureOption extends UnitChoice {
   int get hashCode => measure.id.hashCode;
 }
 
-/// The catalog volume unit a bare [label] names ("tbsp", "Cups ", "ml"…),
-/// or null when it names none. Measures must never duplicate volume units —
-/// density owns volume conversion (frame-b review, plan 0011; ADR-0008 §2:
-/// a volume-named weight mapping IS a density) — so the add-measure form
-/// uses the resolved unit to REDIRECT the entry into density instead of
-/// merely refusing it.
+/// The catalog volume unit a bare [label] names ("tbsp", "Cups ", "ml"…), or
+/// null when it names none. Measures must never duplicate volume units —
+/// density owns volume conversion (ADR-0008 §2: a volume-named weight mapping
+/// IS a density) — so the add-measure form uses the resolved unit to REDIRECT
+/// the entry into density instead of merely refusing it.
 ///
 /// Robust to casing, surrounding whitespace, and the simple `s` plural
 /// ("Cups ", "tbsps") — the trivial disguises a typed label wears.

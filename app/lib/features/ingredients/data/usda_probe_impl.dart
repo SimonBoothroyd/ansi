@@ -1,5 +1,4 @@
-/// [UsdaProbe] over the `probe_usda` RPC (migrations 0016 + 0027, plan 0020
-/// D7b / plan 0027 U-D3).
+/// [UsdaProbe] over the `probe_usda` RPC (migrations 0016 + 0027).
 ///
 /// The one place in the app that talks to Supabase REST about ingredients.
 /// That is a deliberate exception to "reads come from PowerSync's local

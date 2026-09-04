@@ -4,8 +4,8 @@
 /// the week's `plan_entry` rows joined to `recipe` shelf life, assembles one
 /// [PlannedRecipe] per recipe, and hands them to the pure [buildCookPlan]. The
 /// watch query names every table the load reads (and selects a column from each
-/// joined one) so PowerSync re-fires on any relevant change — the LEFT JOIN
-/// pitfall the planner hit ([[mise-powersync-watch-left-join]]).
+/// joined one) so PowerSync re-fires on any relevant change: SQLite drops a
+/// LEFT JOIN with no selected column, and that table then never triggers.
 library;
 
 import 'dart:convert';
@@ -36,11 +36,11 @@ class SqliteCookPlanRepository implements CookPlanRepository {
     final key = _weekKey(weekStart);
     // Reference week_plan + plan_entry + recipe and select a column from each,
     // so a change to any (including a recipe's shelf life) re-derives the plan.
-    // Since 8.6 the groups and line items join too: a component line — or the
-    // yield it resolves against — moves the derived component sessions, so a
-    // change to either must re-fire. Since plan 0027 a member's portion
-    // factor is part of every meal's demand, so `household_member` joins too
-    // (cross-joined — it is not tied to the week — purely to be seen).
+    // The groups and line items join too: a component line — or the yield it
+    // resolves against — moves the derived component sessions, so a change to
+    // either must re-fire. A member's portion factor is part of every meal's
+    // demand, so `household_member` joins as well (cross-joined — it is not
+    // tied to the week — purely to be seen).
     return _db
         .watch(
           'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, hm.id '

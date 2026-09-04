@@ -12,13 +12,13 @@
 /// write itself and pops.
 ///
 /// Its controls live in `meal_fields.dart` because a second sheet uses two of
-/// them: `meal_editor_sheet.dart` (week v3, E7) sets who's eating and how many
-/// portions on a meal already on the week. Hoisting them is what stops the add
-/// path and the edit path drifting apart.
+/// them: `meal_editor_sheet.dart` sets who's eating and how many portions on a
+/// meal already on the week. Hoisting them is what stops the add path and the
+/// edit path drifting apart.
 ///
-/// The `Day · Slot` dropdown is this sheet's alone. v3 took day and slot out of
-/// the editor — a row does not print a day as a value, its *position* is its
-/// day — so this is the only place a meal's day is chosen, on the way in.
+/// The `Day · Slot` dropdown is this sheet's alone. The editor holds no day and
+/// no slot — a row does not print a day as a value, its *position* is its day —
+/// so this is the only place a meal's day is chosen, on the way in.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -107,8 +107,9 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     }, [members]);
 
     Future<void> add() async {
-      // The sheet closes only on a write that landed. A throw used to skip the
-      // pop and leave it open and inert — the most confusing possible outcome.
+      // The sheet closes only on a write that landed: a throw must not skip
+      // the pop and leave it open and inert, the most confusing possible
+      // outcome.
       final added = await ref.write(
         context,
         "add ${kWeekdayFull[dayState.value]}'s meal",

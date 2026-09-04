@@ -15,11 +15,10 @@
 /// target is missing (a sync race, D5) degrades to the plain text it stored,
 /// muted, and says so; nothing derived, nothing invented.
 ///
-/// **An optional line carries a tag after the note** (plan 0025 / D6b, board
-/// frame e2) in the stub badge's voice, because it is the same kind of claim
-/// — a fact about the line that changes what a total covers. It sits in the
-/// identity column, never the amount column: "1 lime" is still what the
-/// recipe says.
+/// **An optional line carries a tag after the note** (board frame e2) in the
+/// stub badge's voice, because it is the same kind of claim — a fact about the
+/// line that changes what a total covers. It sits in the identity column, never
+/// the amount column: "1 lime" is still what the recipe says.
 library;
 
 import 'package:flutter/widgets.dart';

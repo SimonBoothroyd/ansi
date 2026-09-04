@@ -13,12 +13,11 @@
 /// point its own density entry at it. Two hosts, one door, and no second
 /// density widget.
 ///
-/// It also owns the one question in the `piece` model (plan 0022 / ADR-0010).
-/// `piece` is the fallback for when no measure names the thing; the moment a
-/// row's FIRST piece-type measure lands, that stops being true, and the
-/// household — never a rule — decides whether `piece` stays sayable. Asked
-/// once, with a default, and revisable forever in the flesh-out form's
-/// admission chips.
+/// It also owns the one question in the `piece` model (ADR-0010). `piece` is
+/// the fallback for when no measure names the thing; the moment a row's FIRST
+/// piece-type measure lands, that stops being true, and the household — never a
+/// rule — decides whether `piece` stays sayable. Asked once, with a default,
+/// and revisable forever in the flesh-out form's admission chips.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -91,11 +90,11 @@ class MeasuresEditor extends HookWidget {
   /// selection pointing at the row being tombstoned.
   final Future<void> Function(Measure) onDelete;
 
-  /// A measure was authored. The quantity sheet selects it; the flesh-out
-  /// form has nothing to select and ignores it.
-  /// **The host decides when a measure lands** (plan 0029 W1, ADR-0011).
-  /// This widget validates the label and the amount — including the ADR-0008
-  /// §2 volume-label redirect — and then asks. It does not know a repository.
+  /// A measure was authored. The quantity sheet selects it; the flesh-out form
+  /// has nothing to select and ignores it. **The host decides when a measure
+  /// lands** (ADR-0011). This widget validates the label and the amount —
+  /// including the ADR-0008 §2 volume-label redirect — and then asks. It does
+  /// not know a repository.
   ///
   /// The quantity sheet's host writes immediately; the flesh-out form's host
   /// will hold it in a draft until Save (lane B). The outcome is a value
@@ -187,12 +186,12 @@ class MeasuresEditor extends HookWidget {
         case MeasureNotAdded():
           return;
         case MeasureAdded(:final measure):
-          // Plan 0022 / ADR-0010 — the one question in the `piece` model,
-          // asked at the only moment its answer is obvious. `piece` means "a
-          // whole one of these, and we have nothing better to call it";
-          // `listed` being empty a moment ago is exactly what said that, and
-          // this measure is what stops it being true. Adding a SECOND measure
-          // asks nothing: the row has already answered, whichever way.
+          //  / ADR-0010 — the one question in the `piece` model, asked at the
+          // only moment its answer is obvious. `piece` means "a whole one of
+          // these, and we have nothing better to call it"; `listed` being empty
+          // a moment ago is exactly what said that, and this measure is what
+          // stops it being true. Adding a SECOND measure asks nothing: the row
+          // has already answered, whichever way.
           if (listed.isEmpty && allowedUnitsFor(ingredient).contains(pieces)) {
             final stop = await _askStopOfferingPiece(
               context,

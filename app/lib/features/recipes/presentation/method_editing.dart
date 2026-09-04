@@ -1,9 +1,8 @@
-/// What the method step cards actually need from their host (seam **D4**).
+/// What the method step cards actually need from their host.
 ///
-/// The editor v2 cards (`method_editor.dart`) were written against
-/// `RecipeEditor` because that was the only host there was. The import review
-/// is the second — and it is the screen most likely to need a method fix, so
-/// it was the wrong one to leave read-only.
+/// The cards (`method_editor.dart`) have two hosts: `RecipeEditor`, and the
+/// import review — the screen most likely to need a method fix, and so the
+/// wrong one to leave read-only.
 ///
 /// This is a **declaration, not a refactor**: `RecipeEditor` already has every
 /// member below, and gains `implements MethodEditing` with no change to its

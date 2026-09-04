@@ -1,9 +1,6 @@
-/// The barcode result card — design board "Ingredients manager · v1" frame
-/// (e): what Open Food Facts actually said, with its credit, and what of it
-/// was left alone because a human had already filled that field in.
-///
-/// Drawn by both hosts that take a draft — the New-ingredient sheet and the
-/// flesh-out form — so the two read alike.
+/// The barcode result card: what Open Food Facts actually said, with its
+/// credit, and what of it was left alone because a human had already filled
+/// that field in.
 library;
 
 import 'package:flutter/widgets.dart';

@@ -11,10 +11,10 @@
 /// and correction aliases in one transaction, generating ids up front so it can
 /// remap each step token's `line_index` refs to the created `line_item_id`s
 /// before the recipe row is written (§4.6). It creates no ingredient: every
-/// line arrives with a real id, because "create new" at review now runs the
-/// New-ingredient sheet and the flesh-out form before the line resolves — the
-/// `import_stub` leg is gone. Local tables are SQLite VIEWS, so every write is
-/// a plain INSERT — never `ON CONFLICT` ([mise-powersync-views-no-upsert]).
+/// line arrives with a real id, because "create new" at review runs the
+/// ingredient form before the line resolves — the `import_stub` leg is gone.
+/// Local tables are SQLite VIEWS, so every write is a plain INSERT, never
+/// `ON CONFLICT`, which those views reject.
 library;
 
 import 'dart:convert';

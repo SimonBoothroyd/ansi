@@ -1,6 +1,5 @@
-/// Recipe macro summation — PURE DART (invariant 2). Pulled forward from step 9
-/// to feed the recipe picker's honest per-serving row; the recipe-page macro
-/// panel remains step 9.
+/// Recipe macro summation — PURE DART (invariant 2). It feeds the recipe
+/// picker's honest per-serving row and the recipe page's macro panel.
 ///
 /// Sums a recipe's line items against the vocab's per-100 macros, honouring
 /// each ingredient's stored basis (`macros_basis`, migration 0011):
@@ -27,14 +26,14 @@
 ///   knowable to within a pinch of salt. The one guard: a recipe whose lines
 ///   are ALL imprecise summed nothing and still refuses
 ///   ([RecipeMacroSummary.nothingWeighable]);
-/// - an **optional** line (plan 0025 / **D6b**) is excluded by rule too,
-///   through the one [effectiveLines] seam every derivation shares, and
-///   composes with the imprecise exclusion under the total: `not counted ·
-///   2 optional lines: Lime, Coriander`. It runs before every other test, so
-///   an optional line that is also imprecise, or a stub, is named once — as
-///   optional. Like the imprecise case it does NOT make the summary
-///   incomplete, and shares its one guard: a recipe whose lines are ALL
-///   optional (or optional and imprecise) summed nothing and still refuses;
+/// - an **optional** line is excluded by rule too, through the one
+///   [effectiveLines] seam every derivation shares, and composes with the
+///   imprecise exclusion under the total: `not counted · 2 optional lines:
+///   Lime, Coriander`. It runs before every other test, so an optional line
+///   that is also imprecise, or a stub, is named once — as optional. Like the
+///   imprecise case it does NOT make the summary incomplete, and shares its one
+///   guard: a recipe whose lines are ALL optional (or optional and imprecise)
+///   summed nothing and still refuses;
 /// - anything else — a stub ingredient, a count line without a measure, a
 ///   numberless line, a missing density — makes the whole summary honestly
 ///   **incomplete**: no partial total is ever shown as if it were the
@@ -134,12 +133,12 @@ typedef MacroLineNote = ({
 /// `incompleteNote` — so the picker row, the macro panel and the review card
 /// cannot drift apart.
 ///
-/// The bare-count reason is split out because it is the ONE incomplete cause
-/// a household can fix in two taps — pick a measure on that line — and under
-/// plan 0022's admission model those taps are unambiguous: the row's chip row
-/// holds its measures and (mostly) not `piece`. Folding it into
-/// "unconvertible" told them a conversion had failed, which is not what
-/// happened: nothing was ever weighed.
+/// The bare-count reason is split out because it is the ONE incomplete cause a
+/// household can fix in two taps — pick a measure on that line — and under
+/// admission model those taps are unambiguous: the row's chip row holds its
+/// measures and (mostly) not `piece`. Folding it into "unconvertible" told them
+/// a conversion had failed, which is not what happened: nothing was ever
+/// weighed.
 @immutable
 class RecipeMacroSummary {
   const RecipeMacroSummary({
@@ -192,8 +191,8 @@ class RecipeMacroSummary {
   /// is incomplete — the share is knowable, the macros behind it are not.
   final int subRecipesIncomplete;
 
-  /// Lines saying a bare count ("2 pieces") with no measure linked, so there
-  /// is no weight to sum — plan 0022 **D6**.
+  /// Lines saying a bare count ("2 pieces") with no measure linked, so there is
+  /// no weight to sum.
   final int countLinesWithoutMeasure;
 
   /// The recipe has no line items yet — incomplete by absence, not by any

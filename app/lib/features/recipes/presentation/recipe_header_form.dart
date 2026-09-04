@@ -1,5 +1,4 @@
-/// The recipe header — one form, two hosts (plan 0025 #4 / D4, board frames
-/// a and b).
+/// The recipe header — one form, two hosts (board frames a and b).
 ///
 /// TITLE · SERVES · MAKES · TIMES · SHELF LIFE · FILE UNDER, in that order,
 /// declared once in [kRecipeHeaderSections] and iterated here. The recipe
@@ -528,15 +527,15 @@ class _StepperRow extends StatelessWidget {
   }
 }
 
-/// Where the recipe is filed, as ONE LINE that opens the picker (0028 E9).
+/// Where the recipe is filed, as ONE LINE that opens the picker.
 ///
-/// It used to be two selects a person answered on the way in. Since E2 the
-/// door that opened this screen usually knows the answer already — a section's
-/// `＋` carries `?book=&section=` — so the form should state a fact, not ask a
-/// question. It is still a control, because two creation doors have no shelf
-/// to inherit (the Week picker's `＋ new recipe`, and the no-hits state, where
-/// a live query has replaced the tree) and because this same form renders for
-/// every EXISTING recipe, where it is the filing you came to change.
+/// The door that opened this screen usually knows the answer already — a
+/// section's `＋` carries `?book=&section=` — so the line states a fact rather
+/// than asking a question. It stays a control, because two creation doors have
+/// no shelf to inherit (the Week picker's `＋ new recipe`, and the no-hits
+/// state, where a live query has replaced the tree) and because this same form
+/// renders for every EXISTING recipe, where it is the filing you came to
+/// change.
 ///
 /// The words are the recipe page's own eyebrow — `BOOK · SECTION` in herb
 /// caps — so the editor states filing exactly as the reader already saw it.

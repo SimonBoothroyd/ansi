@@ -41,8 +41,8 @@ class LibraryView extends HookConsumerWidget {
     final library = ref.watch(libraryProvider);
     // The field owns its controller (a hook, so it survives every rebuild) and
     // the body branches on WHAT THE FIELD SAYS, never on a query stored
-    // elsewhere that could outlive the text that produced it — plan 0020 J4,
-    // and the ingredients manager is the working example.
+    // elsewhere that could outlive the text that produced it, and the
+    // ingredients manager is the working example.
     final field = useTextEditingController();
     final typed = useValueListenable(field).text;
     final searching = typed.trim().isNotEmpty;
@@ -280,11 +280,9 @@ class _BookCard extends ConsumerWidget {
                     if (book.unsectioned.isNotEmpty)
                       _SectionBlock(book: book, unsectioned: book.unsectioned),
                     if (_isEmpty) _EmptyShelf(book: book),
-                    // E3: no dashed row here. v2 D5 moved it INSIDE the card
-                    // so its noise would scale with what is open; it never
-                    // asked why the row existed at all while `New section`
-                    // sat in the book `⋯` immediately above it. An expanded
-                    // card is books, sections and recipes — no furniture.
+                    // No dashed add-a-section row here: `New section` is in
+                    // the book `⋯` immediately above. An expanded card is
+                    // books, sections and recipes — no furniture.
                     const SizedBox(height: 10),
                   ],
                 ],
@@ -629,8 +627,8 @@ class _EmptyShelf extends StatelessWidget {
 ///
 /// A fold that hides how much it hides is a fold you stop trusting, so the
 /// line reads the same open or shut. An empty shelf says **"no recipes yet"**,
-/// never `0 recipes`, and a book with no sections omits that half entirely:
-/// the `_StubCountBadge` rule — a zero that renders looks like a bug.
+/// never `0 recipes`, and a book with no sections omits that half entirely — a
+/// zero that renders looks like a bug.
 String bookCountLine(Book book) {
   final recipes =
       book.unsectioned.length +
@@ -710,8 +708,8 @@ class _SectionBlock extends ConsumerWidget {
   }
 }
 
-/// The `＋` on a section label — Library v2 D1's menu, word for word, on a row
-/// that knows its book and its section (0028 E2).
+/// The `＋` on a section label — the header menu's wording, on a row that knows
+/// its book and its section.
 ///
 /// The header `＋` could only ever promise "a recipe, somewhere"; this one
 /// carries `?book=&section=` so the editor opens already filed. `section` is
@@ -954,13 +952,10 @@ class _RecipeRow extends StatelessWidget {
   }
 }
 
-/// The recipe row's own `⋯` (0028 E8, ruled by the owner over a long-press —
-/// which keeps D6 whole and is found by nobody).
+/// The recipe row's own `⋯`, rather than a long-press nobody finds.
 ///
-/// This AMENDS Library v2's D6, which kept the row a single tap target. D6's
-/// actual rule survives: the ★ still only REPORTS on the row, and the toggle
-/// lives in here, one deliberate tap away — so the row's own tap still means
-/// exactly one thing, open the recipe.
+/// The ★ only REPORTS on the row and the toggle lives in here, one deliberate
+/// tap away — so the row's own tap means exactly one thing, open the recipe.
 class _RecipeRowMenu extends ConsumerWidget {
   const _RecipeRowMenu({
     required this.recipe,
@@ -1046,16 +1041,15 @@ class _RecipeRowMenu extends ConsumerWidget {
   }
 }
 
-/// The vocabulary as a shelf of its own (0028 E5) — the book anatomy exactly:
-/// a name, a count line, one control.
+/// The vocabulary as a shelf of its own — the book anatomy exactly: a name, a
+/// count line, one control.
 ///
 /// It is not reference data filed under a menu. `shopping_list_entry` has
 /// carried `ingredient_id` beside `free_text` since 0006, under a check that
 /// exactly one is set — a top-up IS an ingredient put on a list with no recipe
 /// anywhere near it — so the vocabulary is already something the household
-/// plans with. Plan 0020 D8's badge and Library v2's dot were both proxies for
-/// "there is something over here"; a count line says it outright, and both
-/// proxies delete.
+/// plans with. A count line says what is on the shelf outright, which is what
+/// a badge or a dot could only gesture at.
 ///
 /// A `›` rather than a fold: 300 rows do not belong inside a card.
 class _IngredientsShelf extends ConsumerWidget {

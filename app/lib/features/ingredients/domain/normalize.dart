@@ -1,11 +1,11 @@
 /// The **phrase-level** ingredient normalizer — PURE DART (invariant 2).
 ///
-/// This is the Dart port of `supabase/functions/_shared/normalize.ts` (plan
-/// 0020 D6, spec §7). The server writes every `ingredient.match_text` with
-/// those phrase rules; before this port the app could only apply the
-/// *character* rules ([normalizeSearchQuery]), so a stub created in the picker
-/// carried a `match_text` the server would never have written — and the next
-/// import's cascade, searching by the server's rules, missed it.
+/// This is the Dart port of `supabase/functions/_shared/normalize.ts` (spec
+/// §7). The server writes every `ingredient.match_text` with those phrase
+/// rules; before this port the app could only apply the *character* rules
+/// ([normalizeSearchQuery]), so a stub created in the picker carried a
+/// `match_text` the server would never have written — and the next import's
+/// cascade, searching by the server's rules, missed it.
 ///
 /// **Two mirrors, one fact.** `normalize.ts` stays authoritative for the
 /// server; this is its twin. The shared vectors in
@@ -16,8 +16,8 @@
 ///
 /// What it does, in order (unchanged from the TS):
 /// 1. lowercase, hyphens/dashes → word breaks, Latin diacritics folded onto
-///    their base letter ("Jalapeño" → `jalapeno`, so a line printed without
-///    the tilde still matches — plan 0023 D5);
+///    their base letter ("Jalapeño" → `jalapeno`, so a line printed without the
+///    tilde still matches);
 /// 2. split trailing comma modifier(s) off the head;
 /// 3. drop non-identity words — quantities (including an amount fused to its
 ///    unit, "400g"), filler, measures/containers, sizes, prep adverbs and
@@ -169,7 +169,7 @@ const _stateWords = {
 /// plural. The regex guard ([_looksSingular]: `-ss`, `-us`, `-is`, `-ous`)
 /// already spares boneless, asparagus and hummus; this set is for the words
 /// it cannot see — "molasses" ends in `-sses`, so the guard misses it and the
-/// sibilant rule used to write `molass`.
+/// sibilant rule would write `molass`.
 ///
 /// Admission rule: a word goes in only when it is genuinely singular AND the
 /// rules produce a non-word for it. A word the rules reduce to a real stem
@@ -198,8 +198,8 @@ final _quantity = RegExp('^[0-9$_fractionGlyphs/.,\\-–—]+\$');
 
 /// An amount fused to its unit in one token: "400g", "1.5kg", "½oz".
 /// [_measures] lists the unit words bare and [_quantity] needs the WHOLE token
-/// to be numeric, so a printed "400g tin of black beans" used to keep `400g`
-/// as a noun and matched nothing at all. Only the unambiguous mass/volume
+/// to be numeric, so without this a printed "400g tin of black beans" keeps
+/// `400g` as a noun and matches nothing at all. Only the unambiguous mass/volume
 /// abbreviations: a bare "l" or "g" after a number can only be a unit, while a
 /// longer suffix would start eating real words.
 final _fusedAmount = RegExp(
@@ -208,9 +208,9 @@ final _fusedAmount = RegExp(
 
 /// British surface forms folded onto the word the vocabulary stores. "tinned"
 /// and "canned" name the same thing on the same shelf, but only "canned" is a
-/// state word — so "tinned chickpeas" used to key as `tinned chickpea`, a
-/// leading noun nothing else produces, and missed `chickpea canned` by enough
-/// to lose the auto band.
+/// state word — so without the fold "tinned chickpeas" keys as `tinned
+/// chickpea`, a leading noun nothing else produces, and misses `chickpea
+/// canned` by enough to lose the auto band.
 ///
 /// A word added here changes what is STORED: pair it with a migration that
 /// rewrites the old form in place (`0031_tinned_is_canned.sql` is the model),

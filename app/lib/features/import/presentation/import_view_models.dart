@@ -303,7 +303,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     state = s.copyWith(editedSteps: drafts);
   }
 
-  // --- the header (plan 0025 #4) ----------------------------------------
+  // --- the header ---------------------------------------------------
   //
   // The review is the header form's second host. Every rule a setter holds
   // is `RecipeHeaderEdits`, shared with the editor's notifier; these only
@@ -497,8 +497,8 @@ Measure? _measureNamed(String? unit, List<Measure> measures) {
 
 /// The ONE "how many lines still want you" count — the header's "N to review"
 /// and the Save button's "N line(s) need you" are the same number, read from
-/// the same place (they used to be two different rules, and the header's never
-/// decremented). Until the first validation lands it falls back to the
+/// the same place — two rules would let the header stop decrementing while the
+/// button kept counting. Until the first validation lands it falls back to the
 /// structural unresolved count, so the header is never blank or wrong-by-zero.
 @riverpod
 int importOutstandingLines(Ref ref) {

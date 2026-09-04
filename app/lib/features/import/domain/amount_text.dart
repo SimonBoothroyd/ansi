@@ -2,11 +2,11 @@
 /// (invariant 2).
 ///
 /// A line whose source printed no number and no mappable unit ("Tortilla chips
-/// (to serve (optional))") used to dump its whole raw amount into the amount
-/// column, where it read as a quantity it is not. The owner's call: the amount
-/// slot shows the QUALIFIER the source named ("to serve") when there is one and
-/// nothing at all ("—", rendered by the caller) when there isn't — and the raw
-/// parenthetical travels to the NOTES slot, which is where free prose belongs.
+/// (to serve (optional))") must not dump its whole raw amount into the amount
+/// column, where it reads as a quantity it is not. The amount slot shows the
+/// QUALIFIER the source named ("to serve") when there is one and nothing at all
+/// ("—", rendered by the caller) when there isn't; the raw parenthetical
+/// travels to the NOTES slot, which is where free prose belongs.
 ///
 /// Nothing here invents: both the qualifier and the note are substrings of what
 /// the source actually printed (0014).

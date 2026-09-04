@@ -1,16 +1,15 @@
 /// The Open Food Facts reader, as a provider — the barcode path's one injection
 /// seam.
 ///
-/// `scanBarcodeForDraft` and the New-ingredient sheet already take an
-/// [OffLookup] parameter, which is how the *widget* tests reach in. That hook
-/// does not reach the **integration** harness: there the sheet is opened by the
-/// manager list, deep inside a real navigation stack that nothing outside can
-/// pass a parameter through. So the default arrives by provider instead, and
-/// `make test-sim` overrides it the way scenario 4 overrides the import
-/// repository — one `ProviderScope` override, every other collaborator real.
+/// `scanBarcodeForDraft` takes an [OffLookup] parameter, which is how the
+/// *widget* tests reach in. That hook does not reach the **integration**
+/// harness: there the scan is opened from the ingredient form, deep inside a
+/// real navigation stack that nothing outside can pass a parameter through. So
+/// the default arrives by provider instead, and `make test-sim` overrides it —
+/// one `ProviderScope` override, every other collaborator real.
 ///
-/// Production call sites are unchanged: they pass no lookup and get exactly
-/// what they got before, a real keyless client aimed at Open Food Facts.
+/// Production call sites pass no lookup and get a real keyless client aimed at
+/// Open Food Facts.
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';

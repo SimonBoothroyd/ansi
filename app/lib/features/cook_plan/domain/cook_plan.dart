@@ -10,9 +10,8 @@
 /// of opening a second session.
 ///
 /// Days are 0=Monday..6=Sunday (matching `plan_entry.day_of_week`). The cook
-/// day is the earliest covered day (display-only this step). Scale factor is
-/// the raw `total_portions / servings_base` — honest, not nudged to a whole
-/// batch.
+/// day is the earliest covered day. Scale factor is the raw `total_portions /
+/// servings_base` — honest, not nudged to a whole batch.
 ///
 /// **Nested recipes (step 8.6 / D3).** A planned recipe's *component* lines
 /// derive sessions of their own: each parent session demands `parent scale ×
@@ -41,8 +40,8 @@ part 'cook_plan.freezed.dart';
 /// One planned appearance of a recipe in the week — a `plan_entry` reduced to
 /// what batching needs: its [dayOfWeek] (0=Mon..6=Sun), [mealSlot], and the
 /// [portions] it demands (the entry's override, or the sum of its eaters'
-/// portion factors — `demandPortions`, plan 0027 P-D1). Fractional by design:
-/// a 1 and a ¾ eater are `1.75`, and nothing here rounds it.
+/// portion factors — `demandPortions`). Fractional by design: a 1 and a ¾ eater
+/// are `1.75`, and nothing here rounds it.
 @freezed
 abstract class CoveredMeal with _$CoveredMeal {
   const factory CoveredMeal({
@@ -241,7 +240,7 @@ abstract class RecipeCookPlan with _$RecipeCookPlan {
     return set.toList()..sort();
   }
 
-  /// The earliest cook day, used to order the plan.
+  /// The earliest cook day — the plan's sort key.
   int get firstCookDay =>
       sessions.isEmpty ? 0 : sessions.map((s) => s.cookDay).reduce(min);
 

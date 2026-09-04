@@ -27,9 +27,8 @@ import '../../../core/units/units.dart';
 import 'component_math.dart';
 
 /// The kitchen workhorses each yield family opens, in chip order (design board
-/// frame d draws `cup · tbsp · tsp · ml` for a `makes 1 cup` yield; the US
-/// pair joined the tail with plan 0025 #2 — a stock that "makes 1 quart" is a
-/// kitchen fact too).
+/// frame d draws `cup · tbsp · tsp · ml` for a `makes 1 cup` yield; the US pair
+/// joined the tail with — a stock that "makes 1 quart" is a kitchen fact too).
 ///
 /// Deliberately narrower than the catalogue: label-reading granularity (`mg`,
 /// `fl oz`) is not kitchen granularity, and a recipe yield is a kitchen fact.

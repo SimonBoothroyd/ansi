@@ -564,9 +564,8 @@ class SqliteIngredientRepository implements IngredientRepository {
 
     final ok = await _db.writeTransaction((tx) async {
       if (creating) {
-        // Born a stub whatever arrived, exactly as `createStub` does (D5):
-        // filling a form in never promotes a row — only `markComplete`, which
-        // is a human tapping the CTA.
+        // Born a stub whatever arrived: filling a form in never promotes a
+        // row — only `markComplete` does, which is a human tapping the CTA.
         await tx.execute(
           'INSERT INTO ingredient (id, household_id, canonical_name, '
           'default_unit, status, match_text, created_at, updated_at) '

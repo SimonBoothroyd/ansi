@@ -29,11 +29,10 @@ class SqliteBookRepository implements BookRepository {
 
   @override
   Stream<List<Book>> watchLibrary() {
-    // The watched query references all three source tables AND selects a
-    // column from each: SQLite drops a LEFT JOIN with no selected column, and
-    // a dropped join is a table PowerSync never registers as a trigger
-    // ([[mise-powersync-watch-left-join]]). The rows are ignored; each fire
-    // runs a full re-assemble via [_loadLibrary].
+    // The watched query references all three source tables AND selects a column
+    // from each: SQLite drops a LEFT JOIN with no selected column, and a
+    // dropped join is a table PowerSync never registers as a trigger. The rows
+    // are ignored; each fire runs a full re-assemble via [_loadLibrary].
     return _db
         .watch(
           'SELECT b.id, s.id, r.id FROM book b '
@@ -57,7 +56,7 @@ class SqliteBookRepository implements BookRepository {
     // offers its "Your recipes" rows straight off this tree, and a row that
     // cannot see the yield says "no yield yet" about a recipe that states one
     // — and hands the quantity sheet a target with no yield to do batch math
-    // against. `favorite` rides along for the same reason (Library v2 / D6):
+    // against. `favorite` rides along for the same reason:
     // the row shows a ★, and a tree that drops the column makes every recipe
     // read as unstarred however the recipe page was tapped.
     final recipeRows = await _db.getAll(

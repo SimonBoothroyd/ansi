@@ -1,18 +1,13 @@
-/// *Choose another ▸* — the USDA short-list a person picks from (plan 0027
-/// **U-D3**, board frame c), and the candidate rows the New-ingredient
-/// sheet's USDA leg draws too (**U-D7**, frame d).
+/// *Choose another ▸* — the USDA short-list a person picks from.
 ///
 /// `usda_food` never syncs to a device (ADR-0005), so this is not a browser
-/// over the reference set: it is the top few answers to ONE question — the
-/// row's match text — in the same total order the prefill trigger uses, so
-/// the first row is what the trigger picked and the rest are what it would
-/// have picked had each earlier one not existed. Candidates with nothing to
-/// copy (a name and no numbers) are left out: picking one could fill
-/// nothing, and the trigger never offers them either.
+/// over the reference set: it is the top few answers to ONE question — the name
+/// in the form's field — ranked by how much of that name each food's
+/// description covers. Candidates with nothing to copy (a name and no numbers)
+/// are left out: picking one could fill nothing.
 ///
-/// The sheet only *asks and hands back*. The write — `applyUsdaProbe` with
-/// the explicit-pick guard lifted — belongs to the form that opened it, so
-/// there is one place that decides what a pick does to a row.
+/// The sheet only *asks and hands back*. What a pick does to a row belongs to
+/// the form that opened it, so there is one place that decides.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -32,11 +27,9 @@ import '../domain/usda_probe.dart';
 /// was closed without one.
 ///
 /// [name] is what to ASK about — the form passes the text in its name field,
-/// not the stored row. That is what retired **F1**: the lookup used to have
-/// to save the form first, because it probed the row's stored name and a
-/// rename sitting unsaved meant it asked about the old one. A query taken
-/// from the field cannot be stale, so nothing has to be written before you
-/// may look something up.
+/// not the stored row. A query taken from the field cannot be stale, so
+/// nothing has to be written before you may look something up — which a probe
+/// of the row's stored name would require.
 ///
 /// [ingredient] is still needed, but only to TAG: the row's current match is
 /// marked rather than offered again, and a food the household declined is
@@ -137,9 +130,9 @@ class UsdaPickSheet extends HookConsumerWidget {
 /// row's own current match tagged rather than offered again, and the food a
 /// person declined tagged so they can see what they said no to.
 ///
-/// Shared between the pick sheet and the New-ingredient sheet's USDA leg,
-/// so "what a USDA row looks like" has one answer. [selected] is the leg's
-/// highlighted pick (the sheet has none — a tap there pops).
+/// Public so "what a USDA row looks like" has one answer wherever candidates
+/// are drawn. [selected] is a host's highlighted pick; the sheet has none — a
+/// tap there pops.
 class UsdaCandidateList extends StatelessWidget {
   const UsdaCandidateList({
     required this.candidates,

@@ -141,13 +141,13 @@ String? portionShareLine(MealSetMacros macros, {required String? lensName}) {
 ///   household figure: the override, else Σ of the eaters' portion factors.
 /// * **A person's lens** — the entry is in scope only if that member is in
 ///   `eaterIds`, and `servings` is their own factor — the split the household
-///   itself declared (P-D5) — scaled by `override ÷ Σ factors` when an
-///   override is set (spec §8 calls the override "big/small appetites", so
-///   the override IS eating more, shared out in the same proportions). With
-///   every factor at 1 this is the even split it used to be. An entry with
-///   NO eaters cannot be attributed to anyone, so under a person's lens it
-///   stays in scope and is excluded WITH A REASON — it might be theirs, and
-///   pretending otherwise would quietly shrink the denominator.
+///   itself declared — scaled by `override ÷ Σ factors` when an override is
+///   set (spec §8 calls the override "big/small appetites", so the override IS
+///   eating more, shared out in the same proportions). With every factor at 1
+///   this is an even split. An entry with NO eaters cannot be attributed to
+///   anyone, so under a person's lens it stays in scope and is excluded WITH A
+///   REASON — it might be theirs, and pretending otherwise would quietly
+///   shrink the denominator.
 ///
 /// [summaryFor] hands back a recipe's per-serving summary (null when the
 /// recipe is gone or not loaded); [membersById] carries the factors (an

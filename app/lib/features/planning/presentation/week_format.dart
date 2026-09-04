@@ -80,8 +80,8 @@ String formatDayDate(DateTime monday, int dayOfWeek) =>
 
 /// The Cook/Shop empty states' week word under D3 — those screens derive from
 /// the VIEWED week, so "nothing planned for *next week* yet" has to say which
-/// one when it isn't the current one. Null on the current week. (The headers
-/// no longer need it: the switcher is their title — plan 0025 D7c.)
+/// one when it isn't the current one. Null on the current week. (The headers no
+/// longer need it: the switcher is their title.)
 String? formatDerivedWeekSuffix(DateTime monday, DateTime today) {
   final title = formatWeekTitle(monday, today);
   if (title.isThisWeek) return null;
@@ -91,7 +91,7 @@ String? formatDerivedWeekSuffix(DateTime monday, DateTime today) {
 }
 
 /// The Week menu row's trailing label — what that week holds, in the Week's
-/// own derivation: `9 meals` / `1 meal` / `empty` (Week v2 frame c).
+/// own derivation: `9 meals` / `1 meal` / `empty`.
 String formatMealCount(int meals) => switch (meals) {
   0 => 'empty',
   1 => '1 meal',
@@ -206,8 +206,8 @@ String cookMarkerLabel(CookMarker marker, {int? todayDayOfWeek}) =>
                   'batch of ${formatFraction(marker.batchPortions)}',
       CookMarkerKind.fromBatch =>
         'from ${kWeekdayFull[marker.cookDay]}\u2019s batch',
-      // The snowflake is drawn as an icon beside this, never as a glyph — the
-      // bundled fonts have no \u2744 ([[mise-forui-icons-not-unicode-glyphs]]).
+      // The snowflake is drawn as an icon beside this, never as a glyph: no
+      // bundled face carries \u2744.
       CookMarkerKind.freezerShare =>
         '${kWeekdayFull[marker.cookDay]}\u2019s freezer share',
     };

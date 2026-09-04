@@ -1,5 +1,5 @@
 /// The ONE seam between a recipe's stored lines and the lines a derivation
-/// actually runs over — PURE DART (invariant 2). Plan 0025 item 6 (D6b).
+/// actually runs over — PURE DART (invariant 2). (D6b).
 ///
 /// Three derivations read a recipe's lines: the macro summation
 /// (`recipe_macros.dart`), the shopping list (`shopping_repository_impl.dart`

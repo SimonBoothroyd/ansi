@@ -1,5 +1,5 @@
-/// [ImportRepository] backed by the REAL `import-recipe` edge function (plan
-/// 0019 — the integration tail).
+/// [ImportRepository] backed by the REAL `import-recipe` edge function (the
+/// integration tail).
 ///
 /// `startImport` calls `supabase.functions.invoke('import-recipe', …)` — a URL
 /// goes up as `{url}`, picked photos are read from disk and base64-encoded as

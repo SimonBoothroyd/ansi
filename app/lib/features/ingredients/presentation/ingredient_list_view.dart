@@ -1,7 +1,7 @@
 /// The ingredients manager list (`/ingredients`) — design board "Ingredients
 /// manager · v1" frame (a). A **pushed** route with a back chevron and no
-/// bottom nav (plan 0020 D8: the four tabs are the loop; a vocabulary is
-/// reference data), reached from Library ▸ ⋯ ▸ Ingredients.
+/// bottom nav (the four tabs are the loop; a vocabulary is reference data),
+/// reached from Library ▸ ⋯ ▸ Ingredients.
 ///
 /// The old "Fleshing-out queue" frame becomes a **band on top of the whole
 /// vocabulary** rather than its own screen: a vocabulary you can only see
@@ -74,11 +74,8 @@ class IngredientListView extends HookConsumerWidget {
 
     void open(Ingredient i) => context.pushOnce(ingredientDetailRoute(i.id));
 
-    // The `＋` opens the form itself. It used to open the New-ingredient sheet,
-    // which made a row and handed it back so this list could land it on the
-    // form — two screens for one act, and the row existed the moment the sheet
-    // was dismissed. The form writes on Save now, so it can BE the create
-    // surface: back out of it and there is nothing to clean up.
+    // The `＋` opens the form itself: it writes on Save, so it can BE the
+    // create surface — back out of it and there is nothing to clean up.
     void addNew() => context.pushOnce(newIngredientRoute());
 
     return FScaffold(

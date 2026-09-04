@@ -1,25 +1,17 @@
 /// The USDA enrichment probe — PURE DART (invariant 2).
 ///
-/// Plan 0020 **D7b**, widened by plan 0027 **U-D1/U-D3**. `usda_food` never
-/// syncs to a device (ADR-0005), so the app cannot search it. What it *can*
-/// do, since migration 0016, is ask the server for candidates by name
-/// through a security-definer RPC that writes nothing (`probe_usda`). Since
-/// 0027 the answer names each candidate (its `description`) and can be a
-/// short-list rather than a single row — "the next five", in the same total
-/// order the prefill trigger uses, so the form can offer *Choose another*.
-/// The reference set is still not browsable: the server caps the list.
+/// `usda_food` never syncs to a device (ADR-0005), so the app cannot search
+/// it. What it *can* do, since migration 0016, is ask the server for candidates
+/// by name through a security-definer RPC that writes nothing (`probe_usda`).
+/// The answer names each candidate (its `description`) and is a short-list
+/// ranked by coverage, so the form can offer *Choose another*. The reference
+/// set is still not browsable: the server caps the list.
 ///
-/// Why it exists at all, when the 0014/0015 trigger already enriches stubs on
-/// upload: the trigger is a *reaction to a round trip*. A stub written on a
-/// phone is enriched only after write → upload → trigger → sync down. D7b
-/// lets a creation flow ask the question at birth and lets a lookup be a real
-/// query rather than a re-read of a row nothing has changed yet.
-///
-/// **The offline contract is part of the type.** [UsdaProbe.search] returns
-/// an empty list for "no confident candidate" *and* for "could not ask" — a
-/// network miss is not an error here, because the trigger path is still
-/// running and will catch the row when it syncs. Callers degrade with honest
-/// copy; they never raise a dialog for a missing connection.
+/// **The offline contract is part of the type.** [UsdaProbe.search] returns an
+/// empty list for "nothing matches" *and* for "could not ask", and nothing else
+/// will fill the row afterwards — there is no probe-at-birth and no server
+/// trigger. Callers degrade with honest copy; they never raise a dialog for a
+/// missing connection.
 library;
 
 import 'package:meta/meta.dart';
@@ -29,20 +21,16 @@ import '../../../core/units/macros.dart';
 /// Whether a candidate accounts for **every word of the name it was found
 /// for**, or only some of them.
 ///
-/// 0027 U-D1 made this a confidence band — "≥ 0.85 close match, below it a
-/// guess" — which is what a score meant when a TRIGGER chose the food and the
-/// number was a trigram similarity. Two things changed under it. A person
-/// picks now (0029), so how sure a machine was is not the useful thing to
-/// say; and `score` is the query's idf-weighted coverage, which is not a
-/// graded confidence at all. Measured over the 267 curated pairs in
-/// `seed_prefill.sql`, it is **bimodal**: 226 of 264 top picks sit at exactly
-/// 1.0 and *nothing* falls between 0.85 and 1.0, so every threshold in that
-/// range asks the same yes/no question. A band with no middle is a boolean
-/// wearing a threshold's clothes.
+/// It is coverage, not confidence: a person picks the food, so how sure a
+/// machine was is not the useful thing to say, and `score` is the query's
+/// idf-weighted coverage rather than a graded likelihood. Measured over the 267
+/// curated pairs in `seed_prefill.sql` it is **bimodal**: 226 of 264 top picks
+/// sit at exactly 1.0 and *nothing* falls between 0.85 and 1.0, so every
+/// threshold in that range asks the same yes/no question. A band with no middle
+/// is a boolean wearing a threshold's clothes.
 ///
-/// It is kept, rather than dropped, because it earns its place: a
-/// full-coverage pick is the right food **63%** of the time against **34%**
-/// for a partial one. What changed is only that it now says what it means.
+/// It earns its place all the same: a full-coverage pick is the right food
+/// **63%** of the time against **34%** for a partial one.
 ///
 /// A row stamped before 0029 carries a trigram score, where 1.0 meant an
 /// identical string — which also means every word matched, so the reading
@@ -173,14 +161,9 @@ class UsdaCandidate {
 
 /// The one question the app can ask the reference set.
 ///
-/// A class with one abstract method rather than a function type, for the
-/// same reason every repository here is one: tests and the unconfigured
-/// build swap the whole implementation through a provider. There is only
-/// [search]: a single-answer `probe()` used to exist for the automatic fills,
-/// and 0029 removed the last of those.
-// One member since 0029 removed `probe()`, and deliberately still a type
-// rather than a callback: tests and the unconfigured build swap the whole
-// implementation through a provider, which a bare function cannot do.
+/// One member, and deliberately a type rather than a callback: tests and the
+/// unconfigured build swap the whole implementation through a provider, which a
+/// bare function cannot do.
 // ignore: one_member_abstracts
 abstract class UsdaProbe {
   const UsdaProbe();

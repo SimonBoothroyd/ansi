@@ -78,9 +78,9 @@ class RecipeEditorView extends ConsumerWidget {
             onPress: !async.hasValue
                 ? null
                 : () async {
-                    // The highest-severity site in the audit: a throw inside
-                    // `save()` used to show only as the editor not navigating,
-                    // which reads as a laggy button rather than a lost recipe.
+                    // Through the write door: unguarded, a throw inside
+                    // `save()` shows only as the editor not navigating, which
+                    // reads as a laggy button rather than a lost recipe.
                     final id = await ref.write(
                       context,
                       'save the recipe',
@@ -131,9 +131,8 @@ class _EditorForm extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
       children: [
-        // The header is the one the import review renders too (plan 0025
-        // #4): the notifier is its host, so a section added there lands
-        // here without a second copy.
+        // The header is the one the import review renders too: the notifier is
+        // its host, so a section added there lands here without a second copy.
         RecipeHeaderForm(host: notifier),
         const SizedBox(height: 24),
         for (final group in recipe.groups)

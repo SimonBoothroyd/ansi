@@ -1,5 +1,5 @@
-/// The ingredient picker v2 (step 7.7, design board "Pickers v2" frame a):
-/// top-anchored search over the synced vocab, a Recent section before any
+/// The ingredient picker (step 7.7): top-anchored search over the synced
+/// vocabulary, a Recent section before any
 /// query, information-honest result rows (category · capability hints · a
 /// per-100 macro line for complete rows, a `stub` badge — never zeros), and
 /// the add-new affordance.
@@ -9,13 +9,11 @@
 /// under a `DID YOU MEAN` header — the phone offers a guess for a human to
 /// pick, it never resolves on one (ADR-0004).
 ///
-/// **Add-new is one chain, everywhere** (plan 0025 D3, board frames c1–c4):
-/// the footer opens the New-ingredient sheet with the query prefilled, the
-/// sheet creates the row, the footer pushes the flesh-out form over the
-/// picker and *waits for back*, re-reads the row, and only then hands it to
-/// the host — so the quantity sheet that follows offers the units the form
-/// just set. No path mints a stub as a side effect of something else; the
-/// form is on the way, not a detour.
+/// **Add-new is one chain, everywhere**: the footer pushes the ingredient form
+/// with the query prefilled and *waits for back*, and the row the form pops is
+/// what reaches the host — so the quantity sheet that follows offers the units
+/// the form just set. No path mints a stub as a side effect of something else;
+/// the form is on the way, not a detour.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -262,10 +260,10 @@ class IngredientRow extends StatelessWidget {
   /// Defaults to the picker's `+`. The manager passes a chevron.
   final Widget? trailing;
 
-  /// Whether a missing density is worth saying out loud. The manager list
-  /// says it ("no density — volume units locked") because it is the screen
-  /// that can fix it; the picker stays quiet because it can't (plan 0020 D5:
-  /// this is an advisory, never a completion blocker).
+  /// Whether a missing density is worth saying out loud. The manager list says
+  /// it ("no density — volume units locked") because it is the screen that can
+  /// fix it; the picker stays quiet because it can't (this is an advisory,
+  /// never a completion blocker).
   final bool advisoryDensityGap;
 
   @override
@@ -350,15 +348,11 @@ class IngredientRow extends StatelessWidget {
 /// "＋ can't find it? add a new ingredient" — the add-new chain's front door in
 /// every picker. Disabled until something is typed.
 ///
-/// Tapping it writes nothing here. It opens the New-ingredient sheet with the
-/// query prefilled; when the sheet comes back with a created row, the row is
-/// pushed onto the flesh-out form and the chain WAITS for back — the only
-/// exit — then re-reads the row (the form may have set units, measures, a
-/// density) and hands that to [onCreated]. Backing out of the form without
-/// confirming still hands the row over: it exists, badged as a stub, and a
-/// line on it reads honestly incomplete. What is gone is the stub minted
-/// before anyone had said anything, and the "use it" door that skipped the
-/// form.
+/// Tapping it writes nothing here. It pushes the ingredient form with the query
+/// prefilled and WAITS for back — the only exit — and whatever the form pops
+/// goes to [onCreated]: the row it created, with the units, measures and
+/// density it set, or null if the person backed out, in which case nothing was
+/// written and nothing resolves.
 ///
 /// Needs a router in scope — every host that embeds it is under one.
 class AddNewIngredientRow extends HookConsumerWidget {

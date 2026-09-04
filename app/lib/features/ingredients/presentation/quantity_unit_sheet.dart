@@ -1,25 +1,23 @@
-/// The quantity + unit-chip entry surface (step 7.7, design board frame b —
-/// built to Simon's simplified review reading): the everyday surface shows
-/// ONLY the ingredient card (name + macro line), the quantity input, the
-/// chip row (precise units · measure chips · imprecise after a divider · a
-/// `+` chip), the live honest conversion line, and Done. Tapping `+` opens
-/// the second state — **manage measures** — with the measure list (label ·
-/// grams · humanized source) and the add-measure form (label + grams →
-/// saved as `manual`). Chips ride the keyboard at the sheet's bottom: a true
-/// iOS keyboard-accessory view fights Flutter's insets model, so the sheet
-/// bottom-pads itself by the viewInsets instead — the stack above the
-/// keyboard reads chips → Done → keyboard (Done sits between the chips and
-/// the keyboard, not the frame's literal chips-touch-keypad adjacency; the
-/// call the plan asked to document, wording trued up post-review).
+/// The one surface for editing a quantity + unit — recipe editor line items,
+/// the shopping add sheet, the edit-top-up sheet. There is no unit dropdown
+/// anywhere.
 ///
-/// Replaces the unit dropdown wherever a quantity + unit is edited: recipe
-/// editor line items, the shopping add sheet, and the edit-top-up sheet.
+/// The everyday state shows the ingredient card (name + macro line), the
+/// quantity input, the chip row (precise units · measure chips · imprecise
+/// after a divider · a `+` chip), the live honest conversion line, and Done.
+/// Tapping `+` opens the second state — **manage measures** — with the measure
+/// list (label · grams · humanized source) and the add-measure form (label +
+/// grams, saved as `manual`).
+///
+/// **The sheet bottom-pads itself by `viewInsets`** rather than mounting a true
+/// iOS keyboard-accessory view, which fights Flutter's insets model. The stack
+/// above the keyboard therefore reads chips → Done → keyboard.
 ///
 /// **Deleting the selected measure** (manage state) reconciles the choice to
-/// the ingredient's default unit with a visible note — Done must never write
-/// a tombstoned `measure_id` (post-7.7 review call; the alternative,
-/// keep-with-flag, is reserved for measures merely hidden by merge-on-read,
-/// which stay reachable via the chip row's off-filter admission).
+/// the ingredient's default unit with a visible note: Done must never write a
+/// tombstoned `measure_id`. Keep-with-flag is reserved for measures merely
+/// hidden by merge-on-read, which stay reachable through the chip row's
+/// off-filter admission.
 library;
 
 import 'dart:math' as math;
@@ -132,10 +130,10 @@ class QuantityUnitEditor extends HookConsumerWidget {
   final bool pendingMeasure;
 
   /// The line's stored `optional` flag, when the host is a RECIPE line (the
-  /// editor and the import review — plan 0025 / D6a): the sheet then shows
-  /// the Optional switch between the chips and Done. Null hides the row —
-  /// a shopping top-up has no such fact, and the component sheet is its own
-  /// surface (an optional sub-recipe is a week-level question, not a line's).
+  /// editor and the import review): the sheet then shows the Optional switch
+  /// between the chips and Done. Null hides the row — a shopping top-up has no
+  /// such fact, and the component sheet is its own surface (an optional
+  /// sub-recipe is a week-level question, not a line's).
   final bool? initialOptional;
 
   final String confirmLabel;
@@ -785,7 +783,7 @@ class _MeasureManager extends HookConsumerWidget {
           ingredient: ingredient,
           measures: measures,
           onDelete: onDelete,
-          // This host has no Save: it commits on tap, as it always has.
+          // This host has no Save: it commits on tap.
           onAdd: (label, amount) async {
             final outcome = await ref.write(
               context,

@@ -22,11 +22,11 @@ part 'import_providers.g.dart';
 /// function ([EdgeImportRepository]).
 ///
 /// Unconfigured, extraction has nowhere to run, so it FAILS LOUDLY
-/// ([_UnconfiguredImport]). It used to fall through to the canned demo payload
-/// — which meant a misconfigured build silently answered "import this URL" with
-/// somebody else's spaghetti recipe. Tests and the on-device smoke test get the
-/// canned repository by naming [SqliteImportRepository] directly, never by
-/// accident.
+/// ([_UnconfiguredImport]) rather than falling through to the canned demo
+/// payload, which would have a misconfigured build silently answer "import this
+/// URL" with somebody else's spaghetti recipe. Tests and the on-device smoke
+/// test get the canned repository by naming [SqliteImportRepository] directly,
+/// never by accident.
 @Riverpod(keepAlive: true)
 ImportRepository importRepository(Ref ref) {
   final local = SqliteImportRepository(

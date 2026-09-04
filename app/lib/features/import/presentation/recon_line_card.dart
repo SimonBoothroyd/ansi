@@ -905,12 +905,12 @@ Future<void> editLineAmount(
 ///
 /// The target's yields come off the local repository — the link points at a
 /// household recipe, which is a row this device already has — read STRAIGHT
-/// from the keepAlive repository provider rather than through a stream
-/// provider (plan 0020 **J2**: an autoDispose element with nothing listening
-/// completes into an empty default, and "no yields" would silently become "no
-/// yield set" on the sheet). A read that cannot answer degrades the same
-/// honest way the sheet's own no-yield state does: `batch` only, said out
-/// loud, never a guessed conversion.
+/// from the keepAlive repository provider rather than through a stream provider
+/// (an autoDispose element with nothing listening completes into an empty
+/// default, and "no yields" would silently become "no yield set" on the sheet).
+/// A read that cannot answer degrades the same honest way the sheet's own
+/// no-yield state does: `batch` only, said out loud, never a guessed
+/// conversion.
 Future<void> editComponentAmount(
   BuildContext context,
   WidgetRef ref,
@@ -1090,9 +1090,8 @@ class Resolver extends StatelessWidget {
   final LineResolution resolution;
 
   /// Resolves the line to a vocabulary row — a candidate, a search hit, or the
-  /// row the create-new chain just made: the New-ingredient sheet, the
-  /// flesh-out form pushed over it, back, and the line lands on that row as the
-  /// ordinary matched state.
+  /// row the create-new chain just made in the ingredient form, which lands on
+  /// the line as the ordinary matched state.
   final void Function(String id, String name, {required bool correction})
   onResolveExisting;
 
@@ -1413,12 +1412,11 @@ class PickExisting extends ReconcilePick {
 /// recents + create-new — never blank (decision 5). Resolves to a
 /// [ReconcilePick] or null if dismissed.
 ///
-/// Create-new is the picker's own add-new chain (frame d): the
-/// New-ingredient sheet with the line's text prefilled, the flesh-out form
-/// pushed over THIS sheet and awaited, then the re-read row — resolved as a
-/// [PickExisting], the ordinary matched state, no special case. Nothing is
-/// deferred to commit: a line can no longer carry a name instead of an id, so
-/// there is nothing to coalesce there.
+/// Create-new is the picker's own add-new chain: the ingredient form with the
+/// line's text prefilled, pushed over THIS sheet and awaited, and the row it
+/// pops resolved as a [PickExisting] — the ordinary matched state, no special
+/// case. Nothing is deferred to commit: a line cannot carry a name instead of
+/// an id, so there is nothing to coalesce there.
 Future<ReconcilePick?> showReconcileIngredientSheet(
   BuildContext context, {
   required String seedName,

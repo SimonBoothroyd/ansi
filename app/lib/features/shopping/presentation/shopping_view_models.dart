@@ -4,8 +4,8 @@
 /// week — the same Monday the Week and Cook screens show (D3). Mutations
 /// (check-off,
 /// top-up, add item) are fire-and-forget calls the view makes on the keep-alive
-/// `shoppingRepositoryProvider` directly — no throwaway notifier held across an
-/// async gap ([[mise-riverpod-notifier-ref-after-async]]).
+/// `shoppingRepositoryProvider` directly — never a throwaway notifier held
+/// across an async gap, which Riverpod disposes underneath the call.
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';

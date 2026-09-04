@@ -1,4 +1,4 @@
-/// "Move them to…" — the door the delete refusal opens (Library v2 / D4).
+/// "Move them to…" — the door the delete refusal opens.
 ///
 /// Without it the refusal is a wall in front of the one action that would
 /// clear it. Picking a target says what it will do before it does it, because

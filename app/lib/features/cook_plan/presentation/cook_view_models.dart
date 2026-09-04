@@ -1,13 +1,12 @@
 /// Riverpod ViewModels for the Cook screen.
 ///
 /// [currentCookPlan] streams the derived cook plan for the **viewed** week —
-/// the same Monday the Week screen is showing (D3: Cook and Shop follow the
-/// week you are looking at, not the week containing today). It's read-only —
-/// the plan is derived, so
-/// the only state here is [WholeBatchDisplay], the per-session whole-batch
-/// display toggle (step 7.6): flipping it shows the nudged ×N on the tile
-/// without persisting anything (a deliberate display-level call — see the
-/// 0010 exec plan's decision log).
+/// the same Monday the Week screen is showing: Cook and Shop follow the week
+/// you are looking at, not the week containing today. It is read-only, because
+/// the plan is derived, so the only state here is [WholeBatchDisplay], the
+/// per-session whole-batch display toggle (step 7.6): flipping it shows the
+/// nudged ×N on the tile without persisting anything, which is a display-level
+/// call and deliberately not a write.
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';

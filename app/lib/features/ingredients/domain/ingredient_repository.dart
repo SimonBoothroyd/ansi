@@ -46,15 +46,15 @@ final class DeleteMissing extends DeleteOutcome {
   const DeleteMissing();
 }
 
-/// What the flesh-out form asks for, as ONE intent (plan 0029 **W3**,
-/// `docs/decisions/0011-one-save-one-write.md`).
+/// What the flesh-out form asks for, as ONE intent
+/// (`docs/decisions/0011-one-save-one-write.md`).
 ///
 /// The form writes once, on Save, so everything it changed has to travel
 /// together: the row's own fields, the density, the measures added and
-/// removed, the aliases, and what a bare count means. `saveForm` applies the
-/// lot in a single transaction, which is what makes partial success stop
-/// being representable — the old sheet's `create()` ran four repository calls
-/// under one error guard and could leave a row without its pack measure.
+/// removed, the aliases, and what a bare count means. [IngredientRepository]
+/// applies the lot in a single transaction, which is what makes partial
+/// success stop being representable — several calls under one error guard can
+/// leave a row without its pack measure.
 ///
 /// **Ids are minted by the caller.** Measures and aliases already carry
 /// client-generated uuids, so a draft can name a row before it exists and the
@@ -88,13 +88,13 @@ class IngredientFormEdit {
   final List<PendingAlias> aliasesAdded;
   final Set<String> aliasesRemoved;
 
-  /// Seam D1's "Counts as" — three-valued, because *unset* ("Ask me each
-  /// time") is a real answer and distinct from "not touched".
+  /// "Counts as" — three-valued, because *unset* ("Ask me each time") is a
+  /// real answer and distinct from "not touched".
   final DefaultMeasureChange defaultMeasure;
 
-  /// `Mark complete` is a save-and-mark combination (owner, 2026-09-03), and
-  /// it used to be two writes — a failure between them left the row saved and
-  /// not marked, under an error implying neither. One transaction now.
+  /// `Mark complete` saves and marks in the SAME transaction: split across two
+  /// writes, a failure between them leaves the row saved and not marked, under
+  /// an error implying neither happened.
   final bool markComplete;
 }
 
@@ -199,11 +199,11 @@ class IngredientEdit {
 
   /// A provenance to stamp (`off:<barcode>`), or null to keep the stored one.
   ///
-  /// Patch-shaped where every other field replaces, because provenance is
-  /// never *cleared* by a form: it records where numbers came from, and the
-  /// only writer is a barcode scan on the form landing on a row that had no
-  /// source yet (plan 0025 #8, `applyDraft`). Written in the same statement as
-  /// the macros it explains, so a row never carries one without the other.
+  /// Patch-shaped where every other field replaces, because provenance is never
+  /// *cleared* by a form: it records where numbers came from, and the only
+  /// writer is a barcode scan on the form landing on a row that had no source
+  /// yet (`applyDraft`). Written in the same statement as the macros it
+  /// explains, so a row never carries one without the other.
   final String? source;
 }
 
@@ -258,8 +258,7 @@ abstract interface class IngredientRepository {
   Future<Ingredient?> setDensity(String ingredientId, double gPerMl);
 
   /// Deletes the ingredient's density and, **in the same write**, removes the
-  /// units that density was the only reason to admit
-  /// (`densityStrippedUnits`) — plan 0020 **D4b**.
+  /// units that density was the only reason to admit (`densityStrippedUnits`).
   ///
   /// This is the one place the admission list ever shrinks. ADR-0009's
   /// union-never-remove rule governs backfills and reseeds, where the arriving
@@ -279,9 +278,9 @@ abstract interface class IngredientRepository {
   /// no-op (returning the row unchanged) when there is no density to delete.
   Future<Ingredient?> clearDensity(String ingredientId);
 
-  /// Removes `piece` from the row's explicit admission list — the answer to
-  /// the measures editor's "you added a measure, still offer piece?" question
-  /// (plan 0022 / ADR-0010).
+  /// Removes `piece` from the row's explicit admission list — the answer to the
+  /// measures editor's "you added a measure, still offer piece?" question
+  /// (ADR-0010).
   ///
   /// `piece` means "a whole one of these, and we have nothing better to call
   /// it". Once a measure names the thing, offering both makes a saved line
@@ -302,7 +301,7 @@ abstract interface class IngredientRepository {
   Future<Ingredient?> stopOfferingPiece(String ingredientId);
 
   /// Sets what a bare COUNT of this ingredient means — "2 onions" is two
-  /// `onion, medium` ([Ingredient.defaultMeasureId], 0023 / seam D1). A null
+  /// `onion, medium` ([Ingredient.defaultMeasureId], migration 0023). A null
   /// [measureId] clears it back to "ask me each time".
   ///
   /// It is a **stated fact**, so it saves the moment it is picked, like the
@@ -317,13 +316,13 @@ abstract interface class IngredientRepository {
   /// null when [ingredientId] doesn't resolve.
   Future<Ingredient?> setDefaultMeasure(String ingredientId, String? measureId);
 
-  /// *Not this food* — undoes a USDA prefill in ONE write (plan 0027
-  /// **U-D2**): the density goes through the same strip [clearDensity] runs
-  /// (D4b — the units it alone unlocked come out), the macros go, and
-  /// `source` becomes [usdaDeclinedSource]. The row is a `stub` afterwards
-  /// (a row with no macros never asserts `complete`, D5), and
-  /// [Ingredient.sourceLabel] SURVIVES so the form can name the food that
-  /// was refused; the score is cleared with the match it described.
+  /// *Not this food* — undoes a USDA prefill in ONE write: the density goes
+  /// through the same strip [clearDensity] runs (D4b — the units it alone
+  /// unlocked come out), the macros go, and `source` becomes
+  /// [usdaDeclinedSource]. The row is a `stub` afterwards (a row with no macros
+  /// never asserts `complete`, D5), and [Ingredient.sourceLabel] SURVIVES so
+  /// the form can name the food that was refused; the score is cleared with the
+  /// match it described.
   ///
   /// Exactly what the prefill wrote comes out, because on a `usda_fdc:` row
   /// both prefill writers are fill-null-only on a bare stub — so the prefill
@@ -354,9 +353,8 @@ abstract interface class IngredientRepository {
   Stream<int> watchStubCount();
 
   /// How many live rows the vocabulary holds — the Library's Ingredients card
-  /// says what is on that shelf, the way a book says "42 recipes" (0028 E5).
-  /// A count, not the list: the Library must not carry 300 rows to print one
-  /// number.
+  /// says what is on that shelf, the way a book says "42 recipes". A count, not
+  /// the list: the Library must not carry 300 rows to print one number.
   Stream<int> watchVocabularyCount();
 
   /// The household's distinct live categories, alphabetical — the flesh-out
@@ -373,12 +371,11 @@ abstract interface class IngredientRepository {
   /// measures added and removed, aliases, "Counts as", and — when
   /// [IngredientFormEdit.markComplete] — the status flip.
   ///
-  /// **A null [ingredientId] creates the row** (plan 0029 **C1**). That is
-  /// the whole reason the form defers: with nothing written until Save, a
-  /// form with no row yet is coherent, and its children — measures, aliases —
-  /// are inserted in the same transaction as the row they belong to. It is
-  /// also what lets the New-ingredient sheet stop existing, since its only
-  /// remaining job was to be the stage where nothing has been written.
+  /// **A null [ingredientId] creates the row**, which is what lets the form be
+  /// the app's one add flow: with nothing written until Save, a form with no
+  /// row behind it is coherent, backing out of it leaves nothing to clean up,
+  /// and its children — measures, aliases — are inserted in the same
+  /// transaction as the row they belong to.
   ///
   /// Returns the row as the write left it, or null if an existing row is
   /// gone. Throws [ArgumentError] on the same contracts the individual writes
@@ -386,12 +383,12 @@ abstract interface class IngredientRepository {
   /// identity word. Nothing is written when it throws.
   Future<Ingredient?> saveForm(String? ingredientId, IngredientFormEdit edit);
 
-  /// Returns a `complete` row to `stub` — confirm is reversible (D5). The
+  /// Returns a `complete` row to `stub` — confirm is reversible. The
   /// macros stay stored; the row simply stops counting until re-confirmed.
   Future<Ingredient?> unconfirm(String ingredientId);
 
   /// Soft-deletes the vocab row — but only when no live recipe line points at
-  /// it (the signed rule, plan 0020's open question). See [DeleteOutcome].
+  /// it. See [DeleteOutcome].
   Future<DeleteOutcome> softDelete(String ingredientId);
 
   /// The ingredient's live aliases, oldest first.

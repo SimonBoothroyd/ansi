@@ -1,9 +1,9 @@
 /// How a barcode draft lands on an ingredient — PURE DART (invariant 2).
 ///
-/// Two surfaces take an [IngredientDraft]: the New-ingredient sheet (the row
-/// does not exist yet) and the flesh-out form (it does, and a human may
-/// already have typed into it — plan 0025 #8). Both apply it through
-/// [applyDraft], so there is one answer to "what does a scan overwrite":
+/// The ingredient form takes an [IngredientDraft] whether or not the row
+/// exists yet, and whether or not a human has already typed into the fields. It
+/// applies every draft through [applyDraft], so there is one answer to "what
+/// does a scan overwrite":
 ///
 /// - **A draft fills what is EMPTY and leaves what a human typed alone.** A
 ///   name already in the field, a macro panel already entered, a provenance a
@@ -12,8 +12,8 @@
 ///   `manual` counts as none: it is the stamp for "nobody looked anything up",
 ///   which is exactly what a scan has just changed. A USDA id or `seed` is a
 ///   source and stays.
-/// - **Nothing here confirms the row** (plan 0020 D1/D5). The application is
-///   values for fields; `status` is untouched and the human confirms.
+/// - **Nothing here confirms the row**. The application is values for fields;
+///   `status` is untouched and the human confirms.
 /// - **A pack size is an OFFER, never a write.** The draft's "400 ml" becomes
 ///   a ready-made measure only when the person ticks or taps it — and only
 ///   when it converts honestly into the row's own basis (a measure stores its
@@ -189,9 +189,9 @@ DraftApplication applyDraft(
 }
 
 /// Whether [source] records that something looked this row up — anything but
-/// null and `manual`. `seed`, `usda_fdc:<id>` and `off:<barcode>` all do;
-/// `import_stub` (the retired commit-time stub) never carried numbers but
-/// stays honest about where the row came from, so it counts too.
+/// null and `manual`. `seed`, `usda_fdc:<id>` and `off:<barcode>` all do, and
+/// so does `import_stub` on the rows in the wild that still carry it: it never
+/// meant numbers, but it does say where the row came from.
 bool hasLookupProvenance(String? source) =>
     source != null && source.isNotEmpty && source != 'manual';
 

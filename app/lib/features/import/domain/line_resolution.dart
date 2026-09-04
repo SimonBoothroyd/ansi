@@ -9,10 +9,9 @@
 /// import can never reach PowerSync.
 ///
 /// A line resolves to a row that EXISTS. "Create new" at review is not a
-/// resolution state any more: it opens the New-ingredient sheet and the
-/// flesh-out form, and the line then resolves to that row like any other — so
-/// the commit-time stub leg (`CommitStub`, coalescing by name) has no input and
-/// is gone.
+/// resolution state of its own: it opens the ingredient form, and the line then
+/// resolves to that row like any other — so there is no commit-time stub leg
+/// coalescing unmatched names into rows nobody asked for.
 ///
 /// A line the user DROPPED is the one exception, and it is one everywhere at
 /// once: it is excluded from validation, from the Save gate, and from the
@@ -188,9 +187,9 @@ class LineResolution {
   /// Resolves the line to an existing ingredient. [correction] marks it a user
   /// override (alias write-back); accepting the band's top candidate is not.
   ///
-  /// A row the review just CREATED (sheet → form → back, plan 0025 D3) arrives
-  /// here too, as a correction: the raw text becomes an alias of the row the
-  /// human made for it, exactly as picking any other row from the search does.
+  /// A row the review just CREATED (sheet → form → back) arrives here too, as a
+  /// correction: the raw text becomes an alias of the row the human made for
+  /// it, exactly as picking any other row from the search does.
   LineResolution resolveToIngredient(
     String ingredientId,
     String name, {

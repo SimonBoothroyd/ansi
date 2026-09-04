@@ -12,11 +12,11 @@
 /// fold the recipe page runs, so the live amounts are visible while you write
 /// and the editor never has to fake a number.
 ///
-/// This replaces the read-only notice an imported method used to get. Nothing
-/// is re-tokenized, re-matched or re-fetched on open: the refs are the
-/// `line_item_id`s the import committed.
+/// An imported method is editable like any other: nothing is re-tokenized,
+/// re-matched or re-fetched on open — the refs are the `line_item_id`s the
+/// import committed.
 ///
-/// **Two hosts, one card** (seam D4). The cards edit through [MethodEditing]
+/// **Two hosts, one card.** The cards edit through [MethodEditing]
 /// rather than the recipe editor's notifier, so the import review screen —
 /// the screen most likely to need a method fix — edits with these same cards
 /// over its own draft. There the refs are the preview's `line-<i>` ids and
@@ -156,10 +156,10 @@ class MethodStepCard extends HookConsumerWidget {
   final MethodEditing notifier;
 
   /// Whether a line's identity change moved one of this step's chips this
-  /// sitting — the amber *check* in the card's header (D3).
+  /// sitting — the amber *check* in the card's header.
   final bool flagged;
 
-  /// What each moved chip used to say, so "keep the old word" is one tap.
+  /// Each moved chip's previous word, so "keep the old word" is one tap.
   final List<ChipRelabel> relabels;
 
   @override

@@ -1,10 +1,7 @@
-/// The import review as a host for the editor v2 step cards (seam **D4**).
+/// The import review as a host for the editor's method step cards.
 ///
-/// `reconciliation_view.dart` used to print *"Method is read-only in v1 —
-/// editing lands later via the recipe's Edit route"* over a read-only fold.
-/// The step cards shipped on 2026-09-02, so the notice had been false for a
-/// day — and the review screen is the one screen most likely to need a method
-/// fix, which made it the worst screen to leave read-only.
+/// The review is the screen most likely to need a method fix, so it edits the
+/// method rather than showing it read-only.
 ///
 /// This adapter satisfies [MethodEditing] over the review's own state. It owns
 /// no state itself: it derives the drafts from the preview recipe when nobody

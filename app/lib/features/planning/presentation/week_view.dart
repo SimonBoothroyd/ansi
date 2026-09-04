@@ -1,43 +1,37 @@
 /// The Week — the meal-planning screen, and the INPUT to the derived
 /// cook-plan / shopping pipeline (steps 5–6).
 ///
-/// **One screen, one state** (week v3, E1). v2 split it into a presentation
-/// mode and an edit mode on the claim that "the mode changes what a tap
-/// means". Three things ate that claim: D5b had already given presentation
-/// its own add doors, so edit's exclusive door was down to "a day that
-/// already has a meal"; edit *blanked the numbers you were editing against*,
-/// suppressing the cook markers and swapping each day's macro line out for
-/// its add row; and neither tap was ever destructive, which is the only thing
-/// a mode is really for. `WeekMode` and its `Edit`/`Done` action are gone.
+/// **One screen, one state.** There is no presentation/edit mode: no tap here
+/// is destructive, and a mode that blanks the numbers you are editing against
+/// costs more than it explains.
 ///
-/// **A row's controls are the facts the row prints** (E7). The title opens
-/// the recipe it names. The portions chip and eater avatars are ONE target —
-/// they open `meal_editor_sheet.dart`, holding exactly those two fields. The
-/// `−` removes the meal, with an undo toast rather than a confirm (E3): a
-/// destructive control on every row of a resting screen is defensible only
-/// because the act is trivially reversible, so the screen makes it so.
-/// Day · slot is deliberately absent — a row does not print a day as a value,
-/// its *position* is its day — so a meal is moved by removing it and adding
-/// it again through the picker's "already this week" quick picks.
+/// **A row's controls are the facts the row prints.** The title opens the
+/// recipe it names. The portions chip and eater avatars are ONE target — they
+/// open `meal_editor_sheet.dart`, holding exactly those two fields. The `−`
+/// removes the meal, with an undo toast rather than a confirm: a destructive
+/// control on every row of a resting screen is defensible only because the act
+/// is trivially reversible, so the screen makes it so. Day · slot is
+/// deliberately absent — a row does not print a day as a value, its *position*
+/// is its day — so a meal is moved by removing it and adding it again through
+/// the picker's "already this week" quick picks.
 ///
-/// **One add door, in every state** (E5). `＋ add a meal` is the last row of
-/// every day card, sitting with the meals and above the day's total, because
-/// it adds a *meal*, not a number. On an empty day it is the same line saying
-/// `nothing planned`. It retired v2's dashed edit-only door and its separate
-/// emptiness line, which were one widget wearing two hats.
+/// **One add door, in every state.** `＋ add a meal` is the last row of every
+/// day card, sitting with the meals and above the day's total, because it adds
+/// a *meal*, not a number. On an empty day it is the same line saying `nothing
+/// planned`.
 ///
-/// **The numbers are honest** (D4) and never hidden (E6). Each day card foots
-/// with its own macro line and that line's denominator; the list foots with
-/// the week band. The lens above the cards rescopes both — and DIMS the meals
-/// a person is not eating rather than deleting them (D8), because a day
-/// somebody else cooks for themselves is not an empty day.
+/// **The numbers are honest and never hidden.** Each day card foots with its
+/// own macro line and that line's denominator; the list foots with the week
+/// band. The lens above the cards rescopes both — and DIMS the meals a person
+/// is not eating rather than deleting them, because a day somebody else cooks
+/// for themselves is not an empty day.
 ///
-/// **There is no blank-week page** (D5). A week with nothing in it is this
-/// same screen with nothing in it: header, switcher, lens row, seven day
-/// cards and the week band all render, exactly as they do for a full week.
+/// **There is no blank-week page.** A week with nothing in it is this same
+/// screen with nothing in it: header, switcher, lens row, seven day cards and
+/// the week band all render, exactly as they do for a full week.
 ///
-/// The week itself is a position, not a singleton — see `week_header.dart`
-/// (D2) and `week_view_models.dart` (D3).
+/// The week itself is a position, not a singleton — see `week_header.dart` and
+/// `week_view_models.dart`.
 library;
 
 import 'dart:async';
@@ -140,9 +134,8 @@ class WeekView extends HookConsumerWidget {
       // same inset squeezes the content twice (Android showed a list a few
       // lines tall after the sign-in keyboard).
       resizeToAvoidBottomInset: false,
-      // "Copy last week" used to live in a header `⋯`, a lens-bar chip AND the
-      // empty-state button. It now has ONE permanent home — the switcher menu
-      // (D2) — plus the empty-week chip below.
+      // "Copy last week" has ONE permanent home — the switcher menu — plus the
+      // empty-week chip below.
       header: FHeader.nested(
         title: WeekSwitcher(
           // The menu speaks in this tab's derivation — "9 meals" — for the
@@ -208,12 +201,12 @@ class WeekView extends HookConsumerWidget {
 /// its only real consequence.
 ///
 /// Selecting a person DIMS the meals they are not eating rather than removing
-/// them. The old hard filter made a day the other person cooks for themselves
-/// render as an empty day, which is false; and dimming makes the old `⇄
-/// shared` tag redundant, because both avatars are right there.
+/// them: a hard filter renders a day the other person cooks for themselves as
+/// an empty day, which is false. Dimming also makes a `⇄ shared` tag
+/// unnecessary, because both avatars are right there.
 ///
-/// `Shared` became `Everyone` because "shared" used to name both this lens and
-/// a per-entry tag, and one of them had to give.
+/// The everyone option is called `Everyone`, never `Shared` — that word names a
+/// per-entry fact, and one word cannot mean both.
 class _LensRow extends StatelessWidget {
   const _LensRow({required this.lens, required this.roster});
 
@@ -556,7 +549,7 @@ class _DishRow extends ConsumerWidget {
             mealSlot: entry.mealSlot,
           );
     // The chip is the OVERRIDE, and only when it differs from what the eaters
-    // would have demanded on their own (their factors summed, plan 0027).
+    // would have demanded on their own (their factors summed).
     final override = entry.portions;
     final usual = eatersDemand(entry.eaterIds, {
       for (final m in roster) m.id: m,

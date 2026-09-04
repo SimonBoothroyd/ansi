@@ -23,7 +23,7 @@ import '../../../core/theme/ansi_tokens.dart';
 /// must agree, or OAuth sign-in dead-ends on the redirect: `supabase/config.toml`
 /// (local), the iOS `Info.plist` CFBundleURLSchemes, the Android manifest's
 /// intent-filter, and — for cloud — the Supabase dashboard's Redirect URLs
-/// (docs/cloud-setup.md §1.6). Renamed from `io.mise.app` on 2026-09-01.
+/// (docs/cloud-setup.md §1.6).
 const _oauthRedirect = 'io.ansi.app://login-callback';
 
 class SignInView extends HookConsumerWidget {
@@ -165,8 +165,7 @@ class SignInView extends HookConsumerWidget {
                             // The default in-app browser sheet does NOT
                             // dismiss itself when the io.ansi.app deep link
                             // fires — the app signs in underneath while the
-                            // sheet sits on "loading" forever (seen live,
-                            // 2026-08-28 cloud verification). The external
+                            // sheet sits on "loading" forever. The external
                             // browser backgrounds itself when the redirect
                             // foregrounds the app.
                             authScreenLaunchMode:

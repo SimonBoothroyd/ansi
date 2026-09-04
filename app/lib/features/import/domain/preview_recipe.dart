@@ -116,10 +116,10 @@ Recipe buildPreviewRecipe(
 
 /// The stable identity id for the preview line — a matched ingredient's id, or
 /// a `raw:` handle for a line that has no identity at all. A line with no
-/// identity is still a line, so the looser character normalization is the
-/// right one there — two differently phrased unresolved lines are two lines.
-/// (A `stub:` handle used to sit between the two; it went with the commit-time
-/// stub leg, plan 0025 D3 — a created row has a real id like any other.)
+/// identity is still a line, so the looser character normalization is the right
+/// one there — two differently phrased unresolved lines are two lines. There is
+/// no third handle between them: a row created at review has a real id like any
+/// other.
 String _identityId(LineResolution r) {
   if (r.chosenIngredientId != null) return r.chosenIngredientId!;
   return 'raw:${normalizeSearchQuery(r.ingredientText)}';

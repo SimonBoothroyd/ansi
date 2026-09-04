@@ -5,14 +5,14 @@
 /// with no row costs nothing, because `_getOrCreateWeek` only writes on the
 /// first meal); tapping the title opens the short week menu.
 ///
-/// There is ONE viewed week ([ViewedWeekStart], D3 / plan 0025 D7a): Cook and
-/// Shop derive from it, so all three tabs carry this same switcher as their
-/// only title. Its herb dot and its "This week" item are how a derived tab
-/// says which week it shows and offers the tap home — the pill and banner that
-/// used to do that job are retired, not reworded. Two things differ per host:
-/// "Copy last week into this one" is a Week *write* and stays off the derived
-/// tabs ([WeekSwitcher.showCopyLastWeek], D7b), and each tab's menu rows speak
-/// in that tab's own derivation ([WeekSwitcher.detailFor]).
+/// There is ONE viewed week ([ViewedWeekStart], D3): Cook and Shop derive from
+/// it, so all three tabs carry this same switcher as their only title. Its herb
+/// dot and its "This week" item are how a derived tab says which week it shows
+/// and offers the tap home, without a pill or a banner saying it a second
+/// time. Two things differ per host: "Copy last week into this one" is a Week
+/// *write* and stays off the derived tabs ([WeekSwitcher.showCopyLastWeek]),
+/// and each tab's menu rows speak in that tab's own derivation
+/// ([WeekSwitcher.detailFor]).
 ///
 /// Lives apart from `week_view.dart` because all three tabs draw it.
 library;

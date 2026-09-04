@@ -13,13 +13,12 @@
 /// deliberate exception below), pinned by a byte-equality round-trip over the
 /// sausage-sliders gold.
 ///
-/// **The one lossy conversion.** A ref whose `label` is blank has no
-/// characters of its own. A single-ref one materialises as its line's name; a
-/// blank-labelled COLLECTIVE (plan 0020 **J1** — the chip that IS its
-/// constituents) materialises as the run the fold already renders, "kale,
-/// avocado, garlic". Both then round-trip stably, but the re-emitted token
-/// carries the materialised label rather than the blank one. Named and pinned
-/// by a test.
+/// **The one lossy conversion.** A ref whose `label` is blank has no characters
+/// of its own. A single-ref one materialises as its line's name; a
+/// blank-labelled COLLECTIVE (the chip that IS its constituents) materialises
+/// as the run the fold already renders, "kale, avocado, garlic". Both then
+/// round-trip stably, but the re-emitted token carries the materialised label
+/// rather than the blank one. Named and pinned by a test.
 ///
 /// Nothing here matches text against anything (ADR-0004): a chip arrives from
 /// the extractor or from a deliberate pick, and the only string this file
@@ -461,15 +460,15 @@ ChipAmountRule amountRuleFor(
   return ChipAmountRule.showAmount;
 }
 
-/// One chip whose word D3 replaced, and what it used to read — the session
-/// memory behind *was "sausage" · keep the old word*.
+/// One relabelled chip and the word it carried before — the session memory
+/// behind *was "sausage" · keep the old word*.
 typedef ChipRelabel = ({String stepId, int spanIndex, String oldWord});
 
 /// One line's identity change, as the editor reads it back for this sitting:
-/// what the chips used to name, what they name now, and which steps moved.
+/// the name the chips carried, the name they carry now, and which steps moved.
 typedef Substitution = ({String oldName, String newName, Set<String> stepIds});
 
-/// D3: every chip pointing at [lineId] takes [label] as its word.
+/// Every chip pointing at [lineId] takes [label] as its word.
 ///
 /// The invariant it upholds: **a chip never names something the recipe does
 /// not contain.** A chip is a pointer with a display label; prose is authored,
@@ -477,8 +476,8 @@ typedef Substitution = ({String oldName, String newName, Set<String> stepIds});
 /// changes the printed word is retired — visibly, and revertibly.
 ///
 /// It rewrites nothing else: the text around each chip is byte-identical, and
-/// the returned [ChipRelabel]s carry what every changed chip used to say, so
-/// one tap can put it back.
+/// the returned [ChipRelabel]s carry each changed chip's previous word, so one
+/// tap can put it back.
 ({List<MethodDraftStep> steps, List<ChipRelabel> relabels}) relabelRefs(
   List<MethodDraftStep> steps, {
   required String lineId,
