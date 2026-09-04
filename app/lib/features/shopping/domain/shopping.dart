@@ -795,4 +795,4 @@ ShoppingList buildShoppingList({
   );
 }
 
-const _uncategorised = ' other';
+const _uncategorised = '\u0000other';

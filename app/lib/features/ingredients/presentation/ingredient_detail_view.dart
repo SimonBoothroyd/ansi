@@ -1637,7 +1637,7 @@ class _CategoryPicker extends ConsumerWidget {
 
   /// A sentinel value: `FSelect` needs a non-null value per item, and the
   /// empty string is a legitimate category-less row.
-  static const _none = ' none';
+  static const _none = '\u0000none';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
