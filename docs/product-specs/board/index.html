@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi — the design board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+    <header class="mast">
+        <p class="kicker">The design board · one file per screen</p>
+        <h1 class="wordmark">Ansi<span class="dot">.</span></h1>
+        <p class="thesis">A shared recipe app for a two-person kitchen. Plan the week you <em>want to eat</em>; Ansi derives what to <em>cook in batches</em> and buys each thing <em>once</em>.</p>
+        <div class="fresh-rule"></div>
+    </header>
+
+    <section class="system">
+        <div class="sys-cell">
+            <p class="sys-h">Palette</p>
+            <div class="swatches">
+                <div class="sw"><span class="chip" style="background:#2C6A3A"></span><span class="nm">Herb</span><span class="hx">#2C6A3A</span></div>
+                <div class="sw"><span class="chip" style="background:#18211C"></span><span class="nm">Ink</span><span class="hx">#18211C</span></div>
+                <div class="sw"><span class="chip" style="background:#F4F6F1;border-color:#E2E7DD"></span><span class="nm">Counter</span><span class="hx">#F4F6F1</span></div>
+                <div class="sw"><span class="chip" style="background:#4E9E5B"></span><span class="nm">Fresh</span><span class="hx">#4E9E5B</span></div>
+                <div class="sw"><span class="chip" style="background:#E1A63A"></span><span class="nm">Aging</span><span class="hx">#E1A63A</span></div>
+                <div class="sw"><span class="chip" style="background:#C64B36"></span><span class="nm">Gone</span><span class="hx">#C64B36</span></div>
+            </div>
+        </div>
+        <div class="sys-cell">
+            <p class="sys-h">Type</p>
+            <div class="type-row"><span class="type-lab">Spectral — titles</span><div class="spec-spec">Weeknight Curry</div></div>
+            <div class="type-row"><span class="type-lab">Inter — interface</span><div class="inter-spec">Cook Monday · 3 portions</div></div>
+            <div class="type-row"><span class="type-lab">Plex Mono — data</span><div class="mono-spec">300 g · ×0.75 · keeps 4 d</div></div>
+        </div>
+        <div class="sys-cell">
+            <p class="sys-h">Signature · shelf life</p>
+            <div class="fresh-key">
+                <div class="fk-bar"></div>
+                <div class="fk-labels"><span>cooked</span><span>day 4</span><span>gone</span></div>
+                <p class="fk-note">A freshness bar runs through the app — it shows how long a dish keeps and why a batch splits into two cook sessions.</p>
+            </div>
+        </div>
+    </section>
+
+    <table class="st">
+        <thead><tr><th>View</th><th>Status</th></tr></thead>
+        <tbody>
+        <tr><td class="v"><a href="./library.html">Library</a></td><td class="s">built · matches code 2026-09-04 · <code>features/books</code> · <a href="../../exec-plans/active/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a></td></tr>
+        <tr><td class="v"><a href="./recipe-page.html">Recipe page</a></td><td class="s">built · matches code 2026-09-04 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a></td></tr>
+        <tr><td class="v"><a href="./recipe-editor.html">Recipe editor</a></td><td class="s">built · matches code 2026-09-04 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a></td></tr>
+        <tr><td class="v"><a href="./import-review.html">Import review</a></td><td class="s">built · matches code 2026-09-04 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../import-and-matching.md">import &amp; matching</a></td></tr>
+        <tr><td class="v"><a href="./ingredient-picker.html">Ingredient picker</a></td><td class="s">built · matches code 2026-09-04 · <code>features/ingredients</code> · <code>shared/picker_shell.dart</code> · <a href="../../decisions/0005-two-tier-vocabulary.md">ADR-0005</a> · <a href="../../design-docs/search-and-matching.md">search &amp; matching</a></td></tr>
+        <tr><td class="v"><a href="./quantity-measures.html">Quantity &amp; measures</a></td><td class="s">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0010-piece-is-an-admission-fact.md">ADR-0010</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></td></tr>
+        <tr><td class="v"><a href="./recipe-picker-confirm.html">Recipe picker &amp; confirm</a></td><td class="s">built · matches code 2026-09-04 · <code>features/planning</code> · <a href="../../exec-plans/active/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a></td></tr>
+        <tr><td class="v"><a href="./ingredients-manager.html">Ingredients manager</a></td><td class="s">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../exec-plans/completed/0020-ingredients-manager.md">plan 0020</a> · <a href="../../decisions/0005-two-tier-vocabulary.md">ADR-0005</a></td></tr>
+        <tr><td class="v"><a href="./ingredient-detail.html">Ingredient detail</a></td><td class="s">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a></td></tr>
+        <tr><td class="v"><a href="./week.html">Week</a></td><td class="s">built · matches code 2026-09-04 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/active/0027-field-test-round-four.md">plan 0027</a></td></tr>
+        <tr><td class="v"><a href="./cook-shop.html">Cook &amp; Shop</a></td><td class="s">built · matches code 2026-09-04 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a></td></tr>
+        <tr><td class="v"><a href="./navigation.html">Navigation &amp; the shell</a></td><td class="s">built · matches code 2026-09-04 · <code>core/router</code> · <code>shared/ansi_tab_shell.dart</code> · <a href="../../design-docs/navigation.md">navigation.md</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a></td></tr>
+        <tr><td class="v"><a href="./errors-sync.html">Errors &amp; sync health</a></td><td class="s">built · differs 2026-09-04: the failure toast has a second line no caller fills — see the frame · <code>shared/</code> · <code>core/sync</code> · <a href="../../design-docs/errors-and-sync-health.md">errors-and-sync-health.md</a></td></tr>
+        <tr><td class="v"><a href="./account.html">Account</a></td><td class="s">built · matches code 2026-09-04 · <code>features/account</code> · <code>features/planning</code> · <a href="../../exec-plans/active/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/active/0027-field-test-round-four.md">plan 0027</a> · <a href="../../decisions/0006-sync-auth-and-onboarding.md">ADR-0006</a></td></tr>
+        </tbody>
+    </table>
+
+    <p class="index-note">Every view above is the app as it stands. Frames that were drawn and never built are kept apart, in <a href="./not-built.html">Designed, not built</a> — nothing on a screen file can be read as shipped when it is not.</p>
+    <p class="index-note">How this board is kept — replace a screen, never append a version — is in <a href="./README.md">README.md</a>. Why any of it was decided that way is in the exec plans and the ADRs each status line links.</p>
+
+</div>
+</body>
+</html>

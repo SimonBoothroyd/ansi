@@ -49,13 +49,13 @@
         .fk-note{font-size:11.5px;color:var(--muted);line-height:1.4;}
 
         /* sections + board */
-        .section-head{display:flex;align-items:baseline;gap:14px;margin:60px 0 26px;}
-        .section-head .ey{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--herb);white-space:nowrap;}
+        
+        
         .section-head .rule{height:1px;background:var(--line);flex:1;}
         .section-head .sub{font-size:12.5px;color:var(--muted);max-width:36ch;text-align:right;}
         .board{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start;}
-        .flow{display:flex;align-items:center;align-self:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;gap:8px;}
-        .flow .arrow{font-size:18px;color:var(--herb);}
+        
+        
 
         /* phone frame */
         .frame{width:340px;}
@@ -102,9 +102,9 @@
         .scaler .val{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:14px;}
         .grp{margin:16px 20px 0;}
         .grp-h{font-family:'Spectral',serif;font-style:italic;font-size:16px;color:var(--herb-deep);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);}
-        .ing{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;border-bottom:1px dotted var(--line);}
-        .ing:last-child{border-bottom:none;}
-        .ing .q{font-family:'IBM Plex Mono',monospace;color:var(--muted);white-space:nowrap;}
+        
+        
+        
         .macro{display:flex;margin:18px 20px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
         .macro .m{flex:1;padding:10px 6px;text-align:center;border-right:1px solid var(--line);}
         .macro .m:last-child{border-right:none;}
@@ -119,16 +119,16 @@
         .macro-inc .mi-b{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.35;}
 
         /* method */
-        .scale-chip{margin:0 20px 12px;display:inline-flex;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb-deep);background:var(--herb-soft);border-radius:999px;padding:5px 11px;}
-        .phase{font-family:'Spectral',serif;font-style:italic;font-size:15px;color:var(--herb-deep);margin:6px 20px 6px;}
+        
+        
         .step{display:flex;gap:12px;padding:11px 20px;border-top:1px solid var(--line);}
         .step:first-of-type{border-top:none;}
-        .snum{width:24px;height:24px;flex:none;border-radius:50%;background:var(--ink);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;display:grid;place-items:center;font-weight:500;}
-        .sbody{font-size:13.5px;line-height:1.5;}
+        
+        
         .ichip{display:inline-flex;align-items:center;gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12px;font-weight:500;color:var(--herb-deep);white-space:nowrap;}
         .ichip .qn{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-weight:400;}
-        .stimer{display:inline-flex;align-items:center;gap:5px;margin-top:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--aging);background:#FBF3E3;border-radius:7px;padding:4px 9px;}
-        .cook-cta{margin:16px 20px 4px;background:var(--herb);color:#fff;border-radius:14px;padding:14px;text-align:center;font-weight:600;font-size:14px;}
+        
+        
 
         /* cook mode */
         .cm-top{background:var(--herb-deep);color:#fff;padding:16px 22px 18px;}
@@ -158,11 +158,11 @@
         .sec:last-child{border-bottom:none;}
         .sec-lab{font-family:'Spectral',serif;font-style:italic;font-size:13.5px;color:var(--herb-deep);margin-bottom:4px;}
         .sec-items{font-size:13px;color:var(--muted);}
-        .add-sec{margin:12px 20px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb);border:1px dashed var(--herb);border-radius:12px;padding:11px;letter-spacing:.05em;}
+        
 
         /* reconciliation */
-        .rc-src{display:flex;gap:8px;margin:8px 20px 4px;}
-        .rc-tab{flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:8px;border-radius:9px;border:1px solid var(--line);color:var(--muted);}
+        
+        
         .rc-tab.on{background:var(--ink);color:#fff;border-color:var(--ink);}
         .rc-note{font-size:11.5px;color:var(--muted);margin:10px 20px 2px;}
         .match{margin:8px 20px 0;border:1px solid var(--line);border-radius:12px;padding:10px 12px;}
@@ -176,7 +176,7 @@
         .suggests{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
         .sug{font-size:11.5px;padding:5px 9px;border-radius:999px;background:var(--paper);border:1px solid var(--line);}
         .sug.pick{background:var(--herb-soft);border-color:transparent;color:var(--herb-deep);}
-        .addnew-stub{margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--gone);border:1px dashed #E7C3BA;border-radius:9px;padding:7px 9px;text-align:center;}
+        
 
         /* add ingredient */
         .flabel{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 20px 6px;}
@@ -219,10 +219,10 @@
         .savebtn{margin:16px 20px 4px;background:var(--herb);color:#fff;border-radius:13px;padding:14px;text-align:center;font-weight:600;font-size:14px;}
 
         /* barcode */
-        .cam{margin:0 20px 14px;height:160px;border-radius:16px;background:#1c241f;position:relative;overflow:hidden;display:grid;place-items:center;}
-        .reticle{width:66%;height:60px;border:2px solid rgba(255,255,255,.85);border-radius:10px;position:relative;}
-        .scan-line{position:absolute;left:6px;right:6px;top:50%;height:2px;background:var(--fresh);box-shadow:0 0 8px var(--fresh);}
-        .cam-hint{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:rgba(255,255,255,.7);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;}
+        
+        
+        
+        
         .matched{margin:0 20px;border:1px solid var(--line);border-radius:14px;padding:13px;}
         .matched .mnm{font-size:15px;font-weight:600;}
         .matched .msrc{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px;}
@@ -239,10 +239,10 @@
         .stub .need span{color:var(--gone);}
 
         /* week toggle + rows */
-        .toggle{display:flex;margin:2px 20px 12px;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:3px;}
-        .toggle .opt{flex:1;text-align:center;font-size:12px;font-weight:500;padding:7px;border-radius:8px;color:var(--muted);}
+        
+        
         .toggle .opt.on{background:var(--frame);color:var(--ink);box-shadow:0 1px 2px rgba(24,33,28,.08);}
-        .psel{display:flex;gap:8px;margin:0 20px 12px;}
+        
         .pchip{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:6px 11px;border-radius:999px;border:1px solid var(--line);color:var(--muted);}
         .pchip.on{background:var(--herb-soft);border-color:transparent;color:var(--herb-deep);}
         .pchip .av{border-color:transparent;}
@@ -259,22 +259,22 @@
         .split2{flex:1;display:flex;flex-direction:column;gap:6px;}
         .sub{display:flex;align-items:center;gap:8px;}
         .sub .sn{flex:1;font-size:13px;font-weight:600;color:var(--herb-deep);}
-        .shared-tag{font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--herb);letter-spacing:.04em;flex:none;}
+        
         .addrow{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:8px;padding:9px;border:1px dashed var(--herb);border-radius:10px;color:var(--herb);font-size:12.5px;font-weight:500;background:rgba(44,106,58,.03);}
         .addrow .ic{font-size:15px;line-height:1;}
         .day2.empty-day .addrow{margin-top:2px;}
 
         /* empty week (legacy — no longer shown) */
-        .empty-wrap{padding:34px 26px 26px;text-align:center;}
+        
         .empty-ic{font-size:34px;color:var(--line);margin-bottom:12px;}
-        .empty-h{font-family:'Spectral',serif;font-size:21px;font-weight:500;margin-bottom:6px;}
-        .empty-sub{font-size:13px;color:var(--muted);max-width:26ch;margin:0 auto 20px;line-height:1.5;}
+        
+        
         .btn{display:block;border-radius:12px;padding:13px;font-weight:600;font-size:14px;text-align:center;margin:8px 0;}
         .btn.primary{background:var(--herb);color:#fff;}
         .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
-        .last-week{margin:22px 20px 0;text-align:left;}
-        .lw-h{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
-        .lw-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:6px 0;border-top:1px dotted var(--line);}
+        
+        
+        
 
         /* batch cook plan */
         .cook{margin:12px 20px 0;border:1px solid var(--line);border-radius:16px;padding:14px 14px 12px;}
@@ -369,10 +369,10 @@
         .batch-note b{font-weight:600;}
         .addbtn{margin:16px 20px 8px;background:var(--herb);color:#fff;border-radius:13px;padding:14px;text-align:center;font-weight:600;font-size:14px;}
 
-        .stretch-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;background:#EAF1F5;color:#3B6076;border-radius:6px;padding:3px 8px;margin-left:8px;}
+        
 
         /* pickers v2 (proposed, step 7.7) */
-        .proposed-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;background:#FBF3E3;color:#7A5A16;border-radius:6px;padding:3px 8px;white-space:nowrap;}
+        
         .mline{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb-deep);margin-top:3px;}
         .mline .per{color:var(--muted);}
         .dock{border-top:1px solid var(--line);margin-top:12px;padding:10px 12px 12px;background:var(--paper);}
@@ -423,16 +423,16 @@
         .badge-inc{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#7A5A16;background:#FBF3E3;border-radius:6px;padding:2px 6px;}
 
         /* section-level decision note (board-level, not a phone frame) */
-        .locknote{background:var(--herb-soft);border:1px solid #CBDECB;border-left:5px solid var(--herb);border-radius:12px;padding:16px 20px;margin:0 0 26px;max-width:82ch;}
-        .locknote .lk-h{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--herb-deep);font-weight:500;margin:0 0 8px;}
-        .locknote p{margin:0 0 8px;font-size:13px;line-height:1.5;color:var(--ink);}
-        .locknote p:last-child{margin-bottom:0;}
-        .locknote b{font-weight:600;}
+        
+        
+        
+        
+        
         .locknote .src{font-size:11.5px;color:var(--muted);}
         /* proposal variant — amber, so a board reader can tell "decided" from "for sign-off" at a glance */
-        .locknote.prop{background:#FDF8EC;border-color:#F0DCB0;border-left-color:var(--aging);}
-        .locknote.prop .lk-h{color:#7A5A16;}
-        .ledger{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:10px 0 0;font-size:12.5px;line-height:1.45;}
+        
+        
+        
         .ledger .k{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--herb-deep);padding-top:3px;white-space:nowrap;}
         .ledger .k.ch{color:var(--aging);}
         /* one honest state card (permission, not-found, offline) */
@@ -502,8 +502,8 @@
         .l3-note::before{content:"·";margin:0 6px;color:var(--line);font-style:normal;}
         .l3-pen{color:var(--herb);font-size:12px;align-self:center;}
 
-        .footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
-        .footer b{color:var(--ink);font-weight:500;}
+        
+        
 
         @media (max-width:800px){
           .system{grid-template-columns:1fr;}
@@ -522,10 +522,10 @@
      .conv-note/.empty-wrap/.empty-ic/.empty-h/.empty-sub/.btn/.kpill. */
 
   /* the header's two actions, and the stub dot that rides ⋯ */
-  .lib-acts{display:flex;align-items:center;gap:15px;}
+  
   .lib-acts .a{position:relative;color:var(--muted);font-size:17px;line-height:1;}
   .lib-acts .a.plus{color:var(--herb);font-size:19px;}
-  .lib-dot{position:absolute;top:-2px;right:-5px;width:6px;height:6px;border-radius:50%;background:var(--herb);}
+  
 
   /* book header: name + count on the left, fold chevron + ⋯ on the right */
   .lib-bhead{display:flex;align-items:flex-start;gap:12px;}
@@ -541,7 +541,7 @@
   .lib-row .ci{flex:none;color:var(--muted);font-size:12px;}
 
   /* the “＋ new section” row, moved INSIDE the card (D5) */
-  .add-sec.inside{margin:0 12px 12px;padding:9px;}
+  
   /* the once-per-screen “＋ new book” footer row (D1/D7) */
   .lib-newbook{margin:16px 20px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);border:1px dashed var(--line);border-radius:12px;padding:11px;letter-spacing:.04em;}
 
@@ -613,8 +613,8 @@
 
   /* the dissolution table: what was in the menu, and where it already was */
   .lib-gone .mi .lb{text-decoration:line-through;color:var(--muted);}
-  .lib-went{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.04em;color:var(--herb-deep);margin:5px 20px 0;}
-  .lib-went b{color:var(--ink);font-weight:500;}
+  
+  
 
   /* FILE UNDER, demoted to one line in the editor (E9) */
   .lib-file3{margin:10px 20px 0;display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:11px 13px;background:var(--frame);}
@@ -622,9 +622,9 @@
   .lib-file3 .ed{color:var(--muted);font-size:12px;}
 
   /* a decision recorded on the frame it belongs to */
-  .lib-ruled{margin:10px 20px 0;border:1px solid #CBDECB;border-radius:12px;padding:10px 12px;background:var(--herb-soft);}
-  .lib-ruled .oh{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--herb-deep);margin-bottom:5px;}
-  .lib-ruled .ob{font-size:12px;color:var(--ink);line-height:1.45;}
+  
+  
+  
 
 /* ===== nav ===== */
     /* ---- Navigation v2: the bar anatomy blow-up ---------------------- */
@@ -742,7 +742,7 @@
     .cookmark.frz{background:#EAF1F5;color:#3B6076;}
     .cookmark .mini-fresh{width:16px;height:4px;}
     .portchip{font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 6px;flex:none;}
-    .rowgo{color:var(--line);font-size:13px;flex:none;}
+    
     .srow.dim .sname{color:var(--muted);font-weight:400;}
     .srow.dim .avs,.srow.dim .cookmark{opacity:.4;}
 
@@ -771,9 +771,9 @@
     .emptyline .plus{color:var(--herb);font-size:13px;}
 
     /* the entry sheet's two non-confirm rows */
-    .linkrow{margin:0 20px;display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:13px;}
+    
     .linkrow .go{margin-left:auto;color:var(--muted);font-size:13px;}
-    .rmrow{margin:14px 20px 8px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gone);border:1px solid #E7C3BA;border-radius:12px;padding:12px;}
+    
 
 /* ===== errors ===== */
     /* toast — transient, reports an ACT */
@@ -808,20 +808,20 @@
     .er-state .ed{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:13px;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;}
 
     /* the ⋯ menu, with the sync-health footer row */
-    .er-menu{margin:8px 20px 0;border:1px solid var(--line);border-radius:14px;background:var(--frame);box-shadow:var(--shadow);overflow:hidden;}
-    .er-mi{display:flex;align-items:center;gap:11px;padding:11px 13px;font-size:13.5px;}
-    .er-mi + .er-mi{border-top:1px solid var(--line);}
-    .er-mi .mic{width:15px;text-align:center;color:var(--muted);font-size:12px;flex:none;}
-    .er-mi .mn{flex:1;}
-    .er-mi .mb{font-family:'IBM Plex Mono',monospace;font-size:9.5px;background:#FBF3E3;color:#7A5A16;border-radius:6px;padding:2px 6px;}
-    .er-mrule{height:1px;background:var(--line);}
+    
+    
+    
+    
+    
+    
+    
     /* the sync line: quiet by default, amber when waiting, red when refused */
-    .er-sync{display:flex;align-items:flex-start;gap:9px;padding:10px 13px;background:var(--paper);border-top:1px solid var(--line);}
+    
     .er-sync .sy{width:7px;height:7px;border-radius:50%;flex:none;margin-top:4px;background:var(--fresh);}
-    .er-sync .syb{flex:1;min-width:0;}
-    .er-sync .syt{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);line-height:1.35;}
-    .er-sync .syd{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);opacity:.8;margin-top:2px;line-height:1.4;}
-    .er-sync .syc{flex:none;color:var(--muted);font-size:12px;align-self:center;}
+    
+    
+    
+    
     .er-sync.wait .sy{background:var(--aging);}
     .er-sync.wait .syt{color:#7A5A16;}
     .er-sync.lost .sy{background:var(--gone);}
@@ -965,7 +965,7 @@
     .notcounted b{color:var(--ink);font-weight:500;}
     .notcounted .nk{color:var(--herb-deep);}
     /* a superseded frame's pointer back to the section it replaces */
-    .supersedes{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;background:var(--herb-soft);color:var(--herb-deep);border-radius:6px;padding:2px 7px;margin-left:6px;}
+    
 
 /* ===== week3 ===== */
   /* Week · v3 — lane-local additions only. Everything else reuses the
@@ -992,7 +992,7 @@
     /* 2. frame (i): the nav lane's bar anatomy, with the proposed selected
           colour on the second bar. */
     .r3 .nv-bar.deep .nv-i.on .g,.r3 .nv-bar.deep .nv-i.on .l{color:var(--herb-deep);}
-    .r3 .r3-two{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;}
+    
     .r3 .r3-two .nv-anat{flex:1 1 300px;min-width:0;}
     /* 3. the `optional` tag on a recipe line — the stub badge's voice
           (StubBadge = FBadge.secondary: herb-soft ground, muted mono), so a
@@ -1001,7 +1001,6 @@
     /* 4. an unset value inside a stepper reads muted and smaller — the shipped
           _StepperRow's "not set" / "no limit" text (mono 13 muted). */
     .r3 .pstepper .qv.unset{font-size:12px;color:var(--muted);font-weight:400;}
-
 
 /* ===== board furniture (index + per-view chrome) ===== */
         .view-head{margin:0 0 34px;}
