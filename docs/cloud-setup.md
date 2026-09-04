@@ -500,14 +500,14 @@ or any dashboard-config walk.
   on all **19** tables (14 household-scoped + `usda_food` + the four index
   tables), `usda_search_stats` populated, 14 synced tables with equal column
   lists, template vocab 272 of 308 with macros.
-- **Readback (owner leg — agents are gated from `--linked` on purpose), not
-  yet run:** `select max(version) from supabase_migrations.schema_migrations;`
-  → `0031` · `select count(*) from ingredient where jsonb_typeof(allowed_units)
-  = 'string';` → `0` (0028) · `select count(*) from ingredient_alias where
+- **Readback (owner leg — agents are gated from `--linked` on purpose), run
+  by the owner 2026-09-04, every value as expected:** `select max(version) from supabase_migrations.schema_migrations;`
+  → **`0031`** · `select count(*) from ingredient where jsonb_typeof(allowed_units)
+  = 'string';` → **`0`** (0028) · `select count(*) from ingredient_alias where
   match_text ~ '\mtinned\M' and deleted_at is null;` → `0` (0031) ·
-  `select n_docs from usda_search_stats;` → `8204` (0029) · `select
+  `select n_docs from usda_search_stats;` → **`8204`** (0029) · `select
   column_name from information_schema.columns where table_name =
-  'household_member' and column_name = 'portion_factor';` → one row (0026).
+  'household_member' and column_name = 'portion_factor';` → **`portion_factor`** (0026).
 - Tagged **`v0.5.0`** after this push (release.md §5 order) — release run
   `33903706382`.
 
