@@ -18,7 +18,6 @@ import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/ingredients/domain/measure_repository.dart';
-import 'package:ansi/features/ingredients/presentation/new_ingredient_sheet.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_repository.dart';
@@ -1486,6 +1485,24 @@ void main() {
           ),
           // The flesh-out form's stand-in: pops on tap, like back does.
           GoRoute(
+            path: '/ingredients/new',
+            builder: (context, state) => FScaffold(
+              child: FButton(
+                onPress: () async {
+                  // What ONE Save does (plan 0029 C2): the row and everything
+                  // the form set, then pop with it.
+                  final made = await repo.createStub(
+                    state.uri.queryParameters['name'] ?? '',
+                  );
+                  final saved = made.copyWith(allowedUnits: [g, kg]);
+                  repo.rows[0] = saved;
+                  if (context.mounted) context.pop(saved);
+                },
+                child: const Text('create'),
+              ),
+            ),
+          ),
+          GoRoute(
             path: '/ingredients/:id',
             builder: (context, state) => FScaffold(
               child: FButton(
@@ -1521,35 +1538,17 @@ void main() {
       await tester.tap(create);
       await tester.pumpAndSettle();
       expect(repo.rows, isEmpty, reason: 'tapping the row writes nothing');
-      expect(find.text('New ingredient'), findsOneWidget);
-      expect(
-        tester
-            .widget<TextField>(
-              find
-                  .descendant(
-                    of: find.byType(NewIngredientSheet),
-                    matching: find.byType(TextField),
-                  )
-                  .first,
-            )
-            .controller!
-            .text,
-        'curry leaves',
-      );
-
-      await tester.tap(find.text('Create & flesh out'));
-      await tester.pumpAndSettle();
-      final created = repo.rows.single;
-      expect(find.text('form ${created.id}'), findsOneWidget);
+      // The FORM opens, seeded with the line's own text (plan 0029 C2) — one
+      // screen, and still nothing written.
+      expect(find.text('create'), findsOneWidget);
       expect(picks, isEmpty, reason: 'the line resolves after the form pops');
 
-      // What the form did: admitted a unit. Then back.
-      repo.rows[0] = created.copyWith(allowedUnits: [g, kg]);
-      await tester.tap(find.text('form ${created.id}'));
+      await tester.tap(find.text('create'));
       await tester.pumpAndSettle();
+      final created = repo.rows.single;
 
-      // Resolved as the ordinary matched state, on the re-read row; the
-      // search sheet has closed with it.
+      // Resolved as the ordinary matched state, on the row the form's one
+      // Save produced; the search sheet has closed with it.
       expect(picks.single, isA<PickExisting>());
       final row = (picks.single! as PickExisting).ingredient;
       expect(row.id, created.id);

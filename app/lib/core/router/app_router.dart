@@ -156,11 +156,24 @@ GoRouter router(Ref ref) {
         name: 'ingredients',
         builder: (context, state) => const IngredientListView(),
       ),
+      // `/ingredients/new` — the ONE door to making an ingredient (plan 0029
+      // C2). It is the same form, with no row behind it yet: nothing is
+      // written until Save, so backing out leaves nothing. `?name=` prefills
+      // it, which is what a picker hands over so the words already typed into
+      // its search become the row without retyping.
+      //
+      // Declared BEFORE `/ingredients/:id` so `new` is a route and not an id.
+      GoRoute(
+        path: '/ingredients/new',
+        name: 'ingredient-new',
+        builder: (context, state) =>
+            IngredientDetailView(name: state.uri.queryParameters['name'] ?? ''),
+      ),
       GoRoute(
         path: '/ingredients/:id',
         name: 'ingredient',
         builder: (context, state) =>
-            IngredientDetailView(ingredientId: state.pathParameters['id']!),
+            IngredientDetailView(ingredientId: state.pathParameters['id']),
       ),
       // `?title=` prefills the draft — what the Library's "nothing matches"
       // state hands over, so a search for a recipe you were about to write

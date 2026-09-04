@@ -13,7 +13,6 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_picker.dart';
-import 'package:ansi/features/ingredients/presentation/new_ingredient_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -87,6 +86,40 @@ Widget _chainHost(
           ),
         ),
       ),
+      // The create form, stubbed. These tests are about the CHAIN — what the
+      // picker pushes, what it waits for, and what it resolves with — so the
+      // form stands in for itself. Since plan 0029 C2 there is one push, not
+      // a sheet and then a form: `create` pops the row the way Save does, and
+      // `back` pops nothing the way the chevron does.
+      GoRoute(
+        path: '/ingredients/new',
+        builder: (context, state) => FScaffold(
+          child: Column(
+            children: [
+              const Text('CANONICAL NAME'),
+              Text('name:${state.uri.queryParameters['name'] ?? ''}'),
+              FButton(
+                onPress: () async {
+                  // What ONE Save does now: the row and everything the form
+                  // set, together — so the row that pops IS the finished one.
+                  final made = await repo.createStub(
+                    state.uri.queryParameters['name'] ?? '',
+                  );
+                  final saved = made.copyWith(
+                    allowedUnits: [g, kg, tbsp],
+                    densityGPerMl: 1,
+                  );
+                  repo.rows[repo.rows.indexWhere((r) => r.id == made.id)] =
+                      saved;
+                  if (context.mounted) context.pop(saved);
+                },
+                child: const Text('create'),
+              ),
+              FButton(onPress: () => context.pop(), child: const Text('back')),
+            ],
+          ),
+        ),
+      ),
       GoRoute(
         path: '/ingredients/:id',
         builder: (context, state) => FScaffold(
@@ -113,19 +146,6 @@ Widget _chainHost(
     ),
   );
 }
-
-/// The add sheet's name field — the first text field it renders.
-String _sheetNameText(WidgetTester tester) => tester
-    .widget<TextField>(
-      find
-          .descendant(
-            of: find.byType(NewIngredientSheet),
-            matching: find.byType(TextField),
-          )
-          .first,
-    )
-    .controller!
-    .text;
 
 void main() {
   group('the "did you mean" band', () {
@@ -225,35 +245,25 @@ void main() {
       await tester.tap(find.textContaining('add "Curry leaves"'));
       await tester.pumpAndSettle();
       expect(repo.rows, isEmpty);
-      expect(find.text('New ingredient'), findsOneWidget);
-      // Frame c2: prefilled from what was typed in the picker.
-      expect(_sheetNameText(tester), 'Curry leaves');
-      // The sheet's own prose and CTA, unchanged (round-3 detail 6).
-      expect(find.text('Create & flesh out'), findsOneWidget);
+      // The FORM opens, not a sheet (plan 0029 C2): one screen, and it has
+      // written nothing yet.
+      expect(find.text('CANONICAL NAME'), findsOneWidget);
+      // Frame c2's promise survives the change: prefilled from what was
+      // typed in the picker, so the words are not retyped.
+      expect(find.text('name:Curry leaves'), findsOneWidget);
 
-      await tester.tap(find.text('Create & flesh out'));
+      await tester.tap(find.text('create'));
       await tester.pumpAndSettle();
 
-      // The row exists, D6-honest, and the form is up OVER the picker —
-      // which has NOT resolved: nothing downstream (the quantity sheet) can
-      // run before the form is done.
+      // ONE screen, not two (plan 0029 C2). The form's Save is the pop the
+      // picker was awaiting, and it pops the row it just made — so there is
+      // no window in which a half-made row exists and nothing to re-read.
       final created = repo.rows.single;
       expect(created.canonicalName, 'Curry leaves');
       expect(repo.matchTextById[created.id], 'curry leaf');
-      expect(find.text('form ${created.id}'), findsOneWidget);
-      expect(picked, isEmpty);
 
-      // What the form would do: admit units, land a density.
-      repo.rows[0] = created.copyWith(
-        allowedUnits: [g, kg, tbsp],
-        densityGPerMl: 1,
-      );
-      await tester.tap(find.text('back'));
-      await tester.pumpAndSettle();
-
-      // Back is the only exit, and it is the pop the picker was awaiting: it
-      // resolves with the RE-READ row, so the units the form set are what
-      // the next surface offers (frame c4).
+      // Frame c4's promise, unchanged: the units the form set are what the
+      // next surface offers.
       expect(picked, hasLength(1));
       expect(picked.single!.id, created.id);
       expect(picked.single!.allowedUnits, [g, kg, tbsp]);
@@ -281,12 +291,10 @@ void main() {
       await tester.tap(find.textContaining('add "Curry leaves"'));
       await tester.pumpAndSettle();
 
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NewIngredientSheet),
-          matching: find.byIcon(FLucideIcons.x),
-        ),
-      );
+      // Back out of the form: it has written nothing, so there is nothing to
+      // clean up — which is what the sheet could not offer, since its Create
+      // had already made the row.
+      await tester.tap(find.text('back'));
       await tester.pumpAndSettle();
 
       expect(repo.rows, isEmpty);
@@ -294,8 +302,8 @@ void main() {
       expect(find.text('Add an ingredient'), findsOneWidget);
     });
 
-    testWidgets('a row deleted on the form hands nothing back — the picker '
-        'is simply open again', (tester) async {
+    testWidgets('a create abandoned on the form hands nothing back — the '
+        'picker is simply open again', (tester) async {
       filterForuiSemanticsAssertions();
       final repo = FakeIngredientRepo(const []);
       final picked = <Ingredient?>[];
@@ -307,13 +315,15 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.textContaining('add "Curry leaves"'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Create & flesh out'));
-      await tester.pumpAndSettle();
 
-      repo.rows.clear(); // the form's delete action
+      // The form pops with nothing — the chevron, or a delete on a row that
+      // had been saved once. Either way the picker resolves with nothing and
+      // is simply open again; it must not hand a line an ingredient that is
+      // not there.
       await tester.tap(find.text('back'));
       await tester.pumpAndSettle();
 
+      expect(repo.rows, isEmpty);
       expect(picked, isEmpty);
       expect(find.text('Add an ingredient'), findsOneWidget);
     });

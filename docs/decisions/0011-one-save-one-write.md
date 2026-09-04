@@ -1,6 +1,7 @@
 # ADR-0011 — One save, one write: the flesh-out form defers
 
-- **Status:** proposed (2026-09-03, Simon + agent — exec plan 0029)
+- **Status:** accepted (2026-09-03, Simon + agent — exec plan 0029, built
+  the same day)
 - **Refines:** [ADR-0008](./0008-unit-admission-model.md) §2 (density is one
   stored fact, enterable two equivalent ways) — the *ways* become two picks in
   one sentence rather than two controls, and both now land through the form's

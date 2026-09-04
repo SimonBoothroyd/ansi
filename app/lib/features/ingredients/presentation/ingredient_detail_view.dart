@@ -77,6 +77,17 @@ import 'usda_pick_sheet.dart';
 /// The pushed route for one vocab row.
 String ingredientDetailRoute(String id) => '/ingredients/$id';
 
+/// The pushed route for a row that does not exist yet (plan 0029 **C2**) —
+/// the one door to making an ingredient, now that the New-ingredient sheet is
+/// gone. [name] prefills the field, which is what a picker hands over so the
+/// words already typed into its search become the row.
+///
+/// It pops with the created [Ingredient], or null if the person backed out —
+/// so a caller that is waiting on the row (the editor's picker) gets it.
+String newIngredientRoute({String name = ''}) => name.trim().isEmpty
+    ? '/ingredients/new'
+    : '/ingredients/new?name=${Uri.encodeQueryComponent(name.trim())}';
+
 /// The form's own Save, in the pinned dock — as distinct from the small
 /// Saves the density entry and the measures editor carry for their own
 /// immediate writes. Exported so tests name it rather than counting FButtons.
@@ -87,13 +98,27 @@ const kFormCompleteKey = ValueKey('form-complete');
 
 class IngredientDetailView extends ConsumerWidget {
   const IngredientDetailView({
-    required this.ingredientId,
+    this.ingredientId,
+    this.name = '',
     this.lookup,
     this.cameraPane,
     super.key,
   });
 
-  final String ingredientId;
+  /// The row to edit, or **null to create one** (plan 0029 **C2**).
+  ///
+  /// This form is the only door to making an ingredient now. The
+  /// New-ingredient sheet existed because it was the stage where nothing had
+  /// been written — dismiss it and no row existed — and the form could not
+  /// take that over while half of it wrote on tap. Since ADR-0011 it writes
+  /// once, on Save, so a form with no row is coherent and saveForm(null, …)
+  /// makes the row and its children in one transaction.
+  final String? ingredientId;
+
+  /// What the name field opens with on a create — the picker passes what was
+  /// typed into its search, so "curry leaves" becomes the row without
+  /// retyping it.
+  final String name;
 
   /// Forwarded to the form's barcode scan. Both exist for tests and are null
   /// in app code — the router builds this page with neither, and the scan
@@ -104,7 +129,15 @@ class IngredientDetailView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(ingredientByIdProvider(ingredientId));
+    if (ingredientId == null) {
+      return _DetailForm(
+        ingredient: null,
+        initialName: name,
+        lookup: lookup,
+        cameraPane: cameraPane,
+      );
+    }
+    final async = ref.watch(ingredientByIdProvider(ingredientId!));
     final ingredient = async.asData?.value;
 
     // The form owns its own scaffold: the header's `⋯` menu and the pinned
@@ -115,7 +148,7 @@ class IngredientDetailView extends ConsumerWidget {
       return _DetailForm(
         // Keyed by id so pushing a different ingredient rebuilds the form
         // state instead of inheriting the previous row's typed values.
-        key: ValueKey(ingredientId),
+        key: ValueKey(ingredientId!),
         ingredient: ingredient,
         lookup: lookup,
         cameraPane: cameraPane,
@@ -177,18 +210,36 @@ class _Centered extends StatelessWidget {
 class _DetailForm extends HookConsumerWidget {
   const _DetailForm({
     required this.ingredient,
+    this.initialName = '',
     this.lookup,
     this.cameraPane,
     super.key,
   });
 
-  final Ingredient ingredient;
+  /// Null while creating (C2). Everything below reads a local `ing`, either
+  /// this row or a blank stand-in, so only the handful of places that
+  /// genuinely differ — the save, the header menu, the watched children —
+  /// have to know which they are looking at.
+  final Ingredient? ingredient;
+
+  final String initialName;
   final OffLookup? lookup;
   final BarcodeCameraPane? cameraPane;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ing = ingredient;
+    final creating = ingredient == null;
+    // A blank stand-in so the whole form can go on reading one row. Its id is
+    // empty and is never used: the create path passes null to `saveForm`, and
+    // the watched children are skipped below.
+    final ing =
+        ingredient ??
+        Ingredient(
+          id: '',
+          canonicalName: initialName.trim(),
+          defaultUnit: g,
+          status: IngredientStatus.stub,
+        );
     final name = useState(ing.canonicalName);
     final category = useState(ing.category ?? '');
     final defaultUnit = useState(ing.defaultUnit);
@@ -231,6 +282,7 @@ class _DetailForm extends HookConsumerWidget {
     final defaultMeasure = useState<DefaultMeasureChange>(
       const DefaultMeasureUnchanged(),
     );
+    final nameSeed = useState(0);
     final pendingSourceLabel = useState<String?>(null);
     final pendingSourceScore = useState<double?>(null);
     final aliasesAdded = useState<List<IngredientAlias>>(const []);
@@ -244,7 +296,11 @@ class _DetailForm extends HookConsumerWidget {
     // macros it explains rather than written on its own, so backing out of
     // the form leaves the row exactly as it was found.
     final pendingSource = useState<String?>(null);
-    final measuresAsync = ref.watch(ingredientMeasuresProvider(ing.id));
+    // A row that does not exist has no stored children to watch — and asking
+    // for them under a blank id would be a query about nothing.
+    final measuresAsync = creating
+        ? const AsyncValue<List<Measure>>.data([])
+        : ref.watch(ingredientMeasuresProvider(ing.id));
 
     // The density AS THE FORM HOLDS IT. Nothing has been written, so the
     // chips, the gap note and the entry's own headline all read the draft —
@@ -266,21 +322,21 @@ class _DetailForm extends HookConsumerWidget {
     // clear does not go through copyWith.
     final draftRow = densityValue == null
         ? Ingredient(
-            id: ingredient.id,
-            canonicalName: ingredient.canonicalName,
+            id: ing.id,
+            canonicalName: ing.canonicalName,
             defaultUnit: defaultUnit.value,
-            status: ingredient.status,
-            category: ingredient.category,
-            macros: ingredient.macros,
+            status: ing.status,
+            category: ing.category,
+            macros: ing.macros,
             macrosBasis: basis.value,
-            allowedUnits: ingredient.allowedUnits,
-            measureCount: ingredient.measureCount,
-            source: ingredient.source,
-            sourceLabel: ingredient.sourceLabel,
-            sourceScore: ingredient.sourceScore,
-            defaultMeasureId: ingredient.defaultMeasureId,
+            allowedUnits: ing.allowedUnits,
+            measureCount: ing.measureCount,
+            source: ing.source,
+            sourceLabel: ing.sourceLabel,
+            sourceScore: ing.sourceScore,
+            defaultMeasureId: ing.defaultMeasureId,
           )
-        : ingredient.copyWith(
+        : ing.copyWith(
             defaultUnit: defaultUnit.value,
             macrosBasis: basis.value,
             densityGPerMl: densityValue,
@@ -389,7 +445,9 @@ class _DetailForm extends HookConsumerWidget {
             row: await ref
                 .read(ingredientRepositoryProvider)
                 .saveForm(
-                  ing.id,
+                  // C1: null makes the row, its measures and its aliases in
+                  // one transaction.
+                  creating ? null : ing.id,
                   IngredientFormEdit(
                     row: IngredientEdit(
                       canonicalName: name.value,
@@ -451,9 +509,10 @@ class _DetailForm extends HookConsumerWidget {
         aliasesRemoved.value = const {};
         defaultMeasure.value = const DefaultMeasureUnchanged();
         ref
-          ..invalidate(ingredientByIdProvider(ing.id))
-          ..invalidate(ingredientMeasuresProvider(ing.id))
-          ..invalidate(ingredientAliasesProvider(ing.id));
+          ..invalidate(ingredientByIdProvider(saved.id))
+          ..invalidate(ingredientMeasuresProvider(saved.id))
+          ..invalidate(ingredientAliasesProvider(saved.id))
+          ..invalidate(vocabularyProvider);
         message.value = 'Saved.';
         return saved;
       } finally {
@@ -505,6 +564,17 @@ class _DetailForm extends HookConsumerWidget {
         serving.value = ServingDraft.fromPanel(panel);
         servingSeed.value++;
         servingOffer.value = false;
+      }
+      // **The name, when there isn't one yet (C2).** `applyDraft` returns one
+      // only where the target's was EMPTY, which on an existing row it never
+      // is — so this did nothing until the form became the create surface,
+      // and on a new row it is the difference between a scan that fills the
+      // form in and a Save that refuses for want of a name. It is a starting
+      // point, not a decision: the field stays editable, and the board is
+      // explicit that yours is the name your recipes read.
+      if (applied.name != null) {
+        name.value = applied.name!;
+        nameSeed.value++;
       }
       if (applied.source != null) pendingSource.value = applied.source;
     }
@@ -563,8 +633,11 @@ class _DetailForm extends HookConsumerWidget {
     // Leaving the form. A cold deep link lands here with no page beneath, so
     // there is nothing to pop: fall back to the manager, exactly as the back
     // chevron and the delete both do.
-    void leave() =>
-        context.canPop() ? context.pop() : context.goOnce('/ingredients');
+    // Pops with the row when there is one, so a caller waiting on this form
+    // — the editor's picker, which pushes it and then opens the quantity
+    // sheet on the units it just set — gets what it was waiting for.
+    void leave([Ingredient? result]) =>
+        context.canPop() ? context.pop(result) : context.goOnce('/ingredients');
 
     // The `⋯` actions and the CTA, so the header and the pinned bar can both
     // reach them. They live here rather than inside their own widgets because
@@ -582,7 +655,7 @@ class _DetailForm extends HookConsumerWidget {
     Future<void> completeRow() async {
       final saved = await save(markComplete: true);
       if (saved == null || !context.mounted) return;
-      leave();
+      leave(saved);
     }
 
     Future<void> unconfirmRow() async {
@@ -644,37 +717,42 @@ class _DetailForm extends HookConsumerWidget {
         context,
         title: ing.canonicalName,
         suffixes: [
-          FPopoverMenu(
-            // `menuBuilder`, not `menu`: an item has to dismiss the menu it
-            // was picked from before it navigates (the recipe view's rule).
-            menuBuilder: (_, controller, _) => [
-              FItemGroup(
-                children: [
-                  if (!stub)
+          // Nothing to delete and nothing to un-confirm on a row that does
+          // not exist yet.
+          if (creating)
+            const SizedBox.shrink()
+          else
+            FPopoverMenu(
+              // `menuBuilder`, not `menu`: an item has to dismiss the menu it
+              // was picked from before it navigates (the recipe view's rule).
+              menuBuilder: (_, controller, _) => [
+                FItemGroup(
+                  children: [
+                    if (!stub)
+                      FItem(
+                        prefix: const Icon(FLucideIcons.rotateCcw),
+                        title: const Text('Return it to a stub'),
+                        onPress: () {
+                          unawaited(controller.hide());
+                          unawaited(unconfirmRow());
+                        },
+                      ),
                     FItem(
-                      prefix: const Icon(FLucideIcons.rotateCcw),
-                      title: const Text('Return it to a stub'),
+                      prefix: const Icon(FLucideIcons.trash2),
+                      title: const Text('Delete ingredient'),
                       onPress: () {
                         unawaited(controller.hide());
-                        unawaited(unconfirmRow());
+                        unawaited(deleteRow());
                       },
                     ),
-                  FItem(
-                    prefix: const Icon(FLucideIcons.trash2),
-                    title: const Text('Delete ingredient'),
-                    onPress: () {
-                      unawaited(controller.hide());
-                      unawaited(deleteRow());
-                    },
-                  ),
-                ],
+                  ],
+                ),
+              ],
+              builder: (context, controller, _) => FHeaderAction(
+                icon: const Icon(FLucideIcons.ellipsis),
+                onPress: controller.toggle,
               ),
-            ],
-            builder: (context, controller, _) => FHeaderAction(
-              icon: const Icon(FLucideIcons.ellipsis),
-              onPress: controller.toggle,
             ),
-          ),
         ],
       ),
       // Pinned, so the two commitments this page can make are reachable from
@@ -701,7 +779,7 @@ class _DetailForm extends HookConsumerWidget {
             ? null
             : () async {
                 final saved = await save();
-                if (saved != null && context.mounted) leave();
+                if (saved != null && context.mounted) leave(saved);
               },
         onComplete: completeRow,
       ),
@@ -714,7 +792,7 @@ class _DetailForm extends HookConsumerWidget {
           // insertion in a ListView shifts every sibling by one, which
           // reconciles each of them against the wrong element and silently
           // resets its hook state.
-          _StatusStrip(ingredient: ing),
+          _StatusStrip(ingredient: ing, creating: creating),
 
           // The two prefill doors, in one place. They used to sit fifteen
           // blocks apart — the scanner at the top, "Look up in USDA" below
@@ -739,21 +817,23 @@ class _DetailForm extends HookConsumerWidget {
               applied: scanApplied.value!,
               packAdded: packAdded.value,
               onAddPack: () async {
+                // The pack size is an OFFER (F2's ruling): a measure lands
+                // only because it was tapped — and since W5 it lands in the
+                // draft, so it rides the form's one Save like every other
+                // measure. That is also what lets a barcode-created row carry
+                // its pack size before the row exists.
                 final pack = scanApplied.value!.packMeasure!;
-                final added = await ref.writeOk(
-                  context,
-                  'add that measure',
-                  () => ref
-                      .read(measureRepositoryProvider)
-                      .addMeasure(
-                        ingredientId: ing.id,
-                        label: 'pack',
-                        amount: pack.amountInBasis,
-                      ),
-                );
-                if (!added || !context.mounted) return;
+                measuresAdded.value = [
+                  ...measuresAdded.value,
+                  Measure(
+                    id: const Uuid().v4(),
+                    label: 'pack',
+                    amount: pack.amountInBasis,
+                    basis: basis.value,
+                    sortOrder: measures.length,
+                  ),
+                ];
                 packAdded.value = true;
-                ref.invalidate(ingredientMeasuresProvider(ing.id));
               },
             )
           else
@@ -767,8 +847,12 @@ class _DetailForm extends HookConsumerWidget {
             children: [
               const _Label('CANONICAL NAME'),
               FTextField(
+                // Keyed on the seed: `initial` seeds the controller once, so a
+                // scan that lands a product name needs a new field to seed it
+                // into — G1's mechanism, for the name rather than the macros.
+                key: ValueKey('canonical-name-${nameSeed.value}'),
                 control: FTextFieldControl.managed(
-                  initial: TextEditingValue(text: ing.canonicalName),
+                  initial: TextEditingValue(text: name.value),
                   onChange: (v) => name.value = v.text,
                 ),
               ),
@@ -782,10 +866,12 @@ class _DetailForm extends HookConsumerWidget {
                   // an alias that exists but did not load is re-added
                   // harmlessly — `saveForm` is find-or-create on match_text.
                   for (final a
-                      in ref
-                              .watch(ingredientAliasesProvider(ing.id))
-                              .asData
-                              ?.value ??
+                      in (creating
+                              ? null
+                              : ref
+                                    .watch(ingredientAliasesProvider(ing.id))
+                                    .asData
+                                    ?.value) ??
                           const <IngredientAlias>[])
                     if (!aliasesRemoved.value.contains(a.id)) a,
                   ...aliasesAdded.value,
@@ -2093,9 +2179,13 @@ class _Group extends StatelessWidget {
 /// learn that the row you are editing does not count yet, which is the first
 /// thing you want to know and the reason the Confirm button exists.
 class _StatusStrip extends StatelessWidget {
-  const _StatusStrip({required this.ingredient});
+  const _StatusStrip({required this.ingredient, this.creating = false});
 
   final Ingredient ingredient;
+
+  /// A row that does not exist yet (C2). It says so plainly rather than
+  /// calling itself a stub, which is a thing a SAVED row is.
+  final bool creating;
 
   @override
   Widget build(BuildContext context) {
@@ -2121,7 +2211,9 @@ class _StatusStrip extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              stub
+              creating
+                  ? 'New — nothing is saved until you tap Save.'
+                  : stub
                   ? 'Still a stub — left out of macro totals until confirmed.'
                   : 'Complete — counts in conversions and macro totals.',
               style: ansiMono(size: 11, color: AnsiColors.muted),

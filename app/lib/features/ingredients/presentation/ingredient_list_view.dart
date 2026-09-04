@@ -28,7 +28,6 @@ import '../data/ingredient_providers.dart';
 import '../domain/ingredient.dart';
 import 'ingredient_detail_view.dart';
 import 'ingredient_picker.dart';
-import 'new_ingredient_sheet.dart';
 
 /// The manager's route.
 const kIngredientsRoute = '/ingredients';
@@ -74,13 +73,13 @@ class IngredientListView extends HookConsumerWidget {
 
     void open(Ingredient i) => context.pushOnce(ingredientDetailRoute(i.id));
 
-    // The sheet hands the row back and pushes nothing (plan 0025 D3); this
-    // list is the host that lands it on the form and moves on — nothing here
-    // waits on the form, unlike a picker with a line waiting.
-    Future<void> addNew() async {
-      final created = await showNewIngredientSheet(context);
-      if (created != null && context.mounted) open(created);
-    }
+    // The `＋` opens the form itself (plan 0029 C2). It used to open the
+    // New-ingredient sheet, which made a row and handed it back so this list
+    // could land it on the form — two screens for one act, and the row
+    // existed the moment the sheet was dismissed. The form writes on Save
+    // now, so it can BE the create surface: back out of it and there is
+    // nothing to clean up.
+    void addNew() => context.pushOnce(newIngredientRoute());
 
     return FScaffold(
       childPad: false,

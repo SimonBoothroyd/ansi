@@ -45,6 +45,24 @@ Widget _host(FakeIngredientRepo repo) {
         ),
       ),
       GoRoute(
+        path: '/ingredients/new',
+        builder: (context, state) => FScaffold(
+          child: FButton(
+            onPress: () async {
+              // What ONE Save does (plan 0029 C2): the row and everything the
+              // form set, then pop with it.
+              final made = await repo.createStub(
+                state.uri.queryParameters['name'] ?? '',
+              );
+              final saved = made.copyWith(allowedUnits: [g, kg]);
+              repo.rows[repo.rows.length - 1] = saved;
+              if (context.mounted) context.pop(saved);
+            },
+            child: const Text('create'),
+          ),
+        ),
+      ),
+      GoRoute(
         path: '/ingredients/:id',
         builder: (context, state) => FScaffold(
           child: FButton(
@@ -70,8 +88,8 @@ Widget _host(FakeIngredientRepo repo) {
 }
 
 void main() {
-  testWidgets('top up ▸ add-new: sheet → form → back → the quantity sheet '
-      'opens on the re-read row', (tester) async {
+  testWidgets('top up ▸ add-new: the form, then the quantity sheet on the row '
+      'its one Save produced', (tester) async {
     filterForuiSemanticsAssertions();
     final repo = FakeIngredientRepo(const [_onion]);
     await tester.pumpWidget(_host(repo));
@@ -85,22 +103,17 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('add "Curry leaves"'));
     await tester.pumpAndSettle();
-    expect(find.text('New ingredient'), findsOneWidget);
-    await tester.tap(find.text('Create & flesh out'));
-    await tester.pumpAndSettle();
-
-    // The form is up over the Add-to-list sheet; no quantity sheet yet.
-    final created = repo.rows.last;
-    expect(find.text('form ${created.id}'), findsOneWidget);
+    // The FORM is up over the Add-to-list sheet — one screen, not a sheet
+    // and then a form — and no quantity sheet yet.
+    expect(find.text('create'), findsOneWidget);
     expect(find.text('Add top-up'), findsNothing);
 
-    // What the form did: admitted a second unit.
-    repo.rows[repo.rows.length - 1] = created.copyWith(allowedUnits: [g, kg]);
-    await tester.tap(find.text('form ${created.id}'));
+    await tester.tap(find.text('create'));
     await tester.pumpAndSettle();
 
-    // Back landed on the top-up, which continued into the quantity sheet —
-    // on the re-read row, so the chip the form admitted is offered.
+    // Its pop landed on the top-up, which continued into the quantity sheet
+    // on the row that Save produced, so the chip the form admitted is
+    // offered.
     expect(find.text('Add top-up'), findsOneWidget);
     expect(find.text('Curry leaves'), findsWidgets);
     expect(find.text('kg'), findsOneWidget);

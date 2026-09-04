@@ -327,6 +327,25 @@ void main() {
             ),
           ),
         ),
+        // The create form, stubbed: since plan 0029 C2 the picker pushes it
+        // directly instead of opening a sheet that made the row first, and
+        // it pops with the row its one Save made.
+        GoRoute(
+          path: '/ingredients/new',
+          builder: (context, state) => FScaffold(
+            child: FButton(
+              onPress: () async {
+                final made = await repo.createStub(
+                  state.uri.queryParameters['name'] ?? '',
+                );
+                final saved = made.copyWith(allowedUnits: [g, kg]);
+                repo.rows[repo.rows.length - 1] = saved;
+                if (context.mounted) context.pop(saved);
+              },
+              child: const Text('create'),
+            ),
+          ),
+        ),
         GoRoute(
           path: '/ingredients/:id',
           builder: (context, state) => FScaffold(
@@ -361,17 +380,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('add "curry leaves"'));
     await tester.pumpAndSettle();
-    expect(find.text('New ingredient'), findsOneWidget);
-
-    await tester.tap(find.text('Create & flesh out'));
-    await tester.pumpAndSettle();
-    final created = repo.rows.last;
-    expect(find.text('form ${created.id}'), findsOneWidget);
+    // One screen, not two: the FORM opens, and nothing resolves until it
+    // pops with the row its Save made.
+    expect(find.text('create'), findsOneWidget);
     expect(picked, isEmpty, reason: 'nothing resolves before the form pops');
 
-    repo.rows[repo.rows.length - 1] = created.copyWith(allowedUnits: [g, kg]);
-    await tester.tap(find.text('form ${created.id}'));
+    await tester.tap(find.text('create'));
     await tester.pumpAndSettle();
+    final created = repo.rows.last;
 
     expect(picked.single, isA<PickedIngredient>());
     final ingredient = (picked.single! as PickedIngredient).ingredient;

@@ -34,9 +34,8 @@ import '../data/ingredient_providers.dart';
 import '../domain/ingredient.dart';
 import '../domain/search_query.dart';
 import '../domain/search_rank.dart';
-import 'ingredient_detail_view.dart' show ingredientDetailRoute;
+import 'ingredient_detail_view.dart' show newIngredientRoute;
 import 'macros_format.dart';
-import 'new_ingredient_sheet.dart';
 
 /// Opens the picker as a bottom sheet; resolves to the chosen ingredient — an
 /// existing row, or one the add-new chain just created and fleshed out — or
@@ -396,29 +395,27 @@ class AddNewIngredientRow extends HookConsumerWidget {
       // it continues through outlive this row (`hostContextOf`), so the
       // row the human just fleshed out is handed back whatever became of
       // the footer that started it.
-      final container = ProviderScope.containerOf(context, listen: false);
       final host = hostContextOf(context);
       try {
-        final created = await showNewIngredientSheet(
-          context,
-          initialName: name,
+        // ONE push, not a sheet and then a form (plan 0029 C2). The form is
+        // the create surface now: it lands ABOVE this picker's sheet, writes
+        // nothing until Save, and pops with the row it made — so backing out
+        // resolves nothing and leaves nothing behind, which the sheet could
+        // not offer because its Create had already written a row.
+        //
+        // The picker stays open underneath the whole time, which is what lets
+        // it resolve after. The host outlives the row (`hostContextOf`).
+        // ignore: use_build_context_synchronously
+        final created = await host.context.pushOnceFor<Ingredient?>(
+          newIngredientRoute(name: name),
         );
         if (created == null) return;
-        // The form lands ABOVE this picker's sheet and pops back to it; the
-        // guarded push returns when it does. The picker is still open
-        // underneath the whole time, which is what lets it resolve after.
-        // The host outlives the row — see [hostContextOf].
-        // ignore: use_build_context_synchronously
-        await host.context.pushOnceFor<void>(ingredientDetailRoute(created.id));
-        // Re-read rather than reuse: the form's edits — allowed units,
-        // measures, a density, the macros — are what the quantity sheet
-        // opening next must see, and the row the sheet handed over predates
-        // all of them. The keepAlive repo provider is safe across the await.
-        final row = await container
-            .read(ingredientRepositoryProvider)
-            .byId(created.id);
-        if (row == null) return;
-        onCreated(row);
+        // The popped row IS the row as that one write left it — allowed
+        // units, measures, a density, the macros — which is exactly what the
+        // quantity sheet opening next must see. Re-reading is what the old
+        // two-step needed, because the sheet handed over a row that predated
+        // everything the form then did to it.
+        onCreated(created);
       } finally {
         if (context.mounted) busy.value = false;
       }

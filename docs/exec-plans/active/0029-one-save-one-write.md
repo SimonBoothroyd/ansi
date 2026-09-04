@@ -1,7 +1,6 @@
 # Exec plan: one save, one write — and the New-ingredient sheet dissolves
 
-- **Status:** proposed — the three open questions are **ruled** (owner,
-  2026-09-03); the plan itself still wants a go-ahead
+- **Status:** **done** (2026-09-03) — all three lanes landed; `new_ingredient_sheet.dart` is deleted
 - **Owner:** Simon
 - **Decision record:** [ADR-0011](../../decisions/0011-one-save-one-write.md)
 - **Follows:** plan 0028's design pass on the flesh-out form (three groups, the
@@ -28,39 +27,74 @@ plan then deletes. The owner's call: *"save on write now, then collapse."*
 
 ## Acceptance criteria
 
-- [ ] **W1** — `DensityEntry` and `MeasuresEditor` call no repository. They
+- [x] **W1** — `DensityEntry` and `MeasuresEditor` call no repository. They
       report intent to the host; the host supplies the commit. No boolean mode
       on either widget.
-- [ ] **W2** — the quantity sheet still writes immediately (it has no Save),
+- [x] **W2** — the quantity sheet still writes immediately (it has no Save),
       through a host-supplied commit that is the only place its behaviour
       differs from the form's.
-- [ ] **W3** — one `saveForm` door on the repository takes the whole intent and
+- [x] **W3** — one `saveForm` door on the repository takes the whole intent and
       applies it in a single `writeTransaction` across `ingredient`,
       `ingredient_alias` and `ingredient_measure`. Both repos already wrap the
       same `SqliteConnection`.
-- [ ] **W4** — the form's draft distinguishes **unloaded** from **empty** for
+- [x] **W4** — the form's draft distinguishes **unloaded** from **empty** for
       every collection it writes back (D6). A save is refused, with its reason,
       while any collection is unloaded — never narrowed.
-- [ ] **W5** — nothing on the form writes on tap except `Mark complete` and
+- [x] **W5** — nothing on the form writes on tap except `Mark complete` and
       `Delete ingredient`. Aliases, measures, density, "Counts as", the `piece`
       answer, the USDA decline and the USDA pick all land through Save.
-- [ ] **W5b** — `Mark complete` performs the compound save **and** the status
+- [x] **W5b** — `Mark complete` performs the compound save **and** the status
       flip in one transaction (R2). No path leaves a row saved-but-not-marked.
-- [ ] **W6** — `Back` discards. A row opened, edited and backed out of is
+- [x] **W6** — `Back` discards. A row opened, edited and backed out of is
       byte-identical in the database.
-- [ ] **C1** — the form accepts **no row id**: children are held in memory and
+- [x] **C1** — the form accepts **no row id**: children are held in memory and
       the first Save writes row and children in one transaction.
-- [ ] **C2** — `new_ingredient_sheet.dart` is deleted. The manager's `＋`, the
+- [x] **C2** — `new_ingredient_sheet.dart` is deleted. The manager's `＋`, the
       editor picker's footer, the shopping top-up and the import review's
       create-new all open the form; the picker still passes the typed name.
-- [ ] **C3** — the barcode door and the USDA search live only on the form. A
+- [x] **C3** — the barcode door and the USDA search live only on the form. A
       new row created by scan is byte-identical to one created by name and then
       scanned (the 0025 #8 promise, now structurally true).
-- [ ] **C1b** — backing out of a **new** row with anything typed prompts (R1);
+- [x] **C1b** — backing out of a **new** row with anything typed prompts (R1);
       backing out of an **existing** row discards silently.
-- [ ] **C4** — the picker's flow still resolves: it pushes the form and awaits
+- [x] **C4** — the picker's flow still resolves: it pushes the form and awaits
       its pop, and Save/`Mark complete` pop (plan 0028), so the quantity sheet
       opens on the units the form just set.
+
+## What landed
+
+Three lanes, in order, each green before the next started.
+
+**Lane A** — the shared editors stopped calling repositories, as a *pure*
+refactor: both hosts still committed on tap, so 1686 tests passed with no test
+changes at all. That was the point — the seam could be judged on its own.
+
+**Lane B** — `saveForm` (one transaction across `ingredient`,
+`ingredient_alias` and `ingredient_measure`), then the form onto it. **W4
+needed no draft type**: holding the draft as *deltas* — adds and named
+removes — answers D6 structurally, because a save that never needs the whole
+list cannot write a narrowed one. The only place emptiness stays load-bearing
+is the `piece` question, which must not read "no measures yet" off a list that
+merely has not arrived.
+
+**Lane C** — `saveForm(null, …)` creates, the form accepts no row id, and the
+sheet is deleted. The USDA pick stopped writing on the way (it fills the
+draft), which removed the last thing on the form that needed a row id.
+
+### Found by building it, not by planning it
+
+- **A pick with no density must CLEAR the previous food's.** U-D3 says a pick
+  replaces the fill whole, and a row keeping a number from a match the
+  household just rejected is that fill not being replaced.
+- **`DensityEntry` was reading the stored row**, so its headline showed a
+  number the person had already replaced. It reads the draft now — and so does
+  "Remove it? tsp · tbsp … lock again", which must name what the DRAFT strips.
+- **A barcode scan never seeded the name.** `applyDraft` returns a name only
+  where the target's was empty, which on an existing row it never is — so this
+  did nothing until the form became the create surface, where it was the
+  difference between a scan that fills the form in and a Save that refuses for
+  want of a name.
+- **`Mark complete` was two writes**, exactly as R2 said. One transaction now.
 
 ## Lanes
 
