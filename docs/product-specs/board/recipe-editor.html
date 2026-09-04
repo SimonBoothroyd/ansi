@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Recipe editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
+    <h1 class="view-title">Recipe editor</h1>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a></p>
+    <p class="view-blurb">One header form under two hosts, and a method written as step cards with live ingredient chips — select the words, say what they are.</p>
+</header>
+
+<div class="board">
+
+    <div class="frame">
+        <p class="frame-name"><b>The header</b> · six sections in the drawn order — TITLE · SERVES · MAKES · TIMES · SHELF LIFE · FILE UNDER; the whole block is <code>RecipeHeaderForm</code>, and the import review hosts it too</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Edit recipe</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
+            <p class="flabel">Title</p>
+            <div class="frow"><div class="fin big">Weeknight Chicken Curry</div></div>
+            <p class="flabel">Serves</p>
+            <div class="qtyrow" style="margin:0 20px 12px"><div class="stepper"><span class="s">–</span><span class="qv">4</span><span class="s">+</span></div></div>
+            <p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
+            <div class="qtyrow" style="margin:0 20px 6px"><div class="stepper"><span class="s"></span><span class="qv">1.8</span><span class="s"></span></div><div class="unitsel"><span>kg</span><span style="color:var(--muted)">▾</span></div></div>
+            <div class="frow"><span class="ghostbtn" style="margin-top:0;color:var(--herb);border-style:dashed">＋ Another denomination</span></div>
+            <p class="flabel">Times</p>
+            <div class="portion" style="margin-bottom:8px"><div class="pl">Cook<small>hands-on and on the heat</small></div><div class="pstepper"><span class="s">–</span><span class="qv">35 min</span><span class="s">+</span></div></div>
+            <div class="portion" style="margin-bottom:12px"><div class="pl">Total<small>start to plate</small></div><div class="pstepper"><span class="s" style="color:var(--line)">–</span><span class="qv unset">not set</span><span class="s">+</span></div></div>
+            <p class="flabel">Shelf life</p>
+            <div class="portion" style="margin-bottom:6px"><div class="pl">Keeps in the fridge</div><div class="pstepper"><span class="s">–</span><span class="qv">4 days</span><span class="s">+</span></div></div>
+            <p class="conv-note" style="margin:0 20px 10px">Drives the batch cook plan — how far apart the same dish can be planned before it becomes two things to cook.</p>
+            <div class="crow" style="margin-bottom:8px"><span class="cl">Freezes</span><span class="fsw"></span></div>
+            <div class="portion" style="margin-bottom:12px"><div class="pl">Keeps in the freezer</div><div class="pstepper"><span class="s" style="color:var(--line)">–</span><span class="qv unset">no limit</span><span class="s">+</span></div></div>
+            <p class="flabel">File under</p>
+            <div class="lib-file3" style="margin:0 20px 8px"><span class="bc3">Our Cookbook · Weeknight</span><span class="ed">change ›</span></div>
+            <p class="conv-note" style="margin:0 20px 10px">one line, pre-set from the ＋ you tapped; <b>change ›</b> opens the book + section picker as a sheet. It is a fact you can change, not a question on the way in.</p>
+            <div class="tsec" style="margin-top:4px"><span class="tl">for the curry</span><span class="tc">9</span><span class="rule"></span></div>
+            <p class="conv-note" style="margin-top:0">groups, lines and the method follow — unchanged, not re-drawn</p>
+        </div></div>
+    </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>What it makes</b> · serves and makes are two independent facts, and a second denomination only offers the <i>other</i> families — with what import does and does not prefill from <code>yield_raw</code></p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Edit recipe</span><span class="dots"></span></div>
+                <p class="flabel">Serves</p>
+                <div class="qtyrow" style="margin:6px 20px 4px"><div class="stepper"><span class="s">–</span><span class="qv">8</span><span class="s">+</span></div></div>
+                <p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
+                <div class="qtyrow" style="margin:6px 20px 4px"><div class="stepper"><span class="s"></span><span class="qv">250</span><span class="s"></span></div><div class="unitsel"><span>g</span><span style="color:var(--muted)">▾</span></div></div>
+                <div class="qtyrow" style="margin:8px 20px 4px"><div class="stepper"><span class="s"></span><span class="qv">16</span><span class="s"></span></div><div class="unitsel"><span>tbsp</span><span style="color:var(--muted)">▾</span></div><span style="align-self:center;color:var(--muted);font-size:13px">✕</span></div>
+                <p class="conv-note" style="margin-top:4px">the second slot only offers the <b>other</b> families — two ways of saying one batch, never two numbers in one family</p>
+                <p class="flabel" style="margin-top:16px">The same row on the import Review screen</p>
+                <div class="frow"><div class="srcline" style="margin:0 0 6px">from source:  MAKES: 8 SLIDERS</div>
+                    <div style="display:flex;gap:10px"><div class="fin" style="flex:1;font-family:'IBM Plex Mono',monospace">8</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace">piece ▾</div></div></div>
+                <div class="frow" style="margin-top:10px"><div class="srcline" style="margin:0 0 6px">from source:  MAKES ENOUGH FOR A CROWD</div>
+                    <div style="display:flex;gap:10px"><div class="fin" style="flex:1;font-family:'IBM Plex Mono',monospace;color:var(--muted)">—</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">— ▾</div></div>
+                    <div class="lockhint">the page didn’t say a number — set one, or leave it unset. Nothing is invented, and a yield-less recipe still saves, links and scales; only the derived numbers wait (D2).</div></div>
+            </div></div>
+        </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Selecting the words</b> · one card per step; the platform selection toolbar gains <i>To ingredient</i> and <i>To timer</i></p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Edit recipe</span><span class="dots">Save</span></div>
+            <div class="tsec" style="margin-top:6px"><span class="tl">Method</span><span class="tc">5</span><span class="rule"></span><span class="ci" style="color:var(--muted);font-size:12px">⋯</span></div>
+            <div class="mstep">
+                <div class="mstep-h"><span class="n">Step 3</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
+                <div class="mstep-in">Cut the <span class="echip">onions</span> in half through the root end, then thinly slice. Cook in the <span class="echip">olive oil</span> over medium-low heat for <span class="echip tmr">15–20 min</span>, stirring, until deep caramel.</div>
+            </div>
+            <div class="mstep on">
+                <div class="mstep-h"><span class="n">Step 4</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
+                <div class="mstep-in">Split the <span class="echip">buns</span> in half crosswise and place them cut side up on a baking sheet. Brush the tops with the melted <span class="echip">garlic butter</span>, then scatter the <span class="sel">everything spice</span> liberally over each one.</div>
+                <div class="seltb"><span>Cut</span><span>Copy</span><span class="k">To ingredient</span><span class="k">To timer</span><span>▸</span></div>
+                <div class="mstep-tools"><span class="mtool k">＋ ingredient</span><span class="mtool">⏱ timer</span></div>
+                <div class="mstep-pv"><span class="pvl">Reads as</span>Split the <span class="ichip">buns <span class="qn">8</span></span> in half crosswise… Brush the tops with the melted <span class="ichip">garlic butter <span class="qn">2 tbsp</span></span>, then scatter the everything spice liberally over each one.</div>
+            </div>
+            <div class="addstep">＋ Add a step</div>
+            <p class="conv-note">the toolbar buttons and the preview belong to the <b>focused</b> step only — an unfocused card is just the sentence</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The line picker, pre-matched</b> · seeded with the selection, searched over this recipe’s own lines — never the whole vocabulary</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <p class="c-h">What is “everything spice”?</p>
+            <p class="rc-note" style="margin-top:2px">A chip can only point at a line this recipe already has.</p>
+            <div class="field" style="margin-top:10px"><div class="search"><span class="mag">⌕</span><span>everything spice</span><span class="care"></span></div></div>
+            <p class="list-h">One match in this recipe</p>
+            <div class="res-row">
+                <div style="flex:1;min-width:0"><div class="res-nm">Everything Spice</div>
+                    <span class="res-cat">3 tbsp · not in a group</span></div>
+                <span class="res-pick on">✓</span></div>
+            <p class="list-h">Everything else in this recipe</p>
+            <div class="res-row">
+                <div class="rthumb" style="width:26px;height:26px;border-radius:8px;font-size:13px">↪</div>
+                <div style="flex:1;min-width:0"><div class="res-nm">Pretzel Buns</div>
+                    <span class="res-cat">8 · <span style="color:var(--herb-deep)">↪ your recipe</span></span></div>
+                <span class="rplus">＋</span></div>
+            <div class="res-row">
+                <div style="flex:1;min-width:0"><div class="res-nm">Kosher salt</div>
+                    <span class="res-cat">0.5 tsp · roasted fennel</span></div>
+                <span class="rplus">＋</span></div>
+            <div class="addnew">＋ Add an ingredient to this recipe</div>
+            <div class="savebtn">Chip as “Everything Spice”</div>
+            <p class="conv-note" style="text-align:center">two taps when the match is obvious · your words stay exactly as written</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Tap a chip</b> · the chip editor: four controls, nothing else</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <p class="c-h">Chip</p>
+            <div class="mstep" style="margin-top:6px"><div class="mstep-in">Toss with the <span class="echip">olive oil</span> and <span class="echip">salt</span>.</div></div>
+            <p class="clabel">Points at</p>
+            <div class="crow"><span class="cl">Olive oil<small>1 tbsp · roasted fennel</small></span><span class="ci" style="color:var(--muted);font-size:12px">change ›</span></div>
+            <p class="clabel">Word</p>
+            <div class="crow"><span class="cl" style="font-family:'IBM Plex Mono',monospace;font-size:13px">olive oil</span><span class="l3-pen">✎</span></div>
+            <p class="clabel">Amount</p>
+            <div class="crow"><span class="cl">Show the amount here<small>first time this recipe asks for it</small></span><span class="fsw"></span></div>
+            <div class="mstep-pv" style="margin:10px 20px 0;padding-top:0;border:none"><span class="pvl">Reads as</span>Toss with the <span class="ichip">olive oil <span class="qn">1 tbsp</span></span> and <span class="ichip">salt <span class="qn">0.5 tsp</span></span>.</div>
+            <div class="dngr">Remove chip · keeps the word</div>
+            <p class="conv-note" style="text-align:center">“change ›” opens the same line picker — this chip only, not the whole line</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Tap a timer</b> · seeded from the timer, or prefilled from the words you selected</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <p class="c-h">Timer</p>
+            <div class="srcline" style="margin:2px 20px 0">from your selection:  “25 to 30 minutes”</div>
+            <p class="flabel" style="margin-top:14px">From</p>
+            <div class="qtyrow" style="margin:0 20px 4px"><div class="stepper"><span class="s">–</span><span class="qv">25</span><span class="s">+</span></div><div class="unitsel"><span>min</span><span style="color:var(--muted)">▾</span></div></div>
+            <p class="flabel" style="margin-top:14px">To <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
+            <div class="qtyrow" style="margin:0 20px 4px"><div class="stepper"><span class="s">–</span><span class="qv">30</span><span class="s">+</span></div><div class="unitsel"><span>min</span><span style="color:var(--muted)">▾</span></div><span style="align-self:center;color:var(--muted);font-size:13px">✕</span></div>
+            <p class="clabel" style="margin-top:18px">Reads as</p>
+            <div class="mstep" style="margin-top:0"><div class="mstep-in">Roast the fennel for <span class="echip tmr">25–30 min</span>, turning once.</div></div>
+            <div class="savebtn">Save timer</div>
+            <div class="dngr" style="margin-top:8px">Remove timer · keeps the words</div>
+            <p class="conv-note" style="text-align:center">nothing was guessed — this came from the run of text you selected</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>An imported method, being edited</b> · every chip and timer preserved, and the amount rule visible in one screen</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Edit recipe</span><span class="dots">Save</span></div>
+            <div class="tsec" style="margin-top:6px"><span class="tl">Method</span><span class="tc">5</span><span class="rule"></span><span class="ci" style="color:var(--muted);font-size:12px">⋯</span></div>
+            <div class="mstep on">
+                <div class="mstep-h"><span class="n">Step 2</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
+                <div class="mstep-in">MAKE THE ROASTED FENNEL: Halve the <span class="echip">fennel bulb</span> lengthwise and slice into ½-inch pieces. Toss with the <span class="echip">olive oil</span> and <span class="echip">salt</span>. Roast for <span class="echip tmr">25–30 min</span>, turning once.</div>
+                <div class="mstep-pv"><span class="pvl">Reads as · first time asked for</span>… Halve the <span class="ichip">fennel bulb <span class="qn">1</span></span> lengthwise… Toss with the <span class="ichip">olive oil <span class="qn">1 tbsp</span></span> and <span class="ichip">salt <span class="qn">0.5 tsp</span></span>. Roast for <span class="ichip tmr">⏱ 25–30 min</span>.</div>
+            </div>
+            <div class="mstep">
+                <div class="mstep-h"><span class="n">Step 5 · check</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
+                <div class="mstep-in">Divide the <span class="echip">roasted fennel</span> and the <span class="echip">pickled red onions</span> evenly among the <span class="echip">buns</span>.</div>
+                <div class="mstep-pv"><span class="pvl">Reads as · asked for again</span>Divide the <span class="ichip">roasted fennel</span> and the <span class="ichip">pickled red onions <span class="qn">0.25 cup</span></span> evenly among the <span class="ichip">buns</span>.</div>
+            </div>
+            <p class="conv-note"><b>fennel bulb <span class="qn" style="font-family:'IBM Plex Mono',monospace">1</span></b> in step 2 · plain <b>roasted fennel</b> in step 5 — same line, second ask. Tap it and flip “show the amount here” if you disagree</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The substitution</b> · the line keeps its id, so the chips keep pointing at it — only the amount follows</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Edit recipe</span><span class="dots">Save</span></div>
+            <div class="lcard" style="margin-top:10px">
+                <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Beef &amp; pork meatballs</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">was:  <span class="ichip">↪ Italian Sausage</span> · re-pointed, same line</div>
+                <div class="usedin">used in 2 steps</div>
+            </div>
+            <div class="state warn">
+                <div class="sh"><span>⚠</span><span>2 steps mentioned the sausage</span></div>
+                <div class="sb">Their chips now read <b>meatballs</b>. The words around them may need a look — we don’t rewrite your sentences.</div>
+            </div>
+            <div class="mstep attn">
+                <div class="mstep-h"><span class="n">Step 5 · check</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
+                <div class="mstep-in">Slice the cooked <span class="echip chg">meatballs</span> into rounds and divide among the <span class="echip">buns</span>.</div>
+                <div class="wasw"><span>was “sausage”</span><b>keep the old word</b></div>
+            </div>
+            <div class="mstep attn">
+                <div class="mstep-h"><span class="n">Step 6 · check</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
+                <div class="mstep-in">Brown the <span class="echip chg">meatballs</span> over medium heat, casings removed.</div>
+                <div class="wasw"><span>was “sausage”</span><b>keep the old word</b></div>
+            </div>
+            <p class="conv-note">“casings removed” is <b>yours</b> — flagged, never rewritten</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The escape hatch</b> · convert to plain text, knowingly and one-way</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Edit recipe</span><span class="dots">Save</span></div>
+            <div class="tsec" style="margin-top:6px"><span class="tl">Method</span><span class="tc">5</span><span class="rule"></span><span class="ci" style="color:var(--ink);font-size:12px">⋯</span></div>
+            <div class="mstep" style="opacity:.4"><div class="mstep-in">MAKE THE ROASTED FENNEL: Halve the <span class="echip">fennel bulb</span> lengthwise…</div></div>
+            <div class="mstep" style="opacity:.4"><div class="mstep-in">Cut the <span class="echip">onions</span> in half…</div></div>
+            <div style="background:var(--frame);border-top:1px solid var(--line);border-radius:22px 22px 0 0;margin:-26px 0 0;box-shadow:0 -8px 30px rgba(24,33,28,.10);position:relative">
+                <div class="grab"></div>
+                <p class="c-h">Convert the method to plain text?</p>
+                <p class="rc-note" style="margin-top:2px"><b style="color:var(--ink)">11 ingredient chips</b> and <b style="color:var(--ink)">3 timers</b> become ordinary words. Every sentence reads exactly the same — only the links go.</p>
+                <div class="state" style="margin-top:12px">
+                    <div class="sh" style="font-size:12.5px"><span>ⓘ</span><span>This can’t be undone here</span></div>
+                    <div class="sb">Chips are written at import, or added one at a time from a selection. Nothing on the phone can re-chip a method — matching is online-only, and only at import.</div>
+                </div>
+                <div class="ghostbtn" style="margin:14px 20px 0;justify-content:center;width:calc(100% - 40px);padding:13px">Convert to plain text</div>
+                <p class="conv-note" style="text-align:center;margin-bottom:14px">Cancel</p>
+            </div>
+        </div></div>
+    </div>
+
+</div>
+
+<p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>
