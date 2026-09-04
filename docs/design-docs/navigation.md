@@ -97,7 +97,8 @@ something the user watches happen rather than something that happens to them.
 ### Pushed pages stay top-level
 
 `/recipes/new`, `/recipes/:id`, `/recipes/:id/edit`, `/import`, `/ingredients`,
-`/ingredients/:id` are **siblings of the shell**, not children of a branch. They
+`/ingredients/new`, `/ingredients/:id` and `/account` are **siblings of the
+shell**, not children of a branch. They
 are pushed on the root Navigator, so they cover the bar and keep each platform's
 own push transition and back gesture. `/recipes/:id` is reachable from four
 places in three different tabs; nesting it would mean either duplicating it per
@@ -238,3 +239,22 @@ one.
   `support/editor.dart`) — drives the real bar on a simulator;
   `backToShell`'s predicate is "the nav bar is in
   the tree", which holds precisely because pushed pages cover the shell.
+
+---
+
+## 8. What was refused, and why it stays refused
+
+These are the alternatives that keep being proposed. Each was weighed once.
+
+- **No per-screen bars, and no `NoTransitionPage`.** Hosting a bar per screen,
+  or suppressing the push animation to hide the seam, treats the symptom: *it
+  hides the slide without fixing anything behind it*, and the stack is still
+  wrong underneath.
+- **No fifth tab.** The four tabs are the loop — library, week, cook, shop. A
+  vocabulary is reference data reached from the shelf it belongs to, not a
+  destination of its own.
+- **No swipe between tabs.** It would eat the iOS edge-swipe-back, which is
+  the gesture every pushed page in the app depends on.
+- **The line under all three:** *a slide is only honest when something can be
+  dragged back the way it came.* A screen that animates in like a push must be
+  poppable like one; anything else teaches a gesture that then fails.

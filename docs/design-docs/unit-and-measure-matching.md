@@ -79,7 +79,7 @@ two equivalent ways — a raw g/ml, or "1 tbsp of this weighs N g"
 (`densityFromVolumeWeight`, which is `N / tbsp.ratioToBase`). A volume-named
 weight mapping **is** a density, so volume-named measures never exist as
 measures — the add-measure form redirects "cup" into the density field
-(`volumeUnitFromLabel` / `_DensityEntry`).
+(`volumeUnitFromLabel` / `DensityEntry`).
 
 ---
 
@@ -90,7 +90,8 @@ measures — the add-measure form redirects "cup" into the density field
      │
      ▼
 ┌─────────────┐   RawBlob (text / JSON-LD / transcription)
-│  intake     │   supabase/functions/import-recipe/index.ts · jsonld.ts
+│  intake     │   supabase/functions/import-recipe/index.ts ·
+│             │   supabase/functions/_shared/jsonld.ts
 └─────────────┘
      │
      ▼
@@ -298,7 +299,7 @@ honest unit to round to).
 | **Measure of a line** | same sheet | picks a `MeasureOption`; writes `measure_id`, `unit='piece'` |
 | **Amount / quantity** | same sheet | the quantity field (nullable — "to taste" is allowed) |
 | **Add / delete a measure** | manage state of the sheet (`_MeasureManager`), **and the ingredients manager's flesh-out form**, which embeds that same editor (8.5/F2) | `addMeasure` (saved `manual`), `softDeleteMeasure` |
-| **Density** | manage state (`_DensityEntry`) — again shared verbatim by the flesh-out form | g/ml or "a spoon weighs N g"; unlocks the other family live |
+| **Density** | manage state (`DensityEntry`, `density_entry.dart`) — again shared verbatim by the flesh-out form | g/ml or "a spoon weighs N g"; unlocks the other family live |
 | **Which units are _admitted_** (`allowed_units`) | the **ingredients manager**'s flesh-out form, `/ingredients/:id` (step 8.5) — the form ADR-0008 §Consequences promised, deferred to step 8, and finally built one step later | explicit jsonb list on `ingredient`, materialized at creation, now **directly editable as chips** on that form; a density save still extends it on its own (`densityUnlockedUnits`), and deleting the density strips that half back (D4b) |
 
 The picker itself is honest by construction: `allowedUnitChoicesFor` offers
@@ -350,7 +351,7 @@ grams.
 | §6.2 seeding the sheet | **shipped** | the card opens the 7.7 sheet seeded from the `RawLineItem`; `raw_amount` shows as the "from source" caption on every line, resolved or not |
 | §6.3 measure-from-label | **NOT shipped — still the open piece** | no "can = 400 g?" proposal anywhere |
 | §6.4 honesty properties | **shipped** | no grams are written that the source didn't supply; unresolvable units degrade to an honest count |
-| §6.5 plug-in points | **shipped** | reconciliation is the fourth caller of `showQuantityUnitSheet`; a picked measure rides the line as its label and resolves to the FK at commit |
+| §6.5 plug-in points | **shipped** | reconciliation is the fifth caller of `showQuantityUnitSheet` (with the editor's two, the method editor's and the shopping sheet's); a picked measure rides the line as its label and resolves to the FK at commit |
 
 Step 8 also went one step further than this section proposed: rather than only
 *offering* the sheet, the review screen **enforces admission** — a line whose unit

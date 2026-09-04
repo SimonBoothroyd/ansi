@@ -37,8 +37,9 @@ So the failure mode is narrower than "any unselected LEFT JOIN": it is
 exactly the lookup joins you add for a name or a label — so the select-a-column
 rule is worth applying uniformly instead of reasoning about uniqueness per query.
 Applying it costs one column; getting the reasoning wrong costs a silent stale
-screen. All 8 repo watches were `EXPLAIN`-verified complete during the step-8
-review.
+screen. Every repository watch is covered — the set is derived and asserted by
+`app/test/core/sync/watch_coverage_test.dart`, so the count is a test's
+business and not a sentence's.
 
 ## The escape hatch: `triggerOnTables:`
 

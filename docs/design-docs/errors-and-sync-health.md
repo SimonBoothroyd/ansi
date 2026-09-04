@@ -132,10 +132,12 @@ They cannot disagree, because there is nothing to disagree about.
 - **The shell's banner** — hosted once by `ansi_tab_shell.dart`, above the
   routed child, never per screen. That is what makes "changes aren't reaching
   the other phone" a fact about the app rather than about whichever tab is open.
-- **The Library `⋯` menu's footer line** — findable when wondered about,
-  invisible when not, which is the right weight for a fact that is boring 99.9%
-  of the time. It moves to `/account` whole the day a second thing wants to live
-  there.
+- **The `/account` screen's line**, under a *This device* eyebrow below the
+  household roster — findable when wondered about, invisible when not, which
+  is the right weight for a fact that is boring 99.9% of the time. It is the
+  quiet half of sync health only: a stall or a refused write still raises the
+  shell's banner over whatever you are doing, because a state that is wrong
+  must not wait to be visited.
 - **The Shop list's own line**, under the header and outside the scroll. Shop is
   the one screen two phones drive simultaneously, in a supermarket, walking
   apart — a tick that has not reached the other phone is the feature failing in
@@ -172,7 +174,7 @@ Copy details, where it is useful to whoever is being texted about the problem.
 
 This class has already shipped as a real bug once. Four sites were load-bearing
 and are now real error states — the "used in" back-links (whose count the delete
-refusal speaks), the stub badge on the Library's Ingredients item, and the
+refusal speaks), the stub count on the Library's Ingredients shelf, and the
 per-ingredient measures in two places, where an errored stream silently narrowed
 which units a line may be written in. The rest are decorative and keep their
 fallback, each with a one-line comment saying why, so the next reader knows the
@@ -248,7 +250,7 @@ app/lib/
     describe_failure.dart           one honest sentence per failure family
     sync_words.dart                 the copy, written once
     sync_banner.dart                the persistent state, hosted by the shell
-    sync_health_row.dart            the Library ⋯ footer line
+    sync_health_row.dart            the /account screen's line
     sync_status_line.dart           the Shop list's line
 app/test/
   structure/no_bare_repo_write_test.dart   the invariant, mechanically
