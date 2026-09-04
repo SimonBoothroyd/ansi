@@ -416,6 +416,12 @@ class _ReconcileSheet extends HookConsumerWidget {
         results: search.results,
         query: search.query,
         showingRecents: search.showingRecents,
+        // A guess is banded here as it is everywhere else. This is the picker
+        // where an unlabelled one costs the most: the row it lands on is
+        // written into a saved recipe AND learned as an alias of the line's
+        // raw text, so an unbanded guess is the phone resolving rather than
+        // offering (ADR-0004).
+        guessed: search.guessed,
         onPick: (ing) => Navigator.of(context).pop(PickExisting(ing)),
       ),
       // The picker footer's own row, in its `.addnew` voice — it no longer

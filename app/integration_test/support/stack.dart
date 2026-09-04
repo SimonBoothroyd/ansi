@@ -26,6 +26,7 @@ import 'package:ansi/core/config/env.dart';
 import 'package:ansi/core/sync/database.dart';
 import 'package:ansi/core/sync/schema.dart';
 import 'package:ansi/core/sync/session.dart' show currentHouseholdIdProvider;
+import 'package:ansi/features/import/data/canned_payload.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
 import 'package:ansi/features/import/data/import_repository_impl.dart';
 import 'package:ansi/features/ingredients/barcode/barcode_add.dart'
@@ -162,13 +163,20 @@ class SmokeStack {
   /// the canned payload and re-resolves its candidates against the household's
   /// really-synced vocab. Nothing on the import path touches the network or a
   /// provider key; every other collaborator stays real.
-  Future<void> openLibraryWithLocalImport(WidgetTester tester) => openLibrary(
+  ///
+  /// [payloadJson] picks which canned recipe that stand-in serves; the default
+  /// is the compact one every band-shaped assertion is written against.
+  Future<void> openLibraryWithLocalImport(
+    WidgetTester tester, {
+    String payloadJson = cannedReconciliationPayloadJson,
+  }) => openLibrary(
     tester,
     overrides: [
       importRepositoryProvider.overrideWith(
         (Ref ref) => SqliteImportRepository(
           ref.watch(databaseProvider),
           householdId: ref.watch(currentHouseholdIdProvider),
+          payloadJson: payloadJson,
         ),
       ),
     ],

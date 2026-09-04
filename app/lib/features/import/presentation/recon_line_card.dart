@@ -35,6 +35,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/units.dart';
 import '../../../shared/format.dart';
 import '../../recipes/domain/line_display.dart';
 import '../../recipes/presentation/recipe_chip.dart';
@@ -711,6 +712,22 @@ class _Card extends StatelessWidget {
   }
 }
 
+/// Whether the extractor's unit word is one this app cannot read.
+///
+/// `unit_mappable: false` is the extractor saying "this amount did not land on
+/// a **measurable** unit" — which covers two different things. One is a phrase
+/// nothing can resolve ("thumb-sized piece"): that genuinely needs the user.
+/// The other is an imprecise word the catalog *does* carry — `pinch`, `dash`,
+/// `handful`, `to taste` — which the extraction prompt is told to emit as a
+/// catalog id, and which the import surface then admits on the line by name.
+/// Saying that one "needs a look" flags two lines of every seasoned recipe for
+/// a word the app understood perfectly and has already accepted.
+bool unitNeedsALook(RawLineItem raw) {
+  final unit = raw.unit;
+  if (raw.unitMappable || unit == null || unit.isEmpty) return false;
+  return unitById(unit) == null;
+}
+
 /// The honest-import flags for a line — shown, never hidden (0014).
 class _Flags extends StatelessWidget {
   const _Flags({required this.raw});
@@ -725,8 +742,7 @@ class _Flags extends StatelessWidget {
       if (raw.optional) 'optional',
       if (raw.confidence < kLowConfidenceFloor)
         'low confidence ${(raw.confidence * 100).round()}%',
-      if (!raw.unitMappable && (raw.unit?.isNotEmpty ?? false))
-        'unit "${raw.unit}" needs a look',
+      if (unitNeedsALook(raw)) 'unit "${raw.unit}" needs a look',
     ];
     if (flags.isEmpty) return const SizedBox.shrink();
     return Padding(

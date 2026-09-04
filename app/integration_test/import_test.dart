@@ -26,102 +26,13 @@ import 'package:ansi/features/import/presentation/import_view.dart'
     show ImportView;
 import 'package:ansi/features/import/presentation/recon_amount.dart'
     show AmountEditor;
-import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart'
-    show kFormSaveKey;
-import 'package:ansi/features/ingredients/presentation/ingredient_picker.dart'
-    show IngredientResultList;
-import 'package:ansi/shared/picker_shell.dart' show PickerShell;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:forui/forui.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'support/drive.dart';
+import 'support/review.dart';
 import 'support/stack.dart';
-
-/// The review card for flattened line [i] (`ValueKey('review-line-$i')`).
-Finder reviewCard(int i) => find.byKey(ValueKey('review-line-$i'));
-
-/// Expands card [i] if it is still compact. The collapsed card has exactly
-/// one pencil; once expanded the AMOUNT chip carries one too, so guard on
-/// the 'AMOUNT' label instead.
-Future<void> expandLine(WidgetTester tester, int i) async {
-  await scrollTo(tester, reviewCard(i));
-  final expanded = find.descendant(
-    of: reviewCard(i),
-    matching: find.text('AMOUNT'),
-  );
-  if (expanded.evaluate().isNotEmpty) return;
-  final pencil = find.descendant(
-    of: reviewCard(i),
-    matching: find.byIcon(FLucideIcons.pencil),
-  );
-  await tester.ensureVisible(pencil.first);
-  await tester.pumpAndSettle();
-  await tester.tap(pencil.first);
-  await tester.pumpAndSettle();
-}
-
-/// Whether card [i] currently shows [text].
-bool lineShows(int i, String text) => find
-    .descendant(of: reviewCard(i), matching: find.text(text))
-    .evaluate()
-    .isNotEmpty;
-
-/// Resolves an unmatched (`none`) line to a NEW ingredient the way the review
-/// does: open the seeded search sheet, take its create-new footer, walk the
-/// ingredient form it pushes over the review, and back out — the line then
-/// resolves to that row as an ordinary match. A second line printing the SAME
-/// thing finds the row the first one made in the search instead, so nothing is
-/// created
-/// twice (the commit-time coalescing that used to do this is gone).
-Future<void> createIngredientForLine(
-  WidgetTester tester,
-  int i, {
-  required String name,
-}) async {
-  await expandLine(tester, i);
-  final open = find.descendant(
-    of: reviewCard(i),
-    matching: find.text('Find or create ingredient'),
-  );
-  await tester.ensureVisible(open);
-  await tester.pumpAndSettle();
-  await tester.tap(open);
-  await pumpUntilFound(tester, find.byType(PickerShell));
-  // Search first: a previous line may already have made this row.
-  await tester.enterText(
-    find.descendant(
-      of: find.byType(PickerShell),
-      matching: find.byType(EditableText),
-    ),
-    name,
-  );
-  await tester.pumpAndSettle();
-  final existing = find.descendant(
-    of: find.byType(IngredientResultList),
-    matching: find.text(name),
-  );
-  if (existing.evaluate().isNotEmpty) {
-    await tester.tap(existing.first);
-    await tester.pumpAndSettle();
-    return;
-  }
-  // The footer is seeded with the typed name (else the raw line text).
-  final create = find.textContaining('as a new ingredient');
-  expect(create, findsOneWidget, reason: 'the create-new footer for line $i');
-  await tester.tap(create);
-  // ONE push: the form IS the create surface, and it lands OVER the review's
-  // sheet. Its Save is the pop the sheet is awaiting — it writes the row and
-  // the sheet resolves the line with it. Backing out would write nothing.
-  await pumpUntilFound(tester, find.text('CANONICAL NAME'));
-  await tester.tap(find.byKey(kFormSaveKey));
-  await pumpUntilFound(
-    tester,
-    find.descendant(of: reviewCard(i), matching: find.text(name)),
-  );
-  await tester.pumpAndSettle();
-}
 
 /// Picks a printed range's number by confirming the amount sheet, which opens
 /// on the printed low endpoint (a real value, never an invented one).
