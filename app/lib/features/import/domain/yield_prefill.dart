@@ -16,6 +16,7 @@
 /// field is honest and one tap from right. When in doubt this refuses.
 library;
 
+import '../../../core/units/unit_words.dart';
 import '../../../core/units/units.dart';
 
 /// A prefilled yield: what one batch makes, as one denomination. The review
@@ -28,61 +29,6 @@ typedef YieldPrefill = ({double qty, Unit unit});
 ///
 /// `serves` is NOT here: that is the servings fact, which has its own field.
 const kYieldPrefixes = <String>['makes', 'yields', 'yield'];
-
-/// The unit words a yield may state, mapped to the catalog. Anything outside
-/// this table is not approximated into a unit — it is either a count noun (see
-/// [parseYieldRaw]) or a refusal.
-///
-/// The vocabulary is deliberately the kitchen's, in the spellings a recipe page
-/// actually prints. It mirrors the pack-size table in `off_mapper.dart`, which
-/// took the same "outside the table means unparsed" line.
-const kYieldUnitWords = <String, Unit>{
-  'g': g,
-  'gram': g,
-  'grams': g,
-  'gramme': g,
-  'grammes': g,
-  'kg': kg,
-  'kilo': kg,
-  'kilos': kg,
-  'kilogram': kg,
-  'kilograms': kg,
-  'mg': mg,
-  'oz': oz,
-  'ounce': oz,
-  'ounces': oz,
-  'lb': lb,
-  'lbs': lb,
-  'pound': lb,
-  'pounds': lb,
-  'ml': ml,
-  'millilitre': ml,
-  'millilitres': ml,
-  'milliliter': ml,
-  'milliliters': ml,
-  'l': l,
-  'litre': l,
-  'litres': l,
-  'liter': l,
-  'liters': l,
-  'tsp': tsp,
-  'teaspoon': tsp,
-  'teaspoons': tsp,
-  'tbsp': tbsp,
-  'tbs': tbsp,
-  'tablespoon': tbsp,
-  'tablespoons': tbsp,
-  'cup': cup,
-  'cups': cup,
-  'pt': pint,
-  'pint': pint,
-  'pints': pint,
-  'qt': quart,
-  'quart': quart,
-  'quarts': quart,
-  'piece': pieces,
-  'pieces': pieces,
-};
 
 /// Words that name a unit a yield cannot be stated IN, so they must refuse
 /// rather than fall through to the count fallback below.
@@ -140,7 +86,7 @@ const _fractionGlyphs = <String, double>{
 ///
 /// 1. strip a leading `MAKES`/`YIELDS`-style prefix and its colon;
 /// 2. what is left must be a number, optionally followed by ONE word;
-/// 3. that word is a catalog unit if [kYieldUnitWords] knows it ("1 CUP" →
+/// 3. that word is a catalog unit if [unitFromWord] knows it ("1 CUP" →
 ///    `1 cup`), and otherwise a plain count noun — the page's own name for the
 ///    thing it makes ("8 SLIDERS" → `8 piece`), which is what makes the board's
 ///    sausage answer fall out;
@@ -172,7 +118,7 @@ YieldPrefill? parseYieldRaw(String? raw) {
   if (kYieldPortionWords.contains(word)) return null;
   if (kYieldRefusedWords.contains(word)) return null;
 
-  final unit = kYieldUnitWords[word];
+  final unit = unitFromWord(word);
   if (unit == null) {
     // An unknown word after a number is the page naming what it makes —
     // "8 SLIDERS", "12 muffins". That is a COUNT of the yield, which is

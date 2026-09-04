@@ -1,0 +1,43 @@
+import 'package:ansi/core/units/unit_words.dart';
+import 'package:ansi/core/units/units.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  group('unitFromWord', () {
+    test('reads the spellings a recipe page prints', () {
+      expect(unitFromWord('CUP'), cup);
+      expect(unitFromWord('tablespoons'), tbsp);
+      expect(unitFromWord('grammes'), g);
+      expect(unitFromWord(' pints '), pint);
+    });
+
+    test('reads the spellings a product label prints', () {
+      expect(unitFromWord('gr'), g);
+      expect(unitFromWord('fl oz'), flOz);
+      expect(unitFromWord('floz'), flOz);
+      expect(unitFromWord('qt'), quart);
+    });
+
+    test('one table, so each reader now knows the other half', () {
+      // `gr` came from the pack table and `kilo` from the yield table; a word
+      // either reader understood is a word both understand.
+      expect(unitFromWord('kilo'), kg);
+      expect(unitFromWord('milliliters'), ml);
+    });
+
+    test('a word outside the table is never approximated', () {
+      expect(unitFromWord('cl'), isNull);
+      expect(unitFromWord('pack'), isNull);
+      expect(unitFromWord('sliders'), isNull);
+      expect(unitFromWord(''), isNull);
+    });
+
+    test('families narrow the answer to what the caller can accept', () {
+      const packs = {UnitFamily.mass, UnitFamily.volume};
+      expect(unitFromWord('pieces'), pieces);
+      expect(unitFromWord('pieces', families: packs), isNull);
+      expect(unitFromWord('400', families: packs), isNull);
+      expect(unitFromWord('ml', families: packs), ml);
+    });
+  });
+}

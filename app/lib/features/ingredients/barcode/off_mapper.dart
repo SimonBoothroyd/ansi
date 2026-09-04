@@ -8,6 +8,7 @@
 library;
 
 import '../../../core/units/macros.dart';
+import '../../../core/units/unit_words.dart';
 import '../../../core/units/units.dart';
 import 'ingredient_draft.dart';
 
@@ -157,51 +158,14 @@ DraftPackSize? parsePackQuantity(String? quantity) {
   if (m == null) return null;
   final amount = double.tryParse(m.group(1)!.replaceAll(',', '.'));
   if (amount == null || !(amount > 0)) return null;
-  final unit = _packUnits[m.group(2)!.toLowerCase().trim()];
+  // A pack is a weight or a volume: "6 pieces" is a count, not a pack size.
+  final unit = unitFromWord(
+    m.group(2)!,
+    families: const {UnitFamily.mass, UnitFamily.volume},
+  );
   if (unit == null) return null;
   return DraftPackSize(amount, unit);
 }
-
-/// The pack-size unit words OFF's `quantity` actually uses, mapped to the
-/// catalog. Anything outside this table (`cl`, `dl`, "x", "pack") is left
-/// unparsed rather than approximated.
-const _packUnits = <String, Unit>{
-  'g': g,
-  'gr': g,
-  'gram': g,
-  'grams': g,
-  'gramme': g,
-  'grammes': g,
-  'kg': kg,
-  'kilogram': kg,
-  'kilograms': kg,
-  'mg': mg,
-  'ml': ml,
-  'millilitre': ml,
-  'millilitres': ml,
-  'milliliter': ml,
-  'milliliters': ml,
-  'l': l,
-  'litre': l,
-  'litres': l,
-  'liter': l,
-  'liters': l,
-  'oz': oz,
-  'ounce': oz,
-  'ounces': oz,
-  'lb': lb,
-  'lbs': lb,
-  'pound': lb,
-  'pounds': lb,
-  'fl oz': flOz,
-  'floz': flOz,
-  'pt': pint,
-  'pint': pint,
-  'pints': pint,
-  'qt': quart,
-  'quart': quart,
-  'quarts': quart,
-};
 
 /// OFF's `brands` is a comma-separated list because contributors append the
 /// parent company ("Nutella, Ferrero, Yum yum"). Only the first is the brand
