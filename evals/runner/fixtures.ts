@@ -16,50 +16,16 @@ import type {
   TimeField,
   UnitHints,
 } from "../../supabase/functions/_shared/types.ts";
+import { deriveUnitHints } from "../../supabase/functions/_shared/unit_hints.ts";
 
-// The unit hints, mirrored from app/lib/core/units/units.dart (the single
-// source of the unit system). This is the eval's own copy of the hint set —
-// lane A owns the server-side `unit_hints.ts`; the adapter takes hints as a
-// parameter, so the two never need to import each other.
-export const UNIT_HINTS: UnitHints = {
-  units: [
-    "g",
-    "kg",
-    "mg",
-    "oz",
-    "lb",
-    "ml",
-    "l",
-    "tsp",
-    "tbsp",
-    "fl_oz",
-    "cup",
-    "pt",
-    "qt",
-    "piece",
-  ],
-  imprecise: [
-    "pinch",
-    "dash",
-    "to_taste",
-    "handful",
-    "splash",
-    "drizzle",
-    "glug",
-  ],
-  size_words: ["large", "medium", "small"],
-  measures: [
-    "clove",
-    "head",
-    "sprig",
-    "loaf",
-    "block",
-    "slice",
-    "can",
-    "bunch",
-    "stalk",
-  ],
-};
+// The unit hints handed to `sanitize` — the SAME set production sends. This
+// file used to hold its own copy "so the two never need to import each other",
+// and the copy drifted: it offered the model splash/drizzle/glug as imprecise
+// units and withheld the size words big/tiny, so every benchmark number was
+// measured on a prompt that does not ship. `deriveUnitHints()` is pure and
+// dependency-free; importing it costs one line and removes the whole class of
+// error.
+export const UNIT_HINTS: UnitHints = deriveUnitHints();
 
 export interface GoldRecipe extends ExtractionResult {
   source_images: string[];

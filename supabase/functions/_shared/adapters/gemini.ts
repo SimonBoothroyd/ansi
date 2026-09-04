@@ -2,7 +2,7 @@
 //
 // Model id: `gemini-3.7-flash` (the `GEMINI_FLASH_MODEL` constant below).
 // CONFIRMED 2026-08-31 against Google's own model-list endpoint
-// (`GET /v1beta/models`, which reports version `3.7-flash-08-2026` (verify on first live call)) and
+// (`GET /v1beta/models`, which reports version `3.7-flash-08-2026`) and
 // https://ai.google.dev/gemini-api/docs/models. This replaces the previous
 // `gemini-flash-latest` pin, which was an ALIAS — the 0018 convention is exact
 // ids, because an alias silently re-points and makes two dated benchmark runs

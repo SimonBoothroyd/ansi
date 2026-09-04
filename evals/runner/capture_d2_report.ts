@@ -46,6 +46,7 @@ import {
   EMPTY_RESULT,
   ledgerTotal,
   notesAgree,
+  pairLedgerEvents,
   qtyMatch,
   scoreExtraction,
   unitMatch,
@@ -155,20 +156,6 @@ function servingsText(
   return parts.join(" ");
 }
 
-// Per-line dangerous-ledger events on an aligned pair — mirrors the exact
-// conditions in score_extraction.ts's scoreExtraction (reusing amountShape).
-function pairDanger(g: RawLineItem, t: RawLineItem): string[] {
-  const out: string[] = [];
-  if (amountShape(g) === "none" && amountShape(t) !== "none") {
-    out.push("invented_qty");
-  }
-  if (amountShape(g) === "range" && amountShape(t) === "single") {
-    out.push("collapsed_range");
-  }
-  if (!g.unit_mappable && t.unit_mappable) out.push("forced_unit");
-  return out;
-}
-
 async function runProvider(
   adapter: ExtractAdapter,
   gold: GoldRecipe,
@@ -252,7 +239,7 @@ async function capture(): Promise<RecipeReport[]> {
   const cases: GoldCase[] = await loadGold();
   const adapters: Record<ProviderKey, ExtractAdapter> = {
     claude: new ClaudeHaikuAdapter(), // claude-haiku-4-5, ANTHROPIC_API_KEY
-    gpt: new GptMiniAdapter(), // gpt-5.4-mini, OPENAI_API_KEY
+    gpt: new GptMiniAdapter(), // GPT_MINI_MODEL, OPENAI_API_KEY
   };
   const reports: RecipeReport[] = [];
 
@@ -324,7 +311,7 @@ async function capture(): Promise<RecipeReport[]> {
             qtyOk: qOk,
             unitOk: uOk,
             notesOk: notesAgree(g, t),
-            danger: pairDanger(g, t),
+            danger: pairLedgerEvents(g, t),
             correct: qOk && uOk,
           };
         }

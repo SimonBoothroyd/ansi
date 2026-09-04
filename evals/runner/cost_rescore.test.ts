@@ -92,6 +92,36 @@ Deno.test("costOf — an unpriced model is null, never $0", () => {
   assertEquals(costOf("no-such-model-9", emptyUsage()), null);
 });
 
+Deno.test("costOf — a retired promotional rate refuses rather than under-reports", () => {
+  // gemini-3.7-flash is priced at its promotional rates, which the vendor
+  // publishes as ending 2026-12-31. Before that date it costs; after it, the
+  // row would be about half what a run really paid, in the direction that
+  // flatters the model — so it must read "n/a" until somebody re-reads the
+  // pricing page.
+  const usage = { ...emptyUsage(), input_tokens: 1_000_000 };
+  assertEquals(
+    costOf("gemini-3.7-flash", usage, "2026-12-31")?.usd_input,
+    0.75,
+  );
+  assertEquals(costOf("gemini-3.7-flash", usage, "2027-01-01"), null);
+  // Every other row is open-ended and prices at any date.
+  assertEquals(costOf("gpt-5.6-luna", usage, "2030-01-01")?.usd_input, 0.2);
+});
+
+Deno.test("pricing — a dated promo row names the date it stops holding", () => {
+  for (const [key, row] of Object.entries(PRICING)) {
+    if (row.retired_after === undefined) continue;
+    assert(
+      /^\d{4}-\d{2}-\d{2}$/.test(row.retired_after),
+      `${key}'s retired_after is not a date`,
+    );
+    assert(
+      (row.note ?? "").includes(row.retired_after),
+      `${key} expires on ${row.retired_after} and its note does not say so`,
+    );
+  }
+});
+
 Deno.test("costOf — an unreported token count marks the total a lower bound", () => {
   const c = costOf("gpt-5.6-luna", {
     ...emptyUsage(),

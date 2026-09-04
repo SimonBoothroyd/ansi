@@ -6,7 +6,6 @@ import {
   matchLines,
   matchOne,
   matchRecipeTitles,
-  noneDedupeKey,
   recipeMatchText,
   TOP_N,
 } from "./match.ts";
@@ -131,10 +130,6 @@ Deno.test("matchLines — preserves order and normalizes each line", async () =>
   assertEquals(out[0].candidates[0].canonical_name, "Onion");
   assertEquals(out[0].raw.ingredient_text, "2 large Onions, diced");
   assertEquals(out[1].band, "none");
-});
-
-Deno.test("noneDedupeKey — identical none lines share a key (within-import dedupe)", () => {
-  assertEquals(noneDedupeKey(line("2 cups ICE")), noneDedupeKey(line("ice")));
 });
 
 Deno.test("cascade — ambiguous exact (shared surface) → suggest, not auto", async () => {

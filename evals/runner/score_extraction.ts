@@ -106,6 +106,33 @@ export function amountShape(li: RawLineItem): "single" | "range" | "none" {
   return "none";
 }
 
+/**
+ * The dangerous-ledger events an ALIGNED gold/got pair can carry: the three
+ * ways a model can put a number where the source had none, narrow one the
+ * source left open, or claim a unit the source did not license. Keys of
+ * {@link Ledger}, so a caller can count them or name them.
+ *
+ * Exported because the never-invent ledger is the harness's disqualifying
+ * dimension and it may exist exactly once: `scoreExtraction` counts these into
+ * the totals, and the side-by-side report flags the same pairs by name. A
+ * second copy would let the report and the score disagree about what is
+ * dangerous.
+ */
+export function pairLedgerEvents(
+  gold: RawLineItem,
+  got: RawLineItem,
+): (keyof Ledger)[] {
+  const out: (keyof Ledger)[] = [];
+  if (amountShape(gold) === "none" && amountShape(got) !== "none") {
+    out.push("invented_qty");
+  }
+  if (amountShape(gold) === "range" && amountShape(got) === "single") {
+    out.push("collapsed_range");
+  }
+  if (!gold.unit_mappable && got.unit_mappable) out.push("forced_unit");
+  return out;
+}
+
 export function qtyMatch(gold: RawLineItem, got: RawLineItem): boolean {
   const sg = amountShape(gold), st = amountShape(got);
   if (sg !== st) return false;
@@ -509,13 +536,7 @@ export function scoreExtraction(
     if (notesAgree(g, t)) notesOk++;
 
     // ledger: force-fit / invention detectable on an aligned pair
-    if (amountShape(g) === "none" && amountShape(t) !== "none") {
-      ledger.invented_qty++;
-    }
-    if (amountShape(g) === "range" && amountShape(t) === "single") {
-      ledger.collapsed_range++;
-    }
-    if (!g.unit_mappable && t.unit_mappable) ledger.forced_unit++;
+    for (const event of pairLedgerEvents(g, t)) ledger[event]++;
 
     calibration.push({
       confidence: t.confidence,

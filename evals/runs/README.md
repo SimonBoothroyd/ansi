@@ -30,3 +30,19 @@ changed the text a case was rendered from, the rescore says so (`INPUT DRIFT`)
 rather than quietly grading the model on input it never saw.
 
 Full workflow, cost columns and how to add a model: `../runner/EXTRACTION.md`.
+
+## A discontinuity: runs dated before 2026-09-04
+
+Every run directory dated before **2026-09-04** was prompted with an eval-local
+copy of the unit hints that had drifted from the set production sends: it
+offered the model `splash`, `drizzle` and `glug` as imprecise units, and it
+withheld the size words `big` and `tiny`. Those hints are interpolated straight
+into the extraction system prompt, so the provider comparison that chose the
+pinned model — including the line-F1 numbers — was measured on a prompt that
+never shipped.
+
+`fixtures.ts` now imports `deriveUnitHints()`, so a later run is measuring the
+real prompt. **The two sets of numbers are not comparable.** The owner chose
+not to re-run: the choice still stands on what was measured, and the runs cost
+real money. Read an earlier run as evidence about that older prompt, and
+compare like with like.

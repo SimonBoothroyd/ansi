@@ -30,15 +30,23 @@ export interface PriceRow {
   source: string;
   /** yyyy-mm-dd the source was read. */
   retrieved: string;
+  /**
+   * yyyy-mm-dd after which these rates are known NOT to hold — a promotional
+   * price with a published end date. Past it {@link costOf} returns null, so
+   * the report reads "n/a" instead of a number that is wrong in the one
+   * direction that flatters the model. Absent means open-ended.
+   */
+  retired_after?: string;
   note?: string;
 }
 
 /**
  * Every model the benchmark can currently run, keyed by the exact model id.
  *
- * All four rows were read on 2026-08-31 from the vendors' own pricing pages.
- * The two Gemini Flash tiers and Claude Haiku are listed even though only one
- * of each is pinned, so an owner-confirmed swap needs no second pricing pass.
+ * Every row was read on 2026-08-31 from the vendors' own pricing pages. The
+ * pinned models come first; below them are rows for models nothing sends
+ * today, kept so an owner-confirmed swap needs no second pricing pass and an
+ * archived run can still be re-priced at the rates it actually paid.
  */
 export const PRICING: Record<string, PriceRow> = {
   "claude-haiku-4-5": {
@@ -92,6 +100,26 @@ export const PRICING: Record<string, PriceRow> = {
     note: "short-context standard tier (the recipe corpus is far below any " +
       "long-context threshold).",
   },
+  "gemini-3.7-flash": {
+    model: "gemini-3.7-flash",
+    label: "Gemini 3.7 Flash",
+    usd_per_mtok_input: 0.75,
+    usd_per_mtok_output: 3.75,
+    usd_per_mtok_cache_read: 0.075,
+    usd_per_mtok_cache_write: null, // explicit caching is a separate endpoint
+    source: "https://ai.google.dev/gemini-api/docs/pricing",
+    retrieved: "2026-08-31",
+    retired_after: "2026-12-31",
+    note: "THE PINNED Gemini (GEMINI_FLASH_MODEL). These are the PROMOTIONAL " +
+      "rates, published as holding through 2026-12-31 and then rising to " +
+      "$1.50 / $7.50 — the standing 3.5 Flash prices. `retired_after` is why " +
+      "a run costed after that date reads n/a instead of half price: re-read " +
+      "the pricing page and add the successor row. Output price includes " +
+      "thinking tokens, which is why the usage parser folds thoughtsTokenCount " +
+      "into output_tokens; context-cache storage ($1/Mtok/hour) is NOT " +
+      "modelled — this adapter creates no cache.",
+  },
+  // --- priced but not pinned: candidates for the owner's confirmation --------
   "gemini-3.5-flash": {
     model: "gemini-3.5-flash",
     label: "Gemini 3.5 Flash",
@@ -101,24 +129,9 @@ export const PRICING: Record<string, PriceRow> = {
     usd_per_mtok_cache_write: null, // explicit caching is a separate endpoint
     source: "https://ai.google.dev/gemini-api/docs/pricing",
     retrieved: "2026-08-31",
-    note: "output price includes thinking tokens, which is why the usage " +
-      "parser folds thoughtsTokenCount into output_tokens. Context-cache " +
-      "storage ($1/Mtok/hour) is NOT modelled — this adapter creates no cache.",
-  },
-  // --- priced but not pinned: candidates for the owner's confirmation --------
-  "gemini-3.7-flash": {
-    model: "gemini-3.7-flash",
-    label: "Gemini 3.7 Flash",
-    usd_per_mtok_input: 0.75,
-    usd_per_mtok_output: 3.75,
-    usd_per_mtok_cache_read: 0.075,
-    usd_per_mtok_cache_write: null,
-    source: "https://ai.google.dev/gemini-api/docs/pricing",
-    retrieved: "2026-08-31",
-    note:
-      "NEWER than the pinned 3.5 Flash and currently CHEAPER: promotional rate " +
-      "through 2026-12-31, then $1.50 / $7.50. Not pinned — the owner asked " +
-      "for 3.5 by name.",
+    note: "the previous generation, kept so an older run can still be " +
+      "re-priced — and it is also where 3.7 Flash lands when its promotional " +
+      "rate ends. Same thinking-token and cache-storage caveats as above.",
   },
   "gemini-3.5-flash-lite": {
     model: "gemini-3.5-flash-lite",
@@ -192,16 +205,28 @@ const PER_MTOK = 1_000_000;
 
 /**
  * Cost of one call's usage at a model's rates. `null` when the model has no
- * priced row — an unpriced model must read "n/a", never "$0.00".
+ * priced row — an unpriced model must read "n/a", never "$0.00" — and null
+ * again once a row's `retired_after` date has passed, which is the same rule
+ * for the same reason: a promotional rate that has expired would report every
+ * run at roughly half what it cost, silently and in the model's favour.
+ *
+ * `on` is the date to price AT, defaulting to today. A caller re-scoring an
+ * archived run can pass that run's own date and get the rates it really paid,
+ * which is the whole premise of a checked-in dated price list.
  *
  * `usage` is already normalized by `_shared/adapters/usage.ts`: `input_tokens`
  * excludes cache reads and writes for EVERY provider, so this is a plain
  * four-term sum with no per-provider special cases. A token count the provider
  * did not report contributes 0 and flips `partial`.
  */
-export function costOf(model: string, usage: TokenUsage | null): Cost | null {
+export function costOf(
+  model: string,
+  usage: TokenUsage | null,
+  on: string = new Date().toISOString().slice(0, 10),
+): Cost | null {
   const row = priceRow(model);
   if (!row) return null;
+  if (row.retired_after && on > row.retired_after) return null;
   if (!usage) return { ...zeroCost(), partial: true };
   let partial = false;
   const term = (tokens: number | null, rate: number | null): number => {

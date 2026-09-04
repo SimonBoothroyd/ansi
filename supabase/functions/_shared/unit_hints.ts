@@ -57,11 +57,14 @@ const UNIT_CATALOG: readonly UnitMirror[] = [
 ];
 
 /**
- * Accepted vague-amount words that aren't in the unit catalog. ① may keep one as
- * an imprecise `unit` (with `unit_mappable: false`) rather than force-fitting a
- * number (honest numbers). Extend cautiously — a word here tells the model the
- * amount is legitimately imprecise, so only genuinely unmeasurable words belong
- * (the vague subset of normalize.ts's MEASURES set).
+ * Vague-amount words the hint set accepts alongside the mirror above. ① may
+ * keep one as an imprecise `unit` (with `unit_mappable: false`) rather than
+ * force-fitting a number (honest numbers). `handful` IS a unit in units.dart,
+ * an imprecise one beside pinch and dash; it rides here rather than in
+ * UNIT_CATALOG, which changes nothing in the derived hints — both lists land in
+ * `imprecise`. Extend cautiously: a word here tells the model the amount is
+ * legitimately imprecise, so only genuinely unmeasurable words belong (the
+ * vague subset of normalize.ts's MEASURES set).
  */
 const EXTRA_IMPRECISE: readonly string[] = ["handful"];
 
