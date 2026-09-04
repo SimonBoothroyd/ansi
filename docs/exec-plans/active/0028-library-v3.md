@@ -10,7 +10,9 @@
 The Library header becomes a search field and one link. Creation moves onto the
 rows that already carry controls, filed all the way from the tap. Every
 duplicate door found on the way is deleted rather than relocated. Board section:
-**"Library · v3"** (locked 2026-09-03), decisions E1–E9.
+**"Library · v3"** (locked 2026-09-03), decisions E1–E9. The **v2** D-numbers
+cited below (D6, D7·2) live in
+[`completed/0033-library-v2-decisions.md`](../completed/0033-library-v2-decisions.md).
 
 Observable when done: no popover menu exists in the Library header; an expanded
 book card has no dashed rows; `book_reorder_sheet.dart` is gone; a recipe made
