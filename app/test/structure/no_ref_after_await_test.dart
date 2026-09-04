@@ -5,8 +5,8 @@
 /// Why it is mechanical: every list here is a viewport, a sheet's keyboard
 /// shrinks it on a phone, and the row that opened the sheet can be unmounted
 /// by the time the user confirms. Riverpod 3 throws on a `WidgetRef` used
-/// after that (owner report 2026-09-03 #1 — a review pick silently lost), and
-/// the `context.mounted` bail that avoids the throw drops the write instead.
+/// after that — losing the pick the user just made — and the `context.mounted`
+/// bail that avoids the throw drops the write instead.
 /// The fix is one shape — capture `ProviderScope.containerOf(context)` and
 /// `hostContextOf(context)` BEFORE the await, go through them after — and a
 /// shape is exactly what a paragraph fails to hold and a scan holds.

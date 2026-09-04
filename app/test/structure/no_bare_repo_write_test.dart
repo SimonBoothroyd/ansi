@@ -1,10 +1,10 @@
 /// The invariant behind `lib/shared/write.dart`: **every repository write
 /// reached from a widget goes through `ref.write(context, what, action)`.**
 ///
-/// The rule is mechanical rather than stylistic because the stylistic version
-/// already lost — the audit that opened this front found 37 of 38 UI→repository
-/// writes with no failure surface at all. A paragraph in `AGENTS.md` does not
-/// catch the 39th; this does, in `make test`.
+/// The rule is mechanical rather than stylistic because a stylistic rule does
+/// not catch the next omission: an unguarded write is invisible at the call
+/// site — the code compiles, the spinner stops, and only a user finds out. A
+/// paragraph in `AGENTS.md` cannot fail a build; this does, in `make test`.
 ///
 /// **The write set is derived, not listed.** It is every `Future`-returning
 /// method declared on a `domain/*_repository.dart` interface minus the named

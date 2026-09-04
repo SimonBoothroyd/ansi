@@ -114,6 +114,17 @@ reads them.
   invariant, a non-obvious edge case, a link to the spec/ADR that forced the
   shape (`// spec §4: shelf-life split is greedy, O(n log n)`).
 
+**Both rules are held mechanically, not by review.** A doc reference is
+`[Ident]` rather than `` `Ident` `` precisely so `comment_references` fails the
+build when the name stops resolving — backticks stay for the things that are
+not Dart identifiers in scope: SQL and column names, file paths, flags, and
+stored string values like `piece` or `usda_fdc:<id>`. And
+`test/structure/no_transcript_comments_test.dart` scans every comment line in
+`lib/` for the transcript habits above — memory backlinks, dates, plan numbers,
+review-speak, "used to"/"previously"/"changed from", board versions like
+`Library v2`, and commented-out code — printing `file:line: text` for each hit.
+It has no allow-list on purpose: the fix is to rewrite the comment.
+
 **Structure — cohesion over fragmentation.**
 
 - Prefer a few functions that read top-to-bottom over a swarm of one-line
