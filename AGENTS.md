@@ -68,6 +68,7 @@ make gen          # codegen (Riverpod/Freezed/json)
 make analyze      # dart analyze + custom_lint — must be clean
 make test         # flutter test + edge-function tests
 make docs-check   # doc links resolve; knowledge base is intact
+make ci-full      # everything CI runs, incl. migrations + pgTAP (needs Docker)
 ```
 
 If a command here is wrong, fix this file in the same change.

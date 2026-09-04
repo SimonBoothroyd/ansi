@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (29 migrations, 15 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (32 migrations, 19 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -277,3 +277,44 @@ introduced in `0009_ingredient_measures.sql` · RLS enabled · in the `powersync
 | `deleted_at` | `timestamptz` | yes |  |
 | `source` | `text` | yes | *(added in `0010_measure_provenance.sql`)* |
 | `basis_amount` | `numeric` | no | not null *(added in `0012_unit_admission.sql`)* |
+
+## `usda_search_token`
+
+introduced in `0029_usda_search_ranking.sql` · RLS enabled
+
+| Column | Type | Nullable | Details |
+|---|---|---|---|
+| `fdc_id` | `int` | no | not null references usda_food(fdc_id) on delete cascade |
+| `tok` | `text` | no | not null |
+| `pos` | `int` | no | not null |
+
+Table constraints: `primary key (fdc_id, tok)`
+
+## `usda_search_term`
+
+introduced in `0029_usda_search_ranking.sql` · RLS enabled
+
+| Column | Type | Nullable | Details |
+|---|---|---|---|
+| `tok` | `text` | no | primary key |
+| `df` | `int` | no | not null |
+| `idf` | `real` | no | not null |
+
+## `usda_search_doc`
+
+introduced in `0029_usda_search_ranking.sql` · RLS enabled
+
+| Column | Type | Nullable | Details |
+|---|---|---|---|
+| `fdc_id` | `int` | no | primary key references usda_food(fdc_id) on delete cascade |
+| `dl` | `int` | no | not null |
+
+## `usda_search_stats`
+
+introduced in `0029_usda_search_ranking.sql` · RLS enabled
+
+| Column | Type | Nullable | Details |
+|---|---|---|---|
+| `only_row` | `bool` | no | primary key default true check (only_row) |
+| `n_docs` | `int` | no | not null |
+| `avg_doc_len` | `real` | no | not null |

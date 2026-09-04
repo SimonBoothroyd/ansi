@@ -135,5 +135,19 @@ docs: ## Regenerate generated docs (docs/generated/*)
 docs-check: ## Validate the knowledge base (links + required files)
 	./scripts/check_docs.sh
 
-.PHONY: ci
-ci: format analyze test docs-check ## What CI runs
+# --- CI ---
+# Two targets because one of CI's legs needs Docker. `ci` is everything that
+# runs on a laptop in seconds; `ci-full` adds the database legs, which is the
+# only way to run the pgTAP suite at all.
+.PHONY: fns-lint seed-test ci ci-full
+
+fns-lint: ## Deno fmt + lint on the edge functions and the seed scripts
+	cd $(FNS) && deno fmt --check && deno lint
+	cd supabase/seed/scripts && deno fmt --check && deno lint
+
+seed-test: ## Seed-generator tests (collision detection, the miner)
+	cd supabase/seed/scripts && deno task test
+
+ci: format analyze fns-lint test seed-test docs-check ## The fast local subset of CI
+ci-full: ci db-reset ## Everything CI runs, needs Docker (adds migrations + pgTAP)
+	supabase test db

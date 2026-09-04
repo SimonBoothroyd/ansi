@@ -119,12 +119,20 @@ Run:  supabase db query --linked "<paste each>"
   -- the load-bearing hook function exists
   select exists(select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                 where p.proname = 'add_household_claim' and n.nspname = 'public');
-  -- RLS enabled everywhere it should be (expect 14: 13 domain tables + usda_food)
+  -- RLS enabled everywhere it should be (expect 19: the 14 household-scoped
+  -- tables, usda_food, and the four usda_search_* index tables 0030 hardened).
+  -- Count it from the migrations if this ever disagrees:
+  --   grep -h '^alter table .*enable row level security' supabase/migrations/*.sql | wc -l
   select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity;
+  -- …and the USDA search index is BUILT. A reseed that skipped
+  -- seed_usda_index.sql leaves this at 0 (or stale), and usda_probe then
+  -- raises rather than answering — the USDA sheet dies silently.
+  select n_docs, avg_doc_len from usda_search_stats;
   -- WAL bounded (runbook §1.3; an idle slot must not fill the disk)
   select name, setting from pg_settings where name in ('max_wal_size','max_slot_wal_keep_size');
-  -- vocab carries macros (expect ~248 complete rows in the template household)
+  -- vocab carries macros (expect 272 of 308 — the numbers seed/README.md states;
+  -- both move together when the curated vocabulary changes, so read them there)
   select count(*) filter (where macros is not null), count(*) from ingredient i
   join household h on h.id = i.household_id where h.is_template;
   -- junk-household census (smoke users accumulate; see smoke_auth teardown)

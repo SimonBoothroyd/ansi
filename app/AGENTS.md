@@ -134,6 +134,7 @@ make test-app        # flutter test (fetches the PowerSync core extension first)
 make test-sim        # integration smoke on a booted iOS sim (local gate); FILE=week DEVICE=<udid> narrow it
 make powersync-core  # fetch the PowerSync SQLite core extension for host tests
 make run             # flutter run with --dart-define from .env.local
+make ci-full         # the whole gate incl. migrations + pgTAP (needs Docker)
 ```
 
 ## Running & visually iterating (iOS Simulator)
