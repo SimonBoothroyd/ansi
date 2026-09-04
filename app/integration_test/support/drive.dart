@@ -69,6 +69,25 @@ void ignoreForuiSemanticsAssertion() {
 Future<void> tapTab(WidgetTester tester, IconData icon) =>
     tester.tap(find.byIcon(icon).last);
 
+/// Pumps until [finder] matches NOTHING, for something that leaves on a timer
+/// rather than on a write — the undo toast (week v3 E3) is the only such
+/// thing in the app, and it lingers over whatever the next step taps.
+///
+/// The default timeout is comfortably past the toast's own six seconds.
+Future<void> pumpUntilGone(
+  WidgetTester tester,
+  Finder finder, {
+  Duration timeout = const Duration(seconds: 15),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (finder.evaluate().isNotEmpty) {
+    if (DateTime.now().isAfter(deadline)) {
+      fail('Timed out after $timeout waiting for $finder to go');
+    }
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
 /// Pumps until [finder] matches, then settles. `pumpAndSettle` alone can't
 /// cross the network waits here (the /connecting spinner animates forever),
 /// so poll real time first. The settle matters: a widget is findable the

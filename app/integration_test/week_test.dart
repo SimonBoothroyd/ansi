@@ -297,6 +297,12 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Undo'), findsOneWidget);
+    // And it leaves on its own. Waited out rather than ignored: the
+    // toast sits bottom-centre, which is exactly where the next
+    // sheet's controls are, so a tap issued while it is up lands on
+    // the toast instead. (This is what the sim caught that no widget
+    // test could — the portions stepper's `+` was under it.)
+    await pumpUntilGone(tester, find.text('Undo'));
     // The screen does NOT change underneath it. Removing the last meal used
     // to teleport you off the grid, because the blank-week page fired on
     // `entries.isEmpty` too. The first-meal bar sits at the TOP of the (lazy)
@@ -561,19 +567,20 @@ void main() {
     expect(find.text('USUAL PORTION'), findsNothing);
 
     // On the Week: the Saturday curry has both eaters and no override, so
-    // its meal editor speaks the fraction (P-D4) — never 1.75. The screen
-    // is as 3b left it — in edit mode, scrolled to Saturday — so neither
-    // `Edit` nor the lens row at the top of the lazy list is in the tree;
-    // anchor on the view itself.
+    // its meal editor speaks the fraction (P-D4) — never 1.75. The screen is
+    // as 3b left it — scrolled to Saturday — so the lens row at the top of
+    // the lazy list is not in the tree; anchor on the view itself.
     await tapTab(tester, FLucideIcons.calendarDays);
     await pumpUntilFound(tester, find.byType(WeekView));
     // The lens leg's meal first: Macro Bowl on Sunday, for both.
     await addMealOn(tester, 'Sunday', 'Macro Bowl');
     await scrollTo(tester, find.text('Saturday'));
+    // E7: the editor opens from the avatars that DRAW the eaters, not from
+    // the dish title — that opens the recipe now.
     await tester.tap(
       find.descendant(
         of: dayCard('Saturday'),
-        matching: find.text('Chicken Curry'),
+        matching: find.byType(EaterAvatarStack),
       ),
     );
     await tester.pumpAndSettle();
