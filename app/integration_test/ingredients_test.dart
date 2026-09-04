@@ -12,11 +12,14 @@
 ///   the same Save;
 /// - **Counts as** on a measured stub — set, back, reopened, stuck, and
 ///   accepted by the server's own-measure trigger (migration 0023);
-/// - **the USDA match, said out loud** — the provenance line on the form
-///   naming the food, its FDC id and how much of the name it answers, all read
-///   off the row so it prints offline; then *Not this food*, which clears the
-///   density, its unlocked units, the macros and the score in ONE write and
-///   leaves the label behind so the form can still name what was refused.
+/// - **the USDA match, asked for and said out loud** — nothing matches a row
+///   on its own any more, so the leg drives the form's own *Look up in USDA*
+///   against the real reference set, picks the food, and proves the pick was
+///   a draft until Save; then the provenance line naming the food, its FDC id
+///   and how much of the name it answers, all read off the row so it prints
+///   offline; then *Not this food*, which clears the density, its unlocked
+///   units, the macros and the score in ONE write and leaves the label behind
+///   so the form can still name what was refused.
 ///
 /// Then add-new by BARCODE: the scan sheet's camera pane degrades to its
 /// designed notice (there is no camera in the Simulator), the typed field
@@ -83,7 +86,7 @@ Finder keyedField(String key) => find.descendant(
 
 /// The name a stub ends up with after the USDA leg's rename — a word the
 /// reference set matches (`Watercress, raw`) and the household vocab lacks,
-/// so "not refilled" is a claim about the trigger, not about a miss.
+/// so "not refilled" is a claim about the server, not about a miss.
 const renamedDeclined = 'Watercress';
 
 void main() {
@@ -119,11 +122,10 @@ void main() {
       final db = stack.db;
       await stack.openLibraryWithOffFixture(tester);
 
-      // Seed the stub the way the import review's create-new leaves it (plan
-      // 0025 D3, detail 7): a bare `manual` stub carrying the raw name, its
-      // form backed out of unconfirmed. Through the real repository, then up
-      // and back down through sync, so the server has seen the row (its USDA
-      // prefill trigger included) before the manager renders it.
+      // Seed the stub the way the add form's one Save leaves it: a bare
+      // `manual` stub carrying the raw name. Through the real repository,
+      // then up and back down through sync, so the server has seen the row
+      // before the manager renders it.
       final ingredients = SqliteIngredientRepository(
         db,
         householdId: stack.householdId,
@@ -139,12 +141,13 @@ void main() {
       ).addMeasure(ingredientId: chilli.id, label: 'sachet', amount: 30);
       // A second bare stub whose name the reference set matches (checked
       // against the local stack's `usda_food`: "Radicchio, raw", with a
-      // density AND macros, so the fill exercises 0014's unlock too) and the
-      // household vocab does not carry. Before the upload it is provably
-      // bare: the phone holds no reference set (ADR-0004/0005) and
-      // the seed writes no label, so a label on this row after the round
-      // trip can only be the server trigger's.
+      // density AND macros, so the fill exercises the unlock too) and the
+      // household vocab does not carry. Nothing fills it on its own — the
+      // USDA leg below looks it up by hand, which is the only way a row is
+      // matched now.
       const usdaName = 'Radicchio';
+      // What the reference set calls it — the row the search offers back.
+      const usdaFood = 'Radicchio, raw';
       final radicchio = (await ingredients.saveForm(
         null,
         _bareStub(usdaName),
@@ -164,7 +167,6 @@ void main() {
       expect(bare['source_label'], isNull);
       expect(bare['macros'], isNull);
 
-      final fillTimer = Stopwatch()..start();
       await stack.waitForSyncRoundTrip(tester);
       // Assert the seeded state up front so a vocab change (a template row
       // that already prints "chilli flakes") fails HERE, with a reason, rather
@@ -187,37 +189,23 @@ void main() {
       final stubMatchText = chilliRows.single['match_text'] as String;
       expect(stubMatchText, normalizeMatchText(stubName));
 
-      // --- the server's prefill, streamed back (U-D1, the trigger leg) ------
-      // The 0015 trigger fires inside the upload transaction; its write
-      // streams back down over the local row. Polled rather than assumed,
-      // and timed — the "not refilled" assertion at the end of the USDA leg
-      // waits at least this long before it calls a silence a guarantee.
-      await waitForDb(
-        tester,
-        () async =>
-            (await db.get('SELECT source_label FROM ingredient WHERE id = ?', [
-              radicchio.id,
-            ]))['source_label'] !=
-            null,
-        "the server's USDA prefill to name the radicchio stub",
-      );
-      final fillTook = fillTimer.elapsed;
-      final filled = await db.get(
-        'SELECT source, source_label, source_score, density_g_per_ml, macros, '
-        'status FROM ingredient WHERE id = ?',
+      // --- nothing matches on its own (0029) -------------------------------
+      // The server used to fill a bare stub from the reference set inside the
+      // upload transaction. That trigger is gone and nothing replaced it:
+      // matching is a human act now, so a stub nobody looked up comes back
+      // from a full round trip exactly as bare as it went up. The name it
+      // carries is one the reference set DOES match, which is what makes the
+      // silence a statement rather than a miss.
+      final afterUpload = await db.get(
+        'SELECT source, source_label, source_score, density_g_per_ml, macros '
+        'FROM ingredient WHERE id = ?',
         [radicchio.id],
       );
-      final filledSource = filled['source'] as String;
-      final filledLabel = filled['source_label'] as String;
-      expect(filledSource, startsWith('usda_fdc:'));
-      expect(filledLabel, startsWith('Radicchio'));
-      // U-D1 + the lane's extra column: the label and the score land in the
-      // same statement as the stamp, so the form can print the band offline.
-      expect(filled['source_score'], isNotNull);
-      expect(filled['density_g_per_ml'], isNotNull);
-      expect(filled['macros'], isNotNull);
-      // Filled, never completed: confirming is a human act.
-      expect(filled['status'], 'stub');
+      expect(afterUpload['source'], 'manual');
+      expect(afterUpload['source_label'], isNull);
+      expect(afterUpload['source_score'], isNull);
+      expect(afterUpload['density_g_per_ml'], isNull);
+      expect(afterUpload['macros'], isNull);
 
       // --- Library ▸ the Ingredients shelf ---------------------------------
       // 0028 E5: the vocabulary is a shelf at the foot of the library, drawn
@@ -309,10 +297,11 @@ void main() {
 
       // --- density, both phrasings (7.8 / ADR-0008) ------------------------
       // The same form, two more taps. "1 tbsp weighs 15 g" converts through
-      // ml-per-spoon and writes the one stored number; the write extends the
-      // explicit `allowed_units` with the volume family in the same
-      // transaction (ADR-0009), which the round trip below proves survived
-      // the server as a jsonb ARRAY.
+      // ml-per-spoon and becomes the one stored number — in the DRAFT, which
+      // the form's own Save lands together with everything else it holds. The
+      // save extends the explicit `allowed_units` with the volume family
+      // (ADR-0009), which the round trip below proves survived the server as
+      // a jsonb ARRAY.
       Future<double?> storedDensity() async =>
           ((await db.get(
                     'SELECT density_g_per_ml AS d FROM ingredient WHERE id = ?',
@@ -326,9 +315,11 @@ void main() {
         of: find.byType(DensityEntry),
         matching: find.byType(EditableText),
       );
-      final densitySave = find.descendant(
+      // `Add`, not `Save`: the entry puts the number in the form's draft and
+      // writes nothing of its own.
+      final densityAdd = find.descendant(
         of: find.byType(DensityEntry),
-        matching: find.widgetWithText(FButton, 'Save'),
+        matching: find.widgetWithText(FButton, 'Add'),
       );
       // One sentence since the v2 pass — "1 [tbsp] of this weighs [__] g" —
       // so there is no phrasing mode to enter. `tbsp` is the standing pick.
@@ -339,17 +330,25 @@ void main() {
       // The live equivalence: both phrasings are the same fact.
       final spoonDensity = densityFromVolumeWeight(tbsp, 15)!;
       expect(find.textContaining('= 1.01 g/ml'), findsOneWidget);
-      await centerOn(tester, densitySave);
-      await tester.tap(densitySave);
+      await centerOn(tester, densityAdd);
+      await tester.tap(densityAdd);
       await tester.pumpAndSettle();
+      // The headline follows the DRAFT, and the row is still bare: one write,
+      // and it has not happened yet.
+      await pumpUntilFound(tester, find.text('1.01 g/ml'));
+      expect(
+        await storedDensity(),
+        isNull,
+        reason: 'the entry fills the draft; the form’s Save writes it',
+      );
+
+      await saveFormAndReopen(tester, renamed);
       await waitForDb(
         tester,
         () async => (await storedDensity() ?? 0) > 1,
         'the spoon-phrased density to land',
       );
       expect(await storedDensity(), closeTo(spoonDensity, 1e-9));
-      // The headline follows the row: the entry re-reads what it wrote.
-      await pumpUntilFound(tester, find.text('1.01 g/ml'));
 
       await stack.waitForSyncRoundTrip(tester);
       final unlocked = await db.get(
@@ -377,12 +376,13 @@ void main() {
             'ADR-0009: a density on a mass-basis row admits the volume family',
       );
 
-      // The other phrasing, the same number — now the same sentence with a
+      // The other phrasing, the same number — the same sentence with a
       // different pick. `ml`'s ratio to base is 1, so "1 ml of this weighs
       // 1.2 g" IS 1.2 g/ml: that equivalence is what let the separate g/ml
-      // field be deleted rather than merely hidden. The entry re-rendered
-      // after its save (and slid up under the header), so the chip is centred
-      // and picked explicitly rather than assumed.
+      // field be deleted rather than merely hidden. The re-opened form drew
+      // the entry afresh, so the chip is centred and picked explicitly rather
+      // than assumed.
+      await scrollTo(tester, find.text('of this weighs'));
       final mlChip = find.descendant(
         of: find.byType(DensityEntry),
         matching: find.widgetWithText(AnsiModeChip, 'ml'),
@@ -392,9 +392,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(densityField, '1.2');
       await tester.pumpAndSettle();
-      await centerOn(tester, densitySave);
-      await tester.tap(densitySave);
+      await centerOn(tester, densityAdd);
+      await tester.tap(densityAdd);
       await tester.pumpAndSettle();
+      await saveFormAndReopen(tester, renamed);
       await waitForDb(
         tester,
         () async => await storedDensity() == 1.2,
@@ -538,14 +539,73 @@ void main() {
       await tester.tap(find.byType(FHeaderAction).first);
       await pumpUntilFound(tester, find.text('Search your vocabulary'));
 
-      // --- the USDA match, said out loud -----------
+      // --- the USDA match, asked for and said out loud ---------------------
       await scrollTo(tester, find.text(usdaName));
       await tester.tap(find.text(usdaName).first);
       await pumpUntilFound(tester, find.text('CANONICAL NAME'));
 
-      // U-D1, as 0029 re-reads it: the provenance line at the head of the
-      // macros section names the food, its FDC id and how much of the name
-      // the food answers — all read off the row, printable offline.
+      // A row nothing has matched carries no provenance line at all — it
+      // carries the door instead.
+      expect(find.textContaining('from USDA'), findsNothing);
+      await scrollTo(tester, find.text('Look up in USDA'));
+      await tester.tap(find.text('Look up in USDA'));
+      // The sheet asks the REAL server about the name in the field, and the
+      // answer comes back over the same session the app syncs on — there is
+      // no reference set on the phone to answer from.
+      await pumpUntilFound(tester, find.text('USDA · for “$usdaName”'));
+      await pumpUntilFound(tester, find.text(usdaFood));
+      expect(
+        find.text('all words'),
+        findsOneWidget,
+        reason: 'the band word says how much of the name the food answers',
+      );
+      await tester.tap(find.text(usdaFood));
+      await tester.pumpAndSettle();
+
+      // The pick fills the DRAFT: the numbers are on the form and nothing is
+      // written until Save says so.
+      expect(
+        find.textContaining('Filled from “$usdaFood”'),
+        findsOneWidget,
+        reason: 'the message line says the pick is not saved yet',
+      );
+      expect(
+        (await db.get('SELECT source FROM ingredient WHERE id = ?', [
+          radicchio.id,
+        ]))['source'],
+        'manual',
+        reason: 'looking something up writes nothing',
+      );
+      await saveFormAndReopen(tester, usdaName);
+      await waitForDb(
+        tester,
+        () async =>
+            (await db.get('SELECT source FROM ingredient WHERE id = ?', [
+              radicchio.id,
+            ]))['source'] !=
+            'manual',
+        'the pick to land on the row',
+      );
+      final filled = await db.get(
+        'SELECT source, source_label, source_score, density_g_per_ml, macros, '
+        'status FROM ingredient WHERE id = ?',
+        [radicchio.id],
+      );
+      final filledSource = filled['source'] as String;
+      final filledLabel = filled['source_label'] as String;
+      expect(filledSource, startsWith('usda_fdc:'));
+      expect(filledLabel, usdaFood);
+      // The label and the score are stored beside the stamp, so the form can
+      // print the band offline; the food's own numbers come with it.
+      expect(filled['source_score'], isNotNull);
+      expect(filled['density_g_per_ml'], isNotNull);
+      expect(filled['macros'], isNotNull);
+      // Filled, never completed: confirming is a human act.
+      expect(filled['status'], 'stub');
+
+      // The provenance line at the head of the macros section names the food,
+      // its FDC id and how much of the name the food answers — all read off
+      // the row, printable offline.
       await scrollTo(tester, find.text('Filled from USDA · not confirmed'));
       final fit = UsdaMatchFit.of(
         (filled['source_score'] as num).toDouble(),
@@ -556,7 +616,8 @@ void main() {
       );
       expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
       expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
-      // The old lookup button has no job on a row USDA already filled.
+      // The lookup door has no job on a row USDA already filled: the two
+      // buttons above are how the match changes now.
       expect(find.text('Look up in USDA'), findsNothing);
 
       // U-D2: one write — the density (and the units it alone admitted,
@@ -605,11 +666,10 @@ void main() {
         findsOneWidget,
       );
 
-      // The D2 guarantee, end to end: a rename is exactly what re-fires the
-      // 0015 trigger on a bare manual stub, and the new name is one the
-      // reference set matches ("Watercress, raw" — checked on the local
-      // stack). Its WHEN clause does not list `usda_declined`, so the row
-      // must come back from the server as bare as it went up.
+      // The guarantee, end to end: renaming a row to a name the reference set
+      // matches ("Watercress, raw" — checked on the local stack) refills
+      // nothing. It is the rename that used to re-fire the server's prefill,
+      // which is why this is the name the leg renames to.
       await tester.enterText(
         fieldIn(find.byType(IngredientDetailView)),
         renamedDeclined,
@@ -627,10 +687,11 @@ void main() {
         'the rename to land',
       );
       await stack.waitForSyncRoundTrip(tester);
-      // A silence is only a guarantee if a fill had time to arrive: give it
-      // what the first fill actually took, plus a margin.
+      // A silence is only a guarantee if a fill had time to arrive: the round
+      // trip above already proved the rename reached the server and came
+      // back, and this is the margin on top of it.
       final silence = Stopwatch()..start();
-      while (silence.elapsed < fillTook + const Duration(seconds: 2)) {
+      while (silence.elapsed < const Duration(seconds: 4)) {
         await tester.pump(const Duration(milliseconds: 200));
       }
       final afterRename = await db.get(
@@ -643,8 +704,8 @@ void main() {
         afterRename['source'],
         usdaDeclinedSource,
         reason:
-            'U-D2: the rename trigger refilled a DECLINED row — its WHEN '
-            'clause has grown `usda_declined`, or the decline never uploaded',
+            'a rename refilled the row — something on the server is '
+            'matching on its own again, or the decline never uploaded',
       );
       expect(afterRename['macros'], isNull);
       expect(afterRename['density_g_per_ml'], isNull);
@@ -655,6 +716,9 @@ void main() {
       await pumpUntilFound(tester, find.text('Search your vocabulary'));
 
       // --- add new, by barcode ---------------------------------------------
+      // The list's `＋` opens the FORM — it writes on Save, so it can be the
+      // create surface, and the scan is one of the two doors the form offers
+      // a row with nothing in it yet.
       await tester.tap(
         find
             .descendant(
@@ -663,9 +727,9 @@ void main() {
             )
             .first,
       );
-      await pumpUntilFound(tester, find.text('New ingredient'));
-      await tester.tap(find.text('Barcode'));
-      await pumpUntilFound(tester, find.text('Scan a barcode'));
+      await pumpUntilFound(tester, find.text('FILL IT IN FROM'));
+      await tester.tap(find.text('Scan a barcode'));
+      await pumpUntilFound(tester, find.byType(BarcodeScanSheet));
 
       // The sheet's stable chrome. On the Simulator the plugin's start
       // neither succeeds nor ERRORS — no camera means it waits forever, so
@@ -720,13 +784,20 @@ void main() {
       // The panel came through in the basis the label read it in (7.7/D1).
       expect(find.textContaining('539'), findsWidgets);
 
-      // The sheet's CTA changes once a draft is in hand.
-      await tester.ensureVisible(find.text('Save & review'));
+      // The draft is on the FORM, not in a row: the sheet handed it back and
+      // the form's one Save is what writes it — provenance, macros and the
+      // name it supplied for a row that had none, together.
+      expect(find.textContaining('filled in, not saved'), findsOneWidget);
+      expect(
+        await db.getAll(
+          'SELECT id FROM ingredient WHERE source = ? AND deleted_at IS NULL',
+          ['off:$offFixtureBarcode'],
+        ),
+        isEmpty,
+        reason: 'a scan writes nothing on its own',
+      );
+      await tester.tap(find.byKey(kFormSaveKey));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Save & review'));
-
-      // It lands on the ingredient form for the row it just created.
-      await pumpUntilFound(tester, find.text('CANONICAL NAME'));
 
       // --- what landed in the local database -------------------------------
       await waitForDb(
@@ -755,10 +826,9 @@ void main() {
       expect(macros['carb'], 57.5);
       expect(macros['fat'], 30.9);
 
-      // D7b: the birth probe is EXCLUDED for a barcode row — a USDA stamp
-      // would replace the Open Food Facts provenance with an FDC id. Proven
-      // end to end: after the round trip the server's own trigger (whose WHEN
-      // clause makes the same exclusion) has seen the row too.
+      // The Open Food Facts provenance is the row's, and nothing on the
+      // server replaces it with an FDC id on the way through — proven end to
+      // end, after the round trip.
       await stack.waitForSyncRoundTrip(tester);
       final afterSync = await db.get(
         'SELECT source, status FROM ingredient WHERE id = ?',
@@ -768,16 +838,16 @@ void main() {
         afterSync['source'],
         'off:$offFixtureBarcode',
         reason:
-            'the USDA prefill overwrote a barcode row’s provenance — the D7b '
-            'client guard or the server trigger’s WHEN clause has regressed',
+            'something overwrote a barcode row’s provenance — a server '
+            'that matches on its own is back',
       );
       expect(afterSync['status'], 'stub');
 
       // --- back on the list, the G4 hint -----------------------------------
-      // The returned list parks its viewport at the restored offset, below
-      // the band — pumpUntilFound never scrolls, so anchor on the search bar
-      // and SCROLL to the band (edge-detected).
-      await tester.tap(find.byType(FHeaderAction).first);
+      // The Save ended the form, so the list is already underneath. It parks
+      // its viewport at the restored offset, below the band — pumpUntilFound
+      // never scrolls, so anchor on the search bar and SCROLL to the band
+      // (edge-detected).
       await pumpUntilFound(tester, find.text('Search your vocabulary'));
       await scrollTo(tester, find.text('Needs fleshing out'));
 
