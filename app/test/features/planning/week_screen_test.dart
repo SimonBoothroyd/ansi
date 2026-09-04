@@ -7,6 +7,7 @@ import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
+import 'package:ansi/features/planning/domain/planning_repository.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/planning/presentation/week_view.dart';
@@ -14,6 +15,7 @@ import 'package:ansi/features/planning/presentation/week_widgets.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
+import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -25,6 +27,7 @@ import '../../helpers/fake_cook_plan_repository.dart';
 import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
+import '../../helpers/pump_app.dart';
 
 /// A canned planner: emits [week] for the current week and [last] as the
 /// reference week, with two members. Mutations are inert.
@@ -143,33 +146,45 @@ Widget _host(List<Override> overrides, {CookPlanRepository? cook}) =>
 
 /// The same view inside a real router, so a tap's destination is observable.
 /// `expose` hands the router back for the test to read the location from.
-Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
-  final router = GoRouter(
-    initialLocation: '/week',
-    routes: [
-      GoRoute(path: '/week', builder: (_, _) => const WeekView()),
-      GoRoute(
-        path: '/recipes/:id',
-        builder: (_, state) =>
+Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) =>
+    routedHost(
+      initial: '/week',
+      overrides: _withCook(overrides, null),
+      expose: expose,
+      routes: {
+        '/week': (_, _) => const WeekView(),
+        '/recipes/:id': (_, state) =>
             FScaffold(child: Text('recipe ${state.pathParameters['id']}')),
-      ),
-    ],
-  );
-  addTearDown(router.dispose);
-  expose(router);
-  return ProviderScope(
-    overrides: _withCook(overrides, null),
-    child: MaterialApp.router(
-      routerConfig: router,
-      // The toaster the real app installs beside FTheme (`app.dart`): the
-      // week's undo toast (E3) needs an FToasterState ancestor, and without
-      // one `showFToast` has nowhere to render.
-      builder: (context, child) => FTheme(
-        data: ansiThemeData(),
-        child: FToaster(child: child!),
-      ),
+      },
+    );
+
+/// Pumps the Week over a planner and a recipe library, then settles.
+///
+/// Every test in this file wires the same two repositories and the same
+/// cook-plan fake; what varies is the week the planner holds, so that is the
+/// only argument most of them pass. [expose] switches to the routed host and
+/// hands the router back, for the tests that follow a tap somewhere else.
+Future<void> _pumpWeek(
+  WidgetTester tester, {
+  PlanningRepository? planning,
+  RecipeRepository? recipes,
+  CookPlanRepository? cook,
+  void Function(GoRouter)? expose,
+}) async {
+  final overrides = [
+    planningRepositoryProvider.overrideWithValue(
+      planning ?? _FakePlanningRepo(),
     ),
+    recipeRepositoryProvider.overrideWithValue(
+      recipes ?? FakeRecipeRepository(),
+    ),
+  ];
+  await tester.pumpWidget(
+    expose == null
+        ? _host(overrides, cook: cook)
+        : _routedHost(overrides, expose),
   );
+  await tester.pumpAndSettle();
 }
 
 WeekPlan _plannedWeek({int? portions, List<String> eaters = const ['m1']}) =>
@@ -234,15 +249,10 @@ void main() {
     testWidgets('names this week, and the chevrons step off it', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(week: _plannedWeek()),
-          ),
-          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _plannedWeek()),
       );
-      await tester.pumpAndSettle();
 
       expect(find.text(titleFor(0)), findsOneWidget);
       // No banner and no return pill while the current week is on screen.
@@ -261,15 +271,10 @@ void main() {
     testWidgets('another week shows no banner and no pill — the switcher in '
         'every header is the signal, and its menu is the way home (0025 '
         'D7a)', (tester) async {
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(week: _plannedWeek()),
-          ),
-          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _plannedWeek()),
       );
-      await tester.pumpAndSettle();
 
       // The menu speaks in this tab's derivation for the week on screen.
       await tester.tap(find.text(titleFor(0)));
@@ -294,19 +299,14 @@ void main() {
       tester,
     ) async {
       final copied = <DateTime>[];
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(
-              week: _plannedWeek(),
-              last: _plannedWeek(),
-              onCopy: copied.add,
-            ),
-          ),
-          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(
+          week: _plannedWeek(),
+          last: _plannedWeek(),
+          onCopy: copied.add,
+        ),
       );
-      await tester.pumpAndSettle();
 
       await tester.tap(find.text(titleFor(0)));
       await tester.pumpAndSettle();
@@ -347,13 +347,7 @@ void main() {
 
     testWidgets('everything a full week has still renders, with nothing in '
         'it', (tester) async {
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
-          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-        ]),
-      );
-      await tester.pumpAndSettle();
+      await _pumpWeek(tester, planning: _FakePlanningRepo());
 
       // The blank-week PAGE is gone, and with it the widget doing a
       // navigation's job.
@@ -380,13 +374,7 @@ void main() {
     testWidgets('the week band says so rather than adding up to zero', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
-          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-        ]),
-      );
-      await tester.pumpAndSettle();
+      await _pumpWeek(tester, planning: _FakePlanningRepo());
       await tester.dragUntilVisible(
         find.text('no meals yet — nothing to add up'),
         find.byType(Scrollable).first,
@@ -400,28 +388,15 @@ void main() {
 
     testWidgets('"copy last week" is offered inline ONLY while the week is '
         'empty', (tester) async {
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(last: last),
-          ),
-          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-        ]),
-      );
-      await tester.pumpAndSettle();
+      await _pumpWeek(tester, planning: _FakePlanningRepo(last: last));
       expect(find.text('copy last week'), findsOneWidget);
 
       // The same week with a meal on it: the chip is gone, and the switcher
       // menu is its permanent home.
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(week: _plannedWeek(), last: last),
-          ),
-          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _plannedWeek(), last: last),
       );
-      await tester.pumpAndSettle();
       expect(find.text('copy last week'), findsNothing);
       expect(find.text('Add the first meal'), findsNothing);
     });
@@ -431,28 +406,18 @@ void main() {
       // The old branch fired on entries.isEmpty too, so one removal teleported
       // you off the grid mid-edit. Now the day card is still there and simply
       // shows its quiet line.
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(week: _plannedWeek()),
-          ),
-          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _plannedWeek()),
       );
-      await tester.pumpAndSettle();
       expect(find.text('Thursday'), findsOneWidget);
 
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(
-              week: WeekPlan(id: 'w', weekStart: DateTime.utc(2026, 8, 24)),
-            ),
-          ),
-          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(
+          week: WeekPlan(id: 'w', weekStart: DateTime.utc(2026, 8, 24)),
+        ),
       );
-      await tester.pumpAndSettle();
       expect(find.text('Thursday'), findsOneWidget);
       expect(find.text('nothing planned'), findsWidgets);
     });
@@ -467,15 +432,11 @@ void main() {
     testWidgets('a resolved day shows its cells AND its denominator', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(week: _plannedWeek()),
-          ),
-          recipeRepositoryProvider.overrideWithValue(_recipesRepo(complete)),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _plannedWeek()),
+        recipes: _recipesRepo(complete),
       );
-      await tester.pumpAndSettle();
 
       // One eater × 500 kcal/serving.
       expect(find.text('500 kcal'), findsWidgets);
@@ -490,15 +451,11 @@ void main() {
     testWidgets('a day whose only meal is incomplete draws NO number', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(week: _plannedWeek()),
-          ),
-          recipeRepositoryProvider.overrideWithValue(_recipesRepo(incomplete)),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _plannedWeek()),
+        recipes: _recipesRepo(incomplete),
       );
-      await tester.pumpAndSettle();
 
       // The badge and the reason, in incompleteNote's exact words.
       expect(find.text('incomplete'), findsWidgets);
@@ -513,15 +470,11 @@ void main() {
 
     testWidgets('the week band is labelled PLANNED and refuses a target '
         'reading', (tester) async {
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(week: _plannedWeek()),
-          ),
-          recipeRepositoryProvider.overrideWithValue(_recipesRepo(complete)),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _plannedWeek()),
+        recipes: _recipesRepo(complete),
       );
-      await tester.pumpAndSettle();
       await tester.dragUntilVisible(
         find.text('PLANNED \u00b7 WEEK \u00b7 EVERYONE'),
         find.byType(Scrollable).first,
@@ -540,15 +493,11 @@ void main() {
     testWidgets('an empty week says so rather than adding up to zero', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(week: _plannedWeek()),
-          ),
-          recipeRepositoryProvider.overrideWithValue(_recipesRepo(complete)),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _plannedWeek()),
+        recipes: _recipesRepo(complete),
       );
-      await tester.pumpAndSettle();
       // The lens picks a member who eats nothing on this week.
       await tester.tap(find.text('Jun'));
       await tester.pumpAndSettle();
@@ -557,15 +506,11 @@ void main() {
     });
 
     testWidgets('the lens DIMS rather than removes (D8)', (tester) async {
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(week: _plannedWeek()),
-          ),
-          recipeRepositoryProvider.overrideWithValue(_recipesRepo(complete)),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _plannedWeek()),
+        recipes: _recipesRepo(complete),
       );
-      await tester.pumpAndSettle();
 
       expect(find.text('Everyone'), findsOneWidget); // was "Shared"
       await tester.tap(find.text('Jun'));
@@ -633,15 +578,10 @@ void main() {
   testWidgets(
     'one state: no Edit, and every day carries its add line (E1/E5)',
     (tester) async {
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(week: _plannedWeek()),
-          ),
-          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _plannedWeek()),
       );
-      await tester.pumpAndSettle();
 
       expect(find.text('Thursday'), findsOneWidget);
       expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
@@ -659,27 +599,14 @@ void main() {
 
   testWidgets('the portions chip appears only when portions differ from the '
       'eater count', (tester) async {
-    await tester.pumpWidget(
-      _host([
-        planningRepositoryProvider.overrideWithValue(
-          _FakePlanningRepo(week: _plannedWeek()),
-        ),
-        recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-      ]),
-    );
-    await tester.pumpAndSettle();
+    await _pumpWeek(tester, planning: _FakePlanningRepo(week: _plannedWeek()));
     // _plannedWeek()'s entry has two eaters and no override.
     expect(find.text('2 portions'), findsNothing);
 
-    await tester.pumpWidget(
-      _host([
-        planningRepositoryProvider.overrideWithValue(
-          _FakePlanningRepo(week: _plannedWeek(portions: 3)),
-        ),
-        recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-      ]),
+    await _pumpWeek(
+      tester,
+      planning: _FakePlanningRepo(week: _plannedWeek(portions: 3)),
     );
-    await tester.pumpAndSettle();
     expect(find.text('3 portions'), findsOneWidget);
   });
 
@@ -699,30 +626,18 @@ void main() {
         ],
       ),
     ]);
-    await tester.pumpWidget(
-      _host([
-        planningRepositoryProvider.overrideWithValue(
-          _FakePlanningRepo(week: _batchedWeek()),
-        ),
-        recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-      ], cook: plan),
+    await _pumpWeek(
+      tester,
+      planning: _FakePlanningRepo(week: _batchedWeek()),
+      cook: plan,
     );
-    await tester.pumpAndSettle();
 
     expect(find.textContaining('batch of 4'), findsOneWidget);
     expect(find.text('from Monday\u2019s batch'), findsOneWidget);
 
     // A week whose only meal cooks for itself says nothing — "cooks today" on
     // every row would be noise.
-    await tester.pumpWidget(
-      _host([
-        planningRepositoryProvider.overrideWithValue(
-          _FakePlanningRepo(week: _plannedWeek()),
-        ),
-        recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-      ]),
-    );
-    await tester.pumpAndSettle();
+    await _pumpWeek(tester, planning: _FakePlanningRepo(week: _plannedWeek()));
     expect(find.textContaining('batch of'), findsNothing);
   });
 
@@ -730,15 +645,11 @@ void main() {
       'editor, \u2212 \u2192 gone (E2/E7/E3)', (tester) async {
     filterForuiSemanticsAssertions();
     late GoRouter router;
-    await tester.pumpWidget(
-      _routedHost([
-        planningRepositoryProvider.overrideWithValue(
-          _FakePlanningRepo(week: _plannedWeek()),
-        ),
-        recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-      ], (r) => router = r),
+    await _pumpWeek(
+      tester,
+      planning: _FakePlanningRepo(week: _plannedWeek()),
+      expose: (r) => router = r,
     );
-    await tester.pumpAndSettle();
 
     // E2 — the title opens the recipe it names, with no mode in the way.
     await tester.tap(find.text('Weeknight Chicken Curry'));
@@ -766,15 +677,11 @@ void main() {
     tester,
   ) async {
     filterForuiSemanticsAssertions();
-    await tester.pumpWidget(
-      _routedHost([
-        planningRepositoryProvider.overrideWithValue(
-          _LivePlanningRepo(_plannedWeek()),
-        ),
-        recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-      ], (_) {}),
+    await _pumpWeek(
+      tester,
+      planning: _LivePlanningRepo(_plannedWeek()),
+      expose: (_) {},
     );
-    await tester.pumpAndSettle();
     expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
 
     // No confirm dialog stands between the tap and the removal (E3 refuses
@@ -807,21 +714,14 @@ void main() {
     Future<void> openEntrySheet(WidgetTester tester, {int? portions}) async {
       filterForuiSemanticsAssertions();
       late GoRouter router;
-      await tester.pumpWidget(
-        _routedHost([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(
-              week: _plannedWeek(
-                eaters: const ['m1', 'm2'],
-                portions: portions,
-              ),
-              roster: _factoredRoster,
-            ),
-          ),
-          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-        ], (r) => router = r),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(
+          week: _plannedWeek(eaters: const ['m1', 'm2'], portions: portions),
+          roster: _factoredRoster,
+        ),
+        expose: (r) => router = r,
       );
-      await tester.pumpAndSettle();
       router.go('/week');
       await tester.pumpAndSettle();
       await tester.tap(find.byType(EaterAvatarStack).first);
@@ -853,36 +753,27 @@ void main() {
 
     testWidgets('the grid’s portions chip is the override, absent while the '
         'eaters’ own fraction is the demand', (tester) async {
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(
-              week: _plannedWeek(eaters: const ['m1', 'm2']),
-              roster: _factoredRoster,
-            ),
-          ),
-          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(
+          week: _plannedWeek(eaters: const ['m1', 'm2']),
+          roster: _factoredRoster,
+        ),
       );
-      await tester.pumpAndSettle();
       expect(find.byType(PortionsChip), findsNothing);
     });
 
     testWidgets('the lens weights by the factor and names its denominator', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        _host([
-          planningRepositoryProvider.overrideWithValue(
-            _FakePlanningRepo(
-              week: _plannedWeek(eaters: const ['m1', 'm2']),
-              roster: _factoredRoster,
-            ),
-          ),
-          recipeRepositoryProvider.overrideWithValue(_recipesRepo(complete)),
-        ]),
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(
+          week: _plannedWeek(eaters: const ['m1', 'm2']),
+          roster: _factoredRoster,
+        ),
+        recipes: _recipesRepo(complete),
       );
-      await tester.pumpAndSettle();
 
       // Everyone: 1¾ servings × 500, and the meal count alone.
       expect(find.text('875 kcal'), findsWidgets);

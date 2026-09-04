@@ -17,6 +17,7 @@ import 'package:hooks_riverpod/misc.dart' show Override;
 import '../../helpers/editor_harness.dart';
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/forui_semantics.dart';
+import '../../helpers/pump_app.dart';
 
 class _FakeBookRepo extends FakeBookRepository {
   const _FakeBookRepo(super.books);
@@ -152,39 +153,19 @@ Widget _toggleHost(List<Override> overrides, ValueNotifier<bool> show) =>
 
 /// The library inside a real router, so a menu item can push and the pushed
 /// route can be popped again.
-Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
-  final router = GoRouter(
-    initialLocation: '/',
-    routes: [
-      GoRoute(path: '/', builder: (_, _) => const LibraryView()),
-      GoRoute(
-        path: '/import',
-        builder: (_, _) => const FScaffold(child: Text('import screen')),
-      ),
-      GoRoute(
-        path: '/recipes/new',
-        builder: (_, _) => const FScaffold(child: Text('editor screen')),
-      ),
-      GoRoute(
-        path: '/recipes/:id',
-        builder: (_, _) => const FScaffold(child: Text('recipe screen')),
-      ),
-      GoRoute(
-        path: '/account',
-        builder: (_, _) => const FScaffold(child: Text('account screen')),
-      ),
-    ],
-  );
-  addTearDown(router.dispose);
-  expose(router);
-  return ProviderScope(
-    overrides: overrides,
-    child: MaterialApp.router(
-      routerConfig: router,
-      builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
-    ),
-  );
-}
+Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) =>
+    routedHost(
+      initial: '/',
+      overrides: overrides,
+      expose: expose,
+      routes: {
+        '/': (_, _) => const LibraryView(),
+        '/import': (_, _) => const FScaffold(child: Text('import screen')),
+        '/recipes/new': (_, _) => const FScaffold(child: Text('editor screen')),
+        '/recipes/:id': (_, _) => const FScaffold(child: Text('recipe screen')),
+        '/account': (_, _) => const FScaffold(child: Text('account screen')),
+      },
+    );
 
 void main() {
   testWidgets('LibraryView renders the book, its sections and recipes', (

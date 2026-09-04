@@ -5,7 +5,6 @@
 // ignore_for_file: scoped_providers_should_specify_dependencies
 library;
 
-import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
@@ -16,11 +15,10 @@ import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
+import '../../helpers/pump_app.dart';
 
 /// A repository over a fixed set of recipes plus canned back-links.
 /// A library keyed by id, so a component line can be followed to its target,
@@ -44,26 +42,14 @@ class _FakeRecipeRepo extends FakeRecipeRepository {
   Future<List<RecipeUse>> usedIn(String recipeId) async => uses;
 }
 
-Widget _host(_FakeRecipeRepo repo) {
-  final router = GoRouter(
-    initialLocation: '/recipes/sliders',
-    routes: [
-      GoRoute(
-        path: '/recipes/:id',
-        builder: (_, state) =>
-            RecipeView(recipeId: state.pathParameters['id']!),
-      ),
-    ],
-  );
-  addTearDown(router.dispose);
-  return ProviderScope(
-    overrides: [recipeRepositoryProvider.overrideWithValue(repo)],
-    child: MaterialApp.router(
-      routerConfig: router,
-      builder: (_, child) => FTheme(data: ansiThemeData(), child: child!),
-    ),
-  );
-}
+Widget _host(_FakeRecipeRepo repo) => routedHost(
+  initial: '/recipes/sliders',
+  overrides: [recipeRepositoryProvider.overrideWithValue(repo)],
+  routes: {
+    '/recipes/:id': (_, state) =>
+        RecipeView(recipeId: state.pathParameters['id']!),
+  },
+);
 
 const _aioli = SubRecipeTarget(
   id: 'aioli',

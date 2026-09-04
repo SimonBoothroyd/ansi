@@ -2,6 +2,7 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 // Riverpod 3 exposes the `Override` type via the misc.dart barrel rather than
 // the main one. `ProviderScope.overrides` is typed `List<Override>`.
@@ -46,4 +47,45 @@ extension PumpApp on WidgetTester {
       ),
     );
   }
+}
+
+/// A screen under a REAL router, which is what a screen that navigates needs:
+/// `context.push`/`pop` do nothing without one, and a Save that REPLACES its
+/// page cannot be observed at all.
+///
+/// [routes] is one path → builder entry per destination; the screen under test
+/// is the one at [initial], and the rest are usually a stand-in `Text` the
+/// test can find. [expose] hands the router back so a test can drive or
+/// inspect the stack.
+///
+/// The [FToaster] sits ABOVE the navigator, where `app.dart` mounts it — not
+/// inside the page. A write that reports its failure after a dialog reaches
+/// for the toaster through the ROOT overlay (`hostContextOf`), so a toaster
+/// mounted under the page is a toaster it cannot find, and the test fails on
+/// the toast rather than on the behaviour it was written for.
+Widget routedHost({
+  required String initial,
+  required Map<String, GoRouterWidgetBuilder> routes,
+  List<Override> overrides = const [],
+  void Function(GoRouter router)? expose,
+}) {
+  final router = GoRouter(
+    initialLocation: initial,
+    routes: [
+      for (final MapEntry(key: path, value: builder) in routes.entries)
+        GoRoute(path: path, builder: builder),
+    ],
+  );
+  addTearDown(router.dispose);
+  expose?.call(router);
+  return ProviderScope(
+    overrides: overrides,
+    child: MaterialApp.router(
+      routerConfig: router,
+      builder: (context, child) => FTheme(
+        data: ansiThemeData(),
+        child: FToaster(child: child ?? const SizedBox()),
+      ),
+    ),
+  );
 }

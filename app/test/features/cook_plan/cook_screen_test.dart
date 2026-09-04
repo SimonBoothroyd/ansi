@@ -19,6 +19,7 @@ import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/fake_cook_plan_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
+import '../../helpers/pump_app.dart';
 
 /// The recipe list the component card reads its target's yield off.
 FakeRecipeRepository _recipeRepo({double? yieldQty, Unit? yieldUnit}) =>
@@ -42,28 +43,17 @@ Widget _host(List<Override> overrides) => ProviderScope(
 );
 
 /// The same view inside a real router, so a tap's destination is observable.
-Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) {
-  final router = GoRouter(
-    initialLocation: '/cook',
-    routes: [
-      GoRoute(path: '/cook', builder: (_, _) => const CookView()),
-      GoRoute(
-        path: '/recipes/:id',
-        builder: (_, state) =>
+Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) =>
+    routedHost(
+      initial: '/cook',
+      overrides: overrides,
+      expose: expose,
+      routes: {
+        '/cook': (_, _) => const CookView(),
+        '/recipes/:id': (_, state) =>
             FScaffold(child: Text('recipe ${state.pathParameters['id']}')),
-      ),
-    ],
-  );
-  addTearDown(router.dispose);
-  expose(router);
-  return ProviderScope(
-    overrides: overrides,
-    child: MaterialApp.router(
-      routerConfig: router,
-      builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
-    ),
-  );
-}
+      },
+    );
 
 PlannedRecipe _recipe(
   String title,
