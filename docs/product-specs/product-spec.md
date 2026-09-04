@@ -415,16 +415,38 @@ Prefilling is never promotion: **macros gate `complete`, density does not, and
 confirming is an explicit human act** in the flesh-out form (reversible —
 a `complete` row can be un-confirmed).
 
-**The Library (design board "Library · v2", shipped):** the app's home screen —
+**The Library (design board "Library · v3", shipped):** the app's home screen —
 books, their user-named sections, and the recipes filed under each.
 
-- **The header is two actions.** `＋` is the two doors that make a recipe (New
-  recipe · Import a recipe) and nothing else. `⋯`, to its left, changes the
-  shape of the library: Ingredients (with its stub badge) · New book · Reorder
-  books (only with ≥ 2 books) · ── · Sign out, which keeps its confirm. While
-  the vocabulary holds stubs a small herb **dot** rides `⋯`, so the
-  fleshing-out queue advertises itself without the menu being opened — absent,
-  never grey, at zero.
+- **The header is a search field and one link.** No screen name: the lit tab
+  says where you are, the rule Week, Cook and Shop already follow. The pinned
+  field takes the title slot, and the only control beside it is the household
+  glyph, which **navigates** to `/account`. That it is a link and not a menu is
+  the point — a popover accumulates because adding a row to one is free (v2's
+  `⋯` took Household and sync health within a day of shipping), while a control
+  that navigates has nowhere to put a sixth item.
+- **Creation lives on the shelf it fills.** Every section label carries a `＋`
+  opening the two doors that make a recipe (New recipe · Import a recipe) —
+  v2's promise word for word, on a row that knows its book *and* its section,
+  so `/recipes/new?book=…&section=…` files the recipe where you tapped instead
+  of in whichever book `ensureDefaultBook()` returns. The synthetic
+  `Unsectioned` label carries one too: that is the door for "this book, no
+  section". An expanded card carries **no dashed rows at all** — New section is
+  the book `⋯`'s item, which it always was.
+- **The vocabulary is a shelf, not a menu item.** An Ingredients card closes
+  the library with the book anatomy exactly — a name, a count line
+  (`308 ingredients · 3 stubs`), one control — and a `›` rather than a fold,
+  because 300 rows do not belong inside a card. It is not reference data filed
+  under a menu: `shopping_list_entry` has carried `ingredient_id` beside
+  `free_text` since `0006`, under a check that exactly one is set, so a top-up
+  is already an ingredient put on a list with no recipe near it. The stub
+  badge's old dot retires — a count line says outright what the dot hinted at.
+- **`/account` holds the household, this device and the session** — the
+  members and their usual portions, the quiet sync line, and Sign out with its
+  confirm. A pushed page, not a fifth tab: the four tabs are a loop (find ·
+  plan · cook · buy), and this is visited monthly. The *loud* half of sync
+  health does not live here — a stall or a refused write still raises the
+  shell's banner over whatever you are doing.
 - **Search is a field pinned under the header**, not a sheet or a route. A live
   query REPLACES the tree with flat rows carrying a `Book · Section` filing
   line (without it, two recipes called "Ragù" in two books are the same row
@@ -448,7 +470,9 @@ books, their user-named sections, and the recipes filed under each.
   badge: shelf life is a planning fact, and on honest numbers a macro badge is
   a number nobody asked for or an `incomplete` nag on most rows.
 - **Empty states are honest.** A count of zero reads "no recipes yet", never
-  `0 recipes`. An empty shelf offers the two doors in place. A search with no
+  `0 recipes`. An empty shelf offers the two doors in place — it has no section
+  labels to hang a `＋` from, so the dashed pair stays exactly where it has
+  always been. A search with no
   hits echoes the query as typed — never "did you mean", which no matcher backs
   yet — over `＋ new recipe called "…"`, which carries the query into the
   editor as the title (`/recipes/new?title=`), and `⤓ import a recipe instead`.

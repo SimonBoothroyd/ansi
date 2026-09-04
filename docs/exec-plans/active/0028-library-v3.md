@@ -21,26 +21,26 @@ re-shelved without entering the editor; `/account` exists.
 
 ## Acceptance criteria
 
-- [ ] E1 — Library header is the pinned search field plus one `FLucideIcons.users`
+- [x] E1 — Library header is the pinned search field plus one `FLucideIcons.users`
       control that **navigates** to `/account`. No screen name, no `＋`, no `⋯`.
-- [ ] E2 — every section label (including the synthetic `Unsectioned`) carries a
+- [x] E2 — every section label (including the synthetic `Unsectioned`) carries a
       `＋` opening New recipe · Import a recipe; both carry
       `?book=…&section=…` and the editor seeds its filing from them.
-- [ ] E3 — the dashed `＋ new section` row is gone (the book `⋯` already has it).
-- [ ] E4 — `book_reorder_sheet.dart` deleted, "Reorder books" gone, the
+- [x] E3 — the dashed `＋ new section` row is gone (the book `⋯` already has it).
+- [x] E4 — `book_reorder_sheet.dart` deleted, "Reorder books" gone, the
       `books.length >= 2` conditional gone. Book order still changes from the
       book `⋯`'s Move up / Move down.
-- [ ] E5 — Ingredients renders as a card at the end of the library
+- [x] E5 — Ingredients renders as a card at the end of the library
       (`308 ingredients · 3 stubs`, `›`); the stub **dot** is deleted.
 - [x] E6 — `/account` route: household members + usual portions (today's sheet),
       sync health's quiet line, Sign out with its confirm.
-- [ ] E7 — the dashed `＋ new book` footer row exists at last.
+- [x] E7 — the dashed `＋ new book` footer row exists at last.
 - [ ] E8 — a `⋯` on the recipe row with **Move to…** and the favourite toggle;
       re-filing writes through a narrow `setFiling(id, bookId, sectionId)`,
       never `saveRecipe`. The target sheet says what it will do before it acts.
 - [ ] E9 — the editor's FILE UNDER is one breadcrumb line (`BOOK · SECTION`,
       `change ›`) opening the shipped picker.
-- [ ] Every test that drives a removed affordance is moved **by the slice that
+- [x] Every test that drives a removed affordance is moved **by the slice that
       removes it** — see "Test moves", below. No slice lands red.
 - [ ] Tests cover the new logic (the narrow write, the query-param seeding, the
       filing shown on the editor line).
@@ -57,17 +57,20 @@ re-shelved without entering the editor; `/account` exists.
 **Order changed 2026-09-03:** lane D goes first (see below), then A, then B/C.
 Lane A owns `library_view.dart` and must land before B/C touch it.
 
-1. **Lane A — the Library screen** (E1, E2, E3, E5, E7 + the deletions).
-   Slices, each its own commit: header (field + `users` link, `_AddMenu` and
-   `_OverflowMenu` deleted, `book_reorder_sheet.dart` deleted) → the section
-   `＋` and its two doors with query params → the dashed rows (section row out,
-   new-book row in) → the Ingredients card and the dot's deletion.
+1. **Lane A — the Library screen** (E1–E5, E7 + the deletions). ✅ **Landed
+   2026-09-03** on `lane/0028-library-v3-a` (worktree
+   `../mise-0028-lane-a`), three commits: `7094a64` the section `＋` and the
+   filing parameters (threaded through the editor draft AND the import
+   controller) · `c23d832` the header collapse, the reorder sheet's deletion,
+   the Ingredients shelf and the `＋ new book` row · `780933e` the dashed
+   new-section row, which the header commit had claimed and not done.
+   1688 host tests green, analyzer clean.
 2. **Lane B — the editor seam** (E9 + reading `?book=&section=`). Depends on A
    only for the query-parameter contract, which lands in A's second slice.
 3. **Lane C — Move to…** (E8). `setFiling` on `RecipeRepository` beside
    `setFavorite`, the row `⋯`, the target sheet, the announced sentence. The
    refusal grammar is `moveBookContents`' in the singular.
-4. **Lane D — `/account`** (E6). ✅ **Landed 2026-09-03** (`b6b1248`) — and
+4. **Lane D — `/account`** (E6). ✅ **Landed 2026-09-03 on `main`** (`b6b1248`) — and
    moved to the FRONT of the order, not the back: building it first gives the
    header link a real destination on day one, so `week_test`'s usual-portion
    leg moves once instead of twice and no interim sheet is needed. The sheet
@@ -96,6 +99,32 @@ New coverage each lane owes: section `＋` → the editor opens filed (A/B),
 `setFiling` and the announced move (C), `/account`'s three sections (D). The
 structural `no_bare_repo_write_test` already forces `setFiling` through
 `ref.write` — it should stay green by construction, not be amended.
+
+### Loose ends found on the way (all closed unless noted)
+
+- **`watch_coverage_test`'s scanner had an off-by-one.** It took the first
+  string STRICTLY after `.watch(`, so a one-line `.watch('SELECT …')` was
+  analysed against whatever string came next in the file — mine picked up the
+  `'n'` from `rows.first['n']`. It threw here; in another shape it would have
+  passed while checking the wrong SQL. Fixed to `>=` in `c23d832`.
+- **Three sim back-taps depended on tree order.**
+  `find.byType(FHeaderAction).first` meant "the pushed page's back", but a tab
+  root sits UNDER a pushed page and its actions come first — right only by
+  luck, and the Library gaining a header link would have made it wrong. They
+  use `tapBack` now, which finds the back action by its own `arrowLeft` icon
+  (`780933e`).
+- **E3 was claimed by the header slice and not done.** Caught in the loose-end
+  sweep; closed in `780933e`.
+- **A `git stash -u` in the shared checkout swept another agent's work.**
+  Restored the same day; the lane moved into a worktree, and the rule is in
+  agent memory. No repository state was lost.
+- **OPEN — no simulator run yet.** Every smoke leg that touched the header
+  moved (`library`, `week`, `ingredients`, `recipe_editor`) and none has been
+  driven on a device. This is the one acceptance criterion still outstanding
+  for the lanes that have landed.
+- **Not ours:** `lib/shared/ansi_toast.dart:122` carries an
+  `always_put_required_named_parameters_first` info on `main`. Another agent's
+  area; left alone deliberately.
 
 ## Decision log
 
@@ -129,6 +158,17 @@ Append-only.
   `free_text` under an XOR check, so the vocabulary is *already* something you
   plan with. A card, not a hairline row — and not a floating pill, which is the
   permanent incompleteness nag v2 D6 refused on browsing rows.
+
+### Docs updated with this lane
+
+- `docs/product-specs/product-spec.md` — the Library section rewritten to v3
+  (the header, creation on the shelf, the vocabulary's card, `/account`).
+- `docs/QUALITY.md` — the books row carries what v3 changed and says the sim
+  run is pending.
+- `docs/exec-plans/tech-debt-tracker.md` — the reorder row **narrowed** (one
+  path again, not two); two rows **added**: the stub queue as a global counter,
+  and `plan_entry.recipe_id` being `not null`.
+- `docs/exec-plans/roadmap.md` — row 8.12 flipped to what actually landed.
 
 ## Notes / open questions
 
