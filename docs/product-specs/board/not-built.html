@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Designed, not built</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
+    <h1 class="view-title">Designed, not built</h1>
+    <p class="view-status">not built · every frame here cites the <a href="../../exec-plans/backlog.md">backlog</a> row that explains it</p>
+    <p class="view-blurb">A hatch, not a graveyard. These were drawn, and the app has never had them. They are kept intact so the next pass starts from a drawing rather than a blank page — and out of the screen files so nothing on the board can be read as shipped when it is not.</p>
+</header>
+
+<div class="board">
+
+        <div class="frame">
+            <p class="frame-name"><b>Cook mode</b> · one step, big, timer running — <span class="differs-note" style="display:inline-block;margin:6px 0 0">not built · backlog: <i>“Cook mode (+ the Notes tab)”</i>. No route, no view, no timer screen; <code>features/recipes/README.md</code> lists it under <i>deferred</i>. The input shape is ready — every recipe saves <code>methodSteps</code> with structured timers and derived step keys.</span></p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="cm-top">
+                    <div class="cm-x"><span>✕ close</span><span>Chicken Curry</span></div>
+                    <div class="cm-dots"><span class="cm-dot done"></span><span class="cm-dot done"></span><span class="cm-dot done"></span><span class="cm-dot on"></span><span class="cm-dot"></span></div>
+                </div>
+                <div class="cm-body"><div class="cm-kick">Step 4 of 5 · the simmer</div><div class="cm-big">Pour in <span class="cm-hl">coconut milk 900 ml</span>, cover, and simmer gently.</div></div>
+                <div class="cm-timer"><div class="cm-time">24:12<small>simmer</small></div><div class="cm-pause">❚❚</div></div>
+                <div class="cm-nav"><div class="cm-btn prev">Back</div><div class="cm-btn next">Next step</div></div>
+            </div></div>
+        </div>
+
+    <div class="frame" style="width:340px">
+        <p class="frame-name"><b>The 400 ms tap latch</b> · <span class="differs-note" style="display:inline-block;margin:6px 0 0">not built, and <b>not planned</b> · backlog: <i>“The 400 ms tap latch”</i>. The frame’s status reads <code>taps 2 and 3 dropped · 400 ms window</code>. <code>guarded_navigation.dart</code> has no timer and no latch: it is a <b>same-location</b> dedupe, so a tap that leads somewhere else is never swallowed. The self-closing menu on the same frame <i>is</i> built — it is drawn on <a href="./navigation.html">Navigation</a>.</span></p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back"></span><span class="ttl">Library</span><span class="dots">＋</span></div>
+            <div class="book-card">
+                <div class="book-top"><div class="bn">Our Cookbook</div><div class="bc">12 recipes</div></div>
+                <div class="sec"><div class="sec-lab">Weeknight</div><div class="sec-items">Chicken Curry · Sausage Sliders</div></div>
+            </div>
+            <p class="conv-note" style="margin-top:14px"><b>tap · tap · tap</b> on one recipe row</p>
+            <div class="match" style="border-color:var(--herb);background:var(--herb-soft)">
+                <div class="raw">Chicken Curry <span class="qty">— opened once</span></div>
+                <div class="status"><span class="dot hi"></span><span class="to">taps 2 and 3 <b>dropped</b> · 400 ms window</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:12px">the self-closing menu drawn beside it is built, and lives on the Navigation view</p>
+            <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">⬓</span>Shop</div></div>
+        </div></div>
+        <p class="conv-note"><b>D7</b> — come back to Week and it is where you left it: <b>same scroll, same Shared/Per-person lens</b>. Today both are thrown away on every switch. A lens is a filter you <i>chose</i>; forgetting it is the app forgetting an instruction.</p>
+    </div>
+
+</div>
+
+<p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>
