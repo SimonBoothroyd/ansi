@@ -63,6 +63,18 @@ const _allowed = <String, String>{
       'the ImportController method, not the repository: it cannot throw.',
   'lib/features/import/presentation/reconciliation_view.dart:commit':
       'the ImportController method, not the repository: it cannot throw.',
+  'lib/features/ingredients/presentation/ingredient_view_models.dart:saveForm':
+      'held by the form notifier; every caller — the docked Save, Mark '
+      'complete, the stranded-default repair — wraps `form.save` in '
+      'ref.write, so the guard is one frame out.',
+  'lib/features/ingredients/presentation/ingredient_view_models.dart:unconfirm':
+      'same: the `⋯` item wraps `form.unconfirm` in ref.writeOk.',
+  'lib/features/ingredients/presentation/ingredient_view_models.dart:softDelete':
+      'same: the `⋯` item wraps `form.delete` in ref.write, and the refusal '
+      'the notifier reports is a state, not a failure.',
+  'lib/features/ingredients/presentation/ingredient_view_models.dart:'
+          'declineUsdaPrefill':
+      'same: the provenance card wraps `form.declineUsda` in ref.writeOk.',
 };
 
 /// Declarations on a repository interface: two-space indent, a `Future<…>`

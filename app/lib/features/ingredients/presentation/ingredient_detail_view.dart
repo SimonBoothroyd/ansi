@@ -2,6 +2,10 @@
 /// that does not exist yet) — the app's one door to making or fleshing out a
 /// vocabulary entry.
 ///
+/// **This file draws it.** Everything it intends and has not written is the
+/// [IngredientForm] ViewModel's draft, and every tap dispatches an intent —
+/// so what one Save sends can be asked without a widget tree.
+///
 /// It is an **editor**, not a one-way queue: a `complete` row opens here too.
 /// What it owns, in order — canonical name (a rename rewrites `match_text`),
 /// aliases, category + default unit, macros with their basis, density (the
@@ -45,7 +49,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
@@ -53,6 +56,7 @@ import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_error_state.dart';
+import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/format.dart';
 import '../../../shared/guarded_navigation.dart';
@@ -69,6 +73,7 @@ import '../domain/serving_offer.dart';
 import '../domain/usda_probe.dart';
 import 'density_entry.dart';
 import 'draft_card.dart';
+import 'ingredient_view_models.dart';
 import 'measures_editor.dart';
 import 'serving_row.dart';
 import 'usda_pick_sheet.dart';
@@ -127,25 +132,27 @@ class IngredientDetailView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (ingredientId == null) {
       return _DetailForm(
-        ingredient: null,
+        ingredientId: null,
         initialName: name,
         lookup: lookup,
         cameraPane: cameraPane,
       );
     }
     final async = ref.watch(ingredientByIdProvider(ingredientId!));
-    final ingredient = async.asData?.value;
 
     // The form owns its own scaffold: the header's `⋯` menu and the pinned
     // action bar both act on form state (the pending edits, the busy flag,
     // the one message line), and a scaffold built above them could only
     // reach that state through callbacks threaded back up.
-    if (ingredient != null) {
+    //
+    // It is built only once the row is HERE, so the ViewModel seeds its draft
+    // from a real row rather than from a blank it would have to reconcile.
+    if (async.asData?.value != null) {
       return _DetailForm(
         // Keyed by id so pushing a different ingredient rebuilds the form
         // state instead of inheriting the previous row's typed values.
         key: ValueKey(ingredientId!),
-        ingredient: ingredient,
+        ingredientId: ingredientId,
         lookup: lookup,
         cameraPane: cameraPane,
       );
@@ -203,20 +210,19 @@ class _Centered extends StatelessWidget {
   );
 }
 
-class _DetailForm extends HookConsumerWidget {
+class _DetailForm extends ConsumerWidget {
   const _DetailForm({
-    required this.ingredient,
+    required this.ingredientId,
     this.initialName = '',
     this.lookup,
     this.cameraPane,
     super.key,
   });
 
-  /// Null while creating (C2). Everything below reads a local `ing`, either
-  /// this row or a blank stand-in, so only the handful of places that
-  /// genuinely differ — the save, the header menu, the watched children —
-  /// have to know which they are looking at.
-  final Ingredient? ingredient;
+  /// Null while creating. The form's own state lives in [IngredientForm],
+  /// keyed by this — so the draft and the rules that shape it are testable
+  /// without a widget tree, and this file only draws.
+  final String? ingredientId;
 
   final String initialName;
   final OffLookup? lookup;
@@ -224,302 +230,28 @@ class _DetailForm extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final creating = ingredient == null;
-    // A blank stand-in so the whole form can go on reading one row. Its id is
-    // empty and is never used: the create path passes null to `saveForm`, and
-    // the watched children are skipped below.
-    final ing =
-        ingredient ??
-        Ingredient(
-          id: '',
-          canonicalName: initialName.trim(),
-          defaultUnit: g,
-          status: IngredientStatus.stub,
-        );
-    final name = useState(ing.canonicalName);
-    final category = useState(ing.category ?? '');
-    final defaultUnit = useState(ing.defaultUnit);
-    final basis = useState(ing.macrosBasis);
-    final macros = useState<_MacroDraft>(_MacroDraft.from(ing.macros));
-    // What the row last handed the macro draft. "Untouched" is defined against
-    // this rather than against blankness, so a row that arrives with numbers
-    // is as re-seedable as an empty one (G1, below).
-    final seededMacros = useState<_MacroDraft>(_MacroDraft.from(ing.macros));
-    // Bumped on every re-seed, and used as the macro fields' key. See G1.
-    final macroSeed = useState(0);
-    // The macros section's per-serving mode: the four fields then hold the
-    // label's figures AS PRINTED and the serving row says what they describe,
-    // and what is stored is still per 100 of the basis.
-    final perServing = useState(false);
-    final serving = useState(const ServingDraft());
-    // Bumped when a scan seeds the serving row, and used as its key — the
-    // same mechanism the macro fields use (G1).
-    final servingSeed = useState(0);
-    // M-D2: the serving's "1 tbsp = 14 g" as this row's density (or a
-    // measure) — off by default, one tap, the same save.
-    final servingOffer = useState(false);
-    final allowed = useState(allowedUnitsFor(ing).toSet());
-    final message = useState<String?>(null);
-    final busy = useState(false);
-    // Set when the measures editor refused a volume-named label and handed
-    // back the resolved spoon — the density entry pre-picks it (F2: one
-    // shared editor, so the redirect works here exactly as in the sheet).
-    final redirectedSpoon = useState<Unit?>(null);
-    // **The draft.** Everything the form intends and has not written. Held as
-    // DELTAS rather than as replacement lists, which is what answers D6's
-    // hazard structurally: a save that only inserts its adds and tombstones its
-    // named removes never needs the whole list, so a measures stream that
-    // failed to load cannot become a narrowed set written back. The one place
-    // emptiness is still load-bearing — the `piece` question — checks that the
-    // list actually loaded before it reads it as empty.
-    final densityChange = useState<DensityChange>(const DensityUnchanged());
-    final measuresAdded = useState<List<Measure>>(const []);
-    final measuresRemoved = useState<Set<String>>(const {});
-    final defaultMeasure = useState<DefaultMeasureChange>(
-      const DefaultMeasureUnchanged(),
+    final provider = ingredientFormProvider(
+      ingredientId,
+      initialName: initialName,
     );
-    final nameSeed = useState(0);
-    final pendingSourceLabel = useState<String?>(null);
-    final pendingSourceScore = useState<double?>(null);
-    final aliasesAdded = useState<List<IngredientAlias>>(const []);
-    final aliasesRemoved = useState<Set<String>>(const {});
-    // The last barcode scan: the draft the card shows, what `applyDraft`
-    // decided about it, and whether its pack offer was taken.
-    final scanned = useState<IngredientDraft?>(null);
-    final scanApplied = useState<DraftApplication?>(null);
-    final packAdded = useState(false);
-    // A provenance the scan stamped and the next Save writes — held with the
-    // macros it explains rather than written on its own, so backing out of
-    // the form leaves the row exactly as it was found.
-    final pendingSource = useState<String?>(null);
+    final draft = ref.watch(provider);
+    final form = ref.read(provider.notifier);
+    final ing = draft.row;
+    final creating = draft.creating;
+    final draftRow = draft.editedRow;
+    final stub = draft.stub;
+    final busy = draft.busy;
     // A row that does not exist has no stored children to watch — and asking
     // for them under a blank id would be a query about nothing.
     final measuresAsync = creating
         ? const AsyncValue<List<Measure>>.data([])
         : ref.watch(ingredientMeasuresProvider(ing.id));
 
-    // The density AS THE FORM HOLDS IT. Nothing has been written, so the
-    // chips, the gap note and the entry's own headline all read the draft —
-    // and `allowed_units` follows it here, in the form, which is why
-    // `saveForm` writes the set as given instead of re-deriving it (W3).
-    final densityValue = switch (densityChange.value) {
-      DensitySet(:final gPerMl) => gPerMl,
-      DensityCleared() => null,
-      DensityUnchanged() => ing.densityGPerMl,
-    };
-    // The row as the FORM currently reads it: the stored facts with the two
-    // draft choices the D4c admission rule turns on — the default unit and
-    // the macros basis — folded in. Every "what may this row say" question
-    // below asks this rather than the stored row, so flipping the basis chip
-    // moves the locks and the flag with it instead of leaving them answering
-    // for a row nobody is looking at.
-    // `copyWith` reads a null as "unchanged" (freezed), so a CLEARED density
-    // has to be built field-by-field — the same reason the repository's own
-    // clear does not go through copyWith.
-    final draftRow = densityValue == null
-        ? Ingredient(
-            id: ing.id,
-            canonicalName: ing.canonicalName,
-            defaultUnit: defaultUnit.value,
-            status: ing.status,
-            category: ing.category,
-            macros: ing.macros,
-            macrosBasis: basis.value,
-            allowedUnits: ing.allowedUnits,
-            measureCount: ing.measureCount,
-            source: ing.source,
-            sourceLabel: ing.sourceLabel,
-            sourceScore: ing.sourceScore,
-            defaultMeasureId: ing.defaultMeasureId,
-          )
-        : ing.copyWith(
-            defaultUnit: defaultUnit.value,
-            macrosBasis: basis.value,
-            densityGPerMl: densityValue,
-          );
-
-    useEffect(() {
-      final next = {...allowed.value};
-      if (densityValue != null) {
-        next.addAll(densityUnlockedUnits(draftRow));
-      } else {
-        next.removeAll(densityStrippedUnits(draftRow));
-      }
-      allowed.value = next;
-      return null;
-    }, [densityValue]);
-
-    // **G1 — a lookup's numbers reach the fields, not just the row.**
-    //
-    // The macro inputs are seeded once, when their controllers are built: a
-    // successful "Look up in USDA" wrote macros into the row and re-rendered
-    // everything *derived* from it (the banner, the chips, the status line)
-    // while the four fields went on showing the blanks they were born with.
-    //
-    // Re-seeding the draft is half the fix; the other half is making the
-    // framework rebuild the controllers, which it will only do for a child
-    // whose key changed. Keying is the approach that survives this file's
-    // stable-slot rule — the ListView index does not move, so no sibling is
-    // reconciled against the wrong element; only the keyed subtree at that
-    // fixed index is replaced.
-    //
-    // The guard is what keeps a pending edit safe: the draft is re-seeded only
-    // while it still says exactly what the row last put there. Type into any
-    // macro field and the row's own changes stop overwriting you.
-    final rowMacros = ing.macros;
-    useEffect(() {
-      final fresh = _MacroDraft.from(rowMacros);
-      if (fresh == seededMacros.value) return null; // the row didn't move
-      if (macros.value != seededMacros.value) return null; // yours wins
-      seededMacros.value = fresh;
-      macros.value = fresh;
-      macroSeed.value++;
-      // A row's own macros are per 100 by definition — the fields now hold
-      // them, so the mode must say so.
-      perServing.value = false;
-      return null;
-    }, [rowMacros]);
-
-    // A `complete` row is one whose macros the household stands behind — the
-    // form's own draft is what the CTA acts on, so the gate reads the draft.
-    // In per-serving mode the fields hold the printed four and the draft is
-    // their per-100 derivation (M-D1/M-D3) — null until the serving weight
-    // is in, so nothing is stored that was divided by a blank.
-    final printed = macros.value.toMacros();
-    final servingAmount = serving.value.amount;
-    final draftMacros = !perServing.value
-        ? printed
-        : (printed == null || servingAmount == null)
-        ? null
-        : Macros.per100From(
-            serving: servingAmount,
-            basis: basis.value,
-            printed: printed,
-          );
-    final offer = perServing.value
-        ? servingOfferFor(
-            amount: serving.value.amount,
-            name: serving.value.name,
-            basis: basis.value,
-          )
-        : null;
-    final stub = ing.status == IngredientStatus.stub;
-
-    Future<Ingredient?> save({bool markComplete = false}) async {
-      if (name.value.trim().isEmpty) {
-        message.value =
-            'A name is the one field an ingredient can’t go '
-            'without.';
-        return null;
-      }
-      if (!macros.value.isCoherent) {
-        message.value =
-            'Enter all four macros, or leave them all blank — a '
-            'part of a panel isn’t a panel.';
-        return null;
-      }
-      if (perServing.value && printed != null && servingAmount == null) {
-        message.value =
-            'One serving is how much? The label’s figures become per 100 '
-            'only once the serving weight is typed.';
-        return null;
-      }
-      busy.value = true;
-      try {
-        // The serving offer, taken: it rides the same one write as everything
-        // else the form is holding.
-        final taken = servingOffer.value ? offer : null;
-        final offeredDensity = taken is DensityOffer ? taken.gPerMl : null;
-        final offeredMeasure = taken is MeasureOffer ? taken : null;
-        final density = offeredDensity != null
-            ? DensitySet(offeredDensity)
-            : densityChange.value;
-        // **One call.** The row's fields, the density, every measure added
-        // and removed, "Counts as" and — when the CTA asked — the status
-        // flip, in a single transaction (W3/W5b). Nothing here can half-land.
-        final outcome = await ref.write(
-          context,
-          'save ${ing.canonicalName}',
-          () async => (
-            row: await ref
-                .read(ingredientRepositoryProvider)
-                .saveForm(
-                  // C1: null makes the row, its measures and its aliases in
-                  // one transaction.
-                  creating ? null : ing.id,
-                  IngredientFormEdit(
-                    row: IngredientEdit(
-                      canonicalName: name.value,
-                      defaultUnit: defaultUnit.value,
-                      macrosBasis: basis.value,
-                      allowedUnits: allowed.value,
-                      category: category.value.trim().isEmpty
-                          ? null
-                          : category.value.trim(),
-                      macros: draftMacros,
-                      source: pendingSource.value,
-                      sourceLabel: pendingSourceLabel.value,
-                      sourceScore: pendingSourceScore.value,
-                    ),
-                    density: density,
-                    measuresAdded: [
-                      for (final m in measuresAdded.value)
-                        PendingMeasure(
-                          id: m.id,
-                          label: m.label,
-                          amount: m.amount,
-                        ),
-                      if (offeredMeasure != null)
-                        PendingMeasure(
-                          id: const Uuid().v4(),
-                          label: offeredMeasure.label,
-                          amount: offeredMeasure.amount,
-                        ),
-                    ],
-                    measuresRemoved: measuresRemoved.value,
-                    aliasesAdded: [
-                      for (final a in aliasesAdded.value)
-                        PendingAlias(id: a.id, text: a.text),
-                    ],
-                    aliasesRemoved: aliasesRemoved.value,
-                    defaultMeasure: defaultMeasure.value,
-                    markComplete: markComplete,
-                  ),
-                ),
-            measureAdded: offeredMeasure != null,
-          ),
-        );
-        if (outcome == null || !context.mounted) return null;
-        final saved = outcome.row;
-        if (saved == null) {
-          message.value = 'It is no longer here.';
-          return null;
-        }
-        // Landed, so the draft empties: a second Save must not write any of
-        // it twice. This is the one place the draft is discarded on purpose.
-        pendingSource.value = null;
-        pendingSourceLabel.value = null;
-        pendingSourceScore.value = null;
-        servingOffer.value = false;
-        densityChange.value = const DensityUnchanged();
-        measuresAdded.value = const [];
-        measuresRemoved.value = const {};
-        aliasesAdded.value = const [];
-        aliasesRemoved.value = const {};
-        defaultMeasure.value = const DefaultMeasureUnchanged();
-        // Nothing is invalidated here: the row, its measures, its aliases and
-        // the vocabulary are all watched queries, so the write that just
-        // landed re-fires them — as another device's write does.
-        message.value = 'Saved.';
-        return saved;
-      } finally {
-        if (context.mounted) busy.value = false;
-      }
-    }
-
-    // Item 8: the barcode door, from the form. What lands is decided by the
-    // shared rule, against the form's OWN draft — a panel typed and not yet
-    // saved is as much the human's as a saved one.
+    // The barcode door. The scanner needs a context, so the sheet opens here
+    // and what it returns is handed straight back as an intent — the rule for
+    // what a draft may land on is the ViewModel's, against the form's OWN
+    // draft, because a panel typed and not yet saved is as much the human's as
+    // a saved one.
     Future<void> scan() async {
       final draft = await scanBarcodeForDraft(
         context,
@@ -528,102 +260,27 @@ class _DetailForm extends HookConsumerWidget {
         lookup: lookup ?? ref.read(offLookupProvider),
         cameraPane: cameraPane,
       );
-      if (draft == null || !context.mounted) return;
-      final applied = applyDraft(
-        draft,
-        target: DraftTarget(
-          name: name.value,
-          hasMacros: !macros.value._allBlank,
-          macrosBasis: basis.value,
-          source: pendingSource.value ?? ing.source,
-        ),
-      );
-      scanned.value = draft;
-      scanApplied.value = applied;
-      packAdded.value = false;
-      if (applied.macros != null) {
-        basis.value = applied.macrosBasis!;
-        // Into the fields, not just the state: re-keying the inputs is how
-        // the controllers pick the new text up (G1's mechanism).
-        macros.value = _MacroDraft.from(applied.macros);
-        macroSeed.value++;
-        perServing.value = false;
-      }
-      final panel = applied.servingPanel;
-      if (panel != null) {
-        // M-D5: a per-serving panel lands on the per-serving mode — the four
-        // as printed, the serving amount prefilled when OFF had a number and
-        // otherwise left for the person, never parsed out of the free text.
-        perServing.value = true;
-        if (panel.servingBasis != null) basis.value = panel.servingBasis!;
-        macros.value = _MacroDraft.from(panel.printed);
-        macroSeed.value++;
-        serving.value = ServingDraft.fromPanel(panel);
-        servingSeed.value++;
-        servingOffer.value = false;
-      }
-      // **The name, when there isn't one yet (C2).** `applyDraft` returns one
-      // only where the target's was EMPTY, which on an existing row it never
-      // is — so this did nothing until the form became the create surface,
-      // and on a new row it is the difference between a scan that fills the
-      // form in and a Save that refuses for want of a name. It is a starting
-      // point, not a decision: the field stays editable, and the board is
-      // explicit that yours is the name your recipes read.
-      if (applied.name != null) {
-        name.value = applied.name!;
-        nameSeed.value++;
-      }
-      if (applied.source != null) pendingSource.value = applied.source;
+      if (draft == null) return;
+      form.applyScan(draft);
     }
 
     // **The USDA search — one door, two entry points.**
     //
     // `Fill it in from ▸ Look up in USDA` and the provenance card's
     // `Choose another ›` are the same act: ask USDA about this row and let a
-    // human pick. It asks about **the name in the field**, not the stored
-    // row, which is why the lookup no longer has to save the form first to
-    // avoid probing a stale name (F1, retired).
-    //
-    // **And a pick writes nothing**. It fills the draft — the macros, the
-    // density, and which food they came from — and the form's own Save lands
-    // the lot. That is also what lets it work on a row that does not exist yet
-    // (C1), and it deletes the "an explicit pick outranks a half-typed panel"
-    // reconciliation: with one write model there is no row moving underneath a
-    // draft to reconcile against. The pick simply is the draft.
+    // human pick. It asks about **the name in the field**, not the stored row,
+    // so the lookup never has to save the form first to avoid probing a stale
+    // name. And a pick writes nothing — it fills the draft, and the form's own
+    // Save lands the lot, which is also what lets it work on a row that does
+    // not exist yet.
     Future<void> pickUsda() async {
-      busy.value = true;
-      try {
-        final pick = await showUsdaPickSheet(
-          context,
-          ingredient: ing,
-          name: name.value.trim().isEmpty ? ing.canonicalName : name.value,
-        );
-        if (pick == null || !context.mounted) return;
-        pendingSource.value = pick.source;
-        pendingSourceLabel.value = pick.description;
-        pendingSourceScore.value = pick.score;
-        // A pick replaces the old fill WHOLE (U-D3), so a food with no
-        // density of its own clears the one the previous food supplied —
-        // otherwise the row would keep a number that came from a match the
-        // household has just rejected.
-        densityChange.value = pick.densityGPerMl != null
-            ? DensitySet(pick.densityGPerMl!)
-            : const DensityCleared();
-        if (pick.macros != null) {
-          final filled = _MacroDraft.from(pick.macros);
-          macros.value = filled;
-          // Re-seeded in the same breath, so G1's effect sees a draft that
-          // already matches what it would have written and stands down.
-          seededMacros.value = filled;
-          macroSeed.value++;
-          perServing.value = false;
-        }
-        message.value =
-            'Filled from “${pick.description}” — nothing is saved until you '
-            'tap Save.';
-      } finally {
-        if (context.mounted) busy.value = false;
-      }
+      final pick = await showUsdaPickSheet(
+        context,
+        ingredient: ing,
+        name: draft.name.trim().isEmpty ? ing.canonicalName : draft.name,
+      );
+      if (pick == null) return;
+      form.applyUsdaPick(pick);
     }
 
     // Leaving the form. A cold deep link lands here with no page beneath, so
@@ -635,16 +292,19 @@ class _DetailForm extends HookConsumerWidget {
     void leave([Ingredient? result]) =>
         context.canPop() ? context.pop(result) : context.goOnce('/ingredients');
 
-    // The `⋯` actions and the CTA, so the header and the pinned bar can both
-    // reach them. They live here rather than inside their own widgets because
-    // every one of them reports through this form's single message line.
-    // Completing is the page's terminal act, so it ENDS the page. Nothing
-    // popped before, although `ingredient_picker` pushes this form and
-    // *awaits its pop* before opening the quantity sheet on the units the
-    // form just set — so finishing a row from a recipe line left the person
-    // on a screen that had told them it counts and given them nothing to do,
-    // with a caller waiting behind it.
-    // Save and mark in ONE transaction: split across two writes, a failure
+    Future<Ingredient?> save({bool markComplete = false}) =>
+        ref.write<Ingredient?>(
+          context,
+          'save ${ing.canonicalName}',
+          () => form.save(markComplete: markComplete),
+        );
+
+    // Completing is the page's terminal act, so it ENDS the page: the
+    // ingredient picker pushes this form and *awaits its pop* before opening
+    // the quantity sheet on the units the form just set, so finishing a row
+    // from a recipe line must not leave the person on a screen that has told
+    // them it counts and given them nothing to do.
+    // Save and mark go in ONE transaction: split across two writes, a failure
     // between them leaves the row saved and not marked, under an error
     // implying neither happened.
     Future<void> completeRow() async {
@@ -653,43 +313,21 @@ class _DetailForm extends HookConsumerWidget {
       leave(saved);
     }
 
-    Future<void> unconfirmRow() async {
-      final undone = await ref.writeOk(
-        context,
-        'unconfirm ${ing.canonicalName}',
-        () => ref.read(ingredientRepositoryProvider).unconfirm(ing.id),
-      );
-      if (!undone || !context.mounted) return;
-      message.value =
-          'Back to a stub — it stops counting until you complete it again.';
-    }
+    Future<void> unconfirmRow() =>
+        ref.writeOk(context, 'unconfirm ${ing.canonicalName}', form.unconfirm);
 
     // The refusal is the interesting state: it names the count, because "used
-    // by 3 recipes" is a thing a user can act on and "failed" is not. It
-    // lands in the message line above the action bar, which is on screen
-    // whatever the scroll position — the old inline refusal could be written
-    // to a part of the page the person had already scrolled past.
+    // by 3 recipes" is a thing a user can act on and "failed" is not. It lands
+    // in the message line above the action bar, which is on screen whatever
+    // the scroll position.
     Future<void> deleteRow() async {
       final outcome = await ref.write(
         context,
         'delete ${ing.canonicalName}',
-        () => ref.read(ingredientRepositoryProvider).softDelete(ing.id),
+        form.delete,
       );
-      if (outcome == null || !context.mounted) return;
-      switch (outcome) {
-        case Deleted():
-          if (context.mounted) {
-            context.canPop() ? context.pop() : context.goOnce('/ingredients');
-          }
-        case DeleteRefused(:final recipeCount, :final lineCount):
-          message.value =
-              'Still used by $recipeCount '
-              '${recipeCount == 1 ? 'recipe' : 'recipes'} '
-              '($lineCount ${lineCount == 1 ? 'line' : 'lines'}). '
-              'Change those lines first.';
-        case DeleteMissing():
-          message.value = 'It is already gone.';
-      }
+      if (outcome is! Deleted || !context.mounted) return;
+      context.canPop() ? context.pop() : context.goOnce('/ingredients');
     }
 
     // What the row's measures ARE, as the form holds them: the loaded ones
@@ -700,8 +338,8 @@ class _DetailForm extends HookConsumerWidget {
     final loadedMeasures = measuresAsync.asData?.value;
     final measures = [
       for (final m in loadedMeasures ?? const <Measure>[])
-        if (!measuresRemoved.value.contains(m.id)) m,
-      ...measuresAdded.value,
+        if (!draft.measuresRemoved.contains(m.id)) m,
+      ...draft.measuresAdded,
     ];
 
     return FScaffold(
@@ -753,22 +391,21 @@ class _DetailForm extends HookConsumerWidget {
       // flick below the confirm CTA.
       footer: _ActionBar(
         stub: stub,
-        canComplete: !busy.value && draftMacros != null,
+        canComplete: !busy && draft.storedMacros != null,
         // The line the CTA's promise moved into: what a save said, what a
         // delete refused, or — while the CTA is disabled — what it is waiting
         // for.
         message:
-            message.value ??
+            draft.message ??
             (stub
-                ? (draftMacros == null
+                ? (draft.storedMacros == null
                       ? 'needs macros'
                       : 'completing it counts it in conversions and macro '
                             'totals')
                 : null),
-        // `save()` itself stays pure: three callers use it as a FLUSH (the
-        // USDA lookup's F1 rule, Choose another, and the stranded-default
-        // fix) and none of those may navigate. Only the button leaves.
-        onSave: busy.value
+        // Only the button leaves: three other callers use the save as a FLUSH
+        // and none of those may navigate.
+        onSave: busy
             ? null
             : () async {
                 final saved = await save();
@@ -784,7 +421,7 @@ class _DetailForm extends HookConsumerWidget {
           // and a section that turns on turns on inside its group. An unkeyed
           // insertion in a ListView shifts every sibling by one, which
           // reconciles each of them against the wrong element and silently
-          // resets its hook state.
+          // resets its state.
           _StatusStrip(ingredient: ing, creating: creating),
 
           // The two prefill doors, in one place: they are the same offer, and
@@ -792,41 +429,28 @@ class _DetailForm extends HookConsumerWidget {
           // them.
           if (stub)
             _FillItIn(
-              onScan: busy.value ? null : scan,
+              onScan: busy ? null : scan,
               usda: isUsdaPrefilled(ing.source) || isUsdaDeclined(ing.source)
                   ? null
                   : _GhostButton(
                       label: 'Look up in USDA',
-                      onTap: busy.value ? null : pickUsda,
+                      onTap: busy ? null : pickUsda,
                     ),
             )
           else
             const SizedBox.shrink(),
 
-          if (scanned.value != null && scanApplied.value != null)
+          if (draft.scanned != null && draft.scanApplied != null)
             _ScanResult(
-              draft: scanned.value!,
-              applied: scanApplied.value!,
-              packAdded: packAdded.value,
-              onAddPack: () async {
-                // The pack size is an OFFER (F2's ruling): a measure lands
-                // only because it was tapped — and since W5 it lands in the
-                // draft, so it rides the form's one Save like every other
-                // measure. That is also what lets a barcode-created row carry
-                // its pack size before the row exists.
-                final pack = scanApplied.value!.packMeasure!;
-                measuresAdded.value = [
-                  ...measuresAdded.value,
-                  Measure(
-                    id: const Uuid().v4(),
-                    label: 'pack',
-                    amount: pack.amountInBasis,
-                    basis: basis.value,
-                    sortOrder: measures.length,
-                  ),
-                ];
-                packAdded.value = true;
-              },
+              draft: draft.scanned!,
+              applied: draft.scanApplied!,
+              packAdded: draft.packAdded,
+              // The pack size is an OFFER: a measure lands only because it was
+              // tapped — and it lands in the draft, so it rides the form's one
+              // Save like every other measure. That is also what lets a
+              // barcode-created row carry its pack size before the row exists.
+              onAddPack: () async =>
+                  form.addPackMeasure(sortOrder: measures.length),
             )
           else
             const SizedBox.shrink(),
@@ -841,11 +465,11 @@ class _DetailForm extends HookConsumerWidget {
               FTextField(
                 // Keyed on the seed: `initial` seeds the controller once, so a
                 // scan that lands a product name needs a new field to seed it
-                // into — G1's mechanism, for the name rather than the macros.
-                key: ValueKey('canonical-name-${nameSeed.value}'),
+                // into.
+                key: ValueKey('canonical-name-${draft.nameSeed}'),
                 control: FTextFieldControl.managed(
-                  initial: TextEditingValue(text: name.value),
-                  onChange: (v) => name.value = v.text,
+                  initial: TextEditingValue(text: draft.name),
+                  onChange: (v) => form.setName(v.text),
                 ),
               ),
               const _Note('renaming rewrites the match text'),
@@ -853,10 +477,10 @@ class _DetailForm extends HookConsumerWidget {
               const _Label('ALSO KNOWN AS'),
               _AliasEditor(
                 aliases: [
-                  // Decorative emptiness, weighed (D6): the add field is the
-                  // point of this section and works with no list at all, and
-                  // an alias that exists but did not load is re-added
-                  // harmlessly — `saveForm` is find-or-create on match_text.
+                  // Decorative emptiness, weighed: the add field is the point
+                  // of this section and works with no list at all, and an
+                  // alias that exists but did not load is re-added harmlessly
+                  // — `saveForm` is find-or-create on match_text.
                   for (final a
                       in (creating
                               ? null
@@ -865,34 +489,17 @@ class _DetailForm extends HookConsumerWidget {
                                     .asData
                                     ?.value) ??
                           const <IngredientAlias>[])
-                    if (!aliasesRemoved.value.contains(a.id)) a,
-                  ...aliasesAdded.value,
+                    if (!draft.aliasesRemoved.contains(a.id)) a,
+                  ...draft.aliasesAdded,
                 ],
-                onAdd: (text) => aliasesAdded.value = [
-                  ...aliasesAdded.value,
-                  // Minted here and kept: `saveForm` inserts under this id.
-                  IngredientAlias(
-                    id: const Uuid().v4(),
-                    text: text.trim(),
-                    source: 'manual',
-                  ),
-                ],
-                onRemove: (id) {
-                  if (aliasesAdded.value.any((a) => a.id == id)) {
-                    aliasesAdded.value = [
-                      for (final a in aliasesAdded.value)
-                        if (a.id != id) a,
-                    ];
-                  } else {
-                    aliasesRemoved.value = {...aliasesRemoved.value, id};
-                  }
-                },
+                onAdd: form.addAlias,
+                onRemove: form.removeAlias,
               ),
 
               const _Label('CATEGORY'),
               _CategoryPicker(
-                selected: category.value,
-                onPick: (c) => category.value = c,
+                selected: draft.category,
+                onPick: form.setCategory,
               ),
             ],
           ),
@@ -900,114 +507,87 @@ class _DetailForm extends HookConsumerWidget {
           _Group(
             title: 'Nutrition',
             children: [
-              // U-D1: where the numbers came from, at the head of the section
-              // that holds them. A slot again (it renders nothing on a row
-              // USDA never touched), and the two doors are the only place the
+              // Where the numbers came from, at the head of the section that
+              // holds them. A slot again (it renders nothing on a row USDA
+              // never touched), and the two doors are the only place the
               // prefill can be refused or re-chosen.
               _UsdaProvenance(
                 ingredient: ing,
-                onDecline: busy.value
+                onDecline: busy
                     ? null
-                    : () async {
-                        busy.value = true;
-                        try {
-                          // One write (U-D2): the prefilled density and macros
-                          // come out and the row is marked declined. The macro
-                          // fields follow through G1's re-seed (the row's
-                          // macros moved and the draft was theirs), the chips
-                          // through the density effect above.
-                          final cleared = await ref.write(
-                            context,
-                            'undo the USDA fill',
-                            () => ref
-                                .read(ingredientRepositoryProvider)
-                                .declineUsdaPrefill(ing.id),
-                          );
-                          if (cleared == null || !context.mounted) return;
-                          message.value =
-                              'Cleared — the USDA numbers are gone, and a '
-                              'rename will not bring them back.';
-                        } finally {
-                          if (context.mounted) busy.value = false;
-                        }
-                      },
-                onChooseAnother: busy.value ? null : pickUsda,
+                    : () => ref.writeOk(
+                        context,
+                        'undo the USDA fill',
+                        form.declineUsda,
+                      ),
+                onChooseAnother: busy ? null : pickUsda,
               ),
 
               const _Label('MACROS', hint: 'enter them as the label reads'),
-              // M-D1: one segment, in the section it changes. Per 100 of the
-              // basis is the default; per serving reveals the row below and
-              // reads the same four fields as the label prints them.
+              // One segment, in the section it changes. Per 100 of the basis is
+              // the default; per serving reveals the row below and reads the
+              // same four fields as the label prints them.
               Row(
                 children: [
                   AnsiModeChip(
                     label: 'per 100 g',
                     selected:
-                        !perServing.value && basis.value == MacrosBasis.perG,
-                    onTap: () {
-                      perServing.value = false;
-                      basis.value = MacrosBasis.perG;
-                    },
+                        !draft.perServing && draft.basis == MacrosBasis.perG,
+                    onTap: () => form.setBasis(MacrosBasis.perG),
                   ),
                   const SizedBox(width: 6),
                   AnsiModeChip(
                     label: 'per 100 ml',
                     selected:
-                        !perServing.value && basis.value == MacrosBasis.perMl,
-                    onTap: () {
-                      perServing.value = false;
-                      basis.value = MacrosBasis.perMl;
-                    },
+                        !draft.perServing && draft.basis == MacrosBasis.perMl,
+                    onTap: () => form.setBasis(MacrosBasis.perMl),
                   ),
                   const SizedBox(width: 6),
                   AnsiModeChip(
                     label: 'per serving',
-                    selected: perServing.value,
-                    onTap: () => perServing.value = true,
+                    selected: draft.perServing,
+                    onTap: form.setPerServing,
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              // Three slots: the serving row, the stored line and the M-D2
-              // offer hold their positions whether or not the mode is on, so
+              // Three slots: the serving row, the stored line and the offer
+              // hold their positions whether or not the mode is on, so
               // toggling it cannot shift the fields below onto the wrong
               // element. The serving unit sets the BASIS — a 14 g serving
               // reads per 100 g — so the admission chips follow it live.
-              if (perServing.value)
+              if (draft.perServing)
                 ServingRow(
-                  key: ValueKey('serving-row-${servingSeed.value}'),
-                  draft: serving.value,
-                  basis: basis.value,
-                  onAmount: (t) =>
-                      serving.value = serving.value.copyWith(amountText: t),
-                  onName: (t) =>
-                      serving.value = serving.value.copyWith(name: t),
-                  onBasis: (b) => basis.value = b,
+                  key: ValueKey('serving-row-${draft.servingSeed}'),
+                  draft: draft.serving,
+                  basis: draft.basis,
+                  onAmount: form.setServingAmount,
+                  onName: form.setServingName,
+                  onBasis: form.setServingBasis,
                 )
               else
                 const SizedBox.shrink(),
-              // The key is the row-version (G1): it changes only when the
-              // row's own macros were re-seeded into the draft above, and that
-              // is exactly when the four controllers need rebuilding around
-              // their new text.
+              // The key is the row-version: it changes only when the row's own
+              // macros were re-seeded into the draft, and that is exactly when
+              // the four controllers need rebuilding around their new text.
               _MacroFields(
-                key: ValueKey('macro-fields-${macroSeed.value}'),
-                draft: macros.value,
-                onChanged: (d) => macros.value = d,
+                key: ValueKey('macro-fields-${draft.macroSeed}'),
+                draft: draft.macros,
+                onChanged: form.setMacros,
               ),
-              if (perServing.value)
+              if (draft.perServing)
                 StoredPer100Line(
-                  basis: basis.value,
-                  serving: serving.value,
-                  printed: printed,
+                  basis: draft.basis,
+                  serving: draft.serving,
+                  printed: draft.printedMacros,
                 )
               else
                 const SizedBox.shrink(),
-              if (offer != null)
+              if (draft.offer case final offer?)
                 _ServingOfferLine(
                   offer: offer,
-                  taken: servingOffer.value,
-                  onToggle: (v) => servingOffer.value = v,
+                  taken: draft.servingOfferTaken,
+                  onToggle: (v) => form.takeServingOffer(taken: v),
                 )
               else
                 const SizedBox.shrink(),
@@ -1032,37 +612,27 @@ class _DetailForm extends HookConsumerWidget {
                 // which of its chips are locked.
                 key: const ValueKey('default-unit-row'),
                 ingredient: draftRow,
-                selected: defaultUnit.value,
-                onPick: (u) {
-                  defaultUnit.value = u;
-                  // Only an admissible unit can be tapped (D4c locks the
-                  // rest), so admitting the pick can never strand the row.
-                  allowed.value = {...allowed.value, u};
-                },
+                selected: draft.defaultUnit,
+                onPick: form.setDefaultUnit,
               ),
-              // D4c: a stored default the rules no longer support — a cup
-              // default on a per-100 g row with no density. Flagged with its
-              // repair rather than rewritten: how a household buys a thing is
-              // not ours to edit.
+              // A stored default the rules no longer support — a cup default
+              // on a per-100 g row with no density. Flagged with its repair
+              // rather than rewritten: how a household buys a thing is not
+              // ours to edit.
               _StrandedDefaultNote(
                 ingredient: draftRow,
-                onFix: () async {
-                  final fix = basisDefaultUnitFix(draftRow);
-                  defaultUnit.value = fix;
-                  allowed.value = {...allowed.value, fix};
-                  await save();
-                },
+                onFix: () => ref.write<Ingredient?>(
+                  context,
+                  'save ${ing.canonicalName}',
+                  form.fixStrandedDefault,
+                ),
               ),
 
               const _Label('ALLOWED UNITS', hint: 'what a line may say'),
               _AdmissionChips(
                 ingredient: draftRow,
-                selected: allowed.value,
-                onToggle: (u) {
-                  final next = {...allowed.value};
-                  if (!next.remove(u)) next.add(u);
-                  allowed.value = next;
-                },
+                selected: draft.allowed,
+                onToggle: form.toggleUnit,
               ),
               _DensityGapNote(ingredient: draftRow),
 
@@ -1075,29 +645,27 @@ class _DetailForm extends HookConsumerWidget {
                 // the row here would show a number the person has already
                 // replaced, or none where they have just typed one.
                 ingredient: draftRow,
-                redirectedSpoon: redirectedSpoon.value,
+                redirectedSpoon: draft.redirectedSpoon,
                 // Nothing is written here: the density goes in the draft and
                 // the form's Save lands it. The chips follow it because
-                // `draftRow` carries the draft density and the admission
-                // effect keys on it.
+                // `draftRow` carries the draft density and the admission rule
+                // is applied with it.
                 saveLabel: 'Add',
                 onSave: (gPerMl) async {
-                  densityChange.value = DensitySet(gPerMl);
-                  redirectedSpoon.value = null;
+                  form.draftDensity(gPerMl);
                   return true;
                 },
                 onRemove: () async {
-                  densityChange.value = const DensityCleared();
-                  redirectedSpoon.value = null;
+                  form.removeDensity();
                   return true;
                 },
               ),
 
               const _Label('MEASURES', hint: 'count-like, in the basis'),
-              // Load-bearing emptiness (D6): an errored measures stream
-              // rendered as `const []` hides rows that exist, and this form's
-              // next Save would then write the narrowed set back. So the error
-              // is a state, not a fact about the ingredient.
+              // Load-bearing emptiness: an errored measures stream rendered as
+              // `const []` hides rows that exist, and this form's next Save
+              // would then write the narrowed set back. So the error is a
+              // state, not a fact about the ingredient.
               if (measuresAsync case AsyncError(
                 :final error,
                 :final stackTrace,
@@ -1117,54 +685,23 @@ class _DetailForm extends HookConsumerWidget {
                 MeasuresEditor(
                   ingredient: ing,
                   measures: measures,
-                  // It adds to the draft here; the docked Save lands it (R3).
+                  // It adds to the draft here; the docked Save lands it.
                   addLabel: 'Add',
-                  onDelete: (m) async {
-                    // A pending add is simply dropped; a stored one is named
-                    // for tombstoning. Either way nothing is written yet.
-                    if (measuresAdded.value.any((p) => p.id == m.id)) {
-                      measuresAdded.value = [
-                        for (final p in measuresAdded.value)
-                          if (p.id != m.id) p,
-                      ];
-                    } else {
-                      measuresRemoved.value = {...measuresRemoved.value, m.id};
-                    }
-                    // "Counts as" cannot point at a measure that is going.
-                    if (defaultMeasure.value case DefaultMeasureSet(
-                      :final measureId,
-                    ) when measureId == m.id) {
-                      defaultMeasure.value = const DefaultMeasureSet(null);
-                    } else if (ing.defaultMeasureId == m.id) {
-                      defaultMeasure.value = const DefaultMeasureSet(null);
-                    }
-                  },
+                  onDelete: (m) async => form.removeMeasure(m.id),
                   // Nothing is written here: the measure goes in the draft and
-                  // the form's Save inserts it.
-                  onAdd: (label, amount) async {
-                    // Minted here, kept forever: `saveForm` inserts under this
-                    // id, so the measure the person is looking at is already
-                    // the measure the database will hold. The editor has
-                    // already refused a blank label, a volume-named one and a
-                    // non-positive amount — the same three the repository
-                    // refuses — so there is nothing left to be refused by.
-                    final pending = Measure(
-                      id: const Uuid().v4(),
-                      label: label.trim(),
-                      amount: amount,
-                      basis: basis.value,
+                  // the form's Save inserts it. The editor has already refused
+                  // a blank label, a volume-named one and a non-positive
+                  // amount — the same three the repository refuses — so there
+                  // is nothing left to be refused by.
+                  onAdd: (label, amount) async => MeasureAdded(
+                    form.draftMeasure(
+                      label,
+                      amount,
                       sortOrder: measures.length,
-                    );
-                    measuresAdded.value = [...measuresAdded.value, pending];
-                    return MeasureAdded(pending);
-                  },
+                    ),
+                  ),
                   onStopOfferingPiece: (added) async {
-                    // The answer IS the draft, never a write behind the
-                    // form's back: `piece` leaves the admission set the form
-                    // holds, and the same act says what a bare "1 tomato"
-                    // means. Both land on Save, together.
-                    allowed.value = {...allowed.value}..remove(pieces);
-                    defaultMeasure.value = DefaultMeasureSet(added.id);
+                    form.answerPiece(added.id);
                     return null;
                   },
                   // Nothing here selects a measure — the form is not a
@@ -1175,13 +712,12 @@ class _DetailForm extends HookConsumerWidget {
                   // §2); the editor refuses it and the density section above
                   // pre-picks that spoon, which is the whole point of sharing
                   // one widget.
-                  onVolumeLabel: (u) => redirectedSpoon.value = u,
+                  onVolumeLabel: form.redirectSpoon,
                 ),
 
-              // Seam D1's UI (board frame f): what a bare count of this row
-              // MEANS. It sits with the measures because it is a fact ABOUT
-              // them, and it says nothing on a row that has none — there is
-              // nothing to choose and nothing to ask.
+              // What a bare count of this row MEANS. It sits with the measures
+              // because it is a fact ABOUT them, and it says nothing on a row
+              // that has none — there is nothing to choose and nothing to ask.
               //
               // ONE slot, not a two-child spread: the spread this replaces
               // grew from zero children to two the moment a first measure
@@ -1329,12 +865,12 @@ class _MacroFields extends StatelessWidget {
   /// so it is the DRAFT, not the row: the form re-keys exactly when it has put
   /// something new in the draft, whether that came from the row (G1) or from a
   /// barcode scan.
-  final _MacroDraft draft;
-  final ValueChanged<_MacroDraft> onChanged;
+  final MacroDraft draft;
+  final ValueChanged<MacroDraft> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    Widget field(String label, String seed, _MacroDraft Function(String) put) {
+    Widget field(String label, String seed, MacroDraft Function(String) put) {
       return Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2062,38 +1598,22 @@ class _DensityGapNote extends StatelessWidget {
   }
 }
 
-/// A field's micro-label, with any qualifier demoted to [hint].
-///
-/// [ansiLabel] is letter-spaced uppercase mono — a style for a short noun. A
-/// label that grows into a sentence in it ("MACROS — ENTER THEM AS THE LABEL
-/// READS") wraps onto two lines on a phone and reads at the same weight as the
-/// group heading above it, so the sentence goes in [hint] instead.
+/// A field's micro-label in this form's own rhythm: the shared
+/// [AnsiMicroLabel], with the breathing room that separates one field of a
+/// long scroll from the last one.
 class _Label extends StatelessWidget {
   const _Label(this.text, {this.hint});
 
   final String text;
 
-  /// The sentence-case qualifier, or null. Same words as before, one weight
-  /// down — the label says what the field is, this says how to read it.
+  /// The sentence-case qualifier, or null — the label says what the field is,
+  /// this says how to read it.
   final String? hint;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 20, bottom: 6),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(text, style: ansiLabel()),
-        if (hint != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 3),
-            child: Text(
-              hint!,
-              style: ansiMono(size: 10, color: AnsiColors.muted),
-            ),
-          ),
-      ],
-    ),
+    padding: const EdgeInsets.only(top: 20),
+    child: AnsiMicroLabel(text, hint: hint, gap: 6),
   );
 }
 
@@ -2348,77 +1868,7 @@ class _Note extends StatelessWidget {
   );
 }
 
-/// The four macro inputs as typed text, so "half filled in" is a state the
-/// form can name rather than a silent zero.
-@immutable
-class _MacroDraft {
-  const _MacroDraft({
-    required this.kcal,
-    required this.protein,
-    required this.carb,
-    required this.fat,
-  });
-
-  factory _MacroDraft.from(Macros? m) => _MacroDraft(
-    kcal: m == null ? '' : _trimZeros(m.kcal),
-    protein: m == null ? '' : _trimZeros(m.protein),
-    carb: m == null ? '' : _trimZeros(m.carb),
-    fat: m == null ? '' : _trimZeros(m.fat),
-  );
-
-  final String kcal;
-  final String protein;
-  final String carb;
-  final String fat;
-
-  _MacroDraft copyWith({
-    String? kcal,
-    String? protein,
-    String? carb,
-    String? fat,
-  }) => _MacroDraft(
-    kcal: kcal ?? this.kcal,
-    protein: protein ?? this.protein,
-    carb: carb ?? this.carb,
-    fat: fat ?? this.fat,
-  );
-
-  List<String> get _fields => [kcal, protein, carb, fat];
-
-  // Value equality is load-bearing for G1: "the user has not touched these"
-  // is the comparison between the live draft and the one the row last seeded.
-  @override
-  bool operator ==(Object other) =>
-      other is _MacroDraft &&
-      other.kcal == kcal &&
-      other.protein == protein &&
-      other.carb == carb &&
-      other.fat == fat;
-
-  @override
-  int get hashCode => Object.hash(kcal, protein, carb, fat);
-
-  bool get _allBlank => _fields.every((f) => f.trim().isEmpty);
-
-  /// All four parse, or all four are blank. Anything between is a panel with
-  /// a hole in it, which the form refuses rather than zero-filling.
-  bool get isCoherent =>
-      _allBlank ||
-      _fields.every((f) => double.tryParse(f.trim())?.isFinite ?? false);
-
-  /// The macros this draft asserts, or null for "none" — the D5 clear.
-  Macros? toMacros() {
-    if (_allBlank || !isCoherent) return null;
-    return Macros(
-      kcal: double.parse(kcal.trim()),
-      protein: double.parse(protein.trim()),
-      carb: double.parse(carb.trim()),
-      fat: double.parse(fat.trim()),
-    );
-  }
-}
-
-/// How the M-D2 offer reads on screen. The arithmetic is
+/// How the offer reads on screen. The arithmetic is
 /// [servingOfferFor]'s; these are the only two sentences it needs, and they
 /// stay here because a domain rule does not own words.
 extension ServingOfferSentences on ServingOffer {
@@ -2443,8 +1893,3 @@ extension ServingOfferSentences on ServingOffer {
           'there',
   };
 }
-
-/// `60` not `60.0`, `0.66` unchanged — seeds a numeric field with what a
-/// person would have typed.
-String _trimZeros(double v) =>
-    v == v.roundToDouble() ? v.toStringAsFixed(0) : '$v';

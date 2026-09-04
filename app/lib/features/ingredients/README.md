@@ -59,6 +59,11 @@ children together. Two consequences the surfaces depend on:
 The measures and aliases travel as **deltas**, not replacement lists, so a
 stream that failed to load can never become a narrowed set written back.
 
+The draft is one `IngredientFormDraft` inside the `IngredientForm` notifier
+(`ingredient_view_models.dart`); the view watches it and dispatches intents.
+The two seams that need a `BuildContext` — the barcode scanner and the USDA
+short-list — open from the view and hand their result back as an intent.
+
 ## USDA, and the barcode
 
 A **USDA pick fills the draft**, exactly like typing does. *Fill it in from ▸
@@ -114,6 +119,7 @@ ingredients/
   presentation/
     ingredient_list_view.dart   the manager list
     ingredient_detail_view.dart the form — create at /ingredients/new, edit at /:id
+    ingredient_view_models.dart IngredientForm — the form's draft and its Save
     usda_pick_sheet.dart        the USDA short-list and its candidate rows
     ingredient_picker.dart      the picker + the add-new chain's row
     measures_editor.dart        add/remove named measures, shared by two hosts
@@ -170,8 +176,11 @@ ingredients/
 - Repo on a real `PowerSyncDatabase`: `ingredient_repository_test`,
   `measure_repository_test` — search/recents, `saveForm` create and edit,
   density round-trips, confirm/unconfirm, delete refusal, aliases.
-- Widget: `ingredient_manager_test` (list band, form, confirm gate, delete),
-  `ingredient_picker_test`, `quantity_unit_sheet_test`.
+- Widget: `ingredient_list_test`, `ingredient_form_test`,
+  `ingredient_usda_test`, `ingredient_macros_test`, `ingredient_picker_test`,
+  `quantity_unit_sheet_test`.
+- ViewModel: `ingredient_form_notifier_test` asks the form's draft and its Save
+  directly — what one call hands the repository, with no widget tree.
 - Barcode: `barcode/` — mapper and lookup against committed fixtures (no
   network), the scan sheet's failure states, and the public door's contract.
 - Server-side: the admission functions are pinned by
