@@ -22,6 +22,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/words.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_search_field.dart';
 import '../../../shared/guarded_navigation.dart';
@@ -242,7 +243,7 @@ class _StubBand extends StatelessWidget {
             children: [
               Text('Needs fleshing out', style: ansiSans(size: 13)),
               Text(
-                '${stubs.length} ${stubs.length == 1 ? 'stub' : 'stubs'}',
+                '${stubs.length} ${plural(stubs.length, 'stub')}',
                 style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ],

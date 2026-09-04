@@ -13,6 +13,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
+import '../../../core/words.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/format.dart';
@@ -448,7 +449,7 @@ class _UsedInSteps extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 2),
       child: Text(
-        'used in $count ${count == 1 ? 'step' : 'steps'}',
+        'used in $count ${plural(count, 'step')}',
         style: ansiMono(size: 10, color: AnsiColors.muted),
       ),
     );
@@ -492,7 +493,7 @@ Future<void> removeLineWithChips(
   final confirmed = await askAnsi(
     context,
     title:
-        '$steps ${steps == 1 ? 'step mentions' : 'steps mention'} '
+        '$steps ${plural(steps, 'step mentions', plural: 'steps mention')} '
         '${item.ingredientName}.',
     body:
         'Remove those chips too? Their words stay in the sentences — only '

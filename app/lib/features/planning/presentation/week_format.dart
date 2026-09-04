@@ -6,22 +6,9 @@ library;
 import 'dart:math' as math;
 
 import '../../../core/units/portions.dart';
+import '../../../core/words.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../domain/planning.dart';
-
-/// Short weekday labels indexed 0=Monday..6=Sunday (grid order).
-const kWeekdayShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-/// Full weekday labels indexed 0=Monday..6=Sunday.
-const kWeekdayFull = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-];
 
 const _months = [
   'Jan',

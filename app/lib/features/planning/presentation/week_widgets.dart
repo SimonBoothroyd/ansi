@@ -10,6 +10,7 @@ import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/words.dart';
 import '../domain/planning.dart';
 import 'week_format.dart';
 
@@ -178,7 +179,7 @@ class PortionsChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        '$portions ${portions == 1 ? 'portion' : 'portions'}',
+        '$portions ${plural(portions, 'portion')}',
         style: ansiMono(size: 10, color: AnsiColors.muted),
       ),
     );

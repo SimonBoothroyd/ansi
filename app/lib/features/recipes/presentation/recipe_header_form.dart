@@ -23,6 +23,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
+import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/format.dart';
@@ -417,7 +418,7 @@ class _ShelfLifeSection extends StatelessWidget {
   final Recipe recipe;
   final RecipeHeaderHost host;
 
-  static String _days(int value) => '$value ${value == 1 ? 'day' : 'days'}';
+  static String _days(int value) => '$value ${plural(value, 'day')}';
 
   @override
   Widget build(BuildContext context) {

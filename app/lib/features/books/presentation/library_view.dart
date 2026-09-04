@@ -12,6 +12,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/words.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_search_field.dart';
@@ -137,7 +138,7 @@ class _SearchResults extends StatelessWidget {
           child: Text(
             guessed
                 ? 'DID YOU MEAN'
-                : '${hits.length} ${hits.length == 1 ? 'recipe' : 'recipes'}',
+                : '${hits.length} ${plural(hits.length, 'recipe')}',
             style: ansiLabel(),
           ),
         ),
@@ -481,9 +482,9 @@ Future<void> confirmDeleteBook(
       host.context,
       title: 'Can’t delete “${book.name}” yet',
       body:
-          'It holds $held ${held == 1 ? 'recipe' : 'recipes'}. Move '
-          '${held == 1 ? 'it' : 'them'} to another book first, or delete '
-          '${held == 1 ? 'it' : 'them'}.',
+          'It holds $held ${plural(held, 'recipe')}. Move '
+          '${plural(held, 'it', plural: 'them')} to another book first, or '
+          'delete ${plural(held, 'it', plural: 'them')}.',
       door: 'Move them to…',
     );
     if (!move) return;
@@ -579,14 +580,14 @@ class _EmptyShelf extends StatelessWidget {
 String bookCountLine(Book book) {
   final recipes =
       book.unsectioned.length +
-      book.sections.fold(0, (n, s) => n + s.recipes.length);
+      book.sections.fold<int>(0, (n, s) => n + s.recipes.length);
   final sections = book.sections.length;
   return [
     if (recipes == 0)
       'no recipes yet'
     else
-      '$recipes ${recipes == 1 ? 'recipe' : 'recipes'}',
-    if (sections > 0) '$sections ${sections == 1 ? 'section' : 'sections'}',
+      '$recipes ${plural(recipes, 'recipe')}',
+    if (sections > 0) '$sections ${plural(sections, 'section')}',
   ].join(' · ');
 }
 
@@ -1009,9 +1010,8 @@ class _IngredientsShelf extends ConsumerWidget {
     // Never "0 ingredients": the stub badge's rule — a zero that renders looks
     // like a bug — and the count is absent, not zero, until it has loaded.
     final line = [
-      if (total != null && total > 0)
-        '$total ${total == 1 ? 'ingredient' : 'ingredients'}',
-      if (stubs > 0) '$stubs ${stubs == 1 ? 'stub' : 'stubs'}',
+      if (total != null && total > 0) '$total ${plural(total, 'ingredient')}',
+      if (stubs > 0) '$stubs ${plural(stubs, 'stub')}',
     ].join(' · ');
 
     return Padding(

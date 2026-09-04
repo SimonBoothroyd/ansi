@@ -20,6 +20,7 @@ import '../core/sync/session.dart';
 import '../core/sync/sync_health.dart';
 import '../core/theme/ansi_theme.dart';
 import '../core/theme/ansi_tokens.dart';
+import '../core/words.dart';
 import 'ansi_callout.dart';
 import 'ansi_modals.dart';
 import 'ansi_sheet_shell.dart';
@@ -38,8 +39,8 @@ class AnsiSyncBanner extends ConsumerWidget {
         tone: SyncTone.warn,
         title: 'Changes aren’t reaching the other phone.',
         body:
-            '$queued change${queued == 1 ? '' : 's'} '
-            'ha${queued == 1 ? 's' : 've'} been waiting since '
+            '$queued ${plural(queued, 'change')} '
+            '${plural(queued, 'has', plural: 'have')} been waiting since '
             '${clockTime(since)}. Ansi keeps trying.',
         action: 'Try now',
         onAction: () =>

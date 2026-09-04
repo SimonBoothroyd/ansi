@@ -6,8 +6,8 @@ import 'dart:math' as math;
 
 import '../../../core/units/number_format.dart';
 import '../../../core/units/portions.dart';
+import '../../../core/words.dart';
 import '../../../shared/format.dart';
-import '../../planning/presentation/week_format.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/component_format.dart';
 import '../domain/cook_plan.dart';

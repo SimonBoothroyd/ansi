@@ -14,6 +14,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/words.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
@@ -199,7 +200,7 @@ class _UnresolvedEcho extends StatelessWidget {
           const SizedBox(width: 5),
           Flexible(
             child: Text(
-              '$count component${count == 1 ? '' : 's'} unresolved — see Cook',
+              '$count ${plural(count, 'component')} unresolved — see Cook',
               overflow: TextOverflow.ellipsis,
               style: ansiMono(size: 10.5, color: AnsiColors.cautionInk),
             ),
@@ -223,7 +224,7 @@ class OptionalLinesEcho extends StatelessWidget {
   /// `2 optional lines not listed — lime, coriander`.
   static String text(OptionalLinesNote note) {
     final n = note.names.length;
-    return '$n optional line${n == 1 ? '' : 's'} not listed — '
+    return '$n optional ${plural(n, 'line')} not listed — '
         '${note.names.join(', ')}';
   }
 

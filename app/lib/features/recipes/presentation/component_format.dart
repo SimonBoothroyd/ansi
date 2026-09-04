@@ -8,6 +8,7 @@
 library;
 
 import '../../../core/units/units.dart';
+import '../../../core/words.dart';
 import '../../../shared/format.dart';
 import '../domain/component_math.dart';
 
@@ -25,7 +26,7 @@ String componentAmountText(double? quantity, Unit unit) {
 String batchShareText(double batches) {
   if (batches == batches.roundToDouble()) {
     final n = formatQuantity(batches);
-    return '$n ${batches == 1 ? 'batch' : 'batches'}';
+    return '$n ${plural(batches.round(), 'batch', plural: 'batches')}';
   }
   return '${formatQuantity(batches)} of a batch';
 }
@@ -118,5 +119,5 @@ String usedInTabLabel(int count) => 'Used in · $count';
 /// *"failed"* is not. [recipes] is the distinct recipe count, [lines] the
 /// referencing line count.
 String deleteRefusalText({required int recipes, required int lines}) =>
-    'Used in $recipes ${recipes == 1 ? 'recipe' : 'recipes'} '
-    '($lines ${lines == 1 ? 'line' : 'lines'}). Change those lines first.';
+    'Used in $recipes ${plural(recipes, 'recipe')} '
+    '($lines ${plural(lines, 'line')}). Change those lines first.';

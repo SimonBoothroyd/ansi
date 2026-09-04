@@ -27,6 +27,7 @@ import 'package:flutter/widgets.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
+import '../../../core/words.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../domain/week_macros.dart';
 
@@ -44,7 +45,7 @@ String formatMacroNumber(double value) {
 /// `2 meals` / `1 of 2 meals` — the denominator is MANDATORY beside any total
 /// (D4's teeth: no bare number, ever).
 String mealDenominator(MealSetMacros macros) {
-  final noun = macros.considered == 1 ? 'meal' : 'meals';
+  final noun = plural(macros.considered, 'meal');
   return macros.counted == macros.considered
       ? '${macros.considered} $noun'
       : '${macros.counted} of ${macros.considered} $noun';
@@ -202,7 +203,7 @@ class WeekMacroBand extends StatelessWidget {
   static String _averageLine(Macros average, MealSetMacros macros) {
     final days = macros.daysContributing;
     return 'avg ${formatMacroNumber(average.kcal)} kcal/day over the $days '
-        '${days == 1 ? 'day' : 'days'} that counted';
+        '${plural(days, 'day')} that counted';
   }
 
   @override

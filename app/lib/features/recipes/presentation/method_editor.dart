@@ -39,6 +39,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/number_format.dart';
+import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/method_step_text.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
@@ -587,8 +588,8 @@ Future<void> _confirmFlatten(
     title: 'Convert the method to plain text?',
     body:
         '${counts.chips} ingredient '
-        '${counts.chips == 1 ? 'chip' : 'chips'} and '
-        '${counts.timers} ${counts.timers == 1 ? 'timer' : 'timers'} '
+        '${plural(counts.chips, 'chip')} and '
+        '${counts.timers} ${plural(counts.timers, 'timer')} '
         'become ordinary words. Every sentence reads exactly the same — '
         'only the links go.',
     caveatLabel: 'This can’t be undone here',
@@ -638,7 +639,8 @@ class _SubstitutionNotice extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$n ${n == 1 ? 'step mentioned' : 'steps mentioned'} '
+                  '$n '
+                  '${plural(n, 'step mentioned', plural: 'steps mentioned')} '
                   '${substitution.oldName}',
                   style: ansiSans(size: 14, weight: FontWeight.w600),
                 ),

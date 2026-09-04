@@ -25,6 +25,7 @@ import '../../../core/search/search_query.dart';
 import '../../../core/search/search_rank.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
@@ -257,7 +258,7 @@ String vocabRowHints(Ingredient ing, {bool advisoryDensityGap = false}) => [
   else if (advisoryDensityGap)
     'no density — volume units locked',
   if (ing.measureCount > 0)
-    '${ing.measureCount} ${ing.measureCount == 1 ? 'measure' : 'measures'}',
+    '${ing.measureCount} ${plural(ing.measureCount, 'measure')}',
   if (ing.status == IngredientStatus.stub) 'needs macros — no zeros shown',
 ].join(' · ');
 

@@ -14,6 +14,7 @@
 library;
 
 import '../core/sync/sync_health.dart';
+import '../core/words.dart';
 
 /// How loud a readout of [SyncHealth] should be.
 enum SyncTone {
@@ -51,19 +52,19 @@ enum SyncTone {
   // progress.
   SyncWaiting(uploading: true) => (text: 'Sending…', tone: SyncTone.busy),
   SyncWaiting(:final queued) => (
-    text: '$queued ${_plural(noun, queued)} waiting',
+    text: '$queued ${plural(queued, noun)} waiting',
     tone: SyncTone.busy,
   ),
   SyncStalled(:final since) => (
     text:
-        '${_capitalized(_plural(noun, 2))} aren’t reaching the other phone · '
+        '${_capitalized(plural(2, noun))} aren’t reaching the other phone · '
         'since ${clockTime(since)}',
     tone: SyncTone.warn,
   ),
   SyncRefused(:final drops) => (
     text: drops.length == 1
         ? 'One $noun couldn’t be saved to the server'
-        : '${drops.length} ${_plural(noun, drops.length)} couldn’t be saved '
+        : '${drops.length} ${plural(drops.length, noun)} couldn’t be saved '
               'to the server',
     tone: SyncTone.bad,
   ),
@@ -87,12 +88,6 @@ String relativeSyncTime(DateTime at, DateTime now) {
 String clockTime(DateTime at) =>
     '${at.hour.toString().padLeft(2, '0')}:'
     '${at.minute.toString().padLeft(2, '0')}';
-
-/// Display-only pluralisation of the two hard-coded English words this file
-/// uses. Deliberately **not** routed through `ingredients/domain/normalize.dart`
-/// — that singulariser exists to key vocabulary matching, and giving it a
-/// second job here would tie two unrelated things together.
-String _plural(String noun, int n) => n == 1 ? noun : '${noun}s';
 
 String _capitalized(String s) =>
     s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);

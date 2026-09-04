@@ -34,6 +34,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../../core/words.dart';
 import '../../cook_plan/data/cook_plan_repository_impl.dart'
     show loadComponentGraph;
 import '../../cook_plan/domain/cook_plan.dart';
@@ -43,11 +44,6 @@ import '../../recipes/domain/effective_lines.dart';
 import '../../recipes/domain/recipe.dart';
 import '../domain/shopping.dart';
 import '../domain/shopping_repository.dart';
-
-/// Mon..Sun short labels for the derived provenance labels ("· cook Mon").
-/// Kept here (not imported from presentation) so the data layer doesn't depend
-/// upwards; [buildShoppingList] takes the list so the domain stays formatless.
-const _weekdayShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const _uuid = Uuid();
 
@@ -126,7 +122,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
       entries: entries,
       manual: manual,
       meta: meta,
-      weekdayShort: _weekdayShort,
+      weekdayShort: kWeekdayShort,
       unresolvedComponents: unresolved,
       optionalLines: optional,
     );

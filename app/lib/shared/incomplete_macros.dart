@@ -13,6 +13,7 @@ import 'package:flutter/widgets.dart';
 
 import '../core/theme/ansi_theme.dart';
 import '../core/theme/ansi_tokens.dart';
+import '../core/words.dart';
 import '../features/recipes/domain/recipe_macros.dart';
 
 /// Why a summary is incomplete, for the row note: `no ingredients yet`,
@@ -47,9 +48,9 @@ String incompleteNote(RecipeMacroSummary summary) {
     // Step 8.6 / D8 — the two sub-recipe reasons, in the same voice as the
     // rest so no surface has to invent its own words for a nested refusal.
     if (unresolved > 0)
-      '$unresolved sub-recipe${unresolved == 1 ? '' : 's'} unresolved',
+      '$unresolved ${plural(unresolved, 'sub-recipe')} unresolved',
     if (subIncomplete > 0)
-      '$subIncomplete sub-recipe${subIncomplete == 1 ? '' : 's'} incomplete',
+      '$subIncomplete ${plural(subIncomplete, 'sub-recipe')} incomplete',
   ];
   // Every line joined and there are lines — the only remaining cause is a
   // non-positive serving count (the DB check makes this near-unreachable).
@@ -119,7 +120,7 @@ String? notCountedNote(List<MacroLineNote> notes) {
   if (imprecise.isEmpty && optional.isEmpty) return null;
   final optionalPart = optional.isEmpty
       ? null
-      : '${optional.length} optional line${optional.length == 1 ? '' : 's'}: '
+      : '${optional.length} optional ${plural(optional.length, 'line')}: '
             '${optional.join(', ')}';
   if (imprecise.isEmpty) return 'not counted · $optionalPart';
   final line = 'not counted: ${imprecise.join(', ')}';

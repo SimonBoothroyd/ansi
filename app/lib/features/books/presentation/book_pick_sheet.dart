@@ -12,6 +12,7 @@ import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../domain/book.dart';
@@ -51,14 +52,14 @@ class _BookPickSheet extends StatefulWidget {
 class _BookPickSheetState extends State<_BookPickSheet> {
   Book? _target;
 
-  String get _plural => widget.moving == 1 ? 'recipe' : 'recipes';
-
   @override
   Widget build(BuildContext context) {
     final target = _target;
     return AnsiSheetShell(
       title: 'Move them to…',
-      subtitle: '${widget.moving} $_plural from “${widget.from.name}”',
+      subtitle:
+          '${widget.moving} ${plural(widget.moving, 'recipe')} '
+          'from “${widget.from.name}”',
       children: [
         const SizedBox(height: 14),
         for (final book in widget.candidates)
@@ -95,8 +96,8 @@ class _BookPickSheetState extends State<_BookPickSheet> {
         Text(
           target == null
               ? 'Pick a shelf. Their sections stay behind.'
-              : '${widget.moving} $_plural will move to '
-                    '“${target.name}”, unsectioned.',
+              : '${widget.moving} ${plural(widget.moving, 'recipe')} will '
+                    'move to “${target.name}”, unsectioned.',
           textAlign: TextAlign.center,
           style: ansiSans(size: 13, color: AnsiColors.muted),
         ),

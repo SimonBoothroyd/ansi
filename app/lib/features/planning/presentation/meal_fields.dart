@@ -25,13 +25,13 @@ import 'package:forui/forui.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
+import '../../../core/words.dart';
 import '../../../shared/format.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../recipes/domain/recipe.dart';
 import '../domain/planning.dart';
-import 'week_format.dart';
 import 'week_widgets.dart';
 
 /// A sheet section's micro-label (`SLOT`, `WHO'S EATING`, `PORTIONS`).

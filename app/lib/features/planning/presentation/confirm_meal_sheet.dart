@@ -26,6 +26,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/write.dart';
@@ -33,7 +34,6 @@ import '../../cook_plan/domain/cook_plan.dart';
 import '../../recipes/domain/recipe.dart';
 import '../data/planning_providers.dart';
 import 'meal_fields.dart';
-import 'week_format.dart';
 import 'week_view_models.dart';
 
 /// Opens the confirm sheet for [recipe] on [dayOfWeek], pre-selecting [slot].

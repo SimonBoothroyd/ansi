@@ -25,13 +25,13 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/write.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'meal_fields.dart';
-import 'week_format.dart';
 import 'week_view_models.dart';
 
 /// Opens the meal editor for [entry].
