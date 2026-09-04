@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Quantity &amp; measures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
+    <h1 class="view-title">Quantity &amp; measures</h1>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0010-piece-is-an-admission-fact.md">ADR-0010</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></p>
+    <p class="view-blurb">One dock everywhere an amount is set: this ingredient’s admitted units as chips over a keypad, and the conversion said out loud above them.</p>
+</header>
+
+<div class="board">
+
+        <div class="frame" id="pv2-b1">
+            <p class="frame-name"><b>The everyday surface</b> · this ingredient’s units as chips over the keypad, nothing else; the conversion line names the density it used</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Add to “for the curry”</span><span class="dots"></span></div>
+                <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Coconut milk, canned</div>
+                    <div class="mline">197 kcal · 2P 20F 3C <span class="per">/100 g</span></div></div></div>
+                <p class="flabel" style="margin-top:14px">Quantity</p>
+                <div class="field"><div class="qty-big"><span class="qn">600</span><span class="care"></span><span class="qu">ml</span></div></div>
+                <div class="dock">
+                    <p class="conv-note" style="margin:0 0 9px">≈ <b>610 g</b> · via density 1.02 g/ml</p>
+                    <div class="uchips"><span class="uchip">g</span><span class="uchip on">ml</span><span class="uchip"><span class="srcdot typ"></span>can (400 ml)</span><span class="uchip-sep"></span><span class="uchip impr">splash</span><span class="uchip addm">＋</span></div>
+                    <div class="kbd numpad">
+                        <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
+                        <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
+                        <div class="kbd-row"><span class="key">7</span><span class="key">8</span><span class="key">9</span></div>
+                        <div class="kbd-row"><span class="key">.</span><span class="key">0</span><span class="key">⌫</span></div>
+                        <div class="kbd-row"><span class="key done">Done</span></div>
+                    </div>
+                </div>
+            </div></div>
+        </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Two rows, two answers</b> · the dock is identical — the difference is entirely in <code>allowed_units</code>: where a clearer word exists, <i>piece</i> is not offered</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">✕</span><span class="ttl">Amount · Avocado</span><span class="dots"></span></div>
+            <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Avocado</div>
+                <div class="mline">160 kcal · 2P 15F 9C <span class="per">/100 g</span></div></div></div>
+            <p class="flabel" style="margin-top:14px">Quantity</p>
+            <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">avocado</span></div></div>
+            <div class="dock">
+                <p class="conv-note" style="margin:0 0 9px">≈ <b>201 g</b> · USDA portion</p>
+                <p class="chip-note">piece is not admitted here — there is a clearer word</p>
+                <div class="uchips"><span class="uchip on"><span class="srcdot usda"></span>avocado</span><span class="uchip struck">piece</span><span class="uchip">g</span><span class="uchip">cup</span><span class="uchip">tbsp</span><span class="uchip-sep"></span><span class="uchip impr">handful</span><span class="uchip addm">＋</span></div>
+                <p class="conv-note" style="margin:0 0 10px">(struck chip drawn for the board only — on the phone it is simply absent)</p>
+            </div>
+            <div class="abar" style="border-top:1px solid var(--line);padding-top:12px"><span class="back">✕</span><span class="ttl">Amount · Broccoli</span><span class="dots"></span></div>
+            <div class="dock" style="margin-top:0">
+                <p class="chip-note">no measure names the whole thing — piece stays, and leads</p>
+                <div class="uchips"><span class="uchip on">piece</span><span class="uchip"><span class="srcdot usda"></span>bunch</span><span class="uchip"><span class="srcdot usda"></span>spear</span><span class="uchip"><span class="srcdot typ"></span>crown</span><span class="uchip">g</span><span class="uchip-sep"></span><span class="uchip impr">handful</span><span class="uchip addm">＋</span></div>
+                <p class="conv-note" style="margin:0">608 g · 31 g · 150 g — three different things. “1 broccoli” is still the honest way to say a whole one.</p>
+            </div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Straight off the form</b> · the picker resolves after the pop, so the sheet opens on a row that already has its chips</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <div class="abar" style="padding-top:0"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
+            <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Curry leaves</div>
+                <div class="mline">108 kcal · 6P 1F 19C <span class="per">/100 g</span></div></div></div>
+            <p class="flabel" style="margin-top:14px">Quantity</p>
+            <div class="field"><div class="qty-big"><span class="qn">6</span><span class="care"></span><span class="qu">sprig</span></div></div>
+            <div class="dock">
+                <p class="conv-note" style="margin:0 0 9px">= <b>6 g</b> · via your measure</p>
+                <div class="uchips"><span class="uchip on"><span class="srcdot you" style="background:#fff"></span>sprig (1 g)</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip-sep"></span><span class="uchip addm">＋</span></div>
+                <div class="kbd numpad">
+                    <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
+                    <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
+                    <div class="kbd-row"><span class="key">7</span><span class="key">8</span><span class="key">9</span></div>
+                    <div class="kbd-row"><span class="key">.</span><span class="key">0</span><span class="key">⌫</span></div>
+                    <div class="kbd-row"><span class="key done">Done</span></div>
+                </div>
+            </div>
+            <p class="conv-note" style="text-align:center;margin-top:10px">exactly the chips the form admitted — nothing curated is missing, because the form came first</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Optional</b> · one switch row under the chips — the sheet is already everything about this line’s amount</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <div class="abar" style="padding-top:0"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
+            <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Lime</div>
+                <div class="mline">30 kcal · 1P 0F 11C <span class="per">/100 g</span></div></div></div>
+            <p class="flabel" style="margin-top:14px">Quantity</p>
+            <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">lime</span></div></div>
+            <div class="dock">
+                <p class="conv-note" style="margin:0 0 9px">= <b>67 g</b> · lime, usda portion</p>
+                <div class="uchips"><span class="uchip on"><span class="srcdot usda" style="background:#fff"></span>lime (67 g)</span><span class="uchip">g</span><span class="uchip">ml</span><span class="uchip-sep"></span><span class="uchip impr">squeeze</span><span class="uchip addm">＋</span></div>
+                <div class="crow" style="margin:0 0 10px;background:var(--frame)"><span class="cl">Optional<small>left out of macros and the shop list — and named where it left</small></span><span class="fsw"></span></div>
+                <div class="kbd numpad">
+                    <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
+                    <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
+                    <div class="kbd-row"><span class="key">7</span><span class="key">8</span><span class="key">9</span></div>
+                    <div class="kbd-row"><span class="key">.</span><span class="key">0</span><span class="key">⌫</span></div>
+                    <div class="kbd-row"><span class="key done">Done</span></div>
+                </div>
+            </div>
+            <p class="conv-note" style="text-align:center;margin-top:10px">the same sheet at review, so the import card gets the toggle for free — seeded from the extractor’s <b>optional</b> flag</p>
+        </div></div>
+    </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>A component’s amount</b> · the same chips over the same keypad; the conversion line reads batches, and a yieldless recipe offers only <i>batch</i></p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Add to “for the sliders”</span><span class="dots"></span></div>
+                <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle"><span class="ichip">↪ Romesco Aioli</span></div>
+                    <div class="mline">makes 1 cup <span class="per">· your recipe</span></div></div></div>
+                <p class="flabel" style="margin-top:14px">Quantity</p>
+                <div class="field"><div class="qty-big"><span class="qn">0.25</span><span class="care"></span><span class="qu">cup</span></div></div>
+                <div class="dock">
+                    <p class="conv-note" style="margin:0 0 9px"><b>0.25 cup</b> = 0.25 of a batch · makes 1 cup</p>
+                    <div class="uchips"><span class="uchip">batch</span><span class="uchip-sep"></span><span class="uchip on">cup</span><span class="uchip">tbsp</span><span class="uchip">tsp</span><span class="uchip">ml</span></div>
+                    <div class="kbd numpad">
+                        <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
+                        <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
+                        <div class="kbd-row"><span class="key">.</span><span class="key">0</span><span class="key">⌫</span></div>
+                        <div class="kbd-row"><span class="key done">Done</span></div>
+                    </div>
+                </div>
+                <p class="flabel" style="margin-top:16px">The same sheet · a recipe with no yield</p>
+                <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">batch</span></div></div>
+                <div class="dock">
+                    <p class="conv-note" style="margin:0 0 9px">no yield set — amounts in batches only</p>
+                    <div class="uchips"><span class="uchip on">batch</span></div>
+                    <div class="ghostbtn" style="margin-top:2px">Set the aioli’s yield</div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="frame" id="pv2-b2">
+            <p class="frame-name"><b>Manage measures</b> · behind the ＋ chip — sources read in words, and your own is saved as yours</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Measures · Coconut milk</span><span class="dots"></span></div>
+                <p class="flabel">This ingredient’s measures</p>
+                <div class="field" style="margin-bottom:4px">
+                    <div class="msr-row"><span class="srcdot typ"></span><span class="mlab">can (400 ml)</span><span class="mg">400 g</span><span class="msrc">typical</span></div>
+                    <div class="msr-row"><span class="srcdot you"></span><span class="mlab">half can</span><span class="mg">200 g</span><span class="msrc">yours</span></div>
+                </div>
+                <div class="legend"><span class="li"><span class="srcdot usda"></span>USDA portion</span><span class="li"><span class="srcdot brw"></span>borrowed</span><span class="li"><span class="srcdot typ"></span>typical</span><span class="li"><span class="srcdot you"></span>yours</span></div>
+                <div class="field" style="margin-top:16px">
+                    <div class="addm-card" style="margin-bottom:0">
+                        <div class="addm-h">＋ add measure</div>
+                        <div class="addm-fields"><span class="addm-in" style="color:var(--muted)">label — “half can”</span><span class="addm-in g">200 g</span><span class="addm-save">Save</span></div>
+                        <div class="addm-note"><span class="srcdot you"></span>saved as yours — synced &amp; editable</div>
+                    </div>
+                </div>
+                <p class="conv-note" style="margin-top:14px">density is <b>not</b> here: it is one row on the ingredient’s own form — see <a href="./ingredient-detail.html" style="color:var(--herb)">Ingredient detail</a></p>
+                <p class="rc-note">Measures bridge count ↔ the basis only — volume is density’s job, so a “cup” label redirects here (7.8): the spoon mapping <b>is</b> the density, and saving it unlocks the other family’s chips.</p>
+            </div></div>
+        </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>“Counts as”</b> · what a bare “2 onions” means; the household owns its own default and can clear it — and the ＋ that names a measure asks whether <i>piece</i> is still wanted</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Onion</span><span class="dots">⋯</span></div>
+            <p class="flabel" style="margin-top:6px">Measures — count-like, in the basis</p>
+            <div class="field" style="margin-bottom:6px">
+                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">onion, medium</span><span class="mg">110 g</span><span class="msrc">usda_fdc:170000</span></div>
+                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">onion, large</span><span class="mg">150 g</span><span class="msrc">usda_fdc:170000</span></div>
+                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">onion, small</span><span class="mg">70 g</span><span class="msrc">usda_fdc:170000</span></div>
+                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">slice, medium</span><span class="mg">14 g</span><span class="msrc">usda_fdc:170000</span></div>
+            </div>
+            <p class="flabel">Counts as — what “2 onions” means</p>
+            <div class="cntas"><span class="cl">One onion is</span><span class="cv">onion, medium</span><span class="cg">· 110 g</span><span class="caret">▾</span></div>
+            <p class="conv-note" style="margin-top:0">used when a line says a number and no unit. A line that <b>names</b> something — “2 large onions” — always wins.</p>
+
+            <p class="flabel" style="margin-top:18px">The same row on Broccoli</p>
+            <div class="cntas none"><span class="cl">One broccoli is</span><span class="cv">— not set</span><span class="caret">▾</span></div>
+            <p class="conv-note" style="margin-top:0">the picker’s first entry is <b>“Ask me each time”</b>, and it is the honest state for a row whose measures are <b>whole</b> · <b>spear</b> · <b>crown</b>. Clearing a default is one tap and never destroys a measure.</p>
+            <div class="askrow" style="margin-top:16px">
+                <div class="ask-h">You added “tomato, medium”. Still offer “piece” for Heirloom tomato?</div>
+                <div class="ask-b">Answering <b>No</b> also sets <b>Counts as: tomato, medium</b> — the measure you just named becomes what a bare “1 tomato” means. Both are one tap from changing, on this page.</div>
+                <div class="askbtns"><span class="askbtn on">No — “tomato, medium” says it<small>+ counts as</small></span><span class="askbtn">Keep both<small>no default set</small></span></div>
+            </div>
+            <p class="conv-note">8.7’s question, unchanged — with the second half of the answer it always implied</p>
+        </div></div>
+    </div>
+
+</div>
+
+<p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>
