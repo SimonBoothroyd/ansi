@@ -49,6 +49,16 @@ class ImportView extends HookConsumerWidget {
     final reviewCount = state is ImportReconciling
         ? ref.watch(importOutstandingLinesProvider)
         : null;
+    // When the check behind the count has failed and never answered, the count
+    // is the structural one — zero once every line is matched — and "looks
+    // good" over a Save that will not open is the header telling the opposite
+    // story to the button. Say the honest thing instead; the button below
+    // carries the retry.
+    final validation = ref.watch(importValidationProvider);
+    final unchecked =
+        state is ImportReconciling &&
+        validation.value == null &&
+        validation.hasError;
     return FScaffold(
       childPad: false,
       header: FHeader.nested(
@@ -70,10 +80,14 @@ class ImportView extends HookConsumerWidget {
               padding: const EdgeInsets.only(right: 8),
               child: Center(
                 child: Text(
-                  reviewCount == 0 ? 'looks good' : '$reviewCount to review',
+                  unchecked
+                      ? 'not checked'
+                      : reviewCount == 0
+                      ? 'looks good'
+                      : '$reviewCount to review',
                   style: ansiMono(
                     size: 11,
-                    color: reviewCount == 0
+                    color: reviewCount == 0 && !unchecked
                         ? AnsiColors.herb
                         : AnsiColors.muted,
                   ),

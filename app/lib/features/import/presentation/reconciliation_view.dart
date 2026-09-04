@@ -47,10 +47,16 @@ class ReconciliationBody extends HookConsumerWidget {
     // view is null, and reading THAT blinked every card's border, the counter
     // and the Save button on every keystroke. `.value` keeps the last map
     // until the new one lands.
-    final byLine = ref.watch(importValidationProvider).value;
+    final validation = ref.watch(importValidationProvider);
+    final byLine = validation.value;
     final issuesByLine = byLine == null
         ? null
         : {for (final e in byLine.entries) e.key: e.value.issues};
+    // The vocab read behind the gate failed and has never answered: Save
+    // cannot open, and the count it would otherwise show is the structural
+    // one — zero, once every line is matched. "0 line(s) need you" over a
+    // disabled button is a wall with no door.
+    final unchecked = byLine == null && validation.hasError;
     // The method's step cards read the same recipe a save would write — so the
     // "Reads as" fold shows live amounts, and a chip keyed on
     // `previewLineId(i)` resolves without any extra plumbing (seam D4). The
@@ -162,8 +168,13 @@ class ReconciliationBody extends HookConsumerWidget {
         MethodEditor(recipe: recipe, notifier: methodHost),
         const SizedBox(height: 20),
         FButton(
+          // A failed check is the one disabled state with something to do:
+          // re-running the read is the whole fix, so the button becomes the
+          // retry rather than a dead end.
           onPress: canSave
               ? () => controller.commit(issuesByLine: issuesByLine)
+              : unchecked
+              ? () => ref.invalidate(importValidationProvider)
               : null,
           child: Text(
             canSave
@@ -172,6 +183,8 @@ class ReconciliationBody extends HookConsumerWidget {
                 // Every line dropped: the count would read "0 line(s) need
                 // you", which is true and useless.
                 ? 'Nothing left to save'
+                : unchecked
+                ? 'Couldn’t check the lines — try again'
                 : '$outstanding line(s) need you',
           ),
         ),
