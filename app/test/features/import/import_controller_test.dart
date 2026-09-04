@@ -5,7 +5,6 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/import/data/canned_payload.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
-import 'package:ansi/features/import/domain/commit_payload.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
 import 'package:ansi/features/import/domain/line_validation.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
@@ -14,11 +13,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
+import '../../helpers/fake_import_repository.dart';
 
-/// A fake edge function + a commit that records the payload instead of writing.
-/// [gate], when set, holds `startImport` open so a second call can race it.
-class _FakeImportRepository implements ImportRepository {
-  CommitPayload? committed;
+/// The canned edge function, plus a [gate] that can hold `startImport` open
+/// so a second call races the first.
+class _GatedImportRepo extends FakeImportRepo {
+  _GatedImportRepo()
+    : super(
+        ReconciliationPayload.fromJson(
+          jsonDecode(cannedReconciliationPayloadJson) as Map<String, Object?>,
+        ),
+      );
+
   int startCalls = 0;
   Completer<void>? gate;
 
@@ -26,24 +32,16 @@ class _FakeImportRepository implements ImportRepository {
   Future<ReconciliationPayload> startImport(ImportSource source) async {
     startCalls++;
     if (gate != null) await gate!.future;
-    return ReconciliationPayload.fromJson(
-      jsonDecode(cannedReconciliationPayloadJson) as Map<String, Object?>,
-    );
-  }
-
-  @override
-  Future<String> commit(CommitPayload payload) async {
-    committed = payload;
-    return 'recipe-1';
+    return payload;
   }
 }
 
 void main() {
-  late _FakeImportRepository fake;
+  late _GatedImportRepo fake;
   late ProviderContainer container;
 
   setUp(() {
-    fake = _FakeImportRepository();
+    fake = _GatedImportRepo();
     container = ProviderContainer(
       overrides: [
         importRepositoryProvider.overrideWithValue(fake),

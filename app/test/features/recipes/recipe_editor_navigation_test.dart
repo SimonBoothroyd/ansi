@@ -63,7 +63,9 @@ Future<FakeRecipeRepo> _pumpApp(WidgetTester tester, GoRouter router) async {
     ProviderScope(
       overrides: [
         recipeRepositoryProvider.overrideWithValue(repo),
-        ingredientRepositoryProvider.overrideWithValue(FakeIngredientRepo()),
+        ingredientRepositoryProvider.overrideWithValue(
+          const FakeIngredientRepo(),
+        ),
         bookRepositoryProvider.overrideWithValue(FakeBookRepo()),
       ],
       child: MaterialApp.router(

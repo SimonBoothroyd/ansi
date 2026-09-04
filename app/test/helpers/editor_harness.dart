@@ -11,7 +11,6 @@ import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
-import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:ansi/features/recipes/presentation/recipe_editor_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,65 +20,27 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
 import 'fake_ingredient_repository.dart';
+import 'fake_recipe_repository.dart';
 
-class FakeRecipeRepo implements RecipeRepository {
-  FakeRecipeRepo(this.recipe, {this.saveThrows = false});
-
-  final Recipe? recipe;
+class FakeRecipeRepo extends FakeRecipeRepository {
+  FakeRecipeRepo(Recipe? recipe, {this.saveThrows = false})
+    : super(recipe: recipe);
 
   /// Whether the write refuses — the case where Save used to look like a
   /// laggy button and a recipe quietly went nowhere.
   final bool saveThrows;
-  final saved = <Recipe>[];
 
   @override
-  Stream<List<RecipeSummary>> watchRecipes() => Stream.value(const []);
-
-  @override
-  Stream<Recipe?> watchRecipe(String id) => Stream.value(recipe);
-
-  @override
-  Future<void> saveRecipe(Recipe r) async {
+  Future<void> saveRecipe(Recipe recipe) async {
     if (saveThrows) throw StateError('RLS denied');
-    saved.add(r);
+    saved.add(recipe);
   }
-
-  @override
-  Future<void> deleteRecipe(String id) async {}
-
-  /// What the last `setFavorite` asked for — the Library row's menu toggles
-  /// through this rather than through a whole-recipe save.
-  ({String id, bool favorite})? favorited;
-
-  /// What the last `setFiling` asked for (0028 E8).
-  ({String id, String bookId, String? sectionId})? filed;
-
-  @override
-  Future<void> setFavorite(String id, bool favorite) async {
-    favorited = (id: id, favorite: favorite);
-  }
-
-  @override
-  Future<void> setFiling(String id, String bookId, String? sectionId) async {
-    filed = (id: id, bookId: bookId, sectionId: sectionId);
-  }
-
-  @override
-  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
-
-  @override
-  Future<bool> componentLinkWouldCycle({
-    required String recipeId,
-    required String subRecipeId,
-  }) async => false;
 }
 
-class FakeIngredientRepo
-    with IngredientManagerStubs
-    implements IngredientRepository {
-  @override
-  Future<Ingredient?> saveForm(String? ingredientId, IngredientFormEdit edit) =>
-      throw UnimplementedError();
+/// The editor's ingredient search, which must find exactly one row so the
+/// picker has something to pick.
+class FakeIngredientRepo extends ReadOnlyIngredientRepo {
+  const FakeIngredientRepo();
 
   @override
   Future<IngredientMatches> search(String query, {int limit = 30}) async => (
@@ -94,19 +55,6 @@ class FakeIngredientRepo
     ],
     guessed: false,
   );
-
-  @override
-  Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>
-      null;
-
-  @override
-  Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
-
-  @override
-  Future<Ingredient?> byId(String id) async => null;
-
-  @override
-  Future<Map<String, Ingredient>> byIds(Set<String> ids) async => const {};
 }
 
 class FakeBookRepo implements BookRepository {

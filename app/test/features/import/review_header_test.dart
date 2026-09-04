@@ -8,20 +8,16 @@
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
-import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
-import 'package:ansi/features/import/domain/commit_payload.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:ansi/features/import/presentation/import_view_models.dart';
 import 'package:ansi/features/import/presentation/reconciliation_view.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
-import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
-import 'package:ansi/features/ingredients/domain/measure_repository.dart';
 import 'package:ansi/features/recipes/presentation/recipe_header_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -29,24 +25,10 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
+import '../../helpers/fake_import_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/forui_semantics.dart';
-
-class _FakeRepo implements ImportRepository {
-  _FakeRepo(this.payload);
-  final ReconciliationPayload payload;
-  CommitPayload? committed;
-
-  @override
-  Future<ReconciliationPayload> startImport(ImportSource source) async =>
-      payload;
-
-  @override
-  Future<String> commit(CommitPayload payload) async {
-    committed = payload;
-    return 'recipe-1';
-  }
-}
 
 const _onion = Ingredient(
   id: 'ing-onion',
@@ -54,54 +36,6 @@ const _onion = Ingredient(
   defaultUnit: pieces,
   status: IngredientStatus.complete,
 );
-
-class _FakeIngredientRepo
-    with IngredientManagerStubs
-    implements IngredientRepository {
-  @override
-  Future<Ingredient?> saveForm(String? ingredientId, IngredientFormEdit edit) =>
-      throw UnimplementedError();
-
-  @override
-  Future<Ingredient?> byId(String id) async => _onion;
-
-  @override
-  Future<Map<String, Ingredient>> byIds(Set<String> ids) async => {
-    for (final id in ids) id: _onion,
-  };
-
-  @override
-  Future<IngredientMatches> search(String query, {int limit = 30}) async =>
-      (rows: const <Ingredient>[], guessed: false);
-
-  @override
-  Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
-
-  @override
-  Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>
-      null;
-}
-
-class _FakeMeasureRepo implements MeasureRepository {
-  @override
-  Stream<List<Measure>> watchMeasures(String ingredientId) =>
-      Stream.value(const []);
-
-  @override
-  Future<Map<String, List<Measure>>> measuresByIngredients(
-    Set<String> ids,
-  ) async => const {};
-
-  @override
-  Future<Measure> addMeasure({
-    required String ingredientId,
-    required String label,
-    required double amount,
-  }) async => throw UnimplementedError();
-
-  @override
-  Future<void> softDeleteMeasure(String measureId) async {}
-}
 
 /// One clean auto-matched line, so Save's gate is about the header and
 /// nothing else, with whatever the page printed about the rest.
@@ -150,9 +84,11 @@ class _Body extends ConsumerWidget {
 Future<ProviderContainer> _reviewing(ReconciliationPayload payload) async {
   final container = ProviderContainer(
     overrides: [
-      importRepositoryProvider.overrideWithValue(_FakeRepo(payload)),
-      ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
-      measureRepositoryProvider.overrideWithValue(_FakeMeasureRepo()),
+      importRepositoryProvider.overrideWithValue(FakeImportRepo(payload)),
+      ingredientRepositoryProvider.overrideWithValue(
+        const OneRowIngredientRepo(_onion),
+      ),
+      measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
       bookRepositoryProvider.overrideWithValue(
         const FakeBookRepository([Book(id: 'b1', name: 'Our Cookbook')]),
       ),
@@ -347,7 +283,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final committed =
-        (container.read(importRepositoryProvider) as _FakeRepo).committed!;
+        (container.read(importRepositoryProvider) as FakeImportRepo).committed!;
     expect(committed.title, 'Sausage Sliders, ours');
     expect(committed.servingsBase, 8);
     expect((committed.yieldQty, committed.yieldUnit), (8, pieces));

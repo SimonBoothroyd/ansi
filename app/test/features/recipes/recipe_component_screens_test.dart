@@ -19,15 +19,17 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
 
 /// A repository over a fixed set of recipes plus canned back-links.
-class _FakeRecipeRepo implements RecipeRepository {
+/// A library keyed by id, so a component line can be followed to its target,
+/// plus the back-links the "Used in" tab and the delete refusal both read.
+class _FakeRecipeRepo extends FakeRecipeRepository {
   _FakeRecipeRepo(this.recipes, {this.uses = const []});
 
   final Map<String, Recipe> recipes;
   final List<RecipeUse> uses;
-  final deleted = <String>[];
 
   @override
   Stream<List<RecipeSummary>> watchRecipes() => Stream.value([
@@ -39,24 +41,7 @@ class _FakeRecipeRepo implements RecipeRepository {
   Stream<Recipe?> watchRecipe(String id) => Stream.value(recipes[id]);
 
   @override
-  Future<void> saveRecipe(Recipe recipe) async {}
-
-  @override
-  Future<void> deleteRecipe(String id) async => deleted.add(id);
-
-  @override
-  Future<void> setFavorite(String id, bool favorite) async {}
-  @override
-  Future<void> setFiling(String id, String bookId, String? sectionId) async {}
-
-  @override
   Future<List<RecipeUse>> usedIn(String recipeId) async => uses;
-
-  @override
-  Future<bool> componentLinkWouldCycle({
-    required String recipeId,
-    required String subRecipeId,
-  }) async => false;
 }
 
 Widget _host(_FakeRecipeRepo repo) {

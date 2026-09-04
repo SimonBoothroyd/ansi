@@ -7,7 +7,6 @@ import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
-import 'package:ansi/features/planning/domain/planning_repository.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/planning/presentation/week_view.dart';
@@ -15,7 +14,6 @@ import 'package:ansi/features/planning/presentation/week_widgets.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
-import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -23,25 +21,27 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
+import '../../helpers/fake_cook_plan_repository.dart';
+import '../../helpers/fake_planning_repository.dart';
+import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
 
 /// A canned planner: emits [week] for the current week and [last] as the
 /// reference week, with two members. Mutations are inert.
-class _FakePlanningRepo implements PlanningRepository {
+class _FakePlanningRepo extends FakePlanningRepository {
   _FakePlanningRepo({
     this.week,
     this.last,
     this.onCopy,
-    this.roster = const [
+    List<Member> roster = const [
       Member(id: 'm1', displayName: 'Ada'),
       Member(id: 'm2', displayName: 'Jun'),
     ],
-  });
+  }) : super(roster);
 
   final WeekPlan? week;
   final WeekPlan? last;
   final void Function(DateTime weekStart)? onCopy;
-  final List<Member> roster;
 
   @override
   Stream<WeekPlan?> watchWeek(DateTime weekStart) => Stream.value(week);
@@ -50,38 +50,10 @@ class _FakePlanningRepo implements PlanningRepository {
   Future<WeekPlan?> mostRecentWeekBefore(DateTime weekStart) async => last;
 
   @override
-  Stream<List<Member>> watchMembers() => Stream.value(roster);
-
-  @override
-  Future<void> setPortionFactor(String memberId, double factor) async {}
-
-  @override
-  Future<String> addEntry({
-    required DateTime weekStart,
-    required int dayOfWeek,
-    required String mealSlot,
-    required String recipeId,
-    required List<String> eaterIds,
-    int? portions,
-  }) async => 'e';
-
-  @override
-  Future<void> setEaters(String entryId, List<String> eaterIds) async {}
-
-  @override
-  Future<void> setPortions(String entryId, int? portions) async {}
-
-  @override
-  Future<void> removeEntry(String entryId) async {}
-
-  @override
   Future<int> copyLastWeek(DateTime weekStart) async {
     onCopy?.call(weekStart);
     return 0;
   }
-
-  @override
-  Stream<Map<String, DateTime>> watchLastPlanned() => Stream.value(const {});
 }
 
 /// A planner whose writes are REAL to the stream: `removeEntry` re-emits the
@@ -138,83 +110,26 @@ class _LivePlanningRepo extends _FakePlanningRepo {
   }
 }
 
-/// A canned cook plan for the week's markers (D6). Empty by default.
-class _FakeCookPlanRepo implements CookPlanRepository {
-  _FakeCookPlanRepo([this.recipes = const []]);
-
-  final List<PlannedRecipe> recipes;
-
-  @override
-  Stream<CookPlan> watchCookPlan(DateTime weekStart) =>
-      Stream.value(buildCookPlan(recipes));
-}
-
 /// A library of one recipe, with whatever macro summary the test needs — the
 /// week reads `RecipeSummary.macros`, the same figure the picker rows show.
-class _RecipesRepo implements RecipeRepository {
-  _RecipesRepo(this.macros);
-
-  final RecipeMacroSummary? macros;
-
-  @override
-  Stream<List<RecipeSummary>> watchRecipes() => Stream.value([
-    RecipeSummary(
-      id: 'r1',
-      title: 'Weeknight Chicken Curry',
-      servingsBase: 2,
-      macros: macros,
-    ),
-  ]);
-
-  @override
-  Stream<Recipe?> watchRecipe(String id) => Stream.value(null);
-  @override
-  Future<void> saveRecipe(Recipe recipe) async {}
-  @override
-  Future<void> deleteRecipe(String id) async {}
-  @override
-  Future<void> setFavorite(String id, bool favorite) async {}
-  @override
-  Future<void> setFiling(String id, String bookId, String? sectionId) async {}
-  @override
-  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
-  @override
-  Future<bool> componentLinkWouldCycle({
-    required String recipeId,
-    required String subRecipeId,
-  }) async => false;
-}
-
-class _NoRecipesRepo implements RecipeRepository {
-  @override
-  Stream<List<RecipeSummary>> watchRecipes() => Stream.value(const []);
-  @override
-  Stream<Recipe?> watchRecipe(String id) => Stream.value(null);
-  @override
-  Future<void> saveRecipe(Recipe recipe) async {}
-  @override
-  Future<void> deleteRecipe(String id) async {}
-
-  @override
-  Future<void> setFavorite(String id, bool favorite) async {}
-
-  @override
-  Future<void> setFiling(String id, String bookId, String? sectionId) async {}
-
-  @override
-  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
-
-  @override
-  Future<bool> componentLinkWouldCycle({
-    required String recipeId,
-    required String subRecipeId,
-  }) async => false;
-}
+FakeRecipeRepository _recipesRepo(RecipeMacroSummary? macros) =>
+    FakeRecipeRepository(
+      summaries: [
+        RecipeSummary(
+          id: 'r1',
+          title: 'Weeknight Chicken Curry',
+          servingsBase: 2,
+          macros: macros,
+        ),
+      ],
+    );
 
 /// Every host wires a cook-plan repo, because the Week reads its markers back
 /// off the plan (D6) — no test should reach for a real database to draw a row.
 List<Override> _withCook(List<Override> extra, CookPlanRepository? cook) => [
-  cookPlanRepositoryProvider.overrideWithValue(cook ?? _FakeCookPlanRepo()),
+  cookPlanRepositoryProvider.overrideWithValue(
+    cook ?? FakeCookPlanRepository(),
+  ),
   ...extra,
 ];
 
@@ -324,7 +239,7 @@ void main() {
           planningRepositoryProvider.overrideWithValue(
             _FakePlanningRepo(week: _plannedWeek()),
           ),
-          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
         ]),
       );
       await tester.pumpAndSettle();
@@ -351,7 +266,7 @@ void main() {
           planningRepositoryProvider.overrideWithValue(
             _FakePlanningRepo(week: _plannedWeek()),
           ),
-          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
         ]),
       );
       await tester.pumpAndSettle();
@@ -388,7 +303,7 @@ void main() {
               onCopy: copied.add,
             ),
           ),
-          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
         ]),
       );
       await tester.pumpAndSettle();
@@ -435,7 +350,7 @@ void main() {
       await tester.pumpWidget(
         _host([
           planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
-          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
         ]),
       );
       await tester.pumpAndSettle();
@@ -468,7 +383,7 @@ void main() {
       await tester.pumpWidget(
         _host([
           planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
-          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
         ]),
       );
       await tester.pumpAndSettle();
@@ -490,7 +405,7 @@ void main() {
           planningRepositoryProvider.overrideWithValue(
             _FakePlanningRepo(last: last),
           ),
-          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
         ]),
       );
       await tester.pumpAndSettle();
@@ -503,7 +418,7 @@ void main() {
           planningRepositoryProvider.overrideWithValue(
             _FakePlanningRepo(week: _plannedWeek(), last: last),
           ),
-          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
         ]),
       );
       await tester.pumpAndSettle();
@@ -521,7 +436,7 @@ void main() {
           planningRepositoryProvider.overrideWithValue(
             _FakePlanningRepo(week: _plannedWeek()),
           ),
-          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
         ]),
       );
       await tester.pumpAndSettle();
@@ -534,7 +449,7 @@ void main() {
               week: WeekPlan(id: 'w', weekStart: DateTime.utc(2026, 8, 24)),
             ),
           ),
-          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
         ]),
       );
       await tester.pumpAndSettle();
@@ -557,7 +472,7 @@ void main() {
           planningRepositoryProvider.overrideWithValue(
             _FakePlanningRepo(week: _plannedWeek()),
           ),
-          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(complete)),
+          recipeRepositoryProvider.overrideWithValue(_recipesRepo(complete)),
         ]),
       );
       await tester.pumpAndSettle();
@@ -580,7 +495,7 @@ void main() {
           planningRepositoryProvider.overrideWithValue(
             _FakePlanningRepo(week: _plannedWeek()),
           ),
-          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(incomplete)),
+          recipeRepositoryProvider.overrideWithValue(_recipesRepo(incomplete)),
         ]),
       );
       await tester.pumpAndSettle();
@@ -603,7 +518,7 @@ void main() {
           planningRepositoryProvider.overrideWithValue(
             _FakePlanningRepo(week: _plannedWeek()),
           ),
-          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(complete)),
+          recipeRepositoryProvider.overrideWithValue(_recipesRepo(complete)),
         ]),
       );
       await tester.pumpAndSettle();
@@ -630,7 +545,7 @@ void main() {
           planningRepositoryProvider.overrideWithValue(
             _FakePlanningRepo(week: _plannedWeek()),
           ),
-          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(complete)),
+          recipeRepositoryProvider.overrideWithValue(_recipesRepo(complete)),
         ]),
       );
       await tester.pumpAndSettle();
@@ -647,7 +562,7 @@ void main() {
           planningRepositoryProvider.overrideWithValue(
             _FakePlanningRepo(week: _plannedWeek()),
           ),
-          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(complete)),
+          recipeRepositoryProvider.overrideWithValue(_recipesRepo(complete)),
         ]),
       );
       await tester.pumpAndSettle();
@@ -687,7 +602,7 @@ void main() {
           planningRepositoryProvider.overrideWithValue(
             _FakePlanningRepo(week: _plannedWeek()),
           ),
-          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(null)),
+          recipeRepositoryProvider.overrideWithValue(_recipesRepo(null)),
         ], null),
         child: MaterialApp(
           home: ValueListenableBuilder<bool>(
@@ -723,7 +638,7 @@ void main() {
           planningRepositoryProvider.overrideWithValue(
             _FakePlanningRepo(week: _plannedWeek()),
           ),
-          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
         ]),
       );
       await tester.pumpAndSettle();
@@ -749,7 +664,7 @@ void main() {
         planningRepositoryProvider.overrideWithValue(
           _FakePlanningRepo(week: _plannedWeek()),
         ),
-        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
       ]),
     );
     await tester.pumpAndSettle();
@@ -761,7 +676,7 @@ void main() {
         planningRepositoryProvider.overrideWithValue(
           _FakePlanningRepo(week: _plannedWeek(portions: 3)),
         ),
-        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
       ]),
     );
     await tester.pumpAndSettle();
@@ -772,7 +687,7 @@ void main() {
       'cook gets none (D6)', (tester) async {
     // One recipe, two meals two days apart, keeping 4 days → ONE session
     // covering both: Monday cooks, Wednesday comes out of that batch.
-    final plan = _FakeCookPlanRepo([
+    final plan = FakeCookPlanRepository.of([
       const PlannedRecipe(
         recipeId: 'r1',
         title: 'Weeknight Chicken Curry',
@@ -789,7 +704,7 @@ void main() {
         planningRepositoryProvider.overrideWithValue(
           _FakePlanningRepo(week: _batchedWeek()),
         ),
-        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
       ], cook: plan),
     );
     await tester.pumpAndSettle();
@@ -804,7 +719,7 @@ void main() {
         planningRepositoryProvider.overrideWithValue(
           _FakePlanningRepo(week: _plannedWeek()),
         ),
-        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
       ]),
     );
     await tester.pumpAndSettle();
@@ -820,7 +735,7 @@ void main() {
         planningRepositoryProvider.overrideWithValue(
           _FakePlanningRepo(week: _plannedWeek()),
         ),
-        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
       ], (r) => router = r),
     );
     await tester.pumpAndSettle();
@@ -856,7 +771,7 @@ void main() {
         planningRepositoryProvider.overrideWithValue(
           _LivePlanningRepo(_plannedWeek()),
         ),
-        recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+        recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
       ], (_) {}),
     );
     await tester.pumpAndSettle();
@@ -903,7 +818,7 @@ void main() {
               roster: _factoredRoster,
             ),
           ),
-          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
         ], (r) => router = r),
       );
       await tester.pumpAndSettle();
@@ -946,7 +861,7 @@ void main() {
               roster: _factoredRoster,
             ),
           ),
-          recipeRepositoryProvider.overrideWithValue(_NoRecipesRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
         ]),
       );
       await tester.pumpAndSettle();
@@ -964,7 +879,7 @@ void main() {
               roster: _factoredRoster,
             ),
           ),
-          recipeRepositoryProvider.overrideWithValue(_RecipesRepo(complete)),
+          recipeRepositoryProvider.overrideWithValue(_recipesRepo(complete)),
         ]),
       );
       await tester.pumpAndSettle();

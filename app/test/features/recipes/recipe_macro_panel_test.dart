@@ -6,7 +6,6 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
-import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:ansi/features/recipes/presentation/recipe_macro_panel.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:ansi/shared/incomplete_macros.dart';
@@ -15,38 +14,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../helpers/fake_recipe_repository.dart';
+
 /// Serves the one recipe the page under test renders, over a controllable
 /// stream so a live vocab change can be pushed mid-test.
-class _FakeRecipeRepo implements RecipeRepository {
+/// The panel redraws on every emission, so the recipe arrives as a stream
+/// rather than a value.
+class _FakeRecipeRepo extends FakeRecipeRepository {
   _FakeRecipeRepo(this.recipes);
 
   final Stream<Recipe?> recipes;
 
   @override
   Stream<Recipe?> watchRecipe(String id) => recipes;
-
-  @override
-  Stream<List<RecipeSummary>> watchRecipes() => const Stream.empty();
-
-  @override
-  Future<void> saveRecipe(Recipe recipe) async {}
-
-  @override
-  Future<void> deleteRecipe(String id) async {}
-
-  @override
-  Future<void> setFavorite(String id, bool favorite) async {}
-  @override
-  Future<void> setFiling(String id, String bookId, String? sectionId) async {}
-
-  @override
-  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
-
-  @override
-  Future<bool> componentLinkWouldCycle({
-    required String recipeId,
-    required String subRecipeId,
-  }) async => false;
 }
 
 Widget _host(Widget child, {Stream<Recipe?>? recipes}) => ProviderScope(

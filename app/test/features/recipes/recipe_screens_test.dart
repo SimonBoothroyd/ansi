@@ -5,11 +5,8 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
-import 'package:ansi/features/ingredients/domain/ingredient.dart';
-import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
-import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
 import 'package:ansi/features/recipes/presentation/recipe_editor_view.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
@@ -22,12 +19,13 @@ import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
 
-class _FakeRecipeRepo implements RecipeRepository {
-  _FakeRecipeRepo(this.recipe);
-
-  final Recipe? recipe;
+/// The library and the page both read the one recipe under test, so the list
+/// is derived from it rather than canned separately.
+class _FakeRecipeRepo extends FakeRecipeRepository {
+  _FakeRecipeRepo(Recipe? recipe) : super(recipe: recipe);
 
   @override
   Stream<List<RecipeSummary>> watchRecipes() => Stream.value([
@@ -38,54 +36,6 @@ class _FakeRecipeRepo implements RecipeRepository {
         servingsBase: recipe!.servingsBase,
       ),
   ]);
-
-  @override
-  Stream<Recipe?> watchRecipe(String id) => Stream.value(recipe);
-
-  @override
-  Future<void> saveRecipe(Recipe recipe) async {}
-
-  @override
-  Future<void> deleteRecipe(String id) async {}
-
-  @override
-  Future<void> setFavorite(String id, bool favorite) async {}
-  @override
-  Future<void> setFiling(String id, String bookId, String? sectionId) async {}
-
-  @override
-  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
-
-  @override
-  Future<bool> componentLinkWouldCycle({
-    required String recipeId,
-    required String subRecipeId,
-  }) async => false;
-}
-
-class _FakeIngredientRepo
-    with IngredientManagerStubs
-    implements IngredientRepository {
-  @override
-  Future<Ingredient?> saveForm(String? ingredientId, IngredientFormEdit edit) =>
-      throw UnimplementedError();
-
-  @override
-  Future<IngredientMatches> search(String query, {int limit = 30}) async =>
-      (rows: const <Ingredient>[], guessed: false);
-
-  @override
-  Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>
-      null;
-
-  @override
-  Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
-
-  @override
-  Future<Ingredient?> byId(String id) async => null;
-
-  @override
-  Future<Map<String, Ingredient>> byIds(Set<String> ids) async => const {};
 }
 
 /// The editor defaults new recipes into a book and renders a section picker.
@@ -282,7 +232,9 @@ void main() {
     await tester.pumpWidget(
       _host(const RecipeEditorView(), [
         recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(null)),
-        ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
         bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
       ]),
     );
@@ -326,7 +278,9 @@ void main() {
     await tester.pumpWidget(
       _host(const RecipeEditorView(recipeId: '1'), [
         recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(butter)),
-        ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
         bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
       ]),
     );
@@ -376,7 +330,9 @@ void main() {
     await tester.pumpWidget(
       _routedHost(router, [
         recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(_recipe)),
-        ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
         bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
       ]),
     );

@@ -16,7 +16,6 @@
 // ignore_for_file: scoped_providers_should_specify_dependencies
 library;
 
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -30,7 +29,6 @@ import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
-import 'package:ansi/features/ingredients/domain/measure_repository.dart';
 import 'package:ansi/features/ingredients/domain/normalize.dart';
 import 'package:ansi/features/ingredients/domain/usda_probe.dart';
 import 'package:ansi/features/ingredients/presentation/density_entry.dart';
@@ -47,7 +45,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/forui_semantics.dart';
+import '../../helpers/silent_usda_probe.dart';
 
 const _mangoMacros = Macros(kcal: 60, protein: 1, carb: 15, fat: 0);
 
@@ -99,46 +99,6 @@ const _yeast = Ingredient(
   source: 'seed',
 );
 
-/// An in-memory measure store: enough for the flesh-out form's embedded
-/// editor (F2) and for asserting what the barcode pack-size tick wrote.
-class _FakeMeasures implements MeasureRepository {
-  _FakeMeasures([List<Measure> initial = const []]) : rows = [...initial];
-
-  final List<Measure> rows;
-  final _changes = StreamController<void>.broadcast();
-
-  @override
-  Stream<List<Measure>> watchMeasures(String ingredientId) async* {
-    yield [...rows];
-    yield* _changes.stream.map((_) => [...rows]);
-  }
-
-  @override
-  Future<Map<String, List<Measure>>> measuresByIngredients(
-    Set<String> ids,
-  ) async => {
-    for (final id in ids) id: [...rows],
-  };
-
-  @override
-  Future<Measure> addMeasure({
-    required String ingredientId,
-    required String label,
-    required double amount,
-  }) async {
-    final m = Measure(id: 'm-${rows.length}', label: label, amount: amount);
-    rows.add(m);
-    _changes.add(null);
-    return m;
-  }
-
-  @override
-  Future<void> softDeleteMeasure(String measureId) async {
-    rows.removeWhere((m) => m.id == measureId);
-    _changes.add(null);
-  }
-}
-
 /// What the fake probe answers with — the curry-leaf candidate the server's
 /// trigram match would have returned.
 const _usdaAnswer = UsdaCandidate(
@@ -171,15 +131,6 @@ class _RecordingProbe extends UsdaProbe {
     limits.add(limit);
     return answers.take(limit).toList();
   }
-}
-
-/// The offline / unconfigured answer: nothing, without throwing.
-class _SilentProbe extends UsdaProbe {
-  const _SilentProbe();
-
-  @override
-  Future<List<UsdaCandidate>> search(String matchText, {int limit = 5}) async =>
-      const [];
 }
 
 /// The flesh-out form is one long scroll; a phone-sized test viewport builds
@@ -314,7 +265,7 @@ void _phoneWidth(WidgetTester tester) {
 Widget _host(
   FakeIngredientRepo repo, {
   String at = '/ingredients',
-  _FakeMeasures? measures,
+  FakeMeasureRepo? measures,
   UsdaProbe? probe,
   OffLookup? lookup,
 }) {
@@ -350,8 +301,10 @@ Widget _host(
   return ProviderScope(
     overrides: [
       ingredientRepositoryProvider.overrideWithValue(repo),
-      measureRepositoryProvider.overrideWithValue(measures ?? _FakeMeasures()),
-      usdaProbeProvider.overrideWithValue(probe ?? const _SilentProbe()),
+      measureRepositoryProvider.overrideWithValue(
+        measures ?? FakeMeasureRepo(),
+      ),
+      usdaProbeProvider.overrideWithValue(probe ?? const SilentUsdaProbe()),
     ],
     child: MaterialApp.router(
       routerConfig: router,
@@ -1161,7 +1114,7 @@ void main() {
         'a read-only note', (tester) async {
       filterForuiSemanticsAssertions();
       _tallScreen(tester);
-      final measures = _FakeMeasures(const [
+      final measures = FakeMeasureRepo(const [
         Measure(id: 'm-usda', label: 'mango, medium', amount: 207),
       ]);
       await tester.pumpWidget(
@@ -1233,7 +1186,7 @@ void main() {
         'redirected into the density entry (ADR-0008 §2)', (tester) async {
       filterForuiSemanticsAssertions();
       _tallScreen(tester);
-      final measures = _FakeMeasures();
+      final measures = FakeMeasureRepo();
       await tester.pumpWidget(
         _host(
           FakeIngredientRepo(const [_mango]),
@@ -1306,7 +1259,7 @@ void main() {
       filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
-      final measures = _FakeMeasures();
+      final measures = FakeMeasureRepo();
       await tester.pumpWidget(
         _host(repo, at: '/ingredients/mango', measures: measures),
       );
@@ -1353,7 +1306,7 @@ void main() {
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
       await tester.pumpWidget(
-        _host(repo, at: '/ingredients/mango', measures: _FakeMeasures()),
+        _host(repo, at: '/ingredients/mango', measures: FakeMeasureRepo()),
       );
       await tester.pumpAndSettle();
 
@@ -1373,7 +1326,7 @@ void main() {
         _host(
           repo,
           at: '/ingredients/mango',
-          measures: _FakeMeasures(const [
+          measures: FakeMeasureRepo(const [
             Measure(id: 'm-usda', label: 'mango, medium', amount: 207),
           ]),
         ),
@@ -1391,7 +1344,7 @@ void main() {
       filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
-      final measures = _FakeMeasures();
+      final measures = FakeMeasureRepo();
       await tester.pumpWidget(
         _host(repo, at: '/ingredients/mango', measures: measures),
       );
@@ -1424,7 +1377,7 @@ void main() {
       filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
-      final measures = _FakeMeasures();
+      final measures = FakeMeasureRepo();
       await tester.pumpWidget(
         _host(repo, at: '/ingredients/mango', measures: measures),
       );
@@ -1457,7 +1410,7 @@ void main() {
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
       await tester.pumpWidget(
-        _host(repo, at: '/ingredients/mango', measures: _FakeMeasures()),
+        _host(repo, at: '/ingredients/mango', measures: FakeMeasureRepo()),
       );
       await tester.pumpAndSettle();
 
@@ -1473,7 +1426,7 @@ void main() {
       filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
-      final measures = _FakeMeasures(const [
+      final measures = FakeMeasureRepo(const [
         Measure(id: 'm-med', label: 'mango, medium', amount: 207),
         Measure(id: 'm-lrg', label: 'mango, large', amount: 280),
       ]);
@@ -1514,7 +1467,7 @@ void main() {
         _host(
           FakeIngredientRepo(const [_mango]),
           at: '/ingredients/mango',
-          measures: _FakeMeasures(),
+          measures: FakeMeasureRepo(),
         ),
       );
       await tester.pumpAndSettle();
@@ -1831,7 +1784,7 @@ void main() {
       final repo = FakeIngredientRepo([plain]);
       await tester.pumpWidget(
         // The unconfigured probe answers exactly like an offline device.
-        _host(repo, at: '/ingredients/curry', probe: const _SilentProbe()),
+        _host(repo, at: '/ingredients/curry', probe: const SilentUsdaProbe()),
       );
       await tester.pumpAndSettle();
 
@@ -2042,7 +1995,7 @@ void main() {
       filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [bare]);
-      final measures = _FakeMeasures();
+      final measures = FakeMeasureRepo();
       await tester.pumpWidget(
         _host(
           repo,
@@ -2287,7 +2240,7 @@ void main() {
       filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [spread]);
-      final measures = _FakeMeasures();
+      final measures = FakeMeasureRepo();
       await tester.pumpWidget(
         _host(repo, at: '/ingredients/spread', measures: measures),
       );
@@ -2580,7 +2533,7 @@ final Finder _scanField = find.descendant(
 Widget _addHost(
   FakeIngredientRepo repo, {
   required String body,
-  _FakeMeasures? measures,
+  FakeMeasureRepo? measures,
   UsdaProbe? probe,
   bool viaProvider = false,
 }) {
@@ -2611,8 +2564,10 @@ Widget _addHost(
   return ProviderScope(
     overrides: [
       ingredientRepositoryProvider.overrideWithValue(repo),
-      measureRepositoryProvider.overrideWithValue(measures ?? _FakeMeasures()),
-      usdaProbeProvider.overrideWithValue(probe ?? const _SilentProbe()),
+      measureRepositoryProvider.overrideWithValue(
+        measures ?? FakeMeasureRepo(),
+      ),
+      usdaProbeProvider.overrideWithValue(probe ?? const SilentUsdaProbe()),
       if (viaProvider) offLookupProvider.overrideWithValue(buildLookup()),
     ],
     child: MaterialApp.router(

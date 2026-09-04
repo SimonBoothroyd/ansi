@@ -25,7 +25,9 @@ Future<FakeRecipeRepo> openEditor(WidgetTester tester) async {
   await tester.pumpWidget(
     hostEditor('1', [
       recipeRepositoryProvider.overrideWithValue(repo),
-      ingredientRepositoryProvider.overrideWithValue(FakeIngredientRepo()),
+      ingredientRepositoryProvider.overrideWithValue(
+        const FakeIngredientRepo(),
+      ),
       bookRepositoryProvider.overrideWithValue(FakeBookRepo()),
     ]),
   );

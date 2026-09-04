@@ -2,11 +2,13 @@
 ///
 /// The interface carries a write half (the form, density, default measure,
 /// delete). Screens that only *read* the vocab shouldn't have to restate it,
-/// so [IngredientManagerStubs] supplies those members as loud no-ops; screens
-/// that exercise the manager use [FakeIngredientRepo], an in-memory
-/// implementation that keeps the D5/D6 semantics honest (a rename rewrites
-/// `match_text`, a form completes only with macros, delete is refused while a
-/// reference count is set).
+/// so [ReadOnlyIngredientRepo] answers the whole interface with the empty,
+/// harmless value and throws from the writes — subclass it and override only
+/// the lookup the screen actually drives. Screens that exercise the manager
+/// use [FakeIngredientRepo], an in-memory implementation that keeps the
+/// vocabulary write semantics honest (a rename rewrites `match_text`, a form
+/// completes only with macros, delete is refused while a reference count is
+/// set).
 library;
 
 import 'dart:async';
@@ -17,8 +19,45 @@ import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/ingredients/domain/normalize.dart';
 
-/// The manager's write half as `UnimplementedError`s — for read-only fakes.
-mixin IngredientManagerStubs implements IngredientRepository {
+/// A vocabulary that answers every read with nothing and refuses every write.
+///
+/// Screens that merely *look up* an ingredient get the whole interface from
+/// here; a suite that needs one lookup to answer overrides that one method.
+class ReadOnlyIngredientRepo implements IngredientRepository {
+  const ReadOnlyIngredientRepo();
+
+  @override
+  Future<Ingredient?> byId(String id) async => null;
+
+  @override
+  Future<Map<String, Ingredient>> byIds(Set<String> ids) async => const {};
+
+  @override
+  Future<IngredientMatches> search(String query, {int limit = 30}) async =>
+      (rows: const <Ingredient>[], guessed: false);
+
+  @override
+  Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
+
+  @override
+  Future<List<IngredientAlias>> aliases(String ingredientId) async => const [];
+
+  @override
+  Stream<List<Ingredient>> watchVocabulary() => const Stream.empty();
+
+  @override
+  Stream<List<String>> watchCategories() => Stream.value(const []);
+
+  @override
+  Stream<int> watchStubCount() => Stream.value(0);
+
+  @override
+  Stream<int> watchVocabularyCount() => Stream.value(0);
+
+  @override
+  Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>
+      null;
+
   @override
   Future<Ingredient?> clearDensity(String ingredientId) =>
       throw UnimplementedError();
@@ -38,18 +77,6 @@ mixin IngredientManagerStubs implements IngredientRepository {
       throw UnimplementedError();
 
   @override
-  Stream<List<Ingredient>> watchVocabulary() => const Stream.empty();
-
-  @override
-  Stream<List<String>> watchCategories() => Stream.value(const []);
-
-  @override
-  Stream<int> watchStubCount() => Stream.value(0);
-
-  @override
-  Stream<int> watchVocabularyCount() => Stream.value(0);
-
-  @override
   Future<Ingredient?> unconfirm(String ingredientId) =>
       throw UnimplementedError();
 
@@ -58,7 +85,27 @@ mixin IngredientManagerStubs implements IngredientRepository {
       throw UnimplementedError();
 
   @override
-  Future<List<IngredientAlias>> aliases(String ingredientId) async => const [];
+  Future<Ingredient?> saveForm(String? ingredientId, IngredientFormEdit edit) =>
+      throw UnimplementedError();
+}
+
+/// A read-only vocabulary that answers every lookup with the same row.
+///
+/// The import review surfaces resolve ids they were HANDED, not ids they
+/// chose, so what matters to them is that a lookup answers at all — which row
+/// comes back is the suite's fixture, not the repository's job.
+class OneRowIngredientRepo extends ReadOnlyIngredientRepo {
+  const OneRowIngredientRepo(this.row);
+
+  final Ingredient row;
+
+  @override
+  Future<Ingredient?> byId(String id) async => row;
+
+  @override
+  Future<Map<String, Ingredient>> byIds(Set<String> ids) async => {
+    for (final id in ids) id: row,
+  };
 }
 
 /// An in-memory vocabulary with the step-8.5 write semantics, for widget

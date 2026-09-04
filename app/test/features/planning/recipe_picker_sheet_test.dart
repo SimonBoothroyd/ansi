@@ -8,12 +8,10 @@ import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
-import 'package:ansi/features/planning/domain/planning_repository.dart';
 import 'package:ansi/features/planning/presentation/recipe_picker_sheet.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
-import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:ansi/shared/incomplete_macros.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,6 +19,8 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
+import '../../helpers/fake_planning_repository.dart';
+import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
 
 /// The picker's read models, canned: two recipes — a favorite with complete
@@ -50,69 +50,17 @@ const _bare = RecipeSummary(
   macros: RecipeMacroSummary(noLines: true),
 );
 
-class _FakeRecipeRepo implements RecipeRepository {
-  _FakeRecipeRepo([this.recipes = const [_curry, _salad]]);
+/// The rows print recency, so the planner remembers when `r1` was last eaten.
+class _FakePlanningRepo extends FakePlanningRepository {
+  _FakePlanningRepo()
+    : super(const [
+        Member(id: 'm1', displayName: 'Ada'),
+        Member(id: 'm2', displayName: 'Jun'),
+      ]);
 
-  final List<RecipeSummary> recipes;
-
-  @override
-  Stream<List<RecipeSummary>> watchRecipes() => Stream.value(recipes);
-  @override
-  Stream<Recipe?> watchRecipe(String id) => Stream.value(null);
-  @override
-  Future<void> saveRecipe(Recipe recipe) async {}
-  @override
-  Future<void> deleteRecipe(String id) async {}
-  @override
-  Future<void> setFavorite(String id, bool favorite) async {}
-  @override
-  Future<void> setFiling(String id, String bookId, String? sectionId) async {}
-
-  @override
-  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
-
-  @override
-  Future<bool> componentLinkWouldCycle({
-    required String recipeId,
-    required String subRecipeId,
-  }) async => false;
-}
-
-class _FakePlanningRepo implements PlanningRepository {
-  @override
-  Stream<WeekPlan?> watchWeek(DateTime weekStart) => Stream.value(null);
-  @override
-  Future<WeekPlan?> mostRecentWeekBefore(DateTime weekStart) async => null;
-  @override
-  Stream<List<Member>> watchMembers() => Stream.value(const [
-    Member(id: 'm1', displayName: 'Ada'),
-    Member(id: 'm2', displayName: 'Jun'),
-  ]);
-
-  @override
-  Future<void> setPortionFactor(String memberId, double factor) async {}
   @override
   Stream<Map<String, DateTime>> watchLastPlanned() =>
       Stream.value({'r1': DateTime.now().subtract(const Duration(days: 3))});
-  @override
-  Future<String> addEntry({
-    required DateTime weekStart,
-    required int dayOfWeek,
-    required String mealSlot,
-    required String recipeId,
-    required List<String> eaterIds,
-    int? portions,
-  }) async => 'e';
-  @override
-  Future<void> setEaters(String entryId, List<String> eaterIds) async {}
-
-  @override
-  Future<void> setPortions(String entryId, int? portions) async {}
-
-  @override
-  Future<void> removeEntry(String entryId) async {}
-  @override
-  Future<int> copyLastWeek(DateTime weekStart) async => 0;
 }
 
 class _FakeBookRepo extends FakeBookRepository {
@@ -123,7 +71,9 @@ class _FakeBookRepo extends FakeBookRepository {
 Widget _host({List<RecipeSummary> recipes = const [_curry, _salad]}) =>
     ProviderScope(
       overrides: [
-        recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(recipes)),
+        recipeRepositoryProvider.overrideWithValue(
+          FakeRecipeRepository(summaries: recipes),
+        ),
         planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
         bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
       ],

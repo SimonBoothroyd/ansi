@@ -15,7 +15,6 @@ import 'dart:io';
 import 'package:ansi/core/sync/database.dart';
 import 'package:ansi/core/sync/session.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
-import 'package:ansi/features/import/domain/commit_payload.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
 import 'package:ansi/features/import/domain/line_validation.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
@@ -24,20 +23,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:powersync/powersync.dart';
 
+import '../../helpers/fake_import_repository.dart';
 import '../../helpers/test_db.dart';
-
-class _FakeImportRepo implements ImportRepository {
-  _FakeImportRepo(this.payload);
-
-  final ReconciliationPayload payload;
-
-  @override
-  Future<ReconciliationPayload> startImport(ImportSource source) async =>
-      payload;
-
-  @override
-  Future<String> commit(CommitPayload payload) async => 'recipe-1';
-}
 
 /// The owner's line: "1 clove garlic", auto-matched to the cloud garlic row.
 ReconciliationPayload _clovePayload() => const ReconciliationPayload(
@@ -129,7 +116,7 @@ void main() {
         powerSyncDatabaseProvider.overrideWithValue(db),
         currentHouseholdIdProvider.overrideWithValue('h'),
         importRepositoryProvider.overrideWithValue(
-          _FakeImportRepo(_clovePayload()),
+          FakeImportRepo(_clovePayload()),
         ),
       ],
     );

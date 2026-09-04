@@ -9,42 +9,12 @@ import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
-import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
-
-class _FakeRecipeRepo implements RecipeRepository {
-  final saved = <Recipe>[];
-
-  @override
-  Stream<List<RecipeSummary>> watchRecipes() => Stream.value(const []);
-
-  @override
-  Stream<Recipe?> watchRecipe(String id) => Stream.value(null);
-
-  @override
-  Future<void> saveRecipe(Recipe recipe) async => saved.add(recipe);
-
-  @override
-  Future<void> deleteRecipe(String id) async {}
-
-  @override
-  Future<void> setFavorite(String id, bool favorite) async {}
-  @override
-  Future<void> setFiling(String id, String bookId, String? sectionId) async {}
-
-  @override
-  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
-
-  @override
-  Future<bool> componentLinkWouldCycle({
-    required String recipeId,
-    required String subRecipeId,
-  }) async => false;
-}
+import '../../helpers/fake_recipe_repository.dart';
 
 class _FakeBookRepo extends FakeBookRepository {
   const _FakeBookRepo() : super(const [Book(id: 'b1', name: 'Our Cookbook')]);
@@ -52,7 +22,7 @@ class _FakeBookRepo extends FakeBookRepository {
 
 void main() {
   test('a "New recipe" open after a save starts from a clean draft', () async {
-    final repo = _FakeRecipeRepo();
+    final repo = FakeRecipeRepository();
     final container = ProviderContainer(
       overrides: [
         recipeRepositoryProvider.overrideWithValue(repo),
@@ -89,7 +59,7 @@ void main() {
     () async {
       final container = ProviderContainer(
         overrides: [
-          recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
           bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
         ],
       );
@@ -114,7 +84,7 @@ void main() {
       'book (0028 E3)', () async {
     final container = ProviderContainer(
       overrides: [
-        recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
+        recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
         bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
       ],
     );
@@ -155,7 +125,7 @@ void main() {
     ProviderContainer host() {
       final container = ProviderContainer(
         overrides: [
-          recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
           bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
         ],
       );

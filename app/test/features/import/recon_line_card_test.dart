@@ -7,7 +7,6 @@ import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
-import 'package:ansi/features/import/domain/commit_payload.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
 import 'package:ansi/features/import/domain/line_resolution.dart';
 import 'package:ansi/features/import/domain/line_validation.dart';
@@ -17,10 +16,8 @@ import 'package:ansi/features/import/presentation/recon_line_card.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
-import 'package:ansi/features/ingredients/domain/measure_repository.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
-import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:ansi/features/recipes/presentation/recipe_chip.dart';
 import 'package:ansi/shared/picker_shell.dart';
 import 'package:flutter/material.dart';
@@ -30,27 +27,12 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
+import '../../helpers/fake_import_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
+import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
 import '../../helpers/silent_usda_probe.dart';
-
-/// A fake edge function returning a fixed single-line payload; commit records.
-class _FakeRepo implements ImportRepository {
-  _FakeRepo(this.payload);
-  final ReconciliationPayload payload;
-  CommitPayload? committed;
-
-  @override
-  Future<ReconciliationPayload> startImport(ImportSource source) async =>
-      payload;
-
-  @override
-  Future<String> commit(CommitPayload payload) async {
-    committed = payload;
-    return 'recipe-1';
-  }
-}
 
 /// One unmatched `none` line — the amount + notes must stay disabled until an
 /// ingredient is chosen, and the "needs you" flag must clear once it is.
@@ -340,67 +322,12 @@ const _potatoSizes = [
   Measure(id: 'm-p-sml', label: 'potato, small', amount: 170),
 ];
 
-class _FakeIngredientRepo
-    with IngredientManagerStubs
-    implements IngredientRepository {
-  _FakeIngredientRepo([this.row = _garlic]);
-
-  final Ingredient row;
-
-  @override
-  Future<Ingredient?> saveForm(String? ingredientId, IngredientFormEdit edit) =>
-      throw UnimplementedError();
-
-  @override
-  Future<Ingredient?> byId(String id) async => row;
-
-  @override
-  Future<Map<String, Ingredient>> byIds(Set<String> ids) async => {
-    for (final id in ids) id: row,
-  };
-
-  @override
-  Future<IngredientMatches> search(String query, {int limit = 30}) async =>
-      (rows: const <Ingredient>[], guessed: false);
-
-  @override
-  Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
-
-  @override
-  Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>
-      null;
-}
-
-class _FakeMeasureRepo implements MeasureRepository {
-  _FakeMeasureRepo([this.rows = const [_clove]]);
-
-  final List<Measure> rows;
-
-  @override
-  Stream<List<Measure>> watchMeasures(String ingredientId) =>
-      Stream.value(rows);
-
-  @override
-  Future<Map<String, List<Measure>>> measuresByIngredients(
-    Set<String> ids,
-  ) async => {for (final id in ids) id: rows};
-
-  @override
-  Future<Measure> addMeasure({
-    required String ingredientId,
-    required String label,
-    required double amount,
-  }) async => rows.first;
-
-  @override
-  Future<void> softDeleteMeasure(String measureId) async {}
-}
-
 /// The household's recipes, as the component sheet reads them: one aioli that
 /// says what a batch makes.
-class _FakeRecipeRepo implements RecipeRepository {
-  @override
-  Stream<List<RecipeSummary>> watchRecipes() => Stream.value(const [
+/// The one recipe a line may resolve to as a component, with the yield the
+/// card divides by.
+FakeRecipeRepository _recipeRepo() => FakeRecipeRepository(
+  summaries: const [
     RecipeSummary(
       id: 'r-aioli',
       title: 'Romesco Aioli',
@@ -408,31 +335,8 @@ class _FakeRecipeRepo implements RecipeRepository {
       yieldQty: 1,
       yieldUnit: cup,
     ),
-  ]);
-
-  @override
-  Stream<Recipe?> watchRecipe(String id) => Stream.value(null);
-
-  @override
-  Future<void> saveRecipe(Recipe recipe) async {}
-
-  @override
-  Future<void> deleteRecipe(String id) async {}
-
-  @override
-  Future<void> setFavorite(String id, bool favorite) async {}
-  @override
-  Future<void> setFiling(String id, String bookId, String? sectionId) async {}
-
-  @override
-  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
-
-  @override
-  Future<bool> componentLinkWouldCycle({
-    required String recipeId,
-    required String subRecipeId,
-  }) async => false;
-}
+  ],
+);
 
 Widget _host(ProviderContainer container, {LineValidation? validation}) =>
     UncontrolledProviderScope(
@@ -496,7 +400,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(_FakeRepo(_autoPayload())),
+        importRepositoryProvider.overrideWithValue(
+          FakeImportRepo(_autoPayload()),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -530,7 +436,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(_FakeRepo(_autoPayload())),
+        importRepositoryProvider.overrideWithValue(
+          FakeImportRepo(_autoPayload()),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -557,7 +465,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(_FakeRepo(_nonePayload())),
+        importRepositoryProvider.overrideWithValue(
+          FakeImportRepo(_nonePayload()),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -645,7 +555,7 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
-          _FakeRepo(_autoRangePayload()),
+          FakeImportRepo(_autoRangePayload()),
         ),
       ],
     );
@@ -675,7 +585,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(_FakeRepo(_autoPayload())),
+        importRepositoryProvider.overrideWithValue(
+          FakeImportRepo(_autoPayload()),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -719,7 +631,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(_FakeRepo(_autoPayload())),
+        importRepositoryProvider.overrideWithValue(
+          FakeImportRepo(_autoPayload()),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -777,10 +691,14 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
-          _FakeRepo(_unitMismatchPayload()),
+          FakeImportRepo(_unitMismatchPayload()),
         ),
-        ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
-        measureRepositoryProvider.overrideWithValue(_FakeMeasureRepo()),
+        ingredientRepositoryProvider.overrideWithValue(
+          const OneRowIngredientRepo(_garlic),
+        ),
+        measureRepositoryProvider.overrideWithValue(
+          FakeMeasureRepo(const [_clove]),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -828,10 +746,14 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
-          _FakeRepo(_unitMismatchPayload()),
+          FakeImportRepo(_unitMismatchPayload()),
         ),
-        ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
-        measureRepositoryProvider.overrideWithValue(_FakeMeasureRepo()),
+        ingredientRepositoryProvider.overrideWithValue(
+          const OneRowIngredientRepo(_garlic),
+        ),
+        measureRepositoryProvider.overrideWithValue(
+          FakeMeasureRepo(const [_clove]),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -914,13 +836,13 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
-          _FakeRepo(_piecePayload('Red Pepper', _pepper.id)),
+          FakeImportRepo(_piecePayload('Red Pepper', _pepper.id)),
         ),
         ingredientRepositoryProvider.overrideWithValue(
-          _FakeIngredientRepo(_pepper),
+          const OneRowIngredientRepo(_pepper),
         ),
         measureRepositoryProvider.overrideWithValue(
-          _FakeMeasureRepo(_pepperSizes),
+          FakeMeasureRepo(_pepperSizes),
         ),
       ],
     );
@@ -963,16 +885,16 @@ void main() {
   testWidgets('a SOLE-measure row arrives on it too — the preselect that only '
       'ever opened the sheet now writes the line (D3)', (tester) async {
     filterForuiSemanticsAssertions();
-    final repo = _FakeRepo(_piecePayload('Cucumber', _cucumber.id));
+    final repo = FakeImportRepo(_piecePayload('Cucumber', _cucumber.id));
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(repo),
         ingredientRepositoryProvider.overrideWithValue(
-          _FakeIngredientRepo(_cucumber),
+          const OneRowIngredientRepo(_cucumber),
         ),
         measureRepositoryProvider.overrideWithValue(
-          _FakeMeasureRepo(const [_cucumberMeasure]),
+          FakeMeasureRepo(const [_cucumberMeasure]),
         ),
       ],
     );
@@ -1008,13 +930,13 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
-          _FakeRepo(_piecePayload('Broccoli', _broccoli.id)),
+          FakeImportRepo(_piecePayload('Broccoli', _broccoli.id)),
         ),
         ingredientRepositoryProvider.overrideWithValue(
-          _FakeIngredientRepo(_broccoli),
+          const OneRowIngredientRepo(_broccoli),
         ),
         measureRepositoryProvider.overrideWithValue(
-          _FakeMeasureRepo(_broccoliParts),
+          FakeMeasureRepo(_broccoliParts),
         ),
       ],
     );
@@ -1041,12 +963,14 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(_FakeRepo(_bunchPayload())),
+        importRepositoryProvider.overrideWithValue(
+          FakeImportRepo(_bunchPayload()),
+        ),
         ingredientRepositoryProvider.overrideWithValue(
-          _FakeIngredientRepo(_cilantro),
+          const OneRowIngredientRepo(_cilantro),
         ),
         measureRepositoryProvider.overrideWithValue(
-          _FakeMeasureRepo(const [_cilantroSprig]),
+          FakeMeasureRepo(const [_cilantroSprig]),
         ),
       ],
     );
@@ -1073,13 +997,13 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(
-          _FakeRepo(_piecePayload('Gold Potato', _potato.id)),
+          FakeImportRepo(_piecePayload('Gold Potato', _potato.id)),
         ),
         ingredientRepositoryProvider.overrideWithValue(
-          _FakeIngredientRepo(_potato),
+          const OneRowIngredientRepo(_potato),
         ),
         measureRepositoryProvider.overrideWithValue(
-          _FakeMeasureRepo(_potatoSizes),
+          FakeMeasureRepo(_potatoSizes),
         ),
       ],
     );
@@ -1120,7 +1044,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
-        importRepositoryProvider.overrideWithValue(_FakeRepo(_autoPayload())),
+        importRepositoryProvider.overrideWithValue(
+          FakeImportRepo(_autoPayload()),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -1160,9 +1086,9 @@ void main() {
         overrides: [
           bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
           importRepositoryProvider.overrideWithValue(
-            _FakeRepo(_recipeOfferPayload()),
+            FakeImportRepo(_recipeOfferPayload()),
           ),
-          recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
+          recipeRepositoryProvider.overrideWithValue(_recipeRepo()),
         ],
       );
       addTearDown(container.dispose);
@@ -1571,7 +1497,7 @@ void main() {
               const FakeBookRepository(),
             ),
             importRepositoryProvider.overrideWithValue(
-              _FakeRepo(_nonePayload()),
+              FakeImportRepo(_nonePayload()),
             ),
             ingredientRepositoryProvider.overrideWithValue(
               FakeIngredientRepo(const [kale]),

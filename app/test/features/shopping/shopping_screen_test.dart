@@ -2,7 +2,6 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
-import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/shopping/data/shopping_providers.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
@@ -14,15 +13,7 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
-/// A canned cook plan for the empty-state branch test.
-class _FakeCookPlanRepo implements CookPlanRepository {
-  _FakeCookPlanRepo(this.plan);
-
-  final CookPlan plan;
-
-  @override
-  Stream<CookPlan> watchCookPlan(DateTime weekStart) => Stream.value(plan);
-}
+import '../../helpers/fake_cook_plan_repository.dart';
 
 /// A canned shopping list; mutations are no-ops (the screen just renders).
 class _FakeShoppingRepo implements ShoppingRepository {
@@ -149,7 +140,7 @@ void main() {
           _FakeShoppingRepo(const ShoppingList()),
         ),
         cookPlanRepositoryProvider.overrideWithValue(
-          _FakeCookPlanRepo(planned),
+          FakeCookPlanRepository(planned),
         ),
       ]),
     );

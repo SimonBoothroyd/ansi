@@ -23,7 +23,9 @@ void main() {
     await tester.pumpWidget(
       hostEditor('1', [
         recipeRepositoryProvider.overrideWithValue(repo),
-        ingredientRepositoryProvider.overrideWithValue(FakeIngredientRepo()),
+        ingredientRepositoryProvider.overrideWithValue(
+          const FakeIngredientRepo(),
+        ),
         bookRepositoryProvider.overrideWithValue(FakeBookRepo()),
       ]),
     );
@@ -49,7 +51,9 @@ void main() {
         recipeRepositoryProvider.overrideWithValue(
           FakeRecipeRepo(importedRecipe),
         ),
-        ingredientRepositoryProvider.overrideWithValue(FakeIngredientRepo()),
+        ingredientRepositoryProvider.overrideWithValue(
+          const FakeIngredientRepo(),
+        ),
         bookRepositoryProvider.overrideWithValue(FakeBookRepo()),
       ]),
     );
@@ -77,7 +81,9 @@ void main() {
     await tester.pumpWidget(
       hostEditor('1', [
         recipeRepositoryProvider.overrideWithValue(repo),
-        ingredientRepositoryProvider.overrideWithValue(FakeIngredientRepo()),
+        ingredientRepositoryProvider.overrideWithValue(
+          const FakeIngredientRepo(),
+        ),
         bookRepositoryProvider.overrideWithValue(FakeBookRepo()),
       ]),
     );
@@ -113,7 +119,9 @@ void main() {
     await tester.pumpWidget(
       hostEditor('1', [
         recipeRepositoryProvider.overrideWithValue(repo),
-        ingredientRepositoryProvider.overrideWithValue(FakeIngredientRepo()),
+        ingredientRepositoryProvider.overrideWithValue(
+          const FakeIngredientRepo(),
+        ),
         bookRepositoryProvider.overrideWithValue(FakeBookRepo()),
       ]),
     );
@@ -139,7 +147,9 @@ void main() {
     await tester.pumpWidget(
       hostEditor('1', [
         recipeRepositoryProvider.overrideWithValue(repo),
-        ingredientRepositoryProvider.overrideWithValue(FakeIngredientRepo()),
+        ingredientRepositoryProvider.overrideWithValue(
+          const FakeIngredientRepo(),
+        ),
         bookRepositoryProvider.overrideWithValue(FakeBookRepo()),
       ]),
     );

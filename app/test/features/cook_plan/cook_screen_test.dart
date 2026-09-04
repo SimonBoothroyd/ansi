@@ -2,7 +2,6 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
-import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_view.dart';
 import 'package:ansi/features/planning/domain/planning.dart' show mondayOf;
 import 'package:ansi/features/planning/presentation/week_format.dart';
@@ -11,7 +10,6 @@ import 'package:ansi/features/planning/presentation/week_view_models.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
-import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -19,61 +17,22 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
-/// A canned cook plan: emits a fixed plan built from the planned recipes, or
-/// the plan handed straight to the `.plan` constructor.
-class _FakeCookPlanRepo implements CookPlanRepository {
-  _FakeCookPlanRepo(List<PlannedRecipe> recipes)
-    : _plan = buildCookPlan(recipes);
-
-  _FakeCookPlanRepo.plan(this._plan);
-
-  final CookPlan _plan;
-
-  @override
-  Stream<CookPlan> watchCookPlan(DateTime weekStart) => Stream.value(_plan);
-}
+import '../../helpers/fake_cook_plan_repository.dart';
+import '../../helpers/fake_recipe_repository.dart';
 
 /// The recipe list the component card reads its target's yield off.
-class _FakeRecipeRepo implements RecipeRepository {
-  _FakeRecipeRepo({this.yieldQty, this.yieldUnit});
-
-  final double? yieldQty;
-  final Unit? yieldUnit;
-
-  @override
-  Stream<List<RecipeSummary>> watchRecipes() => Stream.value([
-    RecipeSummary(
-      id: 'aioli',
-      title: 'Romesco Aioli',
-      servingsBase: 4,
-      yieldQty: yieldQty,
-      yieldUnit: yieldUnit,
-    ),
-  ]);
-
-  @override
-  Stream<Recipe?> watchRecipe(String id) => Stream.value(null);
-
-  @override
-  Future<void> saveRecipe(Recipe recipe) async {}
-
-  @override
-  Future<void> deleteRecipe(String id) async {}
-
-  @override
-  Future<void> setFavorite(String id, bool favorite) async {}
-  @override
-  Future<void> setFiling(String id, String bookId, String? sectionId) async {}
-
-  @override
-  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
-
-  @override
-  Future<bool> componentLinkWouldCycle({
-    required String recipeId,
-    required String subRecipeId,
-  }) async => false;
-}
+FakeRecipeRepository _recipeRepo({double? yieldQty, Unit? yieldUnit}) =>
+    FakeRecipeRepository(
+      summaries: [
+        RecipeSummary(
+          id: 'aioli',
+          title: 'Romesco Aioli',
+          servingsBase: 4,
+          yieldQty: yieldQty,
+          yieldUnit: yieldUnit,
+        ),
+      ],
+    );
 
 Widget _host(List<Override> overrides) => ProviderScope(
   overrides: overrides,
@@ -134,7 +93,7 @@ void main() {
     await tester.pumpWidget(
       _host([
         cookPlanRepositoryProvider.overrideWithValue(
-          _FakeCookPlanRepo(const []),
+          FakeCookPlanRepository.of(const []),
         ),
       ]),
     );
@@ -181,7 +140,7 @@ void main() {
     await tester.pumpWidget(
       _host([
         cookPlanRepositoryProvider.overrideWithValue(
-          _FakeCookPlanRepo([
+          FakeCookPlanRepository.of([
             _recipe('Curry', {0: 1.75}, keeps: 3),
           ]),
         ),
@@ -207,7 +166,7 @@ void main() {
     await tester.pumpWidget(
       _host([
         cookPlanRepositoryProvider.overrideWithValue(
-          _FakeCookPlanRepo(const []),
+          FakeCookPlanRepository.of(const []),
         ),
       ]),
     );
@@ -234,7 +193,7 @@ void main() {
       _host([
         cookPlanRepositoryProvider.overrideWithValue(
           // Mon + Sat, keeps 3 → two batches.
-          _FakeCookPlanRepo([
+          FakeCookPlanRepository.of([
             _recipe('Chicken Curry', {0: 2, 5: 2}, keeps: 3),
           ]),
         ),
@@ -253,7 +212,7 @@ void main() {
       _host([
         cookPlanRepositoryProvider.overrideWithValue(
           // Tue + Sat, keeps 3, freezable → one batch, Saturday frozen.
-          _FakeCookPlanRepo([
+          FakeCookPlanRepository.of([
             _recipe('House Ragù', {1: 2, 5: 2}, keeps: 3, freezable: true),
           ]),
         ),
@@ -272,10 +231,10 @@ void main() {
       await tester.pumpWidget(
         _host([
           cookPlanRepositoryProvider.overrideWithValue(
-            _FakeCookPlanRepo.plan(_planWith(yields: [(qty: 1, unit: cup)])),
+            FakeCookPlanRepository(_planWith(yields: [(qty: 1, unit: cup)])),
           ),
           recipeRepositoryProvider.overrideWithValue(
-            _FakeRecipeRepo(yieldQty: 1, yieldUnit: cup),
+            _recipeRepo(yieldQty: 1, yieldUnit: cup),
           ),
         ]),
       );
@@ -307,9 +266,9 @@ void main() {
       await tester.pumpWidget(
         _host([
           cookPlanRepositoryProvider.overrideWithValue(
-            _FakeCookPlanRepo.plan(_planWith(yields: const [])),
+            FakeCookPlanRepository(_planWith(yields: const [])),
           ),
-          recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
+          recipeRepositoryProvider.overrideWithValue(_recipeRepo()),
         ]),
       );
       await tester.pumpAndSettle();
@@ -340,7 +299,7 @@ void main() {
     await tester.pumpWidget(
       _routedHost([
         cookPlanRepositoryProvider.overrideWithValue(
-          _FakeCookPlanRepo([
+          FakeCookPlanRepository.of([
             _recipe('Chicken Curry', {0: 2}, id: 'r1'),
           ]),
         ),

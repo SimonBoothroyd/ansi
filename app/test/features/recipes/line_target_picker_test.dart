@@ -16,7 +16,6 @@ import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
-import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:ansi/features/recipes/presentation/line_target_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,6 +26,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
+import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
 import '../../helpers/silent_usda_probe.dart';
 
@@ -68,31 +68,13 @@ class _FakeBookRepo extends FakeBookRepository {
 }
 
 /// A repository whose cycle guard refuses exactly [cycles].
-class _FakeRecipeRepo implements RecipeRepository {
-  _FakeRecipeRepo({this.cycles = const {}});
+/// The library the picker searches, with the links that would close a cycle
+/// named up front — the refusal is what this suite drives.
+class _FakeRecipeRepo extends FakeRecipeRepository {
+  _FakeRecipeRepo({this.cycles = const {}})
+    : super(summaries: const [_aioli, _toasts]);
 
   final Set<String> cycles;
-
-  @override
-  Stream<List<RecipeSummary>> watchRecipes() =>
-      Stream.value(const [_aioli, _toasts]);
-
-  @override
-  Stream<Recipe?> watchRecipe(String id) => Stream.value(null);
-
-  @override
-  Future<void> saveRecipe(Recipe recipe) async {}
-
-  @override
-  Future<void> deleteRecipe(String id) async {}
-
-  @override
-  Future<void> setFavorite(String id, bool favorite) async {}
-  @override
-  Future<void> setFiling(String id, String bookId, String? sectionId) async {}
-
-  @override
-  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
 
   @override
   Future<bool> componentLinkWouldCycle({

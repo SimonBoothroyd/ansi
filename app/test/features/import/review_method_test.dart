@@ -7,11 +7,9 @@
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
-import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
-import 'package:ansi/features/import/domain/commit_payload.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart'
     hide Step;
@@ -23,8 +21,6 @@ import 'package:ansi/features/import/presentation/import_view_models.dart';
 import 'package:ansi/features/import/presentation/reconciliation_view.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
-import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
-import 'package:ansi/features/ingredients/domain/measure_repository.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/method_editor.dart';
 import 'package:flutter/material.dart';
@@ -33,24 +29,10 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
+import '../../helpers/fake_import_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/forui_semantics.dart';
-
-class _FakeRepo implements ImportRepository {
-  _FakeRepo(this.payload);
-  final ReconciliationPayload payload;
-  CommitPayload? committed;
-
-  @override
-  Future<ReconciliationPayload> startImport(ImportSource source) async =>
-      payload;
-
-  @override
-  Future<String> commit(CommitPayload payload) async {
-    committed = payload;
-    return 'recipe-1';
-  }
-}
 
 const _onion = Ingredient(
   id: 'ing-onion',
@@ -58,54 +40,6 @@ const _onion = Ingredient(
   defaultUnit: g,
   status: IngredientStatus.complete,
 );
-
-class _FakeIngredientRepo
-    with IngredientManagerStubs
-    implements IngredientRepository {
-  @override
-  Future<Ingredient?> saveForm(String? ingredientId, IngredientFormEdit edit) =>
-      throw UnimplementedError();
-
-  @override
-  Future<Ingredient?> byId(String id) async => _onion;
-
-  @override
-  Future<Map<String, Ingredient>> byIds(Set<String> ids) async => {
-    for (final id in ids) id: _onion,
-  };
-
-  @override
-  Future<IngredientMatches> search(String query, {int limit = 30}) async =>
-      (rows: const <Ingredient>[], guessed: false);
-
-  @override
-  Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
-
-  @override
-  Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>
-      null;
-}
-
-class _FakeMeasureRepo implements MeasureRepository {
-  @override
-  Stream<List<Measure>> watchMeasures(String ingredientId) =>
-      Stream.value(const []);
-
-  @override
-  Future<Map<String, List<Measure>>> measuresByIngredients(
-    Set<String> ids,
-  ) async => const {};
-
-  @override
-  Future<Measure> addMeasure({
-    required String ingredientId,
-    required String label,
-    required double amount,
-  }) async => throw UnimplementedError();
-
-  @override
-  Future<void> softDeleteMeasure(String measureId) async {}
-}
 
 /// One clean auto-matched line and a two-step method whose first step chips
 /// it — so Save is open and the method is the only thing under test.
@@ -153,13 +87,15 @@ class _Body extends ConsumerWidget {
   }
 }
 
-Future<ProviderContainer> _reviewing(_FakeRepo repo) async {
+Future<ProviderContainer> _reviewing(FakeImportRepo repo) async {
   final container = ProviderContainer(
     overrides: [
       bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
       importRepositoryProvider.overrideWithValue(repo),
-      ingredientRepositoryProvider.overrideWithValue(_FakeIngredientRepo()),
-      measureRepositoryProvider.overrideWithValue(_FakeMeasureRepo()),
+      ingredientRepositoryProvider.overrideWithValue(
+        const OneRowIngredientRepo(_onion),
+      ),
+      measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
     ],
   );
   addTearDown(container.dispose);
@@ -199,7 +135,7 @@ void main() {
       'notice is gone', (tester) async {
     filterForuiSemanticsAssertions();
     _tallViewport(tester);
-    final container = await _reviewing(_FakeRepo(_payload()));
+    final container = await _reviewing(FakeImportRepo(_payload()));
     await tester.pumpWidget(_host(container));
     await tester.pumpAndSettle();
 
@@ -216,7 +152,7 @@ void main() {
   ) async {
     filterForuiSemanticsAssertions();
     _tallViewport(tester);
-    final repo = _FakeRepo(_payload());
+    final repo = FakeImportRepo(_payload());
     final container = await _reviewing(repo);
     await tester.pumpWidget(_host(container));
     await tester.pumpAndSettle();
@@ -237,7 +173,7 @@ void main() {
       'line index', (tester) async {
     filterForuiSemanticsAssertions();
     _tallViewport(tester);
-    final repo = _FakeRepo(_payload());
+    final repo = FakeImportRepo(_payload());
     final container = await _reviewing(repo);
     await tester.pumpWidget(_host(container));
     await tester.pumpAndSettle();
@@ -265,7 +201,7 @@ void main() {
   ) async {
     filterForuiSemanticsAssertions();
     _tallViewport(tester);
-    final repo = _FakeRepo(_payload());
+    final repo = FakeImportRepo(_payload());
     final container = await _reviewing(repo);
     await tester.pumpWidget(_host(container));
     await tester.pumpAndSettle();

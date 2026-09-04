@@ -14,7 +14,6 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
-import 'package:ansi/features/import/domain/commit_payload.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:ansi/features/import/presentation/import_view_models.dart';
@@ -28,16 +27,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/editor_harness.dart';
 import '../../helpers/fake_book_repository.dart';
+import '../../helpers/fake_import_repository.dart';
 import '../../helpers/forui_semantics.dart';
-
-class _FakeImportRepo implements ImportRepository {
-  @override
-  Future<ReconciliationPayload> startImport(ImportSource source) async =>
-      const ReconciliationPayload(title: 'Weeknight Curry', servingsBase: 4);
-
-  @override
-  Future<String> commit(CommitPayload payload) async => 'recipe-1';
-}
 
 const _books = [
   Book(id: 'b1', name: 'Our Cookbook'),
@@ -53,7 +44,14 @@ ProviderContainer _container() {
       bookRepositoryProvider.overrideWithValue(
         const FakeBookRepository(_books),
       ),
-      importRepositoryProvider.overrideWithValue(_FakeImportRepo()),
+      importRepositoryProvider.overrideWithValue(
+        FakeImportRepo(
+          const ReconciliationPayload(
+            title: 'Weeknight Curry',
+            servingsBase: 4,
+          ),
+        ),
+      ),
     ],
   );
   addTearDown(container.dispose);

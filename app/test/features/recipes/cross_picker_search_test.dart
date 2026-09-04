@@ -19,12 +19,9 @@ import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/books/domain/book_repository.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
-import 'package:ansi/features/planning/domain/planning.dart';
-import 'package:ansi/features/planning/domain/planning_repository.dart';
 import 'package:ansi/features/planning/presentation/recipe_picker_sheet.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
-import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:ansi/features/recipes/presentation/line_target_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,6 +29,8 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_planning_repository.dart';
+import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
 
 /// One corpus, drawn from the extraction gold set — an apostrophe, an accent,
@@ -67,28 +66,6 @@ const _queries = [
   'wekenight',
   'qqqq',
 ];
-
-class _FakeRecipeRepo implements RecipeRepository {
-  @override
-  Stream<List<RecipeSummary>> watchRecipes() => Stream.value(_recipes);
-  @override
-  Stream<Recipe?> watchRecipe(String id) => Stream.value(null);
-  @override
-  Future<void> saveRecipe(Recipe recipe) async {}
-  @override
-  Future<void> deleteRecipe(String id) async {}
-  @override
-  Future<void> setFavorite(String id, bool favorite) async {}
-  @override
-  Future<void> setFiling(String id, String bookId, String? sectionId) async {}
-  @override
-  Future<List<RecipeUse>> usedIn(String recipeId) async => const [];
-  @override
-  Future<bool> componentLinkWouldCycle({
-    required String recipeId,
-    required String subRecipeId,
-  }) async => false;
-}
 
 class _FakeBookRepo implements BookRepository {
   @override
@@ -129,44 +106,13 @@ class _FakeBookRepo implements BookRepository {
       throw UnimplementedError();
 }
 
-class _FakePlanningRepo implements PlanningRepository {
-  @override
-  Stream<WeekPlan?> watchWeek(DateTime weekStart) => Stream.value(null);
-  @override
-  Future<WeekPlan?> mostRecentWeekBefore(DateTime weekStart) async => null;
-  @override
-  Stream<List<Member>> watchMembers() => Stream.value(const []);
-
-  @override
-  Future<void> setPortionFactor(String memberId, double factor) async {}
-  @override
-  Stream<Map<String, DateTime>> watchLastPlanned() => Stream.value(const {});
-  @override
-  Future<String> addEntry({
-    required DateTime weekStart,
-    required int dayOfWeek,
-    required String mealSlot,
-    required String recipeId,
-    required List<String> eaterIds,
-    int? portions,
-  }) async => 'e';
-  @override
-  Future<void> setEaters(String entryId, List<String> eaterIds) async {}
-  @override
-  Future<void> removeEntry(String entryId) async {}
-  @override
-  Future<int> copyLastWeek(DateTime weekStart) async => 0;
-
-  @override
-  Future<void> setPortions(String entryId, int? portions) =>
-      throw UnimplementedError();
-}
-
 Widget _host(Widget Function(BuildContext) open) => ProviderScope(
   overrides: [
-    recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
+    recipeRepositoryProvider.overrideWithValue(
+      FakeRecipeRepository(summaries: _recipes),
+    ),
     bookRepositoryProvider.overrideWithValue(_FakeBookRepo()),
-    planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
+    planningRepositoryProvider.overrideWithValue(FakePlanningRepository()),
     ingredientRepositoryProvider.overrideWithValue(
       FakeIngredientRepo(const []),
     ),
