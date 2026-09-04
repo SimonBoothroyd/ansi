@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Ingredients manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
+    <h1 class="view-title">Ingredients manager</h1>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../exec-plans/completed/0020-ingredients-manager.md">plan 0020</a> · <a href="../../decisions/0005-two-tier-vocabulary.md">ADR-0005</a></p>
+    <p class="view-blurb">The whole vocabulary, one pushed screen: what still needs filling in, then every row — each saying what it can convert and what it is missing.</p>
+</header>
+
+<div class="board">
+
+        <div class="frame">
+            <p class="frame-name"><b>The vocabulary</b> · the stub band, then every row; a stub says what it needs rather than printing zeros. Reached from the <b>Ingredients</b> card at the foot of the Library</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Ingredients</span><span class="dots">＋</span></div>
+                <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Search your vocabulary</span><span class="care"></span></div></div>
+                <div class="fq"><div class="fq-title"><span class="n">Needs fleshing out</span><span class="c">3 stubs</span></div>
+                    <div class="stub"><span class="sn">Curry leaves, fresh</span><span class="need">needs <span>macros</span></span></div>
+                    <div class="stub"><span class="sn">Tamarind paste</span><span class="need"><span>needs completing</span> · usda prefilled</span></div>
+                    <div class="stub"><span class="sn">Fenugreek</span><span class="need">needs <span>macros</span></span></div>
+                </div>
+                <p class="rc-note">Until a stub carries macros it stays out of macro totals — the honest-numbers rule, unchanged. A missing <b style="color:var(--ink)">density</b> no longer blocks completion: it only leaves the volume chips locked.</p>
+                <p class="stub-foot">A stub stays out of macro totals until you confirm it.</p>
+                <p class="conv-note" style="margin-top:8px">two different sentences, not one. A bare stub <b>needs macros</b> — nothing has filled it in. One that has numbers nobody has said yes to <b>needs completing</b>, and says where they came from. Reading “needs macros” over a row full of macros is the band lying about its own contents</p>
+                <p class="list-h">All ingredients · 308</p>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Almond flour</div>
+                        <span class="res-cat">Baking · has density · 1 measure</span>
+                        <div class="mline">579 kcal · 21P 50F 22C <span class="per">/100 g</span></div></div>
+                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Butter beans</div>
+                        <span class="res-cat">Pantry · has density · 2 measures</span>
+                        <div class="mline">115 kcal · 8P 0F 20C <span class="per">/100 g</span></div></div>
+                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Curry leaves, fresh <span class="res-badge">stub</span></div>
+                        <span class="res-cat">Produce · needs macros — no zeros shown</span></div>
+                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Mango</div>
+                        <span class="res-cat">Produce · has density · 3 measures</span>
+                        <div class="mline">60 kcal · 1P 0F 15C <span class="per">/100 g</span></div></div>
+                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Nutritional yeast</div>
+                        <span class="res-cat">Pantry · no density — volume units locked</span>
+                        <div class="mline">385 kcal · 50P 5F 36C <span class="per">/100 g</span></div></div>
+                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                <div class="addnew">＋ add an ingredient — by hand, or scan a barcode</div>
+                <p class="conv-note">a pushed route, so no bottom nav. Searching replaces the band and the list with flat rows, and a miss says <b>No match for "…"</b> and nothing else</p>
+            </div></div>
+        </div>
+
+</div>
+
+<p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>
