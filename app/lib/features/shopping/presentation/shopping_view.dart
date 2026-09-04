@@ -176,8 +176,6 @@ class _UnresolvedEcho extends StatelessWidget {
 
   final UnresolvedComponentNote note;
 
-  static const _foreground = Color(0xFF7A5A16);
-
   @override
   Widget build(BuildContext context) {
     final count = note.count;
@@ -197,13 +195,13 @@ class _UnresolvedEcho extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(FLucideIcons.flag, size: 11, color: _foreground),
+          const Icon(FLucideIcons.flag, size: 11, color: AnsiColors.cautionInk),
           const SizedBox(width: 5),
           Flexible(
             child: Text(
               '$count component${count == 1 ? '' : 's'} unresolved — see Cook',
               overflow: TextOverflow.ellipsis,
-              style: ansiMono(size: 10.5, color: _foreground),
+              style: ansiMono(size: 10.5, color: AnsiColors.cautionInk),
             ),
           ),
         ],

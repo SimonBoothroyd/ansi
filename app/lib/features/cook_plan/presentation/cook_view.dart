@@ -17,6 +17,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_callout.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../planning/presentation/week_format.dart';
@@ -253,74 +254,15 @@ class _GapWarning extends StatelessWidget {
 
   final ComponentGap gap;
 
-  static const _foreground = Color(0xFF7A5A16);
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFBF3E3),
-        border: Border.all(color: const Color(0xFFF0DCB0)),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 1),
-                child: Icon(FLucideIcons.flag, size: 14, color: _foreground),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  gapHeadline(gap),
-                  style: ansiSans(
-                    size: 12.5,
-                    color: _foreground,
-                    weight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.only(left: 22),
-            child: Text(
-              gapBody(gap),
-              style: ansiMono(
-                size: 11,
-                color: _foreground,
-              ).copyWith(height: 1.5),
-            ),
-          ),
-          if (gapOffersYieldFix(gap)) ...[
-            const SizedBox(height: 10),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => context.pushOnce('/recipes/${gap.recipeId}/edit'),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 9),
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFF0DCB0)),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Set the yield',
-                  textAlign: TextAlign.center,
-                  style: ansiMono(size: 12, color: _foreground),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AnsiCallout(
+    tone: AnsiTone.caution,
+    icon: FLucideIcons.flag,
+    title: gapHeadline(gap),
+    body: gapBody(gap),
+    action: gapOffersYieldFix(gap) ? 'Set the yield' : null,
+    onAction: () => context.pushOnce('/recipes/${gap.recipeId}/edit'),
+  );
 }
 
 /// The card shell every plan card shares: paper tile, title, summary line, and
@@ -611,61 +553,23 @@ class _TrackPainter extends CustomPainter {
 
 /// An inline note — split (amber) or freezer (blue) — under the sessions.
 class _Note extends StatelessWidget {
-  const _Note._({
-    required this.icon,
-    required this.text,
-    required this.background,
-    required this.border,
-    required this.foreground,
-  });
+  const _Note._({required this.tone, required this.icon, required this.text});
 
-  factory _Note.split(String text) => _Note._(
-    icon: FLucideIcons.flag,
-    text: text,
-    background: const Color(0xFFFBF3E3),
-    border: const Color(0xFFF0DCB0),
-    foreground: const Color(0xFF7A5A16),
-  );
+  factory _Note.split(String text) =>
+      _Note._(tone: AnsiTone.caution, icon: FLucideIcons.flag, text: text);
 
-  factory _Note.freezer(String text) => _Note._(
-    icon: FLucideIcons.snowflake,
-    text: text,
-    background: const Color(0xFFEAF1F5),
-    border: const Color(0xFFD2E2EC),
-    foreground: const Color(0xFF3B6076),
-  );
+  factory _Note.freezer(String text) =>
+      _Note._(tone: AnsiTone.chill, icon: FLucideIcons.snowflake, text: text);
 
+  final AnsiTone tone;
   final IconData icon;
   final String text;
-  final Color background;
-  final Color border;
-  final Color foreground;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-      decoration: BoxDecoration(
-        color: background,
-        border: Border.all(color: border),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1),
-            child: Icon(icon, size: 14, color: foreground),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(text, style: ansiSans(size: 12, color: foreground)),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 8),
+    child: AnsiCallout(tone: tone, icon: icon, body: text),
+  );
 }
 
 /// Nothing planned, said INSIDE the screen (week redesign D5b/D5c).

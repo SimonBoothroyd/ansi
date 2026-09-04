@@ -20,6 +20,7 @@ import '../core/sync/session.dart';
 import '../core/sync/sync_health.dart';
 import '../core/theme/ansi_theme.dart';
 import '../core/theme/ansi_tokens.dart';
+import 'ansi_callout.dart';
 import 'ansi_modals.dart';
 import 'ansi_sheet_shell.dart';
 import 'sync_words.dart';
@@ -147,59 +148,12 @@ class _Banner extends StatelessWidget {
   final VoidCallback onAction;
 
   @override
-  Widget build(BuildContext context) {
-    final ink = tone == SyncTone.bad ? AnsiColors.gone : AnsiColors.aging;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-      decoration: BoxDecoration(
-        color: tone == SyncTone.bad
-            ? const Color(0xFFFBEDEA)
-            : const Color(0xFFFDF4E3),
-        border: const Border(bottom: BorderSide(color: AnsiColors.line)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Icon(FLucideIcons.triangleAlert, size: 15, color: ink),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: ansiSans(
-                    size: 13,
-                    weight: FontWeight.w600,
-                    color: ink,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  body,
-                  style: ansiMono(size: 10.5, color: AnsiColors.muted),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onAction,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text(
-                action,
-                style: ansiMono(size: 11, color: AnsiColors.herbDeep),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AnsiCallout.banner(
+    tone: tone == SyncTone.bad ? AnsiTone.alarm : AnsiTone.caution,
+    icon: FLucideIcons.triangleAlert,
+    title: title,
+    body: body,
+    action: action,
+    onAction: onAction,
+  );
 }
