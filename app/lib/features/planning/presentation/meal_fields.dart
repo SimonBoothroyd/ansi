@@ -34,19 +34,6 @@ import '../../recipes/domain/recipe.dart';
 import '../domain/planning.dart';
 import 'week_widgets.dart';
 
-/// A sheet section's micro-label (`SLOT`, `WHO'S EATING`, `PORTIONS`).
-class MealFieldLabel extends StatelessWidget {
-  const MealFieldLabel(this.text, {super.key});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text.toUpperCase(),
-    style: ansiMono(size: 10, color: AnsiColors.muted, letterSpacing: 1),
-  );
-}
-
 /// The picked recipe, with its shelf life and its HONEST per-serving line —
 /// real numbers or the shared `incomplete` badge and reason, never zeros
 /// (invariant 3).

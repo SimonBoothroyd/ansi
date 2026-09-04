@@ -24,6 +24,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../core/words.dart';
+import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/format.dart';
@@ -132,7 +133,7 @@ class RecipeHeaderForm extends StatelessWidget {
         RecipeHeaderSection.title => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Label(section.label),
+            AnsiMicroLabel(section.label),
             FTextField(
               hint: 'e.g. Weeknight Chicken Curry',
               control: FTextFieldControl.managed(
@@ -145,7 +146,7 @@ class RecipeHeaderForm extends StatelessWidget {
         RecipeHeaderSection.serves => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _Label(
+            AnsiMicroLabel(
               section.label,
               suffix: notes.besideServes,
               suffixColor: AnsiColors.aging,
@@ -161,7 +162,7 @@ class RecipeHeaderForm extends StatelessWidget {
           children: [
             // "MAKES · optional" — the label the board's frame h draws, with
             // the optional half in sentence case beside the eyebrow.
-            _Label(section.label, suffix: '· optional'),
+            AnsiMicroLabel(section.label, suffix: '· optional'),
             if (notes.underMakes case final source?)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
@@ -184,7 +185,7 @@ class RecipeHeaderForm extends StatelessWidget {
         RecipeHeaderSection.times => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Label(section.label),
+            AnsiMicroLabel(section.label),
             _StepperRow(
               label: 'Cook',
               caption: timeCaptions ? 'hands-on and on the heat' : null,
@@ -209,14 +210,14 @@ class RecipeHeaderForm extends StatelessWidget {
         RecipeHeaderSection.shelfLife => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Label(section.label),
+            AnsiMicroLabel(section.label),
             _ShelfLifeSection(recipe: recipe, host: host),
           ],
         ),
         RecipeHeaderSection.fileUnder => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Label(section.label),
+            AnsiMicroLabel(section.label),
             _FilingLine(recipe: recipe, host: host),
           ],
         ),
@@ -720,39 +721,6 @@ class _FilingPicker extends ConsumerWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-/// A section eyebrow, with an optional sentence-case suffix beside it — the
-/// muted "· optional" on MAKES, or a host's flag beside SERVES.
-class _Label extends StatelessWidget {
-  const _Label(this.text, {this.suffix, this.suffixColor = AnsiColors.muted});
-
-  final String text;
-  final String? suffix;
-  final Color suffixColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Text(text, style: ansiLabel()),
-          if (suffix case final suffix?) ...[
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                suffix,
-                style: ansiMono(size: 11, color: suffixColor),
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 }

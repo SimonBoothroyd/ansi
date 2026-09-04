@@ -26,6 +26,7 @@ import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/words.dart';
+import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/write.dart';
@@ -84,8 +85,7 @@ class _MealEditorSheet extends ConsumerWidget {
       scrollable: true,
       children: [
         const SizedBox(height: 18),
-        const MealFieldLabel("Who's eating"),
-        const SizedBox(height: 6),
+        const AnsiMicroLabel("Who's eating"),
         members.when(
           loading: () => const SizedBox.shrink(),
           error: (_, _) => const SizedBox.shrink(),
@@ -106,8 +106,7 @@ class _MealEditorSheet extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 18),
-        const MealFieldLabel('Portions'),
-        const SizedBox(height: 6),
+        const AnsiMicroLabel('Portions'),
         MealPortionsStepper(
           portionsOverride: entry.portions,
           eaterIds: entry.eaterIds,

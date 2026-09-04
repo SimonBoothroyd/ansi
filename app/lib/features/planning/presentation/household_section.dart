@@ -26,10 +26,10 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
 import '../../../shared/ansi_chip.dart';
+import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/write.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
-import 'meal_fields.dart';
 import 'week_view_models.dart';
 import 'week_widgets.dart';
 
@@ -45,8 +45,7 @@ class HouseholdSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const MealFieldLabel('Usual portion'),
-        const SizedBox(height: 8),
+        const AnsiMicroLabel('Usual portion'),
         for (final (i, m) in members.indexed)
           Padding(
             padding: const EdgeInsets.only(bottom: 14),
