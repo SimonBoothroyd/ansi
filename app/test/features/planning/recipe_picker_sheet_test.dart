@@ -21,6 +21,7 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
+import '../../helpers/forui_semantics.dart';
 
 /// The picker's read models, canned: two recipes — a favorite with complete
 /// per-serving macros planned 3 days ago, and an unplanned one whose macros
@@ -286,15 +287,7 @@ void main() {
   testWidgets('search matches word boundaries via the 7.4 normalizer', (
     tester,
   ) async {
-    // Focusing a field in a live Forui sheet trips a framework semantics
-    // assertion (tracker row `app/ui`); filter exactly that, as the
-    // integration smoke does.
-    final reportError = FlutterError.onError!;
-    FlutterError.onError = (details) {
-      if ('${details.exception}'.contains('semantics.dart')) return;
-      reportError(details);
-    };
-    addTearDown(() => FlutterError.onError = reportError);
+    filterForuiSemanticsAssertions();
 
     await _open(tester);
 

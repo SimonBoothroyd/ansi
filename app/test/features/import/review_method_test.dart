@@ -34,6 +34,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/forui_semantics.dart';
 
 class _FakeRepo implements ImportRepository {
   _FakeRepo(this.payload);
@@ -193,19 +194,10 @@ void _tallViewport(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
-void _filterSemanticsAssertions() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
-}
-
 void main() {
   testWidgets('the step cards render at review, and the "read-only in v1" '
       'notice is gone', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final container = await _reviewing(_FakeRepo(_payload()));
     await tester.pumpWidget(_host(container));
@@ -222,7 +214,7 @@ void main() {
   testWidgets('typing in a step lands in the draft and survives the rebuild', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final repo = _FakeRepo(_payload());
     final container = await _reviewing(repo);
@@ -243,7 +235,7 @@ void main() {
 
   testWidgets('the edit rides the commit, and the chip is still keyed to its '
       'line index', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final repo = _FakeRepo(_payload());
     final container = await _reviewing(repo);
@@ -271,7 +263,7 @@ void main() {
   testWidgets('an untouched method commits the payload steps byte-for-byte', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final repo = _FakeRepo(_payload());
     final container = await _reviewing(repo);

@@ -17,9 +17,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 
 import '../../helpers/editor_harness.dart';
+import '../../helpers/forui_semantics.dart';
 
 Future<FakeRecipeRepo> openEditor(WidgetTester tester) async {
-  ignoreSemanticsAsserts();
+  filterForuiSemanticsAssertions();
   tallSurface(tester);
   final repo = FakeRecipeRepo(importedRecipe);
   await tester.pumpWidget(
@@ -147,7 +148,7 @@ void main() {
   testWidgets('save() prunes a dangling ref however it got there', (
     tester,
   ) async {
-    ignoreSemanticsAsserts();
+    filterForuiSemanticsAssertions();
     tallSurface(tester);
     // A method that already refs a line this recipe does not have — the shape
     // a delete + re-add used to leave behind, and what an out-of-order sync

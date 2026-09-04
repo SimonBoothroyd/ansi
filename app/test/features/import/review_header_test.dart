@@ -30,6 +30,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/forui_semantics.dart';
 
 class _FakeRepo implements ImportRepository {
   _FakeRepo(this.payload);
@@ -190,21 +191,10 @@ void _tallViewport(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
-/// Forui's text field trips a semantics merge assertion under the test
-/// harness — not this suite's concern.
-void _filterSemanticsAssertions() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
-}
-
 void main() {
   testWidgets('the source-notes strip sits ABOVE the form, and the form is '
       'the editor’s: every section, title editable', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final container = await _reviewing(
       _payload(parseWarnings: ['Serves was not printed.']),
@@ -226,7 +216,7 @@ void main() {
 
   testWidgets('"not printed — set it" sits beside SERVES when the page '
       'printed no serving count', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final container = await _reviewing(_payload(servingsBase: null));
     await tester.pumpWidget(_host(container));
@@ -236,7 +226,7 @@ void main() {
   });
 
   testWidgets('…and not when it did', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final container = await _reviewing(_payload());
     await tester.pumpWidget(_host(container));
@@ -248,7 +238,7 @@ void main() {
   testWidgets('a plain amount + unit prefills MAKES, over its source line', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final container = await _reviewing(_payload(yieldRaw: 'MAKES: 8 SLIDERS'));
     await tester.pumpWidget(_host(container));
@@ -268,7 +258,7 @@ void main() {
 
   testWidgets('anything fancier leaves MAKES empty over the visible source '
       'text — never a guess', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final container = await _reviewing(
       _payload(yieldRaw: 'MAKES ENOUGH FOR A CROWD'),
@@ -284,7 +274,7 @@ void main() {
   testWidgets('a page that printed nothing shows MAKES with no source line', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final container = await _reviewing(_payload());
     await tester.pumpWidget(_host(container));
@@ -296,7 +286,7 @@ void main() {
 
   testWidgets('TIMES is prefilled from the page; SHELF LIFE starts unset and '
       'FILE UNDER on the default book', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final container = await _reviewing(
       _payload(cookTime: const TimeRange(lowSeconds: 2100, highSeconds: 2100)),
@@ -322,7 +312,7 @@ void main() {
 
   testWidgets('nothing in the header gates Save, and the whole header rides '
       'the commit', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final container = await _reviewing(
       _payload(yieldRaw: 'MAKES ENOUGH FOR A CROWD'),

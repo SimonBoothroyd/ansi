@@ -19,6 +19,8 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../helpers/forui_semantics.dart';
+
 /// A repository over a fixed set of recipes plus canned back-links.
 class _FakeRecipeRepo implements RecipeRepository {
   _FakeRecipeRepo(this.recipes, {this.uses = const []});
@@ -55,18 +57,6 @@ class _FakeRecipeRepo implements RecipeRepository {
     required String recipeId,
     required String subRecipeId,
   }) async => false;
-}
-
-/// Opening a Forui popover/dialog with the semantics tree live trips a
-/// framework assertion (tracker row `app/ui`); filter exactly that, as the
-/// quantity-sheet and edit-top-up tests do.
-void _filterSemanticsAssertions() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
 }
 
 Widget _host(_FakeRecipeRepo repo) {
@@ -271,7 +261,7 @@ void main() {
 
   testWidgets('delete is refused with the count while something points here '
       '(D5)', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     final repo = _FakeRecipeRepo(
       {'sliders': _aioliRecipe.copyWith(id: 'sliders')},
       uses: const [

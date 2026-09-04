@@ -17,6 +17,8 @@ import 'package:forui/forui.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import '../../../helpers/forui_semantics.dart';
+
 const _foundBody = '''
 {"code":"7394376616020","status":1,"product":{"code":"7394376616020",
 "product_name":"Ruokaan Fraiche","brands":"Oatly","quantity":"200ml",
@@ -29,17 +31,6 @@ const _code = '7394376616020';
 /// Answers every request with a found product.
 OffLookup _finds() =>
     OffLookup(client: MockClient((_) async => http.Response(_foundBody, 200)));
-
-/// Forui's own widgets trip a framework semantics assertion in this harness;
-/// the sibling sheet test filters it the same way.
-void _filterSemanticsAssertions() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
-}
 
 /// Reports [code] to the sheet when tapped — the stand-in for the detector
 /// seeing a barcode. Tapping twice is a detector firing on two consecutive
@@ -76,7 +67,7 @@ Future<void> _pump(
   _Resolver? resolver,
   BarcodeCameraPane? cameraPane,
 }) async {
-  _filterSemanticsAssertions();
+  filterForuiSemanticsAssertions();
   await tester.pumpWidget(
     MaterialApp(
       home: FTheme(

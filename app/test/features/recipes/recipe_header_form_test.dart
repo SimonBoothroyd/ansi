@@ -28,6 +28,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/editor_harness.dart';
 import '../../helpers/fake_book_repository.dart';
+import '../../helpers/forui_semantics.dart';
 
 class _FakeImportRepo implements ImportRepository {
   @override
@@ -97,7 +98,7 @@ void main() {
   group('every section in kRecipeHeaderSections renders under', () {
     for (final MapEntry(key: name, value: hostOf) in _hosts.entries) {
       testWidgets(name, (tester) async {
-        ignoreSemanticsAsserts();
+        filterForuiSemanticsAssertions();
         tallSurface(tester);
         final container = _container();
         final host = await hostOf(container);
@@ -128,7 +129,7 @@ void main() {
   group('FILE UNDER is a fact you can change (0028 E9), on', () {
     for (final MapEntry(key: name, value: hostOf) in _hosts.entries) {
       testWidgets(name, (tester) async {
-        ignoreSemanticsAsserts();
+        filterForuiSemanticsAssertions();
         tallSurface(tester);
         final container = _container();
         final host = await hostOf(container);

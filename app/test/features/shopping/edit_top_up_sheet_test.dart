@@ -12,6 +12,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../helpers/forui_semantics.dart';
+
 /// Records the edit call so the test can assert what the sheet saved.
 class _RecordingShoppingRepo implements ShoppingRepository {
   ({double quantity, Unit unit, String? measureId})? edited;
@@ -97,15 +99,7 @@ void main() {
     // `measure` null but `measureId` set. An unrelated Save (say, a quantity
     // tweak) must NOT wipe the FK — that would destroy the reference for
     // every device once the row does sync.
-    // Opening a Forui sheet with the semantics tree live trips a framework
-    // assertion (tracker row `app/ui`); filter exactly that, as the
-    // integration smoke does.
-    final reportError = FlutterError.onError!;
-    FlutterError.onError = (details) {
-      if ('${details.exception}'.contains('semantics.dart')) return;
-      reportError(details);
-    };
-    addTearDown(() => FlutterError.onError = reportError);
+    filterForuiSemanticsAssertions();
 
     final repo = _RecordingShoppingRepo();
     const contribution = ShoppingContribution(

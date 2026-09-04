@@ -21,6 +21,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/editor_harness.dart';
+import '../../helpers/forui_semantics.dart';
 
 /// The app's real shape around the editor: an opener, the recipe page and
 /// both editor routes pushed on the same navigator (navigation.md §3).
@@ -55,7 +56,7 @@ GoRouter _router() {
 }
 
 Future<FakeRecipeRepo> _pumpApp(WidgetTester tester, GoRouter router) async {
-  ignoreSemanticsAsserts();
+  filterForuiSemanticsAssertions();
   tallSurface(tester);
   final repo = FakeRecipeRepo(importedRecipe);
   await tester.pumpWidget(

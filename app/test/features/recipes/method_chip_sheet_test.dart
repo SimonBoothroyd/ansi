@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 
 import '../../helpers/editor_harness.dart';
+import '../../helpers/forui_semantics.dart';
 
 /// Puts the caret at [offset] of the first step card and fires the field's
 /// own `onTap` — which is what a real tap does, after the tap has set the
@@ -29,7 +30,7 @@ Future<void> tapAt(WidgetTester tester, int offset) async {
 }
 
 Future<FakeRecipeRepo> openEditor(WidgetTester tester) async {
-  ignoreSemanticsAsserts();
+  filterForuiSemanticsAssertions();
   tallSurface(tester);
   final repo = FakeRecipeRepo(importedRecipe);
   await tester.pumpWidget(

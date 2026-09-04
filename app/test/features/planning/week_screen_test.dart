@@ -305,18 +305,6 @@ WeekPlan _batchedWeek() => WeekPlan(
   ],
 );
 
-/// Forui's select trips a debug-only semantics assertion when a sheet opens.
-/// The sim suite filters the same family; the widget suite needs it wherever a
-/// sheet is driven.
-void ignoreForuiSemanticsAssertion() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
-}
-
 void main() {
   group('the week switcher (D2/D3)', () {
     final monday = mondayOf(DateTime.now());
@@ -825,7 +813,7 @@ void main() {
 
   testWidgets('the row has three targets: title \u2192 recipe, cluster \u2192 '
       'editor, \u2212 \u2192 gone (E2/E7/E3)', (tester) async {
-    ignoreForuiSemanticsAssertion();
+    filterForuiSemanticsAssertions();
     late GoRouter router;
     await tester.pumpWidget(
       _routedHost([
@@ -862,7 +850,7 @@ void main() {
   testWidgets('the \u2212 removes the meal and the toast puts it back (E3)', (
     tester,
   ) async {
-    ignoreForuiSemanticsAssertion();
+    filterForuiSemanticsAssertions();
     await tester.pumpWidget(
       _routedHost([
         planningRepositoryProvider.overrideWithValue(
@@ -902,7 +890,7 @@ void main() {
     // E7: the editor is opened by tapping the avatar/portions cluster, not
     // by tapping the meal — the row's title is the recipe's door now.
     Future<void> openEntrySheet(WidgetTester tester, {int? portions}) async {
-      ignoreForuiSemanticsAssertion();
+      filterForuiSemanticsAssertions();
       late GoRouter router;
       await tester.pumpWidget(
         _routedHost([

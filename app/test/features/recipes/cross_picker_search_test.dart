@@ -32,6 +32,7 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/forui_semantics.dart';
 
 /// One corpus, drawn from the extraction gold set — an apostrophe, an accent,
 /// a plural, and a title word ("Jars") the phrase normalizer would eat.
@@ -161,17 +162,6 @@ class _FakePlanningRepo implements PlanningRepository {
       throw UnimplementedError();
 }
 
-/// Opening a Forui sheet with the semantics tree live trips a framework
-/// assertion (tracker row `app/ui`); filter exactly that.
-void _filterSemanticsAssertions() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
-}
-
 Widget _host(Widget Function(BuildContext) open) => ProviderScope(
   overrides: [
     recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
@@ -199,7 +189,7 @@ Future<Set<String>> _planningPickerShows(
   WidgetTester tester,
   String query,
 ) async {
-  _filterSemanticsAssertions();
+  filterForuiSemanticsAssertions();
   // Tear down whatever the previous call left mounted: a sheet still on the
   // route stack would swallow the tap that opens the next one.
   await tester.pumpWidget(const SizedBox.shrink());
@@ -227,7 +217,7 @@ Future<Set<String>> _planningPickerShows(
 }
 
 Future<Set<String>> _linePickerShows(WidgetTester tester, String query) async {
-  _filterSemanticsAssertions();
+  filterForuiSemanticsAssertions();
   // Tear down whatever the previous call left mounted: a sheet still on the
   // route stack would swallow the tap that opens the next one.
   await tester.pumpWidget(const SizedBox.shrink());

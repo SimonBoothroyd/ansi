@@ -9,12 +9,13 @@ import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/editor_harness.dart';
+import '../../helpers/forui_semantics.dart';
 
 Future<FakeRecipeRepo> openEditor(
   WidgetTester tester, {
   required bool saveThrows,
 }) async {
-  ignoreSemanticsAsserts();
+  filterForuiSemanticsAssertions();
   tallSurface(tester);
   final repo = FakeRecipeRepo(importedRecipe, saveThrows: saveThrows);
   await tester.pumpWidget(

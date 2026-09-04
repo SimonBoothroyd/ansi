@@ -11,16 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 
-/// Opening a Forui sheet with the semantics tree live trips a framework
-/// assertion (tracker row `app/ui`); filter exactly that.
-void _filterSemanticsAssertions() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
-}
+import '../../helpers/forui_semantics.dart';
 
 Widget _host({
   required SubRecipeTarget target,
@@ -63,7 +54,7 @@ void main() {
   testWidgets('a stated yield opens its family and the line reads in batches', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     await tester.pumpWidget(
       _host(
         target: _aioli,
@@ -88,7 +79,7 @@ void main() {
   testWidgets('no yield ⇒ the batch chip alone, and a way to go fix it', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     var setYieldTapped = false;
     await tester.pumpWidget(
       _host(
@@ -111,7 +102,7 @@ void main() {
 
   testWidgets('a stored unit outside the offer stays selectable, flagged, and '
       'reads its honest unresolved line (the 7.7 rule)', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     // An imported line printed "2 tbsp" of a butter that only says 250 g.
     await tester.pumpWidget(
       _host(
@@ -138,7 +129,7 @@ void main() {
   testWidgets('Done hands back the amount and the chip that was picked', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     ComponentQuantity? saved;
     await tester.pumpWidget(
       _host(
@@ -160,7 +151,7 @@ void main() {
   });
 
   testWidgets('a fresh line defaults to the yield’s own unit', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     ComponentQuantity? saved;
     await tester.pumpWidget(_host(target: _aioli, onDone: (q) => saved = q));
     await tester.pumpAndSettle();
@@ -171,7 +162,7 @@ void main() {
 
   testWidgets('…and to batch when the recipe states none — the denomination '
       'that never needs a yield', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     ComponentQuantity? saved;
     await tester.pumpWidget(
       _host(target: _unmeasured, onDone: (q) => saved = q),

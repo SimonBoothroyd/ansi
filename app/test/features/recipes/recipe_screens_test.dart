@@ -22,6 +22,7 @@ import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/forui_semantics.dart';
 
 class _FakeRecipeRepo implements RecipeRepository {
   _FakeRecipeRepo(this.recipe);
@@ -131,17 +132,6 @@ Future<void> _pumpUntil(
     }
   }
   fail('never found $finder');
-}
-
-/// Filters the Forui `FSelect`-out-of-view semantics assertion the editor form
-/// trips (tracker row `app/ui`), as the other editor tests do.
-void _ignoreSemanticsAssertion() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
 }
 
 const _recipe = Recipe(
@@ -287,16 +277,7 @@ void main() {
   });
 
   testWidgets('RecipeEditorView builds a blank create form', (tester) async {
-    // Scrolling a Forui FSelect out of view with the semantics tree live trips
-    // a framework assertion (tracker row `app/ui`) — the MAKES row (8.6) put a
-    // third one in this form. Filter exactly that, as the quantity-sheet and
-    // edit-top-up tests do.
-    final reportError = FlutterError.onError!;
-    FlutterError.onError = (details) {
-      if ('${details.exception}'.contains('semantics.dart')) return;
-      reportError(details);
-    };
-    addTearDown(() => FlutterError.onError = reportError);
+    filterForuiSemanticsAssertions();
 
     await tester.pumpWidget(
       _host(const RecipeEditorView(), [
@@ -331,12 +312,7 @@ void main() {
 
   testWidgets('the editor draws the second MAKES denomination, with the ✕ that '
       'drops it (8.6, board frame h)', (tester) async {
-    final reportError = FlutterError.onError!;
-    FlutterError.onError = (details) {
-      if ('${details.exception}'.contains('semantics.dart')) return;
-      reportError(details);
-    };
-    addTearDown(() => FlutterError.onError = reportError);
+    filterForuiSemanticsAssertions();
 
     const butter = Recipe(
       id: '1',
@@ -371,7 +347,7 @@ void main() {
 
   testWidgets('saving replaces the editor, so back returns to where it was '
       'opened from', (tester) async {
-    _ignoreSemanticsAssertion();
+    filterForuiSemanticsAssertions();
     // A phone-sized surface: at the default 800x600 the header's Save sits off
     // the right edge and the tap misses it.
     await tester.binding.setSurfaceSize(const Size(402, 874));

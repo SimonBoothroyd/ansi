@@ -16,9 +16,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/editor_harness.dart';
+import '../../helpers/forui_semantics.dart';
 
 Future<FakeRecipeRepo> openEditor(WidgetTester tester) async {
-  ignoreSemanticsAsserts();
+  filterForuiSemanticsAssertions();
   tallSurface(tester);
   final repo = FakeRecipeRepo(importedRecipe);
   await tester.pumpWidget(

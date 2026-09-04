@@ -17,6 +17,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../helpers/forui_semantics.dart';
+
 const _large = Measure(
   id: 'm-large',
   label: 'potato, large',
@@ -75,18 +77,6 @@ class _FakeMeasureRepo implements MeasureRepository {
   }
 }
 
-/// Opening a Forui sheet with the semantics tree live trips a framework
-/// assertion (tracker row `app/ui`); filter exactly that, as the integration
-/// smoke and edit_top_up_sheet_test do.
-void _filterSemanticsAssertions() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
-}
-
 Widget _host({
   required _FakeMeasureRepo repo,
   required ValueChanged<QuantitySaved> onDone,
@@ -114,7 +104,7 @@ void main() {
   testWidgets('no raw ＋ glyph anywhere on the sheet (the tofu rule)', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     // U+FF0B is missing from the bundled fonts and renders as tofu; the
     // manage chip and the add-measure heading must use FLucideIcons.plus.
     await tester.pumpWidget(
@@ -132,7 +122,7 @@ void main() {
 
   testWidgets('an orphaned (merge-hidden) stored measure stays reachable, '
       'highlighted, and flagged as off-filter', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     // The line references m-hidden, which the merged watch list omits.
     await tester.pumpWidget(
       _host(
@@ -167,7 +157,7 @@ void main() {
   testWidgets('deleting the selected measure reconciles the choice', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     QuantitySaved? saved;
     await tester.pumpWidget(
       _host(
@@ -206,7 +196,7 @@ void main() {
   testWidgets('deleting an unselected measure leaves the choice alone', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     await tester.pumpWidget(
       _host(
         repo: _FakeMeasureRepo(const [_large]),
@@ -230,7 +220,7 @@ void main() {
 
   testWidgets('the add form redirects a volume-unit label into density '
       'entry, plural included', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     await tester.pumpWidget(
       _host(repo: _FakeMeasureRepo(const []), onDone: (_) {}),
     );
@@ -263,7 +253,7 @@ void main() {
 
   testWidgets('the Optional row is offered only to a recipe-line host (D6a) — '
       'a shopping top-up has no such fact', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     await tester.pumpWidget(
       _host(repo: _FakeMeasureRepo(const [_large]), onDone: (_) {}),
     );
@@ -274,7 +264,7 @@ void main() {
 
   testWidgets('the Optional switch rides Done, with both consequences named '
       'under it (frame e1)', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     QuantitySaved? saved;
     await tester.pumpWidget(
       _host(
@@ -306,7 +296,7 @@ void main() {
   testWidgets('a line that arrives optional opens on the switch set', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     QuantitySaved? saved;
     await tester.pumpWidget(
       _host(

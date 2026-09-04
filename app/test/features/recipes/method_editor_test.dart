@@ -12,12 +12,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/editor_harness.dart';
+import '../../helpers/forui_semantics.dart';
 
 void main() {
   testWidgets('an IMPORTED method opens as editable step cards, chips intact', (
     tester,
   ) async {
-    ignoreSemanticsAsserts();
+    filterForuiSemanticsAssertions();
     final repo = FakeRecipeRepo(importedRecipe);
     await tester.pumpWidget(
       hostEditor('1', [
@@ -42,7 +43,7 @@ void main() {
   testWidgets('the focused card grows the toolbar and the "Reads as" preview', (
     tester,
   ) async {
-    ignoreSemanticsAsserts();
+    filterForuiSemanticsAssertions();
     await tester.pumpWidget(
       hostEditor('1', [
         recipeRepositoryProvider.overrideWithValue(
@@ -71,7 +72,7 @@ void main() {
   });
 
   testWidgets('reorder, delete and add a step (D7)', (tester) async {
-    ignoreSemanticsAsserts();
+    filterForuiSemanticsAssertions();
     final repo = FakeRecipeRepo(importedRecipe);
     await tester.pumpWidget(
       hostEditor('1', [
@@ -107,7 +108,7 @@ void main() {
   testWidgets('the editor writes methodSteps for EVERY recipe (D8)', (
     tester,
   ) async {
-    ignoreSemanticsAsserts();
+    filterForuiSemanticsAssertions();
     final repo = FakeRecipeRepo(legacyRecipe);
     await tester.pumpWidget(
       hostEditor('1', [
@@ -133,7 +134,7 @@ void main() {
   testWidgets('typing inside a chip demotes it — asserted through save()', (
     tester,
   ) async {
-    ignoreSemanticsAsserts();
+    filterForuiSemanticsAssertions();
     final repo = FakeRecipeRepo(importedRecipe);
     await tester.pumpWidget(
       hostEditor('1', [

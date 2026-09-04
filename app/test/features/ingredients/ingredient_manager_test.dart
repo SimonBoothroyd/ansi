@@ -47,6 +47,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/forui_semantics.dart';
 
 const _mangoMacros = Macros(kcal: 60, protein: 1, carb: 15, fat: 0);
 
@@ -310,18 +311,6 @@ void _phoneWidth(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
-/// Opening a Forui sheet with the semantics tree live trips a framework
-/// assertion (tracker row `app/ui`); filter exactly that, as the other sheet
-/// tests do.
-void _filterSemanticsAssertions() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
-}
-
 Widget _host(
   FakeIngredientRepo repo, {
   String at = '/ingredients',
@@ -452,7 +441,7 @@ void main() {
         'hint reads NEEDS MACROS (D5 overruled "needs density · macros")', (
       tester,
     ) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       await tester.pumpWidget(
         _host(FakeIngredientRepo(const [_mango, _curryLeaves, _yeast])),
       );
@@ -471,7 +460,7 @@ void main() {
         'the band and the header — a round-trip is not a search', (
       tester,
     ) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango, _curryLeaves, _yeast]);
       await tester.pumpWidget(_host(repo));
@@ -505,7 +494,7 @@ void main() {
         'clearing the field brings the band and the header straight back', (
       tester,
     ) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       await tester.pumpWidget(
         _host(FakeIngredientRepo(const [_mango, _curryLeaves, _yeast])),
@@ -529,7 +518,7 @@ void main() {
 
     testWidgets('rows are the 7.7 picker rows: honest hints, no zeros for a '
         'stub, and a missing density named as an advisory', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       await tester.pumpWidget(
         _host(FakeIngredientRepo(const [_mango, _curryLeaves, _yeast])),
       );
@@ -557,7 +546,7 @@ void main() {
 
     testWidgets('G4: a prefilled-but-unconfirmed stub hints NEEDS COMPLETING — '
         'the hint stops asking for what the row already has', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       // Same row, one difference: the prefill has landed its panel.
       final prefilled = _curryLeaves.copyWith(macros: _usdaAnswer.macros);
       await tester.pumpWidget(
@@ -574,7 +563,7 @@ void main() {
     });
 
     testWidgets('no band at all when nothing is a stub', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       await tester.pumpWidget(_host(FakeIngredientRepo(const [_mango])));
       await tester.pumpAndSettle();
       expect(find.text('Needs fleshing out'), findsNothing);
@@ -582,7 +571,7 @@ void main() {
     });
 
     testWidgets('tapping a row opens its flesh-out form', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       await tester.pumpWidget(
         _host(FakeIngredientRepo(const [_mango, _curryLeaves])),
       );
@@ -596,7 +585,7 @@ void main() {
   group('the flesh-out form — frames (b) and (c)', () {
     testWidgets('a stub without macros: the CTA is refused with its reason, '
         'and the status line says it is out of the totals', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       await tester.pumpWidget(
         _host(
@@ -620,7 +609,7 @@ void main() {
     testWidgets('U-D1: a machine prefill is NAMED at the head of the macros '
         'section — the food, its FDC id, the band word — reads not '
         'confirmed, and offers both doors', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       await tester.pumpWidget(
         _host(
@@ -650,7 +639,7 @@ void main() {
         'the name says so; a row filled before 0027 names the id alone', (
       tester,
     ) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo([
         _curryLeaves.copyWith(sourceScore: 0.62),
@@ -685,7 +674,7 @@ void main() {
 
     testWidgets('U-D1: a CONFIRMED prefill still names its match, and says '
         'confirmed', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo([
         _curryLeaves.copyWith(
@@ -702,7 +691,7 @@ void main() {
     testWidgets('U-D2: a DECLINED row names the food it refused, says the '
         'numbers were cleared, offers Choose another alone, and warns that a '
         'rename will not refill it', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo([
         _curryLeaves.copyWith(source: usdaDeclinedSource),
@@ -729,7 +718,7 @@ void main() {
     testWidgets('U-D2: tapping Not this food clears the prefilled numbers '
         'from the row AND the open form, and the line turns into the '
         'declined one', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo([
         _curryLeaves.copyWith(
@@ -776,7 +765,7 @@ void main() {
         'FIELD — writing nothing to get there — lists them with their band '
         'word (the current match tagged, a nameless one left out), and a pick '
         'replaces the fill through the explicit apply', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo([
         _curryLeaves.copyWith(
@@ -864,7 +853,7 @@ void main() {
         'pick lands despite the decline — a person’s own choice', (
       tester,
     ) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo([
         _curryLeaves.copyWith(source: usdaDeclinedSource),
@@ -901,7 +890,7 @@ void main() {
 
     testWidgets('U-D3 offline: the sheet says nothing came back, and closing '
         'it changes nothing', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_curryLeaves]);
       await tester.pumpWidget(_host(repo, at: '/ingredients/curry'));
@@ -921,7 +910,7 @@ void main() {
 
     testWidgets('a row USDA never touched carries no provenance line at '
         'all', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       await tester.pumpWidget(
         _host(FakeIngredientRepo(const [_blackRice]), at: '/ingredients/rice'),
@@ -934,7 +923,7 @@ void main() {
 
     testWidgets('typing the four macros arms the CTA, and confirming flips '
         'the row to complete — density never asked for', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_curryLeaves]);
       await tester.pumpWidget(_host(repo, at: '/ingredients/curry'));
@@ -964,7 +953,7 @@ void main() {
     testWidgets(
       'a complete row opens here too, and the confirm is reversible',
       (tester) async {
-        _filterSemanticsAssertions();
+        filterForuiSemanticsAssertions();
         _tallScreen(tester);
         final repo = FakeIngredientRepo(const [_mango]);
         await tester.pumpWidget(_host(repo, at: '/ingredients/mango'));
@@ -987,7 +976,7 @@ void main() {
 
     testWidgets('THE MANGO CHIPS (D4): a piece default with a density admits '
         'cup, and nothing is dashed', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       await tester.pumpWidget(
         _host(FakeIngredientRepo(const [_mango]), at: '/ingredients/mango'),
@@ -1006,7 +995,7 @@ void main() {
         'it strips again, with the basis family live throughout', (
       tester,
     ) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       // A piece-default per-g row with no density: mass is its basis family
       // (always sayable), volume is the density-derived side.
@@ -1079,7 +1068,7 @@ void main() {
 
     testWidgets('G6: a density-less row draws the locked chips, and the note '
         'above them is ONE line naming exactly those units', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       await tester.pumpWidget(
         _host(
@@ -1103,7 +1092,7 @@ void main() {
 
     testWidgets('G6: a row with a density says nothing at all there — a note '
         'with no news is noise', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       await tester.pumpWidget(
         _host(FakeIngredientRepo(const [_mango]), at: '/ingredients/mango'),
@@ -1114,7 +1103,7 @@ void main() {
 
     testWidgets('delete is refused with the count while a live line points '
         'here', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(
         const [_mango],
@@ -1137,7 +1126,7 @@ void main() {
     testWidgets('an unreferenced row deletes and leaves the form', (
       tester,
     ) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
       await tester.pumpWidget(_host(repo, at: '/ingredients/mango'));
@@ -1150,7 +1139,7 @@ void main() {
 
     testWidgets('renaming rewrites the match text (D6) and says so on the '
         'form', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_curryLeaves]);
       await tester.pumpWidget(_host(repo, at: '/ingredients/curry'));
@@ -1170,7 +1159,7 @@ void main() {
 
     testWidgets('F2: measures are EDITABLE here — the shared 7.7 editor, not '
         'a read-only note', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final measures = _FakeMeasures(const [
         Measure(id: 'm-usda', label: 'mango, medium', amount: 207),
@@ -1242,7 +1231,7 @@ void main() {
 
     testWidgets('F2: a volume-named measure label is still refused and '
         'redirected into the density entry (ADR-0008 §2)', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final measures = _FakeMeasures();
       await tester.pumpWidget(
@@ -1314,7 +1303,7 @@ void main() {
 
     testWidgets('the FIRST measure asks whether `piece` stays offered, and '
         'the default answer takes it out of allowed_units', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
       final measures = _FakeMeasures();
@@ -1360,7 +1349,7 @@ void main() {
 
     testWidgets('“Keep both” leaves the admission exactly as it was — and so '
         'does dismissing the question', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
       await tester.pumpWidget(
@@ -1377,7 +1366,7 @@ void main() {
 
     testWidgets('a SECOND measure asks nothing — the row already answered, '
         'whichever way', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
       await tester.pumpWidget(
@@ -1399,7 +1388,7 @@ void main() {
 
     testWidgets('deleting the last measure does NOT put `piece` back — the '
         'admission chips offer it, unlocked and one tap away', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
       final measures = _FakeMeasures();
@@ -1432,7 +1421,7 @@ void main() {
 
     testWidgets('answering No also sets Counts as — the two questions were '
         'always one, and the prompt says so', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
       final measures = _FakeMeasures();
@@ -1464,7 +1453,7 @@ void main() {
 
     testWidgets('“Keep both” leaves Counts as unset — the honest reading of '
         '"both words are sayable here"', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
       await tester.pumpWidget(
@@ -1481,7 +1470,7 @@ void main() {
 
     testWidgets('the Counts as picker sets it, and "Ask me each time" clears '
         'it without touching a single measure', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango]);
       final measures = _FakeMeasures(const [
@@ -1519,7 +1508,7 @@ void main() {
 
     testWidgets('a row with NO measures is not asked — there is nothing to '
         'choose and nothing to ask', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       await tester.pumpWidget(
         _host(
@@ -1536,7 +1525,7 @@ void main() {
 
     testWidgets("F3: the category is a dropdown of the household's own "
         'categories — free text is gone', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_mango, _curryLeaves, _yeast]);
       await tester.pumpWidget(_host(repo, at: '/ingredients/yeast'));
@@ -1566,7 +1555,7 @@ void main() {
 
     testWidgets('F3: a category nothing else carries is still offered, and a '
         'new one can be coined', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       // Its own category is unique to it — the dropdown must not orphan it.
       const onlyOne = Ingredient(
@@ -1596,7 +1585,7 @@ void main() {
     testWidgets('THE OWNER’S FLOW, rebuilt: rename then look up — USDA is '
         'asked about the name in the FIELD, and nothing is written to get '
         'there', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final plain = _curryLeaves.copyWith(source: 'manual');
       final repo = FakeIngredientRepo([plain]);
@@ -1650,7 +1639,7 @@ void main() {
     testWidgets('G1: a successful lookup lands its numbers in the OPEN form’s '
         'macro fields — the row filling up is not the same as the form '
         'showing it', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo([
         _curryLeaves.copyWith(source: 'manual'),
@@ -1692,7 +1681,7 @@ void main() {
 
     testWidgets('G1: numbers the user is part-way through typing are never '
         'clobbered — a pending edit outranks the row', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo([
         _curryLeaves.copyWith(source: 'manual'),
@@ -1726,7 +1715,7 @@ void main() {
     testWidgets('G1: a pick the user dismisses changes nothing at all', (
       tester,
     ) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo([
         _curryLeaves.copyWith(source: 'manual'),
@@ -1764,7 +1753,7 @@ void main() {
 
     testWidgets('G2: the density row fits a phone — in its "none yet" state, '
         'and in the spoon phrasing', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _phoneWidth(tester);
       // The section on its own, at the width the form gives it. Scoped
       // deliberately: the test font draws every glyph as a square of the font
@@ -1784,7 +1773,7 @@ void main() {
 
     testWidgets('D4c: a cup default on a per-100 g row with no density is '
         'FLAGGED with its repair, never rewritten', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_blackRice]);
       await tester.pumpWidget(_host(repo, at: '/ingredients/rice'));
@@ -1807,7 +1796,7 @@ void main() {
 
     testWidgets('D4c: the default-unit selector locks the other family while '
         'no density bridges it', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       await tester.pumpWidget(
         _host(FakeIngredientRepo(const [_blackRice]), at: '/ingredients/rice'),
@@ -1836,7 +1825,7 @@ void main() {
 
     testWidgets('offline: the short-list says nothing came back and never '
         'raises an error — the trigger is still the backstop', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final plain = _curryLeaves.copyWith(source: 'manual');
       final repo = FakeIngredientRepo([plain]);
@@ -1862,7 +1851,7 @@ void main() {
   group('creating an ingredient — the form IS the add flow (plan 0029 C2)', () {
     testWidgets('the ＋ opens a form with no row behind it: it says so, it '
         'offers no ⋯, and backing out writes nothing', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const []);
       await tester.pumpWidget(_host(repo, at: '/ingredients/new'));
@@ -1883,7 +1872,7 @@ void main() {
         'two screens, and had already written by the time you saw the second', (
       tester,
     ) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const []);
       await tester.pumpWidget(_host(repo, at: '/ingredients/new'));
@@ -1909,7 +1898,7 @@ void main() {
     testWidgets('a name carried in from a picker prefills the field', (
       tester,
     ) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       await tester.pumpWidget(
         _host(
@@ -1952,7 +1941,7 @@ void main() {
 
     testWidgets('fills the EMPTY macro fields, keeps the name and a USDA '
         'provenance — and writes nothing until Save', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [_curryLeaves]);
       await tester.pumpWidget(
@@ -1999,7 +1988,7 @@ void main() {
 
     testWidgets('on a row with no source, Save stamps off:<barcode> in the '
         'same write as the macros', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [bare]);
       await tester.pumpWidget(
@@ -2025,7 +2014,7 @@ void main() {
 
     testWidgets('a panel already typed is not overwritten, and the card says '
         'so', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [bare]);
       await tester.pumpWidget(
@@ -2050,7 +2039,7 @@ void main() {
 
     testWidgets('the pack size is an offer: tapped, it becomes a measure in '
         'the row’s basis', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [bare]);
       final measures = _FakeMeasures();
@@ -2101,7 +2090,7 @@ void main() {
     testWidgets('a confirmed row offers no scan — nothing on it is empty', (
       tester,
     ) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       await tester.pumpWidget(
         _host(FakeIngredientRepo(const [_mango]), at: '/ingredients/mango'),
@@ -2125,7 +2114,7 @@ void main() {
     testWidgets('M-D1 + M-D3: the label typed as printed, the row stored per '
         '100 — unrounded, previewed live, and refused without the serving '
         'weight', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [spread]);
       await tester.pumpWidget(_host(repo, at: '/ingredients/spread'));
@@ -2186,7 +2175,7 @@ void main() {
 
     testWidgets('the serving unit is the basis: an ml serving stores per 100 '
         'ml', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [spread]);
       await tester.pumpWidget(_host(repo, at: '/ingredients/spread'));
@@ -2252,7 +2241,7 @@ void main() {
 
     testWidgets('M-D2: the offer is OFF by default — an untouched Save writes '
         'the macros and NOTHING else', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [spread]);
       await armTheOffer(tester, repo);
@@ -2267,7 +2256,7 @@ void main() {
 
     testWidgets('M-D2: ticked, the same Save lands it through setDensity and '
         'the volume chips unlock', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [spread]);
       final tick = await armTheOffer(tester, repo);
@@ -2295,7 +2284,7 @@ void main() {
         'offered as a measure, through the measures editor’s write', (
       tester,
     ) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       _tallScreen(tester);
       final repo = FakeIngredientRepo(const [spread]);
       final measures = _FakeMeasures();
@@ -2411,7 +2400,7 @@ void main() {
       testWidgets('on the form: per-serving mode opens, the four as printed, '
           'the serving prefilled from serving_quantity — and Save stores per '
           '100', (tester) async {
-        _filterSemanticsAssertions();
+        filterForuiSemanticsAssertions();
         _tallScreen(tester);
         final repo = FakeIngredientRepo(const [bare]);
         await tester.pumpWidget(
@@ -2461,7 +2450,7 @@ void main() {
           'flagged with the pack’s words, never parsed out of them', (
         tester,
       ) async {
-        _filterSemanticsAssertions();
+        filterForuiSemanticsAssertions();
         _tallScreen(tester);
         final repo = FakeIngredientRepo(const [bare]);
         await tester.pumpWidget(
@@ -2493,7 +2482,7 @@ void main() {
 
       testWidgets('creating by barcode: the serving row under the card, '
           'prefilled — and Save stores the per-100 derivation', (tester) async {
-        _filterSemanticsAssertions();
+        filterForuiSemanticsAssertions();
         _tallScreen(tester);
         final repo = FakeIngredientRepo(const []);
         await tester.pumpWidget(
@@ -2533,7 +2522,7 @@ void main() {
 
       testWidgets('creating by barcode, no numeric serving: flagged, and no '
           'panel is stored unless the weight is typed', (tester) async {
-        _filterSemanticsAssertions();
+        filterForuiSemanticsAssertions();
         _tallScreen(tester);
         final repo = FakeIngredientRepo(const []);
         await tester.pumpWidget(_addHost(repo, body: withoutServingQuantity()));

@@ -10,21 +10,14 @@ import 'package:forui/forui.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import '../../../helpers/forui_semantics.dart';
+
 const _foundBody = '''
 {"code":"3017620422003","status":1,"product":{"code":"3017620422003",
 "product_name":"Nutella","brands":"Nutella, Ferrero","quantity":"",
 "nutrition_data_per":"100g","nutriments":{"energy-kcal_100g":539,
 "proteins_100g":6.3,"carbohydrates_100g":57.5,"fat_100g":30.9}}}
 ''';
-
-void _filterSemanticsAssertions() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
-}
 
 /// A host with a button that opens the surface exactly the way the
 /// New-ingredient form's Source ▸ Barcode segment will.
@@ -55,7 +48,7 @@ Widget _host({
 
 void main() {
   testWidgets('resolves with the draft the surface produced', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     var called = false;
     IngredientDraft? result;
     await tester.pumpWidget(
@@ -87,7 +80,7 @@ void main() {
   });
 
   testWidgets('resolves null when the surface is closed empty', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     var called = false;
     IngredientDraft? result;
     await tester.pumpWidget(

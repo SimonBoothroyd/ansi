@@ -32,6 +32,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
+import '../../helpers/forui_semantics.dart';
 import '../../helpers/silent_usda_probe.dart';
 
 /// A fake edge function returning a fixed single-line payload; commit records.
@@ -489,18 +490,6 @@ class _LiveBody extends ConsumerWidget {
   }
 }
 
-/// Forui's text field trips a semantics merge assertion under the test
-/// harness (the same one the quantity-sheet tests filter) — not our concern
-/// here. Suppress only that assertion.
-void _filterSemanticsAssertions() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
-}
-
 void main() {
   testWidgets('an auto line is compact, then expands into the editable card '
       '(re-match + amount + notes)', (tester) async {
@@ -537,7 +526,7 @@ void main() {
   testWidgets('editing the NOTES field writes through to the resolution', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
@@ -564,7 +553,7 @@ void main() {
 
   testWidgets('an unmatched line disables amount + notes and shows a clear '
       '"needs you" flag that clears once matched', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
@@ -682,7 +671,7 @@ void main() {
 
   testWidgets('an unsupported unit is flagged (not shown ok) and offers valid '
       'unit chips that apply on tap (round-3 #1b/#2)', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
@@ -726,7 +715,7 @@ void main() {
 
   testWidgets('the unit chips show five and fold the rest, expanding in place '
       'without losing the selection', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
@@ -783,7 +772,7 @@ void main() {
       'ingredient’s count measure — one confirm tap resolves it', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
@@ -834,7 +823,7 @@ void main() {
 
   testWidgets("the amount sheet's Optional switch writes the line fact back "
       'onto the resolution (plan 0025 / D6a)', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
@@ -920,7 +909,7 @@ void main() {
       'the fact on the card and the alternatives beside it (frame a)', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
@@ -973,7 +962,7 @@ void main() {
 
   testWidgets('a SOLE-measure row arrives on it too — the preselect that only '
       'ever opened the sheet now writes the line (D3)', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     final repo = _FakeRepo(_piecePayload('Cucumber', _cucumber.id));
     final container = ProviderContainer(
       overrides: [
@@ -1014,7 +1003,7 @@ void main() {
       'can say "I don\'t know", which a rule never can (frame b)', (
     tester,
   ) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
@@ -1048,7 +1037,7 @@ void main() {
 
   testWidgets('a line that PRINTED a word the row refuses is untouched — the '
       'default never overrules the source', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
@@ -1079,7 +1068,7 @@ void main() {
 
   testWidgets('three measures pre-select nothing — Save stays gated until the '
       'user picks a size, and then it clears', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
@@ -1127,7 +1116,7 @@ void main() {
 
   testWidgets('the bin drops the line into an "as deleted" card, and undo '
       'brings it back untouched', (tester) async {
-    _filterSemanticsAssertions();
+    filterForuiSemanticsAssertions();
     final container = ProviderContainer(
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
@@ -1305,7 +1294,7 @@ void main() {
         'chips against the target’s yield, not an ingredient’s units', (
       tester,
     ) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       final container = await reviewing();
       await tester.pumpWidget(_host(container));
       await tester.pumpAndSettle();
@@ -1453,7 +1442,7 @@ void main() {
     testWidgets('the footer opens the New-ingredient sheet with the line’s '
         'text, walks the form pushed over the search sheet, and resolves the '
         'line to the re-read row as an existing ingredient', (tester) async {
-      _filterSemanticsAssertions();
+      filterForuiSemanticsAssertions();
       final repo = FakeIngredientRepo(const []);
       final picks = <ReconcilePick?>[];
       final router = GoRouter(
@@ -1569,7 +1558,7 @@ void main() {
       // of what happened to the card underneath.
       testWidgets('the search sheet resolves the line through the controller, '
           'not the unmounted card', (tester) async {
-        _filterSemanticsAssertions();
+        filterForuiSemanticsAssertions();
         const kale = Ingredient(
           id: 'ing-kale',
           canonicalName: 'Kale',

@@ -154,18 +154,6 @@ class FakeBookRepo implements BookRepository {
       throw UnimplementedError();
 }
 
-/// The editor form trips a framework semantics assertion in the test binding
-/// (the same one `recipe_screens_test.dart` has muted since 8.6). Mute it for
-/// the duration of one test rather than restating the dance in each suite.
-void ignoreSemanticsAsserts() {
-  final reportError = FlutterError.onError!;
-  FlutterError.onError = (details) {
-    if ('${details.exception}'.contains('semantics.dart')) return;
-    reportError(details);
-  };
-  addTearDown(() => FlutterError.onError = reportError);
-}
-
 /// The editor under a real router, because Save navigates (an existing
 /// recipe's editor pops back onto its page; a new one replaces itself with
 /// the page it made) and the card's sheets are opened on the ROOT navigator.
