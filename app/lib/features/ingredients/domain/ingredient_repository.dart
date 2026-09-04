@@ -342,15 +342,16 @@ abstract interface class IngredientRepository {
   /// Writes a USDA probe result into the row's NULL fields — plan 0020
   /// **D7b**, the local half of "enrichment should not wait for sync".
   ///
-  /// Two guards, both load-bearing, both mirroring the server trigger's WHEN
-  /// clause (migrations 0014/0015) so the two writes can race harmlessly:
+  /// Two guards, both load-bearing:
   /// - the row must still be a **`stub`**, and
   /// - it must be **bare** — no density and no macros. A row someone has
-  ///   filled in is never overwritten by a trigram guess.
+  ///   filled in is never overwritten.
   ///
-  /// Both re-checked inside the write, not just by the caller: the row may
-  /// have changed between the probe and the apply (another device, or the
-  /// server trigger landing first). Returns null when either guard fails, or
+  /// They were written to mirror the server trigger's WHEN clause (0014/0015)
+  /// so the two writes could race harmlessly. 0029 dropped that trigger, so
+  /// what they answer for now is another **device** editing the same
+  /// household between the search and the apply. Both re-checked inside the
+  /// write, not just by the caller. Returns null when either guard fails, or
   /// when the id doesn't resolve.
   ///
   /// A landing density also extends `allowed_units` with what it unlocks, in
@@ -402,9 +403,11 @@ abstract interface class IngredientRepository {
   /// USDA-filled one (nothing written).
   ///
   /// Why a new source value rather than a reset to `manual`: the rename
-  /// trigger's WHEN clause (0015) lists the sources it may refill — `manual`
-  /// is one — and `usda_declined` is deliberately not. Declining once means
-  /// the next rename leaves the row alone; only an explicit pick
+  /// trigger's WHEN clause (0015) listed the sources it could refill —
+  /// `manual` among them — and `usda_declined` was deliberately not, so
+  /// declining once meant the next rename left the row alone. 0029 dropped
+  /// that trigger; no rename refills anything now. The value stays because it
+  /// is still how a row says "not from USDA", and only an explicit pick
   /// ([applyUsdaProbe] with `explicitPick`) writes over it.
   Future<Ingredient?> declineUsdaPrefill(String ingredientId);
 

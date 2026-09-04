@@ -81,6 +81,52 @@ merely has not arrived.
 sheet is deleted. The USDA pick stopped writing on the way (it fills the
 draft), which removed the last thing on the form that needed a row id.
 
+**Lane D — the server half** (`0029_usda_search_ranking.sql`). Lane C removed
+the client's silent match; the *server* was still doing it. The
+`ingredient_usda_prefill` trigger (0014/0015) was still armed, so a bare stub
+— one where the person deliberately did not use the search — uploaded and came
+back filled:
+
+    canonical_name       source           source_label   score  density
+    Zztest Broccoli Raw  usda_fdc:170379  Broccoli, raw  1.000  0.3846
+
+Worse-shaped than before, not better: after lane C no client path re-reads a
+row because of it, so the provenance card would name a food with no human
+anywhere in its history. It fired on rename too. Trigger and function dropped;
+nothing replaces them.
+
+Dropping it exposed the second half. With no silent fill, the whole weight of
+the feature sits on the search — and the search was still the 0.5-floor
+trigram probe. Measured against the 267 curated pairs in `seed_prefill.sql`
+(a hand-labelled gold set), the sheet showed **nothing at all for 97 of them**,
+`apple` and `black rice` among them — `black rice` being the design board's own
+worked example. Average rows offered: **1.28 of 5**.
+
+`similarity()` is Jaccard over trigram sets: symmetric, normalised by the
+union, so it asks "are these the same string?" rather than "is this row about
+this query". A one-word query cannot clear a floor against a nine-word
+description. It replaces with BM25 over a precomputed token/idf index, plus a
+head-noun bonus (USDA's inverted naming puts the food at token 0) and a
+penalty for transformations the query did not ask for (a bare "banana" means
+the raw one).
+
+| | before | after |
+|---|---|---|
+| queries showing nothing | 97 / 267 | **3 / 267** |
+| average rows offered (of 5) | 1.28 | **4.64** |
+| right row visible in 5 | 46% | **83%** |
+| top-1, held out | 31.1% | **52.3%** |
+
+Weights were fitted on half the gold set and scored on the other half, and sit
+on a broad plateau — nine grid points tie at the top — so this is robust
+rather than delicately tuned. Four things were measured and **not** adopted,
+recorded in the migration header so they are not re-tried: idf-weighted
+containment, RRF fusion with `word_similarity`, AND-then-OR coverage tiering,
+and a branded-row penalty.
+
+`enrichFromUsda` and its test are deleted — lane C had already left the
+library with zero callers.
+
 ### Found by building it, not by planning it
 
 - **A pick with no density must CLEAR the previous food's.** U-D3 says a pick

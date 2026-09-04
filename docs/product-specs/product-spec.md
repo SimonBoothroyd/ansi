@@ -90,11 +90,14 @@ Single shared household dataset; both members full read/write; everything scoped
 `id · canonical_name · aliases[] · category · density_g_per_ml (nullable) · macros {kcal, protein, carb, fat} (nullable) · macros_basis ('g' | 'ml', step 7.7) · allowed_units (jsonb unit-id array, step 7.8) · default_measure_id (nullable FK, 0023) · default_unit · status (complete | stub) · source`
 - `source` is **provenance, and it is load-bearing**: `seed` (the template
   vocab), `manual` (typed in the picker or the manager), `import_stub` (created
-  at an import commit), `usda_fdc:<id>` (what the server-side prefill stamps),
-  `off:<barcode>` (a barcode scan). The stub-prefill trigger reads it to decide
-  whether a row is its business — it never touches `seed` (whose density-less
-  tail is audited, not accidental) or a barcode row (whose Open Food Facts
-  provenance must not be overwritten by a USDA id).
+  at an import commit), `usda_fdc:<id>` (a food picked from the USDA search),
+  `off:<barcode>` (a barcode scan). Until 0029 a server trigger read it to
+  decide whether a row was its business; **nothing matches to USDA on its own
+  any more** (plan 0029), so a `usda_fdc:<id>` stamp always means a person
+  picked that food. `seed` (whose density-less tail is audited, not
+  accidental) and barcode rows (whose Open Food Facts provenance must not be
+  overwritten by a USDA id) are safe by construction now rather than by a
+  trigger's WHEN clause.
 - `status = stub` → surfaces in the manager's stub band + honest macro math.
 - **Macros are stored WITH the basis the label read them in** (per-100 g or
   per-100 ml — liquid labels read per 100 ml, and densities are sparse, so

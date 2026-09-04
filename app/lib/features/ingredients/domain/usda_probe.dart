@@ -150,31 +150,31 @@ class UsdaCandidate {
 ///
 /// A class with one abstract method rather than a function type, for the
 /// same reason every repository here is one: tests and the unconfigured
-/// build swap the whole implementation through a provider. [probe] is the
-/// single-answer form every existing caller reads, derived from [search] so
-/// the two cannot disagree about what "best" means.
+/// build swap the whole implementation through a provider. There is only
+/// [search]: a single-answer `probe()` used to exist for the automatic fills,
+/// and 0029 removed the last of those.
+// One member since 0029 removed `probe()`, and deliberately still a type
+// rather than a callback: tests and the unconfigured build swap the whole
+// implementation through a provider, which a bare function cannot do.
+// ignore: one_member_abstracts
 abstract class UsdaProbe {
   const UsdaProbe();
 
   /// The best [limit] USDA candidates for [matchText], best first, or an
   /// empty list.
   ///
-  /// [matchText] is the ingredient's **match text** — what
-  /// `normalizeMatchText` produces and what the row stores — so this probe
-  /// and the server trigger's probe read the same input and reach the same
-  /// candidate. Passing a raw display name would quietly ask a different
-  /// question than the trigger asks.
+  /// [matchText] is **match text** — what `normalizeMatchText` produces —
+  /// because that is the shape `usda_food.match_text` is stored in and what
+  /// the server tokenises against. It is the normalised form of the name in
+  /// the FIELD, not of the stored row: the search asks about what the person
+  /// is looking at, which is what lets a rename be searched before it is
+  /// saved.
   ///
-  /// Empty for a name nothing confidently matches **and** for an unreachable
-  /// server. The caller cannot tell the two apart, and must not need to: in
-  /// both cases the honest thing to say is that nothing came back, and the
-  /// trigger will still catch the row when it syncs. The server caps
-  /// [limit] at ten.
+  /// Empty for a name nothing matches **and** for an unreachable server. The
+  /// caller cannot tell the two apart, and the sheet does not need to — it
+  /// draws its own empty state either way. Nothing fills the row behind it:
+  /// since 0029 there is no probe-at-birth and no server trigger, so an empty
+  /// result means the person has to look again or type the numbers, and
+  /// saying so plainly is the whole point. The server caps [limit] at ten.
   Future<List<UsdaCandidate>> search(String matchText, {int limit = 5});
-
-  /// The single best candidate — [search] with a limit of one — or null.
-  Future<UsdaCandidate?> probe(String matchText) async {
-    final found = await search(matchText, limit: 1);
-    return found.isEmpty ? null : found.first;
-  }
 }

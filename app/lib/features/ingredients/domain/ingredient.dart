@@ -74,20 +74,26 @@ abstract class Ingredient with _$Ingredient {
   }) = _Ingredient;
 }
 
-/// Whether [source] marks a row the USDA prefill wrote into —
-/// `usda_fdc:<fdc_id>`, stamped by the server trigger and by the app's
-/// `applyUsdaProbe` alike. The list's stub band and the form's provenance
-/// line both read this rather than guessing from the presence of macros.
+/// Whether [source] marks a row filled from USDA — `usda_fdc:<fdc_id>`.
+///
+/// Since 0029 that stamp always means **a person picked that food** from the
+/// search: the server trigger that used to write it is dropped. Rows stamped
+/// before 0029 carry it from the old automatic prefill and are not
+/// distinguishable here, which is deliberate — they were not re-matched. The
+/// list's stub band and the form's provenance line both read this rather than
+/// guessing from the presence of macros.
 bool isUsdaPrefilled(String? source) =>
     source?.startsWith('usda_fdc:') ?? false;
 
 /// The `source` a person's *Not this food* leaves behind (plan 0027 U-D2).
 ///
-/// Its own value rather than a reset to `manual` because the rename
-/// trigger's WHEN clause (0015) lists the sources it may refill — `manual`
-/// among them — and this one is deliberately not on the list: a food refused
-/// once is not offered again by a machine. Only an explicit pick
-/// (`applyUsdaProbe` with `explicitPick`) writes over it.
+/// Its own value rather than a reset to `manual` because the rename trigger's
+/// WHEN clause (0015) listed the sources it could refill — `manual` among
+/// them — and this one was deliberately not on the list, so a food refused
+/// once was never offered again by a machine. 0029 dropped that trigger and
+/// with it the original reason, but the value stays: it is still how a row
+/// says "not from USDA" after someone unlinks a pick, and rows in the wild
+/// already carry it.
 const usdaDeclinedSource = 'usda_declined';
 
 /// Whether [source] is [usdaDeclinedSource].

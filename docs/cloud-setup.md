@@ -109,6 +109,7 @@ ingredient is an honest-but-empty stub (this bit us: cloud showed no macros):
 
 ```bash
 supabase db query --linked -f supabase/seed_usda.sql     # 8204-food reference (Foundation 2025-04-24 + SR Legacy)
+supabase db query --linked -f supabase/seed_usda_index.sql # BM25 search index over it (0029) — probe_usda RAISES without it
 supabase db query --linked -f supabase/seed_prefill.sql  # macros/density onto vocab
 supabase db query --linked -f supabase/seed_measures.sql # starter measures (basis_amount since 0012)
 supabase db query --linked -f supabase/seed_curation.sql # allowed_units refresh + curation overrides (0012/7.8)
@@ -489,6 +490,30 @@ or any dashboard-config walk.
 > `select column_default from information_schema.columns where table_name =
 > 'household_member' and column_name = 'portion_factor';` → `1`. Replace this
 > note with the ledger entry once it lands.
+### PENDING — plan 0029 (one save, one write): 0029 USDA search ranking
+
+- **`0029_usda_search_ranking.sql` is merged and NOT yet on cloud.** It drops
+  the `ingredient_usda_prefill` trigger and its function — nothing matches an
+  ingredient to USDA without a human pick any more — and replaces
+  `usda_probe`'s trigram ranking with BM25 over a new derived index
+  (`usda_search_token` / `_term` / `_doc` / `_stats`, granted to no client
+  role, ADR-0005 unchanged). `probe_usda` is NOT re-created: same signature,
+  same columns, so no app build is coupled to this one.
+- **It needs a seed step.** `supabase/seed_usda_index.sql` builds the index
+  and is now in `config.toml`'s order. The migration itself calls
+  `usda_rebuild_search_index()` at the end, so on cloud — where `usda_food` is
+  already loaded — `db push` alone is enough; the seed file matters for a
+  `db reset --linked`. **Re-run it after any change to `usda_food`**: a stale
+  index degrades search silently.
+- **Row-preserving, and deliberately no backfill.** Rows already stamped
+  `usda_fdc:<id>` by the old trigger keep their values, labels and scores —
+  re-matching them under a new ranker would overwrite decisions people made.
+- **One semantic change to watch.** `usda_probe.score` is now the query's
+  idf-weighted coverage (0..1) rather than a trigram similarity. It stays in
+  the range `ingredient.source_score` and the 0027 band word expect, but old
+  and new rows now carry two different meanings of "score". Retiring the band
+  is a copy decision the board still owns.
+
 ### PENDING — plan 0027 (field test round four): 0026 portion factor, 0027 USDA source label
 
 - **`0027_usda_source_label.sql` is merged and NOT yet on cloud.** Additive

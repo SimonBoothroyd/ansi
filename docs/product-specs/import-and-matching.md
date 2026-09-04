@@ -602,9 +602,12 @@ the line resolves to that row — the ordinary matched state, by id
    │    of the whole vocabulary at `/ingredients` — not a separate queue
    │    screen, and no table (`status='stub'` is the whole mechanism)
    │
-   └──► ON ARRIVAL, server-side: the `ingredient_usda_prefill` trigger
-        (0014, + 0015's rename leg) searches usda_food by match_text and
-        copies density + macros onto the row. It STAYS 'stub'.
+   └──► NOTHING fills it on arrival. The `ingredient_usda_prefill` trigger
+        (0014, + 0015's rename leg) did until 0029; it is dropped. A stub
+        reaches USDA only through *Fill it in from ▸ Look up in USDA* on the
+        flesh-out form, where a person picks from the short-list. It STAYS
+        'stub' either way — confirming was always a human act (D5), and
+        matching is one now too.
    │
    ▼
 user opens the stub in the manager → edits/fills density + macros →

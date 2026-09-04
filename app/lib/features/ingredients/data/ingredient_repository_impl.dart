@@ -528,10 +528,11 @@ class SqliteIngredientRepository implements IngredientRepository {
           current.densityGPerMl == null &&
           current.macros == null;
       // The guards re-checked inside the transaction, not just by the caller:
-      // the row can change between the probe and this write (another device,
-      // or the server trigger landing first). The automatic path mirrors the
-      // 0014/0015 trigger's WHEN clause — a bare stub, and not one a person
-      // declined (plan 0027 U-D2) — which is what makes the race benign. A
+      // the row can change between the probe and this write (another device
+      // editing the same household). They used to mirror the 0014/0015
+      // trigger's WHEN clause, which is what made THAT race benign; 0029
+      // dropped the trigger, so the guards now answer only for other devices
+      // — a bare stub, and not one a person declined (plan 0027 U-D2). A
       // person's own pick (U-D3) may also replace a fill that is still the
       // prefill's own; nothing ever replaces numbers a person supplied.
       final replacingOwnFill = explicitPick && isUsdaPrefilled(current.source);
