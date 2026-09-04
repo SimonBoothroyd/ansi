@@ -29,7 +29,9 @@ import 'package:ansi/features/ingredients/presentation/density_entry.dart'
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart'
     show IngredientDetailView, kFormSaveKey;
 import 'package:ansi/features/ingredients/presentation/quantity_unit_sheet.dart'
-    show QuantityUnitEditor, UnitChipRow;
+    show QuantityUnitEditor;
+import 'package:ansi/features/ingredients/presentation/unit_chips.dart'
+    show UnitChipRow;
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/ingredient_line.dart'

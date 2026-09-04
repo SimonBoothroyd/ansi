@@ -12,6 +12,7 @@ import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/measure_repository.dart';
 import 'package:ansi/features/ingredients/presentation/quantity_unit_sheet.dart';
+import 'package:ansi/features/ingredients/presentation/unit_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';

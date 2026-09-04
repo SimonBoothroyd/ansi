@@ -36,7 +36,7 @@ import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/format.dart';
-import '../../ingredients/presentation/quantity_unit_sheet.dart' show UnitChip;
+import '../../ingredients/presentation/unit_chips.dart' show UnitChip;
 import '../domain/component_math.dart';
 import '../domain/component_units.dart';
 import '../domain/recipe.dart';

@@ -118,6 +118,7 @@ ingredients/
     serving_row.dart            the per-serving macro mode's "1 tbsp (14 g)" row
     draft_card.dart             the barcode result card
     quantity_unit_sheet.dart    quantity + unit chips, manage measures
+    unit_chips.dart             UnitChipRow/UnitChip, the shared unit dock
     density_entry.dart          g/ml ⇄ "1 tbsp weighs N g", shared
     macros_format.dart          the per-100 macro line
   barcode/        the scan → lookup → draft module
