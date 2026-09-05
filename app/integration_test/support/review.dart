@@ -100,6 +100,19 @@ Future<void> searchAndPickForLine(
     of: find.byType(IngredientResultList),
     matching: find.text(pick),
   );
+  // The picker searches the LOCAL vocabulary, and that vocabulary arrives by
+  // sync: on a freshly provisioned household the rows can still be coming
+  // down when the first search runs. Waiting alone would not help — a search
+  // that has already answered is not re-run by rows landing after it — so ask
+  // again, which is what a cook staring at an empty result list would do.
+  for (var attempt = 0; row.evaluate().isEmpty && attempt < 20; attempt++) {
+    await tester.pump(const Duration(milliseconds: 500));
+    await typeInPicker(tester, '');
+    await typeInPicker(tester, query);
+  }
+  // Unchanged: the row must exist, and exactly one must. A renamed vocab row
+  // and a vocabulary that never arrived both look like "offered nothing", so
+  // the query stays in the message.
   expect(
     row,
     findsOneWidget,

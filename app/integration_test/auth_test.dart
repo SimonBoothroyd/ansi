@@ -47,10 +47,32 @@ void main() {
     // The synced household reached the local database: both members and the
     // cloned ingredient vocab (reachable-through-the-picker is the editor
     // file's business).
+    //
+    // "Our Cookbook" is NOT the signal that the download landed — the session
+    // controller ensures the default book with a LOCAL write, so the Library
+    // renders before a single synced row has arrived. Wait for the rows to
+    // turn up, then say what they must be. The waits ask only whether the
+    // table is populated, so every claim below — which members, in which
+    // order, how much vocabulary — is still the assertion's to make.
+    await waitForDb(
+      tester,
+      () async =>
+          (await db.getAll('SELECT id FROM household_member')).isNotEmpty,
+      'the household members to sync down',
+      timeout: const Duration(seconds: 60),
+    );
     final members = await db.getAll(
       'SELECT display_name FROM household_member ORDER BY sort_order',
     );
     expect(members.map((r) => r['display_name']).toList(), ['Ada', 'Jun']);
+    await waitForDb(
+      tester,
+      () async =>
+          ((await db.get('SELECT COUNT(*) AS c FROM ingredient'))['c'] as int) >
+          0,
+      'the ingredient vocab to sync down',
+      timeout: const Duration(seconds: 60),
+    );
     final vocab = await db.get('SELECT COUNT(*) AS c FROM ingredient');
     expect(vocab['c'] as int, greaterThan(100));
     // …and the starter measures cloned with it (step 7.6): "clove (3 g)" on

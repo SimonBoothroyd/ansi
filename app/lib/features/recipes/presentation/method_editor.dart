@@ -702,9 +702,16 @@ class _KeepTheOldWord extends StatelessWidget {
     padding: const EdgeInsets.only(top: 6),
     child: Row(
       children: [
-        Text(
-          'was “${relabel.oldWord}”',
-          style: ansiMono(size: 11, color: AnsiColors.aging),
+        // The old word is whatever the page printed — "the sauce and cheese"
+        // is a real one — and the revert beside it has to stay reachable
+        // whatever its length, on a card as narrow as the review's. So the
+        // word yields and the action keeps its width.
+        Expanded(
+          child: Text(
+            'was “${relabel.oldWord}”',
+            style: ansiMono(size: 11, color: AnsiColors.aging),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         const SizedBox(width: 8),
         FButton(

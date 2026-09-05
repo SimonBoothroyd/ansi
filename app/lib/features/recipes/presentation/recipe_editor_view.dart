@@ -607,14 +607,21 @@ class _LineRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           LineDragGrip(index: dragIndex),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onEditAmount,
-            child: SizedBox(
-              width: kLineAmountWidth,
-              child: Text(
-                amount.isEmpty ? '—' : amount,
-                style: ansiMono(size: 14, color: AnsiColors.muted),
+          // The cell is named, because what it prints is the recipe page's
+          // amount and a count line's amount is a bare number: "1" tells a
+          // reader nothing about what it opens or what it measures.
+          Semantics(
+            label: 'Amount',
+            button: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onEditAmount,
+              child: SizedBox(
+                width: kLineAmountWidth,
+                child: Text(
+                  amount.isEmpty ? '—' : amount,
+                  style: ansiMono(size: 14, color: AnsiColors.muted),
+                ),
               ),
             ),
           ),

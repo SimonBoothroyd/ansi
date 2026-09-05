@@ -169,21 +169,63 @@ list needs uniform rows anyway.
   `moveReviewLine` now is. The commit code needed no change, and the test that
   proves the split (`a MOVED line commits at its new position, carrying its old
   index`) is the whole of C-D2.
+- 2026-09-05 — The simulator leg ran over the merged round and found a **real
+  clipping bug no widget test could see**: the method card's *was "…" · keep
+  the old word* notice (`_KeepTheOldWord`) is a `Row` whose old word carried no
+  flex, so a genuine page's *"the sauce and cheese"* overflowed it by 4.7px and
+  pushed the revert off the card. The word now yields and ellipsizes while the
+  action keeps its width — which is what the board had drawn all along. It
+  surfaced only here because the notice reaches the review's narrower card, and
+  because a host test renders in a square test font whose metrics are not the
+  device's.
+- 2026-09-05 — Two smoke expectations changed because **behaviour changed, not
+  because a test was loosened**; both now assert the new rule by name. The
+  editor's `＋ ingredient → onion` lands on the row's stated default measure
+  (`onion, medium`) rather than a bare `piece`, so the assertion reads that
+  measure's label instead of expecting no measure at all. And a COUNT line's
+  amount cell prints the recipe page's bare number (`1`, never `1 piece`) —
+  D-D2 arriving on the editor. The cell gained a `Semantics(label: 'Amount')`
+  with it: a bare digit is not an accessible name, and it is the handle the
+  smoke now finds the door by.
+- 2026-09-05 — The same runs exposed **two latent sync races in the smoke
+  harness** — nobody's feature and everybody's problem. Both are the same
+  mistake: driving the app before the household has finished arriving.
+  - **auth** waited for *Our Cookbook* and then asserted on synced rows, but
+    that book is a LOCAL write the session controller makes, so the Library
+    renders before one row has come down. It now waits for the rows, then says
+    what they must be; the waits ask only whether the table is populated, so
+    which members, in which order and how much vocabulary stay the
+    assertions' claims.
+  - **the review's search** (`searchAndPickForLine`) typed a query and
+    asserted on the first frame. The picker reads the local vocabulary, still
+    syncing down on a cold household — and waiting alone would not help,
+    because a search that has already answered is not re-run by rows landing
+    after it. It now asks again, a bounded number of times; the assertion
+    itself is untouched.
+- 2026-09-05 — **There was no rebuild loop; the slowness is the machine.** One
+  `FILE=wild_garlic` run took 18:00 and the very next identical
+  `FILE=wild_garlic` run took 0:30 — like for like, the same single file — and
+  over the full suite the lost minutes land on a different file each time
+  (`auth` in one run, `ingredients` in the next, both passing). Nothing in
+  `lib/` repeats an animation, the sync-health tick is 20 seconds, and the slow
+  run carried *less* sync traffic than the fast one. Orphaned processes on the
+  host (two `flutter_test`ers about four days old and a `dartvm` about five)
+  are the likely thief. If a run of this suite ever crawls, suspect the machine
+  before the widget tree.
 
 ## Notes / open questions
 
 - Nothing is open. Front D arrived with the drag ruling and belongs here: the
   same rows, in one shape.
-- The one thing left is the sim leg (a reorder driven on a booted simulator,
-  then re-read after a save). One simulator, scheduled serially, so it is the
-  orchestrator's to run.
 
 ## Step-done checklist
 
 - [ ] Roadmap row updated.
 - [ ] `ARCHITECTURE.md` standing table matches for `features/recipes` + `import`.
 - [ ] `app/AGENTS.md` current focus still true.
-- [ ] `make test-sim` run, result recorded here.
+- [x] `make test-sim` over the merged round: **9 tests, 7 files, all green**
+      (13:41), after the overflow fix, the two changed-behaviour
+      expectations and the two harness sync races above.
 - [ ] Backlog row retired; tech-debt rows added for anything cut.
 - [ ] No migration — say so in the roadmap row.
 - [ ] `make ci` green.

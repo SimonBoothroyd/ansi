@@ -281,7 +281,19 @@ void main() {
     expect(items.first['measure_id'], isNotNull);
     expect(items.first['unit'], 'piece');
     expect(items.last['quantity'], 1);
-    expect(items.last['measure_id'], isNull);
+    // The Onion line was added WITHOUT touching a chip, and it still lands on
+    // a measure: the quantity sheet opens on the row's STATED default measure
+    // ("onion, medium") when the caller names no choice, so `＋ ingredient →
+    // onion` means one medium onion rather than one bare "piece". A seed, not
+    // a guess — the fact is the vocabulary row's, shown on the chip row that
+    // changes it, and it stores the honest count fallback like any measure
+    // line.
+    final onionMeasure = await db.get(
+      'SELECT label FROM ingredient_measure WHERE id = ?',
+      [items.last['measure_id']],
+    );
+    expect(onionMeasure['label'], 'onion, medium');
+    expect(items.last['unit'], 'piece');
 
     // After the server round-trip the view still stands and the steps are
     // still a real JSON array (not a double-encoded string).
@@ -475,8 +487,19 @@ void main() {
       // the flag lands on the row and the page tags the line.
       // ----------------------------------------------------------------------
       await editRecipeFromPage(tester);
-      await scrollTo(tester, find.text('1 piece'));
-      await tester.tap(find.text('1 piece'));
+      // The editor's amount cell prints what the recipe page prints — one
+      // layout on every surface — so a COUNT line reads as its bare number
+      // ("1"), never "1 piece". A bare number is not a name, which is why the
+      // cell carries one: find the door, not the digit.
+      final onionAmount = find.descendant(
+        of: find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'Amount',
+        ),
+        matching: find.text('1'),
+      );
+      await scrollTo(tester, onionAmount);
+      expect(onionAmount, findsOneWidget, reason: "the Onion line's amount");
+      await tester.tap(onionAmount);
       await pumpUntilFound(tester, find.byType(QuantityUnitEditor));
       expect(find.text('Optional'), findsOneWidget);
       await tester.tap(
