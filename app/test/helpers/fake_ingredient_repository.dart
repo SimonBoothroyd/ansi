@@ -216,6 +216,11 @@ class FakeIngredientRepo implements IngredientRepository {
           ...densityUnlockedUnits(current),
         },
       ],
+      // The quantity sheet's density write is a human write over a number
+      // (0034) — a DIFFERENT number: re-stating the stored one is not an edit.
+      sourceEdited:
+          current.sourceEdited ||
+          (isLookupFilled(current.source) && gPerMl != current.densityGPerMl),
     );
     _replace(updated);
     return updated;
@@ -256,6 +261,9 @@ class FakeIngredientRepo implements IngredientRepository {
       source: current.source,
       sourceLabel: current.sourceLabel,
       sourceScore: current.sourceScore,
+      // "Counts as" is not a number: it never sets the flag, and it never
+      // loses one the row already carries (0034).
+      sourceEdited: current.sourceEdited,
     );
     _replace(updated);
     return updated;
@@ -285,6 +293,8 @@ class FakeIngredientRepo implements IngredientRepository {
       source: current.source,
       sourceLabel: current.sourceLabel,
       sourceScore: current.sourceScore,
+      // Deleting a lookup's density overrides its numbers (0034).
+      sourceEdited: current.sourceEdited || isLookupFilled(current.source),
     );
     _replace(updated);
     return updated;
@@ -312,6 +322,8 @@ class FakeIngredientRepo implements IngredientRepository {
       measureCount: current.measureCount,
       source: usdaDeclinedSource,
       sourceLabel: current.sourceLabel,
+      // …and `source_edited` goes back to false with the numbers (0034):
+      // there is nothing left on the row to have overridden.
     );
     _replace(updated);
     return updated;
@@ -378,7 +390,10 @@ class FakeIngredientRepo implements IngredientRepository {
       rows.add(created);
       targetId = created.id;
     }
-    final row = _writeRow(targetId!, edit.row);
+    // 0034, decided against the row AS IT STANDS and applied at the very end,
+    // because the rebuilds below drop every field they do not name.
+    final before = _find(targetId!);
+    final row = _writeRow(targetId, edit.row);
     if (row == null) return null;
     var updated = row;
     switch (edit.density) {
@@ -427,14 +442,41 @@ class FakeIngredientRepo implements IngredientRepository {
     if (edit.markComplete && updated.macros != null) {
       updated = updated.copyWith(status: IngredientStatus.complete);
     }
+    updated = updated.copyWith(
+      sourceEdited: _sourceEdited(before: before, edit: edit),
+    );
     _replace(updated);
     return updated;
+  }
+
+  /// `SqliteIngredientRepository._sourceEditedPatch`'s rule, as a value rather
+  /// than a patch (0034, plan 0040 B-D1). A fresh stamp clears it; a write that
+  /// changes macros, the basis or the density over a LOOKUP fill sets it;
+  /// everything else — a rename, a unit, a category, a measure, an alias,
+  /// "Counts as", Mark complete — leaves it exactly as it was.
+  static bool _sourceEdited({
+    required Ingredient? before,
+    required IngredientFormEdit edit,
+  }) {
+    if (edit.row.source != null) return false;
+    if (before == null) return false;
+    if (!isLookupFilled(before.source)) return before.sourceEdited;
+    final densityChanged = switch (edit.density) {
+      DensitySet(:final gPerMl) => gPerMl != before.densityGPerMl,
+      DensityCleared() => before.densityGPerMl != null,
+      DensityUnchanged() => false,
+    };
+    return before.sourceEdited ||
+        densityChanged ||
+        edit.row.macros != before.macros ||
+        edit.row.macrosBasis != before.macrosBasis;
   }
 
   @override
   Future<Ingredient?> unconfirm(String ingredientId) async {
     final current = _find(ingredientId);
     if (current == null) return null;
+    // Not a number: `source_edited` rides along untouched (copyWith keeps it).
     final updated = current.copyWith(status: IngredientStatus.stub);
     _replace(updated);
     return updated;

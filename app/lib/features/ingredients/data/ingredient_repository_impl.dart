@@ -309,12 +309,22 @@ class SqliteIngredientRepository implements IngredientRepository {
         ...current.allowedUnits ?? defaultAllowedUnitSet(current),
         ...densityUnlockedUnits(current),
       };
+      final edited =
+          isLookupFilled(current.source) && gPerMl != current.densityGPerMl
+          ? 1
+          : null;
       await tx.execute(
         'UPDATE ingredient SET density_g_per_ml = ?, allowed_units = ?, '
-        'updated_at = ? WHERE id = ?',
+        // The quantity sheet's density entry is a human write that changes a
+        // number, so it flags a lookup-filled row exactly as the form's Save
+        // does (0034) — the flag is a fact about the row, not about which
+        // screen you were standing on.
+        'source_edited = COALESCE(?, source_edited), updated_at = ? '
+        'WHERE id = ?',
         [
           gPerMl,
           jsonEncode([for (final u in unlocked) u.id]),
+          edited,
           now,
           ingredientId,
         ],
@@ -339,11 +349,18 @@ class SqliteIngredientRepository implements IngredientRepository {
       if (row == null) return false;
       final current = _toIngredient(row);
       if (current.densityGPerMl == null) return true; // nothing to delete
+      final edited = isLookupFilled(current.source) ? 1 : null;
       await tx.execute(
         'UPDATE ingredient SET density_g_per_ml = NULL, allowed_units = ?, '
-        'updated_at = ? WHERE id = ?',
+        // Deleting a lookup's density is as much an override of its numbers as
+        // typing a different one (0034). Not to be confused with
+        // [declineUsdaPrefill], which also clears a density but is the person
+        // rejecting the match outright — that row stops being a fill at all.
+        'source_edited = COALESCE(?, source_edited), updated_at = ? '
+        'WHERE id = ?',
         [
           jsonEncode([for (final u in _strippedOfDensity(current)) u.id]),
+          edited,
           now,
           ingredientId,
         ],
@@ -380,10 +397,15 @@ class SqliteIngredientRepository implements IngredientRepository {
       // One statement: the density strip (the clearDensity rule, D4b), the
       // macros, the stamp, and the status — a row with no macros is a stub
       // (D5). The label stays: the form names what was refused.
+      // `source_edited` goes back to 0 with them (0034): the flag says "the
+      // numbers on this row are no longer the source's", and after a decline
+      // there are no numbers and no fill — there is nothing left to override,
+      // so `true` would be a claim about a state that no longer exists. The
+      // two doors themselves are untouched (B-D3).
       await tx.execute(
         'UPDATE ingredient SET density_g_per_ml = NULL, macros = NULL, '
         "allowed_units = ?, source = ?, source_score = NULL, status = 'stub', "
-        'updated_at = ? WHERE id = ?',
+        'source_edited = 0, updated_at = ? WHERE id = ?',
         [
           jsonEncode([for (final u in _strippedOfDensity(current)) u.id]),
           usdaDeclinedSource,
@@ -582,8 +604,11 @@ class SqliteIngredientRepository implements IngredientRepository {
           [id, _householdId, name, normalizeMatchText(name), now, now],
         );
       }
+      // The row AS IT STANDS — the status the CTA may flip, and the four facts
+      // the edited flag is decided against (see [_sourceEditedPatch]).
       final row = await tx.getOptional(
-        'SELECT status FROM ingredient WHERE id = ? AND deleted_at IS NULL',
+        'SELECT status, source, macros, macros_basis, density_g_per_ml '
+        'FROM ingredient WHERE id = ? AND deleted_at IS NULL',
         [id],
       );
       if (row == null) return false;
@@ -610,6 +635,10 @@ class SqliteIngredientRepository implements IngredientRepository {
         'source = COALESCE(?, source), '
         'source_label = COALESCE(?, source_label), '
         'source_score = COALESCE(?, source_score), '
+        // Patch-shaped too, and for a sharper reason: most saves have nothing
+        // to say about the flag, and a save that DID edit the numbers must not
+        // be un-said by the next one that only renamed the row (0034).
+        'source_edited = COALESCE(?, source_edited), '
         'updated_at = ? WHERE id = ?',
         [
           name,
@@ -626,6 +655,13 @@ class SqliteIngredientRepository implements IngredientRepository {
           edit.row.source,
           edit.row.sourceLabel,
           edit.row.sourceScore,
+          _sourceEditedPatch(
+            storedSource: row['source'] as String?,
+            storedMacros: Macros.tryParse(row['macros'] as String?),
+            storedBasis: MacrosBasis.fromDb(row['macros_basis'] as String?),
+            storedDensity: (row['density_g_per_ml'] as num?)?.toDouble(),
+            edit: edit,
+          ),
           now,
           id,
         ],
@@ -728,6 +764,55 @@ class SqliteIngredientRepository implements IngredientRepository {
     return byId(id);
   }
 
+  /// What this save has to say about `source_edited` — `1`, `0`, or **null for
+  /// "nothing"**, which the `COALESCE` above turns into "leave it as it is"
+  /// (migration 0034).
+  ///
+  /// Three answers, and the fence is the whole design:
+  ///
+  /// * **A fresh stamp clears it.** [IngredientEdit.source] is non-null only
+  ///   when this very save carries a new provenance — a USDA pick or a barcode
+  ///   read — and then the numbers landing beside it ARE that source's, so the
+  ///   row starts un-edited whatever it said before (B-D3).
+  /// * **A human write over a lookup's numbers sets it.** Only macros, the
+  ///   macros basis and the density count. That is the fence: a rename, a unit
+  ///   toggle, a measure, an alias, "Counts as", a category, `Mark complete` —
+  ///   none of them contradicts the source, so none of them may set the flag.
+  ///   A save that only touches those returns null here and the stored value
+  ///   stands, in both directions.
+  /// * **Anything else says nothing.** Including every save on a row with no
+  ///   lookup provenance to contradict ([isLookupFilled]): a `manual` row's
+  ///   numbers were always its owner's, so "edited" is not a fact about it.
+  ///
+  /// Compared against the row AS STORED, not against the draft's own idea of
+  /// what changed: opening a form and saving it untouched must not flag it,
+  /// and `MacroDraft` seeds losslessly precisely so that round-trip is exact.
+  ///
+  /// Once set it is **sticky** until a fresh pick, which is the honest answer
+  /// available: the source's own figures are not kept on the row (B-D1 refused
+  /// a second copy of them), so nothing here can tell a number typed back to
+  /// the food's value from a coincidence.
+  static int? _sourceEditedPatch({
+    required String? storedSource,
+    required Macros? storedMacros,
+    required MacrosBasis storedBasis,
+    required double? storedDensity,
+    required IngredientFormEdit edit,
+  }) {
+    if (edit.row.source != null) return 0;
+    if (!isLookupFilled(storedSource)) return null;
+    final densityChanged = switch (edit.density) {
+      DensitySet(:final gPerMl) => gPerMl != storedDensity,
+      DensityCleared() => storedDensity != null,
+      DensityUnchanged() => false,
+    };
+    final changed =
+        densityChanged ||
+        edit.row.macros != storedMacros ||
+        edit.row.macrosBasis != storedBasis;
+    return changed ? 1 : null;
+  }
+
   @override
   Future<Ingredient?> unconfirm(String ingredientId) =>
       _setStatus(ingredientId, 'stub');
@@ -828,6 +913,10 @@ class SqliteIngredientRepository implements IngredientRepository {
     source: r['source'] as String?,
     sourceLabel: r['source_label'] as String?,
     sourceScore: (r['source_score'] as num?)?.toDouble(),
+    // PowerSync carries the server's boolean as 0/1. A row synced before 0034
+    // has no value at all, which is the same answer as `false`: nobody edited
+    // it, because there was nothing to record the edit in.
+    sourceEdited: (r['source_edited'] as int?) == 1,
   );
 
   /// Parses the row's `allowed_units` jsonb (a JSON array of unit ids) into

@@ -74,8 +74,9 @@ decides:
 
 **Density is the _only_ stored volume⇄mass fact.** A single
 `ingredient.density_g_per_ml` unlocks the whole other family. It is enterable
-two equivalent ways — a raw g/ml, or "1 tbsp of this weighs N g"
-(`densityFromVolumeWeight`, which is `N / tbsp.ratioToBase`). A volume-named
+as one sentence — "1 [tbsp] weighs [N] g" (`densityFromVolumeWeight`, which
+is `N / tbsp.ratioToBase`), with `ml` among the spoons so a known g/ml is
+typeable exactly as a different pick in the same row. A volume-named
 weight mapping **is** a density, so volume-named measures never exist as
 measures — the add-measure form redirects "cup" into the density field
 (`volumeUnitFromLabel` / `DensityEntry`).

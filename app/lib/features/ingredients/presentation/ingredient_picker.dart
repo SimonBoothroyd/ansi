@@ -274,6 +274,7 @@ class IngredientRow extends StatelessWidget {
     required this.onPick,
     this.trailing,
     this.advisoryDensityGap = false,
+    this.showSource = false,
     super.key,
   });
 
@@ -289,12 +290,21 @@ class IngredientRow extends StatelessWidget {
   /// never a completion blocker).
   final bool advisoryDensityGap;
 
+  /// Whether to name the USDA food behind a machine-filled row
+  /// ([sourceProvenanceLine]). The **manager list** says it —
+  /// scanning the vocabulary is where a wrong match is cheap to catch and
+  /// expensive to miss. The **picker** deliberately does not (A-D2): it is a
+  /// search surface, and a description under every row is noise while you are
+  /// typing.
+  final bool showSource;
+
   @override
   Widget build(BuildContext context) {
     final ing = ingredient;
     final stub = ing.status == IngredientStatus.stub;
     final macros = ing.macros;
     final hints = vocabRowHints(ing, advisoryDensityGap: advisoryDensityGap);
+    final sourceLine = showSource ? sourceProvenanceLine(ing) : null;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -327,6 +337,21 @@ class IngredientRow extends StatelessWidget {
                     Text(
                       hints,
                       style: ansiMono(size: 10, color: AnsiColors.muted),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  // Which food filled this row, under the hints and above its
+                  // numbers — the line reads as provenance for the macros it
+                  // sits over. Muted mono and ONE line: the USDA descriptions
+                  // are long ("Cereals ready-to-eat, GENERAL MILLS, Corn
+                  // CHEX"), and a row that grows to three lines stops being
+                  // scannable, which is the whole point of putting it here.
+                  if (sourceLine != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      sourceLine,
+                      style: ansiMono(size: 10, color: AnsiColors.muted),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],

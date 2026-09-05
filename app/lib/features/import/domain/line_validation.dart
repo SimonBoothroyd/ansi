@@ -326,10 +326,21 @@ class LineValidation {
     required this.issues,
     this.unitChoices = const [],
     this.unitMeasure,
+    this.sourceLine,
   });
 
   final List<LineIssue> issues;
   final List<UnitSuggestion> unitChoices;
+
+  /// The matched row's provenance line — `usda · «description»`, led by
+  /// `edited ·` where a human has overridden its numbers
+  /// ([sourceProvenanceLine]). Null on an unmatched line and
+  /// on any row no lookup filled.
+  ///
+  /// It rides on the validation because that is where the whole import's vocab
+  /// is ALREADY read, in one query: the review is the other moment a wrong
+  /// food is cheap to catch, and it must not cost a read per line to say so.
+  final String? sourceLine;
 
   /// The measure the line's current unit NAMES, when it names one — so the
   /// card can print the weight beside it ("counts as pepper, medium · 119 g",

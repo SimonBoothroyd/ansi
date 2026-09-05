@@ -114,6 +114,46 @@ void main() {
     return container;
   }
 
+  // Plan 0040 A-D2/A-D3: the review is the other moment a wrong food is cheap
+  // to catch, and it costs no extra read to say so — the row is already in
+  // hand from the one vocab query this provider makes.
+  Future<void> fillGarlicFromUsda({required bool edited}) {
+    final flag = edited ? 1 : 0;
+    return db.execute(
+      'UPDATE ingredient SET source = ?, source_label = ?, source_score = ?, '
+      'source_edited = ? WHERE id = ?',
+      ['usda_fdc:11215', 'Garlic, raw', 0.94, flag, 'i-garlic'],
+    );
+  }
+
+  test('a matched row’s USDA food rides on the validation; an unmatched line '
+      'has no row to name', () async {
+    await fillGarlicFromUsda(edited: false);
+    final container = await reviewing();
+    final byLine = await container.read(importValidationProvider.future);
+
+    expect(byLine[0]!.sourceLine, 'usda · Garlic, raw');
+    expect(byLine[1]!.sourceLine, isNull);
+  });
+
+  test('an edited row leads with EDITED', () async {
+    await fillGarlicFromUsda(edited: true);
+    final container = await reviewing();
+    final byLine = await container.read(importValidationProvider.future);
+
+    expect(byLine[0]!.sourceLine, 'edited · usda · Garlic, raw');
+  });
+
+  test(
+    'a row nothing looked up says nothing — the fixture row as it stands',
+    () async {
+      final container = await reviewing();
+      final byLine = await container.read(importValidationProvider.future);
+
+      expect(byLine[0]!.sourceLine, isNull);
+    },
+  );
+
   test('a '
       "measure-word unit validates against the ingredient's real measures — it "
       'is not flagged "Pick a supported unit"', () async {

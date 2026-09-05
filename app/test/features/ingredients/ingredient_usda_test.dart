@@ -315,6 +315,112 @@ void main() {
     expect((await repo.byId('curry'))!.source, 'usda_fdc:11216');
   });
 
+  // --- The card's third state (plan 0040 B-D2) -------------------------------
+
+  testWidgets('an EDITED row reads "edited here", still names the food and its '
+      'FDC id, and says which numbers are yours', (tester) async {
+    filterForuiSemanticsAssertions();
+    tallScreen(tester);
+    await tester.pumpWidget(
+      host(FakeIngredientRepo(const [chex]), at: '/ingredients/chex'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Filled from USDA · edited here'), findsOneWidget);
+    // The confirm word it replaces is gone — a row whose numbers you typed is
+    // not "confirmed from USDA" in any sense a reader would mean.
+    expect(find.text('Filled from USDA · confirmed'), findsNothing);
+    // The food is STILL NAMED: the match is not what changed.
+    expect(
+      find.textContaining('Cereals ready-to-eat, GENERAL MILLS, Corn CHEX'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('FDC 168930'), findsOneWidget);
+    expect(
+      find.text(
+        'your macros and your density — the numbers on this row are no '
+        'longer the source’s',
+      ),
+      findsOneWidget,
+    );
+    // B-D3: both doors are exactly as they were.
+    expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
+    expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
+    // Provenance, not a warning (B-D2): no ⚠, and nothing amber.
+    expect(find.byIcon(FLucideIcons.triangleAlert), findsNothing);
+  });
+
+  testWidgets('the line names only the numbers the row actually carries', (
+    tester,
+  ) async {
+    filterForuiSemanticsAssertions();
+    tallScreen(tester);
+    await tester.pumpWidget(
+      host(
+        FakeIngredientRepo([chex.copyWith(densityGPerMl: null)]),
+        at: '/ingredients/chex',
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('your macros — the numbers'), findsOneWidget);
+    expect(find.textContaining('your density'), findsNothing);
+  });
+
+  testWidgets('typing your own macros over a prefill flips the card to '
+      '"edited here" — and a rename alone does not', (tester) async {
+    filterForuiSemanticsAssertions();
+    tallScreen(tester);
+    final repo = FakeIngredientRepo([
+      curryLeaves.copyWith(macros: usdaAnswer.macros),
+    ]);
+    await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+    await tester.pumpAndSettle();
+    expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
+
+    // A rename is not a claim about the numbers (B-D1's fence).
+    await tester.enterText(find.byType(TextField).first, 'Curry leaves');
+    await tester.pump();
+    await saveForm(tester, reopen: 'Curry leaves');
+    expect((await repo.byId('curry'))!.sourceEdited, isFalse);
+    expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
+
+    // The macros are.
+    await typeMacros(tester, kcal: '120', protein: '6', carb: '19', fat: '1');
+    await saveForm(tester, reopen: 'Curry leaves');
+    expect((await repo.byId('curry'))!.sourceEdited, isTrue);
+    expect(find.text('Filled from USDA · edited here'), findsOneWidget);
+    expect(find.textContaining('Curry leaves, raw'), findsOneWidget);
+  });
+
+  testWidgets('choosing another food CLEARS it — the numbers are the new '
+      'food’s again', (tester) async {
+    filterForuiSemanticsAssertions();
+    tallScreen(tester);
+    final repo = FakeIngredientRepo([
+      chex.copyWith(canonicalName: 'Curry leaves, fresh', id: 'curry'),
+    ]);
+    await tester.pumpWidget(
+      host(
+        repo,
+        at: '/ingredients/curry',
+        probe: RecordingProbe.list(const [usdaAnswer]),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Filled from USDA · edited here'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FButton, 'Choose another ›'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Curry leaves, raw').last);
+    await tester.pumpAndSettle();
+    await saveForm(tester, reopen: 'Curry leaves, fresh');
+
+    final row = (await repo.byId('curry'))!;
+    expect(row.source, 'usda_fdc:11216');
+    expect(row.sourceEdited, isFalse);
+    expect(find.text('Filled from USDA · edited here'), findsNothing);
+  });
+
   testWidgets('a row USDA never touched carries no provenance line at '
       'all', (tester) async {
     filterForuiSemanticsAssertions();

@@ -70,7 +70,52 @@ abstract class Ingredient with _$Ingredient {
     /// never acted on. Null where [sourceLabel] is null, and cleared by a
     /// decline.
     double? sourceScore,
+
+    /// Whether a human has overridden the numbers the lookup filled in
+    /// (migration 0034) — **macros, macros basis or density**,
+    /// on a row whose [source] is a lookup stamp.
+    ///
+    /// It exists because [source] is patch-shaped and survives a form save, so
+    /// without it a row goes on naming a USDA food whose figures are no longer
+    /// on it. The fence is what keeps it honest: it means *the numbers are no
+    /// longer the source's*, so a rename, a unit toggle, a measure or an alias
+    /// must never set it — none of those contradicts the source. A fresh pick
+    /// clears it, because the numbers are the new food's.
+    @Default(false) bool sourceEdited,
   }) = _Ingredient;
+}
+
+/// Whether [source] is a machine **lookup's** stamp — a USDA pick
+/// (`usda_fdc:<id>`) or a barcode read (`off:<barcode>`).
+///
+/// The predicate [Ingredient.sourceEdited]'s fence is keyed on: those are the
+/// two provenances that assert "these numbers came from somewhere else", so
+/// they are the two a human edit can contradict. `seed`, `manual`,
+/// `import_stub`, [usdaDeclinedSource] and a null all carry no such claim, and
+/// a row wearing one is never flagged.
+bool isLookupFilled(String? source) =>
+    isUsdaPrefilled(source) || (source?.startsWith('off:') ?? false);
+
+/// The one line the ingredients list and the import review's identity cell
+/// print under a machine-filled row's name, or null
+/// where there is nothing true to say.
+///
+/// One rule, two surfaces — rendering it twice in two places is how the same
+/// row starts telling two stories. Deliberately absent from the ingredient
+/// **picker**: that is a search surface, and a description under every row is
+/// noise while you are typing (A-D2).
+///
+/// **No description, no line** (A-D4): a row filled before migration 0027
+/// carries a stamp and no label, and it says nothing rather than inventing a
+/// name — the same rule the form's provenance card holds. A declined row says
+/// nothing either: its numbers are gone, so there is no fill to name.
+String? sourceProvenanceLine(Ingredient ingredient) {
+  final label = ingredient.sourceLabel;
+  if (label == null || label.isEmpty) return null;
+  if (!isUsdaPrefilled(ingredient.source)) return null;
+  // `edited ·` LEADS the line, so a scan down the list shows which rows are no
+  // longer the machine's before it shows whose food they were.
+  return '${ingredient.sourceEdited ? 'edited · ' : ''}usda · $label';
 }
 
 /// Whether [source] marks a row filled from USDA — `usda_fdc:<fdc_id>`.

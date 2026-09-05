@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Import review</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/active/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/active/0035-line-ergonomics.md">plan 0035</a></p>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/active/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/active/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/active/0040-usda-provenance-and-edits.md">plan 0040</a></p>
     <p class="view-blurb">One form with two doors, then the whole import on one editable screen: the editor’s own header, a card per line, the method as step cards, and a Save gate that counts the same number the header does.</p>
 </header>
 
@@ -189,7 +189,8 @@
             <div class="lcard">
                 <div class="chead"><span class="cn">red peppers</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                 <div class="srcline">from source:  2 red peppers, deseeded</div>
-                <div class="chosen"><span class="ck">✓</span><span class="cnm">Red bell pepper</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                <div class="chosen"><span class="ck">✓</span><span style="flex:1;min-width:0"><span class="cnm" style="display:block">Red bell pepper</span><span style="display:block;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px">usda · Peppers, sweet, red, raw</span></span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                <p class="chip-note">the identity cell names the <b>USDA food behind the row</b>, one muted line under the name it matched to — the review is the other moment a wrong food is cheap to catch and expensive to miss. <b>edited ·</b> leads it where a human has overridden that row’s numbers, and a row nothing looked up shows no line at all. Same rule, same words as the <a href="./ingredients-manager.html">ingredients manager</a>; it costs no extra read, riding on the one vocab query the review already makes.</p>
                 <div class="dflt"><span>counts as <b>pepper, medium</b></span><span class="gm">· 119 g</span><span class="tap">tap a chip to change</span></div>
                 <div class="suggests" style="margin-top:7px"><span class="sug pick"><span class="srcdot usda"></span>pepper, medium</span><span class="sug"><span class="srcdot usda"></span>pepper, large</span><span class="sug"><span class="srcdot usda"></span>pepper, small</span><span class="sug">g</span><span class="sug">cup</span></div>
                 <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 pepper, medium <span class="gm">· 238 g</span> <span class="pen">✎</span></span></span></div>

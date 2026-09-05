@@ -181,6 +181,31 @@ void main() {
       expect(find.text('DID YOU MEAN'), findsNothing);
       expect(find.text('Onion'), findsOneWidget);
     });
+
+    testWidgets('the picker does NOT name the USDA food behind a row — it is '
+        'a search surface, and a description under every row is noise while '
+        'you are typing (plan 0040 A-D2)', (tester) async {
+      const filled = Ingredient(
+        id: 'chex',
+        canonicalName: 'Chex Cereal',
+        defaultUnit: g,
+        status: IngredientStatus.complete,
+        source: 'usda_fdc:168930',
+        sourceLabel: 'Cereals ready-to-eat, GENERAL MILLS, Corn CHEX',
+        sourceScore: 0.91,
+        sourceEdited: true,
+      );
+      await tester.pumpWidget(
+        _resultsHost(results: const [filled], query: 'chex'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chex Cereal'), findsOneWidget);
+      expect(find.textContaining('usda ·'), findsNothing);
+      expect(find.textContaining('Corn CHEX'), findsNothing);
+      // Not even the edited marker: the whole line is absent, not softened.
+      expect(find.textContaining('edited'), findsNothing);
+    });
   });
 
   group('the empty state', () {

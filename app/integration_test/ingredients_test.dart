@@ -3,7 +3,7 @@
 /// `match_text` rewrite in the local db → then, on the SAME form, the four
 /// legs that only a real stack proves:
 ///
-/// - **density entry both ways** — "1 tbsp of this weighs N g", then the same
+/// - **density entry both ways** — "1 tbsp weighs N g", then the same
 ///   sentence against `ml`, which is a g/ml — one stored fact, with ADR-0009's
 ///   unlock of the other family asserted on the ROUND-TRIPPED `allowed_units`
 ///   as a jsonb array (the connector decodes before upload);
@@ -321,10 +321,10 @@ void main() {
         of: find.byType(DensityEntry),
         matching: find.widgetWithText(FButton, 'Add'),
       );
-      // One sentence since the v2 pass — "1 [tbsp] of this weighs [__] g" —
+      // One sentence since the v2 pass — "1 [tbsp] weighs [__] g" —
       // so there is no phrasing mode to enter. `tbsp` is the standing pick.
-      await scrollTo(tester, find.text('of this weighs'));
-      await centerOn(tester, find.text('of this weighs'));
+      await scrollTo(tester, find.text('weighs'));
+      await centerOn(tester, find.text('weighs'));
       await tester.enterText(densityField, '15');
       await tester.pumpAndSettle();
       // The live equivalence: both phrasings are the same fact.
@@ -377,12 +377,17 @@ void main() {
       );
 
       // The other phrasing, the same number — the same sentence with a
-      // different pick. `ml`'s ratio to base is 1, so "1 ml of this weighs
+      // different pick. `ml`'s ratio to base is 1, so "1 ml weighs
       // 1.2 g" IS 1.2 g/ml: that equivalence is what let the separate g/ml
       // field be deleted rather than merely hidden. The re-opened form drew
       // the entry afresh, so the chip is centred and picked explicitly rather
-      // than assumed.
-      await scrollTo(tester, find.text('of this weighs'));
+      // than assumed. The row now HAS a density, so the block is folded to
+      // `1.01 g/ml · change` (C-D3) and the sentence is one tap away.
+      await scrollTo(tester, find.text('· change'));
+      await centerOn(tester, find.text('· change'));
+      await tester.tap(find.text('· change'));
+      await tester.pumpAndSettle();
+      await scrollTo(tester, find.text('weighs'));
       final mlChip = find.descendant(
         of: find.byType(DensityEntry),
         matching: find.widgetWithText(AnsiModeChip, 'ml'),

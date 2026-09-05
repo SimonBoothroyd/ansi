@@ -41,10 +41,20 @@ const _kitchenOrder = {
 /// in the other customary system, so a broth that may be said in cups and
 /// litres may be said in pints and quarts. `qt` and `pt` as defaults mate the
 /// same way, one rung each side.
+///
+/// **The volume ladder is symmetric** ([ADR-0012]): `tsp` mates `tbsp`, `tbsp`
+/// mates `cup`, and `cup` mates `tsp`. It did not, and a cup-default row like
+/// granulated sugar could be said in litres but not in teaspoons — while the
+/// density sentence right below the chips offered `tsp` as a spoon. The trim
+/// this list implements is about units too BIG for a row ("no litres of
+/// yeast"); `tsp` is the smallest unit in the family, so nothing defended the
+/// gap.
+///
+/// [ADR-0012]: ../../../../../docs/decisions/0012-tsp-mates-cup.md
 const _kitchenMates = <Unit, Set<Unit>>{
   tsp: {tsp, tbsp},
   tbsp: {tbsp, tsp, cup, ml, pint},
-  cup: {cup, tbsp, ml, l, pint, quart},
+  cup: {cup, tsp, tbsp, ml, l, pint, quart},
   ml: {ml, l, tsp, tbsp, cup, pint, quart},
   l: {l, ml, cup, pint, quart},
   flOz: {flOz, tbsp, cup, ml, pint},

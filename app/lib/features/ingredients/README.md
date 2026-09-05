@@ -79,6 +79,39 @@ distinct fact from "nobody ever linked one", which the provenance line reads.
 The query is the name **in the field**, not the stored row, so a rename can be
 looked up before it is saved.
 
+**The food is named where a mismatch is caught, not only on the form.**
+`sourceProvenanceLine` (domain) is the one rule two surfaces print under a
+row's name — the **manager list** row and the **import review's identity
+cell** — as `usda · «description»`, muted, one line. The ingredient **picker**
+is deliberately left out: it is a search surface, and a description under
+every row is noise while you type. No description, no line: a row filled
+before 0027 carries a stamp and no label, and says nothing rather than
+inventing a name. Nothing new is read on either surface — the manager's
+`watchVocabulary` already selects the column, and the review's line rides on
+the `LineValidation` built from the import's one vocab query.
+
+**A row a human edited stops claiming its numbers are the source's.**
+`source` is patch-shaped and survives a save (`source = COALESCE(?, source)`),
+so without a second fact a row goes on naming a USDA food whose figures are no
+longer on it. `ingredient.source_edited` (migration 0034) is that fact: one
+synced boolean, set by the **three client write paths that can change a number
+on a stored row** — `saveForm`, `setDensity` and `clearDensity` — and only
+when the write changes **macros, the macros basis or the density** on a row
+whose `source` is a lookup stamp (`isLookupFilled`: `usda_fdc:<id>` or
+`off:<barcode>`). Nothing server-side writes it; there is no trigger.
+
+The fence is the design: a rename, a unit toggle, a category, a measure, an
+alias, "Counts as" and `Mark complete` do not contradict the source, so none
+of them may set it, and a save that only touches those leaves the stored value
+alone in both directions. A **fresh pick clears it** — the numbers are the new
+food's — and so does *Not this food*, which leaves no numbers to have
+overridden. Once set it is otherwise sticky: the source's own figures are not
+kept on the row, so nothing can tell a number typed back to the food's value
+from a coincidence. The provenance card's third state reads *Filled from USDA
+· edited here* — the food still named, the id still shown, muted and never
+amber, because it is provenance and not a warning — and the two list surfaces
+lead their line with `edited ·`.
+
 **No machine matches on its own.** `usda_food` never syncs to a device
 (ADR-0005), so the app asks the server through the read-only `probe_usda` RPC
 (migration `0016`, widened by `0027` to name each candidate and take a limit).
@@ -100,7 +133,9 @@ stamping `off:<barcode>` only where there was no source.
 ```
 ingredients/
   domain/         PURE DART (no package:flutter)
-    ingredient.dart          Ingredient + IngredientAlias (Freezed)
+    ingredient.dart          Ingredient + IngredientAlias (Freezed), the
+                             provenance predicates, and the one source line
+                             the list and the import review both print
     ingredient_repository.dart  the interface + IngredientFormEdit + DeleteOutcome
     allowed_units.dart       ADR-0008/0009 admission — the Dart mirror of
                              default_allowed_units() / density_unlocked_units()
@@ -127,7 +162,8 @@ ingredients/
     draft_card.dart             the barcode result card
     quantity_unit_sheet.dart    quantity + unit chips, manage measures
     unit_chips.dart             UnitChipRow/UnitChip, the shared unit dock
-    density_entry.dart          g/ml ⇄ "1 tbsp weighs N g", shared
+    density_entry.dart          "1 [tbsp] weighs [__] g" on one row; folds
+                                to "0.13 g/ml · change" once stated. Shared
     macros_format.dart          the per-100 macro line
   barcode/        the scan → lookup → draft module
     barcode_add.dart      scanBarcodeForDraft(context) — the ONLY public door
@@ -152,8 +188,21 @@ ingredients/
   [ADR-0009](../../../../docs/decisions/0009-density-unlocks-both-families.md) a
   density unlocks the other mass/volume family whatever the default's family;
   `setDensity` unions that in the same transaction, and `clearDensity` strips
-  what the density granted. `allowed_units.dart` and the SQL function are
-  mirrors pinned by shared vectors — change one, change both.
+  what the density granted. The kitchen trim admits a family only at the
+  magnitudes near the default, and since
+  [ADR-0012](../../../../docs/decisions/0012-tsp-mates-cup.md) the volume
+  ladder is symmetric — `cup` mates `tsp`, so a teaspoon of a cup-default food
+  is sayable. `allowed_units.dart` and the SQL function are mirrors pinned by
+  shared vectors — change one, change both.
+- **A bare count means the row's stated measure**
+  ([ADR-0010](../../../../docs/decisions/0010-piece-is-an-admission-fact.md)),
+  on the entry surface as well as on the import review. `QuantityUnitEditor`
+  seeds its choice from `defaultMeasureId` when the caller names none and the
+  measure is live on this device, so adding garlic opens on `clove`. It is a
+  seed, not a pick: `unitPicked` stays false, an `initialChoice` always wins,
+  and an unsynced default leaves the seed alone rather than offering a
+  different measure. One rule, two surfaces — `arrivalMeasure` in
+  `import/domain/line_validation.dart` is the other implementation of it.
 - **A rename rewrites `match_text`** through `normalizeMatchText` in the same
   statement. The server writes `match_text` with the phrase rules; the app must
   write the same ones, or a locally created row carries text the next import's
@@ -179,9 +228,18 @@ ingredients/
 - Widget: `ingredient_list_test`, `ingredient_form_test`,
   `ingredient_usda_test`, `ingredient_macros_test`, `ingredient_picker_test`,
   `quantity_unit_sheet_test`.
+- Layout: `density_entry_test` — the density sentence holding one run at
+  402 pt, its leading space, and the fold. It loads the real fonts
+  (`test/helpers/fonts.dart`) because the test binding draws every glyph as a
+  square of the font size, and a run-count measured under that face is a fact
+  about the fallback typeface rather than about the app.
 - ViewModel: `ingredient_form_notifier_test` asks the form's draft and its Save
   directly — what one call hands the repository, with no widget tree.
 - Barcode: `barcode/` — mapper and lookup against committed fixtures (no
   network), the scan sheet's failure states, and the public door's contract.
 - Server-side: the admission functions are pinned by
   `supabase/tests/unit_admission.sql` (pgTAP), not by anything in this feature.
+  `source_edited`'s column — its default, its round-trip, and that **no
+  trigger** and no rename touches it — is pinned by
+  `supabase/tests/source_edited.sql`; its writers and its non-writers are
+  pinned in `ingredient_repository_test`.

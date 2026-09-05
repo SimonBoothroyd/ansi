@@ -1,8 +1,9 @@
 {
   "_doc": [
     "SHARED VECTORS for the ADR-0008 derived unit-admission rule, as amended by",
-    "ADR-0009 (a density unlocks both families) and ADR-0010 (piece is an",
-    "admission fact).",
+    "ADR-0009 (a density unlocks both families), ADR-0010 (piece is an",
+    "admission fact) and ADR-0012 (the volume ladder is symmetric — cup mates",
+    "tsp).",
     "",
     "Two implementations claim to apply the same rule: the Dart one the app",
     "offers chips from (lib/features/ingredients/domain/allowed_units.dart,",
@@ -38,12 +39,12 @@
     },
     {
       "shape": "flour",
-      "why": "a cup default with a density earns the kitchen volumes AND kg — cup-scale justifies the big metric sibling",
+      "why": "a cup default with a density earns the kitchen volumes — tsp included, since ADR-0012 made the ladder symmetric — AND kg, because cup-scale justifies the big metric sibling",
       "defaultUnit": "cup",
       "basis": "g",
       "density": 0.59,
       "category": "baking",
-      "expect": ["cup", "tbsp", "ml", "l", "pt", "qt", "g", "kg"]
+      "expect": ["cup", "tsp", "tbsp", "ml", "l", "pt", "qt", "g", "kg"]
     },
     {
       "shape": "olive-oil",
@@ -92,12 +93,12 @@
     },
     {
       "shape": "broth",
-      "why": "a per-ml row's volume default IS its basis family, so it stands alone — no gram leg until a density arrives",
+      "why": "a per-ml row's volume default IS its basis family, so it stands alone — the whole volume ladder down to tsp, and no gram leg until a density arrives",
       "defaultUnit": "cup",
       "basis": "ml",
       "density": null,
       "category": "pantry",
-      "expect": ["cup", "tbsp", "ml", "l", "pt", "qt"]
+      "expect": ["cup", "tsp", "tbsp", "ml", "l", "pt", "qt"]
     },
     {
       "shape": "milk",
@@ -106,7 +107,7 @@
       "basis": "ml",
       "density": 1.03,
       "category": "dairy",
-      "expect": ["cup", "tbsp", "ml", "l", "pt", "qt", "g", "kg"]
+      "expect": ["cup", "tsp", "tbsp", "ml", "l", "pt", "qt", "g", "kg"]
     }
   ]
 }
