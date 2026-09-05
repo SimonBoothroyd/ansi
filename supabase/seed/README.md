@@ -6,9 +6,9 @@ Two things get seeded (spec §6):
    server-side only. The reference set for *creating* ingredients and prefilling
    stubs. Never synced, never matched against at import (ADR-0005).
 2. **Initial household `ingredient` vocabulary** — mined from real recipes and
-   curated (currently 308 rows), so the app isn't empty on first run. Macros +
+   curated (currently 319 rows), so the app isn't empty on first run. Macros +
    density are prefilled from `usda_food` where a true match exists, plus a
-   handful of label-sourced macro fills in the curation pass (272
+   handful of label-sourced macro fills in the curation pass (283
    `complete`); the rest stay honest `stub`s for the flesh-out queue.
    These two numbers are the ones `scripts/cloud_verify.sh` checks a deployed
    template against, so they are stated once, here.
@@ -31,8 +31,8 @@ one before it left empty:
    reviewed mapping — see `scripts/fao_density.md`. Never overwrites 1 or 2:
    every fill carries a `density_g_per_ml is null` guard.
 
-Current vocab coverage: **296/308** (264 → 277 when the FAO fallback landed,
-then → 296 in the **D4d density pass**, plan 0020 batch 5). D4c admits only
+Current vocab coverage: **308/319** (264 → 277 when the FAO fallback landed,
+then → 297 in the **D4d density pass**, plan 0020 batch 5). D4c admits only
 the BASIS family on a density-less row, so a bare row silently refuses every
 volume line; the pass re-read all 30 remaining rows and filled 19 of them.
 Most were bare only because `usda_links.jsonl` links them to an FDC record

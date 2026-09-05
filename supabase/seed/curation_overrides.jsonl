@@ -20,7 +20,7 @@
 {"kind": "density", "match_text": "banana", "value": 0.634, "reason": "the ranked pick landed on FDC's mashed cup (225 g -> 0.951); sliced (150 g/cup -> 0.634) is what a volume of banana means in a recipe"}
 //
 // --- allowed units: entry the rule missed ----------------------------------
-{"kind": "allowed_units", "match_text": "coconut milk", "add": ["cup", "tbsp", "ml"], "reason": "count-default (sold by the can) but recipes also speak cups/tbsp of it, and its density makes volume honest"}
+{"kind": "allowed_units", "match_text": "coconut milk canned", "add": ["cup", "tbsp", "ml"], "reason": "count-default (sold by the can) but recipes also speak cups/tbsp of it, and its density makes volume honest"}
 {"kind": "allowed_units", "match_text": "liquid smoke", "add": ["tsp"], "reason": "dash-default, but the recipes that measure it say 1/2 tsp — g alone is no way to say that"}
 {"kind": "allowed_units", "match_text": "allspice ground", "add": ["tsp"], "reason": "pinch-default spice that recipes still spoon (1/2 tsp allspice)"}
 {"kind": "allowed_units", "match_text": "clove ground", "add": ["tsp"], "reason": "pinch-default spice that recipes still spoon"}
@@ -51,7 +51,7 @@
 {"kind": "allowed_units", "match_text": "white mushroom", "remove": ["tsp", "tbsp"], "reason": "whole mushrooms do not fit in spoons"}
 {"kind": "allowed_units", "match_text": "tempeh", "remove": ["tsp", "tbsp"], "reason": "a slab food — cut or weighed, never spooned"}
 {"kind": "allowed_units", "match_text": "tomato canned whole", "remove": ["tsp", "tbsp"], "reason": "whole canned tomatoes are not spooned; cup/ml stay for the juice-packed pour"}
-{"kind": "allowed_units", "match_text": "baked bean", "remove": ["tsp"], "reason": "beans by the tbsp exist in salads; by the tsp they do not"}
+{"kind": "allowed_units", "match_text": "baked bean canned", "remove": ["tsp"], "reason": "beans by the tbsp exist in salads; by the tsp they do not"}
 {"kind": "allowed_units", "match_text": "black bean canned", "remove": ["tsp"], "reason": "beans by the tbsp exist; by the tsp they do not"}
 {"kind": "allowed_units", "match_text": "black eyed pea canned", "remove": ["tsp"], "reason": "beans by the tbsp exist; by the tsp they do not"}
 {"kind": "allowed_units", "match_text": "cannellini bean canned", "remove": ["tsp"], "reason": "beans by the tbsp exist; by the tsp they do not"}
@@ -161,7 +161,7 @@
 {"kind": "drop_measure", "match_text": "navy bean canned", "label": "can, drained", "reason": "bare 'can' hides the size; relabeled"}
 {"kind": "add_measure", "match_text": "navy bean canned", "label": "can (15 oz), drained", "basis_amount": 277, "sort_order": 0, "source": "usda_fdc:174286 (1 can drained solids) — borrowed, relabeled", "reason": "pinto's representative drained can, size surfaced"}
 {"kind": "add_measure", "match_text": "green bean canned", "label": "can (14.5 oz), drained", "basis_amount": 240, "sort_order": 0, "source": "seed:typical", "reason": "the standard green-bean can's drained weight — the row had no can measure"}
-{"kind": "add_measure", "match_text": "baked bean", "label": "can (16 oz)", "basis_amount": 454, "sort_order": 0, "source": "seed:typical", "reason": "baked beans are eaten undrained; the standard 16 oz can"}
+{"kind": "add_measure", "match_text": "baked bean canned", "label": "can (16 oz)", "basis_amount": 454, "sort_order": 0, "source": "seed:typical", "reason": "baked beans are eaten undrained; the standard 16 oz can"}
 {"kind": "drop_measure", "match_text": "vegetable broth", "label": "can", "reason": "bare 'can' hides the size; relabeled"}
 {"kind": "add_measure", "match_text": "vegetable broth", "label": "can (14.5 oz)", "basis_amount": 390, "sort_order": 0, "source": "usda_fdc:171583 (1 can) — relabeled", "reason": "same FDC portion, size surfaced in the label"}
 {"kind": "drop_measure", "match_text": "vegetable broth", "label": "carton", "reason": "bare 'carton' hides the size; relabeled"}
@@ -368,7 +368,7 @@
 {"kind": "allowed_units", "match_text": "green grape", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (grape) — piece would be a guess"}
 {"kind": "allowed_units", "match_text": "green olive", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (olive) — piece would be a guess"}
 {"kind": "allowed_units", "match_text": "hazelnut", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (nut) — piece would be a guess"}
-{"kind": "allowed_units", "match_text": "hot chili", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (chili) — piece would be a guess"}
+{"kind": "allowed_units", "match_text": "red chili fresh", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (chili) — piece would be a guess"}
 {"kind": "allowed_units", "match_text": "jalapeno", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (jalapeño) — piece would be a guess"}
 {"kind": "allowed_units", "match_text": "king oyster mushroom", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (mushroom, medium) — piece would be a guess"}
 {"kind": "allowed_units", "match_text": "kiwi", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (kiwi, whole) — piece would be a guess"}
@@ -410,7 +410,7 @@
 {"kind": "allowed_units", "match_text": "yellow squash", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (squash, medium) — piece would be a guess"}
 {"kind": "allowed_units", "match_text": "zucchini", "remove": ["piece"], "reason": "piece-curation A (owner 2026-09-02): the measure names the thing itself (zucchini, medium) — piece would be a guess"}
 {"kind": "allowed_units", "match_text": "active yeast dry", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is sachet — piece is only a worse way of saying it"}
-{"kind": "allowed_units", "match_text": "baked bean", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "baked bean canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
 {"kind": "allowed_units", "match_text": "black bean canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
 {"kind": "allowed_units", "match_text": "black eyed pea canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
 {"kind": "allowed_units", "match_text": "brazil nut", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is kernel — piece is only a worse way of saying it"}
@@ -418,7 +418,7 @@
 {"kind": "allowed_units", "match_text": "cantaloupe", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is melon — piece is only a worse way of saying it"}
 {"kind": "allowed_units", "match_text": "chickpea canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
 {"kind": "allowed_units", "match_text": "cilantro", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is sprig — piece is only a worse way of saying it"}
-{"kind": "allowed_units", "match_text": "coconut milk", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
+{"kind": "allowed_units", "match_text": "coconut milk canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
 {"kind": "allowed_units", "match_text": "corn", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is ear — piece is only a worse way of saying it"}
 {"kind": "allowed_units", "match_text": "dark red kidney bean canned", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is can — piece is only a worse way of saying it"}
 {"kind": "allowed_units", "match_text": "dill", "remove": ["piece"], "reason": "piece-curation B (owner 2026-09-02): the natural count is sprig — piece is only a worse way of saying it"}
@@ -504,7 +504,7 @@
 {"kind": "default_measure", "match_text": "apricot", "label": "apricot", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
 {"kind": "default_measure", "match_text": "asparagus", "label": "spear, medium", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sized family of the counted thing (a spear IS what a recipe counts)"}
 {"kind": "default_measure", "match_text": "avocado", "label": "avocado", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count — the ADR-0010 field-test row"}
-{"kind": "default_measure", "match_text": "baked bean", "label": "can (16 oz)", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)"}
+{"kind": "default_measure", "match_text": "baked bean canned", "label": "can (16 oz)", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)"}
 {"kind": "default_measure", "match_text": "banana", "label": "banana, medium", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium"}
 {"kind": "default_measure", "match_text": "basil", "label": "leaf", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
 {"kind": "default_measure", "match_text": "bay leaf", "label": "leaf", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
@@ -527,7 +527,7 @@
 {"kind": "default_measure", "match_text": "chickpea canned", "label": "can (15 oz), drained", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)"}
 {"kind": "default_measure", "match_text": "cilantro", "label": "sprig", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
 {"kind": "default_measure", "match_text": "cinnamon stick", "label": "stick", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
-{"kind": "default_measure", "match_text": "coconut milk", "label": "can (400 ml)", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)"}
+{"kind": "default_measure", "match_text": "coconut milk canned", "label": "can (400 ml)", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count (the retail can)"}
 {"kind": "default_measure", "match_text": "corn", "label": "ear, medium", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium"}
 {"kind": "default_measure", "match_text": "corn tortilla", "label": "tortilla", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
 {"kind": "default_measure", "match_text": "cremini mushroom", "label": "mushroom, whole", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
@@ -558,7 +558,7 @@
 {"kind": "default_measure", "match_text": "green grape", "label": "grape", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
 {"kind": "default_measure", "match_text": "green olive", "label": "olive", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
 {"kind": "default_measure", "match_text": "hazelnut", "label": "nut", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
-{"kind": "default_measure", "match_text": "hot chili", "label": "chili", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
+{"kind": "default_measure", "match_text": "red chili fresh", "label": "chili", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
 {"kind": "default_measure", "match_text": "iceberg lettuce", "label": null, "reason": "seam D1 (owner 2026-09-03, 'lgtm'): fragment set — head vs leaf [flagged for the owner's ruling; signed off as proposed]"}
 {"kind": "default_measure", "match_text": "instant yeast", "label": "sachet", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
 {"kind": "default_measure", "match_text": "jalapeno", "label": "jalapeno", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
@@ -639,3 +639,64 @@
 {"kind": "default_measure", "match_text": "yellow bell pepper", "label": "pepper, medium", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): SEED GAP: this row carried only pepper, large (186 g) where the other three bells carry medium/large/small, so a borrowed pepper, medium at 119 g is added above and the default lands on it [flagged for the owner's ruling; signed off as proposed]"}
 {"kind": "default_measure", "match_text": "yellow squash", "label": "squash, medium", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sole count"}
 {"kind": "default_measure", "match_text": "zucchini", "label": "zucchini, medium", "reason": "seam D1 (owner 2026-09-03, 'lgtm'): sized family → medium"}
+//
+// --- The round-five vocabulary additions (owner-ruled) ---------------------
+// Three rows the vocabulary was missing, each ruled by the owner rather than
+// derived: Extra Virgin Olive Oil is its OWN row (not an alias of Olive Oil —
+// "they are NOT the same"), Peas is the plain-peas row Frozen Peas was
+// standing in for, and Canned Lentils joins the `Canned *` family so a can of
+// lentils stops being read against a dry row's macros.
+//
+// Two of the three carry no usda_links entry, and that is the point:
+//   * extra virgin olive oil — FDC's own extra-virgin record (748608) carries
+//     a density but NO nutrients in the committed reference, so a link would
+//     buy a density and leave the row a macro-less stub. All olive oil is
+//     ~100 % fat / 884 kcal per 100 g, so the macros are borrowed from the
+//     refined record (171413) with the borrow stated, exactly the way the
+//     canned beans borrow pinto's drained basis; the DENSITY is extra
+//     virgin's own record, cited fdc_density:748608. The rows are separate
+//     because they are different foods to cook with, not because their
+//     macros differ.
+//   * lentil canned — FDC has no canned-lentil food AT ALL (only raw, dry,
+//     boiled and sprouted), so the no-analogue rule keeps the row link-less.
+//     Boiled lentils (172421) IS the drained-can basis, so its macros and
+//     its portion-derived density are borrowed under the round-2 coherence
+//     ruling: the macros must be on the same basis as the can measure they
+//     will be multiplied by.
+//
+// The can weight is the one number here with no FDC portion behind it. No
+// canned-lentil food means no `1 can drained solids` row to cite, and the
+// bean cans' weights describe a 15 oz US can, not the 400 g European one the
+// owner buys. 240 g is the typical printed drained weight for a 400 g can of
+// pulses — the same number this file already commits for the green-bean can
+// — and it is marked seed:typical so the guess is visible rather than
+// dressed as a citation.
+{"kind": "macros", "match_text": "extra virgin olive oil", "macros": {"kcal": 884, "protein": 0, "fat": 100, "carb": 0, "fiber": 0}, "source": "usda_fdc:171413 — borrowed (olive oil, salad or cooking)", "reason": "FDC's extra-virgin record (748608) carries a density but no nutrients; every olive oil is 100 % fat at 884 kcal/100 g, so the refined record's macros are the honest numbers for this row and the borrow is stated in the source"}
+{"kind": "density", "match_text": "extra virgin olive oil", "value": 0.907, "source": "fdc_density:748608", "reason": "extra virgin's OWN FDC record's portion-derived density (0.9070), slightly below the refined oil's 0.9130 — and required, since the row is tbsp-default (R1)"}
+{"kind": "allowed_units", "match_text": "extra virgin olive oil", "remove": ["pinch", "dash", "handful"], "reason": "a pinch of a liquid is senseless; to_taste stays — extra virgin olive oil is the finishing oil, so it is exactly the row that is added to taste"}
+{"kind": "macros", "match_text": "lentil canned", "macros": {"kcal": 116, "protein": 9.02, "fat": 0.38, "carb": 20.13, "fiber": 7.9}, "source": "usda_fdc:172421 — borrowed (lentils, boiled — the drained basis)", "reason": "round-2 coherence ruling applied to a new row: FDC has no canned lentil at all, and the can measure below is a DRAINED weight, so the macros must be on the drained basis — boiled lentils, not the dry row's 352 kcal"}
+{"kind": "density", "match_text": "lentil canned", "value": 0.8369, "source": "fdc_density:172421", "reason": "the drained-solids cup, matching the borrowed drained macros and the drained can; the dry row's 0.8115 is a cup of hard seeds, a different substance"}
+{"kind": "add_measure", "match_text": "lentil canned", "label": "can (400 g), drained", "basis_amount": 240, "sort_order": 0, "source": "seed:typical", "reason": "the 400 g European can the owner actually buys; FDC has no canned-lentil portion to cite, and the bean cans' 277 g is a 15 oz can — 240 g is the typical printed drained weight, the same figure already committed for the green-bean can"}
+{"kind": "allowed_units", "match_text": "lentil canned", "remove": ["tsp"], "reason": "pulses by the tbsp exist; by the tsp they do not (the ruling the canned beans already carry)"}
+{"kind": "allowed_units", "match_text": "lentil canned", "remove": ["piece"], "reason": "the natural count is the can — piece is only a worse way of saying it (the canned-family ruling)"}
+{"kind": "default_measure", "match_text": "lentil canned", "label": "can (400 g), drained", "reason": "sole count (the retail can), like every other row in the Canned * family"}
+{"kind": "allowed_units", "match_text": "pea", "remove": ["tsp", "tbsp"], "reason": "peas are poured by the cup, not spooned by the tsp — the ruling frozen peas already carry"}
+//
+// --- Front D: the display-name sweep (owner-ruled) -------------------------
+// Six renames and six splits, ruled from the table in plan 0039. The five
+// renames whose match_text moves are re-keyed in place above (a rename is not
+// a new row); `Ground Cloves` needed no re-key because both spellings
+// normalize to `clove ground`.
+//
+// The eight new rows all link an FDC record of their OWN form, so they take
+// macros and density from the prefill and need nothing here except the unit
+// rulings below — which mirror, row for row, the ruling their nearest sibling
+// already carries.
+{"kind": "allowed_units", "match_text": "lentil cooked", "remove": ["tsp"], "reason": "pulses by the tbsp exist; by the tsp they do not (the ruling the canned and dried pulses already carry)"}
+{"kind": "allowed_units", "match_text": "pasta cooked", "remove": ["tsp", "tbsp"], "reason": "cooked pasta is measured by the cup or weighed; a spoon of it is not a thing"}
+{"kind": "allowed_units", "match_text": "white rice cooked", "remove": ["tsp"], "reason": "cooked rice by the tbsp exists (a garnish, a sushi portion); by the tsp it does not"}
+{"kind": "allowed_units", "match_text": "brown rice cooked", "remove": ["tsp"], "reason": "same ruling as cooked white rice"}
+{"kind": "allowed_units", "match_text": "quinoa cooked", "remove": ["tsp"], "reason": "same ruling as cooked white rice"}
+{"kind": "allowed_units", "match_text": "edamame", "remove": ["tsp"], "reason": "podded beans by the tbsp exist in a salad; by the tsp they do not"}
+{"kind": "allowed_units", "match_text": "corn frozen", "remove": ["tsp", "tbsp"], "reason": "frozen corn is poured by the cup, not spooned — the ruling frozen peas already carry"}
+{"kind": "allowed_units", "match_text": "sweetcorn canned", "remove": ["tsp"], "reason": "the canned-family ruling: by the tbsp yes, by the tsp no"}

@@ -113,7 +113,7 @@ const TYPICAL: { matchText: string; label: string; grams: number }[] = [
   { matchText: "tempeh", label: "package (8 oz)", grams: 227 },
   // FDC canned coconut milk carries only cup/tbsp; the 400 ml can is the
   // unit recipes speak in (~1.0 g/ml).
-  { matchText: "coconut milk", label: "can (400 ml)", grams: 400 },
+  { matchText: "coconut milk canned", label: "can (400 ml)", grams: 400 },
   // FDC silken tofu (MORI-NU) has only a sub-package "slice"; the 12.3 oz
   // shelf-stable block is the purchasable unit.
   { matchText: "silken tofu", label: "block (12.3 oz)", grams: 349 },

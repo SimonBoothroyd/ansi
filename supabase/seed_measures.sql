@@ -34,7 +34,7 @@ join (values
   ('asparagus', 'spear, extra large', 24, 3, 'usda_fdc:168389 (1 spear, extra large (8-3/4" to 10" long))'),
   ('asparagus', 'spear tip', 3.5, 4, 'usda_fdc:168389 (1 spear tip (2" long or less))'),
   ('avocado', 'avocado', 201, 0, 'usda_fdc:171705 (1 avocado, NS as to Florida or California)'),
-  ('baked bean', 'can (16 oz)', 454, 0, 'seed:typical'),
+  ('baked bean canned', 'can (16 oz)', 454, 0, 'seed:typical'),
   ('banana', 'banana, medium', 118, 0, 'usda_fdc:173944 (1 medium (7" to 7-7/8" long))'),
   ('banana', 'banana, large', 136, 1, 'usda_fdc:173944 (1 large (8" to 8-7/8" long))'),
   ('banana', 'banana, small', 101, 2, 'usda_fdc:173944 (1 small (6" to 6-7/8" long))'),
@@ -85,7 +85,7 @@ join (values
   ('chickpea canned', 'can (15 oz), drained', 253, 0, 'usda_fdc:173800 (1 can drained) — relabeled'),
   ('cilantro', 'sprig', 2.22, 0, 'usda_fdc:169997 (9 sprigs)'),
   ('cinnamon stick', 'stick', 2.6, 0, 'seed:typical'),
-  ('coconut milk', 'can (400 ml)', 400, 0, 'seed:typical'),
+  ('coconut milk canned', 'can (400 ml)', 400, 0, 'seed:typical'),
   ('corn', 'ear, medium', 102, 0, 'usda_fdc:169998 (1 ear, medium (6-3/4" to 7-1/2" long) yields)'),
   ('corn', 'ear, large', 143, 1, 'usda_fdc:169998 (1 ear, large (7-3/4" to 9" long) yields)'),
   ('corn', 'ear, small', 73, 2, 'usda_fdc:169998 (1 ear, small (5-1/2" to 6-1/2" long))'),
@@ -133,7 +133,6 @@ join (values
   ('green grape', 'grape', 4.9, 0, 'usda_fdc:174683 (10 grapes)'),
   ('green olive', 'olive', 2.7, 0, 'usda_fdc:169096 (1 olive)'),
   ('hazelnut', 'nut', 1.4, 0, 'usda_fdc:170581 (10 nuts)'),
-  ('hot chili', 'chili', 45, 0, 'usda_fdc:170106 (1 pepper)'),
   ('iceberg lettuce', 'head, medium', 539, 0, 'usda_fdc:169248 (1 head, medium (6" dia))'),
   ('iceberg lettuce', 'leaf, medium', 8, 1, 'usda_fdc:169248 (1 leaf, medium)'),
   ('iceberg lettuce', 'head, large', 755, 2, 'usda_fdc:169248 (1 head, large)'),
@@ -149,6 +148,7 @@ join (values
   ('leek', 'slice', 6, 1, 'usda_fdc:169246 (1 slice)'),
   ('lemon', 'lemon, whole', 100, 0, 'seed:typical'),
   ('lemon juice', 'lemon', 48, 0, 'usda_fdc:167747 (1 lemon yields)'),
+  ('lentil canned', 'can (400 g), drained', 240, 0, 'seed:typical'),
   ('light red kidney bean canned', 'can (15 oz), drained', 266, 0, 'usda_fdc:174285 (1 can drained solids) — relabeled'),
   ('lime', 'lime, whole', 67, 0, 'usda_fdc:168155 (1 fruit (2" dia))'),
   ('lime juice', 'lime', 44, 0, 'usda_fdc:168156 (1 lime yields)'),
@@ -204,6 +204,7 @@ join (values
   ('red cabbage', 'head, large', 1134, 1, 'usda_fdc:169977 (1 head, large (about 5-1/2" dia))'),
   ('red cabbage', 'head, small', 567, 2, 'usda_fdc:169977 (1 head, small (4" dia))'),
   ('red cabbage', 'leaf', 23, 3, 'usda_fdc:169977 (1 leaf)'),
+  ('red chili fresh', 'chili', 45, 0, 'usda_fdc:170106 (1 pepper)'),
   ('red delicious apple', 'apple, medium', 212, 0, 'usda_fdc:168201 (1 medium) — borrowed'),
   ('red delicious apple', 'apple, large', 260, 1, 'usda_fdc:168201 (1 large) — borrowed'),
   ('red delicious apple', 'apple, small', 158, 2, 'usda_fdc:168201 (1 small) — borrowed'),
@@ -316,7 +317,7 @@ begin
     ('apricot'),
     ('asparagus'),
     ('avocado'),
-    ('baked bean'),
+    ('baked bean canned'),
     ('banana'),
     ('basil'),
     ('bay leaf'),
@@ -339,7 +340,7 @@ begin
     ('chickpea canned'),
     ('cilantro'),
     ('cinnamon stick'),
-    ('coconut milk'),
+    ('coconut milk canned'),
     ('corn'),
     ('corn tortilla'),
     ('cremini mushroom'),
@@ -370,7 +371,6 @@ begin
     ('green grape'),
     ('green olive'),
     ('hazelnut'),
-    ('hot chili'),
     ('iceberg lettuce'),
     ('instant yeast'),
     ('jalapeno'),
@@ -380,6 +380,7 @@ begin
     ('leek'),
     ('lemon'),
     ('lemon juice'),
+    ('lentil canned'),
     ('light red kidney bean canned'),
     ('lime'),
     ('lime juice'),
@@ -410,6 +411,7 @@ begin
     ('raspberry'),
     ('red bell pepper'),
     ('red cabbage'),
+    ('red chili fresh'),
     ('red delicious apple'),
     ('red grape'),
     ('red leaf lettuce'),
@@ -465,7 +467,7 @@ begin
   end if;
   select count(*) into n from ingredient_measure
   where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null;
-  raise notice 'seed_measures: % live template measures (% seeded)', n, 270;
+  raise notice 'seed_measures: % live template measures (% seeded)', n, 272;
 end $$;
 
 commit;

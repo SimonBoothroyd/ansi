@@ -131,7 +131,7 @@ Run:  supabase db query --linked "<paste each>"
   select n_docs, avg_doc_len from usda_search_stats;
   -- WAL bounded (runbook §1.3; an idle slot must not fill the disk)
   select name, setting from pg_settings where name in ('max_wal_size','max_slot_wal_keep_size');
-  -- vocab carries macros (expect 272 of 308 — the numbers seed/README.md states;
+  -- vocab carries macros (expect 283 of 319 — the numbers seed/README.md states;
   -- both move together when the curated vocabulary changes, so read them there)
   select count(*) filter (where macros is not null), count(*) from ingredient i
   join household h on h.id = i.household_id where h.is_template;
