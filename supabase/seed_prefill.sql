@@ -98,7 +98,7 @@ from (values
   ('dill', 172233),
   ('dill pickle', 324653),
   ('ditalini', 169736),
-  ('doppio zero flour', 169761),
+  ('tipo flour', 169761),
   ('edamame', 168411),
   ('edamame frozen', 168410),
   ('eggplant', 169228),
