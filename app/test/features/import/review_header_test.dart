@@ -105,7 +105,7 @@ Finder _field(String text) => find.byWidgetPredicate(
   (w) => w is EditableText && w.controller.text == text,
 );
 
-/// The review is one long ListView; give it a surface tall enough to build
+/// The review is one long lazy list; give it a surface tall enough to build
 /// the whole header and Save, so nothing here drives a scroll.
 void _tallViewport(WidgetTester tester) {
   tester.view.physicalSize = const Size(1200, 4400);

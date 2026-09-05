@@ -105,6 +105,41 @@ void main() {
     expect(rice.note, 'rinsed');
   });
 
+  test('a moved line round-trips: the order is what was left, the ids are the '
+      'ones that were there, and the emptied group is still a group', () async {
+    await repo.saveRecipe(_sampleRecipe());
+    final before = await repo.watchRecipe('r1').first;
+
+    // What the drag produces: Rice leaves the second group for the top of the
+    // first, and the group it left stays.
+    final rice = before!.groups[1].items.single;
+    await repo.saveRecipe(
+      before.copyWith(
+        groups: [
+          before.groups[0].copyWith(items: [rice, ...before.groups[0].items]),
+          before.groups[1].copyWith(items: const []),
+        ],
+      ),
+    );
+
+    // Reopened from the database, which reads `ORDER BY sort_order` — so this
+    // is `sort_order`, written from list position and read back.
+    final loaded = await repo.watchRecipe('r1').first;
+    expect(loaded!.groups[0].items.map((i) => i.id), ['i3', 'i1', 'i2']);
+    expect(loaded.groups[1].items, isEmpty);
+    expect(
+      loaded.groups.map((g) => g.id),
+      ['g1', 'g2'],
+      reason: 'a group emptied by a move is not swept',
+    );
+    // A move is an UPDATE on the same row: nothing was deleted and re-made,
+    // which is what keeps every method chip pointing where it did.
+    final tombstones = await db.getAll(
+      'SELECT id FROM ps_data__recipe_line_item',
+    );
+    expect(tombstones, hasLength(3));
+  });
+
   test('optional survives save → load, and a flipped flag is a child-diff '
       'UPDATE on the same row', () async {
     final recipe = _sampleRecipe();

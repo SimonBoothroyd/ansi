@@ -1,6 +1,6 @@
 # Exec plan: line ergonomics — reorder and move, on both line lists
 
-- **Status:** draft
+- **Status:** built on both screens; the sim leg is outstanding
 - **Owner:** Simon (rulings) · agent lane (build)
 - **Roadmap step:** 8.14 — field test, round five
 - **Created:** 2026-09-04
@@ -102,20 +102,23 @@ list needs uniform rows anyway.
 
 ## Acceptance criteria
 
-- [ ] A line can be dragged to a new position inside its group, on both screens.
-- [ ] A line can be dragged under another heading — including one just added at
+- [x] A line can be dragged to a new position inside its group, on both screens.
+- [x] A line can be dragged under another heading — including one just added at
       review — keeping its id.
-- [ ] Nothing Material is imported: the drag comes from `package:flutter/widgets.dart`.
-- [ ] The editor's line renders as the inline three-part line, matching the
+- [x] Nothing Material is imported: the drag comes from `package:flutter/widgets.dart`.
+- [x] The editor's line renders as the inline three-part line, matching the
       review and the recipe page — one layout, asserted by a shared widget test.
-- [ ] Method chips survive both moves — asserted, not assumed.
-- [ ] `sort_order` round-trips: reopen the recipe and the order is what was left.
-- [ ] Tests: `recipe_view_models_test` (editor moves), `import_controller_test`
-      + `line_resolution_test` (review moves, C-D2's index/position split),
-      `recipe_repository_test` (sort_order persistence), and a sim leg that
-      reorders and re-reads.
-- [ ] Docs: the backlog row retires; `recipe-editor.html` and
-      `import-review.html` re-drawn; `app/lib/features/recipes/README.md`.
+- [x] Method chips survive both moves — asserted, not assumed.
+- [x] `sort_order` round-trips: reopen the recipe and the order is what was left.
+- [x] Tests: `line_reorder_test` (the shared rule), `recipe_line_move_test`
+      (editor moves + the drag itself), `line_layout_test` (one layout, both
+      surfaces), `review_groups_test` + `line_resolution_test` +
+      `review_reorder_test` (review moves, C-D2's index/position split),
+      `recipe_repository_test` (sort_order persistence).
+- [ ] A sim leg that reorders and re-reads (the orchestrator schedules the one
+      simulator).
+- [x] Docs: `recipe-editor.html` and `import-review.html` re-drawn;
+      `app/lib/features/recipes/README.md` and `.../import/README.md`.
 
 ## Approach
 
@@ -133,11 +136,47 @@ list needs uniform rows anyway.
   only) rather than dropped. Reorder and *move to a section* collapse into one
   gesture, which is also what [plan 0034](./0034-import-review-editable.md)
   A-D5 needs for a newly added heading.
+- 2026-09-04 — Built. **One rule, two surfaces**: the move is
+  `features/recipes/domain/line_reorder.dart`, written over `List<List<T>>` so
+  the editor's `LineItem`s and the review's flat indexes drag by the same
+  arithmetic — a rule one screen could learn without the other is the shape
+  this feature must not take. `review_groups.moveReviewLine` is the review's
+  one-line wrapper over it.
+- 2026-09-04 — Both screens became a `CustomScrollView`: leading `SliverList`,
+  one `SliverReorderableList` for the ingredient list, trailing `SliverList`.
+  `SliverList` rather than `SliverToBoxAdapter` deliberately — a box adapter
+  builds its whole subtree the moment the sliver is reached, which would build
+  every step card to show the top of the page (and did, until a scroll-to-Save
+  test found it).
+- 2026-09-04 — `onReorderItem`, not `onReorder`: the newer callback hands back
+  an index already adjusted for the removed row, so no caller carries the
+  `if (newIndex > oldIndex) newIndex -= 1` folklore. `onReorder` is deprecated
+  in the pinned SDK.
+- 2026-09-04 — **The editor's group card became a heading row.** Front A asks
+  for one flat list, and a bordered card per group is not a row in one. Every
+  door it held survives: the name field and `🗑` are the heading; *Add
+  ingredient* and *Add group* are two doors under the list, exactly the review's
+  pair, and a line added lands in the last group for the drag to place.
+- 2026-09-04 — A-D4 needed the review card's expansion state to be reachable
+  from the list. It stays the card's own (`useState`), with the list passing a
+  `collapseEpoch` it bumps on `onReorderStart` — one integer rather than
+  hoisting every card's state onto the screen, and the card still opens and
+  closes on its own everywhere else.
+- 2026-09-04 — C-D1 wanted `buildCommit` to write `sort_order` from position
+  rather than the flat index. It already did: the repository counts down
+  `group.lines`, so the section's ORDER was always what landed. What was
+  missing was anything that could change that order — which is what
+  `moveReviewLine` now is. The commit code needed no change, and the test that
+  proves the split (`a MOVED line commits at its new position, carrying its old
+  index`) is the whole of C-D2.
 
 ## Notes / open questions
 
 - Nothing is open. Front D arrived with the drag ruling and belongs here: the
   same rows, in one shape.
+- The one thing left is the sim leg (a reorder driven on a booted simulator,
+  then re-read after a save). One simulator, scheduled serially, so it is the
+  orchestrator's to run.
 
 ## Step-done checklist
 

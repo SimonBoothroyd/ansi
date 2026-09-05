@@ -1,7 +1,7 @@
 /// **The review stops jumping to the title** (plan 0034, front E).
 ///
-/// The whole review is one `ListView` and the title is an `FTextField` at the
-/// very top of it. A focused editable asks its enclosing scrollable to show
+/// The whole review is one scroll view and the title is an `FTextField` at
+/// the very top of it. A focused editable asks its enclosing scrollable to show
 /// its caret — on a metrics change (the keyboard arriving or leaving), and
 /// again whenever it regains focus. So after typing the title, correcting a
 /// line eight cards down threw the page back to the top, and the card the cook

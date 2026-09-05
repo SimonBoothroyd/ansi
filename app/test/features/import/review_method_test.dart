@@ -106,8 +106,8 @@ Finder _stepField(String text) => find.byWidgetPredicate(
   (w) => w is EditableText && w.controller.text == text,
 );
 
-/// The review screen is one long ListView, and a ListView only builds what is
-/// on screen — Save lives past the method. Give the harness a tall viewport
+/// The review screen is one long lazy list, and a lazy list only builds what
+/// is on screen — Save lives past the method. Give the harness a tall viewport
 /// rather than driving a scroll in every test.
 void _tallViewport(WidgetTester tester) {
   tester.view.physicalSize = const Size(1200, 4000);

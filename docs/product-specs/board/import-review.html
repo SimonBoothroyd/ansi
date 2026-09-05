@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Import review</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/active/0034-import-review-editable.md">plan 0034</a></p>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/active/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/active/0035-line-ergonomics.md">plan 0035</a></p>
     <p class="view-blurb">One form with two doors, then the whole import on one editable screen: the editor’s own header, a card per line, the method as step cards, and a Save gate that counts the same number the header does.</p>
 </header>
 
@@ -303,7 +303,7 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Sections you can edit, and a line you can add</b> · the payload stays the server’s word about the page; the structure is the cook’s</p>
+        <p class="frame-name"><b>Sections you can edit, lines you can drag, and a line you can add</b> · the payload stays the server’s word about the page; the structure is the cook’s</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">2 to review</span></div>
             <div class="tsec"><span class="tl">Ingredients</span><span class="tc">9</span><span class="rule"></span></div>
@@ -312,15 +312,15 @@
                 <span style="flex:1;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface)">For the pasta</span>
                 <span style="color:var(--muted);font-size:12px">🗑</span>
             </div>
-            <div class="lcard"><div class="l3 edit"><span class="l3-amt">200 g</span><span class="l3-body"><span class="l3-id">Kale</span></span><span class="l3-pen">✎</span></div></div>
-            <div class="lcard"><div class="l3 edit"><span class="l3-amt">2 clove</span><span class="l3-body"><span class="l3-id">Garlic</span></span><span class="l3-pen">✎</span></div></div>
+            <div class="lcard"><div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">200 g</span><span class="l3-body"><span class="l3-id">Kale</span></span><span class="l3-pen">✎</span></div></div>
+            <div class="lcard"><div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">2 clove</span><span class="l3-body"><span class="l3-id">Garlic</span></span><span class="l3-pen">✎</span></div></div>
 
             <div style="display:flex;align-items:center;gap:8px;margin:14px 20px 2px">
                 <span style="flex:1;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface)">For the dressing</span>
                 <span style="color:var(--muted);font-size:12px">🗑</span>
             </div>
-            <div class="lcard"><div class="l3 edit"><span class="l3-amt">3 tbsp</span><span class="l3-body"><span class="l3-id">Extra Virgin Olive Oil</span></span><span class="l3-pen">✎</span></div></div>
-            <div class="lcard"><div class="l3 edit"><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Granulated Sugar</span><span class="l3-note">added here — not on the page</span></span><span class="l3-pen">✎</span></div></div>
+            <div class="lcard"><div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">3 tbsp</span><span class="l3-body"><span class="l3-id">Extra Virgin Olive Oil</span></span><span class="l3-pen">✎</span></div></div>
+            <div class="lcard"><div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Granulated Sugar</span><span class="l3-note">added here — not on the page</span></span><span class="l3-pen">✎</span></div></div>
 
             <div style="display:flex;gap:8px;margin:4px 20px 0">
                 <span class="ghostbtn" style="margin-top:0;flex:1">＋ ingredient</span>
@@ -331,7 +331,9 @@
             <p class="conv-note">deleting a heading <b>never deletes its lines</b> — they move up into the section above, and down into what becomes the first when the first goes. Dropping food is what the line’s own <b>🗑</b> already does, so there is no confirm: nothing is lost. The last section standing loses its heading rather than going</p>
             <p class="conv-note">a heading appears as a <b>field</b> wherever there is one to name — a single unnamed section shows no row at all, because that is the ordinary shape of a recipe that never divided its ingredients, and <i>＋ section</i> is the way out of it</p>
             <p class="conv-note">a line added here says <b>added here — not on the page</b> where the others print <i>from source:</i>. The honesty rule cuts both ways. Its flat index is minted <b>past the payload’s last</b>, so nothing renumbers and every chip already written still points where it did</p>
-            <p class="differs-note">differs: a line has no drag grip yet — the gesture, its handle and its drop behaviour are <a href="../../exec-plans/active/0035-line-ergonomics.md">plan 0035</a>, and this screen is one of its two hosts</p>
+            <p class="conv-note">the grip <b>⋮⋮</b> drags a line, and nothing else does. Dropping it under a heading files it there, so reordering and moving between sections are one gesture — the recipe editor's list, over the review's own state</p>
+            <p class="conv-note">a moved line keeps its <b>flat index</b> and changes only its <b>position</b>. The index is what resolutions are keyed by and what every step chip points at; the position is what commits as <code>sort_order</code>. Order and identity have stopped being the same number</p>
+            <p class="conv-note">the grip is on <b>collapsed</b> rows only — an open card is a form, not a row — and an open card closes the moment a drag starts elsewhere, so what crosses the list is always a row like every other row</p>
             <div class="savebtn off">2 line(s) need you</div>
         </div></div>
     </div>

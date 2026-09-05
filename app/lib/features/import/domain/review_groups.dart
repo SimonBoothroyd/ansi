@@ -21,6 +21,7 @@ library;
 
 import 'package:meta/meta.dart';
 
+import '../../recipes/domain/line_reorder.dart';
 import 'reconciliation_payload.dart';
 
 /// One section of the review's ingredient list.
@@ -162,6 +163,28 @@ List<ReviewGroup> addLineToGroup(
     for (final g in groups)
       if (g.id == id) g.copyWith(lines: [...g.lines, lineIndex]) else g,
   ];
+}
+
+/// Moves the line row at [from] to row [to] over the review's flat list —
+/// heading rows and line rows, the same shape and the same rule the editor's
+/// groups drag by ([moveLineRow]).
+///
+/// **A line keeps its index and changes only its position.** The index is the
+/// review's identity for a line — resolutions are keyed by it and step chips
+/// point at it — while the position is where it sits in a section, which is
+/// what commits as `sort_order`. Order and identity are no longer the same
+/// number, and this is the function where they part.
+List<ReviewGroup> moveReviewLine(
+  List<ReviewGroup> groups, {
+  required int from,
+  required int to,
+}) {
+  final lines = moveLineRow(
+    [for (final g in groups) g.lines],
+    from: from,
+    to: to,
+  );
+  return [for (final (i, g) in groups.indexed) g.copyWith(lines: lines[i])];
 }
 
 /// The next flat line index a review-minted line may take: one past the

@@ -439,6 +439,16 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
   void removeSection(String groupId) =>
       _mapSections((g) => removeGroup(g, groupId));
 
+  /// Moves the line row at flat row [from] to row [to] — the editor's gesture,
+  /// over the review's own list (`review_groups.dart`).
+  ///
+  /// A line keeps its **index** and changes only its **position**: the index
+  /// is what resolutions are keyed by and what step chips point at, while the
+  /// position is what commits as `sort_order`. Nothing renumbers, so no chip
+  /// moves.
+  void moveLine(int from, int to) =>
+      _mapSections((g) => moveReviewLine(g, from: from, to: to));
+
   /// Appends an empty section. It fills by adding a line to it.
   void addSection() =>
       _mapSections((g) => addGroup(g, id: 'g-new-${_newSectionSeq++}'));

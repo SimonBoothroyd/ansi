@@ -1073,6 +1073,32 @@ void main() {
       expect(commit.groups.single.lines.map((l) => l.lineIndex), [0, 1]);
     });
 
+    test('a MOVED line commits at its new position, carrying its old '
+        'index', () {
+      final payload = twoGroups();
+      // Rows: 0 heading · 1 line 0 · 2 heading · 3 line 1. The dressing's
+      // line is dragged up under the pasta heading, above the line there.
+      final commit = buildCommit(
+        payload,
+        resolved(payload),
+        header: _header(payload),
+        issuesByLine: null,
+        sections: moveReviewLine(initialGroups(payload), from: 3, to: 1),
+      );
+      // POSITION: the order of the lines in the group is what the repository
+      // writes as `sort_order`, counting from zero down the list.
+      expect(commit.groups.first.lines.map((l) => l.lineIndex), [1, 0]);
+      // IDENTITY: nothing renumbered. `1` is still the line the source
+      // printed second, and every step chip pointing at it still lands.
+      expect(commit.groups.first.lines.first.lineIndex, 1);
+      // The section the line left is empty, and an empty section writes no
+      // group — the saved recipe gets no ghost heading.
+      expect(commit.groups, hasLength(1));
+      expect(commit.groups.single.name, 'For the pasta');
+      // The payload is untouched, so `from source:` cannot start lying.
+      expect(payload.groups.first.lines.single.raw.ingredientText, 'pasta');
+    });
+
     test('a section added and never filled writes nothing', () {
       final payload = twoGroups();
       final commit = buildCommit(

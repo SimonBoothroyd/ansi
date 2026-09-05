@@ -22,6 +22,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -31,6 +32,7 @@ import '../../../core/units/units.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/component_quantity_sheet.dart';
+import '../../recipes/presentation/ingredient_line.dart';
 import '../../recipes/presentation/line_target_picker.dart';
 import '../../recipes/presentation/method_editor.dart';
 import '../../recipes/presentation/recipe_header_form.dart';
@@ -93,10 +95,16 @@ class ReconciliationBody extends HookConsumerWidget {
       preview: recipe,
     );
 
-    // The sections are the HUMAN's, not the payload's (front A): renamed,
-    // deleted and added here, holding flat line indexes. `lineAt` is what
-    // covers a line the review minted, whose index the payload has no entry
-    // for.
+    // The sections are the HUMAN's, not the payload's: renamed, deleted and
+    // added here, holding flat line indexes. `lineAt` is what covers a line
+    // the review minted, whose index the payload has no entry for.
+    //
+    // They render as ONE flat list — a heading row, then its line rows — so a
+    // line dragged under another heading is filed under it. Every index a
+    // section holds takes a row whether or not a resolution answers for it:
+    // the row positions ARE the drag's arithmetic, and a silently skipped row
+    // would file the next drop one line off.
+    final collapseEpoch = useState(0);
     final rows = <Widget>[];
     for (final group in state.sections) {
       rows.add(
@@ -108,20 +116,20 @@ class ReconciliationBody extends HookConsumerWidget {
       );
       for (final i in group.lines) {
         final resolution = byIndex[i];
-        if (resolution == null) continue;
         rows.add(
-          ReviewLineCard(
-            key: ValueKey('review-line-$i'),
-            line: state.lineAt(i),
-            resolution: resolution,
-            validation: byLine?[i],
-          ),
+          resolution == null
+              ? SizedBox.shrink(key: ValueKey('review-line-$i'))
+              : ReviewLineCard(
+                  key: ValueKey('review-line-$i'),
+                  line: state.lineAt(i),
+                  resolution: resolution,
+                  validation: byLine?[i],
+                  dragIndex: rows.length,
+                  collapseEpoch: collapseEpoch.value,
+                ),
         );
       }
     }
-    // The two doors sit TIGHT under the last line: they belong to the list,
-    // not to the screen, and a gap reads as a section break that is not there.
-    rows.add(_ListDoors(recipe: recipe, sections: state.sections));
 
     // Save is gated on EVERY line being valid: matched, range picked, and a
     // unit inside the matched ingredient's allowed set (round-2 #2). While
@@ -136,74 +144,107 @@ class ReconciliationBody extends HookConsumerWidget {
 
     final source = payload.yieldRaw?.trim();
     final sourceStated = source != null && source.isNotEmpty;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+    return CustomScrollView(
       // Once you start dragging the list you have finished typing, and a
       // field left focused off the top of the screen asks to be scrolled back
       // to on every keyboard metrics change — which is enough to throw the
       // page to the title while a line further down is being corrected.
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      children: [
-        // The never-invent strip sits ABOVE the form: with the title an
-        // editable field now, it reads as "about the whole import" before the
-        // fields begin.
-        _SourceNotes(payload: payload),
-        // The editor's header, hosted by the controller (D4). What only the
-        // review knows is drawn around it through the note slot, not inside
-        // a copy of it: whether the page printed a serving count, and what it
-        // said about the yield — `yield_raw` stays visible as the reference
-        // the fields are (or are not) filled from, the same honesty every
-        // line card has under it. Nothing here gates Save.
-        RecipeHeaderForm(
-          host: controller,
-          timeCaptions: false,
-          notes: RecipeHeaderNotes(
-            besideServes: payload.servingsBase == null
-                ? 'not printed — set it'
-                : null,
-            underMakes: sourceStated ? 'from source:  $source' : null,
-            afterMakes: state.header.yieldQty != null
-                ? null
-                : sourceStated
-                ? 'the page didn’t say a number — set one, or leave it '
-                      'unset. Nothing is invented, and a yield-less recipe '
-                      'still saves, links and scales; only the derived '
-                      'numbers wait.'
-                : 'the page didn’t say what this makes — set it, or leave '
-                      'it unset. Nothing is invented, and a yield-less '
-                      'recipe still saves, links and scales.',
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+          // A list rather than one box: the slivers stay lazy, so a long
+          // method's step cards are not all built to show the top of the page.
+          sliver: SliverList.list(
+            children: [
+              // The never-invent strip sits ABOVE the form: with the title an
+              // editable field now, it reads as "about the whole import"
+              // before the fields begin.
+              _SourceNotes(payload: payload),
+              // The editor's header, hosted by the controller (D4). What
+              // only the review knows is drawn around it through the note
+              // slot, not inside a copy of it: whether the page printed a
+              // serving count, and what it said about the yield —
+              // `yield_raw` stays visible as the reference the fields are
+              // (or are not) filled from, the same honesty every line card
+              // has under it. Nothing here gates Save.
+              RecipeHeaderForm(
+                host: controller,
+                timeCaptions: false,
+                notes: RecipeHeaderNotes(
+                  besideServes: payload.servingsBase == null
+                      ? 'not printed — set it'
+                      : null,
+                  underMakes: sourceStated ? 'from source:  $source' : null,
+                  afterMakes: state.header.yieldQty != null
+                      ? null
+                      : sourceStated
+                      ? 'the page didn’t say a number — set one, or leave it '
+                            'unset. Nothing is invented, and a yield-less '
+                            'recipe still saves, links and scales; only the '
+                            'derived numbers wait.'
+                      : 'the page didn’t say what this makes — set it, or '
+                            'leave it unset. Nothing is invented, and a '
+                            'yield-less recipe still saves, links and '
+                            'scales.',
+                ),
+              ),
+              const SizedBox(height: 10),
+              // The count is what the recipe will HAVE — a dropped line is
+              // on its way out, and counting it would contradict the greyed
+              // card saying so.
+              _SectionHeader(
+                label: 'Ingredients',
+                count: keptLines(state.resolutions).length,
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 10),
-        // The count is what the recipe will HAVE — a dropped line is on its way
-        // out, and counting it would contradict the greyed card saying so.
-        _SectionHeader(
-          label: 'Ingredients',
-          count: keptLines(state.resolutions).length,
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          sliver: SliverReorderableList(
+            itemCount: rows.length,
+            itemBuilder: (context, index) => rows[index],
+            onReorderItem: controller.moveLine,
+            // An open card closes as soon as a drag begins: what crosses the
+            // list is then a row like every other row.
+            onReorderStart: (_) => collapseEpoch.value++,
+            proxyDecorator: liftedLineRow,
+          ),
         ),
-        ...rows,
-        const SizedBox(height: 24),
-        MethodEditor(recipe: recipe, notifier: methodHost),
-        const SizedBox(height: 20),
-        FButton(
-          // A failed check is the one disabled state with something to do:
-          // re-running the read is the whole fix, so the button becomes the
-          // retry rather than a dead end.
-          onPress: canSave
-              ? () => controller.commit(issuesByLine: issuesByLine)
-              : unchecked
-              ? () => ref.invalidate(importValidationProvider)
-              : null,
-          child: Text(
-            canSave
-                ? 'Save recipe'
-                : keptLines(state.resolutions).isEmpty
-                // Every line dropped: the count would read "0 line(s) need
-                // you", which is true and useless.
-                ? 'Nothing left to save'
-                : unchecked
-                ? 'Couldn’t check the lines — try again'
-                : '$outstanding line(s) need you',
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+          sliver: SliverList.list(
+            children: [
+              // The two doors sit TIGHT under the last line: they belong to
+              // the list, not to the screen, and a gap reads as a section
+              // break that is not there.
+              _ListDoors(recipe: recipe, sections: state.sections),
+              const SizedBox(height: 24),
+              MethodEditor(recipe: recipe, notifier: methodHost),
+              const SizedBox(height: 20),
+              FButton(
+                // A failed check is the one disabled state with something to
+                // do: re-running the read is the whole fix, so the button
+                // becomes the retry rather than a dead end.
+                onPress: canSave
+                    ? () => controller.commit(issuesByLine: issuesByLine)
+                    : unchecked
+                    ? () => ref.invalidate(importValidationProvider)
+                    : null,
+                child: Text(
+                  canSave
+                      ? 'Save recipe'
+                      : keptLines(state.resolutions).isEmpty
+                      // Every line dropped: the count would read "0 line(s)
+                      // need you", which is true and useless.
+                      ? 'Nothing left to save'
+                      : unchecked
+                      ? 'Couldn’t check the lines — try again'
+                      : '$outstanding line(s) need you',
+                ),
+              ),
+            ],
           ),
         ),
       ],

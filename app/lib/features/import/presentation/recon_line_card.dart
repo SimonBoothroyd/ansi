@@ -38,6 +38,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/format.dart';
 import '../../recipes/domain/line_display.dart';
+import '../../recipes/presentation/ingredient_line.dart';
 import '../../recipes/presentation/recipe_chip.dart';
 import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
@@ -56,6 +57,8 @@ class ReviewLineCard extends HookConsumerWidget {
     required this.line,
     required this.resolution,
     this.validation,
+    this.dragIndex,
+    this.collapseEpoch = 0,
     super.key,
   });
 
@@ -67,9 +70,24 @@ class ReviewLineCard extends HookConsumerWidget {
   /// check (matched? range picked?) so it always renders something sane.
   final LineValidation? validation;
 
+  /// This card's position in the review's flat row list, when it is hosted in
+  /// one — what the grip drags by. Null where the card renders on its own.
+  ///
+  /// The grip appears on a COLLAPSED row only: an open card is a form, not a
+  /// row, and a drag surface of uniform rows is the shape drag is good at.
+  final int? dragIndex;
+
+  /// Bumped by the list when a drag starts elsewhere — an open card closes,
+  /// so the drag crosses rows rather than cards of wildly different heights.
+  final int collapseEpoch;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final expanded = useState(false);
+    useEffect(() {
+      expanded.value = false;
+      return null;
+    }, [collapseEpoch]);
     final dropped = resolution.isDropped;
     // A dropped line has no issues by construction; the map handed in can still
     // be one recompute behind, so don't let a stale flag survive the drop.
@@ -111,12 +129,38 @@ class ReviewLineCard extends HookConsumerWidget {
               onCollapse: () => expanded.value = false,
               onDrop: () => setDropped(value: true),
             )
-          : _Collapsed(
-              line: line,
-              resolution: resolution,
-              issues: effective.issues,
-              onExpand: () => expanded.value = true,
+          : _WithGrip(
+              dragIndex: dragIndex,
+              child: _Collapsed(
+                line: line,
+                resolution: resolution,
+                issues: effective.issues,
+                onExpand: () => expanded.value = true,
+              ),
             ),
+    );
+  }
+}
+
+/// The grip beside a collapsed row, when the card is hosted in a list that
+/// drags. It sits OUTSIDE the row's own tap target, so taking hold of the
+/// handle never counts as opening the card.
+class _WithGrip extends StatelessWidget {
+  const _WithGrip({required this.child, this.dragIndex});
+
+  final Widget child;
+  final int? dragIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final index = dragIndex;
+    if (index == null) return child;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LineDragGrip(index: index),
+        Expanded(child: child),
+      ],
     );
   }
 }
@@ -250,7 +294,7 @@ class _Collapsed extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                width: 84,
+                width: kLineAmountWidth,
                 child: Text(
                   amount.isEmpty ? '—' : amount,
                   style: ansiMono(size: 14, color: AnsiColors.muted).copyWith(

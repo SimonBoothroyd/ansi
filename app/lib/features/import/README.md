@@ -104,6 +104,15 @@ import/
     their order and every resolution. Dropping food is what the line's own bin
     does, so the delete needs no confirm: nothing is lost. The last section
     standing loses its heading rather than being removed.
+  - **A line MOVES by being dragged**, on the same flat list of heading rows
+    and line rows the editor uses (`recipes/domain/line_reorder.dart`, wrapped
+    here as `moveReviewLine`). Dropping a line under a heading files it there,
+    so reordering and moving between sections are one gesture. **Order and
+    identity stop being the same number**: a moved line keeps its flat INDEX —
+    what resolutions are keyed by and what every step chip points at through
+    `previewLineId` — and changes only its POSITION, which is what the commit
+    walks and the repository writes as `sort_order`. A section emptied by a
+    move keeps its heading (and, as ever, commits no group at all).
   - **A minted line's index is taken past the payload's last**, so nothing
     renumbers and every step chip already written keeps pointing where it did.
     `LineResolution.added` has no `raw` behind it; the card is handed a
@@ -195,7 +204,8 @@ backend.
 
 - Domain: `line_resolution_test` (incl. the sections riding the commit and a
   minted line's index), `line_validation_test`, `preview_recipe_test`,
-  `review_groups_test` (a deleted heading loses no line; nothing renumbers),
+  `review_groups_test` (a deleted heading loses no line; nothing renumbers; a
+  moved line changes position and keeps its index),
   `yield_prefill_test` (the parser's whole table — the refusals especially).
 - VM: `import_controller_test` (state machine, resolution edits, commit gate).
 - Repo: `import_repository_test` on a **real `PowerSyncDatabase`** — the
@@ -213,7 +223,9 @@ backend.
   section · add a line, on the real screen), `import_method_editing_test`
   (a re-match relabels its chips, `keep the old word` puts one back, and the
   chip sheet's Word field KEEPS the chip it renames), `review_scroll_test`
-  (the page does not jump to the title). Intake seams: `photo_intake_test`.
+  (the page does not jump to the title), `review_reorder_test` (a line dragged
+  under another heading; an open card has no grip and closes when a drag
+  starts). Intake seams: `photo_intake_test`.
 - Seam: `test/features/recipes/recipe_header_form_test` renders every
   section of `kRecipeHeaderSections` under BOTH hosts and round-trips every
   setter; `test/structure/recipe_insert_columns_test` pins the import's and
