@@ -41,8 +41,13 @@
 --
 -- Plan 0036 / ADR-0012 (0032) makes the volume ladder symmetric — `cup` mates
 -- `tsp` — so every cup-default vector grew `tsp`. The block after 0024's pins
--- the rule and, more importantly, 0032's WIDENING FENCE: a pristine list gains
--- `tsp`, a curated one is left exactly as the household left it.
+-- the rule and, more importantly, 0032's WIDENING FENCE, on rows it inserts
+-- for the purpose: a pristine list gains `tsp`, a curated one is left exactly
+-- as the household left it. What it deliberately does NOT assert is a per-row
+-- property of the template vocabulary — curation is allowed to remove `tsp`
+-- from a cup-default row and does, and the result is byte-identical to a row
+-- a widening never reached. That block's closing comment says what is
+-- checkable instead, and why.
 --
 -- 0027 widened the probe to return `description` / `category` with a limit,
 -- in one total order; 0029 replaced its trigram body with BM25 over a derived
@@ -54,7 +59,7 @@
 -- Run by `supabase test db`.
 
 begin;
-select plan(112);
+select plan(111);
 
 -- ---------------------------------------------------------------------------
 -- default_allowed_units() vectors. The named shapes come from the shared
@@ -714,7 +719,14 @@ values ('cccccccc-0000-0000-0000-00000000000f',
   'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Stranded Rice', 'cup', 'pantry',
   'seed', 'stranded rice', '["g", "kg"]'::jsonb);
 
--- 0032's statement, verbatim in its guards.
+-- 0032's statement, verbatim in its GUARDS and scoped to the three fixtures.
+--
+-- The scope is deliberate and it is not cosmetic. Run over the whole table
+-- this widens real template rows — the curated ones whose stored list happens
+-- to equal the rule minus `tsp` — inside this transaction, which both hides
+-- what the template actually looks like from every assertion below it and
+-- undoes, in a test, the curation the fence exists to protect. The guards are
+-- what is under test here; the table scope is not.
 update ingredient i
    set allowed_units = i.allowed_units || '["tsp"]'::jsonb
   from (
@@ -735,6 +747,9 @@ update ingredient i
      where i2.allowed_units is not null
        and i2.default_unit = 'cup'
        and not (i2.allowed_units ? 'tsp')
+       and i2.id in ('cccccccc-0000-0000-0000-00000000000d',
+                     'cccccccc-0000-0000-0000-00000000000e',
+                     'cccccccc-0000-0000-0000-00000000000f')
   ) c
  where c.id = i.id
    and c.fresh ? 'tsp'
@@ -758,37 +773,60 @@ select is(
   '["g", "kg"]'::jsonb,
   '0032 adds nothing where the rule admits no volume unit (the D4c shape)'
 );
--- …and it reaches the real vocabulary, as an invariant over the template: no
--- CUP-DEFAULT row whose recomputed defaults admit `tsp` is missing it. True
--- after a reset (the seed re-materializes from the function) and on a
--- migrated database (0032 widens), which is the same pairing 0024's
--- post-state assertion uses.
+-- …and it reached the real vocabulary. This is a POPULATION assertion, and
+-- the shape of it is the point.
 --
--- Scoped to the default unit on purpose. Read over every row that merely
--- SAYS `cup`, it fails on 28 template rows — pasta, spaghetti, frozen peas,
--- the lettuces — and it should: those are mass-default rows whose curation
--- removed `tsp` by hand ("a spoon of dry pasta is senseless"), which the rule
--- has admitted through the density cross leg since ADR-0009 and which nothing
--- here may put back. That is the fence working, not a gap.
-select is(
-  (select count(*)::int from ingredient i
-     where i.allowed_units is not null
-       and i.default_unit = 'cup'
-       and not (i.allowed_units ? 'tsp')
-       and default_allowed_units(i.default_unit, i.macros_basis,
-                                 i.density_g_per_ml, i.category) ? 'tsp'
-       and i.household_id = '00000000-0000-0000-0000-0000000000aa'),
-  0,
-  'every template cup-default row whose rule admits tsp says tsp (0032)'
-);
--- …and there are plenty of them, so the count above is not vacuously true.
+-- The obvious version — "no template cup-default row whose rule admits `tsp`
+-- is missing it" — cannot live here, because curation is allowed to falsify
+-- it and does. Eight cup-default rows carry a stated `remove` for `tsp` with
+-- a reason attached (`pea`, `edamame`, `corn frozen`, `pasta cooked`, and the
+-- four cooked staples: `lentil cooked`, `quinoa cooked`, `white rice cooked`,
+-- `brown rice cooked` — "poured by the cup, not spooned by the tsp"). That is
+-- the same house pattern as the 28 mass-default rows ("a spoon of dry pasta
+-- is senseless"), and ADR-0012's own fence says a stated fact outranks a
+-- derived one. An assertion that fails whenever somebody states a fact is
+-- punishing the behaviour the ADR protects.
+--
+-- Nor can it be rescued by looking harder at the row. `lentil cooked` stores
+-- exactly the rule's answer minus `tsp` — which is also, precisely, what a
+-- row the widening never reached looks like. Curated and stale are the same
+-- bytes; no SQL here can separate them.
+--
+-- So this asks the question the database CAN answer, and it happens to be the
+-- one worth asking. The template's lists are re-materialized by ONE statement
+-- in `seed_curation.sql` (`update ingredient set allowed_units =
+-- default_allowed_units(...) where household_id = <template>`), with the
+-- per-row overrides applied after it. Staleness is therefore all-or-nothing:
+-- if that refresh or the function had missed ADR-0012, EVERY cup-default row
+-- would lack `tsp` and this count would be 0, not 84. A per-row invariant is
+-- the wrong instrument for an all-or-nothing failure; a population count is
+-- the right one, and it is immune to curation by construction — curation
+-- takes `tsp` off a handful of rows, never off all ninety-two.
+--
+-- The threshold's only job is to separate "none" from "nearly all", so any
+-- number between them does. 92 cup-default rows, 84 carrying `tsp`, 8 curated
+-- away: plenty of headroom for the vocabulary to grow and to be curated
+-- further without this needing to be renumbered.
 select cmp_ok(
   (select count(*)::int from ingredient
      where household_id = '00000000-0000-0000-0000-0000000000aa'
        and default_unit = 'cup' and allowed_units ? 'tsp'),
   '>', 50,
-  'the template’s cup-default rows do say tsp (~84 of them)'
+  'the template’s cup-default rows say tsp — the seed re-materialized under '
+  'ADR-0012, which is all-or-nothing (84 of 92; a stale rule gives 0)'
 );
+-- The migration's own behaviour is not measured here at all, and does not
+-- need to be: on a fresh reset 0032's backfill runs against an empty database
+-- and the seed writes these lists afterwards. What 0032 does is pinned
+-- directly, on purpose-built rows, by the three assertions above.
+--
+-- One consequence of "curated and stale are the same bytes" belongs on the
+-- record: on a MIGRATED database 0032 widens a row that removed exactly
+-- `tsp` and nothing else, because it satisfies the fence as ADR-0012 states
+-- it. That is the collision ADR-0009 already accepted in its own words — a
+-- household that removed a unit and later trips the rule "gets it back …
+-- the unit is sayable again" — not a defect in the guard. Plan 0036's
+-- decision log carries the finding.
 
 -- ---------------------------------------------------------------------------
 -- 0014 / plan 0020 D4: the retired seed produce patch, as an assertion.
@@ -851,14 +889,22 @@ select ok(
 -- The canary. The guard below is vacuous if this set is empty, and a row that
 -- has GAINED a measure since the pass is a row that needs its own ruling in
 -- curation_overrides.jsonl — so pin the count rather than only the property.
+--
+-- The number moves when the vocabulary gains a measure-carrying row, and it
+-- moved to 142 for `Canned Lentils`, which arrived with a `can (400 g),
+-- drained` measure. It is exactly the case this canary is for, and it came
+-- with the ruling it demands: `lentil canned` removes `piece` ("the natural
+-- count is the can") and names that can as its default measure, so the guard
+-- below still holds. Bumping this number without reading the new row's
+-- overrides is how the guard goes quiet.
 select is(
   (select count(distinct i.id)::int
      from ingredient i
      join ingredient_measure m on m.ingredient_id = i.id
     where i.household_id = '00000000-0000-0000-0000-0000000000aa'
       and i.deleted_at is null and m.deleted_at is null),
-  141,
-  'the template has 141 measure-carrying ingredients (the curated set)'
+  142,
+  'the template has 142 measure-carrying ingredients (the curated set)'
 );
 
 -- The rule itself, named row by row so a failure says WHICH row regressed.

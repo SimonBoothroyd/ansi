@@ -1081,6 +1081,20 @@ factor of nearly three. They are `auto` onto their own rows now.
   taught itself an alias on it — an `import_correction` is the household's own
   fact, not this statement's to overwrite.
 
+- 2026-09-04 — **Interaction with ADR-0012, found at landing.** This plan's new
+  cup-default rows (`Peas`, `Edamame`, `Frozen Corn`, `Cooked Pasta`,
+  `Cooked Lentils`, `Cooked White Rice`, `Cooked Brown Rice`, `Cooked Quinoa`)
+  each carry a stated `remove` for `tsp`, which is the right call and needs no
+  change here. They were the first cup-default rows to be curated that way,
+  and they broke a pgTAP invariant plan 0036 had written on the assumption
+  that a cup-default row missing `tsp` could only be a stale one. It cannot:
+  `lentil cooked` stores exactly the rule's answer minus `tsp`, which is what
+  a stale row looks like too. The invariant was the wrong shape and has been
+  replaced — see plan 0036's decision log entry **B2**. Nothing in this plan's
+  curation was altered, and the measure-count canary moved 141 → 142 for
+  `Canned Lentils`, which arrived with its `piece` ruling as the canary
+  requires.
+
 ## Notes / open questions
 
 - The tracker's other wild-garlic row — *does a `none` line keep its top-N as

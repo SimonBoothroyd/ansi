@@ -178,6 +178,59 @@ Every ruling below is settled.
   cup-default rows at all. Compared as sorted distinct arrays — `allowed_units`
   is a set, and its stored order is nobody's contract.
 
+- 2026-09-04 — **B2, found at landing: the template invariant was the wrong
+  shape, and is replaced by a population one.** The assertion "no template
+  cup-default row whose rule admits `tsp` lacks it" failed once plan 0039's
+  cup-default rows landed with stated `remove: ["tsp"]` curation. Three things
+  settle it:
+
+  1. **Curation is allowed to falsify it.** ADR-0012's own fence says a stated
+     fact outranks a derived one. An assertion that fails whenever somebody
+     states a fact punishes the behaviour the ADR protects, and would be
+     renumbered-down by every future vocabulary pass until it meant nothing.
+  2. **It cannot be narrowed by SQL.** `lentil cooked` stores exactly the
+     rule's answer minus `tsp` — byte-identical to a row a widening never
+     reached. Curated and stale are the same bytes.
+  3. **A per-row invariant was the wrong instrument anyway.** The template's
+     lists come from ONE statement in `seed_curation.sql` (`update ingredient
+     set allowed_units = default_allowed_units(…) where household_id =
+     <template>`), with per-row overrides applied after. Staleness is therefore
+     all-or-nothing: a stale rule gives 0 cup-default rows carrying `tsp`, not
+     84 of 92. A population count catches exactly that failure and is immune to
+     curation by construction.
+
+  Rejected: generating the curated exclusions into the test from
+  `curation_overrides.jsonl`. It would restore the per-row form, but it buys
+  coverage of a failure mode the seed's architecture cannot produce (one row
+  stale, the rest fine) at the price of a second generator, a second drift
+  guard, and a test that mostly re-asserts that `gen_seed.ts` works — which its
+  own tests and the byte-identical-regeneration guard already do. Also
+  rejected: recording curation on the row, which is a schema change made for a
+  test, and says nothing about a household's own edits.
+
+  Corrected while there: the assertion's comment claimed the property held
+  "on a migrated database (0032 widens)". On the database this test runs
+  against it never did — 0032's backfill runs before the template exists, and
+  the seed writes those lists afterwards. What 0032 does is pinned directly on
+  purpose-built rows, and that is now the only place the migration is measured.
+- 2026-09-04 — **B3: a curated removal of exactly `tsp` is not distinguishable
+  from a pristine row, so on a MIGRATED database 0032 widens it.** Stated
+  plainly because B2 made it visible: a row that removed `tsp` and nothing else
+  satisfies B-D3's fence exactly, so the backfill puts it back. This is not a
+  defect in the guard — B-D3 is as sharp as the stored data allows — and it is
+  the collision ADR-0009 already accepted in its own words ("a household that
+  deliberately removed a density-unlocked unit … gets it back. Accepted … the
+  unit is sayable again"). It costs the template nothing, because the seed
+  re-materializes and re-curates on every reset. Left as behaviour, recorded
+  rather than patched; a fence that could tell the two apart needs the row to
+  record that it was curated, which is a schema question and not this plan's.
+- 2026-09-04 — **B4: the pgTAP re-run of 0032's statement is scoped to its own
+  fixtures.** Unscoped it widened real curated template rows inside the test
+  transaction, which hid what the template looks like from the assertion below
+  it (it reported 3 rows rather than 8) and, in a test, undid the curation the
+  fence exists to protect. The guards are what is under test; the table scope
+  is not.
+
 ## Notes / open questions
 
 - Front B is the only place this plan touches existing data, and B-D3 is the
