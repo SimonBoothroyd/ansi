@@ -7,9 +7,14 @@
 /// ([ShoppingGroup]), and keeps the provenance breakdown (spec §4:
 /// "Flour — 500g · Curry batch 300g · Cookies 150g · +50g manual").
 ///
-/// Contributions come in two flavours (spec §4):
+/// Contributions come in three flavours (spec §4):
 ///   * `cookSession` — DERIVED live from the cook plan (quantity = a recipe
 ///     line × the session's scale factor). Never persisted.
+///   * `planEntry` — DERIVED live from a planned meal that is a bare
+///     INGREDIENT rather than a recipe (step 8.14 / A-D4: quantity = its
+///     stated per-portion amount × its demand). A snack is never cooked, so it
+///     belongs to no session — which is why this derivation walks the week's
+///     **entries**, not only its cook sessions. Never persisted.
 ///   * `manual` — a user top-up on an ingredient, or a quantity on a free-text
 ///     item. Persisted (`shopping_list_contribution`).
 ///
@@ -32,8 +37,10 @@ import '../../../core/units/units.dart';
 part 'shopping.freezed.dart';
 
 /// Where a contribution comes from (spec §4). `cookSession` contributions are
-/// derived from the cook plan; `manual` ones are user top-ups / free-text.
-enum ContributionSource { cookSession, manual }
+/// derived from the cook plan; `planEntry` ones from a planned meal that is a
+/// bare INGREDIENT rather than a recipe (step 8.14 / A-D4 — nothing is cooked,
+/// but it is still bought); `manual` ones are user top-ups / free-text.
+enum ContributionSource { cookSession, planEntry, manual }
 
 // --- Builder inputs ----------------------------------------------------------
 // Light record types (not entities) the repository assembles from SQL + the
@@ -67,6 +74,30 @@ typedef CookContributionInput = ({
   int cookDay,
   bool batched,
   List<String> forParents,
+});
+
+/// One planned INGREDIENT meal, already multiplied by its demand (step 8.14 /
+/// A-D4).
+///
+/// The list is derived from the batch cook plan **and from the week's entries**
+/// — because a snack is never cooked, so it appears in no session, and a
+/// derivation that walked only sessions would leave a hole in a list somebody
+/// shops from. `quantity` is the entry's stated per-portion amount × the
+/// entry's demand (Σ portion factors, the override winning) — a snack two
+/// people are having is bought twice.
+///
+/// `unit` / `rawUnit` / `measure` degrade exactly as [CookContributionInput]'s
+/// do: an unrecognised unit or an unusable measure is a visible note, never a
+/// number folded into a total. `dayOfWeek` and `mealSlot` label the breakdown
+/// ("Snack · Tue").
+typedef PlanIngredientInput = ({
+  String ingredientId,
+  double? quantity,
+  Unit? unit,
+  String? rawUnit,
+  Measure? measure,
+  int dayOfWeek,
+  String mealSlot,
 });
 
 /// One planned recipe's "N components unresolved" echo (step 8.6 / D4).
@@ -163,7 +194,9 @@ abstract class ShoppingContribution with _$ShoppingContribution {
     /// never re-saved here).
     String? measureId,
 
-    /// Cook day (0=Mon..6=Sun) for a cook contribution — orders the breakdown.
+    /// The day (0=Mon..6=Sun) a DERIVED contribution belongs to — a session's
+    /// cook day, or a planned snack's own day — which orders the breakdown.
+    /// Null for a manual top-up, which belongs to no day.
     int? cookDay,
 
     /// The persisted `shopping_list_contribution` id — set only for a `manual`
@@ -494,16 +527,82 @@ String cookLabel(CookContributionInput c, List<String> weekdayShort) {
   ].join(' · ');
 }
 
+/// The provenance label for a planned INGREDIENT meal (step 8.14 / A-D4):
+/// the slot it sits in and the day it is for — "Snack · Tue". No cook day and
+/// no batch, because nothing about it is cooked; the item's own name is
+/// already the thing being bought, so the segment says *when*, not *what*.
+String planIngredientLabel(PlanIngredientInput p, List<String> weekdayShort) =>
+    '${p.mealSlot} · ${weekdayShort[p.dayOfWeek]}';
+
+/// One DERIVED contribution, with the three degradations every derived source
+/// shares — the cook plan's and the week's snacks read one rule, so the two
+/// cannot drift.
+///
+/// A quantity whose unit wasn't recognised is surfaced as an unconverted note
+/// (no quantity/unit → renders as a dash + note) and stays out of the totals:
+/// summing it under an assumed unit would invent semantics (invariant 3). A
+/// measure with a non-positive/NaN gram weight is bad data and gets the same
+/// treatment — a visible "not counted" note, never a silent drop from the
+/// total. And a measure counts THINGS, so its row always stores a count unit
+/// (`piece`): a NON-count unit beside a measure id is a contradictory row (is
+/// the number grams or a measure count?), and folding it through the gram
+/// weight would invent mass, so it degrades the same way. A valid
+/// measure-quantified line keeps its measure so the fold can price it.
+ShoppingContribution _derivedContribution({
+  required ContributionSource source,
+  required String label,
+  required double? quantity,
+  required Unit? unit,
+  required String? rawUnit,
+  required Measure? measure,
+  required int day,
+}) {
+  final String? refusal;
+  if (unit == null && measure == null && quantity != null) {
+    refusal =
+        'not counted (unrecognised unit'
+        '${rawUnit == null ? '' : ' "$rawUnit"'})';
+  } else if (measure != null && !(measure.amount > 0) && quantity != null) {
+    refusal = 'not counted (invalid measure "${measure.label}")';
+  } else if (measure != null &&
+      unit != null &&
+      unit.family != UnitFamily.count &&
+      quantity != null) {
+    refusal = 'not counted (measure beside non-count unit "${unit.label}")';
+  } else {
+    refusal = null;
+  }
+
+  if (refusal != null) {
+    return ShoppingContribution(
+      source: source,
+      label: '$label · $refusal',
+      cookDay: day,
+    );
+  }
+  return ShoppingContribution(
+    source: source,
+    label: label,
+    quantity: quantity,
+    unit: measure == null ? unit : null,
+    measure: measure,
+    cookDay: day,
+  );
+}
+
 /// Assembles the derived shopping list from its parts (spec §4).
 ///
-/// [cook] are the derived cook contributions; [entries] the persisted
-/// check-off/free-text rows; [manual] the persisted manual contributions keyed
-/// by their entry; [meta] the ingredient vocab (name, aisle, density).
-/// [weekdayShort] labels cook days without pulling a formatter into the domain.
+/// [cook] are the derived cook contributions; [planned] the week's bare
+/// INGREDIENT meals, already multiplied by their demand (step 8.14 / A-D4);
+/// [entries] the persisted check-off/free-text rows; [manual] the persisted
+/// manual contributions keyed by their entry; [meta] the ingredient vocab
+/// (name, aisle, density). [weekdayShort] labels days without pulling a
+/// formatter into the domain.
 ///
 /// An entry is only surfaced while it has at least one live contribution (a
-/// cook one or a manual one) or is a free-text item — so an ingredient whose
-/// recipe was deleted (leaving only a stale checked row) drops off the list.
+/// cook one, a planned snack, or a manual one) or is a free-text item — so an
+/// ingredient whose recipe was deleted (leaving only a stale checked row)
+/// drops off the list.
 ///
 /// Two live entries for the same ingredient can exist (two offline devices each
 /// touching Flour, merged later — no unique index guards this, by design: one
@@ -524,6 +623,7 @@ ShoppingList buildShoppingList({
   required Map<String, List<ManualContributionInput>> manual,
   required Map<String, IngredientMetaInput> meta,
   required List<String> weekdayShort,
+  List<PlanIngredientInput> planned = const [],
   List<UnresolvedComponentNote> unresolvedComponents = const [],
   List<OptionalLinesNote> optionalLines = const [],
 }) {
@@ -554,9 +654,18 @@ ShoppingList buildShoppingList({
     (cookByIngredient[c.ingredientId] ??= []).add(c);
   }
 
-  // Every ingredient that has a cook contribution or a touched entry.
+  // …and the week's bare-ingredient meals, which belong to NO cook session
+  // (A-D4: nothing about a snack is cooked) and would be missing from the list
+  // entirely if the derivation only ever walked sessions.
+  final plannedByIngredient = <String, List<PlanIngredientInput>>{};
+  for (final p in planned) {
+    (plannedByIngredient[p.ingredientId] ??= []).add(p);
+  }
+
+  // Every ingredient that has a derived contribution or a touched entry.
   final ingredientIds = <String>{
     ...cookByIngredient.keys,
+    ...plannedByIngredient.keys,
     ...entriesByIngredient.keys,
   };
 
@@ -570,72 +679,49 @@ ShoppingList buildShoppingList({
     final entry = ingredientEntries.isEmpty ? null : ingredientEntries.first;
     final checked = ingredientEntries.any((e) => e.checked);
     final cooks = cookByIngredient[id] ?? const <CookContributionInput>[];
+    final snacks = plannedByIngredient[id] ?? const <PlanIngredientInput>[];
     final manuals = <ManualContributionInput>[
       for (final e in ingredientEntries) ...manual[e.id] ?? const [],
     ];
 
-    // An entry with neither a cook nor a manual contribution is a stale
-    // check-off (its recipe was removed) — skip it (lifecycle note, 0006 SQL).
-    if (cooks.isEmpty && manuals.isEmpty) continue;
+    // An entry with no live contribution of any kind is a stale check-off (its
+    // recipe or its snack was removed) — skip it (lifecycle note, 0006 SQL).
+    if (cooks.isEmpty && snacks.isEmpty && manuals.isEmpty) continue;
 
     final m = meta[id];
     final contributions = <ShoppingContribution>[
+      // The two DERIVED sources read one rule (see [_derivedContribution]) and
+      // interleave by day, so a Tuesday snack sits beside a Tuesday cook
+      // rather than in a section of its own.
       for (final c in [
-        ...cooks,
-      ]..sort((a, b) => a.cookDay.compareTo(b.cookDay)))
-        // A quantity whose unit wasn't recognised is surfaced as an
-        // unconverted note (no quantity/unit → renders as a dash + note) and
-        // stays out of the totals: summing it under an assumed unit would
-        // invent semantics (invariant 3). A measure with a non-positive/NaN
-        // gram weight is bad data and gets the same treatment — a visible
-        // "not counted" note, never a silent drop from the total. A valid
-        // measure-quantified line keeps its measure so the fold below can
-        // price it in grams.
-        if (c.unit == null && c.measure == null && c.quantity != null)
-          ShoppingContribution(
-            source: ContributionSource.cookSession,
-            label:
-                '${cookLabel(c, weekdayShort)} · '
-                'not counted (unrecognised unit'
-                '${c.rawUnit == null ? '' : ' "${c.rawUnit}"'})',
-            cookDay: c.cookDay,
-          )
-        else if (c.measure != null &&
-            !(c.measure!.amount > 0) &&
-            c.quantity != null)
-          ShoppingContribution(
-            source: ContributionSource.cookSession,
-            label:
-                '${cookLabel(c, weekdayShort)} · '
-                'not counted (invalid measure "${c.measure!.label}")',
-            cookDay: c.cookDay,
-          )
-        // A measure counts THINGS, so its row always stores a count unit
-        // ('piece'). A NON-count unit beside a measure_id is a contradictory
-        // row — is the number grams or a measure count? Folding it through
-        // the gram weight would invent mass (the review's ×299 leaks), so it
-        // degrades to a visible note like the paths above.
-        else if (c.measure != null &&
-            c.unit != null &&
-            c.unit!.family != UnitFamily.count &&
-            c.quantity != null)
-          ShoppingContribution(
-            source: ContributionSource.cookSession,
-            label:
-                '${cookLabel(c, weekdayShort)} · '
-                'not counted (measure beside non-count unit '
-                '"${c.unit!.label}")',
-            cookDay: c.cookDay,
-          )
-        else
-          ShoppingContribution(
-            source: ContributionSource.cookSession,
-            label: cookLabel(c, weekdayShort),
-            quantity: c.quantity,
-            unit: c.measure == null ? c.unit : null,
-            measure: c.measure,
-            cookDay: c.cookDay,
+        for (final c in cooks)
+          (
+            day: c.cookDay,
+            build: () => _derivedContribution(
+              source: ContributionSource.cookSession,
+              label: cookLabel(c, weekdayShort),
+              quantity: c.quantity,
+              unit: c.unit,
+              rawUnit: c.rawUnit,
+              measure: c.measure,
+              day: c.cookDay,
+            ),
           ),
+        for (final p in snacks)
+          (
+            day: p.dayOfWeek,
+            build: () => _derivedContribution(
+              source: ContributionSource.planEntry,
+              label: planIngredientLabel(p, weekdayShort),
+              quantity: p.quantity,
+              unit: p.unit,
+              rawUnit: p.rawUnit,
+              measure: p.measure,
+              day: p.dayOfWeek,
+            ),
+          ),
+      ]..sort((a, b) => a.day.compareTo(b.day)))
+        c.build(),
       for (final man in manuals)
         if (man.measure != null &&
             !(man.measure!.amount > 0) &&

@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Week</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/active/0027-field-test-round-four.md">plan 0027</a></p>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/active/0038-plan-an-ingredient.md">plan 0038</a></p>
     <p class="view-blurb">One screen with one state — no mode, no separate page. The switcher is the only title, and the week on screen is the week Cook and Shop follow.</p>
 </header>
 
@@ -126,6 +126,50 @@
             </div>
 
             <p class="conv-note">the same three words everywhere — <b>incomplete</b>, the reason from <code>incompleteNote</code> (<i>1 stub line · 2 stub lines · 1 unconvertible · 1 sub-recipe unresolved</i>), and a denominator</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>A slot takes an ingredient</b> · a protein bar is planned as a protein bar, not as a one-line recipe</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span></div>
+            <div class="lensrow"><span class="lbl">for</span><span class="pchip on">Everyone</span><span class="pchip"><span class="av a">A</span>Ada</span><span class="pchip"><span class="av j">J</span>Jun</span></div>
+
+            <div class="day2 today"><div class="day2-head"><div class="day2-name">Tuesday</div><span class="day2-date">1 Sep</span><span class="todaytag">TODAY</span></div>
+                <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Slow-Cooker Beef Ragù</span><span class="cookmark"><span class="mini-fresh"></span>cooks Tue · batch of 2</span></div><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
+                <div class="srow"><span class="slab">Snack</span><div class="dishcell"><span class="sname" style="font-family:'Inter',sans-serif;font-size:13.5px;font-weight:400;color:var(--ink)">Protein bar</span><span class="cookmark from" style="font-family:'IBM Plex Mono',monospace">1 bar · 60 g</span></div><span class="avs"><span class="av j">J</span></span><span class="rmv">−</span></div>
+                <div class="srow"><span class="slab">Snack</span><div class="dishcell"><span class="sname" style="font-family:'Inter',sans-serif;font-size:13.5px;font-weight:400;color:var(--ink)">Greek yoghurt</span><span class="cookmark from" style="font-family:'IBM Plex Mono',monospace">170 g</span></div><span class="avs"><span class="av a">A</span></span><span class="rmv">−</span></div>
+                <div class="emptyline"><span class="plus">＋</span>add a meal</div>
+                <div class="daymac"><span class="dm">2 690<span class="u">kcal</span></span><span class="dm">176<span class="u">g p</span></span><span class="dm">188<span class="u">g c</span></span><span class="dm">124<span class="u">g f</span></span><span class="scope">4 items</span></div>
+            </div>
+
+            <p class="conv-note" style="margin-top:12px">an ingredient row is <b>visibly not a recipe</b>: it drops the dish's herb-deep emphasis — the cue that says a recipe page is behind the title — carries its <b>amount</b> where a cook marker would sit, and has <b>no</b> shelf-life chip, batch hint or cook marker; nothing about it is cooked</p>
+            <p class="conv-note">its title still opens the thing it names — the <b>ingredient</b> page, never a recipe one</p>
+            <p class="conv-note">it <b>counts</b>, and it <b>multiplies</b>: the stated amount is one portion, so two people having the same snack is two of them — in the day's macro strip and on the shopping list alike</p>
+            <p class="conv-note">a <b>stub</b> ingredient contributes nothing and says so in a stub LINE's own words (<i>stub ingredient · needs a weight · needs a density</i>) — the honest-numbers rule is not relaxed for a snack, and an amount-less snack reads <i>no amount</i> rather than blank</p>
+            <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>One door, two kinds of thing</b> · the picker gained a section, not a second <code>＋</code></p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <p class="conv-note" style="margin:8px 0 8px">＋ on <i>Tuesday</i> → the same picker, searched</p>
+            <div class="lib-hfield" style="margin:0 20px"><span class="mag">⌕</span><span>prot</span></div>
+
+            <p class="conv-note" style="margin-top:14px;letter-spacing:.16em;text-transform:uppercase;font-size:10px">Recipes</p>
+            <div style="margin:0 20px"><div class="lib-row"><span class="t">Protein Pancakes</span><span class="sv">serves 2 · keeps 3 d</span></div></div>
+
+            <p class="conv-note" style="margin-top:12px;letter-spacing:.16em;text-transform:uppercase;font-size:10px">Ingredients</p>
+            <div style="margin:0 20px">
+                <div class="lib-row"><span class="t" style="font-family:'Inter',sans-serif;font-size:13.5px">Protein bar</span><span class="sv">1 bar = 60 g · 210 kcal</span></div>
+                <div class="lib-row"><span class="t" style="font-family:'Inter',sans-serif;font-size:13.5px">Protein powder</span><span class="sv">needs macros</span></div>
+            </div>
+
+            <p class="conv-note" style="margin-top:14px">picking an ingredient opens the <b>same quantity sheet</b> every other amount in the app uses, seeded from the row's stated default measure — so “1 bar” means a bar</p>
+            <p class="conv-note">the ingredients section appears only once something is <b>typed</b>: an empty query is the browse surface it always was, and nobody opens “add a meal” to browse the vocabulary</p>
+            <p class="conv-note">one door, because a cook should not have to know <b>before searching</b> whether the thing they want is a recipe — the line picker's own rule, one screen over</p>
+            <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
         </div></div>
     </div>
 

@@ -9,6 +9,7 @@ library;
 
 import 'dart:async';
 
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/planning_repository.dart';
 
@@ -48,6 +49,21 @@ class FakePlanningRepository implements PlanningRepository {
   @override
   Stream<Map<String, DateTime>> watchLastPlanned() => Stream.value(const {});
 
+  /// Every ingredient meal added through [addIngredientEntry], in order — the
+  /// snack door's writes, for tests that assert what the picker wrote.
+  final ingredientEntries =
+      <
+        ({
+          int dayOfWeek,
+          String mealSlot,
+          String ingredientId,
+          double? quantity,
+          Unit? unit,
+          String? measureId,
+          List<String> eaterIds,
+        })
+      >[];
+
   @override
   Future<String> addEntry({
     required DateTime weekStart,
@@ -57,6 +73,30 @@ class FakePlanningRepository implements PlanningRepository {
     required List<String> eaterIds,
     int? portions,
   }) async => 'e';
+
+  @override
+  Future<String> addIngredientEntry({
+    required DateTime weekStart,
+    required int dayOfWeek,
+    required String mealSlot,
+    required String ingredientId,
+    required List<String> eaterIds,
+    double? quantity,
+    Unit? unit,
+    String? measureId,
+    int? portions,
+  }) async {
+    ingredientEntries.add((
+      dayOfWeek: dayOfWeek,
+      mealSlot: mealSlot,
+      ingredientId: ingredientId,
+      quantity: quantity,
+      unit: unit,
+      measureId: measureId,
+      eaterIds: eaterIds,
+    ));
+    return 'i';
+  }
 
   @override
   Future<void> setEaters(String entryId, List<String> eaterIds) async {}

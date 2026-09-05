@@ -1,4 +1,8 @@
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
+import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -237,6 +241,60 @@ void main() {
       expect(formatMealCount(0), 'empty');
       expect(formatMealCount(1), '1 meal');
       expect(formatMealCount(9), '9 meals');
+    });
+  });
+
+  group('snackAmount — what sits where a cook marker would (8.14 / A-D5)', () {
+    PlanEntry snack({double? quantity, Unit? unit, Measure? measure}) =>
+        PlanEntry(
+          id: 'e',
+          dayOfWeek: 1,
+          mealSlot: 'Snack',
+          ingredientId: 'i1',
+          ingredientName: 'Protein bar',
+          quantity: quantity,
+          unit: unit,
+          measureId: measure?.id,
+          measure: measure,
+        );
+
+    test('a measure prints the count AND what one of them weighs', () {
+      expect(
+        snackAmount(
+          snack(
+            quantity: 1,
+            unit: pieces,
+            measure: const Measure(id: 'm', label: 'bar', amount: 60),
+          ),
+        ),
+        '1 bar · 60 g',
+      );
+    });
+
+    test('a plain unit prints itself', () {
+      expect(snackAmount(snack(quantity: 170, unit: g)), '170 g');
+    });
+
+    test('a per-ml row states its measure in ml, not invented grams', () {
+      expect(
+        snackAmount(
+          snack(
+            quantity: 1,
+            unit: pieces,
+            measure: const Measure(
+              id: 'm',
+              label: 'pot',
+              amount: 150,
+              basis: MacrosBasis.perMl,
+            ),
+          ),
+        ),
+        '1 pot · 150 ml',
+      );
+    });
+
+    test('no amount is a named state, never an empty line', () {
+      expect(snackAmount(snack()), 'no amount');
     });
   });
 }

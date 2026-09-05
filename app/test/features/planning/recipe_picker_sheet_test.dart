@@ -4,8 +4,12 @@
 
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
+import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
+import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/presentation/recipe_picker_sheet.dart';
@@ -19,6 +23,7 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
+import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
@@ -67,36 +72,62 @@ class _FakeBookRepo extends FakeBookRepository {
   const _FakeBookRepo() : super(const [Book(id: 'b1', name: 'Our Cookbook')]);
 }
 
+/// The one door's second corpus (step 8.14 / C-D1): the household vocabulary,
+/// searched by the same call the editor's line picker makes.
+const _bar = Ingredient(
+  id: 'i1',
+  canonicalName: 'Protein bar',
+  defaultUnit: g,
+  status: IngredientStatus.complete,
+  macros: Macros(kcal: 350, protein: 33, carb: 30, fat: 11),
+);
+
+class _FakeVocab extends ReadOnlyIngredientRepo {
+  const _FakeVocab();
+
+  @override
+  Future<IngredientMatches> search(String query, {int limit = 30}) async =>
+      query.toLowerCase().startsWith('prot')
+      ? (rows: <Ingredient>[_bar], guessed: false)
+      : (rows: const <Ingredient>[], guessed: false);
+}
+
 /// A host whose button opens the picker sheet for Wednesday dinner.
-Widget _host({List<RecipeSummary> recipes = const [_curry, _salad]}) =>
-    ProviderScope(
-      overrides: [
-        recipeRepositoryProvider.overrideWithValue(
-          FakeRecipeRepository(summaries: recipes),
-        ),
-        planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
-        bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
-      ],
-      child: MaterialApp(
-        home: FTheme(
-          data: ansiThemeData(),
-          child: FScaffold(
-            child: Builder(
-              builder: (context) => Center(
-                child: GestureDetector(
-                  onTap: () => showRecipePickerSheet(
-                    context,
-                    dayOfWeek: 2,
-                    slot: 'Dinner',
-                  ),
-                  child: const Text('open'),
-                ),
-              ),
+Widget _host({
+  List<RecipeSummary> recipes = const [_curry, _salad],
+  void Function(PickedMeal?)? onPicked,
+}) => ProviderScope(
+  overrides: [
+    recipeRepositoryProvider.overrideWithValue(
+      FakeRecipeRepository(summaries: recipes),
+    ),
+    planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
+    bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
+    ingredientRepositoryProvider.overrideWithValue(const _FakeVocab()),
+  ],
+  child: MaterialApp(
+    home: FTheme(
+      data: ansiThemeData(),
+      child: FScaffold(
+        child: Builder(
+          builder: (context) => Center(
+            child: GestureDetector(
+              onTap: () async {
+                final picked = await showRecipePickerSheet(
+                  context,
+                  dayOfWeek: 2,
+                  slot: 'Dinner',
+                );
+                onPicked?.call(picked);
+              },
+              child: const Text('open'),
             ),
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
 
 Future<void> _open(
   WidgetTester tester, {
@@ -202,5 +233,47 @@ void main() {
     await tester.tap(find.text('Favorites'));
     await tester.pumpAndSettle();
     expect(find.textContaining('star a recipe'), findsOneWidget);
+  });
+
+  // --- One door, two kinds of thing (step 8.14 / C-D1) ----------------------
+
+  group('the ingredients section', () {
+    testWidgets('is absent until something is typed — an empty query is the '
+        'shipped browse surface', (tester) async {
+      await _open(tester);
+      expect(find.text('INGREDIENTS'), findsNothing);
+      expect(find.text('Protein bar'), findsNothing);
+    });
+
+    testWidgets('appears under the recipe rows when the query hits the '
+        'vocabulary', (tester) async {
+      filterForuiSemanticsAssertions();
+
+      await _open(tester);
+      await tester.enterText(find.byType(EditableText).first, 'prot');
+      await tester.pumpAndSettle();
+
+      expect(find.text('INGREDIENTS'), findsOneWidget);
+      expect(find.text('Protein bar'), findsOneWidget);
+      // Still one door: there is no second ＋ for ingredients.
+      expect(find.textContaining('new recipe'), findsOneWidget);
+    });
+
+    testWidgets('picking one resolves the picker to an INGREDIENT, not a '
+        'recipe', (tester) async {
+      filterForuiSemanticsAssertions();
+
+      PickedMeal? picked;
+      await tester.pumpWidget(_host(onPicked: (p) => picked = p));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(EditableText).first, 'prot');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Protein bar'));
+      await tester.pumpAndSettle();
+
+      expect(picked, isA<PickedIngredientMeal>());
+      expect((picked! as PickedIngredientMeal).ingredient.id, 'i1');
+    });
   });
 }

@@ -43,7 +43,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/measure.dart';
 import '../../../core/units/portions.dart';
+import '../../../core/units/units.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_chip.dart';
 import '../../../shared/ansi_error_state.dart';
@@ -52,6 +54,10 @@ import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
+import '../../ingredients/data/ingredient_providers.dart';
+import '../../ingredients/domain/allowed_units.dart';
+import '../../ingredients/domain/ingredient.dart';
+import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'confirm_meal_sheet.dart';
@@ -65,9 +71,15 @@ import 'week_widgets.dart';
 
 const _kDefaultSlot = 'Dinner';
 
-/// The two-step add flow: pick a recipe, then confirm slot/eaters/portions.
+/// The add flow: pick from the ONE door, then confirm slot/eaters/portions.
+///
+/// A recipe goes straight to the confirm sheet — its amount is its portions.
+/// A bare ingredient (step 8.14) stops at the shipped quantity sheet first,
+/// seeded from the row's stated default measure (A-D2), so "1 bar" means a
+/// bar; then the same confirm sheet asks the questions both kinds share.
 Future<void> _addMealFlow(
-  BuildContext context, {
+  BuildContext context,
+  WidgetRef ref, {
   required DateTime weekStart,
   required int dayOfWeek,
 }) async {
@@ -76,12 +88,49 @@ Future<void> _addMealFlow(
   // the time a recipe is tapped. The confirm sheet opens from a context that
   // outlives the card (`hostContextOf`), so the pick is never dropped.
   final host = hostContextOf(context);
-  final recipe = await showRecipePickerSheet(
+  final picked = await showRecipePickerSheet(
     context,
     dayOfWeek: dayOfWeek,
     slot: _kDefaultSlot,
   );
-  if (recipe == null) return;
+  if (picked == null) return;
+
+  final MealTarget target;
+  switch (picked) {
+    case PickedRecipe(:final recipe):
+      target = RecipeMeal(recipe);
+    case PickedIngredientMeal(:final ingredient):
+      final seed = await _defaultMeasureOf(ref, ingredient);
+      final result = await showQuantityUnitSheet(
+        // The host outlives the row — see [hostContextOf].
+        // ignore: use_build_context_synchronously
+        host.context,
+        ingredient: ingredient,
+        initialChoice: seed == null ? null : MeasureOption(seed),
+        initialQuantity: seed == null ? null : 1,
+        requireQuantity: true,
+        confirmLabel: 'Next',
+      );
+      // Backing out of the amount backs out of the whole add: an entry with
+      // no amount is a real state, but not one anybody asked for here.
+      if (result is! QuantitySaved) return;
+      target = SnackMeal(
+        ingredient: ingredient,
+        quantity: result.quantity,
+        unit: switch (result.choice) {
+          // A measure counts THINGS, so its row stores the honest count
+          // fallback beside the measure id — the same pair every other
+          // measure-quantified row in the app stores.
+          MeasureOption() => pieces,
+          UnitOption(:final unit) => unit,
+        },
+        measure: switch (result.choice) {
+          MeasureOption(:final measure) => measure,
+          UnitOption() => null,
+        },
+      );
+  }
+
   await showConfirmMealSheet(
     // The host outlives the row — see [hostContextOf].
     // ignore: use_build_context_synchronously
@@ -89,8 +138,21 @@ Future<void> _addMealFlow(
     weekStart: weekStart,
     dayOfWeek: dayOfWeek,
     slot: _kDefaultSlot,
-    recipe: recipe,
+    target: target,
   );
+}
+
+/// The ingredient's stated default measure — what a bare count of it MEANS
+/// (`default_measure_id`, migration 0023) — or null when the row says "ask me
+/// each time", which is a real answer and leaves the sheet on its own default
+/// unit.
+Future<Measure?> _defaultMeasureOf(WidgetRef ref, Ingredient ingredient) async {
+  final id = ingredient.defaultMeasureId;
+  if (id == null) return null;
+  final measures = await ref.read(
+    ingredientMeasuresProvider(ingredient.id).future,
+  );
+  return measures.where((m) => m.id == id).firstOrNull;
 }
 
 class WeekView extends HookConsumerWidget {
@@ -378,8 +440,12 @@ class _DayCard extends ConsumerWidget {
         // you pointed at (D5b) and there is no second widget to keep in step.
         AddMealLine(
           empty: visible.isEmpty,
-          onTap: () =>
-              _addMealFlow(context, weekStart: weekStart, dayOfWeek: dayOfWeek),
+          onTap: () => _addMealFlow(
+            context,
+            ref,
+            weekStart: weekStart,
+            dayOfWeek: dayOfWeek,
+          ),
         ),
         // The day's own honest total, with its denominator (D4). Absent on an
         // empty day: `no meals` is a state, never `0 kcal`.
@@ -492,15 +558,21 @@ class _DishRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final deleted = entry.recipeTitle == null;
+    final snack = entry.isIngredient;
+    final deleted = entry.title == null;
     final plan = cookPlan;
     // E6: the marker is never suppressed — there is no mode left to suppress
     // it in, and the cook consequence is most worth reading while planning.
-    final marker = plan == null
+    //
+    // A SNACK has no cook marker, and that is a ruling, not an omission
+    // (step 8.14 / A-D5): nothing about a protein bar is cooked, so a row that
+    // drew a shelf-life chip or a batch hint would be describing a recipe.
+    // Its stated amount sits in the marker's place instead.
+    final marker = plan == null || snack
         ? null
         : cookMarkerFor(
             plan,
-            recipeId: entry.recipeId,
+            recipeId: entry.recipeId!,
             dayOfWeek: entry.dayOfWeek,
             mealSlot: entry.mealSlot,
           );
@@ -522,22 +594,36 @@ class _DishRow extends ConsumerWidget {
               Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  // A deleted recipe has no page to open, so the title is
-                  // inert — the row's other two targets still work, because
-                  // the meal is still a real row on the week.
+                  // The title opens the thing it NAMES — a recipe's page, or,
+                  // for a snack, its ingredient page (A-D5: an ingredient
+                  // detail link at most; never a recipe door on a row that is
+                  // not a recipe). A deleted target has no page to open, so
+                  // the title is inert — the row's other two targets still
+                  // work, because the meal is still a real row on the week.
                   onTap: deleted
                       ? null
-                      : () => context.pushOnce('/recipes/${entry.recipeId}'),
+                      : () => context.pushOnce(
+                          snack
+                              ? '/ingredients/${entry.ingredientId}'
+                              : '/recipes/${entry.recipeId}',
+                        ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Text(
-                      entry.recipeTitle ?? '(deleted recipe)',
+                      entry.title ??
+                          (snack ? '(deleted ingredient)' : '(deleted recipe)'),
+                      // A snack is VISIBLY not a recipe (A-D5): the dish's
+                      // emphasis is what says "this is a dish with a page
+                      // behind it", so a bare ingredient reads at the row's
+                      // ordinary weight instead of borrowing it.
                       style: deleted
                           ? ansiSans(size: 15, color: AnsiColors.muted)
                           : ansiSans(
-                              size: 15,
-                              color: AnsiColors.herbDeep,
-                              weight: FontWeight.w600,
+                              size: snack ? 14 : 15,
+                              color: snack
+                                  ? AnsiColors.ink
+                                  : AnsiColors.herbDeep,
+                              weight: snack ? FontWeight.w400 : FontWeight.w600,
                             ),
                     ),
                   ),
@@ -557,6 +643,18 @@ class _DishRow extends ConsumerWidget {
               child: CookMarkerLine(
                 marker: marker,
                 todayDayOfWeek: todayDayOfWeek,
+              ),
+            ),
+          // The snack's amount sits exactly where a cook marker would (A-D5)
+          // — the row's second line says what this meal IS, since nothing
+          // about it is cooked.
+          if (snack)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                snackAmount(entry),
+                overflow: TextOverflow.ellipsis,
+                style: ansiMono(size: 10.5, color: AnsiColors.muted),
               ),
             ),
         ],
@@ -659,7 +757,7 @@ class _RemoveTarget extends ConsumerWidget {
       // ignore: use_build_context_synchronously
       host.context,
       what:
-          'Removed ${entry.recipeTitle ?? 'that meal'} from '
+          'Removed ${entry.title ?? 'that meal'} from '
           '${kWeekdayFull[entry.dayOfWeek]}.',
       // What would come back, in the words the row used: an undo you cannot
       // audit is a promise, not a control.
@@ -673,15 +771,29 @@ class _RemoveTarget extends ConsumerWidget {
           'put that meal back',
           // A new row with the same facts — the id was the removed one's, and
           // nothing downstream keys on it (the cook plan and the list both
-          // re-derive from the week).
-          () => repo.addEntry(
-            weekStart: weekStart,
-            dayOfWeek: entry.dayOfWeek,
-            mealSlot: entry.mealSlot,
-            recipeId: entry.recipeId,
-            eaterIds: entry.eaterIds,
-            portions: entry.portions,
-          ),
+          // re-derive from the week). A snack comes back as a snack, with its
+          // amount: an undo that quietly dropped half the row would be worse
+          // than no undo.
+          () => entry.isIngredient
+              ? repo.addIngredientEntry(
+                  weekStart: weekStart,
+                  dayOfWeek: entry.dayOfWeek,
+                  mealSlot: entry.mealSlot,
+                  ingredientId: entry.ingredientId!,
+                  eaterIds: entry.eaterIds,
+                  quantity: entry.quantity,
+                  unit: entry.unit,
+                  measureId: entry.measureId,
+                  portions: entry.portions,
+                )
+              : repo.addEntry(
+                  weekStart: weekStart,
+                  dayOfWeek: entry.dayOfWeek,
+                  mealSlot: entry.mealSlot,
+                  recipeId: entry.recipeId!,
+                  eaterIds: entry.eaterIds,
+                  portions: entry.portions,
+                ),
         ),
       ),
     );
@@ -768,7 +880,7 @@ class AddMealLine extends StatelessWidget {
 ///
 /// `copy last week` sits beside it only while the week has zero entries. Its
 /// permanent home is the switcher menu (D2).
-class _FirstMealBar extends StatelessWidget {
+class _FirstMealBar extends ConsumerWidget {
   const _FirstMealBar({
     required this.weekStart,
     required this.hasLastWeek,
@@ -780,7 +892,7 @@ class _FirstMealBar extends StatelessWidget {
   final VoidCallback onCopyLastWeek;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Column(
@@ -789,7 +901,7 @@ class _FirstMealBar extends StatelessWidget {
           FButton(
             prefix: const Icon(FLucideIcons.plus),
             onPress: () =>
-                _addMealFlow(context, weekStart: weekStart, dayOfWeek: 0),
+                _addMealFlow(context, ref, weekStart: weekStart, dayOfWeek: 0),
             child: const Text('Add the first meal'),
           ),
           if (hasLastWeek)

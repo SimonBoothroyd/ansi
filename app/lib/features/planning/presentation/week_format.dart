@@ -1,12 +1,14 @@
 /// Display strings for the Week screen: weekday labels, the week's own name,
-/// and the per-dish cook marker. Kept apart from widgets so the labels — and,
-/// for the marker, the derivation behind them — are trivially testable.
+/// the per-dish cook marker, and a snack row's stated amount. Kept apart from
+/// widgets so the labels — and, for the marker, the derivation behind them —
+/// are trivially testable.
 library;
 
 import 'dart:math' as math;
 
 import '../../../core/units/portions.dart';
 import '../../../core/words.dart';
+import '../../../shared/format.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../domain/planning.dart';
 
@@ -198,3 +200,26 @@ String cookMarkerLabel(CookMarker marker, {int? todayDayOfWeek}) =>
       CookMarkerKind.freezerShare =>
         '${kWeekdayFull[marker.cookDay]}\u2019s freezer share',
     };
+
+/// A snack row's amount, in the place a dish's cook marker would sit (step
+/// 8.14 / A-D5): `1 bar · 60 g`, `170 g`, or `no amount`.
+///
+/// The second segment is what the measure WEIGHS — the stored fact, not a
+/// conversion — so the row states both what was planned and what it comes to.
+/// It is omitted when the amount is already in the basis unit, which would
+/// only repeat it.
+///
+/// `no amount` is a real state, not an empty string: an entry that states none
+/// contributes nothing to the week's macros or to the shopping list, and a row
+/// that said nothing about it would be hiding the reason.
+String snackAmount(PlanEntry entry) {
+  final quantity = entry.quantity;
+  final unit = entry.unit;
+  if (quantity == null || unit == null) return 'no amount';
+  final measure = entry.measure;
+  if (measure == null) return '${formatQuantity(quantity)} ${unit.label}';
+  final weighs =
+      '${formatQuantity(measure.amount)} '
+      '${measure.basis.baseUnit.label}';
+  return '${formatQuantity(quantity)} ${measure.label} · $weighs';
+}

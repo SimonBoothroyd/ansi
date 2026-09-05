@@ -6,6 +6,7 @@
 /// targeted (add / remove a meal, retarget its eaters) — no whole-week replace.
 library;
 
+import '../../../core/units/units.dart';
 import 'planning.dart';
 
 abstract interface class PlanningRepository {
@@ -39,15 +40,37 @@ abstract interface class PlanningRepository {
   /// (step 7.7). Recipes never planned are absent from the map.
   Stream<Map<String, DateTime>> watchLastPlanned();
 
-  /// Adds a meal to the week beginning [weekStart], creating the week if
-  /// needed. A null [portions] tracks the eater count (spec §8). Returns the
-  /// new entry id.
+  /// Adds a RECIPE meal to the week beginning [weekStart], creating the week
+  /// if needed. A null [portions] tracks the eater count (spec §8). Returns
+  /// the new entry id.
   Future<String> addEntry({
     required DateTime weekStart,
     required int dayOfWeek,
     required String mealSlot,
     required String recipeId,
     required List<String> eaterIds,
+    int? portions,
+  });
+
+  /// Adds an INGREDIENT meal — a protein bar, a yoghurt — to the week
+  /// beginning [weekStart] (step 8.14 / B-D1). The other half of the entry
+  /// XOR: this row names no recipe, and states the amount of ONE portion of
+  /// the ingredient instead.
+  ///
+  /// [quantity] and [unit] are set together or not at all; [measureId] names
+  /// the measure the amount is counted in ("1 bar"), in which case [unit]
+  /// carries the honest count fallback. It carries eaters and multiplies like
+  /// any other entry (A-D3), so [eaterIds] / [portions] mean exactly what they
+  /// mean on a dish.
+  Future<String> addIngredientEntry({
+    required DateTime weekStart,
+    required int dayOfWeek,
+    required String mealSlot,
+    required String ingredientId,
+    required List<String> eaterIds,
+    double? quantity,
+    Unit? unit,
+    String? measureId,
     int? portions,
   });
 

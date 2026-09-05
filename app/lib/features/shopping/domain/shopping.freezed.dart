@@ -24,7 +24,9 @@ mixin _$ShoppingContribution {
 /// so the edit sheet's re-save never wipes the FK for every device
 /// (mirrors the recipe line's [measureId]). Null for cook lines (derived,
 /// never re-saved here).
- String? get measureId;/// Cook day (0=Mon..6=Sun) for a cook contribution — orders the breakdown.
+ String? get measureId;/// The day (0=Mon..6=Sun) a DERIVED contribution belongs to — a session's
+/// cook day, or a planned snack's own day — which orders the breakdown.
+/// Null for a manual top-up, which belongs to no day.
  int? get cookDay;/// The persisted `shopping_list_contribution` id — set only for a `manual`
 /// contribution (a cook one is derived, so it has none). Lets the UI edit
 /// or remove this specific top-up.
@@ -246,7 +248,9 @@ class _ShoppingContribution implements ShoppingContribution {
 /// (mirrors the recipe line's [measureId]). Null for cook lines (derived,
 /// never re-saved here).
 @override final  String? measureId;
-/// Cook day (0=Mon..6=Sun) for a cook contribution — orders the breakdown.
+/// The day (0=Mon..6=Sun) a DERIVED contribution belongs to — a session's
+/// cook day, or a planned snack's own day — which orders the breakdown.
+/// Null for a manual top-up, which belongs to no day.
 @override final  int? cookDay;
 /// The persisted `shopping_list_contribution` id — set only for a `manual`
 /// contribution (a cook one is derived, so it has none). Lets the UI edit

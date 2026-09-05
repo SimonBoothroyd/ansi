@@ -32,6 +32,9 @@ import '../../books/presentation/text_prompt.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../recipes/domain/recipe.dart';
 import '../domain/planning.dart';
+import '../domain/week_macros.dart';
+import 'confirm_meal_sheet.dart' show SnackMeal;
+import 'week_format.dart';
 import 'week_widgets.dart';
 
 /// The picked recipe, with its shelf life and its HONEST per-serving line —
@@ -117,6 +120,115 @@ class MealRecipeCard extends StatelessWidget {
                         const IncompleteBadge(),
                         Text(
                           ' ${incompleteNote(summary)}',
+                          style: ansiMono(size: 10, color: AnsiColors.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The confirm sheet's card for a SNACK — a bare ingredient rather than a dish
+/// (step 8.14 / A-D5).
+///
+/// Deliberately not a recipe card wearing a different icon: there is no shelf
+/// life, no batch hint and no `/serving` denominator, because none of those are
+/// facts about a protein bar. What it prints instead is the amount the quantity
+/// sheet just settled, and — when the row can be weighed honestly — what one
+/// portion of that amount comes to. A stub says so in the words a stub recipe
+/// line uses, through the same [IncompleteBadge].
+class MealSnackCard extends StatelessWidget {
+  const MealSnackCard({required this.snack, super.key});
+
+  final SnackMeal snack;
+
+  @override
+  Widget build(BuildContext context) {
+    final entry = PlanEntry(
+      id: '',
+      dayOfWeek: 0,
+      mealSlot: '',
+      ingredientId: snack.ingredient.id,
+      ingredientName: snack.ingredient.canonicalName,
+      quantity: snack.quantity,
+      unit: snack.unit,
+      measureId: snack.measure?.id,
+      measure: snack.measure,
+      nutrition: (
+        macros: snack.ingredient.macros,
+        basis: snack.ingredient.macrosBasis,
+        densityGPerMl: snack.ingredient.densityGPerMl,
+      ),
+    );
+    final weighed = ingredientPortionMacros(entry, entry.nutrition);
+    final perPortion = weighed.perPortion;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AnsiColors.surface,
+        border: Border.all(color: AnsiColors.line),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AnsiColors.herbSoft,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              FLucideIcons.apple,
+              size: 20,
+              color: AnsiColors.herb,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(snack.ingredient.canonicalName, style: ansiSans(size: 15)),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    snackAmount(entry),
+                    style: ansiMono(size: 10, color: AnsiColors.muted),
+                  ),
+                ),
+                if (perPortion != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text.rich(
+                      TextSpan(
+                        text:
+                            '~${perPortion.kcal.round()} kcal · '
+                            '${perPortion.protein.round()}P',
+                        style: ansiMono(size: 10, color: AnsiColors.herbDeep),
+                        children: [
+                          TextSpan(
+                            text: ' /portion',
+                            style: ansiMono(size: 10, color: AnsiColors.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else if (weighed.reason != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Row(
+                      children: [
+                        const IncompleteBadge(),
+                        Text(
+                          ' ${incompleteLineNote(weighed.reason!)}',
                           style: ansiMono(size: 10, color: AnsiColors.muted),
                         ),
                       ],

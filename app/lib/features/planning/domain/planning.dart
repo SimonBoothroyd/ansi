@@ -2,7 +2,8 @@
 ///
 /// PURE DART (invariant 2): no `package:flutter`. A [WeekPlan] is one week
 /// (addressed by its Monday `weekStart`) holding the [PlanEntry] meals planned
-/// across its seven days. A [Member] is a person in the household; an entry's
+/// across its seven days. A meal names a recipe **or** a bare ingredient — see
+/// [PlanEntry]. A [Member] is a person in the household; an entry's
 /// [PlanEntry.eaterIds] point at them and the sum of their
 /// [Member.portionFactor]s is the entry's demand ([demandPortions]) unless the
 /// entry's whole-number [PlanEntry.portions] override says otherwise.
@@ -16,6 +17,10 @@ library;
 // the custom getters), which trips the unnamed-first sort lint.
 // ignore_for_file: sort_unnamed_constructors_first
 import 'package:freezed_annotation/freezed_annotation.dart';
+
+import '../../../core/units/measure.dart';
+import '../../../core/units/units.dart';
+import '../../recipes/domain/recipe_macros.dart' show IngredientNutrition;
 
 part 'planning.freezed.dart';
 
@@ -79,9 +84,31 @@ double eatersDemand(
 double demandPortions(PlanEntry entry, Map<String, Member> membersById) =>
     entry.portions?.toDouble() ?? eatersDemand(entry.eaterIds, membersById);
 
-/// One planned meal: a [recipeId] (with [recipeTitle] denormalised for display)
-/// on [dayOfWeek] (0=Monday..6=Sunday) under a free-text [mealSlot], eaten by
-/// [eaterIds]. [recipeTitle] is null when the recipe was deleted.
+/// One planned meal on [dayOfWeek] (0=Monday..6=Sunday) under a free-text
+/// [mealSlot], eaten by [eaterIds].
+///
+/// **A meal is a recipe OR a bare ingredient** — never both and never neither
+/// (step 8.14 / B-D1; the server's `plan_entry_target_xor` makes it total, the
+/// same shape a recipe line's ingredient/sub-recipe XOR has worn since 0017).
+/// Something you simply *eat* — a protein bar, a yoghurt — is planned as
+/// itself rather than dressed up as a one-line recipe.
+///
+/// Which target it is decides which columns speak:
+///
+/// * a **recipe** meal names [recipeId] ([recipeTitle] denormalised for
+///   display, null when the recipe was deleted) and carries no amount of its
+///   own — its amount is its [portions] / eaters;
+/// * an **ingredient** meal names [ingredientId] ([ingredientName]
+///   denormalised, null when the vocab row is gone or has not synced) and
+///   states the amount of ONE portion of it in [quantity] + [unit], or in a
+///   named [measure] ("1 bar").
+///
+/// It carries eaters and multiplies either way (A-D3, owner-ruled): multiple
+/// people can have the same snack, so [demandPortions] is unchanged and an
+/// ingredient meal is an ordinary entry with a different target.
+///
+/// Read [isIngredient] rather than testing [recipeId] for null by hand: a null
+/// recipe must never be read as "skip".
 @freezed
 abstract class PlanEntry with _$PlanEntry {
   const PlanEntry._();
@@ -90,14 +117,57 @@ abstract class PlanEntry with _$PlanEntry {
     required String id,
     required int dayOfWeek,
     required String mealSlot,
-    required String recipeId,
+
+    /// The dish, when this meal is one. Null exactly when [ingredientId] is
+    /// set (the XOR).
+    String? recipeId,
     String? recipeTitle,
+
+    /// The thing this meal IS, when it is not a recipe. Null exactly when
+    /// [recipeId] is set.
+    String? ingredientId,
+    String? ingredientName,
+
+    /// The amount of ONE portion of an ingredient meal. Null (with [unit]) on
+    /// a meal that states no amount — which contributes nothing to a total and
+    /// says so, rather than being completed by a guess (invariant 3). Always
+    /// null on a recipe meal.
+    double? quantity,
+    Unit? unit,
+
+    /// The persisted `measure_id`, verbatim — kept even while [measure] is
+    /// unresolved (the row has not synced, or was soft-deleted) so a re-save
+    /// never wipes the FK, exactly as a recipe line's does.
+    String? measureId,
+
+    /// The resolved named measure the amount is counted in ("1 bar"), when it
+    /// is. [unit] then holds the honest count fallback (`piece`).
+    Measure? measure,
+
+    /// The vocab row's macros / basis / density, denormalised for the same
+    /// reason [recipeTitle] is: the week's macro sum is a pure function of the
+    /// week it already loaded, and reading it a second way — a whole-vocabulary
+    /// watch behind the Week screen — would be a second place to drift.
+    ///
+    /// Null on a recipe meal, and null on an ingredient meal whose row has not
+    /// synced; `ingredientPortionMacros` (week_macros.dart) tells that apart
+    /// from a row that is present but a stub, and names each.
+    IngredientNutrition? nutrition,
     @Default(<String>[]) List<String> eaterIds,
 
     /// How many portions to cook for. Null means "track the eater count"; a
     /// number is an explicit override for big/small appetites (spec §8).
     int? portions,
   }) = _PlanEntry;
+
+  /// Whether this meal is a bare ingredient rather than a recipe. The one
+  /// question every derivation asks, so it is asked in one place.
+  bool get isIngredient => ingredientId != null;
+
+  /// The name this meal shows, or null when the row it names is gone — a
+  /// deleted recipe, or a vocab row this device cannot see. Null is a real
+  /// answer both ways: the surfaces print their own words for it.
+  String? get title => isIngredient ? ingredientName : recipeTitle;
 
   /// The entry's own portion count before the household's factors: the
   /// [portions] override, or the eater HEAD-count. The demand a plan cooks

@@ -99,7 +99,17 @@ const schema = Schema([
     Column.text('week_plan_id'),
     Column.integer('day_of_week'), // 0=Monday .. 6=Sunday
     Column.text('meal_slot'), // free text, not a preset enum
+    // A meal is a recipe OR a bare ingredient, never both and never neither
+    // (the server's XOR check, step 8.14 / 0033). Both columns are nullable
+    // here, so every reader must branch — a null `recipe_id` means "look at
+    // `ingredient_id`", never "skip".
     Column.text('recipe_id'),
+    Column.text('ingredient_id'), // → ingredient.id
+    // The amount of ONE portion of an ingredient meal; null on a recipe meal,
+    // whose amount is its `portions`.
+    Column.real('quantity'),
+    Column.text('unit'),
+    Column.text('measure_id'), // → ingredient_measure.id (nullable)
     Column.text('eaters'), // JSON array of household_member ids
     Column.integer('portions'), // null → defaults to |eaters|
     Column.integer('sort_order'),

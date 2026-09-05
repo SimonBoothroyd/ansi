@@ -340,9 +340,39 @@ go. There is no re-chip — tokenization happens only inside the import call.
   - `unique (household_id, week_start_date)` — **many weeks per household are legal**, one row per Monday, created lazily on a week's first meal. Nothing is written by *looking* at a week.
   - **A week is a position, not a singleton** (week redesign, D2). The app holds a *viewed week*, defaulting to the one containing today; the header names it (`This week · 31 Aug` / `Next week · 7 Sep` / `Last week · 24 Aug` / `Week of 14 Sep`) and steps through it. Unbounded in both directions; a past week is **editable, not locked** — nothing downstream corrupts, and every rule about *when* a week would lock is wrong for someone catching up on a Tuesday. There is no calendar and no month view, and "archived" is prose, not a column.
   - **Cook and Shop derive from the VIEWED week** (D3), not from the week containing today: you plan next week on a Sunday, so you must be able to cook and shop for it on a Sunday. There is **one** viewed week (plan 0025 D7a): changing it on any tab changes it on all three, and the week switcher is the **only title** of all three tabs (D7c — no "Batch cook plan" / "Shopping list"; the lit tab in the bar says where you are, which is why its selected state steps to herb-deep, D7d). The switcher's herb dot and its "This week" item are how a derived tab says which week it shows and offers the tap home; "Copy last week into this one" is a Week write and appears only on the Week screen's menu (D7b). Each tab's menu speaks in its own derivation — meals · cooks · items — for the week it has on screen.
-- `plan_entry: id · week_plan_id · day_of_week · meal_slot (user-definable) · recipe_id · eaters[] (→ household_member ids) · portions (nullable override)`
+- `plan_entry: id · week_plan_id · day_of_week · meal_slot (user-definable) · recipe_id · ingredient_id · quantity · unit · measure_id · eaters[] (→ household_member ids) · portions (nullable override)`
   - You just say *what you want to eat* per meal — no batch/leftover thinking here.
   - **Multiple entries per (day, slot) allowed** → different breakfasts, office-lunch-for-one, etc.
+  - **A meal is a recipe OR a bare ingredient** (migration 0033), never both
+    and never neither — the same XOR `recipe_line_item` has worn since 0017.
+    Something you simply *eat* — a protein bar, a yoghurt, an apple — is
+    planned as itself rather than dressed up as a one-line recipe. The `snacks`
+    slot it usually sits in cost no migration: `meal_slot` was already free
+    text.
+    - An **ingredient** entry states the amount of ONE portion
+      (`quantity` + `unit`, or a `measure_id` — "1 bar" — with `unit` holding
+      the honest count fallback), set with the same quantity sheet every other
+      amount in the app uses, seeded from the row's `default_measure_id`. The
+      amount columns are refused on a recipe entry, whose amount is its
+      `portions`; `quantity`/`unit` are both-or-neither, and an entry that
+      states no amount is a real state the surfaces name (`no amount`) rather
+      than a number anything guesses.
+    - It **carries eaters and multiplies** like any other entry — multiple
+      people can have the same snack — so `eaters[]`, `portions` and the demand
+      rules below are unchanged.
+    - **Every derivation branches on it explicitly**; a null `recipe_id` never
+      means "skip". Week macros weigh it from the vocab row's per-100 numbers
+      through the same basis/density matrix a recipe LINE uses, and a stub says
+      so in a stub line's exact words. **The cook plan ignores it** — nothing
+      about it is cooked, so it opens no session and joins no batch. **The
+      shopping list includes it**, which is why that derivation walks the
+      week's *entries* and not only its cook sessions.
+    - On screen it is **visibly not a recipe**: no shelf-life chip, no batch
+      hint, no recipe door (its title opens the *ingredient* page), and its
+      amount where a cook marker would be. The add door is **one** door — the
+      planning picker gained an Ingredients section, the way the editor's line
+      picker gained "Your recipes" — because a cook should not have to know,
+      before searching, whether the thing they want is a recipe.
   - **Demand for an entry, in three rules** (`demandPortions`): the
     whole-number `portions` override wins when one is set; otherwise demand
     is **Σ of the eaters' `portion_factor`** — so a 1 and a ¾ eater want
@@ -351,7 +381,9 @@ go. There is no re-chip — tokenization happens only inside the import call.
     printed as a fraction everywhere, never rounded.
 
 ### Batch cook plan (DERIVED) — the second view
-Groups the week's `plan_entry` rows **by recipe**, then splits each group into **cook sessions** bounded by shelf life:
+Groups the week's `plan_entry` rows **by recipe** — the ingredient entries are
+not cooked and are left out by name, not by accident — then splits each group
+into **cook sessions** bounded by shelf life:
 - `cook_session (derived): recipe_id · covers[] (plan_entry ids) · cook_day (default = earliest covered day, user-adjustable) · total_portions (Σ demandPortions over covered — a double) · scale_factor (total_portions / recipe.servings_base)`
 - **Clustering rule (greedy, not a solver):** sort the days a dish appears; start a session at the first; include each later day within `keeps_for_days`; open a new session when one falls outside. O(n log n).
 - **"Same dish too far apart" → two things to cook**, each labelled why ("keeps 4 days"). Replaces manual leftover linking — batching is derived from demand, not hand-assigned.
@@ -372,6 +404,14 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
 
 **Behavior:**
 - Generate from the **batch cook plan** → one *derived* contribution per (cook_session, ingredient), quantity = ingredient × session `scale_factor`, computed at read time.
+- …**and from the week's own entries**, for the meals that are a bare
+  ingredient (migration 0033): quantity = its stated per-portion amount × its
+  demand, computed at read time too. A snack belongs to no cook session, so a
+  derivation that walked only sessions would leave a hole in a list somebody
+  shops from. Its provenance segment says *when* — "Snack · Tue" — because the
+  item's own name is already the *what*; it degrades on an unrecognised unit or
+  an unusable measure exactly as a cook line does, and sums into the same line
+  as any recipe that also uses the ingredient, so it is bought once.
 - Display groups by ingredient, sums derived + manual contributions in canonical base (density-converted; measure-quantified lines fold into the mass subtotal via their gram weights), shows breakdown: *"Flour — 500g · Curry batch (cook Mon) 300g · Cookies 150g · +50g manual."*
 - **Whole-unit hint (step 7.6):** a count-family ingredient *with a measure* whose single total is fractional gets an honest round-up hint beside the total ("2.25 → buy 3", or "≈ 2.25 potato, large → buy 3" derived from a mass total via the primary measure) — a hint, never a replaced total.
 - **Top up** = persist a `manual` contribution against the entry (find-or-create).

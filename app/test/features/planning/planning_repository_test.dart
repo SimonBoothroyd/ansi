@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
@@ -18,6 +20,49 @@ Future<void> _insertRecipe(
     'INSERT INTO recipe (id, household_id, title, servings_base, created_at, '
     'updated_at) VALUES (?, ?, ?, ?, ?, ?)',
     [id, 'h', title, 2, now, now],
+  );
+}
+
+/// A vocab row — the other half of the entry XOR (step 8.14).
+Future<void> _insertIngredient(
+  PowerSyncDatabase db,
+  String id,
+  String name, {
+  String? macros,
+  double? density,
+}) async {
+  final now = DateTime.now().toUtc().toIso8601String();
+  await db.execute(
+    'INSERT INTO ingredient (id, household_id, canonical_name, default_unit, '
+    'match_text, macros, macros_basis, density_g_per_ml, status, created_at, '
+    "updated_at) VALUES (?, ?, ?, 'g', ?, ?, 'per_g', ?, ?, ?, ?)",
+    [
+      id,
+      'h',
+      name,
+      name.toLowerCase(),
+      macros,
+      density,
+      if (macros == null) 'stub' else 'complete',
+      now,
+      now,
+    ],
+  );
+}
+
+Future<void> _insertMeasure(
+  PowerSyncDatabase db,
+  String id,
+  String ingredientId,
+  String label,
+  double amount,
+) async {
+  final now = DateTime.now().toUtc().toIso8601String();
+  await db.execute(
+    'INSERT INTO ingredient_measure (id, household_id, ingredient_id, label, '
+    'basis_amount, sort_order, created_at, updated_at) '
+    'VALUES (?, ?, ?, ?, ?, 0, ?, ?)',
+    [id, 'h', ingredientId, label, amount, now, now],
   );
 }
 
@@ -345,6 +390,166 @@ void main() {
 
       await repo.removeEntry(entryId);
       expect(await repo.watchLastPlanned().first, isEmpty);
+    });
+  });
+
+  // --- A slot takes an ingredient (step 8.14) --------------------------------
+
+  group('an ingredient meal', () {
+    test('round-trips with its amount, its measure and its eaters', () async {
+      await _insertIngredient(db, 'i1', 'Protein bar');
+      await _insertMeasure(db, 'mz', 'i1', 'bar', 60);
+      await repo.addIngredientEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'i1',
+        eaterIds: const ['m1', 'm2'],
+        quantity: 1,
+        unit: pieces,
+        measureId: 'mz',
+      );
+
+      final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
+      expect(entry.isIngredient, isTrue);
+      expect(entry.recipeId, isNull);
+      expect(entry.ingredientId, 'i1');
+      expect(entry.title, 'Protein bar');
+      expect(entry.quantity, 1);
+      expect(entry.unit, pieces);
+      expect(entry.measure!.label, 'bar');
+      expect(entry.measure!.amount, 60);
+      // It carries eaters and multiplies like any other entry (A-D3).
+      expect(entry.eaterIds, ['m1', 'm2']);
+      expect(entry.mealSlot, 'Snack');
+    });
+
+    test('carries the vocab row’s numbers so the week can weigh it', () async {
+      await _insertIngredient(
+        db,
+        'i1',
+        'Protein bar',
+        macros: '{"kcal":350,"protein":33,"carb":30,"fat":11}',
+        density: 1.1,
+      );
+      await repo.addIngredientEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'i1',
+        eaterIds: const [],
+        quantity: 60,
+        unit: g,
+      );
+      final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
+      expect(entry.nutrition!.macros!.kcal, 350);
+      expect(entry.nutrition!.densityGPerMl, 1.1);
+      expect(entry.nutrition!.basis, MacrosBasis.perG);
+    });
+
+    test('a vocab row this device cannot see leaves the name AND the '
+        'nutrition null — a different answer from a stub', () async {
+      await _insertIngredient(db, 'i1', 'Protein bar');
+      await repo.addIngredientEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'i1',
+        eaterIds: const [],
+        quantity: 60,
+        unit: g,
+      );
+      await db.execute(
+        "UPDATE ingredient SET deleted_at = '2026-01-01T00:00:00Z' "
+        "WHERE id = 'i1'",
+      );
+      final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
+      expect(entry.ingredientName, isNull);
+      expect(entry.nutrition, isNull);
+      expect(entry.isIngredient, isTrue);
+    });
+
+    test('an unknown persisted unit stays null rather than becoming '
+        'pieces', () async {
+      await _insertIngredient(db, 'i1', 'Protein bar');
+      await repo.addIngredientEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'i1',
+        eaterIds: const [],
+        quantity: 2,
+        unit: g,
+      );
+      await db.execute("UPDATE plan_entry SET unit = 'scoop'");
+      final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
+      expect(entry.unit, isNull);
+    });
+
+    test('copy last week copies the snack WITH its amount', () async {
+      await _insertIngredient(db, 'i1', 'Protein bar');
+      await _insertMeasure(db, 'mz', 'i1', 'bar', 60);
+      await repo.addIngredientEntry(
+        weekStart: _lastWeek,
+        dayOfWeek: 2,
+        mealSlot: 'Snack',
+        ingredientId: 'i1',
+        eaterIds: const ['m1'],
+        quantity: 1,
+        unit: pieces,
+        measureId: 'mz',
+      );
+
+      expect(await repo.copyLastWeek(_thisWeek), 1);
+      final copied = (await repo.watchWeek(_thisWeek).first)!.entries.single;
+      expect(copied.ingredientId, 'i1');
+      expect(copied.quantity, 1);
+      expect(copied.unit, pieces);
+      expect(copied.measureId, 'mz');
+      expect(copied.eaterIds, ['m1']);
+    });
+
+    test(
+      'it is NOT in the recipe recency map — that map is for dishes',
+      () async {
+        await _insertIngredient(db, 'i1', 'Protein bar');
+        await repo.addIngredientEntry(
+          weekStart: _thisWeek,
+          dayOfWeek: 1,
+          mealSlot: 'Snack',
+          ingredientId: 'i1',
+          eaterIds: const [],
+          quantity: 60,
+          unit: g,
+        );
+        expect(await repo.watchLastPlanned().first, isEmpty);
+      },
+    );
+
+    test('the week watch re-fires when the vocab row is renamed', () async {
+      await _insertIngredient(db, 'i1', 'Protein bar');
+      await repo.addIngredientEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'i1',
+        eaterIds: const [],
+        quantity: 60,
+        unit: g,
+      );
+      final stream = StreamIterator(repo.watchWeek(_thisWeek));
+      addTearDown(stream.cancel);
+      expect(await stream.moveNext(), isTrue);
+      expect(stream.current!.entries.single.ingredientName, 'Protein bar');
+
+      // `ingredient` is a joined table of this watch's load path, so a rename
+      // must re-fire it — the unselected-LEFT-JOIN trap in person.
+      await db.execute(
+        "UPDATE ingredient SET canonical_name = 'Protein flapjack' "
+        "WHERE id = 'i1'",
+      );
+      expect(await stream.moveNext(), isTrue);
+      expect(stream.current!.entries.single.ingredientName, 'Protein flapjack');
     });
   });
 }
