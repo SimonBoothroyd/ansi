@@ -480,6 +480,39 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-09-05 — round five on cloud (plans 0034–0040): 0032–0034, and a reseed that had to be repaired
+
+- `deploy-supabase` run `33960660473` from `main@426eae6`, `reseed_template`
+  ticked: **link, `db push`, the edge function and the PowerSync streams all
+  succeeded**; the template reseed **failed** on its own guard —
+  `seed_curation R3: 136 of 133 curated default measures landed`.
+- **Cause, and it is a rule now (release.md §5.3):** plan 0039 renamed six
+  vocabulary rows. The seed inserts by `match_text`, so against a long-lived
+  template a rename is an INSERT: the six new names arrived and five old rows
+  stayed (`00 Flour`, `French Green Lentils`, `Coconut Milk`, `Hot Chili`,
+  `Baked Beans`; `Ground Clove` was already absent). Three of those five
+  carried a `default_measure_id` — 133 + 3 = 136, which is exactly what the
+  guard reported. `seed_curation` is transactional and rolled back cleanly;
+  `seed.sql` had already committed its inserts.
+- **Repair, owner-approved, scoped to the template household
+  (`…0000000000aa`, member-less, zero recipe lines referencing the rows):**
+  their measures tombstoned, then the five rows tombstoned with
+  `default_measure_id` nulled. A sixth followed — `Doppio Zero Flour`, which
+  the failed run had inserted and which the owner then renamed again to
+  `Tipo 00 Flour` (the bag's name; `doppio zero flour` rides as an alias, and
+  the USDA link was repointed from the old key to `tipo flour`).
+- `deploy-supabase` run `33961320740` from `main@2348fa0`, `reseed_template`
+  ticked: **green**. Template read back on cloud: **319 live ingredients, 133
+  default measures, 283 with macros** — the three numbers the seed and
+  `cloud_verify` both expect.
+- `cloud_verify.sh`: **9 ok · 0 warn · 0 fail**, before and after.
+- Shipped as `v0.6.0` (release run `33961427290`) after the cloud push, per the
+  order §4 insists on: schema first, then the app that writes it.
+- **Still owed:** plan 0039's operator statement (Parts 1 and 2) has NOT been
+  run against the real household — the renames, splits and new aliases are on
+  the TEMPLATE only. Existing households reach the new vocabulary through §2b,
+  by hand, and that is the owner's to run.
+
 ### 2026-09-04 — the backlog cleared in one run (plans 0027, 0029, 0030): 0026–0031
 
 - `deploy-supabase` run `33903467804` from `main@8bc7419`, `reseed_template`

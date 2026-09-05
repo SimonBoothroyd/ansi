@@ -34,7 +34,7 @@ Two workflows do the mechanical parts:
 >   pass — guard · android · ios green, signed APK + AAB on the Release,
 >   Play upload skipped by design — see above), `v0.3.0` (2026-09-03, field
 >   test round two) and `v0.4.0` (2026-09-03, field test round three — run
->   33758932599, same three jobs green, APK 92 MB + AAB 80 MB on the Release) and `v0.5.0` (2026-09-04, the state-of-the-world sweep — plan 0030, run 33903706382, APK 93 MB + AAB 80 MB on the Release, after the 0026–0031 cloud push) and `v0.5.1` (2026-09-04, the import review fixes from the wild-garlic hunt — run 33912875394, APK 93 MB + AAB 80 MB, no migrations so no cloud step).
+>   33758932599, same three jobs green, APK 92 MB + AAB 80 MB on the Release) and `v0.5.0` (2026-09-04, the state-of-the-world sweep — plan 0030, run 33903706382, APK 93 MB + AAB 80 MB on the Release, after the 0026–0031 cloud push) and `v0.5.1` (2026-09-04, the import review fixes from the wild-garlic hunt — run 33912875394, APK 93 MB + AAB 80 MB, no migrations so no cloud step) and `v0.6.0` (2026-09-05, field test round five — seven plans built in parallel lanes; run 33961427290, APK 88 MB + AAB 76 MB on the Release, `play-internal` skipped by design; after the 0032–0034 cloud push, run 33961320740).
 
 ## What syncs how
 
@@ -449,6 +449,13 @@ record the run in cloud-setup's ledger.
    workflow (§4.2).
 3. Seed changed? Tick **`reseed_template`** on that same run (§4.2 step 5),
    then do cloud-setup §2b (§4.4) by hand if existing households need it.
+   **A RENAME must be applied in place BEFORE the reseed, never after.** The
+   template on cloud is long-lived, and the seed inserts by `match_text`: a row
+   renamed in `vocab.jsonl` arrives as a NEW row and the old one stays, so the
+   reseed's own guards fail (`seed_curation R3: 136 of 133 …`) and the template
+   is left holding both names. Run the rename statement first — then the
+   reseed matches the rows it means to update. Learned on 2026-09-05, when six
+   renames left five orphans that had to be tombstoned by hand.
 4. `scripts/cloud_verify.sh` clean.
 5. `git tag vX.Y.Z && git push origin vX.Y.Z`. (No pubspec bump needed — the
    tag is the version of record, §3c.)
