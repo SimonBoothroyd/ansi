@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Quantity &amp; measures</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0010-piece-is-an-admission-fact.md">ADR-0010</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></p>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0010-piece-is-an-admission-fact.md">ADR-0010</a> · <a href="../../decisions/0012-tsp-mates-cup.md">ADR-0012</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></p>
     <p class="view-blurb">One dock everywhere an amount is set: this ingredient’s admitted units as chips over a keypad, and the conversion said out loud above them.</p>
 </header>
 
@@ -166,7 +166,7 @@
         </div>
 
     <div class="frame">
-        <p class="frame-name"><b>“Counts as”</b> · what a bare “2 onions” means; the household owns its own default and can clear it — and the ＋ that names a measure asks whether <i>piece</i> is still wanted</p>
+        <p class="frame-name"><b>“Counts as”</b> · what a bare “2 onions” means; the household owns its own default and can clear it, the ＋ that names a measure asks whether <i>piece</i> is still wanted — and the amount sheet <b>opens</b> on the stated measure</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Onion</span><span class="dots">⋯</span></div>
             <p class="flabel" style="margin-top:6px">Measures — count-like, in the basis</p>
@@ -183,6 +183,14 @@
             <p class="flabel" style="margin-top:18px">The same row on Broccoli</p>
             <div class="cntas none"><span class="cl">One broccoli is</span><span class="cv">— not set</span><span class="caret">▾</span></div>
             <p class="conv-note" style="margin-top:0">the picker’s first entry is <b>“Ask me each time”</b>, and it is the honest state for a row whose measures are <b>whole</b> · <b>spear</b> · <b>crown</b>. Clearing a default is one tap and never destroys a measure.</p>
+
+            <p class="flabel" style="margin-top:18px">…and the amount sheet opens on it</p>
+            <div class="dock" style="margin-top:0">
+                <p class="conv-note" style="margin:0 0 4px">＋ ingredient → Garlic</p>
+                <div class="field" style="margin-bottom:8px"><div class="qty-big"><span class="qn">2</span><span class="care"></span><span class="qu">clove</span></div></div>
+                <div class="uchips"><span class="uchip on"><span class="srcdot usda"></span>clove (3 g)</span><span class="uchip">piece</span><span class="uchip">g</span><span class="uchip-sep"></span><span class="uchip addm">＋</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:8px">A caller that names no unit gets the row’s <b>stated</b> measure, not its derived <code>piece</code> — the same rule the import review already applies to a bare count. It is a <b>seed, not a pick</b>: a line preserving an unresolved <code>measure_id</code> behaves exactly as before, and an editor opening an existing line still opens on what that line says. A stated default whose measure has not synced to this device leaves the seed alone — a different measure is never guessed.</p>
             <div class="askrow" style="margin-top:16px">
                 <div class="ask-h">You added “tomato, medium”. Still offer “piece” for Heirloom tomato?</div>
                 <div class="ask-b">Answering <b>No</b> also sets <b>Counts as: tomato, medium</b> — the measure you just named becomes what a bare “1 tomato” means. Both are one tap from changing, on this page.</div>

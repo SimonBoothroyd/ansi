@@ -166,7 +166,9 @@ void main() {
       expect((await repo.byId('mango'))!.densityGPerMl, 0.66);
 
       // 3. Delete it: the strip leg, in the same write, with the consequence
-      // named before it happens.
+      // named before it happens. The saved number folded the block (C-D3), so
+      // the affordance is one tap in.
+      await openDensityEntry(tester);
       await tester.tap(find.text('remove the density'));
       await tester.pumpAndSettle();
       expect(find.textContaining('lock again'), findsOneWidget);
@@ -389,7 +391,7 @@ void main() {
         find.textContaining('that mapping is the density'),
         findsOneWidget,
       );
-      expect(find.text('of this weighs'), findsOneWidget);
+      expect(find.text('weighs'), findsOneWidget);
     });
 
     // --- plan 0022 / ADR-0010: the one question in the `piece` model --------
@@ -883,7 +885,7 @@ void main() {
       expect(find.text('none yet — unlocks volume⇄weight'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
-      expect(find.text('of this weighs'), findsOneWidget);
+      expect(find.text('weighs'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 

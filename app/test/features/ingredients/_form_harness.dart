@@ -315,11 +315,23 @@ Future<void> lookUpUsdaAndPick(WidgetTester tester, String description) async {
   await tester.pumpAndSettle();
 }
 
+/// Unfolds the density block when a stated density has folded it to
+/// `0.66 g/ml · change` (plan 0036 C-D3), and does nothing when it is already
+/// open. Every helper that touches the sentence goes through this, so a test
+/// never has to know which state the row it picked happens to be in.
+Future<void> openDensityEntry(WidgetTester tester) async {
+  final change = find.text('· change');
+  if (change.evaluate().isEmpty) return;
+  await tester.tap(change);
+  await tester.pumpAndSettle();
+}
+
 /// Puts a density in the form's DRAFT (plan 0029 W5). The entry's inline
 /// button reads `Add` on this host, because on this host it writes nothing —
 /// the form's own Save is what lands it. `ml`'s ratio to base is 1, so
 /// picking it makes the typed number a raw g/ml.
 Future<void> draftDensity(WidgetTester tester, String gPerMl) async {
+  await openDensityEntry(tester);
   await tester.tap(
     find.descendant(of: find.byType(DensityEntry), matching: find.text('ml')),
   );
@@ -346,34 +358,54 @@ Future<void> openMoreMenu(WidgetTester tester) async {
 }
 
 /// The density section on its own, inside the form's own page padding — the
-/// width G2 is about, without the rest of the scroll in the way.
-Widget densityHost(Ingredient ingredient) => ProviderScope(
-  overrides: [
-    ingredientRepositoryProvider.overrideWithValue(
-      FakeIngredientRepo([ingredient]),
-    ),
-  ],
-  child: MaterialApp(
-    home: FTheme(
-      data: ansiThemeData(),
-      child: FScaffold(
-        childPad: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: DensityEntry(
-            ingredient: ingredient,
-            redirectedSpoon: null,
-            // The G2 host measures LAYOUT, so the seam is inert here: the
-            // widget no longer knows a repository, and this stands in for the
-            // host that would land the write.
-            onSave: (_) async => true,
-            onRemove: () async => true,
+/// width Front C is about, without the rest of the scroll in the way.
+///
+/// [landsAs] is the row the entry should draw once a save reports landed: both
+/// real hosts swap the row under it (the form its draft, the sheet its live
+/// copy), and C-D3's fold is a fact about the row that comes back.
+Widget densityHost(
+  Ingredient ingredient, {
+  String saveLabel = 'Add',
+  Ingredient? landsAs,
+}) {
+  var shown = ingredient;
+  return ProviderScope(
+    overrides: [
+      ingredientRepositoryProvider.overrideWithValue(
+        FakeIngredientRepo([ingredient]),
+      ),
+    ],
+    child: MaterialApp(
+      home: FTheme(
+        data: ansiThemeData(),
+        child: FScaffold(
+          childPad: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: StatefulBuilder(
+              builder: (context, setState) => DensityEntry(
+                ingredient: shown,
+                saveLabel: saveLabel,
+                redirectedSpoon: null,
+                // This host measures LAYOUT, so the write seam is inert: the
+                // widget no longer knows a repository, and this stands in for
+                // the host that would land it.
+                onSave: (_) async {
+                  if (landsAs != null) setState(() => shown = landsAs);
+                  return true;
+                },
+                onRemove: () async {
+                  setState(() => shown = ingredient);
+                  return true;
+                },
+              ),
+            ),
           ),
         ),
       ),
     ),
-  ),
-);
+  );
+}
 
 /// A committed Open Food Facts payload, verbatim — the same fixtures the
 /// mapper's table-driven test reads.

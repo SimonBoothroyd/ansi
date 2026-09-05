@@ -161,6 +161,61 @@ void main() {
       ]);
     });
 
+    group('ADR-0012 — the volume ladder is symmetric: cup mates tsp', () {
+      // The cup-default admissions themselves are the shared `flour`,
+      // `broth` and `milk` vectors above, which now name `tsp`. What is
+      // pinned here is the SHAPE of the amendment: it closed one gap in one
+      // direction and touched nothing else.
+
+      test('the ladder joins up in both directions', () {
+        // tsp ↔ tbsp ↔ cup, and now cup → tsp: a teaspoon of sugar is an
+        // ordinary line, and the row used to refuse it while admitting
+        // litres.
+        expect(allowedUnitsFor(_ing(tsp, density: 0.4)), contains(tbsp));
+        expect(allowedUnitsFor(_ing(tbsp, density: 0.9)), contains(cup));
+        expect(allowedUnitsFor(_ing(cup, density: 0.85)), contains(tsp));
+        expect(
+          allowedUnitsFor(_ing(cup, basis: MacrosBasis.perMl)),
+          contains(tsp),
+        );
+      });
+
+      test('tsp is fronted where the kitchen order puts it — right after the '
+          'default', () {
+        // Display order is the default fronted, then its family in kitchen
+        // order, so the sugar row reads `cup · tsp · tbsp · ml · l · pt · qt`.
+        expect(allowedUnitsFor(_ing(cup, density: 0.85)), [
+          cup,
+          tsp,
+          tbsp,
+          ml,
+          l,
+          pint,
+          quart,
+          g,
+          kg,
+        ]);
+      });
+
+      test('the trim in the OTHER direction is untouched: a spoon default is '
+          'not a cup-scale food', () {
+        final yeast = allowedUnitsFor(_ing(tsp, density: 0.4));
+        expect(yeast, isNot(contains(cup)));
+        expect(yeast, isNot(contains(l)));
+        expect(yeast, [tsp, tbsp, g]);
+      });
+
+      test('a density on a cup /g row buys tsp with the rest of the family — '
+          'and deleting it takes tsp back', () {
+        final sugar = _ing(cup, density: 0.85, category: 'baking');
+        expect(densityUnlockedUnits(sugar), contains(tsp));
+        expect(densityStrippedUnits(sugar), contains(tsp));
+        // Without the number the row admits no volume unit at all (D4c), so
+        // there is no half-open state where tsp is sayable and cup is not.
+        expect(allowedUnitsFor(_ing(cup, category: 'baking')), [g, kg]);
+      });
+    });
+
     group('pint and quart — quart rides with litre, pint rides with cup', () {
       // The cup-default case is the shared `broth` vector above: it already
       // pins that a pint and a quart come in, behind the metric jugs in chip
@@ -688,7 +743,7 @@ void main() {
     test('THE FLOUR SHAPE: the volume family goes — including the row’s own '
         'default unit, which the density was the only thing admitting', () {
       final flour = _ing(cup, density: 0.59, category: 'baking');
-      expect(densityStrippedUnits(flour), {cup, tbsp, ml, l, pint, quart});
+      expect(densityStrippedUnits(flour), {cup, tsp, tbsp, ml, l, pint, quart});
       // Mass is its basis family and survives, density or not.
       expect(densityStrippedUnits(flour), isNot(contains(g)));
       expect(densityStrippedUnits(flour), isNot(contains(kg)));

@@ -38,6 +38,16 @@ const _potato = Ingredient(
   status: IngredientStatus.complete,
 );
 
+/// The garlic shape: a count default plus a STATED default measure — the
+/// household has said what a bare count of this row means (ADR-0010).
+const _garlic = Ingredient(
+  id: 'i-garlic',
+  canonicalName: 'Garlic',
+  defaultUnit: pieces,
+  defaultMeasureId: 'm-large',
+  status: IngredientStatus.complete,
+);
+
 /// In-memory [MeasureRepository]: live list + a re-firing watch, so the
 /// editor sees adds/deletes exactly like the PowerSync-backed stream.
 class _FakeMeasureRepo implements MeasureRepository {
@@ -83,6 +93,7 @@ Widget _host({
   required ValueChanged<QuantitySaved> onDone,
   UnitChoice? initialChoice,
   bool? initialOptional,
+  Ingredient ingredient = _potato,
 }) => ProviderScope(
   overrides: [measureRepositoryProvider.overrideWithValue(repo)],
   child: MaterialApp(
@@ -90,7 +101,7 @@ Widget _host({
       data: ansiThemeData(),
       child: FScaffold(
         child: QuantityUnitEditor(
-          ingredient: _potato,
+          ingredient: ingredient,
           initialQuantity: 2,
           initialChoice: initialChoice,
           initialOptional: initialOptional,
@@ -102,6 +113,88 @@ Widget _host({
 );
 
 void main() {
+  group('the stated default measure seeds the choice (A-D1..A-D3)', () {
+    testWidgets('a caller with no choice opens on the row’s stated measure, '
+        'and that seed is not a pick', (tester) async {
+      filterForuiSemanticsAssertions();
+      QuantitySaved? saved;
+      await tester.pumpWidget(
+        _host(
+          repo: _FakeMeasureRepo(const [_large]),
+          ingredient: _garlic,
+          onDone: (s) => saved = s,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // `piece` is the derived default; `clove` is what the household said a
+      // bare count means — the stated fact wins.
+      expect(find.text('potato, large (299 g)'), findsOneWidget);
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.choice, const MeasureOption(_large));
+      // A-D2: a seed is not a pick.
+      expect(saved!.unitPicked, isFalse);
+    });
+
+    testWidgets('a stated default whose measure has not synced leaves the '
+        'seed alone — never a different measure', (tester) async {
+      filterForuiSemanticsAssertions();
+      QuantitySaved? saved;
+      await tester.pumpWidget(
+        _host(
+          // The row names m-unsynced; only m-large is on this device. The
+          // sole-measure fallback is deliberately NOT taken.
+          repo: _FakeMeasureRepo(const [_large]),
+          ingredient: _garlic.copyWith(defaultMeasureId: 'm-unsynced'),
+          onDone: (s) => saved = s,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('potato, large (299 g)'), findsNothing);
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.choice, const UnitOption(pieces));
+      expect(saved!.unitPicked, isFalse);
+    });
+
+    testWidgets('a caller’s own choice still wins over the stated default', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      QuantitySaved? saved;
+      await tester.pumpWidget(
+        _host(
+          repo: _FakeMeasureRepo(const [_large]),
+          ingredient: _garlic,
+          initialChoice: const UnitOption(pieces),
+          onDone: (s) => saved = s,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('potato, large (299 g)'), findsNothing);
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.choice, const UnitOption(pieces));
+    });
+
+    testWidgets('a row with no stated default is unchanged', (tester) async {
+      filterForuiSemanticsAssertions();
+      QuantitySaved? saved;
+      await tester.pumpWidget(
+        _host(repo: _FakeMeasureRepo(const [_large]), onDone: (s) => saved = s),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.choice, const UnitOption(pieces));
+    });
+  });
+
   testWidgets('no raw ＋ glyph anywhere on the sheet (the tofu rule)', (
     tester,
   ) async {
@@ -248,7 +341,7 @@ void main() {
     );
     // …which switches to the spoon phrasing with that spoon pre-picked
     // ("cup" chip selected in the spoon row alongside tsp/tbsp).
-    expect(find.text('of this weighs'), findsOneWidget);
+    expect(find.text('weighs'), findsOneWidget);
     expect(find.text('cup'), findsOneWidget);
   });
 

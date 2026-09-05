@@ -77,7 +77,10 @@ right.
 - **Unit admission is per-ingredient and explicit** (ADR-0008, step 7.8):
   `ingredient.allowed_units` lists exactly what a line may *say* — the
   default unit's family trimmed to kitchen magnitudes ("no litres of
-  yeast"), the basis family (yeast finally admits `g`), the other family
+  yeast" — a trim about units too *big* for the row, so since
+  [ADR-0012](../decisions/0012-tsp-mates-cup.md) the volume ladder joins up in
+  both directions and a cup-default row says `tsp`), the basis family
+  (yeast finally admits `g`), the other family
   once a density exists (demoted below the measures in chip order), and
   imprecise units only for seasoning/oil categories. Materialized at
   creation from `default_allowed_units()` (Dart mirror
@@ -89,9 +92,9 @@ right.
   unit's family, so "1 cup diced mango" is sayable on a piece-default row — and
   a density arriving after creation extends the list by trigger, wherever it
   came from. What we may *compute* is unchanged — totals still degrade honestly.
-- **Density is the single volume⇄mass fact**, enterable two equivalent ways
-  (7.8): as g/ml, or as "1 tbsp of this weighs N g"
-  (`densityFromVolumeWeight`). A volume-named measure label is therefore
+- **Density is the single volume⇄mass fact**, entered as one sentence
+  (7.8): "1 `[tbsp]` weighs `[N]` g" (`densityFromVolumeWeight`), with `ml`
+  among the spoons so a known g/ml is typeable exactly. A volume-named measure label is therefore
   REDIRECTED into density entry — volume-named measures never exist, so the
   two facts can never disagree. Saving a density also extends the explicit
   `allowed_units` with the family it unlocks, in the same write.
@@ -145,7 +148,8 @@ An `ingredient_measure` row names one countable thing and says what it weighs:
   them).
 - **In-app measure editor (7.7; density entry 7.8):** authors
   `source = 'manual'` rows ("half can = 200 g"), soft-deletes unwanted ones,
-  and sits beside the DENSITY entry (g/ml ⇄ "1 tbsp of this weighs N g").
+  and sits beside the DENSITY entry ("1 tbsp weighs N g", which folds to
+  `0.13 g/ml · change` once the row states a number).
   Labels that merely name a volume unit are redirected into that density
   entry — density owns volume conversion. Provenance is shown humanized
   (USDA portion / borrowed / typical / yours), never as raw machine strings.

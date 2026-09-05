@@ -13,6 +13,11 @@
 /// iOS keyboard-accessory view, which fights Flutter's insets model. The stack
 /// above the keyboard therefore reads chips → Done → keyboard.
 ///
+/// **A caller that names no choice gets the row's stated measure**, not its
+/// derived default unit: adding garlic opens on `clove` when the household has
+/// said that is what a bare count means (ADR-0010, `defaultMeasureId`). It is a
+/// seed, never a pick — see the effect in [QuantityUnitEditor].
+///
 /// **Deleting the selected measure** (manage state) reconciles the choice to
 /// the ingredient's default unit with a visible note: Done must never write a
 /// tombstoned `measure_id`. Keep-with-flag is reserved for measures merely
@@ -161,6 +166,45 @@ class QuantityUnitEditor extends HookConsumerWidget {
 
     final measuresAsync = ref.watch(ingredientMeasuresProvider(ingredient.id));
     final measures = measuresAsync.asData?.value ?? const <Measure>[];
+
+    // **A bare count means the row's stated measure** (ADR-0010), on the entry
+    // surface as well as on the import review. A caller that hands us no
+    // choice is asking "what does this ingredient mean by 1?" — and the
+    // household has already answered for garlic: a clove. So once the measures
+    // land, a stated `defaultMeasureId` that is LIVE on this device becomes
+    // the seed, in place of the derived `defaultUnit`.
+    //
+    // Three fences, all of them the review's own (`arrivalMeasure` in
+    // `import/domain/line_validation.dart` — one rule, two surfaces):
+    //
+    //  * it never overrules a caller: an `initialChoice` (every edit path)
+    //    wins, and so does a tapped chip;
+    //  * it is a SEED, not a pick — `unitPicked` stays false, so a caller
+    //    preserving an unresolved `measure_id` behaves exactly as before;
+    //  * a stated default whose measure has not synced here leaves the seed
+    //    alone. Falling through to "the only measure" would be offering a
+    //    DIFFERENT measure than the one the household named, which is the
+    //    guess ADR-0010 forbids.
+    //
+    // Volume-labelled measures are skipped for the reason the chip row skips
+    // them: density owns volume (ADR-0008 §2), so such a measure is not even
+    // offered and could never be re-selected once left.
+    final seeded = useRef(false);
+    useEffect(() {
+      if (seeded.value || initialChoice != null || unitPicked.value) {
+        return null;
+      }
+      final id = ingredient.defaultMeasureId;
+      if (id == null) return null;
+      for (final m in measures) {
+        if (m.id == id && !isVolumeUnitLabel(m.label)) {
+          seeded.value = true;
+          choice.value = MeasureOption(m);
+          break;
+        }
+      }
+      return null;
+    }, [measures]);
 
     // Deleting the SELECTED measure reconciles the choice (deliberate call,
     // post-7.7 review): keeping it would let Done write a tombstoned
@@ -570,7 +614,8 @@ class _MeasureManager extends HookConsumerWidget {
           },
           autofocus: true,
         ),
-        const SizedBox(height: 14),
+        // No spacer: the density entry carries its own leading space, the same
+        // one the flesh-out form's micro-labels use.
         DensityEntry(
           ingredient: ingredient,
           redirectedSpoon: redirected.value,

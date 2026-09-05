@@ -23,6 +23,7 @@ Immutable records of significant choices and their rationale.
 - [ADR-0009](../decisions/0009-density-unlocks-both-families.md) — A density unlocks the other mass/volume family whatever the default unit's family (amends ADR-0008)
 - [ADR-0010](../decisions/0010-piece-is-an-admission-fact.md) — `piece` is an admission fact, not a runtime guess
 - [ADR-0011](../decisions/0011-one-save-one-write.md) — The flesh-out form defers every child write to one Save
+- [ADR-0012](../decisions/0012-tsp-mates-cup.md) — The volume ladder is symmetric: `tsp` mates `cup` (amends ADR-0008's kitchen trim)
 
 ## Deep design
 

@@ -213,7 +213,7 @@ Result<Quantity> convert(
   return Ok(Quantity(millilitres / to.ratioToBase!, to));
 }
 
-/// The density (g/ml) implied by "one [volumeUnit] of this weighs [grams] g"
+/// The density (g/ml) implied by "one [volumeUnit] weighs [grams] g"
 /// — the spoon-mapping entry style (ADR-0008: a volume-named weight mapping
 /// IS a density, so `1 tbsp = 15 g` ⇒ `15 / 14.787` g/ml and volume-named
 /// measures never exist).
