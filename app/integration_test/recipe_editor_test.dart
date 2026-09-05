@@ -351,7 +351,13 @@ void main() {
     // tombstoned the children server-side on any edit.
     await editRecipeFromPage(tester);
     await scrollTo(tester, find.text('Garlic'));
-    // The line's quantity control ("3 clove") re-opens the quantity sheet.
+    // The line's quantity control ("3 clove") re-opens the quantity sheet —
+    // but only once the MEASURE row has synced back. Until it lands, the cell
+    // honestly reads "3 piece · measure pending sync" (the editor's own
+    // `_label` branch), so tapping the first frame after re-opening raced the
+    // sync and found nothing. This is the flake the tracker recorded at this
+    // exact finder; the cause is a race in the harness, not in the watch.
+    await pumpUntilFound(tester, find.text('3 clove'));
     await tester.tap(find.text('3 clove'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).last, '4');
