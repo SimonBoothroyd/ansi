@@ -5,6 +5,7 @@ import {
   ExtractionParseError,
   MAX_PARSE_WARNINGS,
   structuralIssues,
+  titleCaseIfUncased,
   validateExtractionResult,
 } from "./schema.ts";
 import type { ExtractionResult, RefToken, TextToken } from "../types.ts";
@@ -617,4 +618,65 @@ Deno.test("decodeClaudeSanitize — a two-phase wrapper merges lines and steps",
   assertEquals(r.steps.length, 1);
   const tok = r.steps[0].tokens[1] as RefToken;
   assertEquals(tok.refs, [0]); // "kale" key resolved against the phase-1 lines
+});
+
+// --- the title arrives cased like a title ------------------------------------
+//
+// A photographed page shouts and a scraped one sometimes whispers; neither is
+// a decision the page made about capitalisation, so we supply the ordinary
+// one. A page that DID decide is left alone — the words, the order, the
+// punctuation and any case it actually carries are all the page's.
+
+Deno.test("a SHOUTED title is title-cased", () => {
+  assertEquals(titleCaseIfUncased("WILD GARLIC PASTA"), "Wild Garlic Pasta");
+});
+
+Deno.test("a whispered title is too", () => {
+  assertEquals(titleCaseIfUncased("wild garlic pasta"), "Wild Garlic Pasta");
+});
+
+Deno.test("small words stay small, except at either end", () => {
+  assertEquals(titleCaseIfUncased("SOUP OF THE DAY"), "Soup of the Day");
+});
+
+Deno.test("a MIXED-case title is left exactly alone", () => {
+  assertEquals(titleCaseIfUncased("PIZZA alla Norma"), "PIZZA alla Norma");
+});
+
+Deno.test("punctuation and non-words are the page's", () => {
+  assertEquals(titleCaseIfUncased("mac & cheese"), "Mac & Cheese");
+});
+
+Deno.test("a title with no letters at all is untouched", () => {
+  assertEquals(titleCaseIfUncased("101"), "101");
+  assertEquals(titleCaseIfUncased(""), "");
+});
+
+Deno.test("a word opening with a digit is an amount, not a word", () => {
+  assertEquals(titleCaseIfUncased("400G BROWNIES"), "400g Brownies");
+});
+
+Deno.test("a small word that OPENS the title is capitalised", () => {
+  assertEquals(titleCaseIfUncased("THE BEST BROWNIES"), "The Best Brownies");
+});
+
+Deno.test("à la survives a shouting page", () => {
+  assertEquals(titleCaseIfUncased("CHICKEN À LA KING"), "Chicken à la King");
+});
+
+Deno.test("the page's own spacing survives", () => {
+  assertEquals(
+    titleCaseIfUncased("  SOUP  OF  THE DAY "),
+    "  Soup  of  the Day ",
+  );
+});
+
+Deno.test("the sanitizer applies it at the one choke point", () => {
+  const r = coerceExtractionResult({ ...MINIMAL, title: "WILD GARLIC PASTA" });
+  assertEquals(r.title, "Wild Garlic Pasta");
+});
+
+Deno.test("and leaves a title that carries its own case", () => {
+  const r = coerceExtractionResult({ ...MINIMAL, title: "PIZZA alla Norma" });
+  assertEquals(r.title, "PIZZA alla Norma");
 });

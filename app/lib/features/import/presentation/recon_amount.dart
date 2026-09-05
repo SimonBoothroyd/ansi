@@ -98,7 +98,7 @@ Future<void> editLineAmount(
   // Captured BEFORE the sheet: the app-lifetime container is what the write
   // after the await goes through (the chip's own element may be gone by then).
   final container = ProviderScope.containerOf(context, listen: false);
-  final raw = state.payload.flatLines[lineIndex].raw;
+  final raw = state.lineAt(lineIndex).raw;
   final resolution = state.resolutions.firstWhere(
     (r) => r.lineIndex == lineIndex,
   );
@@ -282,7 +282,7 @@ class AmountEditor extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(importControllerProvider);
     if (state is! ImportReconciling) return const SizedBox.shrink();
-    final raw = state.payload.flatLines[lineIndex].raw;
+    final raw = state.lineAt(lineIndex).raw;
     final resolution = state.resolutions.firstWhere(
       (r) => r.lineIndex == lineIndex,
     );

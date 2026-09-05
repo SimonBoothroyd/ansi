@@ -164,11 +164,15 @@ Future<void> scrollTo(
   // VERTICAL scrollable instead — downward first, and if the target never
   // appears (it may be ABOVE the viewport when a flow revisits an earlier
   // card), retry upward.
-  // Target the screen's primary ListView, NOT the first vertical Scrollable:
-  // an FTextField's EditableText carries its own vertical Scrollable and can
-  // sit earlier in the tree (the manager's search box), turning every drag
-  // into a no-op on a single-line text field.
-  final lists = find.byType(ListView);
+  // Target the screen's primary scroll view, NOT the first vertical
+  // Scrollable: an FTextField's EditableText carries its own vertical
+  // Scrollable and can sit earlier in the tree (the manager's search box),
+  // turning every drag into a no-op on a single-line text field. A screen
+  // whose list drags to reorder is a CustomScrollView (its slivers include a
+  // reorderable one), so both shapes count as the primary list.
+  final lists = find.byWidgetPredicate(
+    (w) => w is ListView || w is CustomScrollView,
+  );
   final vertical = lists.evaluate().isNotEmpty
       ? lists.first
       : find

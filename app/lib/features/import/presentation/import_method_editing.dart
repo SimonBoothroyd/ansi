@@ -13,6 +13,10 @@
 /// **Chips key on the preview's ids** (`previewLineId(i) == 'line-<i>'`), so
 /// `MethodStepText`'s "Reads as" fold shows live amounts with no extra
 /// plumbing, and [stepsFromDrafts] parses them back to line indexes at commit.
+///
+/// The picker's add-a-line door is open here: a line minted from the method
+/// lands in the review's last section with an index past the payload's last,
+/// exactly as one added from the list does.
 library;
 
 import '../../../core/units/units.dart';
@@ -22,7 +26,9 @@ import '../../recipes/domain/method_draft.dart';
 import '../../recipes/domain/method_step.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/method_editing.dart';
+import '../domain/line_resolution.dart';
 import '../domain/method_draft_bridge.dart';
+import '../domain/preview_recipe.dart';
 import 'import_view_models.dart';
 
 /// Adapts the import review to the step cards' host interface.
@@ -40,24 +46,61 @@ class ImportMethodEditing implements MethodEditing {
   /// and, until somebody types, the drafts themselves.
   final Recipe preview;
 
+  /// The drafts as they stand **right now**, not as they stood when this
+  /// adapter was built.
+  ///
+  /// One gesture fires several mutators — the chip sheet's
+  /// `repointChip · renameChip · setChipAmountRule` cascade is three — and
+  /// each re-seats the whole list through the controller. Reading the
+  /// captured [state] would start every call after the first from the draft
+  /// *before* it, so the second silently undoes the first, and any `editStep`
+  /// arriving after a rename diffs against a draft the rename is not in —
+  /// which is enough to lose the chip. [preview] is consulted only while
+  /// nobody has edited, and in that window the two states agree.
   @override
-  List<MethodDraftStep> methodDraft() =>
-      state.editedSteps ?? draftsFromPreview(preview);
+  List<MethodDraftStep> methodDraft() => _now.methodDrafts(preview: _preview);
 
   @override
   Map<String, LineItem> lineById() => {
-    for (final group in preview.groups)
+    for (final group in _preview.groups)
       for (final item in group.items) item.id: item,
   };
 
-  /// Always null at review: a re-match here re-points by line INDEX, so no
-  /// chip can be orphaned by an identity change and there is nothing to
-  /// notice.
+  /// The reconciliation as it stands right now, which after any mutator in
+  /// this gesture is not the one the view handed over.
+  ImportReconciling get _now => controller.reconciling() ?? state;
+
+  /// The preview over [_now]. While nothing has moved this is the view's own,
+  /// measures and all; once something has, it is re-derived so a line the
+  /// chip picker just added is pickable *immediately* — which is the whole
+  /// point of `pickOrAddLine` diffing this map before and after. The
+  /// re-derived one carries no measure map, so a chip's printed amount can
+  /// read as a bare count for the one frame before the view rebuilds with the
+  /// real one.
+  Recipe get _preview {
+    final now = _now;
+    if (identical(now, state)) return preview;
+    return buildPreviewRecipe(
+      now.payload,
+      now.resolutions,
+      servingsBase: now.servings,
+      sections: now.sections,
+    );
+  }
+
+  /// The identity change being read through this sitting.
+  ///
+  /// A re-match here re-points by line INDEX, so no chip can be *orphaned* —
+  /// but a surviving ref says nothing about the WORD, and a chip naming a
+  /// food the recipe no longer contains is exactly what D3 exists to stop.
+  /// The controller runs the editor's own `relabelRefs` on an identity change
+  /// and keeps what it returns, so the shipped notice and the shipped *keep
+  /// the old word* appear here with no new UI.
   @override
-  Substitution? substitution() => null;
+  Substitution? substitution() => controller.substitution();
 
   @override
-  List<ChipRelabel> relabels() => const [];
+  List<ChipRelabel> relabels() => controller.relabels();
 
   @override
   ({int chips, int timers}) methodLinkCounts() {
@@ -264,31 +307,40 @@ class ImportMethodEditing implements MethodEditing {
   void removeChip(String stepId, int index) =>
       _mapStep(stepId, (d) => removeSpan(d, index));
 
-  /// Nothing to keep: [relabels] is always empty here.
+  /// D3's revert: the chip keeps its ref and takes its printed word back. The
+  /// rename goes through the ordinary chip door the sheet's Word field uses,
+  /// so one place changes what a chip says.
   @override
-  void keepOldWord(ChipRelabel relabel) {}
+  void keepOldWord(ChipRelabel relabel) {
+    renameChip(relabel.stepId, relabel.spanIndex, relabel.oldWord);
+    controller.forgetRelabel(relabel);
+  }
 
   @override
-  void convertMethodToPlainText() => _set([
-    for (final draft in methodDraft())
-      MethodDraftStep(id: draft.id, text: draft.text),
-  ]);
+  void convertMethodToPlainText() {
+    controller.clearRelabels();
+    _set([
+      for (final draft in methodDraft())
+        MethodDraftStep(id: draft.id, text: draft.text),
+    ]);
+  }
 
-  /// The review screen offers THIS import's lines only (D4's scope cut), so
-  /// the picker's add-a-line door is disabled with its reason and none of the
-  /// three members below is reachable.
+  /// The review mints lines now (front B), so the chip picker's
+  /// *＋ Add an ingredient to this recipe* is open here as it is in the
+  /// editor. A minted line takes a flat index past the payload's last, which
+  /// `buildCommit` writes like any other and the repository turns into a real
+  /// `line_item_id`; nothing renumbers, so every chip already written keeps
+  /// pointing where it did.
   @override
-  bool get canAddLine => false;
+  bool get canAddLine => true;
 
   @override
-  String? get addLineReason =>
-      'at review, a chip can only point at a line this import already has';
+  String? get addLineReason => null;
 
+  /// The section a chip's *new* line lands in: the last one, which is where
+  /// the list's own `＋ ingredient` puts it too.
   @override
-  String ensureGroupId() => throw UnsupportedError(
-    'the review screen mints no new lines — buildCommit walks the payload’s '
-    'flat indexes, and a brand-new line has none',
-  );
+  String ensureGroupId() => _now.sections.last.id;
 
   @override
   void addLineItem(
@@ -296,8 +348,14 @@ class ImportMethodEditing implements MethodEditing {
     Ingredient ingredient, {
     double? quantity,
     UnitChoice? choice,
-  }) => throw UnsupportedError(
-    'the review screen mints no new lines — see addLineReason',
+  }) => controller.addLine(
+    groupId,
+    name: ingredient.canonicalName,
+    ingredientId: ingredient.id,
+    quantity: quantity,
+    unit: choice == null
+        ? ingredient.defaultUnit.id
+        : sheetChoiceUnit(choice: choice, unitPicked: true, currentUnit: null),
   );
 
   @override
@@ -306,7 +364,11 @@ class ImportMethodEditing implements MethodEditing {
     SubRecipeTarget target, {
     double? quantity,
     Unit? unit,
-  }) => throw UnsupportedError(
-    'the review screen mints no new lines — see addLineReason',
+  }) => controller.addLine(
+    groupId,
+    name: target.title,
+    recipeId: target.id,
+    quantity: quantity,
+    unit: (unit ?? batches).id,
   );
 }

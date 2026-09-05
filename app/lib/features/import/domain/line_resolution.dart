@@ -30,6 +30,7 @@ import 'amount_text.dart';
 import 'commit_payload.dart';
 import 'line_validation.dart';
 import 'reconciliation_payload.dart';
+import 'review_groups.dart';
 
 /// One line's resolution. [chosenIngredientId] is set once the line is
 /// resolved to an ingredient; null (with no [linkedRecipeId]) means the user
@@ -51,7 +52,39 @@ class LineResolution {
     this.isDropped = false,
     this.unitFromDefault = false,
     this.optional = false,
+    this.addedAtReview = false,
   });
+
+  /// The resolution for a line the **review minted** — one the page never
+  /// printed, added because the cook could see it was missing.
+  ///
+  /// It has no [ReconLine] behind it and so no source text, which the card
+  /// says where every other line prints `from source:`. Everything else about
+  /// it is ordinary: it is matched from the moment it exists (you cannot add a
+  /// line without naming what it is), it validates, chips and commits like any
+  /// other, and its [lineIndex] is minted past the payload's last so nothing
+  /// renumbers. It is never a correction — there is no printed phrase to make
+  /// an alias of.
+  factory LineResolution.added({
+    required int lineIndex,
+    required String name,
+    String? ingredientId,
+    String? recipeId,
+    double? quantity,
+    String? unit,
+  }) => LineResolution(
+    lineIndex: lineIndex,
+    band: MatchBand.auto,
+    ingredientText: name,
+    isRange: false,
+    unit: unit,
+    chosenIngredientId: recipeId == null ? ingredientId : null,
+    chosenName: recipeId == null ? name : null,
+    linkedRecipeId: recipeId,
+    linkedRecipeTitle: recipeId == null ? null : name,
+    quantity: quantity,
+    addedAtReview: true,
+  );
 
   /// Position in the payload's flattened line order — the stable key.
   final int lineIndex;
@@ -124,9 +157,27 @@ class LineResolution {
   /// question, not a line fact.
   final bool optional;
 
+  /// The review minted this line; the page never printed it.
+  ///
+  /// The card says so where the others print their source line — *added here
+  /// — not on the page*. The honesty rule cuts both ways: a line whose words
+  /// came from a human is as worth marking as one whose words came from a
+  /// photo we could barely read.
+  final bool addedAtReview;
+
   /// Whether this line is a sub-recipe COMPONENT (step 8.6 / D1) rather than
   /// an ingredient line.
   bool get isComponent => linkedRecipeId != null;
+
+  /// What the line **is now**: the identity the human resolved it to, falling
+  /// back to the page's own words while it has none.
+  ///
+  /// One rule, read by the collapsed row, the expanded card's heading and the
+  /// preview alike, so an open card and a shut one can never disagree about
+  /// what a re-matched line is — heading a card with the raw text instead
+  /// reads as if the change had not taken. The page's own words keep their
+  /// place on the `from source:` line underneath, which is where they belong.
+  String get displayName => chosenName ?? linkedRecipeTitle ?? ingredientText;
 
   /// Whether this line can be committed.
   ///
@@ -175,6 +226,7 @@ class LineResolution {
     isDropped: isDropped ?? this.isDropped,
     unitFromDefault: unitFromDefault ?? this.unitFromDefault,
     optional: optional ?? this.optional,
+    addedAtReview: addedAtReview,
   );
 
   /// Drops the line from the import — reversible until Save ([undrop]).
@@ -280,6 +332,7 @@ class LineResolution {
     isCorrection: isCorrection,
     isDropped: isDropped,
     optional: optional,
+    addedAtReview: addedAtReview,
   );
 
   /// Sets the line's note (blank/whitespace clears it).
@@ -290,6 +343,18 @@ class LineResolution {
         : copyWith(notes: trimmed);
   }
 }
+
+/// The stand-in [ReconLine] for a line the review minted.
+///
+/// Every widget on this screen is written against "the page's line", and a
+/// line the page does not have still has to render. This is that line, said
+/// honestly: the name the human picked and nothing else — no candidates, no
+/// flags, and an empty printed amount, so the card shows no `from source:` and
+/// prints *added here — not on the page* in its place.
+ReconLine addedLine(LineResolution r) => ReconLine(
+  raw: RawLineItem(ingredientText: r.ingredientText),
+  band: r.band,
+);
 
 /// The unit string a [UnitChoice] picked in the quantity sheet resolves to on a
 /// reconciliation line. A catalog [UnitOption] rides its own id; a
@@ -413,6 +478,13 @@ const kLowConfidenceFloor = 0.75;
 /// where nobody touched the method — the payload's own steps ride through
 /// unchanged.
 ///
+/// [sections] is the review's own group structure (`review_groups.dart`) —
+/// headings renamed, deleted or added, and any line the review minted filed
+/// into one of them. Omitted, it falls back to the payload's own groups, which
+/// is what an import nobody restructured commits. The payload is never edited:
+/// it stays the server's word about the page, so `from source:` cannot start
+/// lying, and the human's structure lives beside it.
+///
 /// [header] is the review's header draft: title, serves, makes in up to two
 /// denominations, times, shelf life and filing, as the shared header form left
 /// them. Every header column the editor's save writes is read off it. None of
@@ -424,6 +496,7 @@ CommitPayload buildCommit(
   required Recipe header,
   required Map<int, List<LineIssue>>? issuesByLine,
   List<Step>? steps,
+  List<ReviewGroup>? sections,
 }) {
   if (!allResolved(resolutions)) {
     throw StateError('every line must be resolved before commit');
@@ -447,14 +520,13 @@ CommitPayload buildCommit(
   }
   final byIndex = {for (final r in kept) r.lineIndex: r};
 
-  final groups = <CommitGroup>[];
-  var flatIndex = 0;
-  for (final group in payload.groups) {
+  final commitGroups = <CommitGroup>[];
+  for (final group in sections ?? initialGroups(payload)) {
     final lines = <CommitLine>[];
-    for (final _ in group.lines) {
+    for (final flatIndex in group.lines) {
       final r = byIndex[flatIndex];
       if (r == null) {
-        flatIndex++; // dropped: no line written, and its index stays unused
+        // dropped: no line written, and its index stays unused
         continue;
       }
       if (r.isComponent) {
@@ -486,12 +558,13 @@ CommitPayload buildCommit(
           optional: !r.isComponent && r.optional,
         ),
       );
-      flatIndex++;
     }
-    // A group whose every line was dropped is not written at all — an empty
+    // A section whose every line was dropped is not written at all — an empty
     // "To finish" heading on the saved recipe would be a ghost of the drop.
+    // A section ADDED at review and never filled goes the same way, for the
+    // same reason.
     if (lines.isNotEmpty) {
-      groups.add(CommitGroup(name: group.name, lines: lines));
+      commitGroups.add(CommitGroup(name: group.name, lines: lines));
     }
   }
 
@@ -532,7 +605,7 @@ CommitPayload buildCommit(
     freezerDays: header.freezerDays,
     bookId: header.bookId,
     sectionId: header.sectionId,
-    groups: groups,
+    groups: commitGroups,
     // The review screen's own method, when it edited one (seam D4); otherwise
     // the payload's, byte-for-byte.
     steps: steps ?? payload.steps,

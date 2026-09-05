@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Import review</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../import-and-matching.md">import &amp; matching</a></p>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/active/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/active/0035-line-ergonomics.md">plan 0035</a></p>
     <p class="view-blurb">One form with two doors, then the whole import on one editable screen: the editor’s own header, a card per line, the method as step cards, and a Save gate that counts the same number the header does.</p>
 </header>
 
@@ -72,6 +72,7 @@
                 <div class="attn-tag"><span>⚠</span><span>Set an amount</span></div>
             </div>
             <p class="conv-note" style="margin-top:2px">the cards, the never-invent flags, the Save gate and the method step cards — exactly as shipped (seam v2 a–c)</p>
+            <p class="conv-note">the title <b>arrives cased like a title</b>. A page that shouted <i>WEEKNIGHT CHICKEN CURRY</i>, or whispered, carried no decision about capitalisation, so the sanitizer supplies the ordinary one — small words left small except at either end. A page that DID decide (<i>PIZZA alla Norma</i>) is left exactly alone. The words, their order and their punctuation are always the page’s</p>
         </div></div>
     </div>
 
@@ -301,6 +302,66 @@
         </div></div>
     </div>
 
+    <div class="frame">
+        <p class="frame-name"><b>Sections you can edit, lines you can drag, and a line you can add</b> · the payload stays the server’s word about the page; the structure is the cook’s</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">2 to review</span></div>
+            <div class="tsec"><span class="tl">Ingredients</span><span class="tc">9</span><span class="rule"></span></div>
+
+            <div style="display:flex;align-items:center;gap:8px;margin:12px 20px 2px">
+                <span style="flex:1;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface)">For the pasta</span>
+                <span style="color:var(--muted);font-size:12px">🗑</span>
+            </div>
+            <div class="lcard"><div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">200 g</span><span class="l3-body"><span class="l3-id">Kale</span></span><span class="l3-pen">✎</span></div></div>
+            <div class="lcard"><div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">2 clove</span><span class="l3-body"><span class="l3-id">Garlic</span></span><span class="l3-pen">✎</span></div></div>
+
+            <div style="display:flex;align-items:center;gap:8px;margin:14px 20px 2px">
+                <span style="flex:1;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface)">For the dressing</span>
+                <span style="color:var(--muted);font-size:12px">🗑</span>
+            </div>
+            <div class="lcard"><div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">3 tbsp</span><span class="l3-body"><span class="l3-id">Extra Virgin Olive Oil</span></span><span class="l3-pen">✎</span></div></div>
+            <div class="lcard"><div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Granulated Sugar</span><span class="l3-note">added here — not on the page</span></span><span class="l3-pen">✎</span></div></div>
+
+            <div style="display:flex;gap:8px;margin:4px 20px 0">
+                <span class="ghostbtn" style="margin-top:0;flex:1">＋ ingredient</span>
+                <span class="ghostbtn" style="margin-top:0;flex:1">＋ section</span>
+            </div>
+
+            <p class="conv-note" style="margin-top:14px">the doors sit <b>tight under the last line</b> — they belong to the list, not to the screen. A gap there reads as a section break that is not there. A line added lands in the <b>last section</b>, so <i>＋ section</i> then <i>＋ ingredient</i> is one gesture</p>
+            <p class="conv-note">deleting a heading <b>never deletes its lines</b> — they move up into the section above, and down into what becomes the first when the first goes. Dropping food is what the line’s own <b>🗑</b> already does, so there is no confirm: nothing is lost. The last section standing loses its heading rather than going</p>
+            <p class="conv-note">a heading appears as a <b>field</b> wherever there is one to name — a single unnamed section shows no row at all, because that is the ordinary shape of a recipe that never divided its ingredients, and <i>＋ section</i> is the way out of it</p>
+            <p class="conv-note">a line added here says <b>added here — not on the page</b> where the others print <i>from source:</i>. The honesty rule cuts both ways. Its flat index is minted <b>past the payload’s last</b>, so nothing renumbers and every chip already written still points where it did</p>
+            <p class="conv-note">the grip <b>⋮⋮</b> drags a line, and nothing else does. Dropping it under a heading files it there, so reordering and moving between sections are one gesture — the recipe editor's list, over the review's own state</p>
+            <p class="conv-note">a moved line keeps its <b>flat index</b> and changes only its <b>position</b>. The index is what resolutions are keyed by and what every step chip points at; the position is what commits as <code>sort_order</code>. Order and identity have stopped being the same number</p>
+            <p class="conv-note">the grip is on <b>collapsed</b> rows only — an open card is a form, not a row — and an open card closes the moment a drag starts elsewhere, so what crosses the list is always a row like every other row</p>
+            <div class="savebtn off">2 line(s) need you</div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The card says what the line <i>is</i>, and the chip follows</b> · a re-match relabels every chip pointing at the line, revertibly</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">1 to review</span></div>
+            <div class="lcard" style="margin-top:10px">
+                <div class="chead"><span class="cn">Kale</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from source:  200 g wild garlic</div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">200 g</span></span></div>
+            </div>
+            <p class="conv-note" style="margin-top:10px">the open card heads with the line’s <b>current identity</b>, the same rule the collapsed row uses. The page’s own words keep their place on the <i>from source</i> line underneath, which is where they belong</p>
+
+            <p class="conv-note" style="margin-top:14px">and in the method, one step below:</p>
+            <div class="stepcard" style="margin:0 20px">
+                <div class="steptext">Wilt the <span class="mchip">Kale</span> in the pan with the <span class="mchip">Garlic</span>, then season.</div>
+            </div>
+            <div class="relabel" style="margin:8px 20px 0;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--frame)">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);flex:1">was “wild garlic” — the chip follows the line</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb-deep)">keep the old word</span>
+            </div>
+            <p class="conv-note" style="margin-top:10px">re-matching a line <b>relabels every chip pointing at it</b> — the editor’s own notice and its one-tap revert, switched on here with no new UI. The ref never moves; only the printed word does, because <b>a chip must never name something the recipe does not contain</b></p>
+            <p class="conv-note">renaming a chip in the <b>chip sheet’s Word field keeps the chip</b>. Typing over a chip’s own characters in the sentence still ends it — editing a span’s letters really is ending it, and that one is by design</p>
+            <p class="conv-note">correcting a line no longer throws the page back to the title: opening a sheet drops focus, and so does dragging the list</p>
+        </div></div>
+    </div>
 </div>
 
 <p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>

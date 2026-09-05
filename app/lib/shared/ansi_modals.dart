@@ -34,16 +34,28 @@ Future<T?> showAnsiSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   FLayout side = FLayout.btt,
-}) => showFSheet<T>(
-  context: context,
-  useRootNavigator: true,
-  side: side,
-  // Null lifts Forui's 9/16 cap: these sheets size to their content and the
-  // tall ones (pickers, the barcode scanner) need the room.
-  mainAxisMaxRatio: null,
-  useSafeArea: true,
-  builder: builder,
-);
+}) {
+  // **A sheet takes the screen, so the field behind it stops asking for it.**
+  //
+  // A focused editable asks its enclosing scrollable to show its caret every
+  // time the view metrics move — and opening a sheet moves them twice, once
+  // each way. On the import review, which is one long ListView with the title
+  // field at the very top, that is enough to throw the page back to the title
+  // and take the card being corrected with it. Dropping focus here rather
+  // than at each call site is the same argument this file already makes about
+  // the root navigator: one door, one rule.
+  FocusManager.instance.primaryFocus?.unfocus();
+  return showFSheet<T>(
+    context: context,
+    useRootNavigator: true,
+    side: side,
+    // Null lifts Forui's 9/16 cap: these sheets size to their content and the
+    // tall ones (pickers, the barcode scanner) need the room.
+    mainAxisMaxRatio: null,
+    useSafeArea: true,
+    builder: builder,
+  );
+}
 
 /// Shows a dialog above the whole shell.
 Future<T?> showAnsiDialog<T>({

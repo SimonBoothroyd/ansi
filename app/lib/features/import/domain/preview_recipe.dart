@@ -16,6 +16,7 @@ import '../../recipes/domain/method_step.dart';
 import '../../recipes/domain/recipe.dart';
 import 'line_resolution.dart';
 import 'reconciliation_payload.dart';
+import 'review_groups.dart';
 
 /// The prefix every synthetic preview line id carries. `method_draft_bridge`
 /// parses ids back to indexes with it, so the two cannot drift.
@@ -50,6 +51,7 @@ Recipe buildPreviewRecipe(
   List<LineResolution> resolutions, {
   required double servingsBase,
   Map<int, Measure> measureByLine = const {},
+  List<ReviewGroup>? sections,
 }) {
   final byIndex = {
     for (final r in resolutions)
@@ -57,16 +59,11 @@ Recipe buildPreviewRecipe(
   };
 
   final groups = <IngredientGroup>[];
-  var flatIndex = 0;
-  for (var gi = 0; gi < payload.groups.length; gi++) {
-    final group = payload.groups[gi];
+  for (final group in sections ?? initialGroups(payload)) {
     final items = <LineItem>[];
-    for (final _ in group.lines) {
+    for (final flatIndex in group.lines) {
       final r = byIndex[flatIndex];
-      if (r == null) {
-        flatIndex++;
-        continue;
-      }
+      if (r == null) continue;
       final measure = r.isComponent || r.chosenIngredientId == null
           ? null
           : measureByLine[flatIndex];
@@ -83,7 +80,7 @@ Recipe buildPreviewRecipe(
                   title: r.linkedRecipeTitle ?? r.ingredientText,
                 )
               : null,
-          ingredientName: _displayName(r),
+          ingredientName: r.displayName,
           unit: measure == null ? _unitOf(r) : pieces,
           measureId: measure?.id,
           measure: measure,
@@ -94,12 +91,9 @@ Recipe buildPreviewRecipe(
           optional: !r.isComponent && r.optional,
         ),
       );
-      flatIndex++;
     }
     if (items.isNotEmpty) {
-      groups.add(
-        IngredientGroup(id: 'group-$gi', name: group.name, items: items),
-      );
+      groups.add(IngredientGroup(id: group.id, name: group.name, items: items));
     }
   }
 
@@ -124,9 +118,6 @@ String _identityId(LineResolution r) {
   if (r.chosenIngredientId != null) return r.chosenIngredientId!;
   return 'raw:${normalizeSearchQuery(r.ingredientText)}';
 }
-
-String _displayName(LineResolution r) =>
-    r.linkedRecipeTitle ?? r.chosenName ?? r.ingredientText;
 
 /// The line's unit when it names no measure: the mapped catalog unit, else an
 /// honest degrade — count for a numbered line, "to taste" for a numberless one

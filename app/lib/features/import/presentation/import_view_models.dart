@@ -22,7 +22,9 @@ import '../domain/import_repository.dart';
 import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
 import '../domain/method_draft_bridge.dart';
+import '../domain/preview_recipe.dart';
 import '../domain/reconciliation_payload.dart';
+import '../domain/review_groups.dart';
 
 part 'import_view_models.g.dart';
 
@@ -45,15 +47,27 @@ class ImportLoading extends ImportState {
 /// The payload is back; the user is resolving lines. Immutable — every edit
 /// produces a new instance so the reconciliation view rebuilds.
 class ImportReconciling extends ImportState {
-  const ImportReconciling({
+  ImportReconciling({
     required this.payload,
     required this.resolutions,
     required this.header,
     this.editedSteps,
-  });
+    List<ReviewGroup>? sections,
+  }) : sections = sections ?? initialGroups(payload);
 
   final ReconciliationPayload payload;
   final List<LineResolution> resolutions;
+
+  /// The ingredient list's SECTIONS as the human holds them: the payload's
+  /// own to start with, then whatever they renamed, deleted, added or filed a
+  /// line into (`review_groups.dart`).
+  ///
+  /// It rides here rather than on the payload deliberately. The payload is
+  /// the server's word about the page and has to stay that way — `from
+  /// source:` is only honest while nothing has rewritten it — so the human's
+  /// structure is a second list beside it, keyed by the same flat line
+  /// indexes everything else already uses.
+  final List<ReviewGroup> sections;
 
   /// The header draft: title, serves, makes in up to two denominations, times,
   /// shelf life and filing, as the shared header form edits them — seeded by
@@ -73,6 +87,42 @@ class ImportReconciling extends ImportState {
   /// The serving count the preview scales against — the header's, read
   /// through so the preview and the commit cannot disagree.
   double get servings => header.servingsBase;
+
+  /// The [ReconLine] behind [lineIndex] — the payload's own, or the stand-in
+  /// for a line the REVIEW minted, whose index is past the payload's last.
+  ///
+  /// Every widget on this screen is written against "the page's line", and a
+  /// line the page does not have still has to render: the stand-in carries
+  /// the name the human picked and nothing else, which is exactly what "the
+  /// page never printed this" looks like. One rule, so no caller has to
+  /// remember that indexing `flatLines` can now run off the end.
+  ReconLine lineAt(int lineIndex) {
+    final flat = payload.flatLines;
+    if (lineIndex < flat.length) return flat[lineIndex];
+    return addedLine(resolutions.firstWhere((r) => r.lineIndex == lineIndex));
+  }
+
+  /// The method as the step cards hold it **right now**: the stored drafts
+  /// once anybody has typed, else derived from this state's own preview.
+  ///
+  /// One rule, in one place, because two callers need it at different moments:
+  /// the step-card host on every build (which already has the preview, and
+  /// passes it in rather than paying for a second one), and
+  /// [ImportController.updateResolution]'s relabel — which runs before any
+  /// card has been built and so has to derive its own. The measures a view's
+  /// preview carries change a line's printed AMOUNT, never its name, and a
+  /// draft reads only names, so the two derivations agree.
+  List<MethodDraftStep> methodDrafts({Recipe? preview}) =>
+      editedSteps ??
+      draftsFromPreview(
+        preview ??
+            buildPreviewRecipe(
+              payload,
+              resolutions,
+              servingsBase: servings,
+              sections: sections,
+            ),
+      );
 
   /// Every kept line resolved, and at least one line kept — the structural half
   /// of the commit gate. Unit validity is the other half and needs the vocab,
@@ -121,11 +171,13 @@ class ImportReconciling extends ImportState {
     List<LineResolution>? resolutions,
     Recipe? header,
     List<MethodDraftStep>? editedSteps,
+    List<ReviewGroup>? sections,
   }) => ImportReconciling(
     payload: payload,
     resolutions: resolutions ?? this.resolutions,
     header: header ?? this.header,
     editedSteps: editedSteps ?? this.editedSteps,
+    sections: sections ?? this.sections,
   );
 }
 
@@ -172,6 +224,9 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
   }) async {
     if (_starting) return;
     _starting = true;
+    // A new page is a new sitting: nothing the last one relabelled has a chip
+    // left to put its word back on.
+    clearRelabels();
     state = const ImportLoading();
     try {
       // Both keepAlive repositories are resolved BEFORE the first await: this
@@ -284,15 +339,169 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
       // gets the printed one back before its own default is spent (D2). Left
       // alone, a pepper's `pepper, medium` would follow the line onto broccoli
       // and be flagged there as if the recipe had said it.
-      after = after.restorePrintedUnit(s.payload.flatLines[lineIndex].raw.unit);
+      //
+      // A line the REVIEW minted has no printed unit to restore — and no
+      // `flatLines` entry to read one from — so its unit simply clears.
+      final flat = s.payload.flatLines;
+      after = after.restorePrintedUnit(
+        lineIndex < flat.length ? flat[lineIndex].raw.unit : null,
+      );
     }
+    // D-D1: an IDENTITY change carries every chip that points at this line —
+    // the editor's shipped behaviour, switched on here. It fires on the
+    // display name, so a re-match, a recipe LINK and an unlink all count, and
+    // a quantity, unit, measure, note, drop or optional edit does not. The
+    // drafts are derived from the state BEFORE, so a blank-labelled chip's
+    // "old word" is the word it was actually showing.
+    final relabelled = after.displayName == before.displayName
+        ? null
+        : relabelRefs(
+            s.methodDrafts(),
+            lineId: previewLineId(lineIndex),
+            label: after.displayName,
+          );
+    final moved = relabelled != null && relabelled.relabels.isNotEmpty;
     state = s.copyWith(
       resolutions: [
         for (final r in s.resolutions)
           if (r.lineIndex == lineIndex) after else r,
       ],
+      // Only when a chip actually moved: an identity change nothing points at
+      // must leave the method exactly as it was, so an untouched method still
+      // commits `payload.steps` byte-for-byte (seam D4).
+      editedSteps: moved ? relabelled.steps : null,
     );
+    if (moved) {
+      _relabels
+        ..removeWhere(
+          (r) => relabelled.relabels.any(
+            (n) => n.stepId == r.stepId && n.spanIndex == r.spanIndex,
+          ),
+        )
+        ..addAll(relabelled.relabels);
+      _substitution = (
+        oldName: before.displayName,
+        newName: after.displayName,
+        stepIds: {for (final r in relabelled.relabels) r.stepId},
+      );
+    }
     if (rematched) unawaited(spendDefaultMeasures());
+  }
+
+  /// The substitution being read through this sitting, or null — what the
+  /// method's *"2 steps mentioned wild garlic"* notice speaks.
+  ///
+  /// **Session state, not a column**, exactly as on the editor: the swap and
+  /// the read-through happen in one sitting, and the commit ends it.
+  Substitution? substitution() => _substitution;
+  Substitution? _substitution;
+
+  /// Each relabelled chip's previous word, so *keep the old word* is one tap.
+  /// Same session lifetime as [substitution].
+  List<ChipRelabel> relabels() => List.unmodifiable(_relabels);
+  final List<ChipRelabel> _relabels = [];
+
+  /// Forgets one relabel — the other half of `keepOldWord`, whose rename goes
+  /// through the ordinary chip door so one place changes what a chip says.
+  void forgetRelabel(ChipRelabel relabel) {
+    _relabels.remove(relabel);
+    if (_relabels.isEmpty) _substitution = null;
+  }
+
+  /// Forgets every relabel this sitting collected — a flatten has no chips
+  /// left to put a word back on.
+  void clearRelabels() {
+    _relabels.clear();
+    _substitution = null;
+  }
+
+  // --- the sections (front A) -------------------------------------------
+  //
+  // The editor's three group doors, over the review's own section list. The
+  // payload is never touched: these edit `ImportReconciling.sections`, which
+  // `buildCommit` reads, so the server's word about the page and the human's
+  // structure stay separate things.
+
+  void _mapSections(List<ReviewGroup> Function(List<ReviewGroup>) f) {
+    final s = state;
+    if (s is! ImportReconciling) return;
+    state = s.copyWith(sections: f(s.sections));
+  }
+
+  /// Renames a section. Blank clears the heading rather than storing one.
+  void setSectionName(String groupId, String? name) =>
+      _mapSections((g) => renameGroup(g, groupId, name));
+
+  /// Deletes a section's heading. **Its lines are never deleted** — they move
+  /// into the section above (below, for the first), keeping their order and
+  /// every resolution. Dropping food is the line's own bin, and nothing is
+  /// lost here, so nothing is confirmed here either.
+  void removeSection(String groupId) =>
+      _mapSections((g) => removeGroup(g, groupId));
+
+  /// Moves the line row at flat row [from] to row [to] — the editor's gesture,
+  /// over the review's own list (`review_groups.dart`).
+  ///
+  /// A line keeps its **index** and changes only its **position**: the index
+  /// is what resolutions are keyed by and what step chips point at, while the
+  /// position is what commits as `sort_order`. Nothing renumbers, so no chip
+  /// moves.
+  void moveLine(int from, int to) =>
+      _mapSections((g) => moveReviewLine(g, from: from, to: to));
+
+  /// Appends an empty section. It fills by adding a line to it.
+  void addSection() =>
+      _mapSections((g) => addGroup(g, id: 'g-new-${_newSectionSeq++}'));
+
+  /// A counter rather than a uuid: the review is one screen with no
+  /// persistence of its own, and a stable readable id keeps the widget keys
+  /// legible in a test.
+  int _newSectionSeq = 0;
+
+  /// Mints a line the page never printed, files it into [groupId], and
+  /// returns its flat index (null outside the review).
+  ///
+  /// The index comes from past the payload's last, so nothing renumbers and
+  /// every step chip already written keeps pointing where it did.
+  int? addLine(
+    String groupId, {
+    required String name,
+    String? ingredientId,
+    String? recipeId,
+    double? quantity,
+    String? unit,
+  }) {
+    final s = state;
+    if (s is! ImportReconciling) return null;
+    final index = nextLineIndex(s.payload, s.sections);
+    state = s.copyWith(
+      resolutions: [
+        ...s.resolutions,
+        LineResolution.added(
+          lineIndex: index,
+          name: name,
+          ingredientId: ingredientId,
+          recipeId: recipeId,
+          quantity: quantity,
+          unit: unit,
+        ),
+      ],
+      sections: addLineToGroup(s.sections, groupId, index),
+    );
+    // A line added with an ingredient gets that ingredient's curated default
+    // measure spent on it like any other, so "2 red peppers" reads the same
+    // however the line got here.
+    if (ingredientId != null) unawaited(spendDefaultMeasures());
+    return index;
+  }
+
+  /// The reconciliation as it stands **right now**, or null outside the
+  /// review. The step-card host is built once per frame but its mutators fire
+  /// several times per gesture, so it reads through this rather than the
+  /// state it captured — see `ImportMethodEditing.methodDraft`.
+  ImportReconciling? reconciling() {
+    final s = state;
+    return s is ImportReconciling ? s : null;
   }
 
   /// Re-seats the review's method drafts (seam **D4**) — every step-card edit
@@ -383,6 +592,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
       s.resolutions,
       header: s.header,
       issuesByLine: issuesByLine,
+      sections: s.sections,
       // Only when somebody actually typed: an untouched method commits the
       // payload's own steps byte-for-byte (seam D4).
       steps: edited == null
@@ -406,7 +616,10 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
   }
 
   /// Resets the flow (e.g. after leaving the intake screen).
-  void reset() => state = const ImportIdle();
+  void reset() {
+    clearRelabels();
+    state = const ImportIdle();
+  }
 }
 
 /// The narrow slice of the controller [importValidation] actually depends on

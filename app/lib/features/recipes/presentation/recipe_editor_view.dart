@@ -3,7 +3,15 @@
 /// Fields are uncontrolled (`initial` + `onChange`) and every repeating child
 /// is keyed by its stable domain id, so the notifier rebuilding the tree on
 /// each edit never resets a controller or moves the caret.
+///
+/// The ingredient list is **one flat reorderable list**: a heading row starts
+/// each group and the line rows after it belong to it, so dragging a line
+/// under another heading files it there. Reordering a line and moving it
+/// between groups are the same gesture, and a moved line keeps its id — which
+/// is what keeps every method chip pointing at it.
 library;
+
+import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
@@ -25,6 +33,7 @@ import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../domain/recipe.dart';
 import 'component_format.dart';
 import 'component_quantity_sheet.dart';
+import 'ingredient_line.dart';
 import 'line_target_picker.dart';
 import 'method_editor.dart';
 import 'recipe_chip.dart';
@@ -129,158 +138,217 @@ class _EditorForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-      children: [
-        // The header is the one the import review renders too: the notifier is
-        // its host, so a section added there lands here without a second copy.
-        RecipeHeaderForm(host: notifier),
-        const SizedBox(height: 24),
-        for (final group in recipe.groups)
-          _GroupEditor(
-            key: ValueKey(group.id),
-            group: group,
+    // ONE flat list per recipe: a heading row starts each group, and every
+    // line row after it belongs to it. A line dropped under another heading is
+    // filed under that heading, so reordering a line and moving it to another
+    // group are one gesture rather than two features.
+    final rows = <Widget>[];
+    for (final group in recipe.groups) {
+      rows.add(
+        _GroupHeading(
+          key: ValueKey('group-${group.id}'),
+          group: group,
+          notifier: notifier,
+          removable: recipe.groups.length > 1,
+        ),
+      );
+      for (final item in group.items) {
+        rows.add(
+          _LineItemEditor(
+            key: ValueKey('line-${item.id}'),
+            item: item,
             recipeId: recipe.id,
             notifier: notifier,
-            removable: recipe.groups.length > 1,
+            dragIndex: rows.length,
           ),
-        const SizedBox(height: 4),
-        FButton(
-          variant: FButtonVariant.outline,
-          prefix: const Icon(FLucideIcons.plus),
-          onPress: notifier.addGroup,
-          child: const Text('Add group'),
+        );
+      }
+    }
+
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          // The header is the one the import review renders too: the notifier
+          // is its host, so a section added there lands here without a second
+          // copy.
+          sliver: SliverList.list(children: [RecipeHeaderForm(host: notifier)]),
         ),
-        const SizedBox(height: 28),
-        MethodEditor(recipe: recipe, notifier: notifier),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          sliver: SliverReorderableList(
+            itemCount: rows.length,
+            itemBuilder: (context, index) => rows[index],
+            onReorderItem: notifier.moveLine,
+            proxyDecorator: liftedLineRow,
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+          // A list rather than one box: the slivers stay lazy, so a long
+          // method's step cards are not all built to show the top of the page.
+          sliver: SliverList.list(
+            children: [
+              _ListDoors(recipe: recipe, notifier: notifier),
+              const SizedBox(height: 28),
+              MethodEditor(recipe: recipe, notifier: notifier),
+            ],
+          ),
+        ),
       ],
     );
   }
 }
 
-class _GroupEditor extends StatelessWidget {
-  const _GroupEditor({
+/// The list's own two doors, tight under the last line — the review screen's
+/// pair, in the editor's words. A line added lands in the LAST group, which is
+/// what makes *Add group* then *Add ingredient* read as one gesture; the drag
+/// then puts it wherever it belongs.
+class _ListDoors extends StatelessWidget {
+  const _ListDoors({required this.recipe, required this.notifier});
+
+  final Recipe recipe;
+  final RecipeEditor notifier;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: FButton(
+          variant: FButtonVariant.outline,
+          size: FButtonSizeVariant.sm,
+          prefix: const Icon(FLucideIcons.plus),
+          onPress: () => unawaited(
+            addLineToGroup(
+              context,
+              group: recipe.groups.last,
+              recipeId: recipe.id,
+              notifier: notifier,
+            ),
+          ),
+          child: const Text('Add ingredient'),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: FButton(
+          variant: FButtonVariant.outline,
+          size: FButtonSizeVariant.sm,
+          prefix: const Icon(FLucideIcons.plus),
+          onPress: notifier.addGroup,
+          child: const Text('Add group'),
+        ),
+      ),
+    ],
+  );
+}
+
+/// One group's heading row: the name as an editable field, and the bin.
+///
+/// It is a row of the same flat list the lines are in — which is what lets a
+/// line be dropped under it. The heading itself does not drag: reordering
+/// *groups* is a separate question, and a line moving between them is what was
+/// asked for.
+class _GroupHeading extends StatelessWidget {
+  const _GroupHeading({
     required this.group,
-    required this.recipeId,
     required this.notifier,
     required this.removable,
     super.key,
   });
 
   final IngredientGroup group;
-
-  /// The recipe being edited — what the picker excludes from its "Your
-  /// recipes" section, and what the cycle guard is asked about (D5).
-  final String recipeId;
   final RecipeEditor notifier;
   final bool removable;
 
-  /// The 7.7 two-step chain, with one more door at the first step (D7): the
-  /// picker (board frame c) → the quantity sheet (frame b for an ingredient,
-  /// frame d for a component) → the line lands fully quantified. Backing out
-  /// of the quantity sheet still adds the line in its default unit — the
-  /// quantity control re-opens the sheet.
-  Future<void> _addLine(BuildContext context) async {
-    final name = group.name;
-    // The picker's search brings the keyboard, which shrinks the editor's
-    // list under it: this group card can be unmounted by the time a row is
-    // tapped. The second sheet opens from a context that outlives the card
-    // (`hostContextOf`), and [notifier] is the editor's own, kept alive by
-    // the page watching it — so the line is added whatever became of the
-    // card. Never a `context.mounted` bail here: it would drop the pick.
-    final host = hostContextOf(context);
-    final picked = await showLineTargetPicker(
-      context,
-      editingRecipeId: recipeId,
-      title: name == null || name.isEmpty
-          ? 'Add an ingredient'
-          : 'Add to “$name”',
-    );
-    if (picked == null) return;
-    switch (picked) {
-      case PickedIngredient(:final ingredient):
-        final result = await showQuantityUnitSheet(
-          // The host outlives the row — see [hostContextOf].
-          // ignore: use_build_context_synchronously
-          host.context,
-          ingredient: ingredient,
-        );
-        notifier.addLineItem(
-          group.id,
-          ingredient,
-          quantity: result is QuantitySaved ? result.quantity : null,
-          choice: result is QuantitySaved ? result.choice : null,
-        );
-      case PickedSubRecipe(:final target):
-        final result = await showComponentQuantitySheet(
-          // The host outlives the row — see [hostContextOf].
-          // ignore: use_build_context_synchronously
-          host.context,
-          target: target,
-          onSetYield: () => host.context.pushOnce('/recipes/${target.id}/edit'),
-        );
-        notifier.addComponentLineItem(
-          group.id,
-          target,
-          quantity: result?.quantity,
-          unit: result?.unit,
-        );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AnsiColors.paper,
-        border: Border.all(color: AnsiColors.line),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Padding(
+      padding: const EdgeInsets.only(top: 14, bottom: 2),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: FTextField(
-                  hint: 'Group name (optional)',
-                  control: FTextFieldControl.managed(
-                    initial: TextEditingValue(text: group.name ?? ''),
-                    onChange: (v) => notifier.setGroupName(group.id, v.text),
-                  ),
-                ),
+          Expanded(
+            child: FTextField(
+              hint: 'Group name (optional)',
+              control: FTextFieldControl.managed(
+                initial: TextEditingValue(text: group.name ?? ''),
+                onChange: (v) => notifier.setGroupName(group.id, v.text),
               ),
-              if (removable) ...[
-                const SizedBox(width: 8),
-                FButton.icon(
-                  variant: FButtonVariant.ghost,
-                  onPress: () => notifier.removeGroup(group.id),
-                  child: const Icon(FLucideIcons.trash2),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 8),
-          for (final item in group.items)
-            _LineItemEditor(
-              key: ValueKey(item.id),
-              item: item,
-              recipeId: recipeId,
-              notifier: notifier,
             ),
-          const SizedBox(height: 4),
-          FButton(
-            variant: FButtonVariant.secondary,
-            size: FButtonSizeVariant.sm,
-            prefix: const Icon(FLucideIcons.plus),
-            onPress: () => _addLine(context),
-            child: const Text('Add ingredient'),
           ),
+          if (removable) ...[
+            const SizedBox(width: 8),
+            Semantics(
+              label: 'Delete group',
+              button: true,
+              child: FButton.icon(
+                variant: FButtonVariant.ghost,
+                onPress: () => notifier.removeGroup(group.id),
+                child: const Icon(FLucideIcons.trash2, size: 16),
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+}
+
+/// The 7.7 two-step chain, with one more door at the first step (D7): the
+/// picker (board frame c) → the quantity sheet (frame b for an ingredient,
+/// frame d for a component) → the line lands fully quantified. Backing out of
+/// the quantity sheet still adds the line in its default unit — the amount
+/// cell re-opens the sheet.
+Future<void> addLineToGroup(
+  BuildContext context, {
+  required IngredientGroup group,
+  required String recipeId,
+  required RecipeEditor notifier,
+}) async {
+  final name = group.name;
+  // The picker's search brings the keyboard, which shrinks the editor's list
+  // under it: the door can be unmounted by the time a row is tapped. The
+  // second sheet opens from a context that outlives it (`hostContextOf`), and
+  // [notifier] is the editor's own, kept alive by the page watching it — so
+  // the line is added whatever became of the door. Never a `context.mounted`
+  // bail here: it would drop the pick.
+  final host = hostContextOf(context);
+  final picked = await showLineTargetPicker(
+    context,
+    editingRecipeId: recipeId,
+    title: name == null || name.isEmpty
+        ? 'Add an ingredient'
+        : 'Add to “$name”',
+  );
+  if (picked == null) return;
+  switch (picked) {
+    case PickedIngredient(:final ingredient):
+      final result = await showQuantityUnitSheet(
+        // The host outlives the row — see [hostContextOf].
+        // ignore: use_build_context_synchronously
+        host.context,
+        ingredient: ingredient,
+      );
+      notifier.addLineItem(
+        group.id,
+        ingredient,
+        quantity: result is QuantitySaved ? result.quantity : null,
+        choice: result is QuantitySaved ? result.choice : null,
+      );
+    case PickedSubRecipe(:final target):
+      final result = await showComponentQuantitySheet(
+        // The host outlives the row — see [hostContextOf].
+        // ignore: use_build_context_synchronously
+        host.context,
+        target: target,
+        onSetYield: () => host.context.pushOnce('/recipes/${target.id}/edit'),
+      );
+      notifier.addComponentLineItem(
+        group.id,
+        target,
+        quantity: result?.quantity,
+        unit: result?.unit,
+      );
   }
 }
 
@@ -289,6 +357,7 @@ class _LineItemEditor extends ConsumerWidget {
     required this.item,
     required this.recipeId,
     required this.notifier,
+    required this.dragIndex,
     super.key,
   });
 
@@ -299,17 +368,19 @@ class _LineItemEditor extends ConsumerWidget {
   final String recipeId;
   final RecipeEditor notifier;
 
-  /// The quantity control's label: quantity + measure/unit — an unresolved
-  /// measure id renders its honest count fallback with a pending note.
+  /// This row's position in the flat list — what the grip drags by.
+  final int dragIndex;
+
+  /// The amount cell's label. Every line prints what the recipe page prints;
+  /// only an unresolved measure id adds anything, and what it adds is the
+  /// honest count fallback with a note that the row has not arrived.
   String get _label {
-    final qty = formatQuantity(item.quantity);
-    final measure = item.measure;
-    final unit = measure != null
-        ? measure.label
-        : item.measureId != null
-        ? '${item.unit.label} · measure pending sync'
-        : item.unit.label;
-    return qty.isEmpty ? unit : '$qty $unit';
+    if (item.measure == null && item.measureId != null) {
+      final qty = formatQuantity(item.quantity);
+      final unit = '${item.unit.label} · measure pending sync';
+      return qty.isEmpty ? unit : '$qty $unit';
+    }
+    return amountOfLineItem(item);
   }
 
   @override
@@ -322,6 +393,7 @@ class _LineItemEditor extends ConsumerWidget {
         item: item,
         recipeId: recipeId,
         notifier: notifier,
+        dragIndex: dragIndex,
       );
     }
 
@@ -377,39 +449,215 @@ class _LineItemEditor extends ConsumerWidget {
       }
     }
 
+    return _LineRow(
+      amount: _label,
+      dragIndex: dragIndex,
+      usedIn: notifier.stepsUsing(item.id),
+      onEditAmount: editQuantity,
+      onEditIdentity: () => changeLineIdentity(
+        context,
+        recipeId: recipeId,
+        item: item,
+        notifier: notifier,
+      ),
+      onRemove: () => removeLineWithChips(context, item, notifier),
+      identity: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: item.ingredientName,
+              style: ansiSans(size: 15, weight: FontWeight.w500),
+            ),
+            ...noteSpans(item.note),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A component line in the editor (step 8.6 / D1, board frame a's identity
+/// cell on an editor row): the recipe chip where the ingredient name sits, and
+/// the same amount cell — opening the batch-math sheet instead of the
+/// ingredient one.
+///
+/// A component whose target has not synced (or was deleted) keeps its stored
+/// text and says so; the amount stays editable in batches, which needs no
+/// target at all.
+class _ComponentLineEditor extends StatelessWidget {
+  const _ComponentLineEditor({
+    required this.item,
+    required this.recipeId,
+    required this.notifier,
+    required this.dragIndex,
+  });
+
+  final LineItem item;
+  final String recipeId;
+  final RecipeEditor notifier;
+  final int dragIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final target = item.subRecipe;
+
+    Future<void> editQuantity() async {
+      // The sheet's keyboard can unmount this row; the yield door pushes
+      // from a context that outlives it.
+      final host = hostContextOf(context);
+      final result = await showComponentQuantitySheet(
+        context,
+        target:
+            target ??
+            SubRecipeTarget(
+              id: item.subRecipeId ?? '',
+              title: item.ingredientName,
+            ),
+        initialQuantity: item.quantity,
+        initialUnit: item.unit,
+        onSetYield: target == null
+            ? null
+            : () => host.context.pushOnce('/recipes/${target.id}/edit'),
+      );
+      if (result == null) return;
+      notifier
+        ..setLineItemQuantity(item.id, result.quantity)
+        ..setLineItemUnit(item.id, result.unit);
+    }
+
+    return _LineRow(
+      amount: componentAmountText(item.quantity, item.unit),
+      dragIndex: dragIndex,
+      usedIn: notifier.stepsUsing(item.id),
+      onEditAmount: editQuantity,
+      onEditIdentity: () => changeLineIdentity(
+        context,
+        recipeId: recipeId,
+        item: item,
+        notifier: notifier,
+      ),
+      onRemove: () => removeLineWithChips(context, item, notifier),
+      // A dangling link reads as the plain text it stored, muted, and says why
+      // there is no chip — the recipe page's own degradation.
+      identity: target != null
+          ? Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                RecipeChip(title: target.title, size: 14),
+                if (item.note != null && item.note!.trim().isNotEmpty)
+                  Text(
+                    item.note!.trim(),
+                    style: ansiSans(
+                      size: 14,
+                      color: AnsiColors.muted,
+                    ).copyWith(fontStyle: FontStyle.italic),
+                  ),
+              ],
+            )
+          : Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: item.ingredientName,
+                    style: ansiSans(size: 15, color: AnsiColors.muted),
+                  ),
+                  ...noteSpans('linked recipe missing'),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+/// The editor's ingredient line, in the ONE layout the app prints everywhere:
+/// `[amount] [name] [note]` on a single row, the amount in its own fixed
+/// column so every identity left-aligns.
+///
+/// The row carries the two doors it has always had — the amount cell opens the
+/// quantity sheet, the identity cell opens the target picker — plus the grip
+/// that drags it and the bin that removes it. *used in N steps* is a second
+/// muted line under the name, and only when there is one: it is a fact about
+/// the line, not a control.
+class _LineRow extends StatelessWidget {
+  const _LineRow({
+    required this.amount,
+    required this.identity,
+    required this.usedIn,
+    required this.dragIndex,
+    required this.onEditAmount,
+    required this.onEditIdentity,
+    required this.onRemove,
+  });
+
+  final String amount;
+  final Widget identity;
+  final int usedIn;
+  final int dragIndex;
+  final VoidCallback onEditAmount;
+  final VoidCallback onEditIdentity;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          LineDragGrip(index: dragIndex),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onEditAmount,
+            child: SizedBox(
+              width: kLineAmountWidth,
+              child: Text(
+                amount.isEmpty ? '—' : amount,
+                style: ansiMono(size: 14, color: AnsiColors.muted),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _IdentityCell(
-                  onTap: () => changeLineIdentity(
-                    context,
-                    recipeId: recipeId,
-                    item: item,
-                    notifier: notifier,
-                  ),
-                  child: Text(item.ingredientName, style: ansiSans(size: 15)),
-                ),
-                _UsedInSteps(count: notifier.stepsUsing(item.id)),
-                const SizedBox(height: 6),
-                _QuantityControl(label: _label, onTap: editQuantity),
+                _IdentityCell(onTap: onEditIdentity, child: identity),
+                _UsedInSteps(count: usedIn),
               ],
             ),
           ),
           const SizedBox(width: 4),
           FButton.icon(
             variant: FButtonVariant.ghost,
-            onPress: () => removeLineWithChips(context, item, notifier),
+            onPress: onRemove,
             child: const Icon(FLucideIcons.x),
           ),
         ],
       ),
     );
   }
+}
+
+/// The note, as the modifier every three-part line prints it: a hairline
+/// separator, then muted italic. Empty when the line carries none.
+List<InlineSpan> noteSpans(String? note) {
+  final text = note?.trim();
+  if (text == null || text.isEmpty) return const [];
+  return [
+    TextSpan(
+      text: '  ·  ',
+      style: ansiSans(size: 15, color: AnsiColors.line),
+    ),
+    TextSpan(
+      text: text,
+      style: ansiSans(
+        size: 14,
+        color: AnsiColors.muted,
+      ).copyWith(fontStyle: FontStyle.italic),
+    ),
+  ];
 }
 
 /// The identity cell, tappable (0022 D6). The Review screen has had
@@ -501,130 +749,4 @@ Future<void> removeLineWithChips(
     confirm: 'Remove',
   );
   if (confirmed) notifier.removeLineItem(item.id);
-}
-
-/// A component line in the editor (step 8.6 / D1, board frame a's identity
-/// cell on an editor row): the recipe chip where the ingredient name sits, and
-/// the same quantity control — opening the batch-math sheet instead of the
-/// ingredient one.
-///
-/// A component whose target has not synced (or was deleted) keeps its stored
-/// text and says so; the amount stays editable in batches, which needs no
-/// target at all.
-class _ComponentLineEditor extends StatelessWidget {
-  const _ComponentLineEditor({
-    required this.item,
-    required this.recipeId,
-    required this.notifier,
-  });
-
-  final LineItem item;
-  final String recipeId;
-  final RecipeEditor notifier;
-
-  @override
-  Widget build(BuildContext context) {
-    final target = item.subRecipe;
-    final label = componentAmountText(item.quantity, item.unit);
-
-    Future<void> editQuantity() async {
-      // The sheet's keyboard can unmount this row; the yield door pushes
-      // from a context that outlives it.
-      final host = hostContextOf(context);
-      final result = await showComponentQuantitySheet(
-        context,
-        target:
-            target ??
-            SubRecipeTarget(
-              id: item.subRecipeId ?? '',
-              title: item.ingredientName,
-            ),
-        initialQuantity: item.quantity,
-        initialUnit: item.unit,
-        onSetYield: target == null
-            ? null
-            : () => host.context.pushOnce('/recipes/${target.id}/edit'),
-      );
-      if (result == null) return;
-      notifier
-        ..setLineItemQuantity(item.id, result.quantity)
-        ..setLineItemUnit(item.id, result.unit);
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _IdentityCell(
-                  onTap: () => changeLineIdentity(
-                    context,
-                    recipeId: recipeId,
-                    item: item,
-                    notifier: notifier,
-                  ),
-                  child: target != null
-                      ? RecipeChip(title: target.title)
-                      : Text(
-                          '${item.ingredientName} · linked recipe missing',
-                          style: ansiSans(size: 15, color: AnsiColors.muted),
-                        ),
-                ),
-                _UsedInSteps(count: notifier.stepsUsing(item.id)),
-                const SizedBox(height: 6),
-                _QuantityControl(label: label, onTap: editQuantity),
-              ],
-            ),
-          ),
-          const SizedBox(width: 4),
-          FButton.icon(
-            variant: FButtonVariant.ghost,
-            onPress: () => removeLineWithChips(context, item, notifier),
-            child: const Icon(FLucideIcons.x),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The tap-to-edit amount pill both line-editor rows wear.
-class _QuantityControl extends StatelessWidget {
-  const _QuantityControl({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: AnsiColors.surface,
-          border: Border.all(color: AnsiColors.line),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                label,
-                style: ansiMono(size: 13),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 6),
-            const Icon(FLucideIcons.pencil, size: 12, color: AnsiColors.muted),
-          ],
-        ),
-      ),
-    );
-  }
 }

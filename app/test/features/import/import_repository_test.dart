@@ -7,6 +7,7 @@ import 'package:ansi/features/import/data/import_repository_impl.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
 import 'package:ansi/features/import/domain/line_resolution.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
+import 'package:ansi/features/import/domain/review_groups.dart';
 import 'package:ansi/features/ingredients/data/ingredient_repository_impl.dart';
 import 'package:ansi/features/ingredients/domain/normalize.dart';
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
@@ -452,6 +453,111 @@ void main() {
     // ref[0] → line 0's id, ref[1] → line 1's id (no line_index survives).
     expect(refs[0], [idByIndex[0]]);
     expect(refs[1], [idByIndex[1]]);
+  });
+
+  group('a line the REVIEW minted', () {
+    test('inserts like any other, in its section, at the end', () async {
+      final c = resolvedCommit();
+      var sections = addGroup(initialGroups(c.payload), id: 'g-new-0');
+      final index = nextLineIndex(c.payload, sections);
+      sections = addLineToGroup(sections, 'g-new-0', index);
+      await _seedIngredient(db, 'ing-sugar', 'Granulated Sugar');
+
+      final recipeId = await repo.commit(
+        buildCommit(
+          c.payload,
+          [
+            ...c.resolutions,
+            LineResolution.added(
+              lineIndex: index,
+              name: 'Granulated Sugar',
+              ingredientId: 'ing-sugar',
+              quantity: 1,
+              unit: 'tsp',
+            ),
+          ],
+          header: _header(c.payload),
+          issuesByLine: null,
+          sections: sections,
+        ),
+      );
+
+      final rows = await db.getAll(
+        'SELECT g.name AS gname, li.ingredient_id, li.quantity, li.unit '
+        'FROM recipe_line_item li '
+        'JOIN ingredient_group g ON g.id = li.group_id '
+        'WHERE g.recipe_id = ? ORDER BY g.sort_order, li.sort_order',
+        [recipeId],
+      );
+      final minted = rows.last;
+      expect(minted['ingredient_id'], 'ing-sugar');
+      expect(minted['quantity'], 1);
+      expect(minted['unit'], 'tsp');
+      // The empty section the payload never had is the one it landed in.
+      expect(minted['gname'], isNull);
+      expect(rows, hasLength(5));
+    });
+
+    test('its minted index remaps to a real line_item_id, and every chip '
+        'already written still points where it did', () async {
+      final c = resolvedCommit();
+      var sections = initialGroups(c.payload);
+      final index = nextLineIndex(c.payload, sections);
+      sections = addLineToGroup(sections, 'g0', index);
+      await _seedIngredient(db, 'ing-sugar', 'Granulated Sugar');
+
+      final commit = buildCommit(
+        c.payload,
+        [
+          ...c.resolutions,
+          LineResolution.added(
+            lineIndex: index,
+            name: 'Granulated Sugar',
+            ingredientId: 'ing-sugar',
+            quantity: 1,
+            unit: 'tsp',
+          ),
+        ],
+        header: _header(c.payload),
+        issuesByLine: null,
+        sections: sections,
+        // The method chips the new line, at the index only the review knows.
+        steps: [
+          ...c.payload.steps,
+          Step(
+            tokens: [
+              const TextToken(s: 'Finish with the '),
+              RefToken(refs: [index], label: 'sugar'),
+              const TextToken(s: '.'),
+            ],
+          ),
+        ],
+      );
+      final recipeId = await repo.commit(commit);
+
+      // In written order, which is the order buildCommit emitted: the four
+      // payload lines, then the one the review minted at the end of g0.
+      final lines = await db.getAll(
+        'SELECT li.id FROM recipe_line_item li '
+        'JOIN ingredient_group g ON g.id = li.group_id '
+        'WHERE g.recipe_id = ? ORDER BY g.sort_order, li.sort_order',
+        [recipeId],
+      );
+      final idAt = [for (final r in lines) r['id'] as String];
+      final row = await db.getOptional(
+        'SELECT steps FROM recipe WHERE id = ?',
+        [recipeId],
+      );
+      final steps = jsonDecode(row!['steps'] as String) as List;
+      final refs = [
+        for (final step in steps)
+          for (final t in (step as Map)['tokens'] as List)
+            if ((t as Map)['t'] == 'ref') (t['refs'] as List).cast<String>(),
+      ];
+      // The original chips are untouched, and the minted line's chip resolves.
+      expect(refs.first, [idAt[0]], reason: 'the onion chip is untouched');
+      expect(refs.last, [idAt[4]], reason: 'the minted line is the fifth');
+    });
   });
 
   test(

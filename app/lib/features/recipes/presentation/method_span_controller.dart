@@ -27,6 +27,21 @@ class MethodSpanController extends TextEditingController {
 
   MethodDraftStep get draft => _draft;
 
+  /// True while [sync] is pushing text INTO the field — the host must ignore
+  /// the `onChange` it hears in that window.
+  ///
+  /// Forui registers a managed field's `onChange` as **a plain controller
+  /// listener**, so the assignment in [sync] comes straight back to the host
+  /// as `editStep(id, text)` — an edit nobody typed. `applyEdit` then diffs
+  /// that text against the draft it can see and drops every span overlapping
+  /// the changed range, so the sanctioned rename path would destroy what it
+  /// renames: the chip goes and its word is left sitting as prose. The loop
+  /// is closed here, at the one place that knows it wrote the text itself,
+  /// rather than in `applyEdit` — whose rule is right: typing over a chip's
+  /// own characters in the sentence really does end it.
+  bool get isSyncing => _syncing;
+  bool _syncing = false;
+
   /// Re-seats the controller on [next].
   ///
   /// A no-op when nothing moved — the notifier rebuilds the whole form on
@@ -36,18 +51,23 @@ class MethodSpanController extends TextEditingController {
     if (next == _draft) return;
     final textChanged = next.text != _draft.text;
     _draft = next;
-    if (!textChanged) {
-      // Only the spans moved (a chip was made, renamed or removed): repaint.
-      notifyListeners();
-      return;
+    _syncing = true;
+    try {
+      if (!textChanged) {
+        // Only the spans moved (a chip was made, renamed or removed): repaint.
+        notifyListeners();
+        return;
+      }
+      // Something outside the field rewrote the text (a sheet, a relabel). Put
+      // the caret where the edit left off rather than at the start.
+      final offset = _carryCaret(next.text);
+      value = TextEditingValue(
+        text: next.text,
+        selection: TextSelection.collapsed(offset: offset),
+      );
+    } finally {
+      _syncing = false;
     }
-    // Something outside the field rewrote the text (a sheet, a relabel). Put
-    // the caret where the edit left off rather than at the start.
-    final offset = _carryCaret(next.text);
-    value = TextEditingValue(
-      text: next.text,
-      selection: TextSelection.collapsed(offset: offset),
-    );
   }
 
   int _carryCaret(String text) {

@@ -15,6 +15,7 @@ import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../data/recipe_providers.dart';
+import '../domain/line_reorder.dart';
 import '../domain/method_draft.dart';
 import '../domain/method_step.dart';
 import '../domain/recipe.dart';
@@ -271,6 +272,29 @@ class RecipeEditor extends _$RecipeEditor
       ],
     ),
   );
+
+  /// Moves the ingredient line at flat row [from] to row [to] — the editor's
+  /// whole reorder-and-refile gesture (`line_reorder.dart` holds the rule, and
+  /// the import review's list obeys the same one).
+  ///
+  /// **The line object is carried across, not rebuilt**, so its id survives
+  /// the move and every method chip pointing at it still does. A group left
+  /// empty by the move is kept: the heading is the human's.
+  void moveLine(int from, int to) {
+    final items = moveLineRow(
+      [for (final g in _current.groups) g.items],
+      from: from,
+      to: to,
+    );
+    _set(
+      _current.copyWith(
+        groups: [
+          for (final (i, g) in _current.groups.indexed)
+            g.copyWith(items: items[i]),
+        ],
+      ),
+    );
+  }
 
   void setLineItemQuantity(String itemId, double? quantity) =>
       _mapItem(itemId, (i) => i.copyWith(quantity: quantity));

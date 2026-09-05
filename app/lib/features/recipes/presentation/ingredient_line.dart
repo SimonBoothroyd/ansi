@@ -32,6 +32,54 @@ import '../domain/line_display.dart';
 import '../domain/recipe.dart';
 import 'recipe_chip.dart';
 
+/// The amount column's width (design board `.l3` grid): wide enough for
+/// "400 g" or "2 tin", narrow enough that a long joined amount wraps.
+///
+/// The one number every three-part line aligns on — the recipe page here, the
+/// import review's collapsed row, and the recipe editor's line. They are one
+/// layout, so they share the measurement rather than each holding an 84.
+const double kLineAmountWidth = 84;
+
+/// The explicit drag handle a reorderable line row wears.
+///
+/// A list of tappable rows that also moved on hold is how a scroll becomes an
+/// accidental move, so the gesture gets a glyph of its own and nothing else
+/// starts it. [index] is the row's position in the flat list it drags within.
+class LineDragGrip extends StatelessWidget {
+  const LineDragGrip({required this.index, super.key});
+
+  final int index;
+
+  @override
+  Widget build(BuildContext context) => ReorderableDragStartListener(
+    index: index,
+    child: Semantics(
+      label: 'Reorder',
+      child: const Padding(
+        padding: EdgeInsets.only(right: 6, top: 2),
+        child: Icon(
+          FLucideIcons.gripVertical,
+          size: 15,
+          color: AnsiColors.line,
+        ),
+      ),
+    ),
+  );
+}
+
+/// The row under the finger while it drags: the same row, lifted onto paper so
+/// it reads over the list it is crossing. Both line lists decorate with it, so
+/// a drag looks the same wherever it happens.
+Widget liftedLineRow(Widget child, int index, Animation<double> animation) =>
+    DecoratedBox(
+      decoration: BoxDecoration(
+        color: AnsiColors.paper,
+        border: Border.all(color: AnsiColors.line),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: child,
+    );
+
 class RecipeIngredientLine extends StatelessWidget {
   const RecipeIngredientLine({
     required this.uses,
@@ -66,10 +114,6 @@ class RecipeIngredientLine extends StatelessWidget {
   /// not exist yet.
   final ValueChanged<String>? onOpenSubRecipe;
 
-  /// The amount column width (design board `.l3` grid): wide enough for
-  /// "400 g" or "2 tin", narrow enough that a long joined amount wraps.
-  static const double _amountWidth = 84;
-
   @override
   Widget build(BuildContext context) {
     final amount = uses.uses
@@ -99,7 +143,7 @@ class RecipeIngredientLine extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                width: _amountWidth,
+                width: kLineAmountWidth,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

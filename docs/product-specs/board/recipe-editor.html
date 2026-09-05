@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe editor</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a></p>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/active/0035-line-ergonomics.md">plan 0035</a></p>
     <p class="view-blurb">One header form under two hosts, and a method written as step cards with live ingredient chips — select the words, say what they are.</p>
 </header>
 
@@ -44,7 +44,42 @@
             <div class="lib-file3" style="margin:0 20px 8px"><span class="bc3">Our Cookbook · Weeknight</span><span class="ed">change ›</span></div>
             <p class="conv-note" style="margin:0 20px 10px">one line, pre-set from the ＋ you tapped; <b>change ›</b> opens the book + section picker as a sheet. It is a fact you can change, not a question on the way in.</p>
             <div class="tsec" style="margin-top:4px"><span class="tl">for the curry</span><span class="tc">9</span><span class="rule"></span></div>
-            <p class="conv-note" style="margin-top:0">groups, lines and the method follow — unchanged, not re-drawn</p>
+            <p class="conv-note" style="margin-top:0">the ingredient list and the method follow — next frame</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The ingredient list, as one draggable list</b> · group headings are rows in it, so filing a line under another heading and reordering it are the same gesture</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Edit recipe</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
+
+            <div style="display:flex;align-items:center;gap:8px;margin:12px 20px 2px">
+                <span style="flex:1;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface)">for the curry</span>
+                <span style="color:var(--muted);font-size:12px">🗑</span>
+            </div>
+            <div style="margin:0 20px">
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">600 g</span><span class="l3-body"><span class="l3-id">Chicken thigh</span><span class="l3-note">diced</span><span class="l3-used">used in 2 steps</span></span><span class="l3-pen">✎</span></div>
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">2 clove</span><span class="l3-body"><span class="l3-id">Garlic</span></span><span class="l3-pen">✎</span></div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;margin:14px 20px 2px">
+                <span style="flex:1;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface)">to serve</span>
+                <span style="color:var(--muted);font-size:12px">🗑</span>
+            </div>
+            <div style="margin:0 20px">
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">1 handful</span><span class="l3-body"><span class="l3-id">Cilantro</span></span><span class="l3-pen">✎</span></div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin:10px 20px 0">
+                <span class="ghostbtn" style="margin-top:0;flex:1">＋ Add ingredient</span>
+                <span class="ghostbtn" style="margin-top:0;flex:1">＋ Add group</span>
+            </div>
+
+            <p class="conv-note" style="margin-top:14px">one row layout everywhere: <b>[amount] [name] [note]</b> on a single line, the amount in its own 84&nbsp;px column so every identity left-aligns. It is what the recipe page — the screen a cook reads — already prints. The <b>amount cell</b> opens the quantity sheet and the <b>name cell</b> opens the identity picker: the same two doors, side by side instead of stacked</p>
+            <p class="conv-note"><i>used in N steps</i> is a second muted line under the name, and only when N&nbsp;&gt;&nbsp;0 — it is a fact about the line, not a control</p>
+            <p class="conv-note">the grip <b>⋮⋮</b> is the only thing that drags. Long-press-anywhere would turn a scroll into an accidental move on a list whose whole job is tapping</p>
+            <p class="conv-note">a line dropped under a heading is <b>filed under that heading</b>. It keeps its id, so every method chip pointing at it still does — which is the whole reason the gesture is worth having, since delete + re-add already reordered a list and cost every reference. Headings do not drag; a group left empty by a move is <b>kept</b></p>
+            <p class="conv-note">the doors sit tight under the last line, and a line added lands in the <b>last group</b> — the drag then puts it where it belongs</p>
         </div></div>
     </div>
 

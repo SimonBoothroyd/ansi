@@ -201,7 +201,7 @@ void main() {
       7: 'fresh basil leaves',
     };
     for (final i in [2, 3, 4, 7]) {
-      // Expand FIRST: a below-the-fold ListView child isn't built at all, so
+      // Expand FIRST: a below-the-fold row isn't built at all, so
       // probing its labels before scrolling to it always reads "clean" and the
       // loop would silently skip the line (exactly how the gate stayed locked
       // on the first on-sim run of this tail).

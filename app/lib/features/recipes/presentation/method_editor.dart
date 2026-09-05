@@ -234,7 +234,16 @@ class MethodStepCard extends HookConsumerWidget {
                 _selectionToolbar(context, state, controller),
             control: FTextFieldControl.managed(
               controller: controller,
-              onChange: (v) => notifier.editStep(step.id, v.text),
+              // The ECHO, refused at the door. Forui registers this as a
+              // plain listener on the controller, so text `sync` pushed IN
+              // (a chip renamed in its sheet, a relabel a re-match ran)
+              // arrives here as if a human had typed it — and `applyEdit`
+              // would drop every span it overlaps, deleting the chip the
+              // rename was renaming. Only a real keystroke gets through.
+              onChange: (v) {
+                if (controller.isSyncing) return;
+                notifier.editStep(step.id, v.text);
+              },
             ),
           ),
           for (final relabel in relabels)

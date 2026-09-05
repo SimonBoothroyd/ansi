@@ -3,6 +3,7 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/import/domain/line_resolution.dart';
 import 'package:ansi/features/import/domain/line_validation.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
+import 'package:ansi/features/import/domain/review_groups.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
@@ -1001,6 +1002,172 @@ void main() {
         issuesByLine: null,
       );
       expect(commit.groups.single.lines.map((l) => l.optional), [false, true]);
+    });
+  });
+
+  group('the review’s SECTIONS ride the commit, not the payload', () {
+    ReconciliationPayload twoGroups() => ReconciliationPayload(
+      title: 'Pasta',
+      groups: [
+        ReconGroup(
+          name: 'For the pasta',
+          lines: [
+            _line('pasta', band: MatchBand.auto, qty: 200, candidates: [_cand]),
+          ],
+        ),
+        ReconGroup(
+          name: 'For the dressing',
+          lines: [
+            _line('oil', band: MatchBand.auto, qty: 3, candidates: [_cand]),
+          ],
+        ),
+      ],
+    );
+
+    List<LineResolution> resolved(ReconciliationPayload p) => [
+      for (var i = 0; i < p.flatLines.length; i++)
+        initialResolution(i, p.flatLines[i]),
+    ];
+
+    test('omitted, an untouched import commits the payload’s own groups', () {
+      final payload = twoGroups();
+      final commit = buildCommit(
+        payload,
+        resolved(payload),
+        header: _header(payload),
+        issuesByLine: null,
+      );
+      expect(commit.groups.map((g) => g.name), [
+        'For the pasta',
+        'For the dressing',
+      ]);
+    });
+
+    test('a renamed heading is what commits, and the payload is untouched', () {
+      final payload = twoGroups();
+      final commit = buildCommit(
+        payload,
+        resolved(payload),
+        header: _header(payload),
+        issuesByLine: null,
+        sections: renameGroup(initialGroups(payload), 'g0', 'For the noodles'),
+      );
+      expect(commit.groups.map((g) => g.name), [
+        'For the noodles',
+        'For the dressing',
+      ]);
+      expect(payload.groups.first.name, 'For the pasta');
+    });
+
+    test('a DELETED heading commits one group holding BOTH lines', () {
+      final payload = twoGroups();
+      final commit = buildCommit(
+        payload,
+        resolved(payload),
+        header: _header(payload),
+        issuesByLine: null,
+        sections: removeGroup(initialGroups(payload), 'g1'),
+      );
+      expect(commit.groups, hasLength(1));
+      expect(commit.groups.single.name, 'For the pasta');
+      expect(commit.groups.single.lines.map((l) => l.lineIndex), [0, 1]);
+    });
+
+    test('a MOVED line commits at its new position, carrying its old '
+        'index', () {
+      final payload = twoGroups();
+      // Rows: 0 heading · 1 line 0 · 2 heading · 3 line 1. The dressing's
+      // line is dragged up under the pasta heading, above the line there.
+      final commit = buildCommit(
+        payload,
+        resolved(payload),
+        header: _header(payload),
+        issuesByLine: null,
+        sections: moveReviewLine(initialGroups(payload), from: 3, to: 1),
+      );
+      // POSITION: the order of the lines in the group is what the repository
+      // writes as `sort_order`, counting from zero down the list.
+      expect(commit.groups.first.lines.map((l) => l.lineIndex), [1, 0]);
+      // IDENTITY: nothing renumbered. `1` is still the line the source
+      // printed second, and every step chip pointing at it still lands.
+      expect(commit.groups.first.lines.first.lineIndex, 1);
+      // The section the line left is empty, and an empty section writes no
+      // group — the saved recipe gets no ghost heading.
+      expect(commit.groups, hasLength(1));
+      expect(commit.groups.single.name, 'For the pasta');
+      // The payload is untouched, so `from source:` cannot start lying.
+      expect(payload.groups.first.lines.single.raw.ingredientText, 'pasta');
+    });
+
+    test('a section added and never filled writes nothing', () {
+      final payload = twoGroups();
+      final commit = buildCommit(
+        payload,
+        resolved(payload),
+        header: _header(payload),
+        issuesByLine: null,
+        sections: addGroup(initialGroups(payload), id: 'g-new-0'),
+      );
+      expect(commit.groups, hasLength(2));
+    });
+
+    test('a line MINTED at review commits with its own index, past the '
+        'payload’s last', () {
+      final payload = twoGroups();
+      var sections = addGroup(initialGroups(payload), id: 'g-new-0');
+      final index = nextLineIndex(payload, sections);
+      sections = addLineToGroup(sections, 'g-new-0', index);
+      final commit = buildCommit(
+        payload,
+        [
+          ...resolved(payload),
+          LineResolution.added(
+            lineIndex: index,
+            name: 'Granulated Sugar',
+            ingredientId: 'ing-sugar',
+            quantity: 1,
+            unit: 'tsp',
+          ),
+        ],
+        header: _header(payload),
+        issuesByLine: null,
+        sections: sections,
+      );
+      expect(index, 2, reason: 'the payload has two lines');
+      final minted = commit.groups.last.lines.single;
+      expect(minted.lineIndex, 2);
+      expect(minted.ingredientId, 'ing-sugar');
+      expect(minted.quantity, 1);
+      expect(minted.unit, 'tsp');
+      // Never an alias: there is no printed phrase to make one of.
+      expect(commit.corrections, isEmpty);
+    });
+
+    test('a minted line dropped again leaves its index unused, and every '
+        'other line keeps the one it had', () {
+      final payload = twoGroups();
+      var sections = initialGroups(payload);
+      final index = nextLineIndex(payload, sections);
+      sections = addLineToGroup(sections, 'g1', index);
+      final commit = buildCommit(
+        payload,
+        [
+          ...resolved(payload),
+          LineResolution.added(
+            lineIndex: index,
+            name: 'Granulated Sugar',
+            ingredientId: 'ing-sugar',
+            quantity: 1,
+          ).drop(),
+        ],
+        header: _header(payload),
+        issuesByLine: null,
+        sections: sections,
+      );
+      expect(
+        [for (final g in commit.groups) ...g.lines.map((l) => l.lineIndex)],
+        [0, 1],
+      );
     });
   });
 }

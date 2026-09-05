@@ -30,6 +30,39 @@ The editor's **shelf-life inputs** (keeps / freezable / freezer days) landed in
 step 5 — they feed the cook plan's clustering; the recipe page renders the
 `keeps`/`freezable` chips from those values.
 
+The editor's **ingredient list is one flat draggable list.** Group headings are
+rows in it, and the lines after a heading belong to it — so dropping a line
+under another heading files it there, and reordering a line and moving it
+between groups are the same gesture rather than two features. The rule is
+`domain/line_reorder.dart`, written over `List<List<T>>` so the import review's
+sections (which hold flat line indexes, not `LineItem`s) drag by the same
+arithmetic; the drag itself is `SliverReorderableList` +
+`ReorderableDragStartListener` from `package:flutter/widgets.dart` — the
+*styled* `ReorderableListView` is the Material one and is not what this uses.
+
+- **The grip is the only thing that drags** (`LineDragGrip`). Long-press
+  anywhere would turn a scroll into an accidental move on a list whose whole
+  job is tapping. On the review, where a card expands, the grip is on collapsed
+  rows only and an open card closes when a drag starts elsewhere.
+- **A moved line keeps its id**, because the move carries the object across
+  rather than rebuilding it — so every method chip pointing at it still does,
+  and `saveRecipe`'s child diff issues an UPDATE rather than a delete + insert.
+  That is the whole reason the gesture is worth having: delete + re-add already
+  reordered a list, and cost every reference.
+- **A group emptied by a move is kept.** The heading is the human's, and a
+  group that empties while you rearrange is not a bug to fix behind them.
+- Persistence is the existing save: `sort_order` from list position, `group_id`
+  from the heading above. No migration, no second write path.
+
+The **ingredient line is one layout on every surface** — `[amount] [name]
+[note]` on a single row, the amount in its own `kLineAmountWidth` column so
+every identity left-aligns. The recipe page is the reference (it is the screen
+a cook reads); the editor and the review's collapsed row print the same shape,
+with the editor's two doors side by side instead of stacked — the amount cell
+opens the quantity sheet, the name cell opens the identity picker. *used in N
+steps* is a second muted line under the name, and only when N > 0: it is a fact
+about the line, not a control.
+
 The editor's **header is one widget with two hosts** (plan 0025 #4):
 `presentation/recipe_header_form.dart` renders TITLE · SERVES · MAKES · TIMES ·
 SHELF LIFE · FILE UNDER from `kRecipeHeaderSections` over a `RecipeHeaderHost`
