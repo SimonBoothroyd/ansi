@@ -85,11 +85,40 @@ Full rules: [`board/README.md`](./docs/product-specs/board/README.md).
 
 ## Verify before you claim done
 
+**Run the narrowest thing that could fail, and widen only when it passes.** A
+full sweep after every small edit is not diligence, it is waste: the simulator
+suite alone is ~24 minutes for eight files, and a `make test` for a one-line
+test fix buys nothing a single file did not already prove. The cost is not
+only time — it is the reviewer's attention, spent on runs that were never in
+doubt.
+
+| You changed | Run |
+|---|---|
+| one test | that test's file: `make test-sim FILE=recipe_editor`, or `flutter test <path>` |
+| one feature's code | that feature's tests, then `make analyze` |
+| a domain rule, a schema, a shared widget | the full `make test` — the blast radius is genuinely wide |
+| anything, before you say a task is done | `make analyze` + `make test` + `make docs-check`, **once** |
+| a migration, a sync rule, or the seed | `make ci-full` (needs Docker) |
+
+The full simulator suite is a **gate, not a step**: run it once before landing a
+branch, not after each fix inside it. When it goes red, re-run the failing file
+alone until it is green, then the suite once to confirm nothing else moved.
+
+Two traps this repo has actually paid for:
+
+- **Never pipe a test run through `tail` or `head`.** The pipe reports the
+  *pipe's* exit status, so a red suite looks green. Redirect to a file and read
+  the end of it.
+- **Never kill a simulator run mid-flight** if you can avoid it. It can leave
+  the run's users, the simulator or the app in a state the next run inherits,
+  and you will spend longer diagnosing the wreckage than the run had left.
+
 ```
 make gen          # codegen (Riverpod/Freezed/json)
 make analyze      # dart analyze + custom_lint — must be clean
 make test         # flutter test + edge-function tests
 make docs-check   # doc links resolve; knowledge base is intact
+make test-sim     # the simulator gate — FILE=<name> for one file
 make ci-full      # everything CI runs, incl. migrations + pgTAP (needs Docker)
 ```
 

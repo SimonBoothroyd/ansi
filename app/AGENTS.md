@@ -184,6 +184,21 @@ seeds what its flow needs through the app's repositories, never by driving
 another flow's UI. `support/` holds the shared boot, waits, finders and drivers.
 Deliberately *not* in CI — macOS runners are slow and expensive at hobby scale.
 
+**It is a gate, not a step.** Eight files, about **24 minutes** on an unloaded
+machine — so run `FILE=<name>` while you are fixing, and the whole suite once
+before landing. Two things that have cost real hours here: piping the run
+through `tail` reports the pipe's exit status and turns a red suite green, and
+a run that is slow or hangs is usually the *host* — check for orphaned
+`flutter_tester` processes and the load average before suspecting the code.
+
+**Waits belong on what you are about to touch.** Every file syncs its household
+down live, so a finder can miss simply because its row has not arrived. Use
+`pumpUntilFound` on the exact widget the next line acts on — not on a
+neighbour. Waiting for the ingredient's *name* and then tapping its *amount*
+is how the `3 clove` flake lived in the tracker for a round: the name arrives
+with the line, the amount only once the measure row does, and until then the
+cell honestly reads `piece · measure pending sync`.
+
 Notes:
 
 - The app now opens on a **sign-in gate** (step 7). `make run` needs a Supabase
