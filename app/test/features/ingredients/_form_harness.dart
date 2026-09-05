@@ -63,6 +63,36 @@ const curryLeaves = Ingredient(
   sourceScore: 1,
 );
 
+/// A USDA-filled row a human has since EDITED (0034, plan 0040 front B): the
+/// food is still named and the FDC id still stands, but the macros and the
+/// density on the row are the household's now.
+const chex = Ingredient(
+  id: 'chex',
+  canonicalName: 'Chex Cereal',
+  defaultUnit: g,
+  status: IngredientStatus.complete,
+  category: 'pantry',
+  densityGPerMl: 0.13,
+  macros: Macros(kcal: 379, protein: 7.1, carb: 84, fat: 2.5),
+  measureCount: 1,
+  source: 'usda_fdc:168930',
+  sourceLabel: 'Cereals ready-to-eat, GENERAL MILLS, Corn CHEX',
+  sourceScore: 0.91,
+  sourceEdited: true,
+);
+
+/// A row filled before migration 0027 named the match: the stamp survived, the
+/// food's name did not. A-D4 — it says nothing rather than inventing one.
+const unnamedFill = Ingredient(
+  id: 'unnamed',
+  canonicalName: 'Tinned Tomatoes',
+  defaultUnit: g,
+  status: IngredientStatus.complete,
+  category: 'pantry',
+  macros: Macros(kcal: 32, protein: 1.6, carb: 7, fat: 0.3),
+  source: 'usda_fdc:11529',
+);
+
 /// The D4c shape the owner hit: a cup default on a per-100 g row with no
 /// density, carrying an `allowed_units` list materialized under the looser
 /// pre-D4c rule.

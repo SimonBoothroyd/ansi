@@ -478,6 +478,9 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
           // imprecise word is admissible whatever the category (J3b).
           : acceptableUnitChips(ingredient, measures, parsedUnit: r.unit),
       unitMeasure: _measureNamed(r.unit, measures),
+      // No extra read: the row is already in hand from the one vocab query
+      // above.
+      sourceLine: ingredient == null ? null : sourceProvenanceLine(ingredient),
     );
   }
   return result;

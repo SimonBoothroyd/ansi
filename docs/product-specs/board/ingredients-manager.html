@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredients manager</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../exec-plans/completed/0020-ingredients-manager.md">plan 0020</a> · <a href="../../decisions/0005-two-tier-vocabulary.md">ADR-0005</a></p>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../exec-plans/completed/0020-ingredients-manager.md">plan 0020</a> · <a href="../../decisions/0005-two-tier-vocabulary.md">ADR-0005</a> · <a href="../../exec-plans/active/0040-usda-provenance-and-edits.md">plan 0040</a></p>
     <p class="view-blurb">The whole vocabulary, one pushed screen: what still needs filling in, then every row — each saying what it can convert and what it is missing.</p>
 </header>
 
@@ -63,6 +63,35 @@
                 <p class="conv-note">a pushed route, so no bottom nav. Searching replaces the band and the list with flat rows, and a miss says <b>No match for "…"</b> and nothing else</p>
             </div></div>
         </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The source, on the row</b> · a wrong match is caught in the scan, not one row at a time</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Ingredients</span><span class="dots">＋</span></div>
+            <p class="list-h" style="margin-top:10px">All ingredients · 308</p>
+            <div class="res-row">
+                <div style="flex:1;min-width:0"><div class="res-nm">Chex Cereal</div>
+                    <span class="res-cat">Pantry · has density · 1 measure</span>
+                    <div class="mline" style="color:var(--muted)">usda · Cereals ready-to-eat, GENERAL MILLS, Corn CHEX</div>
+                    <div class="mline">379 kcal · 7P 3F 84C <span class="per">/100 g</span></div></div>
+                <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+            <div class="res-row">
+                <div style="flex:1;min-width:0"><div class="res-nm">Kale</div>
+                    <span class="res-cat">Produce · has density · 2 measures</span>
+                    <div class="mline" style="color:var(--muted)">edited · usda · Kale, raw</div>
+                    <div class="mline">35 kcal · 3P 2F 4C <span class="per">/100 g</span></div></div>
+                <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+            <div class="res-row">
+                <div style="flex:1;min-width:0"><div class="res-nm">Almond flour</div>
+                    <span class="res-cat">Baking · has density · 1 measure</span>
+                    <div class="mline">579 kcal · 21P 50F 22C <span class="per">/100 g</span></div></div>
+                <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+            <p class="conv-note" style="margin-top:12px">the source line appears <b>only where there is one</b>: a manual or barcode row shows exactly what it shows today. No description, no line — a pre-0027 row with an id and no name says nothing rather than inventing one</p>
+            <p class="conv-note"><b>edited ·</b> leads the line when a human has overridden the numbers, so the scan also shows which rows are no longer the machine’s</p>
+            <p class="conv-note">the <b>picker</b> is deliberately left out: it is a search surface, and a description under every row is noise while you are typing</p>
+            <p class="conv-note">it costs no read: the vocabulary query already selects the column, and the same rule prints the same line in the <a href="./import-review.html">import review’s</a> identity cell</p>
+        </div></div>
+    </div>
 
 </div>
 

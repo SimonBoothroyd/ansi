@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (33 migrations, 19 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (34 migrations, 19 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -64,6 +64,7 @@ introduced in `0002_ingredients.sql` · RLS enabled · in the `powersync` public
 | `default_measure_id` | `uuid` | yes | references ingredient_measure(id) on delete set null *(added in `0023_default_measure.sql`)* |
 | `source_label` | `text` | yes | *(added in `0027_usda_source_label.sql`)* |
 | `source_score` | `real` | yes | *(added in `0027_usda_source_label.sql`)* |
+| `source_edited` | `boolean` | no | not null default false *(added in `0034_source_edited.sql`)* |
 
 ## `ingredient_alias`
 

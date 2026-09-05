@@ -33,6 +33,7 @@ class Resolver extends StatelessWidget {
     this.recipeCandidates = const [],
     this.onLinkRecipe,
     this.onUnlink,
+    this.sourceLine,
     super.key,
   });
 
@@ -56,6 +57,12 @@ class Resolver extends StatelessWidget {
 
   /// Un-links a linked line, back to the plain text it arrived as.
   final VoidCallback? onUnlink;
+
+  /// The matched row's `usda · «description»` line, under the name in the
+  /// chosen cell. Null where the row names no lookup — and null while the line
+  /// is unmatched, where there is no row to name. A LINKED line is a recipe,
+  /// not a vocabulary row, so it never carries one.
+  final String? sourceLine;
 
   Future<void> _openSearch(BuildContext context) async {
     final pick = await showReconcileIngredientSheet(
@@ -97,6 +104,7 @@ class Resolver extends StatelessWidget {
     if (resolution.chosenIngredientId != null) {
       return _Chosen(
         label: resolution.chosenName ?? 'Matched',
+        sourceLine: sourceLine,
         onTap: () => _openSearch(context),
       );
     }
@@ -155,9 +163,16 @@ class Resolver extends StatelessWidget {
 /// The resolved ingredient — the WHOLE row is the re-match affordance now (the
 /// tiny "change" link is gone): tap the ✓/＋ ingredient to open the picker.
 class _Chosen extends StatelessWidget {
-  const _Chosen({required this.label, required this.onTap});
+  const _Chosen({required this.label, required this.onTap, this.sourceLine});
 
   final String label;
+
+  /// Which USDA food the matched row's numbers came from, under its name. The
+  /// review is the other place a wrong food is cheap to catch: the canonical
+  /// name alone can look perfectly right while the row behind it was filled
+  /// from something else entirely.
+  final String? sourceLine;
+
   final VoidCallback onTap;
 
   @override
@@ -178,10 +193,26 @@ class _Chosen extends StatelessWidget {
               const Icon(FLucideIcons.check, size: 15, color: AnsiColors.herb),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(
-                  label,
-                  style: ansiSans(size: 14, weight: FontWeight.w600),
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: ansiSans(size: 14, weight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    // One line, muted, ellipsized — the cell must stay a cell.
+                    if (sourceLine case final line?) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        line,
+                        style: ansiMono(size: 10, color: AnsiColors.muted),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
                 ),
               ),
               // A quiet hint that the row itself re-matches — the affordance is

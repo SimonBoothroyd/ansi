@@ -69,6 +69,70 @@ void main() {
     expect(picked, 'ing-garlic');
   });
 
+  // The other moment a wrong food is cheap to catch (plan 0040 A-D2).
+  group('the matched row’s source, in the identity cell', () {
+    Widget host({required LineResolution resolution, String? sourceLine}) =>
+        ProviderScope(
+          child: MaterialApp(
+            home: FTheme(
+              data: ansiThemeData(),
+              child: FScaffold(
+                child: Resolver(
+                  candidates: const [],
+                  resolution: resolution,
+                  sourceLine: sourceLine,
+                  onResolveExisting: (_, _, {required correction}) {},
+                ),
+              ),
+            ),
+          ),
+        );
+
+    const matched = LineResolution(
+      lineIndex: 0,
+      band: MatchBand.auto,
+      ingredientText: 'chex cereal',
+      isRange: false,
+      unit: 'g',
+      chosenIngredientId: 'ing-chex',
+      chosenName: 'Chex Cereal',
+    );
+
+    testWidgets('a matched row names the food behind it, under the name it '
+        'matched to', (tester) async {
+      await tester.pumpWidget(
+        host(
+          resolution: matched,
+          sourceLine: 'usda · Cereals ready-to-eat, GENERAL MILLS, Corn CHEX',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chex Cereal'), findsOneWidget);
+      expect(
+        find.text('usda · Cereals ready-to-eat, GENERAL MILLS, Corn CHEX'),
+        findsOneWidget,
+      );
+      // The cell is still the re-match affordance it was.
+      expect(find.text('tap to change'), findsOneWidget);
+    });
+
+    testWidgets('an edited row leads with EDITED here too', (tester) async {
+      await tester.pumpWidget(
+        host(resolution: matched, sourceLine: 'edited · usda · Kale, raw'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('edited · usda · Kale, raw'), findsOneWidget);
+    });
+
+    testWidgets('a row no lookup filled adds no line at all', (tester) async {
+      await tester.pumpWidget(host(resolution: matched));
+      await tester.pumpAndSettle();
+      expect(find.text('Chex Cereal'), findsOneWidget);
+      expect(find.textContaining('usda'), findsNothing);
+    });
+  });
+
   group('create-new at review is the one add flow', () {
     testWidgets('the footer opens the form seeded with the line’s text, pushed '
         'over the search sheet, and resolves the line to the re-read row as an '

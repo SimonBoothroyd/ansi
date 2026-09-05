@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredient detail</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0012-tsp-mates-cup.md">ADR-0012</a></p>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0012-tsp-mates-cup.md">ADR-0012</a> · <a href="../../exec-plans/active/0040-usda-provenance-and-edits.md">plan 0040</a></p>
     <p class="view-blurb">One form, three groups — Identity, Nutrition, Units &amp; measures — under a dock that carries the form’s one message and its two commitments. It is also the create screen: <code>/ingredients/new</code> is this form with no row behind it.</p>
 </header>
 
@@ -256,6 +256,28 @@
                     <span class="btn primary" style="margin:0;flex:1">Mark complete</span>
                 </div>
             </div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Filled from USDA, <i>edited here</i></b> · the card's third state — the food still named, and one line saying which numbers are yours</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Chex Cereal</span><span class="dots">⋯</span></div>
+            <div class="state" style="margin-top:10px">
+                <div class="sh" style="font-weight:400"><span style="font-size:13px">Filled from USDA · edited here</span></div>
+                <div class="sb" style="font-family:'IBM Plex Mono',monospace;font-size:10px">Cereals ready-to-eat, GENERAL MILLS, Corn CHEX · FDC 168930 · a close match</div>
+                <div class="sb" style="font-family:'IBM Plex Mono',monospace;font-size:10px;margin-top:3px">your macros and your density — the numbers on this row are no longer the source’s</div>
+                <div style="display:flex;gap:8px;margin-top:9px"><span class="ghostbtn" style="margin-top:0">Not this food</span><span class="ghostbtn" style="margin-top:0">Choose another ›</span></div>
+            </div>
+            <p class="flabel">Density (volume ↔ weight)</p>
+            <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace">0.13 g / ml</div></div>
+            <p class="flabel">Macros per 100 g</p>
+            <div class="frow"><div class="macros4"><div class="mi"><div class="miv">379</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">7.1 g</div><div class="mil">protein</div></div><div class="mi"><div class="miv">84 g</div><div class="mil">carb</div></div><div class="mi"><div class="miv">2.5 g</div><div class="mil">fat</div></div></div></div>
+            <p class="conv-note" style="margin-top:12px">it is <b>provenance, not a warning</b>: muted with a pencil, never amber. Amber is for an unconfirmed machine fill, where there is something to do — here there is only something to know</p>
+            <p class="conv-note"><b>edited here</b> replaces the confirm word. A row whose numbers you typed is not “confirmed from USDA” in any sense a reader would mean</p>
+            <p class="conv-note">only a write that touches <b>macros, basis or density</b> sets it — from this form or from the quantity sheet’s density entry. A rename, a unit toggle, a measure or an alias does not contradict the source</p>
+            <p class="conv-note">choosing another food <b>clears</b> it — the numbers are the new food’s again — and so does <b>Not this food</b>, which leaves no numbers to have overridden</p>
+            <p class="conv-note">the second line names the numbers <b>the row carries</b> (<span style="font-family:'IBM Plex Mono',monospace">your macros</span> / <span style="font-family:'IBM Plex Mono',monospace">your density</span> / both). One boolean records that the numbers were overridden, not which — storing the source’s own figures to diff against is the copy that ruling refused</p>
         </div></div>
     </div>
 

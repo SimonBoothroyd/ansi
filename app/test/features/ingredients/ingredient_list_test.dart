@@ -153,4 +153,54 @@ void main() {
       expect(find.text('CANONICAL NAME'), findsOneWidget);
     });
   });
+
+  // --- The source, on the row (plan 0040 front A) ----------------------------
+
+  group('the USDA food behind a filled row', () {
+    testWidgets('a filled row names it; an edited one leads with EDITED; a '
+        'manual row and a stamp with no name say nothing', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(FakeIngredientRepo(const [mango, curryLeaves, chex, unnamedFill])),
+      );
+      await tester.pumpAndSettle();
+
+      // A-D1: the food is named in the scan, not one opened row at a time.
+      expect(find.text('usda · Curry leaves, raw'), findsOneWidget);
+      // B-D4: `edited ·` leads, so the scan also shows which rows are no
+      // longer the machine's.
+      expect(
+        find.text(
+          'edited · usda · Cereals ready-to-eat, GENERAL MILLS, Corn CHEX',
+        ),
+        findsOneWidget,
+      );
+      // A manual/seed row shows exactly what it always showed.
+      expect(find.textContaining('usda ·'), findsNWidgets(2));
+      // A-D4: a pre-0027 stamp with no label invents nothing.
+      expect(find.text('Tinned Tomatoes'), findsOneWidget);
+      expect(find.textContaining('usda_fdc'), findsNothing);
+    });
+
+    testWidgets('search results carry it too — the manager’s rows are one '
+        'row, whichever branch drew them', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(FakeIngredientRepo(const [mango, curryLeaves, chex])),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, 'chex');
+      await tester.pumpAndSettle();
+      expect(find.text('All ingredients · 3'), findsNothing);
+      expect(
+        find.text(
+          'edited · usda · Cereals ready-to-eat, GENERAL MILLS, Corn CHEX',
+        ),
+        findsOneWidget,
+      );
+    });
+  });
 }

@@ -822,6 +822,222 @@ void main() {
     });
   });
 
+  // --- source_edited (0034, plan 0040 front B) -------------------------------
+
+  group('source_edited — the flag, its writers and its non-writers', () {
+    const filledMacros = Macros(kcal: 884, protein: 0, carb: 0, fat: 100);
+
+    /// Row '3' as a USDA pick + Save leaves it: the stamp, the label, the
+    /// score, the macros and a density, all in one write.
+    Future<Ingredient> filled({String source = 'usda_fdc:11216'}) async =>
+        (await repo.saveForm(
+          '3',
+          IngredientFormEdit(
+            row: IngredientEdit(
+              canonicalName: 'Olive Oil',
+              defaultUnit: g,
+              macrosBasis: MacrosBasis.perG,
+              allowedUnits: const {g, kg},
+              macros: filledMacros,
+              source: source,
+              sourceLabel: 'Olive oil, salad or cooking',
+              sourceScore: 0.88,
+            ),
+            density: const DensitySet(0.91),
+          ),
+        ))!;
+
+    /// A save that carries NO new provenance — an ordinary edit of the row.
+    Future<Ingredient> save({
+      String name = 'Olive Oil',
+      Macros? macros = filledMacros,
+      MacrosBasis basis = MacrosBasis.perG,
+      Unit defaultUnit = g,
+      String? category,
+      DensityChange density = const DensityUnchanged(),
+      List<PendingMeasure> measures = const [],
+      List<PendingAlias> aliases = const [],
+      bool markComplete = false,
+    }) async => (await repo.saveForm(
+      '3',
+      IngredientFormEdit(
+        row: IngredientEdit(
+          canonicalName: name,
+          defaultUnit: defaultUnit,
+          macrosBasis: basis,
+          allowedUnits: const {g, kg},
+          category: category,
+          macros: macros,
+        ),
+        density: density,
+        measuresAdded: measures,
+        aliasesAdded: aliases,
+        markComplete: markComplete,
+      ),
+    ))!;
+
+    test('a fresh fill is not edited — the numbers ARE the source’s', () async {
+      expect((await filled()).sourceEdited, isFalse);
+    });
+
+    // --- The writers --------------------------------------------------------
+
+    test('typing your own macros over the fill flags the row', () async {
+      await filled();
+      final saved = await save(
+        macros: const Macros(kcal: 900, protein: 0, carb: 0, fat: 100),
+      );
+      expect(saved.sourceEdited, isTrue);
+      expect(saved.source, 'usda_fdc:11216', reason: 'the food is still named');
+      expect(saved.sourceLabel, 'Olive oil, salad or cooking');
+    });
+
+    test('clearing the macros flags it too — a deliberate emptying is an '
+        'override, not an absence', () async {
+      await filled();
+      expect((await save(macros: null)).sourceEdited, isTrue);
+    });
+
+    test('flipping the macros basis flags it: the same four numbers per '
+        '100 ml are different numbers', () async {
+      await filled();
+      expect((await save(basis: MacrosBasis.perMl)).sourceEdited, isTrue);
+    });
+
+    test('a density typed on the form flags it', () async {
+      await filled();
+      expect((await save(density: const DensitySet(0.8))).sourceEdited, isTrue);
+    });
+
+    test('a density REMOVED on the form flags it', () async {
+      await filled();
+      expect((await save(density: const DensityCleared())).sourceEdited, true);
+    });
+
+    test('the quantity sheet’s own density write flags it — the flag is a '
+        'fact about the row, not about the screen', () async {
+      await filled();
+      expect((await repo.setDensity('3', 0.8))!.sourceEdited, isTrue);
+    });
+
+    test('...and so does removing it from there', () async {
+      await filled();
+      expect((await repo.clearDensity('3'))!.sourceEdited, isTrue);
+    });
+
+    test(
+      'a barcode fill is a lookup too — `off:<barcode>` rows flag',
+      () async {
+        await filled(source: 'off:5000159407236');
+        expect((await save(macros: null)).sourceEdited, isTrue);
+      },
+    );
+
+    // --- The non-writers ----------------------------------------------------
+
+    test('A RENAME DOES NOT FLAG IT — a new name does not contradict the '
+        'food the numbers came from', () async {
+      await filled();
+      final renamed = await save(name: 'Olive oil, extra virgin');
+      expect(renamed.sourceEdited, isFalse);
+      expect(renamed.canonicalName, 'Olive oil, extra virgin');
+    });
+
+    test('nor does a unit toggle, a category, a measure, an alias or '
+        'Mark complete', () async {
+      await filled();
+      expect((await save(defaultUnit: kg)).sourceEdited, isFalse);
+      expect((await save(category: 'Pantry')).sourceEdited, isFalse);
+      expect(
+        (await save(
+          measures: const [
+            PendingMeasure(id: 'nm1', label: 'bottle', amount: 500),
+          ],
+        )).sourceEdited,
+        isFalse,
+      );
+      expect(
+        (await save(
+          aliases: const [PendingAlias(id: 'na1', text: 'huile d’olive')],
+        )).sourceEdited,
+        isFalse,
+      );
+      expect((await save(markComplete: true)).sourceEdited, isFalse);
+    });
+
+    test('opening the form and saving it untouched is not an edit', () async {
+      await filled();
+      expect((await save()).sourceEdited, isFalse);
+    });
+
+    test(
+      're-stating the SAME density is not an edit, from either door',
+      () async {
+        await filled();
+        expect(
+          (await save(density: const DensitySet(0.91))).sourceEdited,
+          false,
+        );
+        expect((await repo.setDensity('3', 0.91))!.sourceEdited, isFalse);
+      },
+    );
+
+    test('a row no lookup filled is never flagged — a manual row’s numbers '
+        'were always its owner’s', () async {
+      // Row '3' with a plain `seed` stamp, straight from the fixture.
+      expect((await repo.byId('3'))!.source, 'seed');
+      expect(
+        (await save(
+          macros: const Macros(kcal: 1, protein: 2, carb: 3, fat: 4),
+          density: const DensitySet(0.5),
+        )).sourceEdited,
+        isFalse,
+      );
+      expect((await repo.setDensity('3', 0.2))!.sourceEdited, isFalse);
+      expect((await repo.clearDensity('3'))!.sourceEdited, isFalse);
+    });
+
+    // --- Clearing -----------------------------------------------------------
+
+    test(
+      'once set it survives a save that says nothing about the numbers',
+      () async {
+        await filled();
+        await save(
+          macros: const Macros(kcal: 900, protein: 0, carb: 0, fat: 1),
+        );
+        final renamed = await save(
+          name: 'Olive oil, extra virgin',
+          macros: const Macros(kcal: 900, protein: 0, carb: 0, fat: 1),
+        );
+        expect(renamed.sourceEdited, isTrue);
+      },
+    );
+
+    test('a FRESH PICK clears it — the numbers are the new food’s', () async {
+      await filled();
+      await save(macros: const Macros(kcal: 900, protein: 0, carb: 0, fat: 1));
+      expect((await repo.byId('3'))!.sourceEdited, isTrue);
+
+      final repicked = await filled(source: 'usda_fdc:99999');
+      expect(repicked.sourceEdited, isFalse);
+      expect(repicked.source, 'usda_fdc:99999');
+    });
+
+    test(
+      '*Not this food* clears it: there are no numbers left to override',
+      () async {
+        await filled();
+        await save(
+          macros: const Macros(kcal: 900, protein: 0, carb: 0, fat: 1),
+        );
+        final declined = (await repo.declineUsdaPrefill('3'))!;
+        expect(declined.sourceEdited, isFalse);
+        expect(declined.source, 'usda_declined');
+      },
+    );
+  });
+
   // --- The manager's write half (step 8.5, plan 0020) ------------------------
 
   group('watchVocabulary / watchStubCount', () {

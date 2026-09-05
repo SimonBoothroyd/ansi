@@ -744,10 +744,16 @@ class _DetailForm extends ConsumerWidget {
 /// alone rather than inventing a name. Nothing here confirms (U-D4): the
 /// header says *not confirmed* until a human taps Confirm below.
 ///
-/// Two states, one widget, because they are the same fact at two moments:
+/// Three states, one widget, because they are the same fact at three moments:
 /// - **prefilled** (`usda_fdc:<id>`): the name, the id, how much of the
 ///   name the food answers, and
 ///   both doors;
+/// - **edited** (`source_edited`, migration 0034): the same food, still named,
+///   still carrying its id — plus one line saying WHAT was overridden (your
+///   macros / your density / both). It is **provenance, not a warning**:
+///   muted, never amber. Amber is spent on an unconfirmed machine fill, where
+///   there is something to do; here there is nothing to fix, only something
+///   to know;
 /// - **declined** (`usda_declined`, after *Not this food*): the refused
 ///   name, what the undo did, and *Choose another* alone — plus the one
 ///   sentence a person needs to hear once, that a rename will not refill it.
@@ -774,6 +780,7 @@ class _UsdaProvenance extends StatelessWidget {
     }
     final declined = isUsdaDeclined(source);
     final stub = ingredient.status == IngredientStatus.stub;
+    final edited = !declined && ingredient.sourceEdited;
     final label = ingredient.sourceLabel;
     final score = ingredient.sourceScore;
     final name = ingredient.canonicalName;
@@ -786,7 +793,12 @@ class _UsdaProvenance extends StatelessWidget {
           '${label ?? 'that USDA food'} — not this food · the filled numbers '
           'were cleared';
     } else {
-      header = 'Filled from USDA · ${stub ? 'not confirmed' : 'confirmed'}';
+      // B-D2: *edited here* replaces the confirm word, because it is the more
+      // interesting fact about the row — a confirmed row whose numbers you
+      // typed is not "confirmed from USDA" in any sense a reader would mean.
+      header = edited
+          ? 'Filled from USDA · edited here'
+          : 'Filled from USDA · ${stub ? 'not confirmed' : 'confirmed'}';
       line = [
         ?label,
         'FDC ${usdaFdcId(source) ?? '?'}',
@@ -797,14 +809,23 @@ class _UsdaProvenance extends StatelessWidget {
     // unconfirmed machine fill. A CONFIRMED row's card is provenance — a
     // statement of where the numbers came from — and it drew a ⚠ over the
     // word "confirmed", which reads as an error about a row that is fine.
-    final tone = declined || !stub ? AnsiColors.muted : AnsiColors.aging;
+    //
+    // An EDITED row is the same argument (B-D2): you typed those numbers on
+    // purpose, and nothing is wrong with the row. It stays muted even while it
+    // is still a stub, because the thing amber would be asking for — look at
+    // these machine numbers — is exactly what already happened.
+    final tone = declined || edited || !stub
+        ? AnsiColors.muted
+        : AnsiColors.aging;
 
     return Container(
       margin: const EdgeInsets.only(top: 20),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AnsiColors.paper,
-        border: Border.all(color: declined || !stub ? AnsiColors.line : tone),
+        border: Border.all(
+          color: declined || edited || !stub ? AnsiColors.line : tone,
+        ),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -815,6 +836,9 @@ class _UsdaProvenance extends StatelessWidget {
               Icon(
                 declined
                     ? FLucideIcons.circleOff
+                    // A pencil, not a ⚠: the row was written on, not broken.
+                    : edited
+                    ? FLucideIcons.pencil
                     : stub
                     ? FLucideIcons.triangleAlert
                     : FLucideIcons.database,
@@ -827,6 +851,14 @@ class _UsdaProvenance extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(line, style: ansiMono(size: 10, color: AnsiColors.muted)),
+          if (edited) ...[
+            const SizedBox(height: 3),
+            Text(
+              '${_overriddenNumbers(ingredient)} — the numbers on this row are '
+              'no longer the source’s',
+              style: ansiMono(size: 10, color: AnsiColors.muted),
+            ),
+          ],
           const SizedBox(height: 8),
           Row(
             spacing: 8,
@@ -854,6 +886,27 @@ class _UsdaProvenance extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Which numbers the *edited here* line names — "your macros", "your density",
+/// or "your macros and your density" (B-D2).
+///
+/// **Read off what the row now carries, not off which field was typed.** The
+/// flag is one boolean by ruling (B-D1: encoding it in `source` breaks every
+/// parser, and diffing means keeping a second copy of the source's own
+/// figures), so the row records that its numbers were overridden and not which
+/// of them. Naming what is on the row is the reading that ruling supports: the
+/// claim is made at row granularity, which is the granularity the fact has.
+///
+/// A row carrying neither — the flag survived a later clear of both — says the
+/// plain thing rather than an empty list.
+String _overriddenNumbers(Ingredient ingredient) {
+  final macros = ingredient.macros != null;
+  final density = ingredient.densityGPerMl != null;
+  if (macros && density) return 'your macros and your density';
+  if (macros) return 'your macros';
+  if (density) return 'your density';
+  return 'edited here';
 }
 
 /// The four macro inputs. All four or none — a partial panel would compute

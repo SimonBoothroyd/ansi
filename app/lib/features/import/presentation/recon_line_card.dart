@@ -456,6 +456,9 @@ class _Expanded extends ConsumerWidget {
           candidates: line.candidates,
           recipeCandidates: line.recipeCandidates,
           resolution: resolution,
+          // Which food the matched row's numbers came from,
+          // already on the validation the card is holding.
+          sourceLine: validation.sourceLine,
           onResolveExisting: (id, name, {required correction}) => update(
             (r) => r.resolveToIngredient(id, name, correction: correction),
           ),

@@ -159,6 +159,10 @@ const schema = Schema([
     // the row or the fill predates 0027.
     Column.text('source_label'),
     Column.real('source_score'),
+    // 0/1 (0034): a human has overridden the numbers the lookup filled —
+    // macros, basis or density. Only a write that touches one of those sets
+    // it; a rename never does, and a fresh pick clears it.
+    Column.integer('source_edited'),
     Column.text('match_text'),
     ..._audit,
   ]),

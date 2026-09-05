@@ -8,7 +8,11 @@
 /// when it is broken is not a vocabulary you can edit.
 ///
 /// Rows are the 7.7 picker rows ([IngredientRow]) — same hints, same honest
-/// silence where a number is missing — with a chevron instead of a `+`.
+/// silence where a number is missing — with a chevron instead of a `+`, and
+/// one thing the picker's rows do not carry: the **USDA food behind a filled
+/// row**, named as a muted second line. This is the screen
+/// you scan, so it is where a wrong match is worth catching; the picker stays
+/// quiet because a description under every row is noise while you type.
 /// Search is the same deterministic local search the picker uses
 /// ([useIngredientSearch]); typing collapses the band into the results, which
 /// is what a search is for.
@@ -201,6 +205,10 @@ class _ManagerRow extends StatelessWidget {
     ingredient: ingredient,
     onPick: onOpen,
     advisoryDensityGap: true,
+    // A-D1: the manager names the USDA food behind a filled row, so a wrong
+    // match is caught in the scan rather than one opened row at a time. The
+    // picker sets this false — see [IngredientRow.showSource].
+    showSource: true,
     trailing: const Icon(
       FLucideIcons.chevronRight,
       size: 16,
