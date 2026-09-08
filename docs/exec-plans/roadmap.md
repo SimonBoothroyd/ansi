@@ -8,18 +8,12 @@ what exists and which plan bought it.
 
 ## Next
 
-1. **The pending migrations reach cloud** — `0032` (tsp admission), `0033`
-   (a plan slot's ingredient target), `0034` (`source_edited`), `0035` (the
-   symmetric mass ladder) and `0037` (all-to-all admission, and `mg` leaving
-   the catalogue — it converts stored `mg` quantities to `g`) are built,
-   pgTAP-green and local only. Nothing else should land until they are
-   pushed.
-2. **The vocabulary statement is run** — [0039](./completed/0039-vocabulary-round-five.md)'s
-   operator statement (Parts 1 and 2) is written and rehearsed in a rolled-back
-   transaction, and has never touched the live household. Data is durable: the
-   household gets the new words this way, not by a reset.
-3. Then: step 10 (web) or step 11 (anti-waste), both stretch, or the first idea
-   worth building off the [backlog](./backlog.md).
+1. Step 10 (web) or step 11 (anti-waste), both stretch, or the first idea
+   worth building off the [backlog](./backlog.md). Every migration through
+   `0037` and the current seed are on cloud: the v0.7.0 release rebuilt the
+   cloud database from scratch (owner call, cloud-setup §2c), so there is no
+   pending push, no operator statement owed to an old household, and the data
+   from here on is real.
 
 ## Shipped
 
@@ -56,7 +50,8 @@ and where to read about it.
 | — | Debt pass — the server-side rule divergences, the measures rollout | 🟢 | [0023](./completed/0023-debt-pass.md) |
 | — | One save, one write — the New-ingredient sheet dissolves, and nothing matches to USDA on its own | 🟢 done — on cloud 2026-09-04 | [0029](./completed/0029-one-save-one-write.md) · [ADR-0011](../decisions/0011-one-save-one-write.md) |
 | — | State-of-the-world sweep — comments, docs, board, tests, UI anatomy | 🟢 done — on cloud 2026-09-04, shipped as `v0.5.0` | [0030](./completed/0030-state-of-the-world-sweep.md) |
-| 8.14 | Field test, round five — fifteen owner notes off a photo import and a week of use, built as seven plans in parallel lanes | 🟢 built — local only; three migrations pending cloud | [0034](./completed/0034-import-review-editable.md) · [0035](./completed/0035-line-ergonomics.md) · [0036](./completed/0036-ingredient-entry-and-units.md) · [0037](./completed/0037-library-rows.md) · [0038](./completed/0038-plan-an-ingredient.md) · [0039](./completed/0039-vocabulary-round-five.md) · [0040](./completed/0040-usda-provenance-and-edits.md) · [ADR-0012](../decisions/0012-tsp-mates-cup.md) |
+| 8.14 | Field test, round five — fifteen owner notes off a photo import and a week of use, built as seven plans in parallel lanes | 🟢 done — on cloud 2026-09-05, shipped as `v0.6.0` | [0034](./completed/0034-import-review-editable.md) · [0035](./completed/0035-line-ergonomics.md) · [0036](./completed/0036-ingredient-entry-and-units.md) · [0037](./completed/0037-library-rows.md) · [0038](./completed/0038-plan-an-ingredient.md) · [0039](./completed/0039-vocabulary-round-five.md) · [0040](./completed/0040-usda-provenance-and-edits.md) · [ADR-0012](../decisions/0012-tsp-mates-cup.md) |
+| 8.15 | Field test, round six — four owner notes (unit ladder, a stranded default, a dying provider, week-scoped staples, provenance by name), then the all-to-all unit rule and the vocabulary unit audit; the cloud database rebuilt from scratch | 🟢 done — on cloud 2026-09-08, shipped as `v0.7.0` | [0041](./completed/0041-vocabulary-unit-audit.md) · [ADR-0013](../decisions/0013-mass-ladder-symmetric.md) · [ADR-0014](../decisions/0014-all-to-all-admission.md) |
 | 10 | Web UI (near-free with Flutter) | ⚪ stretch | — |
 | 11 | Anti-waste extras — freezer batching, monotony warnings, package-size flags | ⚪ stretch | — |
 
