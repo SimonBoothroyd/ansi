@@ -18,6 +18,7 @@ begin;
 update ingredient set
   macros = '{"kcal":375,"protein":50,"fat":3.1,"carb":31.3,"fiber":18.8}'::jsonb,
   source = 'label:Bragg nutritional yeast',
+  source_label = null,
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'nutritional yeast';
 
@@ -25,6 +26,7 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'nu
 update ingredient set
   macros = '{"kcal":161,"protein":7.5,"fat":12,"carb":3.5}'::jsonb,
   source = 'label:Maille Dijon Originale',
+  source_label = null,
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'dijon mustard';
 
@@ -32,6 +34,7 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'di
 update ingredient set
   macros = '{"kcal":18,"protein":0,"fat":0,"carb":1.5}'::jsonb,
   source = 'label:typical unseasoned rice vinegar',
+  source_label = null,
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'rice vinegar';
 
@@ -39,6 +42,7 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'ri
 update ingredient set
   macros = '{"kcal":319,"protein":10.6,"fat":2.1,"carb":68.1,"fiber":8.5}'::jsonb,
   source = 'label:Bob''s Red Mill organic farro',
+  source_label = null,
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'farro';
 
@@ -46,6 +50,7 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'fa
 update ingredient set
   macros = '{"kcal":643,"protein":0,"fat":71.4,"carb":7.1}'::jsonb,
   source = 'label:Hellmann''s vegan mayo',
+  source_label = null,
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'vegan mayonnaise';
 
@@ -53,6 +58,7 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 've
 update ingredient set
   macros = '{"kcal":235,"protein":11.8,"fat":1.5,"carb":44.1,"fiber":8.8}'::jsonb,
   source = 'label:Food for Life Ezekiel 4:9',
+  source_label = null,
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sprouted multigrain bread';
 
@@ -60,6 +66,7 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'sp
 update ingredient set
   macros = '{"kcal":114,"protein":6.99,"fat":0.9,"carb":20.22,"fiber":5.5}'::jsonb,
   source = 'usda_fdc:174286 — borrowed (pinto, drained solids)',
+  source_label = (select description from usda_food where fdc_id = 174286),
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'black bean canned';
 
@@ -67,6 +74,7 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'bl
 update ingredient set
   macros = '{"kcal":114,"protein":6.99,"fat":0.9,"carb":20.22,"fiber":5.5}'::jsonb,
   source = 'usda_fdc:174286 — borrowed (pinto, drained solids)',
+  source_label = (select description from usda_food where fdc_id = 174286),
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'black eyed pea canned';
 
@@ -74,6 +82,7 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'bl
 update ingredient set
   macros = '{"kcal":114,"protein":6.99,"fat":0.9,"carb":20.22,"fiber":5.5}'::jsonb,
   source = 'usda_fdc:174286 — borrowed (pinto, drained solids)',
+  source_label = (select description from usda_food where fdc_id = 174286),
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cannellini bean canned';
 
@@ -81,6 +90,7 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'ca
 update ingredient set
   macros = '{"kcal":114,"protein":6.99,"fat":0.9,"carb":20.22,"fiber":5.5}'::jsonb,
   source = 'usda_fdc:174286 — borrowed (pinto, drained solids)',
+  source_label = (select description from usda_food where fdc_id = 174286),
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'great northern bean canned';
 
@@ -88,6 +98,7 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'gr
 update ingredient set
   macros = '{"kcal":114,"protein":6.99,"fat":0.9,"carb":20.22,"fiber":5.5}'::jsonb,
   source = 'usda_fdc:174286 — borrowed (pinto, drained solids)',
+  source_label = (select description from usda_food where fdc_id = 174286),
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'navy bean canned';
 
@@ -95,6 +106,7 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'na
 update ingredient set
   macros = '{"kcal":884,"protein":0,"fat":100,"carb":0,"fiber":0}'::jsonb,
   source = 'usda_fdc:171413 — borrowed (olive oil, salad or cooking)',
+  source_label = (select description from usda_food where fdc_id = 171413),
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'extra virgin olive oil';
 
@@ -102,6 +114,7 @@ where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'ex
 update ingredient set
   macros = '{"kcal":116,"protein":9.02,"fat":0.38,"carb":20.13,"fiber":7.9}'::jsonb,
   source = 'usda_fdc:172421 — borrowed (lentils, boiled — the drained basis)',
+  source_label = (select description from usda_food where fdc_id = 172421),
   status = 'complete'
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'lentil canned';
 

@@ -12,7 +12,7 @@
 -- holds the starter vocab and its aliases). Run by `supabase test db`.
 
 begin;
-select plan(33);
+select plan(36);
 
 -- Isolate from any pre-existing memberships AND households (a live dev
 -- session or a `make test-sim` run leaves onboarded households behind;
@@ -60,6 +60,16 @@ where household_id = '00000000-0000-0000-0000-0000000000aa'
 update ingredient set macros_basis = 'ml'
 where household_id = '00000000-0000-0000-0000-0000000000aa'
   and match_text = 'olive oil';
+
+-- The food's NAME rides the clone (0038): a template row filled from USDA
+-- carries `source_label` / `source_score` beside its stamp, and the clone
+-- must copy both — a household's provenance card names the food, not the id.
+update ingredient
+   set source = 'usda_fdc:171413',
+       source_label = 'Oil, olive, salad or cooking',
+       source_score = 0.91
+ where household_id = '00000000-0000-0000-0000-0000000000aa'
+   and match_text = 'olive oil';
 
 -- …and the column refuses anything outside its two honest values.
 select throws_ok(
@@ -186,6 +196,33 @@ select is(
      where im.household_id = '00000000-0000-0000-0000-0000000000aa'
        and im.deleted_at is null and i.source is distinct from 'manual'),
   'and every measure of a cloned ingredient (0009)'
+);
+select is(
+  (select i.source_label from ingredient i
+     join household_member m on m.household_id = i.household_id
+     where m.auth_user_id = 'c3333333-3333-3333-3333-333333333333'
+       and i.match_text = 'olive oil' and i.deleted_at is null),
+  'Oil, olive, salad or cooking',
+  'a cloned row keeps the name of the food that filled it (0038)'
+);
+select is(
+  (select i.source_score from ingredient i
+     join household_member m on m.household_id = i.household_id
+     where m.auth_user_id = 'c3333333-3333-3333-3333-333333333333'
+       and i.match_text = 'olive oil' and i.deleted_at is null),
+  0.91::real,
+  'and how well that food matched'
+);
+-- The seed writes the label with the stamp, so no template row filled from
+-- USDA is nameless — the fallback the card prints for a label-less row
+-- (the bare FDC id) must never describe the starter vocabulary.
+select is(
+  (select count(*)::int from ingredient
+     where household_id = '00000000-0000-0000-0000-0000000000aa'
+       and deleted_at is null and source like 'usda_fdc:%'
+       and source_label is null),
+  0,
+  'every template row stamped usda_fdc:<id> carries its source_label'
 );
 -- …but never the private rows themselves.
 select is(

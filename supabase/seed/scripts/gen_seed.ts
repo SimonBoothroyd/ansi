@@ -271,6 +271,10 @@ function writePrefill(dir: string): void {
     "  macros = case when u.macros ? 'kcal' then u.macros else i.macros end,",
     "  density_g_per_ml = coalesce(u.density_g_per_ml, i.density_g_per_ml),",
     "  source = 'usda_fdc:' || u.fdc_id,",
+    "  -- the label rides with the stamp, so a row never says usda_fdc:<id>",
+    "  -- without being able to say WHICH food (0027's trigger keeps the same",
+    "  -- rule for rows the server matches on its own)",
+    "  source_label = u.description,",
     "  status = case when u.macros ? 'kcal' then 'complete' else i.status end",
     "from (values",
     rows.join(",\n"),
@@ -335,11 +339,21 @@ function writeCuration(dir: string, vocabMatchTexts: Set<string>): void {
   for (const o of overrides) {
     if (o.kind === "macros") {
       macroFills++;
+      // A stamp that names an FDC food — `usda_fdc:171413 — borrowed (…)`
+      // — names it on the row too: the label is the food the numbers came
+      // from, looked up in the reference at seed time. A `label:…` source
+      // names no reference food, so its label is cleared rather than left
+      // saying whatever the prefill wrote before the override.
+      const fdc = /^usda_fdc:(\d+)/.exec(o.source!)?.[1];
+      const label = fdc
+        ? `(select description from usda_food where fdc_id = ${fdc})`
+        : "null";
       sql.push(
         `-- ${o.match_text}: ${o.reason}`,
         "update ingredient set",
         `  macros = ${q(JSON.stringify(o.macros))}::jsonb,`,
         `  source = ${q(o.source!)},`,
+        `  source_label = ${label},`,
         "  status = 'complete'",
         `where household_id = ${q(HOUSEHOLD_ID)} and match_text = ${
           q(o.match_text)

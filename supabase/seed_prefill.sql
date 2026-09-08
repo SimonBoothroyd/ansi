@@ -7,6 +7,10 @@ update ingredient i set
   macros = case when u.macros ? 'kcal' then u.macros else i.macros end,
   density_g_per_ml = coalesce(u.density_g_per_ml, i.density_g_per_ml),
   source = 'usda_fdc:' || u.fdc_id,
+  -- the label rides with the stamp, so a row never says usda_fdc:<id>
+  -- without being able to say WHICH food (0027's trigger keeps the same
+  -- rule for rows the server matches on its own)
+  source_label = u.description,
   status = case when u.macros ? 'kcal' then 'complete' else i.status end
 from (values
   ('active yeast dry', 175043),

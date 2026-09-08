@@ -249,7 +249,8 @@ easy cases and an LLM arbiter for the judgment ones, under a strict
 **no-analogue** rule: a link is only made where the USDA food genuinely *is* the
 ingredient — never a stand-in (canned ≠ dry, fruit ≠ its oil, vegan ≠ dairy).
 Unmatched ingredients stay `stub`. `gen-seed` reads `usda_links.jsonl` and emits
-`../seed_prefill.sql`, which copies macros/density onto matched rows and flips
+`../seed_prefill.sql`, which copies macros/density and the food's name
+(`source_label`) onto matched rows and flips
 them to `complete` (a guard skips USDA rows with no macros).
 
 ## Density fallback (`fao_density_links.jsonl`)
