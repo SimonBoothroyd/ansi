@@ -207,10 +207,11 @@ An `ingredient_measure` row names one countable thing and says what it weighs:
     points at one. A row may honestly carry both: *an unsized onion weighs
     110 g* and *a medium onion is 110 g* are two statements, the first sourced
     from the second and free to diverge.
-  - **A count converts like any unit.** The macro engine and the shopping
-    aggregation read a `piece` line through the piece weight the way they read a
-    `cup` line through the density — no read-through rule, no "counted as" note
-    on the line. A bare count on a row with no weight can only be a row created
+  - **A count converts like any unit.** The macro engine reads a `piece` line
+    through the piece weight the way it reads a `cup` line through the density
+    — no read-through rule, no "counted as" note on the line. (The shopping
+    list still totals a count per unit — "2 piece" — as it always has; the
+    weight is a macro fact, not a buying one.) A bare count on a row with no weight can only be a row created
     before this model landed; it reads `needs a piece weight`, and that marker
     opens the *ingredient's* form. One number fixes every bare count of that
     ingredient in every recipe.

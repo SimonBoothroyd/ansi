@@ -109,8 +109,9 @@ when the write changes **macros, the macros basis or the density** on a row
 whose `source` is a lookup stamp (`isLookupFilled`: `usda_fdc:<id>` or
 `off:<barcode>`). Nothing server-side writes it; there is no trigger.
 
-The fence is the design: a rename, a unit toggle, a category, a measure, an
-alias and `Mark complete` do not contradict the source, so none
+The fence is the design: a rename, a unit toggle, a category, a measure, a
+piece weight, an alias and `Mark complete` do not contradict the source
+(a piece weight is a number, but not one a lookup supplies), so none
 of them may set it, and a save that only touches those leaves the stored value
 alone in both directions. A **fresh pick clears it** — the numbers are the new
 food's — and so does *Not this food*, which leaves no numbers to have

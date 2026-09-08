@@ -40,7 +40,7 @@ bridge it, so the form flags it and Save offers `g`/`ml` instead.
 | `cup` | — (default needs a density) | **cup** · tsp · tbsp · fl oz · ml · l · pt · qt |
 | `pt` | — (default needs a density) | **pt** · tsp · tbsp · fl oz · cup · ml · l · qt |
 | `qt` | — (default needs a density) | **qt** · tsp · tbsp · fl oz · cup · ml · l · pt |
-| `piece` | **piece** · g · kg · oz · lb | **piece** · tsp · tbsp · fl oz · cup · ml · l · pt · qt |
+| `piece` | g · kg · oz · lb | tsp · tbsp · fl oz · cup · ml · l · pt · qt |
 | `pinch` | g · kg · oz · lb · **pinch** | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **pinch** |
 | `dash` | g · kg · oz · lb · **dash** | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **dash** |
 | `handful` | g · kg · oz · lb · **handful** | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **handful** |
@@ -68,7 +68,7 @@ stranded in table 1 appears in the second half.
 | `cup` | g · kg · oz · lb + **cup** · tsp · tbsp · fl oz · ml · l · pt · qt | **cup** · tsp · tbsp · fl oz · ml · l · pt · qt + g · kg · oz · lb |
 | `pt` | g · kg · oz · lb + **pt** · tsp · tbsp · fl oz · cup · ml · l · qt | **pt** · tsp · tbsp · fl oz · cup · ml · l · qt + g · kg · oz · lb |
 | `qt` | g · kg · oz · lb + **qt** · tsp · tbsp · fl oz · cup · ml · l · pt | **qt** · tsp · tbsp · fl oz · cup · ml · l · pt + g · kg · oz · lb |
-| `piece` | **piece** · g · kg · oz · lb + tsp · tbsp · fl oz · cup · ml · l · pt · qt | **piece** · tsp · tbsp · fl oz · cup · ml · l · pt · qt + g · kg · oz · lb |
+| `piece` | g · kg · oz · lb + tsp · tbsp · fl oz · cup · ml · l · pt · qt | tsp · tbsp · fl oz · cup · ml · l · pt · qt + g · kg · oz · lb |
 | `pinch` | g · kg · oz · lb · **pinch** + tsp · tbsp · fl oz · cup · ml · l · pt · qt | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **pinch** + g · kg · oz · lb |
 | `dash` | g · kg · oz · lb · **dash** + tsp · tbsp · fl oz · cup · ml · l · pt · qt | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **dash** + g · kg · oz · lb |
 | `handful` | g · kg · oz · lb · **handful** + tsp · tbsp · fl oz · cup · ml · l · pt · qt | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **handful** + g · kg · oz · lb |
