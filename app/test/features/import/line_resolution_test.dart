@@ -964,7 +964,6 @@ void main() {
       r = r
           .setAmount(quantity: 2, unit: 'piece')
           .setNotes('to serve')
-          .restorePrintedUnit('piece')
           .pickUnit('piece');
       expect(r.optional, isTrue);
       expect(r.setOptional(optional: false).optional, isFalse);

@@ -99,9 +99,9 @@ final _recipeOffer = reconPayload(title: 'Sausage Sliders', servingsBase: 8, [
   ),
 ]);
 
-/// A `piece` line on a row whose measure names the thing. Post-curation (plan
-/// 0022) `piece` is not in the row's `allowed_units`, so the shipped
-/// `unitNotAllowed` machinery finally reaches this line.
+/// A `piece` line on a row whose measure names the thing. `piece` is not in
+/// the row's `allowed_units` — and on an unweighed row it could not be — so
+/// the shipped `unitNotAllowed` machinery reaches this line.
 ReconciliationPayload _piecePayload(String name, String ingredientId) =>
     reconPayload([
       reconLine(
@@ -567,72 +567,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  // --- plan 0024 · seam D2 + D3 · the board's frames (a) and (b) ------------
-
-  /// Where a `piece` line lands on arrival, by the shape of the row's measure
-  /// set. `preselectedMeasure` used to pre-select the SHEET and never the
-  /// LINE, so a sole-measure row stayed flagged until somebody opened and
-  /// confirmed it. Writing the LINE means a line that named a number and no
-  /// thing arrives on its curated default — or its sole measure — clean, with
-  /// the fact said out loud on the card.
-  ///
-  /// The other three rows are the cases where arriving on something would be
-  /// a lie: a set with no dominant member, a set of three equals, and a line
-  /// that PRINTED a word of its own (cilantro's default IS `sprig` at 2.22 g
-  /// and a bunch is ~25 of them, so applying it would be a silent 25× error).
-  /// The model can say "I don't know", which a rule never can.
-  final arrivals =
-      <
-        ({
-          String what,
-          ReconciliationPayload payload,
-          Ingredient row,
-          List<Measure> measures,
-          String unit,
-          String? countsAs,
-        })
-      >[
-        (
-          what: 'a sized row arrives on its curated default',
-          payload: _piecePayload('Red Pepper', pepper.id),
-          row: pepper,
-          measures: pepperSizes,
-          unit: 'pepper, medium',
-          countsAs: 'counts as  pepper, medium · 119 g',
-        ),
-        (
-          what: 'a SOLE-measure row arrives on it too',
-          payload: _piecePayload('Cucumber', cucumber.id),
-          row: cucumber,
-          measures: const [cucumberMeasure],
-          unit: 'cucumber',
-          countsAs: 'counts as  cucumber · 301 g',
-        ),
-        (
-          what: 'a fragment set has no default and stays flagged',
-          payload: _piecePayload('Broccoli', broccoli.id),
-          row: broccoli,
-          measures: broccoliParts,
-          unit: 'piece',
-          countsAs: null,
-        ),
-        (
-          what: 'three sizes pre-select nothing',
-          payload: _piecePayload('Gold Potato', potato.id),
-          row: potato,
-          measures: potatoSizes,
-          unit: 'piece',
-          countsAs: null,
-        ),
-        (
-          what: 'a line that PRINTED a word the row refuses is untouched',
-          payload: _bunch,
-          row: cilantro,
-          measures: const [cilantroSprig],
-          unit: 'bunch',
-          countsAs: null,
-        ),
-      ];
+  // --- ADR-0015 · the piece-weight gate on a counted line -------------------
+  //
+  // Nothing writes a line from the row any more. A count — a printed `piece`,
+  // or a number and no word — is either a `piece` the row admits, weighed by
+  // its piece weight, or a flag. Where the flag is the row's MISSING weight,
+  // the card says so and opens the row: the number is the ingredient's fact,
+  // so the card never offers to type it here.
 
   ProviderContainer pieceLineContainer(
     ReconciliationPayload payload,
@@ -656,36 +597,101 @@ void main() {
     return container;
   }
 
-  for (final c in arrivals) {
-    testWidgets('${c.what} — it reads `${c.unit}`, and the alternatives are '
-        'beside it', (tester) async {
+  /// Which flagged lines get the door, by the shape of the row behind them.
+  /// The first three are the gap the door exists for — a count on a row that
+  /// says nothing about what one weighs. The last two are the near misses it
+  /// must not claim: a row that HAS the number (its `piece` is refused for the
+  /// ordinary reason — the household pruned it off the list), and a line that
+  /// printed a word of its own, which is no count at all.
+  final gate =
+      <
+        ({
+          String what,
+          ReconciliationPayload payload,
+          Ingredient row,
+          String name,
+          List<Measure> measures,
+          String unit,
+          bool door,
+        })
+      >[
+        (
+          what: 'a sized row with no piece weight',
+          payload: _piecePayload('Red Pepper', pepper.id),
+          row: pepper,
+          name: 'Red Pepper',
+          measures: pepperSizes,
+          unit: 'piece',
+          door: true,
+        ),
+        (
+          what: 'a sole-measure row with no piece weight',
+          payload: _piecePayload('Cucumber', cucumber.id),
+          row: cucumber,
+          name: 'Cucumber',
+          measures: const [cucumberMeasure],
+          unit: 'piece',
+          door: true,
+        ),
+        (
+          what: 'a fragment set with no piece weight',
+          payload: _piecePayload('Broccoli', broccoli.id),
+          row: broccoli,
+          name: 'Broccoli',
+          measures: broccoliParts,
+          unit: 'piece',
+          door: true,
+        ),
+        (
+          what: 'the same sized row once somebody weighed a piece',
+          payload: _piecePayload('Red Pepper', pepperWeighed.id),
+          row: pepperWeighed,
+          name: 'Red Pepper',
+          measures: pepperSizes,
+          unit: 'piece',
+          door: false,
+        ),
+        (
+          what: 'a line that PRINTED a word of its own — no count, no gap',
+          payload: _bunch,
+          row: cilantro,
+          name: 'Cilantro',
+          measures: const [cilantroSprig],
+          unit: 'bunch',
+          door: false,
+        ),
+      ];
+
+  for (final c in gate) {
+    testWidgets('${c.what} — the printed word stands, and the piece-weight '
+        'door is ${c.door ? 'on' : 'off'} the card', (tester) async {
       filterForuiSemanticsAssertions();
       final container = pieceLineContainer(c.payload, c.row, c.measures);
       await pumpPieceLine(tester, container);
 
-      final resolved = c.countsAs != null;
-      expect(
-        find.text('Pick a supported unit'),
-        resolved ? findsNothing : findsWidgets,
-      );
+      // Nothing rewrote the line on arrival: it says what the page said, and
+      // it is flagged for it.
       final state =
           container.read(importControllerProvider) as ImportReconciling;
       expect(state.resolutions.single.unit, c.unit);
-      expect(state.resolutions.single.unitFromDefault, resolved);
+      expect(find.text('Pick a supported unit'), findsWidgets);
 
       await tester.tap(find.byIcon(FLucideIcons.pencil));
       await tester.pumpAndSettle();
 
-      // The sentence that makes a default honest, shown at the moment it is
-      // applied — and absent when nothing was applied.
-      if (c.countsAs case final sentence?) {
-        expect(find.textContaining(sentence), findsOne);
-      } else {
-        expect(find.textContaining('counts as'), findsNothing);
-      }
+      final door = find.byKey(ValueKey('piece-weight-door-${c.row.id}'));
+      expect(door, c.door ? findsOneWidget : findsNothing);
+      // Named after the line's own identity — the card heads with what the
+      // line resolved TO, and the door must agree with the heading above it.
+      expect(
+        find.textContaining('${c.name} has no piece weight yet'),
+        c.door ? findsOneWidget : findsNothing,
+      );
+      // The card never tells a line what it "counts as" any more.
+      expect(find.textContaining('counts as'), findsNothing);
 
-      // The chips stay VISIBLE — the choice made for you, beside the ones you
-      // could make instead. Hiding them would make tap-to-change invisible.
+      // The chips are the offer either way — the door is a second way out,
+      // never the only one, which is what its own sentence promises.
       expect(find.text('UNIT'), findsOneWidget);
       for (final m in c.measures) {
         expect(find.text(m.label), findsWidgets);
@@ -694,8 +700,45 @@ void main() {
     });
   }
 
-  testWidgets('one tap changes the size, and the card stops claiming the '
-      'default answered', (tester) async {
+  testWidgets('a weighed count row asks for nothing: the line is clean, with '
+      'no flag, no chips and no door', (tester) async {
+    filterForuiSemanticsAssertions();
+    final container = pieceLineContainer(
+      _piecePayload('Onion', onionByPiece.id),
+      onionByPiece,
+      const [],
+    );
+    await pumpPieceLine(tester, container);
+    await tester.tap(find.byIcon(FLucideIcons.pencil));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pick a supported unit'), findsNothing);
+    expect(
+      find.byKey(ValueKey('piece-weight-door-${onionByPiece.id}')),
+      findsNothing,
+    );
+    expect(find.text('UNIT'), findsNothing);
+  });
+
+  testWidgets('the door opens the INGREDIENT — the weight is the row’s fact, '
+      'and the card never offers to type it here', (tester) async {
+    filterForuiSemanticsAssertions();
+    final container = pieceLineContainer(
+      _piecePayload('Red Pepper', pepper.id),
+      pepper,
+      pepperSizes,
+    );
+    await pumpPieceLine(tester, container);
+    await tester.tap(find.byIcon(FLucideIcons.pencil));
+    await tester.pumpAndSettle();
+
+    expect(find.text('open Red Pepper ›'), findsOneWidget);
+    // No weight field, no "how much does one weigh" prompt on this card.
+    expect(find.textContaining('what one weighs'), findsNothing);
+  });
+
+  testWidgets('one tap on a size resolves the line, and the door goes with '
+      'the flag', (tester) async {
     filterForuiSemanticsAssertions();
     final container = pieceLineContainer(
       _piecePayload('Red Pepper', pepper.id),
@@ -710,15 +753,15 @@ void main() {
     await tester.pumpAndSettle();
     final state = container.read(importControllerProvider) as ImportReconciling;
     expect(state.resolutions.single.unit, 'pepper, large');
-    expect(state.resolutions.single.unitFromDefault, isFalse);
-    expect(find.textContaining('counts as'), findsNothing);
     expect(find.text('Pick a supported unit'), findsNothing);
+    expect(
+      find.byKey(ValueKey('piece-weight-door-${pepper.id}')),
+      findsNothing,
+    );
   });
 
-  testWidgets('a default the user never touched commits as a tapped chip would '
-      '— the label rides through, with no provenance of its own', (
-    tester,
-  ) async {
+  testWidgets('the sole-measure sheet still opens PRE-SELECTED, so Done alone '
+      'resolves the line and commits the label', (tester) async {
     filterForuiSemanticsAssertions();
     final repo = FakeImportRepo(_piecePayload('Cucumber', cucumber.id));
     final container = pieceLineContainer(
@@ -728,6 +771,20 @@ void main() {
       repo: repo,
     );
     await pumpPieceLine(tester, container);
+    await tester.tap(find.byIcon(FLucideIcons.pencil));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(AmountEditor));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    final state = container.read(importControllerProvider) as ImportReconciling;
+    expect(state.resolutions.single.unit, 'cucumber');
+    expect(
+      find.byKey(ValueKey('piece-weight-door-${cucumber.id}')),
+      findsNothing,
+    );
 
     await container
         .read(importControllerProvider.notifier)

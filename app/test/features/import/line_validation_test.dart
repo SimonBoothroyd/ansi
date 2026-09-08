@@ -561,156 +561,126 @@ void main() {
     });
   });
 
-  group('arrivalMeasure (the default answers a number and no thing)', () {
-    // The 21 rows the owner ruled on are DATA; what is defended here is the
-    // rule that spends them.
-    const potatoWithDefault = Ingredient(
-      id: 'i-potato',
-      canonicalName: 'Gold Potato',
+  group('a count on a piece-default row (ADR-0015)', () {
+    // No explicit admission list on either row, so what they admit is what the
+    // rule derives — and the piece weight is the whole of the difference.
+    const unweighed = Ingredient(
+      id: 'i-tin',
+      canonicalName: 'Tinned Butter Bean',
       defaultUnit: pieces,
-      category: 'produce',
       status: IngredientStatus.complete,
-      densityGPerMl: 0.59,
-      allowedUnits: [g, tsp, tbsp, cup, ml, handful],
-      defaultMeasureId: 'm-p-med',
+    );
+    const weighed = Ingredient(
+      id: 'i-tin',
+      canonicalName: 'Tinned Butter Bean',
+      defaultUnit: pieces,
+      status: IngredientStatus.complete,
+      pieceBasisAmount: 400,
+      pieceSource: 'manual',
     );
 
-    test('a refused `piece` on a row with a default lands on it', () {
-      expect(
-        arrivalMeasure(potatoWithDefault, _potatoSizes, unit: 'piece'),
-        _potatoSizes.first,
-      );
-    });
-
-    test('a line that printed NO unit lands on it too — "onions, sliced"', () {
-      expect(
-        arrivalMeasure(potatoWithDefault, _potatoSizes, unit: null),
-        _potatoSizes.first,
-      );
-      expect(
-        arrivalMeasure(potatoWithDefault, _potatoSizes, unit: ''),
-        _potatoSizes.first,
-      );
-    });
-
-    test('a printed WORD the row refuses is never overruled — a bunch is '
-        'twenty-five sprigs, and replacing it would be the guess ADR-0010 '
-        'forbids', () {
-      for (final printed in ['bunch', 'head', 'can', 'sprig']) {
-        expect(
-          arrivalMeasure(potatoWithDefault, _potatoSizes, unit: printed),
-          isNull,
-          reason: printed,
-        );
-      }
-    });
-
-    test('a refused MASS/VOLUME unit is a density gap, not a count gap — a '
-        'measure cannot answer it', () {
-      expect(
-        arrivalMeasure(_garlic, const [_clove], unit: 'ml'),
-        isNull,
-        reason: 'garlic has no density; a clove is not what "2 ml" meant',
-      );
-    });
-
-    test('a unit the row already carries is left alone', () {
-      expect(arrivalMeasure(potatoWithDefault, _potatoSizes, unit: 'g'), null);
-      expect(
-        arrivalMeasure(potatoWithDefault, _potatoSizes, unit: 'potato, large'),
-        isNull,
-      );
-    });
-
-    test('no default and several measures ⇒ nothing (the fragment set: the '
-        'flag stands and the user picks)', () {
-      expect(arrivalMeasure(_potato, _potatoSizes, unit: 'piece'), isNull);
-      expect(arrivalMeasure(_potato, _potatoSizes, unit: null), isNull);
-    });
-
-    test('no default and exactly ONE measure ⇒ that one (the promise ADR-0010 '
-        'consequence 4 made, kept on the LINE)', () {
-      expect(
-        arrivalMeasure(_avocado, const [_avocadoMeasure], unit: 'piece'),
-        _avocadoMeasure,
-      );
-    });
-
-    test('a default whose measure has not synced in yet ⇒ nothing — never a '
-        'DIFFERENT measure than the one the household named', () {
-      expect(
-        arrivalMeasure(potatoWithDefault, const [
-          Measure(id: 'm-p-lrg', label: 'potato, large', amount: 369),
-        ], unit: 'piece'),
-        isNull,
-      );
-    });
-
-    test('a volume-named measure is skipped — density owns volume', () {
-      const cupDefault = Ingredient(
-        id: 'i-x',
-        canonicalName: 'X',
-        defaultUnit: pieces,
-        status: IngredientStatus.complete,
-        allowedUnits: [g],
-        defaultMeasureId: 'm-cup',
-      );
-      expect(
-        arrivalMeasure(cupDefault, const [
-          Measure(id: 'm-cup', label: 'cup', amount: 120),
-        ], unit: 'piece'),
-        isNull,
-      );
-    });
-
-    test('the label it returns is a token lineIssues accepts — the card is '
-        'clean for the ORDINARY reason, with no new LineIssue', () {
-      final measure = arrivalMeasure(
-        potatoWithDefault,
-        _potatoSizes,
+    test('a printed `piece` is unitNotAllowed until the row says what one '
+        'weighs, and clean the moment it does', () {
+      final line = _res(
+        chosenIngredientId: 'i-tin',
+        quantity: 1,
         unit: 'piece',
-      )!;
-      final arrived = _res(
-        chosenIngredientId: potatoWithDefault.id,
-        unit: 'piece',
-      ).applyDefaultUnit(measure.label);
+      );
+      expect(lineIssues(line, ingredient: unweighed), [
+        LineIssue.unitNotAllowed,
+      ]);
+      expect(lineIssues(line, ingredient: weighed), isEmpty);
+    });
+
+    test('a number with NO unit word is that same count and is judged the '
+        'same way — it is what the commit path stores as `piece`', () {
+      final line = _res(chosenIngredientId: 'i-tin', quantity: 2);
+      expect(lineIssues(line, ingredient: unweighed), [
+        LineIssue.unitNotAllowed,
+      ]);
+      expect(lineIssues(line, ingredient: weighed), isEmpty);
+      // …and the empty string the review screen passes is the same nothing.
       expect(
         lineIssues(
-          arrived,
-          ingredient: potatoWithDefault,
-          measures: _potatoSizes,
+          _res(chosenIngredientId: 'i-tin', quantity: 2, unit: ''),
+          ingredient: unweighed,
         ),
+        [LineIssue.unitNotAllowed],
+      );
+    });
+
+    test('a numberless line is no count at all — "to taste" onions flag for '
+        'nothing', () {
+      expect(
+        lineIssues(_res(chosenIngredientId: 'i-tin'), ingredient: weighed),
         isEmpty,
       );
-      expect(arrived.unitFromDefault, isTrue);
-      // …and it is idempotent: a second pass answers nothing.
       expect(
-        arrivalMeasure(potatoWithDefault, _potatoSizes, unit: arrived.unit),
-        isNull,
+        lineIssues(_res(chosenIngredientId: 'i-tin'), ingredient: unweighed),
+        isEmpty,
       );
     });
 
-    test('a user pick clears the mark — the card stops claiming the default '
-        'answered this line', () {
-      final arrived = _res(
-        chosenIngredientId: potatoWithDefault.id,
-      ).applyDefaultUnit('potato, medium');
-      expect(arrived.pickUnit('potato, large').unitFromDefault, isFalse);
+    test('a bare number on a MASS-default row is unitNotAllowed too — `piece` '
+        'is never admitted there, and no weight would admit it', () {
+      final line = _res(chosenIngredientId: _garlic.id, quantity: 2);
+      expect(lineIssues(line, ingredient: _garlic, measures: const [_clove]), [
+        LineIssue.unitNotAllowed,
+      ]);
+      // The fix is on this card: the units the row CAN say, as chips.
+      final chips = acceptableUnitChips(_garlic, const [_clove]);
+      expect(chips.map((c) => c.token), containsAll(<String>['g', 'clove']));
+      expect(chips.map((c) => c.token), isNot(contains('piece')));
+      // …and it is not the piece-weight gap, so the card offers no door.
+      expect(countNeedsPieceWeight(line, _garlic), isFalse);
+    });
+  });
+
+  group('resolutionIsCount / countNeedsPieceWeight', () {
+    test('a count is a printed `piece` or a number with no unit word — '
+        'nothing else', () {
+      expect(resolutionIsCount(_res(quantity: 1, unit: 'piece')), isTrue);
+      expect(resolutionIsCount(_res(quantity: 2)), isTrue);
+      expect(resolutionIsCount(_res(quantity: 2, unit: '')), isTrue);
+      // A measure label names a thing, not a bare count.
+      expect(resolutionIsCount(_res(quantity: 1, unit: 'clove')), isFalse);
+      expect(resolutionIsCount(_res(quantity: 200, unit: 'g')), isFalse);
+      expect(resolutionIsCount(_res(quantity: 1, unit: 'pinch')), isFalse);
+      // No unit AND no number: nothing was counted.
+      expect(resolutionIsCount(_res()), isFalse);
+    });
+
+    test('the gap is the ROW’s, so it needs both a count and an unweighed '
+        'piece-default row', () {
+      const unweighed = Ingredient(
+        id: 'i-lime',
+        canonicalName: 'Lime',
+        defaultUnit: pieces,
+        status: IngredientStatus.complete,
+      );
+      const weighed = Ingredient(
+        id: 'i-lime',
+        canonicalName: 'Lime',
+        defaultUnit: pieces,
+        status: IngredientStatus.complete,
+        pieceBasisAmount: 67,
+        pieceSource: 'manual',
+      );
+      final count = _res(chosenIngredientId: 'i-lime', quantity: 2);
+      expect(countNeedsPieceWeight(count, unweighed), isTrue);
+      expect(countNeedsPieceWeight(count, weighed), isFalse);
+      // A mass-default row has no piece default to strand.
+      expect(countNeedsPieceWeight(count, _garlic), isFalse);
+      // An unmatched line has no row to ask.
+      expect(countNeedsPieceWeight(count, null), isFalse);
+      // And a line that is not a count never asks, whatever the row.
       expect(
-        arrived.setAmount(quantity: 2, unit: 'g').unitFromDefault,
+        countNeedsPieceWeight(
+          _res(chosenIngredientId: 'i-lime', quantity: 200, unit: 'g'),
+          unweighed,
+        ),
         isFalse,
       );
-    });
-
-    test("restorePrintedUnit puts the SOURCE's word back — our word must not "
-        'follow the line onto a different ingredient', () {
-      final arrived = _res(
-        chosenIngredientId: potatoWithDefault.id,
-        unit: 'piece',
-      ).applyDefaultUnit('potato, medium');
-      final rematched = arrived.restorePrintedUnit('piece');
-      expect(rematched.unit, 'piece');
-      expect(rematched.unitFromDefault, isFalse);
     });
   });
 
@@ -813,13 +783,15 @@ void main() {
       );
     });
 
-    test('a measure-less count row still says `piece` happily — the fallback '
-        'the whole rule exists to protect', () {
+    test('a measure-less WEIGHED count row still says `piece` happily — the '
+        'fallback the whole rule exists to protect', () {
       const tin = Ingredient(
         id: 'i-tin',
         canonicalName: 'Tinned Butter Bean',
         defaultUnit: pieces,
         status: IngredientStatus.complete,
+        pieceBasisAmount: 400,
+        pieceSource: 'manual',
       );
       expect(lineIssues(pieceLine(tin.id), ingredient: tin), isEmpty);
     });

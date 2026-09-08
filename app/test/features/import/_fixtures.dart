@@ -81,6 +81,11 @@ ReconciliationPayload reconPayload(
 /// line that says "200 g" needs [onionByWeight] and a line that says "1 onion"
 /// needs [onionByPiece], or the line arrives flagged and the suite's actual
 /// subject never gets a clean Save.
+///
+/// [onionByPiece] carries a piece weight for that reason and no other: a
+/// count-default row admits `piece` only while it says what one weighs
+/// (ADR-0015), so without the number every `1 onion` line in every suite would
+/// arrive `unitNotAllowed`.
 const onionByWeight = Ingredient(
   id: 'ing-onion',
   canonicalName: 'Onion',
@@ -92,6 +97,8 @@ const onionByPiece = Ingredient(
   canonicalName: 'Onion',
   defaultUnit: pieces,
   status: IngredientStatus.complete,
+  pieceBasisAmount: 110,
+  pieceSource: 'manual',
 );
 
 const garlic = Ingredient(
@@ -102,8 +109,9 @@ const garlic = Ingredient(
 );
 const garlicClove = Measure(id: 'm-clove', label: 'clove', amount: 3);
 
-/// A sized family with a curated default — "2 red peppers" means two mediums,
-/// and the review says so on the card.
+/// A sized family with no piece weight — "2 red peppers" is a count the row
+/// cannot weigh, so the line stays flagged and the card shows the door to the
+/// number (ADR-0015).
 const pepper = Ingredient(
   id: 'ing-pepper',
   canonicalName: 'Red bell pepper',
@@ -112,7 +120,22 @@ const pepper = Ingredient(
   status: IngredientStatus.complete,
   densityGPerMl: 0.5,
   allowedUnits: [g, tsp, tbsp, cup, ml, handful],
-  defaultMeasureId: 'm-pep-med',
+);
+
+/// The same row once somebody entered what one weighs. `piece` is still not
+/// sayable on it — the household pruned it out of the explicit list — so the
+/// line keeps its ordinary `unitNotAllowed` flag, WITHOUT the piece-weight
+/// door: the door names a gap this row no longer has.
+const pepperWeighed = Ingredient(
+  id: 'ing-pepper',
+  canonicalName: 'Red bell pepper',
+  defaultUnit: pieces,
+  category: 'produce',
+  status: IngredientStatus.complete,
+  densityGPerMl: 0.5,
+  allowedUnits: [g, tsp, tbsp, cup, ml, handful],
+  pieceBasisAmount: 119,
+  pieceSource: 'borrowed from pepper, medium',
 );
 const pepperSizes = [
   Measure(id: 'm-pep-med', label: 'pepper, medium', amount: 119),
@@ -120,8 +143,9 @@ const pepperSizes = [
   Measure(id: 'm-pep-sml', label: 'pepper, small', amount: 74),
 ];
 
-/// One measure and no stated default. There is nothing else the line could
-/// have meant, which is ADR-0010 consequence 4's own sentence.
+/// One measure and no piece weight. There is nothing else the line could have
+/// meant, which is ADR-0010 consequence 4's own sentence — and the sheet still
+/// pre-selects it, which is all that sentence ever bought.
 const cucumber = Ingredient(
   id: 'ing-cucumber',
   canonicalName: 'Cucumber',
@@ -133,7 +157,7 @@ const cucumber = Ingredient(
 const cucumberMeasure = Measure(id: 'm-cuc', label: 'cucumber', amount: 301);
 
 /// A fragment set — three KINDS of countable thing and no dominant one, so
-/// the row states no default and the line keeps its flag.
+/// nothing is pre-selected and the line keeps its flag.
 const broccoli = Ingredient(
   id: 'ing-broccoli',
   canonicalName: 'Broccoli',
@@ -148,8 +172,10 @@ const broccoliParts = [
   Measure(id: 'm-b-crown', label: 'crown', amount: 150),
 ];
 
-/// The scope rule's counter-case: a row whose default is its SOLE measure, on
-/// a line that printed a word of its own.
+/// The counter-case for everything keyed on counts: a piece-default row with
+/// no weight, on a line that printed a word of its own. `bunch` is no catalog
+/// unit, so the line is not a count at all and the piece-weight gap on the row
+/// is none of this line's business.
 const cilantro = Ingredient(
   id: 'ing-cilantro',
   canonicalName: 'Cilantro',
@@ -157,7 +183,6 @@ const cilantro = Ingredient(
   category: 'produce',
   status: IngredientStatus.complete,
   allowedUnits: [g, handful],
-  defaultMeasureId: 'm-cil-sprig',
 );
 const cilantroSprig = Measure(id: 'm-cil-sprig', label: 'sprig', amount: 2.22);
 
