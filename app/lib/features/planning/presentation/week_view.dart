@@ -57,6 +57,7 @@ import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
+import '../../ingredients/domain/measure_repository.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
@@ -88,6 +89,7 @@ Future<void> _addMealFlow(
   // the time a recipe is tapped. The confirm sheet opens from a context that
   // outlives the card (`hostContextOf`), so the pick is never dropped.
   final host = hostContextOf(context);
+  final measures = ref.read(measureRepositoryProvider);
   final picked = await showRecipePickerSheet(
     context,
     dayOfWeek: dayOfWeek,
@@ -100,7 +102,7 @@ Future<void> _addMealFlow(
     case PickedRecipe(:final recipe):
       target = RecipeMeal(recipe);
     case PickedIngredientMeal(:final ingredient):
-      final seed = await _defaultMeasureOf(ref, ingredient);
+      final seed = await defaultMeasureOf(measures, ingredient);
       final result = await showQuantityUnitSheet(
         // The host outlives the row — see [hostContextOf].
         // ignore: use_build_context_synchronously
@@ -143,16 +145,25 @@ Future<void> _addMealFlow(
 }
 
 /// The ingredient's stated default measure — what a bare count of it MEANS
-/// (`default_measure_id`, migration 0023) — or null when the row says "ask me
-/// each time", which is a real answer and leaves the sheet on its own default
-/// unit.
-Future<Measure?> _defaultMeasureOf(WidgetRef ref, Ingredient ingredient) async {
+/// (`default_measure_id`) — or null when the row says "ask me each time",
+/// which is a real answer and leaves the sheet on its own default unit. An
+/// unresolvable id (the measure was soft-deleted) reads as the same null.
+///
+/// Read through [MeasureRepository], never
+/// `ingredientMeasuresProvider(...).future`: that provider is autoDispose,
+/// PowerSync's `watch` does not emit synchronously, and with nobody watching
+/// it the element is disposed before its first emission — so `.future`
+/// completes with a [StateError] instead of a list. A plain repository read
+/// has no element to lose. Held tree-wide by
+/// `test/structure/no_future_on_autodispose_test.dart`.
+Future<Measure?> defaultMeasureOf(
+  MeasureRepository measures,
+  Ingredient ingredient,
+) async {
   final id = ingredient.defaultMeasureId;
   if (id == null) return null;
-  final measures = await ref.read(
-    ingredientMeasuresProvider(ingredient.id).future,
-  );
-  return measures.where((m) => m.id == id).firstOrNull;
+  final byIngredient = await measures.measuresByIngredients({ingredient.id});
+  return byIngredient[ingredient.id]?.where((m) => m.id == id).firstOrNull;
 }
 
 class WeekView extends HookConsumerWidget {
