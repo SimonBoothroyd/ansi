@@ -15,12 +15,19 @@
 /// target is missing (a sync race, D5) degrades to the plain text it stored,
 /// muted, and says so; nothing derived, nothing invented.
 ///
+/// **An ingredient's name is the same kind of door**, opt-in through
+/// [RecipeIngredientLine.onOpenIngredient]: on the recipe page it opens that
+/// ingredient's own page, the way a component's chip opens its recipe. It is
+/// a callback rather than a baked-in push because the import preview draws
+/// the same line for rows that name nothing the household owns yet.
+///
 /// **An optional line carries a tag after the note** (board frame e2) in the
 /// stub badge's voice, because it is the same kind of claim — a fact about the
 /// line that changes what a total covers. It sits in the identity column, never
 /// the amount column: "1 lime" is still what the recipe says.
 library;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
@@ -85,6 +92,7 @@ class RecipeIngredientLine extends StatelessWidget {
     required this.uses,
     this.onEditAmount,
     this.onOpenSubRecipe,
+    this.onOpenIngredient,
     this.macroMarker,
     this.onFixMacro,
     super.key,
@@ -113,6 +121,11 @@ class RecipeIngredientLine extends StatelessWidget {
   /// away would be wrong — the import review preview, where the recipe does
   /// not exist yet.
   final ValueChanged<String>? onOpenSubRecipe;
+
+  /// Pushes an ingredient row's own page, given the row's resolved
+  /// [LineUses.ingredientId]. Null where the row has nowhere to go: the
+  /// import review preview, and any row that resolved to no ingredient.
+  final ValueChanged<String>? onOpenIngredient;
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +179,7 @@ class RecipeIngredientLine extends StatelessWidget {
                   uses: uses,
                   notes: notes,
                   onOpen: onOpenSubRecipe,
+                  onOpenIngredient: onOpenIngredient,
                 ),
               ),
               if (onEditAmount != null) ...[
@@ -239,15 +253,42 @@ class _MacroMarker extends StatelessWidget {
 
 /// The identity cell: an ingredient's name, or a component's recipe chip —
 /// with the notes as the same muted-italic modifier either way.
-class _Identity extends StatelessWidget {
-  const _Identity({required this.uses, required this.notes, this.onOpen});
+///
+/// Stateful only to own the name span's tap recognizer. The door is the NAME
+/// span rather than the cell: the cell is stretched to the full width of the
+/// row, so a cell-wide gesture would answer for the blank paper beside a short
+/// name — and for the note, which is a fact about the line, not the identity.
+class _Identity extends StatefulWidget {
+  const _Identity({
+    required this.uses,
+    required this.notes,
+    this.onOpen,
+    this.onOpenIngredient,
+  });
 
   final LineUses uses;
   final String notes;
   final ValueChanged<String>? onOpen;
+  final ValueChanged<String>? onOpenIngredient;
+
+  @override
+  State<_Identity> createState() => _IdentityState();
+}
+
+class _IdentityState extends State<_Identity> {
+  final _openIngredient = TapGestureRecognizer();
+
+  @override
+  void dispose() {
+    _openIngredient.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final uses = widget.uses;
+    final notes = widget.notes;
+    final onOpen = widget.onOpen;
     final target = uses.uses.first.subRecipe;
     final noteStyle = ansiSans(
       size: 16,
@@ -268,7 +309,7 @@ class _Identity extends StatelessWidget {
         children: [
           RecipeChip(
             title: target.title,
-            onTap: onOpen == null ? null : () => onOpen!(id),
+            onTap: onOpen == null ? null : () => onOpen(id),
           ),
           if (notes.isNotEmpty) Text(notes, style: noteStyle),
           if (optional) const OptionalTag(),
@@ -279,6 +320,13 @@ class _Identity extends StatelessWidget {
     // A dangling link (D5) reads as the plain text it stored, muted, and says
     // why there is no chip. An ingredient row is the first branch's `else`.
     final dangling = uses.isComponent;
+    final ingredientId = uses.ingredientId;
+    final openIngredient = widget.onOpenIngredient;
+    final nameIsDoor = ingredientId != null && openIngredient != null;
+    _openIngredient.onTap = nameIsDoor
+        ? () => openIngredient(ingredientId)
+        : null;
+
     return Text.rich(
       TextSpan(
         children: [
@@ -287,6 +335,7 @@ class _Identity extends StatelessWidget {
             style: dangling
                 ? ansiSans(size: 16, color: AnsiColors.muted)
                 : ansiSans(size: 16, weight: FontWeight.w500),
+            recognizer: nameIsDoor ? _openIngredient : null,
           ),
           for (final part in [
             if (notes.isNotEmpty) notes,
