@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe editor</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a></p>
+    <p class="view-status">built · matches code 2026-09-08 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a></p>
     <p class="view-blurb">One header form under two hosts, and a method written as step cards with live ingredient chips — select the words, say what they are.</p>
 </header>
 
@@ -147,7 +147,7 @@
                 <span class="rplus">＋</span></div>
             <div class="addnew">＋ Add an ingredient to this recipe</div>
             <div class="savebtn">Chip as “Everything Spice”</div>
-            <p class="conv-note" style="text-align:center">two taps when the match is obvious · your words stay exactly as written</p>
+            <p class="conv-note" style="text-align:center">two taps when the match is obvious · your words stay exactly as written. With <b>no</b> selection the same picker runs from the caret and writes the line’s own name there instead — cased for where it lands, so it reads <b>kosher salt</b> mid-sentence and <b>Kosher salt</b> opening a step</p>
         </div></div>
     </div>
 
@@ -165,7 +165,7 @@
             <div class="crow"><span class="cl">Show the amount here<small>first time this recipe asks for it</small></span><span class="fsw"></span></div>
             <div class="mstep-pv" style="margin:10px 20px 0;padding-top:0;border:none"><span class="pvl">Reads as</span>Toss with the <span class="ichip">olive oil <span class="qn">1 tbsp</span></span> and <span class="ichip">salt <span class="qn">0.5 tsp</span></span>.</div>
             <div class="dngr">Remove chip · keeps the word</div>
-            <p class="conv-note" style="text-align:center">“change ›” opens the same line picker — this chip only, not the whole line</p>
+            <p class="conv-note" style="text-align:center">“change ›” opens the same line picker — this chip only, not the whole line, and it <b>leaves the word alone</b>: Word is the one field that changes what a chip says</p>
         </div></div>
     </div>
 
@@ -229,7 +229,7 @@
                 <div class="mstep-in">Brown the <span class="echip chg">meatballs</span> over medium heat, casings removed.</div>
                 <div class="wasw"><span>was “sausage”</span><b>keep the old word</b></div>
             </div>
-            <p class="conv-note">“casings removed” is <b>yours</b> — flagged, never rewritten</p>
+            <p class="conv-note">“casings removed” is <b>yours</b> — flagged, never rewritten. The line is filed as <b>Beef &amp; pork meatballs</b>; each chip takes that name in <b>the case the word it replaces was written in</b>, so a lower-case word mid-sentence stays lower-case and one opening a step keeps its capital</p>
         </div></div>
     </div>
 

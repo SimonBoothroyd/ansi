@@ -504,6 +504,99 @@ void main() {
       expect(result.relabels, hasLength(2));
       expect(stepsMentioning(result.steps, 'l1'), [0]);
     });
+
+    test('each chip takes the case the word it replaces was written in', () {
+      final steps = [
+        toDraft(
+          const MethodStep(
+            tokens: [
+              MethodRef(refs: ['l1'], label: 'Sausage'),
+              MethodText(s: ' first, then more '),
+              MethodRef(refs: ['l1'], label: 'sausage'),
+              MethodText(s: ' — SAUSAGE '),
+              MethodRef(refs: ['l1'], label: 'SAUSAGE'),
+            ],
+          ),
+          id: 's1',
+        ),
+      ];
+      // One stored name, three positions, three spellings of it.
+      final result = relabelRefs(steps, lineId: 'l1', label: 'Pork meatballs');
+      expect(
+        result.steps[0].text,
+        'Pork meatballs first, then more pork meatballs — SAUSAGE '
+        'PORK MEATBALLS',
+      );
+      expect(result.relabels, hasLength(3));
+      // The prose "SAUSAGE" is not a chip and is left exactly as written.
+      expect((result.steps[0].spans[2] as RefSpan).refs, ['l1']);
+    });
+
+    test('a chip whose word already reads right is not flagged for review', () {
+      final steps = [
+        toDraft(
+          const MethodStep(
+            tokens: [
+              MethodText(s: 'Fold the '),
+              MethodRef(refs: ['l1'], label: 'parmesan'),
+              MethodText(s: ' through.'),
+            ],
+          ),
+          id: 's1',
+        ),
+      ];
+      // The stored name differs only in its first letter, so the sentence
+      // does not change and there is nothing to put back.
+      final result = relabelRefs(steps, lineId: 'l1', label: 'Parmesan');
+      expect(result.steps[0].text, 'Fold the parmesan through.');
+      expect(result.relabels, isEmpty);
+    });
+  });
+
+  group('chipWord — the new name in the old word’s case', () {
+    test('a lowercase word keeps the name lowercase mid-sentence', () {
+      expect(chipWord('Onion', previousWord: 'shallot'), 'onion');
+    });
+
+    test('a capitalised word capitalises the name', () {
+      expect(chipWord('onion', previousWord: 'Shallot'), 'Onion');
+    });
+
+    test('ALL CAPS of more than one letter uppercases the whole name', () {
+      expect(chipWord('Red onion', previousWord: 'SHALLOT'), 'RED ONION');
+    });
+
+    test('a single capital letter is a capital, not a shout', () {
+      expect(chipWord('onion', previousWord: 'S'), 'Onion');
+    });
+
+    test('the name’s own internal casing is left alone', () {
+      expect(
+        chipWord('aged Parmesan', previousWord: 'Cheese'),
+        'Aged Parmesan',
+      );
+      expect(
+        chipWord('Aged Parmesan', previousWord: 'cheese'),
+        'aged Parmesan',
+      );
+    });
+
+    test('a word with no letter at all leaves the name as stored', () {
+      expect(chipWord('Onion', previousWord: '½'), 'Onion');
+    });
+
+    test('a new chip opening the step is capitalised', () {
+      expect(chipWord('onion'), 'Onion');
+      expect(chipWord('onion', textBefore: '   '), 'Onion');
+    });
+
+    test('a new chip anywhere else in the step is lowercased', () {
+      expect(chipWord('Onion', textBefore: 'Add the '), 'onion');
+    });
+
+    test('an empty name stays empty rather than being cased into one', () {
+      expect(chipWord('', previousWord: 'sausage'), '');
+    });
   });
 
   group('pruneDanglingRefs — no saved step refs an absent line', () {

@@ -484,7 +484,9 @@ class MethodStepCard extends HookConsumerWidget {
   }
 
   /// The no-selection door: pick a line, and its name goes in at the caret as
-  /// a chip. Renaming it to the printed word is the chip sheet's Word field.
+  /// a chip, cased for where it lands ([chipWord]) — a name stored `Onion`
+  /// arrives as `onion` mid-sentence. Renaming it to the printed word is the
+  /// chip sheet's Word field.
   Future<void> _insertIngredient(
     BuildContext context,
     MethodSpanController controller,
@@ -502,8 +504,9 @@ class MethodStepCard extends HookConsumerWidget {
       },
     );
     if (lineId == null) return;
-    final word = notifier.lineById()[lineId]?.ingredientName ?? '';
-    if (word.isEmpty) return;
+    final name = notifier.lineById()[lineId]?.ingredientName ?? '';
+    if (name.isEmpty) return;
+    final word = chipWord(name, textBefore: step.text.substring(0, offset));
     notifier.insertChip(step.id, offset: offset, word: word, refs: [lineId]);
   }
 

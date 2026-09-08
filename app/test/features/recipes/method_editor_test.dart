@@ -75,6 +75,49 @@ void main() {
     expect(find.text('1'), findsWidgets); // the fennel line's live quantity
   });
 
+  testWidgets('a chip inserted at the caret is cased for where it lands', (
+    tester,
+  ) async {
+    filterForuiSemanticsAssertions();
+    tallSurface(tester);
+    await tester.pumpWidget(
+      hostEditor('1', [
+        recipeRepositoryProvider.overrideWithValue(
+          FakeRecipeRepo(importedRecipe),
+        ),
+        ingredientRepositoryProvider.overrideWithValue(
+          const FakeIngredientRepo(),
+        ),
+        bookRepositoryProvider.overrideWithValue(FakeBookRepo()),
+      ]),
+    );
+    await tester.pumpAndSettle();
+    await scrollToMethod(tester);
+
+    // Step 2 is prose only; the caret goes at its end, mid-sentence.
+    final field = methodFields().at(1);
+    await tester.ensureVisible(field);
+    await tester.pumpAndSettle();
+    await tester.tap(field);
+    await tester.pumpAndSettle();
+    tester
+        .widgetList<EditableText>(methodFields())
+        .elementAt(1)
+        .controller
+        .selection = const TextSelection.collapsed(
+      offset: 20,
+    );
+
+    await tester.tap(find.text('ingredient'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fennel bulb').last);
+    await tester.pumpAndSettle();
+
+    // The line is stored "Fennel bulb"; it lands inside a sentence, so it
+    // reads in lower case rather than shouting mid-clause.
+    expect(methodFieldText(tester, 1), 'Then slice the buns.fennel bulb');
+  });
+
   testWidgets('reorder, delete and add a step', (tester) async {
     filterForuiSemanticsAssertions();
     final repo = FakeRecipeRepo(importedRecipe);

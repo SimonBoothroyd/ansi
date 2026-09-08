@@ -323,7 +323,16 @@ not contain.* Tapping a line's identity re-points it while **keeping the line's
 id**, so the chips survive; every chip referencing it then takes the new name,
 the affected steps are flagged for that sitting, and `was "sausage" · keep the
 old word` is one tap. Prose is authored and is never rewritten — only labels
-are, and only visibly. Removing a referenced line asks first and leaves each
+are, and only visibly.
+
+**A new word arrives in the old word's case** (`chipWord`). A name is stored
+capitalised and a sentence usually is not, so the word being replaced decides:
+lower-case in, lower-case out (`add the onion`), a capital keeps a capital, and
+an ALL-CAPS word of more than one letter shouts the whole name. Only the first
+letter moves, so a proper noun inside the name survives — `aged Parmesan`. A
+chip being *made* has no old word, so its position decides instead: capitalised
+when it opens the step, lower-case anywhere else. Case is all that is fixed —
+pluralising a swapped-in name is not attempted. Removing a referenced line asks first and leaves each
 chip's word as plain text, and `save()` prunes dangling refs regardless: **a
 saved method never refs a line the recipe does not have.**
 
