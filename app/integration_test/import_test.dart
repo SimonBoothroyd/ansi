@@ -68,12 +68,13 @@ void main() {
   // and the Library are all the real thing.
   //
   // The payload also carries a counted-produce line — "2 red peppers",
-  // printed as `piece`, which a measured row refuses under ADR-0010. It
-  // arrives on the row's CURATED DEFAULT measure, unflagged, and commits
-  // as a `measure_id`; this is the one
-  // place that runs end to end, because the default comes off a really
-  // synced `ingredient.default_measure_id` (migration 0023's clone leg)
-  // rather than a fixture.
+  // printed as `piece`. The template's red bell pepper is a piece-default row
+  // with a PIECE WEIGHT (ADR-0015: 119 g, borrowed from "pepper, medium" by
+  // the seed and by migration 0039's backfill), so `piece` is an admitted
+  // unit on it and the line arrives clean and commits as an honest `piece`
+  // line — weighed by the row, not by a measure. This is the one place that
+  // runs end to end, because the weight comes off a really synced
+  // `ingredient.piece_basis_amount` rather than a fixture.
   testWidgets('import: link → review → resolve → saved recipe in the Library', (
     tester,
   ) async {
@@ -141,32 +142,33 @@ void main() {
     await pickRangeAmountForLine(tester, 1);
     expect(lineShows(1, 'Set the amount'), isFalse);
 
-    // Line 5 — "2 red peppers", the seam D2 line. It printed a NUMBER AND NO
-    // THING (`piece`, which a measured row refuses under ADR-0010), so the
-    // review spends the row's curated default and the card arrives CLEAN:
-    // no "Pick a supported unit", nothing held up, and the fact said out loud
-    // where it was applied. Before this slice the same line was a stop.
+    // Line 5 — "2 red peppers": a NUMBER AND NO THING, `piece`, on a row
+    // whose piece weight makes `piece` sayable (ADR-0015). Nothing is spent
+    // on the line and nothing is said on the card: the unit is admitted for
+    // the ordinary reason, so there is no flag, no chip row and no note.
     await expandLine(tester, 5);
     expect(
       lineShows(5, 'Pick a supported unit'),
       isFalse,
       reason:
-          'a counted-produce line must arrive on its default measure, '
-          'unflagged (seam D2)',
+          'a counted line on a weighed piece-default row is an ordinary '
+          'admitted unit (ADR-0015)',
     );
     expect(
       find
           .descendant(
             of: reviewCard(5),
-            matching: find.textContaining('counts as  pepper, medium'),
+            matching: find.textContaining('has no piece weight yet'),
           )
           .evaluate(),
-      isNotEmpty,
-      reason: 'the default is shown at the moment it is applied',
+      isEmpty,
+      reason: 'the row has a weight, so the door to set one is not drawn',
     );
-    // The chips stay visible with the default selected — the choice made for
-    // you, beside the ones you could make instead.
-    expect(lineShows(5, 'pepper, large'), isTrue);
+    expect(
+      lineShows(5, 'pepper, large'),
+      isFalse,
+      reason: 'a clean line offers no unit chips',
+    );
 
     // Line 6 — the `suggest` band: confirm the "did you mean" pill onto an
     // EXISTING vocab row rather than creating a stub.
@@ -265,35 +267,30 @@ void main() {
     );
     expect(optionalLines['c'] as int, 2);
 
-    // Seam D2, end to end: the defaulted line committed as a MEASURE line —
-    // the label rode through `buildCommit` exactly as a tapped chip's does,
-    // and the repository re-resolved it to the household's own
-    // `ingredient_measure` row. That FK is what makes "2 red peppers" count
-    // toward the macros and the shopping total instead of being an honest
-    // count with no weight.
+    // ADR-0015, end to end: the counted line committed as a bare `piece` line
+    // — no measure_id — and it still counts toward the macros and the
+    // shopping total, because the ROW carries what one weighs. The weight
+    // rode down through sync as an ordinary ingredient column.
     final pepperLine = await db.get(
-      'SELECT li.quantity, li.unit, li.measure_id, im.label, im.basis_amount '
+      'SELECT li.quantity, li.unit, li.measure_id, i.default_unit, '
+      'i.piece_basis_amount, i.piece_source '
       'FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id '
       'JOIN ingredient i ON i.id = li.ingredient_id '
-      'LEFT JOIN ingredient_measure im ON im.id = li.measure_id '
       "WHERE g.recipe_id = ? AND i.match_text = 'red bell pepper' "
       'AND li.deleted_at IS NULL',
       [recipeId],
     );
     expect(
       pepperLine['measure_id'],
-      isNotNull,
-      reason:
-          'the curated default must commit as a measure_id, not as a bare '
-          'count (seam D2)',
+      isNull,
+      reason: 'a piece line is weighed by its row, not by a measure',
     );
-    expect(pepperLine['label'], 'pepper, medium');
-    expect(pepperLine['basis_amount'], 119);
-    expect(pepperLine['quantity'], 2);
-    // The stored line keeps the honest count fallback beside the measure —
-    // nothing about it says "this came from a default".
     expect(pepperLine['unit'], 'piece');
+    expect(pepperLine['quantity'], 2);
+    expect(pepperLine['default_unit'], 'piece');
+    expect((pepperLine['piece_basis_amount'] as num).toDouble(), 119);
+    expect(pepperLine['piece_source'], 'borrowed from pepper, medium');
     final refs = [
       for (final s in steps)
         for (final t in (s as Map)['tokens'] as List)

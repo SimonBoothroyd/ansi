@@ -10,8 +10,10 @@
 /// - **macros from a per-serving label** — the four figures typed as printed,
 ///   the stored-per-100 preview, and the spoon opt-in landing the density in
 ///   the same Save;
-/// - **Counts as** on a measured stub — set, back, reopened, stuck, and
-///   accepted by the server's own-measure trigger (migration 0023);
+/// - **the piece weight** (ADR-0015) — `piece` picked as the default strands
+///   the row and Save refuses; "1 piece weighs 30 g" lands through the same
+///   Save, unions `piece` into the explicit list, and survives the server as
+///   a number the reopened form folds to a headline;
 /// - **the USDA match, asked for and said out loud** — nothing matches a row
 ///   on its own any more, so the leg drives the form's own *Look up in USDA*
 ///   against the real reference set, picks the food, and proves the pick was
@@ -52,7 +54,6 @@ import 'package:ansi/core/units/units.dart'
 import 'package:ansi/features/ingredients/barcode/barcode_scan_sheet.dart'
     show BarcodeScanSheet;
 import 'package:ansi/features/ingredients/data/ingredient_repository_impl.dart';
-import 'package:ansi/features/ingredients/data/measure_repository_impl.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart'
     show defaultAllowedUnitSet;
 import 'package:ansi/features/ingredients/domain/ingredient.dart'
@@ -67,6 +68,7 @@ import 'package:ansi/features/ingredients/presentation/density_entry.dart'
     show AnsiModeChip, DensityEntry;
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart'
     show IngredientDetailView, kFormSaveKey;
+import 'package:ansi/features/ingredients/presentation/piece_weight_entry.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -117,7 +119,7 @@ void main() {
 
   testWidgets(
     'ingredients: flesh out a stub (rename · density · a label per serving · '
-    'counts as), decline a USDA match, then add one by barcode',
+    'a piece weight), decline a USDA match, then add one by barcode',
     (tester) async {
       ignoreForuiSemanticsAssertion();
       final db = stack.db;
@@ -133,13 +135,6 @@ void main() {
       );
       const stubName = 'Aleppo chilli flakes';
       final chilli = (await ingredients.saveForm(null, _bareStub(stubName)))!;
-      // A measure on it, so the form draws its Counts-as row (hidden on a row
-      // with none — there is nothing to choose). Not a volume word: those
-      // are a density in disguise and the repository refuses them.
-      final sachet = await SqliteMeasureRepository(
-        db,
-        householdId: stack.householdId,
-      ).addMeasure(ingredientId: chilli.id, label: 'sachet', amount: 30);
       // A second bare stub whose name the reference set matches (checked
       // against the local stack's `usda_food`: "Radicchio, raw", with a
       // density AND macros, so the fill exercises the unlock too) and the
@@ -483,65 +478,98 @@ void main() {
         closeTo(densityFromVolumeWeight(tbsp, 14)!, 1e-9),
       );
 
-      // --- Counts as (seam D1): a stated fact, saved on pick ----------------
-      const countsAsLabel = 'COUNTS AS';
-      const sachetItem = 'sachet · 30 g';
-      await scrollTo(tester, find.text(countsAsLabel));
-      expect(find.text('One ${renamed.toLowerCase()} is'), findsOneWidget);
-      await centerOn(tester, find.text('— not set'));
-      await tester.tap(find.text('— not set'));
+      // --- the piece weight (ADR-0015) ------------------------------------
+      // A count default is not saveable without what one of these weighs.
+      // Pick `piece`: the sentence appears under the chips, the stranded
+      // line names the gap, and Save refuses until the number is in. Then it
+      // lands through the form's one Save, unions `piece` into the explicit
+      // list, and comes back from the server as a number.
+      await scrollTo(tester, find.text('DEFAULT UNIT'));
+      final pieceDefault = find.descendant(
+        of: find.byKey(const ValueKey('default-unit-row')),
+        matching: find.widgetWithText(AnsiModeChip, 'piece'),
+      );
+      await centerOn(tester, pieceDefault);
+      await tester.tap(pieceDefault);
       await tester.pumpAndSettle();
-      await tester.tap(find.text(sachetItem).last);
+      expect(
+        find.textContaining('piece needs a weight on this row'),
+        findsOneWidget,
+        reason: 'a piece default with no weight is a stranded default',
+      );
+      await tester.tap(find.byKey(kFormSaveKey));
       await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Piece can’t be the default unit'),
+        findsOneWidget,
+        reason: 'Save refuses a piece default nothing weighs',
+      );
+      expect(
+        (await db.get('SELECT default_unit FROM ingredient WHERE id = ?', [
+          stubId,
+        ]))['default_unit'],
+        'g',
+        reason: 'the refusal wrote nothing',
+      );
+      final pieceField = find.descendant(
+        of: find.byType(PieceWeightEntry),
+        matching: find.byType(EditableText),
+      );
+      final pieceAdd = find.descendant(
+        of: find.byType(PieceWeightEntry),
+        matching: find.widgetWithText(FButton, 'Add'),
+      );
+      await scrollTo(tester, find.text('1 piece weighs'));
+      await centerOn(tester, pieceField);
+      await tester.enterText(pieceField, '30');
+      await tester.pumpAndSettle();
+      await centerOn(tester, pieceAdd);
+      await tester.tap(pieceAdd);
+      await tester.pumpAndSettle();
+      // The headline follows the DRAFT and the flag clears; nothing is
+      // written yet.
+      await pumpUntilFound(tester, find.text('30 g'));
+      expect(find.textContaining('piece needs a weight'), findsNothing);
+      expect(
+        (await db.get(
+          'SELECT piece_basis_amount AS p FROM ingredient WHERE id = ?',
+          [stubId],
+        ))['p'],
+        isNull,
+        reason: 'the entry fills the draft; the form’s Save writes it',
+      );
+      await saveFormAndReopen(tester, renamed);
       await waitForDb(
         tester,
         () async =>
-            (await db.get(
-              'SELECT default_measure_id FROM ingredient WHERE id = ?',
-              [stubId],
-            ))['default_measure_id'] ==
-            sachet.id,
-        'the Counts-as pick to land',
+            ((await db.get(
+                      'SELECT piece_basis_amount AS p FROM ingredient '
+                      'WHERE id = ?',
+                      [stubId],
+                    ))['p']
+                    as num?)
+                ?.toDouble() ==
+            30,
+        'the piece weight to land',
       );
-
-      // Back to the list. It RESTORES its scroll offset from before the
-      // detail push, which can leave the band header just above the viewport
-      // — settle on the always-present search bar, then scroll to what the
-      // next step needs.
-      await tester.tap(find.byType(FHeaderAction).first);
-      await pumpUntilFound(tester, find.text('Search your vocabulary'));
-      // We are back on the list (header + search prove it). The stub BAND is
-      // deliberately not re-asserted here: on-device the returned list parks
-      // its viewport past the band and resists programmatic re-scroll (11
-      // sim rounds of forensics; the band's round-trip logic is host-guarded
-      // by the J4 widget test). The renamed stub's presence is asserted via
-      // the DB below instead; the on-device scroll-restoration quirk is
-      // tracked.
-      final stillStub = await db.get(
-        "SELECT count(*) AS c FROM ingredient WHERE status = 'stub' "
-        'AND deleted_at IS NULL',
-      );
-      expect(stillStub['c'] as int, greaterThan(0));
-
-      // Reopen the row: the pick is the ROW's, read back from the store, not
-      // a state the form held. And it went up and came back: the 0023
-      // own-measure trigger accepted a default that names this row's own
-      // measure.
-      await scrollTo(tester, find.text(renamed));
-      await tester.tap(find.text(renamed).first);
-      await pumpUntilFound(tester, find.text('CANONICAL NAME'));
-      await scrollTo(tester, find.text(countsAsLabel));
-      expect(find.text(sachetItem), findsOneWidget);
-      expect(find.text('— not set'), findsNothing);
       await stack.waitForSyncRoundTrip(tester);
-      expect(
-        (await db.get(
-          'SELECT default_measure_id FROM ingredient WHERE id = ?',
-          [stubId],
-        ))['default_measure_id'],
-        sachet.id,
-        reason: 'the default must survive the server (0023 accepts its own)',
+      final weighed = await db.get(
+        'SELECT default_unit, piece_basis_amount, piece_source, allowed_units '
+        'FROM ingredient WHERE id = ?',
+        [stubId],
       );
+      expect(weighed['default_unit'], 'piece');
+      expect((weighed['piece_basis_amount'] as num).toDouble(), 30);
+      expect(weighed['piece_source'], 'manual');
+      expect(
+        jsonDecode(weighed['allowed_units'] as String) as List,
+        contains('piece'),
+        reason: 'the weight unions piece into the explicit list (ADR-0015)',
+      );
+      // The reopened form folds a stated weight to its headline.
+      await scrollTo(tester, find.text('PIECE WEIGHT'));
+      expect(find.text('30 g'), findsOneWidget);
+      expect(find.text('· change'), findsWidgets);
       await tester.tap(find.byType(FHeaderAction).first);
       await pumpUntilFound(tester, find.text('Search your vocabulary'));
 
