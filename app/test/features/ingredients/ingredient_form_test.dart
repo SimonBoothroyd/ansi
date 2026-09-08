@@ -124,6 +124,43 @@ void main() {
       );
     });
 
+    testWidgets('two locks, two lines: piece waits on a piece weight, never '
+        'on the density (ADR-0015)', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      // A piece-default per-g row with NEITHER number: the volume family is
+      // density-locked and `piece` is weight-locked. One line for both would
+      // promise that a density unlocks `piece`, which nothing ever will.
+      const unweighed = Ingredient(
+        id: 'mango',
+        canonicalName: 'Mango',
+        defaultUnit: pieces,
+        status: IngredientStatus.complete,
+        category: 'produce',
+        macros: mangoMacros,
+      );
+      final repo = FakeIngredientRepo(const [unweighed]);
+      await tester.pumpWidget(host(repo, at: '/ingredients/mango'));
+      await tester.pumpAndSettle();
+
+      expect(lockedUnitLabels(tester), _volumeLabels);
+      expect(lockedUnitLabels(tester), isNot(contains('piece')));
+      expect(
+        find.text('piece unlocks when this row has a piece weight'),
+        findsOneWidget,
+      );
+      // The density gap line under the chips is about the density alone.
+      expect(find.textContaining('no density — piece'), findsNothing);
+
+      // The weight in the draft clears ITS line and leaves the density's.
+      await draftPieceWeight(tester, '200');
+      expect(
+        find.text('piece unlocks when this row has a piece weight'),
+        findsNothing,
+      );
+      expect(lockedUnitLabels(tester), _volumeLabels);
+    });
+
     testWidgets('the full cycle: locked → a density unlocks → deleting it '
         'strips again, with the basis family live throughout', (tester) async {
       filterForuiSemanticsAssertions();

@@ -1150,10 +1150,14 @@ class _AdmissionChips extends StatelessWidget {
       for (final c in candidates)
         if (!c.locked && c.unit.family == UnitFamily.imprecise) c,
     ];
-    final locked = [
+    // Two locks, two lines (ADR-0015): the other family waits on a density,
+    // `piece` waits on a piece weight. One line for both would tell the user
+    // a density unlocks `piece`, which nothing ever will.
+    final lockedByDensity = [
       for (final c in candidates)
-        if (c.locked) c.unit.label,
+        if (c.locked && c.unit != pieces) c.unit.label,
     ];
+    final pieceLocked = candidates.any((c) => c.locked && c.unit == pieces);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1185,8 +1189,12 @@ class _AdmissionChips extends StatelessWidget {
             ],
           ],
         ),
-        if (locked.isNotEmpty)
-          _Note('${locked.join(' · ')} unlock when this row has a density'),
+        if (lockedByDensity.isNotEmpty)
+          _Note(
+            '${lockedByDensity.join(' · ')} unlock when this row has a density',
+          ),
+        if (pieceLocked)
+          const _Note('piece unlocks when this row has a piece weight'),
       ],
     );
   }
@@ -1610,9 +1618,10 @@ class _DensityGapNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (ingredient.densityGPerMl != null) return const SizedBox.shrink();
+    // `piece` is the piece weight's lock, not the density's (ADR-0015).
     final locked = [
       for (final c in allowedUnitCandidates(ingredient))
-        if (c.locked) c.unit.label,
+        if (c.locked && c.unit != pieces) c.unit.label,
     ];
     if (locked.isEmpty) return const SizedBox.shrink();
     return _Note('no density — ${locked.join(' · ')} locked');
