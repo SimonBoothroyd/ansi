@@ -478,7 +478,7 @@ String? _conversionNote(double? qty, UnitChoice choice, Ingredient ing) {
     case UnitOption(:final unit):
       if (unit == base) return null;
       // A weighed `piece` converts like a measure (ADR-0015), and the line
-      // says what it multiplied: "≈ 700 g · 350 g each".
+      // shows the multiplication itself: "2 × 350 g = 700 g".
       if (unit.family == UnitFamily.count && pieceAsMeasure(ing) != null) {
         final piece = pieceAsMeasure(ing)!;
         final inBase = convertMeasure(
@@ -489,8 +489,8 @@ String? _conversionNote(double? qty, UnitChoice choice, Ingredient ing) {
         );
         return switch (inBase) {
           Ok(:final value) =>
-            '≈ ${formatQuantity(value.amount)} ${base.label} · '
-                '${formatQuantity(piece.amount)} ${base.label} each',
+            '${formatQuantity(qty)} × ${formatQuantity(piece.amount)} '
+                '${base.label} = ${formatQuantity(value.amount)} ${base.label}',
           Err() => null,
         };
       }

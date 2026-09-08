@@ -108,8 +108,8 @@ The rules, each of them the density rule read for a count:
 - **Wherever `piece` is offered, the chip says what one weighs** — `piece
   (110 g)` on the quantity sheet's chip row and the import review's unit chips
   (`pieceChipLabel`), so a count never sits as a bare word beside a `clove
-  (3 g)` that explains itself. The sheet's conversion line reads the same
-  fact back: *≈ 220 g · 110 g each*. The token a tap writes is still the
+  (3 g)` that explains itself. The sheet's conversion line shows the
+  multiplication: *2 × 110 g = 220 g*. The token a tap writes is still the
   catalog unit.
 - **A `piece` default with no weight is a stranded default**, in the same class
   as a `cup` default with no density (D4c). The form flags it with its one-tap
