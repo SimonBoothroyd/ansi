@@ -39,7 +39,6 @@ const _unitWords = <String, Unit>{
   'kilos': kg,
   'kilogram': kg,
   'kilograms': kg,
-  'mg': mg,
   'oz': oz,
   'ounce': oz,
   'ounces': oz,

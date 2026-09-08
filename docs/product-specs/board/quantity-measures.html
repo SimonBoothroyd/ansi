@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Quantity &amp; measures</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0010-piece-is-an-admission-fact.md">ADR-0010</a> · <a href="../../decisions/0012-tsp-mates-cup.md">ADR-0012</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></p>
+    <p class="view-status">built · matches code 2026-09-08 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0010-piece-is-an-admission-fact.md">ADR-0010</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></p>
     <p class="view-blurb">One dock everywhere an amount is set: this ingredient’s admitted units as chips over a keypad, and the conversion said out loud above them.</p>
 </header>
 
@@ -31,7 +31,8 @@
                 <div class="field"><div class="qty-big"><span class="qn">600</span><span class="care"></span><span class="qu">ml</span></div></div>
                 <div class="dock">
                     <p class="conv-note" style="margin:0 0 9px">≈ <b>610 g</b> · via density 1.02 g/ml</p>
-                    <div class="uchips"><span class="uchip">g</span><span class="uchip on">ml</span><span class="uchip"><span class="srcdot typ"></span>can (400 ml)</span><span class="uchip-sep"></span><span class="uchip impr">splash</span><span class="uchip addm">＋</span></div>
+                    <p class="chip-note">the row scrolls: a density opens both families whole, measures sitting between them</p>
+                    <div class="uchips"><span class="uchip on">ml</span><span class="uchip">tsp</span><span class="uchip">tbsp</span><span class="uchip">fl oz</span><span class="uchip">cup</span><span class="uchip">l</span><span class="uchip">pt</span><span class="uchip">qt</span><span class="uchip"><span class="srcdot typ"></span>can (400 ml)</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip-sep"></span><span class="uchip addm">＋</span></div>
                     <div class="kbd numpad">
                         <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
                         <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
@@ -54,13 +55,13 @@
             <div class="dock">
                 <p class="conv-note" style="margin:0 0 9px">≈ <b>201 g</b> · USDA portion</p>
                 <p class="chip-note">piece is not admitted here — there is a clearer word</p>
-                <div class="uchips"><span class="uchip on"><span class="srcdot usda"></span>avocado</span><span class="uchip struck">piece</span><span class="uchip">g</span><span class="uchip">cup</span><span class="uchip">tbsp</span><span class="uchip-sep"></span><span class="uchip impr">handful</span><span class="uchip addm">＋</span></div>
+                <div class="uchips"><span class="uchip on"><span class="srcdot usda"></span>avocado</span><span class="uchip struck">piece</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip">tsp</span><span class="uchip">tbsp</span><span class="uchip">fl oz</span><span class="uchip">cup</span><span class="uchip">ml</span><span class="uchip">l</span><span class="uchip">pt</span><span class="uchip">qt</span><span class="uchip-sep"></span><span class="uchip impr">handful</span><span class="uchip addm">＋</span></div>
                 <p class="conv-note" style="margin:0 0 10px">(struck chip drawn for the board only — on the phone it is simply absent)</p>
             </div>
             <div class="abar" style="border-top:1px solid var(--line);padding-top:12px"><span class="back">✕</span><span class="ttl">Amount · Broccoli</span><span class="dots"></span></div>
             <div class="dock" style="margin-top:0">
                 <p class="chip-note">no measure names the whole thing — piece stays, and leads</p>
-                <div class="uchips"><span class="uchip on">piece</span><span class="uchip"><span class="srcdot usda"></span>bunch</span><span class="uchip"><span class="srcdot usda"></span>spear</span><span class="uchip"><span class="srcdot typ"></span>crown</span><span class="uchip">g</span><span class="uchip-sep"></span><span class="uchip impr">handful</span><span class="uchip addm">＋</span></div>
+                <div class="uchips"><span class="uchip on">piece</span><span class="uchip"><span class="srcdot usda"></span>bunch</span><span class="uchip"><span class="srcdot usda"></span>spear</span><span class="uchip"><span class="srcdot typ"></span>crown</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip-sep"></span><span class="uchip impr">handful</span><span class="uchip addm">＋</span></div>
                 <p class="conv-note" style="margin:0">608 g · 31 g · 150 g — three different things. “1 broccoli” is still the honest way to say a whole one.</p>
             </div>
         </div></div>
@@ -77,7 +78,7 @@
             <div class="field"><div class="qty-big"><span class="qn">6</span><span class="care"></span><span class="qu">sprig</span></div></div>
             <div class="dock">
                 <p class="conv-note" style="margin:0 0 9px">= <b>6 g</b> · via your measure</p>
-                <div class="uchips"><span class="uchip on"><span class="srcdot you" style="background:#fff"></span>sprig (1 g)</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip-sep"></span><span class="uchip addm">＋</span></div>
+                <div class="uchips"><span class="uchip on"><span class="srcdot you" style="background:#fff"></span>sprig (1 g)</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip-sep"></span><span class="uchip addm">＋</span></div>
                 <div class="kbd numpad">
                     <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
                     <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
@@ -101,7 +102,7 @@
             <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">lime</span></div></div>
             <div class="dock">
                 <p class="conv-note" style="margin:0 0 9px">= <b>67 g</b> · lime, usda portion</p>
-                <div class="uchips"><span class="uchip on"><span class="srcdot usda" style="background:#fff"></span>lime (67 g)</span><span class="uchip">g</span><span class="uchip">ml</span><span class="uchip-sep"></span><span class="uchip impr">squeeze</span><span class="uchip addm">＋</span></div>
+                <div class="uchips"><span class="uchip on"><span class="srcdot usda" style="background:#fff"></span>lime (67 g)</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip">ml</span><span class="uchip">cup</span><span class="uchip-sep"></span><span class="uchip impr">squeeze</span><span class="uchip addm">＋</span></div>
                 <div class="crow" style="margin:0 0 10px;background:var(--frame)"><span class="cl">Optional<small>left out of macros and the shop list — and named where it left</small></span><span class="fsw"></span></div>
                 <div class="kbd numpad">
                     <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
@@ -188,7 +189,7 @@
             <div class="dock" style="margin-top:0">
                 <p class="conv-note" style="margin:0 0 4px">＋ ingredient → Garlic</p>
                 <div class="field" style="margin-bottom:8px"><div class="qty-big"><span class="qn">2</span><span class="care"></span><span class="qu">clove</span></div></div>
-                <div class="uchips"><span class="uchip on"><span class="srcdot usda"></span>clove (3 g)</span><span class="uchip">piece</span><span class="uchip">g</span><span class="uchip-sep"></span><span class="uchip addm">＋</span></div>
+                <div class="uchips"><span class="uchip on"><span class="srcdot usda"></span>clove (3 g)</span><span class="uchip">piece</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip-sep"></span><span class="uchip addm">＋</span></div>
             </div>
             <p class="conv-note" style="margin-top:8px">A caller that names no unit gets the row’s <b>stated</b> measure, not its derived <code>piece</code> — the same rule the import review already applies to a bare count. It is a <b>seed, not a pick</b>: a line preserving an unresolved <code>measure_id</code> behaves exactly as before, and an editor opening an existing line still opens on what that line says. A stated default whose measure has not synced to this device leaves the seed alone — a different measure is never guessed.</p>
             <div class="askrow" style="margin-top:16px">

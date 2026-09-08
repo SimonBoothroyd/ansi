@@ -1,7 +1,10 @@
 # ADR-0008 — Units are admitted per ingredient via basis mapping; density is the only volume⇄mass fact
 
 - **Status:** accepted (2026-08-29, Simon + agent design session) — **amended
-  2026-08-31 by [ADR-0009](./0009-density-unlocks-both-families.md)**
+  2026-08-31 by [ADR-0009](./0009-density-unlocks-both-families.md)**, and
+  §Decision ¶1's kitchen trim **superseded 2026-09-08 by
+  [ADR-0014](./0014-all-to-all-admission.md)** (a family is admitted whole and
+  the household prunes per row; `mg` left the catalogue with it)
 - **Supersedes / refines:** the 7.6 `allowedUnitsFor` gating (family + density +
   measures) and the 7.7 "no volume-named measures" rule.
 - **Amended 2026-08-31:** §Decision ¶2's second sentence ("Density … unlocks

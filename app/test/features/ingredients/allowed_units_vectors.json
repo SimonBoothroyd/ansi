@@ -1,17 +1,16 @@
 {
   "_doc": [
-    "SHARED VECTORS for the ADR-0008 derived unit-admission rule, as amended by",
-    "ADR-0009 (a density unlocks both families), ADR-0010 (piece is an",
-    "admission fact), ADR-0012 (the volume ladder is symmetric — cup mates",
-    "tsp) and ADR-0013 (the mass ladder is symmetric — the four kitchen mass",
-    "units mate each other).",
+    "SHARED VECTORS for the derived unit-admission rule: ADR-0008's model as",
+    "amended by ADR-0009 (a density unlocks the other family), ADR-0010 (piece",
+    "is an admission fact) and ADR-0014 (all to all — the kitchen trim is gone,",
+    "a family is admitted whole, and the household prunes per row).",
     "",
     "Two implementations claim to apply the same rule: the Dart one the app",
     "offers chips from (lib/features/ingredients/domain/allowed_units.dart,",
     "`allowedUnitsFor`) and the SQL one the server materializes allowed_units",
-    "with (default_allowed_units(), migration 0021). Each shape below is a real",
-    "row somebody types — a jar of yeast, a bag of flour, one avocado — written",
-    "once so neither side can drift alone.",
+    "with (default_allowed_units()). Each shape below is a real row somebody",
+    "types — a jar of yeast, a bag of flour, one avocado — written once so",
+    "neither side can drift alone.",
     "",
     "Who reads this file:",
     "  - app/test/features/ingredients/allowed_units_test.dart loops it directly.",
@@ -20,10 +19,10 @@
     "    test beside that script fails if the committed block has drifted.",
     "",
     "`expect` is in the app's DISPLAY order, which is what allowedUnitsFor",
-    "returns. The SQL function emits its own order (the mango shape puts `pt`",
-    "before `ml`; the app's chip order does not), so the generated pgTAP block",
-    "compares the two lists as SETS. Membership is the mirror; order is each",
-    "side's own business.",
+    "returns. The SQL function emits its own order (basis family first,",
+    "whatever the default unit is), so the generated pgTAP block compares the",
+    "two lists as SETS. Membership is the mirror; order is each side's own",
+    "business.",
     "",
     "`basis` is the macros basis — 'g' for per-100 g rows, 'ml' for per-100 ml.",
     "`density` is g per ml, or null for a row that has none yet."
@@ -31,39 +30,68 @@
   "vectors": [
     {
       "shape": "yeast",
-      "why": "a spoon default with no density admits the basis base and nothing else — being sold by the spoon does not make spoons convertible",
+      "why": "a spoon default with no density says the whole mass family and no volume unit at all — being sold by the spoon does not make spoons convertible",
       "defaultUnit": "tsp",
       "basis": "g",
       "density": null,
       "category": "baking",
-      "expect": ["g"]
+      "expect": ["g", "kg", "oz", "lb"]
     },
     {
       "shape": "flour",
-      "why": "a cup default with a density earns the kitchen volumes — tsp included, since ADR-0012 made the ladder symmetric — AND kg, because cup-scale justifies the big metric sibling",
+      "why": "a cup default with a density: both families whole, twelve chips, and the household prunes what it will never say",
       "defaultUnit": "cup",
       "basis": "g",
       "density": 0.59,
       "category": "baking",
-      "expect": ["cup", "tsp", "tbsp", "ml", "l", "pt", "qt", "g", "kg"]
+      "expect": [
+        "cup",
+        "tsp",
+        "tbsp",
+        "fl_oz",
+        "ml",
+        "l",
+        "pt",
+        "qt",
+        "g",
+        "kg",
+        "oz",
+        "lb"
+      ]
     },
     {
       "shape": "olive-oil",
-      "why": "a spoon default with a density: its mates, the basis base, and the oil class's imprecise words — nobody takes a handful of oil",
+      "why": "a spoon default with a density: both families plus the oil class's imprecise words — nobody takes a handful of oil",
       "defaultUnit": "tbsp",
       "basis": "g",
       "density": 0.91,
       "category": "fats & oils",
-      "expect": ["tbsp", "tsp", "cup", "ml", "pt", "g", "pinch", "dash", "to_taste"]
+      "expect": [
+        "tbsp",
+        "tsp",
+        "fl_oz",
+        "cup",
+        "ml",
+        "l",
+        "pt",
+        "qt",
+        "g",
+        "kg",
+        "oz",
+        "lb",
+        "pinch",
+        "dash",
+        "to_taste"
+      ]
     },
     {
       "shape": "egg",
-      "why": "a count default with no density: its own piece, the basis base, and the one imprecise word produce earns",
+      "why": "a count default with no density: its own piece, the whole basis family, and the one imprecise word produce earns",
       "defaultUnit": "piece",
       "basis": "g",
       "density": null,
       "category": "produce",
-      "expect": ["piece", "g", "handful"]
+      "expect": ["piece", "g", "kg", "oz", "lb", "handful"]
     },
     {
       "shape": "salt",
@@ -72,16 +100,31 @@
       "basis": "g",
       "density": null,
       "category": "spices & seasoning",
-      "expect": ["g", "pinch", "dash", "handful", "to_taste"]
+      "expect": ["g", "kg", "oz", "lb", "pinch", "dash", "handful", "to_taste"]
     },
     {
       "shape": "mango",
-      "why": "a count default WITH a density admits the volume workhorses — \"1 cup diced mango\" is a real line — but not the big metric siblings",
+      "why": "a count default WITH a density admits the volume family whole — \"1 cup diced mango\" is a real line, and so is half a litre of purée",
       "defaultUnit": "piece",
       "basis": "g",
       "density": 0.66,
       "category": "produce",
-      "expect": ["piece", "g", "tsp", "tbsp", "cup", "ml", "pt", "handful"]
+      "expect": [
+        "piece",
+        "g",
+        "kg",
+        "oz",
+        "lb",
+        "tsp",
+        "tbsp",
+        "fl_oz",
+        "cup",
+        "ml",
+        "l",
+        "pt",
+        "qt",
+        "handful"
+      ]
     },
     {
       "shape": "avocado",
@@ -90,29 +133,57 @@
       "basis": "g",
       "density": 0.634,
       "category": "produce",
-      "expect": ["piece", "g", "tsp", "tbsp", "cup", "ml", "pt", "handful"]
+      "expect": [
+        "piece",
+        "g",
+        "kg",
+        "oz",
+        "lb",
+        "tsp",
+        "tbsp",
+        "fl_oz",
+        "cup",
+        "ml",
+        "l",
+        "pt",
+        "qt",
+        "handful"
+      ]
     },
     {
       "shape": "broth",
-      "why": "a per-ml row's volume default IS its basis family, so it stands alone — the whole volume ladder down to tsp, and no gram leg until a density arrives",
+      "why": "a per-ml row's volume default IS its basis family, so it stands alone — the whole volume ladder, and no gram leg until a density arrives",
       "defaultUnit": "cup",
       "basis": "ml",
       "density": null,
       "category": "pantry",
-      "expect": ["cup", "tsp", "tbsp", "ml", "l", "pt", "qt"]
+      "expect": ["cup", "tsp", "tbsp", "fl_oz", "ml", "l", "pt", "qt"]
     },
     {
       "shape": "milk",
-      "why": "the same per-ml row once it has a density: mass unlocks behind the basis family",
+      "why": "the same per-ml row once it has a density: the mass family unlocks behind the basis family",
       "defaultUnit": "cup",
       "basis": "ml",
       "density": 1.03,
       "category": "dairy",
-      "expect": ["cup", "tsp", "tbsp", "ml", "l", "pt", "qt", "g", "kg"]
+      "expect": [
+        "cup",
+        "tsp",
+        "tbsp",
+        "fl_oz",
+        "ml",
+        "l",
+        "pt",
+        "qt",
+        "g",
+        "kg",
+        "oz",
+        "lb"
+      ]
     },
     {
       "shape": "rice",
-      "why": "a gram default on its own basis family says the whole kitchen mass ladder — ounces and pounds included, since ADR-0013 made it symmetric — and no volume without a density",
+      "why": "a gram default on its own basis family says the whole mass family, and no volume without a density",
       "defaultUnit": "g",
       "basis": "g",
       "density": null,
@@ -121,7 +192,7 @@
     },
     {
       "shape": "chicken-thigh",
-      "why": "the same ladder entered from the customary end: a pound default admits exactly what a gram default does, which is the symmetry ADR-0013 is about",
+      "why": "the same family entered from the customary end: a pound default admits exactly what a gram default does",
       "defaultUnit": "lb",
       "basis": "g",
       "density": null,
@@ -130,12 +201,25 @@
     },
     {
       "shape": "butter",
-      "why": "an ounce default with a density: the mass ladder plus the volume workhorses the density bridges to — no big metric sibling over there, because the cross leg names cup and not l",
+      "why": "an ounce default with a density: the mass family plus the volume family the density bridges to, fl oz included — it is an ordinary kitchen unit here",
       "defaultUnit": "oz",
       "basis": "g",
       "density": 0.91,
       "category": "dairy",
-      "expect": ["oz", "g", "kg", "lb", "tsp", "tbsp", "cup", "ml", "pt"]
+      "expect": [
+        "oz",
+        "g",
+        "kg",
+        "lb",
+        "tsp",
+        "tbsp",
+        "fl_oz",
+        "cup",
+        "ml",
+        "l",
+        "pt",
+        "qt"
+      ]
     }
   ]
 }

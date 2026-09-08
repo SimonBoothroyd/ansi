@@ -75,17 +75,15 @@ right.
   invents an amount (a measure-quantified line stores `unit = 'piece'` as
   its honest count fallback).
 - **Unit admission is per-ingredient and explicit** (ADR-0008, step 7.8):
-  `ingredient.allowed_units` lists exactly what a line may *say* — the
-  default unit's family trimmed to kitchen magnitudes ("no litres of
-  yeast" — a trim about units too *big* for the row, so since
-  [ADR-0012](../decisions/0012-tsp-mates-cup.md) the volume ladder joins up in
-  both directions and a cup-default row says `tsp`, and since
-  [ADR-0013](../decisions/0013-mass-ladder-symmetric.md) the four kitchen mass
-  units mate each other so a gram-default row says `oz` and `lb`), the basis
-  family
-  (yeast finally admits `g`), the other family
-  once a density exists (demoted below the measures in chip order), and
-  imprecise units only for seasoning/oil categories. Materialized at
+  `ingredient.allowed_units` lists exactly what a line may *say*. Since
+  [ADR-0014](../decisions/0014-all-to-all-admission.md) the derived rule is
+  **all to all**: the whole basis family, always (yeast finally admits `g`,
+  and `kg`, `oz`, `lb` with it), the whole other mass/volume family once a
+  density exists (demoted below the measures in chip order), `piece` on a
+  count row, and imprecise words only for the categories that earn them.
+  There is no kitchen trim and no magnitude gate — the household prunes what
+  it will never say, per row, in the flesh-out form — and `mg` is not a unit
+  at all any more. Materialized at
   creation from `default_allowed_units()` (Dart mirror
   `defaultAllowedUnitSet` — shared test vectors), curated for the seed
   vocab (`curation_overrides.jsonl`), and **editable per ingredient in the

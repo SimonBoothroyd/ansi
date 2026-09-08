@@ -66,7 +66,6 @@ export async function loadGold(): Promise<GoldCase[]> {
 const PRINTED_UNIT: Record<string, [singular: string, plural: string]> = {
   g: ["g", "g"],
   kg: ["kg", "kg"],
-  mg: ["mg", "mg"],
   oz: ["oz", "oz"],
   lb: ["lb", "lb"],
   ml: ["ml", "ml"],
@@ -133,7 +132,7 @@ export function printedAmount(li: {
   // No number printed. A bare imprecise/measure word is still page text ("a
   // pinch"); a bare canonical unit id is not, so drop it.
   const w = word(null);
-  return w && !["g", "kg", "mg", "oz", "lb", "ml", "l"].includes(li.unit ?? "")
+  return w && !["g", "kg", "oz", "lb", "ml", "l"].includes(li.unit ?? "")
     ? w
     : "";
 }

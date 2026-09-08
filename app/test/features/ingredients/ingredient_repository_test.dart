@@ -61,6 +61,11 @@ Future<List<Ingredient>> _search(
   int limit = 30,
 }) async => (await repo.search(query, limit: limit)).rows;
 
+/// The two mass/volume families by id — a family is the unit of admission
+/// (ADR-0014), so a density write moves one of them whole.
+const _massIds = {'g', 'kg', 'oz', 'lb'};
+const _volumeIds = {'tsp', 'tbsp', 'fl_oz', 'cup', 'ml', 'l', 'pt', 'qt'};
+
 void main() {
   late PowerSyncDatabase db;
   late Directory dir;
@@ -424,13 +429,11 @@ void main() {
         expect(updated, isNotNull);
         expect(updated!.densityGPerMl, 0.7);
         expect(updated.allowedUnits, isNotNull);
-        // The yeast shape (tsp/tbsp/g) plus nothing else — the ml the density
-        // could unlock for a MASS-default row doesn't apply to a volume
-        // default beyond g (already the basis base).
+        // The yeast shape once a number bridges it: the mass family it
+        // always had, and the volume family the density buys — whole.
         expect(updated.allowedUnits!.map((u) => u.id).toSet(), {
-          'tsp',
-          'tbsp',
-          'g',
+          ..._massIds,
+          ..._volumeIds,
         });
 
         final row = await db.get(
@@ -442,20 +445,11 @@ void main() {
       },
     );
 
-    test('a mass-default row gains the kitchen volume workhorses', () async {
+    test('a mass-default row gains the whole volume family', () async {
       final updated = await repo.setDensity('1', 0.7); // default_unit 'g'
-      // `pt` rides with `cup` on the cross leg (plan 0025 D2b); `qt` does
-      // not, because `l` never did.
       expect(updated!.allowedUnits!.map((u) => u.id).toSet(), {
-        'g',
-        'kg',
-        'oz',
-        'lb',
-        'tsp',
-        'tbsp',
-        'cup',
-        'pt',
-        'ml',
+        ..._massIds,
+        ..._volumeIds,
       });
     });
 
@@ -469,11 +463,7 @@ void main() {
       expect(updated!.allowedUnits!.map((u) => u.id).toSet(), {
         'g',
         'to_taste',
-        'tsp',
-        'tbsp',
-        'cup',
-        'pt',
-        'ml',
+        ..._volumeIds,
       });
     });
 
@@ -505,7 +495,10 @@ void main() {
       final cleared = await repo.clearDensity('1');
       expect(cleared, isNotNull);
       expect(cleared!.densityGPerMl, isNull);
-      expect(cleared.allowedUnits!.map((u) => u.id).toSet(), {'piece', 'g'});
+      expect(cleared.allowedUnits!.map((u) => u.id).toSet(), {
+        'piece',
+        ..._massIds,
+      });
 
       // One write, not a read-then-patch: the row on disk agrees.
       final row = await db.get(
@@ -514,7 +507,7 @@ void main() {
       expect(row['density_g_per_ml'], isNull);
       expect((jsonDecode(row['allowed_units'] as String) as List).toSet(), {
         'piece',
-        'g',
+        ..._massIds,
       });
     });
 
@@ -538,6 +531,7 @@ void main() {
           'g',
           'to_taste',
         });
+        // `cup` and `ml` were the density's; `to_taste` was the household's.
       },
     );
 
@@ -547,18 +541,18 @@ void main() {
         "UPDATE ingredient SET default_unit = 'cup' WHERE id = '5'",
       );
       final withDensity = await repo.setDensity('5', 0.59);
-      // Before D4c the union added `g` (already admitted) and left `cup` —
-      // the row's OWN default — unadmitted. It now lands the whole family.
+      // The volume family is the density's to give, the row's own default
+      // unit included.
       expect(
         withDensity!.allowedUnits!.map((u) => u.id).toSet(),
-        containsAll(<String>['cup', 'tbsp', 'ml', 'l']),
+        containsAll(_volumeIds),
       );
       final cleared = await repo.clearDensity('5');
       expect(cleared!.densityGPerMl, isNull);
       // Mass is its basis family and survives. The volume side goes, default
       // unit and all — which is the state the form flags with a one-tap fix
       // rather than rewriting the default behind the user's back.
-      expect(cleared.allowedUnits!.map((u) => u.id).toSet(), {'g', 'kg'});
+      expect(cleared.allowedUnits!.map((u) => u.id).toSet(), _massIds);
     });
 
     test(

@@ -56,8 +56,16 @@ Ingredient _ing(
   allowedUnits: allowed,
 );
 
+/// The two mass/volume families in chip order. A family is the unit of
+/// admission now (ADR-0014), so most expectations below are one of these, or
+/// both, with the row's default fronted.
+const _mass = [g, kg, oz, lb];
+const _volume = [tsp, tbsp, flOz, cup, ml, l, pint, quart];
+final _massIds = {for (final u in _mass) u.id};
+final _volumeIds = {for (final u in _volume) u.id};
+
 void main() {
-  group('allowedUnitsFor — ADR-0008 derived defaults (mirrors the pgTAP '
+  group('allowedUnitsFor — the derived defaults (mirrors the pgTAP '
       'default_allowed_units vectors)', () {
     // The shapes themselves live in allowed_units_vectors.json, which the
     // pgTAP suite reads too — through gen_admission_vectors.ts, which renders
@@ -79,13 +87,18 @@ void main() {
     }
 
     test('a density is what buys the yeast shape its spoons back', () {
-      // Before D4c this read [tsp, tbsp, g] with no density at all: the
-      // default unit's own family was an admission source, so a row could
-      // offer a unit no number on it could resolve.
+      // Without the number the row's own default is unsayable (D4c): the
+      // volume family is the density's to give, spoons included.
       expect(allowedUnitsFor(_ing(tsp, density: 0.4, category: 'baking')), [
         tsp,
         tbsp,
-        g,
+        flOz,
+        cup,
+        ml,
+        l,
+        pint,
+        quart,
+        ..._mass,
       ]);
     });
 
@@ -101,42 +114,40 @@ void main() {
       expect(egg, isNot(contains(dash)));
     });
 
-    test('an imprecise default keeps its whole tail + the basis base', () {
+    test('an imprecise default keeps its whole tail + the basis family', () {
       final units = allowedUnitsFor(
         _ing(pinch, category: 'spices & seasoning'),
       );
-      expect(units, [g, pinch, dash, handful, toTaste]);
+      expect(units, [..._mass, pinch, dash, handful, toTaste]);
     });
 
-    test('a mass default /g with density unlocks kitchen volume, after the '
+    test('a mass default /g with density unlocks the volume family, after the '
         'default family', () {
       // Oats: grams AND cups are both honest — and the unlocked family
       // trails the default's own (the choice builder pushes it below the
       // measures too).
       final units = allowedUnitsFor(_ing(g, density: 0.4));
-      expect(units, [g, kg, oz, lb, tsp, tbsp, cup, ml, pint]);
+      expect(units, [..._mass, ..._volume]);
       expect(units, isNot(contains(pieces)));
     });
 
-    test('what the mango shape leaves out: the big metric siblings', () {
+    test('the mango shape leaves nothing out: a density is a fact about the '
+        'substance, so both families come whole', () {
       final units = allowedUnitsFor(
         _ing(pieces, density: 0.66, category: 'produce'),
       );
-      // `kg` stays out: the big metric sibling rides the same magnitude gate
-      // the mass/volume legs use, and a piece default is not big-scale. It is
-      // the board frame's dashed chip. `qt` rides with `l`, so it stays out
-      // with it; `pt` rides with `cup`, so it came in.
-      expect(units, isNot(contains(kg)));
-      expect(units, isNot(contains(l)));
-      expect(units, isNot(contains(quart)));
+      // The magnitude gate that kept `kg` and `l` off a piece-default row is
+      // gone with the rest of the trim: a litre of mango purée is a sentence,
+      // and a household that will never say it turns the chip off.
+      expect(units, containsAll(<Unit>[kg, l, quart]));
     });
 
     test('without a density a count default still admits nothing but its own '
-        'piece and the basis base — the amendment unlocks on the density, not '
-        'on the family', () {
+        'piece and the basis family — the unlock rides the density, not the '
+        'family', () {
       expect(allowedUnitsFor(_ing(pieces, category: 'produce')), [
         pieces,
-        g,
+        ..._mass,
         handful, // J3: the category's word, not the density's business
       ]);
     });
@@ -147,224 +158,88 @@ void main() {
       final units = allowedUnitsFor(
         _ing(pinch, density: 1, category: 'spices & seasoning'),
       );
-      expect(units, [
-        g,
-        tsp,
-        tbsp,
-        cup,
-        ml,
-        pint,
-        pinch,
-        dash,
-        handful,
-        toTaste,
-      ]);
+      expect(units, [..._mass, ..._volume, pinch, dash, handful, toTaste]);
     });
 
-    group('ADR-0012 — the volume ladder is symmetric: cup mates tsp', () {
-      // The cup-default admissions themselves are the shared `flour`,
-      // `broth` and `milk` vectors above, which now name `tsp`. What is
-      // pinned here is the SHAPE of the amendment: it closed one gap in one
-      // direction and touched nothing else.
+    group('ADR-0014 — all to all: a family is admitted whole', () {
+      // The admissions themselves are the shared vectors above. What is
+      // pinned here is the property they are examples of: the relation "may
+      // be said in" is now the family, read in every direction.
 
-      test('the ladder joins up in both directions', () {
-        // tsp ↔ tbsp ↔ cup, and now cup → tsp: a teaspoon of sugar is an
-        // ordinary line, and the row used to refuse it while admitting
-        // litres.
-        expect(allowedUnitsFor(_ing(tsp, density: 0.4)), contains(tbsp));
-        expect(allowedUnitsFor(_ing(tbsp, density: 0.9)), contains(cup));
-        expect(allowedUnitsFor(_ing(cup, density: 0.85)), contains(tsp));
-        expect(
-          allowedUnitsFor(_ing(cup, basis: MacrosBasis.perMl)),
-          contains(tsp),
-        );
-      });
-
-      test('tsp is fronted where the kitchen order puts it — right after the '
-          'default', () {
-        // Display order is the default fronted, then its family in kitchen
-        // order, so the sugar row reads `cup · tsp · tbsp · ml · l · pt · qt`.
-        expect(allowedUnitsFor(_ing(cup, density: 0.85)), [
-          cup,
-          tsp,
-          tbsp,
-          ml,
-          l,
-          pint,
-          quart,
-          g,
-          kg,
-        ]);
-      });
-
-      test('the trim in the OTHER direction is untouched: a spoon default is '
-          'not a cup-scale food', () {
-        final yeast = allowedUnitsFor(_ing(tsp, density: 0.4));
-        expect(yeast, isNot(contains(cup)));
-        expect(yeast, isNot(contains(l)));
-        expect(yeast, [tsp, tbsp, g]);
-      });
-
-      test('a density on a cup /g row buys tsp with the rest of the family — '
-          'and deleting it takes tsp back', () {
-        final sugar = _ing(cup, density: 0.85, category: 'baking');
-        expect(densityUnlockedUnits(sugar), contains(tsp));
-        expect(densityStrippedUnits(sugar), contains(tsp));
-        // Without the number the row admits no volume unit at all (D4c), so
-        // there is no half-open state where tsp is sayable and cup is not.
-        expect(allowedUnitsFor(_ing(cup, category: 'baking')), [g, kg]);
-      });
-    });
-
-    group('ADR-0013 — the mass ladder is symmetric: the kitchen four mate '
-        'each other', () {
-      // The admissions themselves are the shared `rice`, `chicken-thigh` and
-      // `butter` vectors above. What is pinned here is the property they are
-      // examples of — the relation "may be said in", read both ways.
-      const kitchenMass = [g, kg, oz, lb];
-
-      test('if a mass default may be said in X, an X-default row may be said '
-          'in it', () {
-        for (final a in kitchenMass) {
-          for (final b in kitchenMass) {
-            final reason = '${a.id} ⇄ ${b.id}';
-            expect(allowedUnitsFor(_ing(a)), contains(b), reason: reason);
-            expect(allowedUnitsFor(_ing(b)), contains(a), reason: reason);
+      test('a row that may be said in one unit of a family may be said in '
+          'every unit of it', () {
+        for (final basis in [MacrosBasis.perG, MacrosBasis.perMl]) {
+          final family = basis == MacrosBasis.perMl ? _volume : _mass;
+          for (final d in family) {
+            expect(
+              allowedUnitsFor(_ing(d, basis: basis)),
+              containsAll(family),
+              reason: '${d.id} /${basis.baseUnit.id}',
+            );
           }
         }
       });
 
-      test('mg is the trim in the other direction — label-reading '
-          "granularity, and nobody else's mate", () {
-        // The same shape `tsp` has in the volume family: its own row may say
-        // it, no other row may.
-        expect(allowedUnitsFor(_ing(mg)), [mg, g]);
-        for (final d in kitchenMass) {
-          expect(allowedUnitsFor(_ing(d)), isNot(contains(mg)), reason: d.id);
-        }
+      test('the ladders join up in both directions, spoons to litres', () {
+        // The asymmetries two ADRs closed one rung at a time — cup refusing
+        // tsp, oz refusing kg — cannot exist in a rule that admits families.
+        final sugar = allowedUnitsFor(_ing(cup, density: 0.85));
+        expect(sugar, containsAll(<Unit>[tsp, tbsp, l, quart]));
+        final yeast = allowedUnitsFor(_ing(tsp, density: 0.4));
+        expect(yeast, containsAll(<Unit>[cup, l]));
+        expect(allowedUnitsFor(_ing(oz)), contains(kg));
       });
 
-      test('the per-100 ml gate is untouched: a mass default on a per-ml row '
-          'with no density says no mass unit at all', () {
-        // The widening is inside the mates leg, which a cross-family default
-        // never reaches without a density — so the stranded shape stays
-        // stranded, and stays flagged.
-        for (final d in kitchenMass) {
-          final perMl = _ing(d, basis: MacrosBasis.perMl);
-          expect(allowedUnitsFor(perMl), [
-            ml,
-            if (d == kg || d == lb) l,
-          ], reason: d.id);
-          expect(defaultUnitNeedsDensity(perMl), isTrue, reason: d.id);
-        }
-      });
-
-      test('what a density is worth to a mass default did not move', () {
-        // The widening happens inside the mass family, which the density leg
-        // never supplied: a number still buys exactly the volume workhorses.
-        for (final d in kitchenMass) {
-          expect(densityUnlockedUnits(_ing(d, density: 0.9)), {
-            tsp,
-            tbsp,
-            cup,
-            ml,
-            pint,
-          }, reason: d.id);
-        }
-      });
-    });
-
-    group('pint and quart — quart rides with litre, pint rides with cup', () {
-      // The cup-default case is the shared `broth` vector above: it already
-      // pins that a pint and a quart come in, behind the metric jugs in chip
-      // order rather than fronted over them.
-
-      test('a litre default admits a quart', () {
-        expect(allowedUnitsFor(_ing(l, basis: MacrosBasis.perMl)), [
-          l,
+      test('fl oz is an ordinary volume unit — a kitchen unit here, offered '
+          'like the rest of its family', () {
+        expect(allowedUnitsFor(_ing(cup, basis: MacrosBasis.perMl)), [
           cup,
+          tsp,
+          tbsp,
+          flOz,
           ml,
+          l,
           pint,
           quart,
         ]);
+        expect(allowedUnitsFor(_ing(g, density: 0.9)), contains(flOz));
+        // …and as a default it needs a density like any cross-family one.
+        expect(allowedUnitsFor(_ing(flOz, density: 1)), contains(flOz));
+        expect(defaultUnitNeedsDensity(_ing(flOz)), isTrue);
       });
 
-      test('a spoon default admits neither — no quarts of yeast', () {
-        for (final i in [
-          _ing(tsp, basis: MacrosBasis.perMl),
-          _ing(tsp, density: 0.4),
-          _ing(tbsp, basis: MacrosBasis.perMl),
-        ]) {
-          final units = allowedUnitsFor(i);
-          expect(units, isNot(contains(quart)), reason: i.defaultUnit.id);
-          // tbsp's mates name cup, so a pint rides in there — tsp's do not.
+      test('mg is gone from the catalog, so nothing can offer it', () {
+        expect(unitById('mg'), isNull);
+        for (final d in kIngredientUnits) {
           expect(
-            units.contains(pint),
-            i.defaultUnit == tbsp,
-            reason: i.defaultUnit.id,
+            allowedUnitsFor(_ing(d, density: 1)).map((u) => u.id),
+            isNot(contains('mg')),
+            reason: d.id,
           );
         }
       });
 
-      test('the pair as defaults: one rung each side, and both pass the big '
-          'gate', () {
-        expect(allowedUnitsFor(_ing(quart, basis: MacrosBasis.perMl)), [
-          quart,
-          cup,
-          ml,
-          l,
-          pint,
-        ]);
-        expect(allowedUnitsFor(_ing(pint, basis: MacrosBasis.perMl)), [
-          pint,
-          cup,
-          ml,
-          quart,
-        ]);
-        // Per-g with a density: the basis leg brings kg because a pint is
-        // cup-scale and a quart litre-scale.
-        expect(allowedUnitsFor(_ing(pint, density: 1)), [
-          pint,
-          cup,
-          ml,
-          quart,
-          g,
-          kg,
-        ]);
-        expect(allowedUnitsFor(_ing(quart, density: 1)), [
-          quart,
-          cup,
-          ml,
-          l,
-          pint,
-          g,
-          kg,
-        ]);
-        // …and without one they are stranded like any cross-family default.
-        expect(allowedUnitsFor(_ing(pint)), [g, kg]);
-        expect(defaultUnitNeedsDensity(_ing(quart)), isTrue);
+      test('the density gate is the only gate left: the other family is all '
+          'there, or none of it', () {
+        for (final d in [g, kg, oz, lb, pieces, pinch]) {
+          expect(allowedUnitsFor(_ing(d)), isNot(contains(ml)), reason: d.id);
+          expect(
+            allowedUnitsFor(_ing(d, density: 0.9)),
+            containsAll(_volume),
+            reason: d.id,
+          );
+        }
       });
 
-      test('a density buys a mass row a pint but never a quart — the cross leg '
-          'names cup, not l', () {
-        final oats = densityUnlockedUnits(_ing(g, density: 0.4));
-        expect(oats, contains(pint));
-        expect(oats, isNot(contains(quart)));
+      test('what a density is worth is the whole other family', () {
+        expect(densityUnlockedUnits(_ing(g, density: 0.9)), _volume.toSet());
+        expect(
+          densityUnlockedUnits(_ing(pieces, density: 0.9)),
+          _volume.toSet(),
+        );
+        final milk = _ing(ml, density: 1.03, basis: MacrosBasis.perMl);
+        expect(densityUnlockedUnits(milk), _mass.toSet());
       });
-    });
-
-    test('mg and fl oz stay label-reading units: offered only as the '
-        "default itself, never as anyone else's mate", () {
-      // `mg` is a mass unit on a per-100 g row: its own family, so D4c admits
-      // it bare. `fl oz` is volume, and needs the density like every other
-      // cross-family default.
-      expect(allowedUnitsFor(_ing(mg)), contains(mg));
-      expect(allowedUnitsFor(_ing(flOz, density: 1)), contains(flOz));
-      for (final d in kIngredientUnits.where((u) => u != mg && u != flOz)) {
-        final units = allowedUnitsFor(_ing(d, density: 1));
-        expect(units, isNot(contains(mg)), reason: 'mg via ${d.id}');
-        expect(units, isNot(contains(flOz)), reason: 'fl_oz via ${d.id}');
-      }
     });
 
     test('the default unit is admitted when its family is — and a row whose '
@@ -498,7 +373,7 @@ void main() {
     test('an empty explicit list falls back to the derived defaults (a row '
         'must never render zero chips)', () {
       final units = allowedUnitsFor(_ing(tsp, allowed: const []));
-      expect(units, [g]);
+      expect(units, _mass);
     });
   });
 
@@ -524,6 +399,9 @@ void main() {
         'potato, medium (213.5 g)',
         'potato, large (299 g)',
         'g',
+        'kg',
+        'oz',
+        'lb',
       ]);
     });
 
@@ -543,7 +421,8 @@ void main() {
         [
           'g', 'kg', 'oz', 'lb', // the default's own family leads
           'potato, large', // measures
-          'tsp', 'tbsp', 'cup', 'ml', 'pt', // density-unlocked, demoted
+          // the density-unlocked family, whole and demoted
+          'tsp', 'tbsp', 'fl_oz', 'cup', 'ml', 'l', 'pt', 'qt',
         ],
       );
     });
@@ -735,14 +614,18 @@ void main() {
         'hidden — the section has to explain what a density buys', () {
       final curryLeaves = _ing(g, category: 'produce');
       expect(selectedOf(curryLeaves), {'g', 'kg', 'oz', 'lb', 'handful'});
-      expect(lockedOf(curryLeaves), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
+      expect(lockedOf(curryLeaves), _volumeIds);
     });
 
     test('a piece default with no density locks BOTH families beyond its own '
         'basis base — a density is what opens them', () {
       final mangoWithoutDensity = _ing(pieces, category: 'produce');
-      expect(selectedOf(mangoWithoutDensity), {'piece', 'g', 'handful'});
-      expect(lockedOf(mangoWithoutDensity), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
+      expect(selectedOf(mangoWithoutDensity), {
+        'piece',
+        ..._massIds,
+        'handful',
+      });
+      expect(lockedOf(mangoWithoutDensity), _volumeIds);
     });
 
     test('with the density, nothing is locked (the mango frame)', () {
@@ -750,21 +633,39 @@ void main() {
       expect(lockedOf(mango), isEmpty);
       expect(selectedOf(mango), {
         'piece',
-        'g',
-        'tsp',
-        'tbsp',
-        'cup',
-        'ml',
-        'pt',
+        ..._massIds,
+        ..._volumeIds,
         'handful',
       });
     });
 
     test('a stored unit the derived rules would not admit still appears, '
         'selected and unlocked — an explicit list is user-owned', () {
-      final curated = _ing(g, allowed: const [g, flOz, toTaste]);
-      expect(selectedOf(curated), containsAll(<String>['fl_oz', 'to_taste']));
-      expect(lockedOf(curated), isNot(contains('fl_oz')));
+      // `piece` is the one admission the rule never derives for a weighed row
+      // (ADR-0010 keeps it curated), so it is what this can be shown with.
+      final curated = _ing(g, allowed: const [g, pieces, toTaste]);
+      expect(selectedOf(curated), containsAll(<String>['piece', 'to_taste']));
+      expect(lockedOf(curated), isNot(contains('piece')));
+    });
+
+    test('every imprecise word is a chip the row may turn on, whatever its '
+        'category — the user prunes, the gate only pre-picks', () {
+      final chips = {
+        for (final c in allowedUnitCandidates(_ing(g, category: 'produce')))
+          c.unit.id: c,
+      };
+      for (final word in ['pinch', 'dash', 'handful', 'to_taste']) {
+        expect(chips[word]?.locked, isFalse, reason: word);
+      }
+      // Only `handful` arrives picked: produce earns that one word (J3).
+      expect(chips['handful']!.selected, isTrue);
+      expect(chips['pinch']!.selected, isFalse);
+    });
+
+    test('a density-carrying row locks nothing at all', () {
+      for (final c in allowedUnitCandidates(_ing(cup, density: 0.85))) {
+        expect(c.locked, isFalse, reason: c.unit.id);
+      }
     });
 
     test('a stored list that still names the cross-family units draws them '
@@ -773,18 +674,18 @@ void main() {
       // The shape a device leaves behind when the density is deleted
       // somewhere the list did not follow (an older client, a server edit).
       final stale = _ing(pieces, allowed: const [pieces, g, cup, ml]);
-      expect(lockedOf(stale), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
+      expect(lockedOf(stale), _volumeIds);
       // …and the basis side is untouched: it never needed a density.
       expect(selectedOf(stale), {'piece', 'g'});
     });
 
     test('the basis family is never locked, whichever way the panel reads', () {
       final perMl = _ing(ml, basis: MacrosBasis.perMl);
-      expect(lockedOf(perMl), {'g'});
+      expect(lockedOf(perMl), _massIds);
       expect(selectedOf(perMl), containsAll(<String>['ml', 'l']));
 
       final perG = _ing(g);
-      expect(lockedOf(perG), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
+      expect(lockedOf(perG), _volumeIds);
       expect(selectedOf(perG), containsAll(<String>['g']));
     });
   });
@@ -793,7 +694,7 @@ void main() {
     test('the mango shape: the volume leg goes, piece and the basis base '
         'stay', () {
       final mango = _ing(pieces, density: 0.66, category: 'produce');
-      expect(densityStrippedUnits(mango), {tsp, tbsp, cup, ml, pint});
+      expect(densityStrippedUnits(mango), _volume.toSet());
       expect(densityStrippedUnits(mango), isNot(contains(g)));
       expect(densityStrippedUnits(mango), isNot(contains(pieces)));
     });
@@ -801,17 +702,19 @@ void main() {
     test('THE FLOUR SHAPE: the volume family goes — including the row’s own '
         'default unit, which the density was the only thing admitting', () {
       final flour = _ing(cup, density: 0.59, category: 'baking');
-      expect(densityStrippedUnits(flour), {cup, tsp, tbsp, ml, l, pint, quart});
+      expect(densityStrippedUnits(flour), _volume.toSet());
       // Mass is its basis family and survives, density or not.
       expect(densityStrippedUnits(flour), isNot(contains(g)));
       expect(densityStrippedUnits(flour), isNot(contains(kg)));
       // Which is exactly the state D4c flags rather than repairing.
       expect(defaultUnitNeedsDensity(_ing(cup, category: 'baking')), isTrue);
+      // Mass is its basis family and survives, density or not.
+      expect(allowedUnitsFor(_ing(cup, category: 'baking')), _mass);
     });
 
     test('the milk shape: a per-ml row loses g, keeps every volume unit', () {
       final milk = _ing(ml, density: 1.03, basis: MacrosBasis.perMl);
-      expect(densityStrippedUnits(milk), {g});
+      expect(densityStrippedUnits(milk), _mass.toSet());
     });
 
     test('what is stripped is exactly what a density adds — the two are one '

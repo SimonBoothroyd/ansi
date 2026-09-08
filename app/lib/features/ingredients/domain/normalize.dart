@@ -203,7 +203,7 @@ final _quantity = RegExp('^[0-9$_fractionGlyphs/.,\\-–—]+\$');
 /// abbreviations: a bare "l" or "g" after a number can only be a unit, while a
 /// longer suffix would start eating real words.
 final _fusedAmount = RegExp(
-  '^[0-9$_fractionGlyphs/.,\\-–—]+(g|kg|mg|ml|l|oz|lb)\$',
+  '^[0-9$_fractionGlyphs/.,\\-–—]+(g|kg|ml|l|oz|lb)\$',
 );
 
 /// British surface forms folded onto the word the vocabulary stores. "tinned"

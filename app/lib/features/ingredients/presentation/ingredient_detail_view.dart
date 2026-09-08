@@ -1106,19 +1106,19 @@ class _ScanResult extends StatelessWidget {
   }
 }
 
-/// The ADR-0008 admission section: the units this row admits, the ones it
-/// could admit, and — after a divider — the imprecise words its category
-/// earns it.
+/// The admission section: the units this row says today, the ones it could
+/// say, and — after a divider — the imprecise words.
 ///
 /// **The locked units are a line, not chips**: "cup · tbsp · ml unlock when
 /// this row has a density." *"Why can't I pick cup"* must have a visible
 /// answer, and a named line answers it more completely than a row of dashed
-/// pills, because it also says what to do about it.
+/// pills, because it also says what to do about it. Nothing else locks: every
+/// other chip is the household's to turn on or off.
 ///
-/// **The imprecise words are folded in.** They are a fact about the
-/// *category*, never about this row, so they are drawn after a divider, dotted
-/// and untappable — the same idiom the quantity sheet uses for its own chip
-/// row.
+/// **The imprecise words are folded in**, behind a divider because they are
+/// words rather than measures — the same idiom the quantity sheet uses. The
+/// category decides which of them arrive pre-picked; the row decides what it
+/// keeps.
 class _AdmissionChips extends StatelessWidget {
   const _AdmissionChips({
     required this.ingredient,
@@ -1137,11 +1137,14 @@ class _AdmissionChips extends StatelessWidget {
       for (final c in candidates)
         if (!c.locked && c.unit.family != UnitFamily.imprecise) c,
     ];
+    final words = [
+      for (final c in candidates)
+        if (!c.locked && c.unit.family == UnitFamily.imprecise) c,
+    ];
     final locked = [
       for (final c in candidates)
         if (c.locked) c.unit.label,
     ];
-    final imprecise = impreciseUnitsFor(ingredient).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1157,43 +1160,27 @@ class _AdmissionChips extends StatelessWidget {
                 onTap: () => onToggle(c.unit),
               ),
             // The divider the quantity sheet draws before the same words.
-            if (imprecise.isNotEmpty) ...[
+            if (words.isNotEmpty) ...[
               Container(
                 width: 1,
                 height: 18,
                 margin: const EdgeInsets.symmetric(horizontal: 2),
                 color: AnsiColors.line,
               ),
-              for (final u in imprecise) _ImpreciseChip(unit: u),
+              for (final c in words)
+                _UnitChip(
+                  unit: c.unit,
+                  selected: selected.contains(c.unit),
+                  onTap: () => onToggle(c.unit),
+                ),
             ],
           ],
         ),
         if (locked.isNotEmpty)
           _Note('${locked.join(' · ')} unlock when this row has a density'),
-        if (imprecise.isNotEmpty)
-          const _Note('dotted words come from the category, not from here'),
       ],
     );
   }
-}
-
-/// An imprecise word: read out, never toggled. The category decides these
-/// (J3), so a tap here would be a promise the form cannot keep.
-class _ImpreciseChip extends StatelessWidget {
-  const _ImpreciseChip({required this.unit});
-
-  final Unit unit;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-    decoration: BoxDecoration(
-      color: AnsiColors.surface,
-      border: Border.all(color: AnsiColors.line),
-      borderRadius: BorderRadius.circular(999),
-    ),
-    child: Text(unit.label, style: ansiMono(size: 11, color: AnsiColors.muted)),
-  );
 }
 
 class _UnitChip extends StatelessWidget {
