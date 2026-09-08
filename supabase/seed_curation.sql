@@ -509,6 +509,10 @@ update ingredient set
     else source || ' + fdc_density:172421' end
 where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'lentil canned';
 
+-- cinnamon stick: 0.5275 is FDC 171320's ground-cinnamon portion, arriving with the macro prefill; a quill is hollow and mostly air, so that number describes a different substance. The row is counted by the stick and nothing volume-measures it, so it joins the audited bare tail beside star anise rather than take a guessed number
+update ingredient set density_g_per_ml = null
+where household_id = '00000000-0000-0000-0000-0000000000aa' and match_text = 'cinnamon stick';
+
 -- Density fallback: FAO/INFOODS Density Database v2.0 (2012), via the reviewed
 -- fao_density_links.jsonl map. Fills ONLY rows the FDC volume-portion
 -- derivation and the curation overrides above both left null; the
@@ -3763,7 +3767,7 @@ begin
       'seed_curation R3: % of 133 curated default measures landed (a default_measure label no longer names a live measure)', landed;
   end if;
 
-  raise notice 'seed_curation: allowed_units refreshed; 13 macro + 80 density + 209 allowed-unit overrides + 12 FAO density fills; 133 default count measures; R1 (volume default => density), R2 (kitchen density band) and R3 (every curated default landed) hold';
+  raise notice 'seed_curation: allowed_units refreshed; 13 macro + 81 density + 209 allowed-unit overrides + 12 FAO density fills; 133 default count measures; R1 (volume default => density), R2 (kitchen density band) and R3 (every curated default landed) hold';
 end $$;
 
 commit;

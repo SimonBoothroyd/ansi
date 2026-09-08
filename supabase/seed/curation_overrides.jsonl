@@ -266,9 +266,9 @@
 //       and tender green 0.10 — or a printed label, as for crispy shallot.
 // Every value is inside R2 (0.03-2.0). Coverage 277/307 -> 296/307.
 //
-// The 11 rows STILL density-less are now a decision, not an accident. Each
-// was re-read against FDC after the FAO verdict, and each stays bare because
-// no volume line reaches it, or because nothing honest pins it:
+// The 12 rows density-less are a decision, not an accident. Each was read
+// against both FDC and FAO, and each stays bare because no volume line
+// reaches it, or because nothing honest pins it:
 //   corn tortilla, flour tortilla, tostada shell, english muffin — the
 //     linked FDC records carry no volume portion and neither does any
 //     sibling; nobody measures a flatbread or a muffin by the cup. Their
@@ -279,8 +279,11 @@
 //   lime — the fruit, by the piece. Its two volume forms are already their
 //     own rows with their own densities (lime juice 1.0229, and the zest is
 //     spooned as a measure), so the fruit row needs none.
-//   star anise — a whole hollow pod, mostly air; FDC's only anise record is
-//     ground seed (171316, 0.4531), a different substance entirely.
+//   star anise, cinnamon stick — whole spices, mostly air, counted by the
+//     pod and by the stick. FDC's only anise record is ground seed (171316,
+//     0.4531) and its only cinnamon record is the ground spice (171320,
+//     0.5275); a powder is a different substance from the whole form, and
+//     no volume line reaches either row. The two rows take the same ruling.
 //   seitan — FDC has no seitan record at all. The meatless-analogue rows
 //     (breaded nugget 0.5495, frankfurter 0.5917) are formed or coated
 //     products, a different geometry from a cup of torn seitan, and a
@@ -327,10 +330,12 @@
 // untouched — they keep `piece`, because there is nothing clearer to say, and
 // `default_allowed_units()` (and its Dart mirror) is deliberately NOT changed.
 //
-// 66 of the 142 removals are already no-ops today: those rows are mass- or
+// 67 of the 143 removals are already no-ops today: those rows are mass- or
 // volume-default, and `default_allowed_units()` never admits `piece` for them.
 // They are written anyway — the file is the decision record, and the ruling
 // must survive a vocab row later flipping its default unit to `piece`.
+// (143, not 142, because `cherry tomato` keeps its ruling while the same pass
+// dropped the borrowed measure that prompted it.)
 //
 // Three measure edits the owner ruled in the same pass ride along below.
 {"kind": "drop_measure", "match_text": "broccoli", "label": "bunch", "reason": "owner 2026-09-02 (\"bunch -> piece\"): the 608 g bunch is what a recipe means by \"1 broccoli\" — relabelled `whole` below so the whole reads as one, which is what lets `piece` come out of the list"}
@@ -700,3 +705,15 @@
 {"kind": "allowed_units", "match_text": "edamame", "remove": ["tsp"], "reason": "podded beans by the tbsp exist in a salad; by the tsp they do not"}
 {"kind": "allowed_units", "match_text": "corn frozen", "remove": ["tsp", "tbsp"], "reason": "frozen corn is poured by the cup, not spooned — the ruling frozen peas already carry"}
 {"kind": "allowed_units", "match_text": "sweetcorn canned", "remove": ["tsp"], "reason": "the canned-family ruling: by the tbsp yes, by the tsp no"}
+//
+// --- densities: the round-six unit audit (plan 0041) -----------------------
+// A whole-row sweep of all 319 rows for the honesty of the numbers each one
+// carries: stranded defaults, basis, default unit, density presence, `piece`.
+// One number was wrong — a row holding a density for a substance it is not.
+// The prefill links `cinnamon stick` to FDC 171320 for its MACROS, which is
+// right (a quill and the powder are the same food), and takes that record's
+// portion-derived density with them, which is not: 0.5275 is packed ground
+// spice, and a cup of hollow quills is nothing like 527 g. This is the
+// ruling `star anise` already carries, and the same row already says
+// "quills are counted, never pinched" about its imprecise words.
+{"kind": "density", "match_text": "cinnamon stick", "value": null, "reason": "0.5275 is FDC 171320's ground-cinnamon portion, arriving with the macro prefill; a quill is hollow and mostly air, so that number describes a different substance. The row is counted by the stick and nothing volume-measures it, so it joins the audited bare tail beside star anise rather than take a guessed number"}

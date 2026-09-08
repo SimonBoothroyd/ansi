@@ -108,11 +108,14 @@ rename** and the release checklist's rename-before-reseed trap does not apply.
 `supabase/seed.sql` regenerated (`deno task gen-seed`); every other generated
 seed file is byte-identical.
 
-**Deferred, not applied:** the audit proposed clearing `cinnamon stick`'s
-density (0.5275 is FDC 171320's *ground* cinnamon on a row counted by the
-quill — the `star anise` shape). The owner asked for findings only, so the
-number stands until ruled on; the row's `piece` and imprecise words are
-already removed, so nothing volume-measures it today.
+**Also applied (owner ruling, after the release):** `cinnamon stick`'s
+density cleared to null. The prefill links the row to FDC 171320, *Spices,
+cinnamon, ground* — right for its macros, wrong for its density: 0.5275 is
+packed ground spice, and a cup of hollow quills is nothing like 527 g. The
+row is counted by the stick, its `piece` and imprecise words are already
+removed, so the number bought only a fabricated conversion. It now shares
+`star anise`'s ruling; no replacement exists (FDC has no whole-quill record,
+FAO's cinnamon is ground).
 
 ## What needs Simon's ruling
 

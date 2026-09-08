@@ -146,7 +146,7 @@ The column list is generated from the migrations —
 - Seed from USDA FoodData Central **Foundation Foods + SR Legacy** (CC0).
   Density from FDC volume food portions parsed out of the full portion text
   (7.8 took coverage to 211/291), fallback FAO/INFOODS Density DB v2.0, then
-  step 8.5's D4d hand pass — **308/319 today**; the 11-row tail is audited and
+  step 8.5's D4d hand pass — **307/319 today**; the 12-row tail is audited and
   tracked, not accidental (tracker).
 
 ### Ingredient measure (steps 7.6–7.8)
@@ -283,8 +283,8 @@ its steps.
     (`handful ≈ 25 g`, with provenance), not an engine special case.
   *Reality check, resolved:* this read `incomplete` on most real
   recipes when density coverage was 7/291; 7.8's FDC-spoons→density work, the
-  FAO fallback and 8.5's D4d pass took it to **308/319**, so most recipes now
-  read as numbers and the residual `incomplete` is the honest 11-row tail.
+  FAO fallback and 8.5's D4d pass took it to **307/319**, so most recipes now
+  read as numbers and the residual `incomplete` is the honest 12-row tail.
 
 #### The method (step 8 tokens · the 0022 editor)
 

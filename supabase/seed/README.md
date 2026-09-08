@@ -31,7 +31,7 @@ one before it left empty:
    reviewed mapping — see `scripts/fao_density.md`. Never overwrites 1 or 2:
    every fill carries a `density_g_per_ml is null` guard.
 
-Current vocab coverage: **308/319** (264 → 277 when the FAO fallback landed,
+Current vocab coverage: **307/319** (264 → 277 when the FAO fallback landed,
 then → 297 in the **D4d density pass**, plan 0020 batch 5). D4c admits only
 the BASIS family on a density-less row, so a bare row silently refuses every
 volume line; the pass re-read all 30 remaining rows and filled 19 of them.
@@ -40,8 +40,11 @@ with no volume `food_portion` while a **sibling record of the same food**
 carries one (gala apple, dill pickle, plantain, tofu…) — cited per row as
 `fdc_density:<fdc_id>` in `curation_overrides.jsonl`. The FAO rejections
 were not relitigated: FAO v2.0 still has no tofu, tortilla, seaweed or
-mushroom row. The 11 rows still bare are enumerated with their reasons in
-the overrides file's round-3 header — each is now a decision, not a gap.
+mushroom row. The 12 rows still bare are enumerated with their reasons in
+the overrides file's round-3 header — each is a decision, not a gap. A row
+whose only citable number describes a different physical form of the food
+belongs there too: the whole spices (`star anise`, `cinnamon stick`) are
+counted, and FDC carries only the ground powder.
 
 Two invariants hold at `db reset` (`seed_curation.sql`): **R1**, a volume
 `default_unit` requires a density; **R2**, every stored density lands in the
