@@ -75,7 +75,7 @@
 {"canonical_name": "Cremini Mushroom", "category": "produce", "default_unit": "oz", "aliases": ["cremini mushrooms"], "source_examples": ["8 ounces cremini mushrooms (bottoms removed and thinly sliced)"]}
 {"canonical_name": "Okra", "category": "produce", "default_unit": "oz", "aliases": ["fresh okra"], "source_examples": ["10 ounces fresh okra"]}
 {"canonical_name": "Green Beans", "category": "produce", "default_unit": "oz", "aliases": ["green beans", "fresh green beans"], "source_examples": ["8 ounces trimmed green beans (chopped into bite sized pieces)", "12 ounces  fresh, trimmed green beans (cut bite-sized)"], "notes": "merged 'green bean fresh'"}
-{"canonical_name": "Frozen Peas", "category": "produce", "default_unit": "lb", "aliases": ["frozen peas"], "source_examples": ["1 pound  frozen peas"]}
+{"canonical_name": "Frozen Peas", "category": "produce", "default_unit": "cup", "aliases": ["frozen peas"], "source_examples": ["1 pound  frozen peas"]}
 {"canonical_name": "Brussels Sprouts", "category": "produce", "default_unit": "lb", "aliases": ["brussels sprouts"], "source_examples": ["1 pound brussels sprouts"]}
 {"canonical_name": "Russet Potato", "category": "produce", "default_unit": "piece", "aliases": ["russet potatoes"], "source_examples": ["1  large russet potato", "1-2  small russet potatoes (julienned)"]}
 {"canonical_name": "Kimchi", "category": "pantry", "default_unit": "cup", "aliases": ["kimchi"], "source_examples": ["1 cup kimchi (see notes)"], "notes": "category pantry (audit 2026-08-29): a jarred ferment, not produce"}
@@ -89,7 +89,7 @@
 {"canonical_name": "Extra Firm Tofu", "category": "proteins", "default_unit": "oz", "aliases": ["extra-firm tofu", "extra firm high protein tofu", "tofu"], "source_examples": ["14 ounces extra-firm tofu", "16 ounces tofu (extra firm or high protein (1 block))", "1 16-oz block  extra firm high protein tofu (or regular firm)"], "notes": "merged plain 'tofu' and 'extra firm high protein tofu' — all extra-firm; distinct from Silken Tofu"}
 {"canonical_name": "Silken Tofu", "category": "proteins", "default_unit": "piece", "aliases": ["shelf-stable silken tofu"], "source_examples": ["1 (10.8 oz) pack  shelf-stable silken tofu"], "notes": "dropped container 'pack'; kept distinct from Extra Firm Tofu"}
 {"canonical_name": "Tempeh", "category": "proteins", "default_unit": "oz", "aliases": ["tempeh", "plain tempeh"], "source_examples": ["8 ounces tempeh", "2  packs plain tempeh (16 oz each = 32 oz total)"], "notes": "merged 'plain tempeh' (dropped container 'pack')"}
-{"canonical_name": "Frozen Edamame", "category": "produce", "default_unit": "oz", "aliases": ["frozen edamame", "shelled frozen edamame", "frozen shelled edamame"], "source_examples": ["16 ounces frozen edamame", "12 ounces (340g) shelled frozen edamame, defrosted", "6 ounces frozen shelled edamame (defrosted)"], "notes": "merged 'edamame frozen shelled' and 'edamame defrosted shelled frozen' — shelled/defrosted are prep"}
+{"canonical_name": "Frozen Edamame", "category": "produce", "default_unit": "cup", "aliases": ["frozen edamame", "shelled frozen edamame", "frozen shelled edamame"], "source_examples": ["16 ounces frozen edamame", "12 ounces (340g) shelled frozen edamame, defrosted", "6 ounces frozen shelled edamame (defrosted)"], "notes": "merged 'edamame frozen shelled' and 'edamame defrosted shelled frozen' — shelled/defrosted are prep"}
 {"canonical_name": "Tofu Bacon", "category": "proteins", "default_unit": "piece", "aliases": ["tofu bacon"], "source_examples": ["1 batch  Tofu Bacon or Shiitake Bacon"], "notes": "choice-split from 'Tofu Bacon or Shiitake Bacon' (a sub-recipe)"}
 {"canonical_name": "Shiitake Bacon", "category": "proteins", "default_unit": "piece", "aliases": ["shiitake bacon"], "source_examples": ["Shiitake bacon", "1 batch  Tofu Bacon or Shiitake Bacon"], "notes": "choice-split from 'Tofu Bacon or Shiitake Bacon'"}
 {"canonical_name": "Breaded Vegan Chicken Nugget", "category": "proteins", "default_unit": "oz", "aliases": ["breaded vegan chicken nuggets", "breaded vegan chicken strips"], "source_examples": ["16 oz breaded vegan chicken nuggets or strips (baked & sliced)"], "notes": "folded the lone 'strip' casualty back in — 'nuggets or strips' is one product in two shapes"}
@@ -145,7 +145,7 @@
 {"canonical_name": "Flaxseed Meal", "category": "pantry", "default_unit": "tbsp", "aliases": ["ground flaxseed meal"], "source_examples": ["2 tablespoons ground flaxseed meal"]}
 {"canonical_name": "Dried Currants", "category": "pantry", "default_unit": "cup", "aliases": ["dried currants"], "source_examples": ["1 cup dried currants or raisins"], "notes": "choice-split from 'dried currants or raisins'"}
 {"canonical_name": "Raisins", "category": "pantry", "default_unit": "cup", "aliases": ["raisins"], "source_examples": ["1 cup dried currants or raisins"], "notes": "choice-split from 'dried currants or raisins'"}
-{"canonical_name": "Dried Coconut Flakes", "category": "pantry", "default_unit": "oz", "aliases": ["dried coconut flakes"], "source_examples": ["2 ounces dried coconut flakes"]}
+{"canonical_name": "Dried Coconut Flakes", "category": "pantry", "default_unit": "cup", "aliases": ["dried coconut flakes"], "source_examples": ["2 ounces dried coconut flakes"]}
 {"canonical_name": "Chex Cereal", "category": "pantry", "default_unit": "cup", "aliases": ["chex style cereal"], "source_examples": ["7 cups chex style cereal"]}
 {"canonical_name": "Mini Pretzels", "category": "pantry", "default_unit": "cup", "aliases": ["mustard flavored mini pretzels"], "source_examples": ["1 ½ cups mustard flavored mini pretzels"]}
 {"canonical_name": "Tortilla Chips", "category": "pantry", "default_unit": "oz", "aliases": ["tortilla chips"], "source_examples": ["Tortilla chips (to serve (optional))"], "notes": "oz default (audit 2026-08-29, R2): nobody counts chips — piece entry dropped"}
@@ -195,7 +195,7 @@
 {"canonical_name": "Corn Tortilla", "category": "grains", "default_unit": "piece", "aliases": []}
 {"canonical_name": "Cornmeal", "category": "grains", "default_unit": "cup", "aliases": []}
 {"canonical_name": "Farro", "category": "grains", "default_unit": "cup", "aliases": []}
-{"canonical_name": "Flour Tortilla", "category": "grains", "default_unit": "oz", "aliases": [], "notes": "R2 piece curation (audit 2026-08-29): the tortilla measure carries the count; sizes vary 6-12 inch so bare piece was ambiguous"}
+{"canonical_name": "Flour Tortilla", "category": "grains", "default_unit": "piece", "aliases": [], "notes": "R2 piece curation (audit 2026-08-29): the tortilla measure carries the count; sizes vary 6-12 inch so bare piece was ambiguous"}
 {"canonical_name": "Multigrain Bread", "category": "grains", "default_unit": "piece", "aliases": []}
 {"canonical_name": "Quinoa", "category": "grains", "default_unit": "cup", "aliases": []}
 {"canonical_name": "Red Rice", "category": "grains", "default_unit": "cup", "aliases": []}
