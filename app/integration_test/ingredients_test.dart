@@ -875,12 +875,17 @@ void main() {
       expect(afterSync['status'], 'stub');
 
       // --- back on the list, the G4 hint -----------------------------------
-      // The Save ended the form, so the list is already underneath. It parks
-      // its viewport at the restored offset, below the band — pumpUntilFound
-      // never scrolls, so anchor on the search bar and SCROLL to the band
-      // (edge-detected).
+      // The Save ended the form, so the list is already underneath — parked
+      // at its restored offset below the band, where a programmatic drag does
+      // not move it. So the band is reached the way the first leg reached it:
+      // back to the Library, and into the shelf afresh, which mounts the list
+      // at its top with the band in view.
       await pumpUntilFound(tester, find.text('Search your vocabulary'));
-      await scrollTo(tester, find.text('Needs fleshing out'));
+      await tester.tap(find.byType(FHeaderAction).first);
+      await pumpUntilFound(tester, ingredientsShelf);
+      await scrollTo(tester, ingredientsShelf);
+      await openIngredientsShelf(tester);
+      await pumpUntilFound(tester, find.text('Needs fleshing out'));
 
       // G4: a stub that HAS macros stops being asked for macros. The one
       // thing still missing is a human standing behind them, which is D5's

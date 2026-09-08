@@ -130,6 +130,12 @@ List<UnitSuggestion> acceptableUnitChips(
   return [
     for (final c in offer.choices)
       switch (c) {
+        // The same words the sheet's chip row uses: a weighed `piece` says
+        // what one weighs, so the review never offers a bare count.
+        UnitOption(:final unit) when unit == pieces => UnitSuggestion(
+          token: unit.id,
+          label: pieceChipLabel(ingredient),
+        ),
         UnitOption(:final unit) => UnitSuggestion(
           token: unit.id,
           label: unit.label,

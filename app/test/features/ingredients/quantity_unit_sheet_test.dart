@@ -331,8 +331,10 @@ void main() {
     expect(find.text('not in filter'), findsOneWidget);
 
     // Tapping another chip and coming BACK must work (the review repro:
-    // once left, the orphan could never be re-selected).
-    await tester.tap(find.text('piece'));
+    // once left, the orphan could never be re-selected). The `piece` chip
+    // carries what one weighs (ADR-0015) — never a bare count beside a
+    // measure that explains itself.
+    await tester.tap(find.text('piece (213.5 g)'));
     await tester.pumpAndSettle();
     expect(find.text('piece'), findsWidgets); // now the current choice
     final offFilterChip = find.descendant(

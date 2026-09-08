@@ -199,6 +199,31 @@ Set<Unit> pieceUnlockedUnits(Ingredient ingredient) {
   ).difference(_derivedSet(ingredient, density: density, piece: false));
 }
 
+/// The piece weight as the [Measure] the converter already understands:
+/// `n piece` is `n × amount` of the basis unit, exactly like a named measure.
+/// Null when the row has no weight — nothing is invented for it.
+Measure? pieceAsMeasure(Ingredient ingredient) {
+  final amount = ingredient.pieceBasisAmount;
+  if (amount == null) return null;
+  return Measure(
+    id: 'piece',
+    label: 'piece',
+    amount: amount,
+    basis: ingredient.macrosBasis,
+  );
+}
+
+/// What a `piece` chip SAYS wherever it is offered: `piece (350 g)` on a row
+/// that states what one weighs, so the word is never a bare count beside a
+/// `clove (3 g)` that explains itself. A row with no weight — where `piece` is
+/// only ever drawn locked or off-filter — keeps the bare word.
+String pieceChipLabel(Ingredient ingredient) {
+  final amount = ingredient.pieceBasisAmount;
+  if (amount == null) return pieces.label;
+  return '${pieces.label} (${formatNumber(amount)} '
+      '${ingredient.macrosBasis.baseUnit.label})';
+}
+
 /// The units an ingredient admits **only because a piece weight is stored** —
 /// what clearing that weight takes away again. The same rule as
 /// [pieceUnlockedUnits], read in the opposite direction, and the mirror of

@@ -477,6 +477,23 @@ String? _conversionNote(double? qty, UnitChoice choice, Ingredient ing) {
       };
     case UnitOption(:final unit):
       if (unit == base) return null;
+      // A weighed `piece` converts like a measure (ADR-0015), and the line
+      // says what it multiplied: "≈ 700 g · 350 g each".
+      if (unit.family == UnitFamily.count && pieceAsMeasure(ing) != null) {
+        final piece = pieceAsMeasure(ing)!;
+        final inBase = convertMeasure(
+          qty,
+          piece,
+          to: base,
+          densityGPerMl: ing.densityGPerMl,
+        );
+        return switch (inBase) {
+          Ok(:final value) =>
+            '≈ ${formatQuantity(value.amount)} ${base.label} · '
+                '${formatQuantity(piece.amount)} ${base.label} each',
+          Err() => null,
+        };
+      }
       final inBase = convert(
         Quantity(qty, unit),
         to: base,

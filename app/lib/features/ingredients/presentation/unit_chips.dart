@@ -104,9 +104,14 @@ class _UnitChipRowState extends State<UnitChipRow> {
         UnitChip(
           key: widget.selected == c ? _selectedKey : null,
           // A measure chip carries the bare label; its weight shows in the
-          // selected-choice line, not on every chip.
+          // selected-choice line, not on every chip. `piece` is the one unit
+          // that carries its weight ON the chip (ADR-0015): a count is only a
+          // unit here because the row says what one weighs, and the chip
+          // says so rather than leaving "piece" to mean a clove or a bulb.
           label: switch (c) {
             MeasureOption(:final measure) => measure.label,
+            UnitOption(:final unit) when unit == pieces =>
+              pieceChipLabel(widget.ingredient),
             UnitOption(:final unit) => unit.label,
           },
           dot: c is MeasureOption
@@ -124,6 +129,8 @@ class _UnitChipRowState extends State<UnitChipRow> {
           key: widget.selected == offFilter ? _selectedKey : null,
           label: switch (offFilter) {
             MeasureOption(:final measure) => measure.label,
+            UnitOption(:final unit) when unit == pieces =>
+              pieceChipLabel(widget.ingredient),
             UnitOption(:final unit) => unit.label,
           },
           suffix: 'not in filter',
