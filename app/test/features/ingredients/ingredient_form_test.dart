@@ -215,8 +215,10 @@ void main() {
       // It used to be three sentences, one of which claimed a family was
       // locked from the basis rather than from what is actually dashed.
       expect(
-        find.text('no density — tsp · tbsp · fl oz · cup · ml · l · pt · qt '
-            'locked'),
+        find.text(
+          'no density — tsp · tbsp · fl oz · cup · ml · l · pt · qt '
+          'locked',
+        ),
         findsOneWidget,
       );
       expect(find.textContaining('That blocks nothing'), findsNothing);
