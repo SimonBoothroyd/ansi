@@ -355,8 +355,10 @@ by `make docs-check`); what matters here is the shape:
   and its `match_text`. `source` is provenance: `seed` · `manual` ·
   `usda_fdc:<id>` · `off:<barcode>` · `usda_declined` (a USDA fill a person
   unlinked) · `import_stub` on rows minted before plan 0025 D3. `source_label`
-  and `source_score` name the picked food and how much of the typed name it
-  covered.
+  is the **name** behind whichever stamp the row wears — the picked food's
+  description, or a scanned pack's brand and product name — and it is what
+  surfaces print, never the key inside `source`. `source_score` belongs to a
+  USDA pick alone: how much of the typed name the matched description covered.
 - **`ingredient_alias`** is the alias table (`alias_text` as originally seen,
   `match_text` normalized, `source` one of `seed` · `import_correction` ·
   `manual`), trigram-indexed so corrections write back cleanly.

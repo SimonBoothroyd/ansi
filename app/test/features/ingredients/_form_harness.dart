@@ -63,9 +63,8 @@ const curryLeaves = Ingredient(
   sourceScore: 1,
 );
 
-/// A USDA-filled row a human has since EDITED (0034, plan 0040 front B): the
-/// food is still named and the FDC id still stands, but the macros and the
-/// density on the row are the household's now.
+/// A USDA-filled row a human has since EDITED (0034): the food is still named,
+/// but the macros and the density on the row are the household's now.
 const chex = Ingredient(
   id: 'chex',
   canonicalName: 'Chex Cereal',
@@ -91,6 +90,18 @@ const unnamedFill = Ingredient(
   category: 'pantry',
   macros: Macros(kcal: 32, protein: 1.6, carb: 7, fat: 0.3),
   source: 'usda_fdc:11529',
+);
+
+/// A row a barcode scan filled and a person saved: the stamp is a code, and
+/// the label beside it is what every surface actually says out loud.
+const scannedSpread = Ingredient(
+  id: 'spread',
+  canonicalName: 'Hazelnut spread',
+  defaultUnit: g,
+  status: IngredientStatus.stub,
+  category: 'pantry',
+  source: 'off:3017620422003',
+  sourceLabel: 'Ferrero Nutella',
 );
 
 /// The D4c shape the owner hit: a cup default on a per-100 g row with no

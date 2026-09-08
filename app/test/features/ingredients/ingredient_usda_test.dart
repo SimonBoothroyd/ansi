@@ -22,8 +22,9 @@ import '_form_harness.dart';
 
 void main() {
   testWidgets(
-    'a machine prefill is NAMED at the head of the macros section — the food, '
-    'its FDC id, the band word — reads not confirmed, and offers both doors',
+    'a machine prefill is NAMED at the head of the macros section — the food '
+    'and the band word, never the FDC id — reads not confirmed, and offers '
+    'both doors',
     (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
@@ -34,11 +35,13 @@ void main() {
       expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
       expect(
         find.text(
-          'Curry leaves, raw · FDC 11216 · matches every word of “Curry '
-          'leaves, fresh”',
+          'Curry leaves, raw · matches every word of “Curry leaves, fresh”',
         ),
         findsOneWidget,
       );
+      // The id is not a name: a reader has no FoodData Central to look it up
+      // in, and the food is already named beside it.
+      expect(find.textContaining('FDC'), findsNothing);
       expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
       expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
       // The old lookup button has no job on a row USDA already filled: the
@@ -50,7 +53,8 @@ void main() {
   );
 
   testWidgets('a pick covering only part of the name says so; a row filled '
-      'before the match was named carries the id alone', (tester) async {
+      'before the match was named carries the id alone — the one place it is '
+      'printed', (tester) async {
     filterForuiSemanticsAssertions();
     tallScreen(tester);
     final repo = FakeIngredientRepo([curryLeaves.copyWith(sourceScore: 0.62)]);
@@ -77,6 +81,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // The fallback, and the only card that says a number: there is nothing
+    // else true to say about which food filled this row.
     expect(find.text('FDC 171705'), findsOneWidget);
     // No band word invented for a score the row never carried.
     expect(find.textContaining('for “Old prefill”'), findsNothing);
@@ -253,7 +259,7 @@ void main() {
     // its numbers.
     expect(
       find.textContaining(
-        'Curry leaves, dried · FDC 11217 · matches every word',
+        'Curry leaves, dried · matches every word',
       ),
       findsOneWidget,
     );
@@ -317,8 +323,8 @@ void main() {
 
   // --- The card's third state (plan 0040 B-D2) -------------------------------
 
-  testWidgets('an EDITED row reads "edited here", still names the food and its '
-      'FDC id, and says which numbers are yours', (tester) async {
+  testWidgets('an EDITED row reads "edited here", still names the food — and '
+      'not its id — and says which numbers are yours', (tester) async {
     filterForuiSemanticsAssertions();
     tallScreen(tester);
     await tester.pumpWidget(
@@ -335,7 +341,7 @@ void main() {
       find.textContaining('Cereals ready-to-eat, GENERAL MILLS, Corn CHEX'),
       findsOneWidget,
     );
-    expect(find.textContaining('FDC 168930'), findsOneWidget);
+    expect(find.textContaining('FDC'), findsNothing);
     expect(
       find.text(
         'your macros and your density — the numbers on this row are no '

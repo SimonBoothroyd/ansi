@@ -29,6 +29,7 @@ void main() {
       expect(applied.macros, _panel);
       expect(applied.macrosBasis, MacrosBasis.perG);
       expect(applied.source, 'off:3017620422003');
+      expect(applied.sourceLabel, 'Nutella');
       expect(applied.packMeasure!.amountInBasis, 400);
       expect(applied.packMeasure!.basis, MacrosBasis.perG);
       expect(applied.skipped, isEmpty);
@@ -104,6 +105,84 @@ void main() {
       ]);
       // The pack offer survives: an offer is not a fill.
       expect(applied.packMeasure, isNotNull);
+    });
+  });
+
+  group('the stamp travels with a name for the pack', () {
+    /// The draft OFF gives for a product, with whatever it knows about who
+    /// made it and what they call it.
+    IngredientDraft pack({String? brand, String? productName}) =>
+        IngredientDraft(
+          suggestedName: productName ?? brand ?? '',
+          source: DraftSource.barcode,
+          barcode: '5000',
+          productName: productName,
+          brand: brand,
+        );
+
+    String? labelFor(IngredientDraft draft) =>
+        applyDraft(draft, target: const DraftTarget()).sourceLabel;
+
+    test(
+      'the brand and the product name, in the order a shelf prints them',
+      () {
+        expect(
+          labelFor(pack(brand: 'Kraft', productName: 'mac & cheese')),
+          'Kraft mac & cheese',
+        );
+      },
+    );
+
+    test('either one alone stands on its own', () {
+      expect(labelFor(pack(productName: 'Ruokaan Fraiche')), 'Ruokaan Fraiche');
+      expect(labelFor(pack(brand: 'Oatly')), 'Oatly');
+      // Blank is absent: OFF's empty strings are not half a name.
+      expect(labelFor(pack(brand: '  ', productName: 'Kale')), 'Kale');
+      expect(labelFor(pack(brand: 'Oatly', productName: '  ')), 'Oatly');
+    });
+
+    test('a product name that already opens with its brand does not say it '
+        'twice', () {
+      expect(
+        labelFor(pack(brand: 'Monster', productName: 'Monster Energy')),
+        'Monster Energy',
+      );
+      // Case is the contributor's, not a fact about the product.
+      expect(
+        labelFor(pack(brand: 'nestlé', productName: 'Nestlé Cacao')),
+        'Nestlé Cacao',
+      );
+    });
+
+    test('NEITHER is no name at all — null, never an assembled one', () {
+      final applied = applyDraft(pack(), target: const DraftTarget());
+      expect(applied.source, 'off:5000');
+      expect(
+        applied.sourceLabel,
+        isNull,
+        reason: 'a row says nothing rather than naming a food nobody named',
+      );
+    });
+
+    test(
+      'no stamp, no label: a row that already names a source keeps both',
+      () {
+        final applied = applyDraft(
+          _nutella,
+          target: const DraftTarget(source: 'usda_fdc:11216'),
+        );
+        expect(applied.source, isNull);
+        expect(applied.sourceLabel, isNull);
+        expect(applied.skipped, contains(DraftSkip.provenance));
+      },
+    );
+
+    test('the not-found exit names nothing — it learnt nothing to name', () {
+      const blank = IngredientDraft.blank(barcode: '000');
+      expect(
+        applyDraft(blank, target: const DraftTarget()).sourceLabel,
+        isNull,
+      );
     });
   });
 

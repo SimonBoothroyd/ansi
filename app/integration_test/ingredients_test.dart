@@ -15,9 +15,10 @@
 /// - **the USDA match, asked for and said out loud** — nothing matches a row
 ///   on its own any more, so the leg drives the form's own *Look up in USDA*
 ///   against the real reference set, picks the food, and proves the pick was
-///   a draft until Save; then the provenance line naming the food, its FDC id
-///   and how much of the name it answers, all read off the row so it prints
-///   offline; then *Not this food*, which clears the density, its unlocked
+///   a draft until Save; then the provenance line naming the food and how much
+///   of the name it answers — never the FDC id — all read off the row so it
+///   prints offline; then *Not this food*, which clears the density, its
+///   unlocked
 ///   units, the macros and the score in ONE write and leaves the label behind
 ///   so the form can still name what was refused.
 ///
@@ -55,7 +56,7 @@ import 'package:ansi/features/ingredients/data/measure_repository_impl.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart'
     show defaultAllowedUnitSet;
 import 'package:ansi/features/ingredients/domain/ingredient.dart'
-    show Ingredient, IngredientStatus, usdaDeclinedSource, usdaFdcId;
+    show Ingredient, IngredientStatus, usdaDeclinedSource;
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart'
     show IngredientEdit, IngredientFormEdit;
 import 'package:ansi/features/ingredients/domain/normalize.dart'
@@ -608,17 +609,14 @@ void main() {
       // Filled, never completed: confirming is a human act.
       expect(filled['status'], 'stub');
 
-      // The provenance line at the head of the macros section names the food,
-      // its FDC id and how much of the name the food answers — all read off
-      // the row, printable offline.
+      // The provenance line at the head of the macros section names the food
+      // and how much of the name it answers — read off the row, printable
+      // offline, and never the FDC id the stamp files it under.
       await scrollTo(tester, find.text('Filled from USDA · not confirmed'));
       final fit = UsdaMatchFit.of(
         (filled['source_score'] as num).toDouble(),
       ).phraseFor(usdaName);
-      expect(
-        find.text('$filledLabel · FDC ${usdaFdcId(filledSource)} · $fit'),
-        findsOneWidget,
-      );
+      expect(find.text('$filledLabel · $fit'), findsOneWidget);
       expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
       expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
       // The lookup door has no job on a row USDA already filled: the two

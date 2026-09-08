@@ -79,16 +79,25 @@ distinct fact from "nobody ever linked one", which the provenance line reads.
 The query is the name **in the field**, not the stored row, so a rename can be
 looked up before it is saved.
 
-**The food is named where a mismatch is caught, not only on the form.**
-`sourceProvenanceLine` (domain) is the one rule two surfaces print under a
-row's name — the **manager list** row and the **import review's identity
-cell** — as `usda · «description»`, muted, one line. The ingredient **picker**
-is deliberately left out: it is a search surface, and a description under
-every row is noise while you type. No description, no line: a row filled
-before 0027 carries a stamp and no label, and says nothing rather than
-inventing a name. Nothing new is read on either surface — the manager's
+**The food is named, never keyed.** `source` holds a key — an FDC id, a
+barcode — and no surface prints one: a person cannot look up `FDC 11216`, and
+asking them to is asking them to be a lookup table. What every surface says is
+`source_label`, the food's own name. `sourceProvenanceLine` (domain) is the one
+rule two surfaces print under a row's name — the **manager list** row and the
+**import review's identity cell** — as `usda · «description»` for a pick and
+`barcode · «brand and product»` for a scan, muted, one line. The ingredient
+**picker** is deliberately left out: it is a search surface, and a description
+under every row is noise while you type. No label, no line: a row filled before
+the column existed carries a stamp and no name, and says nothing rather than
+inventing one. Nothing new is read on either surface — the manager's
 `watchVocabulary` already selects the column, and the review's line rides on
 the `LineValidation` built from the import's one vocab query.
+
+The **form** says the same fact at the head of the macros section. A USDA pick
+gets a card — the food, how much of the typed name it answers, and the two
+doors — and falls back to the FDC id **only** on a row carrying no label, where
+there is nothing else true to say. A scanned row gets the name on one line and
+no doors: a barcode is not a match to refuse or re-choose.
 
 **A row a human edited stops claiming its numbers are the source's.**
 `source` is patch-shaped and survives a save (`source = COALESCE(?, source)`),
@@ -108,9 +117,9 @@ food's — and so does *Not this food*, which leaves no numbers to have
 overridden. Once set it is otherwise sticky: the source's own figures are not
 kept on the row, so nothing can tell a number typed back to the food's value
 from a coincidence. The provenance card's third state reads *Filled from USDA
-· edited here* — the food still named, the id still shown, muted and never
-amber, because it is provenance and not a warning — and the two list surfaces
-lead their line with `edited ·`.
+· edited here* — the food still named, muted and never amber, because it is
+provenance and not a warning — and the two list surfaces lead their line with
+`edited ·`, as does the scanned row's own line.
 
 **No machine matches on its own.** `usda_food` never syncs to a device
 (ADR-0005), so the app asks the server through the read-only `probe_usda` RPC
@@ -126,7 +135,13 @@ query the matched description accounts for. It is shown and never acted on.
 The barcode module is the same shape: `scanBarcodeForDraft` returns an
 `IngredientDraft`, a *sketch* that is never a row, and `applyDraft` lands it on
 the form's fields — filling what is empty, keeping what a human typed, and
-stamping `off:<barcode>` only where there was no source.
+stamping `off:<barcode>` only where there was no source. The stamp travels with
+a **name**: `packLabel` composes the brand and the product name as a shelf
+prints them ("Kraft mac & cheese"), drops a brand the product name already
+opens with, and returns null when Open Food Facts named neither — null meaning
+*no line*, never a name assembled out of nothing. It rides the same Save as the
+macros it explains, into `source_label`. No fit score comes with it: a scan is
+an exact-key fetch, so there is no coverage of the typed name to report.
 
 ## Layout
 
@@ -221,7 +236,8 @@ ingredients/
 
 - Domain: `allowed_units_test` (the ADR vectors, shared with
   `supabase/tests/unit_admission.sql`), `normalize_test` (the shared JSON
-  vectors), `apply_draft_test`.
+  vectors), `apply_draft_test` (including the pack-naming rules),
+  `ingredient_test` (the provenance predicates and the one source line).
 - Repo on a real `PowerSyncDatabase`: `ingredient_repository_test`,
   `measure_repository_test` — search/recents, `saveForm` create and edit,
   density round-trips, confirm/unconfirm, delete refusal, aliases.

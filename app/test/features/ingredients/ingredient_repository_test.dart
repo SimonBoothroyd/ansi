@@ -1470,13 +1470,18 @@ void main() {
               name: 'Onion',
               macros: panel,
               source: 'off:3017620422003',
+              sourceLabel: 'Ferrero Nutella',
             ),
           ),
         );
         expect(stamped!.source, 'off:3017620422003');
         expect(stamped.macros, panel);
+        // The NAME rides the same statement, down the same column a USDA pick
+        // writes: the stamp is a key, and this is what a person reads.
+        expect(stamped.sourceLabel, 'Ferrero Nutella');
 
-        // …and the next plain save leaves the stamp where it is.
+        // …and the next plain save leaves the stamp and the name where they
+        // are — both halves are patch-shaped.
         final again = await repo.saveForm(
           '1',
           IngredientFormEdit(
@@ -1484,6 +1489,7 @@ void main() {
           ),
         );
         expect(again!.source, 'off:3017620422003');
+        expect(again.sourceLabel, 'Ferrero Nutella');
       },
     );
 
@@ -1815,6 +1821,7 @@ IngredientEdit _edit({
   MacrosBasis basis = MacrosBasis.perG,
   Set<Unit> allowed = const {g},
   String? source,
+  String? sourceLabel,
 }) => IngredientEdit(
   canonicalName: name,
   defaultUnit: unit,
@@ -1823,4 +1830,5 @@ IngredientEdit _edit({
   category: category,
   macros: macros,
   source: source,
+  sourceLabel: sourceLabel,
 );

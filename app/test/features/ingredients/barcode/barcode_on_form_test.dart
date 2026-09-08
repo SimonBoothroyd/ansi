@@ -96,8 +96,10 @@ void main() {
       expect(saved.status, IngredientStatus.stub);
     });
 
-    testWidgets('on a row with no source, Save stamps off:<barcode> in the '
-        'same write as the macros', (tester) async {
+    testWidgets('on a row with no source, Save stamps off:<barcode> — and the '
+        'pack’s NAME beside it, in the same write as the macros', (
+      tester,
+    ) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [bare]);
@@ -118,8 +120,45 @@ void main() {
       await tester.pumpAndSettle();
       final saved = (await repo.byId('bare'))!;
       expect(saved.source, 'off:3017620422003');
+      // The stamp is a key; this is what a person reads. Without it the row
+      // could say nothing at all about where its numbers came from.
+      expect(saved.sourceLabel, 'Nutella');
+      // A scan is an exact fetch, so there is no coverage of the typed name to
+      // report and none is invented.
+      expect(saved.sourceScore, isNull);
       expect(saved.macros!.kcal, 539);
       expect(saved.status, IngredientStatus.stub);
+    });
+
+    testWidgets('the saved row NAMES the pack when the form is opened again — '
+        'one line, and no doors: a barcode is not a match to re-choose', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const [bare]);
+      await tester.pumpWidget(
+        host(
+          repo,
+          at: '/ingredients/bare',
+          lookup: lookupAnswering('nesquik_no_panel'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await scanOnForm(tester, '3033710065967');
+      await saveForm(tester, reopen: 'Hazelnut spread');
+
+      expect((await repo.byId('bare'))!.sourceLabel, 'Nestlé NESQUIK Cacao');
+      expect(
+        find.text('Filled from a barcode · Nestlé NESQUIK Cacao'),
+        findsOneWidget,
+      );
+      // The code itself is never printed at anybody.
+      expect(find.textContaining('3033710065967'), findsNothing);
+      // The USDA card's doors have no counterpart here.
+      expect(find.widgetWithText(FButton, 'Not this food'), findsNothing);
+      expect(find.widgetWithText(FButton, 'Choose another ›'), findsNothing);
     });
 
     testWidgets('a panel already typed is not overwritten, and the card says '
