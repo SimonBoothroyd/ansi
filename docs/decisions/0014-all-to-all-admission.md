@@ -1,6 +1,9 @@
 # ADR-0014 — All to all: a family is admitted whole, and the user prunes
 
-- **Status:** accepted (2026-09-08, Simon — owner-ruled)
+- **Status:** accepted (2026-09-08, Simon — owner-ruled) — **§Decision leg 3
+  amended 2026-09-08 by [ADR-0015](./0015-piece-weight-is-a-row-fact.md)**: it
+  reads *`piece` on a count-default row **that has a piece weight***. ADR-0010,
+  which leg 3 cited, is superseded entirely; nothing else here changes.
 - **Supersedes:** [ADR-0008](./0008-unit-admission-model.md) §Decision ¶1's
   kitchen trim ("Trimmed to kitchen-scale magnitudes near the default unit"),
   and with it [ADR-0012](./0012-tsp-mates-cup.md) and
@@ -8,8 +11,9 @@
   to a list this ADR deletes. Everything else in ADR-0008 stands, as do
   [ADR-0009](./0009-density-unlocks-both-families.md) (a density unlocks the
   other family whatever the default unit is, and deleting it strips what it
-  granted) and [ADR-0010](./0010-piece-is-an-admission-fact.md) (`piece` is a
-  curated admission fact).
+  granted). ADR-0010 (`piece` is a curated admission fact), cited below as
+  standing, is itself superseded by
+  [ADR-0015](./0015-piece-weight-is-a-row-fact.md).
 
 ## Context
 
@@ -50,8 +54,11 @@ admission set for a row is exactly four things:
 2. **The whole other mass/volume family**, only while a density is stored.
    ADR-0009 unchanged: a density is a property of the substance, whatever the
    default unit, so this fires for a count- or imprecise-default row too.
-3. **`piece`** on a count-default row. ADR-0010 unchanged, including its rule
-   that a row with a better measure has `piece` curated off it.
+3. **`piece`** on a count-default row. *(Amended by
+   [ADR-0015](./0015-piece-weight-is-a-row-fact.md): on a count-default row
+   **that has a piece weight**. As written this leg cited ADR-0010's rule that a
+   row with a better measure has `piece` curated off it; that rule is gone, and
+   the stored number is the gate.)*
 4. **The imprecise words** the row's category earns, per word, plus an
    imprecise default's own word (J3 unchanged).
 

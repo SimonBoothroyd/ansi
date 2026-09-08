@@ -1,7 +1,9 @@
 # ADR-0010 — `piece` is an admission fact, curated by hand
 
-- **Status:** accepted (2026-09-02, Simon + agent — exec plan 0022
-  `piece-curation`, owner-ruled)
+- **Status:** **superseded 2026-09-08 by
+  [ADR-0015](./0015-piece-weight-is-a-row-fact.md)** — `piece` is admitted by a
+  stored **piece weight** on the row, not curated off it by hand. Accepted
+  2026-09-02 (Simon + agent — exec plan 0022 `piece-curation`, owner-ruled).
 - **Refines:** [ADR-0008](./0008-unit-admission-model.md) §4 (allowed units are
   an explicit per-ingredient attribute) and
   [ADR-0009](./0009-density-unlocks-both-families.md) — neither is reversed.

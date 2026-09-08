@@ -21,11 +21,12 @@ Immutable records of significant choices and their rationale.
 - [ADR-0007](../decisions/0007-shopping-list-thin-overlay.md) — Shopping list persists a thin overlay; cook contributions are derived
 - [ADR-0008](../decisions/0008-unit-admission-model.md) — Units are admitted per ingredient via basis mapping; density is the only volume⇄mass fact
 - [ADR-0009](../decisions/0009-density-unlocks-both-families.md) — A density unlocks the other mass/volume family whatever the default unit's family (amends ADR-0008)
-- [ADR-0010](../decisions/0010-piece-is-an-admission-fact.md) — `piece` is an admission fact, not a runtime guess
+- [ADR-0010](../decisions/0010-piece-is-an-admission-fact.md) — `piece` is an admission fact, not a runtime guess (superseded by ADR-0015)
 - [ADR-0011](../decisions/0011-one-save-one-write.md) — The flesh-out form defers every child write to one Save
 - [ADR-0012](../decisions/0012-tsp-mates-cup.md) — The volume ladder is symmetric: `tsp` mates `cup` (superseded by ADR-0014)
 - [ADR-0013](../decisions/0013-mass-ladder-symmetric.md) — The mass ladder is symmetric: the four kitchen mass units mate each other (superseded by ADR-0014)
-- [ADR-0014](../decisions/0014-all-to-all-admission.md) — All to all: a mass/volume family is admitted whole and the household prunes per row (supersedes ADR-0008's kitchen trim, and ADR-0012/0013 entirely)
+- [ADR-0014](../decisions/0014-all-to-all-admission.md) — All to all: a mass/volume family is admitted whole and the household prunes per row (supersedes ADR-0008's kitchen trim, and ADR-0012/0013 entirely; leg 3 amended by ADR-0015)
+- [ADR-0015](../decisions/0015-piece-weight-is-a-row-fact.md) — A piece weight is a row fact, exactly as a density is: it unlocks `piece` and retires "Counts as" (supersedes ADR-0010)
 
 ## Deep design
 
