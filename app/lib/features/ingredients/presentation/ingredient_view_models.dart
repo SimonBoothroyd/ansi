@@ -135,9 +135,12 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     /// guess, and a density minted from a guess decides what units admit.
     @Default(false) bool servingOfferTaken,
     @Default(DensityUnchanged()) DensityChange density,
+
+    /// The piece weight as the form holds it — the count-side twin of
+    /// [density], and drafted the same way (ADR-0015).
+    @Default(PieceWeightUnchanged()) PieceWeightChange pieceWeight,
     @Default(<Measure>[]) List<Measure> measuresAdded,
     @Default(<String>{}) Set<String> measuresRemoved,
-    @Default(DefaultMeasureUnchanged()) DefaultMeasureChange defaultMeasure,
     @Default(<IngredientAlias>[]) List<IngredientAlias> aliasesAdded,
     @Default(<String>{}) Set<String> aliasesRemoved,
 
@@ -176,15 +179,23 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     DensityUnchanged() => row.densityGPerMl,
   };
 
+  /// The piece weight AS THE FORM HOLDS IT, in the basis unit.
+  double? get pieceWeightValue => switch (pieceWeight) {
+    PieceWeightSet(:final amount) => amount,
+    PieceWeightCleared() => null,
+    PieceWeightUnchanged() => row.pieceBasisAmount,
+  };
+
   /// The row as the FORM currently reads it: the stored facts with the draft
-  /// choices the admission rule turns on — the default unit, the macros basis
-  /// and the density — folded in. Every "what may this row say" question asks
-  /// this rather than the stored row, so flipping the basis chip moves the
-  /// locks and the flag with it.
+  /// choices the admission rule turns on — the default unit, the macros basis,
+  /// the density and the piece weight — folded in. Every "what may this row
+  /// say" question asks this rather than the stored row, so flipping the basis
+  /// chip moves the locks and the flag with it.
   Ingredient get editedRow => row.copyWith(
     defaultUnit: defaultUnit,
     macrosBasis: basis,
     densityGPerMl: densityValue,
+    pieceBasisAmount: pieceWeightValue,
   );
 
   /// The four fields as numbers, whatever mode they are in.
@@ -254,10 +265,12 @@ class IngredientForm extends _$IngredientForm {
     );
   }
 
-  /// The admission set [allowed] would be, given the density [row] carries: a
-  /// density unlocks the other family's units, and removing it strips them.
-  /// Derived here rather than by an effect that watches the density, so the
-  /// chips and the stored set can never disagree about which they are.
+  /// The admission set [allowed] would be, given the density and the piece
+  /// weight [row] carries: a density unlocks the other family's units and
+  /// removing it strips them; a piece weight unlocks `piece` on a count row
+  /// and removing it strips that (ADR-0015). `piece` is never kept on a row
+  /// whose default is not a count. Derived here rather than by an effect that
+  /// watches the numbers, so the chips and the stored set can never disagree.
   Set<Unit> _admissionFor(Ingredient row, Set<Unit> allowed) {
     final next = {...allowed};
     if (row.densityGPerMl != null) {
@@ -265,6 +278,12 @@ class IngredientForm extends _$IngredientForm {
     } else {
       next.removeAll(densityStrippedUnits(row));
     }
+    if (row.pieceBasisAmount != null) {
+      next.addAll(pieceUnlockedUnits(row));
+    } else {
+      next.removeAll(pieceStrippedUnits(row));
+    }
+    if (row.defaultUnit.family != UnitFamily.count) next.remove(pieces);
     return next;
   }
 
@@ -306,11 +325,17 @@ class IngredientForm extends _$IngredientForm {
       state = state.copyWith(category: category);
 
   /// Only an admissible unit can be tapped (the rest are locked), so admitting
-  /// the pick can never strand the row.
-  void setDefaultUnit(Unit unit) => state = state.copyWith(
-    defaultUnit: unit,
-    allowed: {...state.allowed, unit},
-  );
+  /// the pick can never strand the row on the density side. `piece` is the one
+  /// exception by design: it is pickable with no weight yet, because picking
+  /// it is what makes the weight sentence appear — the admission rule then
+  /// keeps `piece` locked until the number is in, and Save refuses meanwhile.
+  void setDefaultUnit(Unit unit) {
+    final next = state.copyWith(
+      defaultUnit: unit,
+      allowed: {...state.allowed, unit},
+    );
+    state = next.copyWith(allowed: _admissionFor(next.editedRow, next.allowed));
+  }
 
   void toggleUnit(Unit unit) {
     final next = {...state.allowed};
@@ -355,11 +380,25 @@ class IngredientForm extends _$IngredientForm {
   void redirectSpoon(Unit unit) =>
       state = state.copyWith(redirectedSpoon: unit);
 
+  // --- Piece weight (ADR-0015) ---------------------------------------------
+
+  /// What one of these weighs, in the basis unit — drafted, not written; the
+  /// chips follow it through the admission rule exactly as they follow the
+  /// density.
+  void draftPieceWeight(double amount) =>
+      _withPieceWeight(PieceWeightSet(amount));
+
+  void removePieceWeight() => _withPieceWeight(const PieceWeightCleared());
+
+  void _withPieceWeight(PieceWeightChange change) {
+    final next = state.copyWith(pieceWeight: change);
+    state = next.copyWith(allowed: _admissionFor(next.editedRow, next.allowed));
+  }
+
   // --- Measures and aliases ------------------------------------------------
 
   /// Mints the measure the form will insert. It carries the id it will keep, so
-  /// "Counts as" and the `piece` question can point at a measure that does not
-  /// exist yet.
+  /// the list can draw it beside the stored ones before it exists.
   Measure draftMeasure(String label, double amount, {required int sortOrder}) {
     final pending = Measure(
       id: _uuid.v4(),
@@ -373,14 +412,9 @@ class IngredientForm extends _$IngredientForm {
   }
 
   /// A pending add is simply dropped; a stored one is named for tombstoning.
-  /// Either way nothing is written yet — and "Counts as" cannot go on pointing
-  /// at a measure that is going.
+  /// Either way nothing is written yet.
   void removeMeasure(String measureId) {
     final pending = state.measuresAdded.any((m) => m.id == measureId);
-    final wasDefault = switch (state.defaultMeasure) {
-      DefaultMeasureSet(measureId: final chosen) => chosen == measureId,
-      DefaultMeasureUnchanged() => state.row.defaultMeasureId == measureId,
-    };
     state = state.copyWith(
       measuresAdded: pending
           ? [
@@ -391,19 +425,8 @@ class IngredientForm extends _$IngredientForm {
       measuresRemoved: pending
           ? state.measuresRemoved
           : {...state.measuresRemoved, measureId},
-      defaultMeasure: wasDefault
-          ? const DefaultMeasureSet(null)
-          : state.defaultMeasure,
     );
   }
-
-  /// The answer IS the draft, never a write behind the form's back: `piece`
-  /// leaves the admission set the form holds, and the same act says what a bare
-  /// "1 tomato" means. Both land on Save, together.
-  void answerPiece(String measureId) => state = state.copyWith(
-    allowed: {...state.allowed}..remove(pieces),
-    defaultMeasure: DefaultMeasureSet(measureId),
-  );
 
   /// The scan's pack size, taken. It lands in the draft, so it rides the form's
   /// one Save like every other measure — which is what lets a barcode-created
@@ -565,9 +588,10 @@ class IngredientForm extends _$IngredientForm {
 
   // --- The three writes ----------------------------------------------------
 
-  /// **One call.** The row's fields, the density, every measure added and
-  /// removed, the aliases, "Counts as" and — when the CTA asked — the status
-  /// flip, in a single transaction (ADR-0011). Nothing here can half-land.
+  /// **One call.** The row's fields, the density, the piece weight, every
+  /// measure added and removed, the aliases and — when the CTA asked — the
+  /// status flip, in a single transaction (ADR-0011). Nothing here can
+  /// half-land.
   ///
   /// Returns the row as the write left it, or null when the form refused
   /// itself — the message line then says why. A repository failure THROWS: the
@@ -605,11 +629,11 @@ class IngredientForm extends _$IngredientForm {
         pendingSourceScore: null,
         servingOfferTaken: false,
         density: const DensityUnchanged(),
+        pieceWeight: const PieceWeightUnchanged(),
         measuresAdded: const [],
         measuresRemoved: const {},
         aliasesAdded: const [],
         aliasesRemoved: const {},
-        defaultMeasure: const DefaultMeasureUnchanged(),
       );
       return saved;
     } finally {
@@ -642,6 +666,15 @@ class IngredientForm extends _$IngredientForm {
       return 'Macros per 100 $basis and no density can’t have '
           '${state.defaultUnit.label} as the default unit — add a density '
           'below, or make it ${basisDefaultUnitFix(state.editedRow).label}.';
+    }
+    // The count-side twin of D4c (ADR-0015): a `piece` default with nothing
+    // weighing a piece is a count the converter can never bridge, and the
+    // owner's ruling is that such a row is not saveable. Same manners — the
+    // refusal names both ways out and the person picks one.
+    if (defaultUnitNeedsPieceWeight(state.editedRow)) {
+      return 'Piece can’t be the default unit with nothing weighing one — '
+          'enter what one weighs below, or make it '
+          '${basisDefaultUnitFix(state.editedRow).label}.';
     }
     return null;
   }
@@ -683,7 +716,7 @@ class IngredientForm extends _$IngredientForm {
           PendingAlias(id: a.id, text: a.text),
       ],
       aliasesRemoved: state.aliasesRemoved,
-      defaultMeasure: state.defaultMeasure,
+      pieceWeight: state.pieceWeight,
       markComplete: markComplete,
     );
   }

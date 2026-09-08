@@ -68,7 +68,8 @@ class SqliteRecipeRepository implements RecipeRepository {
       'li.measure_id, im.label AS m_label, im.basis_amount AS m_amount, '
       'im.sort_order AS m_sort, im.source AS m_source, '
       'ing.canonical_name AS ing_name, '
-      'ing.macros, ing.macros_basis, ing.density_g_per_ml, ing.status, '
+      'ing.macros, ing.macros_basis, ing.density_g_per_ml, '
+      'ing.piece_basis_amount, ing.status, '
       'sub.title AS sub_title, sub.yield_qty AS sub_yield_qty, '
       'sub.yield_unit AS sub_yield_unit, sub.yield_qty_2 AS sub_yield_qty_2, '
       'sub.yield_unit_2 AS sub_yield_unit_2 '
@@ -135,6 +136,7 @@ class SqliteRecipeRepository implements RecipeRepository {
               : null,
           basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
           densityGPerMl: (r['density_g_per_ml'] as num?)?.toDouble(),
+          pieceBasisAmount: (r['piece_basis_amount'] as num?)?.toDouble(),
         );
       }
     }
@@ -260,6 +262,7 @@ class SqliteRecipeRepository implements RecipeRepository {
       'SELECT li.*, ing.canonical_name AS ingredient_name, '
       'ing.macros_basis AS ingredient_basis, ing.macros AS ingredient_macros, '
       'ing.density_g_per_ml AS ingredient_density, '
+      'ing.piece_basis_amount AS ingredient_piece_weight, '
       'ing.status AS ingredient_status, '
       'ing.deleted_at AS ingredient_deleted_at, '
       'im.label AS measure_label, im.basis_amount AS measure_amount, '
@@ -303,6 +306,8 @@ class SqliteRecipeRepository implements RecipeRepository {
               : null,
           basis: MacrosBasis.fromDb(row['ingredient_basis'] as String?),
           densityGPerMl: (row['ingredient_density'] as num?)?.toDouble(),
+          pieceBasisAmount: (row['ingredient_piece_weight'] as num?)
+              ?.toDouble(),
         );
       }
     }
@@ -417,7 +422,8 @@ class SqliteRecipeRepository implements RecipeRepository {
       'li.quantity, li.unit, li.optional, li.measure_id, '
       'im.label AS m_label, im.basis_amount AS m_amount, '
       'im.sort_order AS m_sort, im.source AS m_source, '
-      'ing.macros, ing.macros_basis, ing.density_g_per_ml, ing.status '
+      'ing.macros, ing.macros_basis, ing.density_g_per_ml, '
+      'ing.piece_basis_amount, ing.status '
       'FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
       'LEFT JOIN ingredient ing '
@@ -466,6 +472,7 @@ class SqliteRecipeRepository implements RecipeRepository {
               : null,
           basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
           densityGPerMl: (r['density_g_per_ml'] as num?)?.toDouble(),
+          pieceBasisAmount: (r['piece_basis_amount'] as num?)?.toDouble(),
         );
       }
     }

@@ -65,7 +65,7 @@ final class ImportControllerProvider
   }
 }
 
-String _$importControllerHash() => r'bcb3a428008d07f3fcf703fcc3aa46bc52db855e';
+String _$importControllerHash() => r'dd811f9abed5ee1d4c89a43aef2b7bb439157797';
 
 /// The import session controller.
 ///
@@ -258,7 +258,7 @@ final class ImportValidationProvider
   }
 }
 
-String _$importValidationHash() => r'4ee0e82d6279688dcd6646f031d889f6ae8e0dd3';
+String _$importValidationHash() => r'ca1dcb1acc6368aa1d39bb9a64e4fc529dad5b93';
 
 /// The ONE "how many lines still want you" count — the header's "N to review"
 /// and the Save button's "N line(s) need you" are the same number, read from

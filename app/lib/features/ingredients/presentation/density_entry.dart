@@ -235,7 +235,10 @@ class DensityEntry extends HookWidget {
               // named by the headline above it and by the ingredient the
               // whole screen is about.
               Text('weighs', style: ansiMono(size: 12)),
-              _AmountField(onChange: (v) => input.value = v, onSubmit: save),
+              InlineAmountField(
+                onChange: (v) => input.value = v,
+                onSubmit: save,
+              ),
               Text('g', style: ansiMono(size: 12)),
               FButton(
                 size: FButtonSizeVariant.xs,
@@ -286,15 +289,20 @@ class DensityEntry extends HookWidget {
 }
 
 /// The grams field of the density sentence — a number slot INSIDE a line of
-/// prose, not a form field with a line of its own.
+/// prose, not a form field with a line of its own. Shared with the
+/// piece-weight sentence, which is the same shape.
 ///
 /// The full [FTextField] chrome (its content padding and minimum height) is
 /// what pushed the sentence onto three rows: at 44 pt tall and 72 pt wide it
 /// could not share a run with the words around it. Here the padding is
 /// trimmed to what a single line of digits needs and the width to what a
 /// plausible gram weight is (`1000` still fits).
-class _AmountField extends StatelessWidget {
-  const _AmountField({required this.onChange, required this.onSubmit});
+class InlineAmountField extends StatelessWidget {
+  const InlineAmountField({
+    required this.onChange,
+    required this.onSubmit,
+    super.key,
+  });
 
   final ValueChanged<double?> onChange;
   final VoidCallback onSubmit;

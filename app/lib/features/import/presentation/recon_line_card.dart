@@ -36,7 +36,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
-import '../../../shared/format.dart';
+import '../../../shared/guarded_navigation.dart';
+import '../../ingredients/presentation/ingredient_detail_view.dart'
+    show ingredientDetailRoute;
 import '../../recipes/domain/line_display.dart';
 import '../../recipes/presentation/ingredient_line.dart';
 import '../../recipes/presentation/recipe_chip.dart';
@@ -223,6 +225,40 @@ class _DroppedLine extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The line's count is waiting on the ingredient's piece weight — one line
+/// of mono under the amount, and a door to the form that holds the number.
+class _PieceWeightDoor extends StatelessWidget {
+  const _PieceWeightDoor({required this.name, required this.ingredientId});
+
+  final String name;
+  final String ingredientId;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 6, left: 72),
+    child: Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 4,
+      children: [
+        Text(
+          '$name has no piece weight yet — set it on the ingredient, or '
+          'pick a unit below.',
+          style: ansiMono(size: 10, color: AnsiColors.muted),
+        ),
+        GestureDetector(
+          key: ValueKey('piece-weight-door-$ingredientId'),
+          behavior: HitTestBehavior.opaque,
+          onTap: () => context.pushOnce(ingredientDetailRoute(ingredientId)),
+          child: Text(
+            'open $name ›',
+            style: ansiMono(size: 10, color: AnsiColors.herb),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 /// The short, human "why this line needs you" — a clear label, not a bare dot
@@ -425,27 +461,11 @@ class _Expanded extends ConsumerWidget {
     final reference = rawLineText(line.raw);
     // Offer inline unit chips when the current unit needs a fix — an
     // ambiguous/unmapped unit (round-3 #2), parallel to the ingredient "did
-    // you mean" pills — AND on a line the default answered (seam D2): the
-    // choice made for you belongs on screen beside the ones you could make
-    // instead. Hiding them would make the tap-to-change invisible and turn a
-    // stated fact into a silent one. Any other valid unit needs no prompting.
+    // you mean" pills. Any other valid unit needs no prompting.
     final showUnitChips =
         matched &&
-        (issues.contains(LineIssue.unitNotAllowed) ||
-            resolution.unitFromDefault) &&
+        issues.contains(LineIssue.unitNotAllowed) &&
         validation.unitChoices.isNotEmpty;
-    // The whole honesty argument for D2, in one line of mono: the default is
-    // shown at the moment it is applied, on the card, next to the raw source
-    // line. Nothing is inferred behind the user's back because nothing is
-    // behind their back.
-    final defaulted = resolution.unitFromDefault
-        ? validation.unitMeasure
-        : null;
-    final countsAs = defaulted == null
-        ? null
-        : 'counts as  ${defaulted.label} · '
-              '${formatQuantity(defaulted.amount)} '
-              '${defaulted.basis.baseUnit.label}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -542,13 +562,14 @@ class _Expanded extends ConsumerWidget {
               _DisabledChip(label: amountLabel(resolution, line.raw)),
           ],
         ),
-        if (countsAs != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 6, left: 72),
-            child: Text(
-              '$countsAs  ·  tap a chip to change',
-              style: ansiMono(size: 10, color: AnsiColors.muted),
-            ),
+        // A count on a row with no piece weight (ADR-0015): the fix is the
+        // INGREDIENT's, not this line's, so the card names it and opens the
+        // row — it never offers to type a weight here.
+        if (validation.pieceWeightMissing &&
+            resolution.chosenIngredientId != null)
+          _PieceWeightDoor(
+            name: resolution.displayName,
+            ingredientId: resolution.chosenIngredientId!,
           ),
         if (showUnitChips) ...[
           const SizedBox(height: 8),

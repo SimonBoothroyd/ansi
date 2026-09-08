@@ -164,6 +164,7 @@ class MealSnackCard extends StatelessWidget {
         macros: snack.ingredient.macros,
         basis: snack.ingredient.macrosBasis,
         densityGPerMl: snack.ingredient.densityGPerMl,
+        pieceBasisAmount: snack.ingredient.pieceBasisAmount,
       ),
     );
     final weighed = ingredientPortionMacros(entry, entry.nutrition);

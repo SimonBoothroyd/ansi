@@ -21,12 +21,11 @@ import '../features/recipes/domain/recipe_macros.dart';
 /// `1 sub-recipe unresolved` — never an empty string (a reasonless badge
 /// would leave a dangling separator).
 ///
-/// **"needs a weight" is its own reason**, not part of "unconvertible". A bare
-/// count — "2 pieces", no measure behind it — is the one incomplete cause a
-/// household can fix in two taps, and calling it a failed conversion described
-/// the wrong problem: nothing was ever weighed. Under the ADR-0010 admission
-/// model those taps are unambiguous, because the row's chip row holds its
-/// measures and (mostly) not `piece`.
+/// **"needs a piece weight" is its own reason**, not part of "unconvertible".
+/// A bare count — "2 pieces" on a row with no piece weight — is the one
+/// incomplete cause a household fixes with a single number on the INGREDIENT
+/// (ADR-0015), and calling it a failed conversion described the wrong
+/// problem: nothing was ever weighed.
 String incompleteNote(RecipeMacroSummary summary) {
   if (summary.noLines) return 'no ingredients yet';
   // Seam D6's one guard: every line was imprecise, so nothing was weighed.
@@ -41,8 +40,8 @@ String incompleteNote(RecipeMacroSummary summary) {
   final parts = [
     if (stubs == 1) '1 stub line',
     if (stubs > 1) '$stubs stub lines',
-    if (counts == 1) '1 line needs a weight',
-    if (counts > 1) '$counts lines need a weight',
+    if (counts == 1) '1 line needs a piece weight',
+    if (counts > 1) '$counts lines need a piece weight',
     if (summary.unconvertibleLines > 0)
       '${summary.unconvertibleLines} unconvertible',
     // Step 8.6 / D8 — the two sub-recipe reasons, in the same voice as the
@@ -66,10 +65,12 @@ String incompleteNote(RecipeMacroSummary summary) {
 /// line is named by the WORD THE SOURCE PRINTED ("handful", "to taste"), not
 /// by a defect — see [notCountedNote]. [MacroLineReason.optional] is the
 /// recipe page's own tag word, which is the same claim in the same voice.
+/// `Cucumber · needs a piece weight` names the ingredient's missing fact, so
+/// the marker opens the ingredient (ADR-0015).
 String incompleteLineNote(MacroLineReason reason) => switch (reason) {
   MacroLineReason.stubIngredient => 'stub ingredient',
   MacroLineReason.unknownIngredient => 'not in your ingredients yet',
-  MacroLineReason.needsWeight => 'needs a weight',
+  MacroLineReason.needsWeight => 'needs a piece weight',
   MacroLineReason.needsDensity => 'needs a density',
   MacroLineReason.noAmount => 'no amount',
   MacroLineReason.subRecipeUnresolved => 'sub-recipe has no yield',

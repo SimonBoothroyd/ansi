@@ -84,7 +84,7 @@ class SqlitePlanningRepository implements PlanningRepository {
       'SELECT pe.id, pe.day_of_week, pe.meal_slot, pe.recipe_id, pe.eaters, '
       'pe.portions, pe.ingredient_id, pe.quantity, pe.unit, pe.measure_id, '
       'r.title AS recipe_title, i.canonical_name AS ingredient_name, '
-      'i.macros, i.density_g_per_ml, '
+      'i.macros, i.density_g_per_ml, i.piece_basis_amount, '
       'im.label AS measure_label, im.basis_amount AS measure_amount, '
       'i.macros_basis AS measure_basis, im.sort_order AS measure_sort, '
       'im.source AS measure_source '
@@ -142,6 +142,7 @@ class SqlitePlanningRepository implements PlanningRepository {
             macros: Macros.tryParse(e['macros'] as String?),
             basis: MacrosBasis.fromDb(e['measure_basis'] as String?),
             densityGPerMl: (e['density_g_per_ml'] as num?)?.toDouble(),
+            pieceBasisAmount: (e['piece_basis_amount'] as num?)?.toDouble(),
           ),
     eaterIds: (jsonDecode(e['eaters'] as String? ?? '[]') as List)
         .cast<String>(),

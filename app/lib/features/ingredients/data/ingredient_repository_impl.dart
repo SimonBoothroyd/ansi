@@ -419,9 +419,12 @@ class SqliteIngredientRepository implements IngredientRepository {
   }
 
   @override
-  Future<Ingredient?> stopOfferingPiece(String ingredientId) async {
-    // Read-modify-write for the same reason the density pair is: the list
-    // written back is derived from the row as it is read.
+  Future<Ingredient?> setPieceWeight(String ingredientId, double amount) async {
+    if (!(amount > 0)) {
+      throw ArgumentError.value(amount, 'amount', 'must be a positive number');
+    }
+    // Read-modify-write, one transaction, for the reason [setDensity] gives:
+    // the list written back is derived from the row as it is read.
     final now = DateTime.now().toUtc().toIso8601String();
     final updated = await _db.writeTransaction((tx) async {
       final row = await tx.getOptional(
@@ -431,12 +434,19 @@ class SqliteIngredientRepository implements IngredientRepository {
       );
       if (row == null) return false;
       final current = _toIngredient(row);
-      final kept = {...current.allowedUnits ?? defaultAllowedUnitSet(current)};
-      if (!kept.remove(pieces)) return true; // nothing to take away
+      // What the weight unlocks joins the explicit list in the same write —
+      // `piece`, on a count-default row; nothing on any other (ADR-0015).
+      final unlocked = {
+        ...current.allowedUnits ?? defaultAllowedUnitSet(current),
+        ...pieceUnlockedUnits(current),
+      };
       await tx.execute(
-        'UPDATE ingredient SET allowed_units = ?, updated_at = ? WHERE id = ?',
+        'UPDATE ingredient SET piece_basis_amount = ?, piece_source = ?, '
+        'allowed_units = ?, updated_at = ? WHERE id = ?',
         [
-          jsonEncode([for (final u in kept) u.id]),
+          amount,
+          'manual',
+          jsonEncode([for (final u in unlocked) u.id]),
           now,
           ingredientId,
         ],
@@ -448,46 +458,38 @@ class SqliteIngredientRepository implements IngredientRepository {
   }
 
   @override
-  Future<Ingredient?> setDefaultMeasure(
-    String ingredientId,
-    String? measureId,
-  ) async {
+  Future<Ingredient?> clearPieceWeight(String ingredientId) async {
     final now = DateTime.now().toUtc().toIso8601String();
-    final wrote = await _db.writeTransaction((tx) async {
+    final updated = await _db.writeTransaction((tx) async {
       final row = await tx.getOptional(
-        'SELECT id FROM ingredient WHERE id = ? AND deleted_at IS NULL',
+        'SELECT i.*, $_measureCount FROM ingredient i '
+        'WHERE i.id = ? AND i.deleted_at IS NULL',
         [ingredientId],
       );
       if (row == null) return false;
-      if (measureId != null) {
-        // The server's own-measure trigger (0023) refuses a measure from
-        // another row or another household. Checking it here too is not
-        // belt-and-braces: local writes land in SQLite first and only reach
-        // that trigger on the next upload, so without this the app would
-        // read back a default that the server is about to reject.
-        final measure = await tx.getOptional(
-          'SELECT id FROM ingredient_measure '
-          'WHERE id = ? AND ingredient_id = ? AND deleted_at IS NULL',
-          [measureId, ingredientId],
-        );
-        if (measure == null) {
-          throw ArgumentError.value(
-            measureId,
-            'measureId',
-            'is not a live measure of ingredient $ingredientId',
-          );
-        }
-      }
+      final current = _toIngredient(row);
+      if (current.pieceBasisAmount == null) return true; // nothing to delete
       await tx.execute(
-        'UPDATE ingredient SET default_measure_id = ?, updated_at = ? '
-        'WHERE id = ?',
-        [measureId, now, ingredientId],
+        'UPDATE ingredient SET piece_basis_amount = NULL, piece_source = NULL, '
+        'allowed_units = ?, updated_at = ? WHERE id = ?',
+        [
+          jsonEncode([for (final u in _strippedOfPieceWeight(current)) u.id]),
+          now,
+          ingredientId,
+        ],
       );
       return true;
     });
-    if (!wrote) return null;
+    if (!updated) return null;
     return byId(ingredientId);
   }
+
+  /// The admission list as it reads once [current]'s piece weight is gone:
+  /// `piece` goes with the number it was derived from ([pieceStrippedUnits]),
+  /// everything else stands. The count-side twin of [_strippedOfDensity].
+  static Set<Unit> _strippedOfPieceWeight(Ingredient current) =>
+      {...current.allowedUnits ?? defaultAllowedUnitSet(current)}
+        ..removeAll(pieceStrippedUnits(current));
 
   // --- The manager's write half (step 8.5) -----------------------------------
 
@@ -578,6 +580,14 @@ class SqliteIngredientRepository implements IngredientRepository {
       throw ArgumentError.value(
         density.gPerMl,
         'gPerMl',
+        'must be a positive number',
+      );
+    }
+    final pieceWeight = edit.pieceWeight;
+    if (pieceWeight is PieceWeightSet && !(pieceWeight.amount > 0)) {
+      throw ArgumentError.value(
+        pieceWeight.amount,
+        'amount',
         'must be a positive number',
       );
     }
@@ -684,12 +694,24 @@ class SqliteIngredientRepository implements IngredientRepository {
           break;
       }
 
-      if (edit.defaultMeasure case DefaultMeasureSet(:final measureId)) {
-        await tx.execute(
-          'UPDATE ingredient SET default_measure_id = ?, updated_at = ? '
-          'WHERE id = ?',
-          [measureId, now, id],
-        );
+      // The piece weight, the count-side twin of the density above. The
+      // admission set was written AS THE FORM HOLDS IT a moment ago, so
+      // nothing is unioned or stripped here (ADR-0011: one owner per fact).
+      switch (pieceWeight) {
+        case PieceWeightSet(:final amount):
+          await tx.execute(
+            'UPDATE ingredient SET piece_basis_amount = ?, piece_source = ?, '
+            'updated_at = ? WHERE id = ?',
+            [amount, 'manual', now, id],
+          );
+        case PieceWeightCleared():
+          await tx.execute(
+            'UPDATE ingredient SET piece_basis_amount = NULL, '
+            'piece_source = NULL, updated_at = ? WHERE id = ?',
+            [now, id],
+          );
+        case PieceWeightUnchanged():
+          break;
       }
 
       // Removals first, so a label freed in this same save can be re-added in
@@ -776,8 +798,8 @@ class SqliteIngredientRepository implements IngredientRepository {
   ///   row starts un-edited whatever it said before (B-D3).
   /// * **A human write over a lookup's numbers sets it.** Only macros, the
   ///   macros basis and the density count. That is the fence: a rename, a unit
-  ///   toggle, a measure, an alias, "Counts as", a category, `Mark complete` —
-  ///   none of them contradicts the source, so none of them may set the flag.
+  ///   toggle, a measure, an alias, a piece weight, a category, `Mark
+  ///   complete` — none of them contradicts the source, so none may set it.
   ///   A save that only touches those returns null here and the stored value
   ///   stands, in both directions.
   /// * **Anything else says nothing.** Including every save on a row with no
@@ -908,7 +930,8 @@ class SqliteIngredientRepository implements IngredientRepository {
     macros: Macros.tryParse(r['macros'] as String?),
     macrosBasis: MacrosBasis.fromDb(r['macros_basis'] as String?),
     allowedUnits: _parseAllowedUnits(r['allowed_units'] as String?),
-    defaultMeasureId: r['default_measure_id'] as String?,
+    pieceBasisAmount: (r['piece_basis_amount'] as num?)?.toDouble(),
+    pieceSource: r['piece_source'] as String?,
     measureCount: (r['measure_count'] as int?) ?? 0,
     source: r['source'] as String?,
     sourceLabel: r['source_label'] as String?,

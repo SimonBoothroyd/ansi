@@ -69,7 +69,7 @@ class IngredientFormEdit {
     this.measuresRemoved = const {},
     this.aliasesAdded = const [],
     this.aliasesRemoved = const {},
-    this.defaultMeasure = const DefaultMeasureUnchanged(),
+    this.pieceWeight = const PieceWeightUnchanged(),
     this.markComplete = false,
   });
 
@@ -88,9 +88,10 @@ class IngredientFormEdit {
   final List<PendingAlias> aliasesAdded;
   final Set<String> aliasesRemoved;
 
-  /// "Counts as" — three-valued, because *unset* ("Ask me each time") is a
-  /// real answer and distinct from "not touched".
-  final DefaultMeasureChange defaultMeasure;
+  /// The piece weight, three-valued like the density and for the same
+  /// reason: the form's draft has already applied what it unlocks (or strips)
+  /// to `row.allowedUnits`, and this rides beside it (ADR-0015).
+  final PieceWeightChange pieceWeight;
 
   /// `Mark complete` saves and marks in the SAME transaction: split across two
   /// writes, a failure between them leaves the row saved and not marked, under
@@ -144,21 +145,27 @@ class DensityCleared extends DensityChange {
   const DensityCleared();
 }
 
-/// "Counts as", three-valued for the same reason: `DefaultMeasureSet(null)`
-/// is the household choosing *Ask me each time*, which is not the same as
-/// never having been asked.
-sealed class DefaultMeasureChange {
-  const DefaultMeasureChange();
+/// The piece weight (ADR-0015), three-valued the way the density is: untouched,
+/// set, or deliberately removed. Removal strips `piece` from the admission
+/// list in the same write — the count-side mirror of D4b.
+sealed class PieceWeightChange {
+  const PieceWeightChange();
 }
 
-class DefaultMeasureUnchanged extends DefaultMeasureChange {
-  const DefaultMeasureUnchanged();
+class PieceWeightUnchanged extends PieceWeightChange {
+  const PieceWeightUnchanged();
 }
 
-class DefaultMeasureSet extends DefaultMeasureChange {
-  const DefaultMeasureSet(this.measureId);
+class PieceWeightSet extends PieceWeightChange {
+  const PieceWeightSet(this.amount);
 
-  final String? measureId;
+  /// In the ingredient's basis unit. Must be positive, exactly as a density
+  /// must.
+  final double amount;
+}
+
+class PieceWeightCleared extends PieceWeightChange {
+  const PieceWeightCleared();
 }
 
 /// The editable facts of one vocab row — everything the flesh-out form saves
@@ -284,43 +291,32 @@ abstract interface class IngredientRepository {
   /// no-op (returning the row unchanged) when there is no density to delete.
   Future<Ingredient?> clearDensity(String ingredientId);
 
-  /// Removes `piece` from the row's explicit admission list — the answer to the
-  /// measures editor's "you added a measure, still offer piece?" question
-  /// (ADR-0010).
+  /// Stores [amount] as what ONE of this ingredient weighs, in its basis unit
+  /// — the piece weight (ADR-0015), the count-side twin of [setDensity] — and
+  /// extends the explicit `allowed_units` with what it unlocks (`piece`, on a
+  /// count-default row) in the same write. `piece_source` becomes `manual`.
+  /// Returns the updated row, or null when [ingredientId] doesn't resolve.
   ///
-  /// `piece` means "a whole one of these, and we have nothing better to call
-  /// it". Once a measure names the thing, offering both makes a saved line
-  /// ambiguous — was `1 piece` a clove or a bulb? — and nothing downstream can
-  /// honestly resolve it. So the admission comes out, which is a **removal**
-  /// from a list the household owns and therefore only ever happens because
-  /// they were asked (the second removal leg in the model, beside
-  /// [clearDensity]; ADR-0009 rule 3 still forbids a *backfill* from removing).
+  /// Throws [ArgumentError] for a non-positive/NaN [amount] — a zero weight
+  /// would fabricate a free count (invariant 3).
   ///
-  /// A row still on the derived fallback is materialized first, so there is an
-  /// explicit list to remove from. Idempotent: a row that does not admit
-  /// `piece` comes back unchanged. Returns null when [ingredientId] doesn't
-  /// resolve.
-  ///
-  /// Never automatic in reverse: deleting the last measure does **not** put
-  /// `piece` back. It becomes an unselected chip in the flesh-out form's
-  /// admission section again, one tap from returning.
-  Future<Ingredient?> stopOfferingPiece(String ingredientId);
+  /// The quantity sheet's manage state calls this on tap (it has no Save);
+  /// the flesh-out form holds the change in its draft and lands it through
+  /// [saveForm] instead.
+  Future<Ingredient?> setPieceWeight(String ingredientId, double amount);
 
-  /// Sets what a bare COUNT of this ingredient means — "2 onions" is two
-  /// `onion, medium` ([Ingredient.defaultMeasureId], migration 0023). A null
-  /// [measureId] clears it back to "ask me each time".
+  /// Deletes the piece weight and, **in the same write**, removes `piece`
+  /// from the admission list (`pieceStrippedUnits`) — the count-side mirror
+  /// of [clearDensity]'s D4b leg, and for the same reason: the admission was
+  /// derived from the number being deleted, and a line saying `piece` with
+  /// nothing weighing one is the fabricated conversion this app refuses.
   ///
-  /// It is a **stated fact**, so it saves the moment it is picked, like the
-  /// measures editor's own writes — not on a form's Save. Clearing it never
-  /// touches the measure itself: the row keeps every label it had, and only
-  /// stops having a preferred one.
-  ///
-  /// [measureId] must name a LIVE measure of this same ingredient; the
-  /// server refuses anything else outright (a "1 onion" silently counted as
-  /// a clove is the one lie this column could tell), and so does this. Throws
-  /// [ArgumentError] when it doesn't resolve. Returns the updated row, or
-  /// null when [ingredientId] doesn't resolve.
-  Future<Ingredient?> setDefaultMeasure(String ingredientId, String? measureId);
+  /// Lines are never rewritten: one already saying `piece` reads as "needs a
+  /// piece weight" until the row has one again. A piece-default row is then a
+  /// stranded default and the form refuses to save it that way; the caller
+  /// is expected to know that. Returns the updated row, or null when
+  /// [ingredientId] doesn't resolve; a no-op when there is nothing to delete.
+  Future<Ingredient?> clearPieceWeight(String ingredientId);
 
   /// *Not this food* — undoes a USDA prefill in ONE write: the density goes
   /// through the same strip [clearDensity] runs (D4b — the units it alone

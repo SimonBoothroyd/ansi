@@ -154,17 +154,11 @@ Future<void> editLineAmount(
   final initialQuantity =
       resolution.quantity ??
       (resolution.isRange ? (raw.qtyLow ?? raw.qtyHigh) : null);
-  // An inadmissible unit on an ingredient that names measures opens on the
-  // likeliest measure — "2 clove" for a garlic line that arrived as "2 ml".
-  // …and a line the default already answered opens ON that measure, so "tap
-  // to change" lands on the choice it is changing rather than on nothing
-  // (seam D2).
+  // An inadmissible unit on an ingredient that names exactly one measure opens
+  // on it — "2 clove" for a garlic line that arrived as "2 ml".
   final preselect = loaded == null
       ? null
-      : preselectedMeasure(loaded, measures, unit: resolution.unit) ??
-            (resolution.unitFromDefault
-                ? measures.where((m) => m.label == resolution.unit).firstOrNull
-                : null);
+      : preselectedMeasure(loaded, measures, unit: resolution.unit);
   final result = await showQuantityUnitSheet(
     context,
     ingredient: amountSheetIngredient(base, parsedUnit: resolution.unit),

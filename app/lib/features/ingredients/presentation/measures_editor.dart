@@ -13,11 +13,9 @@
 /// point its own density entry at it. Two hosts, one door, and no second
 /// density widget.
 ///
-/// It also owns the one question in the `piece` model (ADR-0010). `piece` is
-/// the fallback for when no measure names the thing; the moment a row's FIRST
-/// piece-type measure lands, that stops being true, and the household — never a
-/// rule — decides whether `piece` stays sayable. Asked once, with a default,
-/// and revisable forever in the flesh-out form's admission chips.
+/// It asks nothing about `piece` (ADR-0015): whether a row may say `piece` is
+/// a fact about the row — its default unit and its piece weight — never about
+/// which measures it happens to carry.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -28,7 +26,6 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
-import '../../../shared/ansi_modals.dart';
 import '../../../shared/format.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
@@ -45,8 +42,8 @@ sealed class AddMeasureOutcome {
 }
 
 /// It landed — or, once the form defers (lane B), it is in the draft and will.
-/// Either way the editor may treat [measure] as real: it has an id, the
-/// `piece` question can be asked about it, and it can be handed to `onAdded`.
+/// Either way the editor may treat [measure] as real: it has an id and can be
+/// handed to `onAdded`.
 class MeasureAdded extends AddMeasureOutcome {
   const MeasureAdded(this.measure);
 
@@ -74,7 +71,6 @@ class MeasuresEditor extends HookWidget {
     required this.onAdd,
     required this.onAdded,
     required this.onVolumeLabel,
-    required this.onStopOfferingPiece,
     this.addLabel = 'Save',
     this.autofocus = false,
     super.key,
@@ -110,21 +106,6 @@ class MeasuresEditor extends HookWidget {
   /// A volume-named label was refused and resolved to that catalog unit —
   /// the host points its density entry at it (the "volume-label redirect").
   final ValueChanged<Unit> onVolumeLabel;
-
-  /// The row's `allowed_units` changed under the host — `piece` was dropped
-  /// because the user answered the first-measure question with "no, the
-  /// measure says it better". Hosts that hold their own copy of the row (the
-  /// quantity sheet's `live`) or of the admission set (the flesh-out form's
-  /// chips) reconcile here, so neither writes `piece` back on its next save.
-  /// The `piece` answer (ADR-0010), asked at the only moment it is obvious
-  /// and landed by the host — it is two writes today (`stopOfferingPiece`
-  /// then `setDefaultMeasure`) and the host owns both. Returns the row as the
-  /// answer left it, or null if nothing was written.
-  ///
-  /// **Lane B trap:** on the form this stops being a write and becomes part
-  /// of the draft, and the admission chips must then follow the DRAFT rather
-  /// than a row that has not been saved.
-  final Future<Ingredient?> Function(Measure added) onStopOfferingPiece;
 
   /// What the add form's button says. `Save` in a host that commits on tap —
   /// the quantity sheet — and `Add` on the flesh-out form, where the tap only
@@ -186,25 +167,6 @@ class MeasuresEditor extends HookWidget {
         case MeasureNotAdded():
           return;
         case MeasureAdded(:final measure):
-          //  / ADR-0010 — the one question in the `piece` model, asked at the
-          // only moment its answer is obvious. `piece` means "a whole one of
-          // these, and we have nothing better to call it"; `listed` being empty
-          // a moment ago is exactly what said that, and this measure is what
-          // stops it being true. Adding a SECOND measure asks nothing: the row
-          // has already answered, whichever way.
-          if (listed.isEmpty && allowedUnitsFor(ingredient).contains(pieces)) {
-            final stop = await _askStopOfferingPiece(
-              context,
-              ingredient,
-              measure,
-            );
-            // No answer (barrier tap, back) keeps `piece`: an admission is
-            // the household's, and silence is not consent to remove one.
-            if (stop && context.mounted) {
-              await onStopOfferingPiece(measure);
-            }
-            if (!context.mounted) return;
-          }
           onAdded(measure);
       }
     }
@@ -235,40 +197,6 @@ class MeasuresEditor extends HookWidget {
       ],
     );
   }
-}
-
-/// The board's frame (c): "you added a measure — stop offering piece?".
-///
-/// Returns true when the user says the measure says it better (`piece` comes
-/// out) and false when they keep both — or dismiss, which keeps `piece`,
-/// because an admission is the household's and silence is not consent to take
-/// one away (the D3 refusal of the silent write).
-Future<bool> _askStopOfferingPiece(
-  BuildContext context,
-  Ingredient ingredient,
-  Measure added,
-) {
-  final amount =
-      '${formatQuantity(added.amount)} ${added.basis.baseUnit.label}';
-  return askAnsi(
-    context,
-    title:
-        'You added “${added.label}”. Still offer “piece” for '
-        '${ingredient.canonicalName}?',
-    body:
-        'A line can say 1 ${added.label} ($amount, so it counts toward '
-        'macros and the shopping total) or 1 piece (an honest count with '
-        'no weight). Offering both means a line can be either, and later '
-        'nobody can tell which was meant.',
-    // The two questions were always one.
-    caveat:
-        'Answering No also sets Counts as: ${added.label} — the measure '
-        'you just named becomes what a bare '
-        '“1 ${ingredient.canonicalName.toLowerCase()}” means. Both are '
-        'one tap from changing, on this page.',
-    confirm: 'No — “${added.label}” says it',
-    cancel: 'Keep both',
-  );
 }
 
 class MeasureRow extends StatelessWidget {

@@ -201,6 +201,15 @@ PortionMacros ingredientPortionMacros(
     // measure row syncs in. Nothing is broken to fix, so it is NOT
     // `needsWeight`: something does weigh it, this device just cannot see it.
     return (perPortion: null, reason: MacroLineReason.needsWeight);
+  } else if (unit.family == UnitFamily.count &&
+      pieceMeasureOf(nutrition) != null) {
+    // A bare `piece` converts through the row's piece weight (ADR-0015).
+    converted = convertMeasure(
+      quantity,
+      pieceMeasureOf(nutrition)!,
+      to: to,
+      densityGPerMl: nutrition.densityGPerMl,
+    );
   } else {
     converted = convert(
       Quantity(quantity, unit),
@@ -214,9 +223,9 @@ PortionMacros ingredientPortionMacros(
       perPortion: macros.scaledBy(value.amount / 100),
       reason: null,
     ),
-    // A bare count with nothing weighing it is the one reason a household can
-    // fix in two taps (pick a measure), so it keeps its own word — the same
-    // split the recipe panel makes.
+    // A bare count with nothing weighing it is fixed on the ingredient (its
+    // piece weight), so it keeps its own word — the same split the recipe
+    // panel makes.
     Err() => (
       perPortion: null,
       reason: unit.family == UnitFamily.count

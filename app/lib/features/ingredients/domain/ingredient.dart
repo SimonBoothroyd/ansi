@@ -34,16 +34,22 @@ abstract class Ingredient with _$Ingredient {
     /// to deriving the same ADR defaults (`defaultAllowedUnitSet`).
     List<Unit>? allowedUnits,
 
-    /// The measure a bare COUNT of this ingredient means — "2 onions" is two
-    /// `onion, medium` (0023, seam D1). A curated per-row FACT, not a rule:
-    /// it is spent once, visibly, when an import line names a number and no
-    /// thing, and nothing downstream interprets it.
+    /// What ONE of this ingredient weighs, in the row's basis unit — the
+    /// **piece weight** (ADR-0015, migration 0039). A row fact exactly as the
+    /// density is: density says what a volume of this weighs and unlocks the
+    /// volume units; this says what a piece weighs and unlocks `piece`.
     ///
-    /// **Null is a real answer.** Broccoli's `whole`/`spear`/`crown` are
-    /// three different things and none of them is "a broccoli", so that line
-    /// keeps its flag and the user picks (ADR-0010). Null also means "this
-    /// row has no measures at all", and "the household cleared it".
-    String? defaultMeasureId,
+    /// Null means the row has no such fact, and `piece` is then not sayable
+    /// on it. A piece-default row with a null here is a stranded default (the
+    /// D4c shape), named on the form and refused at Save — a count nobody
+    /// weighed is the one honest state this replaces ("needs a weight").
+    double? pieceBasisAmount,
+
+    /// Where [pieceBasisAmount] came from: `manual` for a typed one,
+    /// `borrowed from <label>` where the seed copied a curated size ("onion,
+    /// medium" → 110 g), `seed:typical` for a hand-curated number. Shown, never
+    /// interpreted. Null when there is no weight, or the row predates it.
+    String? pieceSource,
 
     /// Distinct live measure labels this ingredient carries — the picker
     /// row's "N measures" capability hint (7.7). Populated by list reads;

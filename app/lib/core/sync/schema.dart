@@ -158,10 +158,15 @@ const schema = Schema([
     // Explicit allowed-unit list (JSON array of unit ids, ADR-0008 / 0012);
     // null → the client derives the same defaults.
     Column.text('allowed_units'),
-    // → ingredient_measure.id (nullable, 0023): the curated measure a bare
-    // COUNT of this row means ("2 onions" = 2 × onion, medium). Null is a
-    // real answer. Uuids ride as text through PowerSync.
-    Column.text('default_measure_id'),
+    // What ONE of this row weighs, in the basis unit (0039 / ADR-0015) — the
+    // count fact the way `density_g_per_ml` is the volume fact; `piece` is
+    // sayable only while it is set. `piece_source` says where it came from
+    // ('manual' / 'borrowed from <label>' / 'seed:typical'). The retired
+    // `default_measure_id` (0023) is deliberately NOT declared here: the
+    // column stays in Postgres for one release, and PowerSync drops what the
+    // client schema does not name.
+    Column.real('piece_basis_amount'),
+    Column.text('piece_source'),
     Column.text('status'),
     Column.text('source'),
     // The USDA food a prefill copied from, and how much of the query its

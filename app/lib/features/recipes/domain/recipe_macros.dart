@@ -63,7 +63,29 @@ typedef IngredientNutrition = ({
   Macros? macros,
   MacrosBasis basis,
   double? densityGPerMl,
+
+  /// What one of the ingredient weighs, in [basis] (ADR-0015) — the number a
+  /// bare `piece` line converts through, the way a cross-basis line converts
+  /// through [densityGPerMl]. Null when the row has none, and a `piece` line
+  /// is then [MacroLineReason.needsWeight].
+  double? pieceBasisAmount,
 });
+
+/// [IngredientNutrition]'s piece weight as the [Measure] the converter already
+/// understands: `n piece` is `n × amount` of the basis unit, exactly like a
+/// named measure. Nothing is invented — the amount is the row's own stated
+/// fact — so the count joins the total through the same [convertMeasure] a
+/// clove or a can does.
+Measure? pieceMeasureOf(IngredientNutrition nutrition) {
+  final amount = nutrition.pieceBasisAmount;
+  if (amount == null) return null;
+  return Measure(
+    id: 'piece',
+    label: 'piece',
+    amount: amount,
+    basis: nutrition.basis,
+  );
+}
 
 /// Why one line is not in the total — the per-line half of the refusal
 /// (seam **D5**: *"this message makes it impossible to know what ingredients
@@ -79,7 +101,9 @@ enum MacroLineReason {
   /// The line names an ingredient this device has never synced.
   unknownIngredient,
 
-  /// A bare count with nothing weighing it ("2 pieces", no measure).
+  /// A bare count on a row with no piece weight ("2 pieces", nothing
+  /// weighing one) — the row's fact is missing, so the row's form is the fix
+  /// (ADR-0015).
   needsWeight,
 
   /// A cross-basis line on a row with no density.
@@ -536,6 +560,16 @@ double? _amountInBasis(LineItem line, IngredientNutrition nutrition) {
     // can't join a mass/volume total, so the line is unbridgeable until the
     // measure row syncs in.
     return null;
+  } else if (line.unit.family == UnitFamily.count &&
+      pieceMeasureOf(nutrition) != null) {
+    // A bare `piece` converts through the row's piece weight (ADR-0015) —
+    // the count fact the way the density is the volume fact.
+    converted = convertMeasure(
+      quantity,
+      pieceMeasureOf(nutrition)!,
+      to: to,
+      densityGPerMl: nutrition.densityGPerMl,
+    );
   } else {
     converted = convert(
       Quantity(quantity, line.unit),

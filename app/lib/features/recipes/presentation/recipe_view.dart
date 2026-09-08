@@ -512,24 +512,25 @@ class _IngredientsTab extends StatelessWidget {
   /// Opens the fix a named line's reason implies (seam **D5**) — the marker
   /// is a door, and this is the one place that decides which door.
   ///
-  /// A stub, an unknown row or a missing density is an INGREDIENT problem, so
-  /// it opens the flesh-out form; the two nested reasons open the sub-recipe.
-  /// A bare count or a missing amount is a LINE problem — and the recipe page
-  /// is read-only, so it routes to the editor rather than opening a sheet
-  /// this screen has no writer for.
+  /// A stub, an unknown row, a missing density or a missing piece weight is an
+  /// INGREDIENT problem, so it opens the flesh-out form (ADR-0015: one number
+  /// on the row fixes every bare count of it, in every recipe); the two
+  /// nested reasons open the sub-recipe. A missing amount is a LINE problem —
+  /// and the recipe page is read-only, so it routes to the editor rather than
+  /// opening a sheet this screen has no writer for.
   void _fix(BuildContext context, MacroLineNote note) {
     final line = _lineById(recipe)[note.lineId];
     switch (note.reason) {
       case MacroLineReason.stubIngredient:
       case MacroLineReason.unknownIngredient:
       case MacroLineReason.needsDensity:
+      case MacroLineReason.needsWeight:
         final id = line?.ingredientId;
         if (id != null) context.pushOnce(ingredientDetailRoute(id));
       case MacroLineReason.subRecipeUnresolved:
       case MacroLineReason.subRecipeIncomplete:
         final id = line?.subRecipeId;
         if (id != null) context.pushOnce('/recipes/$id');
-      case MacroLineReason.needsWeight:
       case MacroLineReason.noAmount:
         context.pushOnce('/recipes/${recipe.id}/edit');
       case MacroLineReason.imprecise:

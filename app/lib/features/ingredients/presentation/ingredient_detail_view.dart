@@ -9,7 +9,9 @@
 /// It is an **editor**, not a one-way queue: a `complete` row opens here too.
 /// What it owns, in order — canonical name (a rename rewrites `match_text`),
 /// aliases, category + default unit, macros with their basis, density (the
-/// shared [DensityEntry]), and the explicit ADR-0008 `allowed_units` list.
+/// shared [DensityEntry]), the piece weight on a count-default row (the shared
+/// [PieceWeightEntry], ADR-0015), and the explicit ADR-0008 `allowed_units`
+/// list.
 ///
 /// Three rules the screen exists to enforce:
 /// - **Nothing is written until Save** (ADR-0011). Everything the form intends
@@ -81,6 +83,7 @@ import 'density_entry.dart';
 import 'draft_card.dart';
 import 'ingredient_view_models.dart';
 import 'measures_editor.dart';
+import 'piece_weight_entry.dart';
 import 'serving_row.dart';
 import 'usda_pick_sheet.dart';
 
@@ -339,8 +342,7 @@ class _DetailForm extends ConsumerWidget {
     // What the row's measures ARE, as the form holds them: the loaded ones
     // minus what it intends to remove, plus what it intends to add. A pending
     // one is indistinguishable from a stored one on screen, and carries the
-    // id it will keep — which is what lets "Counts as" and the `piece`
-    // question point at a measure that does not exist yet.
+    // id it will keep.
     final loadedMeasures = measuresAsync.asData?.value;
     final measures = [
       for (final m in loadedMeasures ?? const <Measure>[])
@@ -636,6 +638,26 @@ class _DetailForm extends ConsumerWidget {
                 ),
               ),
 
+              // The piece weight (ADR-0015) — drawn only where it means
+              // something: a count default. It sits directly under the chip
+              // that made it appear, before the admission chips it unlocks,
+              // so the stranded flag above and its repair read as one line.
+              // Nothing is written here: the number goes in the draft and the
+              // form's Save lands it, exactly as the density below does.
+              if (draft.defaultUnit.family == UnitFamily.count)
+                PieceWeightEntry(
+                  ingredient: draftRow,
+                  saveLabel: 'Add',
+                  onSave: (amount) async {
+                    form.draftPieceWeight(amount);
+                    return true;
+                  },
+                  onRemove: () async {
+                    form.removePieceWeight();
+                    return true;
+                  },
+                ),
+
               const _Label('ALLOWED UNITS', hint: 'what a line may say'),
               _AdmissionChips(
                 ingredient: draftRow,
@@ -708,10 +730,6 @@ class _DetailForm extends ConsumerWidget {
                       sortOrder: measures.length,
                     ),
                   ),
-                  onStopOfferingPiece: (added) async {
-                    form.answerPiece(added.id);
-                    return null;
-                  },
                   // Nothing here selects a measure — the form is not a
                   // quantity entry surface; the watched provider re-renders
                   // the list.
@@ -723,15 +741,6 @@ class _DetailForm extends ConsumerWidget {
                   onVolumeLabel: form.redirectSpoon,
                 ),
 
-              // What a bare count of this row MEANS. It sits with the measures
-              // because it is a fact ABOUT them, and it says nothing on a row
-              // that has none — there is nothing to choose and nothing to ask.
-              //
-              // ONE slot, not a two-child spread: the spread this replaces
-              // grew from zero children to two the moment a first measure
-              // landed, shifting every sibling below it — the exact failure
-              // the note at the head of this list warns about.
-              _CountsAsSection(ingredient: ing, measures: measures),
             ],
           ),
         ],
@@ -1328,7 +1337,13 @@ class _UnitChoiceRow extends StatelessWidget {
             // it in the "gone" colour, which is what the line under this row
             // is about. Selection and health are two facts, not one.
             selected: u == selected,
-            stranded: u == selected && !unitSayableAsDefault(ingredient, u),
+            stranded:
+                u == selected &&
+                (!unitSayableAsDefault(ingredient, u) ||
+                    (u == pieces && ingredient.pieceBasisAmount == null)),
+            // `piece` stays tappable with no weight: picking it is what makes
+            // the weight sentence appear (ADR-0015); the flag and the Save
+            // refusal hold the line, not the chip.
             enabled: unitSayableAsDefault(ingredient, u) || u == selected,
             onTap: () => onPick(u),
           ),
@@ -1363,8 +1378,14 @@ class _StrandedDefaultNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!defaultUnitNeedsDensity(ingredient)) return const SizedBox.shrink();
+    if (!defaultUnitStranded(ingredient)) return const SizedBox.shrink();
     final fix = basisDefaultUnitFix(ingredient);
+    // Two strandings, one line (ADR-0015): a `cup` default with no density,
+    // or a `piece` default with no piece weight — each names the number that
+    // would repair it, which is entered directly below.
+    final needs = defaultUnitNeedsPieceWeight(ingredient)
+        ? 'needs a weight on this row — enter one below, or'
+        : 'needs a density on this row — add one below, or';
     return Padding(
       padding: const EdgeInsets.only(top: 7),
       child: Wrap(
@@ -1372,8 +1393,7 @@ class _StrandedDefaultNote extends StatelessWidget {
         spacing: 4,
         children: [
           Text(
-            '${ingredient.defaultUnit.label} needs a density on this row — '
-            'add one below, or',
+            '${ingredient.defaultUnit.label} $needs',
             style: ansiMono(size: 10, color: AnsiColors.gone),
           ),
           GestureDetector(
@@ -1522,103 +1542,6 @@ class _AliasEditor extends HookWidget {
               style: ansiMono(size: 10, color: AnsiColors.gone),
             ),
           ),
-      ],
-    );
-  }
-}
-
-/// "Counts as" — what a bare count of this row MEANS (seam **D1**, board
-/// frame f).
-///
-/// The picker's first entry is **"Ask me each time"** (null), and that is the
-/// honest state for a row whose measures are three different things
-/// (broccoli: whole · spear · crown). Clearing a default is one tap and never
-/// destroys a measure: the row keeps every label it had and only stops having
-/// a preferred one.
-///
-/// It is a **stated fact**, so it saves the moment it is picked — like the
-/// measures editor's own writes, not on this form's Save. A household owns
-/// this from the moment its vocabulary is cloned; the seeded value is a
-/// starting point, not a rule.
-class _CountsAsRow extends ConsumerWidget {
-  const _CountsAsRow({required this.ingredient, required this.measures});
-
-  final Ingredient ingredient;
-  final List<Measure> measures;
-
-  /// The sentinel for "Ask me each time" — `FSelect`'s own null means "no
-  /// selection", which is a different thing from "the household chose none".
-  static const _ask = '';
-
-  /// Writes the pick. [ingredientById] is a watched query, so the row the
-  /// section draws follows the write on its own.
-  Future<void> _pick(BuildContext context, WidgetRef ref, String? id) async {
-    final repo = ref.read(ingredientRepositoryProvider);
-    await ref.write(
-      context,
-      'set what a count of this means',
-      () => repo.setDefaultMeasure(
-        ingredient.id,
-        (id == null || id == _ask) ? null : id,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final byId = {for (final m in measures) m.id: m};
-    final current = ingredient.defaultMeasureId;
-    // A default whose measure this device has not synced (or that was
-    // tombstoned elsewhere) reads as unset rather than as a phantom row.
-    final selected = current != null && byId.containsKey(current)
-        ? current
-        : _ask;
-    final one = ingredient.canonicalName.toLowerCase();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Flexible(child: Text('One $one is', style: ansiMono(size: 11))),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: FSelect<String>.rich(
-                format: (id) => id == _ask
-                    ? '— not set'
-                    : '${byId[id]?.label ?? '—'} · '
-                          '${formatQuantity(byId[id]?.amount)} '
-                          '${byId[id]?.basis.baseUnit.label ?? ''}',
-                control: FSelectControl<String>.lifted(
-                  value: selected,
-                  onChange: (id) => unawaited(_pick(context, ref, id)),
-                ),
-                children: [
-                  const FSelectItem(
-                    title: Text('Ask me each time'),
-                    value: _ask,
-                  ),
-                  for (final m in measures)
-                    FSelectItem(
-                      title: Text(
-                        '${m.label} · ${formatQuantity(m.amount)} '
-                        '${m.basis.baseUnit.label}',
-                      ),
-                      value: m.id,
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(
-            'used when a line says a number and no unit. A line that names '
-            'something — “2 large onions” — always wins.',
-            style: ansiMono(size: 10, color: AnsiColors.muted),
-          ),
-        ),
       ],
     );
   }
@@ -1931,27 +1854,6 @@ class _ActionBar extends StatelessWidget {
       ],
     ),
   );
-}
-
-/// "Counts as", as one slot (seam **D1**, board frame f) — the label and the
-/// row together, or nothing at all on a row with no measures.
-class _CountsAsSection extends StatelessWidget {
-  const _CountsAsSection({required this.ingredient, required this.measures});
-
-  final Ingredient ingredient;
-  final List<Measure> measures;
-
-  @override
-  Widget build(BuildContext context) {
-    if (measures.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _Label('COUNTS AS', hint: 'what “2 onions” means'),
-        _CountsAsRow(ingredient: ingredient, measures: measures),
-      ],
-    );
-  }
 }
 
 class _Note extends StatelessWidget {
