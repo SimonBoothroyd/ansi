@@ -869,16 +869,26 @@ void main() {
             matching: find.byType(Row),
           )
           .first;
+      // The hint and the tag are one joined line, so match by containment.
       expect(
-        find.descendant(of: bandRow, matching: find.text('needs completing')),
+        find.descendant(
+          of: bandRow,
+          matching: find.textContaining('needs completing'),
+        ),
         findsOneWidget,
         reason:
             'a prefilled stub must read "needs completing", not "needs '
             'macros" — '
             'it is not missing the numbers, it is missing the human',
       );
-      // …and it is NOT flagged as a USDA prefill: this row came from a
-      // barcode.
+      // …and the tag names the machine that filled it: a barcode, not USDA.
+      expect(
+        find.descendant(
+          of: bandRow,
+          matching: find.textContaining('barcode prefilled'),
+        ),
+        findsOneWidget,
+      );
       expect(
         find.descendant(
           of: bandRow,
