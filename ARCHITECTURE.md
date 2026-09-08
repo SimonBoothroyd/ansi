@@ -119,10 +119,14 @@ vocabulary row is created or edited: `allowed_units`, density, macros, name,
 aliases. So the admission list ([ADR-0008](./docs/decisions/0008-unit-admission-model.md),
 amended by [ADR-0009](./docs/decisions/0009-density-unlocks-both-families.md)) is
 no longer write-once-at-creation. That list is also where `piece` lives or does
-not: [ADR-0010](./docs/decisions/0010-piece-is-an-admission-fact.md) makes it an
-**admission fact** rather than a runtime guess — where a measure names the thing
-(a clove, an avocado, a medium potato), `piece` is simply not offered, so nothing
-downstream ever has to decide which measure a `piece` meant.
+not, and what puts it there is a **number on the row**:
+[ADR-0015](./docs/decisions/0015-piece-weight-is-a-row-fact.md) makes
+`piece_basis_amount` — what one of the thing weighs — a row fact exactly as
+`density_g_per_ml` is. A density unlocks the other mass/volume family; a piece
+weight unlocks `piece`, and only on a row whose default unit is `piece`. A
+`piece` default with no weight is a stranded default the form refuses to save,
+so nothing downstream ever has to decide what a `piece` meant. Measures keep
+the job they always had: the words for sizes, fragments and containers.
 
 Matching against a couple hundred ingredients the household actually uses is
 high-precision; matching against 8k SR Legacy rows is not.

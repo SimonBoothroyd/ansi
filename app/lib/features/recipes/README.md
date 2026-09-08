@@ -81,6 +81,17 @@ page and row can never disagree. It renders the `incomplete` badge and its
 reason (`shared/incomplete_macros.dart`) rather than a fabricated number, and it
 is **per serving**, so the servings scaler never moves it.
 
+Each named reason under the badge is a **door to the fix it implies**, and one
+of them points off the recipe entirely: **`needs a piece weight`** — a bare
+count on a row that states no `piece_basis_amount`
+([ADR-0015](../../../../docs/decisions/0015-piece-weight-is-a-row-fact.md)) —
+opens that **ingredient's form**, not this recipe's editor. The missing number
+is the row's, and typing it once fixes every bare count of that ingredient in
+every recipe, the way a density fixes every `cup` line. Only a row created
+before that ruling can be in the state at all: the form and the import both
+refuse to make a new one. A `piece` line on a weighed row is an ordinary
+convertible line and is not named here.
+
 **Deferred (implemented in later steps, not missing by accident):** cook mode,
 method ingredient-chips/timers, Notes tab, photos. See the roadmap +
 `tech-debt-tracker.md`.

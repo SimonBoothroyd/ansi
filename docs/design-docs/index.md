@@ -42,8 +42,10 @@ against the code. (Vendored snapshots of *other people's* docs live in
   deliberately never guesses because nobody is watching it.
 - [`unit-and-measure-matching.md`](./unit-and-measure-matching.md) — how an
   amount is interpreted end to end: the unit catalog vs the per-ingredient
-  measure system, how "1 × 400 g tin" becomes both *400 g used* and *1 tin
-  bought* from one stored number, and what the user can override where.
+  measure system, the three row facts a count or a volume is bridged by
+  (density · piece weight · a measure), how "1 × 400 g tin" becomes both
+  *400 g used* and *1 tin bought* from one stored number, and what the user can
+  override where.
 - [`navigation.md`](./navigation.md) — the tab shell and why the bar is one
   instance, the cross-fade spec, what back does on every screen state, the
   root-navigator rule for sheets and dialogs, and the tap guard.

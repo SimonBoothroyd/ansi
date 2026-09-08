@@ -70,8 +70,10 @@ Tapping a day's dashed "+ Add a meal" runs `_addMealFlow` in `week_view.dart`:
    `INGREDIENTS` section over the household vocabulary, mirroring how the
    editor's `line_target_picker` gained "Your recipes". Returns a `PickedMeal`.
 2. **The quantity sheet**, for an ingredient only: the shipped
-   `showQuantityUnitSheet`, seeded from the row's stated `default_measure_id`
-   so "1 bar" means a bar.
+   `showQuantityUnitSheet`, opened on the row's own **default unit** — a
+   piece-default row opens on `piece`, weighed by its `piece_basis_amount`
+   ([ADR-0015](../../../../docs/decisions/0015-piece-weight-is-a-row-fact.md)).
+   There is no stated default measure to seed from any more.
 3. **`showConfirmMealSheet`** — slot pills, who's-eating, and a **portions**
    stepper (`plan_entry.portions`, null = track |eaters|, spec §8). It takes a
    `MealTarget` (`RecipeMeal` / `SnackMeal`) and writes the matching entry.

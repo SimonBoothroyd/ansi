@@ -351,8 +351,9 @@ by `make docs-check`); what matters here is the shape:
 
 - **`ingredient`** carries the household's own row — its name, category,
   default unit, density, macros and `macros_basis`, its explicit
-  `allowed_units` and `default_measure_id`, its `status` (`complete` | `stub`)
-  and its `match_text`. `source` is provenance: `seed` · `manual` ·
+  `allowed_units`, its `piece_basis_amount` (what one of it weighs, ADR-0015)
+  with the `piece_source` that number came from, its `status`
+  (`complete` | `stub`) and its `match_text`. `source` is provenance: `seed` · `manual` ·
   `usda_fdc:<id>` · `off:<barcode>` · `usda_declined` (a USDA fill a person
   unlinked) · `import_stub` on rows minted before plan 0025 D3. `source_label`
   is the **name** behind whichever stamp the row wears — the picked food's
@@ -527,6 +528,15 @@ a save would write, and Save at the bottom.
 - **Unit "did you mean" chips** appear inline when the current unit isn't one the
   matched ingredient admits (ADR-0008 `allowed_units` + its measures + the
   always-admitted imprecise words `pinch`/`dash`/`handful`/`to taste`).
+- **A counted line with no printed unit is validated as `piece`**
+  ([ADR-0015](../decisions/0015-piece-weight-is-a-row-fact.md)), so "2 dragon
+  fruit" meets the same gate as any other unit: clean where the matched row
+  admits `piece` — a `piece` default carrying a piece weight — and flagged
+  "Pick a supported unit" where it does not. **The review never enters a piece
+  weight**: what one of a thing weighs is the ingredient's property, so the fix
+  is the row's own form, opened from the chosen-ingredient row on the card, or
+  another unit or measure chip. Nothing is resolved on the line's behalf and no
+  card annotates what a count "counted as".
 - **Save is gated on all-valid.** A line is done when it is matched, any printed
   range has a picked number, and its unit is admitted. Until every line clears,
   Save is disabled and says how many still need you. `buildCommit` re-asserts this

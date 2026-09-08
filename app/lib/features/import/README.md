@@ -86,6 +86,15 @@ import/
   imprecise words). So an auto-matched line can still be flagged, and Save stays
   disabled until every line clears. `buildCommit` re-asserts this and throws —
   a partial import can never reach PowerSync.
+- **A counted line with no printed unit is validated as `piece`**
+  ([ADR-0015](../../../../docs/decisions/0015-piece-weight-is-a-row-fact.md)):
+  "2 dragon fruit" meets the same admission gate as every other unit, clean on a
+  row that admits `piece` (a `piece` default carrying a piece weight) and
+  `unitNotAllowed` on one that does not. **Nothing arrives on a measure and
+  nothing enters a weight here** — `arrivalMeasure` and the sole-measure
+  pre-select are gone, because what one of a thing weighs is the ingredient's
+  property. The fix is the row's own form, opened from the chosen-ingredient row
+  on the card, or another unit or measure chip.
 - **Never-invent is a UI obligation too.** Parse warnings, a degraded image, a
   truncated source, a printed range, and `raw_amount` are all *shown*. The source
   line sits under every card ("from source: …") — from a photo you would

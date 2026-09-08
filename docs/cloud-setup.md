@@ -247,25 +247,34 @@ supabase db query --linked -f supabase/rollout_measure_refresh.sql
 # 7. re-run the preview: `to_insert` should now read 0 for every household.
 ```
 
-**The default count measure has a third leg, and it is a function, not a
-file** (0023 / plan 0024 seam D1). `ingredient.default_measure_id` says what a
-bare "2 onions" means, and the migration fills it for every existing household
-by (`match_text`, measure `label`) as it applies — fill-only, so a household
-that has set its own default keeps it. The one case that needs a second pass
-is a default whose measure the household did not yet have: `yellow bell
-pepper` gains a borrowed `pepper, medium` (119 g) with this slice, so it
-arrives only with the measures leg above. After a reseed + step 6, run:
+**The piece weight needs no script at all** (ADR-0015). What one of a thing
+weighs is a scalar on the row (`ingredient.piece_basis_amount`, in the row's
+basis unit), so it clones with the ingredient the way `density_g_per_ml` does
+and reaches a fresh household for free. **For households that already exist,
+the migration's own backfill copies each row's curated default measure's
+`basis_amount` into the piece weight** — the number the "Counts as" pointer
+used to name, written where the model now keeps it, stamped
+`borrowed from <label>` in `piece_source`. It is a copy, not a derivation, and
+it fills a null only, so a household that has typed its own weight keeps it.
+Nothing here needs the measures leg above to have run first, and there is no
+follow-up statement to remember.
 
-```bash
-# 8. fill defaults whose measure has only just landed (idempotent; returns the
-#    number of rows filled — 0 once everything has caught up).
-supabase db query --linked "select ingredient_default_measure_backfill();"
-```
+`ingredient.default_measure_id` and `ingredient_default_measure_backfill()`
+stay in the database for one release, **unread by every client** from the
+piece-weight migration onward. Do not run the old backfill against a
+piece-weight stack: it writes a column nothing looks at.
 
-It fills nulls only and never removes, so it is safe to re-run after any
-template reseed. Its curation list is a snapshot frozen in `0023`; the source
-of truth is `supabase/seed/curation_overrides.jsonl` (kind `default_measure`),
-which the reseed applies to the template through `seed_curation.sql`.
+**The template's changed default units do not reach existing households.**
+A reseed re-materializes the template's `default_unit` (and with it which rows
+are `piece`-default at all), and neither the ingredient rollout nor the
+measures script carries a default unit across — `allowed_units` and
+`default_unit` on a live household's row are that household's own statement
+(ADR-0009 rule 3). So a row the reseed re-defaults on the template keeps its
+old default on the household, and a household row left `piece`-default with no
+weight is the **stranded default** the flesh-out form flags and refuses to save
+until somebody types a number or switches the unit. That is by design: it is
+one row at a time, in front of a person, rather than a script re-deciding how a
+household buys a thing.
 
 **Interplay between the three scripts: none — each owns one table or column.**
 The

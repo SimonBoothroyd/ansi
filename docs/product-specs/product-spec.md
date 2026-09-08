@@ -173,8 +173,8 @@ An `ingredient_measure` row names one countable thing and says what it weighs:
     flag on the widget: in the **quantity sheet** the host writes on tap and
     the verb is *Save*; on the **flesh-out form** the host adds to a draft,
     the verb is *Add*, and nothing reaches the database until one Save
-    applies the row, its measures, its density, its aliases and "Counts as"
-    in a single transaction.
+    applies the row, its measures, its density, its piece weight and its
+    aliases in a single transaction.
 - **No unique label index** (0011, the shopping-entry doctrine): two offline
   devices adding the same label must never fail upload — duplicate live
   `(ingredient_id, label)` rows merge deterministically on read (oldest row
@@ -183,42 +183,37 @@ An `ingredient_measure` row names one countable thing and says what it weighs:
   (nullable FKs) quantify a line in a measure ("2 × potato, large"); the
   quantity surface offers an ingredient's live measures as chips beside its
   honest unit set (`allowedUnitChoicesFor`).
-- **`piece` is the fallback, and it is an admission fact**
-  ([ADR-0010](../decisions/0010-piece-is-an-admission-fact.md)): it means "a
-  whole one of these, and we have nothing better to call it", so where an
-  ingredient carries an appropriate piece-type measure `piece` is simply not in
-  its `allowed_units` and is never offered — nothing at runtime ever has to
-  guess whether a `piece` meant a clove or a medium one. Which rows those are
-  is **decided by hand, never derived**: by us for the seeded vocabulary
-  (`supabase/seed/curation_overrides.jsonl`, one reasoned line per row), and by
-  the household for their own rows, asked once in the measures editor the
-  moment they add a row's first measure.
-- **`default_measure_id` says what a bare COUNT of the row MEANS** — "2
-  onions" is two `onion, medium` (migration 0023, plan 0024 seam D1). It is
-  the *second* stated fact per row, the same kind of fact `allowed_units`
-  already is, and it exists because ADR-0010 was right and expensive: taking
-  `piece` off 142 measured rows made every counted-produce line a stop, and
-  the app was asking a question whose answer was already known and the same
-  every time.
-  - **Nullable, and null is a real answer.** Broccoli's `whole`/`spear`/
-    `crown` are three different things and none of them is "a broccoli", so
-    that line keeps its flag and the user picks — the model can say "I don't
-    know", which a rule never can. 141 seeded rows carry a measure: 132 get a
-    default, 9 fragment sets get none, each with its reason in
-    `supabase/seed/curation_overrides.jsonl` (kind `default_measure`).
-  - **Curated, never derived.** The three shapes are *sized family → the
-    `medium`*, *sole count measure → that one*, *fragment set → none*. A rule
-    would put a default on broccoli and take it off `yellow bell pepper`, and
-    would re-decide the whole list on every USDA regeneration.
-  - **Spent once, visibly.** The import review writes it onto a line that
-    named a number and no thing (§5 · Import), and nothing downstream
-    interprets it: no stored line records that it came from here.
-  - Household-owned from the moment the vocabulary clones: the flesh-out
-    form's **"Counts as"** row sets it, "Ask me each time" clears it, and the
-    measures editor's ask-once `piece` question sets it as the second half of
-    the same answer. Soft-deleting the measure clears it. On the form the row
-    records the choice in the draft and one Save commits it with everything
-    else (ADR-0011); in the quantity sheet the same choice is written on tap.
+- **A PIECE WEIGHT is a row fact, exactly as a density is**
+  ([ADR-0015](../decisions/0015-piece-weight-is-a-row-fact.md)).
+  `ingredient.piece_basis_amount` says what **one** of the ingredient weighs, in
+  the row's basis unit; `piece_source` says where the number came from
+  (`manual`, or *borrowed from &lt;label&gt;* where the seed copied a curated
+  size — onion borrows `onion, medium` = 110 g). Density says what a volume of
+  this weighs and unlocks the volume family; a piece weight says what one of
+  this weighs and unlocks `piece`.
+  - **`piece` is admitted iff the default unit is `piece` AND the row has a
+    piece weight.** It is never offered on a row with any other default unit,
+    and the form draws the weight field only while the default unit is `piece`.
+    Setting the number unions `piece` in; clearing it strips `piece` out, the
+    way clearing a density strips the units it granted.
+  - **A `piece` default with no weight is a stranded default**, in the same
+    class as a `cup` default with no density: the form draws the flag with its
+    one-tap fix — *piece needs a weight on this row — enter one below, or switch
+    to g* — and **refuses Save**. Nothing is saveable as `piece`-default
+    unweighed, and nothing at runtime has to decide what a `piece` meant.
+  - **Measures are for every other count word** — a size, a fragment, a
+    container (`onion, small` · `clove` · `can (400 ml)`). Nothing is named
+    after the row, no measure is created on a household's behalf, and no row
+    points at one. A row may honestly carry both: *an unsized onion weighs
+    110 g* and *a medium onion is 110 g* are two statements, the first sourced
+    from the second and free to diverge.
+  - **A count converts like any unit.** The macro engine and the shopping
+    aggregation read a `piece` line through the piece weight the way they read a
+    `cup` line through the density — no read-through rule, no "counted as" note
+    on the line. A bare count on a row with no weight can only be a row created
+    before this model landed; it reads `needs a piece weight`, and that marker
+    opens the *ingredient's* form. One number fixes every bare count of that
+    ingredient in every recipe.
 
 ### Recipe
 A recipe is a title filed under a book and a user-defined section, with a
@@ -257,9 +252,11 @@ its steps.
   disagree.
   - **The refusal NAMES its causes** (plan 0024 seam D5). The count line the
     picker rows print is kept verbatim, and under it the panel lists the
-    lines the total is waiting on — `Cucumber · needs a weight`, `Tofu ·
-    stub ingredient` — capped at four with `+N more`, each one a door to the
-    fix its reason implies. The same reason is drawn **in place** on the
+    lines the total is waiting on — `Dragon fruit · needs a piece weight`,
+    `Tofu · stub ingredient` — capped at four with `+N more`, each one a door
+    to the fix its reason implies; `needs a piece weight` opens the
+    **ingredient's** form, because the missing number is the row's, not the
+    line's. The same reason is drawn **in place** on the
     ingredient row, in the import review's amber, because it is the same
     claim: *this line is why a number is missing.* One helper
     (`incompleteLineNote`) gives every reason one wording, so the panel, the
@@ -370,7 +367,7 @@ go. There is no re-chip — tokenization happens only inside the import call.
     - An **ingredient** entry states the amount of ONE portion
       (`quantity` + `unit`, or a `measure_id` — "1 bar" — with `unit` holding
       the honest count fallback), set with the same quantity sheet every other
-      amount in the app uses, seeded from the row's `default_measure_id`. The
+      amount in the app uses, opened on the row's own default unit. The
       amount columns are refused on a recipe entry, whose amount is its
       `portions`; `quantity`/`unit` are both-or-neither, and an entry that
       states no amount is a real state the surfaces name (`no amount`) rather
@@ -476,25 +473,24 @@ matched to the vocabulary, and what the review commits:
 
 **The review screen** is one always-editable list — the match decides only how
 a line starts, never whether it can be changed:
-- **A line that named a number and no thing arrives on the row's curated
-  default measure, unflagged** (plan 0024 seam D2). "2 red peppers" comes in
-  as `2 × pepper, medium`, the card is clean, Save is not gated, the raw
-  source line stays above it, and the chips stay visible with the default
-  selected — the choice made for you, beside the ones you could make instead.
-  The card says the fact out loud where it is applied: `counts as pepper,
-  medium · 119 g · tap a chip to change`. There is no `inferred` mark, no
-  revert and no provenance on the stored line, because those are a *guess's*
-  apparatus and this is displayed at the point of use. Mechanically the
-  resolution's unit is set to the measure's LABEL — the exact token a tapped
-  chip writes — so the card is clean for the ordinary reason and the commit
-  is byte-for-byte what a tap produces.
-  - **The scope rule, in one sentence: the default answers a line that named
-    a number and no thing; it never overrules a line that named a thing.** It
-    fires on no printed unit, or a count-family unit the row refuses
-    (`piece`). "1 **bunch** cilantro" keeps today's flag — cilantro's default
-    IS `sprig` at 2.22 g and a bunch is about twenty-five of them. A refused
-    `cup` is a *density* gap, not a count gap, and a measure cannot answer it.
-  - A row with **no default** keeps today's flag and its did-you-mean chips.
+- **A line that named a number and no thing is validated as `piece`**
+  ([ADR-0015](../decisions/0015-piece-weight-is-a-row-fact.md)). "2 red peppers"
+  is a `piece` line, and it is clean exactly when the matched row admits
+  `piece` — a `piece` default with a stated piece weight. On a row that does
+  not, it is the **ordinary `unitNotAllowed` gate**: amber, "Pick a supported
+  unit", the row's measures and units as did-you-mean chips, Save held. There
+  is no `inferred` mark, no counts-as line and no revert, because nothing was
+  guessed.
+  - **The review never enters a piece weight.** It is the ingredient's
+    property, not the line's, so the fix is the row's own form — the
+    chosen-ingredient row on the card opens it — or picking another unit or
+    measure chip. A weight typed there admits `piece` for that row and every
+    other bare count of it, everywhere.
+  - **A line that NAMES a thing is never overruled.** "1 **bunch** cilantro"
+    keeps its flag: a bunch is about twenty-five of cilantro's 2.22 g sprigs,
+    and no row fact answers a word the vocabulary does not carry. A refused
+    `cup` is a *density* gap and a refused count is a *piece weight* gap; each
+    names the number it wants.
 - **The header is the editor's** (plan 0025 #4, board frames a/b): TITLE ·
   SERVES · MAKES (both denominations) · TIMES · SHELF LIFE · FILE UNDER are
   the recipe editor's own `RecipeHeaderForm`, rendered over a header draft

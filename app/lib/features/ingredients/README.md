@@ -46,7 +46,7 @@ the pop, so the quantity sheet that follows offers the units the form just set.
 
 **Nothing is written until Save** ([ADR-0011](../../../../docs/decisions/0011-one-save-one-write.md)).
 The form holds everything it intends — the row's fields, the density, the
-measures added and removed, the aliases, what a bare count means, and whether
+measures added and removed, the aliases, the piece weight, and whether
 to mark the row complete — as one `IngredientFormEdit`, and `saveForm` applies
 the lot in a single transaction. `saveForm(null, …)` creates the row and its
 children together. Two consequences the surfaces depend on:
@@ -110,7 +110,7 @@ whose `source` is a lookup stamp (`isLookupFilled`: `usda_fdc:<id>` or
 `off:<barcode>`). Nothing server-side writes it; there is no trigger.
 
 The fence is the design: a rename, a unit toggle, a category, a measure, an
-alias, "Counts as" and `Mark complete` do not contradict the source, so none
+alias and `Mark complete` do not contradict the source, so none
 of them may set it, and a save that only touches those leaves the stored value
 alone in both directions. A **fresh pick clears it** — the numbers are the new
 food's — and so does *Not this food*, which leaves no numbers to have
@@ -179,6 +179,9 @@ ingredients/
     unit_chips.dart             UnitChipRow/UnitChip, the shared unit dock
     density_entry.dart          "1 [tbsp] weighs [__] g" on one row; folds
                                 to "0.13 g/ml · change" once stated. Shared
+    piece_weight_entry.dart     "1 piece weighs [__] g" — the same sentence
+                                shape for the count fact; drawn only on a
+                                piece-default row. Shared by both hosts
     macros_format.dart          the per-100 macro line
   barcode/        the scan → lookup → draft module
     barcode_add.dart      scanBarcodeForDraft(context) — the ONLY public door
@@ -220,15 +223,26 @@ ingredients/
   the write, naming the unit, the basis and both ways out — a density below,
   or the basis family's own unit. Nothing is rewritten silently: how a
   household buys a thing is a statement, so the person picks.
-- **A bare count means the row's stated measure**
-  ([ADR-0010](../../../../docs/decisions/0010-piece-is-an-admission-fact.md)),
-  on the entry surface as well as on the import review. `QuantityUnitEditor`
-  seeds its choice from `defaultMeasureId` when the caller names none and the
-  measure is live on this device, so adding garlic opens on `clove`. It is a
-  seed, not a pick: `unitPicked` stays false, an `initialChoice` always wins,
-  and an unsynced default leaves the seed alone rather than offering a
-  different measure. One rule, two surfaces — `arrivalMeasure` in
-  `import/domain/line_validation.dart` is the other implementation of it.
+  **`piece` is the same rule with the other number** (ADR-0015): a `piece`
+  default with no piece weight is stranded, reads *piece needs a weight on this
+  row — enter one below, or switch to g*, and refuses Save the same way. Only a
+  row created before that ruling can already be in that state.
+- **A piece weight is a row fact, and it is what admits `piece`**
+  ([ADR-0015](../../../../docs/decisions/0015-piece-weight-is-a-row-fact.md)).
+  `piece_basis_amount` is what **one** of the row weighs, in its basis unit;
+  `piece_source` says whether a person typed it or the seed borrowed it from a
+  curated size. `piece` is admitted **iff the default unit is `piece` and the
+  row states a weight** — never on a row with any other default unit — so
+  setting the number unions `piece` in and clearing it strips `piece` out,
+  exactly as `setDensity` / `clearDensity` do for the other family. Nothing is
+  curated off a row and no measure is pointed at: measures stay the words for
+  sizes, fragments and containers.
+  - **On the form**, `PieceWeightEntry` sits beside `DensityEntry` and is drawn
+    only while the default unit is `piece`. It reports intent like every other
+    shared editor (ADR-0011); the form's Save lands it with the rest.
+  - **In the quantity sheet's manage state** the same editor writes on tap,
+    because that host has no Save — so the `piece` chip appears the moment a
+    weight is entered.
 - **A rename rewrites `match_text`** through `normalizeMatchText` in the same
   statement. The server writes `match_text` with the phrase rules; the app must
   write the same ones, or a locally created row carries text the next import's

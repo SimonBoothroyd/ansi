@@ -35,7 +35,7 @@ A closed set of catalog units in four families:
 |---|---|---|---|
 | `mass` | g, kg, oz, lb | into **grams** | within family; to volume only via density |
 | `volume` | ml, l, tsp, tbsp, fl_oz, cup, pt, qt | into **ml** | within family; to mass only via density |
-| `count` | piece | none | only to itself |
+| `count` | piece | into the **basis unit** | within family; to mass/volume only via the row's piece weight |
 | `imprecise` | pinch, dash, to_taste | none | never; never scales (`scale()` returns it unchanged) |
 
 `convert()` returns a typed `Result` — a missing density or an incompatible
@@ -80,6 +80,59 @@ typeable exactly as a different pick in the same row. A volume-named
 weight mapping **is** a density, so volume-named measures never exist as
 measures — the add-measure form redirects "cup" into the density field
 (`volumeUnitFromLabel` / `DensityEntry`).
+
+### What a count means (ADR-0015)
+
+A count is bridged by the **same shape of fact** as a volume, and by nothing
+else. Three row facts, and what each one lets a line say:
+
+| fact | on the row | a line may then say | stated by |
+|---|---|---|---|
+| **density** | `density_g_per_ml` | `tsp · tbsp · cup · ml · …` — the other mass/volume family, whole | USDA, a pack, a spoon weighed |
+| **piece weight** | `piece_basis_amount` (+ `piece_source`) | `piece` — "2 dragon fruit" | the household; or the seed, borrowed from a curated size |
+| **a measure** | an `ingredient_measure` row | that word — "3 clove", "1 onion, small", "2 can" | a USDA portion, borrowed, typical, or yours |
+
+`piece_basis_amount` is what **one** of the ingredient weighs, in the row's
+basis unit — the same denomination `basis_amount` uses, so nothing new has to
+know about bases. `piece_source` records where the number came from: `manual`,
+or *borrowed from &lt;label&gt;* where the seed copied a curated size (onion
+borrows `onion, medium` = 110 g).
+
+The rules, each of them the density rule read for a count:
+
+- **`piece` is admitted iff the default unit is `piece` and the row has a piece
+  weight.** It is never offered on a row with any other default unit, and the
+  form draws the piece-weight field only while the default unit is `piece`.
+  Setting the weight unions `piece` in; clearing it strips `piece` back out
+  (ADR-0009's D4b removal leg, on the other number).
+- **A `piece` default with no weight is a stranded default**, in the same class
+  as a `cup` default with no density (D4c). The form flags it with its one-tap
+  fix — *piece needs a weight on this row — enter one below, or switch to g* —
+  and refuses Save. So a row cannot be saved as `piece`-default unweighed.
+- **`convert()` bridges a `piece` through the piece weight** the way it bridges
+  a `cup` through the density: `2 piece × 350 g = 700 g`. No read-through rule,
+  no "counted as" annotation on the line, nothing downstream deciding what a
+  `piece` meant.
+- **The import review never enters a piece weight** — it is the ingredient's
+  property, not the line's. A counted line on a row that does not admit `piece`
+  is the ordinary `unitNotAllowed` gate; the fix is the row's own form (the
+  chosen-ingredient row on the card opens it) or another unit/measure chip. A
+  counted line with **no printed unit** is validated as `piece`, so it meets the
+  same gate rather than one of its own.
+- **A measure is for every other count word** — a size, a fragment, a container.
+  Nothing is named after the row, and no measure is created on a household's
+  behalf.
+
+A row can honestly carry both: onion's piece weight is 110 g *and* its
+`onion, medium` measure is 110 g. Those are two statements — *an unsized onion
+weighs 110 g*, and *a medium onion is 110 g* — the first sourced from the
+second, and free to diverge the moment a household disagrees.
+
+A line that says a bare count on a row with **no** piece weight can only be a
+row created before this model landed. The macro engine names it as
+`needs a piece weight`, and that marker opens the *ingredient's* form: one
+number fixes every bare count of that ingredient in every recipe, the way one
+density fixes every `cup` line.
 
 ---
 
@@ -300,6 +353,7 @@ honest unit to round to).
 | **Amount / quantity** | same sheet | the quantity field (nullable — "to taste" is allowed) |
 | **Add / delete a measure** | manage state of the sheet (`_MeasureManager`), **and the ingredients manager's flesh-out form**, which embeds that same editor (8.5/F2) | `addMeasure` (saved `manual`), `softDeleteMeasure` |
 | **Density** | manage state (`DensityEntry`, `density_entry.dart`) — again shared verbatim by the flesh-out form | g/ml or "a spoon weighs N g"; unlocks the other family live |
+| **Piece weight** | the flesh-out form's `PieceWeightEntry`, beside `DensityEntry`, and the same editor in the sheet's manage state | "1 piece weighs N g" in the row's basis unit; unlocks `piece` live, and clearing it locks `piece` again (ADR-0015) |
 | **Which units are _admitted_** (`allowed_units`) | the **ingredients manager**'s flesh-out form, `/ingredients/:id` (step 8.5) — the form ADR-0008 §Consequences promised, deferred to step 8, and finally built one step later | explicit jsonb list on `ingredient`, materialized at creation, now **directly editable as chips** on that form; a density save still extends it on its own (`densityUnlockedUnits`), and deleting the density strips that half back (D4b) |
 
 The picker itself is honest by construction: `allowedUnitChoicesFor` offers
@@ -519,5 +573,7 @@ Re-traced 2026-08-31. Two of the four are now **closed**; two stand.
 - Normalize & match — `supabase/functions/_shared/normalize.ts`, `match.ts`,
   `match_db.ts`
 - Gold conventions — `evals/datasets/extraction/gold/_SCHEMA.md`
-- Decisions — `docs/decisions/0008-unit-admission-model.md` (the model) and
-  `docs/decisions/0014-all-to-all-admission.md` (a family is admitted whole)
+- Decisions — `docs/decisions/0008-unit-admission-model.md` (the model),
+  `docs/decisions/0014-all-to-all-admission.md` (a family is admitted whole) and
+  `docs/decisions/0015-piece-weight-is-a-row-fact.md` (a piece weight unlocks
+  `piece`)
