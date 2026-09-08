@@ -258,9 +258,7 @@ void main() {
     // The form followed: the line names the new food, the fields carry
     // its numbers.
     expect(
-      find.textContaining(
-        'Curry leaves, dried · matches every word',
-      ),
+      find.textContaining('Curry leaves, dried · matches every word'),
       findsOneWidget,
     );
     expect(macroFieldText(tester, 'kcal'), '300');

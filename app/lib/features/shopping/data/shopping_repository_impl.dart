@@ -710,15 +710,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
       'INSERT INTO shopping_list_entry '
       '(id, household_id, free_text, category, checked, week_start_date, '
       'created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?, ?)',
-      [
-        _uuid.v4(),
-        _householdId,
-        text,
-        category,
-        _weekKey(weekStart),
-        now,
-        now,
-      ],
+      [_uuid.v4(), _householdId, text, category, _weekKey(weekStart), now, now],
     );
   }
 
