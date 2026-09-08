@@ -11,7 +11,9 @@
 /// - **Provenance becomes `off:<barcode>` only where the row had none.**
 ///   `manual` counts as none: it is the stamp for "nobody looked anything up",
 ///   which is exactly what a scan has just changed. A USDA id or `seed` is a
-///   source and stays.
+///   source and stays. The stamp travels with a **name for the pack**
+///   ([DraftApplication.sourceLabel]), because a barcode is a key and nobody
+///   reads keys.
 /// - **Nothing here confirms the row**. The application is values for fields;
 ///   `status` is untouched and the human confirms.
 /// - **A pack size is an OFFER, never a write.** The draft's "400 ml" becomes
@@ -94,6 +96,7 @@ class DraftApplication {
     this.macrosBasis,
     this.servingPanel,
     this.source,
+    this.sourceLabel,
     this.packMeasure,
   });
 
@@ -118,6 +121,13 @@ class DraftApplication {
 
   /// The provenance to write (`off:<barcode>`), or null to keep the stored one.
   final String? source;
+
+  /// What to call the pack the [source] stamp points at — the row's
+  /// `source_label`, so a scanned row can name its food the way a USDA-filled
+  /// one names its description. Set only with [source]; null where the draft
+  /// named neither a brand nor a product, which means **no line** rather than
+  /// a name assembled out of nothing.
+  final String? sourceLabel;
 
   /// The pack size, offered — see [PackMeasureOffer]. Null when the draft has
   /// none or it cannot be bridged into the basis honestly.
@@ -162,11 +172,13 @@ DraftApplication applyDraft(
   // Only a barcode draft that actually found something carries a source
   // worth stamping; the not-found exit's `manual` says nothing new.
   String? source;
+  String? sourceLabel;
   if (draft.source == DraftSource.barcode && draft.barcode != null) {
     if (hasLookupProvenance(target.source)) {
       skipped.add(DraftSkip.provenance);
     } else {
       source = draft.sourceValue;
+      sourceLabel = packLabel(draft);
     }
   }
 
@@ -181,11 +193,35 @@ DraftApplication applyDraft(
     macrosBasis: macrosBasis,
     servingPanel: servingPanel,
     source: source,
+    sourceLabel: sourceLabel,
     packMeasure: packAmount == null
         ? null
         : PackMeasureOffer(amountInBasis: packAmount, basis: keptBasis),
     skipped: skipped,
   );
+}
+
+/// What to call the pack a barcode draft came from, or null when Open Food
+/// Facts named neither a brand nor a product.
+///
+/// The brand and the product name, in the order a shelf prints them —
+/// "Kraft mac & cheese". Either alone stands on its own; **neither is not a
+/// name**, and null is the honest answer, because the alternative is a row
+/// whose provenance reads as a name nobody ever wrote. Nothing is re-cased or
+/// re-worded: what the pack says is evidence, the same reason
+/// [IngredientDraft.suggestedName] copies it verbatim.
+///
+/// A product name that already opens with its brand — "Monster Energy" by
+/// "Monster" — does not get it a second time. OFF's contributors put the brand
+/// in both fields often enough that the doubled reading would be the common
+/// one, not the exception.
+String? packLabel(IngredientDraft draft) {
+  final brand = draft.brand?.trim() ?? '';
+  final product = draft.productName?.trim() ?? '';
+  if (product.isEmpty) return brand.isEmpty ? null : brand;
+  if (brand.isEmpty) return product;
+  if (product.toLowerCase().startsWith(brand.toLowerCase())) return product;
+  return '$brand $product';
 }
 
 /// Whether [source] records that something looked this row up — anything but

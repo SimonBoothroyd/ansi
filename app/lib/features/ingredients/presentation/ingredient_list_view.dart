@@ -278,7 +278,14 @@ class _StubBand extends StatelessWidget {
                           'needs macros'
                         else
                           'needs completing',
-                        if (isUsdaPrefilled(s.source)) 'usda prefilled',
+                        // WHICH machine filled it — the band is a work queue,
+                        // so the tag says what kind of fill is waiting for a
+                        // human. The food's own name is on the row below, and
+                        // no key of either kind is printed anywhere.
+                        if (isUsdaPrefilled(s.source))
+                          'usda prefilled'
+                        else if (isBarcodeFilled(s.source))
+                          'barcode prefilled',
                       ].join(' · '),
                       style: ansiMono(size: 10, color: AnsiColors.muted),
                     ),

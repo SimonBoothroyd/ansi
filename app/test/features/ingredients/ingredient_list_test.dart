@@ -183,6 +183,20 @@ void main() {
       expect(find.textContaining('usda_fdc'), findsNothing);
     });
 
+    testWidgets('a SCANNED row names its pack the same way, and the band tags '
+        'it barcode — no code is printed anywhere', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(FakeIngredientRepo(const [mango, scannedSpread])),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('barcode · Ferrero Nutella'), findsOneWidget);
+      expect(find.text('needs macros · barcode prefilled'), findsOneWidget);
+      expect(find.textContaining('3017620422003'), findsNothing);
+    });
+
     testWidgets('search results carry it too — the manager’s rows are one '
         'row, whichever branch drew them', (tester) async {
       filterForuiSemanticsAssertions();

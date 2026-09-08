@@ -108,10 +108,17 @@ The column list is generated from the migrations —
   names a household calls a row (`ingredient_alias.alias`, per household,
   soft-deleted like everything else); the matcher searches them beside the
   canonical name.
-- **`source_label` / `source_score` say which food the numbers came from.**
-  When a person picks a USDA food, the pick stores that food's description
-  and the query's coverage of it alongside `source = usda_fdc:<id>`, so the
-  form can name the food offline and say how well it fits the name typed.
+- **`source_label` says which food the numbers came from, by name.**
+  `source` holds a key — an FDC id, a barcode — and no screen ever prints one;
+  `source_label` is what a person reads. A USDA pick stores that food's
+  description alongside `source = usda_fdc:<id>`; a barcode scan stores the
+  pack's brand and product name alongside `source = off:<barcode>`, and stores
+  nothing where Open Food Facts named neither, because no label means the row
+  says nothing rather than inventing a name. `source_score` is the USDA half of
+  it — the query's coverage of the matched description, so the form can say how
+  well the food fits the name typed. A scan is an exact-key fetch and carries
+  no score. Both are written offline-first, so the form and the lists print
+  them with no network.
 - `source` is **provenance, and it is load-bearing**: `seed` (the template
   vocab), `manual` (typed in the picker or the manager), `import_stub` (created
   at an import commit), `usda_fdc:<id>` (a food picked from the USDA search),

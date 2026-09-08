@@ -497,7 +497,17 @@ class IngredientForm extends _$IngredientForm {
     if (applied.name case final scanned?) {
       next = next.copyWith(name: scanned, nameSeed: next.nameSeed + 1);
     }
-    state = next.copyWith(pendingSource: applied.source ?? next.pendingSource);
+    // A stamp travels with the name of the pack it points at, and with NO fit
+    // score: a scan is an exact-key fetch, so there is no coverage of the typed
+    // name to report and a stale one would describe a food that is no longer
+    // the row's. A draft that stamps nothing leaves all three alone.
+    state = applied.source == null
+        ? next
+        : next.copyWith(
+            pendingSource: applied.source,
+            pendingSourceLabel: applied.sourceLabel,
+            pendingSourceScore: null,
+          );
   }
 
   /// A USDA pick. **It writes nothing** — it fills the draft with the macros,

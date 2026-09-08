@@ -753,9 +753,7 @@ void main() {
       // line and its doors are the way the match changes from here.
       expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
       expect(
-        find.textContaining(
-          'Curry leaves, raw · FDC 11216 · matches only part of ',
-        ),
+        find.textContaining('Curry leaves, raw · matches only part of '),
         findsOneWidget,
       );
       expect(find.text('Look up in USDA'), findsNothing);

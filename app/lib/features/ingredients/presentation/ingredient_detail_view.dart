@@ -33,13 +33,19 @@
 /// in the same save. A barcode draft whose panel came per serving lands on that
 /// mode.
 ///
-/// The form also **names the USDA match** at the head of that section — the
-/// food's description, its FDC id and how much of the name it answers, read off
-/// the row's own `source_label` / `source_score` so it is true offline — with
-/// two doors beside it: *Not this food* (the prefilled density and macros come
-/// out and `source` becomes `usda_declined`) and *Choose another ▸* (the next
-/// candidates, a pick landing in the draft like any other edit). Neither
-/// confirms anything.
+/// The form **names the food behind the numbers** at the head of that section,
+/// read off the row's own `source_label` / `source_score` so it is true
+/// offline. A USDA pick gets a card — the food's description and how much of
+/// the typed name it answers, with two doors beside it: *Not this food* (the
+/// prefilled density and macros come out and `source` becomes `usda_declined`)
+/// and *Choose another ▸* (the next candidates, a pick landing in the draft
+/// like any other edit). Neither confirms anything. A barcode scan gets the
+/// name alone, on one line: there is no match to refuse or re-choose.
+///
+/// Neither says the id inside the stamp. An FDC number and a GTIN are keys into
+/// databases the person holding the phone does not have; the card falls back to
+/// the FDC id only on a row that carries no label at all, where it is the one
+/// true thing left to say.
 library;
 
 import 'dart:async';
@@ -522,6 +528,8 @@ class _DetailForm extends ConsumerWidget {
                       ),
                 onChooseAnother: busy ? null : pickUsda,
               ),
+              // The same fact for a scanned row, with no doors to offer.
+              _BarcodeProvenance(ingredient: ing),
 
               const _Label('MACROS', hint: 'enter them as the label reads'),
               // One segment, in the section it changes. Per 100 of the basis is
@@ -734,26 +742,30 @@ class _DetailForm extends ConsumerWidget {
 
 // --- Sections ----------------------------------------------------------------
 
-/// The USDA provenance line (board frames a and b): which food filled this row,
-/// how sure the match was, and the two doors.
+/// The USDA provenance card: which food filled this row, how well it fits the
+/// name, and the two doors.
+///
+/// **It names the food, never its number.** A person recognises "Curry leaves,
+/// raw"; `FDC 11216` is a key into a database they are not holding, and a card
+/// that leads with it asks them to be a lookup table. The id appears in exactly
+/// one place — a row whose `source_label` is empty, filled before the label was
+/// written down — because there is then nothing else true to say about which
+/// food this was.
 ///
 /// Read off the row's own `source_label` / `source_score`, never off a live
 /// probe — the form is offline-first, and after a rename a fresh probe would
-/// name a different food than the one that actually filled the row. A row
-/// filled before 0027 carries a stamp and no label; it reads as the FDC id
-/// alone rather than inventing a name. Nothing here confirms (U-D4): the
-/// header says *not confirmed* until a human taps Confirm below.
+/// name a different food than the one that actually filled the row. Nothing
+/// here confirms: the header says *not confirmed* until a human taps Confirm
+/// below.
 ///
 /// Three states, one widget, because they are the same fact at three moments:
-/// - **prefilled** (`usda_fdc:<id>`): the name, the id, how much of the
-///   name the food answers, and
-///   both doors;
-/// - **edited** (`source_edited`, migration 0034): the same food, still named,
-///   still carrying its id — plus one line saying WHAT was overridden (your
-///   macros / your density / both). It is **provenance, not a warning**:
-///   muted, never amber. Amber is spent on an unconfirmed machine fill, where
-///   there is something to do; here there is nothing to fix, only something
-///   to know;
+/// - **prefilled** (`usda_fdc:<id>`): the food's name, how much of the typed
+///   name it answers, and both doors;
+/// - **edited** (`source_edited`, migration 0034): the same food, still named
+///   — plus one line saying WHAT was overridden (your macros / your density /
+///   both). It is **provenance, not a warning**: muted, never amber. Amber is
+///   spent on an unconfirmed machine fill, where there is something to do; here
+///   there is nothing to fix, only something to know;
 /// - **declined** (`usda_declined`, after *Not this food*): the refused
 ///   name, what the undo did, and *Choose another* alone — plus the one
 ///   sentence a person needs to hear once, that a rename will not refill it.
@@ -800,8 +812,12 @@ class _UsdaProvenance extends StatelessWidget {
           ? 'Filled from USDA · edited here'
           : 'Filled from USDA · ${stub ? 'not confirmed' : 'confirmed'}';
       line = [
-        ?label,
-        'FDC ${usdaFdcId(source) ?? '?'}',
+        // The id is the last resort, not a caption: a row that can name its
+        // food says the name and nothing else.
+        if (label != null && label.isNotEmpty)
+          label
+        else
+          'FDC ${usdaFdcId(source) ?? '?'}',
         if (score != null) UsdaMatchFit.of(score).phraseFor(name),
       ].join(' · ');
     }
@@ -883,6 +899,44 @@ class _UsdaProvenance extends StatelessWidget {
               'renaming this row will not refill it — you said no once',
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// What a barcode scan filled this row from, in one line and nothing more.
+///
+/// A stored `off:<barcode>` row is otherwise mute about its own provenance: the
+/// scan's result card belongs to the scan, and reopening the form a week later
+/// showed no trace of which pack the numbers came off. The code itself is not
+/// an answer — it is a key, and the person who scanned it cannot read it back.
+/// So the pack gets **named**, from the row's own `source_label`.
+///
+/// A line, not a card: the USDA doors have no counterpart here. There is no
+/// short-list to choose again from, and *Not this food* undoes a match — a
+/// barcode is not a match, it is the thing itself. What is left is the one fact
+/// worth carrying, and `edited ·` leads it on a row whose numbers a human has
+/// since overridden, exactly as it leads the list's line.
+///
+/// **No label, no line.** A row stamped before the label was written says
+/// nothing rather than printing its barcode at somebody.
+class _BarcodeProvenance extends StatelessWidget {
+  const _BarcodeProvenance({required this.ingredient});
+
+  final Ingredient ingredient;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = ingredient.sourceLabel;
+    if (!isBarcodeFilled(ingredient.source) || label == null || label.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Text(
+        '${ingredient.sourceEdited ? 'edited · ' : ''}Filled from a barcode · '
+        '$label',
+        style: ansiMono(size: 10, color: AnsiColors.muted),
       ),
     );
   }

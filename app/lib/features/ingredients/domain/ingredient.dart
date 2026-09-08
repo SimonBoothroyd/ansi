@@ -51,24 +51,28 @@ abstract class Ingredient with _$Ingredient {
     @Default(0) int measureCount,
 
     /// The row's provenance stamp (`seed`, `manual`, `import_stub`,
-    /// `usda_fdc:<fdc_id>` for a USDA pick, or [usdaDeclinedSource] for a
-    /// person's "not this food"). Shown, never interpreted as truth: it says
-    /// where the numbers came from, and a machine-supplied one still waits for
-    /// a human confirm. Null on a row read by a caller that didn't select it.
+    /// `usda_fdc:<fdc_id>` for a USDA pick, `off:<barcode>` for a scan, or
+    /// [usdaDeclinedSource] for a person's "not this food"). Shown, never
+    /// interpreted as truth: it says where the numbers came from, and a
+    /// machine-supplied one still waits for a human confirm. Null on a row read
+    /// by a caller that didn't select it.
     String? source,
 
-    /// The name of the USDA food the row was filled from —
-    /// `usda_food.description`, written beside [source] so the form can say
-    /// WHICH food filled the row, offline. Survives a decline: the form names
-    /// the food that was refused. Null on rows filled before migration 0027 and
-    /// on rows nothing filled.
+    /// The food the row was filled from, **named** — `usda_food.description`
+    /// for a pick, the pack's brand and product name for a scan — written
+    /// beside [source] so every surface can say WHICH food filled the row,
+    /// offline. It is what the ids in [source] are for a reader: the stamp is a
+    /// key, this is the answer. Survives a decline, so the form can name the
+    /// food that was refused. Null on rows filled before the column existed and
+    /// on rows nothing filled, and null is a real answer — a surface then says
+    /// nothing rather than inventing a name.
     String? sourceLabel,
 
     /// How much of the query the matched food's description covered, 0..1 —
     /// the idf-weighted coverage `probe_usda` returns, not a graded confidence.
     /// Stored so `UsdaMatchFit` reads the same offline as it did online. Shown,
-    /// never acted on. Null where [sourceLabel] is null, and cleared by a
-    /// decline.
+    /// never acted on. A USDA fact only: a scan matches nothing, so a barcode
+    /// row carries a [sourceLabel] and no score. Cleared by a decline.
     double? sourceScore,
 
     /// Whether a human has overridden the numbers the lookup filled in
@@ -94,7 +98,7 @@ abstract class Ingredient with _$Ingredient {
 /// `import_stub`, [usdaDeclinedSource] and a null all carry no such claim, and
 /// a row wearing one is never flagged.
 bool isLookupFilled(String? source) =>
-    isUsdaPrefilled(source) || (source?.startsWith('off:') ?? false);
+    isUsdaPrefilled(source) || isBarcodeFilled(source);
 
 /// The one line the ingredients list and the import review's identity cell
 /// print under a machine-filled row's name, or null
@@ -103,19 +107,31 @@ bool isLookupFilled(String? source) =>
 /// One rule, two surfaces — rendering it twice in two places is how the same
 /// row starts telling two stories. Deliberately absent from the ingredient
 /// **picker**: that is a search surface, and a description under every row is
-/// noise while you are typing (A-D2).
+/// noise while you are typing.
 ///
-/// **No description, no line** (A-D4): a row filled before migration 0027
-/// carries a stamp and no label, and it says nothing rather than inventing a
-/// name — the same rule the form's provenance card holds. A declined row says
-/// nothing either: its numbers are gone, so there is no fill to name.
+/// The word before the label is **where the name came from**, not what the
+/// stamp encodes: `usda · «description»` for a pick, `barcode · «brand and
+/// product»` for a scan. Neither prints the key inside the stamp — an FDC id
+/// and a GTIN are lookups into databases the reader does not have.
+///
+/// **No label, no line**: a row filled before the label column existed carries
+/// a stamp and no name, and it says nothing rather than inventing one — the
+/// same rule the form's provenance card holds. A declined row says nothing
+/// either: its numbers are gone, so there is no fill to name.
 String? sourceProvenanceLine(Ingredient ingredient) {
   final label = ingredient.sourceLabel;
   if (label == null || label.isEmpty) return null;
-  if (!isUsdaPrefilled(ingredient.source)) return null;
+  final String kind;
+  if (isUsdaPrefilled(ingredient.source)) {
+    kind = 'usda';
+  } else if (isBarcodeFilled(ingredient.source)) {
+    kind = 'barcode';
+  } else {
+    return null;
+  }
   // `edited ·` LEADS the line, so a scan down the list shows which rows are no
   // longer the machine's before it shows whose food they were.
-  return '${ingredient.sourceEdited ? 'edited · ' : ''}usda · $label';
+  return '${ingredient.sourceEdited ? 'edited · ' : ''}$kind · $label';
 }
 
 /// Whether [source] marks a row filled from USDA — `usda_fdc:<fdc_id>`.
@@ -128,6 +144,14 @@ String? sourceProvenanceLine(Ingredient ingredient) {
 bool isUsdaPrefilled(String? source) =>
     source?.startsWith('usda_fdc:') ?? false;
 
+/// Whether [source] marks a row filled from a barcode scan — `off:<barcode>`.
+///
+/// Like a USDA stamp it means **a person scanned that pack**; and like one, the
+/// code inside it is never what a surface prints. What the row says out loud is
+/// [Ingredient.sourceLabel] — the brand and product name the scan wrote beside
+/// the stamp.
+bool isBarcodeFilled(String? source) => source?.startsWith('off:') ?? false;
+
 /// The `source` a person's *Not this food* leaves behind.
 ///
 /// Its own value rather than a reset to `manual`, because it is how a row says
@@ -138,8 +162,12 @@ const usdaDeclinedSource = 'usda_declined';
 /// Whether [source] is [usdaDeclinedSource].
 bool isUsdaDeclined(String? source) => source == usdaDeclinedSource;
 
-/// The FDC id inside a `usda_fdc:<id>` stamp, or null for any other
-/// [source] — the number the provenance line prints beside the food's name.
+/// The FDC id inside a `usda_fdc:<id>` stamp, or null for any other [source].
+///
+/// A **fallback name**, not a caption: no surface prints it beside the food's
+/// own name, because a reader has no FoodData Central to look it up in. The
+/// form's provenance card falls back to it only on a row that carries no
+/// [Ingredient.sourceLabel], where it is the one true thing left to say.
 int? usdaFdcId(String? source) {
   if (source == null || !isUsdaPrefilled(source)) return null;
   return int.tryParse(source.substring('usda_fdc:'.length));
