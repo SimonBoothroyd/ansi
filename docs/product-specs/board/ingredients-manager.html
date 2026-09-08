@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredients manager</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../exec-plans/completed/0020-ingredients-manager.md">plan 0020</a> · <a href="../../decisions/0005-two-tier-vocabulary.md">ADR-0005</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a></p>
+    <p class="view-status">built · matches code 2026-09-08 · <code>features/ingredients</code> · <a href="../../exec-plans/completed/0020-ingredients-manager.md">plan 0020</a> · <a href="../../decisions/0005-two-tier-vocabulary.md">ADR-0005</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a></p>
     <p class="view-blurb">The whole vocabulary, one pushed screen: what still needs filling in, then every row — each saying what it can convert and what it is missing.</p>
 </header>
 
@@ -26,14 +26,15 @@
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">‹</span><span class="ttl">Ingredients</span><span class="dots">＋</span></div>
                 <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Search your vocabulary</span><span class="care"></span></div></div>
-                <div class="fq"><div class="fq-title"><span class="n">Needs fleshing out</span><span class="c">3 stubs</span></div>
+                <div class="fq"><div class="fq-title"><span class="n">Needs fleshing out</span><span class="c">4 stubs</span></div>
                     <div class="stub"><span class="sn">Curry leaves, fresh</span><span class="need">needs <span>macros</span></span></div>
                     <div class="stub"><span class="sn">Tamarind paste</span><span class="need"><span>needs completing</span> · usda prefilled</span></div>
+                    <div class="stub"><span class="sn">Kraft mac &amp; cheese</span><span class="need"><span>needs completing</span> · barcode prefilled</span></div>
                     <div class="stub"><span class="sn">Fenugreek</span><span class="need">needs <span>macros</span></span></div>
                 </div>
                 <p class="rc-note">Until a stub carries macros it stays out of macro totals — the honest-numbers rule, unchanged. A missing <b style="color:var(--ink)">density</b> no longer blocks completion: it only leaves the volume chips locked.</p>
                 <p class="stub-foot">A stub stays out of macro totals until you confirm it.</p>
-                <p class="conv-note" style="margin-top:8px">two different sentences, not one. A bare stub <b>needs macros</b> — nothing has filled it in. One that has numbers nobody has said yes to <b>needs completing</b>, and says where they came from. Reading “needs macros” over a row full of macros is the band lying about its own contents</p>
+                <p class="conv-note" style="margin-top:8px">two different sentences, not one. A bare stub <b>needs macros</b> — nothing has filled it in. One that has numbers nobody has said yes to <b>needs completing</b>, and the tag says <i>which</i> machine put them there — <b>usda prefilled</b> or <b>barcode prefilled</b>. The band is a work queue, so it names the kind of fill waiting for a human; the food’s own name is on the row below, and no id or code is printed either place. Reading “needs macros” over a row full of macros is the band lying about its own contents</p>
                 <p class="list-h">All ingredients · 319</p>
                 <div class="res-row">
                     <div style="flex:1;min-width:0"><div class="res-nm">Almond flour</div>
@@ -59,13 +60,13 @@
                         <span class="res-cat">Pantry · no density — volume units locked</span>
                         <div class="mline">385 kcal · 50P 5F 36C <span class="per">/100 g</span></div></div>
                     <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
-                <div class="addnew">＋ add an ingredient — by hand, or scan a barcode</div>
+                <div class="addnew">add an ingredient — by hand, or scan a barcode</div>
                 <p class="conv-note">a pushed route, so no bottom nav. Searching replaces the band and the list with flat rows, and a miss says <b>No match for "…"</b> and nothing else</p>
             </div></div>
         </div>
 
     <div class="frame">
-        <p class="frame-name"><b>The source, on the row</b> · a wrong match is caught in the scan, not one row at a time</p>
+        <p class="frame-name"><b>The source, on the row</b> · which food filled it — a USDA pick or a scanned pack, named either way; a wrong match is caught in the scan, not one row at a time</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Ingredients</span><span class="dots">＋</span></div>
             <p class="list-h" style="margin-top:10px">All ingredients · 308</p>
@@ -82,11 +83,18 @@
                     <div class="mline">35 kcal · 3P 2F 4C <span class="per">/100 g</span></div></div>
                 <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
             <div class="res-row">
+                <div style="flex:1;min-width:0"><div class="res-nm">Nutella</div>
+                    <span class="res-cat">Pantry · has density</span>
+                    <div class="mline" style="color:var(--muted)">barcode · Ferrero Nutella</div>
+                    <div class="mline">539 kcal · 6P 31F 58C <span class="per">/100 g</span></div></div>
+                <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+            <div class="res-row">
                 <div style="flex:1;min-width:0"><div class="res-nm">Almond flour</div>
                     <span class="res-cat">Baking · has density · 1 measure</span>
                     <div class="mline">579 kcal · 21P 50F 22C <span class="per">/100 g</span></div></div>
                 <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
-            <p class="conv-note" style="margin-top:12px">the source line appears <b>only where there is one</b>: a manual or barcode row shows exactly what it shows today. No description, no line — a pre-0027 row with an id and no name says nothing rather than inventing one</p>
+            <p class="conv-note" style="margin-top:12px">the word before the name is <b>where the name came from</b>, not what the stamp encodes: <b>usda ·</b> for a pick, <b>barcode ·</b> for a scan of that pack — the brand and product name as a shelf prints them. Neither prints the key inside the stamp; an FDC id and a GTIN are lookups into databases the reader does not have</p>
+            <p class="conv-note">the source line appears <b>only where there is one</b>: a manual row shows exactly what it shows today. No name, no line — a row filled before the label column existed carries a stamp and nothing to say, and says nothing rather than inventing a name</p>
             <p class="conv-note"><b>edited ·</b> leads the line when a human has overridden the numbers, so the scan also shows which rows are no longer the machine’s</p>
             <p class="conv-note">the <b>picker</b> is deliberately left out: it is a search surface, and a description under every row is noise while you are typing</p>
             <p class="conv-note">it costs no read: the vocabulary query already selects the column, and the same rule prints the same line in the <a href="./import-review.html">import review’s</a> identity cell</p>
