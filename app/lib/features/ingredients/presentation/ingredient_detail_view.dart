@@ -1320,7 +1320,7 @@ class _UnitChoiceRow extends StatelessWidget {
       spacing: 6,
       runSpacing: 6,
       children: [
-        for (final u in kAllUnits)
+        for (final u in kIngredientUnits)
           AnsiModeChip(
             label: u.label,
             // A stranded stored default is still THE selection — that is the
