@@ -89,16 +89,18 @@ void main() {
     );
     expect(find.text('Step 1 · check'), findsOneWidget);
     expect(find.text('was “fennel bulb”'), findsOneWidget);
+    // The stored name is "Pork sausage", but the word it replaces sat
+    // mid-sentence in lower case, so that is how it reads here.
     expect(
       methodFieldText(tester, 0),
-      'Halve the Pork sausage and roast for 25–30 min.',
+      'Halve the pork sausage and roast for 25–30 min.',
     );
 
     await tapSave(tester);
     final ref = repo.saved.single.methodSteps!.first.tokens
         .whereType<MethodRef>()
         .single;
-    expect(ref.label, 'Pork sausage');
+    expect(ref.label, 'pork sausage');
     expect(ref.refs, ['l1']);
   });
 

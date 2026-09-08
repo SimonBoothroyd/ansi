@@ -189,15 +189,17 @@ void main() {
         );
 
     final host = _host(container);
-    expect(_word(host, 0), 'Kale');
-    expect(host.methodDraft()[0].text, 'Blanch the Kale, then blend.');
+    // The ingredient is stored "Kale"; the words it replaces sat mid-sentence
+    // in lower case, so that is the case they take.
+    expect(_word(host, 0), 'kale');
+    expect(host.methodDraft()[0].text, 'Blanch the kale, then blend.');
     // The ref is untouched — a relabel rewrites the WORD, never the pointer.
     expect(_chip(host, 0).refs, [previewLineId(0)]);
     // The collective moves too, and keeps both of its refs.
-    expect(_word(host, 1), 'Kale');
+    expect(_word(host, 1), 'kale');
     expect(_chip(host, 1).refs, [previewLineId(0), previewLineId(1)]);
     // The prose either side is byte-identical: we don't rewrite sentences.
-    expect(host.methodDraft()[1].text, 'Fold the Kale through the pasta.');
+    expect(host.methodDraft()[1].text, 'Fold the kale through the pasta.');
   });
 
   test('the shipped notice and its per-chip revert are populated', () async {
@@ -232,7 +234,7 @@ void main() {
     expect(_chip(after, 0).refs, [previewLineId(0)]);
     // Only that chip is reverted; the collective keeps the new word, and the
     // notice stands while it does.
-    expect(_word(after, 1), 'Kale');
+    expect(_word(after, 1), 'kale');
     expect(after.relabels(), hasLength(1));
     expect(after.substitution(), isNotNull);
 
@@ -265,7 +267,7 @@ void main() {
         .updateResolution(1, (r) => r.resolveToIngredient(_kale.id, 'Kale'));
     final host = _host(container);
     // The collective names line 1, so it moved…
-    expect(_word(host, 1), 'Kale');
+    expect(_word(host, 1), 'kale');
     // …and the solo chip, which names only line 0, did not.
     expect(_word(host, 0), 'wild garlic');
   });
@@ -364,10 +366,10 @@ void main() {
     final steps = repo.committed!.steps;
     // The label rode through to the commit, and the ref is back to a LINE
     // INDEX — the chip still points at the same line it always did.
-    expect(steps[0].tokens[1], const StepToken.ref(refs: [0], label: 'Kale'));
+    expect(steps[0].tokens[1], const StepToken.ref(refs: [0], label: 'kale'));
     expect(
       steps[1].tokens[1],
-      const StepToken.ref(refs: [0, 1], label: 'Kale'),
+      const StepToken.ref(refs: [0, 1], label: 'kale'),
     );
   });
 }

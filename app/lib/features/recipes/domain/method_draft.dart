@@ -476,6 +476,52 @@ ChipAmountRule amountRuleFor(
   return ChipAmountRule.showAmount;
 }
 
+/// [name] written the way a chip at this position should read it.
+///
+/// A chip's word is data about the pointee, so it is rewritten when the line's
+/// identity changes — but the *sentence* around it is authored, and an
+/// ingredient stored as `Onion` dropped into "add the …" reads as a typo. The
+/// shape of the word that stood there is the best evidence of what the
+/// sentence wanted, so [previousWord]'s case decides:
+///
+/// - it started lowercase → [name]'s first letter is lowercased;
+/// - it started with a capital → [name]'s first letter is capitalised;
+/// - it was ALL CAPS and more than one letter → [name] is uppercased whole;
+/// - it held no letter at all → [name] is left exactly as stored.
+///
+/// Only the first letter moves. The rest of [name] keeps its own casing, so a
+/// proper noun inside it survives — `aged Parmesan`, never `aged parmesan`.
+///
+/// A chip being **made** has no word of its own yet, so with no [previousWord]
+/// the position decides: [textBefore] is the step's prose up to the insertion
+/// point, and a chip opening the step is capitalised while one anywhere else
+/// is lowercased. It is the step, not the sentence — prose after a full stop
+/// mid-step still counts as "anywhere else", which is the cheap reading and
+/// the one a user can predict.
+///
+/// Case is all this changes: pluralising a swapped-in name is a different
+/// question and is not answered here.
+String chipWord(String name, {String? previousWord, String textBefore = ''}) {
+  if (name.isEmpty) return name;
+  final letters = [
+    for (final c in (previousWord ?? '').split(''))
+      if (c.toUpperCase() != c.toLowerCase()) c,
+  ];
+  if (letters.isEmpty) {
+    if (previousWord != null && previousWord.isNotEmpty) return name;
+    return textBefore.trim().isEmpty ? _upperFirst(name) : _lowerFirst(name);
+  }
+  if (letters.length > 1 && letters.every((c) => c == c.toUpperCase())) {
+    return name.toUpperCase();
+  }
+  final first = letters.first;
+  return first == first.toLowerCase() ? _lowerFirst(name) : _upperFirst(name);
+}
+
+String _lowerFirst(String s) => s[0].toLowerCase() + s.substring(1);
+
+String _upperFirst(String s) => s[0].toUpperCase() + s.substring(1);
+
 /// One relabelled chip and the word it carried before — the session memory
 /// behind *was "sausage" · keep the old word*.
 typedef ChipRelabel = ({String stepId, int spanIndex, String oldWord});
@@ -484,7 +530,9 @@ typedef ChipRelabel = ({String stepId, int spanIndex, String oldWord});
 /// the name the chips carried, the name they carry now, and which steps moved.
 typedef Substitution = ({String oldName, String newName, Set<String> stepIds});
 
-/// Every chip pointing at [lineId] takes [label] as its word.
+/// Every chip pointing at [lineId] takes [label] as its word, in the case the
+/// word it replaces was written in ([chipWord]) — the stored `Onion` reads as
+/// `onion` inside "add the …" and as `Onion` where a sentence starts.
 ///
 /// The invariant it upholds: **a chip never names something the recipe does
 /// not contain.** A chip is a pointer with a display label; prose is authored,
@@ -508,9 +556,10 @@ typedef Substitution = ({String oldName, String newName, Set<String> stepIds});
       final span = next.spans[i];
       if (span is! RefSpan || !span.refs.contains(lineId)) continue;
       final word = spanWord(next, i);
-      if (word == label) continue;
+      final recased = chipWord(label, previousWord: word);
+      if (word == recased) continue;
       relabels.add((stepId: step.id, spanIndex: i, oldWord: word));
-      next = respan(next, i, span: span, word: label);
+      next = respan(next, i, span: span, word: recased);
     }
     out.add(next);
   }
