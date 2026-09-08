@@ -25,8 +25,9 @@ void main() {
   group('incompleteNote: a reason, always, in one sentence', () {
     /// Every incomplete cause and the sentence it prints. A reasonless badge
     /// would leave a dangling separator on a picker row, so the note has to
-    /// stay total; a bare count reads as the fix ("needs a weight"), never as
-    /// the failure ("unconvertible").
+    /// stay total; a bare count reads as the fix ("needs a piece weight" —
+    /// one number on the INGREDIENT, ADR-0015), never as the failure
+    /// ("unconvertible").
     const vectors = <String, RecipeMacroSummary>{
       'no ingredients yet': RecipeMacroSummary(noLines: true),
       // Servings ≤ 0 with zero stub/unconvertible lines. The DB check makes
@@ -36,15 +37,19 @@ void main() {
       '1 sub-recipe unresolved': RecipeMacroSummary(subRecipesUnresolved: 1),
       '2 sub-recipes unresolved': RecipeMacroSummary(subRecipesUnresolved: 2),
       '1 sub-recipe incomplete': RecipeMacroSummary(subRecipesIncomplete: 1),
-      '1 line needs a weight': RecipeMacroSummary(countLinesWithoutMeasure: 1),
-      '3 lines need a weight': RecipeMacroSummary(countLinesWithoutMeasure: 3),
+      '1 line needs a piece weight': RecipeMacroSummary(
+        countLinesWithoutMeasure: 1,
+      ),
+      '3 lines need a piece weight': RecipeMacroSummary(
+        countLinesWithoutMeasure: 3,
+      ),
       'nothing weighable yet': RecipeMacroSummary(nothingWeighable: true),
       // Unfolded from each other, in one sentence.
       '1 stub line · 3 sub-recipes incomplete': RecipeMacroSummary(
         stubLines: 1,
         subRecipesIncomplete: 3,
       ),
-      '2 stub lines · 1 line needs a weight · 1 unconvertible':
+      '2 stub lines · 1 line needs a piece weight · 1 unconvertible':
           RecipeMacroSummary(
             stubLines: 2,
             countLinesWithoutMeasure: 1,
@@ -73,7 +78,7 @@ void main() {
       expect(incompleteNote(withImprecise), incompleteNote(without));
       expect(
         incompleteNote(withImprecise),
-        '2 stub lines · 1 line needs a weight · 1 unconvertible',
+        '2 stub lines · 1 line needs a piece weight · 1 unconvertible',
       );
     });
 
@@ -108,7 +113,7 @@ void main() {
       const drawn = {
         MacroLineReason.stubIngredient: 'stub ingredient',
         MacroLineReason.unknownIngredient: 'not in your ingredients yet',
-        MacroLineReason.needsWeight: 'needs a weight',
+        MacroLineReason.needsWeight: 'needs a piece weight',
         MacroLineReason.needsDensity: 'needs a density',
         MacroLineReason.noAmount: 'no amount',
         MacroLineReason.subRecipeUnresolved: 'sub-recipe has no yield',

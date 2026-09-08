@@ -4,6 +4,7 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
+import 'package:ansi/shared/incomplete_macros.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _per100 = Macros(kcal: 100, protein: 10, carb: 20, fat: 5);
@@ -24,15 +25,35 @@ LineItem _line(
   measureId: measureId ?? measure?.id,
 );
 
+/// One vocab row: per-100 macros on [basis], plus the two row facts a line
+/// can convert through — the density, and the piece weight (ADR-0015).
+IngredientNutrition _nutrition({
+  Macros? macros = _per100,
+  MacrosBasis basis = MacrosBasis.perG,
+  double? density,
+  double? pieceBasisAmount,
+}) => (
+  macros: macros,
+  basis: basis,
+  densityGPerMl: density,
+  pieceBasisAmount: pieceBasisAmount,
+);
+
 /// A one-ingredient vocabulary for most cases below.
 IngredientNutrition? Function(String) _vocab({
   Macros? macros = _per100,
   MacrosBasis basis = MacrosBasis.perG,
   double? density,
+  double? pieceBasisAmount,
 }) =>
     (id) => id == 'missing'
     ? null
-    : (macros: macros, basis: basis, densityGPerMl: density);
+    : _nutrition(
+        macros: macros,
+        basis: basis,
+        density: density,
+        pieceBasisAmount: pieceBasisAmount,
+      );
 
 void main() {
   group('the basis matrix', () {
@@ -109,9 +130,8 @@ void main() {
       final summary = summarizeRecipeMacros(
         servingsBase: 2,
         lines: [_line('x', quantity: 100), _line('stub', quantity: 50)],
-        nutritionOf: (id) => id == 'stub'
-            ? (macros: null, basis: MacrosBasis.perG, densityGPerMl: null)
-            : (macros: _per100, basis: MacrosBasis.perG, densityGPerMl: null),
+        nutritionOf: (id) =>
+            id == 'stub' ? _nutrition(macros: null) : _nutrition(),
       );
       expect(summary.incomplete, isTrue);
       expect(summary.stubLines, 1);
@@ -176,6 +196,178 @@ void main() {
         nutritionOf: _vocab(),
       );
       expect(summary.unconvertibleLines, 1);
+    });
+  });
+
+  // --- ADR-0015: the piece weight -------------------------------------------
+  // What one of the thing weighs is a ROW fact, like the density. With it, a
+  // bare count is not a defect at all — it converts through the row's own
+  // stated number, and nothing is invented on the way.
+
+  group('the piece weight turns a bare count into a weight', () {
+    test(
+      'a bare count converts through it: quantity × weight ÷ 100 × macros',
+      () {
+        final summary = summarizeRecipeMacros(
+          servingsBase: 1,
+          lines: [_line('x', quantity: 2, unit: pieces)],
+          nutritionOf: _vocab(pieceBasisAmount: 110),
+        );
+        // 2 × 110 g = 220 g → ×2.2 of the per-100 g macros.
+        expect(summary.incomplete, isFalse);
+        expect(summary.countLinesWithoutMeasure, 0);
+        expect(summary.perServing!.kcal, closeTo(220, 1e-9));
+        expect(summary.perServing!.protein, closeTo(22, 1e-9));
+        expect(summary.notes, isEmpty);
+      },
+    );
+
+    test('a fractional count is a fraction of the weight', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 2,
+        lines: [_line('x', quantity: 0.5, unit: pieces)],
+        nutritionOf: _vocab(pieceBasisAmount: 110),
+      );
+      // 0.5 × 110 g = 55 g → 55 kcal, over two servings.
+      expect(summary.perServing!.kcal, closeTo(27.5, 1e-9));
+    });
+
+    test('it joins the other lines rather than replacing them', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [
+          _line('x', quantity: 100),
+          _line('x', quantity: 1, unit: pieces),
+        ],
+        nutritionOf: _vocab(pieceBasisAmount: 50),
+      );
+      expect(summary.perServing!.kcal, closeTo(150, 1e-9));
+    });
+
+    test('the weight is stated in the row BASIS: on a per-100 ml row a piece '
+        'is millilitres, and needs no density to count', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 3, unit: pieces)],
+        nutritionOf: _vocab(basis: MacrosBasis.perMl, pieceBasisAmount: 15),
+      );
+      // 3 × 15 ml = 45 ml → ×0.45 of the per-100 ml macros.
+      expect(summary.incomplete, isFalse);
+      expect(summary.perServing!.kcal, closeTo(45, 1e-9));
+    });
+
+    test('a density is still needed exactly where it always was — the piece '
+        'weight bridges the COUNT, never the families', () {
+      final without = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 100, unit: ml)],
+        nutritionOf: _vocab(pieceBasisAmount: 110),
+      );
+      expect(without.incomplete, isTrue);
+      expect(without.notes.single.reason, MacroLineReason.needsDensity);
+
+      final with_ = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 100, unit: ml)],
+        nutritionOf: _vocab(density: 1.02, pieceBasisAmount: 110),
+      );
+      expect(with_.perServing!.kcal, closeTo(102, 1e-9));
+    });
+
+    test('with NO weight on the row the count is still needsWeight, and the '
+        'summary says so in the words the household reads', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 2, unit: pieces)],
+        nutritionOf: _vocab(),
+      );
+      expect(summary.incomplete, isTrue);
+      expect(summary.countLinesWithoutMeasure, 1);
+      expect(summary.notes.single.reason, MacroLineReason.needsWeight);
+      expect(incompleteNote(summary), '1 line needs a piece weight');
+    });
+
+    test('two unweighed counts read as two', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [
+          _line('a', quantity: 2, unit: pieces),
+          _line('b', quantity: 1, unit: pieces),
+        ],
+        nutritionOf: _vocab(),
+      );
+      expect(incompleteNote(summary), '2 lines need a piece weight');
+    });
+
+    test('a line naming a measure that has not synced in is UNCHANGED — the '
+        "row's piece weight is not what that line claimed", () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 3, measureId: 'm-unsynced')],
+        nutritionOf: _vocab(pieceBasisAmount: 110),
+      );
+      expect(summary.incomplete, isTrue);
+      expect(summary.countLinesWithoutMeasure, 0);
+      expect(summary.unconvertibleLines, 1);
+      expect(summary.perServing, isNull);
+    });
+
+    test(
+      'a RESOLVED measure still wins: the line said "clove", not "piece"',
+      () {
+        const clove = Measure(id: 'm1', label: 'clove', amount: 3);
+        final summary = summarizeRecipeMacros(
+          servingsBase: 1,
+          lines: [_line('x', quantity: 5, measure: clove)],
+          nutritionOf: _vocab(pieceBasisAmount: 110),
+        );
+        expect(summary.perServing!.kcal, closeTo(15, 1e-9));
+      },
+    );
+
+    test('a weight without a number is still no amount — nothing is assumed '
+        'to be one of the thing', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', unit: pieces)],
+        nutritionOf: _vocab(pieceBasisAmount: 110),
+      );
+      expect(summary.incomplete, isTrue);
+      expect(summary.notes.single.reason, MacroLineReason.noAmount);
+    });
+
+    test('a stub row is a stub however much one of it weighs', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 2, unit: pieces)],
+        nutritionOf: _vocab(macros: null, pieceBasisAmount: 110),
+      );
+      expect(summary.stubLines, 1);
+      expect(summary.countLinesWithoutMeasure, 0);
+    });
+  });
+
+  group('pieceMeasureOf', () {
+    test('a stated weight becomes the measure the converter already knows', () {
+      final measure = pieceMeasureOf(_nutrition(pieceBasisAmount: 110));
+      expect(measure, isNotNull);
+      expect(measure!.id, 'piece');
+      expect(measure.label, 'piece');
+      expect(measure.amount, 110);
+      expect(measure.basis, MacrosBasis.perG);
+    });
+
+    test('it carries the ROW basis, so a per-100 ml row measures in ml', () {
+      final measure = pieceMeasureOf(
+        _nutrition(basis: MacrosBasis.perMl, pieceBasisAmount: 15),
+      );
+      expect(measure!.basis, MacrosBasis.perMl);
+      expect(measure.amount, 15);
+    });
+
+    test('no weight, no measure — nothing is invented to stand in for one', () {
+      expect(pieceMeasureOf(_nutrition()), isNull);
+      expect(pieceMeasureOf(_nutrition(macros: null)), isNull);
     });
   });
 
@@ -471,12 +663,8 @@ void main() {
         ],
         nutritionOf: (id) => switch (id) {
           'missing' => null,
-          'stub' => (
-            macros: null,
-            basis: MacrosBasis.perG,
-            densityGPerMl: null,
-          ),
-          _ => (macros: _per100, basis: MacrosBasis.perG, densityGPerMl: null),
+          'stub' => _nutrition(macros: null),
+          _ => _nutrition(),
         },
       );
       expect(summary.notes.map((n) => n.reason), [
@@ -553,9 +741,8 @@ void main() {
             quantity: 1,
           ),
         ],
-        nutritionOf: (id) => id == 'stub'
-            ? (macros: null, basis: MacrosBasis.perG, densityGPerMl: null)
-            : (macros: _per100, basis: MacrosBasis.perG, densityGPerMl: null),
+        nutritionOf: (id) =>
+            id == 'stub' ? _nutrition(macros: null) : _nutrition(),
         subRecipeOf: (id) => nodes[id],
       );
       expect(summary.notes.single.name, 'Sauce');
@@ -630,9 +817,8 @@ void main() {
           _line('x', quantity: 100),
           _line('stub', quantity: 1, unit: pinch),
         ],
-        nutritionOf: (id) => id == 'stub'
-            ? (macros: null, basis: MacrosBasis.perG, densityGPerMl: null)
-            : (macros: _per100, basis: MacrosBasis.perG, densityGPerMl: null),
+        nutritionOf: (id) =>
+            id == 'stub' ? _nutrition(macros: null) : _nutrition(),
       );
       expect(summary.incomplete, isFalse);
       expect(summary.stubLines, 0);

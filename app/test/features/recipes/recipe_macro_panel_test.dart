@@ -12,9 +12,11 @@ import 'package:ansi/shared/incomplete_macros.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_recipe_repository.dart';
+import '../../helpers/pump_app.dart';
 
 /// Serves the one recipe the page under test renders, over a controllable
 /// stream so a live vocab change can be pushed mid-test.
@@ -97,14 +99,14 @@ void main() {
     expect(find.textContaining('0 g'), findsNothing);
   });
 
-  testWidgets('a bare count reads "needs a weight" on the panel too — the one '
-      'incomplete reason that names its own fix', (tester) async {
+  testWidgets('a bare count reads "needs a piece weight" on the panel too — '
+      'the one incomplete reason that names its own fix', (tester) async {
     const summary = RecipeMacroSummary(countLinesWithoutMeasure: 1);
     await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
 
     expect(find.byType(IncompleteBadge), findsOneWidget);
     expect(find.text(incompleteNote(summary)), findsOneWidget);
-    expect(find.text('1 line needs a weight'), findsOneWidget);
+    expect(find.text('1 line needs a piece weight'), findsOneWidget);
     expect(find.textContaining('unconvertible'), findsNothing);
   });
 
@@ -216,10 +218,13 @@ void main() {
 
     // The picker rows' string, unchanged — the three surfaces still refuse in
     // the same words.
-    expect(find.text('1 stub line · 1 line needs a weight'), findsOneWidget);
+    expect(
+      find.text('1 stub line · 1 line needs a piece weight'),
+      findsOneWidget,
+    );
     // …and now the panel says WHICH.
     expect(find.textContaining('Cucumber'), findsOneWidget);
-    expect(find.textContaining('needs a weight'), findsWidgets);
+    expect(find.textContaining('needs a piece weight'), findsWidgets);
     expect(find.textContaining('Tofu'), findsOneWidget);
     expect(find.textContaining('stub ingredient'), findsWidgets);
   });
@@ -400,7 +405,121 @@ void main() {
     // the panel is below the fold, and reading a name there and then hunting
     // for the row is the failure this replaces. (The panel's own list draws
     // its names as one rich span, so this plain marker is the row's.)
-    expect(find.text('needs a weight'), findsOneWidget);
+    expect(find.text('needs a piece weight'), findsOneWidget);
     expect(find.byType(IncompleteBadge), findsOneWidget);
+  });
+
+  // --- ADR-0015: a marker is a door, and the reason picks which one ---------
+
+  group('where a marker sends the household', () {
+    /// The page under a real router, so a marker's tap has an observable
+    /// destination. The two stand-ins are the doors `_fix` can open.
+    Widget routed(MacroLineNote note, void Function(GoRouter) expose) =>
+        routedHost(
+          initial: '/recipes/1',
+          overrides: [
+            recipeRepositoryProvider.overrideWithValue(
+              _FakeRecipeRepo(
+                Stream.value(
+                  _recipe(
+                    RecipeMacroSummary(
+                      countLinesWithoutMeasure:
+                          note.reason == MacroLineReason.needsWeight ? 1 : 0,
+                      unconvertibleLines:
+                          note.reason == MacroLineReason.needsWeight ? 0 : 1,
+                      notes: [note],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+          expose: expose,
+          routes: {
+            '/recipes/1': (_, _) => const RecipeView(recipeId: '1'),
+            '/recipes/:id/edit': (_, state) =>
+                FScaffold(child: Text('edit ${state.pathParameters['id']}')),
+            '/ingredients/:id': (_, state) => FScaffold(
+              child: Text('ingredient ${state.pathParameters['id']}'),
+            ),
+          },
+        );
+
+    /// The TOP location — `currentConfiguration.uri` is the base of the stack,
+    /// which a push leaves alone. `state.uri` is what `pushOnce` itself
+    /// compares against.
+    String pathOf(GoRouter router) => router.state.uri.path;
+
+    const chicken = (
+      lineId: 'i1',
+      name: 'Chicken thigh',
+      reason: MacroLineReason.needsWeight,
+      unit: null,
+    );
+
+    testWidgets(
+      "a bare count opens the INGREDIENT — the piece weight is the row's "
+      'fact, and one number fixes every recipe that counts it',
+      (tester) async {
+        late GoRouter router;
+        await tester.pumpWidget(routed(chicken, (r) => router = r));
+        await tester.pump();
+
+        await tester.tap(find.text('needs a piece weight'));
+        await tester.pumpAndSettle();
+        expect(pathOf(router), '/ingredients/chicken');
+        expect(find.text('ingredient chicken'), findsOneWidget);
+      },
+    );
+
+    testWidgets("the panel's named line is the same door as the row marker", (
+      tester,
+    ) async {
+      late GoRouter router;
+      await tester.pumpWidget(routed(chicken, (r) => router = r));
+      await tester.pump();
+
+      await tester.tap(find.textContaining('·  needs a piece weight'));
+      await tester.pumpAndSettle();
+      expect(pathOf(router), '/ingredients/chicken');
+    });
+
+    testWidgets('a missing density opens the same door — both are row facts', (
+      tester,
+    ) async {
+      late GoRouter router;
+      await tester.pumpWidget(
+        routed(const (
+          lineId: 'i1',
+          name: 'Chicken thigh',
+          reason: MacroLineReason.needsDensity,
+          unit: null,
+        ), (r) => router = r),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('needs a density'));
+      await tester.pumpAndSettle();
+      expect(pathOf(router), '/ingredients/chicken');
+    });
+
+    testWidgets('a numberless line is a LINE problem, so it opens the editor', (
+      tester,
+    ) async {
+      late GoRouter router;
+      await tester.pumpWidget(
+        routed(const (
+          lineId: 'i1',
+          name: 'Chicken thigh',
+          reason: MacroLineReason.noAmount,
+          unit: null,
+        ), (r) => router = r),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('no amount'));
+      await tester.pumpAndSettle();
+      expect(pathOf(router), '/recipes/1/edit');
+    });
   });
 }

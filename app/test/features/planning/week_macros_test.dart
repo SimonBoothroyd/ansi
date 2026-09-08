@@ -60,6 +60,7 @@ PlanEntry _snack({
   Macros? macros = const Macros(kcal: 350, protein: 33, carb: 30, fat: 11),
   MacrosBasis basis = MacrosBasis.perG,
   double? density,
+  double? pieceBasisAmount,
   bool knownRow = true,
   int day = 0,
   List<String> eaters = const ['ada', 'jun'],
@@ -75,7 +76,12 @@ PlanEntry _snack({
   measureId: measureId ?? measure?.id,
   measure: measure,
   nutrition: knownRow
-      ? (macros: macros, basis: basis, densityGPerMl: density)
+      ? (
+          macros: macros,
+          basis: basis,
+          densityGPerMl: density,
+          pieceBasisAmount: pieceBasisAmount,
+        )
       : null,
   eaterIds: eaters,
   portions: portions,
@@ -407,6 +413,89 @@ void main() {
     test('a snack nobody is eating is excluded for that, not for its row', () {
       final left = _sum([_snack(id: 'a', eaters: const [])]).excluded.single;
       expect(left.reason, MealExclusion.noEaters);
+    });
+  });
+
+  // --- ADR-0015: the piece weight, at the plan's scale -----------------------
+  // The same row fact the recipe summation converts a bare `piece` line
+  // through. A snack states an amount, so `2 piece` of a weighed row is a
+  // weight — and of an unweighed one it is still a question.
+
+  group('a bare count snack, and the row that weighs it', () {
+    test('2 piece on a weighed row weighs, and multiplies by its eaters', () {
+      final macros = _sum([
+        _snack(id: 'a', quantity: 2, unit: pieces, pieceBasisAmount: 110),
+      ]);
+      // 2 × 110 g = 220 g → 770 kcal per PORTION, and two eaters have one each.
+      expect(macros.total!.kcal, closeTo(1540, 1e-6));
+      expect(macros.counted, 1);
+      expect(macros.excluded, isEmpty);
+    });
+
+    test('the weight is stated in the row basis — a per-100 ml row counts in '
+        'millilitres, with no density', () {
+      final macros = _sum([
+        _snack(
+          id: 'a',
+          quantity: 2,
+          unit: pieces,
+          basis: MacrosBasis.perMl,
+          pieceBasisAmount: 25,
+          eaters: ['ada'],
+        ),
+      ]);
+      // 2 × 25 ml = 50 ml → half the per-100 ml macros, for one eater.
+      expect(macros.total!.kcal, closeTo(175, 1e-9));
+    });
+
+    test('with no weight the same snack is still needsWeight — the fix is one '
+        'number on the ingredient, not a different amount', () {
+      final left = _sum([
+        _snack(id: 'a', quantity: 2, unit: pieces),
+      ]).excluded.single;
+      expect(left.reason, MealExclusion.ingredientNotCounted);
+      expect(left.lineReason, MacroLineReason.needsWeight);
+    });
+
+    test('an unresolved measure still waits: the entry claimed a bar, not a '
+        'piece, whatever one of the row weighs', () {
+      final left = _sum([
+        _snack(
+          id: 'a',
+          quantity: 1,
+          unit: pieces,
+          measureId: 'gone',
+          pieceBasisAmount: 110,
+        ),
+      ]).excluded.single;
+      expect(left.lineReason, MacroLineReason.needsWeight);
+    });
+
+    test('a RESOLVED measure still wins over the piece weight', () {
+      const bar = Measure(id: 'm1', label: 'bar', amount: 60);
+      final macros = _sum([
+        _snack(
+          id: 'a',
+          quantity: 1,
+          unit: pieces,
+          measure: bar,
+          pieceBasisAmount: 110,
+        ),
+      ]);
+      expect(macros.total!.kcal, closeTo(420, 1e-9));
+    });
+
+    test('a stub row is a stub however much one of it weighs', () {
+      final left = _sum([
+        _snack(
+          id: 'a',
+          quantity: 2,
+          unit: pieces,
+          macros: null,
+          pieceBasisAmount: 110,
+        ),
+      ]).excluded.single;
+      expect(left.lineReason, MacroLineReason.stubIngredient);
     });
   });
 }

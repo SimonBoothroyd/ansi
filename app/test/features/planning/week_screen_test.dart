@@ -144,11 +144,9 @@ List<Override> _withCook(List<Override> extra, CookPlanRepository? cook) => [
   ingredientRepositoryProvider.overrideWithValue(
     const ReadOnlyIngredientRepo(),
   ),
-  // The add flow resolves the measure repository BEFORE it opens the picker:
-  // the ingredient seed reads it rather than `.future`-ing an autoDispose
-  // stream provider (`structure/no_future_on_autodispose_test.dart`), and a
-  // read after the awaited sheet is the other thing that is not allowed. So
-  // every host answers for it, with no measures.
+  // Planning an ingredient opens the quantity sheet, which draws the row's
+  // measure chips off this repository. Every host answers for it, with no
+  // measures — the sheet then opens on the row's own default unit.
   measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
   ...extra,
 ];
@@ -243,7 +241,12 @@ WeekPlan _snackWeek({
       unit: unit,
       measureId: measure?.id,
       measure: measure,
-      nutrition: (macros: macros, basis: MacrosBasis.perG, densityGPerMl: null),
+      nutrition: (
+        macros: macros,
+        basis: MacrosBasis.perG,
+        densityGPerMl: null,
+        pieceBasisAmount: null,
+      ),
       eaterIds: eaters,
     ),
   ],

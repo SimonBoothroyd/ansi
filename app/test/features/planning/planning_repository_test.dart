@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
+import 'package:ansi/features/planning/domain/week_macros.dart';
+import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
@@ -30,12 +32,14 @@ Future<void> _insertIngredient(
   String name, {
   String? macros,
   double? density,
+  double? pieceBasisAmount,
 }) async {
   final now = DateTime.now().toUtc().toIso8601String();
   await db.execute(
     'INSERT INTO ingredient (id, household_id, canonical_name, default_unit, '
-    'match_text, macros, macros_basis, density_g_per_ml, status, created_at, '
-    "updated_at) VALUES (?, ?, ?, 'g', ?, ?, 'per_g', ?, ?, ?, ?)",
+    'match_text, macros, macros_basis, density_g_per_ml, piece_basis_amount, '
+    'status, created_at, updated_at) '
+    "VALUES (?, ?, ?, 'g', ?, ?, 'per_g', ?, ?, ?, ?, ?)",
     [
       id,
       'h',
@@ -43,6 +47,7 @@ Future<void> _insertIngredient(
       name.toLowerCase(),
       macros,
       density,
+      pieceBasisAmount,
       if (macros == null) 'stub' else 'complete',
       now,
       now,
@@ -446,6 +451,60 @@ void main() {
       expect(entry.nutrition!.densityGPerMl, 1.1);
       expect(entry.nutrition!.basis, MacrosBasis.perG);
     });
+
+    test('the piece weight rides along too, so a bare count weighs '
+        '(ADR-0015)', () async {
+      await _insertIngredient(
+        db,
+        'i1',
+        'Protein bar',
+        macros: '{"kcal":350,"protein":33,"carb":30,"fat":11}',
+        pieceBasisAmount: 60,
+      );
+      await repo.addIngredientEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'i1',
+        eaterIds: const ['m1'],
+        quantity: 2,
+        unit: pieces,
+      );
+      final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
+      expect(entry.nutrition!.pieceBasisAmount, 60);
+
+      // …and the number reaches the sum: 2 × 60 g of a 350 kcal/100 g bar.
+      final macros = sumPlannedMacros([entry], summaryFor: (_) => null);
+      expect(macros.excluded, isEmpty);
+      expect(macros.total!.kcal, closeTo(420, 1e-9));
+    });
+
+    test(
+      'with no piece weight the same bare count is left out, and named',
+      () async {
+        await _insertIngredient(
+          db,
+          'i1',
+          'Protein bar',
+          macros: '{"kcal":350,"protein":33,"carb":30,"fat":11}',
+        );
+        await repo.addIngredientEntry(
+          weekStart: _thisWeek,
+          dayOfWeek: 1,
+          mealSlot: 'Snack',
+          ingredientId: 'i1',
+          eaterIds: const ['m1'],
+          quantity: 2,
+          unit: pieces,
+        );
+        final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
+        expect(entry.nutrition!.pieceBasisAmount, isNull);
+
+        final macros = sumPlannedMacros([entry], summaryFor: (_) => null);
+        expect(macros.total, isNull);
+        expect(macros.excluded.single.lineReason, MacroLineReason.needsWeight);
+      },
+    );
 
     test('a vocab row this device cannot see leaves the name AND the '
         'nutrition null — a different answer from a stub', () async {

@@ -413,6 +413,37 @@ void main() {
     expect(summary.perServing!.protein, closeTo(2.025, 1e-9));
   });
 
+  test('the nutrition read carries the row PIECE WEIGHT, so a bare count '
+      'joins the total (ADR-0015)', () async {
+    // Same sample, same bare "1 Onion" line as above — the only difference is
+    // one number on the vocab row, which is the whole claim of ADR-0015.
+    for (final id in ['ing-rice', 'ing-onion']) {
+      await db.execute('UPDATE ingredient SET macros = ? WHERE id = ?', [
+        '{"kcal":130,"protein":2.7,"carb":28,"fat":0.3}',
+        id,
+      ]);
+    }
+    await db.execute(
+      'UPDATE ingredient SET piece_basis_amount = ? WHERE id = ?',
+      [110, 'ing-onion'],
+    );
+    await repo.saveRecipe(_sampleRecipe());
+
+    // 1 onion × 110 g + 150 g rice = 260 g × 1.3 kcal/g = 338 kcal, over two
+    // servings. The Salt line is still excluded BY RULE and still does not
+    // make the summary refuse.
+    final summary = (await repo.watchRecipes().first).single.macros!;
+    expect(summary.countLinesWithoutMeasure, 0);
+    expect(summary.incomplete, isFalse);
+    expect(summary.perServing!.kcal, closeTo(169, 1e-9));
+    expect(summary.impreciseLines, 1);
+
+    // The aggregate reads the column through its own query, so it is asserted
+    // through its own read rather than assumed from the list row's.
+    final aggregate = (await repo.watchRecipe('r1').first)!.macros!;
+    expect(aggregate, summary);
+  });
+
   test('a recipe saved with no lines can never render ~0 kcal', () async {
     // The picker-row bug this pins: an EMPTY line set once summed to a
     // "complete" zero total, so a just-created recipe fabricated
