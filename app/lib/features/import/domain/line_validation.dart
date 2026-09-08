@@ -368,8 +368,8 @@ List<LineIssue> lineIssues(
   }
   // A number with no unit word is a count, and it commits as `piece`
   // (`_unitId`), so it is validated as one (ADR-0015): "2 dragon fruit" on a
-  // row that cannot say `piece` used to slip through this guard and land as
-  // a bare count nothing weighed.
+  // row that cannot say `piece` is flagged here, not committed as a bare
+  // count nothing weighs.
   final unit = resolution.unit;
   final effectiveUnit = (unit == null || unit.isEmpty)
       ? (resolution.quantity != null ? pieces.id : null)

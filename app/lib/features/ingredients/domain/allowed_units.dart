@@ -227,8 +227,8 @@ bool defaultUnitNeedsDensity(Ingredient ingredient) =>
 /// default names a unit nothing on the row can convert — and it gets the same
 /// treatment: the form draws the flag with its ways out (enter what one
 /// weighs, or switch to the basis unit) and **refuses Save** while it holds. A
-/// row is not saveable as piece-default with nothing weighing a piece (owner,
-/// 2026-09-08).
+/// row is not saveable as piece-default with nothing weighing a piece
+/// (ADR-0015, owner-ruled).
 ///
 /// It is deliberately NOT folded into [unitSayableAsDefault]: `piece` stays
 /// pickable on the chip row with no weight yet, because picking it is what
