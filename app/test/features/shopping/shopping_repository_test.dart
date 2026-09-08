@@ -340,7 +340,7 @@ void main() {
   });
 
   test('a free-text item lands in Non-food and can be checked off', () async {
-    await repo.addFreeTextItem(text: 'Paper towels');
+    await repo.addFreeTextItem(text: 'Paper towels', weekStart: _week);
     var list = await repo.watchShoppingList(_week).first;
     final group = list.groups.single;
     expect(group.label, 'Non-food');
@@ -966,42 +966,72 @@ void main() {
       expect(rows, hasLength(1));
     });
 
-    test('a free-text staple carries no week and reads on every one', () async {
-      await repo.addFreeTextItem(text: 'Paper towels');
+    Iterable<String> namesOn(ShoppingList list) =>
+        list.groups.expand((g) => g.items).map((i) => i.name);
+
+    test('a free-text item belongs to the week it was added on', () async {
+      await repo.addFreeTextItem(text: 'Paper towels', weekStart: _week);
 
       final row = await db.get(
         'SELECT week_start_date FROM shopping_list_entry '
         "WHERE free_text = 'Paper towels'",
       );
-      expect(row['week_start_date'], isNull);
+      expect(row['week_start_date'], '2026-08-24');
 
-      for (final week in [_week, nextWeek]) {
-        final list = await repo.watchShoppingList(week).first;
-        expect(
-          list.groups.expand((g) => g.items).map((i) => i.name),
-          contains('Paper towels'),
-          reason: 'you are out of paper towels whichever week is on screen',
-        );
-      }
+      expect(
+        namesOn(await repo.watchShoppingList(_week).first),
+        contains('Paper towels'),
+      );
+      expect(
+        namesOn(await repo.watchShoppingList(nextWeek).first),
+        isNot(contains('Paper towels')),
+        reason: 'you added it while shopping for one week, not for every week',
+      );
     });
 
-    test('a free-text check-off is global, because its entry is', () async {
-      await repo.addFreeTextItem(text: 'Paper towels');
-      final entry = await db.get(
-        "SELECT id FROM shopping_list_entry WHERE free_text = 'Paper towels'",
+    test('a free-text check-off is per week, because its entry is', () async {
+      await repo.addFreeTextItem(text: 'Paper towels', weekStart: _week);
+      await repo.addFreeTextItem(text: 'Paper towels', weekStart: nextWeek);
+
+      bool towelsCheckedOn(ShoppingList list) => list.groups
+          .expand((g) => g.items)
+          .firstWhere((i) => i.name == 'Paper towels')
+          .checked;
+
+      final thisWeek = await repo.watchShoppingList(_week).first;
+      final entryId = thisWeek.groups
+          .expand((g) => g.items)
+          .firstWhere((i) => i.name == 'Paper towels')
+          .entryId!;
+      await repo.setEntryChecked(entryId: entryId, checked: true);
+
+      expect(
+        towelsCheckedOn(await repo.watchShoppingList(_week).first),
+        isTrue,
       );
-      await repo.setEntryChecked(
-        entryId: entry['id']! as String,
-        checked: true,
+      expect(
+        towelsCheckedOn(await repo.watchShoppingList(nextWeek).first),
+        isFalse,
+        reason: 'the two weeks hold two entries, and only one was ticked',
       );
+    });
+
+    test('a free-text row with no week reads on no week', () async {
+      // The shape an older client writes. The list read takes one week's rows
+      // and nothing else, so this row is invisible here; it comes back on the
+      // week it was created in once the server stamps it.
+      final now = DateTime.utc(2026, 8, 26).toIso8601String();
+      await db.execute(
+        'INSERT INTO shopping_list_entry '
+        '(id, household_id, free_text, checked, created_at, updated_at) '
+        'VALUES (?, ?, ?, 0, ?, ?)',
+        ['legacy-towels', 'h', 'Paper towels', now, now],
+      );
+
       for (final week in [_week, nextWeek]) {
-        final list = await repo.watchShoppingList(week).first;
         expect(
-          list.groups
-              .expand((g) => g.items)
-              .firstWhere((i) => i.name == 'Paper towels')
-              .checked,
-          isTrue,
+          namesOn(await repo.watchShoppingList(week).first),
+          isNot(contains('Paper towels')),
         );
       }
     });

@@ -8,13 +8,10 @@
 /// `addTopUp` / `addFreeTextItem` / `removeEntry`). The read reacts to any
 /// change to the week, a covered recipe, or the overlay.
 ///
-/// **The overlay is week-scoped** (migration 0018 / week-redesign D3). Since
-/// Cook and Shop follow the week you are LOOKING AT, a tick has to say which
-/// week's list it is on: `setIngredientChecked` and `addTopUp` therefore take
-/// the week, and the read only ever returns that week's ingredient entries.
-/// Free-text staples are the deliberate exception — `addFreeTextItem` writes no
-/// week and its rows read on every week, because you are out of paper towels
-/// whichever week is on screen.
+/// **The overlay is week-scoped.** Since Cook and Shop follow the week you are
+/// LOOKING AT, everything written here has to say which week's list it is on:
+/// `setIngredientChecked`, `addTopUp` and `addFreeTextItem` all take the week,
+/// and the read only ever returns that week's entries.
 library;
 
 import '../../../core/units/units.dart';
@@ -68,12 +65,17 @@ abstract interface class ShoppingRepository {
   /// entry's other contributions and its check-off state intact).
   Future<void> removeContribution({required String contributionId});
 
-  /// Adds a free-text non-food item ("paper towels"). [category] is optional.
+  /// Adds a free-text non-food item ("paper towels") to the list for
+  /// [weekStart]. [category] is optional.
   ///
-  /// Deliberately NOT week-scoped: a staple you are out of is a fact about the
-  /// cupboard, not about a week, so the row carries no `week_start_date` and
-  /// shows on every week's list.
-  Future<void> addFreeTextItem({required String text, String? category});
+  /// Week-scoped exactly like [addTopUp]: you added it while shopping for one
+  /// week, so it belongs to that week's list and does not follow you into the
+  /// next one.
+  Future<void> addFreeTextItem({
+    required String text,
+    required DateTime weekStart,
+    String? category,
+  });
 
   /// Soft-deletes an entry and its manual contributions (remove a free-text
   /// item, or undo a top-up on an otherwise-underived ingredient).

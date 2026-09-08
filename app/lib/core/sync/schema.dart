@@ -126,8 +126,9 @@ const schema = Schema([
     Column.text('category'), // aisle group for a free-text item
     Column.integer('checked'), // 0/1 — check-off is on the entry
     Column.text('unit'), // preferred display unit (nullable)
-    // The Monday this tick belongs to (0019 / D3). Null = a global free-text
-    // staple; an ingredient entry always carries its week.
+    // The Monday this entry belongs to — every entry carries one, a free-text
+    // non-food item included. Null is only a legacy row an older client wrote;
+    // the server stamps those onto the week they were created in.
     Column.text('week_start_date'),
     ..._audit,
   ]),

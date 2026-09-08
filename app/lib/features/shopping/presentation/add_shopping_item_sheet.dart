@@ -91,10 +91,14 @@ class _FreeTextBody extends HookConsumerWidget {
     Future<void> add() async {
       final value = text.value.trim();
       if (value.isEmpty) return;
+      // The item joins the list on screen, exactly as a top-up does.
+      final weekStart = ref.read(viewedWeekStartProvider);
       final added = await ref.writeOk(
         context,
         'add $value',
-        () => ref.read(shoppingRepositoryProvider).addFreeTextItem(text: value),
+        () => ref
+            .read(shoppingRepositoryProvider)
+            .addFreeTextItem(text: value, weekStart: weekStart),
       );
       if (added && context.mounted) Navigator.of(context).pop();
     }
@@ -153,7 +157,7 @@ class _TopUpBody extends HookConsumerWidget {
       final qty = result.quantity;
       if (qty == null) return;
       final repo = container.read(shoppingRepositoryProvider);
-      // The top-up joins the list on screen (0018 / D3).
+      // The top-up joins the list on screen.
       final weekStart = container.read(viewedWeekStartProvider);
       // A measure top-up stores the honest count fallback unit (`pieces`)
       // beside the measure id — see [ShoppingRepository.addTopUp].

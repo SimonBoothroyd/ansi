@@ -60,6 +60,7 @@ class _RecordingShoppingRepo implements ShoppingRepository {
   @override
   Future<void> addFreeTextItem({
     required String text,
+    required DateTime weekStart,
     String? category,
   }) async {}
 
