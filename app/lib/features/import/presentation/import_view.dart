@@ -149,6 +149,17 @@ class _IntakeForm extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final url = useState('');
     final controller = ref.read(importControllerProvider.notifier);
+    final intake = ref.read(photoIntakeProvider);
+
+    Future<void> importPhotos(PhotoSource source) async {
+      final paths = await intake.pickAndCrop(source);
+      if (paths.isEmpty) return;
+      await controller.startImport(
+        ImportFromPhotos(paths),
+        bookId: initialBookId,
+        sectionId: initialSectionId,
+      );
+    }
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
@@ -180,22 +191,31 @@ class _IntakeForm extends HookConsumerWidget {
           child: const Text('Import from link'),
         ),
         const SizedBox(height: 24),
-        FButton(
-          variant: FButtonVariant.outline,
-          prefix: const Icon(FLucideIcons.camera),
-          // Pick one or more pages → crop/rotate each → import the cropped set.
-          // An empty result (nothing picked, every page cancelled) starts
-          // nothing; the repository downscales each page before upload.
-          onPress: () async {
-            final paths = await ref.read(photoIntakeProvider).pickAndCrop();
-            if (paths.isEmpty) return;
-            await controller.startImport(
-              ImportFromPhotos(paths),
-              bookId: initialBookId,
-              sectionId: initialSectionId,
-            );
-          },
-          child: const Text('Import from photos'),
+        // The photo door, split by where the page comes from: shoot it now, or
+        // pick one or more from the library. Either way it is pick → crop/
+        // rotate each → import the cropped set. An empty result (nothing
+        // picked, camera dismissed, every page cancelled) starts nothing; the
+        // repository downscales each page before upload.
+        Row(
+          children: [
+            Expanded(
+              child: FButton(
+                variant: FButtonVariant.outline,
+                prefix: const Icon(FLucideIcons.camera),
+                onPress: () => importPhotos(PhotoSource.camera),
+                child: const Text('Take a photo'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FButton(
+                variant: FButtonVariant.outline,
+                prefix: const Icon(FLucideIcons.image),
+                onPress: () => importPhotos(PhotoSource.library),
+                child: const Text('Choose photos'),
+              ),
+            ),
+          ],
         ),
         if (error != null) ...[
           const SizedBox(height: 20),
