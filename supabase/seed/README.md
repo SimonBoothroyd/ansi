@@ -46,9 +46,10 @@ whose only citable number describes a different physical form of the food
 belongs there too: the whole spices (`star anise`, `cinnamon stick`) are
 counted, and FDC carries only the ground powder.
 
-Two invariants hold at `db reset` (`seed_curation.sql`): **R1**, a volume
+Three invariants hold at `db reset` (`seed_curation.sql`): **R1**, a volume
 `default_unit` requires a density; **R2**, every stored density lands in the
-kitchen band 0.03–2.0 g/ml.
+kitchen band 0.03–2.0 g/ml; **R3**, every `piece`-default row carries a piece
+weight and nothing else admits `piece`.
 
 ## Building the household vocabulary (`scripts/mine_recipes.ts`)
 
@@ -184,38 +185,58 @@ vocab ingredient.
 
 `curation_overrides.jsonl` (committed, one JSON object per line, every entry
 with a `reason`) records the human/LLM judgment pass over ALL generated
-per-ingredient defaults — measures, densities, allowed units, and
-label-sourced macros (`kind: "macros"` — per-100 g numbers with a visible
+per-ingredient defaults — measures, densities, allowed units, piece weights,
+and label-sourced macros (`kind: "macros"` — per-100 g numbers with a visible
 `label:…` source, for rows the no-analogue rule keeps link-less). Consumers:
 `gen_measures.ts` (measure drops/adds) and `gen_seed.ts`, which emits
 `../seed_curation.sql` — the LAST seed step, in this order: macro fills →
 density overrides → **FAO density fallback** (`scripts/fao_density.md`) →
-re-materialize `allowed_units` via `default_allowed_units()` now that every
-density source has run (the insert-time trigger fired before prefill) →
-produce volume leg → allowed-unit overrides. Every override's reason is
+**piece weights** (borrowed off the measures `seed_measures.sql` has just laid
+down) → re-materialize `allowed_units` via `default_allowed_units()` now that
+every density source AND every piece weight has run (the insert-time trigger
+fired before prefill) → allowed-unit overrides. Every override's reason is
 emitted as a SQL comment so the generated file stays auditable on its own.
 
-**The `piece` pass (2026-09-02, plan 0022 / [ADR-0010](../../docs/decisions/0010-piece-is-an-admission-fact.md)).**
-`piece` means "a whole one of these, and we have nothing better to call it".
-Where the vocabulary *does* have something better — a clove, an avocado, a
-medium potato — `piece` is not admitted at all, so nothing at runtime ever has
-to guess which measure a `piece` meant. That is an **admission fact** in the
-explicit `allowed_units` list, not a derived rule: deriving it would put
-`piece` back on broccoli and take it off ginger. All **142** seeded rows that
-carry a measure were read and ruled on by hand (the tables in
-`docs/exec-plans/active/0022-piece-curation.md`), and each landed here as one
-`{"kind": "allowed_units", …, "remove": ["piece"]}` line with its reason. 66
-of those removals are no-ops today — those rows are mass- or volume-default
-and never got `piece` from the rule — and are written anyway, because the file
-is the decision record and the ruling must outlive a change of default unit.
-`default_allowed_units()` and its Dart mirror are deliberately **unchanged**: a
-measure-less count row must still get `piece`. In the seeded template that case
-turns out never to arise — all 76 count-default rows carry a measure — so after
-the pass **no seeded row admits `piece` at all**; the fallback is there for the
-ingredients a household creates itself. Rollout is a **reseed**, never a
-migration (ADR-0009 rule 3 forbids a backfill that removes from a list the
-household owns). The safety net is a pgTAP assertion in
-`../tests/unit_admission.sql`, not a second stored copy of the rule.
+**The piece pass (2026-09-08, ADR-0015 — supersedes ADR-0010).** A **piece
+weight** is a row fact exactly like a density: `piece_basis_amount` says what
+ONE of this ingredient weighs, in the row's macros basis unit, and `piece` is
+admitted **iff** the row's `default_unit` is `piece` AND that number is stored.
+A `piece` you can weigh converts, totals and shops; one you cannot is not
+offered, and the flesh-out form asks for the number. That makes admission a
+derived rule again — `default_allowed_units()` (migration 0039) and its Dart
+mirror both carry it — where ADR-0010 needed one hand-written removal per row.
+
+The 2026-09-02 pass that wrote 143 `{"kind": "allowed_units", …, "remove":
+["piece"]}` lines is gone from `curation_overrides.jsonl`, and so are the 65
+`default_measure` rulings that named a row nobody counts. What remains is
+**76 `piece_weight` rulings**, one per piece-default row, carrying the same
+curated judgment and the same reasons the owner signed off on 2026-09-03:
+
+- `{"kind": "piece_weight", "match_text": …, "label": "<measure label>",
+  "reason": …}` **borrows** that curated measure's `basis_amount` (onion takes
+  its 110 g `onion, medium`) and stamps `piece_source = 'borrowed from
+  <label>'`. A copy of a stated fact, never a guess.
+- `{"kind": "piece_weight", …, "basis_amount": <number>, "reason": …}` states
+  a weight outright, stamped `seed:typical` so a guess stays visible.
+
+A row with no honest whole does not get a made-up one: it stops being counted.
+`Mint` was the only such row (a 2 g sprig against a 25 g bunch, 12× apart, and
+neither is "one mint"), so its `default_unit` moved to `g` in `vocab.jsonl` —
+the sprig and the bunch stay as measures, and its curated density keeps the cup
+sayable. `Red Cabbage`, the other flagged row, simply took the whole item it
+always had (`head, medium`, 839 g).
+
+Rollout to existing households is a **migration** this time, and it can be:
+0039 copies each row's `default_measure_id` measure into `piece_basis_amount`
+and then UNIONS `piece` in, which is ADR-0009 rule 3's direction. It removes
+`piece` from nothing — the app strips it at read on rows the rule does not
+admit it for, exactly as it strips density-locked units. The safety net is a
+pgTAP assertion in `../tests/unit_admission.sql` plus **R3** below.
+
+**"Counts as" (`ingredient.default_measure_id`, 0023) is retired** by the same
+ruling: it pointed at a measure to answer a narrower version of the same
+question. The column, its trigger and its backfill stay for one release
+because the data is durable; nothing reads or writes them.
 
 **Produce volume leg.** ADR-0008's density leg fires only for mass/volume
 defaults — a count default gets nothing from a density, because "a density
@@ -229,8 +250,8 @@ leg beside it) and applies only where a density exists. **The rule belongs in
 ADR-0008 is amended, the template vocab carries the honest list explicitly,
 which `allowed_units` being an explicit stored attribute exists to allow.
 
-`seed_curation.sql` ends with two invariants — `supabase db reset` FAILS
-loudly on either:
+`seed_curation.sql` ends with three invariants — `supabase db reset` FAILS
+loudly on any of them:
 
 - **R1** (adopted 2026-08-29): a volume `default_unit` REQUIRES a density (a
   volume line on a density-less per-g ingredient can never compute macros).
@@ -240,6 +261,11 @@ loudly on either:
   whatever its source. Catches the wrong physical quantity (FAO publishes
   salt at 2.165 — a crystal density, not what a spoonful weighs) without
   second-guessing the genuinely light end (dill 0.038).
+- **R3** (ADR-0015): the two halves of the piece rule. **(a)** every
+  `piece`-default row says what one of it weighs — a stranded count default
+  would offer a `piece` nothing can convert; **(b)** no row with any other
+  default admits `piece`. Fix (a) by borrowing the curated whole-item measure,
+  stating an honest typical weight, or moving the row off a count default.
 
 ## Prefill: promoting stubs to `complete` (`usda_links.jsonl`)
 

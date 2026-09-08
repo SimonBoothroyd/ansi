@@ -16,13 +16,12 @@ assertions in `begin … rollback` so runs leave no residue.
   aliases; no template → clean no-op (empty vocab); idempotency.
 - `unit_admission.sql` — ADR-0008 unit admission (0012) as amended by
   [ADR-0009](../../docs/decisions/0009-density-unlocks-both-families.md)
-  (0014) and brought to parity with the app by 0021 (plan 0020 D4c + J3:
-  basis-strict mates, the density unlock derived as `derived(with) −
-  derived(without)` of default unit AND basis, the per-word imprecise gate):
-  `default_allowed_units()` / `density_unlocked_units()` vectors that mirror
-  `app/test/features/ingredients/allowed_units_test.dart` CASE FOR CASE (each
-  block names the Dart test it twins), so a drift between the SQL and Dart
-  mirrors fails one suite or the other; the materialization trigger; the
+  (0014), [ADR-0014](../../docs/decisions/0014-all-to-all-admission.md) (0037,
+  a family is admitted whole) and ADR-0015 (0039, a piece weight is a row
+  fact): `default_allowed_units()` / `density_unlocked_units()` vectors that
+  mirror `app/test/features/ingredients/allowed_units_test.dart` CASE FOR CASE
+  (each block names the Dart test it twins), so a drift between the SQL and
+  Dart mirrors fails one suite or the other; the materialization trigger; the
   flour shape 0021 exists for (a density landing server-side on a stripped
   cup /g row restores `cup`) and 0021's backfill post-state as a table-wide
   invariant; that the backfill and the seed refresh
@@ -30,14 +29,18 @@ assertions in `begin … rollback` so runs leave no residue.
   survive); that every piece-default produce row with a density admits
   cup/tbsp/ml (this assertion REPLACED the seed-level produce patch — one
   source of the fact, per ADR-0009); the density→`allowed_units` union
-  trigger; the USDA search door (`probe_usda` — read-only, ranked, capped,
-  and offering weak rows rather than withholding them); and the plan-0022 /
-  [ADR-0010](../../docs/decisions/0010-piece-is-an-admission-fact.md) `piece`
-  guard — no seeded ingredient carrying a measure admits `piece`, while the
-  derived rule still gives a measure-less count row its fallback. That pass is
-  DATA (`seed/curation_overrides.jsonl`), not a rule, so this assertion is the
-  only thing standing between a regenerated seed and a silently restored
-  `piece`.
+  trigger; and the USDA search door (`probe_usda` — read-only, ranked, capped,
+  and offering weak rows rather than withholding them).
+
+  The **`piece` guard** turned inside out with ADR-0015. It used to pin that
+  no seeded ingredient carrying a measure admits `piece` — the outcome of 143
+  hand-written removals. It now pins the RULE and the seed's data landing on
+  it: all 76 seeded piece-default rows carry a `piece_basis_amount` and
+  therefore admit `piece`; no row with any other default admits it, weight or
+  no weight; a borrowed weight matches a live measure of its own row; the
+  check constraint refuses zero; and the piece-weight union trigger (0039, the
+  mirror of the density one) adds `piece` when a weight arrives and keeps the
+  household's own words.
 - `nested_recipes.sql` — a recipe as an ingredient (0017, exec plan 0021
   D1/D2/D5): the line-item identity XOR (`ingredient_id` ⊻ `sub_recipe_id`)
   and the "a component carries no `measure_id`" fence; the yield checks
@@ -73,20 +76,23 @@ assertions in `begin … rollback` so runs leave no residue.
   is a no-op. pgTAP cannot include a file outside `tests/`, so the script's
   statement is mirrored verbatim between `>>>`/`<<<` markers inside a temp
   function — `make db-lint` diffs the two blocks.
-- `default_measure.sql` — the curated default count measure (0023, plan 0024
-  seam D1): `ingredient.default_measure_id` is a nullable FK with `on delete
-  set null` (a hard-deleted measure clears the default rather than dangling
-  it); the own-measure trigger refuses a measure belonging to another
-  ingredient or another household; the backfill
-  (`ingredient_default_measure_backfill()`) fills a NULL by (`match_text`,
-  measure `label`) per household, never overwrites a household's own choice,
-  writes nothing for a `null` ruling, and is a no-op on a second run; the
-  seeded template carries the curation and **exactly the nine fragment-set
-  rows carry no default, asserted BY NAME** (the same job the `piece` guard in
-  `unit_admission.sql` does for ADR-0010 — the pass is DATA, so a regenerated
-  seed must not be able to rule on one of them silently); and
-  `ensure_onboarded()` carries every default into a new household BY LABEL,
-  re-keyed onto that household's own measure rows.
+- `default_measure.sql` — the default count measure (0023, plan 0024 seam D1),
+  **retired by ADR-0015** and kept for one release because the data is durable.
+  Nothing reads `ingredient.default_measure_id` any more and the generated seed
+  no longer writes it, so this suite is what keeps the machinery honest while
+  it is still there: the column is a nullable FK with `on delete set null` (a
+  hard-deleted measure clears the default rather than dangling it); the
+  own-measure trigger refuses a measure belonging to another ingredient or
+  another household; the backfill (`ingredient_default_measure_backfill()`)
+  fills a NULL by (`match_text`, measure `label`) per household, never
+  overwrites a household's own choice, and is a no-op on a second run. The
+  suite CALLS that backfill and then reads what it filled: 129 of its 132
+  frozen pairs land, and **the thirteen measured rows it misses are asserted BY
+  NAME** — the nine fragment sets, `lentil canned` (added after the snapshot
+  froze) and the three rows plan 0039 renamed out from under it. A frozen
+  pointer going stale against a moving vocabulary is the argument ADR-0015
+  makes; `ensure_onboarded()` still carries what is there into a new household
+  BY LABEL, re-keyed onto that household's own measure rows.
 - `portion_factor.sql` — `household_member.portion_factor` (0026, exec plan
   0027 front P): defaults to 1 so every pre-existing member is the one-portion
   eater the head-count always meant (P-D6); the range check refuses below ¼
