@@ -287,7 +287,10 @@ Two rulings landed the same evening, in this order, and the second governs:
    **full cloud reset** (ledger below), and `0020` carries only the
    future-proofing (template-only unique indexes), no data repair.
 2. *"Unless I say so, the data is not ephemeral."* — the big changes are
-   believed done, so **that reset was the last free one.** From here the
+   believed done, so that reset was meant to be the last free
+   one. The owner called **one more** for the v0.7.0 release (2026-09-08, ledger
+   below): the app is prod-ready from here and real time goes into stubs and
+   recipes, so **that reset is the last one.** From here the
    household data on the cloud and on the phones is real:
    - **No `supabase db reset --linked` without an explicit owner call.**
    - **Migrations preserve rows**: additive columns, backfills, `if not
@@ -479,6 +482,34 @@ A ✓ means the dashboard hook is correctly wired (the JWT carries `household_id
 Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
+
+### 2026-09-08 — round six on cloud (v0.7.0): the database rebuilt from scratch
+
+- **Why a reset (owner call, §2c):** *"when we release / redeploy, I want to
+  start remote db from scratch… the app is basically prod ready, and I'm going
+  to start actually investing time fixing stubs, uploading recipes."* So the
+  0035/0036/0037 widening backfills, the §2b rollouts and plan 0039's operator
+  statement all became moot: a fresh database carries the current rule and
+  the current seed, and every household created from here clones them.
+- `supabase db reset --linked --yes` from `main@df269df`: every migration
+  through **`0037`** (all-to-all admission, `mg` retired, free-text items
+  week-scoped, the mass ladder), all five seeds in `config.toml` order,
+  `seed_curation` green on the first run (no rename in this round, so the
+  §5.3 trap did not apply).
+- `deploy-supabase` run `34237512787` from `main@df269df`, `reseed_template`
+  NOT ticked (the reset seeded): link ✓ · `db push` no-op ✓ · `functions
+  deploy import-recipe` ✓ (the shared normalizer no longer knows `mg`) ·
+  sync streams ✓.
+- `cloud_verify.sh`: **9 ok · 0 warn · 0 fail** (sign-up was already off).
+- Shipped as `v0.7.0` (release run `34237807444`: guard ✓ · android ✓, APK
+  93 MB + AAB 80 MB on the Release · ios compile proof ✓ · `play-internal`
+  skipped by design) after the cloud legs, per §4's order.
+- **What the reset cost, and the legs still owed (owner):** every onboarded
+  household and auth user. Re-onboard from the phone (§3c: sign-up on, sign
+  in, sign-up off), then **re-set `IMPORT_ALLOWED_HOUSEHOLDS`** to the new
+  household id — the function secrets survive a reset and still name the dead
+  household. Template readback (319 live ingredients · 133 default measures
+  expected) is the owner's `--linked` leg.
 
 ### 2026-09-05 — round five on cloud (plans 0034–0040): 0032–0034, and a reseed that had to be repaired
 
