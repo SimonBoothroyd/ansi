@@ -579,6 +579,16 @@ void main() {
       pieceSource: 'manual',
     );
 
+    test('the review offers a weighed piece under the sheet\'s own words — '
+        '"piece (400 g)", never a bare count', () {
+      final chips = acceptableUnitChips(weighed, const []);
+      final piece = chips.singleWhere((c) => c.token == 'piece');
+      expect(piece.label, 'piece (400 g)');
+      // The TOKEN is still the catalog id: what a tap writes onto the line
+      // is the unit, not the sentence.
+      expect(piece.token, 'piece');
+    });
+
     test('a printed `piece` is unitNotAllowed until the row says what one '
         'weighs, and clean the moment it does', () {
       final line = _res(

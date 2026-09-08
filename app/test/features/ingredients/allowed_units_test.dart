@@ -886,5 +886,31 @@ void main() {
       expect(defaultUnitStranded(_ing(g)), isFalse);
       expect(defaultUnitStranded(_ing(cup, density: 0.59)), isFalse);
     });
+
+    test('a piece chip says what one weighs, in the basis unit — and only a '
+        'weighed row has anything to say', () {
+      // Wherever `piece` is offered beside a `clove (3 g)`, the word must
+      // explain itself the same way; a bare "piece" is a count nobody weighed.
+      expect(pieceChipLabel(_ing(pieces, piece: 350)), 'piece (350 g)');
+      expect(
+        pieceChipLabel(_ing(pieces, piece: 250, basis: MacrosBasis.perMl)),
+        'piece (250 ml)',
+      );
+      expect(pieceChipLabel(_ing(pieces)), 'piece');
+    });
+
+    test('the piece weight reads as a measure the converter already knows', () {
+      final piece = pieceAsMeasure(_ing(pieces, piece: 110))!;
+      expect(piece.label, 'piece');
+      expect(piece.amount, 110);
+      expect(piece.basis, MacrosBasis.perG);
+      expect(
+        pieceAsMeasure(
+          _ing(pieces, piece: 30, basis: MacrosBasis.perMl),
+        )!.basis,
+        MacrosBasis.perMl,
+      );
+      expect(pieceAsMeasure(_ing(pieces)), isNull);
+    });
   });
 }
