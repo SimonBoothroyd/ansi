@@ -30,7 +30,10 @@ const _bases = <(MacrosBasis, String)>[
 
 /// A bare vocabulary row in the shape one cell asks about: no explicit
 /// `allowed_units` list (so the derived rule answers) and no category (so no
-/// imprecise word is earned and table 3 owns that axis alone).
+/// imprecise word is earned and table 3 owns that axis alone). A count
+/// default is rendered WITH a piece weight (ADR-0015): an unweighed `piece`
+/// default is a shape the app refuses to store, exactly as a `cup` default
+/// with no density is, so the table shows the row as it can exist.
 Ingredient _row(Unit defaultUnit, MacrosBasis basis, {double? density}) =>
     Ingredient(
       id: 'generated',
@@ -39,6 +42,7 @@ Ingredient _row(Unit defaultUnit, MacrosBasis basis, {double? density}) =>
       status: IngredientStatus.complete,
       densityGPerMl: density,
       macrosBasis: basis,
+      pieceBasisAmount: defaultUnit.family == UnitFamily.count ? 1 : null,
     );
 
 /// Unit labels joined in chip order, the row's own default emphasized.
@@ -129,10 +133,11 @@ void main(List<String> args) {
     '[ADR-0008](../decisions/0008-unit-admission-model.md) (the model),',
     '[ADR-0009](../decisions/0009-density-unlocks-both-families.md) (a density',
     'unlocks the other family whatever the default unit is),',
-    '[ADR-0010](../decisions/0010-piece-is-an-admission-fact.md) (`piece` is',
-    'curated, never inferred) and',
     '[ADR-0014](../decisions/0014-all-to-all-admission.md) (all to all — a',
-    'family is admitted whole and the household prunes per row).',
+    'family is admitted whole and the household prunes per row) and',
+    '[ADR-0015](../decisions/0015-piece-weight-is-a-row-fact.md) (a piece',
+    'weight is a row fact: `piece` is sayable only on a count-default row that',
+    'says what one weighs — the `piece` rows below carry one).',
     '',
     '## 1. No density stored',
     '',
@@ -167,7 +172,8 @@ void main(List<String> args) {
     '## How to read it',
     '',
     '- **Order is meaning.** The default unit is fronted, then the rest of its',
-    '  family in kitchen order, then `piece`, then the demoted other',
+    '  family in kitchen order, then `piece` (a count default only, and only',
+    '  while the row has a piece weight), then the demoted other',
     '  mass/volume family (reachable, never fronted — "g of milk" is doable but',
     '  strange), then the imprecise words last.',
     '- **The basis family is unconditional, and whole.** A per-100 g row can',
