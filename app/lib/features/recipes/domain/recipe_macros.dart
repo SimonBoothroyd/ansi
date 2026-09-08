@@ -45,6 +45,13 @@
 /// Every excluded line is also NAMED, in line order, in
 /// [RecipeMacroSummary.notes] (seam **D5**) — the refusal says which lines it
 /// is waiting on, which is strictly more honest, not less.
+///
+/// The walk keeps BOTH halves of what it worked out: every line that joined is
+/// recorded in [RecipeMacroSummary.lineMacros] with the macros it contributed,
+/// and every line that did not is named in the notes. A surface that prints a
+/// figure per line reads the first and the second — it never re-derives a
+/// conversion, so a line can never read one way beside its total and another
+/// way inside it.
 library;
 
 import 'package:meta/meta.dart';
@@ -175,6 +182,7 @@ class RecipeMacroSummary {
     this.impreciseLines = 0,
     this.optionalLines = 0,
     this.notes = const [],
+    this.lineMacros = const {},
     this.noLines = false,
     this.nothingWeighable = false,
   });
@@ -205,6 +213,23 @@ class RecipeMacroSummary {
   /// component line ("Romesco Aioli · sub-recipe incomplete"), not the
   /// child's lines.
   final List<MacroLineNote> notes;
+
+  /// What each line CONTRIBUTED to the total, by [LineItem.id] — the other
+  /// half of [notes], from the same walk. A line is in exactly one of the two:
+  /// here with the macros it added, or there with the reason it was left out.
+  /// An excluded line is never here as a zero (invariant 3), and a line whose
+  /// contribution is genuinely zero is here with a zero it actually computed.
+  ///
+  /// The figures are at the recipe's STORED amounts, like every other input to
+  /// the sum — a surface showing a scaled list multiplies by its own factor,
+  /// exactly as it already scales the amount it prints beside them. (The
+  /// summary's own [perServing] is scale-invariant for the opposite reason:
+  /// scaling moves the lines and the servings together.)
+  ///
+  /// A component line's entry is the WHOLE share it contributed; the nested
+  /// recipe's own lines never appear, the same way its exclusions never appear
+  /// in [notes].
+  final Map<String, Macros> lineMacros;
 
   /// Component lines whose batch math does not resolve (step 8.6 / D8): no
   /// yield on the target, a unit in no yield's family, no amount, or a cycle.
@@ -243,6 +268,7 @@ class RecipeMacroSummary {
       other.impreciseLines == impreciseLines &&
       other.optionalLines == optionalLines &&
       _sameNotes(other.notes, notes) &&
+      _sameLineMacros(other.lineMacros, lineMacros) &&
       other.noLines == noLines &&
       other.nothingWeighable == nothingWeighable;
 
@@ -250,6 +276,14 @@ class RecipeMacroSummary {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
       if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  static bool _sameLineMacros(Map<String, Macros> a, Map<String, Macros> b) {
+    if (a.length != b.length) return false;
+    for (final entry in a.entries) {
+      if (b[entry.key] != entry.value) return false;
     }
     return true;
   }
@@ -265,6 +299,9 @@ class RecipeMacroSummary {
     impreciseLines,
     optionalLines,
     Object.hashAll(notes),
+    Object.hashAllUnordered([
+      for (final e in lineMacros.entries) Object.hash(e.key, e.value),
+    ]),
     noLines,
     nothingWeighable,
   );
@@ -346,6 +383,14 @@ RecipeMacroSummary _summarize({
   var optional = 0;
   var lineCount = 0;
   final notes = <MacroLineNote>[];
+  final lineMacros = <String, Macros>{};
+
+  /// Adds one line's contribution to the total AND records it against the
+  /// line, so the two can never disagree.
+  void add(LineItem line, Macros macros) {
+    total += macros;
+    lineMacros[line.id] = macros;
+  }
 
   void note(LineItem line, MacroLineReason reason, {String? unit}) =>
       notes.add((
@@ -385,7 +430,7 @@ RecipeMacroSummary _summarize({
           subIncomplete++;
           note(line, MacroLineReason.subRecipeIncomplete);
         case _ComponentMacros(:final macros):
-          total += macros;
+          add(line, macros);
       }
       continue;
     }
@@ -432,7 +477,7 @@ RecipeMacroSummary _summarize({
       }
       continue;
     }
-    total += macros.scaledBy(per100 / 100);
+    add(line, macros.scaledBy(per100 / 100));
   }
 
   // No lines summed nothing: rendering that as "~0 kcal /serving" would
@@ -461,6 +506,7 @@ RecipeMacroSummary _summarize({
     impreciseLines: imprecise,
     optionalLines: optional,
     notes: notes,
+    lineMacros: lineMacros,
     noLines: noLines,
     nothingWeighable: nothingWeighable,
   );

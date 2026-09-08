@@ -5,6 +5,12 @@
 /// [RecipeMacroPanel]) — the only number on this page the servings scaler
 /// does not move.
 ///
+/// The page's `⋯` menu can also print **each line's own macros under its
+/// name**. These are the opposite of the panel: they are the line *as shown*,
+/// so they DO move with the scaler. They read off the same summation the panel
+/// does ([RecipeMacroSummary.lineMacros]) rather than converting anything
+/// again, and a line the total left out says why instead of showing a zero.
+///
 /// **As a sub-recipe** (step 8.6 / D9, design board frame b) the page gains
 /// two facts: a *"makes 1 cup"* pill beside serves (a second pill when the
 /// yield states two denominations), and a THIRD tab — "Used in · N" — holding
@@ -24,6 +30,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/macros.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_stepper_row.dart';
@@ -35,6 +42,7 @@ import '../../../shared/method_step_text.dart';
 import '../../../shared/write.dart';
 import '../../ingredients/presentation/ingredient_detail_view.dart'
     show ingredientDetailRoute;
+import '../../ingredients/presentation/macros_format.dart';
 import '../data/recipe_providers.dart';
 import '../domain/line_display.dart';
 import '../domain/method_step.dart';
@@ -120,6 +128,9 @@ class _RecipeBody extends HookConsumerWidget {
             .firstOrNull
             ?.favorite ??
         false;
+    // A reading posture, held for the session (see [ShowLineMacros]) — the
+    // menu offers it only from the tab it changes.
+    final lineMacros = ref.watch(showLineMacrosProvider);
 
     return FScaffold(
       childPad: false,
@@ -161,6 +172,21 @@ class _RecipeBody extends HookConsumerWidget {
                       );
                     },
                   ),
+                  // The per-line macro toggle lives here rather than in a
+                  // control of its own: the page already has one door for its
+                  // less-used verbs, and a second surface beside the panel
+                  // would sit below the fold it changes.
+                  if (index == 0)
+                    FItem(
+                      prefix: const Icon(FLucideIcons.sigma),
+                      title: Text(
+                        lineMacros ? 'Hide line macros' : 'Show line macros',
+                      ),
+                      onPress: () {
+                        unawaited(controller.hide());
+                        ref.read(showLineMacrosProvider.notifier).toggle();
+                      },
+                    ),
                   FItem(
                     prefix: const Icon(FLucideIcons.pencil),
                     title: const Text('Edit'),
@@ -203,6 +229,7 @@ class _RecipeBody extends HookConsumerWidget {
               recipe: recipe,
               servings: servings.value,
               onServings: (v) => servings.value = v,
+              showLineMacros: lineMacros,
             )
           else if (index == 1)
             _MethodTab(recipe: recipe, servings: servings.value)
@@ -503,11 +530,15 @@ class _IngredientsTab extends StatelessWidget {
     required this.recipe,
     required this.servings,
     required this.onServings,
+    required this.showLineMacros,
   });
 
   final Recipe recipe;
   final double servings;
   final ValueChanged<double> onServings;
+
+  /// Whether each line prints its own macros under its name (the `⋯` toggle).
+  final bool showLineMacros;
 
   /// Opens the fix a named line's reason implies (seam **D5**) — the marker
   /// is a door, and this is the one place that decides which door.
@@ -539,16 +570,49 @@ class _IngredientsTab extends StatelessWidget {
     }
   }
 
+  /// The muted second line under a row's identity when the toggle is on: the
+  /// row's macros AT THE AMOUNT SHOWN, or the reason there are none.
+  ///
+  /// Every figure comes from the summation's own per-line record scaled by the
+  /// page's factor — the same multiplication the amount beside it went through
+  /// — so nothing is converted twice and a line cannot read one way here and
+  /// another inside the total. A row the summary left out prints its reason in
+  /// the panel's words instead: never a zero, and never a partial, which is
+  /// why a folded multi-use row prints figures only when EVERY use joined.
+  /// [marked] rows already carry that reason under their amount, so they say
+  /// nothing here rather than saying it twice.
+  String? _macroLine(
+    LineUses uses,
+    RecipeMacroSummary summary,
+    double factor, {
+    required bool marked,
+  }) {
+    if (!showLineMacros) return null;
+    var total = const Macros(kcal: 0, protein: 0, carb: 0, fat: 0);
+    for (final use in uses.uses) {
+      final contribution = summary.lineMacros[use.id];
+      if (contribution == null) {
+        if (marked) return null;
+        final reason = summary.notes
+            .where((n) => n.lineId == use.id)
+            .firstOrNull
+            ?.reason;
+        return reason == null ? null : incompleteLineNote(reason);
+      }
+      total += contribution;
+    }
+    return formatMacroLine(total.scaledBy(factor));
+  }
+
   @override
   Widget build(BuildContext context) {
     final groups = scaleGroups(recipe, servings);
     final factor = scaleFactorFor(recipe, servings);
+    final summary = recipe.macros ?? const RecipeMacroSummary();
     // The panel's names and the rows' markers come from ONE list, keyed by
     // line id — one lookup, never a second computation that could disagree.
     final markers = {
-      for (final note in fixableNotes(
-        recipe.macros ?? const RecipeMacroSummary(),
-      ))
+      for (final note in fixableNotes(summary))
         if (note.lineId != null) note.lineId!: note,
     };
 
@@ -589,6 +653,12 @@ class _IngredientsTab extends StatelessWidget {
                 macroMarker: note == null
                     ? null
                     : incompleteLineNote(note.reason),
+                macroLine: _macroLine(
+                  uses,
+                  summary,
+                  factor,
+                  marked: note != null,
+                ),
                 onFixMacro: note == null ? null : () => _fix(context, note),
               );
             }(),

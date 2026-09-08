@@ -19,6 +19,12 @@
 /// stub badge's voice, because it is the same kind of claim — a fact about the
 /// line that changes what a total covers. It sits in the identity column, never
 /// the amount column: "1 lime" is still what the recipe says.
+///
+/// **[RecipeIngredientLine.macroLine] is opt-in**, because the import preview
+/// shares this widget and has no summation behind it: the recipe page passes a
+/// string when its per-line toggle is on, and everything else passes nothing.
+/// The caller decides what it says — the line's figures, or the reason there
+/// are none — so this file never computes a number.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -86,11 +92,24 @@ class RecipeIngredientLine extends StatelessWidget {
     this.onEditAmount,
     this.onOpenSubRecipe,
     this.macroMarker,
+    this.macroLine,
     this.onFixMacro,
     super.key,
   });
 
   final LineUses uses;
+
+  /// This row's own macros, at the amount the row is showing — `142 kcal ·
+  /// 3P 11F 8C` — or, for a row the total left out, the reason in the macro
+  /// panel's words. Null when the page's per-line toggle is off, and null on
+  /// every surface that has no summary to read.
+  ///
+  /// It sits under the identity, not under the amount: it is a fact about the
+  /// ingredient at this amount, and the amount column belongs to what the
+  /// recipe says. [macroMarker] is the amount column's, and the two never say
+  /// the same thing twice — the caller passes null here when the marker is
+  /// already printing the reason.
+  final String? macroLine;
 
   /// Why this row is left out of the macro total, in the shared per-line
   /// words (seam **D5**) — `needs a piece weight`, `stub ingredient`. Null
@@ -162,10 +181,26 @@ class RecipeIngredientLine extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _Identity(
-                  uses: uses,
-                  notes: notes,
-                  onOpen: onOpenSubRecipe,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _Identity(
+                      uses: uses,
+                      notes: notes,
+                      onOpen: onOpenSubRecipe,
+                    ),
+                    if (macroLine != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Text(
+                          macroLine!,
+                          style: ansiMono(
+                            size: 10.5,
+                            color: AnsiColors.muted,
+                          ).copyWith(height: 1.3),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               if (onEditAmount != null) ...[

@@ -942,4 +942,113 @@ void main() {
       expect(summary.notes, isEmpty);
     });
   });
+
+  group('the per-line record — the other half of the same walk', () {
+    /// A component line asking for [quantity] [unit] of [subRecipeId].
+    LineItem component(
+      String subRecipeId, {
+      double? quantity = 0.25,
+      Unit unit = cup,
+    }) => LineItem(
+      id: 'li-$subRecipeId',
+      subRecipeId: subRecipeId,
+      ingredientName: subRecipeId,
+      unit: unit,
+      quantity: quantity,
+    );
+
+    test('every line that joined is recorded with what it contributed', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 2,
+        lines: [_line('x', quantity: 250), _line('y', quantity: 50)],
+        nutritionOf: _vocab(),
+      );
+      expect(
+        summary.lineMacros['li-x'],
+        const Macros(kcal: 250, protein: 25, carb: 50, fat: 12.5),
+      );
+      expect(summary.lineMacros['li-y']!.kcal, 50);
+    });
+
+    test('the recorded lines sum back to the total the summary published', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 4,
+        lines: [
+          _line('x', quantity: 250),
+          _line('y', quantity: 50),
+          _line('z', quantity: 0.5, unit: kg),
+        ],
+        nutritionOf: _vocab(),
+      );
+      final summed = summary.lineMacros.values.reduce((a, b) => a + b);
+      expect(summed.scaledBy(1 / 4), summary.perServing);
+    });
+
+    test('an excluded line is in the notes and NOT in the record — never a '
+        'zero (invariant 3)', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [
+          _line('x', quantity: 100),
+          _line('missing', quantity: 100),
+          _line('parsley', unit: handful),
+          _line('lime', quantity: 50).copyWith(optional: true),
+        ],
+        nutritionOf: _vocab(),
+      );
+      expect(summary.lineMacros.keys, ['li-x']);
+      expect(summary.notes.map((n) => n.lineId), [
+        'li-missing',
+        'li-parsley',
+        'li-lime',
+      ]);
+    });
+
+    test('a line that resolved is recorded even while the SUMMARY refuses — '
+        'the line stays honest about itself', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 100), _line('missing', quantity: 100)],
+        nutritionOf: _vocab(),
+      );
+      expect(summary.incomplete, isTrue);
+      expect(summary.perServing, isNull);
+      expect(summary.lineMacros['li-x']!.kcal, 100);
+    });
+
+    test('a component line records the WHOLE share it contributed, and the '
+        'nested lines never appear', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [component('aioli')],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) => id == 'aioli'
+            ? (
+                servingsBase: 4,
+                lines: [_line('x', quantity: 200)],
+                yields: const [(qty: 1.0, unit: cup)],
+              )
+            : null,
+      );
+      // A quarter of a 200 kcal batch; `li-x` belongs to the aioli, not here.
+      expect(summary.lineMacros.keys, ['li-aioli']);
+      expect(summary.lineMacros['li-aioli']!.kcal, 50);
+    });
+
+    test('two summaries differing only in the record are not equal', () {
+      const withRecord = RecipeMacroSummary(
+        perServing: _per100,
+        lineMacros: {'li-x': _per100},
+      );
+      const without = RecipeMacroSummary(perServing: _per100);
+      expect(withRecord == without, isFalse);
+      expect(
+        withRecord,
+        const RecipeMacroSummary(
+          perServing: _per100,
+          lineMacros: {'li-x': _per100},
+        ),
+      );
+    });
+  });
 }
