@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredient detail</h1>
-    <p class="view-status">built · matches code 2026-09-08 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0012-tsp-mates-cup.md">ADR-0012</a> · <a href="../../decisions/0013-mass-ladder-symmetric.md">ADR-0013</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a></p>
+    <p class="view-status">built · matches code 2026-09-08 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a></p>
     <p class="view-blurb">One form, three groups — Identity, Nutrition, Units &amp; measures — under a dock that carries the form’s one message and its two commitments. It is also the create screen: <code>/ingredients/new</code> is this form with no row behind it.</p>
 </header>
 
@@ -64,7 +64,8 @@
             </div></div>
             <p class="flabel" style="margin-bottom:2px">Allowed units</p>
             <p class="conv-note" style="margin:0 20px 6px">what a line may say</p>
-            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible"><span class="uchip on">cup</span><span class="uchip on">tsp</span><span class="uchip on">tbsp</span><span class="uchip on">ml</span><span class="uchip on">l</span><span class="uchip on">g</span><span class="uchip on">kg</span><span class="uchip-sep" style="height:22px;margin:0 2px"></span><span class="uchip impr">pinch</span></div></div>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible"><span class="uchip on">cup</span><span class="uchip on">tsp</span><span class="uchip on">tbsp</span><span class="uchip on">fl oz</span><span class="uchip on">ml</span><span class="uchip on">l</span><span class="uchip on">pt</span><span class="uchip on">qt</span><span class="uchip on">g</span><span class="uchip on">kg</span><span class="uchip on">oz</span><span class="uchip on">lb</span><span class="uchip-sep" style="height:22px;margin:0 2px"></span><span class="uchip" style="color:var(--muted)">pinch</span><span class="uchip" style="color:var(--muted)">dash</span><span class="uchip" style="color:var(--muted)">handful</span><span class="uchip" style="color:var(--muted)">to taste</span></div></div>
+            <p class="conv-note" style="margin:2px 20px 0">a density opens the other family whole — twelve chips, and this row keeps the ones it will use. <code>grains</code> earns no imprecise word, so all four are off and all four are tappable.</p>
             <p class="flabel">Density <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--herb-deep)">0.78 g/ml</span> <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--muted)">· change</span></p>
             <p class="conv-note" style="margin:-2px 20px 0">a stated density is one line — the sentence that enters it is one tap away</p>
             <p class="flabel" style="margin-bottom:2px">Measures</p>
@@ -83,13 +84,13 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Units &amp; measures, close up</b> · the default unit is one of the admitted chips, and the imprecise words follow the row after a divider — not a section of their own</p>
+        <p class="frame-name"><b>Units &amp; measures, close up</b> · a row with no density: the basis family is live, the other one is a named line rather than dashed chips, and every imprecise word is a chip the row may turn on</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div style="margin:16px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
 
             <p class="flabel">Default unit</p>
             <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
-                <span class="uchip" style="background:transparent;border-color:var(--gone);border-style:dotted;color:var(--gone)">cup</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">ml</span><span class="uchip" style="color:var(--muted)">tsp</span><span class="uchip" style="color:var(--muted)">piece</span><span class="uchip impr">pinch</span>
+                <span class="uchip" style="background:transparent;border-color:var(--gone);border-style:dotted;color:var(--gone)">cup</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">oz</span><span class="uchip" style="color:var(--muted)">lb</span><span class="uchip" style="color:var(--muted)">ml</span><span class="uchip" style="color:var(--muted)">tsp</span><span class="uchip" style="color:var(--muted)">piece</span><span class="uchip" style="color:var(--muted)">pinch</span>
             </div></div>
             <p class="conv-note" style="margin:-6px 20px 12px"><span style="color:var(--gone)">cup</span> needs a density on this row — add one below, or <b style="color:var(--ink);border-bottom:1px solid var(--line)">switch to g</b></p>
             <p class="conv-note" style="margin:-6px 20px 12px">Save refuses while this line is showing: <i>Macros per 100 g and no density can’t have cup as the default unit — add a density below, or make it g.</i></p>
@@ -97,11 +98,11 @@
             <p class="flabel" style="margin-bottom:2px">Allowed units</p>
             <p class="conv-note" style="margin:0 20px 6px">what a line may say</p>
             <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
-                <span class="uchip on">piece</span><span class="uchip on">g</span><span class="uchip on">kg</span><span class="uchip on">oz</span><span class="uchip on">lb</span>
+                <span class="uchip on">g</span><span class="uchip on">kg</span><span class="uchip on">oz</span><span class="uchip on">lb</span>
                 <span class="uchip-sep" style="height:22px;margin:0 2px"></span>
-                <span class="uchip impr">pinch</span><span class="uchip impr">dash</span>
+                <span class="uchip" style="color:var(--muted)">pinch</span><span class="uchip" style="color:var(--muted)">dash</span><span class="uchip" style="color:var(--muted)">handful</span><span class="uchip" style="color:var(--muted)">to taste</span>
             </div></div>
-            <p class="conv-note" style="margin-top:2px">cup · tsp · tbsp · ml · l · pt · qt unlock when this row has a density · dotted words come from the category</p>
+            <p class="conv-note" style="margin-top:2px">tsp · tbsp · fl oz · cup · ml · l · pt · qt unlock when this row has a density</p>
 
         </div></div>
     </div>

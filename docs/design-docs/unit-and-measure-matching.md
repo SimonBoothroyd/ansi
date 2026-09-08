@@ -33,7 +33,7 @@ A closed set of catalog units in four families:
 
 | Family | Members | Ratio | Converts |
 |---|---|---|---|
-| `mass` | g, kg, mg, oz, lb | into **grams** | within family; to volume only via density |
+| `mass` | g, kg, oz, lb | into **grams** | within family; to volume only via density |
 | `volume` | ml, l, tsp, tbsp, fl_oz, cup, pt, qt | into **ml** | within family; to mass only via density |
 | `count` | piece | none | only to itself |
 | `imprecise` | pinch, dash, to_taste | none | never; never scales (`scale()` returns it unchanged) |
@@ -132,7 +132,7 @@ measures — the add-measure form redirects "cup" into the density field
 
   | Hint list | Contents | Why ① gets it |
   |---|---|---|
-  | `units` | the catalog's mappable ids — g, kg, mg, oz, lb, ml, l, tsp, tbsp, fl_oz, cup, pt, qt, piece | land a printed unit on a real catalog id |
+  | `units` | the catalog's mappable ids — g, kg, oz, lb, ml, l, tsp, tbsp, fl_oz, cup, pt, qt, piece | land a printed unit on a real catalog id |
   | `imprecise` | pinch, dash, to_taste, handful | let a vague amount stay honestly vague instead of being force-fit to a number |
   | `size_words` | large, medium, small, big, tiny | size scales the amount, it isn't a unit |
   | `measures` | **clove · head · sprig · loaf · block · slice · can · bunch · stalk** | everyday **counting nouns**; without them ① force-fits "2 garlic cloves" onto `piece` (the clove→piece failure) |
@@ -303,7 +303,7 @@ honest unit to round to).
 | **Which units are _admitted_** (`allowed_units`) | the **ingredients manager**'s flesh-out form, `/ingredients/:id` (step 8.5) — the form ADR-0008 §Consequences promised, deferred to step 8, and finally built one step later | explicit jsonb list on `ingredient`, materialized at creation, now **directly editable as chips** on that form; a density save still extends it on its own (`densityUnlockedUnits`), and deleting the density strips that half back (D4b) |
 
 The picker itself is honest by construction: `allowedUnitChoicesFor` offers
-only the ingredient's admitted units + its live measures, in ADR-0008 chip order
+only the ingredient's admitted units + its live measures, in chip order
 (default fronted → measures → demoted other-family → imprecise last), excluding
 volume-named measures. **The stored selection is always re-offered** even when
 it falls outside the current filter (`offFilter`, "not in filter"), so an
@@ -313,8 +313,8 @@ The full answer — which units are admitted for every default unit and macro
 basis, with and without a density, plus the per-category imprecise gates — is
 generated from the rule itself and lives in
 [`docs/generated/unit-admission.md`](../generated/unit-admission.md). Read that
-rather than re-deriving the kitchen trim by hand; `make docs-check` fails when
-it has drifted from `allowed_units.dart`.
+rather than re-deriving the rule by hand; `make docs-check` fails when it has
+drifted from `allowed_units.dart`.
 
 ### Fixed (not user-overridable)
 
@@ -519,4 +519,5 @@ Re-traced 2026-08-31. Two of the four are now **closed**; two stand.
 - Normalize & match — `supabase/functions/_shared/normalize.ts`, `match.ts`,
   `match_db.ts`
 - Gold conventions — `evals/datasets/extraction/gold/_SCHEMA.md`
-- Decision — `docs/decisions/0008-unit-admission-model.md`
+- Decisions — `docs/decisions/0008-unit-admission-model.md` (the model) and
+  `docs/decisions/0014-all-to-all-admission.md` (a family is admitted whole)

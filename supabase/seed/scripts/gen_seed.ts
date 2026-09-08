@@ -25,7 +25,6 @@ const HOUSEHOLD_NAME = "Home";
 const UNIT_IDS = new Set([
   "g",
   "kg",
-  "mg",
   "oz",
   "lb",
   "ml",

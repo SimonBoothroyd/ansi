@@ -1,8 +1,10 @@
 # ADR-0012 — The volume ladder is symmetric: `tsp` mates `cup`
 
-- **Status:** accepted (2026-09-04, Simon — exec plan
+- **Status:** superseded by [ADR-0014](./0014-all-to-all-admission.md) —
+  accepted 2026-09-04 (Simon — exec plan
   [0036](../exec-plans/completed/0036-ingredient-entry-and-units.md) Front B,
-  owner-asked)
+  owner-asked). The kitchen trim this amended is gone: a family is admitted
+  whole, so `cup` mates `tsp` by construction.
 - **Supersedes:** the `cup` row of [ADR-0008](./0008-unit-admission-model.md)
   §Decision ¶1's kitchen trim ("Trimmed to kitchen-scale magnitudes near the
   default unit"), as that trim was implemented — `cup` admitted

@@ -87,7 +87,6 @@ const UNIT_LEXICON: Record<string, string> = {
   kilogram: "kg",
   kilograms: "kg",
   kilo: "kg",
-  mg: "mg",
   oz: "oz",
   ounce: "oz",
   ounces: "oz",

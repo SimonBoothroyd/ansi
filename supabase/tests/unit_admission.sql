@@ -1,61 +1,41 @@
--- pgTAP: the ADR-0008 unit-admission schema (migration 0012) as amended by
--- ADR-0009 (0014) and brought to parity with the app by 0021 (plan 0020
--- D4c + J3 — the basis-strict mates leg, the derived density unlock, the
--- per-word imprecise gate), plus 0014's two ingredient triggers.
+-- pgTAP: the unit-admission schema — `default_allowed_units()` and
+-- `density_unlocked_units()`, the SQL mirrors of the app's derived rule
+-- (`defaultAllowedUnitSet` / `densityUnlockedUnits` / `kImpreciseCategoryGates`
+-- in allowed_units.dart), plus the two ingredient triggers that write it.
 --
--- `default_allowed_units()` / `density_unlocked_units()` are the SQL mirrors
--- of the app's derived rule (`defaultAllowedUnitSet` / `densityUnlockedUnits`
--- / `kImpreciseCategoryGates` in allowed_units.dart). The named shapes — the
--- yeast, the flour, the mango, the rest — are no longer written out twice:
--- they live in `app/test/features/ingredients/allowed_units_vectors.json`,
--- which the Dart suite loops and which `seed/scripts/gen_admission_vectors.ts`
--- renders as the GENERATED block below. Editing the JSON without regenerating
--- fails that script's own Deno test, so the two mirrors cannot drift apart
--- quietly. The remaining vectors here are hand-written because they are the
--- SQL side's business alone — each names the Dart test it twins, where there
--- is one. The Dart side is the source of truth; a stored list is a SET, so
--- where Dart asserts a display ORDER (`allowedUnitsFor` runs `_orderUnits`)
--- the jsonb here is pinned in the function's emission order instead, and the
--- members are what is compared.
+-- The rule is ADR-0008's model as amended by ADR-0009 (a density unlocks the
+-- other family whatever the default unit), ADR-0010 (`piece` is a curated
+-- admission fact) and ADR-0014 (all to all): the basis family whole and
+-- unconditionally, the other mass/volume family whole behind a stored
+-- density, `piece` on a count row, and the category's imprecise words. There
+-- is no kitchen trim, no magnitude gate and no `mg`.
+--
+-- The named shapes — the yeast, the flour, the mango, the rest — are not
+-- written out twice: they live in
+-- `app/test/features/ingredients/allowed_units_vectors.json`, which the Dart
+-- suite loops and which `seed/scripts/gen_admission_vectors.ts` renders as the
+-- GENERATED block below. Editing the JSON without regenerating fails that
+-- script's own Deno test, so the two mirrors cannot drift apart quietly. The
+-- remaining vectors here are hand-written because they are the SQL side's
+-- business alone — each names the Dart test it twins, where there is one. The
+-- Dart side is the source of truth; a stored list is a SET, so where Dart
+-- asserts a display ORDER (`allowedUnitsFor` runs `_orderUnits`) the jsonb
+-- here is pinned in the function's emission order instead, and the members are
+-- what is compared.
 --
 -- Also pins: the BEFORE INSERT trigger that materializes the list, that an
--- explicit list is never overridden, that the 0014 backfill/seed refresh
--- UNIONED rather than re-materialized (curated removals survive, curated
--- additions survive), that the retired seed-level produce patch's admissions
--- now fall out of the rule (plan 0020 D4 — this assertion IS the safety net
--- that replaced the patch), the density→allowed_units union trigger (including
--- the flour shape 0021 exists for), 0021's backfill post-state, the USDA
--- search door (`probe_usda` — read-only, ranked, no floor), the basis_amount
--- rename + positivity check, and that `grams` is gone.
+-- explicit list is never overridden, that a backfill UNIONS rather than
+-- re-materializes (curated removals survive, curated additions survive), that
+-- the retired seed-level produce patch's admissions fall out of the rule, the
+-- density→allowed_units union trigger, 0037's `mg` removal and its widening
+-- fence, the USDA search door (`probe_usda` — read-only, ranked, no floor),
+-- the basis_amount rename + positivity check, and that `grams` is gone.
 --
 -- Plan 0022 / ADR-0010 adds the `piece` curation guard: no seeded ingredient
 -- that carries a measure admits `piece`, while every measure-less count row
 -- still does. That pass is DATA (curation_overrides.jsonl), not a rule — so
 -- the assertion here is the only thing standing between a regenerated seed
 -- and a silently restored `piece`.
---
--- Plan 0025 / 0024 adds pint and quart under D2b — quart rides with litre,
--- pint rides with cup — so every vector whose mates name `l` or `cup` grew
--- `qt` / `pt`, and a block at the end pins the rule directly plus the
--- additive backfill's post-state.
---
--- Plan 0036 / ADR-0012 (0032) makes the volume ladder symmetric — `cup` mates
--- `tsp` — so every cup-default vector grew `tsp`. The block after 0024's pins
--- the rule and, more importantly, 0032's WIDENING FENCE, on rows it inserts
--- for the purpose: a pristine list gains `tsp`, a curated one is left exactly
--- as the household left it. What it deliberately does NOT assert is a per-row
--- property of the template vocabulary — curation is allowed to remove `tsp`
--- from a cup-default row and does, and the result is byte-identical to a row
--- a widening never reached. That block's closing comment says what is
--- checkable instead, and why.
---
--- ADR-0013 (0035) does the same to the mass ladder — the four kitchen mass
--- units mate each other, `oz` riding with `g` and `lb` with `kg` — so every
--- mass-default vector grew the units it was missing. Its block sits after
--- 0032's and has the same two halves: the rule, and the widening fence on
--- purpose-built rows. It carries one thing 0032's could not, because no
--- curation override removes a mass unit from anything: a template population
--- count that is not undermined by a stated fact.
 --
 -- 0027 widened the probe to return `description` / `category` with a limit,
 -- in one total order; 0029 replaced its trigram body with BM25 over a derived
@@ -67,7 +47,7 @@
 -- Run by `supabase test db`.
 
 begin;
-select plan(121);
+select plan(110);
 
 -- ---------------------------------------------------------------------------
 -- default_allowed_units() vectors. The named shapes come from the shared
@@ -102,8 +82,8 @@ from (values
     'g',
     null::numeric,
     'baking'::text,
-    '["g"]'::jsonb,
-    'a spoon default with no density admits the basis base and nothing else — being sold by the spoon does not make spoons convertible'
+    '["g","kg","oz","lb"]'::jsonb,
+    'a spoon default with no density says the whole mass family and no volume unit at all — being sold by the spoon does not make spoons convertible'
   ),
   (
     'flour',
@@ -111,8 +91,8 @@ from (values
     'g',
     0.59,
     'baking',
-    '["cup","tsp","tbsp","ml","l","pt","qt","g","kg"]',
-    'a cup default with a density earns the kitchen volumes — tsp included, since ADR-0012 made the ladder symmetric — AND kg, because cup-scale justifies the big metric sibling'
+    '["cup","tsp","tbsp","fl_oz","ml","l","pt","qt","g","kg","oz","lb"]',
+    'a cup default with a density: both families whole, twelve chips, and the household prunes what it will never say'
   ),
   (
     'olive-oil',
@@ -120,8 +100,8 @@ from (values
     'g',
     0.91,
     'fats & oils',
-    '["tbsp","tsp","cup","ml","pt","g","pinch","dash","to_taste"]',
-    'a spoon default with a density: its mates, the basis base, and the oil class''s imprecise words — nobody takes a handful of oil'
+    '["tbsp","tsp","fl_oz","cup","ml","l","pt","qt","g","kg","oz","lb","pinch","dash","to_taste"]',
+    'a spoon default with a density: both families plus the oil class''s imprecise words — nobody takes a handful of oil'
   ),
   (
     'egg',
@@ -129,8 +109,8 @@ from (values
     'g',
     null,
     'produce',
-    '["piece","g","handful"]',
-    'a count default with no density: its own piece, the basis base, and the one imprecise word produce earns'
+    '["piece","g","kg","oz","lb","handful"]',
+    'a count default with no density: its own piece, the whole basis family, and the one imprecise word produce earns'
   ),
   (
     'salt',
@@ -138,7 +118,7 @@ from (values
     'g',
     null,
     'spices & seasoning',
-    '["g","pinch","dash","handful","to_taste"]',
+    '["g","kg","oz","lb","pinch","dash","handful","to_taste"]',
     'the seasoning category admits the whole imprecise tail, and the spoons still need a density like everyone else''s'
   ),
   (
@@ -147,8 +127,8 @@ from (values
     'g',
     0.66,
     'produce',
-    '["piece","g","tsp","tbsp","cup","ml","pt","handful"]',
-    'a count default WITH a density admits the volume workhorses — "1 cup diced mango" is a real line — but not the big metric siblings'
+    '["piece","g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]',
+    'a count default WITH a density admits the volume family whole — "1 cup diced mango" is a real line, and so is half a litre of purée'
   ),
   (
     'avocado',
@@ -156,7 +136,7 @@ from (values
     'g',
     0.634,
     'produce',
-    '["piece","g","tsp","tbsp","cup","ml","pt","handful"]',
+    '["piece","g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]',
     'the same rule under the row ADR-0010''s curation pass trims: the DERIVED list still offers piece, which is exactly what a curated list then takes away'
   ),
   (
@@ -165,8 +145,8 @@ from (values
     'ml',
     null,
     'pantry',
-    '["cup","tsp","tbsp","ml","l","pt","qt"]',
-    'a per-ml row''s volume default IS its basis family, so it stands alone — the whole volume ladder down to tsp, and no gram leg until a density arrives'
+    '["cup","tsp","tbsp","fl_oz","ml","l","pt","qt"]',
+    'a per-ml row''s volume default IS its basis family, so it stands alone — the whole volume ladder, and no gram leg until a density arrives'
   ),
   (
     'milk',
@@ -174,8 +154,8 @@ from (values
     'ml',
     1.03,
     'dairy',
-    '["cup","tsp","tbsp","ml","l","pt","qt","g","kg"]',
-    'the same per-ml row once it has a density: mass unlocks behind the basis family'
+    '["cup","tsp","tbsp","fl_oz","ml","l","pt","qt","g","kg","oz","lb"]',
+    'the same per-ml row once it has a density: the mass family unlocks behind the basis family'
   ),
   (
     'rice',
@@ -184,7 +164,7 @@ from (values
     null,
     'grains',
     '["g","kg","oz","lb"]',
-    'a gram default on its own basis family says the whole kitchen mass ladder — ounces and pounds included, since ADR-0013 made it symmetric — and no volume without a density'
+    'a gram default on its own basis family says the whole mass family, and no volume without a density'
   ),
   (
     'chicken-thigh',
@@ -193,7 +173,7 @@ from (values
     null,
     'proteins',
     '["lb","g","kg","oz"]',
-    'the same ladder entered from the customary end: a pound default admits exactly what a gram default does, which is the symmetry ADR-0013 is about'
+    'the same family entered from the customary end: a pound default admits exactly what a gram default does'
   ),
   (
     'butter',
@@ -201,17 +181,19 @@ from (values
     'g',
     0.91,
     'dairy',
-    '["oz","g","kg","lb","tsp","tbsp","cup","ml","pt"]',
-    'an ounce default with a density: the mass ladder plus the volume workhorses the density bridges to — no big metric sibling over there, because the cross leg names cup and not l'
+    '["oz","g","kg","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]',
+    'an ounce default with a density: the mass family plus the volume family the density bridges to, fl oz included — it is an ordinary kitchen unit here'
   )
 ) as v(shape, default_unit, basis, density, category, expect, why);
 -- <<< GENERATED
 
--- The yeast shape read the other way: a density is what buys the spoons back.
+-- The yeast shape read the other way: a density is what buys the volume
+-- family, spoons and litres alike.
 select is(
   default_allowed_units('tsp', 'g', 0.4, 'baking'),
-  '["tsp", "tbsp", "g"]'::jsonb,
-  'tsp default /g with density: the spoons come back'
+  '["g", "kg", "oz", "lb", "tsp", "tbsp", "fl_oz", "cup", "ml", "l", "pt", '
+  '"qt"]'::jsonb,
+  'tsp default /g with density: the volume family comes whole'
 );
 
 -- The olive-oil shape's refusal — the per-word category gate, which the
@@ -221,71 +203,95 @@ select ok(
   'J3: nobody takes a handful of oil'
 );
 
--- Dart: 'an imprecise default keeps its whole tail + the basis base'.
+-- Dart: 'an imprecise default keeps its whole tail + the basis family'.
 select is(
   default_allowed_units('pinch', 'g', null, 'spices & seasoning'),
-  '["g", "pinch", "dash", "handful", "to_taste"]'::jsonb,
-  'an imprecise default yields basis base + the imprecise tail'
+  '["g", "kg", "oz", "lb", "pinch", "dash", "handful", "to_taste"]'::jsonb,
+  'an imprecise default yields the basis family + the imprecise tail'
 );
 
--- Dart: 'a mass default /g with density unlocks kitchen volume'. Oats: grams
--- AND cups are both honest; no piece.
+-- Dart: 'a mass default /g with density unlocks the volume family'. Oats:
+-- grams AND cups are both honest; no piece.
 select is(
   default_allowed_units('g', 'g', 0.4, null),
-  '["g", "kg", "oz", "lb", "tsp", "tbsp", "cup", "pt", "ml"]'::jsonb,
-  'g default /g with density: own family + the volume workhorses, no piece'
+  '["g", "kg", "oz", "lb", "tsp", "tbsp", "fl_oz", "cup", "ml", "l", "pt", '
+  '"qt"]'::jsonb,
+  'g default /g with density: both families whole, no piece'
 );
 
--- The same amendment from the per-ml side (an SQL-only extra): a
--- count-default liquid-ish row unlocks the MASS workhorses, and the basis
--- leg's ml is not duplicated.
+-- The same rule from the per-ml side (an SQL-only extra): a count-default
+-- liquid-ish row unlocks the MASS family, and the basis volume is not
+-- duplicated.
 select is(
   default_allowed_units('piece', 'ml', 1.0, 'dairy'),
-  '["piece", "ml", "tsp", "tbsp", "cup", "pt", "g"]'::jsonb,
-  'count default /ml with density: mass unlocks, basis ml not duplicated'
+  '["piece", "tsp", "tbsp", "fl_oz", "cup", "ml", "l", "pt", "qt", "g", '
+  '"kg", "oz", "lb"]'::jsonb,
+  'count default /ml with density: mass unlocks, the basis volume is not '
+  'duplicated'
 );
 
 -- Dart: 'an imprecise default with a density unlocks both families too, and
 -- keeps its whole tail INCLUDING handful'.
 select is(
   default_allowed_units('pinch', 'g', 1, 'spices & seasoning'),
-  '["g", "tsp", "tbsp", "cup", "pt", "ml", "pinch", "dash", "handful", "to_taste"]'::jsonb,
-  'imprecise default with density: both families unlock, whole tail kept'
+  '["g", "kg", "oz", "lb", "tsp", "tbsp", "fl_oz", "cup", "ml", "l", "pt", '
+  '"qt", "pinch", "dash", "handful", "to_taste"]'::jsonb,
+  'imprecise default with density: both families whole, whole tail kept'
 );
 
--- Dart: 'mg and fl oz stay label-reading units: offered only as the default
--- itself, never as anyone else''s mate'. `mg` is mass on a per-g row — its
--- own family, so D4c admits it bare; `fl_oz` is volume and needs the density
--- like every other cross-family default.
+-- Dart: 'fl oz is an ordinary volume unit'. It is admitted as a member of the
+-- family everywhere the family is, and as a DEFAULT it needs a density like
+-- any other cross-family one.
 select ok(
-  default_allowed_units('mg', 'g', null, null) ? 'mg',
-  'mg is admitted as its own default (basis family, no density needed)'
-);
-select ok(
-  default_allowed_units('fl_oz', 'g', 1, null) ? 'fl_oz',
-  'fl_oz is admitted as its own default once a density bridges it'
+  default_allowed_units('cup', 'ml', null, null) ? 'fl_oz'
+  and default_allowed_units('g', 'g', 1, null) ? 'fl_oz'
+  and default_allowed_units('fl_oz', 'g', 1, null) ? 'fl_oz',
+  'fl_oz rides with its family, and stands as a default once bridged'
 );
 select is(
   (select count(*)::int
-     from unnest(array['g','kg','oz','lb','ml','l','tsp','tbsp','cup',
+     from unnest(array['g','kg','oz','lb','ml','l','tsp','tbsp','fl_oz','cup',
+                       'pt','qt',
+                       'piece','pinch','dash','handful','to_taste']) as d(unit)
+    where not (default_allowed_units(d.unit, 'g', 1, null) ? 'fl_oz')),
+  0,
+  'every density-bridged row admits fl_oz — it is not excepted any more'
+);
+
+-- Dart: 'mg is gone from the catalog, so nothing can offer it'. It is not a
+-- family member and not a default: `unit_family` does not know the id at all,
+-- no derived list can name it, and no stored row still does.
+select is(
+  unit_family('mg'), null::text,
+  'mg is not a unit any more (0037)'
+);
+select is(
+  (select count(*)::int
+     from unnest(array['g','kg','oz','lb','ml','l','tsp','tbsp','fl_oz','cup',
                        'pt','qt',
                        'piece','pinch','dash','handful','to_taste']) as d(unit)
     where default_allowed_units(d.unit, 'g', 1, null) ? 'mg'
-       or default_allowed_units(d.unit, 'g', 1, null) ? 'fl_oz'),
+       or default_allowed_units(d.unit, 'ml', 1, null) ? 'mg'),
   0,
-  'no other default ever admits mg or fl_oz as a mate'
+  'no default unit, on either basis, admits mg'
+);
+select is(
+  (select count(*)::int from ingredient
+    where default_unit = 'mg' or allowed_units ? 'mg'),
+  0,
+  'and no stored row still says mg (the 0037 conversion)'
 );
 
--- Dart: 'D4c: the default unit is admitted when its family is — and a row
--- whose default falls outside says so rather than smuggling it in'. Over
--- every ingredient unit (kIngredientUnits — `batch` is deliberately absent):
--- with a density every default is sayable; without one, exactly the
--- cross-family (volume, on a per-g row) defaults are stranded. The
--- `defaultUnitNeedsDensity` / `unitSayableAsDefault` / `basisDefaultUnitFix`
--- halves of that Dart test are app-side read rules with no SQL leg.
+-- Dart: 'the default unit is admitted when its family is — and a row whose
+-- default falls outside says so rather than smuggling it in'. Over every
+-- ingredient unit (`batch` is deliberately absent): with a density every
+-- default is sayable; without one, exactly the cross-family (volume, on a
+-- per-g row) defaults are stranded. The `defaultUnitNeedsDensity` /
+-- `unitSayableAsDefault` / `basisDefaultUnitFix` halves of that Dart test are
+-- app-side read rules with no SQL leg.
 select is(
   (select count(*)::int
-     from (values ('g'), ('kg'), ('mg'), ('oz'), ('lb'),
+     from (values ('g'), ('kg'), ('oz'), ('lb'),
                   ('ml'), ('l'), ('tsp'), ('tbsp'), ('fl_oz'), ('cup'),
                   ('pt'), ('qt'),
                   ('piece'), ('pinch'), ('dash'), ('handful'), ('to_taste'))
@@ -296,7 +302,7 @@ select is(
 );
 select is(
   (select count(*)::int
-     from (values ('g', 'mass'), ('kg', 'mass'), ('mg', 'mass'),
+     from (values ('g', 'mass'), ('kg', 'mass'),
                   ('oz', 'mass'), ('lb', 'mass'),
                   ('ml', 'volume'), ('l', 'volume'), ('tsp', 'volume'),
                   ('tbsp', 'volume'), ('fl_oz', 'volume'), ('cup', 'volume'),
@@ -311,11 +317,35 @@ select is(
   'D4c: without one, exactly the cross-family defaults are stranded'
 );
 
+-- ADR-0014 read as a property rather than as examples: a family is admitted
+-- WHOLE or not at all, on either basis, with or without a number.
+select is(
+  (select count(*)::int
+     from (values ('g', null::numeric), ('g', 1), ('piece', 1), ('pinch', 1),
+                  ('cup', 1), ('tsp', 1))
+          as r(unit, density)
+     cross join unnest(array['g','kg','oz','lb']) as m(unit)
+    where not (default_allowed_units(r.unit, 'g', r.density, null) ? m.unit)),
+  0,
+  'the basis family is admitted whole, density or not (ADR-0014)'
+);
+select is(
+  (select count(*)::int
+     from (values ('g'), ('kg'), ('oz'), ('lb'), ('piece'), ('pinch'))
+          as r(unit)
+     cross join unnest(array['tsp','tbsp','fl_oz','cup','ml','l','pt','qt'])
+          as v(unit)
+    where not (default_allowed_units(r.unit, 'g', 1, null) ? v.unit)
+       or (default_allowed_units(r.unit, 'g', null, null) ? v.unit)),
+  0,
+  'the other family arrives whole with a density, and not at all without one'
+);
+
 -- ---------------------------------------------------------------------------
 -- The per-word imprecise gate (J3) — mirrors allowed_units_test.dart group
 -- 'impreciseUnitsFor — the per-word category gate'. Read through
--- default_allowed_units() on a g-default per-g row, whose only other
--- admissions are its own ["g","kg","oz","lb"].
+-- default_allowed_units() on a g-default per-g row with no density, whose
+-- only other admissions are the mass family ["g","kg","oz","lb"].
 -- ---------------------------------------------------------------------------
 
 -- Dart: 'the whole mapping, category by category'. Owner ruling: pinch and
@@ -362,7 +392,8 @@ select is(
 -- `dash`; the app offered only `handful`.
 select is(
   default_allowed_units('cup', 'g', 0.2, 'produce'),
-  '["cup", "tsp", "tbsp", "ml", "l", "pt", "qt", "g", "kg", "handful"]'::jsonb,
+  '["g", "kg", "oz", "lb", "tsp", "tbsp", "fl_oz", "cup", "ml", "l", "pt", '
+  '"qt", "handful"]'::jsonb,
   'kale (cup /g, density, produce): a handful, never a pinch or a dash'
 );
 
@@ -370,12 +401,12 @@ select is(
 -- its category'.
 select is(
   default_allowed_units('pinch', 'g', null, 'produce'),
-  '["g", "pinch", "handful"]'::jsonb,
+  '["g", "kg", "oz", "lb", "pinch", "handful"]'::jsonb,
   'a pinch-default produce row keeps pinch (its own word) + handful'
 );
 select is(
   default_allowed_units('dash', 'g', null, 'grains'),
-  '["g", "dash"]'::jsonb,
+  '["g", "kg", "oz", "lb", "dash"]'::jsonb,
   'a dash-default grains row keeps dash though the category earns nothing'
 );
 
@@ -399,43 +430,34 @@ select is(
 -- the 0021 backfill union in, so it gets its own vectors.
 -- ---------------------------------------------------------------------------
 
--- Dart: 'the mango shape: the volume leg goes, piece and the basis base stay'.
+-- Dart: 'what a density is worth is the whole other family'. There is one
+-- answer per BASIS now, not one per default unit: a per-100 g row gains the
+-- volume family, a per-100 ml row the mass family.
 select is(
-  density_unlocked_units('piece', 'g'), array['tsp','tbsp','cup','pt','ml'],
-  'a piece /g default: the density buys the volume workhorses (the mango shape)'
-);
--- Dart: 'THE FLOUR SHAPE, under D4c: the volume family goes — including the
--- row''s own default unit, which the density was the only thing admitting'.
--- 0014's one-argument leg returned ["g","kg"] here — already admitted by the
--- basis leg — which is the bug 0021 exists for.
-select is(
-  density_unlocked_units('cup', 'g'), array['cup','tsp','tbsp','ml','l','pt','qt'],
-  'a cup /g default: the density buys the volume family, own default included (the flour shape)'
-);
--- Dart: 'the milk shape: a per-ml row loses g, keeps every volume unit'.
-select is(
-  density_unlocked_units('ml', 'ml'), array['g'],
-  'an ml /ml default: the density buys g only (the milk shape)'
+  density_unlocked_units('piece', 'g'),
+  array['tsp','tbsp','fl_oz','cup','ml','l','pt','qt'],
+  'a piece /g default: the density buys the volume family (the mango shape)'
 );
 select is(
-  density_unlocked_units('g', 'g'), array['tsp','tbsp','cup','pt','ml'],
-  'a mass default unlocks the volume workhorses'
+  density_unlocked_units('cup', 'g'),
+  array['tsp','tbsp','fl_oz','cup','ml','l','pt','qt'],
+  'a cup /g default: the same family, the row''s own default included (the '
+  'flour shape)'
 );
 select is(
-  density_unlocked_units('tbsp', 'g'), array['tbsp','tsp','cup','ml','pt'],
-  'a spoon-scale volume default /g: the density buys its own spoons back (no kilos of tbsp)'
+  density_unlocked_units('ml', 'ml'), array['g','kg','oz','lb'],
+  'an ml /ml default: the density buys the mass family (the milk shape)'
 );
 select is(
-  density_unlocked_units('cup', 'ml'), array['g','kg'],
-  'a cup-scale volume default on its own basis also justifies kg'
-);
-select is(
-  density_unlocked_units('piece', 'ml'), array['tsp','tbsp','cup','pt','g'],
-  'a count default /ml unlocks the volume workhorses AND g — never the basis ml'
-);
-select is(
-  density_unlocked_units('pinch', 'g'), array['tsp','tbsp','cup','pt','ml'],
-  'an imprecise default unlocks both families too, minus the basis leg (ADR-0009)'
+  (select count(*)::int
+     from (values ('g'), ('kg'), ('oz'), ('lb'), ('tsp'), ('tbsp'), ('cup'),
+                  ('piece'), ('pinch'))
+          as d(unit)
+    where density_unlocked_units(d.unit, 'g')
+            <> array['tsp','tbsp','fl_oz','cup','ml','l','pt','qt']),
+  0,
+  'every per-100 g row is bought the same thing by a density: the volume '
+  'family, whatever its default unit'
 );
 
 -- Dart: 'what is stripped is exactly what a density adds — the two are one
@@ -489,8 +511,9 @@ values ('cccccccc-0000-0000-0000-000000000001',
 select is(
   (select allowed_units from ingredient
      where id = 'cccccccc-0000-0000-0000-000000000001'),
-  '["g"]'::jsonb,
-  'inserting without allowed_units materializes the ADR defaults (basis-strict since 0021)'
+  '["g", "kg", "oz", "lb"]'::jsonb,
+  'inserting without allowed_units materializes the derived defaults — the '
+  'basis family, whole'
 );
 
 insert into ingredient (id, household_id, canonical_name, default_unit,
@@ -520,9 +543,8 @@ select is(
 -- ---------------------------------------------------------------------------
 
 -- A hand-edited row: one unit the defaults would never give it ('to_taste'
--- on a baking row) and one the defaults WOULD give it once a density lands
--- removed ('tbsp'). The density unions its own spoons back and keeps the
--- user's list.
+-- on a baking row), and a list pruned right down. The density unions the
+-- volume family in and keeps every word the household stated.
 update ingredient set allowed_units = '["tsp", "to_taste"]'::jsonb
 where id = 'cccccccc-0000-0000-0000-000000000001';
 
@@ -532,7 +554,7 @@ where id = 'cccccccc-0000-0000-0000-000000000001';
 select is(
   (select allowed_units from ingredient
      where id = 'cccccccc-0000-0000-0000-000000000001'),
-  '["tsp", "to_taste", "tbsp"]'::jsonb,
+  '["tsp", "to_taste", "tbsp", "fl_oz", "cup", "ml", "l", "pt", "qt"]'::jsonb,
   'a density arriving unions what it unlocks and keeps the user''s own list'
 );
 
@@ -545,16 +567,15 @@ where id = 'cccccccc-0000-0000-0000-000000000001';
 select is(
   (select allowed_units from ingredient
      where id = 'cccccccc-0000-0000-0000-000000000001'),
-  '["tsp", "to_taste", "tbsp"]'::jsonb,
+  '["tsp", "to_taste", "tbsp", "fl_oz", "cup", "ml", "l", "pt", "qt"]'::jsonb,
   'an unchanged density and an unrelated edit both leave the list alone'
 );
 
--- THE FLOUR SHAPE, server-side — the tracker row 0021 retires. A cup-default
--- per-100 g row whose list a D4b `clearDensity` stripped to the basis family
--- (the app's own honest write). When a density then lands SERVER-side, 0014's
--- leg unioned ["g","kg"] — already there — and `cup`, the row's own default,
--- stayed out of its stored list. Since 0021 the trigger unions the volume
--- family the density actually buys.
+-- THE FLOUR SHAPE, server-side. A cup-default per-100 g row whose list a D4b
+-- `clearDensity` stripped to the basis family (the app's own honest write).
+-- When a density lands SERVER-side the trigger unions the volume family the
+-- density actually buys — the row's own default unit included, which is what
+-- makes the row sayable again at all.
 insert into ingredient (id, household_id, canonical_name, default_unit,
   category, source, match_text, allowed_units)
 values ('cccccccc-0000-0000-0000-00000000000a',
@@ -565,12 +586,13 @@ where id = 'cccccccc-0000-0000-0000-00000000000a';
 select is(
   (select allowed_units from ingredient
      where id = 'cccccccc-0000-0000-0000-00000000000a'),
-  '["g", "kg", "cup", "tsp", "tbsp", "ml", "l", "pt", "qt"]'::jsonb,
-  'a density landing on a stripped cup /g row restores its own default''s family (the flour shape)'
+  '["g", "kg", "tsp", "tbsp", "fl_oz", "cup", "ml", "l", "pt", "qt"]'::jsonb,
+  'a density landing on a stripped cup /g row restores its own default''s '
+  'family (the flour shape)'
 );
 
--- …and from the per-ml side: a materialized ml-default per-ml row gains g,
--- and only g, when its density lands.
+-- …and from the per-ml side: a materialized ml-default per-ml row gains the
+-- mass family, and only that, when its density lands.
 insert into ingredient (id, household_id, canonical_name, default_unit,
   category, source, match_text, macros_basis)
 values ('cccccccc-0000-0000-0000-00000000000b',
@@ -581,8 +603,10 @@ where id = 'cccccccc-0000-0000-0000-00000000000b';
 select is(
   (select allowed_units from ingredient
      where id = 'cccccccc-0000-0000-0000-00000000000b'),
-  '["ml", "l", "tsp", "tbsp", "cup", "pt", "qt", "g"]'::jsonb,
-  'a density landing on an ml /ml row unions g and nothing else (the milk shape)'
+  '["tsp", "tbsp", "fl_oz", "cup", "ml", "l", "pt", "qt", "g", "kg", "oz", '
+  '"lb"]'::jsonb,
+  'a density landing on an ml /ml row unions the mass family and nothing '
+  'else (the milk shape)'
 );
 
 -- 0021's backfill post-state, as an invariant over the whole table: no row
@@ -593,7 +617,7 @@ select is(
   (select count(*)::int from ingredient
      where density_g_per_ml is not null
        and allowed_units is not null
-       and default_unit in ('g','kg','mg','oz','lb',
+       and default_unit in ('g','kg','oz','lb',
                             'ml','l','tsp','tbsp','fl_oz','cup','pt','qt')
        and not (allowed_units ? default_unit)),
   0,
@@ -601,63 +625,41 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- 0024 / plan 0025 D2b: pint and quart. Quart rides with litre, pint rides
--- with cup — wherever a default's mates name `l` they name `qt`, wherever
--- they name `cup` they name `pt`; the pair as defaults mate one rung each
--- side; both join the `big` gate. Mirrors allowed_units_test.dart group
--- 'pint and quart (plan 0025 D2b)'.
+-- The US pair (0024). `pt` and `qt` are volume units like any other now:
+-- admitted with their family, stranded as defaults without a density.
+-- Mirrors allowed_units_test.dart group 'ADR-0014 — all to all'.
 -- ---------------------------------------------------------------------------
 
--- Dart: 'the broth shape: a cup default admits a pint, and a quart with it'.
-select ok(
-  default_allowed_units('cup', 'ml', null, 'pantry') ? 'pt'
-  and default_allowed_units('cup', 'ml', null, 'pantry') ? 'qt',
-  'a cup-default row admits pt (rides with cup) and qt (rides with l)'
-);
--- Dart: 'a litre default admits a quart'.
-select is(
-  default_allowed_units('l', 'ml', null, null),
-  '["l", "ml", "cup", "pt", "qt"]'::jsonb,
-  'an l-default row admits qt — and pt, since its mates name cup'
-);
--- Dart: 'a spoon default admits neither — no quarts of yeast'.
-select ok(
-  not (default_allowed_units('tsp', 'ml', null, null) ? 'pt')
-  and not (default_allowed_units('tsp', 'ml', null, null) ? 'qt')
-  and not (default_allowed_units('tsp', 'g', 0.4, null) ? 'pt')
-  and not (default_allowed_units('tsp', 'g', 0.4, null) ? 'qt'),
-  'a tsp-default row admits neither pt nor qt, density or not'
-);
--- Dart: 'the pair as defaults'. qt mates one rung each side and, being
--- litre-scale, passes the big gate on the basis leg; pt likewise at cup
--- scale.
 select is(
   default_allowed_units('qt', 'ml', null, null),
-  '["qt", "pt", "cup", "l", "ml"]'::jsonb,
-  'a qt default /ml: its own mates, one rung each side'
+  '["tsp", "tbsp", "fl_oz", "cup", "ml", "l", "pt", "qt"]'::jsonb,
+  'a qt default /ml: its own family, whole'
 );
 select is(
   default_allowed_units('pt', 'g', 1.0, null),
-  '["pt", "cup", "qt", "ml", "g", "kg"]'::jsonb,
-  'a pt default /g with density: mates + g AND kg (pint is cup-scale, so big)'
+  '["g", "kg", "oz", "lb", "tsp", "tbsp", "fl_oz", "cup", "ml", "l", "pt", '
+  '"qt"]'::jsonb,
+  'a pt default /g with density: both families, whole'
 );
 select is(
   default_allowed_units('pt', 'g', null, null),
-  '["g", "kg"]'::jsonb,
-  'a pt default /g without density: stranded like any cross-family default (D4c)'
+  '["g", "kg", "oz", "lb"]'::jsonb,
+  'a pt default /g without density: stranded like any cross-family default '
+  '(D4c)'
 );
--- The density cross leg names cup, so it names pt; it never named l, so a
--- density buys a gram row no quart.
+-- The magnitude gate is gone with the rest of the trim: a spoon-default row
+-- with a density says quarts, and a household that never will turns the chip
+-- off.
 select ok(
-  'pt' = any(density_unlocked_units('g', 'g'))
-  and not ('qt' = any(density_unlocked_units('g', 'g'))),
-  'a density buys a mass row pt but not qt (the cross leg names cup, not l)'
+  default_allowed_units('tsp', 'g', 0.4, null) ? 'qt'
+  and default_allowed_units('tsp', 'ml', null, null) ? 'l',
+  'a spoon default says litres and quarts too — the household prunes, not '
+  'the rule'
 );
 
 -- The 0024 backfill's post-state, as an invariant over the whole table: no
 -- stored list that names `l` and whose recomputed defaults admit `qt` lacks
--- `qt`; same for `cup` and `pt`. True of the template after a reset (the seed
--- re-materializes) and of a migrated database (the backfill unions) alike.
+-- `qt`; same for `cup` and `pt`.
 select is(
   (select count(*)::int from ingredient i
      where i.allowed_units is not null
@@ -668,9 +670,9 @@ select is(
                 and default_allowed_units(i.default_unit, i.macros_basis,
                                           i.density_g_per_ml, i.category) ? 'pt'))),
   0,
-  'every row that says l/cup and whose rule admits qt/pt says qt/pt (0024 backfill)'
+  'every row that says l/cup and whose rule admits qt/pt says qt/pt'
 );
--- …reaching the row the plan was about: "1 quart broth" lands on a chip.
+-- …reaching the row the pair was added for: "1 quart broth" lands on a chip.
 select ok(
   (select allowed_units ? 'qt' and allowed_units ? 'pt' and allowed_units ? 'cup'
      from ingredient
@@ -678,340 +680,161 @@ select ok(
        and match_text = 'vegetable broth'),
   'vegetable broth (cup default) admits qt and pt beside its cup'
 );
--- …and the union is what the migration does to a list it did not write: a
--- hand-edited row that says cup keeps its curated word and gains only the
--- pair, exactly as the backfill statement would leave it.
-insert into ingredient (id, household_id, canonical_name, default_unit,
-  category, source, match_text, macros_basis, density_g_per_ml, allowed_units)
-values ('cccccccc-0000-0000-0000-00000000000c',
-  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Curated Stock', 'cup', 'pantry',
-  'manual', 'curated stock', 'ml', 1.0, '["cup", "ml", "to_taste"]'::jsonb);
-update ingredient i
-   set allowed_units = i.allowed_units || (
-         select coalesce(jsonb_agg(n.unit order by n.ord), '[]'::jsonb)
-           from jsonb_array_elements_text(
-                  default_allowed_units(i.default_unit, i.macros_basis,
-                                        i.density_g_per_ml, i.category))
-                with ordinality as n(unit, ord)
-          where (   (n.unit = 'qt' and i.allowed_units ? 'l')
-                 or (n.unit = 'pt' and i.allowed_units ? 'cup'))
-            and not (i.allowed_units ? n.unit))
- where i.id = 'cccccccc-0000-0000-0000-00000000000c';
-select is(
-  (select allowed_units from ingredient
-     where id = 'cccccccc-0000-0000-0000-00000000000c'),
-  '["cup", "ml", "to_taste", "pt"]'::jsonb,
-  'the backfill shape: a curated list that says cup (not l) gains pt only, keeps to_taste'
-);
 
 -- ---------------------------------------------------------------------------
--- 0032 / ADR-0012: the volume ladder is symmetric — `cup` mates `tsp`.
+-- 0037 / ADR-0014: all to all, `mg` gone, and the widening fence.
 --
--- The rule change is one array entry; the interesting half is the widening
--- backfill's fence. `allowed_units` is the household's after creation, so
--- 0032 adds `tsp` ONLY where the stored list still equals the OLD derived
--- default for that row — the mirror of ADR-0009 rule 3's "never remove",
--- said in the other direction: never overwrite what somebody stated.
+-- The rule itself is pinned above. What this block is about is the MIGRATION:
+-- `allowed_units` is the household's after creation, so 0037 widens a row
+-- ONLY where its stored list still equals what the OLD rule derived for it —
+-- the mirror of ADR-0009 rule 3's "never remove", said in the other
+-- direction: never overwrite what somebody stated. `mg` is the exception, and
+-- deliberately: a unit that no longer exists is not a curation, so it comes
+-- out of every list.
 --
--- The three rows below are inserted with EXPLICIT lists (the insert trigger
--- would otherwise stamp the post-0032 defaults) and the migration's own
--- guarded statement is re-run over them, which is what makes these
--- assertions about the migration rather than about the function.
+-- The rows below are inserted with EXPLICIT lists (the insert trigger would
+-- otherwise stamp the post-0037 defaults) and the migration's own guarded
+-- statement is re-run over them, scoped to the fixtures. The scope is not
+-- cosmetic: run over the whole table it would widen real template rows inside
+-- this transaction, hiding what the template looks like from every assertion
+-- below and undoing, in a test, the curation the fence exists to protect.
 -- ---------------------------------------------------------------------------
 
--- Dart: 'ADR-0012: a cup default mates tsp, in both directions'.
-select ok(
-  default_allowed_units('cup', 'g', 0.59, 'baking') ? 'tsp'
-  and default_allowed_units('cup', 'ml', null, 'pantry') ? 'tsp',
-  'a cup-default row admits tsp — with a density, and on its own basis'
-);
--- …and the trim in the other direction is untouched: a spoon-default row is
--- still not a cup-scale food.
-select ok(
-  not (default_allowed_units('tsp', 'ml', null, null) ? 'l')
-  and not (default_allowed_units('tsp', 'ml', null, null) ? 'cup'),
-  'tsp''s own mates are unchanged — no cups or litres of yeast'
-);
-
--- (a) PRISTINE: the stored list is exactly what the pre-0032 rule derived.
-insert into ingredient (id, household_id, canonical_name, default_unit,
-  category, source, match_text, density_g_per_ml, allowed_units)
-values ('cccccccc-0000-0000-0000-00000000000d',
-  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Pristine Sugar', 'cup', 'baking',
-  'seed', 'pristine sugar', 0.85,
-  '["cup", "tbsp", "ml", "l", "pt", "qt", "g", "kg"]'::jsonb);
--- (b) CURATED: the same shape with one word the household added.
-insert into ingredient (id, household_id, canonical_name, default_unit,
-  category, source, match_text, density_g_per_ml, allowed_units)
-values ('cccccccc-0000-0000-0000-00000000000e',
-  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Curated Sugar', 'cup', 'baking',
-  'seed', 'curated sugar', 0.85,
-  '["cup", "tbsp", "ml", "l", "pt", "qt", "g", "kg", "to_taste"]'::jsonb);
--- (c) OUT OF SHAPE: a cup default whose rule admits no volume unit at all
---     (per-100 g, no density — D4c), so there is nothing to widen.
+-- (a) PRISTINE: a tsp /g row storing exactly what the pre-0037 rule derived
+--     (the basis base alone). It stands to gain the rest of its family.
 insert into ingredient (id, household_id, canonical_name, default_unit,
   category, source, match_text, allowed_units)
-values ('cccccccc-0000-0000-0000-00000000000f',
-  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Stranded Rice', 'cup', 'pantry',
-  'seed', 'stranded rice', '["g", "kg"]'::jsonb);
+values ('cccccccc-0000-0000-0000-000000000014',
+  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Pristine Yeast', 'tsp', 'baking',
+  'seed', 'pristine yeast', '["g"]'::jsonb);
+-- (b) PRISTINE, the flour shape: a cup /g row with a density, storing the old
+--     rule's answer. It gains `fl_oz` from the volume family and `oz`/`lb`
+--     from the mass one.
+insert into ingredient (id, household_id, canonical_name, default_unit,
+  category, source, match_text, density_g_per_ml, allowed_units)
+values ('cccccccc-0000-0000-0000-000000000015',
+  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Pristine Flour', 'cup', 'baking',
+  'seed', 'pristine flour', 0.59,
+  '["cup", "tsp", "tbsp", "ml", "l", "pt", "qt", "g", "kg"]'::jsonb);
+-- (c) CURATED: the same shape with one word the household added.
+insert into ingredient (id, household_id, canonical_name, default_unit,
+  category, source, match_text, density_g_per_ml, allowed_units)
+values ('cccccccc-0000-0000-0000-000000000016',
+  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Curated Flour', 'cup', 'baking',
+  'seed', 'curated flour', 0.59,
+  '["cup", "tsp", "tbsp", "ml", "l", "pt", "qt", "g", "kg", '
+  '"to_taste"]'::jsonb);
 
--- 0032's statement, verbatim in its GUARDS and scoped to the three fixtures.
---
--- The scope is deliberate and it is not cosmetic. Run over the whole table
--- this widens real template rows — the curated ones whose stored list happens
--- to equal the rule minus `tsp` — inside this transaction, which both hides
--- what the template actually looks like from every assertion below it and
--- undoes, in a test, the curation the fence exists to protect. The guards are
--- what is under test here; the table scope is not.
+-- 0037's widening statement, verbatim in its GUARDS and scoped to the three
+-- fixtures. The old rule is computed by the same temporary function the
+-- migration used; here it is inlined as the literal answers, because these
+-- three rows are the point rather than the function.
 update ingredient i
-   set allowed_units = i.allowed_units || '["tsp"]'::jsonb
+   set allowed_units = i.allowed_units || c.added
   from (
     select i2.id,
+           (select coalesce(jsonb_agg(f.u order by f.ord), '[]'::jsonb)
+              from jsonb_array_elements_text(d.units)
+                   with ordinality as f(u, ord)
+             where not (i2.allowed_units ? f.u))
+             as added,
            (select array_agg(distinct s.u order by s.u)
               from jsonb_array_elements_text(i2.allowed_units) as s(u))
              as stored,
-           (select array_agg(distinct f.u order by f.u)
-              from jsonb_array_elements_text(d.units) as f(u)
-             where f.u <> 'tsp')
-             as old_default,
-           d.units as fresh
+           (select array_agg(distinct o.u order by o.u)
+              from jsonb_array_elements_text(o.old) as o(u))
+             as old_default
       from ingredient i2
       cross join lateral (
         select default_allowed_units(i2.default_unit, i2.macros_basis,
                                      i2.density_g_per_ml, i2.category) as units
       ) d
+      cross join lateral (
+        select case i2.id
+                 when 'cccccccc-0000-0000-0000-000000000014'
+                   then '["g"]'::jsonb
+                 else '["cup","tsp","tbsp","ml","l","pt","qt","g","kg"]'::jsonb
+               end as old
+      ) o
      where i2.allowed_units is not null
-       and i2.default_unit = 'cup'
-       and not (i2.allowed_units ? 'tsp')
-       and i2.id in ('cccccccc-0000-0000-0000-00000000000d',
-                     'cccccccc-0000-0000-0000-00000000000e',
-                     'cccccccc-0000-0000-0000-00000000000f')
+       and i2.id in ('cccccccc-0000-0000-0000-000000000014',
+                     'cccccccc-0000-0000-0000-000000000015',
+                     'cccccccc-0000-0000-0000-000000000016')
   ) c
  where c.id = i.id
-   and c.fresh ? 'tsp'
+   and c.added <> '[]'::jsonb
    and c.stored = c.old_default;
 
 select is(
   (select allowed_units from ingredient
-     where id = 'cccccccc-0000-0000-0000-00000000000d'),
-  '["cup", "tbsp", "ml", "l", "pt", "qt", "g", "kg", "tsp"]'::jsonb,
-  '0032 widens a PRISTINE cup-default list with tsp, appending nothing else'
-);
-select is(
-  (select allowed_units from ingredient
-     where id = 'cccccccc-0000-0000-0000-00000000000e'),
-  '["cup", "tbsp", "ml", "l", "pt", "qt", "g", "kg", "to_taste"]'::jsonb,
-  '0032 leaves a CURATED list alone — a backfill never overwrites a stated fact'
-);
-select is(
-  (select allowed_units from ingredient
-     where id = 'cccccccc-0000-0000-0000-00000000000f'),
-  '["g", "kg"]'::jsonb,
-  '0032 adds nothing where the rule admits no volume unit (the D4c shape)'
-);
--- …and it reached the real vocabulary. This is a POPULATION assertion, and
--- the shape of it is the point.
---
--- The obvious version — "no template cup-default row whose rule admits `tsp`
--- is missing it" — cannot live here, because curation is allowed to falsify
--- it and does. Eight cup-default rows carry a stated `remove` for `tsp` with
--- a reason attached (`pea`, `edamame`, `corn frozen`, `pasta cooked`, and the
--- four cooked staples: `lentil cooked`, `quinoa cooked`, `white rice cooked`,
--- `brown rice cooked` — "poured by the cup, not spooned by the tsp"). That is
--- the same house pattern as the 28 mass-default rows ("a spoon of dry pasta
--- is senseless"), and ADR-0012's own fence says a stated fact outranks a
--- derived one. An assertion that fails whenever somebody states a fact is
--- punishing the behaviour the ADR protects.
---
--- Nor can it be rescued by looking harder at the row. `lentil cooked` stores
--- exactly the rule's answer minus `tsp` — which is also, precisely, what a
--- row the widening never reached looks like. Curated and stale are the same
--- bytes; no SQL here can separate them.
---
--- So this asks the question the database CAN answer, and it happens to be the
--- one worth asking. The template's lists are re-materialized by ONE statement
--- in `seed_curation.sql` (`update ingredient set allowed_units =
--- default_allowed_units(...) where household_id = <template>`), with the
--- per-row overrides applied after it. Staleness is therefore all-or-nothing:
--- if that refresh or the function had missed ADR-0012, EVERY cup-default row
--- would lack `tsp` and this count would be 0, not 84. A per-row invariant is
--- the wrong instrument for an all-or-nothing failure; a population count is
--- the right one, and it is immune to curation by construction — curation
--- takes `tsp` off a handful of rows, never off all ninety-two.
---
--- The threshold's only job is to separate "none" from "nearly all", so any
--- number between them does. 92 cup-default rows, 84 carrying `tsp`, 8 curated
--- away: plenty of headroom for the vocabulary to grow and to be curated
--- further without this needing to be renumbered.
-select cmp_ok(
-  (select count(*)::int from ingredient
-     where household_id = '00000000-0000-0000-0000-0000000000aa'
-       and default_unit = 'cup' and allowed_units ? 'tsp'),
-  '>', 50,
-  'the template’s cup-default rows say tsp — the seed re-materialized under '
-  'ADR-0012, which is all-or-nothing (84 of 92; a stale rule gives 0)'
-);
--- The migration's own behaviour is not measured here at all, and does not
--- need to be: on a fresh reset 0032's backfill runs against an empty database
--- and the seed writes these lists afterwards. What 0032 does is pinned
--- directly, on purpose-built rows, by the three assertions above.
---
--- One consequence of "curated and stale are the same bytes" belongs on the
--- record: on a MIGRATED database 0032 widens a row that removed exactly
--- `tsp` and nothing else, because it satisfies the fence as ADR-0012 states
--- it. That is the collision ADR-0009 already accepted in its own words — a
--- household that removed a unit and later trips the rule "gets it back …
--- the unit is sayable again" — not a defect in the guard. Plan 0036's
--- decision log carries the finding.
-
-
--- ---------------------------------------------------------------------------
--- 0035 / ADR-0013: the mass ladder is symmetric. `g`, `kg`, `oz` and `lb` all
--- mate each other — `oz` rides with `g` and `lb` with `kg`, the magnitude
--- pairing D2b already makes in the volume family — while `mg` stays the trim
--- in the other direction. Mirrors allowed_units_test.dart group 'ADR-0013 —
--- the mass ladder is symmetric'.
---
--- The rule change is three arrays; the interesting half is again the widening
--- backfill's fence, and it has one more moving part than 0032's: what a row
--- gains depends on its default (`oz` gains `kg`, the metric two gain `oz` and
--- `lb`), and the fresh defaults must actually NAME the additions, which is
--- what keeps a per-100 ml mass-default row with no density out of it.
---
--- The four rows below are inserted with EXPLICIT lists (the insert trigger
--- would otherwise stamp the post-0035 defaults) and the migration's own
--- guarded statement is re-run over them, scoped to the fixtures for the
--- reason 0032's block states.
--- ---------------------------------------------------------------------------
-
--- Dart: 'if a mass default may be said in X, an X-default row may be said in
--- it'. Read over the whole clique rather than as one example: every kitchen
--- mass default admits every other one.
-select is(
-  (select count(*)::int
-     from unnest(array['g','kg','oz','lb']) as a(unit)
-     cross join unnest(array['g','kg','oz','lb']) as b(unit)
-    where not (default_allowed_units(a.unit, 'g', null, null) ? b.unit)),
-  0,
-  'every kitchen mass default admits every other one (ADR-0013)'
-);
--- Dart: 'mg is the trim in the other direction'. Its own row may say it; no
--- other row may — the shape `tsp` has in the volume family.
-select ok(
-  default_allowed_units('mg', 'g', null, null) = '["mg", "g"]'::jsonb
-  and not (default_allowed_units('g', 'g', null, null) ? 'mg')
-  and not (default_allowed_units('lb', 'g', null, null) ? 'mg'),
-  'mg keeps its own two and stays out of every other mass list'
-);
-
--- (a) PRISTINE, metric: the stored list is exactly what the pre-0035 rule
---     derived for a g-default per-100 g row.
-insert into ingredient (id, household_id, canonical_name, default_unit,
-  category, source, match_text, allowed_units)
-values ('cccccccc-0000-0000-0000-000000000010',
-  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Pristine Rice', 'g', 'grains',
-  'seed', 'pristine rice', '["g", "kg"]'::jsonb);
--- (b) PRISTINE, customary: the same for an oz default, which was missing only
---     `kg`.
-insert into ingredient (id, household_id, canonical_name, default_unit,
-  category, source, match_text, allowed_units)
-values ('cccccccc-0000-0000-0000-000000000011',
-  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Pristine Butter', 'oz', 'dairy',
-  'seed', 'pristine butter', '["oz", "lb", "g"]'::jsonb);
--- (c) CURATED: the metric shape with one word the household added.
-insert into ingredient (id, household_id, canonical_name, default_unit,
-  category, source, match_text, allowed_units)
-values ('cccccccc-0000-0000-0000-000000000012',
-  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Curated Rice', 'g', 'grains',
-  'seed', 'curated rice', '["g", "kg", "to_taste"]'::jsonb);
--- (d) OUT OF SHAPE: a g default on a per-100 ml row with no density, whose
---     rule admits no mass unit at all (D4c). Its stored list IS the old
---     default, so the fence passes — and the row still gains nothing, because
---     the fresh defaults name neither `oz` nor `lb`.
-insert into ingredient (id, household_id, canonical_name, default_unit,
-  category, source, match_text, macros_basis, allowed_units)
-values ('cccccccc-0000-0000-0000-000000000013',
-  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Stranded Syrup', 'g', 'pantry',
-  'seed', 'stranded syrup', 'ml', '["ml"]'::jsonb);
-
--- 0035's statement, verbatim in its GUARDS and scoped to the four fixtures.
-update ingredient i
-   set allowed_units = i.allowed_units || to_jsonb(c.added)
-  from (
-    select i2.id,
-           a.added,
-           (select array_agg(distinct s.u order by s.u)
-              from jsonb_array_elements_text(i2.allowed_units) as s(u))
-             as stored,
-           (select array_agg(distinct f.u order by f.u)
-              from jsonb_array_elements_text(d.units) as f(u)
-             where not (f.u = any(a.added)))
-             as old_default,
-           d.units as fresh
-      from ingredient i2
-      cross join lateral (
-        select case when i2.default_unit = 'oz'
-                    then array['kg']::text[]
-                    else array['oz','lb']::text[] end as added
-      ) a
-      cross join lateral (
-        select default_allowed_units(i2.default_unit, i2.macros_basis,
-                                     i2.density_g_per_ml, i2.category) as units
-      ) d
-     where i2.allowed_units is not null
-       and i2.default_unit in ('g', 'kg', 'oz')
-       and not (i2.allowed_units ?| a.added)
-       and i2.id in ('cccccccc-0000-0000-0000-000000000010',
-                     'cccccccc-0000-0000-0000-000000000011',
-                     'cccccccc-0000-0000-0000-000000000012',
-                     'cccccccc-0000-0000-0000-000000000013')
-  ) c
- where c.id = i.id
-   and c.fresh ?& c.added
-   and c.stored = c.old_default;
-
-select is(
-  (select allowed_units from ingredient
-     where id = 'cccccccc-0000-0000-0000-000000000010'),
+     where id = 'cccccccc-0000-0000-0000-000000000014'),
   '["g", "kg", "oz", "lb"]'::jsonb,
-  '0035 widens a PRISTINE g-default list with oz and lb, appending nothing else'
+  '0037 widens a PRISTINE list to the whole family, appending nothing else'
 );
 select is(
   (select allowed_units from ingredient
-     where id = 'cccccccc-0000-0000-0000-000000000011'),
-  '["oz", "lb", "g", "kg"]'::jsonb,
-  '0035 gives an oz-default row the one unit it lacked (kg)'
+     where id = 'cccccccc-0000-0000-0000-000000000015'),
+  '["cup", "tsp", "tbsp", "ml", "l", "pt", "qt", "g", "kg", "oz", "lb", '
+  '"fl_oz"]'::jsonb,
+  '0037 gives a pristine flour row fl_oz and the customary weights'
 );
 select is(
   (select allowed_units from ingredient
-     where id = 'cccccccc-0000-0000-0000-000000000012'),
-  '["g", "kg", "to_taste"]'::jsonb,
-  '0035 leaves a CURATED list alone — a backfill never overwrites a stated fact'
-);
-select is(
-  (select allowed_units from ingredient
-     where id = 'cccccccc-0000-0000-0000-000000000013'),
-  '["ml"]'::jsonb,
-  '0035 adds nothing where the rule names no mass unit (the per-ml D4c shape)'
+     where id = 'cccccccc-0000-0000-0000-000000000016'),
+  '["cup", "tsp", "tbsp", "ml", "l", "pt", "qt", "g", "kg", "to_taste"]'::jsonb,
+  '0037 leaves a CURATED list alone — a backfill never overwrites a stated '
+  'fact'
 );
 
--- …and it reached the real vocabulary. 0032's block had to settle for a
--- threshold because curation removes `tsp` from cup rows; nothing in
--- `curation_overrides.jsonl` removes a mass unit from anything, so the
--- population here can be asserted whole: every template row whose default is
--- `g`, `kg` or `oz` and whose rule names `kg` stores it. The template's 45
--- oz-default rows are the mass of that count, and a stale rule or a missed
--- re-materialization makes it fail outright rather than drift.
+-- The `mg` strip is NOT under that fence. A curated row carrying `mg` loses
+-- it and keeps everything else — the migration's statement, re-run over one
+-- fixture that could not exist after it.
+insert into ingredient (id, household_id, canonical_name, default_unit,
+  category, source, match_text, allowed_units)
+values ('cccccccc-0000-0000-0000-000000000017',
+  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Curated Supplement', 'g', 'pantry',
+  'seed', 'curated supplement', '["g", "mg", "to_taste"]'::jsonb);
+update ingredient i
+   set allowed_units = (
+         select coalesce(jsonb_agg(e.u order by e.ord), '[]'::jsonb)
+           from jsonb_array_elements_text(i.allowed_units)
+                with ordinality as e(u, ord)
+          where e.u <> 'mg')
+ where i.id = 'cccccccc-0000-0000-0000-000000000017'
+   and i.allowed_units ? 'mg';
+select is(
+  (select allowed_units from ingredient
+     where id = 'cccccccc-0000-0000-0000-000000000017'),
+  '["g", "to_taste"]'::jsonb,
+  '0037 strips mg from a CURATED list too: a retired unit is not a curation'
+);
+
+-- …and the rule reached the real vocabulary. This is a POPULATION assertion,
+-- and it can be stated whole because ADR-0014 admits families rather than
+-- units: the template's lists are re-materialized by ONE statement in the
+-- generated seed curation (`update ingredient set allowed_units =
+-- default_allowed_units(...)`), with the per-row overrides applied after it,
+-- so staleness is all-or-nothing. Curation removes single units from single
+-- rows; it never removes a whole family from every row.
 select is(
   (select count(*)::int from ingredient
      where household_id = '00000000-0000-0000-0000-0000000000aa'
-       and default_unit in ('g', 'kg', 'oz')
-       and allowed_units is not null
-       and default_allowed_units(default_unit, macros_basis,
-                                 density_g_per_ml, category) ? 'kg'
-       and not (allowed_units ? 'kg')),
+       and deleted_at is null
+       and macros_basis = 'g'
+       and not (allowed_units ?& array['g', 'kg', 'oz', 'lb'])),
   0,
-  'no template mass-default row whose rule names kg is missing it (ADR-0013)'
+  'every per-100 g template row says the whole mass family (ADR-0014)'
+);
+select is(
+  (select count(*)::int from ingredient
+     where household_id = '00000000-0000-0000-0000-0000000000aa'
+       and deleted_at is null
+       and allowed_units is not null
+       and density_g_per_ml is not null
+       and not (allowed_units ? 'fl_oz')),
+  0,
+  'and every density-carrying row says fl_oz — a unit no earlier rule ever '
+  'offered, so a stale rule or a missed re-materialization fails outright'
 );
 
 -- ---------------------------------------------------------------------------

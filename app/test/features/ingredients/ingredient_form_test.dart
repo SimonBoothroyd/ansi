@@ -26,6 +26,10 @@ import '../../helpers/forui_semantics.dart';
 import '../../helpers/silent_usda_probe.dart';
 import '_form_harness.dart';
 
+/// The volume family as the chips label it — what a per-100 g row draws
+/// locked while it carries no density, which is the only lock left.
+const _volumeLabels = {'tsp', 'tbsp', 'fl oz', 'cup', 'ml', 'l', 'pt', 'qt'};
+
 void main() {
   group('the flesh-out form', () {
     testWidgets('a stub without macros: the CTA is refused with its reason, '
@@ -137,7 +141,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 1. Locked: the cross-family chips are drawn dashed, with the hint.
-      expect(lockedUnitLabels(tester), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
+      expect(lockedUnitLabels(tester), _volumeLabels);
       expect(
         find.textContaining('unlock when this row has a density'),
         findsOneWidget,
@@ -176,7 +180,7 @@ void main() {
       await tester.pumpAndSettle();
       // Same rule on the way out: the chips lock again at once, the row keeps
       // its number until Save.
-      expect(lockedUnitLabels(tester), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
+      expect(lockedUnitLabels(tester), _volumeLabels);
       await saveForm(tester, reopen: 'Mango');
 
       final after = (await repo.byId('mango'))!;
@@ -188,9 +192,12 @@ void main() {
       expect(after.allowedUnits!.map((u) => u.id).toSet(), {
         'piece',
         'g',
+        'kg',
+        'oz',
+        'lb',
         'handful',
       });
-      expect(lockedUnitLabels(tester), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
+      expect(lockedUnitLabels(tester), _volumeLabels);
     });
 
     testWidgets('a density-less row draws the locked chips, and the note above '
@@ -208,7 +215,8 @@ void main() {
       // It used to be three sentences, one of which claimed a family was
       // locked from the basis rather than from what is actually dashed.
       expect(
-        find.text('no density — tsp · tbsp · cup · ml · pt locked'),
+        find.text('no density — tsp · tbsp · fl oz · cup · ml · l · pt · qt '
+            'locked'),
         findsOneWidget,
       );
       expect(find.textContaining('That blocks nothing'), findsNothing);

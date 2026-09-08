@@ -203,14 +203,16 @@ ingredients/
   [ADR-0009](../../../../docs/decisions/0009-density-unlocks-both-families.md) a
   density unlocks the other mass/volume family whatever the default's family;
   `setDensity` unions that in the same transaction, and `clearDensity` strips
-  what the density granted. The kitchen trim admits a family only at the
-  magnitudes near the default, and both ladders inside it are symmetric:
-  [ADR-0012](../../../../docs/decisions/0012-tsp-mates-cup.md) gave `cup` its
-  `tsp`, so a teaspoon of a cup-default food is sayable, and
-  [ADR-0013](../../../../docs/decisions/0013-mass-ladder-symmetric.md) has the
-  four kitchen mass units mate each other, so a gram-default row weighs in
-  ounces and pounds too. `allowed_units.dart` and the SQL function are mirrors
-  pinned by shared vectors — change one, change both.
+  what the density granted. Since
+  [ADR-0014](../../../../docs/decisions/0014-all-to-all-admission.md) a family
+  is admitted **whole** — the basis family always, the other one behind the
+  density — with no kitchen trim and no magnitude gate, so a gram-default row
+  weighs in ounces and pounds and a cup-default one is sayable in teaspoons.
+  What a household will never say, it prunes on the row itself: the admission
+  chips offer every unit of both families and every imprecise word, and the
+  only locked chips are the ones a density would unlock.
+  `allowed_units.dart` and the SQL function are mirrors pinned by shared
+  vectors — change one, change both.
 - **A default unit the row cannot say blocks Save.** The chips refuse to offer
   a default outside the basis family while no density bridges it, but a basis
   flipped (or a USDA pick landed) after the default was chosen strands the one

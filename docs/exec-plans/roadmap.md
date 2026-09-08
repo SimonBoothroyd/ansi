@@ -9,9 +9,11 @@ what exists and which plan bought it.
 ## Next
 
 1. **The pending migrations reach cloud** — `0032` (tsp admission), `0033`
-   (a plan slot's ingredient target), `0034` (`source_edited`) and `0035` (the
-   symmetric mass ladder) are built, pgTAP-green and local only. Nothing else
-   should land until they are pushed.
+   (a plan slot's ingredient target), `0034` (`source_edited`), `0035` (the
+   symmetric mass ladder) and `0037` (all-to-all admission, and `mg` leaving
+   the catalogue — it converts stored `mg` quantities to `g`) are built,
+   pgTAP-green and local only. Nothing else should land until they are
+   pushed.
 2. **The vocabulary statement is run** — [0039](./completed/0039-vocabulary-round-five.md)'s
    operator statement (Parts 1 and 2) is written and rehearsed in a rolled-back
    transaction, and has never touched the live household. Data is durable: the

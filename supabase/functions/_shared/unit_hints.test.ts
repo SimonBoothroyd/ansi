@@ -8,7 +8,6 @@ Deno.test("deriveUnitHints — mappable canonical units, no imprecise leak", () 
     const id of [
       "g",
       "kg",
-      "mg",
       "oz",
       "lb",
       "ml",

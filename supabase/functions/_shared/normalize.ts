@@ -258,7 +258,7 @@ const QUANTITY = /^[\d¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞/.,\-–—]+$/;
  * number cannot be anything but a unit, while a longer suffix would start
  * eating real words.
  */
-const FUSED_AMOUNT = /^[\d¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞/.,\-–—]+(?:g|kg|mg|ml|l|oz|lb)$/;
+const FUSED_AMOUNT = /^[\d¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞/.,\-–—]+(?:g|kg|ml|l|oz|lb)$/;
 
 /**
  * British surface forms folded onto the word the vocabulary stores. "tinned"

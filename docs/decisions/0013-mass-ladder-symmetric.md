@@ -1,6 +1,9 @@
 # ADR-0013 — The mass ladder is symmetric: the kitchen four mate each other
 
-- **Status:** accepted (2026-09-08, Simon — owner-asked)
+- **Status:** superseded by [ADR-0014](./0014-all-to-all-admission.md) —
+  accepted 2026-09-08 (Simon — owner-asked). The kitchen trim this amended is
+  gone: a family is admitted whole, so the four mass units mate each other by
+  construction, and `mg` is no longer a unit at all.
 - **Supersedes:** the `g`, `kg` and `oz` rows of
   [ADR-0008](./0008-unit-admission-model.md) §Decision ¶1's kitchen trim
   ("Trimmed to kitchen-scale magnitudes near the default unit"), as that trim

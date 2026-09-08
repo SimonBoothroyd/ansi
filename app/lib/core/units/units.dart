@@ -89,7 +89,6 @@ class Quantity {
 // Mass (base: gram).
 const g = Unit._('g', 'g', UnitFamily.mass, 1);
 const kg = Unit._('kg', 'kg', UnitFamily.mass, 1000);
-const mg = Unit._('mg', 'mg', UnitFamily.mass, 0.001);
 const oz = Unit._('oz', 'oz', UnitFamily.mass, 28.349523125);
 const lb = Unit._('lb', 'lb', UnitFamily.mass, 453.59237);
 
@@ -127,7 +126,7 @@ const batches = Unit._('batch', 'batch', UnitFamily.batch, null);
 /// everything except [batches], which belongs to component lines alone
 /// (step 8.6 / D2 non-goal). Ingredient admission rules and pickers read this.
 const kIngredientUnits = <Unit>[
-  g, kg, mg, oz, lb, //
+  g, kg, oz, lb, //
   ml, l, tsp, tbsp, flOz, cup, pint, quart, //
   pieces, //
   pinch, dash, handful, toTaste,

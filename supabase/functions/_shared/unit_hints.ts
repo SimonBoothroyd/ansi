@@ -36,7 +36,6 @@ const UNIT_CATALOG: readonly UnitMirror[] = [
   // Mass (base: gram).
   { id: "g", family: "mass" },
   { id: "kg", family: "mass" },
-  { id: "mg", family: "mass" },
   { id: "oz", family: "mass" },
   { id: "lb", family: "mass" },
   // Volume (base: ml).
