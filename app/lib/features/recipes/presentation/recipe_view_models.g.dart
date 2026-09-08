@@ -236,6 +236,93 @@ final class RecipeUsedInFamily extends $Family
   String toString() => r'recipeUsedInProvider';
 }
 
+/// Whether the recipe page prints each ingredient line's own macros under its
+/// name, beneath the per-serving panel's total.
+///
+/// A **reading posture**, not a household fact: it changes what one person is
+/// looking at right now, so it is neither written to the recipe nor synced.
+/// Keep-alive rather than per-page so the choice survives moving between
+/// recipes — a reader comparing two recipes' lines should not have to switch it
+/// back on — and it resets with the app, which is as long as a posture lasts.
+
+@ProviderFor(ShowLineMacros)
+const showLineMacrosProvider = ShowLineMacrosProvider._();
+
+/// Whether the recipe page prints each ingredient line's own macros under its
+/// name, beneath the per-serving panel's total.
+///
+/// A **reading posture**, not a household fact: it changes what one person is
+/// looking at right now, so it is neither written to the recipe nor synced.
+/// Keep-alive rather than per-page so the choice survives moving between
+/// recipes — a reader comparing two recipes' lines should not have to switch it
+/// back on — and it resets with the app, which is as long as a posture lasts.
+final class ShowLineMacrosProvider
+    extends $NotifierProvider<ShowLineMacros, bool> {
+  /// Whether the recipe page prints each ingredient line's own macros under its
+  /// name, beneath the per-serving panel's total.
+  ///
+  /// A **reading posture**, not a household fact: it changes what one person is
+  /// looking at right now, so it is neither written to the recipe nor synced.
+  /// Keep-alive rather than per-page so the choice survives moving between
+  /// recipes — a reader comparing two recipes' lines should not have to switch it
+  /// back on — and it resets with the app, which is as long as a posture lasts.
+  const ShowLineMacrosProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'showLineMacrosProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$showLineMacrosHash();
+
+  @$internal
+  @override
+  ShowLineMacros create() => ShowLineMacros();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$showLineMacrosHash() => r'b917e44158dfcf61840bfbb163f1b20a4e6607b8';
+
+/// Whether the recipe page prints each ingredient line's own macros under its
+/// name, beneath the per-serving panel's total.
+///
+/// A **reading posture**, not a household fact: it changes what one person is
+/// looking at right now, so it is neither written to the recipe nor synced.
+/// Keep-alive rather than per-page so the choice survives moving between
+/// recipes — a reader comparing two recipes' lines should not have to switch it
+/// back on — and it resets with the app, which is as long as a posture lasts.
+
+abstract class _$ShowLineMacros extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
 /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
 /// dropdown can be filtered by [allowedUnitsFor]. The repository only exposes
 /// search (ADR-0004), so this searches by the denormalised name and matches on

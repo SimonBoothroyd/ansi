@@ -16,7 +16,7 @@
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe page</h1>
     <p class="view-status">built · matches code 2026-09-08 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
-    <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — with a total, or with the reason there isn’t one.</p>
+    <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — with a total, or with the reason there isn’t one. The <b>⋯</b> menu can also print each line’s own macros under its name.</p>
 </header>
 
 <div class="board">
@@ -43,7 +43,7 @@
                 <div class="grp"><p class="grp-h">to serve</p>
                     <div class="l3"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Lemon</span><span class="l3-note">juiced</span></span></div>
                 </div>
-                <p class="conv-note">Two tabs only — Ingredients · Method. Macros are not on the line: they arrive as one <b>per-serving panel</b> closing this tab (step 9, next frame).</p>
+                <p class="conv-note">Two tabs only — Ingredients · Method. Macros close this tab as one <b>per-serving panel</b>, and the line carries none of its own until the <b>⋯</b> toggle asks for them.</p>
                 <p class="conv-note">The <b>ingredient’s name is a door</b>: tapping it pushes that ingredient’s page, so “what is this, and what does it weigh” is one tap from the line that asked. The door is the <i>name</i> — not the amount, not the note, not the paper beside a short name — and a folded multi-use row has the one door its one name gives it. A line that resolved to no ingredient has no door; it is text.</p>
             </div></div>
         </div>
@@ -159,6 +159,59 @@
     </div>
 
     <div class="frame">
+        <p class="frame-name"><b>Macros per line</b> · the toggle is an item in the page’s own <b>⋯</b> menu, offered from the tab it changes; default <b>off</b></p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="lib-menu">
+                <div class="mi"><span class="ic">☆</span><span class="lb">Favorite</span></div>
+                <div class="mi"><span class="ic">Σ</span><span class="lb">Show line macros</span></div>
+                <div class="mi"><span class="ic">✎</span><span class="lb">Edit</span></div>
+                <div class="mi danger"><span class="ic">✕</span><span class="lb">Delete</span></div>
+            </div>
+            <p class="conv-note">no second control and no header glyph — the page already has one door for its less-used verbs. It reads <b>Hide line macros</b> once on, and it is absent from the Method tab, which it does not change</p>
+            <p class="conv-note">the choice is held for the <b>session</b>, across recipes: a reading posture, not a household fact, so nothing is written or synced</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>On</b> · each line’s own macros under its name — the line <i>as shown</i>, so unlike the per-serving strip these <b>do</b> move with the scaler</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
+            <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">8 servings ·2×</span><span class="step">+</span></div></div>
+            <div class="grp">
+                <div class="l3 seam"><span class="l3-amt">1200 g</span><span class="l3-body"><span class="l3-id">Chicken thigh, boneless</span><span class="l3-macro">2160 kcal · 216P 144F 0C</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">800 g</span><span class="l3-body"><span class="l3-id">Chopped tomatoes</span><span class="l3-note">drained</span><span class="l3-macro">144 kcal · 8P 2F 26C</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">4 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span><span class="l3-macro">176 kcal · 5P 0F 41C</span></span></div>
+                <div class="l3 seam"><span class="l3-amt impr">handful</span><span class="l3-body"><span class="l3-id">Parsley</span><span class="l3-note">chopped</span><span class="l3-macro">not counted</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">2 lime</span><span class="l3-body"><span class="l3-id">Lime</span><span class="l3-note">to serve</span><span class="r3-tag">optional</span><span class="l3-macro">optional</span></span></div>
+            </div>
+            <p class="macro-lab">Per serving</p>
+            <div class="macro tight"><div class="m"><div class="mv">610</div><div class="ml">kcal</div></div><div class="m"><div class="mv">57 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">17 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">37 g</div><div class="ml">fat</div></div></div>
+            <p class="notcounted"><span class="nk">not counted:</span> <b>Parsley</b> · handful · <b>1 optional line:</b> Lime<br>a pinch has no weight to count, and an optional line is left out by rule — untick <b>Optional</b> on a line to count it</p>
+            <p class="conv-note">the figures are the summation’s <b>own per-line record</b>, scaled by the same factor the amount beside them went through — nothing is converted a second time, so a line can never read one way here and another inside the total</p>
+            <p class="conv-note">a line the total left out prints <b>its reason</b>, in the panel’s exact words — never a zero, never a partial. A folded multi-use row prints figures only when <i>every</i> use joined</p>
+            <p class="conv-note">the strip below is unchanged: <b>per serving</b> is scale-invariant, because scaling moves the lines and the servings together</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>On, over a line the total is waiting on</b> · the amber marker already says why, so the slot under the name stays empty rather than saying it twice</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
+            <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
+            <div class="grp">
+                <div class="l3 seam"><span class="l3-amt">2 pepper, medium</span><span class="l3-body"><span class="l3-id">Red bell pepper</span><span class="l3-macro">46 kcal · 2P 0F 9C</span></span></div>
+                <div class="l3 marked"><span class="l3-amt">200 g<span class="rowmark"><span class="rd"></span>stub ingredient</span></span><span class="l3-body"><span class="l3-id">Tofu</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">0.25 cup</span><span class="l3-body"><span class="ichip">↪ Romesco Aioli</span><span class="l3-macro">312 kcal · 3P 33F 4C</span></span></div>
+            </div>
+            <p class="conv-note">a <b>component</b> line is an ordinary line here too: it prints the share it contributed, because the summation already worked that share out. One whose batch math or whose target refuses is marked, like any other</p>
+            <p class="conv-note">the total below is <b>incomplete</b> while Tofu is a stub — and the two lines that DID resolve still print, because each is honest about itself. A per-line figure is not a partial total; it is that line</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
         <p class="frame-name"><b>The panel names the lines</b> · each named line is marked where it lives, and tapping it opens the thing that fixes it</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
@@ -166,8 +219,8 @@
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
             <div class="grp">
                 <div class="l3 seam"><span class="l3-amt">2</span><span class="l3-body"><span class="l3-id">Red bell pepper</span></span></div>
-                <div class="l3 marked"><span class="l3-amt">2</span><span class="l3-body"><span class="l3-id">Dragon fruit</span><span class="rowmark"><span class="rd"></span>needs a piece weight</span></span></div>
-                <div class="l3 marked"><span class="l3-amt">200 g</span><span class="l3-body"><span class="l3-id">Tofu</span><span class="rowmark"><span class="rd"></span>stub ingredient</span></span></div>
+                <div class="l3 marked"><span class="l3-amt">2<span class="rowmark"><span class="rd"></span>needs a piece weight</span></span><span class="l3-body"><span class="l3-id">Dragon fruit</span></span></div>
+                <div class="l3 marked"><span class="l3-amt">200 g<span class="rowmark"><span class="rd"></span>stub ingredient</span></span><span class="l3-body"><span class="l3-id">Tofu</span></span></div>
                 <div class="l3 seam"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span></div>
             </div>
             <p class="macro-lab">Per serving</p>

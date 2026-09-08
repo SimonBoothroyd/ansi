@@ -251,6 +251,19 @@ its steps.
   picker rows **and the recipe page's per-serving macro panel** — step 9
   shipped that panel off this same summation, so the two surfaces cannot
   disagree.
+  - **The walk keeps both halves.** Every line that joined is recorded with
+    what it contributed (`RecipeMacroSummary.lineMacros`, keyed by line id)
+    beside the notes naming every line that did not, so a surface printing a
+    figure per line reads the sum rather than converting anything a second
+    time. The recipe page's `⋯` menu toggles that on — **`Show line macros`**,
+    off by default, held for the session and never persisted — and prints
+    each line's own `197 kcal · 2P 20F 3C` under its name. These are the line
+    *as displayed*, so unlike the per-serving strip they **do** move with the
+    servings scaler. A line the total left out prints its reason instead of
+    figures, in `incompleteLineNote`'s exact words — never a zero, and a
+    folded multi-use row prints figures only when every use joined, so a
+    partial is never shown either. A line whose amber marker is already
+    printing that reason does not print it twice.
   - **The refusal NAMES its causes** (plan 0024 seam D5). The count line the
     picker rows print is kept verbatim, and under it the panel lists the
     lines the total is waiting on — `Dragon fruit · needs a piece weight`,
