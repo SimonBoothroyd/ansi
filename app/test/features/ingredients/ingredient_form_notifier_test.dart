@@ -20,6 +20,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_ingredient_repository.dart';
 
+/// A weighed count row (ADR-0015): the piece weight is what keeps `piece` in
+/// its admission set, and what keeps its own default off the stranded list.
 const _mango = Ingredient(
   id: 'mango',
   canonicalName: 'Mango',
@@ -27,6 +29,19 @@ const _mango = Ingredient(
   status: IngredientStatus.stub,
   category: 'produce',
   allowedUnits: [pieces, g, kg],
+  pieceBasisAmount: 200,
+  pieceSource: 'manual',
+  source: 'seed',
+);
+
+/// The same row before anybody weighed one — a stranded `piece` default.
+const _unweighedMango = Ingredient(
+  id: 'mango',
+  canonicalName: 'Mango',
+  defaultUnit: pieces,
+  status: IngredientStatus.stub,
+  category: 'produce',
+  allowedUnits: [g, kg],
   source: 'seed',
 );
 
@@ -89,6 +104,37 @@ void main() {
       expect(draft.creating, isTrue);
       expect(draft.name, 'curry leaves');
       expect(draft.row.id, isEmpty);
+    });
+
+    test('a piece weight unlocks `piece`, and removing it strips it — the '
+        'count-side twin of the density pair (ADR-0015)', () async {
+      final repo = FakeIngredientRepo([_unweighedMango]);
+      final (:form, :at) = await _open(repo, id: 'mango');
+      expect(at().allowed, isNot(contains(pieces)));
+
+      form.draftPieceWeight(350);
+      expect(at().pieceWeightValue, 350);
+      expect(at().allowed, contains(pieces));
+
+      form.removePieceWeight();
+      expect(at().pieceWeightValue, isNull);
+      expect(at().allowed, isNot(contains(pieces)));
+      // Nothing was written: the draft holds it until Save, as the density is
+      // held (W5).
+      expect(repo.rows.single.pieceBasisAmount, isNull);
+    });
+
+    test('moving the default off the count drops `piece` from the draft — it '
+        'is offered only where the row is counted', () async {
+      final repo = FakeIngredientRepo([_mango]);
+      final (:form, :at) = await _open(repo, id: 'mango');
+      expect(at().allowed, contains(pieces));
+
+      form.setDefaultUnit(g);
+      expect(at().allowed, isNot(contains(pieces)));
+      // …and going back is one tap, because the weight is still on the row.
+      form.setDefaultUnit(pieces);
+      expect(at().allowed, contains(pieces));
     });
 
     test('a density unlocks the volume units, and removing it strips '
@@ -272,6 +318,71 @@ void main() {
       expect(at().message, contains('One serving is how'));
 
       expect(repo.savedForms, isEmpty);
+    });
+
+    test('the piece weight rides the same one call, as a PieceWeightSet the '
+        'repository lands beside the admission set', () async {
+      final repo = FakeIngredientRepo([_unweighedMango]);
+      final (:form, at: _) = await _open(repo, id: 'mango');
+      form.draftPieceWeight(350);
+
+      final saved = await form.save();
+
+      expect(saved, isNotNull);
+      final asked = repo.savedForms.single;
+      expect(asked.pieceWeight, isA<PieceWeightSet>());
+      expect((asked.pieceWeight as PieceWeightSet).amount, 350);
+      // The draft already applied the unlock, so the list travels with it.
+      expect(asked.row.allowedUnits, contains(pieces));
+      expect(repo.rows.single.pieceBasisAmount, 350);
+      expect(repo.rows.single.pieceSource, 'manual');
+    });
+
+    test('removing it sends a PieceWeightCleared, and `piece` leaves the '
+        'admission set in the same write', () async {
+      final repo = FakeIngredientRepo([_mango]);
+      final (:form, at: _) = await _open(repo, id: 'mango');
+      // The row is left counted deliberately: what Save refuses is a piece
+      // DEFAULT with no weight, so the default moves with the number.
+      form
+        ..removePieceWeight()
+        ..setDefaultUnit(g);
+
+      await form.save();
+
+      final asked = repo.savedForms.single;
+      expect(asked.pieceWeight, isA<PieceWeightCleared>());
+      expect(asked.row.allowedUnits, isNot(contains(pieces)));
+      expect(repo.rows.single.pieceBasisAmount, isNull);
+      expect(repo.rows.single.pieceSource, isNull);
+    });
+
+    test('SAVE REFUSES a piece default with nothing weighing one, and names '
+        'both ways out', () async {
+      final repo = FakeIngredientRepo([_unweighedMango]);
+      final (:form, :at) = await _open(repo, id: 'mango');
+
+      expect(await form.save(), isNull);
+      expect(
+        at().message,
+        'Piece can’t be the default unit with nothing weighing one — '
+        'enter what one weighs below, or make it g.',
+      );
+      expect(repo.savedForms, isEmpty);
+
+      // Either fix clears it: the number…
+      form.draftPieceWeight(350);
+      expect(await form.save(), isNotNull);
+    });
+
+    test('…or the other way out: a default that is not a count needs no '
+        'weight at all', () async {
+      final repo = FakeIngredientRepo([_unweighedMango]);
+      final (:form, at: _) = await _open(repo, id: 'mango');
+      form.setDefaultUnit(g);
+
+      expect(await form.save(), isNotNull);
+      expect(repo.savedForms.single.pieceWeight, isA<PieceWeightUnchanged>());
     });
 
     test('a create passes a NULL id, so the row and its children land in one '

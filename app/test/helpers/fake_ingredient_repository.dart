@@ -1,6 +1,6 @@
 /// Test doubles for [IngredientRepository].
 ///
-/// The interface carries a write half (the form, density, default measure,
+/// The interface carries a write half (the form, density, piece weight,
 /// delete). Screens that only *read* the vocab shouldn't have to restate it,
 /// so [ReadOnlyIngredientRepo] answers the whole interface with the empty,
 /// harmless value and throws from the writes — subclass it and override only
@@ -13,7 +13,6 @@ library;
 
 import 'dart:async';
 
-import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
@@ -67,14 +66,12 @@ class ReadOnlyIngredientRepo implements IngredientRepository {
       throw UnimplementedError();
 
   @override
-  Future<Ingredient?> stopOfferingPiece(String ingredientId) =>
+  Future<Ingredient?> setPieceWeight(String ingredientId, double amount) =>
       throw UnimplementedError();
 
   @override
-  Future<Ingredient?> setDefaultMeasure(
-    String ingredientId,
-    String? measureId,
-  ) => throw UnimplementedError();
+  Future<Ingredient?> clearPieceWeight(String ingredientId) =>
+      throw UnimplementedError();
 
   @override
   Future<Ingredient?> declineUsdaPrefill(String ingredientId) =>
@@ -227,25 +224,38 @@ class FakeIngredientRepo implements IngredientRepository {
   }
 
   @override
-  Future<Ingredient?> stopOfferingPiece(String ingredientId) async {
+  Future<Ingredient?> setPieceWeight(String ingredientId, double amount) async {
+    if (!(amount > 0)) {
+      throw ArgumentError.value(amount, 'amount', 'must be a positive number');
+    }
     final current = _find(ingredientId);
     if (current == null) return null;
-    final kept = {...current.allowedUnits ?? allowedUnitsFor(current)};
-    if (!kept.remove(pieces)) return current;
-    final updated = current.copyWith(allowedUnits: kept.toList());
+    // The real write's shape (ADR-0015): the number, `manual` provenance, and
+    // what it unlocks unioned into the explicit list in the same act.
+    final updated = current.copyWith(
+      pieceBasisAmount: amount,
+      pieceSource: 'manual',
+      allowedUnits: [
+        ...{
+          ...current.allowedUnits ?? allowedUnitsFor(current),
+          ...pieceUnlockedUnits(current),
+        },
+      ],
+    );
     _replace(updated);
     return updated;
   }
 
   @override
-  Future<Ingredient?> setDefaultMeasure(
-    String ingredientId,
-    String? measureId,
-  ) async {
+  Future<Ingredient?> clearPieceWeight(String ingredientId) async {
     final current = _find(ingredientId);
     if (current == null) return null;
-    // Clearing must survive freezed's "a null means unchanged" copyWith, and
-    // clearing is half of what this write is for.
+    if (current.pieceBasisAmount == null) return current;
+    // The strip leg, rebuilt field-by-field for the reason [clearDensity]
+    // gives: freezed reads a null as "unchanged", and deleting both columns
+    // is the whole point.
+    final kept = {...current.allowedUnits ?? allowedUnitsFor(current)}
+      ..removeAll(pieceStrippedUnits(current));
     final updated = Ingredient(
       id: current.id,
       canonicalName: current.canonicalName,
@@ -255,14 +265,12 @@ class FakeIngredientRepo implements IngredientRepository {
       densityGPerMl: current.densityGPerMl,
       macros: current.macros,
       macrosBasis: current.macrosBasis,
-      allowedUnits: current.allowedUnits,
-      defaultMeasureId: measureId,
+      allowedUnits: kept.toList(),
       measureCount: current.measureCount,
       source: current.source,
       sourceLabel: current.sourceLabel,
       sourceScore: current.sourceScore,
-      // "Counts as" is not a number: it never sets the flag, and it never
-      // loses one the row already carries (0034).
+      // A piece weight is not one of the numbers a lookup fills (0034).
       sourceEdited: current.sourceEdited,
     );
     _replace(updated);
@@ -289,6 +297,8 @@ class FakeIngredientRepo implements IngredientRepository {
       macros: current.macros,
       macrosBasis: current.macrosBasis,
       allowedUnits: kept.toList(),
+      pieceBasisAmount: current.pieceBasisAmount,
+      pieceSource: current.pieceSource,
       measureCount: current.measureCount,
       source: current.source,
       sourceLabel: current.sourceLabel,
@@ -318,7 +328,9 @@ class FakeIngredientRepo implements IngredientRepository {
       category: current.category,
       macrosBasis: current.macrosBasis,
       allowedUnits: kept.toList(),
-      defaultMeasureId: current.defaultMeasureId,
+      // A piece weight is nobody's prefill: it survives the decline.
+      pieceBasisAmount: current.pieceBasisAmount,
+      pieceSource: current.pieceSource,
       measureCount: current.measureCount,
       source: usdaDeclinedSource,
       sourceLabel: current.sourceLabel,
@@ -351,6 +363,8 @@ class FakeIngredientRepo implements IngredientRepository {
       macros: edit.macros,
       macrosBasis: edit.macrosBasis,
       allowedUnits: edit.allowedUnits.toList(),
+      pieceBasisAmount: current.pieceBasisAmount,
+      pieceSource: current.pieceSource,
       measureCount: current.measureCount,
       // Patch-shaped, like the real write: a null keeps the stored stamp —
       // so a save that is not about the match cannot erase which food filled
@@ -363,9 +377,9 @@ class FakeIngredientRepo implements IngredientRepository {
     return updated;
   }
 
-  /// The whole form in one act: the row, then the density, the default
-  /// measure and the status flip, so a test can assert that ONE call did all
-  /// of it — which is the property the real transaction exists to give.
+  /// The whole form in one act: the row, then the density, the piece weight
+  /// and the status flip, so a test can assert that ONE call did all of it —
+  /// which is the property the real transaction exists to give.
   ///
   /// [savedForms] records what it was handed, so a test can pin *what the
   /// form asked for* separately from what the row ended up looking like.
@@ -411,33 +425,49 @@ class FakeIngredientRepo implements IngredientRepository {
           macros: updated.macros,
           macrosBasis: updated.macrosBasis,
           allowedUnits: updated.allowedUnits,
+          pieceBasisAmount: updated.pieceBasisAmount,
+          pieceSource: updated.pieceSource,
           measureCount: updated.measureCount,
           source: updated.source,
           sourceLabel: updated.sourceLabel,
           sourceScore: updated.sourceScore,
-          defaultMeasureId: updated.defaultMeasureId,
         );
       case DensityUnchanged():
         break;
     }
-    if (edit.defaultMeasure case DefaultMeasureSet(:final measureId)) {
-      updated = measureId == null
-          ? Ingredient(
-              id: updated.id,
-              canonicalName: updated.canonicalName,
-              defaultUnit: updated.defaultUnit,
-              status: updated.status,
-              category: updated.category,
-              densityGPerMl: updated.densityGPerMl,
-              macros: updated.macros,
-              macrosBasis: updated.macrosBasis,
-              allowedUnits: updated.allowedUnits,
-              measureCount: updated.measureCount,
-              source: updated.source,
-              sourceLabel: updated.sourceLabel,
-              sourceScore: updated.sourceScore,
-            )
-          : updated.copyWith(defaultMeasureId: measureId);
+    switch (edit.pieceWeight) {
+      case PieceWeightSet(:final amount):
+        if (!(amount > 0)) {
+          throw ArgumentError.value(
+            amount,
+            'amount',
+            'must be a positive number',
+          );
+        }
+        updated = updated.copyWith(
+          pieceBasisAmount: amount,
+          pieceSource: 'manual',
+        );
+      case PieceWeightCleared():
+        // Both columns go, and freezed reads a null as "unchanged" — hence
+        // the rebuild, exactly as the density's clear above.
+        updated = Ingredient(
+          id: updated.id,
+          canonicalName: updated.canonicalName,
+          defaultUnit: updated.defaultUnit,
+          status: updated.status,
+          category: updated.category,
+          densityGPerMl: updated.densityGPerMl,
+          macros: updated.macros,
+          macrosBasis: updated.macrosBasis,
+          allowedUnits: updated.allowedUnits,
+          measureCount: updated.measureCount,
+          source: updated.source,
+          sourceLabel: updated.sourceLabel,
+          sourceScore: updated.sourceScore,
+        );
+      case PieceWeightUnchanged():
+        break;
     }
     if (edit.markComplete && updated.macros != null) {
       updated = updated.copyWith(status: IngredientStatus.complete);
@@ -452,8 +482,8 @@ class FakeIngredientRepo implements IngredientRepository {
   /// `SqliteIngredientRepository._sourceEditedPatch`'s rule, as a value rather
   /// than a patch (0034, plan 0040 B-D1). A fresh stamp clears it; a write that
   /// changes macros, the basis or the density over a LOOKUP fill sets it;
-  /// everything else — a rename, a unit, a category, a measure, an alias,
-  /// "Counts as", Mark complete — leaves it exactly as it was.
+  /// everything else — a rename, a unit, a category, a measure, an alias, a
+  /// piece weight, Mark complete — leaves it exactly as it was.
   static bool _sourceEdited({
     required Ingredient? before,
     required IngredientFormEdit edit,

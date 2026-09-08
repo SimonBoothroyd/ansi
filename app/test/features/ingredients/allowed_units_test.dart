@@ -17,6 +17,10 @@ class _Vector {
       ingredient = _ing(
         unitById(json['defaultUnit'] as String)!,
         density: (json['density'] as num?)?.toDouble(),
+        // The count-side number (ADR-0015). `as num?` rather than a required
+        // field: a vector that carries none is a row with no piece weight,
+        // which is exactly what the null means everywhere else.
+        piece: (json['pieceBasisAmount'] as num?)?.toDouble(),
         category: json['category'] as String?,
         basis: json['basis'] == 'ml' ? MacrosBasis.perMl : MacrosBasis.perG,
       ),
@@ -42,6 +46,7 @@ List<_Vector> _sharedVectors() {
 Ingredient _ing(
   Unit defaultUnit, {
   double? density,
+  double? piece,
   String? category,
   MacrosBasis basis = MacrosBasis.perG,
   List<Unit>? allowed,
@@ -54,6 +59,8 @@ Ingredient _ing(
   category: category,
   macrosBasis: basis,
   allowedUnits: allowed,
+  pieceBasisAmount: piece,
+  pieceSource: piece == null ? null : 'manual',
 );
 
 /// The two mass/volume families in chip order. A family is the unit of
@@ -77,7 +84,7 @@ void main() {
 
     test('the vector file actually loaded', () {
       // An emptied or unfound fixture would make every case below vacuous.
-      expect(vectors, hasLength(12));
+      expect(vectors, hasLength(14));
     });
 
     for (final v in vectors) {
@@ -142,13 +149,23 @@ void main() {
       expect(units, containsAll(<Unit>[kg, l, quart]));
     });
 
-    test('without a density a count default still admits nothing but its own '
-        'piece and the basis family — the unlock rides the density, not the '
-        'family', () {
-      expect(allowedUnitsFor(_ing(pieces, category: 'produce')), [
+    test('without a density a WEIGHED count default still admits nothing but '
+        'its own piece and the basis family — the unlock rides the density, '
+        'not the family', () {
+      expect(allowedUnitsFor(_ing(pieces, piece: 200, category: 'produce')), [
         pieces,
         ..._mass,
         handful, // J3: the category's word, not the density's business
+      ]);
+    });
+
+    test('`piece` needs the weight as the other family needs the density: an '
+        'unweighed count row admits everything BUT its own piece', () {
+      // ADR-0015. The count nobody weighed is the line the converter cannot
+      // bridge — the exact shape D4c refuses on the volume side.
+      expect(allowedUnitsFor(_ing(pieces, category: 'produce')), [
+        ..._mass,
+        handful,
       ]);
     });
 
@@ -248,8 +265,12 @@ void main() {
       // never an ingredient's unit (step 8.6 / D2) — hence
       // [kIngredientUnits] rather than [kAllUnits].
       for (final u in kIngredientUnits) {
-        final bare = _ing(u);
-        final bridged = _ing(u, density: 1);
+        // A count default carries its weight in both rows: this is about the
+        // DENSITY gate, and an unweighed count is a stranding of its own
+        // (ADR-0015), pinned in the piece-weight group below.
+        final weight = u.family == UnitFamily.count ? 200.0 : null;
+        final bare = _ing(u, piece: weight);
+        final bridged = _ing(u, density: 1, piece: weight);
         // With a density every default unit is sayable, as before.
         expect(
           allowedUnitsFor(bridged),
@@ -383,14 +404,15 @@ void main() {
 
     test('slots measure options after the default set, before imprecise, in '
         'order', () {
-      final choices = allowedUnitChoicesFor(_ing(pieces), const [
+      final potato = _ing(pieces, piece: 213.5);
+      final choices = allowedUnitChoicesFor(potato, const [
         medium,
         large,
       ]).choices;
       // The unit set keeps its members and relative order…
       expect(
         choices.whereType<UnitOption>().map((c) => c.unit),
-        allowedUnitsFor(_ing(pieces)),
+        allowedUnitsFor(potato),
       );
       // …and the measures sit between the count and the demoted basis
       // base, in the given (sort_order) order.
@@ -457,11 +479,11 @@ void main() {
         expect(offer.choices.first, const MeasureOption(avocadoMeasure));
       });
 
-      test('a measure-less count row keeps `piece`, and it leads — there is '
-          'nothing clearer to say', () {
+      test('a measure-less WEIGHED count row keeps `piece`, and it leads — '
+          'there is nothing clearer to say', () {
         // The derived default is deliberately untouched by the curation
         // pass: this is the fallback the whole rule exists to protect.
-        final offer = allowedUnitChoicesFor(_ing(pieces), const []);
+        final offer = allowedUnitChoicesFor(_ing(pieces, piece: 201), const []);
         expect(offer.choices.first.label, 'piece');
       });
 
@@ -617,9 +639,9 @@ void main() {
       expect(lockedOf(curryLeaves), _volumeIds);
     });
 
-    test('a piece default with no density locks BOTH families beyond its own '
-        'basis base — a density is what opens them', () {
-      final mangoWithoutDensity = _ing(pieces, category: 'produce');
+    test('a weighed piece default with no density locks BOTH families beyond '
+        'its own basis base — a density is what opens them', () {
+      final mangoWithoutDensity = _ing(pieces, piece: 200, category: 'produce');
       expect(selectedOf(mangoWithoutDensity), {
         'piece',
         ..._massIds,
@@ -629,7 +651,12 @@ void main() {
     });
 
     test('with the density, nothing is locked (the mango frame)', () {
-      final mango = _ing(pieces, density: 0.66, category: 'produce');
+      final mango = _ing(
+        pieces,
+        density: 0.66,
+        piece: 200,
+        category: 'produce',
+      );
       expect(lockedOf(mango), isEmpty);
       expect(selectedOf(mango), {
         'piece',
@@ -639,13 +666,33 @@ void main() {
       });
     });
 
+    test('`piece` is drawn LOCKED on an unweighed count row — the chip is how '
+        'the form says what the weight would buy', () {
+      // ADR-0015, the count-side twin of the dashed cross-family chips: the
+      // chip is drawn so "why can't I say piece" has an answer with the
+      // remedy in it.
+      final unweighed = _ing(pieces, density: 0.66, category: 'produce');
+      expect(lockedOf(unweighed), contains('piece'));
+      expect(selectedOf(unweighed), isNot(contains('piece')));
+    });
+
+    test('`piece` is not drawn AT ALL where the default unit is not a count, '
+        'even when the stored list still names it', () {
+      // The owner's ruling: piece shows only where the row is counted. A list
+      // naming it is a curation the rule no longer has, so the chip row does
+      // not offer it back.
+      final curated = _ing(g, piece: 50, allowed: const [g, pieces, toTaste]);
+      final ids = {for (final c in allowedUnitCandidates(curated)) c.unit.id};
+      expect(ids, isNot(contains('piece')));
+    });
+
     test('a stored unit the derived rules would not admit still appears, '
         'selected and unlocked — an explicit list is user-owned', () {
-      // `piece` is the one admission the rule never derives for a weighed row
-      // (ADR-0010 keeps it curated), so it is what this can be shown with.
-      final curated = _ing(g, allowed: const [g, pieces, toTaste]);
-      expect(selectedOf(curated), containsAll(<String>['piece', 'to_taste']));
-      expect(lockedOf(curated), isNot(contains('piece')));
+      // `pinch` is a spice/oil word (J3), so a produce row never derives it;
+      // a household that put it on this row keeps it.
+      final curated = _ing(g, category: 'produce', allowed: const [g, pinch]);
+      expect(selectedOf(curated), containsAll(<String>['g', 'pinch']));
+      expect(lockedOf(curated), isNot(contains('pinch')));
     });
 
     test('every imprecise word is a chip the row may turn on, whatever its '
@@ -673,7 +720,11 @@ void main() {
         'is sayable', () {
       // The shape a device leaves behind when the density is deleted
       // somewhere the list did not follow (an older client, a server edit).
-      final stale = _ing(pieces, allowed: const [pieces, g, cup, ml]);
+      final stale = _ing(
+        pieces,
+        piece: 200,
+        allowed: const [pieces, g, cup, ml],
+      );
       expect(lockedOf(stale), _volumeIds);
       // …and the basis side is untouched: it never needed a density.
       expect(selectedOf(stale), {'piece', 'g'});
@@ -739,6 +790,101 @@ void main() {
           reason: i.defaultUnit.id,
         );
       }
+    });
+  });
+
+  group('the piece weight — the count-side twin of the density (ADR-0015)', () {
+    test('`piece` is admitted only where the row is COUNTED and something '
+        'weighs one — both halves, or nothing', () {
+      // The two facts are independent, so the truth table is the test: a
+      // weight on a `g` row buys nothing, and a count with no weight is the
+      // conversion nobody can do.
+      expect(defaultAllowedUnitSet(_ing(pieces, piece: 200)), contains(pieces));
+      expect(defaultAllowedUnitSet(_ing(pieces)), isNot(contains(pieces)));
+      expect(
+        defaultAllowedUnitSet(_ing(g, piece: 200)),
+        isNot(contains(pieces)),
+      );
+      expect(defaultAllowedUnitSet(_ing(g)), isNot(contains(pieces)));
+    });
+
+    test('what a piece weight is worth is `piece` and nothing else — on a '
+        'count row, and empty on any other', () {
+      expect(pieceUnlockedUnits(_ing(pieces, piece: 200)), {pieces});
+      // Even beside a density, which unlocks its own family independently.
+      expect(pieceUnlockedUnits(_ing(pieces, density: 0.66, piece: 200)), {
+        pieces,
+      });
+      // A `g` row's weight unlocks nothing: the owner's ruling is that piece
+      // shows only where the default unit is a count.
+      expect(pieceUnlockedUnits(_ing(g, piece: 200)), isEmpty);
+      expect(pieceUnlockedUnits(_ing(cup, density: 0.6, piece: 200)), isEmpty);
+    });
+
+    test('what clearing it takes back is exactly what it bought — one rule '
+        'read in both directions, as the density pair is', () {
+      for (final i in [
+        _ing(pieces, piece: 200),
+        _ing(pieces, density: 0.66, piece: 200, category: 'produce'),
+        _ing(g, piece: 50),
+        _ing(pinch, piece: 2, category: 'spices & seasoning'),
+      ]) {
+        expect(
+          pieceStrippedUnits(i),
+          pieceUnlockedUnits(i),
+          reason: i.defaultUnit.id,
+        );
+      }
+    });
+
+    test('an explicit list naming `piece` is read strictly: the weight, or a '
+        'count default, is what makes it sayable', () {
+      // The two shapes a stored list arrives in wearing a `piece` it can no
+      // longer support — written before the weight existed, or curated onto a
+      // row whose default has since moved off the count.
+      final unweighed = _ing(pieces, allowed: const [pieces, g, kg]);
+      expect(allowedUnitsFor(unweighed), [g, kg]);
+      final notCounted = _ing(g, piece: 50, allowed: const [pieces, g, kg]);
+      expect(allowedUnitsFor(notCounted), [g, kg]);
+      // The list is never rewritten, only read strictly — put the row back on
+      // a weighed count and every unit it names is offered again.
+      final whole = _ing(pieces, piece: 200, allowed: const [pieces, g, kg]);
+      expect(allowedUnitsFor(whole), [pieces, g, kg]);
+    });
+
+    test('a count default with nothing weighing one is a STRANDED default, '
+        'the way a cross-family default with no density is', () {
+      final unweighed = _ing(pieces, category: 'produce');
+      expect(defaultUnitNeedsPieceWeight(unweighed), isTrue);
+      expect(defaultUnitStranded(unweighed), isTrue);
+      // …and the number is what repairs it.
+      final weighed = _ing(pieces, piece: 200, category: 'produce');
+      expect(defaultUnitNeedsPieceWeight(weighed), isFalse);
+      expect(defaultUnitStranded(weighed), isFalse);
+      // A density is no substitute: it bridges volume, not counting.
+      expect(defaultUnitNeedsPieceWeight(_ing(pieces, density: 0.66)), isTrue);
+    });
+
+    test('only a COUNT default can be stranded this way — a weight is never '
+        'something another default is missing', () {
+      for (final d in [g, kg, cup, tsp, pinch, toTaste]) {
+        expect(
+          defaultUnitNeedsPieceWeight(_ing(d, density: 1)),
+          isFalse,
+          reason: d.id,
+        );
+      }
+    });
+
+    test('the two strandings are one gate: either reason answers '
+        'defaultUnitStranded', () {
+      // What the form's Save asks. A `cup` default with no density is D4c's
+      // shape; a `piece` default with no weight is ADR-0015's; the healthy
+      // row is neither.
+      expect(defaultUnitStranded(_ing(cup, category: 'baking')), isTrue);
+      expect(defaultUnitStranded(_ing(pieces)), isTrue);
+      expect(defaultUnitStranded(_ing(g)), isFalse);
+      expect(defaultUnitStranded(_ing(cup, density: 0.59)), isFalse);
     });
   });
 }

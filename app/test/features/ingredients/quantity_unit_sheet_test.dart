@@ -11,6 +11,7 @@ import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/measure_repository.dart';
+import 'package:ansi/features/ingredients/presentation/piece_weight_entry.dart';
 import 'package:ansi/features/ingredients/presentation/quantity_unit_sheet.dart';
 import 'package:ansi/features/ingredients/presentation/unit_chips.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/forui_semantics.dart';
 
 const _large = Measure(
@@ -31,20 +33,32 @@ const _large = Measure(
 /// watched list (duplicate label, newer row).
 const _hidden = Measure(id: 'm-hidden', label: 'potato, large', amount: 300);
 
+/// A weighed count row: `piece` is sayable on it because something weighs one
+/// (ADR-0015), which is what puts the chip in the row at all.
 const _potato = Ingredient(
+  id: 'i-potato',
+  canonicalName: 'Potato',
+  defaultUnit: pieces,
+  status: IngredientStatus.complete,
+  pieceBasisAmount: 213.5,
+  pieceSource: 'manual',
+);
+
+/// The same row before anybody weighed one — a stranded count default, which
+/// is the state the manage state's piece-weight sentence exists to clear.
+const _unweighedPotato = Ingredient(
   id: 'i-potato',
   canonicalName: 'Potato',
   defaultUnit: pieces,
   status: IngredientStatus.complete,
 );
 
-/// The garlic shape: a count default plus a STATED default measure — the
-/// household has said what a bare count of this row means (ADR-0010).
-const _garlic = Ingredient(
-  id: 'i-garlic',
-  canonicalName: 'Garlic',
-  defaultUnit: pieces,
-  defaultMeasureId: 'm-large',
+/// A row said in grams: nothing there is counted, so the piece weight has no
+/// business appearing.
+const _flour = Ingredient(
+  id: 'i-flour',
+  canonicalName: 'Flour',
+  defaultUnit: g,
   status: IngredientStatus.complete,
 );
 
@@ -94,8 +108,16 @@ Widget _host({
   UnitChoice? initialChoice,
   bool? initialOptional,
   Ingredient ingredient = _potato,
+  FakeIngredientRepo? vocab,
 }) => ProviderScope(
-  overrides: [measureRepositoryProvider.overrideWithValue(repo)],
+  overrides: [
+    measureRepositoryProvider.overrideWithValue(repo),
+    // The manage state writes the piece weight through the vocabulary — this
+    // host has no Save of its own.
+    ingredientRepositoryProvider.overrideWithValue(
+      vocab ?? FakeIngredientRepo([ingredient]),
+    ),
+  ],
   child: MaterialApp(
     home: FTheme(
       data: ansiThemeData(),
@@ -113,45 +135,26 @@ Widget _host({
 );
 
 void main() {
-  group('the stated default measure seeds the choice (A-D1..A-D3)', () {
-    testWidgets('a caller with no choice opens on the row’s stated measure, '
-        'and that seed is not a pick', (tester) async {
+  group('the sheet opens on the ROW’S DEFAULT UNIT (ADR-0015: there is no '
+      'default measure to seed from any more)', () {
+    testWidgets('a caller with no choice opens on the default unit, and that '
+        'seed is not a pick', (tester) async {
       filterForuiSemanticsAssertions();
       QuantitySaved? saved;
       await tester.pumpWidget(
-        _host(
-          repo: _FakeMeasureRepo(const [_large]),
-          ingredient: _garlic,
-          onDone: (s) => saved = s,
-        ),
+        _host(repo: _FakeMeasureRepo(const [_large]), onDone: (s) => saved = s),
       );
       await tester.pumpAndSettle();
 
-      // `piece` is the derived default; `clove` is what the household said a
-      // bare count means — the stated fact wins.
-      expect(find.text('potato, large (299 g)'), findsOneWidget);
-
-      await tester.tap(find.text('Done'));
-      await tester.pumpAndSettle();
-      expect(saved!.choice, const MeasureOption(_large));
-      // A-D2: a seed is not a pick.
-      expect(saved!.unitPicked, isFalse);
-    });
-
-    testWidgets('a stated default whose measure has not synced leaves the '
-        'seed alone — never a different measure', (tester) async {
-      filterForuiSemanticsAssertions();
-      QuantitySaved? saved;
-      await tester.pumpWidget(
-        _host(
-          // The row names m-unsynced; only m-large is on this device. The
-          // sole-measure fallback is deliberately NOT taken.
-          repo: _FakeMeasureRepo(const [_large]),
-          ingredient: _garlic.copyWith(defaultMeasureId: 'm-unsynced'),
-          onDone: (s) => saved = s,
+      // The measure is offered beside the units, never instead of them: what
+      // a bare count means is the row's piece weight now.
+      expect(
+        find.descendant(
+          of: find.byType(UnitChipRow),
+          matching: find.text('potato, large'),
         ),
+        findsOneWidget,
       );
-      await tester.pumpAndSettle();
       expect(find.text('potato, large (299 g)'), findsNothing);
 
       await tester.tap(find.text('Done'));
@@ -160,28 +163,8 @@ void main() {
       expect(saved!.unitPicked, isFalse);
     });
 
-    testWidgets('a caller’s own choice still wins over the stated default', (
-      tester,
-    ) async {
-      filterForuiSemanticsAssertions();
-      QuantitySaved? saved;
-      await tester.pumpWidget(
-        _host(
-          repo: _FakeMeasureRepo(const [_large]),
-          ingredient: _garlic,
-          initialChoice: const UnitOption(pieces),
-          onDone: (s) => saved = s,
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('potato, large (299 g)'), findsNothing);
-
-      await tester.tap(find.text('Done'));
-      await tester.pumpAndSettle();
-      expect(saved!.choice, const UnitOption(pieces));
-    });
-
-    testWidgets('a row with no stated default is unchanged', (tester) async {
+    testWidgets('a sole measure is never taken as the opening choice — one '
+        'measure is not a statement about what a count means', (tester) async {
       filterForuiSemanticsAssertions();
       QuantitySaved? saved;
       await tester.pumpWidget(
@@ -191,7 +174,122 @@ void main() {
 
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
-      expect(saved!.choice, const UnitOption(pieces));
+      expect(saved!.choice, isNot(const MeasureOption(_large)));
+    });
+
+    testWidgets('a caller’s own choice still wins', (tester) async {
+      filterForuiSemanticsAssertions();
+      QuantitySaved? saved;
+      await tester.pumpWidget(
+        _host(
+          repo: _FakeMeasureRepo(const [_large]),
+          initialChoice: const MeasureOption(_large),
+          onDone: (s) => saved = s,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.choice, const MeasureOption(_large));
+      expect(saved!.unitPicked, isFalse);
+    });
+  });
+
+  group('the manage state carries the piece weight (ADR-0015)', () {
+    testWidgets('an unweighed count row is asked what one weighs, and the tap '
+        'WRITES — this host has no Save', (tester) async {
+      filterForuiSemanticsAssertions();
+      final vocab = FakeIngredientRepo([_unweighedPotato]);
+      await tester.pumpWidget(
+        _host(
+          repo: _FakeMeasureRepo(const [_large]),
+          ingredient: _unweighedPotato,
+          vocab: vocab,
+          onDone: (_) {},
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.plus));
+      await tester.pumpAndSettle();
+
+      expect(find.text('PIECE WEIGHT'), findsOneWidget);
+      expect(find.text('1 piece weighs'), findsOneWidget);
+
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey('piece-weight-field')),
+          matching: find.byType(EditableText),
+        ),
+        '213.5',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('piece-weight-save')));
+      await tester.pumpAndSettle();
+
+      final row = await vocab.byId('i-potato');
+      expect(row!.pieceBasisAmount, 213.5);
+      expect(row.pieceSource, 'manual');
+      // …and the write unlocks the chip in the same act.
+      expect(row.allowedUnits, contains(pieces));
+    });
+
+    testWidgets('a stated weight folds to its headline rather than asking '
+        'again', (tester) async {
+      filterForuiSemanticsAssertions();
+      await tester.pumpWidget(
+        _host(repo: _FakeMeasureRepo(const [_large]), onDone: (_) {}),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.plus));
+      await tester.pumpAndSettle();
+
+      expect(find.text('213.5 g'), findsOneWidget);
+      expect(find.text('1 piece weighs'), findsNothing);
+    });
+
+    testWidgets('a row said in grams is never asked — piece shows only where '
+        'the row is counted', (tester) async {
+      filterForuiSemanticsAssertions();
+      await tester.pumpWidget(
+        _host(
+          repo: _FakeMeasureRepo(const [_large]),
+          ingredient: _flour,
+          onDone: (_) {},
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.plus));
+      await tester.pumpAndSettle();
+
+      expect(find.text('PIECE WEIGHT'), findsNothing);
+      expect(find.byType(PieceWeightEntry), findsNothing);
+    });
+
+    testWidgets('adding a measure picks it and asks NOTHING — the "still offer '
+        'piece?" question is gone', (tester) async {
+      filterForuiSemanticsAssertions();
+      QuantitySaved? saved;
+      await tester.pumpWidget(
+        _host(repo: _FakeMeasureRepo(const []), onDone: (s) => saved = s),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.plus));
+      await tester.pumpAndSettle();
+
+      final fields = find.byType(EditableText);
+      await tester.enterText(fields.at(0), 'potato, medium');
+      await tester.enterText(fields.at(1), '213');
+      await tester.pump();
+      await tester.tap(find.text('Save').first);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Still offer'), findsNothing);
+      // Straight back to the chip row with the new measure selected.
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.choice, isA<MeasureOption>());
+      expect(saved!.unitPicked, isTrue);
     });
   });
 

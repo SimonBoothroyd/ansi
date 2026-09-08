@@ -486,10 +486,13 @@ void main() {
     test('the density goes and the cross-family units go with it, in one write '
         '— the basis family stays', () async {
       // A piece-default per-g row: the mango shape, where the volume chips
-      // exist only because of the number being deleted.
+      // exist only because of the number being deleted. Its piece weight is
+      // the OTHER number, and it is here so the strip can be seen leaving it
+      // alone (ADR-0015).
       await db.execute(
         "UPDATE ingredient SET default_unit = 'piece' WHERE id = '1'",
       );
+      await repo.setPieceWeight('1', 200);
       await repo.setDensity('1', 0.66);
 
       final cleared = await repo.clearDensity('1');
@@ -565,148 +568,131 @@ void main() {
     );
   });
 
-  group('stopOfferingPiece (ADR-0010: `piece` is an admission)', () {
+  group('setPieceWeight / clearPieceWeight (ADR-0015: what one weighs)', () {
     setUp(() async {
-      // The garlic shape: a count row whose measure (a clove) names the thing.
+      // The onion shape: a count row that finally says what one of them
+      // weighs, which is the only thing that makes `piece` sayable on it.
       await db.execute(
         "UPDATE ingredient SET default_unit = 'piece' WHERE id = '1'",
       );
     });
 
-    test('`piece` comes out of a row still on the derived fallback — the list '
-        'is materialized first, so there is something to remove '
-        'from', () async {
-      final row = await db.get(
+    test('the weight unions `piece` into the EXPLICIT list and stamps the '
+        'number manual — the list is materialized in the same write', () async {
+      final before = await db.get(
         "SELECT allowed_units FROM ingredient WHERE id = '1'",
       );
-      expect(row['allowed_units'], isNull, reason: 'derived fallback');
+      expect(before['allowed_units'], isNull, reason: 'derived fallback');
 
-      final updated = await repo.stopOfferingPiece('1');
-      expect(updated!.allowedUnits!.map((u) => u.id), isNot(contains('piece')));
-      // The basis family is untouched: it never needed `piece` to be sayable.
-      expect(updated.allowedUnits!.map((u) => u.id), contains('g'));
+      final updated = await repo.setPieceWeight('1', 110);
+      expect(updated!.pieceBasisAmount, 110);
+      expect(updated.pieceSource, 'manual');
+      expect(updated.allowedUnits!.map((u) => u.id), contains('piece'));
+      // The basis family is untouched — it never needed the weight.
+      expect(
+        updated.allowedUnits!.map((u) => u.id).toSet(),
+        containsAll(_massIds),
+      );
 
       final after = await db.get(
-        "SELECT allowed_units FROM ingredient WHERE id = '1'",
+        'SELECT piece_basis_amount, piece_source, allowed_units '
+        "FROM ingredient WHERE id = '1'",
       );
+      expect(after['piece_basis_amount'], 110);
+      expect(after['piece_source'], 'manual');
       expect(
         jsonDecode(after['allowed_units'] as String) as List,
-        isNot(contains('piece')),
+        contains('piece'),
       );
     });
 
-    test('every other admission the row carries survives — this takes one word '
-        'away, not the curation around it', () async {
+    test('a curated list keeps every word it had — the weight adds one, it '
+        'does not re-curate', () async {
       await db.execute('UPDATE ingredient SET allowed_units = ? WHERE id = ?', [
-        jsonEncode(['piece', 'g', 'cup', 'to_taste']),
+        jsonEncode(['g', 'cup', 'to_taste']),
         '1',
       ]);
-      final updated = await repo.stopOfferingPiece('1');
-      // Exactly one word out of the stored list. `cup` stays stored even
-      // though this row has no density to make it sayable — the strip that
-      // hides it is `allowedUnitsFor`'s to do at read time, and this write
-      // has no business quietly re-curating a list the household owns.
+      final updated = await repo.setPieceWeight('1', 110);
       expect(updated!.allowedUnits!.map((u) => u.id).toSet(), {
         'g',
         'cup',
         'to_taste',
+        'piece',
       });
     });
 
-    test('idempotent, and null for an unknown id', () async {
-      await repo.stopOfferingPiece('1');
-      final again = await repo.stopOfferingPiece('1');
-      expect(again!.allowedUnits!.map((u) => u.id), isNot(contains('piece')));
-      expect(await repo.stopOfferingPiece('nope'), isNull);
+    test('a row whose default is not a count stores the number and unlocks '
+        'NOTHING — `piece` shows only where the row is counted', () async {
+      final updated = await repo.setPieceWeight('5', 250);
+      expect(updated!.pieceBasisAmount, 250);
+      expect(updated.allowedUnits!.map((u) => u.id), isNot(contains('piece')));
     });
 
-    test('a row that never admitted `piece` is left exactly as it was — no '
+    test('a zero or NaN weight is refused, and nothing is written — a piece '
+        'nothing weighs is the fabricated conversion (invariant 3)', () async {
+      for (final bad in [0.0, -1.0, double.nan]) {
+        await expectLater(
+          repo.setPieceWeight('1', bad),
+          throwsArgumentError,
+          reason: '$bad',
+        );
+      }
+      final row = await db.get(
+        'SELECT piece_basis_amount, allowed_units '
+        "FROM ingredient WHERE id = '1'",
+      );
+      expect(row['piece_basis_amount'], isNull);
+      expect(row['allowed_units'], isNull);
+    });
+
+    test('null for an unknown id', () async {
+      expect(await repo.setPieceWeight('nope', 110), isNull);
+    });
+
+    test('clearing takes both columns AND `piece` in one write — the '
+        'admission goes with the number it was derived from', () async {
+      await repo.setPieceWeight('1', 110);
+      final cleared = await repo.clearPieceWeight('1');
+      expect(cleared!.pieceBasisAmount, isNull);
+      expect(cleared.pieceSource, isNull);
+      expect(cleared.allowedUnits!.map((u) => u.id), isNot(contains('piece')));
+      // Everything the weight was not the reason for stands.
+      expect(
+        cleared.allowedUnits!.map((u) => u.id).toSet(),
+        containsAll(_massIds),
+      );
+
+      final after = await db.get(
+        'SELECT piece_basis_amount, piece_source '
+        "FROM ingredient WHERE id = '1'",
+      );
+      expect(after['piece_basis_amount'], isNull);
+      expect(after['piece_source'], isNull);
+    });
+
+    test('a row with no weight is left exactly as it was — no '
         'materialization, no write', () async {
       final before = await db.get(
-        "SELECT allowed_units, updated_at FROM ingredient WHERE id = '5'",
+        "SELECT allowed_units, updated_at FROM ingredient WHERE id = '1'",
       );
-      final same = await repo.stopOfferingPiece('5');
+      final same = await repo.clearPieceWeight('1');
       expect(same, isNotNull);
       final after = await db.get(
-        "SELECT allowed_units, updated_at FROM ingredient WHERE id = '5'",
+        "SELECT allowed_units, updated_at FROM ingredient WHERE id = '1'",
       );
       expect(after['allowed_units'], before['allowed_units']);
       expect(after['updated_at'], before['updated_at']);
     });
-  });
 
-  group('setDefaultMeasure (what "2 onions" means)', () {
-    setUp(() async {
-      await db.execute(
-        'INSERT INTO ingredient_measure '
-        '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
-        'VALUES (?, ?, ?, ?, ?, ?)',
-        ['m1', 'h', '1', 'onion, medium', 110, 0],
-      );
-      await db.execute(
-        'INSERT INTO ingredient_measure '
-        '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
-        'VALUES (?, ?, ?, ?, ?, ?)',
-        ['m2', 'h', '1', 'onion, large', 150, 1],
-      );
-      await db.execute(
-        'INSERT INTO ingredient_measure '
-        '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
-        'VALUES (?, ?, ?, ?, ?, ?)',
-        ['m9', 'h', '2', 'spear', 31, 0],
-      );
+    test('null for an unknown id on the way out too', () async {
+      expect(await repo.clearPieceWeight('nope'), isNull);
     });
 
-    test('a row starts with no default, and the pick reads back', () async {
-      expect((await repo.byId('1'))!.defaultMeasureId, isNull);
-      final updated = await repo.setDefaultMeasure('1', 'm1');
-      expect(updated!.defaultMeasureId, 'm1');
-      expect((await repo.byId('1'))!.defaultMeasureId, 'm1');
-      // …and through the batched read the import review uses.
-      expect((await repo.byIds({'1'}))['1']!.defaultMeasureId, 'm1');
-    });
-
-    test('clearing it back to "ask me each time" sticks — a null is a real '
-        'answer, not "unchanged"', () async {
-      await repo.setDefaultMeasure('1', 'm2');
-      final cleared = await repo.setDefaultMeasure('1', null);
-      expect(cleared!.defaultMeasureId, isNull);
-      expect((await repo.byId('1'))!.defaultMeasureId, isNull);
-    });
-
-    test('clearing never deletes the measure — the row keeps every label it '
-        'had, and only stops having a preferred one', () async {
-      await repo.setDefaultMeasure('1', 'm1');
-      await repo.setDefaultMeasure('1', null);
-      final live = await db.getAll(
-        "SELECT label FROM ingredient_measure WHERE ingredient_id = '1' "
-        'AND deleted_at IS NULL ORDER BY sort_order',
-      );
-      expect(live.map((r) => r['label']), ['onion, medium', 'onion, large']);
-    });
-
-    test("a measure of ANOTHER row is refused — a '1 onion' silently counted "
-        'as a spear is the one lie this column could tell', () async {
-      await expectLater(
-        repo.setDefaultMeasure('1', 'm9'),
-        throwsA(isA<ArgumentError>()),
-      );
-      expect((await repo.byId('1'))!.defaultMeasureId, isNull);
-    });
-
-    test('a tombstoned measure is refused too', () async {
-      await db.execute(
-        "UPDATE ingredient_measure SET deleted_at = '2026-09-03T00:00:00Z' "
-        "WHERE id = 'm1'",
-      );
-      await expectLater(
-        repo.setDefaultMeasure('1', 'm1'),
-        throwsA(isA<ArgumentError>()),
-      );
-    });
-
-    test('null for an unknown id', () async {
-      expect(await repo.setDefaultMeasure('nope', null), isNull);
+    test('the number reads back through every door the surfaces use', () async {
+      await repo.setPieceWeight('1', 110);
+      expect((await repo.byId('1'))!.pieceBasisAmount, 110);
+      expect((await repo.byIds({'1'}))['1']!.pieceBasisAmount, 110);
+      expect((await repo.watchIngredient('1').first)!.pieceSource, 'manual');
     });
   });
 
@@ -1139,27 +1125,29 @@ void main() {
   });
 
   group('saveForm (ADR-0011: the form writes ONCE)', () {
-    test('one call lands the row, a density, a measure, an alias and "Counts '
-        'as" — the four writes the form used to make separately', () async {
+    test('one call lands the row, a density, a piece weight, a measure and an '
+        'alias — the writes the form used to make separately', () async {
       final saved = await repo.saveForm(
         '1',
         IngredientFormEdit(
           row: _edit(
             name: 'Onion',
+            unit: pieces,
             macros: const Macros(kcal: 40, protein: 1, carb: 9, fat: 0),
-            allowed: const {g, cup},
+            allowed: const {g, cup, pieces},
           ),
           density: const DensitySet(0.6),
+          pieceWeight: const PieceWeightSet(110),
           measuresAdded: const [
             PendingMeasure(id: 'm-1', label: 'medium', amount: 110),
           ],
           aliasesAdded: const [PendingAlias(id: 'a-1', text: 'brown onion')],
-          defaultMeasure: const DefaultMeasureSet('m-1'),
         ),
       );
 
       expect(saved!.densityGPerMl, 0.6);
-      expect(saved.defaultMeasureId, 'm-1');
+      expect(saved.pieceBasisAmount, 110);
+      expect(saved.pieceSource, 'manual');
       final measure = await db.get(
         'SELECT label, basis_amount, source FROM ingredient_measure '
         "WHERE id = 'm-1'",
@@ -1318,6 +1306,82 @@ void main() {
         repo.saveForm('1', IngredientFormEdit(row: _edit(name: '  '))),
         throwsArgumentError,
       );
+    });
+
+    test('PieceWeightCleared takes both columns, as the density clear takes '
+        'its number', () async {
+      await repo.saveForm(
+        '1',
+        IngredientFormEdit(
+          row: _edit(name: 'Onion', unit: pieces, allowed: const {g, pieces}),
+          pieceWeight: const PieceWeightSet(110),
+        ),
+      );
+      final cleared = await repo.saveForm(
+        '1',
+        IngredientFormEdit(
+          // The DRAFT already stripped `piece`; the write lands the list as
+          // the form holds it and takes the number beside it (ADR-0011 — one
+          // owner per fact).
+          row: _edit(name: 'Onion', unit: pieces),
+          pieceWeight: const PieceWeightCleared(),
+        ),
+      );
+      expect(cleared!.pieceBasisAmount, isNull);
+      expect(cleared.pieceSource, isNull);
+      expect(cleared.allowedUnits!.map((u) => u.id), isNot(contains('piece')));
+    });
+
+    test(
+      'a non-positive piece weight is refused, and nothing is written — the '
+      'same contract [setPieceWeight] holds, unsoftened by batching',
+      () async {
+        await expectLater(
+          repo.saveForm(
+            '1',
+            IngredientFormEdit(
+              row: _edit(name: 'Onion, renamed'),
+              pieceWeight: const PieceWeightSet(0),
+            ),
+          ),
+          throwsArgumentError,
+        );
+        final row = await db.get(
+          'SELECT canonical_name, piece_basis_amount FROM ingredient '
+          "WHERE id = '1'",
+        );
+        expect(row['canonical_name'], 'Onion');
+        expect(row['piece_basis_amount'], isNull);
+      },
+    );
+
+    test('a create with a piece default lands the row and what one weighs in '
+        'ONE transaction — a counted row is never born stranded', () async {
+      final created = await repo.saveForm(
+        null,
+        IngredientFormEdit(
+          row: _edit(
+            name: 'Shallot',
+            unit: pieces,
+            allowed: const {g, kg, oz, lb, pieces},
+          ),
+          pieceWeight: const PieceWeightSet(45),
+        ),
+      );
+
+      expect(created!.defaultUnit, pieces);
+      expect(created.pieceBasisAmount, 45);
+      expect(created.pieceSource, 'manual');
+      // Which is exactly the state the Save gate demands: not stranded.
+      expect(created.allowedUnits, contains(pieces));
+      final row = await db.get(
+        'SELECT default_unit, piece_basis_amount, piece_source '
+        'FROM ingredient WHERE id = ?',
+        [created.id],
+      );
+      expect(row['default_unit'], 'piece');
+      expect(row['piece_basis_amount'], 45);
+      expect(row['piece_source'], 'manual');
     });
 
     test('a NULL id creates the row — and its children land in the same '

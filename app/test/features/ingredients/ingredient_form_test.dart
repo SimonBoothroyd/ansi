@@ -10,12 +10,14 @@ library;
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
-import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/ingredients/domain/normalize.dart';
+import 'package:ansi/features/ingredients/presentation/density_entry.dart'
+    show AnsiModeChip;
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:ansi/features/ingredients/presentation/measures_editor.dart';
+import 'package:ansi/features/ingredients/presentation/piece_weight_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -127,7 +129,8 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       // A piece-default per-g row with no density: mass is its basis family
-      // (always sayable), volume is the density-derived side.
+      // (always sayable), volume is the density-derived side. It carries its
+      // piece weight so the ONLY thing missing here is the density.
       const bareMango = Ingredient(
         id: 'mango',
         canonicalName: 'Mango',
@@ -135,6 +138,8 @@ void main() {
         status: IngredientStatus.complete,
         category: 'produce',
         macros: mangoMacros,
+        pieceBasisAmount: 200,
+        pieceSource: 'manual',
       );
       final repo = FakeIngredientRepo(const [bareMango]);
       await tester.pumpWidget(host(repo, at: '/ingredients/mango'));
@@ -404,257 +409,187 @@ void main() {
       expect(find.text('weighs'), findsOneWidget);
     });
 
-    // --- plan 0022 / ADR-0010: the one question in the `piece` model --------
+    // --- ADR-0015: what one of these weighs ---------------------------------
     //
-    // `piece` is the fallback for "we have nothing better to call it". The
-    // moment a row's FIRST measure names the thing, that stops being true —
-    // and the household decides, once, with a default, never a rule.
+    // `piece` is sayable when the row is counted AND something weighs one.
+    // The count is the default unit; the weight is a number on the row, and
+    // this is where it is typed.
 
-    /// Saves a measure through the shared editor and settles the dialog it
-    /// may raise.
-    Future<void> addMeasure(
-      WidgetTester tester,
-      String label,
-      String amount,
+    testWidgets('picking `piece` with nothing weighing one strands the row: '
+        'the line says so, and Save refuses with both ways out', (
+      tester,
     ) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      // A gram row, moved onto the count by the chip that is always tappable.
+      final repo = FakeIngredientRepo(const [curryLeaves]);
+      await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+      await tester.pumpAndSettle();
+      expect(find.byType(PieceWeightEntry), findsNothing);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('default-unit-row')),
+          matching: find.widgetWithText(AnsiModeChip, 'piece'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The flag names the number and the other way out, and the sentence
+      // that clears it is directly below.
+      expect(
+        find.text('piece needs a weight on this row — enter one below, or'),
+        findsOneWidget,
+      );
+      expect(find.text('switch to g'), findsOneWidget);
+      expect(find.text('1 piece weighs'), findsOneWidget);
+
+      await tester.tap(find.byKey(kFormSaveKey));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'Piece can’t be the default unit with nothing weighing one — '
+          'enter what one weighs below, or make it g.',
+        ),
+        findsOneWidget,
+      );
+      expect(repo.savedForms, isEmpty);
+      expect(find.text('CANONICAL NAME'), findsOneWidget, reason: 'still here');
+    });
+
+    testWidgets('typing what one weighs unlocks the `piece` chip at once and '
+        'lands on Save — the draft holds it meanwhile', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const [curryLeaves]);
+      await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('default-unit-row')),
+          matching: find.widgetWithText(AnsiModeChip, 'piece'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await draftPieceWeight(tester, '350');
+
+      // The chips read what the FORM holds, so the stranded line goes at once
+      // — and the row is untouched until Save (W5).
+      expect(find.textContaining('needs a weight on this row'), findsNothing);
+      expect(
+        (await repo.byId('curry'))!.pieceBasisAmount,
+        isNull,
+        reason: 'the weight is in the draft, not the database, until Save',
+      );
+
+      await saveForm(tester);
+      final asked = repo.savedForms.single;
+      expect(asked.pieceWeight, isA<PieceWeightSet>());
+      expect((asked.pieceWeight as PieceWeightSet).amount, 350);
+      expect(asked.row.defaultUnit, pieces);
+      expect(asked.row.allowedUnits, contains(pieces));
+      expect((await repo.byId('curry'))!.pieceBasisAmount, 350);
+    });
+
+    testWidgets('removing the weight strips `piece` from the draft, with the '
+        'consequence named before it happens', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      // Mango is weighed, so its block opens folded.
+      final repo = FakeIngredientRepo(const [mango]);
+      await tester.pumpWidget(host(repo, at: '/ingredients/mango'));
+      await tester.pumpAndSettle();
+      expect(find.text('200 g'), findsOneWidget);
+
+      await openPieceWeightEntry(tester);
+      await tester.tap(find.text('remove the piece weight'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('piece locks again'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FButton, 'Remove'));
+      await tester.pumpAndSettle();
+
+      // Which strands the default — the row is counted with nothing weighing
+      // one — so the form says so rather than saving it.
+      expect(
+        find.text('piece needs a weight on this row — enter one below, or'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('switch to g'));
+      await tester.pumpAndSettle();
+
+      final asked = repoOf(tester).savedForms.single;
+      expect(asked.pieceWeight, isA<PieceWeightCleared>());
+      expect(asked.row.allowedUnits, isNot(contains(pieces)));
+      expect(asked.row.defaultUnit, g);
+    });
+
+    testWidgets('the block is drawn only where the DRAFT is counted — moving '
+        'the default off `piece` takes it away with the chip', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(FakeIngredientRepo(const [mango]), at: '/ingredients/mango'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(PieceWeightEntry), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('default-unit-row')),
+          matching: find.widgetWithText(AnsiModeChip, 'g'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PieceWeightEntry), findsNothing);
+      expect(find.text('PIECE WEIGHT'), findsNothing);
+      // …and the admission chip goes with it: `piece` is offered only where
+      // the row is counted.
+      final admission = repoOf(tester);
+      await saveForm(tester);
+      expect(
+        admission.savedForms.single.row.allowedUnits,
+        isNot(contains(pieces)),
+      );
+    });
+
+    testWidgets('the piece question and "Counts as" are gone — a measure is a '
+        'measure, and it asks nothing', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const [mango]);
+      final measures = FakeMeasureRepo();
+      await tester.pumpWidget(
+        host(repo, at: '/ingredients/mango', measures: measures),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('COUNTS AS'), findsNothing);
+      expect(find.text('One mango is'), findsNothing);
+
       final fields = find.descendant(
         of: find.byType(MeasuresEditor),
         matching: find.byType(TextField),
       );
-      await tester.enterText(fields.first, label);
-      await tester.enterText(fields.last, amount);
+      await tester.enterText(fields.first, 'mango, medium');
+      await tester.enterText(fields.last, '207');
       await tester.pump();
       await tester.tap(
         find.descendant(
           of: find.byType(MeasuresEditor),
-          // `Add` on this host: the tap fills the draft, and the form's own
-          // docked Save is what writes (plan 0029 R3).
           matching: find.widgetWithText(FButton, 'Add'),
         ),
       );
       await tester.pumpAndSettle();
-    }
 
-    testWidgets('the FIRST measure asks whether `piece` stays offered, and the '
-        'default answer takes it out of allowed_units', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      final repo = FakeIngredientRepo(const [mango]);
-      final measures = FakeMeasureRepo();
-      await tester.pumpWidget(
-        host(repo, at: '/ingredients/mango', measures: measures),
-      );
-      await tester.pumpAndSettle();
-      expect(allowedUnitsFor(repo.rows.single), contains(pieces));
-
-      await addMeasure(tester, 'mango, medium', '207');
-
-      // The board's frame (c): named, weighed, and about this row.
-      expect(
-        find.textContaining('Still offer “piece” for Mango?'),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('nobody can tell which was meant'),
-        findsOneWidget,
-      );
-
-      await tester.tap(find.text('No — “mango, medium” says it'));
-      await tester.pumpAndSettle();
-
-      // The answer IS the draft now (plan 0029 W5): `piece` leaves the chips
-      // the form holds at once, and the row keeps it until Save. That is the
-      // lane B trap answered — the chips follow the draft, not a row nobody
-      // has written.
-      expect(allowedUnitsFor(repo.rows.single), contains(pieces));
-
-      await saveForm(tester);
-      final asked = repo.savedForms.single;
-      expect(asked.row.allowedUnits, isNot(contains(pieces)));
-      // Nothing else went with it — one word, not a re-curation.
-      expect(asked.row.allowedUnits, contains(g));
-      // …and the same act said what a bare "1 mango" means (seam D1).
-      expect(
-        (asked.defaultMeasure as DefaultMeasureSet).measureId,
-        asked.measuresAdded.single.id,
-      );
-      expect(asked.measuresAdded.single.label, 'mango, medium');
-    });
-
-    testWidgets('“Keep both” leaves the admission exactly as it was — and so '
-        'does dismissing the question', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      final repo = FakeIngredientRepo(const [mango]);
-      await tester.pumpWidget(
-        host(repo, at: '/ingredients/mango', measures: FakeMeasureRepo()),
-      );
-      await tester.pumpAndSettle();
-
-      await addMeasure(tester, 'mango, medium', '207');
-      await tester.tap(find.text('Keep both'));
-      await tester.pumpAndSettle();
-
-      expect(allowedUnitsFor(repo.rows.single), contains(pieces));
-    });
-
-    testWidgets('a SECOND measure asks nothing — the row already answered, '
-        'whichever way', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      final repo = FakeIngredientRepo(const [mango]);
-      await tester.pumpWidget(
-        host(
-          repo,
-          at: '/ingredients/mango',
-          measures: FakeMeasureRepo(const [
-            Measure(id: 'm-usda', label: 'mango, medium', amount: 207),
-          ]),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await addMeasure(tester, 'mango, large', '280');
-
-      expect(find.textContaining('Still offer “piece”'), findsNothing);
-      expect(allowedUnitsFor(repo.rows.single), contains(pieces));
-    });
-
-    testWidgets('deleting the last measure does NOT put `piece` back — the '
-        'admission chips offer it, unlocked and one tap away', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      final repo = FakeIngredientRepo(const [mango]);
-      final measures = FakeMeasureRepo();
-      await tester.pumpWidget(
-        host(repo, at: '/ingredients/mango', measures: measures),
-      );
-      await tester.pumpAndSettle();
-
-      await addMeasure(tester, 'mango, medium', '207');
-      await tester.tap(find.text('No — “mango, medium” says it'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byIcon(FLucideIcons.trash2).first);
-      await tester.pumpAndSettle();
-
-      // The measure leaves the list at once; the row is written on Save.
-      expect(find.byType(MeasureRow), findsNothing);
-      // Save ends the page, so walk back in to read the chips.
-      await saveForm(tester, reopen: 'Mango');
-      // No automatic re-add: the household said no, and a deletion is not
-      // them changing their mind.
-      expect(repo.savedForms.last.row.allowedUnits, isNot(contains(pieces)));
-      // But the chip is still drawn, and drawn LIVE (not dashed): a count
-      // row needs no density for `piece`, so it is one tap from returning.
-      expect(lockedUnitLabels(tester), isNot(contains('piece')));
-      expect(find.text('piece'), findsWidgets);
-    });
-
-    // --- seam D1: "Counts as", the second half of the same answer ----------
-
-    testWidgets('answering No also sets Counts as — the two questions were '
-        'always one, and the prompt says so', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      final repo = FakeIngredientRepo(const [mango]);
-      final measures = FakeMeasureRepo();
-      await tester.pumpWidget(
-        host(repo, at: '/ingredients/mango', measures: measures),
-      );
-      await tester.pumpAndSettle();
-      expect(repo.rows.single.defaultMeasureId, isNull);
-
-      await addMeasure(tester, 'mango, medium', '207');
-      expect(
-        find.textContaining('Answering No also sets Counts as: mango, medium'),
-        findsOneWidget,
-      );
-
-      await tester.tap(find.text('No — “mango, medium” says it'));
-      await tester.pumpAndSettle();
-
-      // Both halves ride the form's one Save now, and they ride it together —
-      // which is the point seam D1 was always making.
-      await saveForm(tester);
-      final asked = repo.savedForms.single;
-      expect(
-        (asked.defaultMeasure as DefaultMeasureSet).measureId,
-        asked.measuresAdded.single.id,
-      );
-      expect(asked.row.allowedUnits, isNot(contains(pieces)));
-    });
-
-    testWidgets('“Keep both” leaves Counts as unset — the honest reading of '
-        '"both words are sayable here"', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      final repo = FakeIngredientRepo(const [mango]);
-      await tester.pumpWidget(
-        host(repo, at: '/ingredients/mango', measures: FakeMeasureRepo()),
-      );
-      await tester.pumpAndSettle();
-
-      await addMeasure(tester, 'mango, medium', '207');
-      await tester.tap(find.text('Keep both'));
-      await tester.pumpAndSettle();
-
-      expect(repo.rows.single.defaultMeasureId, isNull);
-    });
-
-    testWidgets('the Counts as picker sets it, and "Ask me each time" clears '
-        'it without touching a single measure', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      final repo = FakeIngredientRepo(const [mango]);
-      final measures = FakeMeasureRepo(const [
-        Measure(id: 'm-med', label: 'mango, medium', amount: 207),
-        Measure(id: 'm-lrg', label: 'mango, large', amount: 280),
-      ]);
-      await tester.pumpWidget(
-        host(repo, at: '/ingredients/mango', measures: measures),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('COUNTS AS'), findsOneWidget);
-      expect(find.text('One mango is'), findsOneWidget);
-      expect(find.text('— not set'), findsOneWidget);
-
-      await tester.tap(find.text('— not set'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('mango, medium · 207 g').last);
-      await tester.pumpAndSettle();
-      expect(repo.rows.single.defaultMeasureId, 'm-med');
-
-      // …and back to "Ask me each time", which is a real answer.
-      await tester.tap(find.text('mango, medium · 207 g').first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Ask me each time').last);
-      await tester.pumpAndSettle();
-      expect(repo.rows.single.defaultMeasureId, isNull);
-      // Clearing a default never destroys a measure: the row keeps every
-      // label it had and only stops having a preferred one.
-      expect(measures.rows.map((m) => m.label), [
-        'mango, medium',
-        'mango, large',
-      ]);
-    });
-
-    testWidgets('a row with NO measures is not asked — there is nothing to '
-        'choose and nothing to ask', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      await tester.pumpWidget(
-        host(
-          FakeIngredientRepo(const [mango]),
-          at: '/ingredients/mango',
-          measures: FakeMeasureRepo(),
-        ),
-      );
-      await tester.pumpAndSettle();
-
+      expect(find.textContaining('Still offer'), findsNothing);
       expect(find.text('COUNTS AS'), findsNothing);
-      expect(find.text('One mango is'), findsNothing);
+      // The measure is drafted, and `piece` is untouched by its arrival: what
+      // makes a count sayable is the weight, not the absence of a measure.
+      await saveForm(tester);
+      final asked = repo.savedForms.single;
+      expect(asked.measuresAdded.single.label, 'mango, medium');
+      expect(asked.row.allowedUnits, contains(pieces));
     });
 
     testWidgets('the '

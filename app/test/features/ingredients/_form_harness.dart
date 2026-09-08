@@ -24,6 +24,7 @@ import 'package:ansi/features/ingredients/presentation/density_entry.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_list_view.dart';
 import 'package:ansi/features/ingredients/presentation/measures_editor.dart';
+import 'package:ansi/features/ingredients/presentation/piece_weight_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -38,6 +39,9 @@ import '../../helpers/silent_usda_probe.dart';
 
 const mangoMacros = Macros(kcal: 60, protein: 1, carb: 15, fat: 0);
 
+/// A weighed count row: `piece` is sayable on it because the row says what
+/// one weighs (ADR-0015), which is also what keeps its own default off the
+/// stranded list.
 const mango = Ingredient(
   id: 'mango',
   canonicalName: 'Mango',
@@ -46,6 +50,8 @@ const mango = Ingredient(
   category: 'produce',
   densityGPerMl: 0.66,
   macros: mangoMacros,
+  pieceBasisAmount: 200,
+  pieceSource: 'manual',
   measureCount: 3,
   source: 'seed',
 );
@@ -360,12 +366,37 @@ Future<void> lookUpUsdaAndPick(WidgetTester tester, String description) async {
 /// `0.66 g/ml · change` (plan 0036 C-D3), and does nothing when it is already
 /// open. Every helper that touches the sentence goes through this, so a test
 /// never has to know which state the row it picked happens to be in.
-Future<void> openDensityEntry(WidgetTester tester) async {
-  final change = find.text('· change');
+Future<void> openDensityEntry(WidgetTester tester) =>
+    _unfold(tester, find.byType(DensityEntry));
+
+/// The same, for the piece-weight block — both entries fold to `· change`, so
+/// the opener is scoped to the one being driven.
+Future<void> openPieceWeightEntry(WidgetTester tester) =>
+    _unfold(tester, find.byType(PieceWeightEntry));
+
+Future<void> _unfold(WidgetTester tester, Finder entry) async {
+  final change = find.descendant(of: entry, matching: find.text('· change'));
   if (change.evaluate().isEmpty) return;
   await tester.tap(change);
   await tester.pumpAndSettle();
 }
+
+/// Puts a piece weight in the form's DRAFT — the count-side twin of
+/// [draftDensity]. The inline button reads `Add` on this host because the
+/// form's own Save is what lands it.
+Future<void> draftPieceWeight(WidgetTester tester, String amount) async {
+  await openPieceWeightEntry(tester);
+  await tester.enterText(pieceWeightField, amount);
+  await tester.pump();
+  await tester.tap(find.byKey(const ValueKey('piece-weight-save')));
+  await tester.pumpAndSettle();
+}
+
+/// The piece-weight sentence's amount input.
+final Finder pieceWeightField = find.descendant(
+  of: find.byKey(const ValueKey('piece-weight-field')),
+  matching: find.byType(TextField),
+);
 
 /// Puts a density in the form's DRAFT (plan 0029 W5). The entry's inline
 /// button reads `Add` on this host, because on this host it writes nothing —
