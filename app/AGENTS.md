@@ -57,6 +57,11 @@ screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md)
   and never a `context.mounted` bail on the write itself (it drops the action
   the user just confirmed). Enforced by
   `test/structure/no_ref_after_await_test.dart`.
+- **Never `.future` an autoDispose provider from a one-shot read** — read the
+  repository instead. Nothing is listening, PowerSync's `watch` does not emit
+  synchronously, and the element is disposed before its first value, so the
+  future completes with a `StateError` rather than a list. Enforced by
+  `test/structure/no_future_on_autodispose_test.dart`.
 - **Repository tests open a real `PowerSyncDatabase`** (`test/helpers/test_db.dart`,
   built from `core/sync/schema.dart`), because local tables are SQLite *views*
   and reject SQL that plain tables accept — `INSERT … ON CONFLICT` above all.

@@ -28,6 +28,7 @@ import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/fake_cook_plan_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
@@ -143,6 +144,12 @@ List<Override> _withCook(List<Override> extra, CookPlanRepository? cook) => [
   ingredientRepositoryProvider.overrideWithValue(
     const ReadOnlyIngredientRepo(),
   ),
+  // The add flow resolves the measure repository BEFORE it opens the picker:
+  // the ingredient seed reads it rather than `.future`-ing an autoDispose
+  // stream provider (`structure/no_future_on_autodispose_test.dart`), and a
+  // read after the awaited sheet is the other thing that is not allowed. So
+  // every host answers for it, with no measures.
+  measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
   ...extra,
 ];
 
