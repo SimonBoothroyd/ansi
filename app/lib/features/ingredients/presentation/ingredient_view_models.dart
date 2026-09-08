@@ -622,6 +622,17 @@ class IngredientForm extends _$IngredientForm {
       return 'One serving is how much? The label’s figures become per 100 '
           'only once the serving weight is typed.';
     }
+    // D4c, held on the write side too. The chips refuse to PICK a default
+    // the row cannot say, but a basis flipped (or a USDA pick landed) after
+    // the pick strands the one already chosen, and a flag beside it is only
+    // advice a Save can walk past. The row is still never rewritten
+    // silently: this names what is wrong and leaves both fixes to the person.
+    if (!unitSayableAsDefault(state.editedRow, state.defaultUnit)) {
+      final basis = state.basis == MacrosBasis.perMl ? 'ml' : 'g';
+      return 'Macros per 100 $basis and no density can’t have '
+          '${state.defaultUnit.label} as the default unit — add a density '
+          'below, or make it ${basisDefaultUnitFix(state.editedRow).label}.';
+    }
     return null;
   }
 

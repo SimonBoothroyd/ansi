@@ -449,6 +449,8 @@ void main() {
       expect(updated!.allowedUnits!.map((u) => u.id).toSet(), {
         'g',
         'kg',
+        'oz',
+        'lb',
         'tsp',
         'tbsp',
         'cup',

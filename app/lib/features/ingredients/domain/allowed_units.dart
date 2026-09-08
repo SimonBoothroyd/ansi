@@ -50,7 +50,17 @@ const _kitchenOrder = {
 /// yeast"); `tsp` is the smallest unit in the family, so nothing defended the
 /// gap.
 ///
+/// **The mass ladder is symmetric too** ([ADR-0013]): the four kitchen mass
+/// units — `g`, `kg`, `oz`, `lb` — all mate each other, so if a row may be
+/// said in one it may be said in any of them. `oz` rides with `g` and `lb`
+/// rides with `kg`, exactly as pint rides with cup and quart rides with litre:
+/// the customary unit and the metric one of the same magnitude are the same
+/// kitchen quantity said in two systems, and a bag of rice does not become a
+/// different size because the scale is switched. `mg` stays the trim in the
+/// other direction — label-reading granularity, like `tsp` from a cup.
+///
 /// [ADR-0012]: ../../../../../docs/decisions/0012-tsp-mates-cup.md
+/// [ADR-0013]: ../../../../../docs/decisions/0013-mass-ladder-symmetric.md
 const _kitchenMates = <Unit, Set<Unit>>{
   tsp: {tsp, tbsp},
   tbsp: {tbsp, tsp, cup, ml, pint},
@@ -60,10 +70,10 @@ const _kitchenMates = <Unit, Set<Unit>>{
   flOz: {flOz, tbsp, cup, ml, pint},
   quart: {quart, pint, cup, l, ml},
   pint: {pint, cup, quart, ml},
-  g: {g, kg},
-  kg: {kg, g},
+  g: {g, kg, oz, lb},
+  kg: {kg, g, oz, lb},
   mg: {mg, g},
-  oz: {oz, lb, g},
+  oz: {oz, lb, g, kg},
   lb: {lb, oz, g, kg},
 };
 
@@ -272,9 +282,12 @@ Set<Unit> densityStrippedUnits(Ingredient ingredient) =>
 /// with no density to bridge it (the renamed-rice shape, `cup` default on a
 /// per-100 g row).
 ///
-/// The form draws this as a flag with a one-tap fix ([basisDefaultUnitFix]).
-/// It is never repaired silently: a default unit is a statement about how the
-/// household buys the thing, and quietly rewriting it would lose that.
+/// The form draws this as a flag with a one-tap fix ([basisDefaultUnitFix])
+/// **and refuses to save while it holds**: a flag alone is advice, and a basis
+/// flipped after the default was chosen would otherwise let a row the chips
+/// never offered reach the database. It is never repaired silently either — a
+/// default unit is a statement about how the household buys the thing, so the
+/// refusal names both fixes and the person picks one.
 bool defaultUnitNeedsDensity(Ingredient ingredient) =>
     ingredient.densityGPerMl == null &&
     !unitSayableAsDefault(ingredient, ingredient.defaultUnit);

@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredient detail</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0012-tsp-mates-cup.md">ADR-0012</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a></p>
+    <p class="view-status">built · matches code 2026-09-08 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0012-tsp-mates-cup.md">ADR-0012</a> · <a href="../../decisions/0013-mass-ladder-symmetric.md">ADR-0013</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a></p>
     <p class="view-blurb">One form, three groups — Identity, Nutrition, Units &amp; measures — under a dock that carries the form’s one message and its two commitments. It is also the create screen: <code>/ingredients/new</code> is this form with no row behind it.</p>
 </header>
 
@@ -92,15 +92,16 @@
                 <span class="uchip" style="background:transparent;border-color:var(--gone);border-style:dotted;color:var(--gone)">cup</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">ml</span><span class="uchip" style="color:var(--muted)">tsp</span><span class="uchip" style="color:var(--muted)">piece</span><span class="uchip impr">pinch</span>
             </div></div>
             <p class="conv-note" style="margin:-6px 20px 12px"><span style="color:var(--gone)">cup</span> needs a density on this row — add one below, or <b style="color:var(--ink);border-bottom:1px solid var(--line)">switch to g</b></p>
+            <p class="conv-note" style="margin:-6px 20px 12px">Save refuses while this line is showing: <i>Macros per 100 g and no density can’t have cup as the default unit — add a density below, or make it g.</i></p>
 
             <p class="flabel" style="margin-bottom:2px">Allowed units</p>
             <p class="conv-note" style="margin:0 20px 6px">what a line may say</p>
             <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
-                <span class="uchip on">g</span><span class="uchip on">kg</span><span class="uchip on">piece</span>
+                <span class="uchip on">piece</span><span class="uchip on">g</span><span class="uchip on">kg</span><span class="uchip on">oz</span><span class="uchip on">lb</span>
                 <span class="uchip-sep" style="height:22px;margin:0 2px"></span>
                 <span class="uchip impr">pinch</span><span class="uchip impr">dash</span>
             </div></div>
-            <p class="conv-note" style="margin-top:2px">cup · tsp · tbsp · ml unlock when this row has a density · dotted words come from the category</p>
+            <p class="conv-note" style="margin-top:2px">cup · tsp · tbsp · ml · l · pt · qt unlock when this row has a density · dotted words come from the category</p>
 
         </div></div>
     </div>
