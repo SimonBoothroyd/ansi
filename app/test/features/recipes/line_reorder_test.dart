@@ -64,10 +64,14 @@ void main() {
     // Identity, not equality: a move must never rebuild a line, because the
     // line’s id is what every method chip points at.
     final line = ['x'];
-    final after = moveLineRow([
-      [line],
-      <List<String>>[],
-    ], from: 1, to: 2);
+    final after = moveLineRow(
+      [
+        [line],
+        <List<String>>[],
+      ],
+      from: 1,
+      to: 2,
+    );
     expect(identical(after[1].single, line), isTrue);
   });
 

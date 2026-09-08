@@ -127,11 +127,10 @@ void main() {
     final loaded = await repo.watchRecipe('r1').first;
     expect(loaded!.groups[0].items.map((i) => i.id), ['i3', 'i1', 'i2']);
     expect(loaded.groups[1].items, isEmpty);
-    expect(
-      loaded.groups.map((g) => g.id),
-      ['g1', 'g2'],
-      reason: 'a group emptied by a move is not swept',
-    );
+    expect(loaded.groups.map((g) => g.id), [
+      'g1',
+      'g2',
+    ], reason: 'a group emptied by a move is not swept');
     // A move is an UPDATE on the same row: nothing was deleted and re-made,
     // which is what keeps every method chip pointing where it did.
     final tombstones = await db.getAll(
