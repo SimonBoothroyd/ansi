@@ -740,7 +740,6 @@ class _DetailForm extends ConsumerWidget {
                   // one widget.
                   onVolumeLabel: form.redirectSpoon,
                 ),
-
             ],
           ),
         ],

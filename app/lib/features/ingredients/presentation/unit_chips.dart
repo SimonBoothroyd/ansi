@@ -110,8 +110,9 @@ class _UnitChipRowState extends State<UnitChipRow> {
           // says so rather than leaving "piece" to mean a clove or a bulb.
           label: switch (c) {
             MeasureOption(:final measure) => measure.label,
-            UnitOption(:final unit) when unit == pieces =>
-              pieceChipLabel(widget.ingredient),
+            UnitOption(:final unit) when unit == pieces => pieceChipLabel(
+              widget.ingredient,
+            ),
             UnitOption(:final unit) => unit.label,
           },
           dot: c is MeasureOption
@@ -129,8 +130,9 @@ class _UnitChipRowState extends State<UnitChipRow> {
           key: widget.selected == offFilter ? _selectedKey : null,
           label: switch (offFilter) {
             MeasureOption(:final measure) => measure.label,
-            UnitOption(:final unit) when unit == pieces =>
-              pieceChipLabel(widget.ingredient),
+            UnitOption(:final unit) when unit == pieces => pieceChipLabel(
+              widget.ingredient,
+            ),
             UnitOption(:final unit) => unit.label,
           },
           suffix: 'not in filter',
