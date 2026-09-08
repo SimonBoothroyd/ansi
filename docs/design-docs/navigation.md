@@ -103,6 +103,10 @@ are pushed on the root Navigator, so they cover the bar and keep each platform's
 own push transition and back gesture. `/recipes/:id` is reachable from four
 places in three different tabs; nesting it would mean either duplicating it per
 branch or teleporting the user to the Library when they tap a recipe in Cook.
+`/ingredients/:id` is in the same position: the manager's rows, the import
+review's matched line, a recipe page's macro marker and — the plainest door —
+an ingredient's own **name** on a recipe line all push it, from wherever the
+reader happens to be.
 
 The bar being gone inside a recipe is the honest signal that you have left the
 tab loop — the same rule the Ingredients manager already locked.

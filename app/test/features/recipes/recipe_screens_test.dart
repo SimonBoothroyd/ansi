@@ -13,6 +13,7 @@ import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
@@ -20,6 +21,7 @@ import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
+import '../../helpers/pump_app.dart';
 
 /// The library and the page both read the one recipe under test, so the list
 /// is derived from it rather than canned separately.
@@ -189,6 +191,84 @@ void main() {
     expect(find.text('optional'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
     expect(find.text('200 g'), findsOneWidget);
+  });
+
+  group("an ingredient's name is a door onto its own page", () {
+    /// The page under a real router, so the tap has an observable
+    /// destination — a stand-in stands at `/ingredients/:id`.
+    Widget routed(Recipe recipe, void Function(GoRouter) expose) => routedHost(
+      initial: '/recipes/${recipe.id}',
+      overrides: [
+        recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(recipe)),
+      ],
+      expose: expose,
+      routes: {
+        '/recipes/:id': (_, state) =>
+            RecipeView(recipeId: state.pathParameters['id']!),
+        '/ingredients/:id': (_, state) =>
+            FScaffold(child: Text('ingredient ${state.pathParameters['id']}')),
+      },
+    );
+
+    testWidgets('tapping the name pushes that ingredient', (tester) async {
+      late GoRouter router;
+      await tester.pumpWidget(routed(_recipe, (r) => router = r));
+      await tester.pump();
+
+      await tester.tapOnText(find.textRange.ofSubstring('Chicken thigh'));
+      await tester.pumpAndSettle();
+
+      expect(router.state.uri.path, '/ingredients/chicken');
+      expect(find.text('ingredient chicken'), findsOneWidget);
+    });
+
+    testWidgets('a folded multi-use row has ONE door, and the note is not '
+        'it', (tester) async {
+      const recipe = Recipe(
+        id: '2',
+        title: 'Two Ways',
+        servingsBase: 2,
+        groups: [
+          IngredientGroup(
+            id: 'g1',
+            items: [
+              LineItem(
+                id: 'i1',
+                ingredientId: 'garlic',
+                ingredientName: 'Garlic',
+                unit: pieces,
+                quantity: 2,
+                note: 'finely chopped',
+              ),
+              LineItem(
+                id: 'i2',
+                ingredientId: 'garlic',
+                ingredientName: 'Garlic',
+                unit: pieces,
+                quantity: 1,
+                note: 'sliced',
+              ),
+            ],
+          ),
+        ],
+      );
+
+      late GoRouter router;
+      await tester.pumpWidget(routed(recipe, (r) => router = r));
+      await tester.pump();
+
+      // The note is a fact about the line, not the identity — it goes nowhere.
+      await tester.tapOnText(
+        find.textRange.ofSubstring('finely chopped + sliced'),
+      );
+      await tester.pumpAndSettle();
+      expect(router.state.uri.path, '/recipes/2');
+
+      // The one name the fold left standing is the door for both uses.
+      await tester.tapOnText(find.textRange.ofSubstring('Garlic'));
+      await tester.pumpAndSettle();
+      expect(router.state.uri.path, '/ingredients/garlic');
+    });
   });
 
   testWidgets('RecipeEditorView builds a blank create form', (tester) async {

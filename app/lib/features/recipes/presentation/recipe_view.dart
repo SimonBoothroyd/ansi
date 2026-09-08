@@ -584,8 +584,13 @@ class _IngredientsTab extends StatelessWidget {
               final note = _firstNote(uses, markers);
               return RecipeIngredientLine(
                 uses: uses,
-                // A component's chip pushes its target's page (D7).
+                // A component's chip pushes its target's page (D7); an
+                // ingredient's name is the same door onto its own page, so
+                // "what is this, and what does it weigh" is one tap from the
+                // line that raised the question.
                 onOpenSubRecipe: (id) => context.pushOnce('/recipes/$id'),
+                onOpenIngredient: (id) =>
+                    context.pushOnce(ingredientDetailRoute(id)),
                 macroMarker: note == null
                     ? null
                     : incompleteLineNote(note.reason),
