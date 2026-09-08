@@ -2,8 +2,9 @@
   "_doc": [
     "SHARED VECTORS for the ADR-0008 derived unit-admission rule, as amended by",
     "ADR-0009 (a density unlocks both families), ADR-0010 (piece is an",
-    "admission fact) and ADR-0012 (the volume ladder is symmetric — cup mates",
-    "tsp).",
+    "admission fact), ADR-0012 (the volume ladder is symmetric — cup mates",
+    "tsp) and ADR-0013 (the mass ladder is symmetric — the four kitchen mass",
+    "units mate each other).",
     "",
     "Two implementations claim to apply the same rule: the Dart one the app",
     "offers chips from (lib/features/ingredients/domain/allowed_units.dart,",
@@ -108,6 +109,33 @@
       "density": 1.03,
       "category": "dairy",
       "expect": ["cup", "tsp", "tbsp", "ml", "l", "pt", "qt", "g", "kg"]
+    },
+    {
+      "shape": "rice",
+      "why": "a gram default on its own basis family says the whole kitchen mass ladder — ounces and pounds included, since ADR-0013 made it symmetric — and no volume without a density",
+      "defaultUnit": "g",
+      "basis": "g",
+      "density": null,
+      "category": "grains",
+      "expect": ["g", "kg", "oz", "lb"]
+    },
+    {
+      "shape": "chicken-thigh",
+      "why": "the same ladder entered from the customary end: a pound default admits exactly what a gram default does, which is the symmetry ADR-0013 is about",
+      "defaultUnit": "lb",
+      "basis": "g",
+      "density": null,
+      "category": "proteins",
+      "expect": ["lb", "g", "kg", "oz"]
+    },
+    {
+      "shape": "butter",
+      "why": "an ounce default with a density: the mass ladder plus the volume workhorses the density bridges to — no big metric sibling over there, because the cross leg names cup and not l",
+      "defaultUnit": "oz",
+      "basis": "g",
+      "density": 0.91,
+      "category": "dairy",
+      "expect": ["oz", "g", "kg", "lb", "tsp", "tbsp", "cup", "ml", "pt"]
     }
   ]
 }

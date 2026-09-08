@@ -204,11 +204,20 @@ ingredients/
   density unlocks the other mass/volume family whatever the default's family;
   `setDensity` unions that in the same transaction, and `clearDensity` strips
   what the density granted. The kitchen trim admits a family only at the
-  magnitudes near the default, and since
-  [ADR-0012](../../../../docs/decisions/0012-tsp-mates-cup.md) the volume
-  ladder is symmetric — `cup` mates `tsp`, so a teaspoon of a cup-default food
-  is sayable. `allowed_units.dart` and the SQL function are mirrors pinned by
-  shared vectors — change one, change both.
+  magnitudes near the default, and both ladders inside it are symmetric:
+  [ADR-0012](../../../../docs/decisions/0012-tsp-mates-cup.md) gave `cup` its
+  `tsp`, so a teaspoon of a cup-default food is sayable, and
+  [ADR-0013](../../../../docs/decisions/0013-mass-ladder-symmetric.md) has the
+  four kitchen mass units mate each other, so a gram-default row weighs in
+  ounces and pounds too. `allowed_units.dart` and the SQL function are mirrors
+  pinned by shared vectors — change one, change both.
+- **A default unit the row cannot say blocks Save.** The chips refuse to offer
+  a default outside the basis family while no density bridges it, but a basis
+  flipped (or a USDA pick landed) after the default was chosen strands the one
+  already there. The form draws the flag with its one-tap fix *and* refuses
+  the write, naming the unit, the basis and both ways out — a density below,
+  or the basis family's own unit. Nothing is rewritten silently: how a
+  household buys a thing is a statement, so the person picks.
 - **A bare count means the row's stated measure**
   ([ADR-0010](../../../../docs/decisions/0010-piece-is-an-admission-fact.md)),
   on the entry surface as well as on the import review. `QuantityUnitEditor`

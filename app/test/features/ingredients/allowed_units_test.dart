@@ -69,7 +69,7 @@ void main() {
 
     test('the vector file actually loaded', () {
       // An emptied or unfound fixture would make every case below vacuous.
-      expect(vectors, hasLength(9));
+      expect(vectors, hasLength(12));
     });
 
     for (final v in vectors) {
@@ -114,7 +114,7 @@ void main() {
       // trails the default's own (the choice builder pushes it below the
       // measures too).
       final units = allowedUnitsFor(_ing(g, density: 0.4));
-      expect(units, [g, kg, tsp, tbsp, cup, ml, pint]);
+      expect(units, [g, kg, oz, lb, tsp, tbsp, cup, ml, pint]);
       expect(units, isNot(contains(pieces)));
     });
 
@@ -213,6 +213,64 @@ void main() {
         // Without the number the row admits no volume unit at all (D4c), so
         // there is no half-open state where tsp is sayable and cup is not.
         expect(allowedUnitsFor(_ing(cup, category: 'baking')), [g, kg]);
+      });
+    });
+
+    group('ADR-0013 — the mass ladder is symmetric: the kitchen four mate '
+        'each other', () {
+      // The admissions themselves are the shared `rice`, `chicken-thigh` and
+      // `butter` vectors above. What is pinned here is the property they are
+      // examples of — the relation "may be said in", read both ways.
+      const kitchenMass = [g, kg, oz, lb];
+
+      test('if a mass default may be said in X, an X-default row may be said '
+          'in it', () {
+        for (final a in kitchenMass) {
+          for (final b in kitchenMass) {
+            final reason = '${a.id} ⇄ ${b.id}';
+            expect(allowedUnitsFor(_ing(a)), contains(b), reason: reason);
+            expect(allowedUnitsFor(_ing(b)), contains(a), reason: reason);
+          }
+        }
+      });
+
+      test('mg is the trim in the other direction — label-reading '
+          "granularity, and nobody else's mate", () {
+        // The same shape `tsp` has in the volume family: its own row may say
+        // it, no other row may.
+        expect(allowedUnitsFor(_ing(mg)), [mg, g]);
+        for (final d in kitchenMass) {
+          expect(allowedUnitsFor(_ing(d)), isNot(contains(mg)), reason: d.id);
+        }
+      });
+
+      test('the per-100 ml gate is untouched: a mass default on a per-ml row '
+          'with no density says no mass unit at all', () {
+        // The widening is inside the mates leg, which a cross-family default
+        // never reaches without a density — so the stranded shape stays
+        // stranded, and stays flagged.
+        for (final d in kitchenMass) {
+          final perMl = _ing(d, basis: MacrosBasis.perMl);
+          expect(allowedUnitsFor(perMl), [
+            ml,
+            if (d == kg || d == lb) l,
+          ], reason: d.id);
+          expect(defaultUnitNeedsDensity(perMl), isTrue, reason: d.id);
+        }
+      });
+
+      test('what a density is worth to a mass default did not move', () {
+        // The widening happens inside the mass family, which the density leg
+        // never supplied: a number still buys exactly the volume workhorses.
+        for (final d in kitchenMass) {
+          expect(densityUnlockedUnits(_ing(d, density: 0.9)), {
+            tsp,
+            tbsp,
+            cup,
+            ml,
+            pint,
+          }, reason: d.id);
+        }
       });
     });
 
@@ -483,7 +541,7 @@ void main() {
           },
         ),
         [
-          'g', 'kg', // the default's own family leads
+          'g', 'kg', 'oz', 'lb', // the default's own family leads
           'potato, large', // measures
           'tsp', 'tbsp', 'cup', 'ml', 'pt', // density-unlocked, demoted
         ],
@@ -676,7 +734,7 @@ void main() {
     test('without a density the cross-family chips are drawn LOCKED, not '
         'hidden — the section has to explain what a density buys', () {
       final curryLeaves = _ing(g, category: 'produce');
-      expect(selectedOf(curryLeaves), {'g', 'kg', 'handful'});
+      expect(selectedOf(curryLeaves), {'g', 'kg', 'oz', 'lb', 'handful'});
       expect(lockedOf(curryLeaves), {'tsp', 'tbsp', 'cup', 'ml', 'pt'});
     });
 

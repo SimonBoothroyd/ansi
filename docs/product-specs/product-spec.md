@@ -79,7 +79,10 @@ right.
   default unit's family trimmed to kitchen magnitudes ("no litres of
   yeast" — a trim about units too *big* for the row, so since
   [ADR-0012](../decisions/0012-tsp-mates-cup.md) the volume ladder joins up in
-  both directions and a cup-default row says `tsp`), the basis family
+  both directions and a cup-default row says `tsp`, and since
+  [ADR-0013](../decisions/0013-mass-ladder-symmetric.md) the four kitchen mass
+  units mate each other so a gram-default row says `oz` and `lb`), the basis
+  family
   (yeast finally admits `g`), the other family
   once a density exists (demoted below the measures in chip order), and
   imprecise units only for seasoning/oil categories. Materialized at
@@ -92,6 +95,12 @@ right.
   unit's family, so "1 cup diced mango" is sayable on a piece-default row — and
   a density arriving after creation extends the list by trigger, wherever it
   came from. What we may *compute* is unchanged — totals still degrade honestly.
+  A row's **default unit** obeys the same rule: it must be one the row can
+  say, so the chips refuse to offer a cross-family default while no density
+  bridges it and Save refuses a row that was stranded after the fact (a basis
+  flipped to per 100 ml under a `g` default). The flag names the unit, the
+  basis and both fixes — add a density, or switch to the basis family's unit —
+  and the stored row is never rewritten silently.
 - **Density is the single volume⇄mass fact**, entered as one sentence
   (7.8): "1 `[tbsp]` weighs `[N]` g" (`densityFromVolumeWeight`), with `ml`
   among the spoons so a known g/ml is typeable exactly. A volume-named measure label is therefore

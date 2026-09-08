@@ -1,0 +1,289 @@
+-- 0035_mass_mates.sql — the mass ladder is symmetric (ADR-0013).
+--
+-- ADR-0012 made the volume ladder symmetric and left the mass one alone,
+-- where it read `g → {g,kg}`, `kg → {kg,g}`, `oz → {oz,lb,g}`, `lb →
+-- {lb,oz,g,kg}`. So a bag of rice bought in grams could be said in grams and
+-- kilograms only, while a pack of chicken bought in pounds could be said in
+-- all four. The two rows are the same kitchen quantity written on two
+-- different labels, and the vocabulary depended on which label the shop
+-- printed. `oz` rides with `g` and `lb` rides with `kg` the way pint rides
+-- with cup and quart rides with litre — the customary unit and the metric one
+-- of the same magnitude are one quantity said in two systems.
+--
+-- Two things happen here, and the second is the careful one.
+--
+-- 1. **`default_allowed_units()`** is re-created from 0032's body with three
+--    arrays changed: the `g`, `kg` and `oz` branches of the mates leg gain
+--    the mass units that already mated them from the other side. `lb` is
+--    unchanged — it was the complete list all along — and `mg` is unchanged
+--    too: it is label-reading granularity, the trim in the other direction,
+--    exactly as `tsp` is from a cup. This is the SQL mirror of
+--    `_kitchenMates` in
+--    `app/lib/features/ingredients/domain/allowed_units.dart`; the shared
+--    vectors in `supabase/tests/unit_admission.sql` pin the two together.
+--
+--    `density_unlocked_units()` is DERIVED from this function (0024 §3), so
+--    it picks the change up by construction and is not re-stated. What a
+--    density is worth to a mass-default row does not move anyway: the
+--    widening is inside the mass family, and the density leg only ever
+--    supplied the volume one.
+--
+-- 2. **A widening backfill with a fence.** `allowed_units` is materialized at
+--    insert and thereafter the household's own (ADR-0008 §4), so a rule
+--    change reaches no existing row on its own. ADR-0009 rule 3 forbids a
+--    backfill from REMOVING anything; ADR-0012 stated the other half of the
+--    same principle — a backfill may not OVERWRITE a stated fact either. So,
+--    as in 0032:
+--
+--        the new mates are added only to a row whose stored list still EQUALS
+--        the old derived default for that row.
+--
+--    A household that curated its list — a `stopOfferingPiece` removal, a
+--    toggled chip in the flesh-out form, a seed curation override — is left
+--    exactly as it is, and gains the units the next time a human saves the
+--    row.
+--
+--    **The old default is computed, not remembered.** The only textual change
+--    to `default_allowed_units()` is inside the mates leg, and for a mass
+--    default no other leg of that function can emit a mass unit: the basis
+--    leg fires only when the basis family differs from the default's, which
+--    for a mass default means it emits `ml`/`l`; the density cross leg for a
+--    mass default emits `tsp`/`tbsp`/`cup`/`pt`/`ml`; and the imprecise tail
+--    emits words. So for a row whose default is
+--
+--        `g` or `kg`:  old_default(row) = new_default(row) minus {'oz','lb'}
+--        `oz`:         old_default(row) = new_default(row) minus {'kg'}
+--
+--    and for every other row — `lb`, `mg`, and every volume, count and
+--    imprecise default — the two are identical, which is why this migration
+--    only ever looks at `g`, `kg` and `oz` rows. The fresh defaults must also
+--    actually NAME what is being added, which is what keeps a per-100 ml
+--    `g`-default row with no density out of it: its mates leg never fires, so
+--    it admits no mass unit at all and has nothing to widen. Comparing SORTED
+--    DISTINCT arrays makes the check a set comparison: `allowed_units` is a
+--    set (0012), and its stored order is nobody's contract.
+--
+-- Row-preserving throughout (docs/cloud-setup.md §2c): one guarded UPDATE that
+-- only ever appends, over every household including the template and including
+-- soft-deleted rows, so an undelete does not resurrect a pre-0035 list.
+-- Idempotent — a row that already names the added units no longer matches —
+-- and reset-safe, so `supabase db reset` re-runs it cleanly.
+
+-- ---------------------------------------------------------------------------
+-- 1. default_allowed_units(): 0032's body, with the mass units mating each
+--    other.
+-- ---------------------------------------------------------------------------
+--
+-- Emission order is: the default's own leg → the basis leg → the density's
+-- cross leg → the imprecise tail (own word first, then the gated words in
+-- pinch/dash/handful/to_taste order). A stored list is a SET (0012); the
+-- client orders it for display. The pgTAP vectors pin this emission order only
+-- because `is()` compares jsonb arrays verbatim.
+--
+-- STABLE (not IMMUTABLE) because `to_jsonb` is itself stable and
+-- `supabase db lint` checks the mismatch (0012).
+create or replace function default_allowed_units(
+  p_default_unit text,
+  p_macros_basis text,
+  p_density_g_per_ml numeric,
+  p_category text
+) returns jsonb
+language plpgsql
+stable
+as $$
+declare
+  units text[] := array[]::text[];
+  basis_family text;    -- 'mass' | 'volume'
+  default_family text;  -- 'mass' | 'volume' | 'count' | 'imprecise'
+  big boolean;          -- default is cup/lb-scale or larger → kg/l join in
+  has_density boolean := p_density_g_per_ml is not null;
+  -- Dart matches the category trimmed and case-folded (impreciseUnitsFor).
+  category text := lower(btrim(p_category));
+  u text;
+begin
+  default_family := case
+    when p_default_unit in ('g','kg','mg','oz','lb') then 'mass'
+    when p_default_unit in ('ml','l','tsp','tbsp','fl_oz','cup','pt','qt')
+      then 'volume'
+    when p_default_unit = 'piece' then 'count'
+    else 'imprecise'
+  end;
+
+  basis_family := case when p_macros_basis = 'ml' then 'volume' else 'mass' end;
+
+  -- Cup/lb-scale defaults justify the big metric sibling (kg / l); spoons
+  -- and grams don't ("no litres of yeast" applies to kilograms too). The US
+  -- pair is cup- and litre-scale, so both pass (D2b) — mirrors _isBig in
+  -- allowed_units.dart.
+  big := p_default_unit in ('cup', 'lb', 'l', 'kg', 'pt', 'qt');
+
+  -- The default unit's own leg.
+  --
+  -- **D4c.** For a mass/volume default, its kitchen-magnitude mates (the
+  -- ADR-0008 trim — mirrors _kitchenMates in allowed_units.dart) are NOT an
+  -- admission source of their own: they ride on the basis family (which
+  -- needs nothing) or on the density (the only honest bridge to the other
+  -- family). A count default is `piece`; an imprecise default joins the
+  -- tail below.
+  --
+  -- **D2b.** Quart rides with litre, pint rides with cup: every list below
+  -- that names `l` names `qt`, every list that names `cup` names `pt`.
+  --
+  -- **ADR-0012.** `cup` names `tsp`, so the volume ladder is symmetric in
+  -- both directions: tsp↔tbsp↔cup.
+  --
+  -- **ADR-0013.** The four kitchen mass units name each other, so the mass
+  -- ladder is symmetric too: `oz` rides with `g` and `lb` rides with `kg`,
+  -- the same magnitude pairing D2b makes in the volume family. `mg` stays
+  -- out of every list but its own — label-reading granularity, the trim in
+  -- the other direction.
+  if default_family in ('mass', 'volume') then
+    if has_density or default_family = basis_family then
+      units := case p_default_unit
+        when 'tsp'    then array['tsp','tbsp']
+        when 'tbsp'   then array['tbsp','tsp','cup','ml','pt']
+        when 'cup'    then array['cup','tsp','tbsp','ml','l','pt','qt']
+        when 'ml'     then array['ml','l','tsp','tbsp','cup','pt','qt']
+        when 'l'      then array['l','ml','cup','pt','qt']
+        when 'fl_oz'  then array['fl_oz','tbsp','cup','ml','pt']
+        when 'qt'     then array['qt','pt','cup','l','ml']
+        when 'pt'     then array['pt','cup','qt','ml']
+        when 'g'      then array['g','kg','oz','lb']
+        when 'kg'     then array['kg','g','oz','lb']
+        when 'mg'     then array['mg','g']
+        when 'oz'     then array['oz','lb','g','kg']
+        when 'lb'     then array['lb','oz','g','kg']
+      end;
+    end if;
+  elsif default_family = 'count' then
+    units := array['piece'];
+  end if;
+
+  -- Basis leg: the canonical dimension is always sayable (ADR-0008 §1). The
+  -- metric base and its big sibling only — the US pair rides on the mates
+  -- and cross legs, never on the basis.
+  if basis_family <> default_family then
+    units := units || case when basis_family = 'mass'
+      then case when big then array['g','kg'] else array['g'] end
+      else case when big then array['ml','l'] else array['ml'] end
+    end;
+  end if;
+
+  -- Density leg (ADR-0009): a stored density unlocks the other mass/volume
+  -- family's kitchen workhorses whatever the default unit's family — density
+  -- is a property of the substance, not of how the shop sells it. A count or
+  -- imprecise default has no "other" family, so it bridges to BOTH, the big
+  -- metric sibling staying behind the same `big` gate (mirrors
+  -- _densityCrossLeg in allowed_units.dart). The volume workhorses name
+  -- `cup`, so they name `pt` (D2b); they never named `l`, so no `qt`. The
+  -- dedupe below subtracts whatever the legs above already admitted.
+  if has_density then
+    units := units || case default_family
+      when 'mass'   then array['tsp','tbsp','cup','pt','ml']
+      when 'volume' then case when big then array['g','kg'] else array['g'] end
+      else array['tsp','tbsp','cup','pt','ml']
+             || case when big then array['g','kg'] else array['g'] end
+    end;
+  end if;
+
+  -- Imprecise leg (J3): an imprecise default always keeps its own word, and
+  -- each word is gated by category on its own — mirrors kImpreciseCategoryGates
+  -- in allowed_units.dart. Keys are the vocab's ACTUAL category values; it has
+  -- no 'condiment' and no 'greens' category, so `produce` is what `handful`
+  -- is gated on. A null or empty category earns nothing.
+  if default_family = 'imprecise' then
+    units := units || p_default_unit;
+  end if;
+  if category in ('spices & seasoning', 'fats & oils') then
+    units := units || array['pinch'];
+  end if;
+  if category in ('spices & seasoning', 'fats & oils') then
+    units := units || array['dash'];
+  end if;
+  if category in ('produce', 'spices & seasoning') then
+    units := units || array['handful'];
+  end if;
+  if category in ('spices & seasoning', 'fats & oils') then
+    units := units || array['to_taste'];
+  end if;
+
+  -- Dedupe, order-preserving, into a jsonb array.
+  declare
+    seen text[] := array[]::text[];
+  begin
+    foreach u in array units loop
+      if not (u = any(seen)) then
+        seen := seen || u;
+      end if;
+    end loop;
+    return to_jsonb(seen);
+  end;
+end;
+$$;
+
+comment on function default_allowed_units(text, text, numeric, text) is
+  'ADR-0008 derived allowed-unit defaults, as amended by ADR-0009 and plan '
+  '0020 D4c/J3 (0021): basis-strict mates, density-unlocked cross family, '
+  'per-word category-gated imprecise tail; plan 0025 D2b (0024): quart rides '
+  'with litre, pint rides with cup; ADR-0012 (0032): cup mates tsp, so the '
+  'volume ladder is symmetric; ADR-0013 (0035): the four kitchen mass units '
+  'mate each other, so the mass ladder is symmetric too. SQL mirror of '
+  'defaultAllowedUnitSet in allowed_units.dart — change one, change both; '
+  'unit_admission.sql and allowed_units_test.dart pin the same vectors.';
+
+-- ---------------------------------------------------------------------------
+-- 2. The widening backfill — pristine rows only.
+-- ---------------------------------------------------------------------------
+--
+-- Only `g`, `kg` and `oz` default rows can gain anything (see the header),
+-- and what each gains is fixed: `oz` gains `kg`, the two metric defaults gain
+-- `oz` and `lb`. For each candidate: the recomputed defaults must admit what
+-- is being added (a per-100 ml `g`-default row with no density admits no mass
+-- unit at all, so it gains nothing), and the stored list must still equal
+-- those defaults minus the additions — which IS the old rule's answer for
+-- that row. Anything else has been edited, and is left alone.
+do $$
+declare
+  widened int;
+begin
+  with candidate as (
+    select i.id,
+           a.added,
+           (select array_agg(distinct s.u order by s.u)
+              from jsonb_array_elements_text(i.allowed_units) as s(u))
+             as stored,
+           (select array_agg(distinct f.u order by f.u)
+              from jsonb_array_elements_text(d.units) as f(u)
+             where not (f.u = any(a.added)))
+             as old_default,
+           d.units as fresh
+      from ingredient i
+      cross join lateral (
+        select case when i.default_unit = 'oz'
+                    then array['kg']::text[]
+                    else array['oz','lb']::text[] end as added
+      ) a
+      cross join lateral (
+        select default_allowed_units(i.default_unit, i.macros_basis,
+                                     i.density_g_per_ml, i.category) as units
+      ) d
+     where i.allowed_units is not null
+       and i.default_unit in ('g', 'kg', 'oz')
+       and not (i.allowed_units ?| a.added)
+  ),
+  widened_rows as (
+    update ingredient i
+       set allowed_units = i.allowed_units || to_jsonb(c.added),
+           updated_at    = now()
+      from candidate c
+     where c.id = i.id
+       and c.fresh ?& c.added
+       and c.stored = c.old_default
+    returning i.id
+  )
+  select count(*) into widened from widened_rows;
+  raise notice
+    '0035_mass_mates: % pristine mass-default row(s) gained their mates',
+    widened;
+end;
+$$;

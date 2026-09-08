@@ -1364,6 +1364,10 @@ class _UnitChoiceRow extends StatelessWidget {
 /// a real density — so this is now a rare state, and a rare state should not
 /// own a bordered card with a heading, a body and a button. One line with the
 /// fix in it; the chip above renders in [AnsiColors.gone] to say which unit.
+///
+/// **Save refuses while this line is showing.** The line names the state and
+/// offers one of the two fixes; the form's own refusal names both and blocks
+/// the write, because advice a Save can walk past is not a rule.
 class _StrandedDefaultNote extends StatelessWidget {
   const _StrandedDefaultNote({required this.ingredient, required this.onFix});
 

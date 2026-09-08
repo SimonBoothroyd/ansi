@@ -652,7 +652,14 @@ void main() {
         'is gone', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
-      final repo = FakeIngredientRepo(const [mango, curryLeaves, yeast]);
+      // The density is not what this test is about — it is what makes the
+      // row savable at all: a tsp default on a per-100 g row is stranded,
+      // and D4c refuses the write until one of its two fixes is taken.
+      final repo = FakeIngredientRepo([
+        mango,
+        curryLeaves,
+        yeast.copyWith(densityGPerMl: 0.4),
+      ]);
       await tester.pumpWidget(host(repo, at: '/ingredients/yeast'));
       await tester.pumpAndSettle();
 
@@ -689,6 +696,9 @@ void main() {
         defaultUnit: tsp,
         status: IngredientStatus.complete,
         category: 'oddments',
+        // A spoon default needs the density before D4c will let the row be
+        // saved at all; the category is what this test is about.
+        densityGPerMl: 0.4,
         macros: Macros(kcal: 385, protein: 50, carb: 36, fat: 5),
       );
       final repo = FakeIngredientRepo(const [mango, onlyOne]);
@@ -908,6 +918,53 @@ void main() {
 
       expect((await repo.byId('rice'))!.defaultUnit, g);
       expect(find.textContaining('needs a density on this row'), findsNothing);
+    });
+
+    testWidgets('a default the row cannot say REFUSES the save — flipping the '
+        'basis to per 100 ml strands the g default, and the message names '
+        'both fixes', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      // The owner's shape: `g` was picked while the row read per 100 g, and
+      // the macros then moved to per 100 ml. The chips would never have
+      // OFFERED g here; nothing stopped the row keeping it.
+      final repo = FakeIngredientRepo(const [curryLeaves]);
+      await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('per 100 ml'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('g needs a density on this row'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(kFormSaveKey));
+      await tester.pumpAndSettle();
+
+      // Refused in the message line, with the unit, the basis and both ways
+      // out — and the form is still open, because nothing was written.
+      expect(
+        find.textContaining(
+          'Macros per 100 ml and no density can’t have g as the default unit',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('add a density below, or make it ml'),
+        findsOneWidget,
+      );
+      expect(find.text('CANONICAL NAME'), findsOneWidget);
+      expect(repo.savedForms, isEmpty);
+      expect((await repo.byId('curry'))!.macrosBasis, MacrosBasis.perG);
+
+      // The one-tap fix takes it, and the same Save lands.
+      await tester.tap(find.text('switch to ml'));
+      await tester.pumpAndSettle();
+
+      final saved = (await repo.byId('curry'))!;
+      expect(saved.defaultUnit, ml);
+      expect(saved.macrosBasis, MacrosBasis.perMl);
     });
 
     testWidgets('the default-unit selector locks the other family while no '

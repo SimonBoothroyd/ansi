@@ -119,10 +119,22 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('stored per 100 ml: 50 kcal'), findsOneWidget);
 
-      await saveForm(tester);
+      // The basis moved under the default unit, so `g` is no longer sayable
+      // on this row (D4c) — and Save says so rather than writing a row that
+      // cannot say its own default. The one-tap fix IS the save.
+      await tester.tap(find.byKey(kFormSaveKey));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('can’t have g as the default unit'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('switch to ml'));
+      await tester.pumpAndSettle();
+
       final saved = (await repo.byId('spread'))!;
       expect(saved.macrosBasis, MacrosBasis.perMl);
       expect(saved.macros!.kcal, 50);
+      expect(saved.defaultUnit, ml);
     });
 
     /// The shared setup for the two M-D2 legs: a bare per-100 g stub, put
