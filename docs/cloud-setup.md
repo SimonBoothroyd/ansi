@@ -492,6 +492,33 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-09-08 (evening) — the piece weight on cloud (v0.8.0): 0039 and a reseed
+
+- `deploy-supabase` run `34274932829` from `main@f52f8dc`, `reseed_template`
+  **ticked**: link ✓ · `db push` applied **`0039`** (piece weight — the two
+  columns, the 5-arg `default_allowed_units()`, the fill-only backfill from
+  each row's curated default measure, the `piece` union and its trigger,
+  `ensure_onboarded` carrying the columns) ✓ · `functions deploy
+  import-recipe` ✓ · sync streams ✓ · the five seeds ✓ (`seed_curation` R3
+  now asserts every piece-default template row is weighed; no rename this
+  round, so §5.3 did not apply).
+- Read-only readback after the deploy: the template holds **76**
+  piece-default rows, all weighed; the household holds **77**, weighed on all
+  but **Mint** and **Red Cabbage** — the two rows whose curated default was
+  "ask me each time" when the vocabulary was cloned. The reseed changed
+  Mint's template default to `g` (not carried to households by design) and
+  gave Red Cabbage the `head, medium` weight.
+- `cloud_verify.sh`: **9 ok · 0 warn · 0 fail**.
+- Shipped as `v0.8.0` (release run `34275484036`: guard ✓ · android ✓, APK
+  93 MB + AAB 80 MB on the Release · ios compile proof ✓ · `play-internal`
+  skipped by design) after the cloud legs, per §4's order.
+- **Still owed (owner, human-run):** the §2b ingredient rollout, which now
+  carries leg (c), the piece weight. Its preview reads 1 unit extension and
+  would fill Red Cabbage's weight from the template; Mint stays a stranded
+  piece default the form asks about on its next open. The measures leg is not
+  needed — `seed_measures.sql` did not change. The preview block does not yet
+  count leg (c) separately; the count query above is the readback for it.
+
 ### 2026-09-08 — round six on cloud (v0.7.0): the database rebuilt from scratch
 
 - **Why a reset (owner call, §2c):** *"when we release / redeploy, I want to
