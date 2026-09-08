@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Quantity &amp; measures</h1>
-    <p class="view-status">built · matches code 2026-09-08 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0010-piece-is-an-admission-fact.md">ADR-0010</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></p>
+    <p class="view-status">built · matches code 2026-09-08 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></p>
     <p class="view-blurb">One dock everywhere an amount is set: this ingredient’s admitted units as chips over a keypad, and the conversion said out loud above them.</p>
 </header>
 
@@ -45,24 +45,24 @@
         </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Two rows, two answers</b> · the dock is identical — the difference is entirely in <code>allowed_units</code>: where a clearer word exists, <i>piece</i> is not offered</p>
+        <p class="frame-name"><b>Two rows, two answers</b> · the dock is identical — the difference is one number on the row. <i>piece</i> is offered where a piece weight says what one is, and nowhere else; the measures sit beside it either way</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">✕</span><span class="ttl">Amount · Avocado</span><span class="dots"></span></div>
-            <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Avocado</div>
-                <div class="mline">160 kcal · 2P 15F 9C <span class="per">/100 g</span></div></div></div>
+            <div class="abar"><span class="back">✕</span><span class="ttl">Amount · Broccoli</span><span class="dots"></span></div>
+            <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Broccoli</div>
+                <div class="mline">34 kcal · 3P 0F 7C <span class="per">/100 g</span></div></div></div>
             <p class="flabel" style="margin-top:14px">Quantity</p>
-            <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">avocado</span></div></div>
+            <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">piece</span></div></div>
             <div class="dock">
-                <p class="conv-note" style="margin:0 0 9px">≈ <b>201 g</b> · USDA portion</p>
-                <p class="chip-note">piece is not admitted here — there is a clearer word</p>
-                <div class="uchips"><span class="uchip on"><span class="srcdot usda"></span>avocado</span><span class="uchip struck">piece</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip">tsp</span><span class="uchip">tbsp</span><span class="uchip">fl oz</span><span class="uchip">cup</span><span class="uchip">ml</span><span class="uchip">l</span><span class="uchip">pt</span><span class="uchip">qt</span><span class="uchip-sep"></span><span class="uchip impr">handful</span><span class="uchip addm">＋</span></div>
-                <p class="conv-note" style="margin:0 0 10px">(struck chip drawn for the board only — on the phone it is simply absent)</p>
+                <p class="conv-note" style="margin:0 0 9px">= <b>608 g</b> · 1 piece weighs 608 g</p>
+                <p class="chip-note">piece default, weighed — piece is admitted and leads</p>
+                <div class="uchips"><span class="uchip on">piece</span><span class="uchip"><span class="srcdot usda"></span>spear</span><span class="uchip"><span class="srcdot typ"></span>crown</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip-sep"></span><span class="uchip impr">handful</span><span class="uchip addm">＋</span></div>
+                <p class="conv-note" style="margin:0 0 10px">31 g · 150 g — <b>spear</b> and <b>crown</b> are fragments, and each keeps its own word. What a whole one weighs is the row’s piece weight, not a fourth measure.</p>
             </div>
-            <div class="abar" style="border-top:1px solid var(--line);padding-top:12px"><span class="back">✕</span><span class="ttl">Amount · Broccoli</span><span class="dots"></span></div>
+            <div class="abar" style="border-top:1px solid var(--line);padding-top:12px"><span class="back">✕</span><span class="ttl">Amount · Garlic</span><span class="dots"></span></div>
             <div class="dock" style="margin-top:0">
-                <p class="chip-note">no measure names the whole thing — piece stays, and leads</p>
-                <div class="uchips"><span class="uchip on">piece</span><span class="uchip"><span class="srcdot usda"></span>bunch</span><span class="uchip"><span class="srcdot usda"></span>spear</span><span class="uchip"><span class="srcdot typ"></span>crown</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip-sep"></span><span class="uchip impr">handful</span><span class="uchip addm">＋</span></div>
-                <p class="conv-note" style="margin:0">608 g · 31 g · 150 g — three different things. “1 broccoli” is still the honest way to say a whole one.</p>
+                <p class="chip-note">no piece weight on this row — piece is not offered at all</p>
+                <div class="uchips"><span class="uchip on"><span class="srcdot usda"></span>clove (3 g)</span><span class="uchip struck">piece</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip-sep"></span><span class="uchip addm">＋</span></div>
+                <p class="conv-note" style="margin:0">(struck chip drawn for the board only — on the phone it is simply absent). Nothing was curated off this row: the number that would admit <code>piece</code> is not there.</p>
             </div>
         </div></div>
     </div>
@@ -167,37 +167,29 @@
         </div>
 
     <div class="frame">
-        <p class="frame-name"><b>“Counts as”</b> · what a bare “2 onions” means; the household owns its own default and can clear it, the ＋ that names a measure asks whether <i>piece</i> is still wanted — and the amount sheet <b>opens</b> on the stated measure</p>
+        <p class="frame-name"><b>The piece weight, in the manage state</b> · on a piece-default row the sentence sits under the measures list; this host has no Save, so a number written here admits <code>piece</code> on the next chip row</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl">Onion</span><span class="dots">⋯</span></div>
-            <p class="flabel" style="margin-top:6px">Measures — count-like, in the basis</p>
+            <div class="abar"><span class="back">‹</span><span class="ttl">Measures · Onion</span><span class="dots"></span></div>
+            <p class="flabel" style="margin-top:6px">This ingredient’s measures</p>
             <div class="field" style="margin-bottom:6px">
-                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">onion, medium</span><span class="mg">110 g</span><span class="msrc">usda_fdc:170000</span></div>
-                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">onion, large</span><span class="mg">150 g</span><span class="msrc">usda_fdc:170000</span></div>
-                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">onion, small</span><span class="mg">70 g</span><span class="msrc">usda_fdc:170000</span></div>
-                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">slice, medium</span><span class="mg">14 g</span><span class="msrc">usda_fdc:170000</span></div>
+                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">onion, small</span><span class="mg">70 g</span><span class="msrc">USDA portion</span></div>
+                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">onion, medium</span><span class="mg">110 g</span><span class="msrc">USDA portion</span></div>
+                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">onion, large</span><span class="mg">150 g</span><span class="msrc">USDA portion</span></div>
+                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">slice, medium</span><span class="mg">14 g</span><span class="msrc">USDA portion</span></div>
             </div>
-            <p class="flabel">Counts as — what “2 onions” means</p>
-            <div class="cntas"><span class="cl">One onion is</span><span class="cv">onion, medium</span><span class="cg">· 110 g</span><span class="caret">▾</span></div>
-            <p class="conv-note" style="margin-top:0">used when a line says a number and no unit. A line that <b>names</b> something — “2 large onions” — always wins.</p>
+            <p class="flabel" style="margin-bottom:2px">Piece weight</p>
+            <p class="conv-note" style="margin:0 20px 6px">what one of these is — this row’s default unit is <code>piece</code></p>
+            <div class="frow"><div class="weigh"><span class="w-l">1 piece weighs</span><span class="w-in">110</span><span class="w-u">g</span></div></div>
+            <p class="conv-note" style="margin:-4px 20px 0"><span class="srcdot brw" style="vertical-align:middle;margin-right:4px"></span>borrowed from <b>onion, medium</b> · yours to change</p>
+            <p class="conv-note" style="margin-top:10px">the row is <b>absent on a row whose default unit is anything else</b> — the number only means something where <code>piece</code> could be said. Density is not here either: both facts have their home on the ingredient’s own form, and this sheet borrows the editors — see <a href="./ingredient-detail.html" style="color:var(--herb)">Ingredient detail</a>.</p>
 
-            <p class="flabel" style="margin-top:18px">The same row on Broccoli</p>
-            <div class="cntas none"><span class="cl">One broccoli is</span><span class="cv">— not set</span><span class="caret">▾</span></div>
-            <p class="conv-note" style="margin-top:0">the picker’s first entry is <b>“Ask me each time”</b>, and it is the honest state for a row whose measures are <b>whole</b> · <b>spear</b> · <b>crown</b>. Clearing a default is one tap and never destroys a measure.</p>
-
-            <p class="flabel" style="margin-top:18px">…and the amount sheet opens on it</p>
+            <p class="flabel" style="margin-top:18px">…and the chip row, straight after</p>
             <div class="dock" style="margin-top:0">
-                <p class="conv-note" style="margin:0 0 4px">＋ ingredient → Garlic</p>
-                <div class="field" style="margin-bottom:8px"><div class="qty-big"><span class="qn">2</span><span class="care"></span><span class="qu">clove</span></div></div>
-                <div class="uchips"><span class="uchip on"><span class="srcdot usda"></span>clove (3 g)</span><span class="uchip">piece</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip-sep"></span><span class="uchip addm">＋</span></div>
+                <div class="field" style="margin-bottom:8px"><div class="qty-big"><span class="qn">2</span><span class="care"></span><span class="qu">piece</span></div></div>
+                <div class="uchips"><span class="uchip on">piece</span><span class="uchip"><span class="srcdot usda"></span>onion, small</span><span class="uchip"><span class="srcdot usda"></span>onion, medium</span><span class="uchip"><span class="srcdot usda"></span>onion, large</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip-sep"></span><span class="uchip addm">＋</span></div>
+                <p class="conv-note" style="margin:0">2 × 110 g = 220 g</p>
             </div>
-            <p class="conv-note" style="margin-top:8px">A caller that names no unit gets the row’s <b>stated</b> measure, not its derived <code>piece</code> — the same rule the import review already applies to a bare count. It is a <b>seed, not a pick</b>: a line preserving an unresolved <code>measure_id</code> behaves exactly as before, and an editor opening an existing line still opens on what that line says. A stated default whose measure has not synced to this device leaves the seed alone — a different measure is never guessed.</p>
-            <div class="askrow" style="margin-top:16px">
-                <div class="ask-h">You added “tomato, medium”. Still offer “piece” for Heirloom tomato?</div>
-                <div class="ask-b">Answering <b>No</b> also sets <b>Counts as: tomato, medium</b> — the measure you just named becomes what a bare “1 tomato” means. Both are one tap from changing, on this page.</div>
-                <div class="askbtns"><span class="askbtn on">No — “tomato, medium” says it<small>+ counts as</small></span><span class="askbtn">Keep both<small>no default set</small></span></div>
-            </div>
-            <p class="conv-note">8.7’s question, unchanged — with the second half of the answer it always implied</p>
+            <p class="conv-note" style="margin-top:8px">this host writes on tap, because it has no Save (<a href="../../decisions/0011-one-save-one-write.md" style="color:var(--herb)">ADR-0011</a>) — so the <code>piece</code> chip appears the moment the number lands. On the form the same editor defers to Save.</p>
         </div></div>
     </div>
 

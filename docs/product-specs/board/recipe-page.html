@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe page</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a></p>
+    <p class="view-status">built · matches code 2026-09-08 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
     <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — with a total, or with the reason there isn’t one.</p>
 </header>
 
@@ -164,21 +164,22 @@
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
             <div class="grp">
-                <div class="l3 seam"><span class="l3-amt">2 pepper, medium</span><span class="l3-body"><span class="l3-id">Red bell pepper</span></span></div>
-                <div class="l3 marked"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Cucumber</span><span class="rowmark"><span class="rd"></span>needs a weight</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">2</span><span class="l3-body"><span class="l3-id">Red bell pepper</span></span></div>
+                <div class="l3 marked"><span class="l3-amt">2</span><span class="l3-body"><span class="l3-id">Dragon fruit</span><span class="rowmark"><span class="rd"></span>needs a piece weight</span></span></div>
                 <div class="l3 marked"><span class="l3-amt">200 g</span><span class="l3-body"><span class="l3-id">Tofu</span><span class="rowmark"><span class="rd"></span>stub ingredient</span></span></div>
                 <div class="l3 seam"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span></div>
             </div>
             <p class="macro-lab">Per serving</p>
             <div class="macro-inc">
-                <div class="mi-h"><span class="badge-inc">incomplete</span><span class="mi-n">1 line needs a weight · 1 stub line</span></div>
+                <div class="mi-h"><span class="badge-inc">incomplete</span><span class="mi-n">1 line needs a piece weight · 1 stub line</span></div>
                 <div class="mi-b">Left out of the total until every line resolves — a partial number would not be this recipe.</div>
                 <div class="mi-lines">
-                    <div class="mi-line"><span class="rd"></span><span>Cucumber</span><span class="why">needs a weight</span><span class="go">›</span></div>
+                    <div class="mi-line"><span class="rd"></span><span>Dragon fruit</span><span class="why">needs a piece weight</span><span class="go">›</span></div>
                     <div class="mi-line"><span class="rd"></span><span>Tofu</span><span class="why">stub ingredient</span><span class="go">›</span></div>
                 </div>
             </div>
-            <p class="conv-note">tap <b>Cucumber</b> → its amount sheet, opened on <b>cucumber</b> (301 g) · tap <b>Tofu</b> → its flesh-out form</p>
+            <p class="conv-note">tap <b>Dragon fruit</b> → <b>its ingredient form</b>, on the piece-weight field · tap <b>Tofu</b> → its flesh-out form. Both markers open the <i>row</i>, because the missing number belongs to the row: one weight fixes this line and every other bare count of that ingredient, in every recipe, the way one density fixes every <code>cup</code> line.</p>
+            <p class="conv-note">the first line is a plain <code>piece</code> line on a weighed row — <b>2 × 119 g</b> — and is not marked at all. A count converts like any other unit now, so only a row created before the piece weight existed can be in this state.</p>
         </div></div>
     </div>
 

@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Import review</h1>
-    <p class="view-status">built · matches code 2026-09-08 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a></p>
+    <p class="view-status">built · matches code 2026-09-08 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
     <p class="view-blurb">One form with two doors, then the whole import on one editable screen: the editor’s own header, a card per line, the method as step cards, and a Save gate that counts the same number the header does.</p>
 </header>
 
@@ -180,33 +180,46 @@
         </div>
 
     <div class="frame">
-        <p class="frame-name"><b>A curated default, spent in the open</b> · the line is not flagged, and the fact is said on the card at the moment it is spent</p>
+        <p class="frame-name"><b>A counted line on an unweighed row</b> · the ordinary unsupported-unit gate, because that is exactly what it is — and the fix is the row, one tap away on the card</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount ok">1 to review</span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">1 to review</span></div>
+            <div class="lcard" style="margin-top:12px">
+                <div class="l3 edit"><span class="l3-amt">1 lime</span><span class="l3-body"><span class="l3-id">Lime</span><span class="l3-note">juiced</span></span><span class="l3-pen">✎</span></div>
+            </div>
+            <div class="lcard attn">
+                <div class="chead"><span class="cn">dragon fruit</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from source:  2 dragon fruit, cubed</div>
+                <div class="lflags"><span class="lflag">new ingredient</span></div>
+                <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
+                <div class="chosen"><span class="ck">✓</span><span class="cnm">Dragon fruit</span><span class="chint">created here · stub</span><span class="ci">›</span></div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 piece <span class="pen">✎</span></span></span></div>
+                <div class="erow"><span class="elab">Unit</span><span class="ebody"><div class="suggests" style="margin-top:4px"><span class="sug" style="border-style:dotted;color:var(--muted)">piece</span><span class="sug">g</span><span class="sug">kg</span><span class="sug">oz</span><span class="sug">lb</span></div></span></div>
+                <div class="erow"><span class="elab">Notes</span><span class="ebody"><div class="notesin">cubed</div></span></div>
+                <div class="lockhint">a line that printed a number and no unit is a <b>piece</b> line, and it meets the same gate every other unit does: <code>piece</code> is dotted because this row states no <b>piece weight</b>. Two ways out, both on this card — pick <b>g</b> and re-type the amount, or open the row.</div>
+            </div>
+            <p class="conv-note" style="margin-top:2px"><b>The weight is not typed here.</b> What one of a thing weighs is the ingredient’s property, so tapping <b>Dragon fruit</b> on the chosen row opens its form on the piece-weight field; coming back, the flag has cleared and every other bare count of it has cleared too.</p>
+            <div class="savebtn off">1 line(s) need you</div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0">the header count and the Save gate read this flag exactly as they read any other unsupported unit — it <b>is</b> that flag. Nothing new appears on the card, and no line is annotated with what a count “counted as”.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>A weighed row commits clean</b> · counted produce is an ordinary line again, and the fragments keep their own words</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount ok">looks good</span></div>
             <div class="r-hero"><h2 class="r-title" style="font-size:26px;margin-top:2px">Charred Pepper Traybake</h2></div>
             <div class="tsec" style="margin-top:6px"><span class="tl">Ingredients</span><span class="tc">6</span><span class="rule"></span></div>
 
             <div class="lcard">
-                <div class="chead"><span class="cn">red peppers</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="l3 edit"><span class="l3-amt">2</span><span class="l3-body"><span class="l3-id">Red bell pepper</span><span class="l3-note">deseeded</span></span><span class="l3-pen">✎</span></div>
                 <div class="srcline">from source:  2 red peppers, deseeded</div>
-                <div class="chosen"><span class="ck">✓</span><span style="flex:1;min-width:0"><span class="cnm" style="display:block">Red bell pepper</span><span style="display:block;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px">usda · Peppers, sweet, red, raw</span></span><span class="chint">tap to change</span><span class="ci">›</span></div>
-                <p class="chip-note">the identity cell names the <b>food behind the row</b>, one muted line under the name it matched to: <b>usda ·</b> and the description where a pick filled it, <b>barcode ·</b> and the pack’s brand and product name where a scan did. The review is the other moment a wrong food is cheap to catch and expensive to miss. <b>edited ·</b> leads it where a human has overridden that row’s numbers, and a row nothing looked up shows no line at all. Same rule, same words as the <a href="./ingredients-manager.html">ingredients manager</a>; it costs no extra read, riding on the one vocab query the review already makes.</p>
-                <div class="dflt"><span>counts as <b>pepper, medium</b></span><span class="gm">· 119 g</span><span class="tap">tap a chip to change</span></div>
-                <div class="suggests" style="margin-top:7px"><span class="sug pick"><span class="srcdot usda"></span>pepper, medium</span><span class="sug"><span class="srcdot usda"></span>pepper, large</span><span class="sug"><span class="srcdot usda"></span>pepper, small</span><span class="sug">g</span><span class="sug">cup</span></div>
-                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 pepper, medium <span class="gm">· 238 g</span> <span class="pen">✎</span></span></span></div>
-                <div class="lockhint">no amber, no “pick a supported unit”, nothing held up. The chips stay <b>visible</b>: the choice made for you is on screen beside the ones you could make instead.</div>
+                <div class="lockhint">collapsed, clean — the row is <code>piece</code>-default and weighs 119 g a piece, so <b>2</b> is 238 g and nothing is held up. No amber, no chip to confirm, and no line on the card explaining a pointer.</div>
             </div>
 
             <div class="lcard">
-                <div class="l3 edit"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span><span class="l3-pen">✎</span></div>
-                <div class="srcline">from source:  3 onions, thinly sliced</div>
-                <div class="lockhint">collapsed, clean — 110 g each. Under 8.7 this line read “Pick a supported unit”.</div>
-            </div>
-
-            <div class="lcard">
-                <div class="l3 edit"><span class="l3-amt">1 cucumber</span><span class="l3-body"><span class="l3-id">Cucumber</span></span><span class="l3-pen">✎</span></div>
-                <div class="srcline">from source:  1 cucumber</div>
-                <div class="lockhint">the row has exactly one measure, and 8.7 said that “pre-selects”. It pre-selected the <i>sheet</i>, never the line, so this card stayed amber until somebody opened and confirmed it. Now it never opens.</div>
+                <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Broccoli</span><span class="l3-note">cut into florets</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from source:  1 broccoli, cut into florets</div>
+                <div class="lockhint">the fragment set is no longer a stop: <b>spear</b> (31 g) and <b>crown</b> (150 g) stay measures with their own words, and what a <i>whole</i> one weighs is the row’s piece weight. “Ask me each time” is gone with the pointer that carried it.</div>
             </div>
 
             <div class="lcard attn">
@@ -215,37 +228,12 @@
                 <div class="lflags"><span class="lflag">unit “bunch” needs a look</span></div>
                 <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
                 <div class="chosen"><span class="ck">✓</span><span class="cnm">Cilantro</span><span class="chint">tap to change</span><span class="ci">›</span></div>
-                <p class="chip-note">the source named a thing we don’t carry — the default does not answer this</p>
+                <p class="chip-note">the source named a thing we don’t carry — no row fact answers it</p>
                 <div class="suggests" style="margin-top:0"><span class="sug"><span class="srcdot usda"></span>sprig</span><span class="sug">g</span><span class="sug">cup</span><span class="sug">tbsp</span><span class="sug impr">handful</span></div>
-                <div class="lockhint">cilantro’s default IS <b>sprig</b> (1 measure, 2.22 g) — and it is deliberately <b>not</b> applied: a bunch is ~25 sprigs. The scope rule is <b>the default answers a line that named a number and no thing; it never overrules a line that named a thing.</b></div>
+                <div class="lockhint">a bunch is ~25 of cilantro’s 2.22 g sprigs. <b>A line that NAMES a thing is never overruled</b>; a refused <code>cup</code> is a density gap and a refused count is a piece-weight gap, and each names the number it wants.</div>
             </div>
 
             <div class="savebtn off">1 line(s) need you</div>
-        </div></div>
-    </div>
-
-    <div class="frame">
-        <p class="frame-name"><b>No default, still flagged</b> · a fragment set has no honest answer, so the line waits</p>
-        <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">1 to review</span></div>
-            <div class="lcard attn">
-                <div class="chead"><span class="cn">broccoli</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
-                <div class="srcline">from source:  1 broccoli, cut into florets</div>
-                <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
-                <div class="chosen"><span class="ck">✓</span><span class="cnm">Broccoli</span><span class="chint">tap to change</span><span class="ci">›</span></div>
-                <p class="chip-note">three different things — <b>you</b> pick; we don’t</p>
-                <p class="chip-note">no <i>unit “piece” needs a look</i> badge: that flag names a word we could not read (<code>tin</code>, <code>bunch</code>), and <code>piece</code> is one the catalog carries. The line’s real problem is the amber tag above it.</p>
-                <div class="suggests" style="margin-top:0"><span class="sug"><span class="srcdot usda"></span>whole</span><span class="sug"><span class="srcdot usda"></span>spear</span><span class="sug"><span class="srcdot typ"></span>crown</span><span class="sug">g</span><span class="sug">cup</span></div>
-                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip off">1 — <span class="pen">✎</span></span></span></div>
-                <div class="lockhint">608 g · 31 g · 150 g. <b>default_measure_id is null on this row, and null is a real answer</b> — the model can say “I don’t know”, which a rule never can.</div>
-            </div>
-            <div class="lcard">
-                <div class="l3 edit"><span class="l3-amt">1 head</span><span class="l3-body"><span class="l3-id">Napa cabbage</span><span class="l3-note">shredded</span></span><span class="l3-pen">✎</span></div>
-                <div class="srcline">from source:  1 napa cabbage, shredded</div>
-                <div class="lockhint">the counter-case, one row down: napa cabbage carries a <b>single</b> measure (<b>head</b>, 950 g) so it <i>does</i> get a default — while plain <b>cabbage</b> (head vs leaf) gets none. Same food, two answers, because the vocabulary differs. That is the argument for a curated fact over a rule.</div>
-            </div>
-            <div class="savebtn off">1 line(s) need you</div>
-            <p class="conv-note" style="text-align:center;margin-top:8px">9 of the 141 seeded rows land here — and they are the rows that should</p>
         </div></div>
     </div>
 

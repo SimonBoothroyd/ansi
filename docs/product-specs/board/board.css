@@ -862,14 +862,15 @@
     .er-no b{color:var(--gone);font-weight:500;}
 
 /* ===== piece ===== */
-    /* the ask-once prompt: a question, in the sheet, with a default */
-    .askrow{margin:12px 20px 0;background:#FDF8EC;border:1px solid #F0DCB0;border-radius:12px;padding:12px 13px;}
-    .askrow .ask-h{font-size:13px;font-weight:600;color:#7A5A16;margin-bottom:4px;}
-    .askrow .ask-b{font-size:11.5px;color:var(--muted);line-height:1.45;}
-    .askbtns{display:flex;gap:8px;margin-top:11px;}
-    .askbtn{flex:1;text-align:center;font-size:12px;font-weight:600;border-radius:10px;padding:10px 8px;border:1px solid var(--line);color:var(--ink);background:var(--frame);}
-    .askbtn.on{background:var(--herb);border-color:var(--herb);color:#fff;}
-    .askbtn small{display:block;font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;margin-top:2px;opacity:.8;}
+    /* the piece-weight sentence: "1 piece weighs [__] g" on ONE row, the
+       density sentence's shape for the count fact. A row, not a form: the
+       field takes its own width and there is no field chrome around the
+       label. Amber border = the row is a stranded piece default. */
+    .weigh{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:11px;padding:8px 11px;background:var(--paper);}
+    .weigh .w-l{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--muted);}
+    .weigh .w-in{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink);min-width:34px;text-align:right;border-bottom:1px solid var(--line);}
+    .weigh .w-in.empty{color:var(--gone);}
+    .weigh .w-u{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink);}
     /* a chip that is no longer admitted at all — drawn once, struck, to show the absence */
     .uchip.struck{color:var(--line);border-style:dashed;text-decoration:line-through;}
     .chip-note{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;}
@@ -948,18 +949,6 @@
     /* the seam frames print "2 pepper, medium" in the amount column: let it wrap */
     .l3.seam .l3-amt{white-space:normal;flex:0 0 92px;line-height:1.25;padding-right:6px;}
 
-    /* a line that arrived on its curated default: the fact, said on the card
-       at the moment it is spent — never behind the user's back */
-    .dflt{display:flex;align-items:center;gap:6px;margin-top:7px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--herb-deep);}
-    .dflt .tap{color:var(--muted);margin-left:auto;}
-    .dflt .gm{color:var(--muted);}
-    /* the "Counts as" picker — one row, the manager's flesh-out form */
-    .cntas{display:flex;align-items:center;gap:9px;margin:0 20px 12px;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:10px 12px;}
-    .cntas .cl{flex:1;font-size:13.5px;font-weight:500;}
-    .cntas .cv{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--herb-deep);}
-    .cntas .cg{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
-    .cntas .caret{color:var(--muted);}
-    .cntas.none .cv{color:var(--muted);}
     /* an imprecise chip in the review card's suggestion row (the dock has .uchip.impr; the card's row is .sug) */
     .sug.impr{color:var(--muted);border-style:dotted;}
     /* an ingredient row that is why a number is missing — the same amber the
