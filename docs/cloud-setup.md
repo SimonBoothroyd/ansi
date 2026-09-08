@@ -510,6 +510,17 @@ or any dashboard-config walk.
   household id — the function secrets survive a reset and still name the dead
   household. Template readback (319 live ingredients · 133 default measures
   expected) is the owner's `--linked` leg.
+- **Same day, two data-only follow-ups, no app release:** the audit's
+  cinnamon-stick density cleared (reseed run `34239697371`), then the
+  provenance card on the new household printed only the FDC id — the seed
+  never wrote `source_label` (0027's fill was a migration, empty table on a
+  reset) and `ensure_onboarded()` never cloned it. Fixed by the seed writing
+  the label with the stamp and **`0038`** (the clone carries label + score;
+  nameless `usda_fdc:` rows named from the reference, all households):
+  `deploy-supabase` run `34240823083`, `reseed_template` ticked, all five
+  legs ✓. Run `34240557813` before it deployed the OLD `main` by mistake (a
+  fast-forward run on the wrong branch) and changed nothing.
+  `cloud_verify.sh` after each: **9 ok · 0 warn · 0 fail**.
 
 ### 2026-09-05 — round five on cloud (plans 0034–0040): 0032–0034, and a reseed that had to be repaired
 
