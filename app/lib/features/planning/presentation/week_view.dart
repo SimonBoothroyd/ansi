@@ -72,8 +72,9 @@ const _kDefaultSlot = 'Dinner';
 ///
 /// A recipe goes straight to the confirm sheet — its amount is its portions.
 /// A bare ingredient (step 8.14) stops at the shipped quantity sheet first,
-/// seeded from the row's stated default measure (A-D2), so "1 bar" means a
-/// bar; then the same confirm sheet asks the questions both kinds share.
+/// opened on the row's default unit — `piece`, weighed by the row's own piece
+/// weight (ADR-0015), so "1 bar" is a bar; then the same confirm sheet asks
+/// the questions both kinds share.
 Future<void> _addMealFlow(
   BuildContext context,
   WidgetRef ref, {

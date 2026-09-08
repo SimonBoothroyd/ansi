@@ -114,8 +114,9 @@ class _NotCounted extends StatelessWidget {
   }
 }
 
-/// One named line under the badge: `Cucumber · needs a weight ›`. Tapping it
-/// opens the fix its reason implies — the marker is a door, not a label.
+/// One named line under the badge: `Cucumber · needs a piece weight ›`.
+/// Tapping it opens the fix its reason implies — the marker is a door, not a
+/// label.
 class _NamedLine extends StatelessWidget {
   const _NamedLine({required this.note, this.onFix});
 

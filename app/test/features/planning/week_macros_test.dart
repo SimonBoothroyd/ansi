@@ -407,7 +407,10 @@ void main() {
       final left = _sum([
         _snack(id: 'a', quantity: 1, unit: pieces, measureId: 'gone'),
       ]).excluded.single;
-      expect(left.lineReason, MacroLineReason.needsWeight);
+      // Not `needsWeight`: that would send the household to the ingredient's
+      // form for a piece weight nothing is missing (ADR-0015). It waits in
+      // the recipe engine's own words for the same line.
+      expect(left.lineReason, MacroLineReason.needsDensity);
     });
 
     test('a snack nobody is eating is excluded for that, not for its row', () {
@@ -468,7 +471,9 @@ void main() {
           pieceBasisAmount: 110,
         ),
       ]).excluded.single;
-      expect(left.lineReason, MacroLineReason.needsWeight);
+      // It waits in the recipe engine's words, not as `needsWeight` — the
+      // row HAS a piece weight, and that door would lead nowhere.
+      expect(left.lineReason, MacroLineReason.needsDensity);
     });
 
     test('a RESOLVED measure still wins over the piece weight', () {

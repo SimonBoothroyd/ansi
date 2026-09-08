@@ -199,8 +199,11 @@ PortionMacros ingredientPortionMacros(
     // An unresolved measure reads as its honest count fallback — a count
     // cannot join a mass/volume total, so the snack is unweighable until the
     // measure row syncs in. Nothing is broken to fix, so it is NOT
-    // `needsWeight`: something does weigh it, this device just cannot see it.
-    return (perPortion: null, reason: MacroLineReason.needsWeight);
+    // `needsWeight`: since ADR-0015 that word sends the household to the
+    // ingredient's form to enter a number nothing is missing. It degrades
+    // the way the recipe engine degrades the same line — unconvertible, in
+    // the density's words — until the row syncs in.
+    return (perPortion: null, reason: MacroLineReason.needsDensity);
   } else if (unit.family == UnitFamily.count &&
       pieceMeasureOf(nutrition) != null) {
     // A bare `piece` converts through the row's piece weight (ADR-0015).

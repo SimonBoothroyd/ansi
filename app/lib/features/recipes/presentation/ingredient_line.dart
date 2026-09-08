@@ -93,8 +93,8 @@ class RecipeIngredientLine extends StatelessWidget {
   final LineUses uses;
 
   /// Why this row is left out of the macro total, in the shared per-line
-  /// words (seam **D5**) — `needs a weight`, `stub ingredient`. Null when the
-  /// row is in the total, or when the caller has no summary to read.
+  /// words (seam **D5**) — `needs a piece weight`, `stub ingredient`. Null
+  /// when the row is in the total, or when the caller has no summary to read.
   ///
   /// It renders as a small amber dot plus the reason at the end of the amount
   /// column, in **the same amber the import review card uses**, because it is
