@@ -4,7 +4,7 @@
 #   1. required harness files exist
 #   2. every relative markdown link resolves to a real file
 #   3. the local and cloud sync streams have not diverged
-#   4. the generated schema matches the migrations (i.e. `make docs` was run)
+#   4. the generated docs match their sources (i.e. `make docs` was run)
 #   5. no plan in active/ claims it is done; a plan that has gone quiet warns
 #   6. no duplicate area in the standing table; no table split by a stray line
 #   7. every ADR is linked from the design-docs index
@@ -47,17 +47,24 @@ echo "• sync-rule boundary (local vs cloud streams)"
 if ./scripts/check_stream_drift.sh; then :; else fail=1; fi
 
 # A migration that lands without `make docs` leaves the generated schema
-# describing a database that no longer exists.
+# describing a database that no longer exists; an admission rule changed without
+# it leaves the unit table describing chips no picker draws.
 echo "• generated docs match their source"
 tmp_schema=$(mktemp)
-if ./scripts/gen_docs.sh "$tmp_schema" >/dev/null 2>&1 \
-   && diff -q "$tmp_schema" docs/generated/db-schema.md >/dev/null 2>&1; then
-  echo "  ✓ docs/generated/db-schema.md"
-else
-  echo "  ✗ docs/generated/db-schema.md is stale — run \`make docs\` and commit it"
-  fail=1
-fi
-rm -f "$tmp_schema"
+tmp_units=$(mktemp)
+gen_ok=0
+./scripts/gen_docs.sh "$tmp_schema" "$tmp_units" >/dev/null 2>&1 || gen_ok=1
+check_generated() {   # $1 = freshly generated file, $2 = committed file
+  if [ "$gen_ok" -eq 0 ] && diff -q "$1" "$2" >/dev/null 2>&1; then
+    echo "  ✓ $2"
+  else
+    echo "  ✗ $2 is stale — run \`make docs\` and commit it"
+    fail=1
+  fi
+}
+check_generated "$tmp_schema" docs/generated/db-schema.md
+check_generated "$tmp_units" docs/generated/unit-admission.md
+rm -f "$tmp_schema" "$tmp_units"
 
 # A finished plan left in active/ is how the roadmap goes quietly wrong.
 echo "• active plans are actually active"
