@@ -374,8 +374,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // On screen at once, and NOT written (plan 0029 W5): a pending measure
-      // is indistinguishable from a stored one here, which is what lets the
-      // `piece` question and "Counts as" point at it before it exists.
+      // is indistinguishable from a stored one here.
       expect(
         find.descendant(
           of: find.byType(MeasureRow),

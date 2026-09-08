@@ -370,7 +370,7 @@ abstract interface class IngredientRepository {
   Stream<List<String>> watchCategories();
 
   /// Applies a whole form in ONE transaction: the row's fields, the density,
-  /// measures added and removed, aliases, "Counts as", and — when
+  /// the piece weight, measures added and removed, aliases, and — when
   /// [IngredientFormEdit.markComplete] — the status flip.
   ///
   /// **A null [ingredientId] creates the row**, which is what lets the form be

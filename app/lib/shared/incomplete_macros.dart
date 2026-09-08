@@ -17,7 +17,8 @@ import '../core/words.dart';
 import '../features/recipes/domain/recipe_macros.dart';
 
 /// Why a summary is incomplete, for the row note: `no ingredients yet`,
-/// `1 stub line`, `2 stub lines · 1 line needs a weight · 1 unconvertible`,
+/// `1 stub line`, `2 stub lines · 1 line needs a piece weight · 1
+/// unconvertible`,
 /// `1 sub-recipe unresolved` — never an empty string (a reasonless badge
 /// would leave a dangling separator).
 ///
@@ -58,8 +59,8 @@ String incompleteNote(RecipeMacroSummary summary) {
 
 /// What ONE excluded line is waiting on — the per-line half of the same
 /// vocabulary (seam **D5**). The panel's list, a row's marker and the picker
-/// row all read this, so `Cucumber · needs a weight` says the same thing
-/// wherever it appears.
+/// row all read this, so `Cucumber · needs a piece weight` says the same
+/// thing wherever it appears.
 ///
 /// [MacroLineReason.imprecise] has no wording of its own here: an imprecise
 /// line is named by the WORD THE SOURCE PRINTED ("handful", "to taste"), not

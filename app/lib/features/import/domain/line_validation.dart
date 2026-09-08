@@ -285,9 +285,9 @@ class LineValidation {
   final String? sourceLine;
 
   /// The measure the line's current unit NAMES, when it names one — so the
-  /// card can print the weight beside it ("counts as pepper, medium · 119 g",
-  /// seam D2) without a second measure read per line. Null when the unit is a
-  /// catalog unit, a word nothing carries, or absent.
+  /// method's step chips can read the same measure the card resolved, without
+  /// a second measure read per line. Null when the unit is a catalog unit, a
+  /// word nothing carries, or absent.
   final Measure? unitMeasure;
 
   /// The line is a count on a piece-default row that has no piece weight yet

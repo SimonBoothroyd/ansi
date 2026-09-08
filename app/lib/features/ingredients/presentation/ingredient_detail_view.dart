@@ -604,10 +604,11 @@ class _DetailForm extends ConsumerWidget {
             ],
           ),
 
-          // Density, admission, the default unit, measures and "Counts as"
-          // are ONE subject — what a line of a recipe may say about this row,
-          // and how much of it that is. The default unit sits here rather than
-          // beside the category because it obeys the same rule as the chips:
+          // Density, the piece weight, admission, the default unit and the
+          // measures are ONE subject — what a line of a recipe may say about
+          // this row, and how much of it that is. The default unit sits here
+          // rather than beside the category because it obeys the same rule as
+          // the chips:
           // `unitSayableAsDefault` and the chips' own candidate list are one
           // predicate wearing two hats, so a greyed selector option and a
           // locked chip explain each other. It also puts the stranded
