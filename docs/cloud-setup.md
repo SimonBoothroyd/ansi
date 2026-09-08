@@ -512,12 +512,15 @@ or any dashboard-config walk.
 - Shipped as `v0.8.0` (release run `34275484036`: guard ✓ · android ✓, APK
   93 MB + AAB 80 MB on the Release · ios compile proof ✓ · `play-internal`
   skipped by design) after the cloud legs, per §4's order.
-- **Still owed (owner, human-run):** the §2b ingredient rollout, which now
-  carries leg (c), the piece weight. Its preview reads 1 unit extension and
-  would fill Red Cabbage's weight from the template; Mint stays a stranded
-  piece default the form asks about on its next open. The measures leg is not
-  needed — `seed_measures.sql` did not change. The preview block does not yet
-  count leg (c) separately; the count query above is the readback for it.
+- **The §2b ingredient rollout, owner-run the same evening:** the preview
+  read 1 unit extension before and **0 on every leg** after; leg (c) carried
+  Red Cabbage's `head, medium` weight (839 g) down from the template. The
+  household now holds 77 piece-default rows, weighed on all but **Mint** —
+  the template's Mint moved to a `g` default, which a rollout never carries,
+  so that row stays a stranded piece default the form asks about on its next
+  open. The measures leg was not needed — `seed_measures.sql` did not change.
+  The preview block does not yet count leg (c) separately; the readback query
+  above is how it was checked.
 
 ### 2026-09-08 — round six on cloud (v0.7.0): the database rebuilt from scratch
 
