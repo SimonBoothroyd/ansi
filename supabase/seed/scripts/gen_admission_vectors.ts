@@ -28,6 +28,8 @@ export interface AdmissionVector {
   defaultUnit: string;
   basis: string;
   density: number | null;
+  /** What ONE of the thing weighs, in the basis unit — null if it cannot say. */
+  pieceBasisAmount: number | null;
   category: string | null;
   expect: string[];
 }
@@ -78,6 +80,9 @@ export function renderBlock(vectors: AdmissionVector[]): string {
       `    ${v.density === null ? "null" : v.density}${
         i === 0 ? "::numeric" : ""
       },`,
+      `    ${v.pieceBasisAmount === null ? "null" : v.pieceBasisAmount}${
+        i === 0 ? "::numeric" : ""
+      },`,
       `    ${nullable(v.category)}${i === 0 ? "::text" : ""},`,
       `    ${lit(JSON.stringify(v.expect))}${i === 0 ? "::jsonb" : ""},`,
       `    ${lit(v.why)}`,
@@ -95,7 +100,8 @@ export function renderBlock(vectors: AdmissionVector[]): string {
     "  (",
     "    select jsonb_agg(u order by u)",
     "    from jsonb_array_elements_text(",
-    "      default_allowed_units(v.default_unit, v.basis, v.density, v.category)",
+    "      default_allowed_units(v.default_unit, v.basis, v.density, v.category,",
+    "                            v.piece_basis_amount)",
     "    ) as u",
     "  ),",
     "  (",
@@ -106,7 +112,8 @@ export function renderBlock(vectors: AdmissionVector[]): string {
     ")",
     "from (values",
     rows,
-    ") as v(shape, default_unit, basis, density, category, expect, why);",
+    ") as v(shape, default_unit, basis, density, piece_basis_amount, category,",
+    "        expect, why);",
     END_MARKER,
   ].join("\n");
 }

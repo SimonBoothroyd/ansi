@@ -83,7 +83,7 @@ with v(canonical_name, category, default_unit, match_text) as (values
   ('Fresh Oregano', 'produce', 'tsp', 'oregano fresh'),
   ('Basil', 'produce', 'cup', 'basil'),
   ('Thai Basil', 'produce', 'cup', 'thai basil'),
-  ('Mint', 'produce', 'piece', 'mint'),
+  ('Mint', 'produce', 'g', 'mint'),
   ('Spinach', 'produce', 'cup', 'spinach'),
   ('Arugula', 'produce', 'cup', 'arugula'),
   ('Tatsoi', 'produce', 'piece', 'tatsoi'),

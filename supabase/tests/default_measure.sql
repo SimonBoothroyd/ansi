@@ -1,5 +1,16 @@
 -- pgTAP: the curated default count measure (0023, plan 0024 seam D1).
 --
+-- RETIRED 2026-09-08 by ADR-0015. `ingredient.piece_basis_amount` states the
+-- same judgment as a NUMBER on the row — what one of these weighs — and the
+-- app reads that instead. The column, its own-measure trigger and
+-- `ingredient_default_measure_backfill()` are kept for one release because
+-- the data is durable (docs/cloud-setup.md §2c), and this suite is what keeps
+-- them honest while they are: the generated seed no longer writes the column
+-- on a fresh stack, so §4 below CALLS the shipped backfill (0023's frozen
+-- curation snapshot) and §6/§7 read what it filled. On the cloud, where the
+-- values have been in place since 2026-09-03, the same backfill is the no-op
+-- it always was.
+--
 -- `ingredient.default_measure_id` says what a bare count of a row MEANS ("2
 -- onions" = 2 × `onion, medium`). It is a stated per-row fact, so what needs
 -- defending is that it cannot tell a lie and cannot be taken away:
@@ -12,10 +23,9 @@
 --     (match_text, measure label), per household, and NEVER overwrites a
 --     household's own choice — ADR-0009 rule 3's posture, and what makes the
 --     function safe to re-run after `rollout_measure_refresh.sql`;
---   * the seeded template carries the curation, and the nine fragment-set
---     rows carry NO default (asserted BY NAME, so a regenerated seed cannot
---     quietly rule on one of them — the same job the `piece` guard in
---     unit_admission.sql does for ADR-0010);
+--   * the shipped backfill's frozen curation still lands on the template, and
+--     the ten rows it does not name carry NO default (asserted BY NAME, so a
+--     regenerated seed cannot quietly rule on one of them);
 --   * `ensure_onboarded()` carries the default into a new household by
 --     LABEL, because every household holds its own measure rows.
 --
@@ -23,7 +33,7 @@
 -- Run by `supabase test db`.
 
 begin;
-select plan(23);
+select plan(24);
 
 -- Isolate: the backfill visits EVERY household, and a live dev session or a
 -- `make test-sim` run leaves onboarded strays behind. Tombstone them
@@ -170,12 +180,29 @@ select is(
   'a second run is a no-op'
 );
 
--- The shipped function is the same statement over the shipped list: on the
--- already-seeded template every curated row is filled, so it fills nothing.
+-- The shipped function is the same statement over 0023's frozen curation
+-- list. Since ADR-0015 the generated seed no longer writes the retired
+-- column, so on a fresh stack this is what fills it — and it lands 129 of its
+-- 132 pairs, because three of the rows it names were RENAMED by plan 0039's
+-- display-name sweep (`baked bean` → `baked bean canned`, `coconut milk` →
+-- `coconut milk canned`, `hot chili` → `red chili fresh`). The function says
+-- so itself, in the `raise warning` its orphan check emits. A frozen snapshot
+-- going stale against a moving vocabulary is precisely why this column is a
+-- pointer nobody should be keeping, and precisely what ADR-0015's number on
+-- the row replaces.
+--
+-- (`>=` rather than `=` because a stray onboarded household left behind by a
+-- dev session carries the same vocabulary and is filled too.)
+select cmp_ok(
+  ingredient_default_measure_backfill(),
+  '>=',
+  129,
+  'the shipped backfill still lands 0023''s frozen curation on the template'
+);
 select is(
   ingredient_default_measure_backfill(),
   0,
-  'the shipped backfill is idempotent against the seeded template'
+  'and a second run is a no-op — it only ever fills a null'
 );
 
 -- ---------------------------------------------------------------------------
@@ -191,13 +218,13 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- 6. The seeded template carries the curation.
+-- 6. The template carries the curation (§4's backfill put it there).
 -- ---------------------------------------------------------------------------
 select ok(
   (select count(*) from ingredient
     where household_id = '00000000-0000-0000-0000-0000000000aa'
-      and deleted_at is null and default_measure_id is not null) >= 130,
-  'the seeded template carries the curated defaults (132 as of 2026-09-03)'
+      and deleted_at is null and default_measure_id is not null) >= 129,
+  'the template carries the curated defaults (129 of the snapshot''s 132)'
 );
 
 select is(
@@ -210,10 +237,15 @@ select is(
   'every seeded default points at a live measure of its OWN row'
 );
 
--- The nine fragment sets, BY NAME. Two or more KINDS of countable thing with
--- no dominant one: the flag stands and the user picks, which is ADR-0010's
--- own answer. Naming them is what stops a regenerated seed quietly ruling on
--- one of them.
+-- The measured rows 0023's snapshot leaves unfilled, BY NAME — three kinds,
+-- and the mix is the argument against the column:
+--   * the nine fragment sets the snapshot was written with (two or more KINDS
+--     of countable thing and no dominant one), deliberately unruled;
+--   * `lentil canned`, which joined the vocabulary after the snapshot froze;
+--   * the three rows plan 0039 renamed out from under it (`baked bean
+--     canned`, `coconut milk canned`, `red chili fresh`).
+-- Naming them is what stops the retired column quietly acquiring a value
+-- nobody ruled on while it is still around.
 select is(
   (select array_agg(i.match_text order by i.match_text) from ingredient i
     where i.household_id = '00000000-0000-0000-0000-0000000000aa'
@@ -221,9 +253,11 @@ select is(
       and i.default_measure_id is null
       and exists (select 1 from ingredient_measure m
                   where m.ingredient_id = i.id and m.deleted_at is null)),
-  array['broccoli', 'cabbage', 'iceberg lettuce', 'mint', 'red cabbage',
-        'red leaf lettuce', 'romaine lettuce', 'spinach', 'vegetable broth'],
-  'exactly the nine fragment-set rows carry no default'
+  array['baked bean canned', 'broccoli', 'cabbage', 'coconut milk canned',
+        'iceberg lettuce', 'lentil canned', 'mint', 'red cabbage',
+        'red chili fresh', 'red leaf lettuce', 'romaine lettuce', 'spinach',
+        'vegetable broth'],
+  'exactly the thirteen measured rows 0023''s snapshot misses carry no default'
 );
 
 -- The counter-case one row down, and the argument for a curated fact over a

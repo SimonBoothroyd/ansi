@@ -10,17 +10,26 @@
 -- household, in place, without touching anything the household itself owns.
 --
 -- It is deliberately generic: it is not "the FAO rollout", it is "carry the
--- template's density + allowed_units forward". Re-run it after any future
--- template reseed that fills densities or widens unit admission.
+-- template's density, piece weight and allowed_units forward". Re-run it
+-- after any future template reseed that fills densities or piece weights, or
+-- widens unit admission.
 --
--- SCOPE — exactly two columns, both monotone (they only ever ADD):
+-- SCOPE — three columns (four with the provenance that rides one of them),
+-- all monotone (they only ever ADD):
 --   (a) density_g_per_ml — filled ONLY where the household's is NULL and the
 --       template's is not. A household's own density is never overwritten.
 --   (b) allowed_units    — replaced by the UNION of the household's list and
 --       the template's. A unit the household admitted is never removed.
+--   (c) piece_basis_amount (+ piece_source) — the same fill-only rule as (a).
+--       A piece weight is a row fact of exactly the density's kind
+--       (ADR-0015), and it is what admits `piece`, so a template that gains
+--       one has to be able to carry it forward the same way. `piece_source`
+--       travels WITH the number and only with it, so a rolled-out weight
+--       still says where it came from.
 -- Plus `updated_at = now()`, so PowerSync replicates the row down to devices.
--- Nothing else moves: not `source`, not `status`, not `macros`, not measures,
--- not aliases (see "DELIBERATELY LEFT ALONE" at the bottom).
+-- Nothing else moves: not `source`, not `status`, not `macros`, not
+-- `default_unit`, not measures, not aliases (see "DELIBERATELY LEFT ALONE" at
+-- the bottom).
 --
 -- JOIN KEY — `match_text`, scoped to the household. That is the identity that
 -- survives cloning: `ensure_onboarded()` copies `match_text` verbatim while
@@ -45,7 +54,8 @@
 -- ),
 -- tpl as (
 --   select distinct on (i.match_text)
---          i.match_text, i.density_g_per_ml, i.allowed_units
+--          i.match_text, i.density_g_per_ml, i.allowed_units,
+--          i.piece_basis_amount, i.piece_source
 --   from ingredient i
 --   join tpl_household th on th.id = i.household_id
 --   where i.deleted_at is null
@@ -106,7 +116,8 @@ tpl as (
   -- generator already forbids collisions, and the oldest row wins if one ever
   -- slips through, so the rollout stays deterministic.
   select distinct on (i.match_text)
-         i.match_text, i.density_g_per_ml, i.allowed_units
+         i.match_text, i.density_g_per_ml, i.allowed_units,
+         i.piece_basis_amount, i.piece_source
   from ingredient i
   join tpl_household th on th.id = i.household_id
   where i.deleted_at is null
@@ -137,6 +148,15 @@ set
       ) u
     )
   end,
+  -- (c) fill only, and the provenance rides with the number: a household that
+  -- has said what one of these weighs keeps its answer AND its `piece_source`
+  -- verbatim. `piece` itself is not written here — it arrives through (b),
+  -- because the template's own list already says it.
+  piece_basis_amount = coalesce(i.piece_basis_amount, t.piece_basis_amount),
+  piece_source = case
+    when i.piece_basis_amount is not null then i.piece_source
+    else t.piece_source
+  end,
   -- Bump so PowerSync replicates the change down to every device.
   updated_at = now()
 from tpl t, household h
@@ -152,6 +172,9 @@ where h.id = i.household_id
     -- leg (b): a unit to gain (jsonb containment = "template ⊆ household")
     (t.allowed_units is not null
      and not (t.allowed_units <@ coalesce(i.allowed_units, '[]'::jsonb)))
+    or
+    -- leg (c): a piece weight to gain
+    (i.piece_basis_amount is null and t.piece_basis_amount is not null)
   );
 
 commit;
@@ -168,6 +191,12 @@ commit;
 --     never gain one here.
 --   * A household row whose density is already set, even where it disagrees
 --     with the template's. The household's number wins; only NULLs are filled.
+--     Same for a piece weight, and for the `piece_source` beside it.
+--   * `default_unit`. A template row that moves OFF a count default (`Mint`,
+--     ADR-0015) does not move the household's: the default unit is what the
+--     household's own stored lines are denominated in. Such a row simply
+--     gains no piece weight here and reads as a stranded default until
+--     somebody answers for it on the flesh-out form.
 --   * Every other column. `source` and `status` in particular are NOT
 --     rewritten: a household row that gains a density from a template whose
 --     `source` now reads `fao_infoods_v2:…` keeps its own provenance string,

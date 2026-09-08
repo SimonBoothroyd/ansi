@@ -299,14 +299,15 @@ function writePrefill(dir: string): void {
 //   2. fills the density TAIL from the FAO/INFOODS fallback (fao.ts) —
 //      strictly into rows the FDC derivation and the overrides both left
 //      null;
-//   3. refreshes the template vocab's materialized `allowed_units` from
+//   3. sets each piece-default row's `piece_basis_amount` (ADR-0015) — what
+//      ONE of it weighs — borrowed from the curated measure the ruling names,
+//      which is why this runs after seed_measures.sql;
+//   4. refreshes the template vocab's materialized `allowed_units` from
 //      `default_allowed_units()` (0012) — the insert-time trigger ran before
-//      seed_prefill landed densities, so the density-unlocked family only
-//      appears once every density source has run;
-//   4. applies the allowed-unit overrides on top of that refresh;
-//   5. sets each row's curated `default_measure_id` (seam D1) by
-//      (match_text, measure label) — last, because it resolves a measure id
-//      and seed_measures.sql runs immediately before this file.
+//      seed_prefill landed densities and before the piece weights above, so
+//      neither the density-unlocked family nor `piece` appears until this
+//      refresh;
+//   5. applies the allowed-unit overrides on top of that refresh.
 //
 // Measure overrides (drop/add) are gen_measures.ts's job — they change what
 // seed_measures.sql emits rather than patching it afterwards.
@@ -319,10 +320,10 @@ function writeCuration(dir: string, vocabMatchTexts: Set<string>): void {
     "-- (with reasons) and regenerate (deno task gen-seed).",
     "--",
     "-- Runs LAST: applies the audited curation overrides (plan 0013), fills",
-    "-- the density tail from the FAO/INFOODS fallback, refreshes the",
-    "-- template vocab's materialized allowed_units now that every density",
-    "-- source has run, and sets each row's curated default count measure",
-    '-- (seam D1 — what a bare "2 onions" means).',
+    "-- the density tail from the FAO/INFOODS fallback, sets each counted",
+    "-- row's piece weight (ADR-0015 — what ONE of it weighs), and refreshes",
+    "-- the template vocab's materialized allowed_units now that every",
+    "-- density source AND every piece weight has run.",
     "--",
     `-- Density fallback dataset: ${FAO_DATASET}`,
     "-- (see seed/fao_density.jsonl for the source URL + sha256, and",
@@ -443,12 +444,57 @@ function writeCuration(dir: string, vocabMatchTexts: Set<string>): void {
     }
   }
 
+  // Piece weights (ADR-0015) — BEFORE the allowed_units refresh below, which
+  // reads `piece_basis_amount` as the fifth argument of the rule. A borrowing
+  // ruling copies the curated measure's `basis_amount` off the row's own live
+  // measure (seed_measures.sql ran immediately before this file) and records
+  // where it came from; an explicit `basis_amount` states the number outright
+  // and says `seed:typical`, so a guess is visible rather than dressed as a
+  // citation. Label validity is gen_measures.ts's gate (it owns the measure
+  // list); a label that slipped through anyway sets nothing and is named by
+  // the R3 check below.
+  let pieceWeights = 0;
+  for (const o of overrides) {
+    if (o.kind !== "piece_weight") continue;
+    pieceWeights++;
+    sql.push(`-- ${o.match_text}: ${o.reason}`);
+    if (o.basis_amount !== undefined) {
+      sql.push(
+        "update ingredient set",
+        `  piece_basis_amount = ${o.basis_amount},`,
+        "  piece_source = 'seed:typical'",
+        `where household_id = ${q(HOUSEHOLD_ID)} and match_text = ${
+          q(o.match_text)
+        }`,
+        "  and deleted_at is null;",
+        "",
+      );
+    } else {
+      sql.push(
+        "update ingredient i set",
+        "  piece_basis_amount = m.basis_amount,",
+        "  piece_source = 'borrowed from ' || m.label",
+        "  from ingredient_measure m",
+        " where m.ingredient_id = i.id",
+        "   and m.household_id = i.household_id",
+        "   and m.deleted_at is null",
+        `   and m.label = ${q(o.label as string)}`,
+        `   and i.household_id = ${q(HOUSEHOLD_ID)}`,
+        `   and i.match_text = ${q(o.match_text)}`,
+        "   and i.deleted_at is null;",
+        "",
+      );
+    }
+  }
+
   sql.push(
     "-- Re-materialize allowed_units with post-prefill (and post-override)",
-    "-- densities: the insert trigger ran before seed_prefill landed them,",
-    "-- so density-unlocked families are missing until this refresh.",
+    "-- densities and the piece weights above: the insert trigger ran before",
+    "-- seed_prefill landed them, so density-unlocked families and `piece`",
+    "-- are missing until this refresh.",
     "update ingredient set allowed_units = default_allowed_units(",
-    "  default_unit, macros_basis, density_g_per_ml, category)",
+    "  default_unit, macros_basis, density_g_per_ml, category,",
+    "  piece_basis_amount)",
     `where household_id = ${q(HOUSEHOLD_ID)} and deleted_at is null;`,
     "",
     "-- RETIRED 2026-08-31 (migration 0014 / ADR-0009): the produce volume",
@@ -505,34 +551,11 @@ function writeCuration(dir: string, vocabMatchTexts: Set<string>): void {
     }
   }
 
-  // The curated default count measure (seam D1) — LAST, because it resolves
-  // an `ingredient_measure` id and seed_measures.sql has only just run. The
-  // join is by (match_text, label): a measure has no identity beyond its
-  // label on its ingredient, which is the same key the clone, the rollout
-  // scripts and 0023's backfill all use. A ruling of `null` emits nothing —
-  // the column is already null, and writing it would be the one way this
-  // statement could take a default away from a household. `label` validity is
-  // gen_measures.ts's gate (it owns the measure list); a label that slipped
-  // through anyway sets nothing and is named by the R3 check below.
-  let defaults = 0;
-  for (const o of overrides) {
-    if (o.kind === "default_measure" && o.label !== null) {
-      defaults++;
-      sql.push(
-        `-- ${o.match_text}: ${o.reason}`,
-        "update ingredient i set default_measure_id = m.id",
-        "  from ingredient_measure m",
-        " where m.ingredient_id = i.id",
-        "   and m.household_id = i.household_id",
-        "   and m.deleted_at is null",
-        `   and m.label = ${q(o.label as string)}`,
-        `   and i.household_id = ${q(HOUSEHOLD_ID)}`,
-        `   and i.match_text = ${q(o.match_text)}`,
-        "   and i.deleted_at is null;",
-        "",
-      );
-    }
-  }
+  // `ingredient.default_measure_id` ("Counts as", 0023 seam D1) was set here
+  // until 2026-09-08 and is RETIRED by ADR-0015: the same judgment now lands
+  // as `piece_basis_amount` above, a number the converter can actually use.
+  // The column stays on the table for one release (data is durable), but
+  // nothing writes it on a fresh stack, and nothing reads it at all.
 
   sql.push(
     "-- R1 invariant (Simon, 2026-08-29): a volume default_unit REQUIRES a",
@@ -542,7 +565,6 @@ function writeCuration(dir: string, vocabMatchTexts: Set<string>): void {
     "-- weight, always via the pipeline inputs.",
     "do $$",
     "declare violators text;",
-    "        landed int;",
     "begin",
     "  select string_agg(canonical_name || ' (' || default_unit || ')', ', ')",
     "    into violators",
@@ -576,26 +598,48 @@ function writeCuration(dir: string, vocabMatchTexts: Set<string>): void {
     "  end if;",
     "",
     "",
-    "  -- R3 (seam D1): every curated default landed. A ruling whose label",
-    "  -- no longer names a live measure would silently leave the row asking",
-    "  -- for a unit on every counted line — the exact friction D1 removes —",
-    "  -- so a short count is an error, not a notice.",
-    "  select count(*) into landed",
+    "  -- R3 (ADR-0015): `piece` is admitted by a WEIGHT, so the two halves of",
+    "  -- that rule are the two halves of this invariant.",
+    "  --",
+    "  -- (a) Every counted row says what one of it weighs. A piece-default row",
+    "  --     with no piece weight is a STRANDED default: it would offer a",
+    "  --     `piece` nothing can convert, total or shop. Fix it by borrowing",
+    "  --     the curated whole-item measure, stating an honest typical weight,",
+    "  --     or moving the row off a count default — always via the pipeline",
+    "  --     inputs. A ruling whose label no longer names a live measure lands",
+    "  --     nothing and is caught here.",
+    "  select string_agg(canonical_name, ', ') into violators",
     "  from ingredient",
     `  where household_id = ${q(HOUSEHOLD_ID)} and deleted_at is null`,
-    "    and default_measure_id is not null;",
-    `  if landed <> ${defaults} then`,
+    "    and default_unit = 'piece' and piece_basis_amount is null;",
+    "  if violators is not null then",
     "    raise exception",
-    `      'seed_curation R3: % of ${defaults} curated default measures landed ` +
-      `(a default_measure label no longer names a live measure)', landed;`,
+    "      'seed_curation R3a: piece-default rows with no piece weight: %',",
+    "      violators;",
+    "  end if;",
+    "",
+    "  -- (b) …and nothing else admits `piece`. The refresh above derives it",
+    "  --     only for a weighed count default, and no allowed-unit override",
+    "  --     adds it back; this is what stops a regenerated seed offering a",
+    "  --     `piece` of a row nobody counts.",
+    "  select string_agg(canonical_name || ' (' || default_unit || ')', ', ')",
+    "    into violators",
+    "  from ingredient",
+    `  where household_id = ${q(HOUSEHOLD_ID)} and deleted_at is null`,
+    "    and default_unit <> 'piece' and allowed_units ? 'piece';",
+    "  if violators is not null then",
+    "    raise exception",
+    "      'seed_curation R3b: rows admitting piece without a count default: %',",
+    "      violators;",
     "  end if;",
     "",
     "  raise notice 'seed_curation: allowed_units refreshed; " +
       `${macroFills} macro + ${densities} density + ${unitTweaks} ` +
       `allowed-unit overrides + ${faoFills.length} FAO density fills; ` +
-      `${defaults} default count measures; ` +
+      `${pieceWeights} piece weights; ` +
       "R1 (volume default => density), R2 (kitchen density band) and " +
-      "R3 (every curated default landed) hold';",
+      "R3 (every counted row weighed, and only counted rows admit piece) " +
+      "hold';",
     "end $$;",
     "",
     "commit;",
@@ -606,7 +650,7 @@ function writeCuration(dir: string, vocabMatchTexts: Set<string>): void {
   Deno.writeTextFileSync(target, sql.join("\n"));
   console.log(
     `wrote ${target}\n  ${macroFills} macro + ${densities} density + ` +
-      `${unitTweaks} allowed-unit overrides + ${defaults} default measures` +
+      `${unitTweaks} allowed-unit overrides + ${pieceWeights} piece weights` +
       (fao
         ? `\n  ${faoFills.length} FAO density fills, ${fao.rejected} audited ` +
           `rejections still bare, ${fao.superseded} since filled by ` +

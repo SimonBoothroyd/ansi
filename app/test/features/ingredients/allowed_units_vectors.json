@@ -1,9 +1,11 @@
 {
   "_doc": [
     "SHARED VECTORS for the derived unit-admission rule: ADR-0008's model as",
-    "amended by ADR-0009 (a density unlocks the other family), ADR-0010 (piece",
-    "is an admission fact) and ADR-0014 (all to all — the kitchen trim is gone,",
-    "a family is admitted whole, and the household prunes per row).",
+    "amended by ADR-0009 (a density unlocks the other family), ADR-0014 (all to",
+    "all — the kitchen trim is gone, a family is admitted whole, and the",
+    "household prunes per row) and ADR-0015 (a piece weight is a row fact:",
+    "`piece` is admitted iff the default unit is `piece` AND the row says what",
+    "one of it weighs — superseding ADR-0010's hand-curated removals).",
     "",
     "Two implementations claim to apply the same rule: the Dart one the app",
     "offers chips from (lib/features/ingredients/domain/allowed_units.dart,",
@@ -25,7 +27,12 @@
     "business.",
     "",
     "`basis` is the macros basis — 'g' for per-100 g rows, 'ml' for per-100 ml.",
-    "`density` is g per ml, or null for a row that has none yet."
+    "`density` is g per ml, or null for a row that has none yet.",
+    "`pieceBasisAmount` is what ONE of the thing weighs, in the basis unit, or",
+    "null for a row that cannot say. It is the ONLY thing that admits `piece`,",
+    "and only on a `piece` default: a weight on a gram-default row admits",
+    "nothing, and a count default without one is a stranded default the",
+    "flesh-out form asks about."
   ],
   "vectors": [
     {
@@ -34,6 +41,7 @@
       "defaultUnit": "tsp",
       "basis": "g",
       "density": null,
+      "pieceBasisAmount": null,
       "category": "baking",
       "expect": ["g", "kg", "oz", "lb"]
     },
@@ -43,6 +51,7 @@
       "defaultUnit": "cup",
       "basis": "g",
       "density": 0.59,
+      "pieceBasisAmount": null,
       "category": "baking",
       "expect": [
         "cup",
@@ -65,6 +74,7 @@
       "defaultUnit": "tbsp",
       "basis": "g",
       "density": 0.91,
+      "pieceBasisAmount": null,
       "category": "fats & oils",
       "expect": [
         "tbsp",
@@ -86,12 +96,23 @@
     },
     {
       "shape": "egg",
-      "why": "a count default with no density: its own piece, the whole basis family, and the one imprecise word produce earns",
+      "why": "a count default that says what one weighs: its own piece, the whole basis family, and the one imprecise word produce earns",
       "defaultUnit": "piece",
       "basis": "g",
       "density": null,
+      "pieceBasisAmount": 50,
       "category": "produce",
       "expect": ["piece", "g", "kg", "oz", "lb", "handful"]
+    },
+    {
+      "shape": "egg, unweighed",
+      "why": "the same row before anybody says what one egg weighs: no piece at all — a piece nothing can weigh is one nothing can convert, total or shop, so it is not offered (ADR-0015)",
+      "defaultUnit": "piece",
+      "basis": "g",
+      "density": null,
+      "pieceBasisAmount": null,
+      "category": "produce",
+      "expect": ["g", "kg", "oz", "lb", "handful"]
     },
     {
       "shape": "salt",
@@ -99,6 +120,7 @@
       "defaultUnit": "tsp",
       "basis": "g",
       "density": null,
+      "pieceBasisAmount": null,
       "category": "spices & seasoning",
       "expect": ["g", "kg", "oz", "lb", "pinch", "dash", "handful", "to_taste"]
     },
@@ -108,6 +130,7 @@
       "defaultUnit": "piece",
       "basis": "g",
       "density": 0.66,
+      "pieceBasisAmount": 200,
       "category": "produce",
       "expect": [
         "piece",
@@ -128,10 +151,11 @@
     },
     {
       "shape": "avocado",
-      "why": "the same rule under the row ADR-0010's curation pass trims: the DERIVED list still offers piece, which is exactly what a curated list then takes away",
+      "why": "the row ADR-0010's curation pass used to take piece AWAY from by hand: it weighs 201 g, so the rule now gives it piece outright and no per-row removal is involved",
       "defaultUnit": "piece",
       "basis": "g",
       "density": 0.634,
+      "pieceBasisAmount": 201,
       "category": "produce",
       "expect": [
         "piece",
@@ -151,11 +175,22 @@
       ]
     },
     {
+      "shape": "garlic",
+      "why": "a weight on a row nobody counts admits nothing: piece is a fact about a COUNT default, so a gram-default row carrying a 3 g clove weight still says no piece",
+      "defaultUnit": "g",
+      "basis": "g",
+      "density": null,
+      "pieceBasisAmount": 3,
+      "category": "produce",
+      "expect": ["g", "kg", "oz", "lb", "handful"]
+    },
+    {
       "shape": "broth",
       "why": "a per-ml row's volume default IS its basis family, so it stands alone — the whole volume ladder, and no gram leg until a density arrives",
       "defaultUnit": "cup",
       "basis": "ml",
       "density": null,
+      "pieceBasisAmount": null,
       "category": "pantry",
       "expect": ["cup", "tsp", "tbsp", "fl_oz", "ml", "l", "pt", "qt"]
     },
@@ -165,6 +200,7 @@
       "defaultUnit": "cup",
       "basis": "ml",
       "density": 1.03,
+      "pieceBasisAmount": null,
       "category": "dairy",
       "expect": [
         "cup",
@@ -187,6 +223,7 @@
       "defaultUnit": "g",
       "basis": "g",
       "density": null,
+      "pieceBasisAmount": null,
       "category": "grains",
       "expect": ["g", "kg", "oz", "lb"]
     },
@@ -196,6 +233,7 @@
       "defaultUnit": "lb",
       "basis": "g",
       "density": null,
+      "pieceBasisAmount": null,
       "category": "proteins",
       "expect": ["lb", "g", "kg", "oz"]
     },
@@ -205,6 +243,7 @@
       "defaultUnit": "oz",
       "basis": "g",
       "density": 0.91,
+      "pieceBasisAmount": null,
       "category": "dairy",
       "expect": [
         "oz",

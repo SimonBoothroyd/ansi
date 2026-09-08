@@ -512,12 +512,20 @@ function main(): void {
     .map((l) => JSON.parse(l));
 
   // Every match_text we emit must exist in the vocab — fail loudly, never
-  // emit rows that would silently miss the join (honest numbers).
-  const vocab = new Set(
+  // emit rows that would silently miss the join (honest numbers). The value
+  // is the row's default unit, which the piece-weight pass below needs: a
+  // piece weight is a fact about a COUNTED row and about no other kind.
+  const vocab = new Map<string, string>(
     Deno.readTextFileSync(`${here}../vocab.jsonl`)
       .split("\n")
       .filter((l) => l.trim())
-      .map((l) => normalize(JSON.parse(l).canonical_name as string)),
+      .map((l) => JSON.parse(l))
+      .map((
+        r,
+      ) => [
+        normalize(r.canonical_name as string),
+        (r.default_unit as string | undefined) ?? "piece",
+      ]),
   );
 
   const wanted = new Set<string>([
@@ -685,15 +693,18 @@ function main(): void {
     }
   }
 
-  // --- The default count measure pass (seam D1) ------------------------------
+  // --- The piece-weight pass (ADR-0015) --------------------------------------
   // This script owns the final measure list, so it is the only place that can
-  // check a `default_measure` label against what the row actually carries.
-  // Two gates, both exhaustiveness rather than taste:
+  // check a borrowing `piece_weight` label against what the row actually
+  // carries. Three gates, all exhaustiveness rather than taste:
   //   * a label that names no live measure on its row is STALE — the same
   //     failure a stale `drop_measure` gets;
-  //   * a row that carries a measure and has NO ruling fails the run, so a
-  //     regenerated USDA seed cannot quietly add measured rows nobody
-  //     decided about. `label: null` IS a ruling; omission is not.
+  //   * every PIECE-DEFAULT vocab row must carry a ruling, so a regenerated
+  //     USDA seed cannot quietly add a counted row nobody weighed. A row that
+  //     has no honest whole has its `default_unit` changed in vocab.jsonl
+  //     instead (mint) — there is no "no answer" answer any more;
+  //   * a ruling on a row that is NOT piece-default says nothing under the
+  //     rule, so it is a leftover rather than a decision.
   const labelsByRow = new Map<string, Set<string>>();
   for (const r of rows) {
     let labels = labelsByRow.get(r.matchText);
@@ -705,29 +716,39 @@ function main(): void {
   }
   const ruled = new Set<string>();
   for (const o of curation) {
-    if (o.kind !== "default_measure") continue;
+    if (o.kind !== "piece_weight") continue;
     if (ruled.has(o.match_text)) {
-      problems.push(`two default_measure rulings for ${o.match_text}`);
+      problems.push(`two piece_weight rulings for ${o.match_text}`);
     }
     ruled.add(o.match_text);
+    if (vocab.get(o.match_text) !== "piece") {
+      problems.push(
+        `piece_weight on a row whose default_unit is ` +
+          `"${vocab.get(o.match_text) ?? "(not in vocab)"}": ${o.match_text} ` +
+          `— a piece weight only says something about a counted row`,
+      );
+      continue;
+    }
+    if (o.label === undefined) continue; // an explicit basis_amount
     const have = labelsByRow.get(o.match_text);
     if (!have) {
       problems.push(
-        `default_measure on a row with no measures: ${o.match_text}`,
+        `piece_weight borrows a label on a row with no measures: ` +
+          `${o.match_text}`,
       );
-    } else if (o.label !== null && !have.has(o.label as string)) {
+    } else if (!have.has(o.label as string)) {
       problems.push(
-        `stale default_measure override: ${o.match_text} / "${o.label}" ` +
+        `stale piece_weight override: ${o.match_text} / "${o.label}" ` +
           `(row carries: ${[...have].join(", ")})`,
       );
     }
   }
-  for (const matchText of labelsByRow.keys()) {
-    if (!ruled.has(matchText)) {
+  for (const [matchText, unit] of vocab) {
+    if (unit === "piece" && !ruled.has(matchText)) {
       problems.push(
-        `no default_measure ruling for the measured row "${matchText}" — ` +
-          `add one to curation_overrides.jsonl (label, or null for ` +
-          `"no honest default")`,
+        `no piece_weight ruling for the piece-default row "${matchText}" — ` +
+          `add one to curation_overrides.jsonl (a measure label to borrow, ` +
+          `or an explicit basis_amount), or move the row off a count default`,
       );
     }
   }

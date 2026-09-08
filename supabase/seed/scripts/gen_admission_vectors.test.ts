@@ -60,6 +60,7 @@ Deno.test("renderBlock — a quote in the prose is escaped, not emitted raw", ()
     defaultUnit: "tsp",
     basis: "g",
     density: null,
+    pieceBasisAmount: null,
     category: "spices & seasoning",
     expect: ["g"],
   };
