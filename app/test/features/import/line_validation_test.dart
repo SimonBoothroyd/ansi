@@ -579,7 +579,7 @@ void main() {
       pieceSource: 'manual',
     );
 
-    test('the review offers a weighed piece under the sheet\'s own words — '
+    test('the review offers a weighed piece in the words the sheet uses — '
         '"piece (400 g)", never a bare count', () {
       final chips = acceptableUnitChips(weighed, const []);
       final piece = chips.singleWhere((c) => c.token == 'piece');
