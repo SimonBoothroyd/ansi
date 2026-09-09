@@ -102,7 +102,9 @@ void main() {
       final draft = (await _open(repo, initialName: '  curry leaves  ')).at();
 
       expect(draft.creating, isTrue);
-      expect(draft.name, 'curry leaves');
+      // The picker's query is prose; the field opens on the tidied name, and
+      // on exactly what a Save would write.
+      expect(draft.name, 'Curry Leaves');
       expect(draft.row.id, isEmpty);
     });
 
@@ -244,7 +246,8 @@ void main() {
 
       expect(saved, isNotNull);
       final asked = repo.savedForms.single;
-      expect(asked.row.canonicalName, 'Ripe mango');
+      // A name that was typed in is tidied on the way out.
+      expect(asked.row.canonicalName, 'Ripe Mango');
       expect(asked.row.category, 'produce', reason: 'trimmed');
       expect(asked.row.defaultUnit, g);
       expect(asked.row.macros!.kcal, 60);
@@ -393,7 +396,7 @@ void main() {
 
       final saved = await form.save();
 
-      expect(saved!.canonicalName, 'Curry leaves');
+      expect(saved!.canonicalName, 'Curry Leaves');
       expect(repo.rows.single.id, saved.id);
       expect(repo.savedForms.single.aliasesAdded.single.text, 'kadi patta');
     });

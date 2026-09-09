@@ -20,6 +20,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/text/name_clean.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
@@ -135,13 +136,7 @@ class RecipeHeaderForm extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AnsiMicroLabel(section.label),
-            FTextField(
-              hint: 'e.g. Weeknight Chicken Curry',
-              control: FTextFieldControl.managed(
-                initial: TextEditingValue(text: recipe.title),
-                onChange: (v) => host.setTitle(v.text),
-              ),
-            ),
+            _TitleField(host: host),
           ],
         ),
         RecipeHeaderSection.serves => Column(
@@ -377,6 +372,44 @@ class _YieldRow extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// The recipe's title, tidied when the field is left.
+///
+/// A title is what somebody wrote, so [cleanName] only trims it, collapses its
+/// spaces and capitalises its first letter — no word ever changes, which is why
+/// there is nothing to tell and no revert line here. The editor's Save is the
+/// backstop for a field that was never left.
+///
+/// The host owns the text and the controller follows it: the tidied title is
+/// pushed into the controller the field already has, rather than the field
+/// being replaced around a fresh one.
+class _TitleField extends HookWidget {
+  const _TitleField({required this.host});
+
+  final RecipeHeaderHost host;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = useTextEditingController(text: host.header.title);
+    return Focus(
+      onFocusChange: (hasFocus) {
+        if (hasFocus) return;
+        final cleaned = cleanName(host.header.title, NameKind.recipe);
+        if (cleaned == host.header.title) return;
+        host.setTitle(cleaned);
+        controller.text = cleaned;
+      },
+      child: FTextField(
+        key: const ValueKey('recipe-title'),
+        hint: 'e.g. Weeknight Chicken Curry',
+        control: FTextFieldControl.managed(
+          controller: controller,
+          onChange: (v) => host.setTitle(v.text),
+        ),
+      ),
     );
   }
 }
@@ -685,6 +718,7 @@ class _FilingPicker extends ConsumerWidget {
                   title: 'New section',
                   hint: 'Name it anything',
                   confirm: 'Add',
+                  clean: NameKind.section,
                 );
                 if (name == null || name.trim().isEmpty) return;
                 final id = await container.write(

@@ -119,6 +119,25 @@ The column list is generated from the migrations —
   names a household calls a row (`ingredient_alias.alias`, per household,
   soft-deleted like everything else); the matcher searches them beside the
   canonical name.
+- **A typed name is tidied when the field is left, and the form says what it
+  changed.** Every name a person writes in an editor — an ingredient's
+  canonical name, a recipe title, a book or section name, an alias — is
+  trimmed, has its runs of whitespace collapsed and loses a lone trailing `.`
+  or `,` the moment the field loses focus, with Save as the backstop for a
+  field that was typed in and never left. An ingredient name is then Title
+  Cased (small words excepted: `cream of tartar` → `Cream of Tartar`); a title
+  or a book or section name takes a capital on its first letter only; an alias
+  is left as typed, because the vocabulary stores aliases lowercase. Case is
+  only ever *added* — `BBQ sauce` becomes `BBQ Sauce`, never `Bbq`. An
+  ingredient's canonical name additionally gets **one suggestion**: a name that
+  reads as a recipe line becomes the entry it was about (`chopped onions` →
+  `Onion`, `2 cups flour` → `Flour`), using the same word classes the
+  normalizer keys on. Case and spacing change silently; a changed *word* never
+  does — the field prints `was “chopped onions” · keep the old word` beneath
+  it, and one tap restores the typed name and stops the suggestion for it until
+  it is edited again. It fires in editors only: **not** in the ingredient
+  picker, not on method prose or line notes, not on shopping item names or meal
+  labels, and never on a name a save left untouched.
 - **`source_label` says which food the numbers came from, by name.**
   `source` holds a key — an FDC id, a barcode — and no screen ever prints one;
   `source_label` is what a person reads. A USDA pick stores that food's

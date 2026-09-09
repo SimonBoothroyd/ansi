@@ -23,6 +23,7 @@
 /// is never taken automatically, at any score.
 library;
 
+import '../../../core/text/name_clean.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../recipes/domain/recipe.dart';
@@ -536,7 +537,9 @@ CommitPayload buildCommit(
       header.yieldUnit2 != null;
 
   return CommitPayload(
-    title: header.title.trim(),
+    // The backstop for a title field that was never left, as on the editor's
+    // own Save.
+    title: cleanName(header.title, NameKind.recipe),
     servingsBase: header.servingsBase,
     servingsRaw: payload.servingsRaw,
     yieldQty: statedYield ? yieldQty : null,

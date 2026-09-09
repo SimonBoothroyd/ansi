@@ -30,6 +30,11 @@
 ///
 /// The §7 own-goal is over-stripping: "ground ginger" ≠ "fresh ginger". Never
 /// move a word into a strip set to make one match work.
+///
+/// [displayWords] reads the same verdict the other way — which words a person
+/// should still SEE, as typed and in order — so the ingredient form's name
+/// suggestion can borrow these classes instead of growing a second list of
+/// stop words beside them.
 library;
 
 import '../../../core/search/search_query.dart'
@@ -237,23 +242,8 @@ final _canned = RegExp(r'\b(canned|tinned)\b');
 /// can find it. [normalizeSearchQuery] stays the right tool for an in-flight
 /// *search* prefix, which must not be singularized or reordered.
 String normalizeMatchText(String ingredientText) {
-  // Hyphens join compound descriptors ("all-purpose"); treat them as word
-  // breaks so the parts tokenize rather than fusing ("allpurpose"). Diacritics
-  // fold here rather than in [_classify] so every downstream test — the
-  // allium/cinnamon/canned probes below — sees the folded spelling too.
-  final cleaned = foldDiacritics(
-    ingredientText.toLowerCase(),
-  ).replaceAll(_dashes, ' ');
-  // "clove" is both a garlic measure ("2 cloves garlic") and a spice ("ground
-  // cloves"). Drop it as a measure only when an allium shares the phrase.
-  final alliumPresent = _allium.hasMatch(cleaned);
-  // "stick" is likewise both a measure ("1 stick butter") and identity next
-  // to cinnamon ("2 cinnamon sticks" — the whole quill, a different vocab row
-  // from ground cinnamon).
-  final cinnamonPresent = _cinnamon.hasMatch(cleaned);
-  // "diced"/"chopped" are prep everywhere except in a canned phrase, where
-  // they name the product (see [_cannedCutWords]).
-  final cannedPresent = _canned.hasMatch(cleaned);
+  final cleaned = _fold(ingredientText);
+  final phrase = _PhraseContext.of(cleaned);
 
   final nouns = <String>[];
   final states = <String>[];
@@ -261,14 +251,17 @@ String normalizeMatchText(String ingredientText) {
   // a prep modifier ("…, diced") drops out entirely — same classifier, so the
   // head and its modifiers are treated alike.
   for (final segment in cleaned.split(',')) {
-    _classify(
-      segment,
-      nouns: nouns,
-      states: states,
-      alliumPresent: alliumPresent,
-      cinnamonPresent: cinnamonPresent,
-      cannedPresent: cannedPresent,
-    );
+    for (final raw in segment.split(_whitespace)) {
+      final word = raw.replaceAll(_punctuation, '');
+      if (word.isEmpty) continue;
+      final wordClass = phrase.classify(word);
+      if (wordClass == _WordClass.drop) continue;
+      // Fold so the synonym lands as the word it folds ONTO: this is what
+      // puts "tinned" in the trailing state run rather than leaving it
+      // leading the nouns.
+      final identity = _synonyms[word] ?? word;
+      (wordClass == _WordClass.state ? states : nouns).add(identity);
+    }
   }
 
   return [
@@ -277,51 +270,118 @@ String normalizeMatchText(String ingredientText) {
   ].map(_singularize).where((w) => w.isNotEmpty).join(' ');
 }
 
-/// Sorts one segment's words into identity nouns vs trailing state words.
-void _classify(
-  String segment, {
-  required List<String> nouns,
-  required List<String> states,
-  required bool alliumPresent,
-  required bool cinnamonPresent,
-  required bool cannedPresent,
-}) {
-  for (final raw in segment.split(_whitespace)) {
-    final word = raw.replaceAll(_punctuation, '');
+/// The words of [phrase] a person should still SEE — **as they were typed**,
+/// and in the order they were typed.
+///
+/// The normalizer's own output is a key: folded, lowercased, singularized and
+/// reordered noun-first. A caller building something a person will *read*
+/// needs the same verdict about which words matter and none of that
+/// flattening, and must not grow a second list of stop words to get it — one
+/// vocabulary, two readers.
+///
+/// Every word [normalizeMatchText] keeps as identity is kept here. So is a
+/// [_filler] word standing BETWEEN two of them: `of` carries no identity and
+/// the key is right to drop it, but "cream of tartar" is what the jar says and
+/// "Cream Tartar" is not a name. A filler leading or trailing the run is
+/// dropped as the key drops it ("2 cups of flour" → "flour").
+///
+/// A word is a whitespace-separated token of [phrase]. It survives when any of
+/// its hyphenated parts carries identity, so a compound is kept or dropped
+/// whole ("all-purpose", "2-3").
+List<String> displayWords(String phrase) {
+  final context = _PhraseContext.of(_fold(phrase));
+  final tokens = [
+    for (final token in phrase.trim().split(_whitespace))
+      if (token.isNotEmpty) token,
+  ];
+  final classes = [for (final t in tokens) _tokenClass(t, context)];
+  final first = classes.indexOf(_TokenClass.identity);
+  if (first < 0) return const [];
+  final last = classes.lastIndexOf(_TokenClass.identity);
+  return [
+    for (var i = first; i <= last; i++)
+      if (classes[i] != _TokenClass.drop) tokens[i],
+  ];
+}
+
+/// What one whitespace token of a phrase is worth to a display name.
+enum _TokenClass { identity, connective, drop }
+
+_TokenClass _tokenClass(String token, _PhraseContext context) {
+  var connective = false;
+  for (final part in _fold(token).split(_whitespace)) {
+    final word = part.replaceAll(_punctuation, '');
     if (word.isEmpty) continue;
-    if (_quantity.hasMatch(word) || _fusedAmount.hasMatch(word)) continue;
-    if (word == 'clove' || word == 'cloves') {
-      if (alliumPresent) continue; // the garlic-clove measure
-      nouns.add(word); // the spice
-      continue;
+    if (context.classify(word) != _WordClass.drop) return _TokenClass.identity;
+    if (_filler.contains(word)) connective = true;
+  }
+  return connective ? _TokenClass.connective : _TokenClass.drop;
+}
+
+/// Hyphens join compound descriptors ("all-purpose"); treat them as word
+/// breaks so the parts tokenize rather than fusing ("allpurpose"). Diacritics
+/// fold here rather than in the classifier so every downstream test — the
+/// allium/cinnamon/canned probes — sees the folded spelling too.
+String _fold(String text) =>
+    foldDiacritics(text.toLowerCase()).replaceAll(_dashes, ' ');
+
+/// What one word contributes to a phrase: nothing, the identity noun run, or
+/// the trailing state run.
+enum _WordClass { drop, noun, state }
+
+/// The three carve-outs whose verdict depends on a noun sharing the phrase, so
+/// they are decided once for the whole phrase rather than per word.
+class _PhraseContext {
+  const _PhraseContext({
+    required this.allium,
+    required this.cinnamon,
+    required this.canned,
+  });
+
+  /// [cleaned] must already be folded by [_fold].
+  factory _PhraseContext.of(String cleaned) => _PhraseContext(
+    allium: _allium.hasMatch(cleaned),
+    cinnamon: _cinnamon.hasMatch(cleaned),
+    canned: _canned.hasMatch(cleaned),
+  );
+
+  /// "clove" is both a garlic measure ("2 cloves garlic") and a spice ("ground
+  /// cloves").
+  final bool allium;
+
+  /// "stick" is likewise both a measure ("1 stick butter") and identity next
+  /// to cinnamon ("2 cinnamon sticks" — the whole quill, a different vocab row
+  /// from ground cinnamon).
+  final bool cinnamon;
+
+  /// Whether [_cannedCutWords] name the product rather than the prep.
+  final bool canned;
+
+  /// [word] must be folded and stripped of [_punctuation].
+  _WordClass classify(String word) {
+    if (_quantity.hasMatch(word) || _fusedAmount.hasMatch(word)) {
+      return _WordClass.drop;
     }
-    if ((word == 'stick' || word == 'sticks') && cinnamonPresent) {
-      nouns.add(word); // the cinnamon quill — identity, not a measure
-      continue;
+    if (word == 'clove' || word == 'cloves') {
+      return allium ? _WordClass.drop : _WordClass.noun;
+    }
+    if ((word == 'stick' || word == 'sticks') && cinnamon) {
+      return _WordClass.noun;
     }
     // The cut of a canned tomato is the product, not a prep instruction. It
     // trails like any other state word, so "canned diced tomatoes" and "diced
     // tomatoes, canned" land together.
-    if (cannedPresent && _cannedCutWords.contains(word)) {
-      states.add(word);
-      continue;
-    }
+    if (canned && _cannedCutWords.contains(word)) return _WordClass.state;
     if (_filler.contains(word) ||
         _measures.contains(word) ||
         _sizes.contains(word) ||
         _prepAdverbs.contains(word) ||
         _prepVerbs.contains(word)) {
-      continue;
+      return _WordClass.drop;
     }
-    // Fold last, so the synonym is classified as the word it folds ONTO: this
-    // is what puts "tinned" in the trailing state run rather than leaving it
-    // leading the nouns.
-    final identity = _synonyms[word] ?? word;
-    if (_stateWords.contains(identity)) {
-      states.add(identity);
-    } else {
-      nouns.add(identity);
-    }
+    return _stateWords.contains(_synonyms[word] ?? word)
+        ? _WordClass.state
+        : _WordClass.noun;
   }
 }
 
