@@ -54,6 +54,18 @@ void main() {
       );
     });
 
+    test('a comma qualifier is left as typed — only the head is a label', () {
+      expect(
+        cleanName('chicken thigh, boneless', NameKind.ingredient),
+        'Chicken Thigh, boneless',
+      );
+      expect(cleanName('Mango, ripe', NameKind.ingredient), 'Mango, ripe');
+      expect(
+        cleanName('coconut milk, Canned', NameKind.ingredient),
+        'Coconut Milk, Canned',
+      );
+    });
+
     test('a small word FIRST is still capitalised', () {
       expect(cleanName('of the earth', NameKind.ingredient), 'Of the Earth');
       expect(cleanName('a2 milk', NameKind.ingredient), 'A2 Milk');

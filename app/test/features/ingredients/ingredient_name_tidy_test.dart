@@ -46,7 +46,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
-        host(FakeIngredientRepo(const [mango]), at: '/ingredients/mango'),
+        host(FakeIngredientRepo(const [mango]), at: editRoute('mango')),
       );
       await tester.pumpAndSettle();
 
@@ -64,7 +64,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
-        host(FakeIngredientRepo(const [mango]), at: '/ingredients/mango'),
+        host(FakeIngredientRepo(const [mango]), at: editRoute('mango')),
       );
       await tester.pumpAndSettle();
 
@@ -82,7 +82,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
-        host(FakeIngredientRepo(const [mango]), at: '/ingredients/mango'),
+        host(FakeIngredientRepo(const [mango]), at: editRoute('mango')),
       );
       await tester.pumpAndSettle();
 
@@ -106,7 +106,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [mango]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/mango'));
+      await tester.pumpWidget(host(repo, at: editRoute('mango')));
       await tester.pumpAndSettle();
 
       await typeName(tester, 'chopped onions');
@@ -124,7 +124,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
-        host(FakeIngredientRepo(const [mango]), at: '/ingredients/mango'),
+        host(FakeIngredientRepo(const [mango]), at: editRoute('mango')),
       );
       await tester.pumpAndSettle();
 
@@ -143,7 +143,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
-        host(FakeIngredientRepo(const [mango]), at: '/ingredients/mango'),
+        host(FakeIngredientRepo(const [mango]), at: editRoute('mango')),
       );
       await tester.pumpAndSettle();
 
@@ -161,7 +161,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [mango]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/mango'));
+      await tester.pumpWidget(host(repo, at: editRoute('mango')));
       await tester.pumpAndSettle();
 
       await typeName(tester, '  2 cups  plain flour ');
@@ -177,7 +177,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [mango]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/mango'));
+      await tester.pumpWidget(host(repo, at: editRoute('mango')));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('alias'));

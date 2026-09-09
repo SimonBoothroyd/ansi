@@ -102,7 +102,15 @@ String _dropTrailingStop(String s) {
 ///
 /// A word is a space-separated token; each hyphenated part of one is capped in
 /// its own right, so `stir-fry sauce` reads `Stir-Fry Sauce`.
+///
+/// Only the HEAD is a label. What follows a comma is a qualifier the kitchen
+/// writes lowercase (`Chicken Thigh, boneless`, `Mango, ripe`), and it is left
+/// exactly as typed.
 String _titleCase(String s) {
+  final comma = s.indexOf(',');
+  if (comma >= 0) {
+    return _titleCase(s.substring(0, comma)) + s.substring(comma);
+  }
   final words = s.split(' ');
   return [
     for (final (i, word) in words.indexed)
