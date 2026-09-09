@@ -98,21 +98,33 @@ class MacroCells extends StatelessWidget {
       ('${formatMacroNumber(macros.carb)} g', 'c'),
       ('${formatMacroNumber(macros.fat)} g', 'f'),
     ];
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < cells.length; i++) ...[
-          if (i > 0)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 7),
-              child: Container(width: 1, height: size, color: AnsiColors.line),
+    // A macro number is never clipped or ellipsised — a truncated `1 234` is
+    // a wrong number, not a shortened one (invariant 3). So when the widest
+    // honest total outgrows its band the whole strip scales down together,
+    // keeping every digit and the divider rhythm.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: AlignmentDirectional.centerStart,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < cells.length; i++) ...[
+            if (i > 0)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 7),
+                child: Container(
+                  width: 1,
+                  height: size,
+                  color: AnsiColors.line,
+                ),
+              ),
+            Text(
+              '${cells[i].$1} ${cells[i].$2}',
+              style: ansiMono(size: size, weight: FontWeight.w500),
             ),
-          Text(
-            '${cells[i].$1} ${cells[i].$2}',
-            style: ansiMono(size: size, weight: FontWeight.w500),
-          ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
