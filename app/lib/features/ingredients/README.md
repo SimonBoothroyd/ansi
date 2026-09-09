@@ -152,6 +152,17 @@ opens with, and returns null when Open Food Facts named neither — null meaning
 macros it explains, into `source_label`. No fit score comes with it: a scan is
 an exact-key fetch, so there is no coverage of the typed name to report.
 
+**Which 100 the panel is per is the mapper's one wide read** (`_basisFor`).
+Open Food Facts files a per-100 ml label under the same `*_100g` keys as a
+per-100 g one, and `nutrition_data_per` defaults to `100g` in its own entry
+form — so a gram reading there is not a statement and is treated as unstated.
+The evidence, strongest first: `nutrition_data_per` *naming* ml (however
+spelt); the net quantity printed on the pack (`1,5 l` vs `1 kg`); then
+`serving_quantity_unit`, which is weaker because OFF normalises a US
+"1 cup (62 g)" into `ml`; then OFF's `en:beverages` category, last because the
+drinks branch holds beans and leaves too. A basis says which unit the numbers
+are per and nothing more — no density is ever implied by it.
+
 ## Layout
 
 ```

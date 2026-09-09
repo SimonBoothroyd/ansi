@@ -314,6 +314,11 @@ Finder defaultUnitChipFinder(String label) => find.descendant(
 AnsiModeChip defaultUnitChip(WidgetTester tester, String label) =>
     tester.widget<AnsiModeChip>(defaultUnitChipFinder(label));
 
+/// A macros-basis chip by its label — `per 100 g`, `per 100 ml`, `per
+/// serving`.
+AnsiModeChip basisChip(WidgetTester tester, String label) =>
+    tester.widget<AnsiModeChip>(find.widgetWithText(AnsiModeChip, label));
+
 /// The dock's own Save, for its enabled state — `onPress` is null while the
 /// create form's completion gate is unmet.
 FButton saveButton(WidgetTester tester) =>

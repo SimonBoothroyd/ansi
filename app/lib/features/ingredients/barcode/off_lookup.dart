@@ -105,9 +105,13 @@ class OffLookup {
 
   /// The keys the mapper reads. Sent as `fields=` so OFF returns those
   /// rather than the whole product document.
+  ///
+  /// `categories_tags` is here for one job: it is the last thing the basis
+  /// rule asks (`en:beverages`) when a payload says nothing about whether its
+  /// label is per 100 g or per 100 ml.
   static const fields =
       'code,product_name,brands,quantity,serving_size,serving_quantity,'
-      'serving_quantity_unit,nutrition_data_per,nutriments';
+      'serving_quantity_unit,nutrition_data_per,categories_tags,nutriments';
 
   final http.Client _client;
   final bool _ownsClient;

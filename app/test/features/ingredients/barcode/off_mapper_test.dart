@@ -12,12 +12,17 @@
 /// `*_prepared_serving` keys under it). The peanut butter's `*_serving`
 /// keys, `serving_quantity` and `serving_size` are all OFF's own.
 ///
+/// `oat_milk_ml_label_as_100g` is a later capture (2026-09-09, the owner's own
+/// scan) and the only one carrying `categories_tags`, which the projection did
+/// not ask for until the basis rule needed it.
+///
 /// The barcodes are named in each case so a future reader can re-fetch them.
 /// Real payloads matter here because the whole risk of this mapper is OFF's
 /// shape, not our arithmetic: the near-miss keys (`energy-kcal` with no
 /// suffix, `*_prepared_100g`), the empty-string `quantity`, the comma-list
-/// `brands` and the `100ml` basis are all things a hand-written fixture would
-/// have quietly got wrong.
+/// `brands`, the `100ml` basis and — the sharpest of them — a `100g` that
+/// means nothing at all are things a hand-written fixture would have quietly
+/// got wrong.
 library;
 
 import 'dart:convert';
@@ -90,6 +95,29 @@ const _cases = <_Case>[
     basis: MacrosBasis.perMl,
     gap: DraftMacrosGap.none,
     packSize: DraftPackSize(16, oz),
+    servingPanel: null,
+  ),
+  (
+    fixture: 'oat_milk_ml_label_as_100g',
+    barcode: '0850032825009',
+    why:
+        'THE ONE THE OWNER SCANNED — a carton whose label is per 100 ml, '
+        'filed by OFF under `nutrition_data_per: "100g"` with no quantity '
+        'and no serving at all. The gram reading is the field’s DEFAULT, not '
+        'a statement; the twelve `en:beverages` categories are what the '
+        'payload actually says, and the row lands per 100 ml with no density '
+        'implied',
+    suggestedName: 'Minor Figures Barista Oat',
+    brand: 'Minor Figures',
+    macros: Macros(
+      kcal: 46.511627906977,
+      protein: 0.42283298097252,
+      carb: 9.3023255813953,
+      fat: 2.1141649048626,
+    ),
+    basis: MacrosBasis.perMl,
+    gap: DraftMacrosGap.none,
+    packSize: null,
     servingPanel: null,
   ),
   (
@@ -291,6 +319,139 @@ void main() {
 
       expect(draft!.macros, isNull);
       expect(draft.macrosGap, DraftMacrosGap.noPanel);
+    });
+
+    group('which 100 the panel is per', () {
+      // OFF files a per-100 ml label under the same `*_100g` keys as a
+      // per-100 g one, so the basis is read off everything else in the
+      // payload. These are the legs of that rule, in the order it asks them.
+      Map<String, Object?> body(Map<String, Object?> product) => {
+        'status': 1,
+        'product': <String, Object?>{
+          'code': '1234567890128',
+          'product_name': 'Something',
+          'nutriments': <String, Object?>{
+            'energy-kcal_100g': 46.0,
+            'proteins_100g': 0.4,
+            'carbohydrates_100g': 9.3,
+            'fat_100g': 2.1,
+          },
+          ...product,
+        },
+      };
+      MacrosBasis basisOf(Map<String, Object?> product) =>
+          draftFromOffBody(body(product))!.macrosBasis;
+
+      test('a `nutrition_data_per` naming ml wins outright, however it is '
+          'spelt — and outranks a pack sold by weight', () {
+        for (final per in ['100ml', '100 ml', '100ML', '100_ml']) {
+          expect(
+            basisOf({'nutrition_data_per': per}),
+            MacrosBasis.perMl,
+            reason: per,
+          );
+        }
+        // The Monster shape: `100ml` on the panel, `16 oz` on the can.
+        expect(
+          basisOf({'nutrition_data_per': '100ml', 'quantity': '16 oz'}),
+          MacrosBasis.perMl,
+        );
+      });
+
+      test('`100g` is the field’s DEFAULT, not a statement: the pack is asked '
+          'instead, and a mass pack is what keeps a bag of beans in grams', () {
+        // Lavazza's shape, and why the beverage leg cannot come first: a 1 kg
+        // bag of coffee is `en:beverages` all the way up OFF's taxonomy.
+        expect(
+          basisOf({
+            'nutrition_data_per': '100g',
+            'quantity': '1 kg',
+            'categories_tags': const ['en:beverages'],
+          }),
+          MacrosBasis.perG,
+        );
+        // The same field, the same value, a litre bottle: per 100 ml.
+        expect(
+          basisOf({'nutrition_data_per': '100g', 'quantity': '1,5 l'}),
+          MacrosBasis.perMl,
+        );
+        // With no pack quantity, the serving's unit is what is left to ask.
+        expect(
+          basisOf({
+            'nutrition_data_per': '100g',
+            'serving_quantity': 250,
+            'serving_quantity_unit': 'ml',
+          }),
+          MacrosBasis.perMl,
+        );
+        // But the PACK outranks it, and this is why: the kraft_mac shape,
+        // where OFF normalised a US "1 cup (62.369 g)" of dry macaroni into
+        // `serving_quantity_unit: ml`. A serving measured by volume is not a
+        // label printed per volume; the 7.25 oz box is.
+        expect(
+          basisOf({
+            'nutrition_data_per': '100g',
+            'quantity': '7.25oz',
+            'serving_quantity': 62.369,
+            'serving_quantity_unit': 'ml',
+          }),
+          MacrosBasis.perG,
+        );
+      });
+
+      test(
+        'with nothing measured either way, OFF’s own drinks category is '
+        'the last thing asked — and grams is the answer when it is silent',
+        () {
+          expect(
+            basisOf({
+              'categories_tags': const ['en:beverages', 'en:oat-based-drinks'],
+            }),
+            MacrosBasis.perMl,
+          );
+          expect(
+            basisOf({
+              'categories_tags': const ['en:spreads', 'en:sweet-spreads'],
+            }),
+            MacrosBasis.perG,
+          );
+          expect(basisOf(const {}), MacrosBasis.perG);
+          // Nothing is invented alongside it: a basis says which unit the four
+          // numbers are per, and crossing to the other one still needs a
+          // density a person typed.
+          expect(
+            draftFromOffBody(
+              body({
+                'categories_tags': const ['en:beverages'],
+              }),
+            )!.densityGPerMl,
+            isNull,
+          );
+        },
+      );
+
+      test('a serving with a number and no unit takes the same reading, '
+          'rather than defaulting to grams', () {
+        final draft = draftFromOffBody({
+          'status': 1,
+          'product': <String, Object?>{
+            'code': '1234567890128',
+            'product_name': 'Oat drink',
+            'nutrition_data_per': 'serving',
+            'serving_quantity': 250,
+            'categories_tags': const ['en:beverages'],
+            'nutriments': <String, Object?>{
+              'energy-kcal_serving': 116.0,
+              'proteins_serving': 1.0,
+              'carbohydrates_serving': 23.0,
+              'fat_serving': 5.0,
+            },
+          },
+        })!;
+        expect(draft.servingPanel!.servingAmount, 250);
+        expect(draft.servingPanel!.servingBasis, MacrosBasis.perMl);
+        expect(draft.macrosBasis, MacrosBasis.perMl);
+      });
     });
 
     test('a shapeless body is rejected, not coerced', () {

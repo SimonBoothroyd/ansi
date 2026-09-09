@@ -169,7 +169,13 @@ The column list is generated from the migrations —
 - `status = stub` → surfaces in the manager's stub band + honest macro math.
 - **Macros are stored WITH the basis the label read them in** (per-100 g or
   per-100 ml — liquid labels read per 100 ml, and densities are sparse, so
-  converting at entry can't be the design). Consumers apply the aggregation
+  converting at entry can't be the design). A **barcode** scan has to work that
+  basis out: Open Food Facts files both readings under the same `*_100g` keys
+  and defaults `nutrition_data_per` to `100g`, so a gram reading there is the
+  form's default rather than a claim. The mapper reads, strongest first, a
+  `nutrition_data_per` that *names* ml, the net quantity printed on the pack,
+  `serving_quantity_unit`, then OFF's own `en:beverages` category — and never
+  implies a density from any of it. Consumers apply the aggregation
   doctrine: a line whose unit family matches the basis computes directly;
   cross-basis bridges only via density; otherwise the total is honestly
   `incomplete`. USDA prefill rows are per-100 g.

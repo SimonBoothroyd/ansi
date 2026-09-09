@@ -11,6 +11,7 @@ import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/barcode/barcode_add.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:ansi/features/ingredients/presentation/measures_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -94,6 +95,52 @@ void main() {
       expect(saved.source, 'usda_fdc:11216', reason: 'a source stays');
       // A scan prefills and never completes (D1/D5).
       expect(saved.status, IngredientStatus.stub);
+    });
+
+    testWidgets('THE OAT MILK: a label printed per 100 ml lands on the ml '
+        'chip, and nothing pretends to know what it weighs', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      // The owner's own scan. Open Food Facts files this carton's per-100 ml
+      // panel under `nutrition_data_per: "100g"` — the field's default, not a
+      // statement — so the macros used to arrive as grams.
+      final repo = FakeIngredientRepo(const [bare]);
+      await tester.pumpWidget(
+        host(
+          repo,
+          at: editRoute('bare'),
+          lookup: lookupAnswering('oat_milk_ml_label_as_100g'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await scanOnForm(tester, '0850032825009');
+
+      expect(basisChip(tester, 'per 100 ml').selected, isTrue);
+      expect(basisChip(tester, 'per 100 g').selected, isFalse);
+      expect(macroFieldText(tester, 'kcal'), '46.511627906977');
+
+      // Nothing pretends to know what a millilitre of it weighs, so the `g`
+      // default the stub was born with is now stranded — named on the line
+      // under the chips, and refused at Save. A density minted to paper over
+      // it is exactly what invariant 3 forbids.
+      expect(
+        find.textContaining('g needs a density on this row'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(kFormSaveKey));
+      await tester.pumpAndSettle();
+      expect((await repo.byId('bare'))!.macros, isNull);
+
+      // The one-tap fix takes it, and the same Save lands.
+      await tester.tap(find.text('switch to ml'));
+      await tester.pumpAndSettle();
+
+      final saved = (await repo.byId('bare'))!;
+      expect(saved.macrosBasis, MacrosBasis.perMl);
+      expect(saved.macros!.kcal, 46.511627906977);
+      expect(saved.defaultUnit, ml);
+      expect(saved.densityGPerMl, isNull);
     });
 
     testWidgets('on a row with no source, Save stamps off:<barcode> — and the '
