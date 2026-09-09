@@ -19,6 +19,7 @@ import '../../recipes/presentation/recipe_header_form.dart';
 import '../data/import_providers.dart';
 import '../domain/header_draft.dart';
 import '../domain/import_repository.dart';
+import '../domain/import_stage.dart';
 import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
 import '../domain/method_draft_bridge.dart';
@@ -40,8 +41,15 @@ class ImportIdle extends ImportState {
 
 /// Extraction + matching is running server-side (the `import-recipe` edge
 /// function).
+///
+/// It carries the rung of the loading ladder currently showing, so the screen
+/// says which server stage the request is most likely in rather than one
+/// sentence for a call that can run past a minute. See [ImportStage] for why
+/// the rung is inferred from elapsed time rather than reported by the server.
 class ImportLoading extends ImportState {
-  const ImportLoading();
+  const ImportLoading(this.stage);
+
+  final ImportStage stage;
 }
 
 /// The payload is back; the user is resolving lines. Immutable — every edit
@@ -209,11 +217,54 @@ class ImportFailed extends ImportState {
 @riverpod
 class ImportController extends _$ImportController implements RecipeHeaderHost {
   @override
-  ImportState build() => const ImportIdle();
+  ImportState build() {
+    ref.onDispose(_stopStageLadder);
+    return const ImportIdle();
+  }
 
   /// True while [startImport] is running. Extraction is a billed LLM call, so a
   /// double-tapped "Import" must not fire two of them.
   bool _starting = false;
+
+  /// Drives the loading ladder while the one edge-function call is in flight.
+  Timer? _stageTimer;
+
+  /// How often the ladder re-reads the clock. The rungs are tens of seconds
+  /// apart, so this only has to be fine enough that a rung appears promptly.
+  static const _stageTick = Duration(seconds: 1);
+
+  /// Starts the ladder at its first rung and climbs it as the call runs.
+  ///
+  /// Elapsed time is ACCUMULATED from the ticks rather than read off the wall
+  /// clock, so the ladder advances with whatever clock the caller is pumping —
+  /// which is what makes it testable.
+  void _startStageLadder({required bool fromPhotos}) {
+    _stageTimer?.cancel();
+    var elapsed = Duration.zero;
+    state = ImportLoading(importStageAt(elapsed, fromPhotos: fromPhotos));
+    _stageTimer = Timer.periodic(_stageTick, (timer) {
+      // The notifier is autoDispose and the user can leave mid-import; writing
+      // `state` — or even reading it — on a disposed notifier throws.
+      if (!ref.mounted) {
+        timer.cancel();
+        return;
+      }
+      elapsed += _stageTick;
+      final current = state;
+      if (current is! ImportLoading) {
+        timer.cancel();
+        return;
+      }
+      final next = importStageAt(elapsed, fromPhotos: fromPhotos);
+      if (identical(current.stage, next)) return;
+      state = ImportLoading(next);
+    });
+  }
+
+  void _stopStageLadder() {
+    _stageTimer?.cancel();
+    _stageTimer = null;
+  }
 
   /// Runs the extract→match pipeline for [source] and moves to reconciliation.
   /// A second call while the first is in flight is a no-op.
@@ -227,7 +278,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     // A new page is a new sitting: nothing the last one relabelled has a chip
     // left to put its word back on.
     clearRelabels();
-    state = const ImportLoading();
+    _startStageLadder(fromPhotos: source is ImportFromPhotos);
     try {
       // Both keepAlive repositories are resolved BEFORE the first await: this
       // notifier can be disposed across the gap, and `ref` goes with it.
@@ -252,6 +303,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
       if (!ref.mounted) return;
       state = ImportFailed('Could not import this recipe: $e');
     } finally {
+      _stopStageLadder();
       _starting = false;
     }
   }
