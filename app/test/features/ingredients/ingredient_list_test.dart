@@ -57,7 +57,8 @@ void main() {
       await tester.pump();
       await tester.tap(find.widgetWithText(FButton, 'Save').last);
       await tester.pumpAndSettle();
-      expect((await repo.byId('mango'))!.canonicalName, 'Mango, ripe');
+      // Save tidies what was typed: the modifier takes its capital.
+      expect((await repo.byId('mango'))!.canonicalName, 'Mango, Ripe');
 
       // Save puts the FORM down — the page stays, showing the row it just
       // wrote — so the way back to the list is the back chevron.
@@ -68,7 +69,7 @@ void main() {
       // search-results branch.
       expect(find.text('Needs fleshing out'), findsOneWidget);
       expect(find.text('All ingredients · 3'), findsOneWidget);
-      expect(find.text('Mango, ripe'), findsWidgets);
+      expect(find.text('Mango, Ripe'), findsWidgets);
     });
 
     testWidgets('typing still collapses the list into results, and clearing '

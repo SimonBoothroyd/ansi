@@ -1085,9 +1085,11 @@ void main() {
 
       await saveForm(tester);
       final asked = repo.savedForms.single;
-      expect(asked.row.canonicalName, 'Curry leaves');
+      // Save tidies a name that was typed in: the line's plural becomes the
+      // entry it names.
+      expect(asked.row.canonicalName, 'Curry Leaf');
       expect((asked.density as DensitySet).gPerMl, 0.4);
-      expect(repo.rows.single.canonicalName, 'Curry leaves');
+      expect(repo.rows.single.canonicalName, 'Curry Leaf');
       // Born a stub whatever was filled in (D5): only Mark complete promotes,
       // and that is a human act.
       expect(repo.rows.single.status, IngredientStatus.stub);
@@ -1105,9 +1107,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      // The picker's query is prose, and the field opens on its tidied form —
+      // the silent half only: the picker does not get to choose a new word.
       expect(
         tester.widget<TextField>(find.byType(TextField).first).controller!.text,
-        'Curry leaves',
+        'Curry Leaves',
       );
     });
   });

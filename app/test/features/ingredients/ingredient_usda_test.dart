@@ -243,12 +243,13 @@ void main() {
 
     // The pick is the DRAFT (plan 0029 W5) — it fills the fields and the
     // provenance it will stamp, and the form's one Save lands all of it.
-    await saveForm(tester, reopen: 'Curry leaf');
+    // Save tidies the name that was typed; nothing here changes a word.
+    await saveForm(tester, reopen: 'Curry Leaf');
     final row = (await repo.byId('curry'))!;
     // Looking something up wrote nothing (F1 is retired) — and the Save
     // that follows carries the rename and the pick together, because to
     // the person they were always one act.
-    expect(row.canonicalName, 'Curry leaf');
+    expect(row.canonicalName, 'Curry Leaf');
     expect(row.source, 'usda_fdc:11217');
     expect(row.sourceLabel, 'Curry leaves, dried');
     expect(row.sourceScore, 1);
@@ -382,15 +383,15 @@ void main() {
     expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
 
     // A rename is not a claim about the numbers (B-D1's fence).
-    await tester.enterText(find.byType(TextField).first, 'Curry leaves');
+    await tester.enterText(find.byType(TextField).first, 'Curry Leaf');
     await tester.pump();
-    await saveForm(tester, reopen: 'Curry leaves');
+    await saveForm(tester, reopen: 'Curry Leaf');
     expect((await repo.byId('curry'))!.sourceEdited, isFalse);
     expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
 
     // The macros are.
     await typeMacros(tester, kcal: '120', protein: '6', carb: '19', fat: '1');
-    await saveForm(tester, reopen: 'Curry leaves');
+    await saveForm(tester, reopen: 'Curry Leaf');
     expect((await repo.byId('curry'))!.sourceEdited, isTrue);
     expect(find.text('Filled from USDA · edited here'), findsOneWidget);
     expect(find.textContaining('Curry leaves, raw'), findsOneWidget);

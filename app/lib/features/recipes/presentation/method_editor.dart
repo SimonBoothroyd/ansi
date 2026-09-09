@@ -43,6 +43,7 @@ import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_more_trigger.dart';
 import '../../../shared/method_step_text.dart';
+import '../../../shared/was_word_line.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../domain/method_draft.dart';
 import '../domain/recipe.dart';
@@ -247,8 +248,8 @@ class MethodStepCard extends HookConsumerWidget {
             ),
           ),
           for (final relabel in relabels)
-            _KeepTheOldWord(
-              relabel: relabel,
+            WasWordLine(
+              oldWord: relabel.oldWord,
               onKeep: () => notifier.keepOldWord(relabel),
             ),
           if (focused) ...[
@@ -689,43 +690,6 @@ class _SubstitutionNotice extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The one-tap revert, on the card whose chip moved. It calls the same
-/// [MethodEditing.renameChip] the chip sheet's Word field calls — one place
-/// changes what a chip says.
-class _KeepTheOldWord extends StatelessWidget {
-  const _KeepTheOldWord({required this.relabel, required this.onKeep});
-
-  final ChipRelabel relabel;
-  final VoidCallback onKeep;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 6),
-    child: Row(
-      children: [
-        // The old word is whatever the page printed — "the sauce and cheese"
-        // is a real one — and the revert beside it has to stay reachable
-        // whatever its length, on a card as narrow as the review's. So the
-        // word yields and the action keeps its width.
-        Expanded(
-          child: Text(
-            'was “${relabel.oldWord}”',
-            style: ansiMono(size: 11, color: AnsiColors.aging),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(width: 8),
-        FButton(
-          variant: FButtonVariant.ghost,
-          size: FButtonSizeVariant.sm,
-          onPress: onKeep,
-          child: const Text('keep the old word'),
-        ),
-      ],
-    ),
-  );
 }
 
 class _CardAction extends StatelessWidget {

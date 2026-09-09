@@ -8,6 +8,7 @@ library;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/text/name_clean.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../books/data/book_providers.dart';
@@ -773,7 +774,8 @@ class RecipeEditor extends _$RecipeEditor
         if (toDraft(step, id: '').text.trim().isNotEmpty) step,
     ];
     final recipe = _current.copyWith(
-      title: _current.title.trim(),
+      // The backstop for a title field that was never left.
+      title: cleanName(_current.title, NameKind.recipe),
       // The plain shape is write-never, read-legacy from 0022 on (D8).
       steps: const [],
       // A dangling ref can never reach the database, however the editor got

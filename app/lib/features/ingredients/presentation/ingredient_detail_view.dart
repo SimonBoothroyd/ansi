@@ -70,6 +70,7 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/text/name_clean.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
@@ -80,6 +81,7 @@ import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/format.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/was_word_line.dart';
 import '../../../shared/write.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../barcode/barcode_add.dart';
@@ -813,16 +815,14 @@ class _DetailForm extends ConsumerWidget {
             title: 'Identity',
             children: [
               const _Label('CANONICAL NAME'),
-              FTextField(
-                // Keyed on the seed: `initial` seeds the controller once, so a
-                // scan that lands a product name needs a new field to seed it
-                // into.
-                key: ValueKey('canonical-name-${draft.nameSeed}'),
-                control: FTextFieldControl.managed(
-                  initial: TextEditingValue(text: draft.name),
-                  onChange: (v) => form.setName(v.text),
-                ),
+              _CanonicalNameField(
+                name: draft.name,
+                seed: draft.nameSeed,
+                onChanged: form.setName,
+                onLeave: form.tidyName,
               ),
+              if (draft.nameWas != null)
+                WasWordLine(oldWord: draft.nameWas!, onKeep: form.keepName),
               const _Note('renaming rewrites the match text'),
 
               const _Label('ALSO KNOWN AS'),
@@ -1762,6 +1762,54 @@ class _StrandedDefaultNote extends StatelessWidget {
   }
 }
 
+/// The canonical-name field, and the moment its name is tidied.
+///
+/// Leaving the field is when the tidy runs: a stray space or a missing capital
+/// goes silently, and a WORD that changed says so in the `was “…”` line the
+/// host draws underneath. The form's Save is the backstop for a field that was
+/// typed in and never left.
+///
+/// **The draft owns the text, and the controller follows it.** [seed] moves
+/// whenever something other than typing changed the name — a barcode scan, or
+/// a tidy — and this pushes the new text into the controller it already has.
+/// The alternative, re-keying the field so a fresh controller seeds from
+/// `initial`, replaces a focused text field: a Save tapped straight from the
+/// keyboard then tears the field's render object out from under the gesture
+/// that tapped it.
+class _CanonicalNameField extends HookWidget {
+  const _CanonicalNameField({
+    required this.name,
+    required this.seed,
+    required this.onChanged,
+    required this.onLeave,
+  });
+
+  final String name;
+  final int seed;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onLeave;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = useTextEditingController(text: name);
+    useEffect(() {
+      controller.text = name;
+      return null;
+    }, [seed]);
+    return Focus(
+      onFocusChange: (hasFocus) {
+        if (!hasFocus) onLeave();
+      },
+      child: FTextField(
+        control: FTextFieldControl.managed(
+          controller: controller,
+          onChange: (v) => onChanged(v.text),
+        ),
+      ),
+    );
+  }
+}
+
 /// "Also known as" — the alias chips, addable and removable.
 ///
 /// **Presentational.** The host hands it the list it should draw — the stored
@@ -1787,20 +1835,30 @@ class _AliasEditor extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final adding = useState(false);
-    final draft = useState('');
+    final entry = useTextEditingController();
     final error = useState<String?>(null);
 
+    // An alias is stored lowercase, so its tidy is whitespace and a trailing
+    // stop only — silent by construction, and never a word.
+    void tidy() => entry.text = cleanName(entry.text, NameKind.alias);
+
     void add() {
+      tidy();
       // Same normalizer as the repository, so the two verdicts cannot
       // disagree about what carries an identity word.
-      if (normalizeMatchText(draft.value).isEmpty) {
+      if (normalizeMatchText(entry.text).isEmpty) {
         error.value =
             'That alias carries no identity word — it would match '
             'everything and nothing.';
         return;
       }
-      onAdd(draft.value);
+      onAdd(entry.text);
       error.value = null;
+      // The field is about to leave the tree, so the keyboard goes with it —
+      // and the next `＋ alias` opens on an empty one rather than on the text
+      // that was just turned into a chip.
+      FocusManager.instance.primaryFocus?.unfocus();
+      entry.clear();
       adding.value = false;
     }
 
@@ -1868,15 +1926,20 @@ class _AliasEditor extends HookWidget {
           Row(
             children: [
               Expanded(
-                child: FTextField(
-                  hint: 'another name for this',
-                  control: FTextFieldControl.managed(
-                    onChange: (v) => draft.value = v.text,
+                child: Focus(
+                  onFocusChange: (hasFocus) {
+                    if (!hasFocus) tidy();
+                  },
+                  child: FTextField(
+                    key: const ValueKey('alias-entry'),
+                    hint: 'another name for this',
+                    control: FTextFieldControl.managed(controller: entry),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               FButton(
+                key: const ValueKey('alias-add'),
                 size: FButtonSizeVariant.sm,
                 onPress: add,
                 child: const Text('Add'),

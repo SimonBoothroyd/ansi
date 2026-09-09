@@ -62,6 +62,14 @@ class _RecordingBookRepo extends FakeBookRepository {
   @override
   Future<void> renameBook(String bookId, String name) async => renamedTo = name;
 
+  String? sectionNamed;
+
+  @override
+  Future<String> createSection(String bookId, String name) async {
+    sectionNamed = name;
+    return 'new-sec';
+  }
+
   @override
   Future<void> deleteBook(String bookId) async => deleted = bookId;
 
@@ -652,6 +660,49 @@ void main() {
       ),
       findsNothing,
     );
+  });
+
+  group('a name typed into the prompt is tidied when it is confirmed', () {
+    testWidgets('a book rename', (tester) async {
+      filterForuiSemanticsAssertions();
+      final repo = _RecordingBookRepo(_library);
+      await tester.pumpWidget(
+        _host([bookRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rename'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextField).last,
+        '  weeknight   suppers ',
+      );
+      await tester.tap(find.text('Rename').last);
+      await tester.pumpAndSettle();
+
+      expect(repo.renamedTo, 'Weeknight suppers');
+    });
+
+    testWidgets('a new section', (tester) async {
+      filterForuiSemanticsAssertions();
+      final repo = _RecordingBookRepo(_library);
+      await tester.pumpWidget(
+        _host([bookRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(FLucideIcons.ellipsis).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New section'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, '  desserts');
+      await tester.tap(find.text('Add'));
+      await tester.pumpAndSettle();
+
+      expect(repo.sectionNamed, 'Desserts');
+    });
   });
 
   testWidgets('New section keeps its one door, on the book ⋯', (tester) async {

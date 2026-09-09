@@ -195,4 +195,35 @@ void main() {
       });
     }
   });
+
+  group('the title is tidied when the field is left, on both hosts —', () {
+    for (final MapEntry(key: name, value: hostOf) in _hosts.entries) {
+      testWidgets(name, (tester) async {
+        filterForuiSemanticsAssertions();
+        tallSurface(tester);
+        final container = _container();
+        final host = await hostOf(container);
+        await tester.pumpWidget(_form(container, host));
+        await tester.pumpAndSettle();
+
+        final title = find.descendant(
+          of: find.byKey(const ValueKey('recipe-title')),
+          matching: find.byType(TextField),
+        );
+        await tester.enterText(title, '  wild   garlic pesto ');
+        await tester.pump();
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pumpAndSettle();
+
+        // A title is what somebody wrote: the first letter is capitalised and
+        // no word ever changes, so there is nothing to tell.
+        expect(host.header.title, 'Wild garlic pesto');
+        expect(
+          tester.widget<TextField>(title).controller!.text,
+          'Wild garlic pesto',
+        );
+        expect(find.text('keep the old word'), findsNothing);
+      });
+    }
+  });
 }

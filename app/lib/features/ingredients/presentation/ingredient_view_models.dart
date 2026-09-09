@@ -22,6 +22,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/text/name_clean.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/number_format.dart';
@@ -33,6 +34,7 @@ import '../domain/apply_draft.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/serving_offer.dart';
+import '../domain/suggest_name.dart';
 import '../domain/usda_probe.dart';
 import 'serving_row.dart';
 
@@ -121,6 +123,12 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     /// Bumped on every re-seed, and used as the macro fields' key: `initial`
     /// seeds a controller once, so new text needs a new field to seed it into.
     @Default(0) int macroSeed,
+
+    /// Bumped whenever the name moved by something other than typing — a scan,
+    /// or a tidy. The name field pushes the new text into the controller it
+    /// already has rather than being replaced around a fresh one, because
+    /// replacing a *focused* field is what a Save tapped straight from the
+    /// keyboard would do.
     @Default(0) int nameSeed,
     @Default(0) int servingSeed,
 
@@ -160,6 +168,25 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     /// Set when the measures editor refused a volume-named label and handed
     /// back the resolved spoon — the density entry pre-picks it.
     Unit? redirectedSpoon,
+
+    /// The name as it was typed, when [IngredientForm.tidyName] replaced a
+    /// WORD in it — what the `was “…”` line under the field prints, and what
+    /// *keep the old word* puts back. Null when nothing was suggested.
+    String? nameWas,
+
+    /// A typed name the person chose to KEEP. While [name] is exactly this,
+    /// the tidy recases and respaces but suggests nothing: a suggestion once
+    /// refused must not be offered again on the next leave. Cleared by the
+    /// next edit, and carried forward when the tidy's own recasing moves it.
+    String? namePinned,
+
+    /// Whether a person has typed in the name field during this sitting.
+    ///
+    /// Save tidies only what somebody wrote. A stored name is not rewritten by
+    /// a Save that was about the macros — the row's own name is a thing a
+    /// human already chose, and a save of something else is no occasion to
+    /// take it away.
+    @Default(false) bool nameEdited,
 
     /// The form's one feedback line.
     String? message,
@@ -247,7 +274,11 @@ class IngredientForm extends _$IngredientForm {
             : ref.read(ingredientByIdProvider(ingredientId)).asData?.value) ??
         Ingredient(
           id: ingredientId ?? '',
-          canonicalName: initialName.trim(),
+          // The create form's seed is a picker query, which is prose. Only
+          // the silent half applies — the field must open reading exactly
+          // what a Save would write, and choosing a different WORD is not the
+          // picker's to do.
+          canonicalName: cleanName(initialName, NameKind.ingredient),
           defaultUnit: g,
           status: IngredientStatus.stub,
         );
@@ -319,7 +350,59 @@ class IngredientForm extends _$IngredientForm {
 
   // --- The row's own fields ------------------------------------------------
 
-  void setName(String name) => state = state.copyWith(name: name);
+  /// The name as the field now reads.
+  ///
+  /// Text identical to what the draft already holds is not an edit: pushing a
+  /// re-seeded name into the field's controller echoes back through here, and
+  /// treating that echo as typing would lift the pin and clear the `was` line
+  /// the same tidy had just set.
+  void setName(String name) {
+    if (name == state.name) return;
+    state = state.copyWith(
+      name: name,
+      nameEdited: true,
+      nameWas: null,
+      namePinned: null,
+    );
+  }
+
+  /// The name field was left (or Save is about to write it): [cleanName],
+  /// then the ingredient suggestion.
+  ///
+  /// Recasing and respacing are silent — the field simply reads right. A word
+  /// changing is not: [IngredientFormDraft.nameWas] is set and the view prints
+  /// the revert line under the field. A pinned name skips the suggestion and
+  /// keeps its pin through the recasing, so *keep the old word* holds for as
+  /// long as the person leaves that name alone.
+  void tidyName() {
+    final typed = state.name;
+    final cleaned = cleanName(typed, NameKind.ingredient);
+    final pinned = state.namePinned == typed;
+    final suggested = pinned ? null : suggestIngredientName(cleaned);
+    final next = suggested ?? cleaned;
+    if (next == typed && state.nameWas == null) return;
+    state = state.copyWith(
+      name: next,
+      // The seed is what tells the field its text moved by something other
+      // than typing.
+      nameSeed: next == typed ? state.nameSeed : state.nameSeed + 1,
+      nameWas: suggested == null ? null : typed,
+      namePinned: pinned ? next : state.namePinned,
+    );
+  }
+
+  /// *keep the old word* — the typed name comes back, and the suggestion is
+  /// not offered for it again until the field is edited.
+  void keepName() {
+    final was = state.nameWas;
+    if (was == null) return;
+    state = state.copyWith(
+      name: was,
+      nameSeed: state.nameSeed + 1,
+      nameWas: null,
+      namePinned: was,
+    );
+  }
 
   void setCategory(String category) =>
       state = state.copyWith(category: category);
@@ -453,7 +536,11 @@ class IngredientForm extends _$IngredientForm {
   void addAlias(String text) => state = state.copyWith(
     aliasesAdded: [
       ...state.aliasesAdded,
-      IngredientAlias(id: _uuid.v4(), text: text.trim(), source: 'manual'),
+      IngredientAlias(
+        id: _uuid.v4(),
+        text: cleanName(text, NameKind.alias),
+        source: 'manual',
+      ),
     ],
   );
 
@@ -598,6 +685,10 @@ class IngredientForm extends _$IngredientForm {
   /// view's `ref.write` owns the toast, the same way the recipe editor's Save
   /// does.
   Future<Ingredient?> save({bool markComplete = false}) async {
+    // The backstop for a field that was TYPED IN and never left — Save tapped
+    // straight from the keyboard. A name nobody touched is left exactly as the
+    // row has it.
+    if (state.nameEdited) tidyName();
     final refusal = _refusal();
     if (refusal != null) {
       state = state.copyWith(message: refusal);

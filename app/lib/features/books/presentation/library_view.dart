@@ -10,6 +10,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/text/name_clean.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/words.dart';
@@ -318,6 +319,7 @@ Future<void> promptForNewSection(
     title: 'New section',
     hint: 'Name it anything',
     confirm: 'Add',
+    clean: NameKind.section,
   );
   if (name == null || name.trim().isEmpty) return;
   await container.write(
@@ -378,6 +380,7 @@ class _BookMenu extends ConsumerWidget {
                   hint: 'Book name',
                   initial: book.name,
                   confirm: 'Rename',
+                  clean: NameKind.book,
                 );
                 if (name == null || name.trim().isEmpty) return;
                 await container.write(
@@ -779,6 +782,7 @@ class _SectionMenu extends ConsumerWidget {
                   hint: 'Section name',
                   initial: section.name,
                   confirm: 'Rename',
+                  clean: NameKind.section,
                 );
                 if (name == null || name.trim().isEmpty) return;
                 await container.write(
@@ -1133,6 +1137,7 @@ Future<void> promptForNewBook(BuildContext context, WidgetRef ref) async {
     title: 'New book',
     hint: 'e.g. Our Cookbook',
     confirm: 'Create',
+    clean: NameKind.book,
   );
   if (name == null || name.trim().isEmpty) return;
   await container.write(
