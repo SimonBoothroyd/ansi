@@ -16,13 +16,86 @@
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredient detail</h1>
     <p class="view-status">built · matches code 2026-09-08 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
-    <p class="view-blurb">One form, three groups — Identity, Nutrition, Units &amp; measures — under a dock that carries the form’s one message and its two commitments. It is also the create screen: <code>/ingredients/new</code> is this form with no row behind it.</p>
+    <p class="view-blurb"><b>One route, two postures.</b> A row that exists opens as a <b>fact sheet</b> — the same three groups (Identity, Nutrition, Units &amp; measures) with each field’s value stated instead of offered, no dock, and <code>Edit</code> in the header’s <code>⋯</code> exactly where the recipe page keeps it. <code>Edit</code> turns the same page into <b>the form</b>; Save and back turn it back. <code>/ingredients/new</code> opens the form directly — there is nothing yet to read — and so does every door that exists to <i>change</i> a field.</p>
 </header>
 
 <div class="board">
 
     <div class="frame">
-        <p class="frame-name"><b>The form</b> · three groups, a status line at the top and a dock at the bottom; the USDA card appears only <i>after</i> a pick</p>
+        <p class="frame-name"><b>The page as it opens</b> · a complete row, read: the name with its aliases, the strip, then every group stating what the row says. No fields, no dock, no button</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="r-hero">
+                <h2 class="r-title">Mango</h2>
+                <p class="conv-note" style="margin:0">also known as mangoes</p>
+            </div>
+
+            <div class="state" style="margin-top:4px">
+                <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot"></span><span>Complete — counts in conversions and macro totals.</span></div>
+            </div>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Identity</p></div>
+            <p class="flabel">Category</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">produce</p>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Nutrition</p></div>
+            <p class="conv-note" style="margin:6px 20px 0">usda · Mango, raw</p>
+            <p class="flabel">Macros</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">60 kcal · 1P 0F 15C /100 g</p>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
+            <p class="flabel">Default unit</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">piece</p>
+            <p class="flabel" style="margin-bottom:2px">Allowed units</p>
+            <p class="conv-note" style="margin:0 20px 0">what a line may say</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">piece · g · kg · oz · lb · cup · tsp · tbsp · ml · l</p>
+            <p class="flabel">Piece weight</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">1 piece weighs 200 g</p>
+            <p class="flabel">Density</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">1 cup weighs 156.15 g · 0.66 g/ml</p>
+            <p class="flabel" style="margin-bottom:2px">Measures</p>
+            <p class="conv-note" style="margin:0 20px 6px">count-like, in the basis</p>
+            <div class="field" style="margin-bottom:6px">
+                <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">mango, medium · 200 g</span><span class="msrc">USDA portion</span></div>
+                <div class="msr-row"><span class="srcdot you"></span><span class="mlab">half · 100 g</span><span class="msrc">yours</span></div>
+            </div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>Every line is a stored fact restated, in the words the field itself uses.</b> The macro line is the picker row’s (<code>197 kcal · 2P 20F 3C /100 g</code>); the density is the entry’s own headline plus the sentence it was entered as; the piece weight is the entry’s sentence with its number in place; the units are the admission chips’ own labels. Nothing is computed here that the form does not already compute, and nothing is added — no “used in”, no derived figure.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>A stub reads as a stub</b> · one call to action, never a zero — and the <code>⋯</code>, where <code>Edit</code> lives</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="r-hero"><h2 class="r-title">Curry leaves, fresh</h2></div>
+
+            <div class="state" style="margin-top:4px">
+                <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot"></span><span>Still a stub — left out of macro totals until confirmed.</span></div>
+            </div>
+            <div style="margin:12px 20px 0"><span class="btn primary" style="margin:0;display:block;text-align:center">Fill it in</span></div>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Nutrition</p></div>
+            <p class="conv-note" style="margin:6px 20px 0">usda · Curry leaves, raw</p>
+            <p class="flabel">Macros</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">needs macros</p>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
+            <p class="flabel">Density</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">none yet — unlocks volume⇄weight</p>
+            <p class="flabel" style="margin-bottom:2px">Measures</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">No measures yet.</p>
+
+            <p class="lib-mcap" style="margin-top:22px">and the <span style="font-family:'IBM Plex Mono',monospace">⋯</span> on the fact sheet</p>
+            <div class="lib-menu" style="margin-top:8px">
+                <div class="mi"><span class="ic">✎</span><span class="lb">Edit</span></div>
+            </div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>Fill it in</b> is the <i>only</i> button the reading posture ever draws, and only while the row is a stub — it switches the page into the form, where the <span style="font-family:'IBM Plex Mono',monospace">Fill it in from</span> row and the fields are. A complete row is finished: reading it is the whole act. And a missing panel says <b>needs macros</b> in the dock’s own words rather than four zeros (invariant 3).</p>
+        <p class="conv-note" style="margin:6px 4px 0"><b>One item behind the</b> <span style="font-family:'IBM Plex Mono',monospace">⋯</span>. Deleting a row and returning it to a stub stay in the <i>editing</i> posture’s menu, where the form’s one message line is — that line is what speaks the delete refusal (“Still used by 3 recipes (4 lines).”), and a second surface for it would be two renderings of one rule.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The form</b> · behind <code>⋯ ▸ Edit</code>, and what <code>/ingredients/new</code> opens straight into — three groups, a status line at the top and a dock at the bottom; the USDA card appears only <i>after</i> a pick</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Black Rice</span><span class="dots">⋯</span></div>
 
@@ -295,12 +368,13 @@
             <p class="lib-mcap" style="margin-top:18px">a complete row · one commitment</p>
             <div class="dock" style="margin-top:8px"><span class="btn primary" style="margin:0">Save</span></div>
 
-            <p class="lib-mcap" style="margin-top:20px">and the <span style="font-family:'IBM Plex Mono',monospace">⋯</span>, built at last</p>
+            <p class="lib-mcap" style="margin-top:20px">and the <span style="font-family:'IBM Plex Mono',monospace">⋯</span> <i>in this posture</i></p>
             <div class="lib-menu" style="margin-top:8px">
                 <div class="mi"><span class="ic">↺</span><span class="lb">Return it to a stub</span></div>
                 <div class="mi danger"><span class="ic">🗑</span><span class="lb">Delete ingredient</span></div>
             </div>
             <p class="conv-note" style="margin-top:10px">On a stub the first item is absent — there is nothing to un-confirm. <b>Mark complete does not move here</b>: it is the page’s whole purpose and stays in the dock. Only the two acts that are <i>not</i> filling the form in go behind the menu, which is how <span style="font-family:'IBM Plex Mono',monospace">Delete ingredient</span> stops sitting one flick under the green button.</p>
+            <p class="conv-note" style="margin-top:8px"><b>Save puts the form down, it does not leave the page</b> — an existing row lands back on its fact sheet, showing what was just written; so does <b>Mark complete</b>, and so does back (the form discards what it holds, exactly as it always has). <code>/ingredients/new</code> is the exception and stays as it was: it has no fact sheet behind it, so it pops with the row it made, which is what the picker that pushed it awaits.</p>
         </div></div>
     </div>
 

@@ -29,7 +29,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
-        host(FakeIngredientRepo(const [curryLeaves]), at: '/ingredients/curry'),
+        host(FakeIngredientRepo(const [curryLeaves]), at: editRoute('curry')),
       );
       await tester.pumpAndSettle();
       expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
@@ -58,7 +58,7 @@ void main() {
     filterForuiSemanticsAssertions();
     tallScreen(tester);
     final repo = FakeIngredientRepo([curryLeaves.copyWith(sourceScore: 0.62)]);
-    await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+    await tester.pumpWidget(host(repo, at: editRoute('curry')));
     await tester.pumpAndSettle();
     expect(
       find.textContaining('matches only part of “Curry leaves, fresh”'),
@@ -77,7 +77,7 @@ void main() {
             source: 'usda_fdc:171705',
           ),
         ]),
-        at: '/ingredients/old',
+        at: editRoute('old'),
       ),
     );
     await tester.pumpAndSettle();
@@ -99,7 +99,7 @@ void main() {
         macros: usdaAnswer.macros,
       ),
     ]);
-    await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+    await tester.pumpWidget(host(repo, at: editRoute('curry')));
     await tester.pumpAndSettle();
     expect(find.text('Filled from USDA · confirmed'), findsOneWidget);
     expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
@@ -114,7 +114,7 @@ void main() {
       final repo = FakeIngredientRepo([
         curryLeaves.copyWith(source: usdaDeclinedSource),
       ]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+      await tester.pumpWidget(host(repo, at: editRoute('curry')));
       await tester.pumpAndSettle();
       expect(find.text('USDA · declined'), findsOneWidget);
       expect(
@@ -146,7 +146,7 @@ void main() {
         allowedUnits: const [g, kg, tsp, tbsp, cup, ml],
       ),
     ]);
-    await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+    await tester.pumpWidget(host(repo, at: editRoute('curry')));
     await tester.pumpAndSettle();
     expect(macroFieldText(tester, 'kcal'), '108');
     // A pending edit in a field the undo has no business with.
@@ -216,7 +216,7 @@ void main() {
         score: 0.52,
       ),
     ]);
-    await tester.pumpWidget(host(repo, at: '/ingredients/curry', probe: probe));
+    await tester.pumpWidget(host(repo, at: editRoute('curry'), probe: probe));
     await tester.pumpAndSettle();
 
     // A rename typed and not saved: the sheet must ask about THIS name.
@@ -281,7 +281,7 @@ void main() {
         macros: Macros(kcal: 300, protein: 12, carb: 60, fat: 5),
       ),
     ]);
-    await tester.pumpWidget(host(repo, at: '/ingredients/curry', probe: probe));
+    await tester.pumpWidget(host(repo, at: editRoute('curry'), probe: probe));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FButton, 'Choose another ›'));
     await tester.pumpAndSettle();
@@ -304,7 +304,7 @@ void main() {
     filterForuiSemanticsAssertions();
     tallScreen(tester);
     final repo = FakeIngredientRepo(const [curryLeaves]);
-    await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+    await tester.pumpWidget(host(repo, at: editRoute('curry')));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FButton, 'Choose another ›'));
     await tester.pumpAndSettle();
@@ -326,7 +326,7 @@ void main() {
     filterForuiSemanticsAssertions();
     tallScreen(tester);
     await tester.pumpWidget(
-      host(FakeIngredientRepo(const [chex]), at: '/ingredients/chex'),
+      host(FakeIngredientRepo(const [chex]), at: editRoute('chex')),
     );
     await tester.pumpAndSettle();
 
@@ -362,7 +362,7 @@ void main() {
     await tester.pumpWidget(
       host(
         FakeIngredientRepo([chex.copyWith(densityGPerMl: null)]),
-        at: '/ingredients/chex',
+        at: editRoute('chex'),
       ),
     );
     await tester.pumpAndSettle();
@@ -377,7 +377,7 @@ void main() {
     final repo = FakeIngredientRepo([
       curryLeaves.copyWith(macros: usdaAnswer.macros),
     ]);
-    await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+    await tester.pumpWidget(host(repo, at: editRoute('curry')));
     await tester.pumpAndSettle();
     expect(find.text('Filled from USDA · not confirmed'), findsOneWidget);
 
@@ -406,7 +406,7 @@ void main() {
     await tester.pumpWidget(
       host(
         repo,
-        at: '/ingredients/curry',
+        at: editRoute('curry'),
         probe: RecordingProbe.list(const [usdaAnswer]),
       ),
     );
@@ -430,7 +430,7 @@ void main() {
     filterForuiSemanticsAssertions();
     tallScreen(tester);
     await tester.pumpWidget(
-      host(FakeIngredientRepo(const [blackRice]), at: '/ingredients/rice'),
+      host(FakeIngredientRepo(const [blackRice]), at: editRoute('rice')),
     );
     await tester.pumpAndSettle();
     expect(find.textContaining('USDA ·'), findsNothing);

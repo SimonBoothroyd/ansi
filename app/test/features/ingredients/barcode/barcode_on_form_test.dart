@@ -57,7 +57,7 @@ void main() {
       await tester.pumpWidget(
         host(
           repo,
-          at: '/ingredients/curry',
+          at: editRoute('curry'),
           lookup: lookupAnswering('nutella_per_100g'),
         ),
       );
@@ -106,7 +106,7 @@ void main() {
       await tester.pumpWidget(
         host(
           repo,
-          at: '/ingredients/bare',
+          at: editRoute('bare'),
           lookup: lookupAnswering('nutella_per_100g'),
         ),
       );
@@ -140,7 +140,7 @@ void main() {
       await tester.pumpWidget(
         host(
           repo,
-          at: '/ingredients/bare',
+          at: editRoute('bare'),
           lookup: lookupAnswering('nesquik_no_panel'),
         ),
       );
@@ -169,7 +169,7 @@ void main() {
       await tester.pumpWidget(
         host(
           repo,
-          at: '/ingredients/bare',
+          at: editRoute('bare'),
           lookup: lookupAnswering('nutella_per_100g'),
         ),
       );
@@ -195,7 +195,7 @@ void main() {
       await tester.pumpWidget(
         host(
           repo,
-          at: '/ingredients/bare',
+          at: editRoute('bare'),
           measures: measures,
           lookup: lookupAnswering('nesquik_no_panel'),
         ),
@@ -242,7 +242,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
-        host(FakeIngredientRepo(const [mango]), at: '/ingredients/mango'),
+        host(FakeIngredientRepo(const [mango]), at: editRoute('mango')),
       );
       await tester.pumpAndSettle();
       expect(find.text('Scan a barcode'), findsNothing);

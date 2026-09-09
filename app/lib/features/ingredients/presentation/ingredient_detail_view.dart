@@ -1,12 +1,24 @@
-/// The ingredient form (`/ingredients/:id`, and `/ingredients/new` for a row
-/// that does not exist yet) — the app's one door to making or fleshing out a
-/// vocabulary entry.
+/// The ingredient page (`/ingredients/:id`, and `/ingredients/new` for a row
+/// that does not exist yet) — the app's one door to reading, making or
+/// fleshing out a vocabulary entry.
 ///
-/// **This file draws it.** Everything it intends and has not written is the
-/// [IngredientForm] ViewModel's draft, and every tap dispatches an intent —
-/// so what one Save sends can be asked without a widget tree.
+/// **One route, two postures**, the split the recipe page already has. A row
+/// that exists opens as a **fact sheet**: the same groups in the same order,
+/// each field's value stated in the words the field itself uses, with no
+/// controls and no dock. `Edit` is an item in the header's `⋯`, exactly where
+/// the recipe page keeps it. `/ingredients/new` opens editing — there is
+/// nothing yet to read — and so does every door that exists to CHANGE a
+/// field: the recipe page's macro-panel fix markers, the import review's
+/// piece-weight door, and the manager's "needs fleshing out" band. The
+/// sentences the reading posture states live in [macrosFact] and its
+/// neighbours, so the two postures cannot drift into two accounts of one row.
 ///
-/// It is an **editor**, not a one-way queue: a `complete` row opens here too.
+/// **This file draws both.** Everything the editing posture intends and has
+/// not written is the [IngredientForm] ViewModel's draft, and every tap
+/// dispatches an intent — so what one Save sends can be asked without a widget
+/// tree.
+///
+/// It is an **editor**, not a one-way queue: a `complete` row edits here too.
 /// What it owns, in order — canonical name (a rename rewrites `match_text`),
 /// aliases, category + default unit, macros with their basis, density (the
 /// shared [DensityEntry]), the piece weight on a count-default row (the shared
@@ -81,6 +93,7 @@ import '../domain/serving_offer.dart';
 import '../domain/usda_probe.dart';
 import 'density_entry.dart';
 import 'draft_card.dart';
+import 'ingredient_facts.dart';
 import 'ingredient_view_models.dart';
 import 'measures_editor.dart';
 import 'piece_weight_entry.dart';
@@ -88,7 +101,18 @@ import 'serving_row.dart';
 import 'usda_pick_sheet.dart';
 
 /// The pushed route for one vocab row.
-String ingredientDetailRoute(String id) => '/ingredients/$id';
+///
+/// [edit] opens it in the editing posture instead of the reading one. It is
+/// for a door that exists to CHANGE a field — a recipe's macro-panel fix
+/// marker, the import review's piece-weight door, the manager's stub band —
+/// where landing on a fact sheet would make the person tap `⋯ ▸ Edit` to do
+/// the thing the door already named. Every other door reads.
+String ingredientDetailRoute(String id, {bool edit = false}) =>
+    edit ? '/ingredients/$id?edit=1' : '/ingredients/$id';
+
+/// The query parameter [ingredientDetailRoute] writes, read back by the
+/// router. One name, one place, so a cold deep link and a push agree.
+const kEditPostureQueryParam = 'edit';
 
 /// The pushed route for a row that does not exist yet — the one door to making
 /// an ingredient. [name] prefills the field, which is what a picker hands over
@@ -108,10 +132,11 @@ const kFormSaveKey = ValueKey('form-save');
 /// The dock's CTA: `Mark complete` on a stub, absent on a complete row.
 const kFormCompleteKey = ValueKey('form-complete');
 
-class IngredientDetailView extends ConsumerWidget {
+class IngredientDetailView extends HookConsumerWidget {
   const IngredientDetailView({
     this.ingredientId,
     this.name = '',
+    this.edit = false,
     this.lookup,
     this.cameraPane,
     super.key,
@@ -130,6 +155,11 @@ class IngredientDetailView extends ConsumerWidget {
   /// retyping it.
   final String name;
 
+  /// Which posture the page OPENS in. The posture itself is page state from
+  /// there on: `⋯ ▸ Edit` switches into editing, Save and back switch out of
+  /// it, and neither navigates — one page, two faces.
+  final bool edit;
+
   /// Forwarded to the form's barcode scan. Both exist for tests and are null
   /// in app code — the router builds this page with neither, and the scan
   /// then takes the real Open Food Facts client from its provider and the
@@ -139,6 +169,10 @@ class IngredientDetailView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // A row that does not exist has nothing to read, so the create form is
+    // always the editing posture — and it is not a posture that can be left,
+    // which is why it keeps the pop-with-the-row exit the picker awaits.
+    final editing = useState(edit || ingredientId == null);
     if (ingredientId == null) {
       return _DetailForm(
         ingredientId: null,
@@ -152,18 +186,47 @@ class IngredientDetailView extends ConsumerWidget {
     // The form owns its own scaffold: the header's `⋯` menu and the pinned
     // action bar both act on form state (the pending edits, the busy flag,
     // the one message line), and a scaffold built above them could only
-    // reach that state through callbacks threaded back up.
+    // reach that state through callbacks threaded back up. The reading
+    // posture owns its own for the same reason, one level simpler.
     //
-    // It is built only once the row is HERE, so the ViewModel seeds its draft
-    // from a real row rather than from a blank it would have to reconcile.
-    if (async.asData?.value != null) {
-      return _DetailForm(
-        // Keyed by id so pushing a different ingredient rebuilds the form
-        // state instead of inheriting the previous row's typed values.
-        key: ValueKey(ingredientId!),
-        ingredientId: ingredientId,
-        lookup: lookup,
-        cameraPane: cameraPane,
+    // Either is built only once the row is HERE, so the ViewModel seeds its
+    // draft from a real row rather than from a blank it would have to
+    // reconcile.
+    if (async.asData?.value case final row?) {
+      if (!editing.value) {
+        return _ReadPosture(
+          ingredient: row,
+          onEdit: () => editing.value = true,
+        );
+      }
+      // **Back means one thing.** Editing is a MODE of this page, not a page
+      // of its own, so the system gesture has to leave the mode exactly as the
+      // header chevron does — otherwise one act pops a route on Android and
+      // steps back a posture in the header. The cost is the iOS edge swipe
+      // while the form is open; it is whole again one tap away, on the fact
+      // sheet, which is the page that swipe is really about.
+      return PopScope<Object?>(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          // The fields go with the form, and a field that still holds focus
+          // when its render object leaves the tree goes on asking the
+          // framework where its caret is.
+          FocusManager.instance.primaryFocus?.unfocus();
+          editing.value = false;
+        },
+        child: _DetailForm(
+          // Keyed by id so pushing a different ingredient rebuilds the form
+          // state instead of inheriting the previous row's typed values.
+          key: ValueKey(ingredientId!),
+          ingredientId: ingredientId,
+          // Finishing here is not leaving the page: Save, Mark complete and
+          // back all put the form down and show what the row now says.
+          // Deleting still leaves — there is nothing left to read.
+          onDone: () => editing.value = false,
+          lookup: lookup,
+          cameraPane: cameraPane,
+        ),
       );
     }
     return FScaffold(
@@ -188,18 +251,32 @@ class IngredientDetailView extends ConsumerWidget {
 /// complete row) belong behind it rather than stacked under the CTA.
 FHeader _header(
   BuildContext context, {
-  required String title,
+  String? title,
+  VoidCallback? onBack,
   List<Widget> suffixes = const [],
-}) => FHeader.nested(
-  title: Text(title, style: ansiHeaderTitle(), overflow: TextOverflow.ellipsis),
-  prefixes: [
-    FHeaderAction.back(
-      onPress: () =>
-          context.canPop() ? context.pop() : context.goOnce('/ingredients'),
+}) {
+  final back = FHeaderAction.back(
+    // A cold deep link lands here with no page beneath, so there is nothing
+    // to pop: fall back to the manager, exactly as the delete does.
+    onPress:
+        onBack ??
+        () => context.canPop() ? context.pop() : context.goOnce('/ingredients'),
+  );
+  // The reading posture leads with the name in the body, the way the recipe
+  // page does, so it names none here rather than saying it twice.
+  if (title == null) {
+    return FHeader.nested(prefixes: [back], suffixes: suffixes);
+  }
+  return FHeader.nested(
+    title: Text(
+      title,
+      style: ansiHeaderTitle(),
+      overflow: TextOverflow.ellipsis,
     ),
-  ],
-  suffixes: suffixes,
-);
+    prefixes: [back],
+    suffixes: suffixes,
+  );
+}
 
 class _Centered extends StatelessWidget {
   const _Centered(this.message);
@@ -219,10 +296,250 @@ class _Centered extends StatelessWidget {
   );
 }
 
+/// The reading posture's one call to action, on a row that is still a stub —
+/// exported so a test names it rather than counting buttons.
+const kReadFillItInKey = ValueKey('read-fill-it-in');
+
+/// The page as it OPENS on a row that exists: the same groups in the same
+/// order, each field's value stated instead of offered.
+///
+/// **It states nothing the form does not.** Every line comes from the shared
+/// sentences ([macrosFact] and its neighbours), which restate stored facts in
+/// the words the form's own fields and entries use — so the two postures
+/// cannot tell two stories about one row, and there is no second place to fix
+/// when a wording changes. Nothing is added either: no "used in" list, no
+/// derived figure the form does not already compute.
+///
+/// **One button, and only on an incomplete row.** A complete row is finished:
+/// reading it is the whole act, and `⋯ ▸ Edit` is where changing it lives. A
+/// stub keeps the door it has always had — the strip says it is left out of
+/// totals, and `Fill it in` opens the editing posture at the fields that
+/// would end that.
+class _ReadPosture extends ConsumerWidget {
+  const _ReadPosture({required this.ingredient, required this.onEdit});
+
+  final Ingredient ingredient;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ing = ingredient;
+    final stub = ing.status == IngredientStatus.stub;
+    // Decorative emptiness, weighed: an alias that did not load costs the
+    // reader a line they were not looking for, and the row's own name — the
+    // thing they came for — is right above it.
+    final aliases =
+        ref.watch(ingredientAliasesProvider(ing.id)).asData?.value ??
+        const <IngredientAlias>[];
+    final alsoKnownAs = aliasesFact(aliases);
+    final measuresAsync = ref.watch(ingredientMeasuresProvider(ing.id));
+    final source = sourceProvenanceLine(ing);
+    final pieceWeight = pieceWeightFact(ing);
+
+    return FScaffold(
+      childPad: false,
+      header: _header(
+        context,
+        suffixes: [
+          FPopoverMenu(
+            // `menuBuilder`, not `menu`: an item dismisses the menu it was
+            // picked from before it acts (the recipe view's rule).
+            menuBuilder: (_, controller, _) => [
+              FItemGroup(
+                children: [
+                  FItem(
+                    prefix: const Icon(FLucideIcons.pencil),
+                    title: const Text('Edit'),
+                    onPress: () {
+                      unawaited(controller.hide());
+                      onEdit();
+                    },
+                  ),
+                ],
+              ),
+            ],
+            builder: (context, controller, _) => FHeaderAction(
+              icon: const Icon(FLucideIcons.ellipsis),
+              onPress: controller.toggle,
+            ),
+          ),
+        ],
+      ),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+        children: [
+          Text(
+            ing.canonicalName,
+            style: ansiSerif(size: 33, weight: FontWeight.w700),
+          ),
+          if (alsoKnownAs.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'also known as $alsoKnownAs',
+                style: ansiMono(size: 11, color: AnsiColors.muted),
+              ),
+            ),
+          const SizedBox(height: 14),
+          _StatusStrip(ingredient: ing),
+          if (stub)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: FButton(
+                key: kReadFillItInKey,
+                onPress: onEdit,
+                child: const Text('Fill it in'),
+              ),
+            )
+          else
+            const SizedBox.shrink(),
+
+          _Group(
+            title: 'Identity',
+            children: [
+              const _Label('CATEGORY'),
+              _Fact(categoryFact(ing), muted: ing.category == null),
+            ],
+          ),
+
+          _Group(
+            title: 'Nutrition',
+            children: [
+              // Which food the numbers came from, over the numbers — the one
+              // line the manager list and the import review already print, so
+              // a row names its food the same way wherever it is met.
+              if (source != null)
+                _Fact(source, muted: true)
+              else
+                const SizedBox.shrink(),
+              const _Label('MACROS'),
+              // Never zeros: a row with no panel says what it is short of, in
+              // the dock's own words (invariant 3).
+              _Fact(macrosFact(ing), muted: ing.macros == null),
+            ],
+          ),
+
+          _Group(
+            title: 'Units & measures',
+            children: [
+              const _Label('DEFAULT UNIT'),
+              _Fact(ing.defaultUnit.label),
+              const _Label('ALLOWED UNITS', hint: 'what a line may say'),
+              _Fact(allowedUnitsFact(ing)),
+              // The piece weight is drawn only where it means something — a
+              // count row that states one — exactly as the form draws its
+              // entry only under a count default.
+              if (pieceWeight != null) ...[
+                const _Label('PIECE WEIGHT'),
+                _Fact(pieceWeight),
+              ],
+              const _Label('DENSITY'),
+              _Fact(densityFact(ing), muted: ing.densityGPerMl == null),
+              const _Label('MEASURES', hint: 'count-like, in the basis'),
+              // Load-bearing emptiness: an errored stream rendered as "none"
+              // would say this row carries no measures, which is a different
+              // thing from not knowing.
+              if (measuresAsync case AsyncError(
+                :final error,
+                :final stackTrace,
+              ))
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: AnsiErrorState(
+                    compact: true,
+                    what: 'the measures',
+                    error: error,
+                    stackTrace: stackTrace,
+                    onRetry: () =>
+                        ref.invalidate(ingredientMeasuresProvider(ing.id)),
+                  ),
+                )
+              else
+                _ReadMeasures(
+                  measures: measuresAsync.asData?.value ?? const <Measure>[],
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The measures as a short list — the editor's own three parts (the source
+/// dot, the label with its amount, the provenance word) with nothing to tap.
+class _ReadMeasures extends StatelessWidget {
+  const _ReadMeasures({required this.measures});
+
+  final List<Measure> measures;
+
+  @override
+  Widget build(BuildContext context) {
+    final listed = [
+      for (final m in measures)
+        if (!isVolumeUnitLabel(m.label)) m,
+    ];
+    if (listed.isEmpty) return const _Fact('No measures yet.', muted: true);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final m in listed)
+          Padding(
+            padding: const EdgeInsets.only(top: 7),
+            child: Row(
+              children: [
+                SourceDot(kind: m.sourceKind),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    measureFact(m),
+                    style: ansiMono(size: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  measureSourceWord(m.sourceKind),
+                  style: ansiMono(size: 9, color: AnsiColors.muted),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// One stated fact under its micro-label — the reading posture's counterpart
+/// to a field, and the same mono the field's own text is set in.
+///
+/// [muted] is for an honest absence ("needs macros", "none yet — unlocks
+/// volume⇄weight"): the sentence is still there, drawn as the aside it is
+/// rather than as a value the row carries.
+class _Fact extends StatelessWidget {
+  const _Fact(this.text, {this.muted = false});
+
+  final String text;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 6),
+    child: Text(
+      text,
+      style: ansiMono(
+        size: 12,
+        color: muted ? AnsiColors.muted : AnsiColors.ink,
+      ),
+    ),
+  );
+}
+
 class _DetailForm extends ConsumerWidget {
   const _DetailForm({
     required this.ingredientId,
     this.initialName = '',
+    this.onDone,
     this.lookup,
     this.cameraPane,
     super.key,
@@ -234,6 +551,14 @@ class _DetailForm extends ConsumerWidget {
   final String? ingredientId;
 
   final String initialName;
+
+  /// Where the form goes when it is put down — back to the reading posture on
+  /// a row that exists. **Null while creating**, and that is the whole
+  /// difference: a create form has no fact sheet behind it, so it ends the
+  /// page and pops with the row it made, which is what the picker that pushed
+  /// it awaits.
+  final VoidCallback? onDone;
+
   final OffLookup? lookup;
   final BarcodeCameraPane? cameraPane;
 
@@ -292,14 +617,28 @@ class _DetailForm extends ConsumerWidget {
       form.applyUsdaPick(pick);
     }
 
-    // Leaving the form. A cold deep link lands here with no page beneath, so
-    // there is nothing to pop: fall back to the manager, exactly as the back
-    // chevron and the delete both do.
-    // Pops with the row when there is one, so a caller waiting on this form
-    // — the editor's picker, which pushes it and then opens the quantity
-    // sheet on the units it just set — gets what it was waiting for.
-    void leave([Ingredient? result]) =>
-        context.canPop() ? context.pop(result) : context.goOnce('/ingredients');
+    // Putting the form down. On a row that exists that means the reading
+    // posture — the page stays, and shows what the row now says.
+    //
+    // Creating has no such posture, so it LEAVES: a cold deep link lands here
+    // with no page beneath, so there is nothing to pop and it falls back to
+    // the manager, exactly as the delete does. It pops with the row, so a
+    // caller waiting on this form — the editor's picker, which pushes it and
+    // then opens the quantity sheet on the units it just set — gets what it
+    // was waiting for.
+    void leave([Ingredient? result]) {
+      final done = onDone;
+      if (done != null) {
+        // The fields go with the form, and a field that still holds focus
+        // when its render object leaves the tree keeps asking the framework
+        // where its caret is. Put the keyboard down first, exactly as a route
+        // transition would.
+        FocusManager.instance.primaryFocus?.unfocus();
+        done();
+        return;
+      }
+      context.canPop() ? context.pop(result) : context.goOnce('/ingredients');
+    }
 
     Future<Ingredient?> save({bool markComplete = false}) =>
         ref.write<Ingredient?>(
@@ -355,6 +694,10 @@ class _DetailForm extends ConsumerWidget {
       header: _header(
         context,
         title: ing.canonicalName,
+        // Back out of editing is back to the fact sheet, not off the page:
+        // the form discards what it holds exactly as it always has (nothing
+        // is written until Save, ADR-0011), and what is left is the row.
+        onBack: onDone == null ? null : leave,
         suffixes: [
           // Nothing to delete and nothing to un-confirm on a row that does
           // not exist yet.

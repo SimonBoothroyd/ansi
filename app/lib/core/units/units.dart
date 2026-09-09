@@ -225,6 +225,23 @@ double? densityFromVolumeWeight(Unit volumeUnit, double grams) {
   return grams / volumeUnit.ratioToBase!;
 }
 
+/// What one [volumeUnit] of something at [densityGPerMl] weighs, in grams —
+/// the exact inverse of [densityFromVolumeWeight].
+///
+/// A stored density is a ratio, and a ratio is not a thing a kitchen holds:
+/// this is how `0.66 g/ml` is read back as the sentence it was entered as,
+/// "1 cup weighs 156.15 g". Nothing new is asserted — the same one stored
+/// fact, said the other way round.
+///
+/// Returns null on the same terms its inverse does: a non-volume unit, or a
+/// density that is not a positive number (invariant 3 — never a fabricated
+/// number).
+double? volumeWeightFromDensity(Unit volumeUnit, double densityGPerMl) {
+  if (volumeUnit.family != UnitFamily.volume) return null;
+  if (!(densityGPerMl > 0)) return null;
+  return densityGPerMl * volumeUnit.ratioToBase!;
+}
+
 /// Multiplies [q] by [factor], keeping the unit.
 ///
 /// [UnitFamily.imprecise] quantities are returned unchanged: a recipe scaled ×2

@@ -557,7 +557,10 @@ class _IngredientsTab extends StatelessWidget {
       case MacroLineReason.needsDensity:
       case MacroLineReason.needsWeight:
         final id = line?.ingredientId;
-        if (id != null) context.pushOnce(ingredientDetailRoute(id));
+        // A marker is a door onto a FIELD — the missing macros, density or
+        // piece weight it just named — so it lands on the editing posture
+        // rather than on a fact sheet that restates what the marker said.
+        if (id != null) context.pushOnce(ingredientDetailRoute(id, edit: true));
       case MacroLineReason.subRecipeUnresolved:
       case MacroLineReason.subRecipeIncomplete:
         final id = line?.subRecipeId;

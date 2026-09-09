@@ -46,8 +46,12 @@ void main() {
       expect(find.text('Needs fleshing out'), findsOneWidget);
       expect(find.text('All ingredients · 3'), findsOneWidget);
 
-      // Push the detail, rename + save, pop back.
+      // Push the detail, edit, rename + save, pop back. A vocabulary row
+      // opens as a row now — `⋯ ▸ Edit` is the way into the fields.
       await tester.tap(find.text('Mango').first);
+      await tester.pumpAndSettle();
+      await openMoreMenu(tester);
+      await tester.tap(find.text('Edit'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).first, 'Mango, ripe');
       await tester.pump();
@@ -55,9 +59,10 @@ void main() {
       await tester.pumpAndSettle();
       expect((await repo.byId('mango'))!.canonicalName, 'Mango, ripe');
 
-      // Save is the way back now — it ends the page, which is what the
-      // picker that pushes this form has always awaited.
+      // Save puts the FORM down — the page stays, showing the row it just
+      // wrote — so the way back to the list is the back chevron.
       await tester.pumpAndSettle();
+      await tapBack(tester);
 
       // The user typed nothing into search, so the list must not be in its
       // search-results branch.
@@ -142,13 +147,24 @@ void main() {
       expect(find.text('All ingredients · 1'), findsOneWidget);
     });
 
-    testWidgets('tapping a row opens its flesh-out form', (tester) async {
+    testWidgets('tapping a row opens it as a row, and the band opens the '
+        'fields', (tester) async {
       filterForuiSemanticsAssertions();
+      tallScreen(tester);
       await tester.pumpWidget(
         host(FakeIngredientRepo(const [mango, curryLeaves])),
       );
       await tester.pumpAndSettle();
+
+      // The vocabulary list reads, like a recipe opened from the Library.
       await tester.tap(find.text('Mango').last);
+      await tester.pumpAndSettle();
+      expect(find.text('CANONICAL NAME'), findsNothing);
+      expect(find.text('60 kcal · 1P 0F 15C /100 g'), findsOneWidget);
+      await tapBack(tester);
+
+      // The stub band is a work queue: its rows land on the fields.
+      await tester.tap(find.text('Curry leaves, fresh').first);
       await tester.pumpAndSettle();
       expect(find.text('CANONICAL NAME'), findsOneWidget);
     });

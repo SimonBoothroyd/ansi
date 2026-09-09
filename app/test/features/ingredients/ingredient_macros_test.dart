@@ -45,7 +45,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [spread]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/spread'));
+      await tester.pumpWidget(host(repo, at: editRoute('spread')));
       await tester.pumpAndSettle();
 
       // Nobody who never taps the segment sees anything new.
@@ -100,7 +100,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [spread]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/spread'));
+      await tester.pumpWidget(host(repo, at: editRoute('spread')));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('per serving'));
@@ -143,7 +143,7 @@ void main() {
       WidgetTester tester,
       FakeIngredientRepo repo,
     ) async {
-      await tester.pumpWidget(host(repo, at: '/ingredients/spread'));
+      await tester.pumpWidget(host(repo, at: editRoute('spread')));
       await tester.pumpAndSettle();
       expect(lockedUnitLabels(tester), containsAll(['tbsp', 'ml']));
 
@@ -212,7 +212,7 @@ void main() {
       final repo = FakeIngredientRepo(const [spread]);
       final measures = FakeMeasureRepo();
       await tester.pumpWidget(
-        host(repo, at: '/ingredients/spread', measures: measures),
+        host(repo, at: editRoute('spread'), measures: measures),
       );
       await tester.pumpAndSettle();
 
@@ -283,7 +283,7 @@ void main() {
       await tester.pumpWidget(
         host(
           repo,
-          at: '/ingredients/bare',
+          at: editRoute('bare'),
           lookup: lookupAnswering(offFixture('peanut_butter_per_serving')),
         ),
       );
@@ -330,7 +330,7 @@ void main() {
       await tester.pumpWidget(
         host(
           repo,
-          at: '/ingredients/bare',
+          at: editRoute('bare'),
           lookup: lookupAnswering(withoutServingQuantity()),
         ),
       );
