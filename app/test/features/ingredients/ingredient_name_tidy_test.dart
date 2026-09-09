@@ -54,7 +54,7 @@ void main() {
       expect(find.textContaining('was '), findsNothing);
 
       await leaveTheField(tester);
-      expect(fieldText(tester, nameField), 'Onion');
+      expect(fieldText(tester, nameField), 'Onions');
       expect(find.text('was “chopped onions”'), findsOneWidget);
       expect(find.text('keep the old word'), findsOneWidget);
     });
@@ -135,7 +135,7 @@ void main() {
 
       await typeName(tester, 'diced carrots');
       await leaveTheField(tester);
-      expect(fieldText(tester, nameField), 'Carrot');
+      expect(fieldText(tester, nameField), 'Carrots');
       expect(find.text('was “diced carrots”'), findsOneWidget);
     });
 

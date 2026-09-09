@@ -131,7 +131,8 @@ The column list is generated from the migrations —
   only ever *added* — `BBQ sauce` becomes `BBQ Sauce`, never `Bbq`. An
   ingredient's canonical name additionally gets **one suggestion**: a name that
   reads as a recipe line becomes the entry it was about (`chopped onions` →
-  `Onion`, `2 cups flour` → `Flour`), using the same word classes the
+  `Onions`, `2 cups flour` → `Flour`; a plural is a name, since the vocabulary
+  keeps `Bay Leaves` and `Chives` as they are), using the same word classes the
   normalizer keys on. Case and spacing change silently; a changed *word* never
   does — the field prints `was “chopped onions” · keep the old word` beneath
   it, and one tap restores the typed name and stops the suggestion for it until

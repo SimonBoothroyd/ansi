@@ -7,6 +7,7 @@
 /// same picker; a file that re-derives that walks into the same traps twice.
 library;
 
+import 'package:ansi/core/text/name_clean.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart'
     show kFormSaveKey;
 import 'package:ansi/features/ingredients/presentation/ingredient_picker.dart'
@@ -136,9 +137,13 @@ Future<void> createIngredientForLine(
   await openResolverForLine(tester, i);
   // Search first: a previous line may already have made this row.
   await typeInPicker(tester, name);
+  // The form tidies the name it is seeded with (Title Case for an
+  // ingredient), so the row it makes — and the row a later line finds —
+  // carries the tidied name, not the typed one.
+  final stored = cleanName(name, NameKind.ingredient);
   final existing = find.descendant(
     of: find.byType(IngredientResultList),
-    matching: find.text(name),
+    matching: find.text(stored),
   );
   if (existing.evaluate().isNotEmpty) {
     await tester.tap(existing.first);
@@ -156,7 +161,7 @@ Future<void> createIngredientForLine(
   await tester.tap(find.byKey(kFormSaveKey));
   await pumpUntilFound(
     tester,
-    find.descendant(of: reviewCard(i), matching: find.text(name)),
+    find.descendant(of: reviewCard(i), matching: find.text(stored)),
   );
   await tester.pumpAndSettle();
 }

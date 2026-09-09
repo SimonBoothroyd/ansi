@@ -276,11 +276,12 @@ void main() {
       // written together, or the next import's cascade searches for a name
       // nothing carries. The canonical-name field is the form's first text
       // field.
-      const renamed = 'Gochugaru flakes';
-      await tester.enterText(
-        fieldIn(find.byType(IngredientDetailView)),
-        renamed,
-      );
+      // Typed lowercase on purpose: Save is the backstop that tidies a name
+      // never left, so the row is stored in Title Case and every later check
+      // reads the tidied name.
+      const typed = 'gochugaru flakes';
+      const renamed = 'Gochugaru Flakes';
+      await tester.enterText(fieldIn(find.byType(IngredientDetailView)), typed);
       await tester.pumpAndSettle();
 
       // Save ENDS the page since the v2 pass (the picker that pushes this
