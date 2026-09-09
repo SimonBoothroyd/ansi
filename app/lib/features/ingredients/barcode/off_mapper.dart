@@ -118,11 +118,15 @@ _Panel _readPanel(Map<String, Object?> p) {
 ///    legally printed contents, in the unit the label is obliged to use, so a
 ///    litre bottle is a litre label and a 1 kg bag of coffee beans is a
 ///    per-100 g one whatever aisle it is sold in.
-/// 3. `serving_quantity_unit`. Weaker than the pack, because OFF derives it by
-///    normalising the free-text `serving_size` and a US "1 cup (62 g)" of dry
-///    macaroni comes back as `ml` — a serving measured by volume, not a label
-///    printed per volume.
-/// 4. OFF's own category taxonomy: `en:beverages`. Last, because it describes
+/// 3. The mass or volume the label prints **in parentheses beside the
+///    serving** — `0.25 cup (28 g)`, `1 Cup (237 mL)`. It is the label's own
+///    conversion of the serving, in the unit the panel is per.
+/// 4. `serving_quantity_unit`. Weaker than the two above, because OFF derives
+///    it by normalising the free-text `serving_size` and a US "1 cup (62 g)"
+///    of dry macaroni comes back as `ml` — a serving measured by volume, not
+///    a label printed per volume. A bag of cheddar shreds served by the
+///    quarter-cup is the same trap, and step 3 is what catches it.
+/// 5. OFF's own category taxonomy: `en:beverages`. Last, because it describes
 ///    what a product IS rather than how it is measured, and the drinks branch
 ///    holds beans, leaves and powders as well as liquids — which is exactly
 ///    what step 2 has already settled by the time this is reached.
@@ -138,11 +142,12 @@ MacrosBasis _basisFor(Map<String, Object?> p) {
   if (_perKey(p)?.endsWith('ml') ?? false) return MacrosBasis.perMl;
 
   final packUnit = parsePackQuantity(_text(p['quantity']))?.unit;
+  final printedUnit = _servingParentheticalUnit(_text(p['serving_size']));
   final servingUnit = unitFromWord(
     _text(p['serving_quantity_unit']) ?? '',
     families: const {UnitFamily.mass, UnitFamily.volume},
   );
-  for (final unit in [packUnit, servingUnit]) {
+  for (final unit in [packUnit, printedUnit, servingUnit]) {
     if (unit == null) continue;
     return unit.family == UnitFamily.volume
         ? MacrosBasis.perMl
@@ -154,6 +159,21 @@ MacrosBasis _basisFor(Map<String, Object?> p) {
     return MacrosBasis.perMl;
   }
   return MacrosBasis.perG;
+}
+
+/// The mass or volume unit a label prints in parentheses beside its serving
+/// — the `g` of `0.25 cup (28 g)`, the `mL` of `1 Cup (237 mL)` — or null
+/// when the text carries no such conversion.
+Unit? _servingParentheticalUnit(String? servingSize) {
+  if (servingSize == null) return null;
+  final m = RegExp(
+    r'\(\s*[0-9]+(?:[.,][0-9]+)?\s*([a-zA-Z][a-zA-Z ]*?)\s*\)',
+  ).firstMatch(servingSize);
+  if (m == null) return null;
+  return unitFromWord(
+    m.group(1)!,
+    families: const {UnitFamily.mass, UnitFamily.volume},
+  );
 }
 
 /// `nutrition_data_per`, reduced to the letters and digits contributors agree
@@ -211,7 +231,9 @@ Macros? _four(Map<String, Object?> n, String suffix) {
 /// offered as an opt-in measure, so an unparsed "6 x 33cl" simply isn't
 /// offered rather than being approximated.
 DraftPackSize? parsePackQuantity(String? quantity) {
-  final text = quantity?.trim();
+  // Contributors leave a stray stop or comma after the unit ("226g,"); it is
+  // punctuation, not a second quantity.
+  final text = quantity?.trim().replaceFirst(RegExp(r'[\s,.;:]+$'), '');
   if (text == null || text.isEmpty) return null;
   // number + unit word, with an optional trailing parenthetical conversion
   // ("1 oz (28.3 g)") that OFF's US entries carry.

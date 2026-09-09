@@ -178,6 +178,7 @@ The column list is generated from the migrations —
   and defaults `nutrition_data_per` to `100g`, so a gram reading there is the
   form's default rather than a claim. The mapper reads, strongest first, a
   `nutrition_data_per` that *names* ml, the net quantity printed on the pack,
+  the conversion the label prints beside its serving (`0.25 cup (28 g)`),
   `serving_quantity_unit`, then OFF's own `en:beverages` category — and never
   implies a density from any of it. Consumers apply the aggregation
   doctrine: a line whose unit family matches the basis computes directly;

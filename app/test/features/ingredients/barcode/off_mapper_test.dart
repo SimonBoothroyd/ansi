@@ -121,6 +121,29 @@ const _cases = <_Case>[
     servingPanel: null,
   ),
   (
+    fixture: 'cheddar_shreds_cup_serving_as_ml',
+    barcode: '0099482514778',
+    why:
+        'THE OWNER’S CHEDDAR SHREDS — a bag sold by weight and served by the '
+        'quarter-cup, which OFF normalises into `serving_quantity_unit: ml`; '
+        'the pack’s "226g," carries a stray comma and the serving’s own '
+        '"(28 g)" is the label’s conversion. Per 100 g, from the pack first '
+        'and the parenthetical second — never the ml. (The name is OFF’s '
+        'contributor’s, typo and all: the mapper carries what it was given)',
+    suggestedName: 'Mozzarella chese',
+    brand: '365',
+    macros: Macros(
+      kcal: 285.714285714286,
+      protein: 0,
+      carb: 21.4285714285714,
+      fat: 25,
+    ),
+    basis: MacrosBasis.perG,
+    gap: DraftMacrosGap.none,
+    packSize: DraftPackSize(226, g),
+    servingPanel: null,
+  ),
+  (
     fixture: 'nesquik_no_panel',
     barcode: '3033710065967',
     why:
@@ -396,6 +419,55 @@ void main() {
             'serving_quantity_unit': 'ml',
           }),
           MacrosBasis.perG,
+        );
+      });
+
+      test('a stray stop after the pack unit is punctuation, not a reason to '
+          'fall through to the serving', () {
+        expect(parsePackQuantity('226g,'), const DraftPackSize(226, g));
+        expect(parsePackQuantity('1,5 l.'), const DraftPackSize(1.5, l));
+        expect(
+          basisOf({
+            'nutrition_data_per': '100g',
+            'quantity': '226g,',
+            'serving_quantity': 28,
+            'serving_quantity_unit': 'ml',
+          }),
+          MacrosBasis.perG,
+        );
+      });
+
+      test('the conversion printed beside the serving outranks OFF’s '
+          'normalised serving unit', () {
+        // A quarter-cup of shreds, weighed by the label: grams.
+        expect(
+          basisOf({
+            'nutrition_data_per': '100g',
+            'serving_size': '0.25 cup (28 g)',
+            'serving_quantity': 28,
+            'serving_quantity_unit': 'ml',
+          }),
+          MacrosBasis.perG,
+        );
+        // A cup of oat milk, measured by the label: millilitres.
+        expect(
+          basisOf({
+            'nutrition_data_per': '100g',
+            'serving_size': '1 Cup (237 mL)',
+            'serving_quantity': 237,
+            'serving_quantity_unit': 'ml',
+          }),
+          MacrosBasis.perMl,
+        );
+        // No parenthetical at all: the serving unit is what is left.
+        expect(
+          basisOf({
+            'nutrition_data_per': '100g',
+            'serving_size': '1 cup',
+            'serving_quantity': 240,
+            'serving_quantity_unit': 'ml',
+          }),
+          MacrosBasis.perMl,
         );
       });
 
