@@ -100,21 +100,49 @@ void main() {
   setUpAll(() async => stack = await SmokeStack.start());
   tearDownAll(() => stack.dispose());
 
-  /// Taps the form's own docked Save, then walks back into [name]'s row.
+  /// Enters the form from wherever a tap on a row landed. A row opens as its
+  /// fact sheet, and the form is behind the header's ⋯ ▸ Edit; the stub band's
+  /// rows open the form directly, and then there is nothing to do.
+  Future<void> enterForm(WidgetTester tester) async {
+    await pumpUntilFound(tester, find.byType(IngredientDetailView));
+    await tester.pumpAndSettle();
+    if (find.text('CANONICAL NAME').evaluate().isNotEmpty) return;
+    final more = find.descendant(
+      of: find.byType(FHeaderAction),
+      matching: find.byIcon(FLucideIcons.ellipsis),
+    );
+    await pumpUntilFound(tester, more);
+    await tester.tap(more);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await pumpUntilFound(tester, find.text('CANONICAL NAME'));
+  }
+
+  /// Walks back to the Ingredients list from either posture of the page.
+  /// Back from the form puts the page down into its fact sheet first — it
+  /// leaves the mode, not the page — so from there it is one more back.
+  Future<void> leaveToList(WidgetTester tester) async {
+    final list = find.text('Search your vocabulary');
+    for (var i = 0; i < 2 && list.evaluate().isEmpty; i++) {
+      await tester.tap(find.byType(FHeaderAction).first);
+      await tester.pumpAndSettle();
+    }
+    await pumpUntilFound(tester, list);
+  }
+
+  /// Taps the form's own docked Save, then re-enters the form.
   ///
-  /// Two things changed under this helper. The dock is **pinned**, so the
-  /// Save needs no scrolling — and it is **keyed** ([kFormSaveKey]), because
-  /// the density entry and the measures editor each carry their own small
-  /// green Save and `find.text('Save').last` was picking between three of
-  /// them by position. And Save **ends the page**, so anything that goes on
-  /// working the same row re-enters it from the list.
+  /// The dock is **pinned**, so the Save needs no scrolling — and it is
+  /// **keyed** ([kFormSaveKey]), because the density entry and the measures
+  /// editor each carry their own small green Save and `find.text('Save').last`
+  /// was picking between three of them by position. Save puts the page down
+  /// into its fact sheet, which names the row as [name]; working the same row
+  /// again is ⋯ ▸ Edit from there.
   Future<void> saveFormAndReopen(WidgetTester tester, String name) async {
     await tester.tap(find.byKey(kFormSaveKey));
     await tester.pumpAndSettle();
-    await scrollTo(tester, find.text(name));
-    await tester.tap(find.text(name).first);
-    await tester.pumpAndSettle();
-    await pumpUntilFound(tester, find.text('CANONICAL NAME'));
+    await pumpUntilFound(tester, find.text(name));
+    await enterForm(tester);
   }
 
   testWidgets(
@@ -242,7 +270,7 @@ void main() {
       // back up to it first — the header check left us at the band's end.
       await scrollTo(tester, find.text(stubName));
       await tester.tap(find.text(stubName).first);
-      await pumpUntilFound(tester, find.text('CANONICAL NAME'));
+      await enterForm(tester);
 
       // The rename hazard (D6): the stored name and its match_text are
       // written together, or the next import's cascade searches for a name
@@ -570,13 +598,12 @@ void main() {
       await scrollTo(tester, find.text('PIECE WEIGHT'));
       expect(find.text('30 g'), findsOneWidget);
       expect(find.text('· change'), findsWidgets);
-      await tester.tap(find.byType(FHeaderAction).first);
-      await pumpUntilFound(tester, find.text('Search your vocabulary'));
+      await leaveToList(tester);
 
       // --- the USDA match, asked for and said out loud ---------------------
       await scrollTo(tester, find.text(usdaName));
       await tester.tap(find.text(usdaName).first);
-      await pumpUntilFound(tester, find.text('CANONICAL NAME'));
+      await enterForm(tester);
 
       // A row nothing has matched carries no provenance line at all — it
       // carries the door instead.
@@ -743,8 +770,7 @@ void main() {
       // The refused food is still named — "you said no once" needs a noun.
       expect(afterRename['source_label'], filledLabel);
 
-      await tester.tap(find.byType(FHeaderAction).first);
-      await pumpUntilFound(tester, find.text('Search your vocabulary'));
+      await leaveToList(tester);
 
       // --- add new, by barcode ---------------------------------------------
       // The list's `＋` opens the FORM — it writes on Save, so it can be the
