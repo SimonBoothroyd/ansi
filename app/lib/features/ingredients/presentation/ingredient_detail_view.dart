@@ -1508,13 +1508,8 @@ class _AdmissionChips extends StatelessWidget {
       for (final c in candidates)
         if (!c.locked && c.unit.family == UnitFamily.imprecise) c,
     ];
-    // Two locks, two lines (ADR-0015): the other family waits on a density,
-    // `piece` waits on a piece weight. One line for both would tell the user
-    // a density unlocks `piece`, which nothing ever will.
-    final lockedByDensity = [
-      for (final c in candidates)
-        if (c.locked && c.unit != pieces) c.unit.label,
-    ];
+    // `piece` waits on a piece weight, which no density ever unlocks — so its
+    // line is its own (ADR-0015).
     final pieceLocked = candidates.any((c) => c.locked && c.unit == pieces);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1547,10 +1542,9 @@ class _AdmissionChips extends StatelessWidget {
             ],
           ],
         ),
-        if (lockedByDensity.isNotEmpty)
-          _Note(
-            '${lockedByDensity.join(' · ')} unlock when this row has a density',
-          ),
+        // The density note is printed ONCE, under the default-unit row above:
+        // the same family is dashed here for the same reason, and saying it
+        // twice on one screen is what the owner asked to have removed.
         if (pieceLocked)
           const _Note('piece unlocks when this row has a piece weight'),
       ],

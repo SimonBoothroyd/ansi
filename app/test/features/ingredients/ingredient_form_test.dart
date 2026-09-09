@@ -180,13 +180,13 @@ void main() {
       await tester.pumpWidget(host(repo, at: editRoute('mango')));
       await tester.pumpAndSettle();
 
-      // 1. Locked: the cross-family chips are drawn dashed, with the hint —
-      // and the default-unit row above says the same thing about its own
-      // chips, which it is missing for the same reason.
+      // 1. Locked: the cross-family chips are drawn dashed, and the ONE
+      // density line on the page — under the default-unit row, which is
+      // missing the same family for the same reason — names them.
       expect(lockedUnitLabels(tester), _volumeLabels);
       expect(
         find.textContaining('unlock when this row has a density'),
-        findsNWidgets(2),
+        findsOneWidget,
       );
       // The basis side is toggleable from the start — it never needed one.
       expect(lockedUnitLabels(tester), isNot(contains('g')));
@@ -252,20 +252,18 @@ void main() {
         host(FakeIngredientRepo(const [curryLeaves]), at: editRoute('curry')),
       );
       await tester.pumpAndSettle();
-      // Twice on the page and once per chip row: the default-unit row and the
-      // allowed-units row are each missing the same family for the same
-      // reason, and each says so under its own chips rather than sending the
-      // reader to the other section.
+      // ONCE on the page, under the default-unit row: the allowed-units row
+      // right below is dashed for the same reason and does not say it again.
       expect(
         find.text(
           'tsp · tbsp · fl oz · cup · ml · l · pt · qt unlock when this row '
           'has a density',
         ),
-        findsNWidgets(2),
+        findsOneWidget,
       );
-      // One fact, one sentence, per row. The section used to print the same
-      // list twice under ONE chip row — once as what a density unlocks, once
-      // as what its absence locks.
+      // One fact, one sentence. The section used to print the same list
+      // twice — once as what a density unlocks, once as what its absence
+      // locks — and then once per chip row.
       expect(find.textContaining('no density —'), findsNothing);
       expect(find.textContaining('That blocks nothing'), findsNothing);
     });
@@ -1007,7 +1005,7 @@ void main() {
           'tsp · tbsp · fl oz · cup · ml · l · pt · qt unlock when this row '
           'has a density',
         ),
-        findsNWidgets(2),
+        findsOneWidget,
       );
 
       // The density is the way in, off the DRAFT — and the volume family
