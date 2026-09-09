@@ -167,6 +167,12 @@ class RecordingProbe extends UsdaProbe {
   }
 }
 
+/// The route that opens a row in its EDITING posture — what these suites
+/// drive. `/ingredients/<id>` on its own is the reading posture now, so a
+/// form suite asks for the same route the manager's stub band and the recipe
+/// page's fix markers hand over.
+String editRoute(String id) => ingredientDetailRoute(id, edit: true);
+
 /// The flesh-out form is one long scroll; a phone-sized test viewport builds
 /// only its top and every assertion below the fold fails for the wrong
 /// reason. Give the whole form room instead of scrolling to each section.
@@ -252,10 +258,12 @@ Future<void> typeMacros(
 
 /// The form's own Save — the last one on the page (the density entry and
 /// the measures editor each draw their own above it).
-/// Taps the form's own Save. Since the v2 pass **Save ends the page** — the
-/// picker that pushes this form awaits its pop — so a test that goes on
-/// asserting form state passes [reopen], the row's canonical name, and the
-/// helper walks back in through the list the way a person would.
+///
+/// **Save puts the FORM down, not the page**: an existing row lands on its
+/// reading posture, headed with what was just written. A test that goes on
+/// asserting form state passes [reopen], the row's canonical name as the fact
+/// sheet should now head with it, and the helper walks back in through
+/// `⋯ ▸ Edit` the way a person would.
 Future<void> saveForm(WidgetTester tester, {String? reopen}) async {
   await tester.tap(find.byKey(kFormSaveKey));
   await tester.pumpAndSettle();
@@ -263,9 +271,24 @@ Future<void> saveForm(WidgetTester tester, {String? reopen}) async {
   expect(
     find.text('CANONICAL NAME'),
     findsNothing,
-    reason: 'Save should have left the form',
+    reason: 'Save should have put the form down',
   );
-  await tester.tap(find.text(reopen).first);
+  expect(
+    find.text(reopen),
+    findsWidgets,
+    reason: 'the fact sheet should head with the row that was just written',
+  );
+  await openMoreMenu(tester);
+  await tester.tap(find.text('Edit'));
+  await tester.pumpAndSettle();
+}
+
+/// The header's back chevron. Forui builds it from the theme's own icon, so
+/// it is found as the header's first action rather than by an icon constant —
+/// and `pageBack` does not see it at all, because it is neither a Material
+/// nor a Cupertino back button.
+Future<void> tapBack(WidgetTester tester) async {
+  await tester.tap(find.byType(FHeaderAction).first);
   await tester.pumpAndSettle();
 }
 
@@ -319,10 +342,14 @@ Widget host(
           cameraPane: lookup == null ? null : (_, _) => const SizedBox.shrink(),
         ),
       ),
+      // The app's own wiring: `?edit=1` is what opens the editing posture,
+      // so a suite that drives the form asks for the route the app hands a
+      // fix door rather than being handed a flag no screen sets.
       GoRoute(
         path: '/ingredients/:id',
         builder: (_, state) => IngredientDetailView(
           ingredientId: state.pathParameters['id'],
+          edit: state.uri.queryParameters[kEditPostureQueryParam] == '1',
           // The form's own scan (plan 0025 #8): a test hands in the client
           // and a camera-less pane the way the add sheet's tests do.
           lookup: lookup,
@@ -525,8 +552,10 @@ Widget addHost(
       ),
       GoRoute(
         path: '/ingredients/:id',
-        builder: (_, state) =>
-            IngredientDetailView(ingredientId: state.pathParameters['id']),
+        builder: (_, state) => IngredientDetailView(
+          ingredientId: state.pathParameters['id'],
+          edit: state.uri.queryParameters[kEditPostureQueryParam] == '1',
+        ),
       ),
     ],
   );

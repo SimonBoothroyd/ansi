@@ -77,7 +77,16 @@ class IngredientListView extends HookConsumerWidget {
         if (i.status == IngredientStatus.stub) i,
     ];
 
+    // A vocabulary row opens as a row: what it is, what it converts, what it
+    // counts for — the same posture a recipe opens in from the Library, with
+    // `⋯ ▸ Edit` behind it.
     void open(Ingredient i) => context.pushOnce(ingredientDetailRoute(i.id));
+
+    // The band is a WORK QUEUE, and its rows say what each one is short of.
+    // Landing them on a fact sheet that repeats "needs macros" would put a
+    // menu between the queue and the fields it exists to fill in.
+    void fleshOut(Ingredient i) =>
+        context.pushOnce(ingredientDetailRoute(i.id, edit: true));
 
     // The `＋` opens the form itself: it writes on Save, so it can BE the
     // create surface — back out of it and there is nothing to clean up.
@@ -132,7 +141,8 @@ class IngredientListView extends HookConsumerWidget {
                     // line must name what the field shows.
                     ..._searchResults(search.results, typed, open)
                   else ...[
-                    if (stubs.isNotEmpty) _StubBand(stubs: stubs, onOpen: open),
+                    if (stubs.isNotEmpty)
+                      _StubBand(stubs: stubs, onOpen: fleshOut),
                     Padding(
                       padding: const EdgeInsets.only(top: 16, bottom: 4),
                       child: Text(

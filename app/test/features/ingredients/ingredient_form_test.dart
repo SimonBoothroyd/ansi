@@ -39,7 +39,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
-        host(FakeIngredientRepo(const [curryLeaves]), at: '/ingredients/curry'),
+        host(FakeIngredientRepo(const [curryLeaves]), at: editRoute('curry')),
       );
       await tester.pumpAndSettle();
 
@@ -59,7 +59,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [curryLeaves]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+      await tester.pumpWidget(host(repo, at: editRoute('curry')));
       await tester.pumpAndSettle();
 
       for (final (label, value) in const [
@@ -89,7 +89,7 @@ void main() {
         filterForuiSemanticsAssertions();
         tallScreen(tester);
         final repo = FakeIngredientRepo(const [mango]);
-        await tester.pumpWidget(host(repo, at: '/ingredients/mango'));
+        await tester.pumpWidget(host(repo, at: editRoute('mango')));
         await tester.pumpAndSettle();
 
         expect(
@@ -112,7 +112,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
-        host(FakeIngredientRepo(const [mango]), at: '/ingredients/mango'),
+        host(FakeIngredientRepo(const [mango]), at: editRoute('mango')),
       );
       await tester.pumpAndSettle();
       for (final label in ['piece', 'g', 'cup', 'tbsp', 'tsp', 'ml']) {
@@ -140,7 +140,7 @@ void main() {
         macros: mangoMacros,
       );
       final repo = FakeIngredientRepo(const [unweighed]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/mango'));
+      await tester.pumpWidget(host(repo, at: editRoute('mango')));
       await tester.pumpAndSettle();
 
       expect(lockedUnitLabels(tester), _volumeLabels);
@@ -179,7 +179,7 @@ void main() {
         pieceSource: 'manual',
       );
       final repo = FakeIngredientRepo(const [bareMango]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/mango'));
+      await tester.pumpWidget(host(repo, at: editRoute('mango')));
       await tester.pumpAndSettle();
 
       // 1. Locked: the cross-family chips are drawn dashed, with the hint.
@@ -247,7 +247,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
-        host(FakeIngredientRepo(const [curryLeaves]), at: '/ingredients/curry'),
+        host(FakeIngredientRepo(const [curryLeaves]), at: editRoute('curry')),
       );
       await tester.pumpAndSettle();
       expect(
@@ -271,7 +271,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
-        host(FakeIngredientRepo(const [mango]), at: '/ingredients/mango'),
+        host(FakeIngredientRepo(const [mango]), at: editRoute('mango')),
       );
       await tester.pumpAndSettle();
       expect(find.textContaining('no density —'), findsNothing);
@@ -285,7 +285,7 @@ void main() {
         const [mango],
         references: const {'mango': (recipeCount: 3, lineCount: 4)},
       );
-      await tester.pumpWidget(host(repo, at: '/ingredients/mango'));
+      await tester.pumpWidget(host(repo, at: editRoute('mango')));
       await tester.pumpAndSettle();
 
       await openMoreMenu(tester);
@@ -305,7 +305,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [mango]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/mango'));
+      await tester.pumpWidget(host(repo, at: editRoute('mango')));
       await tester.pumpAndSettle();
       await openMoreMenu(tester);
       await tester.tap(find.text('Delete ingredient'));
@@ -318,7 +318,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [curryLeaves]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+      await tester.pumpWidget(host(repo, at: editRoute('curry')));
       await tester.pumpAndSettle();
 
       expect(
@@ -343,7 +343,7 @@ void main() {
       await tester.pumpWidget(
         host(
           FakeIngredientRepo(const [mango]),
-          at: '/ingredients/mango',
+          at: editRoute('mango'),
           measures: measures,
         ),
       );
@@ -412,7 +412,7 @@ void main() {
       await tester.pumpWidget(
         host(
           FakeIngredientRepo(const [mango]),
-          at: '/ingredients/mango',
+          at: editRoute('mango'),
           measures: measures,
         ),
       );
@@ -459,7 +459,7 @@ void main() {
       tallScreen(tester);
       // A gram row, moved onto the count by the chip that is always tappable.
       final repo = FakeIngredientRepo(const [curryLeaves]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+      await tester.pumpWidget(host(repo, at: editRoute('curry')));
       await tester.pumpAndSettle();
       expect(find.byType(PieceWeightEntry), findsNothing);
 
@@ -498,7 +498,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [curryLeaves]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+      await tester.pumpWidget(host(repo, at: editRoute('curry')));
       await tester.pumpAndSettle();
 
       await tester.tap(
@@ -534,7 +534,7 @@ void main() {
       tallScreen(tester);
       // Mango is weighed, so its block opens folded.
       final repo = FakeIngredientRepo(const [mango]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/mango'));
+      await tester.pumpWidget(host(repo, at: editRoute('mango')));
       await tester.pumpAndSettle();
       expect(find.text('200 g'), findsOneWidget);
 
@@ -565,7 +565,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
-        host(FakeIngredientRepo(const [mango]), at: '/ingredients/mango'),
+        host(FakeIngredientRepo(const [mango]), at: editRoute('mango')),
       );
       await tester.pumpAndSettle();
       expect(find.byType(PieceWeightEntry), findsOneWidget);
@@ -597,7 +597,7 @@ void main() {
       final repo = FakeIngredientRepo(const [mango]);
       final measures = FakeMeasureRepo();
       await tester.pumpWidget(
-        host(repo, at: '/ingredients/mango', measures: measures),
+        host(repo, at: editRoute('mango'), measures: measures),
       );
       await tester.pumpAndSettle();
       expect(find.text('COUNTS AS'), findsNothing);
@@ -641,7 +641,7 @@ void main() {
         curryLeaves,
         yeast.copyWith(densityGPerMl: 0.4),
       ]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/yeast'));
+      await tester.pumpWidget(host(repo, at: editRoute('yeast')));
       await tester.pumpAndSettle();
 
       // The only free-text fields left on the form are the ones that MUST be
@@ -683,7 +683,7 @@ void main() {
         macros: Macros(kcal: 385, protein: 50, carb: 36, fat: 5),
       );
       final repo = FakeIngredientRepo(const [mango, onlyOne]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/yeast'));
+      await tester.pumpWidget(host(repo, at: editRoute('yeast')));
       await tester.pumpAndSettle();
       expect(find.text('oddments'), findsWidgets);
 
@@ -706,9 +706,7 @@ void main() {
       final plain = curryLeaves.copyWith(source: 'manual');
       final repo = FakeIngredientRepo([plain]);
       final probe = RecordingProbe(usdaAnswer);
-      await tester.pumpWidget(
-        host(repo, at: '/ingredients/curry', probe: probe),
-      );
+      await tester.pumpWidget(host(repo, at: editRoute('curry'), probe: probe));
       await tester.pumpAndSettle();
 
       // Rename in the form and DON'T save — the exact state the owner hit.
@@ -757,9 +755,7 @@ void main() {
       tallScreen(tester);
       final repo = FakeIngredientRepo([curryLeaves.copyWith(source: 'manual')]);
       final probe = RecordingProbe(usdaAnswer);
-      await tester.pumpWidget(
-        host(repo, at: '/ingredients/curry', probe: probe),
-      );
+      await tester.pumpWidget(host(repo, at: editRoute('curry'), probe: probe));
       await tester.pumpAndSettle();
 
       // A bare stub: four empty fields, and a pending edit in a field the
@@ -797,9 +793,7 @@ void main() {
       tallScreen(tester);
       final repo = FakeIngredientRepo([curryLeaves.copyWith(source: 'manual')]);
       final probe = RecordingProbe(usdaAnswer);
-      await tester.pumpWidget(
-        host(repo, at: '/ingredients/curry', probe: probe),
-      );
+      await tester.pumpWidget(host(repo, at: editRoute('curry'), probe: probe));
       await tester.pumpAndSettle();
 
       // Half a panel in flight. The lookup no longer saves the form to run
@@ -828,9 +822,7 @@ void main() {
       tallScreen(tester);
       final repo = FakeIngredientRepo([curryLeaves.copyWith(source: 'manual')]);
       final probe = RecordingProbe(usdaAnswer);
-      await tester.pumpWidget(
-        host(repo, at: '/ingredients/curry', probe: probe),
-      );
+      await tester.pumpWidget(host(repo, at: editRoute('curry'), probe: probe));
       await tester.pumpAndSettle();
 
       await tester.enterText(macroField('kcal'), '999');
@@ -883,7 +875,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [blackRice]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/rice'));
+      await tester.pumpWidget(host(repo, at: editRoute('rice')));
       await tester.pumpAndSettle();
 
       expect(
@@ -910,7 +902,7 @@ void main() {
       // the macros then moved to per 100 ml. The chips would never have
       // OFFERED g here; nothing stopped the row keeping it.
       final repo = FakeIngredientRepo(const [curryLeaves]);
-      await tester.pumpWidget(host(repo, at: '/ingredients/curry'));
+      await tester.pumpWidget(host(repo, at: editRoute('curry')));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('per 100 ml'));
@@ -953,7 +945,7 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
-        host(FakeIngredientRepo(const [blackRice]), at: '/ingredients/rice'),
+        host(FakeIngredientRepo(const [blackRice]), at: editRoute('rice')),
       );
       await tester.pumpAndSettle();
 
@@ -985,7 +977,7 @@ void main() {
       final repo = FakeIngredientRepo([plain]);
       await tester.pumpWidget(
         // The unconfigured probe answers exactly like an offline device.
-        host(repo, at: '/ingredients/curry', probe: const SilentUsdaProbe()),
+        host(repo, at: editRoute('curry'), probe: const SilentUsdaProbe()),
       );
       await tester.pumpAndSettle();
 

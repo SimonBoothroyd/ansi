@@ -75,6 +75,7 @@ branch, and an intercepted pop is spent on `goBranch(0)`.
 | **Library tab** | leaves the app — this is home | nothing (no gesture at a stack root) |
 | **Week · Cook · Shop tab** | → the **Library tab**; a second back leaves | nothing |
 | **A pushed page** (recipe · editor · import · ingredients) | pops to the tab under it | works — interactive, tracks the finger |
+| **The ingredient page while it is being EDITED** | leaves the editing posture, back onto the row's fact sheet — the same step the header chevron takes | held by that mode, so it resumes on the fact sheet one tap away |
 | **A page landed on after an import commit or a NEW recipe's save** | pops to where it was opened from — the page replaced the flow that made it | works |
 | **The recipe page after saving an EXISTING recipe** | the editor has popped back onto it; back pops to where the recipe was opened from | works |
 | **A page landed on after a delete** | leaves the app — it *is* the Library tab now | n/a |
@@ -107,6 +108,19 @@ branch or teleporting the user to the Library when they tap a recipe in Cook.
 review's matched line, a recipe page's macro marker and — the plainest door —
 an ingredient's own **name** on a recipe line all push it, from wherever the
 reader happens to be.
+
+It carries **two postures over one route**, the split `/recipes/:id` has
+against `/recipes/:id/edit` — except that here the posture is page state
+rather than a second route, so switching costs no push and back means one
+thing. A row opens as a **fact sheet**, and `⋯ ▸ Edit` turns it into the form;
+Save, Mark complete and back all put the form down onto the fact sheet again.
+`?edit=1` opens it in the form instead, and a **door that exists to change a
+field** hands it over: a recipe page's macro-panel fix marker, the import
+review's piece-weight door, and the manager's "needs fleshing out" band. The
+plain doors — a manager row, an ingredient's name on a recipe line — read.
+`/ingredients/new` is always the form and is the one exit that still leaves
+the page: it has no fact sheet behind it, so it **pops with the row it made**,
+which is what the picker that pushed it awaits (below).
 
 The bar being gone inside a recipe is the honest signal that you have left the
 tab loop — the same rule the Ingredients manager already locked.

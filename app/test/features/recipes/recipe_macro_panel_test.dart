@@ -468,6 +468,9 @@ void main() {
         await tester.tap(find.text('needs a piece weight'));
         await tester.pumpAndSettle();
         expect(pathOf(router), '/ingredients/chicken');
+        // And in the EDITING posture: the marker exists to change a field, so
+        // it must not land on the fact sheet that restates what it just said.
+        expect(router.state.uri.queryParameters['edit'], '1');
         expect(find.text('ingredient chicken'), findsOneWidget);
       },
     );

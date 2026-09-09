@@ -167,11 +167,17 @@ GoRouter router(Ref ref) {
         builder: (context, state) =>
             IngredientDetailView(name: state.uri.queryParameters['name'] ?? ''),
       ),
+      // `?edit=1` opens the editing posture instead of the fact sheet — what a
+      // door that exists to CHANGE a field hands over (a recipe's macro fix
+      // marker, the import review's piece-weight door, the manager's stub
+      // band). Everything else lands on the row as it reads.
       GoRoute(
         path: '/ingredients/:id',
         name: 'ingredient',
-        builder: (context, state) =>
-            IngredientDetailView(ingredientId: state.pathParameters['id']),
+        builder: (context, state) => IngredientDetailView(
+          ingredientId: state.pathParameters['id'],
+          edit: state.uri.queryParameters[kEditPostureQueryParam] == '1',
+        ),
       ),
       // `?title=` prefills the draft — what the Library's "nothing matches"
       // state hands over, so a search for a recipe you were about to write

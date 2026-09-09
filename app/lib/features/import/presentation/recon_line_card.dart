@@ -250,7 +250,11 @@ class _PieceWeightDoor extends StatelessWidget {
         GestureDetector(
           key: ValueKey('piece-weight-door-$ingredientId'),
           behavior: HitTestBehavior.opaque,
-          onTap: () => context.pushOnce(ingredientDetailRoute(ingredientId)),
+          // The door names the number it wants set, so it opens the page
+          // in its editing posture rather than on a fact sheet that would
+          // only repeat that the weight is missing.
+          onTap: () =>
+              context.pushOnce(ingredientDetailRoute(ingredientId, edit: true)),
           child: Text(
             'open $name ›',
             style: ansiMono(size: 10, color: AnsiColors.herb),

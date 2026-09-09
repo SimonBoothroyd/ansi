@@ -27,6 +27,7 @@ import '../../../core/units/number_format.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 import 'density_entry.dart' show InlineAmountField;
+import 'ingredient_facts.dart' show pieceWeightSourceSuffix;
 
 class PieceWeightEntry extends HookWidget {
   const PieceWeightEntry({
@@ -67,6 +68,7 @@ class PieceWeightEntry extends HookWidget {
     final open = useState(ingredient.pieceBasisAmount == null);
 
     final weight = ingredient.pieceBasisAmount;
+    final source = ingredient.pieceSource;
     final baseLabel = ingredient.macrosBasis.baseUnit.label;
     final expanded = open.value || weight == null;
 
@@ -106,7 +108,7 @@ class PieceWeightEntry extends HookWidget {
                   weight == null
                       ? 'none yet — what one of these weighs'
                       : '${formatNumber(weight)} $baseLabel'
-                            '${_sourceSuffix(ingredient.pieceSource)}',
+                            '${pieceWeightSourceSuffix(source)}',
                   style: ansiMono(
                     size: 10,
                     color: weight == null
@@ -177,14 +179,6 @@ class PieceWeightEntry extends HookWidget {
         ],
       ],
     );
-  }
-
-  /// ` · borrowed from onion, medium` for a seeded weight; nothing for a typed
-  /// one — "yours" is the default reading of a row you are editing.
-  static String _sourceSuffix(String? source) {
-    if (source == null || source == 'manual') return '';
-    if (source == 'seed:typical') return ' · typical';
-    return ' · $source';
   }
 }
 

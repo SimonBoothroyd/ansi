@@ -138,4 +138,27 @@ void main() {
       expect(densityFromVolumeWeight(tbsp, double.nan), isNull);
     });
   });
+
+  group('volumeWeightFromDensity (reading a stored density back)', () {
+    test('it is the exact inverse of the entry', () {
+      for (final u in [tsp, tbsp, cup, ml]) {
+        final gPerMl = densityFromVolumeWeight(u, 15)!;
+        expect(volumeWeightFromDensity(u, gPerMl), closeTo(15, 1e-9));
+      }
+    });
+
+    test('water is a cup of 236.59 g', () {
+      expect(volumeWeightFromDensity(cup, 1), closeTo(236.5882365, 1e-6));
+      expect(volumeWeightFromDensity(ml, 0.66), closeTo(0.66, 1e-9));
+    });
+
+    test('non-volume units and non-positive densities yield null, never a '
+        'number', () {
+      expect(volumeWeightFromDensity(g, 1), isNull);
+      expect(volumeWeightFromDensity(pieces, 1), isNull);
+      expect(volumeWeightFromDensity(cup, 0), isNull);
+      expect(volumeWeightFromDensity(cup, -1), isNull);
+      expect(volumeWeightFromDensity(cup, double.nan), isNull);
+    });
+  });
 }

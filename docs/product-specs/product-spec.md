@@ -547,6 +547,28 @@ server function. Filling in is never promotion: **macros gate `complete`, densit
 confirming is an explicit human act** in the flesh-out form (reversible —
 a `complete` row can be un-confirmed).
 
+**The ingredient page reads before it edits (design board "Ingredient detail",
+shipped):** `/ingredients/:id` is **one route in two postures**. A row that
+exists opens as a **fact sheet** — the same three groups (Identity, Nutrition,
+Units & measures) with each field's value *stated* rather than offered, the
+status strip, and nothing to commit — and `⋯ ▸ Edit` turns the same page into
+the flesh-out form, which Save, Mark complete and back all put back down onto
+the fact sheet. Every stated line is a stored fact restated in the words the
+field itself uses (the picker row's macro line, the density and piece-weight
+entries' own sentences, the admission chips' labels): the two postures share
+one set of sentences so they cannot tell two stories about one row, and the
+reading posture adds no fact the form does not already hold. Honest numbers
+hold here too — a row with no panel reads **needs macros**, never four zeros.
+
+An incomplete row keeps **one** call to action on the fact sheet, `Fill it in`,
+which opens the form. `/ingredients/new` is always the form (there is nothing
+yet to read) and it is the one exit that still leaves the page, popping with
+the row it made for the picker that pushed it. `?edit=1` opens the form
+directly, and the doors that exist to *change* a field hand it over: a recipe
+page's macro-panel fix marker, the import review's piece-weight door, and the
+manager's "needs fleshing out" band. The plain doors — a manager row, an
+ingredient's name on a recipe line — read.
+
 **The Library (design board "Library · v3", shipped):** the app's home screen —
 books, their user-named sections, and the recipes filed under each.
 
