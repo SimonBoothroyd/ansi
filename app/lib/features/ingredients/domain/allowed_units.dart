@@ -286,6 +286,40 @@ bool unitSayableAsDefault(Ingredient ingredient, Unit unit) {
 Unit basisDefaultUnitFix(Ingredient ingredient) =>
     ingredient.macrosBasis.baseUnit;
 
+/// The default-unit row's offer: the units that may be CHOSEN as the
+/// ingredient's default right now, and the ones a missing density still keeps
+/// out of that row — in chip order, for the note that names them.
+typedef DefaultUnitOffer = ({List<Unit> choices, List<Unit> needDensity});
+
+/// What the default-unit chip row draws for [ingredient]: only the units it
+/// can honestly be counted in ([unitSayableAsDefault]), with the rest named in
+/// one line under the row rather than offered and refused at Save.
+///
+/// **The stored default is always a chip**, sayable or not. A row saved while
+/// stranded — a `cup` default whose density was deleted, a `g` default under a
+/// basis flipped to per 100 ml — must show the person the very chip they need
+/// to move off, so it is drawn (and [defaultUnitStranded] paints it) rather
+/// than hidden. Hiding a broken row's own default would leave the Save refusal
+/// naming a unit nothing on screen mentions.
+///
+/// `piece` stays among the choices on a row with no piece weight, the one
+/// place this offer is wider than "what the row can convert". The reason is
+/// the same one [defaultUnitNeedsPieceWeight] documents: picking `piece` is
+/// what makes the weight field appear, so a row could never acquire the number
+/// that unlocks it. The stranded flag and the Save refusal hold that line.
+DefaultUnitOffer defaultUnitOfferFor(Ingredient ingredient) {
+  final choices = <Unit>[];
+  final needDensity = <Unit>[];
+  for (final u in kIngredientUnits) {
+    if (unitSayableAsDefault(ingredient, u) || u == ingredient.defaultUnit) {
+      choices.add(u);
+    } else {
+      needDensity.add(u);
+    }
+  }
+  return (choices: choices, needDensity: _orderUnits(needDensity, ingredient));
+}
+
 /// Orders an allowed-unit set into chip order: the default unit fronted, the
 /// rest of its family in kitchen order, count next, then the demoted other
 /// mass/volume family (basis family first when both are demoted), imprecise

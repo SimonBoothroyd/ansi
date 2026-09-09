@@ -30,7 +30,11 @@
 ///   sits in a draft, so a form with no row behind it is coherent and backing
 ///   out of one leaves nothing to clean up.
 /// - **Macros gate completion, density does not.** Confirming is a human act; a
-///   USDA or barcode prefill fills fields and stops.
+///   USDA or barcode prefill fills fields and stops. On an EXISTING stub that
+///   act is `Mark complete`; on `/ingredients/new` it is the only act there is
+///   — one `Save`, live only once the row would pass the same gate, writing
+///   the row `complete`. This form does not mint stubs; the seed's are the
+///   ones there are, and they are meant to run out.
 /// - **Delete is refused while a live recipe line points here**, with the
 ///   count — a line's ingredient is never allowed to dangle.
 ///
@@ -131,7 +135,8 @@ String newIngredientRoute({String name = ''}) => name.trim().isEmpty
 /// immediate writes. Exported so tests name it rather than counting FButtons.
 const kFormSaveKey = ValueKey('form-save');
 
-/// The dock's CTA: `Mark complete` on a stub, absent on a complete row.
+/// The dock's CTA: `Mark complete` on a stored stub. A complete row and a row
+/// that does not exist yet each carry one button instead — Save.
 const kFormCompleteKey = ValueKey('form-complete');
 
 class IngredientDetailView extends HookConsumerWidget {
@@ -743,14 +748,22 @@ class _DetailForm extends ConsumerWidget {
       // any scroll position — and so the destructive action is no longer one
       // flick below the confirm CTA.
       footer: _ActionBar(
+        creating: creating,
         stub: stub,
-        canComplete: !busy && draft.storedMacros != null,
+        canComplete: !busy && draft.completable,
         // The line the CTA's promise moved into: what a save said, what a
         // delete refused, or — while the CTA is disabled — what it is waiting
-        // for.
+        // for. A new row is waiting on the same things a stub's `Mark
+        // complete` waits on, so it borrows the same words.
         message:
             draft.message ??
-            (stub
+            (creating
+                ? draft.refusal ??
+                      (draft.storedMacros == null
+                          ? 'needs macros'
+                          : 'saving it counts it in conversions and macro '
+                                'totals')
+                : stub
                 ? (draft.storedMacros == null
                       ? 'needs macros'
                       : 'completing it counts it in conversions and macro '
@@ -758,8 +771,14 @@ class _DetailForm extends ConsumerWidget {
                 : null),
         // Only the button leaves: three other callers use the save as a FLUSH
         // and none of those may navigate.
+        //
+        // On a new row Save IS the completion (C-B): there is no stub to come
+        // back to, so it writes `complete` and the dock only offers it once
+        // the row would pass that gate.
         onSave: busy
             ? null
+            : creating
+            ? completeRow
             : () async {
                 final saved = await save();
                 if (saved != null && context.mounted) leave(saved);
@@ -1647,11 +1666,16 @@ class _CategoryPicker extends ConsumerWidget {
 
 /// The single-select default-unit row.
 ///
-/// **D4c** locks the options the row could not honestly say: with no density
-/// the other mass/volume family is not pickable as a default any more than it
-/// is sayable on a line. The chips are drawn disabled rather than hidden —
-/// the same rule the admission section follows, so "why can't I pick cup" has
-/// a visible answer one section down.
+/// **Only the units this row can be counted in are drawn**
+/// ([defaultUnitOfferFor]): with no density the other mass/volume family is not
+/// sayable as a default, so it is named in one line under the row instead of
+/// being offered and then refused at Save. Every chip that IS drawn can be
+/// pressed — a row full of live pills and one advisory sentence beats a row of
+/// dead pills the person learns about only by tapping them.
+///
+/// The note speaks in the admission section's voice, because it is the same
+/// promise about the same number: *tsp · tbsp · … unlock when this row has a
+/// density*.
 class _UnitChoiceRow extends StatelessWidget {
   const _UnitChoiceRow({
     required this.ingredient,
@@ -1666,35 +1690,35 @@ class _UnitChoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final offer = defaultUnitOfferFor(ingredient);
     // Wrapped, not a horizontal scroller. The catalog is wider than a phone,
     // and the scroller clipped the last chip mid-glyph with nothing to say it
     // continued.
-    //
-    // **Every chip is live.** The default unit is what this row is counted
-    // in — a fact the household states about how it buys the thing — and a
-    // density is a separate fact about the substance; refusing the first
-    // until the second exists leaves a person tapping a dead pill with
-    // nothing on screen naming what is missing. So `tsp` is pickable on a
-    // per-100 g row with no density, and picking it STRANDS the default: the
-    // chip repaints in [AnsiColors.gone], the line below names the number
-    // that repairs it, and Save refuses. That is exactly the treatment an
-    // unweighed `piece` default already gets (ADR-0015) — one shape for both
-    // strandings, held by the flag and the refusal rather than by a chip
-    // nobody can press.
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final u in kIngredientUnits)
-          AnsiModeChip(
-            label: u.label,
-            // A stranded default is still THE selection — that is the truth
-            // about the row — but not a healthy one: `stranded` repaints it
-            // in the "gone" colour, which is what the line under this row is
-            // about. Selection and health are two facts, not one.
-            selected: u == selected,
-            stranded: u == selected && defaultUnitStranded(ingredient),
-            onTap: () => onPick(u),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final u in offer.choices)
+              AnsiModeChip(
+                label: u.label,
+                // A stranded default is still THE selection — that is the
+                // truth about the row — but not a healthy one: `stranded`
+                // repaints it in the "gone" colour, which is what the line
+                // under this row is about. Selection and health are two
+                // facts, not one.
+                selected: u == selected,
+                stranded: u == selected && defaultUnitStranded(ingredient),
+                onTap: () => onPick(u),
+              ),
+          ],
+        ),
+        if (offer.needDensity.isNotEmpty)
+          _Note(
+            '${offer.needDensity.map((u) => u.label).join(' · ')} unlock when '
+            'this row has a density',
           ),
       ],
     );
@@ -1705,17 +1729,19 @@ class _UnitChoiceRow extends StatelessWidget {
 /// per-100 g row with no density, or `piece` on a row with no piece weight.
 /// Never rewritten silently; named, with the one tap that repairs it.
 ///
-/// **This is where the default-unit chips spend their freedom.** Every chip in
-/// the row above is pickable, so a person may state `tsp` before the row has a
-/// density and `piece` before it has a weight — and both land here, on one
-/// line naming the missing number, with the chip above in [AnsiColors.gone] to
-/// say which unit it is about. Hiding this until the number arrives would hide
-/// a broken row from the only person who can fix it, and they would have no
-/// reason to add the number because nobody told them anything was wrong.
+/// **A default goes stranded behind the chip row's back**, which is why this
+/// line exists at all: `piece` is pickable before the row says what one
+/// weighs (it is picking it that opens the weight field), a basis flipped to
+/// per 100 ml strands the `g` the chips did offer, and a density deleted
+/// strands the `cup` it once bought. Each lands here, on one line naming the
+/// missing number, with the chip above in [AnsiColors.gone] to say which unit
+/// it is about. Hiding it until the number arrives would hide a broken row
+/// from the only person who can fix it, and they would have no reason to add
+/// the number because nobody told them anything was wrong.
 ///
-/// It is not the "these units would unlock" advisory beside the admission
-/// chips: that one is about words the row *could* say, this one about the word
-/// it is *already using*.
+/// It is not the "these units would unlock" advisory the chip rows carry: that
+/// one is about words the row *could* say, this one about the word it is
+/// *already using*.
 ///
 /// **Save refuses while this line is showing.** The line names the state and
 /// offers one of the two fixes; the form's own refusal names both and blocks
@@ -2164,8 +2190,16 @@ class _FillItIn extends StatelessWidget {
 /// form already reads "Complete — counts in conversions and macro totals";
 /// the app was using three words for two states. Not `Finalize`: D5 makes this
 /// reversible, and the `⋯` un-does it.
+///
+/// **A row that does not exist yet gets ONE button.** `Save` and `Mark
+/// complete` are the same act there — a new ingredient is saved complete or
+/// not at all, because a stub is a thing the seed leaves behind for a person
+/// to finish, not a thing this form should be able to mint. So the button is
+/// enabled only while the row would pass the completion gate, and the line
+/// above it says what is still missing.
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
+    required this.creating,
     required this.stub,
     required this.canComplete,
     required this.message,
@@ -2173,10 +2207,14 @@ class _ActionBar extends StatelessWidget {
     required this.onComplete,
   });
 
+  /// A row that does not exist yet: one button, and [canComplete] gates it.
+  final bool creating;
+
   final bool stub;
 
-  /// Gated on macros (D5): density is not required, and the line above says
-  /// why rather than the button going quiet.
+  /// Gated on the whole completion check — macros on a basis (D5: a density is
+  /// not required) and nothing the form would refuse. The line above says what
+  /// is missing rather than the button going quiet.
   final bool canComplete;
 
   /// The form's one feedback line — a save, a delete refusal with its count,
@@ -2202,7 +2240,17 @@ class _ActionBar extends StatelessWidget {
               style: ansiMono(size: 11, color: AnsiColors.muted),
             ),
           ),
-        if (stub)
+        if (creating)
+          FButton(
+            // Keyed: the density entry and the measures editor each carry
+            // their own small green Save earlier in the tree, and a test
+            // reaching for "the form's Save" by text is picking between three
+            // of them by position.
+            key: kFormSaveKey,
+            onPress: canComplete ? onSave : null,
+            child: const Text('Save'),
+          )
+        else if (stub)
           Row(
             spacing: 8,
             children: [
@@ -2212,10 +2260,6 @@ class _ActionBar extends StatelessWidget {
               SizedBox(
                 width: 92,
                 child: FButton(
-                  // Keyed: the density entry and the measures editor each
-                  // carry their own small green Save earlier in the tree, and
-                  // a test reaching for "the form's Save" by text is picking
-                  // between three of them by position.
                   key: kFormSaveKey,
                   variant: FButtonVariant.outline,
                   onPress: onSave,

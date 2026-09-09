@@ -5,6 +5,11 @@
 /// keys, several of which *look* like the ones we want; this file reads four
 /// and explains why the near-misses are left alone. Anything the payload does
 /// not establish comes out null with a reason attached — never zero.
+///
+/// The one place it reads WIDELY is the basis — which 100 the four numbers are
+/// per. OFF files a per-100 ml label under the same `*_100g` keys as a per-100
+/// g one and defaults `nutrition_data_per` to `100g` for both, so the panel
+/// alone cannot say; [_basisFor] weighs the rest of the payload instead.
 library;
 
 import '../../../core/units/macros.dart';
@@ -56,7 +61,7 @@ typedef _Panel = ({
 });
 
 _Panel _readPanel(Map<String, Object?> p) {
-  final per = _text(p['nutrition_data_per']);
+  final per = _perKey(p);
   final n = p['nutriments'];
   final nutriments = n is Map<String, Object?> ? n : const <String, Object?>{};
 
@@ -74,7 +79,7 @@ _Panel _readPanel(Map<String, Object?> p) {
       // serving weight would make one.
       return (
         macros: null,
-        basis: MacrosBasis.perG,
+        basis: _basisFor(p),
         gap: DraftMacrosGap.noPanel,
         serving: null,
       );
@@ -82,7 +87,7 @@ _Panel _readPanel(Map<String, Object?> p) {
     final (amount, servingBasis) = _servingQuantity(p);
     return (
       macros: null,
-      basis: servingBasis ?? MacrosBasis.perG,
+      basis: servingBasis ?? _basisFor(p),
       gap: DraftMacrosGap.perServingPanel,
       serving: DraftServingPanel(
         printed: printed,
@@ -92,18 +97,71 @@ _Panel _readPanel(Map<String, Object?> p) {
       ),
     );
   }
-  // `100ml` is a liquid label read as the label reads it (7.7). Absent or
-  // unrecognised, the per-100 keys below are still per 100 of *something*,
-  // and grams is both the column default and the commoner panel.
-  final basis = per == '100ml' ? MacrosBasis.perMl : MacrosBasis.perG;
   final macros = _four(nutriments, '_100g');
   return (
     macros: macros,
-    basis: basis,
+    basis: _basisFor(p),
     gap: macros == null ? DraftMacrosGap.noPanel : DraftMacrosGap.none,
     serving: null,
   );
 }
+
+/// **Which 100 the panel is per** — grams or millilitres.
+///
+/// OFF stores both columns under the same `*_100g` keys, so this is the only
+/// thing standing between an oat milk's per-100 ml label and a row that says
+/// it weighs 46 kcal per 100 g. Read strongest evidence first:
+///
+/// 1. `nutrition_data_per` **naming ml**, however it is spelt (`100ml`,
+///    `100 ml`). Somebody changed that field on purpose, so it wins outright.
+/// 2. The **net quantity on the pack** — "1,5 l", "1 kg", "7.25oz". It is the
+///    legally printed contents, in the unit the label is obliged to use, so a
+///    litre bottle is a litre label and a 1 kg bag of coffee beans is a
+///    per-100 g one whatever aisle it is sold in.
+/// 3. `serving_quantity_unit`. Weaker than the pack, because OFF derives it by
+///    normalising the free-text `serving_size` and a US "1 cup (62 g)" of dry
+///    macaroni comes back as `ml` — a serving measured by volume, not a label
+///    printed per volume.
+/// 4. OFF's own category taxonomy: `en:beverages`. Last, because it describes
+///    what a product IS rather than how it is measured, and the drinks branch
+///    holds beans, leaves and powders as well as liquids — which is exactly
+///    what step 2 has already settled by the time this is reached.
+///
+/// **`100g` is not evidence.** It is the field's default in OFF's own entry
+/// form, written unchanged by every app and bot that never asked; the oat milk
+/// this rule exists for carries it beside twelve `en:beverages` categories and
+/// a label printed per 100 ml. So an explicit gram reading and a missing one
+/// are treated alike: unstated, and the pack is asked instead. Nothing here
+/// invents a density — the basis says which unit the numbers are per, and
+/// crossing between the two still needs a number a person typed.
+MacrosBasis _basisFor(Map<String, Object?> p) {
+  if (_perKey(p)?.endsWith('ml') ?? false) return MacrosBasis.perMl;
+
+  final packUnit = parsePackQuantity(_text(p['quantity']))?.unit;
+  final servingUnit = unitFromWord(
+    _text(p['serving_quantity_unit']) ?? '',
+    families: const {UnitFamily.mass, UnitFamily.volume},
+  );
+  for (final unit in [packUnit, servingUnit]) {
+    if (unit == null) continue;
+    return unit.family == UnitFamily.volume
+        ? MacrosBasis.perMl
+        : MacrosBasis.perG;
+  }
+
+  final categories = p['categories_tags'];
+  if (categories is List && categories.contains('en:beverages')) {
+    return MacrosBasis.perMl;
+  }
+  return MacrosBasis.perG;
+}
+
+/// `nutrition_data_per`, reduced to the letters and digits contributors agree
+/// on: `100 ml`, `100_ml` and `100ML` are all `100ml`, and `serving` stays
+/// itself. Null when OFF holds nothing there.
+String? _perKey(Map<String, Object?> p) => _text(
+  p['nutrition_data_per'],
+)?.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '');
 
 /// The four macros under one OFF key [suffix] (`_100g`, `_serving`), or null
 /// unless all four are there.
@@ -130,13 +188,18 @@ Macros? _four(Map<String, Object?> n, String suffix) {
 /// OFF's numeric `serving_quantity` with the basis its unit names, or
 /// `(null, null)` when there is none or the unit is neither g nor ml. A
 /// positive number only — a zero serving is no serving.
+///
+/// A serving with **no unit at all** keeps its number and takes the basis
+/// [_basisFor] reads off the rest of the payload: "250" on a carton of oat
+/// milk is 250 ml, and reading the blank as grams is the same mistake the
+/// `100g` default invites one field over.
 (double?, MacrosBasis?) _servingQuantity(Map<String, Object?> p) {
   final amount = _number(p['serving_quantity']);
   if (amount == null || !(amount > 0)) return (null, null);
   return switch (_text(p['serving_quantity_unit'])?.toLowerCase()) {
-    // Absent means grams in OFF's own reading of the field.
-    'g' || null => (amount, MacrosBasis.perG),
+    'g' => (amount, MacrosBasis.perG),
     'ml' => (amount, MacrosBasis.perMl),
+    null => (amount, _basisFor(p)),
     _ => (null, null),
   };
 }

@@ -44,6 +44,14 @@ shopping top-up, the import review's create-new — pushes that route, and a
 picker pushes it *over its own sheet* through `context.pushOnceFor` and awaits
 the pop, so the quantity sheet that follows offers the units the form just set.
 
+**A new row is saved complete or not at all.** The create form's dock draws one
+button, `Save`, live only while `IngredientFormDraft.completable` holds — the
+same gate `Mark complete` applies to a stored stub — and its write marks the
+row complete. A stored stub keeps both buttons: the seed's stubs still need
+fleshing out, and putting one down half-filled is what a stub is for. So none
+of those doors can mint a bare stub any more; a person fills the row in, and
+the line that was waiting resolves onto something that counts.
+
 **Nothing is written until Save** ([ADR-0011](../../../../docs/decisions/0011-one-save-one-write.md)).
 The form holds everything it intends — the row's fields, the density, the
 measures added and removed, the aliases, the piece weight, and whether
@@ -144,6 +152,17 @@ opens with, and returns null when Open Food Facts named neither — null meaning
 macros it explains, into `source_label`. No fit score comes with it: a scan is
 an exact-key fetch, so there is no coverage of the typed name to report.
 
+**Which 100 the panel is per is the mapper's one wide read** (`_basisFor`).
+Open Food Facts files a per-100 ml label under the same `*_100g` keys as a
+per-100 g one, and `nutrition_data_per` defaults to `100g` in its own entry
+form — so a gram reading there is not a statement and is treated as unstated.
+The evidence, strongest first: `nutrition_data_per` *naming* ml (however
+spelt); the net quantity printed on the pack (`1,5 l` vs `1 kg`); then
+`serving_quantity_unit`, which is weaker because OFF normalises a US
+"1 cup (62 g)" into `ml`; then OFF's `en:beverages` category, last because the
+drinks branch holds beans and leaves too. A basis says which unit the numbers
+are per and nothing more — no density is ever implied by it.
+
 ## Layout
 
 ```
@@ -218,9 +237,12 @@ ingredients/
   `allowed_units.dart` and the SQL function are mirrors pinned by shared
   vectors — change one, change both.
 - **A default unit the row cannot say blocks Save.** The chips refuse to offer
-  a default outside the basis family while no density bridges it, but a basis
-  flipped (or a USDA pick landed) after the default was chosen strands the one
-  already there. The form draws the flag with its one-tap fix *and* refuses
+  a default outside the basis family while no density bridges it
+  (`defaultUnitOfferFor`) — those units are *named* under the row instead, in
+  the allowed-units note's own voice, so the person reads what a density would
+  buy rather than tapping a chip that is about to be refused. The stored
+  default is drawn whatever its state, because a basis flipped (or a USDA pick
+  landed) after the default was chosen strands the one already there. The form draws the flag with its one-tap fix *and* refuses
   the write, naming the unit, the basis and both ways out — a density below,
   or the basis family's own unit. Nothing is rewritten silently: how a
   household buys a thing is a statement, so the person picks.

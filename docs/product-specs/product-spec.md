@@ -94,15 +94,21 @@ right.
   a density arriving after creation extends the list by trigger, wherever it
   came from. What we may *compute* is unchanged — totals still degrade honestly.
   A row's **default unit** is a different kind of fact — what the household
-  counts the thing in — so **every unit is offered as a default, always**: no
-  chip in that row is ever locked, whatever the row does or does not know. It
-  must still be one the row can *say*, and that is held where it can name what
-  is missing: a cross-family default with no density (typed, or stranded after
-  the fact by a basis flipped to per 100 ml under a `g` default) is flagged on
-  the line under the chips and **refused at Save**, exactly as an unweighed
-  `piece` default is. The flag names the unit, the basis and both fixes — add a
-  density, or switch to the basis family's unit — and the stored row is never
-  rewritten silently.
+  counts the thing in — but it must still be one the row can *say*, so the
+  chip row **offers only the sayable units** (`defaultUnitOfferFor`): the basis
+  family always, the other mass/volume family once a density bridges it. The
+  rest are named in one line under the row in the allowed-units note's voice —
+  *tsp · tbsp · fl oz · cup · ml · l · pt · qt unlock when this row has a
+  density* — rather than offered and then refused. `piece` is the exception
+  that stays offered unweighed, because picking it is what opens the weight
+  field.
+  The **stored** default is always drawn, sayable or not: a default stranded
+  after the fact — a basis flipped to per 100 ml under a `g` default, a density
+  deleted under a `cup` one, a `piece` still unweighed — is the chip the person
+  must move off. It renders as the selection *and* as stranded, is flagged on
+  the line under the chips, and is **refused at Save**. The flag names the
+  unit, the basis and both fixes — add a density, or switch to the basis
+  family's unit — and the stored row is never rewritten silently.
 - **Density is the single volume⇄mass fact**, entered as one sentence
   (7.8): "1 `[tbsp]` weighs `[N]` g" (`densityFromVolumeWeight`), with `ml`
   among the spoons so a known g/ml is typeable exactly. A volume-named measure label is therefore
@@ -155,8 +161,8 @@ The column list is generated from the migrations —
   no score. Both are written offline-first, so the form and the lists print
   them with no network.
 - `source` is **provenance, and it is load-bearing**: `seed` (the template
-  vocab), `manual` (typed in the picker or the manager), `import_stub` (created
-  at an import commit), `usda_fdc:<id>` (a food picked from the USDA search),
+  vocab), `manual` (made through `/ingredients/new`, from the manager or a
+  picker), `import_stub` (created at an import commit), `usda_fdc:<id>` (a food picked from the USDA search),
   `off:<barcode>` (a barcode scan). Until 0029 a server trigger read it to
   decide whether a row was its business; **nothing matches to USDA on its own
   any more** (plan 0029), so a `usda_fdc:<id>` stamp always means a person
@@ -167,7 +173,13 @@ The column list is generated from the migrations —
 - `status = stub` → surfaces in the manager's stub band + honest macro math.
 - **Macros are stored WITH the basis the label read them in** (per-100 g or
   per-100 ml — liquid labels read per 100 ml, and densities are sparse, so
-  converting at entry can't be the design). Consumers apply the aggregation
+  converting at entry can't be the design). A **barcode** scan has to work that
+  basis out: Open Food Facts files both readings under the same `*_100g` keys
+  and defaults `nutrition_data_per` to `100g`, so a gram reading there is the
+  form's default rather than a claim. The mapper reads, strongest first, a
+  `nutrition_data_per` that *names* ml, the net quantity printed on the pack,
+  `serving_quantity_unit`, then OFF's own `en:beverages` category — and never
+  implies a density from any of it. Consumers apply the aggregation
   doctrine: a line whose unit family matches the basis computes directly;
   cross-basis bridges only via density; otherwise the total is honestly
   `incomplete`. USDA prefill rows are per-100 g.
@@ -596,7 +608,16 @@ hold here too — a row with no panel reads **needs macros**, never four zeros.
 An incomplete row keeps **one** call to action on the fact sheet, `Fill it in`,
 which opens the form. `/ingredients/new` is always the form (there is nothing
 yet to read) and it is the one exit that still leaves the page, popping with
-the row it made for the picker that pushed it. `?edit=1` opens the form
+the row it made for the picker that pushed it. **It also has one button.** A
+row that does not exist yet is saved `complete` or not at all: `Save` and
+`Mark complete` are the same act there, so the dock draws only `Save`, live
+only once the row would pass the very gate `Mark complete` applies to a stored
+stub, with the standing refusal printed above it in the words the form already
+uses. Stubs are what the *seed* leaves for a person to finish and are meant to
+run out; this form does not mint new ones. The consequence is deliberate: the
+import review's create-new door and the picker's create footer both push this
+form, so neither can resolve a line onto a bare stub any more — the person
+fills the row in, and the line resolves onto something that counts. `?edit=1` opens the form
 directly, and the doors that exist to *change* a field hand it over: a recipe
 page's macro-panel fix marker, the import review's piece-weight door, and the
 manager's "needs fleshing out" band. The plain doors — a manager row, an
@@ -687,7 +708,8 @@ source-tab slot, footer slot):
   (recently used in lines/top-ups) before any query; dense information-honest
   rows — category, capability hints ("has density", "3 measures"), a per-100
   macro line for complete rows, a `stub` badge (never zeros); an add-new
-  affordance creating a `manual` stub from the typed query. Search is the
+  affordance that carries the typed query into `/ingredients/new`, where the
+  row is filled in and saved `complete` before the picker resolves onto it. Search is the
   shared three-tier rule (exact · every-token word prefix · a guarded
   typo tier that runs only when the first two find nothing, rendered under a
   `DID YOU MEAN` header) — see

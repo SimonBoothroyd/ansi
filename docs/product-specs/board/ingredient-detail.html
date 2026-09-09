@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredient detail</h1>
-    <p class="view-status">built · matches code 2026-09-08 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
+    <p class="view-status">built · matches code 2026-09-09 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
     <p class="view-blurb"><b>One route, two postures.</b> A row that exists opens as a <b>fact sheet</b> — the same three groups (Identity, Nutrition, Units &amp; measures) with each field’s value stated instead of offered, no dock, and <code>Edit</code> in the header’s <code>⋯</code> exactly where the recipe page keeps it. <code>Edit</code> turns the same page into <b>the form</b>; Save and back turn it back. <code>/ingredients/new</code> opens the form directly — there is nothing yet to read — and so does every door that exists to <i>change</i> a field.</p>
 </header>
 
@@ -149,10 +149,7 @@
 
             <div class="dock">
                 <p class="conv-note" style="margin:0 0 9px">needs macros</p>
-                <div style="display:flex;gap:8px">
-                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
-                    <span class="btn primary" style="margin:0;flex:1;opacity:.45">Mark complete</span>
-                </div>
+                <span class="btn primary" style="margin:0;opacity:.45">Save</span>
             </div>
         </div></div>
     </div>
@@ -174,17 +171,18 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Units &amp; measures, close up</b> · a row with no density: every <i>default unit</i> is pickable, the basis family is live under <i>allowed units</i>, the other one is a named line rather than dashed chips, and every imprecise word is a chip the row may turn on</p>
+        <p class="frame-name"><b>Units &amp; measures, close up</b> · a row with no density: both chip rows draw what the row can say <i>today</i> and name the rest in one line under themselves — the stored <code>cup</code> default is the exception, drawn because it is the chip the person has to move off</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div style="margin:16px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
 
             <p class="flabel">Default unit</p>
             <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
-                <span class="uchip" style="background:transparent;border-color:var(--gone);border-style:dotted;color:var(--gone)">cup</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">oz</span><span class="uchip" style="color:var(--muted)">lb</span><span class="uchip" style="color:var(--muted)">ml</span><span class="uchip" style="color:var(--muted)">tsp</span><span class="uchip" style="color:var(--muted)">piece</span><span class="uchip" style="color:var(--muted)">pinch</span>
+                <span class="uchip" style="background:transparent;border-color:var(--gone);border-style:dotted;color:var(--gone)">cup</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">oz</span><span class="uchip" style="color:var(--muted)">lb</span><span class="uchip" style="color:var(--muted)">piece</span><span class="uchip" style="color:var(--muted)">pinch</span>
             </div></div>
+            <p class="conv-note" style="margin-top:2px">tsp · tbsp · fl oz · ml · l · pt · qt unlock when this row has a density</p>
             <p class="conv-note" style="margin:-6px 20px 12px"><span style="color:var(--gone)">cup</span> needs a density on this row — add one below, or <b style="color:var(--ink);border-bottom:1px solid var(--line)">switch to g</b></p>
             <p class="conv-note" style="margin:-6px 20px 12px">Save refuses while this line is showing: <i>Macros per 100 g and no density can’t have cup as the default unit — add a density below, or make it g.</i></p>
-            <p class="conv-note" style="margin:-6px 20px 12px">Every chip in that row is live, <code>ml</code> and <code>tsp</code> included. What a row is <i>counted in</i> is the household’s statement; a density is a separate fact about the substance. Picking one the row cannot convert lands on the line above — the flag and the refusal hold the rule, not a dead chip.</p>
+            <p class="conv-note" style="margin:-6px 20px 12px">The volume family is a <i>sentence</i> here, not a row of chips waiting to be refused — the same promise the <i>allowed units</i> note makes about the same number. <code>cup</code> is drawn anyway because the row is already on it: a default stranded by a deleted density or a flipped basis is the one chip the person must be able to see.</p>
 
             <p class="flabel" style="margin-bottom:2px">Allowed units</p>
             <p class="conv-note" style="margin:0 20px 6px">what a line may say</p>
@@ -209,8 +207,9 @@
             <div style="margin:18px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
             <p class="flabel">Default unit</p>
             <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
-                <span class="uchip on">piece</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">oz</span><span class="uchip" style="color:var(--muted)">lb</span><span class="uchip" style="color:var(--muted)">cup</span><span class="uchip" style="color:var(--muted)">tbsp</span>
+                <span class="uchip on">piece</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">oz</span><span class="uchip" style="color:var(--muted)">lb</span><span class="uchip" style="color:var(--muted)">pinch</span>
             </div></div>
+            <p class="conv-note" style="margin-top:2px">tsp · tbsp · fl oz · cup · ml · l · pt · qt unlock when this row has a density</p>
 
             <p class="flabel" style="margin-bottom:2px">Piece weight</p>
             <div class="frow"><div class="weigh"><span class="w-l">1 piece weighs</span><span class="w-in">350</span><span class="w-u">g</span></div></div>
@@ -231,13 +230,10 @@
 
             <div class="dock">
                 <p class="conv-note" style="margin:0 0 9px">needs macros</p>
-                <div style="display:flex;gap:8px">
-                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
-                    <span class="btn primary" style="margin:0;flex:1;opacity:.45">Mark complete</span>
-                </div>
+                <span class="btn primary" style="margin:0;opacity:.45">Save</span>
             </div>
         </div></div>
-        <p class="conv-note" style="margin:10px 4px 0">no measure is made, nothing is named after the row, and there is no second place the 350 lives. <code>piece</code> is live in the default-unit row as every chip in it is; what the 350 buys is the <code>piece</code> chip under <i>allowed units</i>, the way a density buys the volume ones.</p>
+        <p class="conv-note" style="margin:10px 4px 0">no measure is made, nothing is named after the row, and there is no second place the 350 lives. <code>piece</code> is the one unit the default-unit row offers before its number exists — picking it is what makes this sentence appear. What the 350 buys is the <code>piece</code> chip under <i>allowed units</i>, the way a density buys the volume ones.</p>
     </div>
 
     <div class="frame">
@@ -247,8 +243,9 @@
             <div style="margin:18px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
             <p class="flabel">Default unit</p>
             <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
-                <span class="uchip" style="background:transparent;border-color:var(--gone);border-style:dotted;color:var(--gone)">piece</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">oz</span><span class="uchip" style="color:var(--muted)">lb</span><span class="uchip" style="color:var(--muted)">tsp</span><span class="uchip" style="color:var(--muted)">cup</span>
+                <span class="uchip" style="background:transparent;border-color:var(--gone);border-style:dotted;color:var(--gone)">piece</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">oz</span><span class="uchip" style="color:var(--muted)">lb</span>
             </div></div>
+            <p class="conv-note" style="margin-top:2px">tsp · tbsp · fl oz · cup · ml · l · pt · qt unlock when this row has a density</p>
             <p class="conv-note" style="margin:-6px 20px 12px"><span style="color:var(--gone)">piece</span> needs a weight on this row — enter one below, or <b style="color:var(--ink);border-bottom:1px solid var(--line)">switch to g</b></p>
 
             <p class="flabel" style="margin-bottom:2px">Piece weight <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--muted)">none yet — what one of these weighs</span></p>
@@ -263,13 +260,10 @@
 
             <div class="dock">
                 <p class="conv-note" style="margin:0 0 9px;color:var(--gone)">Piece can’t be the default unit with nothing weighing one — enter what one weighs below, or make it g.</p>
-                <div style="display:flex;gap:8px">
-                    <span class="btn ghost" style="margin:0;flex:0 0 88px;opacity:.45">Save</span>
-                    <span class="btn primary" style="margin:0;flex:1;opacity:.35">Mark complete</span>
-                </div>
+                <span class="btn primary" style="margin:0;opacity:.45">Save</span>
             </div>
         </div></div>
-        <p class="conv-note" style="margin:10px 4px 0">the stranded-default rule with one more clause: <code>piece</code> is <i>saveable</i> as a default only once the row has a piece weight. Picking it is never refused — picking it is what makes the weight field appear, exactly as picking <code>cup</code> is what names the density this row is missing. The flag, the two ways out and the refusal are the ones the <code>cup</code> case already uses, re-worded for a count.</p>
+        <p class="conv-note" style="margin:10px 4px 0">the stranded-default rule with one more clause: <code>piece</code> is <i>saveable</i> as a default only once the row has a piece weight. Picking it is never refused — picking it is what makes the weight field appear, which is also why <code>piece</code> is the one unit offered before its number exists, where the volume family waits behind a line of prose. The flag, the two ways out and the refusal are the ones the <code>cup</code> case already uses, re-worded for a count.</p>
     </div>
 
     <div class="frame">
@@ -360,10 +354,10 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>The dock, and the ⋯</b> · one message line over one row of buttons; only the two acts that are <i>not</i> filling the form in go behind the menu</p>
+        <p class="frame-name"><b>The dock, and the ⋯</b> · one message line over the buttons; a stored stub gets two, everything else gets one, and only the acts that are <i>not</i> filling the form in go behind the menu</p>
         <div class="phone"><div class="notch"></div><div class="screen">
 
-            <p class="lib-mcap" style="margin-top:16px">on a stub · one line, one row</p>
+            <p class="lib-mcap" style="margin-top:16px">on a stored stub · one line, one row</p>
             <div class="dock" style="margin-top:8px">
                 <p class="conv-note" style="margin:0 0 9px">needs macros</p>
                 <div style="display:flex;gap:8px">
@@ -385,6 +379,17 @@
             <p class="lib-mcap" style="margin-top:18px">a complete row · one commitment</p>
             <div class="dock" style="margin-top:8px"><span class="btn primary" style="margin:0">Save</span></div>
 
+            <p class="lib-mcap" style="margin-top:18px">a row that does not exist yet · one commitment, gated</p>
+            <div class="dock" style="margin-top:8px">
+                <p class="conv-note" style="margin:0 0 9px">needs macros</p>
+                <span class="btn primary" style="margin:0;opacity:.45">Save</span>
+            </div>
+            <div class="dock" style="margin-top:8px">
+                <p class="conv-note" style="margin:0 0 9px">saving it counts it in conversions and macro totals</p>
+                <span class="btn primary" style="margin:0">Save</span>
+            </div>
+            <p class="conv-note" style="margin:8px 20px 0">no <span style="font-family:'IBM Plex Mono',monospace">Mark complete</span>: on a row that is not there yet the two acts are one act. Save is live only while the row would pass the completion gate, and until then the line above it prints whichever refusal is standing — the name, a half-filled panel, a serving with no weight, a stranded default — in the words the form already uses.</p>
+
             <p class="lib-mcap" style="margin-top:20px">and the <span style="font-family:'IBM Plex Mono',monospace">⋯</span> <i>in this posture</i></p>
             <div class="lib-menu" style="margin-top:8px">
                 <div class="mi"><span class="ic">↺</span><span class="lb">Return it to a stub</span></div>
@@ -396,7 +401,7 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Creating one</b> · <code>/ingredients/new</code> is the same form with no row behind it — it writes nothing until Save, and pops with the row it made</p>
+        <p class="frame-name"><b>Creating one</b> · <code>/ingredients/new</code> is the same form with no row behind it — it writes nothing until Save, saves the row <i>complete</i>, and pops with it</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">New ingredient</span><span class="dots" style="opacity:.25"></span></div>
 
@@ -416,13 +421,12 @@
 
             <p class="lib-mcap" style="margin-top:20px">and the dock, on a row that is not there yet</p>
             <div class="dock" style="margin-top:8px">
-                <p class="conv-note" style="margin:0 0 9px">needs macros</p>
-                <div style="display:flex;gap:8px">
-                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
-                    <span class="btn primary" style="margin:0;flex:1;opacity:.45">Mark complete</span>
-                </div>
+                <p class="conv-note" style="margin:0 0 9px">A name is the one field an ingredient can’t go without.</p>
+                <span class="btn primary" style="margin:0;opacity:.45">Save</span>
             </div>
-            <p class="conv-note" style="margin-top:10px"><b>No <span style="font-family:'IBM Plex Mono',monospace">⋯</span> at all.</b> There is nothing to delete and nothing to un-confirm on a row that does not exist. And the strip says <i>new</i> rather than calling itself a stub — a stub is a thing a SAVED row is.</p>
+            <p class="conv-note" style="margin-top:10px"><b>One button, and only when the row is finished.</b> A new ingredient is saved <i>complete</i> or not at all — stubs are what the seed leaves behind for a person to finish, not something this form should be able to mint. Save is dark until the row would pass the same gate <span style="font-family:'IBM Plex Mono',monospace">Mark complete</span> applies to a stored stub, and the line above it names what is still missing.</p>
+            <p class="conv-note" style="margin-top:8px">The consequence, said plainly: the import review’s <i>create as a new ingredient</i> and the picker’s create footer both push this form, so neither can resolve a line onto a bare stub any more. The person fills the row in, and the line resolves onto something that counts.</p>
+            <p class="conv-note" style="margin-top:8px"><b>No <span style="font-family:'IBM Plex Mono',monospace">⋯</span> at all.</b> There is nothing to delete and nothing to un-confirm on a row that does not exist. And the strip says <i>new</i> rather than calling itself a stub — a stub is a thing a SAVED row is.</p>
         </div></div>
     </div>
 

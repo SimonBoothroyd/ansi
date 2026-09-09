@@ -317,6 +317,9 @@ void main() {
           builder: (context, state) => FScaffold(
             child: FButton(
               onPress: () async {
+                // The form only offers Save once the row would COUNT, and
+                // its one write lands the status flip too — so the stand-in
+                // carries macros and marks complete, as the real one does.
                 final saved = await repo.saveForm(
                   null,
                   IngredientFormEdit(
@@ -325,7 +328,14 @@ void main() {
                       defaultUnit: g,
                       macrosBasis: MacrosBasis.perG,
                       allowedUnits: {g, kg},
+                      macros: const Macros(
+                        kcal: 108,
+                        protein: 6,
+                        carb: 19,
+                        fat: 1,
+                      ),
                     ),
+                    markComplete: true,
                   ),
                 );
                 if (context.mounted) context.pop(saved);

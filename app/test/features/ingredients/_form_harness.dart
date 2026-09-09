@@ -302,14 +302,27 @@ final Finder measureLabelField = find
     )
     .first;
 
-/// A default-unit chip by label, scoped to the D4c selector row.
+/// A default-unit chip by label, scoped to the D4c selector row — the row
+/// draws only the units the ingredient can be counted in, so this also asks
+/// whether a unit is OFFERED at all.
+Finder defaultUnitChipFinder(String label) => find.descendant(
+  of: find.byKey(const ValueKey('default-unit-row')),
+  matching: find.widgetWithText(AnsiModeChip, label),
+);
+
+/// The chip itself, for its selected / stranded / enabled state.
 AnsiModeChip defaultUnitChip(WidgetTester tester, String label) =>
-    tester.widget<AnsiModeChip>(
-      find.descendant(
-        of: find.byKey(const ValueKey('default-unit-row')),
-        matching: find.widgetWithText(AnsiModeChip, label),
-      ),
-    );
+    tester.widget<AnsiModeChip>(defaultUnitChipFinder(label));
+
+/// A macros-basis chip by its label — `per 100 g`, `per 100 ml`, `per
+/// serving`.
+AnsiModeChip basisChip(WidgetTester tester, String label) =>
+    tester.widget<AnsiModeChip>(find.widgetWithText(AnsiModeChip, label));
+
+/// The dock's own Save, for its enabled state — `onPress` is null while the
+/// create form's completion gate is unmet.
+FButton saveButton(WidgetTester tester) =>
+    tester.widget<FButton>(find.byKey(kFormSaveKey));
 
 /// A phone-width viewport, tall enough that the whole form still builds:
 /// width is what an overflow is about (G2), and the form is one long scroll.

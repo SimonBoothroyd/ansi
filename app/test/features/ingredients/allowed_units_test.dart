@@ -301,6 +301,55 @@ void main() {
       expect(unitSayableAsDefault(perMl, g), isFalse);
       expect(basisDefaultUnitFix(perMl), ml);
     });
+
+    test('the chip row draws only the sayable units, and names the rest in '
+        'kitchen order for the note', () {
+      // A per-100 g row with no density and a plain `g` default: the mass
+      // family, the count and the words are chips; the volume family is the
+      // note's subject, in the order a cook reaches for them.
+      final bare = _ing(g);
+      final offer = defaultUnitOfferFor(bare);
+      expect(offer.choices.map((u) => u.id), [
+        'g',
+        'kg',
+        'oz',
+        'lb',
+        'piece',
+        'pinch',
+        'dash',
+        'handful',
+        'to_taste',
+      ]);
+      expect(
+        offer.needDensity.map((u) => u.label).join(' · '),
+        'tsp · tbsp · '
+        'fl oz · cup · ml · l · pt · qt',
+      );
+
+      // A density buys the whole other family, and empties the note.
+      final bridged = defaultUnitOfferFor(_ing(g, density: 0.59));
+      expect(bridged.needDensity, isEmpty);
+      expect(bridged.choices, containsAll([tsp, cup, ml, quart]));
+    });
+
+    test('a default the row can no longer say is still DRAWN — the person '
+        'cannot move off a chip nobody shows them', () {
+      final stranded = _ing(cup);
+      final offer = defaultUnitOfferFor(stranded);
+      expect(offer.choices, contains(cup));
+      expect(defaultUnitStranded(stranded), isTrue);
+      // And it is not also named in the note: the stranded line above speaks
+      // for the chip on screen, the note for the units that are not.
+      expect(offer.needDensity, isNot(contains(cup)));
+      expect(offer.needDensity, contains(tsp));
+    });
+
+    test('`piece` is offered unweighed — picking it is what opens the weight '
+        'field, so the flag and the Save refusal hold that line', () {
+      expect(defaultUnitOfferFor(_ing(g)).choices, contains(pieces));
+      expect(defaultUnitOfferFor(_ing(pieces)).choices, contains(pieces));
+      expect(defaultUnitNeedsPieceWeight(_ing(pieces)), isTrue);
+    });
   });
 
   group('impreciseUnitsFor — the per-word category gate', () {

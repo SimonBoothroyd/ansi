@@ -249,6 +249,52 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
       : null;
 
   bool get stub => row.status == IngredientStatus.stub;
+
+  /// Why this form cannot be saved yet, in the user's words, or null.
+  ///
+  /// It lives on the draft rather than inside [IngredientForm.save] because a
+  /// dock has to ask it *before* the tap: the create form's one button is
+  /// enabled by [completable], and the line above it prints this.
+  String? get refusal {
+    if (name.trim().isEmpty) {
+      return 'A name is the one field an ingredient can’t go without.';
+    }
+    if (!macros.isCoherent) {
+      return 'Enter all four macros, or leave them all blank — a part of a '
+          'panel isn’t a panel.';
+    }
+    if (perServing && printedMacros != null && serving.amount == null) {
+      return 'One serving is how much? The label’s figures become per 100 '
+          'only once the serving weight is typed.';
+    }
+    // D4c, held on the write side too. The chips refuse to OFFER a default
+    // the row cannot say, but a basis flipped (or a USDA pick landed) after
+    // the pick strands the one already chosen, and a flag beside it is only
+    // advice a Save can walk past. The row is still never rewritten silently:
+    // this names what is wrong and leaves both fixes to the person.
+    if (!unitSayableAsDefault(editedRow, defaultUnit)) {
+      final basisWord = basis == MacrosBasis.perMl ? 'ml' : 'g';
+      return 'Macros per 100 $basisWord and no density can’t have '
+          '${defaultUnit.label} as the default unit — add a density '
+          'below, or make it ${basisDefaultUnitFix(editedRow).label}.';
+    }
+    // The count-side twin of D4c (ADR-0015): a `piece` default with nothing
+    // weighing a piece is a count the converter can never bridge, and the
+    // owner's ruling is that such a row is not saveable. Same manners — the
+    // refusal names both ways out and the person picks one.
+    if (defaultUnitNeedsPieceWeight(editedRow)) {
+      return 'Piece can’t be the default unit with nothing weighing one — '
+          'enter what one weighs below, or make it '
+          '${basisDefaultUnitFix(editedRow).label}.';
+    }
+    return null;
+  }
+
+  /// Whether this form would land a row that **counts**: nothing refused, and
+  /// macros on a basis. It is exactly the gate `Mark complete` applies to a
+  /// stub, asked of the draft instead of the stored row — which is what lets
+  /// the create form offer one button and mean it.
+  bool get completable => refusal == null && storedMacros != null;
 }
 
 /// The form's ViewModel — one per ingredient id, and one for the create form
@@ -407,11 +453,12 @@ class IngredientForm extends _$IngredientForm {
   void setCategory(String category) =>
       state = state.copyWith(category: category);
 
-  /// Only an admissible unit can be tapped (the rest are locked), so admitting
-  /// the pick can never strand the row on the density side. `piece` is the one
-  /// exception by design: it is pickable with no weight yet, because picking
-  /// it is what makes the weight sentence appear — the admission rule then
-  /// keeps `piece` locked until the number is in, and Save refuses meanwhile.
+  /// Only a sayable unit is offered (the rest are named in the note under the
+  /// row), so admitting the pick can never strand the row on the density side.
+  /// `piece` is the one exception by design: it is offered with no weight yet,
+  /// because picking it is what makes the weight sentence appear — the
+  /// admission rule then keeps `piece` locked until the number is in, and Save
+  /// refuses meanwhile.
   void setDefaultUnit(Unit unit) {
     final next = state.copyWith(
       defaultUnit: unit,
@@ -689,7 +736,7 @@ class IngredientForm extends _$IngredientForm {
     // straight from the keyboard. A name nobody touched is left exactly as the
     // row has it.
     if (state.nameEdited) tidyName();
-    final refusal = _refusal();
+    final refusal = state.refusal;
     if (refusal != null) {
       state = state.copyWith(message: refusal);
       return null;
@@ -730,44 +777,6 @@ class IngredientForm extends _$IngredientForm {
     } finally {
       if (ref.mounted) state = state.copyWith(busy: false);
     }
-  }
-
-  /// Why this form cannot be saved yet, in the user's words, or null.
-  String? _refusal() {
-    if (state.name.trim().isEmpty) {
-      return 'A name is the one field an ingredient can’t go without.';
-    }
-    if (!state.macros.isCoherent) {
-      return 'Enter all four macros, or leave them all blank — a part of a '
-          'panel isn’t a panel.';
-    }
-    if (state.perServing &&
-        state.printedMacros != null &&
-        state.serving.amount == null) {
-      return 'One serving is how much? The label’s figures become per 100 '
-          'only once the serving weight is typed.';
-    }
-    // D4c, held on the write side too. The chips refuse to PICK a default
-    // the row cannot say, but a basis flipped (or a USDA pick landed) after
-    // the pick strands the one already chosen, and a flag beside it is only
-    // advice a Save can walk past. The row is still never rewritten
-    // silently: this names what is wrong and leaves both fixes to the person.
-    if (!unitSayableAsDefault(state.editedRow, state.defaultUnit)) {
-      final basis = state.basis == MacrosBasis.perMl ? 'ml' : 'g';
-      return 'Macros per 100 $basis and no density can’t have '
-          '${state.defaultUnit.label} as the default unit — add a density '
-          'below, or make it ${basisDefaultUnitFix(state.editedRow).label}.';
-    }
-    // The count-side twin of D4c (ADR-0015): a `piece` default with nothing
-    // weighing a piece is a count the converter can never bridge, and the
-    // owner's ruling is that such a row is not saveable. Same manners — the
-    // refusal names both ways out and the person picks one.
-    if (defaultUnitNeedsPieceWeight(state.editedRow)) {
-      return 'Piece can’t be the default unit with nothing weighing one — '
-          'enter what one weighs below, or make it '
-          '${basisDefaultUnitFix(state.editedRow).label}.';
-    }
-    return null;
   }
 
   /// The whole form as one intent. The serving offer, when taken, rides the

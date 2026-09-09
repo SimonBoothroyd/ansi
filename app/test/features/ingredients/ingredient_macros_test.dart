@@ -389,7 +389,9 @@ void main() {
       expect(created.macros!.carb, 31.25);
       expect(created.macrosBasis, MacrosBasis.perG);
       expect(created.source, 'off:0851087000250');
-      expect(created.status, IngredientStatus.stub);
+      // A new row is saved COMPLETE or not at all: the scan filled in the one
+      // thing the gate asks for, so the single Save counts it in.
+      expect(created.status, IngredientStatus.complete);
     });
 
     testWidgets('creating by barcode, no numeric serving: flagged, and no '
@@ -409,12 +411,10 @@ void main() {
 
       expect(fieldText(tester, servingAmountField), isEmpty);
 
-      // Without the weight there is nothing to divide by, so Save REFUSES
-      // and says which number is missing — the sheet used to warn about it
-      // in advance, and the form's own guard is the better place for it:
-      // it cannot be ignored, and it names the field.
-      await tester.tap(find.byKey(kFormSaveKey));
-      await tester.pumpAndSettle();
+      // Without the weight there is nothing to divide by, so a new row cannot
+      // be saved at all — the dock's one button is dark and the line above it
+      // names the number that is missing, before anything is tapped.
+      expect(tester.widget<FButton>(find.byKey(kFormSaveKey)).onPress, isNull);
       expect(repo.rows, isEmpty);
       expect(find.textContaining('One serving is how much?'), findsOneWidget);
 
