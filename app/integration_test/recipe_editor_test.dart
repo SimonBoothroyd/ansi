@@ -579,6 +579,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(kg);
       await tester.pump();
+      // A new row saves complete or not at all, so give it a label first.
+      await completeNewIngredientForm(tester);
       // The form's own Save, by key: the density entry and the measures
       // editor each carry their own small green Save, and the dock is pinned
       // so it needs no scrolling to reach.
@@ -600,7 +602,11 @@ void main() {
         'WHERE canonical_name = ? AND deleted_at IS NULL',
         [name],
       );
-      expect(created['status'], 'stub', reason: 'a save is not a completion');
+      expect(
+        created['status'],
+        'complete',
+        reason: 'a new row is saved complete, or not at all',
+      );
       // The save POPS the form, the picker resolves with the row it made and
       // the editor opens the quantity sheet on it — chips for the units the
       // form set, kg (the default) among them.
@@ -622,17 +628,17 @@ void main() {
       await scrollTo(tester, find.text('Save'), delta: -150);
       await saveRecipe(tester);
 
-      // After the round trip: the stub row survives as written (a bare stub
-      // whose match_text is the normalizer's), `allowed_units` is a REAL json
-      // array — the connector fix, not a jsonb string — and the line points
-      // at it.
+      // After the round trip: the row survives as written — complete, since
+      // a new row saves no other way, with a match_text that is the
+      // normalizer's — `allowed_units` is a REAL json array (the connector
+      // fix, not a jsonb string), and the line points at it.
       await stack.waitForSyncRoundTrip(tester);
       final row = await db.get(
         'SELECT status, source, match_text, '
         'json_type(allowed_units) AS shape FROM ingredient WHERE id = ?',
         [created['id']],
       );
-      expect(row['status'], 'stub');
+      expect(row['status'], 'complete');
       // Nothing matched it, so nothing stamped it: the server stopped
       // guessing a source, and a row with none reads as manual.
       expect(row['source'], isNull);

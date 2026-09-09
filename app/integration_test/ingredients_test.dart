@@ -874,9 +874,10 @@ void main() {
       expect(scanned, hasLength(1));
       final scannedRow = scanned.single;
       expect(scannedRow['canonical_name'], 'Nutella');
-      // D1: a lookup PREFILLS and never completes. The macros are there and
-      // the row is still a stub waiting for a human.
-      expect(scannedRow['status'], 'stub');
+      // D1: a lookup PREFILLS and never completes — but this is a NEW row,
+      // and a new row saves complete or not at all: the label's macros made
+      // its Save live, and the person pressing it is the human act.
+      expect(scannedRow['status'], 'complete');
       expect(scannedRow['macros_basis'], 'g');
       final macros = jsonDecode(scannedRow['macros'] as String) as Map;
       expect(macros['kcal'], 539);
@@ -899,7 +900,7 @@ void main() {
             'something overwrote a barcode row’s provenance — a server '
             'that matches on its own is back',
       );
-      expect(afterSync['status'], 'stub');
+      expect(afterSync['status'], 'complete');
 
       // --- back on the list, the G4 hint -----------------------------------
       // The Save ended the form, so the list is already underneath — parked
@@ -912,47 +913,24 @@ void main() {
       await pumpUntilFound(tester, ingredientsShelf);
       await scrollTo(tester, ingredientsShelf);
       await openIngredientsShelf(tester);
-      await pumpUntilFound(tester, find.text('Needs fleshing out'));
-
-      // G4: a stub that HAS macros stops being asked for macros. The one
-      // thing still missing is a human standing behind them, which is D5's
-      // own word.
-      final bandColumn = find
-          .ancestor(
-            of: find.text('Needs fleshing out'),
-            matching: find.byType(Column),
-          )
+      // A new row saves complete or not at all, so the scanned Nutella is not
+      // fleshing-out work: it sits in the vocabulary itself, and no row
+      // carrying its name asks for anything.
+      await scrollTo(tester, find.text('Nutella'));
+      final nutellaRow = find
+          .ancestor(of: find.text('Nutella').first, matching: find.byType(Row))
           .first;
-      final bandRow = find
-          .ancestor(
-            of: find.descendant(of: bandColumn, matching: find.text('Nutella')),
-            matching: find.byType(Row),
-          )
-          .first;
-      // The hint and the tag are one joined line, so match by containment.
       expect(
         find.descendant(
-          of: bandRow,
+          of: nutellaRow,
           matching: find.textContaining('needs completing'),
         ),
-        findsOneWidget,
-        reason:
-            'a prefilled stub must read "needs completing", not "needs '
-            'macros" — '
-            'it is not missing the numbers, it is missing the human',
-      );
-      // …and the tag names the machine that filled it: a barcode, not USDA.
-      expect(
-        find.descendant(
-          of: bandRow,
-          matching: find.textContaining('barcode prefilled'),
-        ),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.descendant(
-          of: bandRow,
-          matching: find.textContaining('usda prefilled'),
+          of: nutellaRow,
+          matching: find.textContaining('needs macros'),
         ),
         findsNothing,
       );

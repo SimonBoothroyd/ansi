@@ -229,3 +229,26 @@ Future<void> centerOn(WidgetTester tester, Finder finder) async {
   await Scrollable.ensureVisible(tester.element(finder.first), alignment: 0.5);
   await tester.pumpAndSettle();
 }
+
+/// Types a label into a NEW ingredient's four macro fields so its Save is
+/// live: a new row saves complete or not at all, so a smoke that mints one
+/// through the form gives it figures first. Round numbers on purpose — they
+/// are a stand-in for a label, not a claim about the food.
+Future<void> completeNewIngredientForm(WidgetTester tester) async {
+  await scrollTo(tester, find.byKey(const ValueKey('macro-kcal')));
+  for (final (label, value) in [
+    ('kcal', '100'),
+    ('protein', '1'),
+    ('carb', '20'),
+    ('fat', '2'),
+  ]) {
+    final field = find.descendant(
+      of: find.byKey(ValueKey('macro-$label')),
+      matching: find.byType(EditableText),
+    );
+    await tester.ensureVisible(field);
+    await tester.enterText(field, value);
+    await tester.pump();
+  }
+  await tester.pumpAndSettle();
+}

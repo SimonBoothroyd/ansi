@@ -158,6 +158,9 @@ Future<void> createIngredientForLine(
   // sheet. Its Save is the pop the sheet is awaiting — it writes the row and
   // the sheet resolves the line with it. Backing out would write nothing.
   await pumpUntilFound(tester, find.text('CANONICAL NAME'));
+  // A new row saves complete or not at all: the line resolves onto a row a
+  // person filled in, never onto a bare name.
+  await completeNewIngredientForm(tester);
   await tester.tap(find.byKey(kFormSaveKey));
   await pumpUntilFound(
     tester,
