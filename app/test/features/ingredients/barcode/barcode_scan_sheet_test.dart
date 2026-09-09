@@ -136,7 +136,7 @@ void main() {
     await tester.enterText(find.byType(TextField), '739437');
     await tester.pump();
 
-    expect(find.text('a barcode is 8 to 14 digits'), findsOneWidget);
+    expect(find.textContaining('a barcode is 8 to 14 digits'), findsOneWidget);
     expect(
       tester.widget<FButton>(find.byType(FButton)).onPress,
       isNull,

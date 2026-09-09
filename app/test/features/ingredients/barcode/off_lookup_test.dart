@@ -204,6 +204,20 @@ void main() {
       expect(normalizeBarcode('00 70847 81116 9'), '0070847811169');
     });
 
+    test(
+      'a UPC-A typed as the pack prints it is completed to twelve digits',
+      () {
+        // The owner's Plant-Based Mozzarella: `0 99482 47826 1` on the pack,
+        // typed as the ten middle digits. Number system 0, check digit 1.
+        expect(normalizeBarcode('99482 47826'), '099482478261');
+        // Eleven digits: the number system typed, the check digit not.
+        expect(normalizeBarcode('09948247826'), '099482478261');
+        // The check digit is computed, not assumed: the code above, typed
+        // without its last digit, gets the same 9 back.
+        expect(normalizeBarcode('0 70847 81116'), '070847811169');
+      },
+    );
+
     test('refuses anything else', () {
       expect(normalizeBarcode('12345'), isNull);
       expect(normalizeBarcode('123456789012345'), isNull);

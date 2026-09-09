@@ -147,7 +147,8 @@ class BarcodeScanSheet extends HookWidget {
           )
         else if (typed.value.trim().isNotEmpty && code == null)
           Text(
-            'a barcode is 8 to 14 digits',
+            'a barcode is 8 to 14 digits — the small ones printed beside the '
+            'bars count too',
             style: ansiMono(size: 11, color: AnsiColors.muted),
           ),
         if (failed != null) ...[

@@ -211,10 +211,37 @@ class OffLookup {
 /// hyphens) and the GTIN lengths in circulation: EAN-8/UPC-E's 8, UPC-A's 12,
 /// EAN-13, and GTIN-14. Anything else — a letter, a wrong length — is refused
 /// here rather than spent as a request against a 15/min budget.
+///
+/// **A UPC-A as the pack prints it.** The human-readable line under a US
+/// barcode shows the ten middle digits in two groups of five, with the
+/// number-system digit small at the left and the check digit small at the
+/// right — `0 99482 47826 1` reads as `99482 47826`, and that is what a
+/// person types. Ten digits are therefore taken as that middle: the
+/// number-system digit is assumed `0` (every grocery item in the seed and
+/// every scan so far) and the check digit is computed, so the lookup gets the
+/// twelve-digit code OFF keys on. Eleven digits are a UPC-A typed without its
+/// check digit and get the same completion. A wrong assumption costs one
+/// not-found, which the sheet already handles; a refusal cost the owner the
+/// scan.
 String? normalizeBarcode(String raw) {
   final stripped = raw.trim().replaceAll(RegExp('[ -]'), '');
   if (stripped.isEmpty || !RegExp(r'^\d+$').hasMatch(stripped)) return null;
-  return _gtinLengths.contains(stripped.length) ? stripped : null;
+  return switch (stripped.length) {
+    10 => _withCheckDigit('0$stripped'),
+    11 => _withCheckDigit(stripped),
+    _ => _gtinLengths.contains(stripped.length) ? stripped : null,
+  };
 }
 
 const _gtinLengths = {8, 12, 13, 14};
+
+/// [body] plus its GTIN check digit: weight 3 on every other digit counting
+/// from the right, sum, and the digit that lifts the sum to a multiple of 10.
+String _withCheckDigit(String body) {
+  var sum = 0;
+  for (var i = 0; i < body.length; i++) {
+    final digit = body.codeUnitAt(body.length - 1 - i) - 0x30;
+    sum += i.isEven ? digit * 3 : digit;
+  }
+  return '$body${(10 - sum % 10) % 10}';
+}
