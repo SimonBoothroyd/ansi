@@ -1647,11 +1647,16 @@ class _CategoryPicker extends ConsumerWidget {
 
 /// The single-select default-unit row.
 ///
-/// **D4c** locks the options the row could not honestly say: with no density
-/// the other mass/volume family is not pickable as a default any more than it
-/// is sayable on a line. The chips are drawn disabled rather than hidden —
-/// the same rule the admission section follows, so "why can't I pick cup" has
-/// a visible answer one section down.
+/// **Only the units this row can be counted in are drawn**
+/// ([defaultUnitOfferFor]): with no density the other mass/volume family is not
+/// sayable as a default, so it is named in one line under the row instead of
+/// being offered and then refused at Save. Every chip that IS drawn can be
+/// pressed — a row full of live pills and one advisory sentence beats a row of
+/// dead pills the person learns about only by tapping them.
+///
+/// The note speaks in the admission section's voice, because it is the same
+/// promise about the same number: *tsp · tbsp · … unlock when this row has a
+/// density*.
 class _UnitChoiceRow extends StatelessWidget {
   const _UnitChoiceRow({
     required this.ingredient,
@@ -1666,35 +1671,35 @@ class _UnitChoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final offer = defaultUnitOfferFor(ingredient);
     // Wrapped, not a horizontal scroller. The catalog is wider than a phone,
     // and the scroller clipped the last chip mid-glyph with nothing to say it
     // continued.
-    //
-    // **Every chip is live.** The default unit is what this row is counted
-    // in — a fact the household states about how it buys the thing — and a
-    // density is a separate fact about the substance; refusing the first
-    // until the second exists leaves a person tapping a dead pill with
-    // nothing on screen naming what is missing. So `tsp` is pickable on a
-    // per-100 g row with no density, and picking it STRANDS the default: the
-    // chip repaints in [AnsiColors.gone], the line below names the number
-    // that repairs it, and Save refuses. That is exactly the treatment an
-    // unweighed `piece` default already gets (ADR-0015) — one shape for both
-    // strandings, held by the flag and the refusal rather than by a chip
-    // nobody can press.
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final u in kIngredientUnits)
-          AnsiModeChip(
-            label: u.label,
-            // A stranded default is still THE selection — that is the truth
-            // about the row — but not a healthy one: `stranded` repaints it
-            // in the "gone" colour, which is what the line under this row is
-            // about. Selection and health are two facts, not one.
-            selected: u == selected,
-            stranded: u == selected && defaultUnitStranded(ingredient),
-            onTap: () => onPick(u),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final u in offer.choices)
+              AnsiModeChip(
+                label: u.label,
+                // A stranded default is still THE selection — that is the
+                // truth about the row — but not a healthy one: `stranded`
+                // repaints it in the "gone" colour, which is what the line
+                // under this row is about. Selection and health are two
+                // facts, not one.
+                selected: u == selected,
+                stranded: u == selected && defaultUnitStranded(ingredient),
+                onTap: () => onPick(u),
+              ),
+          ],
+        ),
+        if (offer.needDensity.isNotEmpty)
+          _Note(
+            '${offer.needDensity.map((u) => u.label).join(' · ')} unlock when '
+            'this row has a density',
           ),
       ],
     );
@@ -1705,17 +1710,19 @@ class _UnitChoiceRow extends StatelessWidget {
 /// per-100 g row with no density, or `piece` on a row with no piece weight.
 /// Never rewritten silently; named, with the one tap that repairs it.
 ///
-/// **This is where the default-unit chips spend their freedom.** Every chip in
-/// the row above is pickable, so a person may state `tsp` before the row has a
-/// density and `piece` before it has a weight — and both land here, on one
-/// line naming the missing number, with the chip above in [AnsiColors.gone] to
-/// say which unit it is about. Hiding this until the number arrives would hide
-/// a broken row from the only person who can fix it, and they would have no
-/// reason to add the number because nobody told them anything was wrong.
+/// **A default goes stranded behind the chip row's back**, which is why this
+/// line exists at all: `piece` is pickable before the row says what one
+/// weighs (it is picking it that opens the weight field), a basis flipped to
+/// per 100 ml strands the `g` the chips did offer, and a density deleted
+/// strands the `cup` it once bought. Each lands here, on one line naming the
+/// missing number, with the chip above in [AnsiColors.gone] to say which unit
+/// it is about. Hiding it until the number arrives would hide a broken row
+/// from the only person who can fix it, and they would have no reason to add
+/// the number because nobody told them anything was wrong.
 ///
-/// It is not the "these units would unlock" advisory beside the admission
-/// chips: that one is about words the row *could* say, this one about the word
-/// it is *already using*.
+/// It is not the "these units would unlock" advisory the chip rows carry: that
+/// one is about words the row *could* say, this one about the word it is
+/// *already using*.
 ///
 /// **Save refuses while this line is showing.** The line names the state and
 /// offers one of the two fixes; the form's own refusal names both and blocks

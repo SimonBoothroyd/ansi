@@ -407,11 +407,12 @@ class IngredientForm extends _$IngredientForm {
   void setCategory(String category) =>
       state = state.copyWith(category: category);
 
-  /// Only an admissible unit can be tapped (the rest are locked), so admitting
-  /// the pick can never strand the row on the density side. `piece` is the one
-  /// exception by design: it is pickable with no weight yet, because picking
-  /// it is what makes the weight sentence appear — the admission rule then
-  /// keeps `piece` locked until the number is in, and Save refuses meanwhile.
+  /// Only a sayable unit is offered (the rest are named in the note under the
+  /// row), so admitting the pick can never strand the row on the density side.
+  /// `piece` is the one exception by design: it is offered with no weight yet,
+  /// because picking it is what makes the weight sentence appear — the
+  /// admission rule then keeps `piece` locked until the number is in, and Save
+  /// refuses meanwhile.
   void setDefaultUnit(Unit unit) {
     final next = state.copyWith(
       defaultUnit: unit,

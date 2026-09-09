@@ -218,9 +218,12 @@ ingredients/
   `allowed_units.dart` and the SQL function are mirrors pinned by shared
   vectors — change one, change both.
 - **A default unit the row cannot say blocks Save.** The chips refuse to offer
-  a default outside the basis family while no density bridges it, but a basis
-  flipped (or a USDA pick landed) after the default was chosen strands the one
-  already there. The form draws the flag with its one-tap fix *and* refuses
+  a default outside the basis family while no density bridges it
+  (`defaultUnitOfferFor`) — those units are *named* under the row instead, in
+  the allowed-units note's own voice, so the person reads what a density would
+  buy rather than tapping a chip that is about to be refused. The stored
+  default is drawn whatever its state, because a basis flipped (or a USDA pick
+  landed) after the default was chosen strands the one already there. The form draws the flag with its one-tap fix *and* refuses
   the write, naming the unit, the basis and both ways out — a density below,
   or the basis family's own unit. Nothing is rewritten silently: how a
   household buys a thing is a statement, so the person picks.

@@ -94,15 +94,21 @@ right.
   a density arriving after creation extends the list by trigger, wherever it
   came from. What we may *compute* is unchanged — totals still degrade honestly.
   A row's **default unit** is a different kind of fact — what the household
-  counts the thing in — so **every unit is offered as a default, always**: no
-  chip in that row is ever locked, whatever the row does or does not know. It
-  must still be one the row can *say*, and that is held where it can name what
-  is missing: a cross-family default with no density (typed, or stranded after
-  the fact by a basis flipped to per 100 ml under a `g` default) is flagged on
-  the line under the chips and **refused at Save**, exactly as an unweighed
-  `piece` default is. The flag names the unit, the basis and both fixes — add a
-  density, or switch to the basis family's unit — and the stored row is never
-  rewritten silently.
+  counts the thing in — but it must still be one the row can *say*, so the
+  chip row **offers only the sayable units** (`defaultUnitOfferFor`): the basis
+  family always, the other mass/volume family once a density bridges it. The
+  rest are named in one line under the row in the allowed-units note's voice —
+  *tsp · tbsp · fl oz · cup · ml · l · pt · qt unlock when this row has a
+  density* — rather than offered and then refused. `piece` is the exception
+  that stays offered unweighed, because picking it is what opens the weight
+  field.
+  The **stored** default is always drawn, sayable or not: a default stranded
+  after the fact — a basis flipped to per 100 ml under a `g` default, a density
+  deleted under a `cup` one, a `piece` still unweighed — is the chip the person
+  must move off. It renders as the selection *and* as stranded, is flagged on
+  the line under the chips, and is **refused at Save**. The flag names the
+  unit, the basis and both fixes — add a density, or switch to the basis
+  family's unit — and the stored row is never rewritten silently.
 - **Density is the single volume⇄mass fact**, entered as one sentence
   (7.8): "1 `[tbsp]` weighs `[N]` g" (`densityFromVolumeWeight`), with `ml`
   among the spoons so a known g/ml is typeable exactly. A volume-named measure label is therefore
