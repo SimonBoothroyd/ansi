@@ -54,6 +54,7 @@ and where to read about it.
 | 8.15 | Field test, round six — four owner notes (unit ladder, a stranded default, a dying provider, week-scoped staples, provenance by name), then the all-to-all unit rule and the vocabulary unit audit; the cloud database rebuilt from scratch | 🟢 done — on cloud 2026-09-08, shipped as `v0.7.0` | [0041](./completed/0041-vocabulary-unit-audit.md) · [ADR-0013](../decisions/0013-mass-ladder-symmetric.md) · [ADR-0014](../decisions/0014-all-to-all-admission.md) |
 | — | A piece weight is a row fact — `piece` is unlocked by a number, and "Counts as" retires | 🟢 | [0042](./completed/0042-piece-weight.md) · [ADR-0015](../decisions/0015-piece-weight-is-a-row-fact.md) |
 | — | Four owner notes in parallel lanes — a camera door on the import form, an ingredient's name as a door onto its page, a chip's new word keeps the sentence's case, a per-line macros toggle on the recipe page. No migrations | 🟢 `v0.9.0` | — |
+| — | The ingredient page reads before it edits; every default-unit chip is live; typed names are tidied on leaving the field, with an ingredient's word change told and revertible. No migrations | 🟢 `v0.10.0` | — |
 | 10 | Web UI (near-free with Flutter) | ⚪ stretch | — |
 | 11 | Anti-waste extras — freezer batching, monotony warnings, package-size flags | ⚪ stretch | — |
 
