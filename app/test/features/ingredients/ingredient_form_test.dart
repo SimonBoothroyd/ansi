@@ -149,8 +149,6 @@ void main() {
         find.text('piece unlocks when this row has a piece weight'),
         findsOneWidget,
       );
-      // The density gap line under the chips is about the density alone.
-      expect(find.textContaining('no density — piece'), findsNothing);
 
       // The weight in the draft clears ITS line and leaves the density's.
       await draftPieceWeight(tester, '200');
@@ -242,8 +240,10 @@ void main() {
       expect(lockedUnitLabels(tester), _volumeLabels);
     });
 
-    testWidgets('a density-less row draws the locked chips, and the note above '
-        'them is ONE line naming exactly those units', (tester) async {
+    testWidgets('a density-less row draws the locked chips under ONE line '
+        'naming exactly those units, and no second line saying it again', (
+      tester,
+    ) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -251,30 +251,16 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        find.textContaining('unlock when this row has a density'),
-        findsOneWidget,
-      );
-      // It used to be three sentences, one of which claimed a family was
-      // locked from the basis rather than from what is actually dashed.
-      expect(
         find.text(
-          'no density — tsp · tbsp · fl oz · cup · ml · l · pt · qt '
-          'locked',
+          'tsp · tbsp · fl oz · cup · ml · l · pt · qt unlock when this row '
+          'has a density',
         ),
         findsOneWidget,
       );
-      expect(find.textContaining('That blocks nothing'), findsNothing);
-    });
-
-    testWidgets('a row with a density says nothing at all there — a note with '
-        'no news is noise', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      await tester.pumpWidget(
-        host(FakeIngredientRepo(const [mango]), at: '/ingredients/mango'),
-      );
-      await tester.pumpAndSettle();
+      // One fact, one sentence. The section used to print the same list twice
+      // — once as what a density unlocks, once as what its absence locks.
       expect(find.textContaining('no density —'), findsNothing);
+      expect(find.textContaining('That blocks nothing'), findsNothing);
     });
 
     testWidgets('delete is refused with the count while a live line points '
@@ -948,8 +934,8 @@ void main() {
       expect(saved.macrosBasis, MacrosBasis.perMl);
     });
 
-    testWidgets('the default-unit selector locks the other family while no '
-        'density bridges it', (tester) async {
+    testWidgets('the default-unit selector offers every unit, and a density '
+        'clears the stranded flag on the one already picked', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -957,24 +943,90 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The basis family, count and imprecise stay pickable…
-      expect(defaultUnitChip(tester, 'g').enabled, isTrue);
-      expect(defaultUnitChip(tester, 'kg').enabled, isTrue);
-      expect(defaultUnitChip(tester, 'piece').enabled, isTrue);
-      expect(defaultUnitChip(tester, 'pinch').enabled, isTrue);
-      // …the volume family does not, since nothing bridges it.
-      expect(defaultUnitChip(tester, 'ml').enabled, isFalse);
-      expect(defaultUnitChip(tester, 'tbsp').enabled, isFalse);
-      // The stored default still renders as the selection — it is the truth
-      // about the row, and the note is how it gets fixed.
+      // Every chip is live — the volume family included, on a per-100 g row
+      // with no density. Which unit the row is counted in is the household's
+      // statement, not something the density gates.
+      for (final label in ['g', 'kg', 'piece', 'pinch', 'ml', 'tbsp', 'cup']) {
+        expect(defaultUnitChip(tester, label).enabled, isTrue, reason: label);
+      }
+      // The stored default renders as the selection — it is the truth about
+      // the row — and as STRANDED, which is what the note below is about.
       expect(defaultUnitChip(tester, 'cup').selected, isTrue);
+      expect(defaultUnitChip(tester, 'cup').stranded, isTrue);
+      expect(defaultUnitChip(tester, 'g').stranded, isFalse);
+      expect(
+        find.textContaining('cup needs a density on this row'),
+        findsOneWidget,
+      );
 
-      // A density unlocks the whole selector again — off the DRAFT, before
-      // anything is written (plan 0029 W5).
+      // A density repairs it — off the DRAFT, before anything is written.
       await draftDensity(tester, '0.75');
 
-      expect(defaultUnitChip(tester, 'ml').enabled, isTrue);
+      expect(defaultUnitChip(tester, 'cup').stranded, isFalse);
       expect(find.textContaining('needs a density on this row'), findsNothing);
+    });
+
+    testWidgets('a blank new row offers every default unit, and picking a '
+        'volume one strands it until a density exists', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const []);
+      await tester.pumpWidget(host(repo, at: '/ingredients/new'));
+      await tester.pumpAndSettle();
+
+      // Nothing is filled in: per 100 g by default, no macros, no density.
+      // Every chip the catalog has is still pickable (the owner's report —
+      // `tsp` was unselectable on a form with nothing else said yet).
+      for (final u in kIngredientUnits) {
+        expect(
+          defaultUnitChip(tester, u.label).enabled,
+          isTrue,
+          reason: u.label,
+        );
+      }
+
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('default-unit-row')),
+          matching: find.widgetWithText(AnsiModeChip, 'tsp'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Picked, and stranded: the row cannot convert a spoon of a per-100 g
+      // food with no density, so the chip goes `gone` and the line names the
+      // number that repairs it.
+      expect(defaultUnitChip(tester, 'tsp').selected, isTrue);
+      expect(defaultUnitChip(tester, 'tsp').stranded, isTrue);
+      expect(
+        find.textContaining('tsp needs a density on this row'),
+        findsOneWidget,
+      );
+
+      // And Save refuses, exactly as it does for an unweighed `piece`
+      // default — a flag a Save can walk past is not a rule.
+      await tester.enterText(find.byType(TextField).first, 'Vanilla extract');
+      await tester.pump();
+      await tester.tap(find.byKey(kFormSaveKey));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(
+          'Macros per 100 g and no density can’t have tsp as the default unit',
+        ),
+        findsOneWidget,
+      );
+      expect(repo.savedForms, isEmpty);
+
+      // The density in the draft is the other way out, and the same Save
+      // lands.
+      await draftDensity(tester, '0.88');
+      expect(defaultUnitChip(tester, 'tsp').stranded, isFalse);
+      await tester.tap(find.byKey(kFormSaveKey));
+      await tester.pumpAndSettle();
+
+      expect(repo.savedForms, hasLength(1));
+      expect(repo.savedForms.single.row.defaultUnit, tsp);
     });
 
     testWidgets('offline: the short-list says nothing came back and never '

@@ -93,12 +93,16 @@ right.
   unit's family, so "1 cup diced mango" is sayable on a piece-default row — and
   a density arriving after creation extends the list by trigger, wherever it
   came from. What we may *compute* is unchanged — totals still degrade honestly.
-  A row's **default unit** obeys the same rule: it must be one the row can
-  say, so the chips refuse to offer a cross-family default while no density
-  bridges it and Save refuses a row that was stranded after the fact (a basis
-  flipped to per 100 ml under a `g` default). The flag names the unit, the
-  basis and both fixes — add a density, or switch to the basis family's unit —
-  and the stored row is never rewritten silently.
+  A row's **default unit** is a different kind of fact — what the household
+  counts the thing in — so **every unit is offered as a default, always**: no
+  chip in that row is ever locked, whatever the row does or does not know. It
+  must still be one the row can *say*, and that is held where it can name what
+  is missing: a cross-family default with no density (typed, or stranded after
+  the fact by a basis flipped to per 100 ml under a `g` default) is flagged on
+  the line under the chips and **refused at Save**, exactly as an unweighed
+  `piece` default is. The flag names the unit, the basis and both fixes — add a
+  density, or switch to the basis family's unit — and the stored row is never
+  rewritten silently.
 - **Density is the single volume⇄mass fact**, entered as one sentence
   (7.8): "1 `[tbsp]` weighs `[N]` g" (`densityFromVolumeWeight`), with `ml`
   among the spoons so a known g/ml is typeable exactly. A volume-named measure label is therefore

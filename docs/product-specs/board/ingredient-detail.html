@@ -84,7 +84,7 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Units &amp; measures, close up</b> · a row with no density: the basis family is live, the other one is a named line rather than dashed chips, and every imprecise word is a chip the row may turn on</p>
+        <p class="frame-name"><b>Units &amp; measures, close up</b> · a row with no density: every <i>default unit</i> is pickable, the basis family is live under <i>allowed units</i>, the other one is a named line rather than dashed chips, and every imprecise word is a chip the row may turn on</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div style="margin:16px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
 
@@ -94,6 +94,7 @@
             </div></div>
             <p class="conv-note" style="margin:-6px 20px 12px"><span style="color:var(--gone)">cup</span> needs a density on this row — add one below, or <b style="color:var(--ink);border-bottom:1px solid var(--line)">switch to g</b></p>
             <p class="conv-note" style="margin:-6px 20px 12px">Save refuses while this line is showing: <i>Macros per 100 g and no density can’t have cup as the default unit — add a density below, or make it g.</i></p>
+            <p class="conv-note" style="margin:-6px 20px 12px">Every chip in that row is live, <code>ml</code> and <code>tsp</code> included. What a row is <i>counted in</i> is the household’s statement; a density is a separate fact about the substance. Picking one the row cannot convert lands on the line above — the flag and the refusal hold the rule, not a dead chip.</p>
 
             <p class="flabel" style="margin-bottom:2px">Allowed units</p>
             <p class="conv-note" style="margin:0 20px 6px">what a line may say</p>
@@ -146,7 +147,7 @@
                 </div>
             </div>
         </div></div>
-        <p class="conv-note" style="margin:10px 4px 0">no measure is made, nothing is named after the row, and there is no second place the 350 lives. <code>piece</code> is live in the chip row for the same reason <code>cup</code> would be live under a density.</p>
+        <p class="conv-note" style="margin:10px 4px 0">no measure is made, nothing is named after the row, and there is no second place the 350 lives. <code>piece</code> is live in the default-unit row as every chip in it is; what the 350 buys is the <code>piece</code> chip under <i>allowed units</i>, the way a density buys the volume ones.</p>
     </div>
 
     <div class="frame">
@@ -156,7 +157,7 @@
             <div style="margin:18px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
             <p class="flabel">Default unit</p>
             <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
-                <span class="uchip" style="background:transparent;border-color:var(--gone);border-style:dotted;color:var(--gone)">piece</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">oz</span><span class="uchip" style="color:var(--muted)">lb</span>
+                <span class="uchip" style="background:transparent;border-color:var(--gone);border-style:dotted;color:var(--gone)">piece</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">oz</span><span class="uchip" style="color:var(--muted)">lb</span><span class="uchip" style="color:var(--muted)">tsp</span><span class="uchip" style="color:var(--muted)">cup</span>
             </div></div>
             <p class="conv-note" style="margin:-6px 20px 12px"><span style="color:var(--gone)">piece</span> needs a weight on this row — enter one below, or <b style="color:var(--ink);border-bottom:1px solid var(--line)">switch to g</b></p>
 
@@ -167,7 +168,8 @@
             <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
                 <span class="uchip on">g</span><span class="uchip on">kg</span><span class="uchip on">oz</span><span class="uchip on">lb</span>
             </div></div>
-            <p class="conv-note" style="margin-top:2px">piece unlocks when this row has a piece weight · tsp · tbsp · cup · … when it has a density</p>
+            <p class="conv-note" style="margin-top:2px">tsp · tbsp · fl oz · cup · ml · l · pt · qt unlock when this row has a density</p>
+            <p class="conv-note" style="margin-top:2px">piece unlocks when this row has a piece weight</p>
 
             <div class="dock">
                 <p class="conv-note" style="margin:0 0 9px;color:var(--gone)">Piece can’t be the default unit with nothing weighing one — enter what one weighs below, or make it g.</p>
@@ -177,7 +179,7 @@
                 </div>
             </div>
         </div></div>
-        <p class="conv-note" style="margin:10px 4px 0">the stranded-default rule with one more clause: <code>piece</code> is sayable as a default iff the row has a piece weight. The flag, the two ways out and the refusal are the ones the <code>cup</code> case already uses, re-worded for a count.</p>
+        <p class="conv-note" style="margin:10px 4px 0">the stranded-default rule with one more clause: <code>piece</code> is <i>saveable</i> as a default only once the row has a piece weight. Picking it is never refused — picking it is what makes the weight field appear, exactly as picking <code>cup</code> is what names the density this row is missing. The flag, the two ways out and the refusal are the ones the <code>cup</code> case already uses, re-worded for a count.</p>
     </div>
 
     <div class="frame">

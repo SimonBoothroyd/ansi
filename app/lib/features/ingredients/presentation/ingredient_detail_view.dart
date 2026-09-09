@@ -607,13 +607,10 @@ class _DetailForm extends ConsumerWidget {
           // Density, the piece weight, admission, the default unit and the
           // measures are ONE subject — what a line of a recipe may say about
           // this row, and how much of it that is. The default unit sits here
-          // rather than beside the category because it obeys the same rule as
-          // the chips:
-          // `unitSayableAsDefault` and the chips' own candidate list are one
-          // predicate wearing two hats, so a greyed selector option and a
-          // locked chip explain each other. It also puts the stranded
-          // default's repair — "enter a density below" — one section above the
-          // density, rather than two groups away.
+          // rather than beside the category because its repair does: a default
+          // the row cannot convert is flagged on the line under its own chips
+          // and fixed by a number in this same section, rather than two groups
+          // away.
           _Group(
             title: 'Units & measures',
             children: [
@@ -665,7 +662,6 @@ class _DetailForm extends ConsumerWidget {
                 selected: draft.allowed,
                 onToggle: form.toggleUnit,
               ),
-              _DensityGapNote(ingredient: draftRow),
 
               // The entry draws its own DENSITY label, so the section does
               // not repeat one above it.
@@ -1329,10 +1325,19 @@ class _UnitChoiceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     // Wrapped, not a horizontal scroller. The catalog is wider than a phone,
     // and the scroller clipped the last chip mid-glyph with nothing to say it
-    // continued — a row of greyed pills running off the edge reads as broken
-    // rather than as "these are locked". D4c's rule is that the unsayable
-    // options stay VISIBLE, so "why can't I pick cup" has an answer; a chip
-    // you cannot see cannot answer anything.
+    // continued.
+    //
+    // **Every chip is live.** The default unit is what this row is counted
+    // in — a fact the household states about how it buys the thing — and a
+    // density is a separate fact about the substance; refusing the first
+    // until the second exists leaves a person tapping a dead pill with
+    // nothing on screen naming what is missing. So `tsp` is pickable on a
+    // per-100 g row with no density, and picking it STRANDS the default: the
+    // chip repaints in [AnsiColors.gone], the line below names the number
+    // that repairs it, and Save refuses. That is exactly the treatment an
+    // unweighed `piece` default already gets (ADR-0015) — one shape for both
+    // strandings, held by the flag and the refusal rather than by a chip
+    // nobody can press.
     return Wrap(
       spacing: 6,
       runSpacing: 6,
@@ -1340,19 +1345,12 @@ class _UnitChoiceRow extends StatelessWidget {
         for (final u in kIngredientUnits)
           AnsiModeChip(
             label: u.label,
-            // A stranded stored default is still THE selection — that is the
-            // truth about the row — but not a healthy one: `stranded` repaints
-            // it in the "gone" colour, which is what the line under this row
-            // is about. Selection and health are two facts, not one.
+            // A stranded default is still THE selection — that is the truth
+            // about the row — but not a healthy one: `stranded` repaints it
+            // in the "gone" colour, which is what the line under this row is
+            // about. Selection and health are two facts, not one.
             selected: u == selected,
-            stranded:
-                u == selected &&
-                (!unitSayableAsDefault(ingredient, u) ||
-                    (u == pieces && ingredient.pieceBasisAmount == null)),
-            // `piece` stays tappable with no weight: picking it is what makes
-            // the weight sentence appear (ADR-0015); the flag and the Save
-            // refusal hold the line, not the chip.
-            enabled: unitSayableAsDefault(ingredient, u) || u == selected,
+            stranded: u == selected && defaultUnitStranded(ingredient),
             onTap: () => onPick(u),
           ),
       ],
@@ -1360,20 +1358,21 @@ class _UnitChoiceRow extends StatelessWidget {
   }
 }
 
-/// **D4c(c)** — the row whose stored default unit its own rules no longer
-/// support: `cup` on a per-100 g row with no density (the renamed-rice shape
-/// the owner hit). Never rewritten silently; named, with the one tap that
-/// repairs it.
+/// The row whose default unit its own rules cannot convert: `cup` on a
+/// per-100 g row with no density, or `piece` on a row with no piece weight.
+/// Never rewritten silently; named, with the one tap that repairs it.
 ///
-/// **It stays, and it stops shouting.** This is not the "these units would
-/// unlock" advisory beside the admission chips — it names a unit the row is
-/// *already using*, so hiding it until a density arrives would hide a broken
-/// row from the only person who can fix it, and they would have no reason to
-/// add the density because nobody told them anything was wrong. But **D4d**
-/// already ruled *keep D4c strict, fix the data* — nineteen stranded rows got
-/// a real density — so this is now a rare state, and a rare state should not
-/// own a bordered card with a heading, a body and a button. One line with the
-/// fix in it; the chip above renders in [AnsiColors.gone] to say which unit.
+/// **This is where the default-unit chips spend their freedom.** Every chip in
+/// the row above is pickable, so a person may state `tsp` before the row has a
+/// density and `piece` before it has a weight — and both land here, on one
+/// line naming the missing number, with the chip above in [AnsiColors.gone] to
+/// say which unit it is about. Hiding this until the number arrives would hide
+/// a broken row from the only person who can fix it, and they would have no
+/// reason to add the number because nobody told them anything was wrong.
+///
+/// It is not the "these units would unlock" advisory beside the admission
+/// chips: that one is about words the row *could* say, this one about the word
+/// it is *already using*.
 ///
 /// **Save refuses while this line is showing.** The line names the state and
 /// offers one of the two fixes; the form's own refusal names both and blocks
@@ -1597,34 +1596,6 @@ class _GhostButton extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-/// The advisory under the density entry. A slot rather than a conditional
-/// child: it retires the moment a density lands, and in a [ListView] a child
-/// that disappears shifts every sibling below it onto the wrong element —
-/// silently resetting their hook state, which is how the lookup's own note
-/// vanished exactly when it had good news.
-///
-/// **One line, computed.** It reads the same candidate list the chips do and
-/// names those units, or says nothing at all when nothing is locked — never a
-/// family inferred from the basis alone, which is wrong for a volume-default
-/// row.
-class _DensityGapNote extends StatelessWidget {
-  const _DensityGapNote({required this.ingredient});
-
-  final Ingredient ingredient;
-
-  @override
-  Widget build(BuildContext context) {
-    if (ingredient.densityGPerMl != null) return const SizedBox.shrink();
-    // `piece` is the piece weight's lock, not the density's (ADR-0015).
-    final locked = [
-      for (final c in allowedUnitCandidates(ingredient))
-        if (c.locked && c.unit != pieces) c.unit.label,
-    ];
-    if (locked.isEmpty) return const SizedBox.shrink();
-    return _Note('no density — ${locked.join(' · ')} locked');
   }
 }
 
