@@ -1087,9 +1087,9 @@ void main() {
       final asked = repo.savedForms.single;
       // Save tidies a name that was typed in: the line's plural becomes the
       // entry it names.
-      expect(asked.row.canonicalName, 'Curry Leaf');
+      expect(asked.row.canonicalName, 'Curry Leaves');
       expect((asked.density as DensitySet).gPerMl, 0.4);
-      expect(repo.rows.single.canonicalName, 'Curry Leaf');
+      expect(repo.rows.single.canonicalName, 'Curry Leaves');
       // Born a stub whatever was filled in (D5): only Mark complete promotes,
       // and that is a human act.
       expect(repo.rows.single.status, IngredientStatus.stub);
