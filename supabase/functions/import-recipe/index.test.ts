@@ -375,6 +375,37 @@ Deno.test("makeHandler — an unexpected failure returns an OPAQUE 500", async (
   assertEquals("detail" in body, false);
 });
 
+Deno.test("makeHandler — a model that ran long is a 504 that says so, not the opaque 500", async () => {
+  // Intake's own timeout arrives as an ImportError (⇒ 422, "could not reach
+  // that site"), so a timeout reaching the handler ran long in the MODEL. The
+  // person needs two things from it: that it was the reading, and that trying
+  // again costs nothing — the import writes nothing until Save.
+  for (const name of ["ProviderTimeoutError", "TimeoutError", "AbortError"]) {
+    const slow = deps({
+      adapter: {
+        name: "slow",
+        sanitize: () => {
+          const e = new Error("Claude did not answer within 60000ms");
+          e.name = name;
+          return Promise.reject(e);
+        },
+      },
+    });
+    const res = await makeHandler(slow)(
+      new Request("https://fn.test", {
+        method: "POST",
+        body: JSON.stringify({ url: "https://example.test/dirty-rice" }),
+      }),
+    );
+    assertEquals(res.status, 504);
+    const body = await res.json();
+    assertStringIncludes(body.error, "took too long");
+    assertStringIncludes(body.error, "safe to try again");
+    // The provider's own words never reach the caller.
+    assertEquals(body.error.includes("60000ms"), false);
+  }
+});
+
 Deno.test("makeHandler — POST url returns 200 payload", async () => {
   const handler = makeHandler(deps());
   const res = await handler(

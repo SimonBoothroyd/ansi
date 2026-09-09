@@ -56,10 +56,20 @@ const TRANSIENT_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
  * spinner inside an edge function with its own wall-clock limit, so the ceiling
  * that matters is the total, not the per-attempt one: five attempts each
  * allowed 120s could hang for ten minutes.
+ *
+ * These are the model rung of the import's timeout ladder, and the number that
+ * sizes them is the PHOTO path: it makes two of these calls back to back
+ * (transcribe, then sanitize), so the pair plus intake and matching has to fit
+ * inside the platform's request idle timeout. The whole ladder, with its
+ * numbers, is written out where the client timeout lives
+ * (`app/lib/features/import/data/remote_import_repository.dart`); change one of
+ * these and re-read it.
  */
 const MAX_ATTEMPTS = 3;
-const DEFAULT_DEADLINE_MS = 60_000;
-const DEFAULT_ATTEMPT_TIMEOUT_MS = 45_000;
+/** TOTAL budget for one logical provider call, across every attempt and sleep. */
+export const DEFAULT_DEADLINE_MS = 60_000;
+/** Per-attempt wall clock, so one hung socket cannot eat the whole deadline. */
+export const DEFAULT_ATTEMPT_TIMEOUT_MS = 45_000;
 /** Longest we honour a `Retry-After`. Providers do send `600`. */
 export const MAX_RETRY_AFTER_MS = 10_000;
 

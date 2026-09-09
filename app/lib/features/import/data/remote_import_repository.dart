@@ -38,12 +38,34 @@ const _uploadMaxEdge = 1568;
 /// Re-encode quality for the downscaled JPEG (matches the server's ~85).
 const _uploadJpegQuality = 85;
 
-/// How long the client waits for `import-recipe`. A multi-page photo import
-/// through the vision tier is genuinely slow (tens of seconds), so this is
-/// generous — but unbounded is not an option: `functions.invoke` has no
-/// deadline of its own, and a hung request leaves the user on the "Reading the
-/// recipe…" spinner with no way back but killing the app.
-const _invokeTimeout = Duration(seconds: 60);
+/// How long the client waits for `import-recipe`.
+///
+/// **The timeout ladder.** Every rung must be strictly larger than everything
+/// beneath it, or the layer above gives up on work the layer below would have
+/// finished — and a client that abandons a request the server completes bills
+/// the model call and shows a failure for it.
+///
+/// ```text
+/// client   180s  this constant
+/// platform 150s  Supabase's request idle timeout — a function that has sent
+///                nothing by then is cut off with a gateway 504
+/// function       the worst case the pipeline can actually reach:
+///   from a link   ≤ 25s intake (jsonld.ts FETCH_TOTAL_TIMEOUT_MS)
+///               + ≤ 60s one model call (adapters/http.ts DEFAULT_DEADLINE_MS)
+///               +   match, a handful of Postgres round-trips      ⇒ ~90s
+///   from photos   ≤ 60s transcribe + ≤ 60s extract + match        ⇒ ~125s
+/// ```
+///
+/// So this sits ABOVE the platform's own cut-off, not below the function's
+/// worst case. A client deadline under either number abandons a request the
+/// server is still working on — and a photo import, two model calls back to
+/// back, reaches those numbers routinely — which surfaces as a network-shaped
+/// failure for a request that was merely slow.
+///
+/// Unbounded is still not an option: `functions.invoke` has no deadline of its
+/// own, and a hung request would leave the user on the spinner with no way back
+/// but killing the app.
+const edgeInvokeTimeout = Duration(seconds: 180);
 
 /// Downscales one page's [bytes] so its longest edge is ≈ [_uploadMaxEdge],
 /// re-encoded as JPEG. Runs off the UI isolate (decoding a full-res phone photo
@@ -68,6 +90,25 @@ Uint8List downscaleForUpload(Uint8List bytes) {
   } on Object {
     return bytes;
   }
+}
+
+/// What a person is told when the request outlives the whole timeout ladder.
+///
+/// It names what was being waited on and says the import is safe to repeat:
+/// nothing is written until Save at review, so a second attempt cannot
+/// duplicate or half-write a recipe. The photo wording carries the one remedy
+/// that actually shortens the wait — a photo import is two model calls over
+/// however many pages were sent, so fewer pages is a shorter read.
+String importTimeoutMessage(ImportSource source) {
+  final minutes = edgeInvokeTimeout.inMinutes;
+  return switch (source) {
+    ImportFromPhotos() =>
+      'still reading those photos after $minutes minutes — nothing was saved, '
+          'so it is safe to try again (fewer pages at a time reads faster)',
+    ImportFromUrl() =>
+      'still reading that page after $minutes minutes — nothing was saved, so '
+          'it is safe to try again',
+  };
 }
 
 /// A user-facing import failure raised by the edge-backed repository (the
@@ -100,20 +141,28 @@ class EdgeImportRepository implements ImportRepository {
     try {
       response = await _functions
           .invoke('import-recipe', body: body)
-          .timeout(_invokeTimeout);
+          .timeout(edgeInvokeTimeout);
     } on TimeoutException {
-      throw const ImportException(
-        'the import service took too long to answer — check your connection '
-        'and try again',
-      );
+      // Past the whole ladder — the request outlived even the platform's own
+      // cut-off.
+      throw ImportException(importTimeoutMessage(source));
     } on FunctionException catch (e) {
-      // The edge fn returns `{error, detail}` on a handled failure (422/500);
-      // surface the human-readable `error` when present.
+      // The edge fn returns `{error}` on a handled failure (4xx/5xx); surface
+      // the human-readable message when present. It is what tells a person
+      // whether the SITE would not give us the page (a block, a redirect loop,
+      // a 404) or the MODEL ran long — two failures with different remedies.
       final details = e.details;
-      final message = details is Map && details['error'] is String
-          ? details['error'] as String
-          : 'the import service could not process this recipe';
-      throw ImportException(message);
+      if (details is Map && details['error'] is String) {
+        throw ImportException(details['error'] as String);
+      }
+      // No JSON body: the function never answered and something in front of it
+      // did. A 504 here is the platform's gateway timeout, not a rejection.
+      throw ImportException(
+        e.status == 504 || e.status == 408
+            ? 'the import service was still working when it ran out of time — '
+                  'nothing was saved, so it is safe to try again'
+            : 'the import service could not process this recipe',
+      );
     }
     final data = response.data;
     if (data is! Map) {
