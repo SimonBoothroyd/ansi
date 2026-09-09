@@ -70,3 +70,19 @@ vocab drift.
 
 Add a hand case whenever you hit a real mis-match — the dataset is how taste gets
 captured and defended over time.
+
+## Changing the extraction model re-opens this eval
+
+Production extracts with one pinned model id — `CLAUDE_HAIKU_MODEL` in
+`supabase/functions/_shared/adapters/claude.ts`. The id is the version: there is
+no alias and no date suffix, so nothing moves the app onto a different model
+except an edit to that constant.
+
+**That edit is not a config change; it is a change to the app's hardest
+correctness surface.** A newer or larger model is not automatically a better
+extractor — this tier was chosen by measurement — so changing the id means
+re-running the extraction dimension against the blessed gold and reading its
+**never-invent ledger**, which is the disqualifying one: a model that scores
+higher on field accuracy while inventing more is a worse model here. Add the new
+id's `runner/pricing.ts` row in the same change, or the cost columns go quiet.
+The procedure is `runner/EXTRACTION.md` § Adding a model.
