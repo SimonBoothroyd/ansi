@@ -1095,6 +1095,7 @@ void main() {
       await tester.enterText(find.byType(TextField).first, 'Curry leaves');
       await tester.pump();
       await draftDensity(tester, '0.4');
+      await typeMacros(tester, kcal: '108', protein: '6', carb: '19', fat: '1');
       // Still nothing written — the whole point of C2, and what makes backing
       // out of a half-filled form cost nothing.
       expect(repo.rows, isEmpty);
@@ -1106,9 +1107,69 @@ void main() {
       expect(asked.row.canonicalName, 'Curry Leaves');
       expect((asked.density as DensitySet).gPerMl, 0.4);
       expect(repo.rows.single.canonicalName, 'Curry Leaves');
-      // Born a stub whatever was filled in (D5): only Mark complete promotes,
-      // and that is a human act.
-      expect(repo.rows.single.status, IngredientStatus.stub);
+      // Saved COMPLETE, in the same write. A new row is not a stub in
+      // waiting: this form is not the door stubs come through.
+      expect(asked.markComplete, isTrue);
+      expect(repo.rows.single.status, IngredientStatus.complete);
+    });
+
+    testWidgets('the dock is one Save, live only once the row would count — '
+        'and the line above it says what is still missing', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const []);
+      await tester.pumpWidget(host(repo, at: '/ingredients/new'));
+      await tester.pumpAndSettle();
+
+      // No `Mark complete` at all: on a row that does not exist the two acts
+      // are one act.
+      expect(find.byKey(kFormCompleteKey), findsNothing);
+      expect(find.text('Mark complete'), findsNothing);
+
+      // Blank: the name is what the refusal names first, in its own words.
+      expect(saveButton(tester).onPress, isNull);
+      expect(
+        find.text('A name is the one field an ingredient can’t go without.'),
+        findsOneWidget,
+      );
+
+      await tester.enterText(find.byType(TextField).first, 'Curry leaves');
+      await tester.pump();
+      expect(saveButton(tester).onPress, isNull);
+      expect(find.text('needs macros'), findsOneWidget);
+
+      // A part of a panel is not a panel — the same sentence a stub's form
+      // uses, said before the tap rather than after it.
+      await tester.enterText(macroField('kcal'), '108');
+      await tester.pump();
+      expect(saveButton(tester).onPress, isNull);
+      expect(find.textContaining('a part of a panel isn’t a panel'), findsOne);
+
+      await typeMacros(tester, kcal: '108', protein: '6', carb: '19', fat: '1');
+      expect(saveButton(tester).onPress, isNotNull);
+      expect(
+        find.text('saving it counts it in conversions and macro totals'),
+        findsOneWidget,
+      );
+
+      await saveForm(tester);
+      expect(repo.rows.single.status, IngredientStatus.complete);
+    });
+
+    testWidgets('a stub that already EXISTS keeps both buttons — the seed’s '
+        'stubs are still there to be finished', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(FakeIngredientRepo(const [curryLeaves]), at: editRoute('curry')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(kFormSaveKey), findsOneWidget);
+      expect(find.byKey(kFormCompleteKey), findsOneWidget);
+      // And its Save is live with no macros: putting a stub down half-filled
+      // is exactly what a stub is for.
+      expect(saveButton(tester).onPress, isNotNull);
     });
 
     testWidgets('a name carried in from a picker prefills the field', (

@@ -30,7 +30,11 @@
 ///   sits in a draft, so a form with no row behind it is coherent and backing
 ///   out of one leaves nothing to clean up.
 /// - **Macros gate completion, density does not.** Confirming is a human act; a
-///   USDA or barcode prefill fills fields and stops.
+///   USDA or barcode prefill fills fields and stops. On an EXISTING stub that
+///   act is `Mark complete`; on `/ingredients/new` it is the only act there is
+///   — one `Save`, live only once the row would pass the same gate, writing
+///   the row `complete`. This form does not mint stubs; the seed's are the
+///   ones there are, and they are meant to run out.
 /// - **Delete is refused while a live recipe line points here**, with the
 ///   count — a line's ingredient is never allowed to dangle.
 ///
@@ -131,7 +135,8 @@ String newIngredientRoute({String name = ''}) => name.trim().isEmpty
 /// immediate writes. Exported so tests name it rather than counting FButtons.
 const kFormSaveKey = ValueKey('form-save');
 
-/// The dock's CTA: `Mark complete` on a stub, absent on a complete row.
+/// The dock's CTA: `Mark complete` on a stored stub. A complete row and a row
+/// that does not exist yet each carry one button instead — Save.
 const kFormCompleteKey = ValueKey('form-complete');
 
 class IngredientDetailView extends HookConsumerWidget {
@@ -743,14 +748,22 @@ class _DetailForm extends ConsumerWidget {
       // any scroll position — and so the destructive action is no longer one
       // flick below the confirm CTA.
       footer: _ActionBar(
+        creating: creating,
         stub: stub,
-        canComplete: !busy && draft.storedMacros != null,
+        canComplete: !busy && draft.completable,
         // The line the CTA's promise moved into: what a save said, what a
         // delete refused, or — while the CTA is disabled — what it is waiting
-        // for.
+        // for. A new row is waiting on the same things a stub's `Mark
+        // complete` waits on, so it borrows the same words.
         message:
             draft.message ??
-            (stub
+            (creating
+                ? draft.refusal ??
+                      (draft.storedMacros == null
+                          ? 'needs macros'
+                          : 'saving it counts it in conversions and macro '
+                                'totals')
+                : stub
                 ? (draft.storedMacros == null
                       ? 'needs macros'
                       : 'completing it counts it in conversions and macro '
@@ -758,8 +771,14 @@ class _DetailForm extends ConsumerWidget {
                 : null),
         // Only the button leaves: three other callers use the save as a FLUSH
         // and none of those may navigate.
+        //
+        // On a new row Save IS the completion (C-B): there is no stub to come
+        // back to, so it writes `complete` and the dock only offers it once
+        // the row would pass that gate.
         onSave: busy
             ? null
+            : creating
+            ? completeRow
             : () async {
                 final saved = await save();
                 if (saved != null && context.mounted) leave(saved);
@@ -2171,8 +2190,16 @@ class _FillItIn extends StatelessWidget {
 /// form already reads "Complete — counts in conversions and macro totals";
 /// the app was using three words for two states. Not `Finalize`: D5 makes this
 /// reversible, and the `⋯` un-does it.
+///
+/// **A row that does not exist yet gets ONE button.** `Save` and `Mark
+/// complete` are the same act there — a new ingredient is saved complete or
+/// not at all, because a stub is a thing the seed leaves behind for a person
+/// to finish, not a thing this form should be able to mint. So the button is
+/// enabled only while the row would pass the completion gate, and the line
+/// above it says what is still missing.
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
+    required this.creating,
     required this.stub,
     required this.canComplete,
     required this.message,
@@ -2180,10 +2207,14 @@ class _ActionBar extends StatelessWidget {
     required this.onComplete,
   });
 
+  /// A row that does not exist yet: one button, and [canComplete] gates it.
+  final bool creating;
+
   final bool stub;
 
-  /// Gated on macros (D5): density is not required, and the line above says
-  /// why rather than the button going quiet.
+  /// Gated on the whole completion check — macros on a basis (D5: a density is
+  /// not required) and nothing the form would refuse. The line above says what
+  /// is missing rather than the button going quiet.
   final bool canComplete;
 
   /// The form's one feedback line — a save, a delete refusal with its count,
@@ -2209,7 +2240,17 @@ class _ActionBar extends StatelessWidget {
               style: ansiMono(size: 11, color: AnsiColors.muted),
             ),
           ),
-        if (stub)
+        if (creating)
+          FButton(
+            // Keyed: the density entry and the measures editor each carry
+            // their own small green Save earlier in the tree, and a test
+            // reaching for "the form's Save" by text is picking between three
+            // of them by position.
+            key: kFormSaveKey,
+            onPress: canComplete ? onSave : null,
+            child: const Text('Save'),
+          )
+        else if (stub)
           Row(
             spacing: 8,
             children: [
@@ -2219,10 +2260,6 @@ class _ActionBar extends StatelessWidget {
               SizedBox(
                 width: 92,
                 child: FButton(
-                  // Keyed: the density entry and the measures editor each
-                  // carry their own small green Save earlier in the tree, and
-                  // a test reaching for "the form's Save" by text is picking
-                  // between three of them by position.
                   key: kFormSaveKey,
                   variant: FButtonVariant.outline,
                   onPress: onSave,

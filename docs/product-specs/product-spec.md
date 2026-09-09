@@ -157,8 +157,8 @@ The column list is generated from the migrations —
   no score. Both are written offline-first, so the form and the lists print
   them with no network.
 - `source` is **provenance, and it is load-bearing**: `seed` (the template
-  vocab), `manual` (typed in the picker or the manager), `import_stub` (created
-  at an import commit), `usda_fdc:<id>` (a food picked from the USDA search),
+  vocab), `manual` (made through `/ingredients/new`, from the manager or a
+  picker), `import_stub` (created at an import commit), `usda_fdc:<id>` (a food picked from the USDA search),
   `off:<barcode>` (a barcode scan). Until 0029 a server trigger read it to
   decide whether a row was its business; **nothing matches to USDA on its own
   any more** (plan 0029), so a `usda_fdc:<id>` stamp always means a person
@@ -593,7 +593,16 @@ hold here too — a row with no panel reads **needs macros**, never four zeros.
 An incomplete row keeps **one** call to action on the fact sheet, `Fill it in`,
 which opens the form. `/ingredients/new` is always the form (there is nothing
 yet to read) and it is the one exit that still leaves the page, popping with
-the row it made for the picker that pushed it. `?edit=1` opens the form
+the row it made for the picker that pushed it. **It also has one button.** A
+row that does not exist yet is saved `complete` or not at all: `Save` and
+`Mark complete` are the same act there, so the dock draws only `Save`, live
+only once the row would pass the very gate `Mark complete` applies to a stored
+stub, with the standing refusal printed above it in the words the form already
+uses. Stubs are what the *seed* leaves for a person to finish and are meant to
+run out; this form does not mint new ones. The consequence is deliberate: the
+import review's create-new door and the picker's create footer both push this
+form, so neither can resolve a line onto a bare stub any more — the person
+fills the row in, and the line resolves onto something that counts. `?edit=1` opens the form
 directly, and the doors that exist to *change* a field hand it over: a recipe
 page's macro-panel fix marker, the import review's piece-weight door, and the
 manager's "needs fleshing out" band. The plain doors — a manager row, an
@@ -684,7 +693,8 @@ source-tab slot, footer slot):
   (recently used in lines/top-ups) before any query; dense information-honest
   rows — category, capability hints ("has density", "3 measures"), a per-100
   macro line for complete rows, a `stub` badge (never zeros); an add-new
-  affordance creating a `manual` stub from the typed query. Search is the
+  affordance that carries the typed query into `/ingredients/new`, where the
+  row is filled in and saved `complete` before the picker resolves onto it. Search is the
   shared three-tier rule (exact · every-token word prefix · a guarded
   typo tier that runs only when the first two find nothing, rendered under a
   `DID YOU MEAN` header) — see

@@ -44,6 +44,14 @@ shopping top-up, the import review's create-new — pushes that route, and a
 picker pushes it *over its own sheet* through `context.pushOnceFor` and awaits
 the pop, so the quantity sheet that follows offers the units the form just set.
 
+**A new row is saved complete or not at all.** The create form's dock draws one
+button, `Save`, live only while `IngredientFormDraft.completable` holds — the
+same gate `Mark complete` applies to a stored stub — and its write marks the
+row complete. A stored stub keeps both buttons: the seed's stubs still need
+fleshing out, and putting one down half-filled is what a stub is for. So none
+of those doors can mint a bare stub any more; a person fills the row in, and
+the line that was waiting resolves onto something that counts.
+
 **Nothing is written until Save** ([ADR-0011](../../../../docs/decisions/0011-one-save-one-write.md)).
 The form holds everything it intends — the row's fields, the density, the
 measures added and removed, the aliases, the piece weight, and whether

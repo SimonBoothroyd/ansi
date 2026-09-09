@@ -167,6 +167,10 @@ void main() {
                 onPress: () async {
                   // What ONE Save does (plan 0029 C2): the row and everything
                   // the form set, then pop with it.
+                  // What ONE Save does on `/ingredients/new`: the row, its
+                  // children and the status flip in one write. The form only
+                  // offers Save once the row would count, so the stand-in
+                  // carries macros and marks complete, as the real one does.
                   final saved = await repo.saveForm(
                     null,
                     IngredientFormEdit(
@@ -175,7 +179,14 @@ void main() {
                         defaultUnit: g,
                         macrosBasis: MacrosBasis.perG,
                         allowedUnits: {g, kg},
+                        macros: const Macros(
+                          kcal: 108,
+                          protein: 6,
+                          carb: 19,
+                          fat: 1,
+                        ),
                       ),
+                      markComplete: true,
                     ),
                   );
                   if (context.mounted) context.pop(saved);
@@ -236,7 +247,10 @@ void main() {
       expect(row.id, created.id);
       expect(row.canonicalName, 'curry leaves');
       expect(row.allowedUnits, [g, kg]);
-      expect(row.status, IngredientStatus.stub);
+      // The create-new door can no longer mint a bare stub: the form it
+      // pushes saves complete or not at all, so the line resolves onto a row
+      // that counts.
+      expect(row.status, IngredientStatus.complete);
       expect(find.byType(PickerShell), findsNothing);
     });
   });

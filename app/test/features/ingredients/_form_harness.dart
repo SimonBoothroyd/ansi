@@ -314,6 +314,11 @@ Finder defaultUnitChipFinder(String label) => find.descendant(
 AnsiModeChip defaultUnitChip(WidgetTester tester, String label) =>
     tester.widget<AnsiModeChip>(defaultUnitChipFinder(label));
 
+/// The dock's own Save, for its enabled state — `onPress` is null while the
+/// create form's completion gate is unmet.
+FButton saveButton(WidgetTester tester) =>
+    tester.widget<FButton>(find.byKey(kFormSaveKey));
+
 /// A phone-width viewport, tall enough that the whole form still builds:
 /// width is what an overflow is about (G2), and the form is one long scroll.
 void phoneWidth(WidgetTester tester) {
