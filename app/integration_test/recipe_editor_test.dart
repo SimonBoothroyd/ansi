@@ -267,7 +267,8 @@ void main() {
     expect(recipe['book_id'], isNotNull);
     expect(recipe['section_id'], isNotNull);
     final items = await db.getAll(
-      'SELECT li.quantity, li.unit, li.measure_id FROM recipe_line_item li '
+      'SELECT li.quantity, li.unit, li.measure_id, li.ingredient_id '
+      'FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id '
       'WHERE g.recipe_id = ? AND li.deleted_at IS NULL '
       'ORDER BY li.sort_order',
@@ -281,19 +282,20 @@ void main() {
     expect(items.first['measure_id'], isNotNull);
     expect(items.first['unit'], 'piece');
     expect(items.last['quantity'], 1);
-    // The Onion line was added WITHOUT touching a chip, and it still lands on
-    // a measure: the quantity sheet opens on the row's STATED default measure
-    // ("onion, medium") when the caller names no choice, so `＋ ingredient →
-    // onion` means one medium onion rather than one bare "piece". A seed, not
-    // a guess — the fact is the vocabulary row's, shown on the chip row that
-    // changes it, and it stores the honest count fallback like any measure
-    // line.
-    final onionMeasure = await db.get(
-      'SELECT label FROM ingredient_measure WHERE id = ?',
-      [items.last['measure_id']],
-    );
-    expect(onionMeasure['label'], 'onion, medium');
+    // The Onion line was added WITHOUT touching a chip, so it takes the row's
+    // default unit and points at NO measure: a bare count is weighed by the
+    // ingredient's own piece weight, not by a measure the row points back at
+    // (ADR-0015 — no measure is pointed at by a row). What makes `1 piece`
+    // honest is therefore on the vocabulary row, and that is what this asserts:
+    // one onion is the curated medium onion, said as a number.
     expect(items.last['unit'], 'piece');
+    expect(items.last['measure_id'], isNull);
+    final onion = await db.get(
+      'SELECT piece_basis_amount, piece_source FROM ingredient WHERE id = ?',
+      [items.last['ingredient_id']],
+    );
+    expect(onion['piece_basis_amount'], greaterThan(0));
+    expect(onion['piece_source'], 'borrowed from onion, medium');
 
     // After the server round-trip the view still stands and the steps are
     // still a real JSON array (not a double-encoded string).
