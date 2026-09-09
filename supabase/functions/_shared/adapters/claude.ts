@@ -1,7 +1,10 @@
 // Claude Haiku adapter — the Haiku tier behind the frozen ExtractAdapter.
 //
-// Model id pinned via the `claude-api` reference: `claude-haiku-4-5` (the Haiku
-// tier; 200K context). Vision: yes (image content blocks, base64). Native
+// Model id pinned via the `claude-api` reference: `CLAUDE_HAIKU_MODEL` below is
+// the one source of truth for what production sends, and the same constant is
+// what `ProviderCall.model` reports (see `#emit`), so the id in a run record is
+// the id that was on the wire. `claude-haiku-4-5` is the Haiku tier; 200K
+// context. Vision: yes (image content blocks, base64). Native
 // structured output: `output_config.format` with a `json_schema` (the current
 // Messages-API mechanism; the deprecated `output_format` is not used). Raw HTTP
 // to POST /v1/messages keeps the three adapters uniform and dependency-free.
@@ -47,8 +50,26 @@ import {
   toBase64,
 } from "./http.ts";
 
+/**
+ * THE PIN. This exact string is the model every production import is extracted
+ * with — there is no alias, no `-latest`, and no date suffix to append: the id
+ * IS the version, and a new Haiku generation arrives under a new id rather than
+ * re-pointing this one. So the app cannot silently be moved onto a different
+ * model by the provider; only an edit here moves it.
+ *
+ * Which is the point of stating it this plainly. A newer or larger model is not
+ * automatically a better extractor — this tier was chosen by measurement, and
+ * measured against a blessed gold — so changing this string means RE-RUNNING
+ * the extraction eval (`evals/`, `runner/EXTRACTION.md`) and reading its
+ * never-invent ledger before the change ships. Adding a `runner/pricing.ts` row
+ * for the new id is part of that, or the cost columns go quiet.
+ */
 export const CLAUDE_HAIKU_MODEL = "claude-haiku-4-5";
-/** Benchmark alternates for the eval harness: the current Sonnet and Opus tiers. */
+/**
+ * Benchmark alternates for the eval harness: the current Sonnet and Opus tiers,
+ * pinned the same way. Production never sends these — they are what a compare
+ * run measures the pin against.
+ */
 export const CLAUDE_SONNET_MODEL = "claude-sonnet-5";
 export const CLAUDE_OPUS_MODEL = "claude-opus-5";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";

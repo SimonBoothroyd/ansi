@@ -293,8 +293,10 @@ Notes on the two that moved:
   project's flash-tier framing. There is no dated `gpt-5.6-luna-YYYY-MM-DD`
   snapshot in the models list, so that string *is* the exact pin.
 
-Claude stays on `claude-haiku-4-5`: the models list shows no Haiku newer than
-`claude-haiku-4-5-20251001` (which is what this alias resolves to).
+Claude stays on `claude-haiku-4-5`, and that string **is** the complete pin —
+the Haiku 4.5 id carries no date suffix and is not an alias that re-points. A
+newer Haiku generation would arrive under a different id, which is an edit to
+`CLAUDE_HAIKU_MODEL` and therefore a re-run of this eval.
 
 Alternatives the owner may prefer, all already priced in `runner/pricing.ts` so
 a swap is a one-line change: `gemini-3.7-flash` (newer than the pinned 3.5 and

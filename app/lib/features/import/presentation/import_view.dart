@@ -106,7 +106,7 @@ class ImportView extends HookConsumerWidget {
           initialBookId: initialBookId,
           initialSectionId: initialSectionId,
         ),
-        ImportLoading() => const _Busy(label: 'Reading the recipe…'),
+        ImportLoading(:final stage) => _Busy(label: stage.label),
         ImportReconciling() => ReconciliationBody(state: state),
         ImportCommitting() => const _Busy(label: 'Saving…'),
         ImportCommitted() => const _Busy(label: 'Done'),

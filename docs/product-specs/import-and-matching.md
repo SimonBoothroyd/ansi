@@ -169,6 +169,16 @@ is **not** in the hints and never reaches the model.
 Use the provider's **native structured-output / JSON-schema mode**, not a "please
 reply in JSON" instruction — the review screen needs guaranteed-parseable output.
 
+**The id is the pin.** `claude-haiku-4-5` is the complete identifier — no alias,
+no `-latest`, no date suffix to append — so the provider cannot move the app onto
+a different model; only an edit to `CLAUDE_HAIKU_MODEL`
+(`supabase/functions/_shared/adapters/claude.ts`) can. That constant is also what
+a run record's `model` field reports, so the id in `evals/runs/` is the id that
+was on the wire. Changing it is a change to the app's hardest correctness
+surface, not a config tweak: it means re-running the extraction eval against the
+blessed gold and reading the never-invent ledger before it ships
+([`evals/AGENTS.md`](../../evals/AGENTS.md)).
+
 ### 4.4 Extraction output contract
 
 The authoritative definition is `supabase/functions/_shared/types.ts`
@@ -327,6 +337,48 @@ Steps render with inline ingredient chips, and cook mode highlights the same ref
 **Editing — shipped (0022).** The manual editor was to get an @-mention picker; it stayed stretch in [0017](../exec-plans/completed/0017-import-client.md) and was then **dropped rather than built** — the convention needed teaching, and it competed with a real `@` in prose. What shipped instead: a step is a card, its prose is a real editable sentence, and a chip is a **highlighted word inside it**; you make one by selecting a run of text and saying what it is. An imported method opens editable with every chip and timer intact, and the editor now writes this tokenized shape for **every** recipe. The contract above is untouched — no new token variant, no new field, no server change. Detail: [product-spec.md](./product-spec.md) "The method".
 
 *Naming note:* the Dart mirror calls this field `MethodRef.amountRule` with the values `showAmount` / `hideAmount` / `partial` — plain language for the same three JSON values, which are unchanged. The wire format here is the contract; the Dart name is not.
+
+### 4.7 The wait — what bounds it, and what the person sees
+
+Extraction is one non-streaming POST to `import-recipe`, and behind it the server
+runs intake → extract → match in sequence. From photos it runs the model **twice**
+(transcribe the pages, then write the recipe out), which is why the photo door is
+the slow one and the one every deadline has to be sized for.
+
+**The timeout ladder.** Each rung must exceed everything beneath it, or a layer
+gives up on work the layer below would have finished — and a client that abandons
+a request the server completes has paid for the model call and shows a failure for
+it anyway. The numbers, written out in full where the client timeout lives
+(`app/lib/features/import/data/remote_import_repository.dart`):
+
+| Rung | Budget | Where |
+|---|---|---|
+| client invoke | 180 s | `edgeInvokeTimeout` |
+| platform idle timeout | 150 s | Supabase's own cut-off — a function that has sent nothing by then gets a gateway 504 |
+| intake, whole (all redirect hops) | 25 s | `FETCH_TOTAL_TIMEOUT_MS` (`_shared/jsonld.ts`) |
+| one model call, all retries | 60 s | `DEFAULT_DEADLINE_MS` (`_shared/adapters/http.ts`) |
+| one model attempt | 45 s | `DEFAULT_ATTEMPT_TIMEOUT_MS` |
+
+So the worst case is ~90 s from a link and ~125 s from photos, and the client sits
+*above* the platform's cut-off rather than below the function's worst case. The
+arithmetic is a test (`supabase/functions/_shared/timeouts.test.ts`), because the
+numbers live in files nobody edits together and the failure is silent.
+
+**Three failures, three different sentences.** A person needs to know which thing
+went wrong, because the remedies differ: a site that will not serve the page wants
+the *photo* door ("that site blocked the fetch … — try the photo import instead"),
+and a model that ran long wants the *same button* again ("the model took too long
+… nothing has been saved, so it is safe to try again", a 504 rather than the
+opaque 500 a timeout would otherwise land in). Every one of them is safe to
+repeat: the import writes nothing until Save at review (§8).
+
+**The screen says which stage.** A single non-streaming call cannot report the
+server's progress, so the loading screen climbs a **time-driven ladder**
+(`app/lib/features/import/domain/import_stage.dart`): the rungs name the real
+stages in the order they run, timed off the extraction runs, and each is worded to
+stay true if it lands early or late. It is drawn on the board's Import review
+view. A frozen "Reading the recipe…" for two minutes reads as a hang; a sentence
+that moves reads as work.
 
 ---
 

@@ -30,7 +30,7 @@ import type {
   ReconLine,
 } from "../_shared/types.ts";
 import { deriveUnitHints } from "../_shared/unit_hints.ts";
-import { ImportError } from "../_shared/errors.ts";
+import { ImportError, isTimeoutFailure } from "../_shared/errors.ts";
 
 // Re-exported for the stages that raise it and everything that catches it — the
 // class itself lives in `_shared/errors.ts` so intake and the adapters can throw
@@ -266,6 +266,22 @@ export function makeHandler(
     } catch (e) {
       if (e instanceof ImportError) {
         return jsonResponse(422, { error: e.message });
+      }
+      // Running out of time is not an unexpected failure, and it is not the
+      // recipe's fault — say so, and say that retrying costs nothing. Intake's
+      // own timeout arrives as an ImportError above ("could not reach that
+      // site"), so anything reaching here ran long in the MODEL.
+      if (isTimeoutFailure(e)) {
+        console.error(
+          `import-recipe: extraction timed out: ${
+            e instanceof Error ? e.message : String(e)
+          }`,
+        );
+        return jsonResponse(504, {
+          error:
+            "the model took too long to read this recipe — nothing has been " +
+            "saved, so it is safe to try again",
+        });
       }
       // An unexpected failure. The detail can carry provider URLs, prompt
       // fragments, or a driver's connection string — log it, return an opaque

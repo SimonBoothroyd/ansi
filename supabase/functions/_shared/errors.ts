@@ -13,3 +13,22 @@ export class ImportError extends Error {
     this.name = "ImportError";
   }
 }
+
+/**
+ * True for the failures that mean "we ran out of time waiting", whoever raised
+ * them: the provider plumbing's own deadline (`ProviderTimeoutError`), an
+ * aborted attempt (`AbortError`), and `AbortSignal.timeout`'s `TimeoutError`.
+ *
+ * Matched by NAME, not by class, for two reasons: the orchestrator can classify
+ * a failure without importing the adapter plumbing, and the abort a `fetch`
+ * raises is a `DOMException` that is not one of our classes at all.
+ *
+ * It exists so a timeout stops arriving as the opaque "import failed" 500. A
+ * person who waited two minutes needs to know it was the reading that ran long
+ * — not that their recipe was rejected — and that nothing was written.
+ */
+export function isTimeoutFailure(e: unknown): boolean {
+  if (!(e instanceof Error)) return false;
+  return e.name === "ProviderTimeoutError" || e.name === "TimeoutError" ||
+    e.name === "AbortError";
+}

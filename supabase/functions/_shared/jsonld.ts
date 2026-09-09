@@ -29,8 +29,22 @@ import { ImportError } from "./errors.ts";
 // pasted, a page someone else's server returned) enters the pipeline, and every
 // byte past here is billed to a model. Bound all of it.
 
-/** Wall-clock budget for one hop. */
+/**
+ * Wall-clock budget for one hop.
+ *
+ * Intake is the FIRST rung of the import's timeout ladder (the whole ladder is
+ * written out where the client timeout lives,
+ * `app/lib/features/import/data/remote_import_repository.dart`). A slow or
+ * hostile site must not be able to spend the budget the model call still needs.
+ */
 export const FETCH_TIMEOUT_MS = 10_000;
+/**
+ * Budget for the WHOLE intake, redirects included. Without it a chain of
+ * {@link MAX_REDIRECTS} slow hops costs `FETCH_TIMEOUT_MS × (MAX_REDIRECTS+1)`
+ * — four times the number the ladder is counting on. Each hop gets whatever is
+ * smaller: its own budget, or what is left of this one.
+ */
+export const FETCH_TOTAL_TIMEOUT_MS = 25_000;
 /** Redirect hops we will follow; each destination is re-validated. */
 export const MAX_REDIRECTS = 3;
 /** Stop reading a response body past this. */
@@ -315,15 +329,20 @@ export async function fetchRawBlob(
     throw new ImportError("that does not look like a web address");
   }
 
+  const deadline = Date.now() + FETCH_TOTAL_TIMEOUT_MS;
   for (let hop = 0;; hop++) {
     await assertFetchableTarget(target, resolve);
+    const left = deadline - Date.now();
+    if (left <= 0) {
+      throw new ImportError("could not reach that site (it timed out)");
+    }
     let res: Response;
     try {
       res = await fetchImpl(target.toString(), {
         // Manual: a 30x is re-validated against the SSRF rules above before we
         // follow it, which `redirect: "follow"` would deny us.
         redirect: "manual",
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        signal: AbortSignal.timeout(Math.min(FETCH_TIMEOUT_MS, left)),
         headers: { accept: "text/html,application/xhtml+xml" },
       });
     } catch (e) {
