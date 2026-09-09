@@ -319,7 +319,7 @@ Future<void> promptForNewSection(
     title: 'New section',
     hint: 'Name it anything',
     confirm: 'Add',
-    clean: NameKind.section,
+    clean: NameKind.title,
   );
   if (name == null || name.trim().isEmpty) return;
   await container.write(
@@ -380,7 +380,7 @@ class _BookMenu extends ConsumerWidget {
                   hint: 'Book name',
                   initial: book.name,
                   confirm: 'Rename',
-                  clean: NameKind.book,
+                  clean: NameKind.title,
                 );
                 if (name == null || name.trim().isEmpty) return;
                 await container.write(
@@ -782,7 +782,7 @@ class _SectionMenu extends ConsumerWidget {
                   hint: 'Section name',
                   initial: section.name,
                   confirm: 'Rename',
-                  clean: NameKind.section,
+                  clean: NameKind.title,
                 );
                 if (name == null || name.trim().isEmpty) return;
                 await container.write(
@@ -1137,7 +1137,7 @@ Future<void> promptForNewBook(BuildContext context, WidgetRef ref) async {
     title: 'New book',
     hint: 'e.g. Our Cookbook',
     confirm: 'Create',
-    clean: NameKind.book,
+    clean: NameKind.title,
   );
   if (name == null || name.trim().isEmpty) return;
   await container.write(

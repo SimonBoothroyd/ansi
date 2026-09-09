@@ -21,24 +21,16 @@ library;
 
 /// The kinds of name a person types, and how much each may be recased.
 ///
-/// The kinds differ only in case, because they differ only in what a person
-/// expects: an ingredient is a catalogue entry and reads as a label
-/// (`Cream of Tartar`), while a recipe, a book or a section is a title
-/// somebody wrote and keeps its own shape (`Wild garlic pesto`). An alias is
+/// There are **two**, because only two behaviours are honest. Everything a
+/// household names — an ingredient, a recipe, a book, a section — is a label
+/// on a shelf and reads as one, so they all get the same Title Case:
+/// `Wild Garlic Pesto` sits beside `Cream of Tartar` and `Desserts` without
+/// one of them looking like a sentence somebody forgot to finish. An alias is
 /// stored lowercase by the vocabulary (`supabase/seed/vocab.jsonl`), so
 /// recasing it would only be undone.
 enum NameKind {
-  /// An ingredient's canonical name — Title Case, small words excepted.
-  ingredient,
-
-  /// A recipe title — first letter only.
-  recipe,
-
-  /// A book name — first letter only.
-  book,
-
-  /// A section name — first letter only.
-  section,
+  /// A name a household gives something — Title Case, small words excepted.
+  title,
 
   /// An alias — whitespace and trailing punctuation only, no recasing.
   alias,
@@ -79,10 +71,7 @@ String cleanName(String raw, NameKind kind) {
   final trimmed = _dropTrailingStop(collapsed).trim();
   if (trimmed.isEmpty) return trimmed;
   return switch (kind) {
-    NameKind.ingredient => _titleCase(trimmed),
-    NameKind.recipe ||
-    NameKind.book ||
-    NameKind.section => _upperFirstLetter(trimmed),
+    NameKind.title => _titleCase(trimmed),
     NameKind.alias => trimmed,
   };
 }

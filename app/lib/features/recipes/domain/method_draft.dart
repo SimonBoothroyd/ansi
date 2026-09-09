@@ -484,13 +484,21 @@ ChipAmountRule amountRuleFor(
 /// shape of the word that stood there is the best evidence of what the
 /// sentence wanted, so [previousWord]'s case decides:
 ///
-/// - it started lowercase → [name]'s first letter is lowercased;
-/// - it started with a capital → [name]'s first letter is capitalised;
+/// - it started lowercase → every Title-Cased word of [name] is lowercased,
+///   so the stored `Olive Oil` reads `olive oil` and never `olive Oil`;
+/// - it started with a capital → [name]'s first letter is capitalised and no
+///   other word is touched, because the rest of a stored name already is;
 /// - it was ALL CAPS and more than one letter → [name] is uppercased whole;
 /// - it held no letter at all → [name] is left exactly as stored.
 ///
-/// Only the first letter moves. The rest of [name] keeps its own casing, so a
-/// proper noun inside it survives — `aged Parmesan`, never `aged parmesan`.
+/// A word is only lowercased when its shape is Title Case — an initial and
+/// nothing but lowercase after it. A capital anywhere later is a shape
+/// somebody meant, and the word stands whole: `BBQ Sauce` reads `BBQ sauce`,
+/// and `pH Buffer` reads `pH buffer`. A plain leading capital is **not** that
+/// evidence, because the ingredient vocabulary stores every name Title Case —
+/// `Aged Parmesan` is a catalogue entry, not a proper noun, and reads
+/// `aged parmesan` mid-sentence. A hyphenated word counts one part at a time,
+/// the split `cleanName` makes, so `Stir-Fry Sauce` reads `stir-fry sauce`.
 ///
 /// A chip being **made** has no word of its own yet, so with no [previousWord]
 /// the position decides: [textBefore] is the step's prose up to the insertion
@@ -509,16 +517,48 @@ String chipWord(String name, {String? previousWord, String textBefore = ''}) {
   ];
   if (letters.isEmpty) {
     if (previousWord != null && previousWord.isNotEmpty) return name;
-    return textBefore.trim().isEmpty ? _upperFirst(name) : _lowerFirst(name);
+    return textBefore.trim().isEmpty ? _upperFirst(name) : _lowerName(name);
   }
   if (letters.length > 1 && letters.every((c) => c == c.toUpperCase())) {
     return name.toUpperCase();
   }
   final first = letters.first;
-  return first == first.toLowerCase() ? _lowerFirst(name) : _upperFirst(name);
+  return first == first.toLowerCase() ? _lowerName(name) : _upperFirst(name);
 }
 
-String _lowerFirst(String s) => s[0].toLowerCase() + s.substring(1);
+/// [name] with the initial of every Title-Cased word lowercased.
+String _lowerName(String name) => name
+    .split(' ')
+    .map((word) => word.split('-').map(_lowerTitleCased).join('-'))
+    .join(' ');
+
+/// [s] lowercased on its first *letter*, but only when every later letter is
+/// already lowercase; otherwise [s] exactly as it stands.
+///
+/// A letter is anything whose upper and lower cases differ — the same test
+/// `cleanName` makes, which keeps digits, glyphs and CJK out of it without a
+/// table. A letter whose lowercase is a different length is left as typed:
+/// shrinking a word is not recasing it.
+String _lowerTitleCased(String s) {
+  final runes = s.runes.toList();
+  var initial = -1;
+  for (var i = 0; i < runes.length; i++) {
+    final c = String.fromCharCode(runes[i]);
+    if (c.toUpperCase() == c.toLowerCase()) continue;
+    if (initial < 0) {
+      initial = i;
+    } else if (c != c.toLowerCase()) {
+      return s;
+    }
+  }
+  if (initial < 0) return s;
+  final c = String.fromCharCode(runes[initial]);
+  final lower = c.toLowerCase();
+  if (lower == c || lower.length != c.length) return s;
+  return String.fromCharCodes(runes.take(initial)) +
+      lower +
+      String.fromCharCodes(runes.skip(initial + 1));
+}
 
 String _upperFirst(String s) => s[0].toUpperCase() + s.substring(1);
 

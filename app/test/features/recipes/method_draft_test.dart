@@ -570,14 +570,40 @@ void main() {
       expect(chipWord('onion', previousWord: 'S'), 'Onion');
     });
 
-    test('the name’s own internal casing is left alone', () {
+    test('every Title-Cased word goes down, not just the first', () {
+      // The bug this pins: only the first letter moved, so the stored
+      // `Olive Oil` read `olive Oil` in the middle of a sentence.
+      expect(chipWord('Olive Oil', previousWord: 'butter'), 'olive oil');
+      expect(
+        chipWord('Stir-Fry Sauce', previousWord: 'ketchup'),
+        'stir-fry sauce',
+      );
+    });
+
+    test('a capital caps the first word and touches no other', () {
+      expect(chipWord('Olive Oil', previousWord: 'Butter'), 'Olive Oil');
+      expect(chipWord('olive oil', previousWord: 'Butter'), 'Olive oil');
+    });
+
+    test('a capital inside a word is a shape somebody meant', () {
+      expect(chipWord('BBQ Sauce', previousWord: 'ketchup'), 'BBQ sauce');
+      expect(chipWord('pH Buffer', previousWord: 'water'), 'pH buffer');
+      expect(
+        chipWord('McIntosh Apple', previousWord: 'pear'),
+        'McIntosh apple',
+      );
+    });
+
+    test('a plain leading capital is not evidence of a proper noun', () {
+      // The vocabulary stores every name Title Case, so `Parmesan` here is a
+      // catalogue entry rather than something a person capitalised.
+      expect(
+        chipWord('Aged Parmesan', previousWord: 'cheese'),
+        'aged parmesan',
+      );
       expect(
         chipWord('aged Parmesan', previousWord: 'Cheese'),
         'Aged Parmesan',
-      );
-      expect(
-        chipWord('Aged Parmesan', previousWord: 'cheese'),
-        'aged Parmesan',
       );
     });
 
@@ -592,6 +618,11 @@ void main() {
 
     test('a new chip anywhere else in the step is lowercased', () {
       expect(chipWord('Onion', textBefore: 'Add the '), 'onion');
+      expect(chipWord('Olive Oil', textBefore: 'Add the '), 'olive oil');
+    });
+
+    test('a new chip opening the step keeps the stored Title Case', () {
+      expect(chipWord('Olive Oil'), 'Olive Oil');
     });
 
     test('an empty name stays empty rather than being cased into one', () {

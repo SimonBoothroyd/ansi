@@ -775,7 +775,7 @@ class RecipeEditor extends _$RecipeEditor
     ];
     final recipe = _current.copyWith(
       // The backstop for a title field that was never left.
-      title: cleanName(_current.title, NameKind.recipe),
+      title: cleanName(_current.title, NameKind.title),
       // The plain shape is write-never, read-legacy from 0022 on (D8).
       steps: const [],
       // A dangling ref can never reach the database, however the editor got

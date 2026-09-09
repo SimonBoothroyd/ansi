@@ -44,7 +44,7 @@ import 'normalize.dart';
 String? suggestIngredientName(String cleaned) {
   final kept = displayWords(cleaned);
   if (kept.isEmpty) return null;
-  final suggestion = cleanName(kept.join(' '), NameKind.ingredient);
+  final suggestion = cleanName(kept.join(' '), NameKind.title);
   if (suggestion.isEmpty) return null;
   return suggestion.toLowerCase() == cleaned.toLowerCase() ? null : suggestion;
 }

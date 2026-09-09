@@ -278,7 +278,7 @@ class IngredientForm extends _$IngredientForm {
           // the silent half applies — the field must open reading exactly
           // what a Save would write, and choosing a different WORD is not the
           // picker's to do.
-          canonicalName: cleanName(initialName, NameKind.ingredient),
+          canonicalName: cleanName(initialName, NameKind.title),
           defaultUnit: g,
           status: IngredientStatus.stub,
         );
@@ -376,7 +376,7 @@ class IngredientForm extends _$IngredientForm {
   /// long as the person leaves that name alone.
   void tidyName() {
     final typed = state.name;
-    final cleaned = cleanName(typed, NameKind.ingredient);
+    final cleaned = cleanName(typed, NameKind.title);
     final pinned = state.namePinned == typed;
     final suggested = pinned ? null : suggestIngredientName(cleaned);
     final next = suggested ?? cleaned;

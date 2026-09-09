@@ -539,7 +539,7 @@ CommitPayload buildCommit(
   return CommitPayload(
     // The backstop for a title field that was never left, as on the editor's
     // own Save.
-    title: cleanName(header.title, NameKind.recipe),
+    title: cleanName(header.title, NameKind.title),
     servingsBase: header.servingsBase,
     servingsRaw: payload.servingsRaw,
     yieldQty: statedYield ? yieldQty : null,

@@ -137,10 +137,10 @@ Future<void> createIngredientForLine(
   await openResolverForLine(tester, i);
   // Search first: a previous line may already have made this row.
   await typeInPicker(tester, name);
-  // The form tidies the name it is seeded with (Title Case for an
-  // ingredient), so the row it makes — and the row a later line finds —
-  // carries the tidied name, not the typed one.
-  final stored = cleanName(name, NameKind.ingredient);
+  // The form tidies the name it is seeded with (Title Case), so the row it
+  // makes — and the row a later line finds — carries the tidied name, not the
+  // typed one.
+  final stored = cleanName(name, NameKind.title);
   final existing = find.descendant(
     of: find.byType(IngredientResultList),
     matching: find.text(stored),

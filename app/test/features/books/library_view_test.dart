@@ -682,7 +682,7 @@ void main() {
       await tester.tap(find.text('Rename').last);
       await tester.pumpAndSettle();
 
-      expect(repo.renamedTo, 'Weeknight suppers');
+      expect(repo.renamedTo, 'Weeknight Suppers');
     });
 
     testWidgets('a new section', (tester) async {

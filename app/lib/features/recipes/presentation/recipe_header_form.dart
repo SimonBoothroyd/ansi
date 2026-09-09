@@ -378,10 +378,10 @@ class _YieldRow extends StatelessWidget {
 
 /// The recipe's title, tidied when the field is left.
 ///
-/// A title is what somebody wrote, so [cleanName] only trims it, collapses its
-/// spaces and capitalises its first letter — no word ever changes, which is why
-/// there is nothing to tell and no revert line here. The editor's Save is the
-/// backstop for a field that was never left.
+/// [cleanName] trims it, collapses its spaces and Title Cases it — no word
+/// ever changes, only its case, which is why there is nothing to tell and no
+/// revert line here. The editor's Save is the backstop for a field that was
+/// never left.
 ///
 /// The host owns the text and the controller follows it: the tidied title is
 /// pushed into the controller the field already has, rather than the field
@@ -397,7 +397,7 @@ class _TitleField extends HookWidget {
     return Focus(
       onFocusChange: (hasFocus) {
         if (hasFocus) return;
-        final cleaned = cleanName(host.header.title, NameKind.recipe);
+        final cleaned = cleanName(host.header.title, NameKind.title);
         if (cleaned == host.header.title) return;
         host.setTitle(cleaned);
         controller.text = cleaned;
@@ -718,7 +718,7 @@ class _FilingPicker extends ConsumerWidget {
                   title: 'New section',
                   hint: 'Name it anything',
                   confirm: 'Add',
-                  clean: NameKind.section,
+                  clean: NameKind.title,
                 );
                 if (name == null || name.trim().isEmpty) return;
                 final id = await container.write(

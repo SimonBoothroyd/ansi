@@ -124,11 +124,15 @@ The column list is generated from the migrations —
   canonical name, a recipe title, a book or section name, an alias — is
   trimmed, has its runs of whitespace collapsed and loses a lone trailing `.`
   or `,` the moment the field loses focus, with Save as the backstop for a
-  field that was typed in and never left. An ingredient name is then Title
-  Cased (small words excepted: `cream of tartar` → `Cream of Tartar`); a title
-  or a book or section name takes a capital on its first letter only; an alias
-  is left as typed, because the vocabulary stores aliases lowercase. Case is
-  only ever *added* — `BBQ sauce` becomes `BBQ Sauce`, never `Bbq`. An
+  field that was typed in and never left. It is then Title Cased, small words
+  excepted (`cream of tartar` → `Cream of Tartar`, `wild garlic pesto` →
+  `Wild Garlic Pesto`, `desserts` → `Desserts`) — **one rule for every kind of
+  name**, because a recipe title and a book name sit on the same shelves as an
+  ingredient and reading as a label is what a shelf wants. What follows a
+  comma is a qualifier and is left exactly as typed (`Chicken Thigh,
+  boneless`). Only an alias is exempt, left as typed because the vocabulary
+  stores aliases lowercase. Case is only ever *added* — `BBQ sauce` becomes
+  `BBQ Sauce`, never `Bbq`. An
   ingredient's canonical name additionally gets **one suggestion**: a name that
   reads as a recipe line becomes the entry it was about (`chopped onions` →
   `Onions`, `2 cups flour` → `Flour`; a plural is a name, since the vocabulary
@@ -363,12 +367,17 @@ old word` is one tap. Prose is authored and is never rewritten — only labels
 are, and only visibly.
 
 **A new word arrives in the old word's case** (`chipWord`). A name is stored
-capitalised and a sentence usually is not, so the word being replaced decides:
-lower-case in, lower-case out (`add the onion`), a capital keeps a capital, and
-an ALL-CAPS word of more than one letter shouts the whole name. Only the first
-letter moves, so a proper noun inside the name survives — `aged Parmesan`. A
-chip being *made* has no old word, so its position decides instead: capitalised
-when it opens the step, lower-case anywhere else. Case is all that is fixed —
+Title Case and a sentence usually is not, so the word being replaced decides:
+lower-case in, lower-case out (`Olive Oil` → `add the olive oil` — **every**
+word of the name goes down, not just the first), a capital keeps a capital and
+touches nothing after it (the stored name already is capitalised), and an
+ALL-CAPS word of more than one letter shouts the whole name. A word carrying a
+capital *after* its first letter is a shape somebody meant and stands whole —
+`BBQ sauce`, `pH buffer`, `McIntosh apple`. A plain leading capital is not that
+evidence, because the vocabulary stores every name Title Case: `Aged Parmesan`
+reads `aged parmesan` mid-sentence. A chip being *made* has no old word, so its
+position decides instead: the stored name as it stands when it opens the step,
+lower-case anywhere else. Case is all that is fixed —
 pluralising a swapped-in name is not attempted. Removing a referenced line asks first and leaves each
 chip's word as plain text, and `save()` prunes dangling refs regardless: **a
 saved method never refs a line the recipe does not have.**

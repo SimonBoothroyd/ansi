@@ -215,12 +215,12 @@ void main() {
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
 
-        // A title is what somebody wrote: the first letter is capitalised and
-        // no word ever changes, so there is nothing to tell.
-        expect(host.header.title, 'Wild garlic pesto');
+        // A title is a label on a shelf like any other name: it is Title
+        // Cased, and no word ever changes, so there is nothing to tell.
+        expect(host.header.title, 'Wild Garlic Pesto');
         expect(
           tester.widget<TextField>(title).controller!.text,
-          'Wild garlic pesto',
+          'Wild Garlic Pesto',
         );
         expect(find.text('keep the old word'), findsNothing);
       });
