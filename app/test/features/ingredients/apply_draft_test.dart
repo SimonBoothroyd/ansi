@@ -75,17 +75,44 @@ void main() {
       expect(applied.skipped, contains(DraftSkip.macros));
     });
 
-    test('a row with a lookup source keeps it — USDA is a source, manual is '
-        'not', () {
-      for (final kept in ['usda_fdc:11216', 'seed', 'off:999', 'import_stub']) {
+    test('a row whose source NAMES its food keeps it — a USDA pick or an '
+        'earlier scan; how a row arrived, or where a density was borrowed, is '
+        'no name', () {
+      for (final kept in ['usda_fdc:11216', 'off:999']) {
         final applied = applyDraft(_nutella, target: DraftTarget(source: kept));
         expect(applied.source, isNull, reason: kept);
         expect(applied.skipped, contains(DraftSkip.provenance), reason: kept);
       }
-      for (final free in [null, '', 'manual']) {
+      for (final free in [
+        null,
+        '',
+        'manual',
+        'seed',
+        'import_stub',
+        'fdc_density:168089',
+      ]) {
         final applied = applyDraft(_nutella, target: DraftTarget(source: free));
         expect(applied.source, 'off:3017620422003', reason: '$free');
       }
+    });
+
+    test('a seed row that already holds the seed’s numbers is not '
+        're-attributed to a pack; a hand-made row that holds its own is', () {
+      final seeded = applyDraft(
+        _nutella,
+        target: const DraftTarget(source: 'seed', hasMacros: true),
+      );
+      expect(seeded.source, isNull);
+      expect(seeded.skipped, isNot(contains(DraftSkip.provenance)));
+      final handMade = applyDraft(
+        _nutella,
+        target: const DraftTarget(
+          source: 'fdc_density:168089',
+          hasMacros: true,
+        ),
+      );
+      expect(handMade.source, 'off:3017620422003');
+      expect(handMade.sourceLabel, isNotNull);
     });
 
     test('a full row takes nothing and says so three times', () {
@@ -279,11 +306,16 @@ void main() {
     });
   });
 
-  test('hasLookupProvenance: null and manual are free, the rest are taken', () {
+  test('hasLookupProvenance: only a stamp that NAMES the food is taken', () {
     expect(hasLookupProvenance(null), isFalse);
     expect(hasLookupProvenance(''), isFalse);
     expect(hasLookupProvenance('manual'), isFalse);
-    expect(hasLookupProvenance('seed'), isTrue);
+    // How the row arrived, not whose numbers it holds.
+    expect(hasLookupProvenance('seed'), isFalse);
+    expect(hasLookupProvenance('import_stub'), isFalse);
+    // A borrowed density is not a name for the macros — the owner's
+    // hand-made row wore this and its first scan had to be allowed to speak.
+    expect(hasLookupProvenance('fdc_density:168089'), isFalse);
     expect(hasLookupProvenance('usda_fdc:5'), isTrue);
     expect(hasLookupProvenance('off:5'), isTrue);
   });

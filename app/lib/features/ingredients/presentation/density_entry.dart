@@ -141,14 +141,16 @@ class DensityEntry extends HookWidget {
     }, [redirectedSpoon]);
     // The serving offered as the left-hand side. Both halves or neither: an
     // amount of 2 with the spoon left on tbsp when the serving said cup would
-    // be a sentence about something nobody typed.
+    // be a sentence about something nobody typed. It unfolds the sentence
+    // only on a row that has no density yet — a stated density stays
+    // folded, offer or no offer; the offer is waiting behind `change`.
     useEffect(() {
       final offered = servingPrefill;
       if (offered == null || !_measures.contains(offered.unit)) return null;
       spoon.value = offered.unit;
       amount.value = offered.amount;
       amountSeed.value++;
-      open.value = true;
+      if (ingredient.densityGPerMl == null) open.value = true;
       return null;
     }, [servingPrefill]);
 

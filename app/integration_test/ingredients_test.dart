@@ -909,6 +909,10 @@ void main() {
       await pumpUntilFound(tester, ingredientsShelf);
       await scrollTo(tester, ingredientsShelf);
       await openIngredientsShelf(tester);
+      // The shelf's list mounts a frame after the shelf opens; under load the
+      // scroll below can run before there is a list to scroll, so wait for
+      // the list's own search hint first.
+      await pumpUntilFound(tester, find.text('Search your vocabulary'));
       // A new row saves complete or not at all, so the scanned Nutella is not
       // fleshing-out work: it sits in the vocabulary itself, and no row
       // carrying its name asks for anything.

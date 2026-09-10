@@ -41,7 +41,7 @@
 /// The form scans a barcode into itself, through the same [applyDraft] rule
 /// every draft lands by: fields that are EMPTY fill, a value the human already
 /// typed stays (and the card says which), provenance becomes `off:<barcode>`
-/// only where the row had none, and nothing confirms the row.
+/// unless the row already names its food, and nothing confirms the row.
 ///
 /// The macros section holds four required figures and an optional fibre
 /// ([Macros.fiber]), and has a **per serving** mode: the fields take a

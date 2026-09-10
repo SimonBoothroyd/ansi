@@ -161,6 +161,21 @@ class ServingRow extends StatelessWidget {
         child: FSelect<Unit>.rich(
           key: const ValueKey('serving-unit'),
           size: FTextFieldSizeVariant.sm,
+          // The small variant still floors at Forui's touch height; trim it
+          // to the inline slot's 32 pt so the sentence sits at one height.
+          style: FSelectStyleDelta.delta(
+            fieldStyles: FVariantsDelta.delta([
+              FVariantOperation.match(
+                {FTextFieldSizeVariant.sm},
+                const FTextFieldStyleDelta.delta(
+                  constraints: BoxConstraints(minHeight: 32),
+                  contentPadding: EdgeInsetsGeometryDelta.value(
+                    EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                ),
+              ),
+            ]),
+          ),
           format: (u) => u.label,
           control: FSelectControl<Unit>.lifted(
             value: draft.unit,

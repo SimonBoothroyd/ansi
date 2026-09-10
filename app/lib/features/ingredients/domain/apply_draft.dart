@@ -8,10 +8,13 @@
 /// - **A draft fills what is EMPTY and leaves what a human typed alone.** A
 ///   name already in the field, a macro panel already entered, a provenance a
 ///   lookup already stamped — none of it is replaced by a shop's label.
-/// - **Provenance becomes `off:<barcode>` only where the row had none.**
-///   `manual` counts as none: it is the stamp for "nobody looked anything up",
-///   which is exactly what a scan has just changed. A USDA id or `seed` is a
-///   source and stays. The stamp travels with a **name for the pack**
+/// - **Provenance becomes `off:<barcode>` unless the row already NAMES its
+///   food.** A USDA pick or an earlier scan is a name and stays. `manual`,
+///   `seed`, `import_stub` and a borrowed density's `fdc_density:<id>` are
+///   not names — they say how the row arrived — so the pack the person is
+///   holding names it; the one exception is a seed row still holding the
+///   seed's own numbers, which keeps them unattributed rather than gaining a
+///   pack they never came off. The stamp travels with a **name for the pack**
 ///   ([DraftApplication.sourceLabel]), because a barcode is a key and nobody
 ///   reads keys.
 /// - **Nothing here confirms the row**. The application is values for fields;
@@ -33,6 +36,7 @@ import '../../../core/units/units.dart';
 // because the door itself (`barcode_add.dart`) imports Flutter and a domain
 // file may not.
 import '../barcode/ingredient_draft.dart';
+import 'ingredient.dart';
 
 /// A field a draft could have filled and did not, because a human already
 /// had. Named so the card can say which.
@@ -185,6 +189,11 @@ DraftApplication applyDraft(
   if (draft.source == DraftSource.barcode && draft.barcode != null) {
     if (hasLookupProvenance(target.source)) {
       skipped.add(DraftSkip.provenance);
+    } else if (target.source == 'seed' && target.hasMacros) {
+      // A seed row's numbers are the reference's, not this pack's: the scan
+      // leaves them (above) and must not put a pack's name over them. Every
+      // other row without a name — hand-made, an import stub, a borrowed
+      // density — is named by the pack the person is holding.
     } else {
       source = draft.sourceValue;
       sourceLabel = packLabel(draft);
@@ -234,12 +243,18 @@ String? packLabel(IngredientDraft draft) {
   return '$brand $product';
 }
 
-/// Whether [source] records that something looked this row up — anything but
-/// null and `manual`. `seed`, `usda_fdc:<id>` and `off:<barcode>` all do, and
-/// so does `import_stub` on the rows in the wild that still carry it: it never
-/// meant numbers, but it does say where the row came from.
+/// Whether [source] NAMES the food the row's numbers came from — a USDA pick
+/// (`usda_fdc:<id>`) or a barcode scan (`off:<barcode>`). Those are the two
+/// stamps a person put there, and a second machine does not talk over them.
+///
+/// Every other stamp is not a name: `seed` and `import_stub` say how the row
+/// arrived, and `fdc_density:<id>` says where a DENSITY was borrowed from —
+/// which is exactly the stamp the density prefill leaves on a hand-made row,
+/// and it must not stop the first scan of that row from saying whose pack
+/// the macros are. (The owner's Vegan Cheddar: made by hand, density
+/// borrowed, scanned — and the page had nothing to name it by.)
 bool hasLookupProvenance(String? source) =>
-    source != null && source.isNotEmpty && source != 'manual';
+    isUsdaPrefilled(source) || isBarcodeFilled(source);
 
 /// The pack size expressed in [basis]'s base unit, or null when there is no
 /// pack size or it cannot be bridged honestly.
