@@ -6,10 +6,15 @@ library;
 
 import '../../../core/units/macros.dart';
 
-/// `197 kcal · 2P 20F 3C` — values rounded for the dense picker row.
+/// `197 kcal · 2P 20F 3C`, and ` · 3 fibre` after it on a row that states
+/// fibre — values rounded for the dense picker row.
+///
+/// Fibre is spelled out because the initials are taken: `F` is fat, and a
+/// second `F` on the same line would be read as one. Its absence prints
+/// nothing at all — an unstated fibre is not a zero (invariant 3).
 String formatMacroLine(Macros m) =>
     '${m.kcal.round()} kcal · ${m.protein.round()}P ${m.fat.round()}F '
-    '${m.carb.round()}C';
+    '${m.carb.round()}C${_fibre(m.fiber, (v) => '${v.round()}')}';
 
 /// The muted basis suffix: `/100 g` or `/100 ml`.
 String macroBasisSuffix(MacrosBasis basis) => '/100 ${basis.dbValue}';
@@ -25,7 +30,11 @@ String macroBasisSuffix(MacrosBasis basis) => '/100 ${basis.dbValue}';
 /// it stores some is the dishonest number invariant 3 is about.
 String formatMacroLineFine(Macros m) =>
     '${_fine(m.kcal)} kcal · ${_fine(m.protein)}P ${_fine(m.fat)}F '
-    '${_fine(m.carb)}C';
+    '${_fine(m.carb)}C${_fibre(m.fiber, _fine)}';
+
+/// ` · 1.5 fibre`, or nothing at all when the source never stated it.
+String _fibre(double? fiber, String Function(double) format) =>
+    fiber == null ? '' : ' · ${format(fiber)} fibre';
 
 /// One decimal, trailing zero trimmed — `46.5`, `7`, `0.4`.
 String _fine(double v) {

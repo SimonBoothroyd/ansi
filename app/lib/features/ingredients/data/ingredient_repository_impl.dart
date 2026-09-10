@@ -70,15 +70,10 @@ const _aliasText =
 
 /// The `macros` column's jsonb, or null when there are none — null (not `{}`,
 /// and never four zeros) is how an absent panel is stored, on the create path
-/// and the edit path alike (invariant 3).
-String? _macrosJson(Macros? macros) => macros == null
-    ? null
-    : jsonEncode({
-        'kcal': macros.kcal,
-        'protein': macros.protein,
-        'carb': macros.carb,
-        'fat': macros.fat,
-      });
+/// and the edit path alike (invariant 3). The shape is [Macros.toJson]'s, so
+/// what is written back is exactly what [Macros.tryParse] reads.
+String? _macrosJson(Macros? macros) =>
+    macros == null ? null : jsonEncode(macros.toJson());
 
 class SqliteIngredientRepository implements IngredientRepository {
   const SqliteIngredientRepository(this._db, {required String householdId})
