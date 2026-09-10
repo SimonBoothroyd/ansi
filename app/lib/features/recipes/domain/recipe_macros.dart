@@ -46,6 +46,14 @@
 /// [RecipeMacroSummary.notes] (seam **D5**) — the refusal says which lines it
 /// is waiting on, which is strictly more honest, not less.
 ///
+/// **Fibre is the one optional figure** ([Macros.fiber]). It never decides
+/// whether a line joins the total or whether the summary is complete; what it
+/// decides is whether the TOTAL states fibre, and the rule is the same
+/// honesty: only when every counted line stated it. The lines that did not are
+/// named in [RecipeMacroSummary.linesWithoutFiber], so a surface says which
+/// rows a missing fibre figure is waiting on rather than dropping it in
+/// silence.
+///
 /// The walk keeps BOTH halves of what it worked out: every line that joined is
 /// recorded in [RecipeMacroSummary.lineMacros] with the macros it contributed,
 /// and every line that did not is named in the notes. A surface that prints a
@@ -183,6 +191,7 @@ class RecipeMacroSummary {
     this.optionalLines = 0,
     this.notes = const [],
     this.lineMacros = const {},
+    this.linesWithoutFiber = const [],
     this.noLines = false,
     this.nothingWeighable = false,
   });
@@ -231,6 +240,19 @@ class RecipeMacroSummary {
   /// in [notes].
   final Map<String, Macros> lineMacros;
 
+  /// The counted lines that state no fibre, by name and in line order — why
+  /// [perServing] carries a fibre figure or does not.
+  ///
+  /// Fibre is optional per ingredient ([Macros.fiber]), so a total may be
+  /// whole in every other respect and still have no honest fibre figure. These
+  /// lines are IN the total: they are not exclusions and never make the
+  /// summary [incomplete] — the list exists so a surface can say which rows a
+  /// missing fibre total is waiting on, in the `not counted` grammar the
+  /// imprecise and optional lines already use.
+  ///
+  /// Non-empty exactly when a complete summary's `perServing.fiber` is null.
+  final List<String> linesWithoutFiber;
+
   /// Component lines whose batch math does not resolve (step 8.6 / D8): no
   /// yield on the target, a unit in no yield's family, no amount, or a cycle.
   /// The share cannot be computed at all, so nothing is assumed for it.
@@ -269,8 +291,17 @@ class RecipeMacroSummary {
       other.optionalLines == optionalLines &&
       _sameNotes(other.notes, notes) &&
       _sameLineMacros(other.lineMacros, lineMacros) &&
+      _sameStrings(other.linesWithoutFiber, linesWithoutFiber) &&
       other.noLines == noLines &&
       other.nothingWeighable == nothingWeighable;
+
+  static bool _sameStrings(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 
   static bool _sameNotes(List<MacroLineNote> a, List<MacroLineNote> b) {
     if (a.length != b.length) return false;
@@ -302,6 +333,7 @@ class RecipeMacroSummary {
     Object.hashAllUnordered([
       for (final e in lineMacros.entries) Object.hash(e.key, e.value),
     ]),
+    Object.hashAll(linesWithoutFiber),
     noLines,
     nothingWeighable,
   );
@@ -373,7 +405,11 @@ RecipeMacroSummary _summarize({
   required SubRecipeNode? Function(String subRecipeId)? subRecipeOf,
   required Set<String> visited,
 }) {
-  var total = const Macros(kcal: 0, protein: 0, carb: 0, fat: 0);
+  // `fiber: 0` is the additive identity, not a claim: the empty sum must not
+  // be the one addend that strips fibre off every total ([Macros.fiber]).
+  // Nothing is fabricated by it — a sum with no lines is refused outright by
+  // the `noLines` guard below.
+  var total = const Macros(kcal: 0, protein: 0, carb: 0, fat: 0, fiber: 0);
   var stubs = 0;
   var unconvertible = 0;
   var subUnresolved = 0;
@@ -384,12 +420,19 @@ RecipeMacroSummary _summarize({
   var lineCount = 0;
   final notes = <MacroLineNote>[];
   final lineMacros = <String, Macros>{};
+  final withoutFiber = <String>[];
 
   /// Adds one line's contribution to the total AND records it against the
   /// line, so the two can never disagree.
   void add(LineItem line, Macros macros) {
     total += macros;
     lineMacros[line.id] = macros;
+    // The line is counted either way — fibre is optional, so a row that never
+    // stated it is not a defect. What it costs is the fibre TOTAL, and this is
+    // the list that says so by name.
+    if (macros.fiber == null) {
+      withoutFiber.add(line.subRecipe?.title ?? line.ingredientName);
+    }
   }
 
   void note(LineItem line, MacroLineReason reason, {String? unit}) =>
@@ -507,6 +550,7 @@ RecipeMacroSummary _summarize({
     optionalLines: optional,
     notes: notes,
     lineMacros: lineMacros,
+    linesWithoutFiber: List.unmodifiable(withoutFiber),
     noLines: noLines,
     nothingWeighable: nothingWeighable,
   );

@@ -13,6 +13,7 @@ import 'package:flutter/widgets.dart';
 
 import '../core/theme/ansi_theme.dart';
 import '../core/theme/ansi_tokens.dart';
+import '../core/units/macros.dart';
 import '../core/words.dart';
 import '../features/recipes/domain/recipe_macros.dart';
 
@@ -127,6 +128,25 @@ String? notCountedNote(List<MacroLineNote> notes) {
   if (imprecise.isEmpty) return 'not counted · $optionalPart';
   final line = 'not counted: ${imprecise.join(', ')}';
   return optionalPart == null ? line : '$line · $optionalPart';
+}
+
+/// `fibre not counted · 2 lines without it: Onion, Stock` — why a total that
+/// is whole in every other respect states no fibre.
+///
+/// Fibre is optional per ingredient ([Macros.fiber]), so this is the same
+/// claim [notCountedNote] makes about a pinch, one figure narrower: the lines
+/// are all IN the total, nothing about them needs fixing, and the one number
+/// they cannot support is named rather than quietly dropped.
+///
+/// Null when there is no total yet, when the total states fibre, or when
+/// nothing was missing it — a caller renders nothing then.
+String? fiberNotCountedNote(RecipeMacroSummary summary) {
+  final total = summary.perServing;
+  if (total == null || total.fiber != null) return null;
+  final names = summary.linesWithoutFiber;
+  if (names.isEmpty) return null;
+  return 'fibre not counted · ${names.length} '
+      '${plural(names.length, 'line')} without it: ${names.join(', ')}';
 }
 
 /// The one-line reason under [notCountedNote]: why these lines are out, in

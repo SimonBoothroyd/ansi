@@ -1,6 +1,11 @@
-/// The recipe page's macro panel (step 9) — the four-cell per-serving strip
-/// the design board drew for the Recipe frame (`.macro`), now fed by the real
+/// The recipe page's macro panel (step 9) — the per-serving cell strip the
+/// design board drew for the Recipe frame (`.macro`), fed by the real
 /// [summarizeRecipeMacros] summation instead of mock numbers.
+///
+/// **Four cells, or five.** Fibre is the one optional figure
+/// ([RecipeMacroSummary.linesWithoutFiber]): its cell is drawn when the total
+/// states it and left out — never blank, never zero — when it does not, with
+/// the lines that could not supply it named underneath.
 ///
 /// **Per serving, and therefore scale-invariant.** The servings scaler above
 /// it must NOT move these numbers: scaling multiplies every line *and* the
@@ -96,18 +101,31 @@ class _NotCounted extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final note = notCountedNote(summary.notes);
-    if (note == null) return const SizedBox.shrink();
+    // The fifth cell's absence, said in words: the lines are all in the total,
+    // and the one figure they cannot support is named.
+    final fibre = fiberNotCountedNote(summary);
+    if (note == null && fibre == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(note, style: ansiMono(size: 11, color: AnsiColors.muted)),
-          const SizedBox(height: 2),
-          Text(
-            notCountedCaption(summary),
-            style: ansiSans(size: 12, color: AnsiColors.muted, height: 1.35),
-          ),
+          if (note != null) ...[
+            Text(note, style: ansiMono(size: 11, color: AnsiColors.muted)),
+            const SizedBox(height: 2),
+            Text(
+              notCountedCaption(summary),
+              style: ansiSans(size: 12, color: AnsiColors.muted, height: 1.35),
+            ),
+          ],
+          if (fibre != null)
+            Padding(
+              padding: EdgeInsets.only(top: note == null ? 0 : 4),
+              child: Text(
+                fibre,
+                style: ansiMono(size: 11, color: AnsiColors.muted),
+              ),
+            ),
         ],
       ),
     );
@@ -192,11 +210,16 @@ class _Cells extends StatelessWidget {
     // Non-null by construction: the panel only builds cells for a complete
     // summary.
     final m = summary.perServing!;
+    final fiber = m.fiber;
     final cells = <(String, String)>[
       ('${m.kcal.round()}', 'kcal'),
       ('${m.protein.round()} g', 'protein'),
       ('${m.carb.round()} g', 'carb'),
       ('${m.fat.round()} g', 'fat'),
+      // A fifth cell only where there is a fifth fact: fibre is optional, and
+      // an empty cell would read as a zero (invariant 3). What its absence
+      // means is said in words underneath instead.
+      if (fiber != null) ('${fiber.round()} g', 'fibre'),
     ];
     return Row(
       children: [

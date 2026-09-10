@@ -82,6 +82,44 @@ void main() {
     expect(find.text('39 g'), findsOneWidget);
     expect(find.text('FAT'), findsOneWidget);
     expect(find.byType(IncompleteBadge), findsNothing);
+    // Nothing stated fibre, so there is no fifth cell and no empty one.
+    expect(find.text('FIBRE'), findsNothing);
+  });
+
+  testWidgets('a total that states fibre draws the fifth cell', (tester) async {
+    const summary = RecipeMacroSummary(
+      perServing: Macros(
+        kcal: 611.6,
+        protein: 41.4,
+        carb: 17.7,
+        fat: 38.5,
+        fiber: 6.2,
+      ),
+    );
+    await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
+
+    expect(find.text('FIBRE'), findsOneWidget);
+    expect(find.text('6 g'), findsOneWidget);
+    expect(find.textContaining('fibre not counted'), findsNothing);
+  });
+
+  testWidgets('a total whose lines could not all supply fibre draws no fifth '
+      'cell and names the lines', (tester) async {
+    const summary = RecipeMacroSummary(
+      perServing: Macros(kcal: 611.6, protein: 41.4, carb: 17.7, fat: 38.5),
+      linesWithoutFiber: ['Onion', 'Stock'],
+    );
+    await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
+
+    // The four are unaffected — fibre never withholds a total.
+    expect(find.text('612'), findsOneWidget);
+    expect(find.byType(IncompleteBadge), findsNothing);
+    // No blank fifth cell: an empty one would read as a zero (invariant 3).
+    expect(find.text('FIBRE'), findsNothing);
+    expect(
+      find.text('fibre not counted · 2 lines without it: Onion, Stock'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('an incomplete summary shows the badge and no numbers', (

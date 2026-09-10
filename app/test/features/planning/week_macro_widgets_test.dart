@@ -1,6 +1,7 @@
-// The four-cell macro strip must survive the widest honest figures. A week
-// that plans three meals a day reaches five kcal digits and three-digit
-// grams, and the band it sits in is only ~316 logical px wide.
+// The macro strip must survive the widest honest figures. A week that plans
+// three meals a day reaches five kcal digits and three-digit grams, and the
+// band it sits in is only ~316 logical px wide — with a fifth cell when every
+// meal stated fibre.
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/features/planning/presentation/week_macro_widgets.dart';
 import 'package:flutter/material.dart';
@@ -56,5 +57,45 @@ void main() {
       tester.getSize(find.byType(MacroCells)).width,
       lessThanOrEqualTo(_bandWidth),
     );
+  });
+
+  testWidgets('five cells still fit the band at a five-digit week total', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        const MacroCells(
+          macros: Macros(
+            kcal: 24500,
+            protein: 1234,
+            carb: 1680,
+            fat: 890,
+            fiber: 245,
+          ),
+          size: 14,
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    // `fib`, not `f` — this strip already spends `f` on fat.
+    expect(find.text('${formatMacroNumber(245)} g fib'), findsOneWidget);
+    expect(
+      tester.getSize(find.byType(MacroCells)).width,
+      lessThanOrEqualTo(_bandWidth),
+    );
+  });
+
+  testWidgets('an unstated fibre draws no fifth cell', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        const MacroCells(
+          macros: Macros(kcal: 1234, protein: 456, carb: 789, fat: 321),
+          size: 14,
+        ),
+      ),
+    );
+
+    expect(find.textContaining('fib'), findsNothing);
   });
 }

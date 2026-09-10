@@ -591,7 +591,9 @@ class _IngredientsTab extends StatelessWidget {
     required bool marked,
   }) {
     if (!showLineMacros) return null;
-    var total = const Macros(kcal: 0, protein: 0, carb: 0, fat: 0);
+    // `fiber: 0` is the additive identity, so folding one use does not strip
+    // the fibre a row does state ([Macros.fiber]).
+    var total = const Macros(kcal: 0, protein: 0, carb: 0, fat: 0, fiber: 0);
     for (final use in uses.uses) {
       final contribution = summary.lineMacros[use.id];
       if (contribution == null) {

@@ -90,6 +90,11 @@ class MealSetMacros {
 
   /// The sum over the meals that resolved. **Null when nothing resolved, and
   /// null when the set is empty** — never a zero standing in for an absence.
+  ///
+  /// Its `fiber` obeys [Macros.fiber]'s every-addend rule at this scope too: a
+  /// week states fibre only when every meal it counted did. The meal is still
+  /// counted — an unstated fibre is not an exclusion, and the denominator does
+  /// not move.
   final Macros? total;
 
   /// Meals that joined [total].

@@ -83,7 +83,9 @@ String exclusionNote(ExcludedMeal meal) => switch (meal.reason) {
 String excludedLine(MealSetMacros macros) =>
     macros.excluded.map((e) => '${e.label} · ${exclusionNote(e)}').join(', ');
 
-/// The four-cell strip, at [size] — the recipe panel's grammar, smaller.
+/// The cell strip, at [size] — the recipe panel's grammar, smaller. Four
+/// cells, and a fifth for fibre when every meal in the total stated it
+/// ([Macros.fiber]).
 class MacroCells extends StatelessWidget {
   const MacroCells({required this.macros, this.size = 12, super.key});
 
@@ -92,11 +94,16 @@ class MacroCells extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fiber = macros.fiber;
     final cells = <(String, String)>[
       (formatMacroNumber(macros.kcal), 'kcal'),
       ('${formatMacroNumber(macros.protein)} g', 'p'),
       ('${formatMacroNumber(macros.carb)} g', 'c'),
       ('${formatMacroNumber(macros.fat)} g', 'f'),
+      // Fibre is optional, so the cell appears only where the figure does — an
+      // empty fifth cell would read as a zero (invariant 3). `fib`, not `f`,
+      // which this strip already spends on fat.
+      if (fiber != null) ('${formatMacroNumber(fiber)} g', 'fib'),
     ];
     // A macro number is never clipped or ellipsised — a truncated `1 234` is
     // a wrong number, not a shortened one (invariant 3). So when the widest

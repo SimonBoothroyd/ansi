@@ -1051,4 +1051,146 @@ void main() {
       );
     });
   });
+
+  group('fibre — optional per row, all-or-nothing in the total', () {
+    const withFibre = Macros(
+      kcal: 100,
+      protein: 10,
+      carb: 20,
+      fat: 5,
+      fiber: 3,
+    );
+
+    /// Rows that state fibre, and the named ones that do not. `missing` is
+    /// unknown to the vocabulary, as everywhere else in this file.
+    IngredientNutrition? Function(String) vocab(Set<String> without) =>
+        (id) => id == 'missing'
+        ? null
+        : _nutrition(macros: without.contains(id) ? _per100 : withFibre);
+
+    test('every line stating fibre totals it', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 2,
+        lines: [_line('x', quantity: 250), _line('y', quantity: 50)],
+        nutritionOf: vocab(const {}),
+      );
+      expect(summary.incomplete, isFalse);
+      // (250 g × 3 g/100 g) + (50 g × 3 g/100 g) = 9 g, over 2 servings.
+      expect(summary.perServing!.fiber, 4.5);
+      expect(summary.linesWithoutFiber, isEmpty);
+    });
+
+    test('one line without it costs the TOTAL its fibre, and names the '
+        'line', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 2,
+        lines: [
+          _line('onion', quantity: 250),
+          _line('carrot', quantity: 50),
+          _line('stock', quantity: 100),
+        ],
+        nutritionOf: vocab(const {'onion', 'stock'}),
+      );
+      // The lines are all IN the total — fibre is optional, not a defect.
+      expect(summary.incomplete, isFalse);
+      expect(summary.perServing!.kcal, 200);
+      expect(summary.notes, isEmpty);
+      // What it costs is the fifth figure, and the rows are named in line
+      // order rather than dropped in silence.
+      expect(summary.perServing!.fiber, isNull);
+      expect(summary.linesWithoutFiber, ['onion', 'stock']);
+      expect(
+        fiberNotCountedNote(summary),
+        'fibre not counted · 2 lines without it: onion, stock',
+      );
+    });
+
+    test('one line reads as one line, not two', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 100), _line('stock', quantity: 100)],
+        nutritionOf: vocab(const {'stock'}),
+      );
+      expect(
+        fiberNotCountedNote(summary),
+        'fibre not counted · 1 line without it: stock',
+      );
+    });
+
+    test('a total that states fibre has no note to print', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 100)],
+        nutritionOf: vocab(const {}),
+      );
+      expect(fiberNotCountedNote(summary), isNull);
+    });
+
+    test('an incomplete summary prints no fibre note — there is no total for '
+        'it to qualify', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 100), _line('missing', quantity: 100)],
+        nutritionOf: vocab(const {}),
+      );
+      expect(summary.incomplete, isTrue);
+      expect(fiberNotCountedNote(summary), isNull);
+    });
+
+    test('an EXCLUDED line never lands in the fibre list — it is not in the '
+        'total to withhold anything from it', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [
+          _line('x', quantity: 250),
+          _line('parsley', unit: handful),
+          _line('lime', quantity: 50).copyWith(optional: true),
+        ],
+        nutritionOf: vocab(const {'parsley', 'lime'}),
+      );
+      expect(summary.perServing!.fiber, 7.5);
+      expect(summary.linesWithoutFiber, isEmpty);
+      expect(fiberNotCountedNote(summary), isNull);
+    });
+
+    test('a sub-recipe whose own total states no fibre names the COMPONENT '
+        'line, never the child’s lines', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: const [
+          LineItem(
+            id: 'li-aioli',
+            subRecipeId: 'aioli',
+            ingredientName: 'aioli',
+            unit: cup,
+            quantity: 0.25,
+          ),
+        ],
+        nutritionOf: vocab(const {'stock'}),
+        subRecipeOf: (id) => id == 'aioli'
+            ? (
+                servingsBase: 4,
+                lines: [
+                  _line('x', quantity: 200),
+                  _line('stock', quantity: 100),
+                ],
+                yields: const [(qty: 1.0, unit: cup)],
+              )
+            : null,
+      );
+      expect(summary.incomplete, isFalse);
+      expect(summary.perServing!.fiber, isNull);
+      expect(summary.linesWithoutFiber, ['aioli']);
+    });
+
+    test('two summaries differing only in the fibre list are not equal', () {
+      const named = RecipeMacroSummary(
+        perServing: _per100,
+        linesWithoutFiber: ['onion'],
+      );
+      const unnamed = RecipeMacroSummary(perServing: _per100);
+      expect(named == unnamed, isFalse);
+      expect(named.hashCode, isNot(unnamed.hashCode));
+    });
+  });
 }

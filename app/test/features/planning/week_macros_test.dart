@@ -503,4 +503,60 @@ void main() {
       expect(left.lineReason, MacroLineReason.stubIngredient);
     });
   });
+
+  group('fibre — the same every-addend rule, one scope up', () {
+    const fibrous = RecipeMacroSummary(
+      perServing: Macros(kcal: 100, protein: 10, carb: 20, fat: 5, fiber: 4),
+    );
+
+    RecipeMacroSummary? summaries(String id) => switch (id) {
+      'ok' => _hundred,
+      'fibre' => fibrous,
+      _ => null,
+    };
+
+    MealSetMacros sum(List<PlanEntry> entries) =>
+        sumPlannedMacros(entries, summaryFor: summaries);
+
+    test('every counted meal stating fibre totals it', () {
+      final macros = sum([
+        _entry(id: 'a', recipeId: 'fibre'),
+        _entry(id: 'b', recipeId: 'fibre', day: 1),
+      ]);
+      // Two meals × two eaters × 4 g.
+      expect(macros.total!.fiber, 16);
+      expect(macros.perDayAverage!.fiber, 8);
+    });
+
+    test('one meal without it costs the week its fibre, and nothing else — '
+        'the meal is still counted and the denominator does not move', () {
+      final macros = sum([
+        _entry(id: 'a', recipeId: 'fibre'),
+        _entry(id: 'b', day: 1),
+      ]);
+      expect(macros.total!.kcal, 400);
+      expect(macros.total!.fiber, isNull);
+      expect(macros.counted, 2);
+      expect(macros.considered, 2);
+      expect(macros.excluded, isEmpty, reason: 'fibre is not an exclusion');
+      expect(macros.perDayAverage!.fiber, isNull);
+    });
+
+    test('a snack’s fibre rides through the same portion arithmetic', () {
+      final macros = sum([
+        _snack(
+          id: 'a',
+          macros: const Macros(
+            kcal: 350,
+            protein: 33,
+            carb: 30,
+            fat: 11,
+            fiber: 5,
+          ),
+        ),
+      ]);
+      // 60 g of a per-100 g row is 3 g of fibre, for two eaters.
+      expect(macros.total!.fiber, 6);
+    });
+  });
 }
