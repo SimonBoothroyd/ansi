@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe page</h1>
-    <p class="view-status">built · matches code 2026-09-08 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
+    <p class="view-status">built · matches code 2026-09-09 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
     <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — with a total, or with the reason there isn’t one. The <b>⋯</b> menu can also print each line’s own macros under its name.</p>
 </header>
 
@@ -109,7 +109,7 @@
                     <div class="l3"><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Smoked paprika</span></span></div>
                 </div>
                 <p class="macro-lab">Per serving</p>
-                <div class="macro tight"><div class="m"><div class="mv">612</div><div class="ml">kcal</div></div><div class="m"><div class="mv">41 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">18 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">39 g</div><div class="ml">fat</div></div></div>
+                <div class="macro tight"><div class="m"><div class="mv">612</div><div class="ml">kcal</div></div><div class="m"><div class="mv">41 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">18 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">39 g</div><div class="ml">fat</div></div><div class="m"><div class="mv">9 g</div><div class="ml">fibre</div></div></div>
             </div></div>
         </div>
 
@@ -174,6 +174,25 @@
     </div>
 
     <div class="frame">
+        <p class="frame-name"><b>The fifth cell, and the line that stands in for it</b> &middot; fibre is optional per ingredient, so a total states it only when <i>every</i> line behind it did</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+            <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
+            <div class="grp">
+                <div class="l3 seam"><span class="l3-amt">200 ml</span><span class="l3-body"><span class="l3-id">Coconut milk</span><span class="l3-macro">386 kcal &middot; 4P 40F 6C</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Chickpea canned</span><span class="l3-macro">476 kcal &middot; 26P 8F 80C &middot; 22 fibre</span></span></div>
+                <div class="l3 seam"><span class="l3-amt">500 ml</span><span class="l3-body"><span class="l3-id">Stock</span><span class="l3-macro">20 kcal &middot; 1P 0F 4C</span></span></div>
+            </div>
+            <p class="macro-lab">Per serving</p>
+            <div class="macro tight"><div class="m"><div class="mv">168</div><div class="ml">kcal</div></div><div class="m"><div class="mv">8 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">31 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">2 g</div><div class="ml">fat</div></div></div>
+            <p class="notcounted"><span class="nk">fibre not counted</span> &middot; <b>2 lines without it:</b> Coconut milk, Stock</p>
+            <p class="conv-note">the lines are <b>all in the total</b> &mdash; fibre is not an exclusion and nothing here needs fixing. What is missing is one figure, and the rows that could not supply it are <b>named</b> rather than dropped in silence</p>
+            <p class="conv-note">no blank fifth cell: an empty cell reads as a zero, and a fibre total short by an unknown amount is exactly the number invariant&nbsp;3 forbids</p>
+            <p class="conv-note">the same rule at the same three scopes &mdash; a line, a recipe, a week. Fill the fibre in on <b>Coconut milk</b> and <b>Stock</b> and the cell appears; nothing else about the panel moves</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
         <p class="frame-name"><b>On</b> · each line’s own macros under its name — the line <i>as shown</i>, so unlike the per-serving strip these <b>do</b> move with the scaler</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
@@ -190,6 +209,7 @@
             <div class="macro tight"><div class="m"><div class="mv">610</div><div class="ml">kcal</div></div><div class="m"><div class="mv">57 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">17 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">37 g</div><div class="ml">fat</div></div></div>
             <p class="notcounted"><span class="nk">not counted:</span> <b>Parsley</b> · handful · <b>1 optional line:</b> Lime<br>a pinch has no weight to count, and an optional line is left out by rule — untick <b>Optional</b> on a line to count it</p>
             <p class="conv-note">the figures are the summation’s <b>own per-line record</b>, scaled by the same factor the amount beside them went through — nothing is converted a second time, so a line can never read one way here and another inside the total</p>
+            <p class="conv-note">a line whose row states <b>fibre</b> appends it here too &mdash; <span style="font-family:'IBM Plex Mono',monospace">476 kcal &middot; 26P 8F 80C &middot; 22 fibre</span>. None of these rows does, so none of them prints it, and the strip below states no fibre for the same reason</p>
             <p class="conv-note">a line the total left out prints <b>its reason</b>, in the panel’s exact words — never a zero, never a partial. A folded multi-use row prints figures only when <i>every</i> use joined</p>
             <p class="conv-note">the strip below is unchanged: <b>per serving</b> is scale-invariant, because scaling moves the lines and the servings together</p>
         </div></div>

@@ -171,6 +171,24 @@ The column list is generated from the migrations —
   overwritten by a USDA id) are safe by construction now rather than by a
   trigger's WHEN clause.
 - `status = stub` → surfaces in the manager's stub band + honest macro math.
+- **A macro panel is four required figures and an optional fifth.** `kcal`,
+  `protein`, `carb` and `fat` are all-or-none — a part of a panel is not a
+  panel — and `fiber` is stated or not, per row. A row without fibre is
+  **complete**, the form's fifth field may be left blank, and the stored jsonb
+  simply omits the key. Fibre alone is refused: it qualifies a panel rather
+  than being one.
+  - **A total states fibre only when EVERY figure behind it did**, at every
+    scope — a line, a recipe, a day, a week. A fibre total short by an unknown
+    amount is exactly the fabricated number invariant 3 forbids, so it is not
+    shown; instead the lines that could not supply it are **named**, in the
+    `not counted` grammar the imprecise and optional lines already use:
+    `fibre not counted · 2 lines without it: Onion, Stock`. An unstated fibre
+    is never an exclusion — the line is in the total, the denominator does not
+    move, and nothing is flagged as needing a fix.
+  - Where it shows: the macro line appends ` · 3 fibre` (spelled out — `F` is
+    fat), the recipe panel gains a fifth cell, and the week's strip gains a
+    `fib` cell. Each appears only where the figure does; a blank cell would
+    read as a zero.
 - **Macros are stored WITH the basis the label read them in** (per-100 g or
   per-100 ml — liquid labels read per 100 ml, and densities are sparse, so
   converting at entry can't be the design). A **barcode** scan has to work that

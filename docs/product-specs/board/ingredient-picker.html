@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredient picker</h1>
-    <p class="view-status">built · matches code 2026-09-08 · <code>features/ingredients</code> · <code>shared/picker_shell.dart</code> · <a href="../../decisions/0005-two-tier-vocabulary.md">ADR-0005</a> · <a href="../../design-docs/search-and-matching.md">search &amp; matching</a></p>
+    <p class="view-status">built · matches code 2026-09-09 · <code>features/ingredients</code> · <code>shared/picker_shell.dart</code> · <a href="../../decisions/0005-two-tier-vocabulary.md">ADR-0005</a> · <a href="../../design-docs/search-and-matching.md">search &amp; matching</a></p>
     <p class="view-blurb">One selection anatomy: a centred title, a pinned search, honest rows that never show a stub’s zeros — and a footer that mints from the query.</p>
 </header>
 
@@ -35,7 +35,7 @@
                 <div class="res-row">
                     <div style="flex:1;min-width:0"><div class="res-nm">Yellow onion</div>
                         <span class="res-cat">Produce · 3 measures</span>
-                        <div class="mline">40 kcal · 1P 0F 9C <span class="per">/100 g</span></div></div>
+                        <div class="mline">40 kcal · 1P 0F 9C · 2 fibre <span class="per">/100 g</span></div></div>
                     <span class="rplus">＋</span></div>
                 <div class="res-row">
                     <div style="flex:1;min-width:0"><div class="res-nm">Curry leaves, fresh <span class="res-badge">stub</span></div>
@@ -47,6 +47,7 @@
                         <div class="mline">179 kcal · 24P 9F 0C <span class="per">/100 g</span></div></div>
                     <span class="rplus">＋</span></div>
                 <div class="addnew">＋ can’t find it? type a name to add it</div>
+                <p class="conv-note">the macro line appends <b>· 2 fibre</b> on a row that states one, and prints nothing at all on a row that does not — fibre is the one optional figure, and its absence is an absence, never a zero. It is spelled out because <code>F</code> is already fat</p>
                 <p class="conv-note">the picker’s rows carry <b>no source line</b>. The <a href="./ingredients-manager.html">manager</a> and the <a href="./import-review.html">import review</a> both name the food behind a filled row (the USDA description, or the pack a barcode was scanned off); this one deliberately does not — it is a search surface, and a description under every row is noise while you are typing</p>
             </div></div>
         </div>
@@ -61,7 +62,7 @@
             <div class="res-row dym">
                 <div style="flex:1;min-width:0"><div class="res-nm">Almonds</div>
                     <span class="res-cat">Nuts &amp; seeds · has density · 2 measures</span>
-                    <div class="mline">579 kcal · 21P 50F 22C <span class="per">/100 g</span></div></div>
+                    <div class="mline">579 kcal · 21P 50F 22C · 13 fibre <span class="per">/100 g</span></div></div>
                 <span class="dym-score">0.83</span><span class="rplus">＋</span></div>
             <div class="res-row dym">
                 <div style="flex:1;min-width:0"><div class="res-nm">Almond Milk</div>
