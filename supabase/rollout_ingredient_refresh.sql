@@ -10,11 +10,11 @@
 -- household, in place, without touching anything the household itself owns.
 --
 -- It is deliberately generic: it is not "the FAO rollout", it is "carry the
--- template's density, piece weight and allowed_units forward". Re-run it
--- after any future template reseed that fills densities or piece weights, or
--- widens unit admission.
+-- template's density, piece weight, allowed_units and fibre forward". Re-run
+-- it after any future template reseed that fills densities or piece weights,
+-- widens unit admission, or gains a macro key the household's rows lack.
 --
--- SCOPE — three columns (four with the provenance that rides one of them),
+-- SCOPE — four columns (five with the provenance that rides one of them),
 -- all monotone (they only ever ADD):
 --   (a) density_g_per_ml — filled ONLY where the household's is NULL and the
 --       template's is not. A household's own density is never overwritten.
@@ -26,10 +26,19 @@
 --       one has to be able to carry it forward the same way. `piece_source`
 --       travels WITH the number and only with it, so a rolled-out weight
 --       still says where it came from.
+--   (d) macros->'fiber' — the ONE key inside `macros` this script writes, and
+--       only onto a row whose macros still say exactly what the template's
+--       say. Fibre became the optional fifth macro after the live households
+--       were seeded, so their rows hold the four keys only while the
+--       reference set has known the fifth all along. Filling it is safe
+--       exactly when the household has not edited the figures: if any of the
+--       four differs, the row is somebody's own answer and we cannot know its
+--       fibre, so it is left alone. The four other keys are never rewritten,
+--       and a row that already carries `fiber` keeps its own value.
 -- Plus `updated_at = now()`, so PowerSync replicates the row down to devices.
--- Nothing else moves: not `source`, not `status`, not `macros`, not
--- `default_unit`, not measures, not aliases (see "DELIBERATELY LEFT ALONE" at
--- the bottom).
+-- Nothing else moves: not `source`, not `status`, not the four macro figures,
+-- not `default_unit`, not measures, not aliases (see "DELIBERATELY LEFT
+-- ALONE" at the bottom).
 --
 -- JOIN KEY — `match_text`, scoped to the household. That is the identity that
 -- survives cloning: `ensure_onboarded()` copies `match_text` verbatim while
@@ -55,7 +64,7 @@
 -- tpl as (
 --   select distinct on (i.match_text)
 --          i.match_text, i.density_g_per_ml, i.allowed_units,
---          i.piece_basis_amount, i.piece_source
+--          i.piece_basis_amount, i.piece_source, i.macros, i.macros_basis
 --   from ingredient i
 --   join tpl_household th on th.id = i.household_id
 --   where i.deleted_at is null
@@ -84,7 +93,22 @@
 --     where i.deleted_at is null
 --       and i.density_g_per_ml is not null and t.density_g_per_ml is not null
 --       and i.density_g_per_ml is distinct from t.density_g_per_ml)
---     as own_density_kept_as_is
+--     as own_density_kept_as_is,
+--   count(*) filter (
+--     where i.deleted_at is null
+--       and jsonb_typeof(i.macros) = 'object'
+--       and not (i.macros ? 'fiber')
+--       and jsonb_typeof(t.macros -> 'fiber') = 'number'
+--       and i.macros_basis = t.macros_basis
+--       and (i.macros - 'fiber') = (t.macros - 'fiber'))
+--     as leg_d_fibre_fills,
+--   count(*) filter (
+--     where i.deleted_at is null
+--       and jsonb_typeof(i.macros) = 'object'
+--       and jsonb_typeof(t.macros) = 'object'
+--       and (i.macros_basis is distinct from t.macros_basis
+--            or (i.macros - 'fiber') is distinct from (t.macros - 'fiber')))
+--     as own_macros_kept_as_is
 -- from ingredient i
 -- join household h on h.id = i.household_id
 -- left join tpl t on t.match_text = i.match_text
@@ -93,9 +117,11 @@
 -- group by h.id, h.name
 -- order by h.name, h.id;
 --
--- `leg_a_density_fills` + `leg_b_unit_extensions` overlap (one row can need
--- both); the UPDATE below reports the count of rows touched by EITHER leg, so
--- expect it to land between max(a, b) and a + b.
+-- The leg counters overlap (one row can need several); the UPDATE below
+-- reports the count of rows touched by ANY leg, so expect it to land between
+-- the largest single leg and their sum. `own_density_kept_as_is` and
+-- `own_macros_kept_as_is` are the rows this script deliberately walks past:
+-- a number the household has already answered for.
 --
 -- ---------------------------------------------------------------------------
 -- STEP 2 — the rollout. Idempotent: the WHERE clause admits only rows that
@@ -104,6 +130,7 @@
 
 begin;
 
+-- >>> rollout_ingredient_refresh.sql — mirrored in tests/ingredient_rollout.sql
 with tpl_household as (
   -- Same resolution as ensure_onboarded(): oldest live template.
   select id from household
@@ -117,7 +144,7 @@ tpl as (
   -- slips through, so the rollout stays deterministic.
   select distinct on (i.match_text)
          i.match_text, i.density_g_per_ml, i.allowed_units,
-         i.piece_basis_amount, i.piece_source
+         i.piece_basis_amount, i.piece_source, i.macros, i.macros_basis
   from ingredient i
   join tpl_household th on th.id = i.household_id
   where i.deleted_at is null
@@ -157,6 +184,24 @@ set
     when i.piece_basis_amount is not null then i.piece_source
     else t.piece_source
   end,
+  -- (d) fill the fibre key only, and only where the household's macros still
+  -- ARE the template's. `||` adds one key and rewrites nothing else. The
+  -- guard is the whole contract: a row whose figures somebody edited is
+  -- never touched, because its fibre is not the template's to give.
+  macros = case
+    when jsonb_typeof(i.macros) = 'object'          -- not null, and an object
+     and not (i.macros ? 'fiber')                   -- nothing of its own yet
+     and jsonb_typeof(t.macros -> 'fiber') = 'number'
+     -- Same basis, or the figures are not comparable at all: a row the
+     -- household flipped to per ml holds different numbers by definition,
+     -- and a per-100-ml fibre would not be the per-100-g one anyway.
+     and i.macros_basis = t.macros_basis
+     -- Sameness: the four figures still equal the template's (jsonb numbers
+     -- compare by value, so 5 and 5.0 are the same figure).
+     and (i.macros - 'fiber') = (t.macros - 'fiber')
+    then i.macros || jsonb_build_object('fiber', t.macros -> 'fiber')
+    else i.macros
+  end,
   -- Bump so PowerSync replicates the change down to every device.
   updated_at = now()
 from tpl t, household h
@@ -175,7 +220,16 @@ where h.id = i.household_id
     or
     -- leg (c): a piece weight to gain
     (i.piece_basis_amount is null and t.piece_basis_amount is not null)
+    or
+    -- leg (d): a fibre figure to gain, on macros that are still the
+    -- template's — the same predicate as the SET above.
+    (jsonb_typeof(i.macros) = 'object'
+     and not (i.macros ? 'fiber')
+     and jsonb_typeof(t.macros -> 'fiber') = 'number'
+     and i.macros_basis = t.macros_basis
+     and (i.macros - 'fiber') = (t.macros - 'fiber'))
   );
+-- <<< rollout_ingredient_refresh.sql
 
 commit;
 
@@ -192,6 +246,11 @@ commit;
 --   * A household row whose density is already set, even where it disagrees
 --     with the template's. The household's number wins; only NULLs are filled.
 --     Same for a piece weight, and for the `piece_source` beside it.
+--   * `macros`, EXCEPT for the single `fiber` key under leg (d)'s sameness
+--     guard. The four original figures are never rewritten, a row that
+--     already carries a `fiber` value keeps it, a row whose figures differ
+--     from the template's in any way — or whose `macros_basis` differs — is
+--     walked past entirely, and a row with no macros at all gains none.
 --   * `default_unit`. A template row that moves OFF a count default (`Mint`,
 --     ADR-0015) does not move the household's: the default unit is what the
 --     household's own stored lines are denominated in. Such a row simply
@@ -200,10 +259,11 @@ commit;
 --   * Every other column. `source` and `status` in particular are NOT
 --     rewritten: a household row that gains a density from a template whose
 --     `source` now reads `fao_infoods_v2:…` keeps its own provenance string,
---     and a `stub` stays a `stub` (status turns on macros, which this rollout
---     does not touch). Provenance for the rolled-out number is this script
---     plus the template's row — recorded here rather than smeared across
---     307 rows of somebody else's `source` column.
+--     and a `stub` stays a `stub` (status turns on whether macros exist at
+--     all, which leg (d) never changes — it only ever adds a fifth key to
+--     macros that are already there). Provenance for the rolled-out number
+--     is this script plus the template's row — recorded here rather than
+--     smeared across 307 rows of somebody else's `source` column.
 --   * `ingredient_alias`, `ingredient_measure`. Measures have their own,
 --     separate rollout — `rollout_measure_refresh.sql`, insert-missing by
 --     (match_text, label). The two scripts are independent and safe to run
