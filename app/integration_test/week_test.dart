@@ -595,7 +595,9 @@ void main() {
     await tester.tap(find.text('Jun'));
     await tester.pumpAndSettle();
     await scrollTo(tester, find.text('1 meal · Jun · ¾ of 1¾ portions'));
-    expect(find.text('434 kcal'), findsWidgets);
+    // The strip draws the flame glyph after the number now, so the line is
+    // rich text; the figure is what the assertion is about.
+    expect(find.textContaining('434'), findsWidgets);
     await scrollTo(tester, find.text('Everyone'), delta: -300);
     await tester.tap(find.text('Everyone'));
     await tester.pumpAndSettle();

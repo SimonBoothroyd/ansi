@@ -458,7 +458,7 @@ void main() {
       await tester.pumpAndSettle();
       // The derivation, before Save, in the person's sight (invariant 3).
       expect(
-        find.textContaining('stored per 100 g · 714.3 kcal'),
+        find.textContaining('stored per 100 g · 714 kcal'),
         findsOneWidget,
       );
       // And the serving row carries no free text at all any more.
