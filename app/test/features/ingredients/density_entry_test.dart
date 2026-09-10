@@ -8,6 +8,7 @@
 /// app.
 library;
 
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/presentation/density_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,18 +18,17 @@ import '../../helpers/fonts.dart';
 import '../../helpers/forui_semantics.dart';
 import '_form_harness.dart';
 
-/// The controls and words that make up `1 [tbsp] weighs [__] g [Add]`.
+/// The controls and words that make up `[1] [tbsp] weighs [__] g [Add]`. The
+/// sentence takes an amount on its left now — a pack prints "2 tbsp (32 g)"
+/// — so the run it has to fit at 402 pt is one field wider than it was.
 List<Finder> _sentenceParts() => [
-  find.text('1'),
+  find.byKey(const ValueKey('density-amount')),
   find.widgetWithText(AnsiModeChip, 'tsp'),
   find.widgetWithText(AnsiModeChip, 'tbsp'),
   find.widgetWithText(AnsiModeChip, 'cup'),
   find.widgetWithText(AnsiModeChip, 'ml'),
   find.text('weighs'),
-  find.descendant(
-    of: find.byType(DensityEntry),
-    matching: find.byType(FTextField),
-  ),
+  find.byKey(const ValueKey('density-grams')),
   find.text('g'),
   find.descendant(
     of: find.byType(DensityEntry),
@@ -87,6 +87,62 @@ void main() {
       // A single run: the Wrap is exactly one child tall.
       expect(tester.getSize(wrap).height, lessThan(40));
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('the sentence takes an amount', () {
+    test('the stored number is the line divided by its own amount', () {
+      // A jar prints "2 tbsp (32 g)". That is 1.08 g/ml, and it is typed as
+      // it reads rather than halved in somebody's head.
+      expect(densityForAmount(2, tbsp, 32), closeTo(16 / 14.78676478125, 1e-9));
+      // One of the spoon is the same arithmetic, unchanged.
+      expect(densityForAmount(1, tbsp, 15), densityFromVolumeWeight(tbsp, 15));
+      // `ml`'s ratio to base is 1, so "1 ml weighs 0.66 g" IS 0.66 g/ml.
+      expect(densityForAmount(1, ml, 0.66), 0.66);
+    });
+
+    test('refuses what would fabricate a number (invariant 3)', () {
+      expect(densityForAmount(0, tbsp, 32), isNull);
+      expect(densityForAmount(2, tbsp, 0), isNull);
+      expect(densityForAmount(double.nan, tbsp, 32), isNull);
+      expect(densityForAmount(2, g, 32), isNull, reason: 'not a volume');
+    });
+
+    testWidgets('the amount and unit are offered from the form’s serving, and '
+        'the g/ml is the aside', (tester) async {
+      filterForuiSemanticsAssertions();
+      phoneWidth(tester);
+      await tester.pumpWidget(
+        densityHost(curryLeaves, servingPrefill: (amount: 2.0, unit: tbsp)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(fieldText(tester, densityAmountField), '2');
+      expect(
+        tester
+            .widget<AnsiModeChip>(find.widgetWithText(AnsiModeChip, 'tbsp'))
+            .selected,
+        isTrue,
+      );
+      expect(
+        find.text('the serving you typed above · the pack’s “(32g)” goes here'),
+        findsOneWidget,
+      );
+
+      await tester.enterText(densityField, '32');
+      await tester.pumpAndSettle();
+      expect(find.text('= 1.08 g/ml'), findsOneWidget);
+    });
+
+    testWidgets('a mass serving offers nothing new — what a millilitre of it '
+        'weighs is a separate fact', (tester) async {
+      filterForuiSemanticsAssertions();
+      phoneWidth(tester);
+      await tester.pumpWidget(densityHost(curryLeaves));
+      await tester.pumpAndSettle();
+
+      expect(fieldText(tester, densityAmountField), '1');
+      expect(find.textContaining('the serving you typed above'), findsNothing);
     });
   });
 

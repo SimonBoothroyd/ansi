@@ -3,11 +3,16 @@
 /// growing a second one.
 ///
 /// ADR-0008: density is the SINGLE stored volume⇄mass fact, and it is entered
-/// as one sentence — "1 `[tbsp]` weighs `[__]` g" (spoon selectable
+/// as one sentence — "`[2]` `[tbsp]` weighs `[__]` g" (spoon selectable
 /// tsp/tbsp/cup/ml; converts through ml-per-spoon and writes the same
 /// `density_g_per_ml`). Every phrasing resolves to one number, and the write
 /// extends the ingredient's explicit `allowed_units` with what the density
 /// unlocks in the same transaction (`setDensity`).
+///
+/// **The sentence takes an amount**, because a pack states one: "2 tbsp
+/// (32 g)" is typed as it reads rather than halved in the head, and it reads
+/// back the same way. This is also the ONLY place a density is stated — the
+/// macros section's serving row does none, whatever unit it is in.
 ///
 /// The sentence holds **one run at 402 pt**, and the block **folds** to
 /// `0.13 g/ml · change` for a row that already states a number — a density is
@@ -37,6 +42,7 @@ class DensityEntry extends HookWidget {
     required this.redirectedSpoon,
     required this.onSave,
     required this.onRemove,
+    this.servingPrefill,
     this.saveLabel = 'Save',
     this.headline = 'DENSITY',
     super.key,
@@ -47,6 +53,16 @@ class DensityEntry extends HookWidget {
   /// Set when the add-measure form redirected a volume-named label here —
   /// pre-picks that spoon and switches to the spoon phrasing.
   final Unit? redirectedSpoon;
+
+  /// The form's own serving, when it is a **volume** — "2 tbsp" — offered as
+  /// this sentence's left-hand side so the pack's "(32 g)" is typed where it
+  /// belongs. Only a serving in this sentence's own unit list is offered: an
+  /// amount kept beside a unit the row cannot show would describe a different
+  /// serving from the one on screen.
+  ///
+  /// It is an offer and nothing more — the sentence is still what states the
+  /// density, and typing over either half is the ordinary case.
+  final ({double amount, Unit unit})? servingPrefill;
 
   /// **The host decides when a density lands** (ADR-0011). This widget
   /// validates the input and computes the one stored number; it does not know a
@@ -93,6 +109,10 @@ class DensityEntry extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final spoon = useState<Unit>(tbsp);
+    // How many of that spoon the sentence is about. One by default, because
+    // one is what a density means; a pack that prints two says so.
+    final amount = useState<double>(1);
+    final amountSeed = useState(0);
     final input = useState<double?>(null);
     final error = useState<String?>(null);
     // Deleting a density also strips what it unlocked (D4b), so the affordance
@@ -119,6 +139,18 @@ class DensityEntry extends HookWidget {
       if (r != null && _measures.contains(r)) spoon.value = r;
       return null;
     }, [redirectedSpoon]);
+    // The serving offered as the left-hand side. Both halves or neither: an
+    // amount of 2 with the spoon left on tbsp when the serving said cup would
+    // be a sentence about something nobody typed.
+    useEffect(() {
+      final offered = servingPrefill;
+      if (offered == null || !_measures.contains(offered.unit)) return null;
+      spoon.value = offered.unit;
+      amount.value = offered.amount;
+      amountSeed.value++;
+      open.value = true;
+      return null;
+    }, [servingPrefill]);
 
     final density = ingredient.densityGPerMl;
     // Folding is only ever a state of a row that HAS a number: with none
@@ -128,10 +160,13 @@ class DensityEntry extends HookWidget {
 
     Future<void> save() async {
       final v = input.value;
-      final gPerMl = v == null ? null : densityFromVolumeWeight(spoon.value, v);
+      final gPerMl = v == null
+          ? null
+          : densityForAmount(amount.value, spoon.value, v);
       if (gPerMl == null || !(gPerMl > 0)) {
         error.value =
-            'weigh it: grams per ${spoon.value.label} must be positive';
+            'weigh it: grams per '
+            '${_phrase(amount.value, spoon.value)} must be positive';
         return;
       }
       error.value = null;
@@ -219,7 +254,17 @@ class DensityEntry extends HookWidget {
             spacing: 5,
             runSpacing: 6,
             children: [
-              Text('1', style: ansiMono(size: 12)),
+              InlineAmountField(
+                key: ValueKey('density-amount-${amountSeed.value}'),
+                fieldKey: const ValueKey('density-amount'),
+                // Narrower than the grams slot: a serving is `2` or `0.25`,
+                // never `1000`, and every point here is a point the sentence
+                // needs to stay one run at 402 pt.
+                width: 40,
+                initial: _phrase(amount.value, null),
+                onChange: (v) => amount.value = v ?? 0,
+                onSubmit: save,
+              ),
               for (final u in _measures)
                 AnsiModeChip(
                   label: u.label,
@@ -236,6 +281,7 @@ class DensityEntry extends HookWidget {
               // whole screen is about.
               Text('weighs', style: ansiMono(size: 12)),
               InlineAmountField(
+                fieldKey: const ValueKey('density-grams'),
                 onChange: (v) => input.value = v,
                 onSubmit: save,
               ),
@@ -257,6 +303,15 @@ class DensityEntry extends HookWidget {
               ),
             ],
           ),
+          if (servingPrefill != null &&
+              _measures.contains(servingPrefill!.unit))
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'the serving you typed above · the pack’s “(32g)” goes here',
+                style: ansiMono(size: 10, color: AnsiColors.muted),
+              ),
+            ),
           if (density != null)
             _RemoveDensity(
               ingredient: ingredient,
@@ -276,9 +331,16 @@ class DensityEntry extends HookWidget {
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 // The live equivalence: what the sentence above will store.
-                densityFromVolumeWeight(spoon.value, input.value!) == null
-                    ? ''
-                    : '= ${formatDensity(densityFromVolumeWeight(spoon.value, input.value!)!)} g/ml',
+                // The g/ml figure is the ASIDE, not the sentence — the
+                // sentence is the one a kitchen says.
+                switch (densityForAmount(
+                  amount.value,
+                  spoon.value,
+                  input.value!,
+                )) {
+                  final gPerMl? => '= ${formatDensity(gPerMl)} g/ml',
+                  null => '',
+                },
                 style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ),
@@ -288,9 +350,27 @@ class DensityEntry extends HookWidget {
   }
 }
 
-/// The grams field of the density sentence — a number slot INSIDE a line of
-/// prose, not a form field with a line of its own. Shared with the
-/// piece-weight sentence, which is the same shape.
+/// The density implied by "[amount] [volumeUnit] weighs [grams] g" — the
+/// sentence's arithmetic, one step up from [densityFromVolumeWeight].
+///
+/// A pack prints "2 tbsp (32 g)"; the stored fact is still one number, and it
+/// is that line divided by its own amount rather than by a figure a person had
+/// to halve in their head. Null on the same honest terms its one-spoon form
+/// uses: a non-volume unit, or an amount or weight that is not positive
+/// (invariant 3 — never a fabricated number).
+double? densityForAmount(double amount, Unit volumeUnit, double grams) {
+  // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
+  if (!(amount > 0) || !(grams > 0)) return null;
+  return densityFromVolumeWeight(volumeUnit, grams / amount);
+}
+
+/// `2 tbsp` / `2` — the sentence's left-hand side, under the app's one number
+/// rule. A null [unit] gives the bare amount, which is what seeds the field.
+String _phrase(double amount, Unit? unit) =>
+    '${formatQuantity(amount)}${unit == null ? '' : ' ${unit.label}'}';
+
+/// A number slot INSIDE a line of prose, not a form field with a line of its
+/// own — the density sentence's two, and the piece-weight sentence's one.
 ///
 /// The full [FTextField] chrome (its content padding and minimum height) is
 /// what pushed the sentence onto three rows: at 44 pt tall and 72 pt wide it
@@ -301,16 +381,30 @@ class InlineAmountField extends StatelessWidget {
   const InlineAmountField({
     required this.onChange,
     required this.onSubmit,
+    this.initial,
+    this.width = 46,
+    this.fieldKey,
     super.key,
   });
 
   final ValueChanged<double?> onChange;
   final VoidCallback onSubmit;
 
+  /// Seeds the controller once, when this widget is built. Give the widget a
+  /// key that moves with the text to re-seed it.
+  final String? initial;
+
+  final double width;
+
+  /// Keyed on the [FTextField] itself, so a test targets one slot of a
+  /// sentence that now has two.
+  final Key? fieldKey;
+
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: 46,
+    width: width,
     child: FTextField(
+      key: fieldKey,
       textAlign: TextAlign.center,
       textInputAction: TextInputAction.done,
       onSubmit: (_) => onSubmit(),
@@ -325,6 +419,7 @@ class InlineAmountField extends StatelessWidget {
       ),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       control: FTextFieldControl.managed(
+        initial: initial == null ? null : TextEditingValue(text: initial!),
         onChange: (v) => onChange(double.tryParse(v.text.trim())),
       ),
     ),
