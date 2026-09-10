@@ -23,6 +23,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/format.dart';
+import '../../../shared/inline_amount_field.dart';
 import '../domain/serving_measure.dart';
 import 'macros_format.dart';
 
@@ -142,22 +143,24 @@ class ServingRow extends StatelessWidget {
     children: [
       Text('One serving is', style: ansiMono(size: 11)),
       const SizedBox(width: 8),
-      SizedBox(
-        width: 64,
-        child: FTextField(
-          key: const ValueKey('serving-amount'),
-          textAlign: TextAlign.center,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          control: FTextFieldControl.managed(
-            initial: TextEditingValue(text: draft.amountText),
-            onChange: (v) => onAmount(v.text),
-          ),
-        ),
+      // The same slot the macro sentence and the density sentence use, so
+      // the three rows read as one form rather than one form and a field.
+      InlineAmountField(
+        fieldKey: const ValueKey('serving-amount'),
+        width: 52,
+        initial: draft.amountText,
+        onChange: onAmount,
+        onSubmit: () => FocusManager.instance.primaryFocus?.unfocus(),
       ),
       const SizedBox(width: 8),
-      Expanded(
+      // Sized to its word, at the small variant, for the same reason: a
+      // full-width, full-height select beside a 32 pt slot is two rows'
+      // worth of chrome for one word.
+      SizedBox(
+        width: 112,
         child: FSelect<Unit>.rich(
           key: const ValueKey('serving-unit'),
+          size: FTextFieldSizeVariant.sm,
           format: (u) => u.label,
           control: FSelectControl<Unit>.lifted(
             value: draft.unit,

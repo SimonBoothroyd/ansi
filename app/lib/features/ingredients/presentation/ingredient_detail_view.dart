@@ -987,11 +987,16 @@ class _DetailForm extends ConsumerWidget {
               // element. The serving unit sets the BASIS — a 14 g serving
               // reads per 100 g — so the admission chips follow it live.
               if (draft.perServing)
-                ServingRow(
-                  key: ValueKey('serving-row-${draft.servingSeed}'),
-                  draft: draft.serving,
-                  onAmount: form.setServingAmount,
-                  onUnit: form.setServingUnit,
+                Padding(
+                  // Breathing room before the figures: the serving is the
+                  // sentence's subject, and the four are its predicate.
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: ServingRow(
+                    key: ValueKey('serving-row-${draft.servingSeed}'),
+                    draft: draft.serving,
+                    onAmount: form.setServingAmount,
+                    onUnit: form.setServingUnit,
+                  ),
                 )
               else
                 const SizedBox.shrink(),
